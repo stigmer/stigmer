@@ -2,7 +2,7 @@
 // refused by name, before anything boots.
 // Domain: conformance benchmark.
 //
-// Pinned: the matrix is nine scenarios (seven on the bare agent, two on the
+// Pinned: the matrix is ten scenarios (seven on the bare agent, three on the
 // working agent) by two harnesses, and the quality arm is one target per
 // harness on its parity model; a missing Anthropic key refuses every native
 // cell and both quality targets; a missing Cursor key refuses Cursor cells
@@ -33,9 +33,9 @@ import {
 const ALL = { anthropicKey: true, openaiKey: true, cursorKey: true, stigmerCli: true };
 
 describe("benchmarkCells", () => {
-  it("is nine scenarios on two harnesses, parity and working cells pinned per harness", () => {
+  it("is ten scenarios on two harnesses, parity and working cells pinned per harness", () => {
     const cells = benchmarkCells();
-    expect(cells).toHaveLength(18);
+    expect(cells).toHaveLength(20);
     expect(cells.find((cell) => cell.id === "report-parity-simple/deep-agent")?.modelRequested).toBe("claude-sonnet-4.6");
     expect(cells.find((cell) => cell.id === "report-parity-simple/cursor")?.modelRequested).toBe("claude-sonnet-4-6");
     expect(cells.find((cell) => cell.id === "report-simple/cursor")?.modelRequested).toBeNull();
@@ -49,13 +49,17 @@ describe("benchmarkCells", () => {
     expect(crossTurn?.scenario.sessionShape).toBe("one-session-three-turns");
     expect(new Set(crossTurn?.scenario.prompts).size, "three different questions").toBe(3);
     expect(crossTurn?.modelRequested).toBe("claude-sonnet-4.6");
+    const longLog = cells.find((cell) => cell.id === "working-long-log/deep-agent");
+    expect(longLog?.scenario).toMatchObject({ agent: "working", mode: "working-agent", sessionShape: "one-session-three-turns" });
+    expect(longLog?.scenario.prompts[1], "the sampled turn asks about the long log").toContain("logs/sync-2026-10-20.log");
+    expect(longLog?.modelRequested).toBe("claude-sonnet-4.6");
   });
 });
 
 describe("planCells", () => {
   it("with both keys runs every benchmark cell and both quality targets on their parity models", () => {
     const plan = planCells(ALL, {});
-    expect(plan.cells).toHaveLength(18);
+    expect(plan.cells).toHaveLength(20);
     expect(plan.quality).toEqual([
       { id: "quality/deep-agent", harness: "deep-agent", modelRequested: "claude-sonnet-4.6" },
       { id: "quality/cursor", harness: "cursor", modelRequested: "claude-sonnet-4-6" },
@@ -97,6 +101,7 @@ describe("planCells", () => {
       "report-parity-turn-2/deep-agent",
       "working-read-edit/deep-agent",
       "working-cross-turn/deep-agent",
+      "working-long-log/deep-agent",
       "quality/deep-agent",
       "quality/cursor",
     ]);
@@ -105,7 +110,7 @@ describe("planCells", () => {
   it("a thinking run refuses the cells on a harness's default model and keeps every pinned cell", () => {
     const plan = planCells(ALL, { thinking: "enabled" });
     expect(plan.cells.every((cell) => cell.modelRequested !== null)).toBe(true);
-    expect(plan.cells).toHaveLength(12);
+    expect(plan.cells).toHaveLength(14);
     expect(plan.refused.filter((r) => r.reason === "thinking needs a pinned model").map((r) => r.cell)).toEqual([
       "report-simple/deep-agent",
       "report-simple/cursor",
@@ -123,7 +128,7 @@ describe("planCells", () => {
     expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent"]);
     const keyed = plan.refused.filter((r) => r.cell !== JUDGE_CALIBRATION_CELL);
     expect(keyed.every((r) => r.reason === "missing CURSOR_API_KEY")).toBe(true);
-    expect(keyed).toHaveLength(10);
+    expect(keyed).toHaveLength(11);
   });
 
   it("without the stigmer CLI refuses the working-agent timing cells alone, and keeps the quality targets", () => {
@@ -136,6 +141,8 @@ describe("planCells", () => {
       { cell: "working-read-edit/cursor", reason: "missing stigmer CLI" },
       { cell: "working-cross-turn/deep-agent", reason: "missing stigmer CLI" },
       { cell: "working-cross-turn/cursor", reason: "missing stigmer CLI" },
+      { cell: "working-long-log/deep-agent", reason: "missing stigmer CLI" },
+      { cell: "working-long-log/cursor", reason: "missing stigmer CLI" },
     ]);
   });
 
@@ -156,7 +163,7 @@ describe("--native-model", () => {
   it("moves every native pinned cell and the native quality target to its model, and leaves Cursor and the default cells as they are", () => {
     const cells = benchmarkCells("openai:gpt-5.5");
     expect(cells.filter((cell) => cell.harness === "deep-agent" && cell.scenario.mode !== "default").map((cell) => cell.modelRequested)).toEqual(
-      Array(6).fill("openai:gpt-5.5"),
+      Array(7).fill("openai:gpt-5.5"),
     );
     expect(cells.filter((cell) => cell.scenario.mode === "default").every((cell) => cell.modelRequested === null)).toBe(true);
     expect(cells.find((cell) => cell.id === "working-read-edit/cursor")?.modelRequested).toBe(PARITY_MODEL.cursor);
@@ -177,6 +184,7 @@ describe("--native-model", () => {
       "report-parity-turn-2/deep-agent",
       "working-read-edit/deep-agent",
       "working-cross-turn/deep-agent",
+      "working-long-log/deep-agent",
     ]);
     expect(plan.cells.every((cell) => cell.modelRequested === "openai:gpt-5.5")).toBe(true);
     expect(plan.quality).toEqual([{ id: "quality/deep-agent", harness: "deep-agent", modelRequested: "openai:gpt-5.5" }]);
@@ -202,30 +210,31 @@ describe("--native-model", () => {
       "report-parity-turn-2/deep-agent",
       "working-read-edit/deep-agent",
       "working-cross-turn/deep-agent",
+      "working-long-log/deep-agent",
       "quality/deep-agent",
     ]);
     const noAnthropic = planCells({ ...ALL, anthropicKey: false }, { nativeModel: "openai:gemini-3-pro", only: "deep-agent" });
-    expect(noAnthropic.cells, "the timing cells need no Anthropic key").toHaveLength(6);
+    expect(noAnthropic.cells, "the timing cells need no Anthropic key").toHaveLength(7);
     expect(noAnthropic.refused).toContainEqual({ cell: "quality/deep-agent", reason: "missing ANTHROPIC_API_KEY" });
   });
 
   it("a Claude model needs the Anthropic key alone, and a name the runner cannot place is refused as unknown", () => {
     const claude = planCells({ ...ALL, openaiKey: false }, { nativeModel: "anthropic:claude-x", only: "deep-agent" });
-    expect(claude.cells).toHaveLength(6);
+    expect(claude.cells).toHaveLength(7);
     const unknown = planCells(ALL, { nativeModel: "gemini-3-pro", only: "deep-agent" });
     expect(unknown.cells).toEqual([]);
     expect(unknown.quality).toEqual([]);
-    expect(unknown.refused.filter((r) => r.reason === "model provider unknown")).toHaveLength(7);
+    expect(unknown.refused.filter((r) => r.reason === "model provider unknown")).toHaveLength(8);
   });
 
   it("a thinking run refuses a native model that is not a catalog Claude model, and keeps a catalog Claude one", () => {
     for (const model of ["openai:gpt-5.5", "anthropic:claude-sonnet-4-6", "gpt-4o"]) {
       const plan = planCells(ALL, { nativeModel: model, only: "deep-agent", thinking: "enabled" });
       expect(plan.cells, model).toEqual([]);
-      expect(plan.refused.filter((r) => r.reason === "thinking needs a catalog Claude model"), model).toHaveLength(6);
+      expect(plan.refused.filter((r) => r.reason === "thinking needs a catalog Claude model"), model).toHaveLength(7);
       expect(plan.quality, "the eval run asks for no thinking").toHaveLength(1);
     }
-    expect(planCells(ALL, { nativeModel: "claude-opus-4.7", only: "deep-agent", thinking: "enabled" }).cells).toHaveLength(6);
+    expect(planCells(ALL, { nativeModel: "claude-opus-4.7", only: "deep-agent", thinking: "enabled" }).cells).toHaveLength(7);
   });
 });
 

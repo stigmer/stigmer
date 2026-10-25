@@ -3,14 +3,18 @@
 // facts its graders rest on, checked against the files they grade.
 // Domain: conformance benchmark.
 //
-// Pinned: the plugin installs and its suite loads nine cases with no
+// Pinned: the plugin installs and its suite loads eleven cases with no
 // finding, each scaffolded from the one shared workspace, only the resumed
 // case native-only; the order mock answers what the order tool's table
 // holds; the facts the rubrics state are the workspace's (the config's
 // retry limit and typo, the store's two defects, the signup totals, the
 // return policy); the resumed case's scaffold leaves the workspace as its
-// recorded turn left it; and the multi-part case allows the test the
-// repo-conventions skill asks for, where the orders package has none.
+// recorded turn left it; the multi-part case allows the test the
+// repo-conventions skill asks for, where the orders package has none; the
+// workspace's AGENTS.md holds one rule written nowhere else, graded by a case
+// of its own; and the sync log is longer than the runner's bound on a tool
+// result, in fewer lines than a read returns, with its cause only in its last
+// lines and no config key in it.
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -25,6 +29,15 @@ import { describe, expect, it } from "vitest";
 import { FIXTURE_ORDERS } from "../../harness/mcp-server";
 import { WORKING_AGENT_FIXTURE_DIR, WORKING_AGENT_WORKSPACE_FIXTURE_DIR } from "../../support/working-agent";
 import { readPluginDirectory } from "../quality-eval";
+
+// The runner's default bound on a tool result's characters (runner
+// activities/execute-deep-agent/turn-setup.ts, `max_tool_result_chars`), and
+// the lines deepagents' read_file returns when the call sets no limit
+// (deepagents 1.14.1). The sync log is an exercise of the bound only while it
+// sits between the two.
+const TOOL_RESULT_BOUND_CHARS = 30_000;
+const READ_FILE_DEFAULT_LINES = 500;
+const SYNC_LOG = "logs/sync-2026-10-20.log";
 
 const files = async () => inMemoryPluginFiles(await readPluginDirectory(WORKING_AGENT_FIXTURE_DIR));
 const workspaceFile = (path: string): Promise<string> => readFile(join(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, path), "utf8");
@@ -54,7 +67,7 @@ function graderText(evalCase: EvalCase): string {
 }
 
 describe("the working agent's plugin", () => {
-  it("installs, and its suite is nine cases with no finding, each scaffolded from the shared workspace", async () => {
+  it("installs, and its suite is eleven cases with no finding, each scaffolded from the shared workspace", async () => {
     const plugin = await files();
     expect(readPluginPackage(plugin).ok).toBe(true);
     const suite = readEvalSuite(plugin);
@@ -64,7 +77,9 @@ describe("the working agent's plugin", () => {
       "code-review-no-edit",
       "config-fix",
       "data-summary",
+      "diagnose-sync-log",
       "fix-bug-with-test",
+      "follows-repo-instructions",
       "multi-part-change",
       "refine-over-turns",
       "repo-question",
@@ -134,5 +149,37 @@ describe("the working agent's plugin", () => {
     expect(orders.filter((name) => name.endsWith("_test.go"))).toEqual([]);
     const unrelated = (await cases()).get("multi-part-change")!.graders.find((grader) => grader.name === "no-unrelated-edits")!;
     expect(unrelated.check.type === "regex" && unrelated.check.pattern).toContain("orders/[^/]+_test\\.go$");
+  });
+
+  it("gives the workspace's AGENTS.md one rule written nowhere else, and grades it in a case of its own", async () => {
+    const agents = (await workspaceFile("AGENTS.md")).replace(/\s+/g, " ");
+    expect(agents).toContain("Before you finish a change to Go code, run `go vet ./...` as well as `go test ./...`");
+    const elsewhere = [
+      await workspaceFile("README.md"),
+      await readFile(join(WORKING_AGENT_FIXTURE_DIR, "skills", "repo-conventions", "SKILL.md"), "utf8"),
+    ];
+    for (const text of elsewhere) expect(text).not.toMatch(/\bvet\b/);
+    const byName = await cases();
+    const vet = byName.get("follows-repo-instructions")!.graders.find((grader) => grader.name === "ran-go-vet")!;
+    expect(vet.check).toMatchObject({ type: "tool_used", tool: "Bash", inputMatch: "go vet" });
+    for (const [name, evalCase] of byName) {
+      if (name !== "follows-repo-instructions") expect(graderText(evalCase), name).not.toContain("go vet");
+    }
+  });
+
+  it("holds a sync log the runner's bound cuts and a whole read returns, its cause only in its last lines", async () => {
+    const log = await workspaceFile(SYNC_LOG);
+    expect(log.length).toBeGreaterThan(TOOL_RESULT_BOUND_CHARS);
+    expect(log.trimEnd().split("\n").length).toBeLessThan(READ_FILE_DEFAULT_LINES);
+    const tail = log.length - 2_000;
+    for (const cause of ["503", "Service Unavailable"]) {
+      expect(log.indexOf(cause), cause).toBeGreaterThanOrEqual(tail);
+    }
+    for (const key of ["max_attempts", "retry", "backoff"]) expect(log, key).not.toContain(key);
+    const diagnose = graderText((await cases()).get("diagnose-sync-log")!);
+    for (const fact of ["503", "page 193", "03:39:19", "03:40:57", "pages 193 to 214"]) {
+      expect(log, fact).toContain(fact);
+      expect(diagnose, fact).toContain(fact);
+    }
   });
 });

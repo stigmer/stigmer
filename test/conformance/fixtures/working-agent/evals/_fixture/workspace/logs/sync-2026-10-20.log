@@ -1,0 +1,410 @@
+2026-10-20T02:00:03.214Z INFO  syncer     sync run 2026-10-20 starting: storefront https://storefront.internal/api/orders, fulfilment db orders-primary, page size 100
+2026-10-20T02:00:03.810Z INFO  syncer     config loaded from config/sync.yaml; interval 5m; 21,400 orders changed since the last run, about 214 pages to fetch
+2026-10-20T02:00:04.245Z INFO  fulfilment connected to orders-primary (pool size 8, 2 idle) in 41ms
+2026-10-20T02:00:34.815Z INFO  storefront fetched page 1/214: 100 orders, cursor c0001-f676e2, in 397ms
+2026-10-20T02:00:34.946Z INFO  fulfilment upserted 100 orders from page 1 into orders and order_lines in 206ms (100 synced so far)
+2026-10-20T02:01:07.002Z INFO  storefront fetched page 2/214: 100 orders, cursor c0002-4bc9cd, in 263ms
+2026-10-20T02:01:07.118Z INFO  fulfilment upserted 100 orders from page 2 into orders and order_lines in 122ms (200 synced so far)
+2026-10-20T02:01:39.282Z INFO  storefront fetched page 3/214: 100 orders, cursor c0003-218881, in 388ms
+2026-10-20T02:01:39.508Z INFO  fulfilment upserted 100 orders from page 3 into orders and order_lines in 149ms (300 synced so far)
+2026-10-20T02:02:08.247Z INFO  storefront fetched page 4/214: 100 orders, cursor c0004-71e1e8, in 749ms
+2026-10-20T02:02:08.617Z INFO  fulfilment upserted 100 orders from page 4 into orders and order_lines in 94ms (400 synced so far)
+2026-10-20T02:02:37.876Z INFO  storefront fetched page 5/214: 100 orders, cursor c0005-13f735, in 231ms
+2026-10-20T02:02:38.057Z INFO  fulfilment upserted 100 orders from page 5 into orders and order_lines in 69ms (500 synced so far)
+2026-10-20T02:03:08.264Z INFO  storefront fetched page 6/214: 100 orders, cursor c0006-d062d1, in 656ms
+2026-10-20T02:03:08.504Z INFO  fulfilment upserted 100 orders from page 6 into orders and order_lines in 239ms (600 synced so far)
+2026-10-20T02:03:38.193Z INFO  storefront fetched page 7/214: 100 orders, cursor c0007-2e6633, in 635ms
+2026-10-20T02:03:38.456Z INFO  fulfilment upserted 100 orders from page 7 into orders and order_lines in 92ms (700 synced so far)
+2026-10-20T02:04:07.218Z INFO  storefront fetched page 8/214: 100 orders, cursor c0008-69f1e1, in 230ms
+2026-10-20T02:04:07.552Z INFO  fulfilment upserted 100 orders from page 8 into orders and order_lines in 95ms (800 synced so far)
+2026-10-20T02:04:39.365Z INFO  storefront fetched page 9/214: 100 orders, cursor c0009-570760, in 508ms
+2026-10-20T02:04:39.624Z INFO  fulfilment upserted 100 orders from page 9 into orders and order_lines in 185ms (900 synced so far)
+2026-10-20T02:05:12.576Z INFO  storefront fetched page 10/214: 100 orders, cursor c0010-2f83ec, in 321ms
+2026-10-20T02:05:12.699Z INFO  fulfilment upserted 100 orders from page 10 into orders and order_lines in 133ms (1,000 synced so far)
+2026-10-20T02:05:41.476Z INFO  storefront fetched page 11/214: 100 orders, cursor c0011-2f048e, in 376ms
+2026-10-20T02:05:41.779Z INFO  fulfilment upserted 100 orders from page 11 into orders and order_lines in 217ms (1,100 synced so far)
+2026-10-20T02:06:11.343Z INFO  storefront fetched page 12/214: 100 orders, cursor c0012-cde0f6, in 186ms
+2026-10-20T02:06:11.719Z INFO  fulfilment upserted 100 orders from page 12 into orders and order_lines in 202ms (1,200 synced so far)
+2026-10-20T02:06:43.849Z INFO  storefront fetched page 13/214: 100 orders, cursor c0013-425846, in 591ms
+2026-10-20T02:06:44.029Z INFO  fulfilment upserted 100 orders from page 13 into orders and order_lines in 142ms (1,300 synced so far)
+2026-10-20T02:07:15.251Z INFO  storefront fetched page 14/214: 100 orders, cursor c0014-5c899e, in 394ms
+2026-10-20T02:07:15.495Z INFO  fulfilment upserted 100 orders from page 14 into orders and order_lines in 162ms (1,400 synced so far)
+2026-10-20T02:07:46.417Z INFO  storefront fetched page 15/214: 100 orders, cursor c0015-d7eafc, in 645ms
+2026-10-20T02:07:46.752Z INFO  fulfilment upserted 100 orders from page 15 into orders and order_lines in 153ms (1,500 synced so far)
+2026-10-20T02:08:16.706Z INFO  storefront fetched page 16/214: 100 orders, cursor c0016-081926, in 401ms
+2026-10-20T02:08:16.815Z INFO  fulfilment upserted 100 orders from page 16 into orders and order_lines in 173ms (1,600 synced so far)
+2026-10-20T02:08:46.423Z INFO  storefront fetched page 17/214: 100 orders, cursor c0017-4a43d1, in 245ms
+2026-10-20T02:08:46.700Z INFO  fulfilment upserted 100 orders from page 17 into orders and order_lines in 84ms (1,700 synced so far)
+2026-10-20T02:09:15.106Z INFO  storefront fetched page 18/214: 100 orders, cursor c0018-59efee, in 298ms
+2026-10-20T02:09:15.443Z INFO  fulfilment upserted 100 orders from page 18 into orders and order_lines in 173ms (1,800 synced so far)
+2026-10-20T02:09:47.488Z INFO  storefront fetched page 19/214: 100 orders, cursor c0019-93635a, in 345ms
+2026-10-20T02:09:47.593Z INFO  fulfilment upserted 100 orders from page 19 into orders and order_lines in 219ms (1,900 synced so far)
+2026-10-20T02:10:18.587Z INFO  storefront fetched page 20/214: 100 orders, cursor c0020-82c303, in 461ms
+2026-10-20T02:10:18.914Z INFO  fulfilment upserted 100 orders from page 20 into orders and order_lines in 213ms (2,000 synced so far)
+2026-10-20T02:10:50.606Z INFO  storefront fetched page 21/214: 100 orders, cursor c0021-72766e, in 733ms
+2026-10-20T02:10:50.900Z INFO  fulfilment upserted 100 orders from page 21 into orders and order_lines in 162ms (2,100 synced so far)
+2026-10-20T02:11:21.621Z INFO  storefront fetched page 22/214: 100 orders, cursor c0022-e0cc70, in 404ms
+2026-10-20T02:11:21.767Z INFO  fulfilment upserted 100 orders from page 22 into orders and order_lines in 108ms (2,200 synced so far)
+2026-10-20T02:11:53.665Z INFO  storefront fetched page 23/214: 100 orders, cursor c0023-2b049e, in 2212ms
+2026-10-20T02:11:53.687Z WARN  storefront page 23 took 2212ms, above the 2000ms the dashboards flag as slow; the page arrived whole
+2026-10-20T02:11:54.073Z INFO  fulfilment upserted 100 orders from page 23 into orders and order_lines in 225ms (2,300 synced so far)
+2026-10-20T02:12:25.198Z INFO  storefront fetched page 24/214: 100 orders, cursor c0024-0c2384, in 577ms
+2026-10-20T02:12:25.413Z INFO  fulfilment upserted 100 orders from page 24 into orders and order_lines in 154ms (2,400 synced so far)
+2026-10-20T02:12:54.556Z INFO  storefront fetched page 25/214: 100 orders, cursor c0025-de8cec, in 182ms
+2026-10-20T02:12:54.811Z INFO  fulfilment upserted 100 orders from page 25 into orders and order_lines in 167ms (2,500 synced so far)
+2026-10-20T02:13:26.818Z INFO  storefront fetched page 26/214: 100 orders, cursor c0026-1718be, in 579ms
+2026-10-20T02:13:27.128Z INFO  fulfilment upserted 100 orders from page 26 into orders and order_lines in 125ms (2,600 synced so far)
+2026-10-20T02:13:55.564Z INFO  storefront fetched page 27/214: 100 orders, cursor c0027-914913, in 710ms
+2026-10-20T02:13:55.878Z INFO  fulfilment upserted 100 orders from page 27 into orders and order_lines in 169ms (2,700 synced so far)
+2026-10-20T02:14:28.717Z INFO  storefront fetched page 28/214: 100 orders, cursor c0028-43174b, in 665ms
+2026-10-20T02:14:28.849Z INFO  fulfilment upserted 100 orders from page 28 into orders and order_lines in 89ms (2,800 synced so far)
+2026-10-20T02:14:57.330Z INFO  storefront fetched page 29/214: 100 orders, cursor c0029-6f8901, in 376ms
+2026-10-20T02:14:57.592Z INFO  fulfilment upserted 100 orders from page 29 into orders and order_lines in 131ms (2,900 synced so far)
+2026-10-20T02:15:30.055Z INFO  storefront fetched page 30/214: 100 orders, cursor c0030-1a7271, in 388ms
+2026-10-20T02:15:30.412Z INFO  fulfilment upserted 100 orders from page 30 into orders and order_lines in 221ms (3,000 synced so far)
+2026-10-20T02:16:01.236Z INFO  storefront fetched page 31/214: 100 orders, cursor c0031-51eed0, in 620ms
+2026-10-20T02:16:01.613Z INFO  fulfilment upserted 100 orders from page 31 into orders and order_lines in 119ms (3,100 synced so far)
+2026-10-20T02:16:30.393Z INFO  storefront fetched page 32/214: 100 orders, cursor c0032-973de6, in 333ms
+2026-10-20T02:16:30.719Z INFO  fulfilment upserted 100 orders from page 32 into orders and order_lines in 80ms (3,200 synced so far)
+2026-10-20T02:17:01.499Z INFO  storefront fetched page 33/214: 100 orders, cursor c0033-b0d3b8, in 657ms
+2026-10-20T02:17:01.617Z INFO  fulfilment upserted 100 orders from page 33 into orders and order_lines in 95ms (3,300 synced so far)
+2026-10-20T02:17:33.507Z INFO  storefront fetched page 34/214: 100 orders, cursor c0034-682929, in 611ms
+2026-10-20T02:17:33.652Z INFO  fulfilment upserted 100 orders from page 34 into orders and order_lines in 159ms (3,400 synced so far)
+2026-10-20T02:18:03.899Z INFO  storefront fetched page 35/214: 100 orders, cursor c0035-b02b7b, in 583ms
+2026-10-20T02:18:04.235Z INFO  fulfilment upserted 100 orders from page 35 into orders and order_lines in 49ms (3,500 synced so far)
+2026-10-20T02:18:35.754Z INFO  storefront fetched page 36/214: 100 orders, cursor c0036-577653, in 525ms
+2026-10-20T02:18:36.069Z INFO  fulfilment upserted 100 orders from page 36 into orders and order_lines in 136ms (3,600 synced so far)
+2026-10-20T02:19:05.375Z INFO  storefront fetched page 37/214: 100 orders, cursor c0037-35fb6a, in 326ms
+2026-10-20T02:19:05.507Z WARN  orders     order ORD-9481 has no line items; skipped it and kept the rest of page 37
+2026-10-20T02:19:05.542Z INFO  fulfilment upserted 99 orders from page 37 into orders and order_lines in 193ms (3,699 synced so far)
+2026-10-20T02:19:34.057Z INFO  storefront fetched page 38/214: 100 orders, cursor c0038-0b4924, in 195ms
+2026-10-20T02:19:34.420Z INFO  fulfilment upserted 100 orders from page 38 into orders and order_lines in 98ms (3,799 synced so far)
+2026-10-20T02:20:03.490Z INFO  storefront fetched page 39/214: 100 orders, cursor c0039-b6a8eb, in 475ms
+2026-10-20T02:20:03.653Z INFO  fulfilment upserted 100 orders from page 39 into orders and order_lines in 217ms (3,899 synced so far)
+2026-10-20T02:20:32.611Z INFO  storefront fetched page 40/214: 100 orders, cursor c0040-0ea79e, in 445ms
+2026-10-20T02:20:32.885Z INFO  fulfilment upserted 100 orders from page 40 into orders and order_lines in 66ms (3,999 synced so far)
+2026-10-20T02:21:02.310Z INFO  storefront fetched page 41/214: 100 orders, cursor c0041-c6aed3, in 242ms
+2026-10-20T02:21:02.438Z INFO  fulfilment upserted 100 orders from page 41 into orders and order_lines in 224ms (4,099 synced so far)
+2026-10-20T02:21:33.209Z INFO  storefront fetched page 42/214: 100 orders, cursor c0042-38d69f, in 708ms
+2026-10-20T02:21:33.434Z INFO  fulfilment upserted 100 orders from page 42 into orders and order_lines in 92ms (4,199 synced so far)
+2026-10-20T02:22:04.176Z INFO  storefront fetched page 43/214: 100 orders, cursor c0043-ca83ec, in 304ms
+2026-10-20T02:22:04.407Z INFO  fulfilment upserted 100 orders from page 43 into orders and order_lines in 58ms (4,299 synced so far)
+2026-10-20T02:22:35.659Z INFO  storefront fetched page 44/214: 100 orders, cursor c0044-0ad43e, in 591ms
+2026-10-20T02:22:35.982Z INFO  fulfilment upserted 100 orders from page 44 into orders and order_lines in 193ms (4,399 synced so far)
+2026-10-20T02:23:05.390Z INFO  storefront fetched page 45/214: 100 orders, cursor c0045-3db449, in 199ms
+2026-10-20T02:23:05.678Z INFO  fulfilment upserted 100 orders from page 45 into orders and order_lines in 86ms (4,499 synced so far)
+2026-10-20T02:23:35.872Z INFO  storefront fetched page 46/214: 100 orders, cursor c0046-beb002, in 210ms
+2026-10-20T02:23:36.270Z INFO  fulfilment upserted 100 orders from page 46 into orders and order_lines in 199ms (4,599 synced so far)
+2026-10-20T02:24:06.721Z INFO  storefront fetched page 47/214: 100 orders, cursor c0047-dbd990, in 586ms
+2026-10-20T02:24:06.947Z INFO  fulfilment upserted 100 orders from page 47 into orders and order_lines in 186ms (4,699 synced so far)
+2026-10-20T02:24:39.204Z INFO  storefront fetched page 48/214: 100 orders, cursor c0048-bda8af, in 303ms
+2026-10-20T02:24:39.459Z INFO  fulfilment upserted 100 orders from page 48 into orders and order_lines in 185ms (4,799 synced so far)
+2026-10-20T02:24:39.492Z INFO  syncer     checkpoint written after page 48: cursor c0048, 4,799 orders synced, 1 skipped
+2026-10-20T02:25:09.500Z INFO  storefront fetched page 49/214: 100 orders, cursor c0049-2a9938, in 244ms
+2026-10-20T02:25:09.781Z INFO  fulfilment upserted 100 orders from page 49 into orders and order_lines in 116ms (4,899 synced so far)
+2026-10-20T02:25:40.179Z INFO  storefront fetched page 50/214: 100 orders, cursor c0050-555771, in 359ms
+2026-10-20T02:25:40.345Z INFO  fulfilment upserted 100 orders from page 50 into orders and order_lines in 209ms (4,999 synced so far)
+2026-10-20T02:26:08.973Z INFO  storefront fetched page 51/214: 100 orders, cursor c0051-cc0acd, in 581ms
+2026-10-20T02:26:09.127Z INFO  fulfilment upserted 100 orders from page 51 into orders and order_lines in 172ms (5,099 synced so far)
+2026-10-20T02:26:39.550Z INFO  storefront fetched page 52/214: 100 orders, cursor c0052-94feca, in 501ms
+2026-10-20T02:26:39.947Z INFO  fulfilment upserted 100 orders from page 52 into orders and order_lines in 136ms (5,199 synced so far)
+2026-10-20T02:27:10.891Z INFO  storefront fetched page 53/214: 100 orders, cursor c0053-e389a2, in 492ms
+2026-10-20T02:27:11.087Z INFO  fulfilment upserted 100 orders from page 53 into orders and order_lines in 64ms (5,299 synced so far)
+2026-10-20T02:27:44.036Z INFO  storefront fetched page 54/214: 100 orders, cursor c0054-8f1cf7, in 368ms
+2026-10-20T02:27:44.330Z INFO  fulfilment upserted 100 orders from page 54 into orders and order_lines in 86ms (5,399 synced so far)
+2026-10-20T02:28:16.980Z INFO  storefront fetched page 55/214: 100 orders, cursor c0055-ba7ac3, in 497ms
+2026-10-20T02:28:17.327Z INFO  fulfilment upserted 100 orders from page 55 into orders and order_lines in 86ms (5,499 synced so far)
+2026-10-20T02:28:50.067Z INFO  storefront fetched page 56/214: 100 orders, cursor c0056-78db1e, in 539ms
+2026-10-20T02:28:50.357Z INFO  fulfilment upserted 100 orders from page 56 into orders and order_lines in 86ms (5,599 synced so far)
+2026-10-20T02:29:21.580Z INFO  storefront fetched page 57/214: 100 orders, cursor c0057-b1f327, in 343ms
+2026-10-20T02:29:21.931Z INFO  fulfilment upserted 100 orders from page 57 into orders and order_lines in 166ms (5,699 synced so far)
+2026-10-20T02:29:54.231Z INFO  storefront fetched page 58/214: 100 orders, cursor c0058-94e9b8, in 282ms
+2026-10-20T02:29:54.447Z INFO  fulfilment upserted 100 orders from page 58 into orders and order_lines in 192ms (5,799 synced so far)
+2026-10-20T02:30:25.111Z INFO  storefront fetched page 59/214: 100 orders, cursor c0059-61113f, in 498ms
+2026-10-20T02:30:25.302Z INFO  fulfilment upserted 100 orders from page 59 into orders and order_lines in 152ms (5,899 synced so far)
+2026-10-20T02:30:55.852Z INFO  storefront fetched page 60/214: 100 orders, cursor c0060-2339d4, in 317ms
+2026-10-20T02:30:56.222Z INFO  fulfilment upserted 100 orders from page 60 into orders and order_lines in 130ms (5,999 synced so far)
+2026-10-20T02:31:27.937Z INFO  storefront fetched page 61/214: 100 orders, cursor c0061-819c80, in 644ms
+2026-10-20T02:31:28.182Z INFO  fulfilment upserted 100 orders from page 61 into orders and order_lines in 137ms (6,099 synced so far)
+2026-10-20T02:32:00.392Z INFO  storefront fetched page 62/214: 100 orders, cursor c0062-12b930, in 712ms
+2026-10-20T02:32:00.773Z INFO  fulfilment upserted 100 orders from page 62 into orders and order_lines in 199ms (6,199 synced so far)
+2026-10-20T02:32:29.799Z INFO  storefront fetched page 63/214: 100 orders, cursor c0063-f036c8, in 298ms
+2026-10-20T02:32:30.031Z INFO  fulfilment upserted 100 orders from page 63 into orders and order_lines in 150ms (6,299 synced so far)
+2026-10-20T02:33:01.504Z INFO  storefront fetched page 64/214: 100 orders, cursor c0064-3ed99f, in 647ms
+2026-10-20T02:33:01.872Z INFO  fulfilment upserted 100 orders from page 64 into orders and order_lines in 65ms (6,399 synced so far)
+2026-10-20T02:33:34.436Z INFO  storefront fetched page 65/214: 100 orders, cursor c0065-448d56, in 549ms
+2026-10-20T02:33:34.576Z INFO  fulfilment upserted 100 orders from page 65 into orders and order_lines in 228ms (6,499 synced so far)
+2026-10-20T02:34:05.509Z INFO  storefront fetched page 66/214: 100 orders, cursor c0066-fcf7a2, in 260ms
+2026-10-20T02:34:05.774Z INFO  fulfilment upserted 100 orders from page 66 into orders and order_lines in 164ms (6,599 synced so far)
+2026-10-20T02:34:37.414Z INFO  storefront fetched page 67/214: 100 orders, cursor c0067-e3de6f, in 489ms
+2026-10-20T02:34:37.693Z INFO  fulfilment upserted 100 orders from page 67 into orders and order_lines in 180ms (6,699 synced so far)
+2026-10-20T02:35:06.343Z INFO  storefront fetched page 68/214: 100 orders, cursor c0068-9ba357, in 704ms
+2026-10-20T02:35:06.525Z INFO  fulfilment upserted 100 orders from page 68 into orders and order_lines in 160ms (6,799 synced so far)
+2026-10-20T02:35:38.537Z INFO  storefront fetched page 69/214: 100 orders, cursor c0069-d47ca3, in 706ms
+2026-10-20T02:35:38.817Z INFO  fulfilment upserted 100 orders from page 69 into orders and order_lines in 236ms (6,899 synced so far)
+2026-10-20T02:36:11.039Z INFO  storefront fetched page 70/214: 100 orders, cursor c0070-56dfe8, in 279ms
+2026-10-20T02:36:11.230Z INFO  fulfilment upserted 100 orders from page 70 into orders and order_lines in 110ms (6,999 synced so far)
+2026-10-20T02:36:40.888Z INFO  storefront fetched page 71/214: 100 orders, cursor c0071-41e374, in 455ms
+2026-10-20T02:36:41.186Z INFO  fulfilment upserted 100 orders from page 71 into orders and order_lines in 212ms (7,099 synced so far)
+2026-10-20T02:37:10.383Z INFO  storefront fetched page 72/214: 100 orders, cursor c0072-1cce92, in 643ms
+2026-10-20T02:37:10.497Z INFO  fulfilment upserted 100 orders from page 72 into orders and order_lines in 131ms (7,199 synced so far)
+2026-10-20T02:37:40.405Z INFO  storefront fetched page 73/214: 100 orders, cursor c0073-ad4326, in 594ms
+2026-10-20T02:37:40.586Z INFO  fulfilment upserted 100 orders from page 73 into orders and order_lines in 138ms (7,299 synced so far)
+2026-10-20T02:38:10.305Z INFO  storefront fetched page 74/214: 100 orders, cursor c0074-b3a85c, in 536ms
+2026-10-20T02:38:10.668Z WARN  orders     order ORD-1405 has no line items; skipped it and kept the rest of page 74
+2026-10-20T02:38:10.685Z INFO  fulfilment upserted 99 orders from page 74 into orders and order_lines in 145ms (7,398 synced so far)
+2026-10-20T02:38:43.350Z INFO  storefront fetched page 75/214: 100 orders, cursor c0075-8beece, in 526ms
+2026-10-20T02:38:43.723Z INFO  fulfilment upserted 100 orders from page 75 into orders and order_lines in 180ms (7,498 synced so far)
+2026-10-20T02:39:12.829Z INFO  storefront fetched page 76/214: 100 orders, cursor c0076-140bb8, in 199ms
+2026-10-20T02:39:13.046Z INFO  fulfilment upserted 100 orders from page 76 into orders and order_lines in 202ms (7,598 synced so far)
+2026-10-20T02:39:45.460Z INFO  storefront fetched page 77/214: 100 orders, cursor c0077-3e6dd1, in 495ms
+2026-10-20T02:39:45.716Z INFO  fulfilment upserted 100 orders from page 77 into orders and order_lines in 227ms (7,698 synced so far)
+2026-10-20T02:40:15.280Z INFO  storefront fetched page 78/214: 100 orders, cursor c0078-3321f6, in 301ms
+2026-10-20T02:40:15.637Z INFO  fulfilment upserted 100 orders from page 78 into orders and order_lines in 122ms (7,798 synced so far)
+2026-10-20T02:40:45.249Z INFO  storefront fetched page 79/214: 100 orders, cursor c0079-6376a7, in 297ms
+2026-10-20T02:40:45.578Z INFO  fulfilment upserted 100 orders from page 79 into orders and order_lines in 44ms (7,898 synced so far)
+2026-10-20T02:41:14.890Z INFO  storefront fetched page 80/214: 100 orders, cursor c0080-d73c9d, in 759ms
+2026-10-20T02:41:14.996Z INFO  fulfilment upserted 100 orders from page 80 into orders and order_lines in 110ms (7,998 synced so far)
+2026-10-20T02:41:43.687Z INFO  storefront fetched page 81/214: 100 orders, cursor c0081-aeddf7, in 229ms
+2026-10-20T02:41:44.046Z INFO  fulfilment upserted 100 orders from page 81 into orders and order_lines in 56ms (8,098 synced so far)
+2026-10-20T02:42:16.393Z INFO  storefront fetched page 82/214: 100 orders, cursor c0082-9fc8e6, in 547ms
+2026-10-20T02:42:16.517Z INFO  fulfilment upserted 100 orders from page 82 into orders and order_lines in 140ms (8,198 synced so far)
+2026-10-20T02:42:48.621Z INFO  storefront fetched page 83/214: 100 orders, cursor c0083-de2d5f, in 256ms
+2026-10-20T02:42:48.752Z INFO  fulfilment upserted 100 orders from page 83 into orders and order_lines in 94ms (8,298 synced so far)
+2026-10-20T02:43:19.716Z INFO  storefront fetched page 84/214: 100 orders, cursor c0084-7d75d5, in 204ms
+2026-10-20T02:43:19.938Z INFO  fulfilment upserted 100 orders from page 84 into orders and order_lines in 165ms (8,398 synced so far)
+2026-10-20T02:43:51.513Z INFO  storefront fetched page 85/214: 100 orders, cursor c0085-b98f9e, in 289ms
+2026-10-20T02:43:51.685Z INFO  fulfilment upserted 100 orders from page 85 into orders and order_lines in 46ms (8,498 synced so far)
+2026-10-20T02:44:19.689Z INFO  storefront fetched page 86/214: 100 orders, cursor c0086-64e3c9, in 260ms
+2026-10-20T02:44:20.024Z INFO  fulfilment upserted 100 orders from page 86 into orders and order_lines in 69ms (8,598 synced so far)
+2026-10-20T02:44:48.373Z INFO  storefront fetched page 87/214: 100 orders, cursor c0087-7d8987, in 2156ms
+2026-10-20T02:44:48.390Z WARN  storefront page 87 took 2156ms, above the 2000ms the dashboards flag as slow; the page arrived whole
+2026-10-20T02:44:48.649Z INFO  fulfilment upserted 100 orders from page 87 into orders and order_lines in 62ms (8,698 synced so far)
+2026-10-20T02:45:17.140Z INFO  storefront fetched page 88/214: 100 orders, cursor c0088-0bff04, in 374ms
+2026-10-20T02:45:17.306Z INFO  fulfilment upserted 100 orders from page 88 into orders and order_lines in 189ms (8,798 synced so far)
+2026-10-20T02:45:45.364Z INFO  storefront fetched page 89/214: 100 orders, cursor c0089-f8a213, in 470ms
+2026-10-20T02:45:45.658Z INFO  fulfilment upserted 100 orders from page 89 into orders and order_lines in 165ms (8,898 synced so far)
+2026-10-20T02:46:14.137Z INFO  storefront fetched page 90/214: 100 orders, cursor c0090-95e34b, in 615ms
+2026-10-20T02:46:14.429Z INFO  fulfilment upserted 100 orders from page 90 into orders and order_lines in 132ms (8,998 synced so far)
+2026-10-20T02:46:45.913Z INFO  storefront fetched page 91/214: 100 orders, cursor c0091-4f178d, in 609ms
+2026-10-20T02:46:46.272Z INFO  fulfilment upserted 100 orders from page 91 into orders and order_lines in 156ms (9,098 synced so far)
+2026-10-20T02:47:15.836Z INFO  storefront fetched page 92/214: 100 orders, cursor c0092-1b5e6c, in 640ms
+2026-10-20T02:47:16.080Z INFO  fulfilment upserted 100 orders from page 92 into orders and order_lines in 154ms (9,198 synced so far)
+2026-10-20T02:47:44.906Z INFO  storefront fetched page 93/214: 100 orders, cursor c0093-51421c, in 405ms
+2026-10-20T02:47:45.214Z INFO  fulfilment upserted 100 orders from page 93 into orders and order_lines in 209ms (9,298 synced so far)
+2026-10-20T02:48:15.547Z INFO  storefront fetched page 94/214: 100 orders, cursor c0094-77fdcb, in 182ms
+2026-10-20T02:48:15.665Z INFO  fulfilment upserted 100 orders from page 94 into orders and order_lines in 179ms (9,398 synced so far)
+2026-10-20T02:48:48.619Z INFO  storefront fetched page 95/214: 100 orders, cursor c0095-ded7d7, in 609ms
+2026-10-20T02:48:48.840Z INFO  fulfilment upserted 100 orders from page 95 into orders and order_lines in 149ms (9,498 synced so far)
+2026-10-20T02:49:17.778Z INFO  storefront fetched page 96/214: 100 orders, cursor c0096-ac911e, in 299ms
+2026-10-20T02:49:17.973Z INFO  fulfilment upserted 100 orders from page 96 into orders and order_lines in 200ms (9,598 synced so far)
+2026-10-20T02:49:18.012Z INFO  syncer     checkpoint written after page 96: cursor c0096, 9,598 orders synced, 2 skipped
+2026-10-20T02:49:48.683Z INFO  storefront fetched page 97/214: 100 orders, cursor c0097-aba03c, in 287ms
+2026-10-20T02:49:48.804Z INFO  fulfilment upserted 100 orders from page 97 into orders and order_lines in 232ms (9,698 synced so far)
+2026-10-20T02:50:21.615Z INFO  storefront fetched page 98/214: 100 orders, cursor c0098-aa9448, in 469ms
+2026-10-20T02:50:21.717Z INFO  fulfilment upserted 100 orders from page 98 into orders and order_lines in 105ms (9,798 synced so far)
+2026-10-20T02:50:52.350Z INFO  storefront fetched page 99/214: 100 orders, cursor c0099-3d3dfe, in 551ms
+2026-10-20T02:50:52.555Z INFO  fulfilment upserted 100 orders from page 99 into orders and order_lines in 49ms (9,898 synced so far)
+2026-10-20T02:51:20.826Z INFO  storefront fetched page 100/214: 100 orders, cursor c0100-3876a3, in 259ms
+2026-10-20T02:51:21.134Z INFO  fulfilment upserted 100 orders from page 100 into orders and order_lines in 231ms (9,998 synced so far)
+2026-10-20T02:51:52.896Z INFO  storefront fetched page 101/214: 100 orders, cursor c0101-bed617, in 198ms
+2026-10-20T02:51:53.013Z INFO  fulfilment upserted 100 orders from page 101 into orders and order_lines in 161ms (10,098 synced so far)
+2026-10-20T02:52:22.513Z INFO  storefront fetched page 102/214: 100 orders, cursor c0102-23a2fa, in 291ms
+2026-10-20T02:52:22.626Z INFO  fulfilment upserted 100 orders from page 102 into orders and order_lines in 73ms (10,198 synced so far)
+2026-10-20T02:52:54.552Z INFO  storefront fetched page 103/214: 100 orders, cursor c0103-7ec236, in 693ms
+2026-10-20T02:52:54.761Z INFO  fulfilment upserted 100 orders from page 103 into orders and order_lines in 40ms (10,298 synced so far)
+2026-10-20T02:53:24.872Z INFO  storefront fetched page 104/214: 100 orders, cursor c0104-6ecb36, in 389ms
+2026-10-20T02:53:25.172Z INFO  fulfilment upserted 100 orders from page 104 into orders and order_lines in 196ms (10,398 synced so far)
+2026-10-20T02:53:57.617Z INFO  storefront fetched page 105/214: 100 orders, cursor c0105-7b2fe8, in 555ms
+2026-10-20T02:53:57.792Z INFO  fulfilment upserted 100 orders from page 105 into orders and order_lines in 203ms (10,498 synced so far)
+2026-10-20T02:54:27.210Z INFO  storefront fetched page 106/214: 100 orders, cursor c0106-cc30dd, in 415ms
+2026-10-20T02:54:27.505Z INFO  fulfilment upserted 100 orders from page 106 into orders and order_lines in 165ms (10,598 synced so far)
+2026-10-20T02:54:59.089Z INFO  storefront fetched page 107/214: 100 orders, cursor c0107-b66668, in 225ms
+2026-10-20T02:54:59.428Z INFO  fulfilment upserted 100 orders from page 107 into orders and order_lines in 41ms (10,698 synced so far)
+2026-10-20T02:55:32.009Z INFO  storefront fetched page 108/214: 100 orders, cursor c0108-9eb6de, in 187ms
+2026-10-20T02:55:32.404Z INFO  fulfilment upserted 100 orders from page 108 into orders and order_lines in 200ms (10,798 synced so far)
+2026-10-20T02:56:05.233Z INFO  storefront fetched page 109/214: 100 orders, cursor c0109-15a782, in 523ms
+2026-10-20T02:56:05.431Z INFO  fulfilment upserted 100 orders from page 109 into orders and order_lines in 107ms (10,898 synced so far)
+2026-10-20T02:56:38.296Z INFO  storefront fetched page 110/214: 100 orders, cursor c0110-31e3f3, in 375ms
+2026-10-20T02:56:38.399Z INFO  fulfilment upserted 100 orders from page 110 into orders and order_lines in 148ms (10,998 synced so far)
+2026-10-20T02:57:06.609Z INFO  storefront fetched page 111/214: 100 orders, cursor c0111-9d21f0, in 709ms
+2026-10-20T02:57:06.733Z WARN  orders     order ORD-1627 has no line items; skipped it and kept the rest of page 111
+2026-10-20T02:57:06.759Z INFO  fulfilment upserted 99 orders from page 111 into orders and order_lines in 65ms (11,097 synced so far)
+2026-10-20T02:57:38.162Z INFO  storefront fetched page 112/214: 100 orders, cursor c0112-057ebb, in 586ms
+2026-10-20T02:57:38.361Z INFO  fulfilment upserted 100 orders from page 112 into orders and order_lines in 114ms (11,197 synced so far)
+2026-10-20T02:58:07.175Z INFO  storefront fetched page 113/214: 100 orders, cursor c0113-39d302, in 525ms
+2026-10-20T02:58:07.285Z INFO  fulfilment upserted 100 orders from page 113 into orders and order_lines in 175ms (11,297 synced so far)
+2026-10-20T02:58:36.520Z INFO  storefront fetched page 114/214: 100 orders, cursor c0114-c390aa, in 327ms
+2026-10-20T02:58:36.806Z INFO  fulfilment upserted 100 orders from page 114 into orders and order_lines in 153ms (11,397 synced so far)
+2026-10-20T02:59:09.103Z INFO  storefront fetched page 115/214: 100 orders, cursor c0115-362022, in 604ms
+2026-10-20T02:59:09.257Z INFO  fulfilment upserted 100 orders from page 115 into orders and order_lines in 214ms (11,497 synced so far)
+2026-10-20T02:59:41.923Z INFO  storefront fetched page 116/214: 100 orders, cursor c0116-b1cbe2, in 743ms
+2026-10-20T02:59:42.235Z INFO  fulfilment upserted 100 orders from page 116 into orders and order_lines in 95ms (11,597 synced so far)
+2026-10-20T03:00:15.136Z INFO  storefront fetched page 117/214: 100 orders, cursor c0117-b65638, in 283ms
+2026-10-20T03:00:15.392Z INFO  fulfilment upserted 100 orders from page 117 into orders and order_lines in 160ms (11,697 synced so far)
+2026-10-20T03:00:45.997Z INFO  storefront fetched page 118/214: 100 orders, cursor c0118-055d73, in 685ms
+2026-10-20T03:00:46.142Z INFO  fulfilment upserted 100 orders from page 118 into orders and order_lines in 157ms (11,797 synced so far)
+2026-10-20T03:01:16.658Z INFO  storefront fetched page 119/214: 100 orders, cursor c0119-da7847, in 272ms
+2026-10-20T03:01:17.034Z INFO  fulfilment upserted 100 orders from page 119 into orders and order_lines in 46ms (11,897 synced so far)
+2026-10-20T03:01:45.225Z INFO  storefront fetched page 120/214: 100 orders, cursor c0120-ed861e, in 350ms
+2026-10-20T03:01:45.348Z INFO  fulfilment upserted 100 orders from page 120 into orders and order_lines in 104ms (11,997 synced so far)
+2026-10-20T03:02:13.825Z INFO  storefront fetched page 121/214: 100 orders, cursor c0121-2839c4, in 748ms
+2026-10-20T03:02:14.053Z INFO  fulfilment upserted 100 orders from page 121 into orders and order_lines in 87ms (12,097 synced so far)
+2026-10-20T03:02:42.146Z INFO  storefront fetched page 122/214: 100 orders, cursor c0122-9212c3, in 714ms
+2026-10-20T03:02:42.536Z INFO  fulfilment upserted 100 orders from page 122 into orders and order_lines in 120ms (12,197 synced so far)
+2026-10-20T03:03:10.615Z INFO  storefront fetched page 123/214: 100 orders, cursor c0123-33082a, in 669ms
+2026-10-20T03:03:10.911Z INFO  fulfilment upserted 100 orders from page 123 into orders and order_lines in 204ms (12,297 synced so far)
+2026-10-20T03:03:41.062Z INFO  storefront fetched page 124/214: 100 orders, cursor c0124-6ca1cf, in 196ms
+2026-10-20T03:03:41.461Z INFO  fulfilment upserted 100 orders from page 124 into orders and order_lines in 128ms (12,397 synced so far)
+2026-10-20T03:04:14.024Z INFO  storefront fetched page 125/214: 100 orders, cursor c0125-c3e4ba, in 438ms
+2026-10-20T03:04:14.349Z INFO  fulfilment upserted 100 orders from page 125 into orders and order_lines in 130ms (12,497 synced so far)
+2026-10-20T03:04:45.623Z INFO  storefront fetched page 126/214: 100 orders, cursor c0126-f1173f, in 725ms
+2026-10-20T03:04:45.926Z INFO  fulfilment upserted 100 orders from page 126 into orders and order_lines in 203ms (12,597 synced so far)
+2026-10-20T03:05:15.600Z INFO  storefront fetched page 127/214: 100 orders, cursor c0127-2756dd, in 304ms
+2026-10-20T03:05:15.775Z INFO  fulfilment upserted 100 orders from page 127 into orders and order_lines in 193ms (12,697 synced so far)
+2026-10-20T03:05:47.650Z INFO  storefront fetched page 128/214: 100 orders, cursor c0128-289e3a, in 299ms
+2026-10-20T03:05:47.796Z INFO  fulfilment upserted 100 orders from page 128 into orders and order_lines in 80ms (12,797 synced so far)
+2026-10-20T03:06:20.597Z INFO  storefront fetched page 129/214: 100 orders, cursor c0129-532445, in 200ms
+2026-10-20T03:06:20.769Z INFO  fulfilment upserted 100 orders from page 129 into orders and order_lines in 59ms (12,897 synced so far)
+2026-10-20T03:06:51.976Z INFO  storefront fetched page 130/214: 100 orders, cursor c0130-bcd9e6, in 367ms
+2026-10-20T03:06:52.221Z INFO  fulfilment upserted 100 orders from page 130 into orders and order_lines in 130ms (12,997 synced so far)
+2026-10-20T03:07:21.765Z INFO  storefront fetched page 131/214: 100 orders, cursor c0131-aad73c, in 504ms
+2026-10-20T03:07:22.030Z INFO  fulfilment upserted 100 orders from page 131 into orders and order_lines in 88ms (13,097 synced so far)
+2026-10-20T03:07:53.665Z INFO  storefront fetched page 132/214: 100 orders, cursor c0132-5997ef, in 575ms
+2026-10-20T03:07:53.847Z INFO  fulfilment upserted 100 orders from page 132 into orders and order_lines in 128ms (13,197 synced so far)
+2026-10-20T03:08:24.271Z INFO  storefront fetched page 133/214: 100 orders, cursor c0133-7d255b, in 393ms
+2026-10-20T03:08:24.406Z INFO  fulfilment upserted 100 orders from page 133 into orders and order_lines in 230ms (13,297 synced so far)
+2026-10-20T03:08:55.754Z INFO  storefront fetched page 134/214: 100 orders, cursor c0134-28e9b3, in 369ms
+2026-10-20T03:08:56.040Z INFO  fulfilment upserted 100 orders from page 134 into orders and order_lines in 227ms (13,397 synced so far)
+2026-10-20T03:09:28.290Z INFO  storefront fetched page 135/214: 100 orders, cursor c0135-7143e7, in 582ms
+2026-10-20T03:09:28.483Z INFO  fulfilment upserted 100 orders from page 135 into orders and order_lines in 101ms (13,497 synced so far)
+2026-10-20T03:09:57.636Z INFO  storefront fetched page 136/214: 100 orders, cursor c0136-7e92e4, in 570ms
+2026-10-20T03:09:57.765Z INFO  fulfilment upserted 100 orders from page 136 into orders and order_lines in 224ms (13,597 synced so far)
+2026-10-20T03:10:26.689Z INFO  storefront fetched page 137/214: 100 orders, cursor c0137-448084, in 197ms
+2026-10-20T03:10:26.893Z INFO  fulfilment upserted 100 orders from page 137 into orders and order_lines in 58ms (13,697 synced so far)
+2026-10-20T03:10:55.338Z INFO  storefront fetched page 138/214: 100 orders, cursor c0138-685f8b, in 661ms
+2026-10-20T03:10:55.608Z INFO  fulfilment upserted 100 orders from page 138 into orders and order_lines in 87ms (13,797 synced so far)
+2026-10-20T03:11:26.373Z INFO  storefront fetched page 139/214: 100 orders, cursor c0139-f2340d, in 226ms
+2026-10-20T03:11:26.642Z INFO  fulfilment upserted 100 orders from page 139 into orders and order_lines in 186ms (13,897 synced so far)
+2026-10-20T03:11:58.865Z INFO  storefront fetched page 140/214: 100 orders, cursor c0140-b0c2e8, in 693ms
+2026-10-20T03:11:59.048Z INFO  fulfilment upserted 100 orders from page 140 into orders and order_lines in 174ms (13,997 synced so far)
+2026-10-20T03:12:27.215Z INFO  storefront fetched page 141/214: 100 orders, cursor c0141-39d4ef, in 2435ms
+2026-10-20T03:12:27.228Z WARN  storefront page 141 took 2435ms, above the 2000ms the dashboards flag as slow; the page arrived whole
+2026-10-20T03:12:27.587Z INFO  fulfilment upserted 100 orders from page 141 into orders and order_lines in 128ms (14,097 synced so far)
+2026-10-20T03:12:58.644Z INFO  storefront fetched page 142/214: 100 orders, cursor c0142-923011, in 461ms
+2026-10-20T03:12:58.866Z INFO  fulfilment upserted 100 orders from page 142 into orders and order_lines in 75ms (14,197 synced so far)
+2026-10-20T03:13:26.928Z INFO  storefront fetched page 143/214: 100 orders, cursor c0143-ff3031, in 670ms
+2026-10-20T03:13:27.205Z INFO  fulfilment upserted 100 orders from page 143 into orders and order_lines in 127ms (14,297 synced so far)
+2026-10-20T03:13:59.256Z INFO  storefront fetched page 144/214: 100 orders, cursor c0144-86321e, in 557ms
+2026-10-20T03:13:59.638Z INFO  fulfilment upserted 100 orders from page 144 into orders and order_lines in 67ms (14,397 synced so far)
+2026-10-20T03:13:59.675Z INFO  syncer     checkpoint written after page 144: cursor c0144, 14,397 orders synced, 3 skipped
+2026-10-20T03:14:29.689Z INFO  storefront fetched page 145/214: 100 orders, cursor c0145-9c2848, in 620ms
+2026-10-20T03:14:29.861Z INFO  fulfilment upserted 100 orders from page 145 into orders and order_lines in 213ms (14,497 synced so far)
+2026-10-20T03:15:01.890Z INFO  storefront fetched page 146/214: 100 orders, cursor c0146-1cd790, in 393ms
+2026-10-20T03:15:02.203Z INFO  fulfilment upserted 100 orders from page 146 into orders and order_lines in 235ms (14,597 synced so far)
+2026-10-20T03:15:32.730Z INFO  storefront fetched page 147/214: 100 orders, cursor c0147-fb54ba, in 215ms
+2026-10-20T03:15:33.045Z INFO  fulfilment upserted 100 orders from page 147 into orders and order_lines in 192ms (14,697 synced so far)
+2026-10-20T03:16:05.257Z INFO  storefront fetched page 148/214: 100 orders, cursor c0148-72c3b5, in 380ms
+2026-10-20T03:16:05.557Z WARN  orders     order ORD-1425 has no line items; skipped it and kept the rest of page 148
+2026-10-20T03:16:05.579Z INFO  fulfilment upserted 99 orders from page 148 into orders and order_lines in 222ms (14,796 synced so far)
+2026-10-20T03:16:36.182Z INFO  storefront fetched page 149/214: 100 orders, cursor c0149-87e647, in 704ms
+2026-10-20T03:16:36.334Z INFO  fulfilment upserted 100 orders from page 149 into orders and order_lines in 144ms (14,896 synced so far)
+2026-10-20T03:17:07.013Z INFO  storefront fetched page 150/214: 100 orders, cursor c0150-c9aaf1, in 192ms
+2026-10-20T03:17:07.378Z INFO  fulfilment upserted 100 orders from page 150 into orders and order_lines in 233ms (14,996 synced so far)
+2026-10-20T03:17:36.216Z INFO  storefront fetched page 151/214: 100 orders, cursor c0151-acb9ee, in 545ms
+2026-10-20T03:17:36.400Z INFO  fulfilment upserted 100 orders from page 151 into orders and order_lines in 101ms (15,096 synced so far)
+2026-10-20T03:18:05.219Z INFO  storefront fetched page 152/214: 100 orders, cursor c0152-72163c, in 512ms
+2026-10-20T03:18:05.338Z INFO  fulfilment upserted 100 orders from page 152 into orders and order_lines in 236ms (15,196 synced so far)
+2026-10-20T03:18:33.441Z INFO  storefront fetched page 153/214: 100 orders, cursor c0153-5c3ab0, in 748ms
+2026-10-20T03:18:33.542Z INFO  fulfilment upserted 100 orders from page 153 into orders and order_lines in 58ms (15,296 synced so far)
+2026-10-20T03:19:05.229Z INFO  storefront fetched page 154/214: 100 orders, cursor c0154-3885b5, in 354ms
+2026-10-20T03:19:05.515Z INFO  fulfilment upserted 100 orders from page 154 into orders and order_lines in 154ms (15,396 synced so far)
+2026-10-20T03:19:36.962Z INFO  storefront fetched page 155/214: 100 orders, cursor c0155-fb45fa, in 334ms
+2026-10-20T03:19:37.282Z INFO  fulfilment upserted 100 orders from page 155 into orders and order_lines in 49ms (15,496 synced so far)
+2026-10-20T03:20:09.586Z INFO  storefront fetched page 156/214: 100 orders, cursor c0156-4df109, in 229ms
+2026-10-20T03:20:09.831Z INFO  fulfilment upserted 100 orders from page 156 into orders and order_lines in 105ms (15,596 synced so far)
+2026-10-20T03:20:42.713Z INFO  storefront fetched page 157/214: 100 orders, cursor c0157-214c5b, in 542ms
+2026-10-20T03:20:43.012Z INFO  fulfilment upserted 100 orders from page 157 into orders and order_lines in 133ms (15,696 synced so far)
+2026-10-20T03:21:15.869Z INFO  storefront fetched page 158/214: 100 orders, cursor c0158-056817, in 470ms
+2026-10-20T03:21:16.049Z INFO  fulfilment upserted 100 orders from page 158 into orders and order_lines in 146ms (15,796 synced so far)
+2026-10-20T03:21:47.661Z INFO  storefront fetched page 159/214: 100 orders, cursor c0159-c3b193, in 239ms
+2026-10-20T03:21:47.874Z INFO  fulfilment upserted 100 orders from page 159 into orders and order_lines in 143ms (15,896 synced so far)
+2026-10-20T03:22:18.184Z INFO  storefront fetched page 160/214: 100 orders, cursor c0160-d021d7, in 192ms
+2026-10-20T03:22:18.286Z INFO  fulfilment upserted 100 orders from page 160 into orders and order_lines in 231ms (15,996 synced so far)
+2026-10-20T03:22:49.818Z INFO  storefront fetched page 161/214: 100 orders, cursor c0161-e46e60, in 496ms
+2026-10-20T03:22:50.182Z INFO  fulfilment upserted 100 orders from page 161 into orders and order_lines in 59ms (16,096 synced so far)
+2026-10-20T03:23:21.719Z INFO  storefront fetched page 162/214: 100 orders, cursor c0162-fc9258, in 452ms
+2026-10-20T03:23:22.002Z INFO  fulfilment upserted 100 orders from page 162 into orders and order_lines in 53ms (16,196 synced so far)
+2026-10-20T03:23:54.107Z INFO  storefront fetched page 163/214: 100 orders, cursor c0163-880f75, in 249ms
+2026-10-20T03:23:54.251Z INFO  fulfilment upserted 100 orders from page 163 into orders and order_lines in 122ms (16,296 synced so far)
+2026-10-20T03:24:26.656Z INFO  storefront fetched page 164/214: 100 orders, cursor c0164-3deab0, in 487ms
+2026-10-20T03:24:26.773Z INFO  fulfilment upserted 100 orders from page 164 into orders and order_lines in 150ms (16,396 synced so far)
+2026-10-20T03:24:57.967Z INFO  storefront fetched page 165/214: 100 orders, cursor c0165-006718, in 594ms
+2026-10-20T03:24:58.291Z INFO  fulfilment upserted 100 orders from page 165 into orders and order_lines in 112ms (16,496 synced so far)
+2026-10-20T03:25:29.763Z INFO  storefront fetched page 166/214: 100 orders, cursor c0166-29017d, in 208ms
+2026-10-20T03:25:30.087Z INFO  fulfilment upserted 100 orders from page 166 into orders and order_lines in 160ms (16,596 synced so far)
+2026-10-20T03:26:02.754Z INFO  storefront fetched page 167/214: 100 orders, cursor c0167-c9af5c, in 629ms
+2026-10-20T03:26:02.954Z INFO  fulfilment upserted 100 orders from page 167 into orders and order_lines in 155ms (16,696 synced so far)
+2026-10-20T03:26:33.862Z INFO  storefront fetched page 168/214: 100 orders, cursor c0168-6e695f, in 680ms
+2026-10-20T03:26:34.011Z INFO  fulfilment upserted 100 orders from page 168 into orders and order_lines in 65ms (16,796 synced so far)
+2026-10-20T03:27:03.392Z INFO  storefront fetched page 169/214: 100 orders, cursor c0169-2de109, in 502ms
+2026-10-20T03:27:03.641Z INFO  fulfilment upserted 100 orders from page 169 into orders and order_lines in 120ms (16,896 synced so far)
+2026-10-20T03:27:34.993Z INFO  storefront fetched page 170/214: 100 orders, cursor c0170-6bd8b0, in 312ms
+2026-10-20T03:27:35.291Z INFO  fulfilment upserted 100 orders from page 170 into orders and order_lines in 155ms (16,996 synced so far)
+2026-10-20T03:28:03.861Z INFO  storefront fetched page 171/214: 100 orders, cursor c0171-48ac45, in 482ms
+2026-10-20T03:28:04.209Z INFO  fulfilment upserted 100 orders from page 171 into orders and order_lines in 180ms (17,096 synced so far)
+2026-10-20T03:28:33.406Z INFO  storefront fetched page 172/214: 100 orders, cursor c0172-69f224, in 522ms
+2026-10-20T03:28:33.569Z INFO  fulfilment upserted 100 orders from page 172 into orders and order_lines in 215ms (17,196 synced so far)
+2026-10-20T03:29:06.083Z INFO  storefront fetched page 173/214: 100 orders, cursor c0173-9bafe9, in 613ms
+2026-10-20T03:29:06.323Z INFO  fulfilment upserted 100 orders from page 173 into orders and order_lines in 157ms (17,296 synced so far)
+2026-10-20T03:29:35.959Z INFO  storefront fetched page 174/214: 100 orders, cursor c0174-34ee75, in 402ms
+2026-10-20T03:29:36.073Z INFO  fulfilment upserted 100 orders from page 174 into orders and order_lines in 179ms (17,396 synced so far)
+2026-10-20T03:30:07.667Z INFO  storefront fetched page 175/214: 100 orders, cursor c0175-ed6474, in 614ms
+2026-10-20T03:30:07.865Z INFO  fulfilment upserted 100 orders from page 175 into orders and order_lines in 162ms (17,496 synced so far)
+2026-10-20T03:30:36.830Z INFO  storefront fetched page 176/214: 100 orders, cursor c0176-5d9661, in 752ms
+2026-10-20T03:30:36.935Z INFO  fulfilment upserted 100 orders from page 176 into orders and order_lines in 165ms (17,596 synced so far)
+2026-10-20T03:31:09.707Z INFO  storefront fetched page 177/214: 100 orders, cursor c0177-49c7b5, in 728ms
+2026-10-20T03:31:09.825Z INFO  fulfilment upserted 100 orders from page 177 into orders and order_lines in 236ms (17,696 synced so far)
+2026-10-20T03:31:39.901Z INFO  storefront fetched page 178/214: 100 orders, cursor c0178-8713dd, in 204ms
+2026-10-20T03:31:40.120Z INFO  fulfilment upserted 100 orders from page 178 into orders and order_lines in 158ms (17,796 synced so far)
+2026-10-20T03:32:09.688Z INFO  storefront fetched page 179/214: 100 orders, cursor c0179-b71ffe, in 477ms
+2026-10-20T03:32:10.029Z INFO  fulfilment upserted 100 orders from page 179 into orders and order_lines in 200ms (17,896 synced so far)
+2026-10-20T03:32:43.007Z INFO  storefront fetched page 180/214: 100 orders, cursor c0180-26fe75, in 355ms
+2026-10-20T03:32:43.319Z INFO  fulfilment upserted 100 orders from page 180 into orders and order_lines in 105ms (17,996 synced so far)
+2026-10-20T03:33:11.533Z INFO  storefront fetched page 181/214: 100 orders, cursor c0181-779079, in 302ms
+2026-10-20T03:33:11.890Z INFO  fulfilment upserted 100 orders from page 181 into orders and order_lines in 221ms (18,096 synced so far)
+2026-10-20T03:33:40.862Z INFO  storefront fetched page 182/214: 100 orders, cursor c0182-d2a420, in 247ms
+2026-10-20T03:33:41.108Z INFO  fulfilment upserted 100 orders from page 182 into orders and order_lines in 152ms (18,196 synced so far)
+2026-10-20T03:34:09.453Z INFO  storefront fetched page 183/214: 100 orders, cursor c0183-cd2fff, in 476ms
+2026-10-20T03:34:09.607Z INFO  fulfilment upserted 100 orders from page 183 into orders and order_lines in 77ms (18,296 synced so far)
+2026-10-20T03:34:42.149Z INFO  storefront fetched page 184/214: 100 orders, cursor c0184-f2737f, in 451ms
+2026-10-20T03:34:42.344Z INFO  fulfilment upserted 100 orders from page 184 into orders and order_lines in 139ms (18,396 synced so far)
+2026-10-20T03:35:13.308Z INFO  storefront fetched page 185/214: 100 orders, cursor c0185-1963ff, in 253ms
+2026-10-20T03:35:13.527Z WARN  orders     order ORD-5892 has no line items; skipped it and kept the rest of page 185
+2026-10-20T03:35:13.543Z INFO  fulfilment upserted 99 orders from page 185 into orders and order_lines in 134ms (18,495 synced so far)
+2026-10-20T03:35:43.046Z INFO  storefront fetched page 186/214: 100 orders, cursor c0186-058747, in 367ms
+2026-10-20T03:35:43.406Z INFO  fulfilment upserted 100 orders from page 186 into orders and order_lines in 126ms (18,595 synced so far)
+2026-10-20T03:36:14.647Z INFO  storefront fetched page 187/214: 100 orders, cursor c0187-085b0a, in 665ms
+2026-10-20T03:36:14.763Z INFO  fulfilment upserted 100 orders from page 187 into orders and order_lines in 162ms (18,695 synced so far)
+2026-10-20T03:36:45.035Z INFO  storefront fetched page 188/214: 100 orders, cursor c0188-deb0da, in 612ms
+2026-10-20T03:36:45.206Z INFO  fulfilment upserted 100 orders from page 188 into orders and order_lines in 101ms (18,795 synced so far)
+2026-10-20T03:37:15.893Z INFO  storefront fetched page 189/214: 100 orders, cursor c0189-73ec68, in 590ms
+2026-10-20T03:37:16.089Z INFO  fulfilment upserted 100 orders from page 189 into orders and order_lines in 144ms (18,895 synced so far)
+2026-10-20T03:37:47.816Z INFO  storefront fetched page 190/214: 100 orders, cursor c0190-a2200e, in 573ms
+2026-10-20T03:37:47.981Z INFO  fulfilment upserted 100 orders from page 190 into orders and order_lines in 150ms (18,995 synced so far)
+2026-10-20T03:38:19.381Z INFO  storefront fetched page 191/214: 100 orders, cursor c0191-8149b9, in 465ms
+2026-10-20T03:38:19.535Z INFO  fulfilment upserted 100 orders from page 191 into orders and order_lines in 130ms (19,095 synced so far)
+2026-10-20T03:38:50.815Z INFO  storefront fetched page 192/214: 100 orders, cursor c0192-30b75b, in 463ms
+2026-10-20T03:38:51.132Z INFO  fulfilment upserted 100 orders from page 192 into orders and order_lines in 159ms (19,195 synced so far)
+2026-10-20T03:38:51.164Z INFO  syncer     checkpoint written after page 192: cursor c0192, 19,195 orders synced, 5 skipped
+2026-10-20T03:39:19.694Z ERROR storefront fetching page 193/214: storefront answered 503 Service Unavailable; trying the page again in 2s
+2026-10-20T03:39:39.733Z ERROR storefront fetching page 193/214: storefront still answering 503 Service Unavailable, tried 10 times since 03:39:19
+2026-10-20T03:39:59.734Z ERROR storefront fetching page 193/214: storefront still answering 503 Service Unavailable, tried 20 times since 03:39:19
+2026-10-20T03:40:19.746Z ERROR storefront fetching page 193/214: storefront still answering 503 Service Unavailable, tried 30 times since 03:39:19
+2026-10-20T03:40:39.728Z ERROR storefront fetching page 193/214: storefront still answering 503 Service Unavailable, tried 40 times since 03:39:19
+2026-10-20T03:40:57.700Z ERROR storefront fetching page 193/214: giving up; the storefront answered 503 Service Unavailable to every try since 03:39:19
+2026-10-20T03:40:57.714Z INFO  syncer     checkpoint written after page 192: cursor c0192, 19,195 orders synced, 5 skipped
+2026-10-20T03:40:57.730Z INFO  fulfilment released orders-primary connections (8 closed)
+2026-10-20T03:40:57.746Z ERROR syncer     sync run 2026-10-20 failed: the storefront was unavailable (HTTP 503) from 03:39:19 until the run gave up at 03:40:57
+2026-10-20T03:40:57.759Z ERROR syncer     19,195 of 21,400 orders synced; pages 193 to 214 were never fetched and wait for the next run
+2026-10-20T03:40:57.768Z INFO  syncer     sync run exited with status 1

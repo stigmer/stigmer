@@ -2,11 +2,17 @@
 // are found and pooled, and each clause of the bar at and past its edge.
 // Domain: conformance benchmark (the readout).
 //
-// Pinned: reports that differ on main_sha, reps, quality_reps, thinking mode
-// or host, or lie more than 24 hours apart, are refused by naming the field;
-// an arm is a harness on one model at one endpoint, the default reference is
-// native on the parity model, and a later report's scenario replaces an
-// earlier one's. Quality holds at the reference's mean minus 0.05 and misses
+// Pinned: reports that differ on the instrument's head_sha, reps,
+// quality_reps, thinking mode or host, or lie more than 24 hours apart, are
+// refused by naming the field, and a report from a dirty instrument is
+// refused by name; reports of one instrument on two versions of the code are
+// compared. An arm is a harness on one model at one endpoint on one version
+// of the code: two codes are two arms, never pooled, and one code pools, a
+// later report's scenario replacing an earlier one's. The default reference
+// is native on the parity model; a reference resolves by a prefix ending
+// where the label's endpoint or code begins, and one matching two codes is
+// refused naming both. Each report's runner marker counts are printed with
+// the arms it measured, and never gate a verdict. Quality holds at the reference's mean minus 0.05 and misses
 // past it, over the cases graded on both arms only (a null score is left
 // out); failures hold at the reference's count and miss above it; the wasted
 // share holds at the reference's plus 5 points and misses past it, counting
@@ -24,10 +30,13 @@ import {
   wastedShare,
   type ComparedReport,
 } from "../compare";
-import { summarize, type BenchmarkReport, type BenchmarkSample, type ToolCallFact } from "../report";
+import { emptyMarkers } from "../log-markers";
+import { summarize, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
 import { makeSample } from "./sample-fixture";
 
 const REF = PARITY_MODEL["deep-agent"];
+/** The label suffix of the default code, `git.code_sha` "c" * 40. */
+const C = `#${"c".repeat(10)}`;
 
 function call(outcome: ToolCallFact["outcome"]): ToolCallFact {
   return { round: 1, name: "edit_file", target: "a.go", status: outcome === "ok" ? "completed" : "failed", outcome };
@@ -48,16 +57,18 @@ interface ArmSpec {
   /** Per case, the native target's score and pass^k; omitted means no quality document. */
   quality?: Record<string, { score: number | null; passK?: boolean }>;
   refused?: BenchmarkReport["refused"];
-  mainSha?: string;
+  headSha?: string;
+  codeSha?: string;
+  runnerLog?: RunnerLogMarkers;
 }
 
 function report(spec: ArmSpec = {}): BenchmarkReport {
   const model = spec.model ?? REF;
   const cells = spec.cells ?? { "working-read-edit": samples(3) };
   return {
-    schema_version: 8,
+    schema_version: 9,
     timestamp: spec.timestamp ?? "2026-10-23T10:00:00Z",
-    git: { head_sha: "h", main_sha: spec.mainSha ?? "m".repeat(40) },
+    git: { head_sha: spec.headSha ?? "h".repeat(40), main_sha: "m".repeat(40), code_sha: spec.codeSha ?? "c".repeat(40) },
     host: { platform: "darwin/arm64", node: "v22.22.1" },
     methodology: {
       reps: 3,
@@ -107,6 +118,7 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
             },
           },
     refused: spec.refused ?? [],
+    runner_log: spec.runnerLog ?? emptyMarkers(),
   };
 }
 
@@ -122,7 +134,7 @@ function readingOf(reference: ArmSpec, arm: ArmSpec) {
 
 describe("assertComparable", () => {
   it.each([
-    ["git.main_sha", (r: BenchmarkReport) => (r.git.main_sha = "other")],
+    ["git.head_sha", (r: BenchmarkReport) => (r.git.head_sha = "other")],
     ["methodology.reps", (r: BenchmarkReport) => (r.methodology.reps = 5)],
     ["methodology.quality_reps", (r: BenchmarkReport) => (r.methodology.quality_reps = 1)],
     ["methodology.thinking_mode", (r: BenchmarkReport) => (r.methodology.thinking_mode = "enabled")],
@@ -142,6 +154,19 @@ describe("assertComparable", () => {
     );
   });
 
+  it("refuses a report from an instrument with uncommitted changes, by name", () => {
+    const dirty = report({ headSha: `${"h".repeat(40)}-dirty` });
+    expect(() => assertComparable([at("a.json", dirty)])).toThrow(
+      `report was measured by an instrument with uncommitted changes (git.head_sha ${"h".repeat(40)}-dirty): a.json`,
+    );
+  });
+
+  it("admits one instrument's reports on two versions of the code, whatever their merge base", () => {
+    const before = report({ codeSha: "b".repeat(40) });
+    before.git.main_sha = "other";
+    expect(() => assertComparable([at("before.json", before), at("after.json", report())])).not.toThrow();
+  });
+
   it("refuses no reports and an unreadable timestamp", () => {
     expect(() => assertComparable([])).toThrow("no reports to compare");
     expect(() => assertComparable([at("a.json", report({ timestamp: "yesterday" }))])).toThrow("not a time: a.json");
@@ -149,20 +174,36 @@ describe("assertComparable", () => {
 });
 
 describe("compareReports: arms and pooling", () => {
-  it("labels an arm by harness, model and endpoint, and defaults the reference to native on the parity model", () => {
+  it("labels an arm by harness, model, endpoint and code, and defaults the reference to native on the parity model", () => {
     const comparison = compareReports([
       at("ref.json", report()),
       at("gemini.json", report({ model: "openai:gemini-3-pro", endpoint: "generativelanguage.googleapis.com" })),
     ]);
-    expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com`);
-    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com`, "native/openai:gemini-3-pro@generativelanguage.googleapis.com"]);
-    expect(armLabel(report(), "cursor")).toBe(`cursor/${PARITY_MODEL.cursor}`);
+    expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com${C}`);
+    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}`, `native/openai:gemini-3-pro@generativelanguage.googleapis.com${C}`]);
+    expect(armLabel(report(), "cursor")).toBe(`cursor/${PARITY_MODEL.cursor}${C}`);
+    expect(armLabel(report({ codeSha: `${"d".repeat(40)}-dirty` }), "deep-agent")).toBe(`native/${REF}@api.anthropic.com#${"d".repeat(10)}-dirty`);
+  });
+
+  it("reads two versions of the code as two arms, never one, and resolves a reference by its code", () => {
+    const before = at("before.json", report({ codeSha: "b".repeat(40), cells: { "working-read-edit": samples(3, ["failed"]) } }));
+    const after = at("after.json", report({ timestamp: "2026-10-23T11:00:00Z" }));
+    const comparison = compareReports([before, after], `native/${REF}@api.anthropic.com#bbbb`);
+    expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com#${"b".repeat(10)}`);
+    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com#${"b".repeat(10)}`, `native/${REF}@api.anthropic.com${C}`]);
+    expect(comparison.readings.map((reading) => reading.arm)).toEqual([`native/${REF}@api.anthropic.com${C}`]);
+    expect(comparison.readings[0]!.cells[0]!.wasted).toMatchObject({ arm: 0, reference: 1 });
+    expect(() => compareReports([before, after])).toThrow(
+      `reference native/${REF} matches several arms: native/${REF}@api.anthropic.com#${"b".repeat(10)}, native/${REF}@api.anthropic.com${C}; name one`,
+    );
+    expect(() => compareReports([before, after], `native/${REF}@api.anthropic.com`)).toThrow("matches several arms");
   });
 
   it("takes a named reference, and refuses one no report carries or one that matches several arms", () => {
     const reports = [at("ref.json", report()), at("gpt.json", report({ model: "openai:gpt-5.5" }))];
-    expect(compareReports(reports, "native/openai:gpt-5.5").reference).toBe("native/openai:gpt-5.5@api.openai.com");
-    expect(compareReports(reports, "native/openai:gpt-5.5@api.openai.com").reference).toBe("native/openai:gpt-5.5@api.openai.com");
+    expect(compareReports(reports, "native/openai:gpt-5.5").reference).toBe(`native/openai:gpt-5.5@api.openai.com${C}`);
+    expect(compareReports(reports, "native/openai:gpt-5.5@api.openai.com").reference).toBe(`native/openai:gpt-5.5@api.openai.com${C}`);
+    expect(compareReports(reports, `native/openai:gpt-5.5@api.openai.com${C}`).reference).toBe(`native/openai:gpt-5.5@api.openai.com${C}`);
     expect(() => compareReports(reports, "native/claude-opus-4.7")).toThrow("no report carries the reference arm native/claude-opus-4.7");
     const twoEndpoints = [
       at("ref.json", report()),
@@ -294,11 +335,30 @@ describe("renderComparison", () => {
       at("gpt.json", report({ model: "openai:gpt-5.5", basis: "default-rate", quality: GOOD_QUALITY })),
     ];
     const text = renderComparison(compareReports(reports), reports);
-    expect(text).toContain(`Reference: native/${REF}@api.anthropic.com; main mmmmmmmmmm, 3 reps, 3 quality tries, darwin/arm64 v22.22.1`);
-    expect(text).toContain("## native/openai:gpt-5.5@api.openai.com: holds the bar");
+    expect(text).toContain(`Reference: native/${REF}@api.anthropic.com${C}; instrument hhhhhhhhhh, 3 reps, 3 quality tries, darwin/arm64 v22.22.1`);
+    expect(text).toContain(`## native/openai:gpt-5.5@api.openai.com${C}: holds the bar`);
     expect(text).toContain("Quality: holds (mean 0.900 against 0.900 over 3 cases (tolerance 0.05)); pass^k 1 against 1");
     expect(text).toContain("| working-read-edit | holds | 0 / 0 | 0.0% / 0.0% | 1000 / 1000 | 1 / 1 | 3000* / 3000 |");
     expect(text).toContain("* the runner's default rate, not a price");
+  });
+
+  it("prints each report's runner marker counts with the arms it measured, and never gates on them", () => {
+    const busy = { ...emptyMarkers(), files: ["runner.log"], hook_failures: 3, repo_instructions: { root: 7, nested: 0 } };
+    const reports = [
+      at("ref.json", report({ quality: GOOD_QUALITY, codeSha: "b".repeat(40) })),
+      at("after.json", report({ quality: GOOD_QUALITY, timestamp: "2026-10-23T11:00:00Z", runnerLog: busy })),
+    ];
+    const comparison = compareReports(reports, `native/${REF}@api.anthropic.com#bbbb`);
+    expect(comparison.readings[0]!.verdict).toBe("holds the bar");
+    expect(comparison.runnerLogs.map((reading) => [reading.path, reading.arms])).toEqual([
+      ["ref.json", [`native/${REF}@api.anthropic.com#${"b".repeat(10)}`]],
+      ["after.json", [`native/${REF}@api.anthropic.com${C}`]],
+    ]);
+    const text = renderComparison(comparison, reports);
+    expect(text).toContain("## Runner log, per run (printed, never gated)");
+    expect(text).toContain(`- native/${REF}@api.anthropic.com${C} (after.json): edits repaired 0;`);
+    expect(text).toContain("repository instructions read on 7 turns, 0 nested; hook failures 3; from runner.log");
+    expect(text).toContain(`- native/${REF}@api.anthropic.com#${"b".repeat(10)} (ref.json): edits repaired 0;`);
   });
 
   it("prints n/a for a side with no successful sample", () => {

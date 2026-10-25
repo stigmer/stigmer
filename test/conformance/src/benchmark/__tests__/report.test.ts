@@ -7,8 +7,9 @@
 // divides by cache-inclusive input tokens; failed samples are counted and kept
 // but excluded from every median; the reader accepts a report with or
 // without the quality eval and refuses a wrong version, a missing field, a
-// malformed side, a quality eval without its document object and a native
-// arm without its endpoint, API or cost basis by name.
+// malformed side, a quality eval without its document object, a native
+// arm without its endpoint, API or cost basis, and a v8 report without the
+// measured code's SHA or the runner's marker counts by name.
 import { describe, expect, it } from "vitest";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -21,6 +22,7 @@ import {
   summarize,
   type BenchmarkReport,
 } from "../report";
+import { emptyMarkers } from "../log-markers";
 import { makeSample } from "./sample-fixture";
 
 describe("median and spread", () => {
@@ -98,7 +100,7 @@ describe("readBenchmarkReport", () => {
     return {
       schema_version: BENCHMARK_REPORT_SCHEMA_VERSION,
       timestamp: "2026-09-19T00:00:00Z",
-      git: { head_sha: "abc", main_sha: "def" },
+      git: { head_sha: "abc", main_sha: "def", code_sha: "abc" },
       host: { platform: "darwin", node: "v22" },
       methodology: {
         reps: 5,
@@ -135,6 +137,7 @@ describe("readBenchmarkReport", () => {
         document: { schemaVersion: 1, cases: [] },
       },
       refused: [],
+      runner_log: { ...emptyMarkers(), files: ["runner.log"], truncated: { kept_yes: 1, kept_no: 0, kept_absent: 0, by_tool: { read_file: 1 } } },
     };
   }
 
@@ -184,6 +187,24 @@ describe("readBenchmarkReport", () => {
     delete noModels["models"];
     expect(() => readBenchmarkReport(noModels)).toThrow("report.models is missing");
     expect(() => readBenchmarkReport({ ...validReport(), schema_version: 7 })).toThrow("schema_version is 7");
+  });
+
+  it("refuses the v8 reports before the measured code and the runner log, and either field missing, by name", () => {
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v9 benchmark report: schema_version is 8");
+    const withoutCode = validReport() as unknown as { git: Record<string, unknown> };
+    delete withoutCode.git["code_sha"];
+    expect(() => readBenchmarkReport(withoutCode)).toThrow("report.git.code_sha is missing");
+    const withoutLog = validReport() as unknown as Record<string, unknown>;
+    delete withoutLog["runner_log"];
+    expect(() => readBenchmarkReport(withoutLog)).toThrow("report.runner_log is missing");
+    const withoutFiles = validReport();
+    delete (withoutFiles.runner_log as unknown as Record<string, unknown>)["files"];
+    expect(() => readBenchmarkReport(withoutFiles)).toThrow("runner_log.files is not an array");
+    for (const key of ["truncated", "model_retry", "repo_instructions"]) {
+      const report = validReport();
+      delete (report.runner_log as unknown as Record<string, unknown>)[key];
+      expect(() => readBenchmarkReport(report), key).toThrow(`report.runner_log.${key} is missing`);
+    }
   });
 
   it("refuses a missing field by name", () => {

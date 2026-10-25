@@ -13,6 +13,9 @@
 // from the result document as JSON: one row per case and target (a score that
 // is not a number reads "n/a"), then the cases not run, with their target
 // where the document names one, then the eval's failure.
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { JUDGE_MODEL, PARITY_MODEL, type CellPlan } from "../cells";
@@ -33,7 +36,7 @@ const REGISTRY = {
 const OPTIONS: RunOptions = {
   reps: 1,
   qualityReps: 3,
-  git: { head_sha: "abc1234", main_sha: "abc1234" },
+  git: { head_sha: "abc1234", main_sha: "abc1234", code_sha: "abc1234" },
   titlingSuppressed: true,
   nativeEndpoint: "api.anthropic.com",
 };
@@ -43,7 +46,7 @@ function refusingStack(): BenchmarkStack {
   const clients = {
     organizationCommand: { create: () => Promise.reject(new Error("organizations are closed")) },
   } as unknown as ConformanceClients;
-  return { clients, serverBaseUrl: "http://stack.invalid" } as unknown as BenchmarkStack;
+  return { clients, serverBaseUrl: "http://stack.invalid", runDir: mkdtempSync(join(tmpdir(), "quality-eval-run-")) } as unknown as BenchmarkStack;
 }
 
 function quietIo(): { now: () => number; log: (line: string) => void; lines: string[] } {
