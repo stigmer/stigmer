@@ -1,9 +1,10 @@
 /**
  * Harness-agnostic tool classification for the runner.
  *
- * Both harnesses emit engine-specific tool names — the native (deepagents)
+ * Every harness emits engine-specific tool names — the native (deepagents)
  * harness uses snake_case (edit_file, execute, grep), the Cursor harness uses
- * PascalCase (StrReplace, Shell, Grep). This module is the single place that
+ * PascalCase (StrReplace, Shell, Grep), and the Claude harness Claude Code's
+ * own (Edit, Bash, Agent). This module is the single place that
  * maps a tool name to the wire-level ToolKind, so every client renders a tool
  * the same way regardless of which harness produced it.
  *
@@ -36,6 +37,8 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["str_replace_editor", ToolKind.FILE_EDIT],
   ["StrReplace", ToolKind.FILE_EDIT],
   ["EditNotebook", ToolKind.FILE_EDIT],
+  ["Edit", ToolKind.FILE_EDIT],
+  ["NotebookEdit", ToolKind.FILE_EDIT],
 
   ["delete", ToolKind.FILE_DELETE],
   ["delete_file", ToolKind.FILE_DELETE],
@@ -49,6 +52,7 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["run_command", ToolKind.SHELL],
   ["terminal", ToolKind.SHELL],
   ["Shell", ToolKind.SHELL],
+  ["Bash", ToolKind.SHELL],
 
   ["grep", ToolKind.SEARCH],
   ["glob", ToolKind.SEARCH],
@@ -74,6 +78,7 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
 
   ["task", ToolKind.SUBAGENT],
   ["Task", ToolKind.SUBAGENT],
+  ["Agent", ToolKind.SUBAGENT],
 
   ["stop_background_command", ToolKind.BACKGROUND_STOP],
 ]);

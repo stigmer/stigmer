@@ -7,10 +7,11 @@
  *  - Forward, when the runner talks to the Stigmer platform's proxy
  *    (`config.proxyEndpoint` set): the call goes to the same path there,
  *    with the host's token replaced by the runner's control-plane token,
- *    read per request so rotation stays the runner's. The execution id the
- *    host's clients stamp (`X-Stigmer-Execution-Id`) passes through, because
- *    the platform's proxy authorizes and meters by it and `server.ts` has
- *    checked it names a live turn; no other scope header does.
+ *    read per request so rotation stays the runner's. A model call carries
+ *    the execution id of the live turn `server.ts` checked it against
+ *    (`X-Stigmer-Execution-Id`), because the platform's proxy authorizes and
+ *    meters by it: the id the host's clients stamp, or for an engine that
+ *    presents its turn's key, the turn's own. No other scope header passes.
  *  - Terminate, when the runner calls its providers itself: the call goes
  *    to the provider with the operator's key, or signed with the runner's
  *    ambient cloud identity — exactly the credential the runner's own model
@@ -39,7 +40,7 @@ import type { Config } from "../config.js";
 import { parseAnthropicBaseUrl } from "../shared/llm-backend.js";
 import { buildRegistryHeaders, resolveModelRegistryUrl } from "../shared/registry-endpoint.js";
 import { getRunnerSecret } from "../shared/runner-credential-store.js";
-import { forwardableHeaders, type Upstream } from "./relay.js";
+import { CHECKED_SCOPE_HEADER, forwardableHeaders, type Upstream } from "./relay.js";
 
 /** A lane that cannot serve the call: the status and the message the host's SDK reads. */
 export class LaneRefusal extends Error {
@@ -78,6 +79,8 @@ const MODEL_CALL_PATHS: Readonly<Record<ModelProviderLane, RegExp>> = {
 /**
  * Where one model call goes. `rest` is the path after the lane's prefix,
  * with its query (`/v1/messages`, `/model/<id>/invoke-with-response-stream`).
+ * `executionId` is the live turn's the proxy checked the call against
+ * (`server.ts`), the scope a forwarded call carries to the platform.
  */
 export async function modelUpstream(
   config: Config,
@@ -85,6 +88,7 @@ export async function modelUpstream(
   rest: string,
   req: IncomingMessage,
   body: Buffer,
+  executionId: string,
 ): Promise<Upstream> {
   const method = req.method ?? "POST";
   const path = rest.split("?")[0] ?? "";
@@ -96,7 +100,7 @@ export async function modelUpstream(
     return {
       url: laneUrl(config.proxyEndpoint, `/v1/proxy/llm/${lane}${rest}`),
       method,
-      headers: { ...forwardableHeaders(req.headers, true), authorization: `Bearer ${runnerToken(config)}` },
+      headers: { ...forwardableHeaders(req.headers, false), [CHECKED_SCOPE_HEADER]: executionId, authorization: `Bearer ${runnerToken(config)}` },
       body,
     };
   }

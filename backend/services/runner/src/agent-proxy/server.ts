@@ -11,7 +11,13 @@
  *
  *  - Only the current host's token is accepted, in `Authorization: Bearer`
  *    or `x-api-key` (the two places the host's SDKs put a key), compared in
- *    constant time.
+ *    constant time. One exception: on the Anthropic lane a live turn's own
+ *    key stands in for it, as that turn's ({@link AgentProxy.turnCredentialOf}).
+ *    An engine that is its own program (the Claude engine, a process the host
+ *    starts per turn) sends one key and no scope headers, and handing it the
+ *    host's token would give a process the agent's user can read a credential
+ *    that outlives the turn; its turn's key is worth model calls for that one
+ *    execution, and nothing once the turn settles.
  *  - A model call must carry the key of a turn that is live on this runner
  *    (`X-Stigmer-Turn-Key`), and name that turn's own execution
  *    (`X-Stigmer-Execution-Id`). The remote adapter mints a key for each
@@ -63,6 +69,7 @@ import { OTLP_LANE_PREFIX } from "../otel-export.js";
 import { OtlpForward, otlpSignalOf } from "./otlp-forward.js";
 
 const LLM_PREFIX = "/v1/proxy/llm/";
+const ANTHROPIC_LANE = `${LLM_PREFIX}anthropic/`;
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
 const REGISTRY_PATH = "/v1/proxy/model-registry";
 
@@ -146,7 +153,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     const url = new URL(req.url ?? "/", "http://agent-proxy");
     const path = url.pathname;
     try {
-      if (!this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
+      const engineTurn = this.turnCredentialOf(req, path);
+      if (engineTurn === undefined && !this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
       if (path === REGISTRY_PATH) {
         if (req.method !== "GET") throw new LaneRefusal(405, "the model registry is read with GET");
         await relay(res, registryUpstream(req));
@@ -161,10 +169,10 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       if (path.startsWith(LLM_PREFIX)) {
         const [lane = "", ...segments] = path.slice(LLM_PREFIX.length).split("/");
         if (!isModelProviderLane(lane)) throw new LaneRefusal(404, `no model lane '${lane}'`);
-        this.requireLiveExecution(req);
+        const turn = engineTurn ?? this.requireLiveExecution(req);
         const body = await readBody(req);
         const rest = `/${segments.join("/")}${url.search}`;
-        await relay(res, await modelUpstream(this.config, lane, rest, req, body));
+        await relay(res, await modelUpstream(this.config, lane, rest, req, body, turn.executionId));
         return;
       }
       if (path === CHECKPOINT_PREFIX || path.startsWith(`${CHECKPOINT_PREFIX}/`)) {
@@ -185,7 +193,23 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   }
 
   private authenticated(req: IncomingMessage): boolean {
-    return this.isHostToken(bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]));
+    return this.isHostToken(presentedCredential(req));
+  }
+
+  /**
+   * The live turn whose own key a model call on the Anthropic lane presents
+   * as its credential (the module header), or undefined when it presents
+   * none: every other lane and path keeps the host's token alone. The turn
+   * is the call's scope, so its execution is the turn's, never a header's;
+   * a call that names another execution with the key is refused.
+   */
+  private turnCredentialOf(req: IncomingMessage, path: string): LiveTurn | undefined {
+    if (!path.startsWith(ANTHROPIC_LANE)) return undefined;
+    const turn = this.liveTurnPresenting(presentedCredential(req));
+    if (turn === undefined) return undefined;
+    const named = headerValue(req.headers["x-stigmer-execution-id"]);
+    if (named !== undefined && named !== turn.executionId) throw new LaneRefusal(403, `the turn key is not execution ${named}'s`);
+    return turn;
   }
 
   private isHostToken(presented: string | undefined): boolean {
@@ -200,18 +224,27 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   private liveTurnOf(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
     const presented = headerValue(req.headers[TURN_KEY_HEADER]);
     if (!presented) throw new LaneRefusal(403, "a call must carry its turn's key (X-Stigmer-Turn-Key)");
+    const turn = this.liveTurnPresenting(presented);
+    if (turn === undefined) throw new LaneRefusal(403, "the turn key names no turn running on this runner");
+    return turn;
+  }
+
+  /** The live turn whose key `presented` is, compared in constant time; undefined for none. */
+  private liveTurnPresenting(presented: string | undefined): LiveTurn | undefined {
+    if (!presented) return undefined;
     const candidate = Buffer.from(presented);
     for (const turn of this.live) {
       if (candidate.length === turn.key.length && timingSafeEqual(candidate, turn.key)) return turn;
     }
-    throw new LaneRefusal(403, "the turn key names no turn running on this runner");
+    return undefined;
   }
 
-  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): void {
+  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
     const turn = this.liveTurnOf(req);
     const executionId = headerValue(req.headers["x-stigmer-execution-id"]);
     if (!executionId) throw new LaneRefusal(403, "a model call must name its execution (X-Stigmer-Execution-Id)");
     if (executionId !== turn.executionId) throw new LaneRefusal(403, `the turn key is not execution ${executionId}'s`);
+    return turn;
   }
 
   /** Every thread a checkpoint call names must be its turn's own. */
@@ -263,4 +296,9 @@ function threadsInBody(body: Buffer): string[] {
 
 function headerValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** The credential a request presents: a bearer, else an `x-api-key`. */
+function presentedCredential(req: IncomingMessage): string | undefined {
+  return bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]);
 }

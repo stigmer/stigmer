@@ -30,6 +30,9 @@
  *      proof.
  *   4. Cursor SDK — @cursor/sdk imports, and its platform package (the
  *      helper binaries) resolves, from the artifact as the runner resolves it.
+ *   4b. No Claude engine — no package of Anthropic's engine is staged and the
+ *      manifest names none: the artifact is what every edition publishes, and
+ *      the engine is not distributed (`bundle-slim.mjs` `NEVER_STAGED`).
  *   5. Attach entry (not on Windows) — attach/main.js beside the entry serves readiness,
  *      refuses a foreign push and stops cleanly (verify-attach-boot.mjs, run
  *      by the same Node). Skipped on Windows: the waiter runs only in a
@@ -88,9 +91,9 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -326,6 +329,35 @@ console.log(sdk.resolve(\`@cursor/sdk-\${process.platform}-\${process.arch}/pack
   return result.stdout.trim();
 }
 
+// ─── No Claude engine (no Temporal required) ────────────────────────────────
+
+/** A package of Anthropic's engine, by its name under the `@anthropic-ai` scope: the SDK and its per-platform executables. */
+const CLAUDE_ENGINE_PACKAGE = /^claude-agent-sdk(-|$)/;
+
+/**
+ * Fails when the artifact carries any package of the Claude engine, or its
+ * manifest names one. The whole tree is walked, so a copy staged anywhere
+ * (a nested node_modules included) is found.
+ */
+function verifyNoClaudeEngine() {
+  const staged = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const path = join(dir, entry.name);
+      if (basename(dir) === "@anthropic-ai" && CLAUDE_ENGINE_PACKAGE.test(entry.name)) staged.push(path);
+      else walk(path);
+    }
+  };
+  walk(artifactDir);
+  if (staged.length > 0) throw new Error(`the Claude engine is staged in the artifact: ${staged.join(", ")}`);
+  const manifest = join(artifactDir, "package.json");
+  if (!existsSync(manifest)) return;
+  const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+  const named = Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies }).filter((name) => name.startsWith("@anthropic-ai/claude-agent-sdk"));
+  if (named.length > 0) throw new Error(`the artifact's manifest names the Claude engine: ${named.join(", ")}`);
+}
+
 // ─── Attach entry (no Temporal required) ────────────────────────────────────
 
 function verifyAttachEntry() {
@@ -480,6 +512,8 @@ try {
   }
   const cursorPlatform = verifyCursorSdk();
   console.log(`[cursor] OK: @cursor/sdk imported; its platform package resolved at ${cursorPlatform}`);
+  verifyNoClaudeEngine();
+  console.log("[claude] OK: no package of the Claude engine is staged and the manifest names none");
   if (windows) {
     console.log("[attach] skipped on Windows: the attach waiter runs only in Linux sandboxes");
   } else {

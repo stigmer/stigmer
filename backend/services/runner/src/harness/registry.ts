@@ -44,6 +44,7 @@
  */
 
 import {
+  EXECUTE_CLAUDE_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } from "@stigmer/temporal-codecs/activity-names";
@@ -56,7 +57,7 @@ import { runTurnActivity } from "./run-turn.js";
 import type { HarnessAdapter } from "./types.js";
 
 /** The harnesses the control plane can dispatch to, as the registry knows them. */
-export type HarnessName = "cursor" | "deep-agent";
+export type HarnessName = "cursor" | "deep-agent" | "claude";
 
 /**
  * The Temporal activity name each harness answers to. The names are
@@ -68,6 +69,7 @@ export type HarnessName = "cursor" | "deep-agent";
 export const HARNESS_ACTIVITY_NAMES = {
   cursor: EXECUTE_CURSOR_ACTIVITY_NAME,
   "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  claude: EXECUTE_CLAUDE_ACTIVITY_NAME,
 } as const satisfies Record<HarnessName, string>;
 
 export type HarnessActivityName = (typeof HARNESS_ACTIVITY_NAMES)[HarnessName];

@@ -30,6 +30,12 @@ describe("isFileModifyingTool", () => {
     }
   });
 
+  it("recognizes the Claude taxonomy (Claude Code's own names)", () => {
+    for (const name of ["Write", "Edit", "NotebookEdit"]) {
+      expect(isFileModifyingTool(name), name).toBe(true);
+    }
+  });
+
   it("excludes read-only, delete, and unknown tools (no content/hunk to preview)", () => {
     for (const name of ["read", "Read", "delete", "Delete", "shell", "Shell", "grep", "mystery"]) {
       expect(isFileModifyingTool(name), name).toBe(false);
@@ -42,6 +48,7 @@ describe("extractFilePath", () => {
     expect(extractFilePath({ path: "a.ts" })).toBe("a.ts");
     expect(extractFilePath({ file_path: "b.ts" })).toBe("b.ts");
     expect(extractFilePath({ target_notebook: "nb.ipynb" })).toBe("nb.ipynb");
+    expect(extractFilePath({ notebook_path: "claude.ipynb" }), "a Claude notebook edit").toBe("claude.ipynb");
   });
 
   it("returns null when no recognized path key is present", () => {

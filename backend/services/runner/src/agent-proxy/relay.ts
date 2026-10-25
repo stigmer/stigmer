@@ -71,7 +71,7 @@ export function readBody(req: Readable, limit = MAX_REQUEST_BYTES): Promise<Buff
  * (`server.ts`). Any other `x-stigmer-*` header the host sets is its own
  * claim, unchecked here, and the platform authorizes and meters by those.
  */
-const CHECKED_SCOPE = "x-stigmer-execution-id";
+export const CHECKED_SCOPE_HEADER = "x-stigmer-execution-id";
 
 /**
  * The host's request headers a lane forwards: everything but the
@@ -83,7 +83,7 @@ export function forwardableHeaders(headers: IncomingHttpHeaders, keepScope: bool
   const out: Record<string, string | string[]> = {};
   for (const [name, value] of Object.entries(headers)) {
     if (value === undefined || name.startsWith(":") || HOP_BY_HOP.has(name) || HOST_CREDENTIAL.has(name)) continue;
-    if (name.startsWith("x-stigmer-") && !(keepScope && name === CHECKED_SCOPE)) continue;
+    if (name.startsWith("x-stigmer-") && !(keepScope && name === CHECKED_SCOPE_HEADER)) continue;
     out[name] = value;
   }
   return out;

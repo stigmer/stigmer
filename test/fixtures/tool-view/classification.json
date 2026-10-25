@@ -16,6 +16,8 @@
     { "name": "str_replace_editor", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
     { "name": "StrReplace", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
     { "name": "EditNotebook", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+    { "name": "Edit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
+    { "name": "NotebookEdit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
 
     { "name": "delete", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
     { "name": "delete_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
@@ -29,6 +31,7 @@
     { "name": "run_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
     { "name": "terminal", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
     { "name": "Shell", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
+    { "name": "Bash", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
 
     { "name": "grep", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
     { "name": "glob", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
@@ -54,6 +57,7 @@
 
     { "name": "task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
     { "name": "Task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
+    { "name": "Agent", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
 
     { "name": "stop_background_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_BACKGROUND_STOP" },
 

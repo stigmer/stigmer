@@ -15,6 +15,7 @@
 import { describe, it, expect } from "vitest";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
+  EXECUTE_CLAUDE_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } from "@stigmer/temporal-codecs/activity-names";
@@ -70,7 +71,8 @@ describe("HARNESS_ACTIVITY_NAMES", () => {
   it("reads the activity names the server's workflow schedules (@stigmer/temporal-codecs/activity-names)", () => {
     expect(HARNESS_ACTIVITY_NAMES.cursor).toBe(EXECUTE_CURSOR_ACTIVITY_NAME);
     expect(HARNESS_ACTIVITY_NAMES["deep-agent"]).toBe(EXECUTE_DEEP_AGENT_ACTIVITY_NAME);
-    expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["cursor", "deep-agent"]);
+    expect(HARNESS_ACTIVITY_NAMES.claude).toBe(EXECUTE_CLAUDE_ACTIVITY_NAME);
+    expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["claude", "cursor", "deep-agent"]);
   });
 });
 

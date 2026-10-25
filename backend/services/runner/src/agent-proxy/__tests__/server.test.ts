@@ -7,7 +7,11 @@
  *  - a model call only for an execution with a turn live on this runner;
  *  - a checkpoint call only for a live turn's thread, in its query and in
  *    every entry of a write;
- *  - the model registry with no live turn, the one exemption.
+ *  - the model registry with no live turn, the one exemption;
+ *  - on the Anthropic lane alone, a live turn's own key in place of the
+ *    host's token (an engine that is its own program sends one key and no
+ *    scope header), as that turn's execution and no other, and nothing once
+ *    the turn has settled.
  *
  * What each lane does, the one rule (swap the credential, forward the
  * bytes) in its two modes:
@@ -226,6 +230,66 @@ describe("what a host token buys", () => {
       expect((await call(proxy, "/v1/runs/aex-live", { method: "GET", headers: asHost })).status, "the Stigmer API is the runner's own").toBe(404);
       expect(upstream.received).toHaveLength(0);
     } finally {
+      await proxy.close();
+    }
+  });
+});
+
+describe("what a turn's own key buys an engine that presents it as its credential", () => {
+  const asEngine = { "x-api-key": TURN_KEY };
+
+  it("a model call on the Anthropic lane, as that turn's, with neither the key nor the host's token sent on", async () => {
+    setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
+    const proxy = await startProxy();
+    const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    try {
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asEngine })).status, "as an x-api-key").toBe(200);
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { authorization: `Bearer ${TURN_KEY}` } })).status, "as a bearer").toBe(200);
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages/count_tokens", { headers: asEngine })).status, "a token count").toBe(200);
+      expect(upstream.received).toHaveLength(3);
+      expect(upstream.last.headers["x-api-key"], "the operator's key reaches the provider").toBe("sk-operator");
+      const sent = JSON.stringify(upstream.received.map((r) => r.headers));
+      expect(sent).not.toContain(TURN_KEY);
+      expect(sent).not.toContain(HOST_TOKEN);
+    } finally {
+      close();
+      await proxy.close();
+    }
+  });
+
+  it("is refused once its turn has settled, on every other lane, and for another execution", async () => {
+    setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator", OPENAI_BASE_URL: upstream.url, OPENAI_API_KEY: "sk-openai" });
+    const proxy = await startProxy();
+    const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    proxy.openTurn({ executionId: "aex-other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
+    try {
+      expect((await call(proxy, "/v1/proxy/llm/openai/v1/chat/completions", { headers: { authorization: `Bearer ${TURN_KEY}` } })).status, "another model lane").toBe(401);
+      expect((await call(proxy, `/v1/proxy/checkpoints/checkpoint?thread_id=${THREAD}`, { method: "GET", headers: { ...asEngine, "x-stigmer-turn-key": TURN_KEY } })).status, "the checkpoint lane").toBe(401);
+      expect((await call(proxy, "/v1/proxy/model-registry", { method: "GET", headers: asEngine })).status, "the model registry").toBe(401);
+      expect((await call(proxy, "/v1/proxy/otlp/v1/traces", { headers: asEngine })).status, "the telemetry lane").toBe(401);
+      const named = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asEngine, "x-stigmer-execution-id": "aex-other" } });
+      expect(named.status, "naming another live execution").toBe(403);
+      expect(((await named.json()) as { error: { message: string } }).error.message).toBe("the turn key is not execution aex-other's");
+      close();
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asEngine })).status, "settled").toBe(401);
+      expect(upstream.received, "nothing reached a provider").toHaveLength(0);
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it("forwards as that turn's execution, with the runner's token in place of the key", async () => {
+    const proxy = await startProxy({ proxyEndpoint: upstream.url });
+    const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    try {
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asEngine })).status).toBe(200);
+      expect(upstream.last.path).toBe("/v1/proxy/llm/anthropic/v1/messages");
+      expect(upstream.last.headers.authorization).toBe(`Bearer ${RUNNER_TOKEN}`);
+      expect(upstream.last.headers["x-stigmer-execution-id"], "the turn's execution, which the engine never named").toBe(EXECUTION);
+      expect(upstream.last.headers["x-api-key"]).toBeUndefined();
+      expect(JSON.stringify(upstream.last.headers)).not.toContain(TURN_KEY);
+    } finally {
+      close();
       await proxy.close();
     }
   });
