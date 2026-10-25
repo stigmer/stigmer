@@ -46,10 +46,16 @@
  *                       shell is gated in every other posture.
  *  - `message(text)`  → the kit's person sends `text` as the engine plays
  *                       the step before it; the step is done once the
- *                       conversation shows the engine read it.
+ *                       conversation shows the engine read it: as a user
+ *                       message, or riding the result of the call it was
+ *                       read with.
  *  - `limit`, `cancelled`, `cut`, `open(…, subagent)` and `compact` are
  *    refused at `arrange` as test bugs: the runtime arms that need them are
  *    declared off for this subject, each with its reason in the kit file.
+ *
+ * The engine compacts its conversation on its own when a model call's usage
+ * says the window is nearly full; its summary request is answered out of
+ * band with {@link COMPACTION_SUMMARY} and counted, never taken for a step.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -85,6 +91,16 @@ const KIT_USER_MESSAGE = "Do what the scenario says.";
 
 /** What a seeded `read` target contains; never asserted. */
 const READ_FILE_CONTENT = "seeded by the harness contract kit\n";
+
+/**
+ * How the engine's own compaction asks the model for its summary (the
+ * engine's prompt, SDK 0.3.310): a call carrying it is the engine
+ * summarizing, never a step of the plan.
+ */
+const COMPACTION_PROMPT_MARK = "Your task is to create a detailed summary of the conversation so far";
+
+/** What the model answers a compaction with; it must never reach the person as the agent's words. */
+const COMPACTION_SUMMARY = "The kit's conversation so far, summarized for the engine.";
 
 /** How long a `hang` holds its model call: far past any arm; the turn's stop ends it. */
 const HANG_HOLD_MS = 3_600_000;
@@ -148,6 +164,8 @@ class ClaudeSubject implements ClaudeContractSubject {
   private readonly operations: KitOperations;
   /** Every gated call the model made, in order, by its id. */
   private readonly proposals: string[] = [];
+  /** Per execution, how many times the engine compacted its conversation. */
+  private readonly compacted = new Map<string, number>();
   private mintCounter = 0;
 
   constructor(private readonly env: HermeticEnvironment) {
@@ -181,9 +199,9 @@ class ClaudeSubject implements ClaudeContractSubject {
       release: (toolCallId) => this.operations.release(toolCallId),
       opened: (toolCallId) => this.operations.opened(toolCallId),
       tasksHanded: (sessionId, message) => this.userTextsOf(sessionId).filter((text) => text.includes(message)).length,
-      messagesRead: (sessionId, text) => this.userTextsOf(sessionId).filter((said) => said.includes(text)).length,
-      compactions: () => 0,
-      compactionSummary: { text: "" },
+      messagesRead: (sessionId, text) => this.readTextsOf(sessionId).filter((said) => said.includes(text)).length,
+      compactions: (sessionId) => this.compacted.get(this.executionsBySession.get(sessionId) ?? "") ?? 0,
+      compactionSummary: { text: COMPACTION_SUMMARY },
       // The store holds what the engine mirrored; nothing else outlives the process.
       loseRunner: () => {},
     };
@@ -297,6 +315,13 @@ class ClaudeSubject implements ClaudeContractSubject {
     return (executionId === undefined ? undefined : this.lastConversations.get(executionId))?.userTexts ?? [];
   }
 
+  /** Every text the session's last conversation handed the model from the person's side: its user texts and its tool results. */
+  private readTextsOf(sessionId: string): readonly string[] {
+    const executionId = this.executionsBySession.get(sessionId);
+    const conversation = executionId === undefined ? undefined : this.lastConversations.get(executionId);
+    return conversation === undefined ? [] : readTexts(conversation);
+  }
+
   /** The kit's person sends the `message` step after the step at `index`, once per execution. */
   private sendAfter(plan: ArrangedTurn, index: number): void {
     const message = messageAfter(plan.steps, index);
@@ -313,6 +338,11 @@ class ClaudeSubject implements ClaudeContractSubject {
     const executionId = headerOf(conversation, "x-stigmer-execution-id");
     const plan = executionId === undefined ? undefined : this.arranged.get(executionId);
     if (plan === undefined || executionId === undefined) throw new Error(`${this.name}: the model was asked for execution '${executionId ?? "<none>"}' with no turn arranged (kit bug)`);
+    if (conversation.userTexts.some((text) => text.includes(COMPACTION_PROMPT_MARK))) {
+      // The engine summarizing, out of band: the plan's next step is still next.
+      this.compacted.set(executionId, (this.compacted.get(executionId) ?? 0) + 1);
+      return this.body(`<analysis>The kit's turn.</analysis>\n<summary>${COMPACTION_SUMMARY}</summary>`, [], { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+    }
     this.lastConversations.set(executionId, conversation);
     const settled = new Set(conversation.toolResults.keys());
     const spoken = spokenThisTurn(conversation);
@@ -358,7 +388,7 @@ class ClaudeSubject implements ClaudeContractSubject {
           this.sendAfter(plan, index);
           return answer([{ id: step.toolCallId, name: "Bash", input: { command: this.operations.shellCommand(step.toolCallId), description: "the kit's operation" } }]);
         case "message":
-          if (conversation.userTexts.some((said) => said.includes(step.text))) break;
+          if (readTexts(conversation).some((said) => said.includes(step.text))) break;
           if (this.sentMessages.get(executionId)?.has(step.text)) {
             throw new Error(`${this.name}: the model was called again before the engine read the message sent mid-turn: '${step.text}'`);
           }
@@ -429,6 +459,15 @@ class ClaudeSubject implements ClaudeContractSubject {
 /** A kit path (`/work/alpha.txt`, the workspace's root as `/`) in the session's real workspace. */
 function inWorkspace(workspaceDir: string, path: string): string {
   return join(workspaceDir, path.replace(/^\/+/, ""));
+}
+
+/**
+ * The texts a conversation handed the model from the person's side: its user
+ * texts, and its tool results, which carry a message the engine read while
+ * the tool ran (it rides the result as a reminder).
+ */
+function readTexts(conversation: WireConversation): string[] {
+  return [...conversation.userTexts, ...[...conversation.toolResults.values()].map((result) => result.text)];
 }
 
 function headerOf(conversation: WireConversation, name: string): string | undefined {

@@ -86,7 +86,10 @@ export function hermeticClaudeConfig(env: HermeticEnvironment, overrides: Partia
     stigmerBackendEndpoint: "http://localhost:7234",
     mcpBridgeEndpoint: null,
     mcpPublicEndpoint: null,
-    stigmerTokenRef: { current: "hermetic-runner-token" },
+    // No runner credential, as on a trusted local runner: the proxy forwards
+    // with its own (`claude-wire.ts`), and a held one would turn the platform's
+    // own tools off for want of a run-scoped exchange the double never answers.
+    stigmerTokenRef: { current: null },
     cursorApiKey: "",
     workspaceRootDir: env.workspaceRootDir,
     mode: "local",

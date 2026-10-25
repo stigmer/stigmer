@@ -17,9 +17,9 @@
  *  - the engine's `timeout` (milliseconds, its default two minutes) clamped
  *    to the runner's ceiling (`Config.shellTimeoutMaxSeconds`), the result
  *    saying so when it was;
- *  - its output streamed to its own row as it prints, coalesced to the
- *    streaming floor, and the stall watchdog told of every chunk, so a long
- *    build is never a stall;
+ *  - its output streamed to its own row as it prints (the runtime's preview
+ *    pump keeps the streaming floor, `harness/preview-pump.ts`), and the
+ *    stall watchdog told of every chunk, so a long build is never a stall;
  *  - the gate's decision, read again by the call's id before anything runs
  *    (`gate.ts`): a call the gate did not allow is refused here too.
  *
@@ -59,9 +59,7 @@ export interface HostShellOptions {
   readonly gate: Pick<ClaudeGate, "verdictOf">;
   /** Stops every running command (the turn's stop). */
   readonly stopSignal: AbortSignal;
-  /** The least time between two streamed chunks. */
-  readonly floorMs: number;
-  /** Told each coalesced chunk of a call's output, by the call's id. */
+  /** Told each chunk of a call's output as it prints, by the call's id. */
   readonly onOutput: (toolUseId: string, chunk: string) => void;
   /** Told the shell made progress. */
   readonly onActivity: (detail: string) => void;
@@ -97,7 +95,6 @@ export async function runShellCall(options: HostShellOptions, call: InProcessCal
   if (command.trim() === "") return textResult("No command was given.", true);
   const { timeoutSeconds, clamped } = timeoutOf(call.args.timeout, options.maxTimeoutSeconds);
 
-  const stream = coalescer(options.floorMs, (chunk) => options.onOutput(call.toolUseId, chunk));
   const result = await runCommand({
     command,
     cwd: options.cwd,
@@ -105,11 +102,10 @@ export async function runShellCall(options: HostShellOptions, call: InProcessCal
     timeoutSeconds,
     signal: options.stopSignal,
     onOutput: (chunk) => {
-      stream.add(chunk);
+      options.onOutput(call.toolUseId, chunk);
       options.onActivity(HOST_SHELL_TOOL.engineName);
     },
   });
-  stream.flush();
 
   let text = formatCommandOutput(result);
   if (result.timedOut) text += `\n\nThe command was stopped at its timeout of ${timeoutSeconds} seconds.`;
@@ -125,25 +121,4 @@ export function timeoutOf(requestedMs: unknown, maxSeconds: number): { timeoutSe
   const ms = typeof requestedMs === "number" && Number.isFinite(requestedMs) && requestedMs > 0 ? requestedMs : DEFAULT_SHELL_TIMEOUT_MS;
   const seconds = Math.ceil(ms / 1000);
   return seconds > maxSeconds ? { timeoutSeconds: maxSeconds, clamped: true } : { timeoutSeconds: seconds, clamped: false };
-}
-
-/** Output gathered and handed on at most once per floor, the rest at the end. */
-function coalescer(floorMs: number, emit: (chunk: string) => void): { add(chunk: string): void; flush(): void } {
-  let pending = "";
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const flush = (): void => {
-    if (timer !== undefined) clearTimeout(timer);
-    timer = undefined;
-    if (pending === "") return;
-    const chunk = pending;
-    pending = "";
-    emit(chunk);
-  };
-  return {
-    add(chunk) {
-      pending += chunk;
-      timer ??= setTimeout(flush, floorMs);
-    },
-    flush,
-  };
 }

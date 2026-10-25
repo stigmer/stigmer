@@ -42,11 +42,11 @@
  */
 
 import { mkdir, rm } from "node:fs/promises";
-import type { McpServerConfig, Query, SDKMessage, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { McpServerConfig, Query, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { InteractionMode, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../config.js";
-import type { TurnInputChannel, TurnMessage } from "../../harness/turn-input.js";
+import type { TurnInputChannel } from "../../harness/turn-input.js";
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { buildMcpApprovalDefault } from "../../shared/approval-policy.js";
 import { toAnthropicImageBlocks } from "../../shared/attachment-vision.js";
@@ -74,6 +74,7 @@ import { HttpTranscripts } from "./http-store.js";
 import { connectBridge, type McpBridge } from "./mcp-bridge.js";
 import { composeSystemAppend, composeTurnMessage, instructionRoots, workspaceInstructionReader } from "./prompt.js";
 import { PromptStream } from "./prompt-stream.js";
+import { MidTurnInput, sentMessageOf } from "./mid-turn-input.js";
 import { MemoryTranscripts, sessionStoreFor, type TranscriptBacking } from "./session-store.js";
 import { settleClaudeTurn, type InvocationEnd } from "./settle.js";
 import { transcriptFactsOf, type TranscriptFacts } from "./transcript-facts.js";
@@ -194,13 +195,6 @@ function firstMessageContent(input: TurnInput): SDKUserMessage["message"]["conte
   return images.length === 0 ? text : [...toAnthropicImageBlocks(images), { type: "text", text }];
 }
 
-/** A message sent while the turn worked, as the engine reads it, under its own id. */
-function sentMessageOf(message: TurnMessage): SDKUserMessage {
-  const content: SDKUserMessage["message"]["content"] =
-    message.visionImages.length === 0 ? message.text : [...toAnthropicImageBlocks(message.visionImages), { type: "text", text: message.text }];
-  return userMessageOf(content, sentMessageIdOf(message.id));
-}
-
 interface EngineTurnDeps {
   readonly model: TurnModel;
   readonly bridge: McpBridge;
@@ -247,7 +241,6 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
 
   // The engine's servers: the host's shell and the bridged ones.
   const abort = new AbortController();
-  const floorMs = loadStreamingConfig().minIntervalMs;
   const mcpServers: Record<string, McpServerConfig> = {};
   if (shell) {
     const shellServer = hostShellServer({
@@ -256,13 +249,17 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
       gate,
       stopSignal: sink.stopSignal,
-      floorMs,
       onOutput: (callId, delta) => sink.transcript.apply({ kind: "tool_output_delta", callId, delta }),
       onActivity: (detail) => sink.recordActivity(detail),
     });
     mcpServers[HOST_SHELL_TOOL.server] = { type: "sdk", name: HOST_SHELL_TOOL.server, instance: shellServer };
   }
   for (const [slug, server] of bridge.servers) mcpServers[slug] = { type: "sdk", name: slug, instance: server };
+
+  // The prompt the engine reads, and the messages sent while it works (`mid-turn-input.ts`).
+  const stream = new PromptStream();
+  for (const message of opening.messages) stream.push(message);
+  const midTurn = new MidTurnInput(sink, stream);
 
   await mkdir(home, { recursive: true });
   const sessionId = engineSessionIdOf(input.threadId);
@@ -301,10 +298,9 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     workspace_entry_count: workspace.provision.provisionResults.length,
   }, sink.setupTiming);
 
-  const stream = new PromptStream();
-  for (const message of opening.messages) stream.push(message);
   const end = await runEngine(input, sink, sdk, {
     stream,
+    midTurn,
     options,
     abort,
     translator: new ClaudeTranslator({ serverOf: bridge.serverOf, verdictOf: (id) => gate.verdictOf(id) }),
@@ -328,6 +324,7 @@ function hasTool(bridge: McpBridge, server: string, tool: string | null): boolea
 
 interface EngineRun {
   readonly stream: PromptStream;
+  readonly midTurn: MidTurnInput;
   readonly options: Parameters<ClaudeSdk["query"]>[0]["options"];
   readonly abort: AbortController;
   readonly translator: ClaudeTranslator;
@@ -339,13 +336,11 @@ interface EngineRun {
 
 /** Step 4 of the header: the engine run to its last result. */
 async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: EngineRun): Promise<InvocationEnd> {
-  const { stream, abort, translator, usage } = run;
+  const { stream, midTurn, abort, translator, usage } = run;
   const builder = sink.transcript;
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
   const query: Query = sdk.query({ prompt: stream, options: run.options });
   const openCalls = new Set<string>();
-  /** Sent-message ids pushed into the prompt and not yet read by the engine. */
-  const unread = new Map<string, string>();
   let stopped = false;
   let yielding = false;
   let forceAbort: ReturnType<typeof setTimeout> | undefined;
@@ -359,28 +354,23 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
   const onStop = (): void => {
     stopped = true;
     run.halt();
+    midTurn.halt();
     interrupt();
     forceAbort ??= setTimeout(() => abort.abort(), STOP_GRACE_MS);
   };
   const onYield = (): void => {
     yielding = true;
     run.halt();
+    midTurn.halt();
     if (openCalls.size === 0) interrupt();
-  };
-  const push = (messages: readonly TurnMessage[]): void => {
-    for (const message of messages) {
-      const sent = sentMessageOf(message);
-      unread.set(String(sent.uuid), message.id);
-      stream.push(sent);
-    }
-  };
-  const takeQueued = async (force: boolean): Promise<void> => {
-    if (stopped || yielding) return;
-    push(await sink.input.claim(force ? { force: true } : {}));
   };
   sink.stopSignal.addEventListener("abort", onStop, { once: true });
   sink.yieldSignal.addEventListener("abort", onYield, { once: true });
-  const offPending = sink.input.onPending(() => void takeQueued(false));
+  /** The model's message on the main thread is still streaming. */
+  let answering = false;
+  const offPending = sink.input.onPending(() => {
+    if (openCalls.size > 0 && !answering) void midTurn.whileWorking();
+  });
 
   try {
     for await (const message of query) {
@@ -388,7 +378,12 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
       let detail: string | undefined;
       for (const event of translator.translate(message)) {
         builder.apply(event);
-        if (event.kind === "tool_started") {
+        if (event.kind === "message_start" && event.subAgentId === undefined) {
+          answering = true;
+        } else if (event.kind === "message_finish" && event.subAgentId === undefined) {
+          answering = false;
+          if (openCalls.size > 0) void midTurn.whileWorking();
+        } else if (event.kind === "tool_started") {
           openCalls.add(event.callId);
           detail = event.name;
         } else if (event.kind === "tool_finished" || event.kind === "tool_error") {
@@ -398,7 +393,7 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
       }
       const delta = usage.observe(message);
       if (delta !== undefined) sink.reportUsage(delta);
-      for (const id of readMessageIds(message)) unread.delete(id);
+      midTurn.observe(message);
       sink.recordActivity(detail ?? message.type);
 
       if (message.type === "system") {
@@ -413,8 +408,8 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
         if (stopped || yielding) {
           stream.close();
         } else {
-          await takeQueued(true);
-          if (unread.size === 0) stream.close();
+          await midTurn.atResult();
+          if (!midTurn.owed) stream.close();
         }
       }
 
@@ -425,7 +420,14 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
       scheduler.markUpdateSent(events);
     }
   } catch (err) {
-    if (!(stopped || yielding || abort.signal.aborted)) throw err;
+    // The engine's process ends after its last result, and an engine that
+    // failed its run exits non-zero, which the SDK throws: once a result is
+    // in, the result is the outcome, and the exit is logged.
+    if (result !== undefined) {
+      console.warn(`[claude-turn] execution=${input.executionId} the engine exited after its result: ${err instanceof Error ? err.message : String(err)}`);
+    } else if (!(stopped || yielding || abort.signal.aborted)) {
+      throw err;
+    }
   } finally {
     stream.close();
     offPending();
@@ -435,12 +437,6 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
     query.close();
   }
   return { stopped: stopped || yielding, result, mirrorError, unattendedSkips: run.unattendedSkips, structuredOutput: input.structuredOutputSchema !== undefined };
-}
-
-/** The sent-message ids a frame says the engine has read: `user_message_uuids` on its reply frames. */
-function readMessageIds(message: SDKMessage): readonly string[] {
-  if (message.type !== "assistant" && message.type !== "stream_event") return [];
-  return message.parent_tool_use_id === null ? (message.user_message_uuids ?? []) : [];
 }
 
 /** Best-effort teardown: a failed close is logged and never masks the turn's outcome. */
