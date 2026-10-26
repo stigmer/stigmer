@@ -960,11 +960,11 @@ message DailyUsage {
 
 // Usage split by execution harness within an org report.
 //
-// Each entry represents one harness (e.g., "native" or "cursor") and
+// Each entry represents one harness (e.g., "native", "cursor" or "claude") and
 // aggregates tokens, call count, and run count for that harness
 // within the report's time range.
 message HarnessUsage {
-  // Harness identifier (e.g., "native", "cursor").
+  // Harness identifier (e.g., "native", "cursor", "claude").
   string harness = 1;
 
   // Total tokens through this harness (cache-inclusive, as the aggregate's).

@@ -99,7 +99,7 @@ export interface ResultCase {
 
 /** One engine and model, with its cases. */
 export interface ResultTarget {
-  /** `native` or `cursor`. */
+  /** `native`, `cursor` or `claude`. */
   readonly harness: string;
   /** The catalog model id; empty for the engine's default model. */
   readonly model: string;

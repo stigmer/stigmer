@@ -780,14 +780,17 @@ The execution engine that processes agent activities for a Session.
   name.
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: `SessionSpec.harness`, enum `Harness` (values: `NATIVE`,
-  `CURSOR`). proto: `session/v1/spec.proto`.
-- **Two values**:
+  `CURSOR`, `CLAUDE`). proto: `session/v1/spec.proto`.
+- **Three values**:
   1. **Native** --- Stigmer's built-in engine. Default for all Sessions. Full
      control over model selection from all supported providers. Deep integration
      with Stigmer's checkpoint, pause/resume, and sandbox features.
   2. **Cursor** --- Uses the Cursor SDK as the execution engine. Access to
      Cursor-specific models and tooling. Ideal for developer-facing agents that
      need code-level capabilities.
+  3. **Claude** --- Uses Anthropic's Claude Agent SDK as the execution engine,
+     on Claude models and the Organization's own Anthropic key. Approvals stop
+     at the exact call.
 - **Immutability**: A Session's Harness cannot change after the first run
   starts. It determines which models are available and which runtime processes
   the agent's turns.
@@ -796,12 +799,12 @@ The execution engine that processes agent activities for a Session.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                  |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Pick the engine each agent runs on; changing it is a setting, not a change to your product."                                                         |
-| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                             |
-| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Cursor."                                           |
-| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine. Immutable after first run." |
+| Context    | Copy                                                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Pick the engine each agent runs on; changing it is a setting, not a change to your product."                                                                                                           |
+| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                                                                               |
+| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports three: Native, Cursor and Claude."                                                                                   |
+| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine, `HARNESS_CLAUDE` for the Claude Agent SDK engine. Immutable after first run." |
 
 **Bad examples**:
 
@@ -1635,6 +1638,23 @@ engine.
 
 ---
 
+#### Claude harness
+
+The Harness that runs an Agent's turns on Anthropic's Claude Agent SDK, on
+Claude models and the Organization's own Anthropic key.
+
+- **Capitalize**: No special capitalization beyond "Claude" (the product name).
+  Write "Claude harness" in lowercase "h" in prose.
+- **Product name**: The product says "Claude" or "Powered by Claude", never
+  "Claude Code". Claude Code names a format only: its tool names and its hooks
+  format.
+- **Context rule**: Concepts and reference only. In sales copy say "Claude" or
+  "Powered by Claude"; in quickstart, refer to it as "the Claude harness" after
+  the Harness concept has been introduced.
+- **Related terms**: Harness (the parent concept), Cursor harness (its sibling).
+
+---
+
 #### Run
 
 One run of an Agent from start to finish: what a user starts when they send a
@@ -2159,8 +2179,8 @@ The gRPC API server that powers the local development experience.
 #### Agent Runner
 
 The TypeScript Temporal worker (`stigmer-runner`, `backend/services/runner`)
-that executes agent sessions, driving both harnesses: Cursor and the native
-deep-agent (LangGraph.js).
+that executes agent sessions, driving every harness it carries: the native
+deep-agent (LangGraph.js), Cursor, and Claude.
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure

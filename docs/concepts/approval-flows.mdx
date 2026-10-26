@@ -61,11 +61,11 @@ spec:
 through switching a plugin's hooks on, writing your own, and what differs from
 Claude Code.
 
-Both engines run hooks in both formats, in the Cloud and on your laptop: a
+Every engine runs hooks in both formats, in the Cloud and on your laptop: a
 Claude Code plugin's hooks work on the Cursor engine, and a Cursor plugin's on
-Stigmer's own. A few things differ:
+Stigmer's own and on Claude. A few things differ:
 
-- A Cursor-format hook that asks gets an approval on both engines, where Cursor
+- A Cursor-format hook that asks gets an approval on every engine, where Cursor
   itself lets the call run.
 - On the Cursor engine, a hook is not told which subagent made a call. Web fetch
   and web search reach no hook there, so an Agent whose hooks that run before a

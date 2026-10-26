@@ -190,8 +190,8 @@ export interface ModelCostEntry {
 /**
  * Build a compound key that uniquely identifies a model across harnesses.
  *
- * The same underlying model name (e.g. `claude-4.6-sonnet`) can exist in
- * both native and cursor harnesses. The compound key disambiguates.
+ * The same model name (e.g. `claude-sonnet-5`) can exist in several
+ * harnesses, native's and Claude's. The compound key disambiguates.
  */
 export function modelKey(harness: HarnessOption, modelId: string): string {
   return `${harness}/${modelId}`;

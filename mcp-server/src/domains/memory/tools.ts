@@ -1,5 +1,5 @@
 // The remember tool — the ONE tool of the memory roster (the
-// first-party capture verb both harnesses receive through the
+// first-party capture verb every harness receives through the
 // runner-synthesized memory attachment).
 //
 // Agent audience only, by construction: this roster is what the memory

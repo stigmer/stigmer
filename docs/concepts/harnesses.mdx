@@ -2,20 +2,22 @@
 title: Harnesses
 description:
   A Harness is the execution engine that powers an Agent Session. Stigmer
-  supports two harnesses — Native and Cursor — each with different model
-  availability, tool capabilities, and runtime behavior.
+  supports three harnesses — Native, Cursor and Claude — each with different
+  model availability, tool capabilities, and runtime behavior.
 ---
 
 Every [Session](/docs/concepts/sessions) needs an execution engine — the runtime
 that processes the Agent's turns, calls models, runs tools, and streams results.
 In Stigmer, that engine is called a **Harness**.
 
-Stigmer supports two harnesses:
+Stigmer supports three harnesses:
 
 - **Native** — Stigmer's built-in engine: the deepagents engine on LangGraph.js,
   running in TypeScript inside the Stigmer runner.
 - **Cursor** — An alternate engine that uses the
   [Cursor SDK](https://docs.cursor.com/sdk) to run Agent activities.
+- **Claude** — Anthropic's Claude Agent SDK, Powered by Claude, running Claude
+  models on your Organization's own Anthropic key.
 
 The Harness is a Session-level choice. You pick it when you create a Session,
 and it stays fixed for the life of that conversation.
@@ -79,23 +81,53 @@ runtime handles them.
 - Sandbox isolation follows Cursor's model, not Stigmer's container-based
   sandbox.
 
+## Claude harness
+
+The Claude harness runs the Agent's turns on Anthropic's Claude Agent SDK. The
+console and the CLI name it **Claude**, Powered by Claude.
+
+**What you get:**
+
+- Claude models from the model catalog: the same models, ids and prices as the
+  native Harness's Anthropic models, with thinking in the form each model
+  supports and its reasoning readable.
+- Model calls on your Organization's own Anthropic key. In the hosted cloud, a
+  Claude run with no Anthropic key is refused when it is created, naming
+  Anthropic, so you add the key rather than watch a run fail.
+- [Approval flows](/docs/concepts/approval-flows) that stop at the exact call:
+  the run waits for a person, and the call that runs is exactly the one that was
+  approved.
+- The Agent's tool lists, Skills, sub-agents, MCP servers and hooks in either
+  format, file review, the cost cap, stop, and the Session's event log, as on
+  the other harnesses.
+
+**What it does not offer yet:**
+
+- The fast tier: a Claude run takes the standard tier.
+- Resuming a recorded conversation in an eval case: such a case is listed as
+  `not run on Claude: resumed conversations` and runs on native.
+- Published runners, the self-hosted images and the desktop app do not carry the
+  engine yet. A runner without it refuses a Claude turn plainly: "Claude is not
+  installed on this runner, so this turn cannot run on Claude. Run it on another
+  engine."
+
 ## Choosing a Harness
 
 The Harness you choose depends on what your Agent needs to do.
 
-|                             | Native                                                                | Cursor                                                                       |
-| --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Default**                 | Yes                                                                   | No — must be explicitly selected                                             |
-| **Model availability**      | All supported providers                                               | Cursor-served models only                                                    |
-| **Tool capabilities**       | MCP servers from your plugins and your Agent + built-in web fetch     | MCP servers + Cursor's built-in coding tools                                 |
-| **Checkpoints**             | Full Stigmer pause/resume                                             | Cursor-managed state                                                         |
-| **Repository instructions** | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's           | Read by Cursor itself, with its project rules                                |
-| **Who bills model calls**   | Your provider, on your Organization's key                             | Cursor, on your Organization's Cursor key                                    |
-| **Cursor Token Rate**       | None                                                                  | Small per-token fee on non-Auto models                                       |
-| **Engine context per call** | Stigmer's system prompt and tool schemas, cached after the first call | Cursor's own engine context, cached at Cursor's discretion                   |
-| **Prompt caching**          | Full control (explicit breakpoints)                                   | Automatic and opaque                                                         |
-| **Latency**                 | Lower on a fresh Session                                              | Higher on a fresh Session (agent start-up); close to native on a resumed one |
-| **Best for**                | General-purpose agents, custom model selection, production workloads  | Developer-facing agents, coding tasks, Cursor model access                   |
+|                             | Native                                                                | Cursor                                                                       | Claude                                                                  |
+| --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Default**                 | Yes                                                                   | No — must be explicitly selected                                             | No — must be explicitly selected                                        |
+| **Model availability**      | All supported providers                                               | Cursor-served models only                                                    | Claude models only                                                      |
+| **Tool capabilities**       | MCP servers from your plugins and your Agent + built-in web fetch     | MCP servers + Cursor's built-in coding tools                                 | MCP servers + the engine's file tools, with the shell run by the runner |
+| **Checkpoints**             | Full Stigmer pause/resume                                             | Cursor-managed state                                                         | The engine's conversation, kept by Stigmer                              |
+| **Repository instructions** | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's           | Read by Cursor itself, with its project rules                                | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's             |
+| **Who bills model calls**   | Your provider, on your Organization's key                             | Cursor, on your Organization's Cursor key                                    | Anthropic, on your Organization's Anthropic key                         |
+| **Cursor Token Rate**       | None                                                                  | Small per-token fee on non-Auto models                                       | None                                                                    |
+| **Engine context per call** | Stigmer's system prompt and tool schemas, cached after the first call | Cursor's own engine context, cached at Cursor's discretion                   | The engine's own system prompt, with Stigmer's additions                |
+| **Prompt caching**          | Full control (explicit breakpoints)                                   | Automatic and opaque                                                         | Managed by the engine                                                   |
+| **Latency**                 | Lower on a fresh Session                                              | Higher on a fresh Session (agent start-up); close to native on a resumed one | The engine starts its own process for each turn                         |
+| **Best for**                | General-purpose agents, custom model selection, production workloads  | Developer-facing agents, coding tasks, Cursor model access                   | Agents that want Anthropic's own agent loop on Claude models            |
 
 <Callout type="info">
   A Session's Harness is immutable after the first run starts. Choose the right
@@ -122,7 +154,7 @@ for Auto runs, that is where the picked model becomes visible after the fact.
 
 ## How it works
 
-Both harnesses feed into the same Stigmer pipeline. The difference is which
+Every harness feeds into the same Stigmer pipeline. The difference is which
 runtime processes the Agent's turns — the rest of the system (streaming,
 approval flows, usage tracking, cost caps) works the same regardless of Harness.
 
@@ -132,14 +164,16 @@ flowchart LR
   R --> D{Harness?}
   D -->|Native| EG["Native Runtime"]
   D -->|Cursor| EC["Cursor Runtime"]
+  D -->|Claude| EA["Claude Runtime"]
   EG --> P["Streaming / HITL / Usage"]
   EC --> P
+  EA --> P
 ```
 
-One [Runner](/docs/concepts/runners) serves both harnesses. The Harness is a
-property of the Session and travels with each run on the same task queue; the
-runner reads it and hands the work to the matching runtime. You don't need
-separate runner processes, or separate queues, for each Harness.
+One [Runner](/docs/concepts/runners) serves every harness it carries. The
+Harness is a property of the Session and travels with each run on the same task
+queue; the runner reads it and hands the work to the matching runtime. You don't
+need separate runner processes, or separate queues, for each Harness.
 
 ## Creating a Session with a Harness
 
@@ -157,7 +191,7 @@ const session = await client.session.create({
   org: "acme",
   subject: "Q3 variance review",
   agentRef: { org: "acme", slug: "variance-reporter" },
-  harness: Harness.CURSOR,
+  harness: Harness.CURSOR, // or Harness.NATIVE, Harness.CLAUDE
 });
 ```
 
@@ -170,27 +204,29 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
     Org:      "acme",
     Subject:  "Q3 variance review",
     AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"},
-    Harness:  sessionv1.Harness_HARNESS_CURSOR,
+    Harness:  sessionv1.Harness_HARNESS_CURSOR, // or Harness_HARNESS_NATIVE, Harness_HARNESS_CLAUDE
 })
 ```
 
   </Tab>
 </Tabs>
 
-In the web console, the model picker shows models from both harnesses. Selecting
-a Cursor-served model implicitly sets the Harness to Cursor for that Session.
+In the web console, the model picker shows models from every harness. Selecting
+a Cursor-served model implicitly sets the Harness to Cursor for that Session. On
+the CLI, `--harness claude` starts a Session on Claude.
 
 ## Cost considerations
 
-Stigmer charges nothing per call on either harness: both run on your own keys.
+Stigmer charges nothing per call on any harness: each runs on your own keys.
 Cost differences come from three places: the Cursor Token Rate, engine context
 per call, and prompt caching.
 
 - **Cursor Token Rate** — most Cursor models add a small per-token fee (Cursor's
   own charge, billed by Cursor on your Cursor key's plan). Native models never
-  carry it, so the same underlying model is cheaper on native.
-- **Engine context per call** — both harnesses send an engine preamble with
-  every call, and neither is your prompt alone. Native sends Stigmer's system
+  carry it, nor do Claude's, so the same underlying model is cheaper on native
+  or Claude.
+- **Engine context per call** — every harness sends an engine preamble with
+  every call, and none is your prompt alone. Native sends Stigmer's system
   prompt and tool schemas; Cursor sends its own engine context, as the Cursor
   SDK reports usage. The two are comparable in size, so the cost gap between
   them is not token volume.

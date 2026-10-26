@@ -54,20 +54,21 @@ describe("validateThinking", () => {
 });
 
 describe("validateHarness", () => {
-  it("accepts empty, native, and cursor", () => {
+  it("accepts empty, native, cursor and claude", () => {
     expect(() => validateHarness("")).not.toThrow();
     expect(() => validateHarness("native")).not.toThrow();
     expect(() => validateHarness("cursor")).not.toThrow();
+    expect(() => validateHarness("claude")).not.toThrow();
   });
 
   it("rejects anything else before a network round trip", () => {
-    expect(() => validateHarness("turbo")).toThrow(/must be "native" or "cursor"/);
+    expect(() => validateHarness("turbo")).toThrow(/must be "native", "cursor" or "claude"/);
   });
 
   it("rejects UI-only harness names that have no proto mapping", () => {
     // copilot/codex/etc. exist in display metadata but not on the wire —
     // accepting them here would stamp UNSPECIFIED and silently run native.
-    expect(() => validateHarness("copilot")).toThrow(/must be "native" or "cursor"/);
+    expect(() => validateHarness("copilot")).toThrow(/must be "native", "cursor" or "claude"/);
   });
 });
 
@@ -102,6 +103,7 @@ interface StubPreferences {
   readonly defaultHarness?: string;
   readonly defaultNativeModel?: string;
   readonly defaultCursorModel?: string;
+  readonly defaultClaudeModel?: string;
 }
 
 /** Stub whose whoAmI resolves an account carrying the given preferences. */
@@ -401,6 +403,14 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     );
     expect(prepared.harness).toBe("native");
     expect(prepared.model).toBe("claude-sonnet-4-6");
+  });
+
+  it("a Claude session takes the account's Claude model, from the account's engine or a flag", async () => {
+    const onClaude = { defaultHarness: "claude", defaultNativeModel: "claude-sonnet-4-6", defaultClaudeModel: "claude-sonnet-5" };
+    const fromAccount = await prepareAgentExec(BASE_FLAGS, clientWithPreferences(onClaude), undefined, SERVED_RUN_OPTIONS);
+    expect([fromAccount.harness, fromAccount.model]).toEqual(["claude", "claude-sonnet-5"]);
+    const fromFlag = await prepareAgentExec({ ...BASE_FLAGS, harness: "claude" }, clientWithPreferences({ ...onClaude, defaultHarness: "native" }), undefined, SERVED_RUN_OPTIONS);
+    expect([fromFlag.harness, fromFlag.model]).toEqual(["claude", "claude-sonnet-5"]);
   });
 
   it("an agent naming an engine but no model keeps the account model fill", async () => {

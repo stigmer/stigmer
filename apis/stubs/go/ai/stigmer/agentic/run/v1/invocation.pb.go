@@ -176,7 +176,7 @@ func (x *AgentInvocation) GetResources() []*v1.SessionResource {
 //     ceiling the message, the routine or channel, and the agent can lower
 //     but never raise.
 //   - The agent's choices apply only on the engine its defaults name
-//     (AgentSpec.harness). On a conversation running the other engine the
+//     (AgentSpec.harness). On a conversation running another engine the
 //     agent layer gives its bounds alone.
 //
 // Saved settings are self-contained: a routine, channel or agent that sets

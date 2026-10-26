@@ -30,7 +30,7 @@ export function hookFormatName(format: HookFormat): HookFormatName {
 
 /**
  * `Claude Code format: PreToolUse 2, PostToolUse 1`: handlers per event, in
- * first-seen order. Hooks in either format run on both engines when an agent
+ * first-seen order. Hooks in either format run on every engine when an agent
  * references the plugin.
  */
 export function hooksSummary(

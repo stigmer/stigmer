@@ -23,17 +23,18 @@ pinned somewhere. Read a row across before searching for anything.
 | `HarnessName` in `harness/registry.ts` | `deep-agent` | `cursor` | `claude` |
 | The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteCursor` | `ExecuteClaude` |
 | The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_NATIVE` | `HARNESS_CURSOR` | `HARNESS_CLAUDE` |
-| The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `cursor` | `claude` (no rows yet) |
+| The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `cursor` | `claude` |
 | The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts`, `activities/execute-cursor/cursor-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `cursor` | `claude` |
 | The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@cursor/sdk` | `@anthropic-ai/claude-agent-sdk` |
 
 The runner runs a Claude turn, the agent's skills, sub-agents and hooks
 included (`activities/execute-claude/agents.ts`, `activities/execute-claude/hooks.ts`),
 and a call that needs a person waits for one (`activities/execute-claude/gate.ts`);
-the server refuses Claude until the
-platform offers it (`backend/services/stigmer-server/src/domain/session/harness.ts`),
-and no published runner carries its engine yet
-(`backend/services/runner/scripts/bundle-slim.mjs` stages none of it).
+the server offers it on every surface
+(`backend/services/stigmer-server/src/domain/session/harness.ts`); no published
+runner carries its engine yet (`backend/services/runner/scripts/bundle-slim.mjs`
+stages none of it), so a runner without it refuses a Claude turn plainly
+(`activities/execute-claude/adapter.ts`).
 
 ## Modules, in reading order
 
@@ -208,8 +209,8 @@ What every adapter's test side carries:
 
 ## Sites a new harness touches
 
-Measured on 2026-10-24 at 9b7ef9a9ca with the change that named Claude applied
-(stigmer#2199). Every list in this section is dated by that line.
+Measured on 2026-10-26 at eee33f6bd3 with the change that offered Claude
+applied. Every list in this section is dated by that line.
 
 ### In the runner
 
@@ -308,19 +309,19 @@ sites the compiler cannot see: prose, data and rules true of one engine.
 | `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | Per-harness model rows; a harness with its own catalog adds rows. |
 | `backend/services/stigmer-server/src/domain/run/usage-fold.ts` | The usage report's engine word and its per-engine token arithmetic. |
 | `backend/services/stigmer-server/src/domain/score/eval/trace.ts` | The engine's tool vocabulary for the eval's graders. |
-| `backend/services/stigmer-server/src/domain/eval-run/matrix.ts`, `backend/services/stigmer-server/src/domain/eval/case-from-run.ts`, `backend/services/stigmer-server/src/temporal/routine/model-pinning.ts` | Rules true of Cursor alone (features it lacks, a recorded history it cannot resume, the unattended pin); a new harness states its own answer. |
-| `client-apps/cli/src/commands/agent-exec-flags.ts` | The `--harness` flag's help text lists the values. |
-| `client-apps/cli/src/resources/run/create.ts`, `client-apps/cli/src/resources/run/prepare.ts`, `client-apps/cli/src/resources/eval-run/options.ts` | The flag and target words to the enum and back (`HarnessFlag`, `harnessFlagOf`, `parseTarget`). |
-| `client-apps/cli/src/resources/run/header.ts` | The run header surfaces only a Cursor session's harness. |
+| `backend/libs/ts/plugin-package/src/evals/read-eval-suite.ts`, `backend/services/stigmer-server/src/domain/eval-run/matrix.ts`, `backend/services/stigmer-server/src/domain/eval/case-from-run.ts` | Each engine's eval features it cannot run (`EVAL_ENGINE_UNSUPPORTED_FEATURES`) and each engine's word and name in a case's not-run copy (`EVAL_ENGINES`); a new harness states its own answer. |
+| `backend/services/stigmer-server/src/temporal/routine/model-pinning.ts`, `backend/services/stigmer-server/src/domain/run/resolve-run-config.ts` | The unattended pin rule, Cursor's alone (its empty model is Auto, priced by Cursor's own pick); a new harness says whether its empty model is a catalog row. |
+| `client-apps/cli/src/commands/agent-exec-flags.ts`, `client-apps/cli/src/commands/eval.ts` | The `--harness` flag's and the eval `--model` target's help texts list the values. |
+| `client-apps/cli/src/resources/run/engines.ts` | The CLI's one engine table (`ENGINES`): each word's enum member, name and account default-model field, typed over the enum, which the run's flags, create and header and the eval target read (`client-apps/cli/src/resources/run/prepare.ts`, `client-apps/cli/src/resources/run/create.ts`, `client-apps/cli/src/resources/run/header.ts`, `client-apps/cli/src/resources/eval-run/options.ts`). |
 | `sdk/react/src/models/harness.ts` | The SDK hub: `HarnessOption`, `HARNESS_META`, `HARNESS_LABELS`, `DEFAULT_HARNESS`, `toProtoHarness`, `fromProtoHarness`, all read from one option-to-enum table typed over the whole enum; and `HARNESS_OPTIONS`, the offered engines, kept by hand with `isHarnessOption`. |
 | `sdk/react/src/models/registry.ts` | The default model per harness. |
 | `sdk/react/src/models/HarnessSelector.tsx` | The premium mark on the Cursor segment; the segments come from `HARNESS_OPTIONS`. |
-| `sdk/react/src/identity-account/AccountPreferencesPanel.tsx`, `sdk/react/src/identity-account/useAccountExecutionDefaults.ts` | One option row and one default-model field per harness, placed by hand. |
-| `sdk/react/src/model-catalog/BaselineEditor.tsx` | A select with one option per harness. |
-| `sdk/react/src/session/useNewSessionFlow.ts`, `sdk/react/src/session/usePersistedModel.ts` | A storage key and a default-model pick per harness. |
+| `sdk/react/src/identity-account/useAccountExecutionDefaults.ts` | Each harness's default-model field and update path (`ACCOUNT_DEFAULT_MODELS`), which the preferences panel and the new-session flow read. |
+| `sdk/react/src/session/usePersistedModel.ts` | A device storage key per harness (`modelStorageKey`). |
+| `sdk/react/src/usage/HarnessSplitCard.tsx` | A colour per harness in the usage split. |
 | `sdk/react/src/run/tool-categories.ts` | The file-tool fields of each engine's tool shapes. |
 | `sdk/typescript/src/eval-run/result-document.ts` | The engine's word in an eval result. |
-| `test/conformance/src/benchmark/cells.ts`, `test/conformance/src/benchmark/run.ts`, `test/conformance/src/benchmark/report.ts`, `test/conformance/src/benchmark/quality-eval.ts`, `test/conformance/src/benchmark/temporal-history.ts`, `test/conformance/scripts/benchmark-harnesses.ts`, `test/conformance/scripts/long-turn-live.ts` | The benchmark's harness list and its per-harness keys, models, costs and sides. |
+| `test/conformance/src/benchmark/cells.ts`, `test/conformance/src/benchmark/compare.ts`, `test/conformance/src/benchmark/run.ts`, `test/conformance/src/benchmark/report.ts`, `test/conformance/src/benchmark/quality-eval.ts`, `test/conformance/src/benchmark/temporal-history.ts`, `test/conformance/scripts/benchmark-harnesses.ts`, `test/conformance/scripts/long-turn-live.ts` | The benchmark's harness list and its per-harness keys, models, costs and sides. |
 | `docs/concepts/harnesses.mdx`, `docs/guides/runners/cursor-harness.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current. |
 
 The cloud composition that serves api.stigmer.ai has sites of the same classes
@@ -341,7 +342,9 @@ the message admission chain after `ResolveRunConfig`
 (`backend/services/stigmer-server/src/domain/run/refuse-unoffered-engine.ts`,
 again in `backend/services/stigmer-server/src/domain/run/create-steps.ts`
 after a re-resolve). Offering a harness is one entry
-in `OFFERED_HARNESSES`, with the surfaces above that offer it.
+in `OFFERED_HARNESSES`, with the surfaces above that offer it. Every engine the
+proto names is offered today, so the rule refuses a number the proto does not
+name, and the next engine the proto names until it is offered.
 
 ### Outside the runner: sites that pass the value through
 
@@ -381,7 +384,10 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `sdk/react/src/session/NewSessionViewer.tsx`,
   `sdk/react/src/session/facets/SetupTab.tsx`,
   `sdk/react/src/session/useCreateSession.ts`,
-  `sdk/react/src/session/useSessionPageFlow.ts` (typed by the option, or
+  `sdk/react/src/session/useSessionPageFlow.ts`,
+  `sdk/react/src/identity-account/AccountPreferencesPanel.tsx`,
+  `sdk/react/src/model-catalog/BaselineEditor.tsx`,
+  `sdk/react/src/session/useNewSessionFlow.ts` (typed by the option, or
   reading the tables).
 - Clients and the CLI's rendering: `sdk/typescript/src/run/tool-view.ts` (reads
   an engine's results by shape; a new result shape is a new case there),
@@ -400,6 +406,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `docs/guides/integrations/model-provider-keys.mdx`.
 - Tests and fixtures: `test/e2e/helpers/approval.ts`,
   `test/e2e/tests/interactive/agent-run-defaults.spec.ts`,
+  `test/e2e/tests/interactive-approval/session-claude-flow.spec.ts`,
   `test/extension-consumer/src/fake-extension.ts`,
   `test/fixtures/tool-view/README.md`,
   `test/fixtures/tool-view/result-views.json`, `test/support/src/llm-wire.ts`,

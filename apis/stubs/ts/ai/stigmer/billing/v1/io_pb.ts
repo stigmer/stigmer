@@ -157,7 +157,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
   providerUsageJson: string;
 
   /**
-   * Harness that originated this call ("native" or "cursor").
+   * Harness that originated this call ("native", "cursor" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    *

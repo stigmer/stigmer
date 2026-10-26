@@ -21,9 +21,8 @@ The model data is fetched from the public model registry API by
 `isLoading` is `true` and `models` is empty.
 
 **Modes:**
-- `options.harness === "cursor"` — Cursor-harness models only
-- `options.harness === "native"` — native models, excluding disabled providers
-- `options.harness` omitted — unified: both harnesses, excluding disabled providers
+- `options.harness` set — that engine's own models, excluding disabled providers
+- `options.harness` omitted — unified: every engine's, excluding disabled providers
 
 **Signature**
 
@@ -46,7 +45,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
     error: { type: "Error | null", description: "Non-null if the API fetch failed. Models will be empty in this case." },
     featured: { type: "readonly ModelInfo[]", description: "Curated subset of models marked as `featured` in the registry." },
     getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"native/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
-    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under both harnesses (e.g. `claude-sonnet-4.5` on native and `claude-4.5-sonnet` on cursor). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
+    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under several harnesses (e.g. `claude-sonnet-5` on native and on claude). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
     isLoading: { type: "boolean", description: "`true` while the model registry is being fetched from the API." },
     models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
     providers: { type: "readonly Provider[]", description: "Ordered list of enabled provider identifiers." },
@@ -70,9 +69,11 @@ const { models, defaultModel } = useModelRegistry({ harness: "native" });
 
 Compact segmented control for choosing the session execution engine.
 
-Renders two mutually exclusive options — "Stigmer" (native) and
-"Cursor" (premium) — as adjacent pill segments. The Cursor segment
-carries a subtle premium tier indicator.
+Renders one mutually exclusive option per offered engine — "Stigmer"
+(native), "Cursor" (premium) and "Claude" — as adjacent pill segments.
+The Cursor segment carries a subtle premium tier indicator; Claude bills
+at Anthropic's prices on the organization's key, as native does, so it
+carries none.
 
 Built as a `radiogroup` with full arrow-key navigation and ARIA
 semantics. All visual properties flow through `--stgm-*` tokens.
@@ -303,8 +304,8 @@ const model = getModel(selectedId) ?? defaultModel;
 
 Build a compound key that uniquely identifies a model across harnesses.
 
-The same underlying model name (e.g. `claude-4.6-sonnet`) can exist in
-both native and cursor harnesses. The compound key disambiguates.
+The same model name (e.g. `claude-sonnet-5`) can exist in several
+harnesses, native's and Claude's. The compound key disambiguates.
 
 ```tsx
 function modelKey(harness: HarnessOption, modelId: string): string
@@ -448,7 +449,7 @@ Options for [`useModelRegistry`](#usemodelregistry).
 
 <TypeTable
   type={{
-    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"cursor\"` — only Cursor-harness models, default → DEFAULT_CURSOR_MODEL_ID - `\"native\"` — only native-harness models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from both harnesses", typeDescriptionLink: "#harnessoption" },
+    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"cursor\"` — only Cursor-harness models, default → DEFAULT_CURSOR_MODEL_ID - `\"native\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
   }}
 />
 

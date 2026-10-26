@@ -297,7 +297,7 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
   provider: string;
 
   /**
-   * Execution harness ("native", "cursor", ...).
+   * Execution harness ("native", "cursor", "claude").
    *
    * @generated from field: string harness = 5;
    */

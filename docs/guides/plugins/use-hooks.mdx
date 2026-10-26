@@ -10,7 +10,7 @@ A hook is a command that runs around an Agent's tool calls. Before a call it can
 refuse it, ask you first, or let it run without the approval it would otherwise
 need; after a call it can tell the Agent something about the result. Hooks are
 how a plugin sets tool policy on Stigmer, in Claude Code's hooks format or
-Cursor's, and they run on both engines, in the Cloud and on your laptop.
+Cursor's, and they run on every engine, in the Cloud and on your laptop.
 [Approval flows](/docs/concepts/approval-flows) explains where hooks sit beside
 the default approvals and the Agent's tool lists; this page puts one to work.
 
@@ -229,7 +229,7 @@ differences:
   decision (`systemMessage`) is not shown yet.
 - A hook reads a plugin setting by passing `${user_config.KEY}` in its `args`;
   only a setting passed that way is also set as `CLAUDE_PLUGIN_OPTION_<KEY>`.
-- A Cursor-format hook that asks gets an approval on both engines, where Cursor
+- A Cursor-format hook that asks gets an approval on every engine, where Cursor
   itself lets the call run.
 - Hook files in a repository (`.claude/settings.json`, `.cursor/hooks.json`)
   never run for the Agent; only the Agent's own hooks do.
