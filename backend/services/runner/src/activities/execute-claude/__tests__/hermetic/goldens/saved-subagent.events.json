@@ -72,7 +72,7 @@
         "target": "all"
       },
       "mcp_server_name": "ci",
-      "name": "mcp__ci__run",
+      "name": "run",
       "session_thread_id": "aex_claude_0001.toolu_delegate"
     }
   },
@@ -125,7 +125,7 @@
         "target": "x"
       },
       "mcp_server_name": "docs",
-      "name": "mcp__docs__lookup",
+      "name": "lookup",
       "session_thread_id": "aex_claude_0001.toolu_delegate"
     }
   },

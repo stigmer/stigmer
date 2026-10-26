@@ -24,12 +24,13 @@
       "type": {
         "kind": "string"
       },
-      "description": "Default harness for new sessions: \"native\" or \"cursor\".\n Empty means no preference — the platform default applies.",
+      "description": "Default harness for new sessions: \"native\", \"cursor\" or \"claude\".\n Empty means no preference — the platform default applies.",
       "required": false,
       "validation": {
         "enum": [
           "native",
-          "cursor"
+          "cursor",
+          "claude"
         ]
       }
     },
@@ -78,6 +79,19 @@
       },
       "description": "Whether new interactive sessions start with \"auto-approve tool calls\"\n armed. Off by default — sessions prompt at each approval gate.",
       "required": false
+    },
+    {
+      "name": "DefaultClaudeModel",
+      "jsonName": "defaultClaudeModel",
+      "protoField": "default_claude_model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Default model (registry model ID) for claude-harness sessions.\n Empty means no preference — the platform default applies.",
+      "required": false,
+      "validation": {
+        "maxLength": 100
+      }
     }
   ]
 }

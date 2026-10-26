@@ -62,7 +62,7 @@ export function chatAgentMockModel(args: {
   readonly executionId: string;
 }): AgentMockModel {
   return async (request) => {
-    const modelName = args.modelName !== "" ? args.modelName : await getDefaultModel();
+    const modelName = args.modelName !== "" ? args.modelName : await getDefaultModel("native");
     const { model } = await buildChatModel({
       modelName,
       proxyEndpoint: args.config.proxyEndpoint ?? undefined,

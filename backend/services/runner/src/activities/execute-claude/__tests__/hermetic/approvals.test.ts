@@ -14,8 +14,9 @@
  *  - Two calls that need a person in one message: the first waits, the
  *    second is refused with the sentence that asks for it alone; the model
  *    asks again alone and that call waits in turn.
- *  - A bridged MCP tool its server marks destructive waits, and approved,
- *    runs on the server the host connected.
+ *  - A bridged MCP tool its server marks destructive waits, its row named by
+ *    the bare tool beside its server, and approved, runs once on the server
+ *    the host connected.
  *  - A run stopped while a call waited leaves that call in the engine's
  *    transcript: the next run's engine reaches it, and it is refused as a
  *    call nobody answered, never run.
@@ -187,13 +188,14 @@ describe("ExecuteClaude hermetic — approvals", () => {
     );
     expect(phaseOf(await file.run(record, script))).toBe("RUN_WAITING_FOR_APPROVAL");
     const [row] = record.waitingToolCalls();
-    expect([row?.id, row?.mcpServerSlug, row?.approvalPolicySource]).toEqual(["toolu_purge", "ops", ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN]);
+    expect([row?.id, row?.name, row?.mcpServerSlug, row?.approvalPolicySource], "the row names the bare tool beside its server").toEqual(["toolu_purge", "purge", "ops", ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN]);
     expect(destructive.calls).toEqual([]);
 
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, AT)).toBe(1);
     expect(phaseOf(await file.resume(record, script, { turnSeq: 1 }))).toBe("RUN_COMPLETED");
-    expect(destructive.calls).toEqual([{ tool: "purge", args: { scope: "all" } }]);
-    expect(record.toolCalls().find((r) => r.id === "toolu_purge")?.result).toBe("purged all");
+    expect(destructive.calls, "the approved call ran once, as the row showed it").toEqual([{ tool: "purge", args: { scope: "all" } }]);
+    const done = record.toolCalls().find((r) => r.id === "toolu_purge");
+    expect([done?.name, done?.status, done?.approvalAction, done?.result]).toEqual(["purge", ToolCallStatus.TOOL_CALL_COMPLETED, ApprovalAction.APPROVE, "purged all"]);
   });
 
   it("a call a stopped run left waiting is refused in the next run, never run", async () => {

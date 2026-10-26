@@ -20,7 +20,7 @@ import {
 } from "../tool-view";
 
 const here = dirname(fileURLToPath(import.meta.url));
-// sdk/typescript/src/execution/__tests__ -> repo root is five levels up.
+// sdk/typescript/src/run/__tests__ -> repo root is five levels up.
 const fixtureDir = resolve(here, "../../../../../test/fixtures/tool-view");
 
 function loadFixture<T>(name: string): T {

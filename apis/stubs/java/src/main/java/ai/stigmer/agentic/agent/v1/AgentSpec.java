@@ -406,7 +406,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
-   * limits Agent to types. The lists hold on both engines, and under "approve everything"
+   * limits Agent to types. The lists hold on every engine, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
@@ -437,7 +437,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
-   * limits Agent to types. The lists hold on both engines, and under "approve everything"
+   * limits Agent to types. The lists hold on every engine, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
@@ -467,7 +467,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
-   * limits Agent to types. The lists hold on both engines, and under "approve everything"
+   * limits Agent to types. The lists hold on every engine, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
@@ -498,7 +498,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
-   * limits Agent to types. The lists hold on both engines, and under "approve everything"
+   * limits Agent to types. The lists hold on every engine, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
@@ -604,7 +604,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
-   * without the approval it would otherwise need. Both engines run hooks in
+   * without the approval it would otherwise need. Every engine runs hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
    * them runs there without those tools; a PostToolUse hook on them does not
@@ -623,7 +623,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
-   * without the approval it would otherwise need. Both engines run hooks in
+   * without the approval it would otherwise need. Every engine runs hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
    * them runs there without those tools; a PostToolUse hook on them does not
@@ -643,7 +643,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
-   * without the approval it would otherwise need. Both engines run hooks in
+   * without the approval it would otherwise need. Every engine runs hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
    * them runs there without those tools; a PostToolUse hook on them does not
@@ -662,7 +662,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
-   * without the approval it would otherwise need. Both engines run hooks in
+   * without the approval it would otherwise need. Every engine runs hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
    * them runs there without those tools; a PostToolUse hook on them does not
@@ -681,7 +681,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
-   * without the approval it would otherwise need. Both engines run hooks in
+   * without the approval it would otherwise need. Every engine runs hooks in
    * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
    * web search reach no hook, so an agent whose PreToolUse hooks would match
    * them runs there without those tools; a PostToolUse hook on them does not
@@ -707,7 +707,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * defaults.
    *
    * A choice here (model_name, service_tier, thinking_mode) applies only on
-   * the engine named in harness; on a conversation running the other engine
+   * the engine named in harness; on a conversation running another engine
    * only the bounds apply. A bound here is a cap: a message, a routine or a
    * channel can lower it, never raise it. A model must be named together with harness,
    * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -731,7 +731,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * defaults.
    *
    * A choice here (model_name, service_tier, thinking_mode) applies only on
-   * the engine named in harness; on a conversation running the other engine
+   * the engine named in harness; on a conversation running another engine
    * only the bounds apply. A bound here is a cap: a message, a routine or a
    * channel can lower it, never raise it. A model must be named together with harness,
    * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -755,7 +755,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * defaults.
    *
    * A choice here (model_name, service_tier, thinking_mode) applies only on
-   * the engine named in harness; on a conversation running the other engine
+   * the engine named in harness; on a conversation running another engine
    * only the bounds apply. A bound here is a cap: a message, a routine or a
    * channel can lower it, never raise it. A model must be named together with harness,
    * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -2957,7 +2957,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -2989,7 +2989,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3019,7 +3019,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3050,7 +3050,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3082,7 +3082,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3120,7 +3120,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3157,7 +3157,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3194,7 +3194,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3228,7 +3228,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
-     * limits Agent to types. The lists hold on both engines, and under "approve everything"
+     * limits Agent to types. The lists hold on every engine, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
@@ -3473,7 +3473,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3495,7 +3495,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3517,7 +3517,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3539,7 +3539,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3568,7 +3568,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3594,7 +3594,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3622,7 +3622,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3651,7 +3651,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3677,7 +3677,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3703,7 +3703,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3730,7 +3730,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3755,7 +3755,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3780,7 +3780,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3799,7 +3799,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3821,7 +3821,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3844,7 +3844,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3863,7 +3863,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3883,7 +3883,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
-     * without the approval it would otherwise need. Both engines run hooks in
+     * without the approval it would otherwise need. Every engine runs hooks in
      * Claude Code's format and in Cursor's. On the Cursor engine, web fetch and
      * web search reach no hook, so an agent whose PreToolUse hooks would match
      * them runs there without those tools; a PostToolUse hook on them does not
@@ -3923,7 +3923,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -3946,7 +3946,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -3973,7 +3973,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -4005,7 +4005,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -4035,7 +4035,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -4072,7 +4072,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -4101,7 +4101,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -4125,7 +4125,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode
@@ -4152,7 +4152,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * defaults.
      *
      * A choice here (model_name, service_tier, thinking_mode) applies only on
-     * the engine named in harness; on a conversation running the other engine
+     * the engine named in harness; on a conversation running another engine
      * only the bounds apply. A bound here is a cap: a message, a routine or a
      * channel can lower it, never raise it. A model must be named together with harness,
      * and must be one that engine lists; service_tier FAST and thinking_mode

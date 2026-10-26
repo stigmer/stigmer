@@ -31,7 +31,7 @@
         "q": "the thing"
       },
       "mcp_server_name": "docs",
-      "name": "mcp__docs__lookup"
+      "name": "lookup"
     }
   },
   {
@@ -52,10 +52,10 @@
     "agent_mcp_tool_use": {
       "id": "aex_claude_0001.toolu_mcp_memory",
       "input": {
-        "q": "the thing is found"
+        "fact": "The thing is found."
       },
       "mcp_server_name": "stigmer-memory",
-      "name": "mcp__stigmer-memory__remember"
+      "name": "remember"
     }
   },
   {
@@ -66,7 +66,7 @@
       "content": [
         {
           "type": "text",
-          "text": "Remembered."
+          "text": "{\"outcome\":\"Proposed — the user decides. Nothing is remembered unless they confirm this fact.\",\"memory\":{\"metadata\":{\"id\":\"mem_claude_1\",\"org\":\"hermetic-org\"},\"spec\":{\"content\":\"The thing is found.\"},\"status\":{\"lifecycle_state\":\"lifecycle_state_proposed\"}}}"
         }
       ]
     }

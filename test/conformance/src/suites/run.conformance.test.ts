@@ -321,37 +321,6 @@ describe("Run conformance — a turn runs the agent its session pinned", () => {
   });
 });
 
-describe("Run conformance — an engine the platform does not offer", () => {
-  // Named on the wire before its runner exists, refused until offered: a
-  // conversation someone believes runs on one engine must never run on
-  // another. The refusal follows ResolveRunConfig, before the engine gate
-  // and every side effect, so no engine is needed.
-  it("[rpc:RunCommandController.create] a new conversation on Claude is FailedPrecondition naming the engine, and creates no session", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-unoffered") }));
-    try {
-      const refused = await expectGrpcCode(
-        () =>
-          clients.agentExecutionCommand.create(
-            makeAgentExecution({
-              org,
-              name: uniqueName("aex-unoffered"),
-              agentRef: agentRefOf(agent),
-              sessionSpec: { harness: Harness.CLAUDE },
-            }),
-          ),
-        Code.FailedPrecondition,
-        "a new conversation naming Claude",
-      );
-      expect(refused.rawMessage).toBe("Claude is not available on this platform yet (the conversation's engine)");
-      const sessions = await clients.sessionQuery.listByAgent({ agentId: agent.metadata!.id });
-      expect(sessions.entries, "refused before any side effect").toHaveLength(0);
-    } finally {
-      await clients.agentCommand.delete({ value: agent.metadata!.id });
-    }
-  });
-});
-
 describe("Run conformance — the engine gate", () => {
   it("[rpc:RunCommandController.create] create refuses Unavailable before any side effect when no engine is connected", async (ctx) => {
     // Only the engineless local CRUD targets observe this boundary —

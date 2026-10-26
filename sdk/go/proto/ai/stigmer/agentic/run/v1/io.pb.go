@@ -2450,12 +2450,12 @@ func (x *DailyUsage) GetLlmCallCount() int32 {
 
 // Usage split by execution harness within an org report.
 //
-// Each entry represents one harness (e.g., "native" or "cursor") and
+// Each entry represents one harness (e.g., "native", "cursor" or "claude") and
 // aggregates tokens, call count, and run count for that harness
 // within the report's time range.
 type HarnessUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Harness identifier (e.g., "native", "cursor").
+	// Harness identifier (e.g., "native", "cursor", "claude").
 	Harness string `protobuf:"bytes,1,opt,name=harness,proto3" json:"harness,omitempty"`
 	// Total tokens through this harness (cache-inclusive, as the aggregate's).
 	TotalTokens int64 `protobuf:"varint,2,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`

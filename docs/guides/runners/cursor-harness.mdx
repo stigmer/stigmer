@@ -21,10 +21,10 @@ engines on models, cost, and capabilities.
 
 ## How the Cursor harness runs
 
-A single runner hosts workers for both harnesses. Native runs are served from
-the runner's base task queue; Cursor runs from a dedicated queue. You do not run
-a separate process for Cursor — when a runner has a Cursor credential, it starts
-the Cursor worker alongside the native one.
+A single runner hosts the Cursor worker beside the native one. Native runs are
+served from the runner's base task queue; Cursor runs from a dedicated queue.
+You do not run a separate process for Cursor — when a runner has a Cursor
+credential, it starts the Cursor worker alongside the native one.
 
 What you supply depends on where the runner runs:
 
@@ -130,7 +130,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
 </Tab>
 </Tabs>
 
-In the web console, the model picker lists models from both harnesses. Selecting
+In the web console, the model picker lists models from every harness. Selecting
 a Cursor-served model sets the harness to Cursor for that Session.
 
 <Callout type="warn">

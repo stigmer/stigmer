@@ -233,6 +233,11 @@ enum ToolKind {
   // stop_background_command. Never gated: stopping what the agent started
   // asks no one.
   TOOL_KIND_BACKGROUND_STOP = 15;
+
+  // Load one of the agent's skills by its name. Claude: Skill. Native and
+  // Cursor load a skill by reading its file, a TOOL_KIND_FILE_READ.
+  // Rendered as the skill it loaded, not as the tool's raw result.
+  TOOL_KIND_SKILL = 16;
 }
 
 // TodoStatus defines the status of a todo item.

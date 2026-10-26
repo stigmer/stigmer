@@ -9,7 +9,7 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * Usage split by execution harness within an org report.
  *
- * Each entry represents one harness (e.g., "native" or "cursor") and
+ * Each entry represents one harness (e.g., "native", "cursor" or "claude") and
  * aggregates tokens, call count, and run count for that harness
  * within the report's time range.
  * </pre>
@@ -62,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object harness_ = "";
   /**
    * <pre>
-   * Harness identifier (e.g., "native", "cursor").
+   * Harness identifier (e.g., "native", "cursor", "claude").
    * </pre>
    *
    * <code>string harness = 1 [json_name = "harness"];</code>
@@ -83,7 +83,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Harness identifier (e.g., "native", "cursor").
+   * Harness identifier (e.g., "native", "cursor", "claude").
    * </pre>
    *
    * <code>string harness = 1 [json_name = "harness"];</code>
@@ -343,7 +343,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Usage split by execution harness within an org report.
    *
-   * Each entry represents one harness (e.g., "native" or "cursor") and
+   * Each entry represents one harness (e.g., "native", "cursor" or "claude") and
    * aggregates tokens, call count, and run count for that harness
    * within the report's time range.
    * </pre>
@@ -524,7 +524,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object harness_ = "";
     /**
      * <pre>
-     * Harness identifier (e.g., "native", "cursor").
+     * Harness identifier (e.g., "native", "cursor", "claude").
      * </pre>
      *
      * <code>string harness = 1 [json_name = "harness"];</code>
@@ -544,7 +544,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness identifier (e.g., "native", "cursor").
+     * Harness identifier (e.g., "native", "cursor", "claude").
      * </pre>
      *
      * <code>string harness = 1 [json_name = "harness"];</code>
@@ -565,7 +565,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness identifier (e.g., "native", "cursor").
+     * Harness identifier (e.g., "native", "cursor", "claude").
      * </pre>
      *
      * <code>string harness = 1 [json_name = "harness"];</code>
@@ -582,7 +582,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness identifier (e.g., "native", "cursor").
+     * Harness identifier (e.g., "native", "cursor", "claude").
      * </pre>
      *
      * <code>string harness = 1 [json_name = "harness"];</code>
@@ -596,7 +596,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness identifier (e.g., "native", "cursor").
+     * Harness identifier (e.g., "native", "cursor", "claude").
      * </pre>
      *
      * <code>string harness = 1 [json_name = "harness"];</code>

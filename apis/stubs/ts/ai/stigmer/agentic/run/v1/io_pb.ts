@@ -1540,7 +1540,7 @@ export const DailyUsageSchema: GenMessage<DailyUsage> = /*@__PURE__*/
 /**
  * Usage split by execution harness within an org report.
  *
- * Each entry represents one harness (e.g., "native" or "cursor") and
+ * Each entry represents one harness (e.g., "native", "cursor" or "claude") and
  * aggregates tokens, call count, and run count for that harness
  * within the report's time range.
  *
@@ -1548,7 +1548,7 @@ export const DailyUsageSchema: GenMessage<DailyUsage> = /*@__PURE__*/
  */
 export type HarnessUsage = Message<"ai.stigmer.agentic.run.v1.HarnessUsage"> & {
   /**
-   * Harness identifier (e.g., "native", "cursor").
+   * Harness identifier (e.g., "native", "cursor", "claude").
    *
    * @generated from field: string harness = 1;
    */

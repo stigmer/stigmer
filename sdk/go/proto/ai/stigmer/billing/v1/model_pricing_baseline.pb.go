@@ -475,7 +475,7 @@ type ModelPricingBaseline struct {
 	// LLM provider (e.g. "anthropic", "openai", "cursor"). Free-form:
 	// new providers appear without a contract change.
 	Provider string `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
-	// Execution harness ("native", "cursor", ...).
+	// Execution harness ("native", "cursor", "claude").
 	Harness string `protobuf:"bytes,5,opt,name=harness,proto3" json:"harness,omitempty"`
 	// Human-readable name shown in model pickers.
 	DisplayName string `protobuf:"bytes,6,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`

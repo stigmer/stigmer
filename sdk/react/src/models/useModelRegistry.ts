@@ -20,8 +20,8 @@ export interface UseModelRegistryOptions {
    * Restrict to a single harness.
    *
    * - `"cursor"` — only Cursor-harness models, default → {@link DEFAULT_CURSOR_MODEL_ID}
-   * - `"native"` — only native-harness models, filtered by {@link DISABLED_PROVIDERS}
-   * - omitted — **unified mode**: all enabled models from both harnesses
+   * - `"native"`, `"claude"` — only that harness's models, filtered by {@link DISABLED_PROVIDERS}
+   * - omitted — **unified mode**: all enabled models from every harness
    */
   readonly harness?: HarnessOption;
 }
@@ -37,8 +37,8 @@ export interface UseModelRegistryReturn {
   /**
    * Look up a single model by its `modelId`.
    *
-   * In unified mode the same modelId can exist under both harnesses
-   * (e.g. `claude-sonnet-4.5` on native and `claude-4.5-sonnet` on cursor).
+   * In unified mode the same modelId can exist under several harnesses
+   * (e.g. `claude-sonnet-5` on native and on claude).
    * This returns the first match. Use {@link getByKey} with a compound key
    * for an unambiguous lookup.
    */
@@ -79,9 +79,8 @@ export interface UseModelRegistryReturn {
  * `isLoading` is `true` and `models` is empty.
  *
  * **Modes:**
- * - `options.harness === "cursor"` — Cursor-harness models only
- * - `options.harness === "native"` — native models, excluding disabled providers
- * - `options.harness` omitted — unified: both harnesses, excluding disabled providers
+ * - `options.harness` set — that engine's own models, excluding disabled providers
+ * - `options.harness` omitted — unified: every engine's, excluding disabled providers
  *
  * @example
  * ```tsx

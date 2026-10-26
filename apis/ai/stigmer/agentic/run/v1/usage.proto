@@ -431,7 +431,7 @@ message ModelUsage {
 // deployment has not metered the run.
 //
 // The metered record of each call is LlmCallUsageRecord from the proxy,
-// for both harnesses.
+// for every harness.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Accumulated token usage from execution worker turn-ended events.

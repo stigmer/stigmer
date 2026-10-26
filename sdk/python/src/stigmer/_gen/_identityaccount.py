@@ -198,6 +198,7 @@ class IdentityAccountPreferencesInput:
     default_cursor_model: str = ""
     memory_enabled: bool = False
     default_auto_approve: bool = False
+    default_claude_model: str = ""
 
     def _to_proto(self) -> spec_pb2.IdentityAccountPreferences:
         msg = spec_pb2.IdentityAccountPreferences(
@@ -207,6 +208,7 @@ class IdentityAccountPreferencesInput:
             default_cursor_model=self.default_cursor_model,
             memory_enabled=self.memory_enabled,
             default_auto_approve=self.default_auto_approve,
+            default_claude_model=self.default_claude_model,
         )
         return msg
 

@@ -152,6 +152,7 @@ public final class IdentityAccountInput {
         private final String defaultCursorModel;
         private final boolean memoryEnabled;
         private final boolean defaultAutoApprove;
+        private final String defaultClaudeModel;
 
         private IdentityAccountPreferencesInput(Builder builder) {
             this.standingContext = builder.standingContext;
@@ -160,6 +161,7 @@ public final class IdentityAccountInput {
             this.defaultCursorModel = builder.defaultCursorModel;
             this.memoryEnabled = builder.memoryEnabled;
             this.defaultAutoApprove = builder.defaultAutoApprove;
+            this.defaultClaudeModel = builder.defaultClaudeModel;
         }
 
         IdentityAccountPreferences toProto() {
@@ -178,6 +180,9 @@ public final class IdentityAccountInput {
             }
             builder.setMemoryEnabled(this.memoryEnabled);
             builder.setDefaultAutoApprove(this.defaultAutoApprove);
+            if (this.defaultClaudeModel != null) {
+                builder.setDefaultClaudeModel(this.defaultClaudeModel);
+            }
             return builder.build();
         }
 
@@ -190,6 +195,7 @@ public final class IdentityAccountInput {
             private String defaultCursorModel;
             private boolean memoryEnabled;
             private boolean defaultAutoApprove;
+            private String defaultClaudeModel;
 
             private Builder() {}
 
@@ -199,6 +205,7 @@ public final class IdentityAccountInput {
             public Builder defaultCursorModel(String defaultCursorModel) { this.defaultCursorModel = defaultCursorModel; return this; }
             public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
             public Builder defaultAutoApprove(boolean defaultAutoApprove) { this.defaultAutoApprove = defaultAutoApprove; return this; }
+            public Builder defaultClaudeModel(String defaultClaudeModel) { this.defaultClaudeModel = defaultClaudeModel; return this; }
 
             public IdentityAccountPreferencesInput build() { return new IdentityAccountPreferencesInput(this); }
         }

@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
     defaultHarness_ = "";
     defaultNativeModel_ = "";
     defaultCursorModel_ = "";
+    defaultClaudeModel_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -111,7 +112,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object defaultHarness_ = "";
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "cursor".
+   * Default harness for new sessions: "native", "cursor" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -133,7 +134,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "cursor".
+   * Default harness for new sessions: "native", "cursor" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -286,6 +287,55 @@ private static final long serialVersionUID = 0L;
     return defaultAutoApprove_;
   }
 
+  public static final int DEFAULT_CLAUDE_MODEL_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object defaultClaudeModel_ = "";
+  /**
+   * <pre>
+   * Default model (registry model ID) for claude-harness sessions.
+   * Empty means no preference — the platform default applies.
+   * </pre>
+   *
+   * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultClaudeModel.
+   */
+  @java.lang.Override
+  public java.lang.String getDefaultClaudeModel() {
+    java.lang.Object ref = defaultClaudeModel_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      defaultClaudeModel_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Default model (registry model ID) for claude-harness sessions.
+   * Empty means no preference — the platform default applies.
+   * </pre>
+   *
+   * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultClaudeModel.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDefaultClaudeModelBytes() {
+    java.lang.Object ref = defaultClaudeModel_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      defaultClaudeModel_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -318,6 +368,9 @@ private static final long serialVersionUID = 0L;
     if (defaultAutoApprove_ != false) {
       output.writeBool(6, defaultAutoApprove_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultClaudeModel_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, defaultClaudeModel_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -347,6 +400,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(6, defaultAutoApprove_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultClaudeModel_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, defaultClaudeModel_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -374,6 +430,8 @@ private static final long serialVersionUID = 0L;
         != other.getMemoryEnabled()) return false;
     if (getDefaultAutoApprove()
         != other.getDefaultAutoApprove()) return false;
+    if (!getDefaultClaudeModel()
+        .equals(other.getDefaultClaudeModel())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -399,6 +457,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + DEFAULT_AUTO_APPROVE_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getDefaultAutoApprove());
+    hash = (37 * hash) + DEFAULT_CLAUDE_MODEL_FIELD_NUMBER;
+    hash = (53 * hash) + getDefaultClaudeModel().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -541,6 +601,7 @@ private static final long serialVersionUID = 0L;
       defaultCursorModel_ = "";
       memoryEnabled_ = false;
       defaultAutoApprove_ = false;
+      defaultClaudeModel_ = "";
       return this;
     }
 
@@ -592,6 +653,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.defaultAutoApprove_ = defaultAutoApprove_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.defaultClaudeModel_ = defaultClaudeModel_;
+      }
     }
 
     @java.lang.Override
@@ -631,6 +695,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getDefaultAutoApprove() != false) {
         setDefaultAutoApprove(other.getDefaultAutoApprove());
+      }
+      if (!other.getDefaultClaudeModel().isEmpty()) {
+        defaultClaudeModel_ = other.defaultClaudeModel_;
+        bitField0_ |= 0x00000040;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -688,6 +757,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
+            case 58: {
+              defaultClaudeModel_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -805,7 +879,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object defaultHarness_ = "";
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "cursor".
+     * Default harness for new sessions: "native", "cursor" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -826,7 +900,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "cursor".
+     * Default harness for new sessions: "native", "cursor" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -848,7 +922,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "cursor".
+     * Default harness for new sessions: "native", "cursor" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -866,7 +940,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "cursor".
+     * Default harness for new sessions: "native", "cursor" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -881,7 +955,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "cursor".
+     * Default harness for new sessions: "native", "cursor" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -1186,6 +1260,103 @@ private static final long serialVersionUID = 0L;
     public Builder clearDefaultAutoApprove() {
       bitField0_ = (bitField0_ & ~0x00000020);
       defaultAutoApprove_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object defaultClaudeModel_ = "";
+    /**
+     * <pre>
+     * Default model (registry model ID) for claude-harness sessions.
+     * Empty means no preference — the platform default applies.
+     * </pre>
+     *
+     * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+     * @return The defaultClaudeModel.
+     */
+    public java.lang.String getDefaultClaudeModel() {
+      java.lang.Object ref = defaultClaudeModel_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        defaultClaudeModel_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for claude-harness sessions.
+     * Empty means no preference — the platform default applies.
+     * </pre>
+     *
+     * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for defaultClaudeModel.
+     */
+    public com.google.protobuf.ByteString
+        getDefaultClaudeModelBytes() {
+      java.lang.Object ref = defaultClaudeModel_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        defaultClaudeModel_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for claude-harness sessions.
+     * Empty means no preference — the platform default applies.
+     * </pre>
+     *
+     * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+     * @param value The defaultClaudeModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultClaudeModel(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      defaultClaudeModel_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for claude-harness sessions.
+     * Empty means no preference — the platform default applies.
+     * </pre>
+     *
+     * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDefaultClaudeModel() {
+      defaultClaudeModel_ = getDefaultInstance().getDefaultClaudeModel();
+      bitField0_ = (bitField0_ & ~0x00000040);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Default model (registry model ID) for claude-harness sessions.
+     * Empty means no preference — the platform default applies.
+     * </pre>
+     *
+     * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for defaultClaudeModel to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDefaultClaudeModelBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      defaultClaudeModel_ = value;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }

@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { evalCaseUnsupportedOnCursor, readEvalSuite } from "../evals/read-eval-suite.js";
+import { evalCaseUnsupportedOn, readEvalSuite } from "../evals/read-eval-suite.js";
 import type { EvalSuite, EvalSuiteFinding } from "../evals/types.js";
 import { inMemoryPluginFiles } from "../files.js";
 import { readPluginPackage } from "../read-plugin-package.js";
@@ -915,7 +915,17 @@ describe("unsupported", () => {
     const evalCase = oneCase(files).cases[0];
     if (evalCase === undefined) throw new Error("expected the case to load");
     expect(evalCase.unsupported).toBeUndefined();
-    expect(evalCaseUnsupportedOnCursor(evalCase)).toBe(feature);
+    expect(evalCaseUnsupportedOn("cursor", evalCase)).toBe(feature);
+    expect(evalCaseUnsupportedOn("native", evalCase)).toBeUndefined();
+  });
+
+  it.each([
+    ["resumed conversations", { ...yamlCase("context:\n  history_file: h.jsonl\n"), "evals/c/h.jsonl": HISTORY, "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
+    [undefined, { "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
+  ])("is not run on Claude for %s, and runs there with env", (feature, files) => {
+    const evalCase = oneCase(files).cases[0];
+    if (evalCase === undefined) throw new Error("expected the case to load");
+    expect(evalCaseUnsupportedOn("claude", evalCase)).toBe(feature);
   });
 
   it("runs a case whose plugins names only the plugin under test, and keeps the list as written", () => {

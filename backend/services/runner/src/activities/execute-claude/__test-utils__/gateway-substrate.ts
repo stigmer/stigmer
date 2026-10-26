@@ -106,9 +106,9 @@ function engineCallOf(action: ProposedAction, root: string): EngineCall {
   }
 }
 
-/** The name a call's WAITING row carries: `Bash` for the host's shell. */
+/** The name a call's WAITING row carries: `Bash` for the host's shell, an MCP tool's bare name. */
 function rowNameOf(call: EngineCall): string {
-  return call.name === HOST_SHELL_TOOL.aliasedName ? HOST_SHELL_TOOL.engineName : call.name;
+  return call.name === HOST_SHELL_TOOL.aliasedName ? HOST_SHELL_TOOL.engineName : (serverOf(call.name)?.tool ?? call.name);
 }
 
 /** The MCP server and tool an engine name stands for. */
@@ -274,7 +274,7 @@ async function drive(
   const counts: Counts = { mcp: 0 };
   const first = await invoke(world, new ClaudeGate(factsOf(world, undefined)), call, counts);
   if (!first.deferred || decision === "none") return { first, last: first, counts };
-  const shown: WaitingCall = { name: rowNameOf(call), args: call.input };
+  const shown: WaitingCall = { name: rowNameOf(call), mcpServerSlug: serverOf(call.name)?.slug ?? "", args: call.input };
   const last = await invoke(world, new ClaudeGate(factsOf(world, { decision: answerOf(decision), shown })), resumed, counts);
   return { first, last, counts };
 }

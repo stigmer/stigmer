@@ -53,11 +53,12 @@
               "status": "TOOL_CALL_COMPLETED",
               "startedAt": "2026-01-01T00:00:02.000Z",
               "completedAt": "2026-01-01T00:00:02.000Z",
-              "argsPreview": "{\"skill\":\"agent:ci-checklist\"}"
+              "argsPreview": "{\"skill\":\"agent:ci-checklist\"}",
+              "toolKind": "TOOL_KIND_SKILL"
             },
             {
               "id": "toolu_runner_ci",
-              "name": "mcp__ci__run",
+              "name": "run",
               "args": {
                 "target": "all"
               },
@@ -88,7 +89,7 @@
             },
             {
               "id": "toolu_runner_docs",
-              "name": "mcp__docs__lookup",
+              "name": "lookup",
               "args": {
                 "target": "x"
               },

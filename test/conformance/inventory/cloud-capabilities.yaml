@@ -393,7 +393,7 @@ rows:
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      Debris: no run draws credit, so no create reserves and there is no balance to refuse it on. Run admission asks only whether the organization holds a key for the run's provider (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: no run draws credit, so no create reserves and there is no balance to refuse it on. Run admission asks only whether the organization holds a key for the run's provider (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused, billing.gate.provider-key.keyless-claude-run-refused).
   - id: billing.gate.provider-key.keyless-run-refused
     surface: billing
     lane: >-
@@ -420,6 +420,19 @@ rows:
     needs: [keyless-org, agent-execution]
     note: >-
       Asserted by suites-execution/run-admission.conformance.test.ts on an org that holds no key at all: the harness names the provider, so no catalog lookup is involved. The keyed half needs a real Cursor key, because the key is checked with Cursor at save; the Cursor execution arms run on one when the run supplies CURSOR_API_KEY.
+  - id: billing.gate.provider-key.keyless-claude-run-refused
+    surface: billing
+    lane: >-
+      gate.providerKey
+    behavior: >-
+      A Claude agent-execution create in an org holding no Anthropic key (its own or its parent organization's) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org and provider "anthropic", the copy "This organization has no Anthropic key for model '<model>', so the run was not started. An admin can add one in Settings → Provider keys." naming the run's model, else the Claude engine's catalog default (the model clause dropped when the catalog lists none), and nothing reaches a model.
+    class: carve-out
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [keyless-org, agent-execution]
+    note: >-
+      Asserted by suites-execution/run-admission.conformance.test.ts on an org that holds no key at all: the Claude engine runs Claude models only, so the engine names the provider and no catalog lookup decides it.
   - id: billing.gate.provider-key.keyed-run-completes
     surface: billing
     lane: >-
@@ -1486,6 +1499,17 @@ rows:
       unit
     behavior: >-
       The Anthropic, OpenAI SSE, OpenAI JSON, Cursor SSE and Connect Cursor usage extractors produce the same ParsedLlmUsage as Java's tables over the fixture streams in src/test/resources/ai/stigmer/proxy/usage/.
+    class: behavior
+    disposition: unit
+    observability: none
+    caller: none
+    needs: [none]
+  - id: proxy.unit.llm-call-engine-from-execution
+    surface: proxy
+    lane: >-
+      unit
+    behavior: >-
+      A model call on the LLM lane is recorded under the engine of the session behind its execution (native, Cursor or Claude), read with the run and cached with the execution, so a Claude call is priced by the Claude engine's catalog rows.
     class: behavior
     disposition: unit
     observability: none

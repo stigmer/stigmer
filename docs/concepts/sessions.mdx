@@ -194,9 +194,10 @@ every source.
 ## Harness
 
 Every Session runs on a [Harness](/docs/concepts/harnesses) — the execution
-engine that processes the Agent's turns. Stigmer supports two: **Native** (the
-default) and **Cursor** (for Cursor SDK-powered execution with access to
-Cursor-specific models and coding tools).
+engine that processes the Agent's turns. Stigmer supports three: **Native** (the
+default), **Cursor** (for Cursor SDK-powered execution with access to
+Cursor-specific models and coding tools) and **Claude** (Anthropic's Claude
+Agent SDK, running Claude models on your Organization's Anthropic key).
 
 You set the Harness when creating a Session; when you set none, the Session
 starts on the Agent's own `harness`, or native when the Agent names none. Once

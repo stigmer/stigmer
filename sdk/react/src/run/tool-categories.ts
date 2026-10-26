@@ -37,6 +37,7 @@ export type ToolCategory =
   | "mcp"
   | "memory"
   | "background-stop"
+  | "skill"
   | "unknown";
 
 /**
@@ -100,6 +101,9 @@ const QUIET_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   // The agent's stop of a background command reads as narration ("Stopped
   // `npm test`"): the command's own row carries its output and its end.
   "background-stop",
+  // A loaded skill reads as narration ("Use skill review"): the skill's
+  // instructions are the model's, not evidence to show.
+  "skill",
 ]);
 
 /**
@@ -214,9 +218,10 @@ export interface ToolCategoryInfo {
   /**
    * JSON argument key carrying a model-authored intent phrase for this kind
    * (stigmer#276), or `undefined` for kinds without one. Shell is the only
-   * carrier today: both harnesses converge on `description` — the Cursor
-   * harness's built-in Shell tool ships it natively, and the native harness's
-   * tool-intent middleware adds it to the `execute` schema at bind time.
+   * carrier today: every harness converges on `description` — the Cursor and
+   * Claude harnesses' built-in shell tools ship it natively, and the native
+   * harness's tool-intent middleware adds it to the `execute` schema at bind
+   * time.
    */
   readonly intentArgField?: string;
 }
@@ -247,6 +252,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   todo:        { category: "internal",  label: "Todos",     primaryField: "todos" },
   memory:      { category: "memory",    label: "Remember",  primaryField: "fact" },
   background_stop: { category: "background-stop", label: "Stop command", primaryField: "" },
+  skill:       { category: "skill",     label: "Use skill", primaryField: "skill" },
 };
 
 /**
@@ -533,8 +539,8 @@ export function extractShellIntentFromPreview(
  * proposes, in the order they are tried. One list for every reader — the
  * pre-execution gate ({@link ApprovalCardBody}) and the post-execution row
  * ({@link ToolArgsView}) — so the two never disagree on what "the content" is.
- * Spans both harnesses' file-tool shapes (deepagents' `content`/`new_string`,
- * Cursor's `contents`/`new_text`).
+ * Spans every harness's file-tool shapes (deepagents' and Claude's
+ * `content`/`new_string`, Cursor's `contents`/`new_text`).
  */
 const WRITE_CONTENT_FIELDS = [
   "contents",

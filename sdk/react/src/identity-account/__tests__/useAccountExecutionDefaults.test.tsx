@@ -72,6 +72,13 @@ describe("useAccountExecutionDefaults", () => {
     );
   });
 
+  it("reads Claude's engine and its own default model", async () => {
+    const whoAmI = vi.fn(async () => accountWithPreferences({ defaultHarness: "claude", defaultClaudeModel: "claude-sonnet-5" }));
+    const { result } = renderHook(() => useAccountExecutionDefaults(), { wrapper: createWrapper(whoAmI) });
+
+    await waitFor(() => expect(result.current).toEqual({ harness: "claude", claudeModel: "claude-sonnet-5" }));
+  });
+
   it("returns undefined while loading and when nothing is declared", async () => {
     const whoAmI = vi.fn(async () =>
       accountWithPreferences({ standingContext: "Keep answers terse." }),

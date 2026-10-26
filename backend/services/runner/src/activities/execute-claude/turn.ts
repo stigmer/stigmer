@@ -81,7 +81,7 @@ import { declaredServerCount } from "../../shared/mcp-resolver.js";
 import { describeExecutionError } from "../../shared/model-error.js";
 import { modelLaneUrl, modelLanes } from "../../shared/model-lanes.js";
 import { ensureLoaded as ensurePricingLoaded, getModelPricing } from "../../shared/model-pricing.js";
-import { getDefaultModel, resolveToApiModelId } from "../../shared/model-registry.js";
+import { getDefaultModel, getRequestProfile, resolveToApiModelId, type ThinkingProfile } from "../../shared/model-registry.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { readRootInstructionsWith, renderRepositoryInstructions } from "../../shared/repository-instructions.js";
 import { buildShellEnv } from "../../shared/shell-env.js";
@@ -89,7 +89,7 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { getClaudeInvocationDir, getClaudeTranscriptDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { agentDefinitionsOf, bridgeServersOf, checkAgentToolLists, subagentSpecsOf, turnAgentsOf, type SubagentSpec, type TurnAgents } from "./agents.js";
 import { engineEnvironment } from "./engine-env.js";
-import { engineOptions, userMessageOf } from "./engine-options.js";
+import { engineOptions, thinkingOf, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
 import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller, type WaitingCall } from "./gate.js";
@@ -174,13 +174,15 @@ function refuseUnsupported(input: TurnInput): void {
 interface TurnModel {
   readonly registryId: string;
   readonly apiId: string;
+  /** The thinking form the model's Claude row declares; undefined when no Claude row lists it. */
+  readonly thinking: ThinkingProfile | undefined;
 }
 
 async function resolveModel(input: TurnInput): Promise<TurnModel> {
-  const registryId = input.model.requested === "default" ? await getDefaultModel() : input.model.requested;
+  const registryId = input.model.requested === "default" ? await getDefaultModel("claude") : input.model.requested;
   const apiId = await resolveToApiModelId(registryId);
   if (!apiId.startsWith("claude")) throw new Refusal(`Claude runs Claude models only, and "${registryId}" is not one. Choose a Claude model for this agent.`);
-  return { registryId, apiId };
+  return { registryId, apiId, thinking: (await getRequestProfile(registryId, "claude"))?.thinking };
 }
 
 async function connectTools(input: TurnInput, sink: TurnSink, specs: readonly SubagentSpec[]): Promise<McpBridge> {
@@ -236,7 +238,7 @@ function waitingRowsOf(sink: TurnSink): Map<string, WaitingCall> {
   const waiting = new Map<string, WaitingCall>();
   for (const message of sink.rows.messages) {
     for (const row of message.toolCalls) {
-      if (row.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) waiting.set(row.id, { name: row.name, args: (row.args ?? {}) as JsonObject });
+      if (row.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) waiting.set(row.id, { name: row.name, mcpServerSlug: row.mcpServerSlug, args: (row.args ?? {}) as JsonObject });
     }
   }
   return waiting;
@@ -376,7 +378,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       agents: definitions,
       systemAppend,
       model: model.apiId,
-      thinkingMode: input.model.thinkingMode,
+      thinking: thinkingOf(input.model.thinkingMode, model.thinking),
       hooks: { ...gateHooks(gate), ...feedback.callbacks() },
       canUseTool: canUseToolOf(gate),
       sessionStore: sessionStoreFor(input.threadId, backing),
@@ -432,8 +434,9 @@ export function proposeDeferred(
 ): void {
   const verdict = gate.verdictOf(callId);
   if (verdict?.kind !== "pause") throw new Error(`the engine deferred call ${callId}, which the gate did not hold for a person`);
-  const name = isHostShell(verdict.toolName) ? HOST_SHELL_TOOL.engineName : verdict.toolName;
-  const mcpServerSlug = isHostShell(verdict.toolName) ? "" : (bridge.serverOf(verdict.toolName)?.slug ?? "");
+  const server = isHostShell(verdict.toolName) ? undefined : bridge.serverOf(verdict.toolName);
+  const name = isHostShell(verdict.toolName) ? HOST_SHELL_TOOL.engineName : (server?.tool ?? verdict.toolName);
+  const mcpServerSlug = server?.slug ?? "";
   const hook = verdict.hook === undefined ? {} : { policyHook: verdict.hook };
   if (verdict.source !== undefined) sink.transcript.apply({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: verdict.hook ?? "" });
   sink.transcript.apply({

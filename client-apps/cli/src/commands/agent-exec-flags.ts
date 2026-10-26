@@ -48,12 +48,12 @@ export function addAgentExecFlags(command: Command): Command {
     .option("--no-my-vault", "leave your own My vault out of the conversation: it uses only the vaults named with --vault")
     .option("--plugin <ref>", "a plugin the conversation uses, by id, org/slug or slug: its skills, agents, MCP servers and hooks join the agent's, or the assistant's with no agent (repeatable)", collect, [])
     .option("--environment <ref>", "the environment the conversation's sandbox runs in, by id, org/slug or slug: its packages and network access, in place of the agent's or the organization's default")
-    .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on native, so pass --harness cursor for a Cursor model; unset, the agent's default model for the engine applies")
+    .option("--model <model>", "LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on native, so pass --harness cursor or --harness claude for that engine's model; unset, the agent's default model for the engine applies")
     .option("--auto-approve", "automatically approve all tool executions")
     .option("--mode <mode>", 'interaction mode: "agent" (default) or "plan" (read-only)')
     .option("--service-tier <tier>", 'model service tier: "standard" or "fast" (the model, from --model or the agent\'s defaults, must have a fast tier; billed at fast rates); unset keeps the agent\'s default')
     .option("--thinking <mode>", 'extended reasoning: "disabled" or "enabled" (the model, from --model or the agent\'s defaults, must be thinking-capable; billed at base rates, uses more output tokens); unset keeps the agent\'s default')
-    .option("--harness <harness>", 'execution harness for the new session: "native" or "cursor"; unset, the agent\'s engine, else your account default, else native');
+    .option("--harness <harness>", 'execution harness for the new session: "native", "cursor" or "claude"; unset, the agent\'s engine, else your account default, else native');
 }
 
 /** Map parsed commander options onto the shared {@link AgentExecFlags} shape. */

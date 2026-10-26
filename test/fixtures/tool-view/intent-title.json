@@ -51,6 +51,18 @@
       "intent": null
     },
     {
+      "name": "Bash",
+      "mcpServerSlug": "",
+      "args": { "command": "printf 'one\\ntwo\\n'", "description": "Print two lines" },
+      "intent": "Print two lines"
+    },
+    {
+      "name": "Skill",
+      "mcpServerSlug": "",
+      "args": { "skill": "acme:lint" },
+      "intent": null
+    },
+    {
       "name": "run_query",
       "mcpServerSlug": "postgres",
       "args": { "query": "SELECT 1", "description": "Probe connectivity" },

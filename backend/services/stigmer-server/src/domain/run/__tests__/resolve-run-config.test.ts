@@ -675,15 +675,15 @@ describe("ResolveRunConfig over a real store", () => {
       expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
     });
 
-    it("refuses a created session on an engine the platform does not offer", async () => {
+    it("refuses a created session on a number no engine owns", async () => {
       const ctx = await resolve(
         execution({ spec: { message: "hi" }, status: { agentId: AGENT, agentVersionHash: PINNED } }),
       );
-      const err = await createSessionPinning(ctx, { harness: Harness.CLAUDE, versionHash: PINNED });
+      const err = await createSessionPinning(ctx, { harness: 7 as Harness, versionHash: PINNED });
       expect(err).toBeInstanceOf(ConnectError);
       expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
       expect((err as ConnectError).rawMessage).toBe(
-        "Claude is not available on this platform yet (the conversation's engine)",
+        "the conversation's engine names engine 7, which is not one this platform runs",
       );
     });
   });

@@ -109,7 +109,7 @@ describe("subagentModel", () => {
   });
 
   it("names a number no engine owns rather than reading native's section", async () => {
-    await expect(subagentModel("claude-opus-5", 7 as Harness.CLAUDE)).rejects.toThrow("subagent model: harness 7 names no engine");
+    await expect(subagentModel("claude-opus-5", 7 as Harness.CLAUDE)).rejects.toThrow("model registry: harness 7 names no engine");
   });
 
   it("counts an unspecified engine as the native one", async () => {

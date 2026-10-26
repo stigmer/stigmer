@@ -64,6 +64,7 @@ const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   // confirm/reject happen in the console's memory surfaces.
   memory: "Remember",
   background_stop: "Stop command",
+  skill: "Use skill",
 };
 
 // File-review row badges, mirroring the web console's per-row badge labels and

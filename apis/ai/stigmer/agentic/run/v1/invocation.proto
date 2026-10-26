@@ -76,7 +76,7 @@ message AgentInvocation {
   // stigmer.schedules.session-defaults.harness) to the invocation —
   // the config demotes from "the only source" to "the default".
   // Verified before deciding: unattended approval semantics are one
-  // shared contract across both harnesses (approval-policy.ts), so
+  // shared contract across every harness (approval-policy.ts), so
   // owner harness choice changes the engine, never the safety
   // posture. cursor_mode stays runner-owned and is deliberately
   // absent.
@@ -178,7 +178,7 @@ message AgentInvocation {
 //   ceiling the message, the routine or channel, and the agent can lower
 //   but never raise.
 // - The agent's choices apply only on the engine its defaults name
-//   (AgentSpec.harness). On a conversation running the other engine the
+//   (AgentSpec.harness). On a conversation running another engine the
 //   agent layer gives its bounds alone.
 //
 // Saved settings are self-contained: a routine, channel or agent that sets

@@ -55,6 +55,16 @@ describe("ToolCallItem disclosure", () => {
     expect(previewBody(container)).toBeNull();
   });
 
+  it("shows a loaded skill as the skill it loaded, on a quiet line", () => {
+    const { container } = render(
+      <ToolCallItem toolUse={toolUse({ name: "Skill", input: { skill: "acme:lint" } })} />,
+    );
+    const row = container.querySelector('[data-cursor-target="tool-call-row"]');
+    expect(row?.textContent).toContain("Use skill");
+    expect(row?.textContent).toContain("acme:lint");
+    expect(row?.querySelector("svg")).not.toBeNull();
+  });
+
   it("settles a summary tool closed once it finishes running", () => {
     // A running summary tool foregrounds while live, then collapses to its
     // compact summary the moment it completes (the user never touched it). The

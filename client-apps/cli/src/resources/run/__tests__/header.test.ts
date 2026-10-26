@@ -40,6 +40,11 @@ describe("renderSessionHeader", () => {
     expect(cursor.text()).toContain("Harness:");
     expect(cursor.text()).toContain("Cursor");
 
+    const claude = capture();
+    renderSessionHeader(claude.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "claude", workspaces: [] });
+    expect(claude.text()).toContain("Harness:");
+    expect(claude.text(), "a Claude session never starts silently either").toContain("Claude");
+
     // Native (explicit or defaulted) stays implicit, like agent mode.
     const native = capture();
     renderSessionHeader(native.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "native", workspaces: [] });

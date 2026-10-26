@@ -119,4 +119,11 @@ describe("normalizeToolResult — shell command capture", () => {
     expect(view.command).toBeUndefined();
     expect(view.stdout).toBe("orphan output\n");
   });
+
+  it("reads the runner shell's exit line after a failure, and a plain answer as exit 0", () => {
+    const failed = normalizeToolResult(shellCall({ command: "exit 3" }, "[stderr] broken\n\nExit code: 3"));
+    expect(failed.type === "terminal" ? [failed.stdout, failed.exitCode] : failed.type).toEqual(["[stderr] broken", 3]);
+    const ok = normalizeToolResult(shellCall({ command: "printf one" }, "one\n"));
+    expect(ok.type === "terminal" ? [ok.stdout, ok.exitCode] : ok.type).toEqual(["one\n", 0]);
+  });
 });

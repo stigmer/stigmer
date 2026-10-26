@@ -40,7 +40,7 @@
 
 import { ALLOW_TOOL_PATTERN } from "@stigmer/client";
 import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ENGINES, ENGINE_WORDS, isEngineWord } from "../run/engines.js";
 import type { EvalRunTargetInput } from "@stigmer/client";
 import { CliExitError } from "../../errors/index.js";
 
@@ -324,10 +324,10 @@ export function parseTarget(raw: string): EvalRunTargetInput {
   const slash = trimmed.indexOf("/");
   const engine = slash < 0 ? "native" : trimmed.slice(0, slash).toLowerCase();
   const model = slash < 0 ? trimmed : trimmed.slice(slash + 1);
-  const harness = engine === "native" ? Harness.NATIVE : engine === "cursor" ? Harness.CURSOR : undefined;
-  if (harness === undefined) {
-    throw invalid(`--model '${raw}' names no engine Stigmer runs: write native/<model> or cursor/<model>`);
+  if (!isEngineWord(engine)) {
+    throw invalid(`--model '${raw}' names no engine Stigmer runs: write ${ENGINE_WORDS.map((word) => `${word}/<model>`).join(", ")}`);
   }
+  const { harness } = ENGINES[engine];
   if (model === "" || model.length > 128 || /\s/.test(model)) {
     throw invalid(`--model '${raw}' names no model: write ${engine}/<model id>, as in native/claude-sonnet-4-6`);
   }

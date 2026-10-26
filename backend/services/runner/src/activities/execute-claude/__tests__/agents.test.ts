@@ -14,12 +14,15 @@
  * under its narrowed lists; nobody `Agent`.
  */
 
+import { execFileSync } from "node:child_process";
+
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { TurnInput, TurnSubagent } from "../../../harness/types.js";
 import type { PluginSubagent } from "../../../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { NO_RUN_VALUES } from "../../../shared/run-values.js";
+import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolListResolutionError, ToolScope } from "../../../shared/tool-lists.js";
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
@@ -120,6 +123,14 @@ describe("bridgeServersOf", () => {
 });
 
 describe("turnAgentsOf", () => {
+  it("hands the shell an eval case's env, which the try overlays on the run's agent values, as the native shell gets it", () => {
+    const base = input({ subagents: [], pluginAgents: [] });
+    const caseTurn: TurnInput = { ...base, values: { ...base.values, agent: { ...base.values.agent, EVAL_LEVEL: "2" } } };
+    const agents = turnAgentsOf(caseTurn, [], BRIDGE, { planMode: false, structuredOutput: false });
+    const printed = execFileSync("bash", ["-c", 'printf "%s|%s" "$EVAL_LEVEL" "$MAIN_ONLY"'], { env: buildShellEnv(agents.root.shellValues), encoding: "utf8" });
+    expect(printed).toBe("2|1");
+  });
+
   it("gives the main agent its own tools, skills and helpers, and each sub-agent its own", async () => {
     const turn = input();
     const agents = turnAgentsOf(turn, await subagentSpecsOf(turn), BRIDGE, { planMode: false, structuredOutput: false });

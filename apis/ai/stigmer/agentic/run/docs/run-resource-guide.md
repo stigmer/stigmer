@@ -116,7 +116,7 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 
 - **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the engine decides (native: the registry default; Cursor: Auto).
 - **Limits** (`max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`) take the smallest value any layer sets: a message, routine or channel can lower an agent's cap, never raise it.
-- The agent's choices apply only on the engine its `harness` names; on a conversation running the other engine, the agent layer gives its limits alone.
+- The agent's choices apply only on the engine its `harness` names; on a conversation running another engine, the agent layer gives its limits alone.
 - Saved settings are self-contained: a routine, channel or agent that sets `SERVICE_TIER_FAST` or `THINKING_MODE_ENABLED` names its model. Only a message may set them alone.
 
 The proto comment on `RunConfig` is the normative rule. The user-facing explanation, with an agent example, is [Agents: Run settings](https://stigmer.ai/docs/concepts/agents#run-settings).

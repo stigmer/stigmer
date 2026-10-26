@@ -728,8 +728,8 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Choose between the Native and Cursor execution engines on models, tooling,
-      checkpointing, and cost; the choice locks per Session.
+      Choose among the Native, Cursor and Claude execution engines on models,
+      tooling, checkpointing, and cost; the choice locks per Session.
     medium: diagram
     why:
       The engine-selection fork is structure; the existing mermaid carries it.

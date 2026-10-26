@@ -12,7 +12,7 @@
 // up here, before anything is uploaded.
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/client";
@@ -23,6 +23,7 @@ import { resolveRunEnvironment } from "./environment.js";
 import { resolveRunPlugins } from "./plugins.js";
 import { resolveRunVaults } from "./vaults.js";
 import { localWorkspaceRoots, parseWorkspaceResources } from "./workspace.js";
+import { ENGINES, ENGINE_WORDS, ENGINE_WORD_LIST, engineWordOf, isEngineWord, type EngineWord } from "./engines.js";
 
 /** The interaction mode requested for the run; "" means the agent default. */
 export type RunMode = "" | "agent" | "plan";
@@ -43,11 +44,11 @@ export type ThinkingFlag = "" | "disabled" | "enabled";
 /**
  * The `--harness` flag's value space (oss#293): empty means unset — the
  * account preference may fill it (see {@link prepareAgentExec}), and when
- * nothing resolves the server defaults the session to native. Deliberately
- * only the two shipped engines, mirroring the proto validation on
- * `IdentityAccountPreferences.default_harness`.
+ * nothing resolves the server defaults the session to native. Exactly the
+ * engines the platform offers (`engines.ts`), mirroring the proto
+ * validation on `IdentityAccountPreferences.default_harness`.
  */
-export type HarnessFlag = "" | "native" | "cursor";
+export type HarnessFlag = "" | EngineWord;
 
 /** Raw agent-execution flags as `run` parses them (Go's agentExecFlags). */
 export interface AgentExecFlags {
@@ -164,8 +165,8 @@ export async function prepareAgentExec(
   // Layered seeds (oss#293): explicit flag > the agent's run defaults >
   // account preference (where the server serves identity accounts) >
   // platform default. Harness resolves first because the model
-  // fill is harness-aware: a cursor session fills from default_cursor_model,
-  // everything else from default_native_model. `run` always creates a NEW
+  // fill is harness-aware: a session fills from its engine's own default
+  // model (native's when no engine resolves). `run` always creates a NEW
   // session (threading lives in `resume`, which does not pass through
   // here), so neither fill can ever contradict an existing session's
   // immutable harness. One whoAmI round trip serves both fills, and it is
@@ -197,11 +198,7 @@ export async function prepareAgentExec(
         : agentHarness !== ""
           ? agentHarness
           : accountDefaults.harness;
-  const model = wantsModelFill
-    ? harness === "cursor"
-      ? accountDefaults.cursorModel
-      : accountDefaults.nativeModel
-    : flags.model;
+  const model = wantsModelFill ? accountDefaults.models[harness === "" ? "native" : harness] : flags.model;
 
   const resources = parseWorkspaceResources(
     flags.workspace,
@@ -237,27 +234,19 @@ export async function prepareAgentExec(
 
 /** The engine an agent names as a flag value, "" when it names none. */
 function harnessFlagOf(harness: Harness | undefined): HarnessFlag {
-  switch (harness) {
-    case Harness.NATIVE:
-      return "native";
-    case Harness.CURSOR:
-      return "cursor";
-    default:
-      return "";
-  }
+  return engineWordOf(harness);
 }
 
 /** The account's execution defaults, "" for anything undeclared. */
 interface AccountExecutionDefaults {
   readonly harness: HarnessFlag;
-  readonly nativeModel: string;
-  readonly cursorModel: string;
+  /** Each engine's default model. */
+  readonly models: Readonly<Record<EngineWord, string>>;
 }
 
 const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = {
   harness: "",
-  nativeModel: "",
-  cursorModel: "",
+  models: { native: "", cursor: "", claude: "" },
 };
 
 /**
@@ -272,10 +261,10 @@ const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = {
  * "no preferences yet". Provisioning belongs to `auth login` and `auth
  * whoami`, the commands whose purpose is the caller's identity.
  *
- * The persisted harness value is allowlist-guarded to the shipped engines
+ * The persisted harness value is allowlist-guarded to the offered engines
  * (the same guard the web launcher's useAccountExecutionDefaults applies):
  * a client must not trust stored data it did not write, so anything outside
- * native/cursor is treated as undeclared rather than stamped on the wire.
+ * them is treated as undeclared rather than stamped on the wire.
  */
 async function resolveAccountExecutionDefaults(
   client: Stigmer,
@@ -283,11 +272,10 @@ async function resolveAccountExecutionDefaults(
   try {
     const account = await client.identityAccount.whoAmI();
     const prefs = account.spec?.preferences;
-    const declared = prefs?.defaultHarness;
+    const declared = prefs?.defaultHarness ?? "";
     return {
-      harness: declared === "native" || declared === "cursor" ? declared : "",
-      nativeModel: prefs?.defaultNativeModel ?? "",
-      cursorModel: prefs?.defaultCursorModel ?? "",
+      harness: isEngineWord(declared) ? declared : "",
+      models: Object.fromEntries(ENGINE_WORDS.map((word) => [word, prefs?.[ENGINES[word].accountModel] ?? ""])) as Record<EngineWord, string>,
     };
   } catch {
     return NO_ACCOUNT_DEFAULTS;
@@ -340,17 +328,16 @@ export function validateThinking(mode: string): asserts mode is ThinkingFlag {
 /**
  * Validate the `--harness` flag. Empty means "use default": the account
  * preference when the caller opted in, else the platform default (native).
- * Only the shipped engines are accepted — other harness names that appear in
- * UI metadata (copilot, codex, ...) have no proto mapping yet, so rejecting
- * them here is honest, and this check catches spelling errors before a
- * network round trip.
+ * Only the offered engines are accepted (`engines.ts`): another name has no
+ * proto mapping, so rejecting it here is honest, and this check catches
+ * spelling errors before a network round trip.
  */
 export function validateHarness(
   harness: string,
 ): asserts harness is HarnessFlag {
-  if (harness !== "" && harness !== "native" && harness !== "cursor") {
+  if (harness !== "" && !isEngineWord(harness)) {
     throw new UsageError(
-      `invalid --harness value "${harness}": must be "native" or "cursor"`,
+      `invalid --harness value "${harness}": must be ${ENGINE_WORD_LIST}`,
     );
   }
 }

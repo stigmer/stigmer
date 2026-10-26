@@ -326,7 +326,7 @@ message RunSpec {
   // over the conversation timeline stitch, windowed by the conversation's
   // agent_witnessed_through watermark.
   // The OSS server never sets it. The runner prepends the framed digest to
-  // the turn's user message on both harnesses and must never read
+  // the turn's user message on every harness and must never read
   // window_end. Top-level rather than inside run_config by design:
   // conversation content is not a setting, and must not vanish with the
   // execution-profile kill-switch.

@@ -14,7 +14,8 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:01.000Z",
           "completedAt": "2026-01-01T00:00:01.000Z",
-          "argsPreview": "{\"skill\":\"agent:review\"}"
+          "argsPreview": "{\"skill\":\"agent:review\"}",
+          "toolKind": "TOOL_KIND_SKILL"
         },
         {
           "id": "toolu_skill_notes",
@@ -26,7 +27,8 @@
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:02.000Z",
           "completedAt": "2026-01-01T00:00:02.000Z",
-          "argsPreview": "{\"skill\":\"agent:notes.style\"}"
+          "argsPreview": "{\"skill\":\"agent:notes.style\"}",
+          "toolKind": "TOOL_KIND_SKILL"
         },
         {
           "id": "toolu_skill_glob",

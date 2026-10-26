@@ -364,7 +364,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       runMessages: () => client.listRunSessionEvents(engineTurn!.sessionId, executionId, [USER_MESSAGE_EVENT_TYPE]),
       queuedMessageIds: () => engineTurn!.execution.spec?.queuedMessageIds ?? [],
     },
-    (blocks) => mountMessageFiles(client, engineTurn!, adapter.capabilities.visionProfile, blocks),
+    (blocks) => mountMessageFiles(client, engineTurn!, adapter.capabilities, blocks),
   );
   const chokepoint = new PersistChokepoint({
     client,

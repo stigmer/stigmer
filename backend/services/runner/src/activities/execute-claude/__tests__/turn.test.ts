@@ -411,7 +411,7 @@ describe("proposeDeferred", () => {
     const rows = sink.rows.messages.flatMap((message) => message.toolCalls);
     expect(rows.map((row) => [row.id, row.name, row.mcpServerSlug, row.status, row.approvalMessage, row.approvalPolicySource, row.approvalPolicyHook])).toEqual([
       ["toolu_shell", "Bash", "", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, "Run rm -rf build?", ApprovalPolicySource.BUILTIN_CATEGORY, ""],
-      ["toolu_mcp", "mcp__ops__purge", "ops", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, "Run rm -rf build?", ApprovalPolicySource.HOOK, "safety"],
+      ["toolu_mcp", "purge", "ops", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, "Run rm -rf build?", ApprovalPolicySource.HOOK, "safety"],
     ]);
     expect(rows.every((row) => row.args === undefined || Object.keys(row.args).length === 0), "the proposal carries no arguments: the row keeps the model's call").toBe(true);
   });

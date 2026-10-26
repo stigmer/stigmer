@@ -27,8 +27,8 @@
  *   - a target on an engine that cannot run one of the case's features is
  *     that target's `not run on <engine>: <feature>`, and the case runs on
  *     the others: the Cursor engine resumes no recorded conversation and
- *     passes no `env` (`@stigmer/plugin-package`
- *     `evalCaseUnsupportedOnCursor`);
+ *     passes no `env`, the Claude engine resumes no recorded conversation
+ *     (`@stigmer/plugin-package` `evalCaseUnsupportedOn`);
  *   - tries per arm are the spec's `runs`, else the case's, else 3;
  *   - ablation `none` plans the with arm only, as does a spec with no
  *     ablation (an eval run that compares no plugin: matrixSpecOf).
@@ -40,7 +40,7 @@
  *
  * Proven by __tests__/matrix.test.ts.
  */
-import { evalCaseUnsupportedOnCursor, type EvalCase, type EvalSuite } from "@stigmer/plugin-package";
+import { evalCaseUnsupportedOn, type EvalCase, type EvalEngine, type EvalSuite } from "@stigmer/plugin-package";
 import type { EvalRunSpec, EvalRunTarget } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spec_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -241,13 +241,22 @@ function targetsOf(
   agentTarget: AgentTarget | undefined,
 ): PlannedTarget[] {
   return candidateTargets(evalCase, spec, catalog, runs, agentTarget).map((planned) => {
-    if (planned.notRunReason !== undefined || planned.target.harness !== Harness.CURSOR) {
+    if (planned.notRunReason !== undefined) {
       return planned;
     }
-    const feature = evalCaseUnsupportedOnCursor(evalCase);
-    return feature === undefined ? planned : { ...planned, notRunReason: engineUnsupportedReason("Cursor", feature) };
+    const engine = EVAL_ENGINES[planned.target.harness];
+    const feature = evalCaseUnsupportedOn(engine.word, evalCase);
+    return feature === undefined ? planned : { ...planned, notRunReason: engineUnsupportedReason(engine.label, feature) };
   });
 }
+
+/** Each engine as an eval case's limits name it (unspecified is native), with the name its not-run copy reads. */
+export const EVAL_ENGINES: Readonly<Record<Harness, { readonly word: EvalEngine; readonly label: string }>> = {
+  [Harness.UNSPECIFIED]: { word: "native", label: "native" },
+  [Harness.NATIVE]: { word: "native", label: "native" },
+  [Harness.CURSOR]: { word: "cursor", label: "Cursor" },
+  [Harness.CLAUDE]: { word: "claude", label: "Claude" },
+};
 
 function candidateTargets(
   evalCase: EvalCase,

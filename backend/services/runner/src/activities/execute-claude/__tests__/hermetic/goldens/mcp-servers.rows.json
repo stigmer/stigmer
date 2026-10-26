@@ -19,7 +19,7 @@
         },
         {
           "id": "toolu_mcp_docs",
-          "name": "mcp__docs__lookup",
+          "name": "lookup",
           "args": {
             "q": "the thing"
           },
@@ -33,17 +33,17 @@
         },
         {
           "id": "toolu_mcp_memory",
-          "name": "mcp__stigmer-memory__remember",
+          "name": "remember",
           "args": {
-            "q": "the thing is found"
+            "fact": "The thing is found."
           },
-          "result": "Remembered.",
+          "result": "{\"outcome\":\"Proposed — the user decides. Nothing is remembered unless they confirm this fact.\",\"memory\":{\"metadata\":{\"id\":\"mem_claude_1\",\"org\":\"hermetic-org\"},\"spec\":{\"content\":\"The thing is found.\"},\"status\":{\"lifecycle_state\":\"lifecycle_state_proposed\"}}}",
           "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:03.000Z",
           "completedAt": "2026-01-01T00:00:03.000Z",
           "mcpServerSlug": "stigmer-memory",
-          "argsPreview": "{\"q\":\"the thing is found\"}",
-          "toolKind": "TOOL_KIND_MCP"
+          "argsPreview": "{\"fact\":\"The thing is found.\"}",
+          "toolKind": "TOOL_KIND_MEMORY"
         }
       ]
     },

@@ -12,6 +12,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
+import { HARNESS_OPTIONS } from "../models/harness.js";
 import {
   ZERO,
   dollarsToMicros,
@@ -475,8 +476,11 @@ export function BaselineEditor({
             onChange={(e) => set("harness", e.target.value)}
             disabled={initial !== null || isSubmitting}
           >
-            <option value="native">native</option>
-            <option value="cursor">cursor</option>
+            {HARNESS_OPTIONS.map((harness) => (
+              <option key={harness} value={harness}>
+                {harness}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Display name" required>

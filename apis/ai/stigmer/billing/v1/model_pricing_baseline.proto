@@ -185,7 +185,7 @@ message ModelPricingBaseline {
     (buf.validate.field).string.max_len = 64
   ];
 
-  // Execution harness ("native", "cursor", ...).
+  // Execution harness ("native", "cursor", "claude").
   string harness = 5 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.max_len = 64

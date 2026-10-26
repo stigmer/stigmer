@@ -35,12 +35,10 @@ const MAX_MODEL_EDIT_DISTANCE = 5;
  * default).
  *
  * Every engine has its own section, so a pin is never judged against
- * another engine's catalog. An engine whose section the registry does not
- * have yet (Claude, until its rows land) judges every pin unverifiable
- * (the no-section posture below); the offered-engine rule refuses its
- * requests first (domain/session/harness.ts). A number no engine owns is
- * its own word, so it matches no section either, and the same rule names
- * it.
+ * another engine's catalog. A registry that lacks an engine's section
+ * judges every pin on it unverifiable (the no-section posture below). A
+ * number no engine owns is its own word, so it matches no section either,
+ * and the offered-engine rule names it (domain/session/harness.ts).
  */
 export function harnessName(h: Harness): string {
   switch (h) {

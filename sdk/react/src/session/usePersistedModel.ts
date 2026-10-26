@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useModelRegistry } from "../models/index.js";
 import { parseModelKey } from "../models/registry.js";
-import type { HarnessOption } from "../models/harness.js";
+import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 
 /** Options for {@link usePersistedModel}. */
 export interface UsePersistedModelOptions {
@@ -34,10 +34,21 @@ export type UsePersistedModelReturn = readonly [
   setModelId: (id: string) => void,
 ];
 
-function storageKey(harness?: HarnessOption): string {
-  return harness === "cursor"
-    ? "stigmer:session:model:cursor"
-    : "stigmer:session:model";
+/**
+ * Where each engine's last model pick is kept on this device: one key per
+ * engine, so a pick on one engine never replaces another's. The native and
+ * Cursor keys predate the table and keep their strings, so no stored pick
+ * is lost.
+ */
+const MODEL_STORAGE_KEYS: Readonly<Record<HarnessOption, string>> = {
+  native: "stigmer:session:model",
+  cursor: "stigmer:session:model:cursor",
+  claude: "stigmer:session:model:claude",
+};
+
+/** The device storage key of `harness`'s last model pick (the platform default's when none is named). */
+export function modelStorageKey(harness: HarnessOption = DEFAULT_HARNESS): string {
+  return MODEL_STORAGE_KEYS[harness];
 }
 
 /**
@@ -73,7 +84,7 @@ export function usePersistedModel(
   const harness = options?.harness;
   const enabled = options?.enabled ?? true;
   const { getModel } = useModelRegistry({ harness });
-  const key = storageKey(harness);
+  const key = modelStorageKey(harness);
   const prevKeyRef = useRef(key);
 
   const [modelId, setModelId] = useState<string | undefined>(() => {

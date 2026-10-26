@@ -2,7 +2,8 @@
 
 /**
  * Harness split: the organization's tokens and calls per run harness
- * (native, Cursor) as a segmented bar with labelled shares.
+ * (native, Cursor, Claude) as a segmented bar with labelled shares, each
+ * engine named as the pickers name it (`HARNESS_META`).
  *
  * Segments are sized by tokens, the one measure every run has (a run
  * counted from its runner's own report has tokens and no metered calls).
@@ -13,6 +14,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import type { HarnessUsage } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { HARNESS_META, isNamedHarness, type HarnessOption } from "../models/harness.js";
 import { formatCalls, formatTokens, sharePercent } from "./format.js";
 
 /** Props for {@link HarnessSplitCard}. */
@@ -23,21 +25,22 @@ export interface HarnessSplitCardProps {
   readonly className?: string;
 }
 
-const HARNESS_LABELS: Record<string, string> = {
-  native: "Native",
-  cursor: "Cursor",
-};
-
-const HARNESS_COLORS: Record<string, string> = {
+const HARNESS_COLORS: Readonly<Record<HarnessOption, string>> = {
   native: "stg:bg-chart-1",
   cursor: "stg:bg-chart-3",
+  claude: "stg:bg-chart-2",
 };
+
+/** A usage row's engine word, by its name and colour; a word this build does not name keeps its own, in a neutral colour. */
+function engineOf(harness: string): { readonly label: string; readonly color: string } {
+  return isNamedHarness(harness) ? { label: HARNESS_META[harness].label, color: HARNESS_COLORS[harness] } : { label: harness, color: "stg:bg-chart-4" };
+}
 
 /**
  * Displays the token split between run harnesses as a segmented bar.
  *
  * Renders a horizontal bar with labels showing tokens, calls and share per
- * harness, for an at-a-glance read of native vs Cursor usage.
+ * harness, for an at-a-glance read of each engine's usage.
  */
 export function HarnessSplitCard({
   breakdown,
@@ -72,7 +75,7 @@ export function HarnessSplitCard({
                 key={entry.harness}
                 className={cn(
                   "stg:transition-all",
-                  HARNESS_COLORS[entry.harness] ?? "stg:bg-chart-4",
+                  engineOf(entry.harness).color,
                 )}
                 style={{ width: `${pct}%` }}
               />
@@ -89,11 +92,11 @@ export function HarnessSplitCard({
                 <div
                   className={cn(
                     "stg:size-2 stg:rounded-full",
-                    HARNESS_COLORS[entry.harness] ?? "stg:bg-chart-4",
+                    engineOf(entry.harness).color,
                   )}
                 />
                 <span className="stg:text-xs stg:text-muted-foreground">
-                  {HARNESS_LABELS[entry.harness] ?? entry.harness}
+                  {engineOf(entry.harness).label}
                 </span>
                 <span className="stg:text-xs stg:tabular-nums stg:font-medium stg:text-foreground">
                   {formatTokens(entry.totalTokens)}

@@ -76,7 +76,7 @@ function encodeCanvas(
 
 /**
  * Bounds a pasted image to the resolution vision providers actually
- * process, re-encoding to a format both harnesses can display inline.
+ * process, re-encoding to a format every harness can display inline.
  *
  * - PNG and JPEG within the resolution limits pass through byte-identical
  *   (also guards edit-and-resubmit flows against generation loss).

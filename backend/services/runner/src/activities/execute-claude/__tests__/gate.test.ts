@@ -397,7 +397,7 @@ describe("a call left waiting by a stopped run", () => {
 describe("a person's answer, by the call's id", () => {
   const SHOWN = { command: "rm -rf build", description: "clean" };
   const answered = (action: ApprovalAction, over: Partial<GateFacts> = {}): ClaudeGate =>
-    new ClaudeGate(facts({ decisions: new Map([["toolu_w", action]]), waitingCallOf: (id) => (id === "toolu_w" ? { name: "Bash", args: SHOWN } : undefined), ...over }));
+    new ClaudeGate(facts({ decisions: new Map([["toolu_w", action]]), waitingCallOf: (id) => (id === "toolu_w" ? { name: "Bash", mcpServerSlug: "", args: SHOWN } : undefined), ...over }));
 
   it("an approval runs exactly the call the person saw, under the source that asked", async () => {
     expect(await decide(answered(ApprovalAction.APPROVE), SHELL, { ...SHOWN }, "toolu_w")).toEqual(allowed("builtin_category"));
@@ -411,10 +411,18 @@ describe("a person's answer, by the call's id", () => {
     expect(await decide(answered(ApprovalAction.APPROVE, { waitingCallOf: () => undefined }), SHELL, { ...SHOWN }, "toolu_w"), "an answer with no row to show").toEqual(refused(CHANGED_MESSAGE));
   });
 
+  it("an approved MCP call runs as its row shows it, by its bare tool and its server", async () => {
+    const mcp = (shown: { name: string; mcpServerSlug: string }) =>
+      new ClaudeGate(facts({ mcpDefault: mcpDefault({ destructive: ["docs/drop"] }), decisions: new Map([["toolu_m", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ ...shown, args: { id: "7" } }) }));
+    expect(await decide(mcp({ name: "drop", mcpServerSlug: "docs" }), "mcp__docs__drop", { id: "7" }, "toolu_m")).toEqual(allowed("annotation_destructive_tighten"));
+    expect(await decide(mcp({ name: "drop", mcpServerSlug: "plugin" }), "mcp__docs__drop", { id: "7" }, "toolu_m"), "another server's tool of that name").toEqual(refused(CHANGED_MESSAGE));
+    expect(await decide(mcp({ name: "mcp__docs__drop", mcpServerSlug: "docs" }), "mcp__docs__drop", { id: "7" }, "toolu_m"), "the engine's own spelling is no row's").toEqual(refused(CHANGED_MESSAGE));
+  });
+
   it("a value the log cut is compared on the head it kept", async () => {
     const head = "x".repeat(4000);
     const cut = { command: `${head}\n\n${ELISION_MARKER}` };
-    const gate = (actual: string) => decide(new ClaudeGate(facts({ decisions: new Map([["toolu_c", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Bash", args: cut }) })), SHELL, { command: actual }, "toolu_c");
+    const gate = (actual: string) => decide(new ClaudeGate(facts({ decisions: new Map([["toolu_c", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Bash", mcpServerSlug: "", args: cut }) })), SHELL, { command: actual }, "toolu_c");
     expect(await gate(`${head}${"y".repeat(10_000)}`)).toEqual(allowed("builtin_category"));
     expect(await gate(`z${head.slice(1)}${"y".repeat(10_000)}`)).toEqual(refused(CHANGED_MESSAGE));
     expect(sameAsShown([1, { a: "b" }], [1, { a: "b" }])).toBe(true);
@@ -466,7 +474,7 @@ describe("the agent's hooks", () => {
 
   it("an ask a person approved runs; an unattended turn skips it with the hook recorded", async () => {
     const ask = withRootHooks(hooksAnswering(hookSays("ask")));
-    const approved = new ClaudeGate(facts({ hooks: ask, decisions: new Map([["toolu_a", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Read", args: { file_path: `${WORKSPACE}/a.ts` } }) }));
+    const approved = new ClaudeGate(facts({ hooks: ask, decisions: new Map([["toolu_a", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Read", mcpServerSlug: "", args: { file_path: `${WORKSPACE}/a.ts` } }) }));
     expect(await decide(approved, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_a")).toMatchObject({ kind: "allow", source: "hook", hook: "safety" });
     const unattended = new ClaudeGate(facts({ hooks: ask, unattended: true }));
     expect(await decide(unattended, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_u")).toEqual(refused(unattendedSkipMessage("Read"), "unattended_skip", ROOT_CALLER, "safety"));

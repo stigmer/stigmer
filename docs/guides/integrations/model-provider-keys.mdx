@@ -11,7 +11,9 @@ Organization owns, on every plan. An admin adds an Anthropic key, an OpenAI key,
 or both, and your Agents run on them: the provider bills your Organization
 directly, and Stigmer meters the calls and charges nothing for them. Stigmer
 never runs a model call on a key of its own. Cursor-harness runs work the same
-way, on your Organization's own [Cursor key](#cursor).
+way, on your Organization's own [Cursor key](#cursor), and Claude-harness runs
+on your Organization's Anthropic key: a Claude run runs Claude models only, so
+it always needs that key, whatever its model.
 
 A run whose model needs a provider your Organization has no key for is refused
 before it starts:

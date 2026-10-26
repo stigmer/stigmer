@@ -75,7 +75,7 @@ message RecordLlmCallUsageInput {
   // Raw provider usage JSON for audit/debug.
   string provider_usage_json = 13;
 
-  // Harness that originated this call ("native" or "cursor").
+  // Harness that originated this call ("native", "cursor" or "claude").
   // Set by the proxy controller based on which proxy path handled the request.
   // When empty, the billing handler falls back to the model catalog.
   string harness = 14;

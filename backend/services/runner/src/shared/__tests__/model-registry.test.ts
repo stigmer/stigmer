@@ -4,7 +4,7 @@ import {
   getEconomyModel,
   getDefaultModel,
   getModelVisionCapability,
-  getNativeRequestProfile,
+  getRequestProfile,
   resolveToApiModelId,
   _resetRegistryCache,
 } from "../model-registry.js";
@@ -120,7 +120,7 @@ describe("getDefaultModel", () => {
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native", featured: true },
     ]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
@@ -130,21 +130,21 @@ describe("getDefaultModel", () => {
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
     ]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("claude-sonnet-4-5-20250929");
   });
 
   it("returns hardcoded fallback when registry is empty", async () => {
     mockRegistryResponse([]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
   it("returns hardcoded fallback when fetch fails", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
@@ -154,7 +154,7 @@ describe("getDefaultModel", () => {
       { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native", featured: true },
     ]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
@@ -164,8 +164,18 @@ describe("getDefaultModel", () => {
       { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
     ]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("gpt-4.1");
+  });
+
+  it("reads each engine's own section: the Claude engine's default is its own row's", async () => {
+    mockRegistryResponse([
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", featured: true },
+      { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "claude", featured: true },
+    ]);
+
+    expect(await getDefaultModel("claude")).toBe("claude-sonnet-5");
+    expect(await getDefaultModel("native")).toBe("claude-sonnet-4-6");
   });
 
   it("falls back to id when apiModelId is absent", async () => {
@@ -173,7 +183,7 @@ describe("getDefaultModel", () => {
       { id: "gpt-4o-mini", provider: "openai", costTier: "standard", harness: "native", featured: true },
     ]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("gpt-4o-mini");
   });
 
@@ -183,7 +193,7 @@ describe("getDefaultModel", () => {
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native", featured: true },
     ]);
 
-    const result = await getDefaultModel();
+    const result = await getDefaultModel("native");
     expect(result).toBe("claude-sonnet-4-6");
   });
 });
@@ -312,7 +322,7 @@ describe("getModelVisionCapability", () => {
   });
 
   it("matches by apiModelId as well as registry id", async () => {
-    // getDefaultModel() hands the deep-agent harness the provider API id, so
+    // getDefaultModel("native") hands the deep-agent harness the provider API id, so
     // both identifier forms must resolve to the same capability.
     mockRegistryResponse([
       { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true } },
@@ -346,7 +356,7 @@ describe("getModelVisionCapability", () => {
   });
 });
 
-describe("getNativeRequestProfile", () => {
+describe("getRequestProfile", () => {
   beforeEach(() => {
     _resetRegistryCache();
     vi.restoreAllMocks();
@@ -364,10 +374,22 @@ describe("getNativeRequestProfile", () => {
       { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: false } },
     ]);
 
-    expect(await getNativeRequestProfile("claude-sonnet-5")).toEqual({
+    expect(await getRequestProfile("claude-sonnet-5", "native")).toEqual({
       maxOutputTokens: 128000,
       thinking: { shape: "adaptive", required: false },
     });
+  });
+
+  it("reads the asked engine's own row: the Claude row for the Claude engine, none on an engine that does not list the model", async () => {
+    mockRegistryResponse([
+      { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "native", capabilities: { thinking: true, adaptiveThinking: false, thinkingRequired: false } },
+      { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "claude", capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: true } },
+      { id: "native-only", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true } },
+    ]);
+
+    expect((await getRequestProfile("claude-opus-4.5", "claude"))?.thinking).toEqual({ shape: "adaptive", required: true });
+    expect((await getRequestProfile("claude-opus-4.5", "native"))?.thinking).toEqual({ shape: "budget", required: false });
+    expect(await getRequestProfile("native-only", "claude")).toBeUndefined();
   });
 
   it("matches the provider api id as well as the registry id", async () => {
@@ -375,8 +397,8 @@ describe("getNativeRequestProfile", () => {
       { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 65536 },
     ]);
 
-    expect(await getNativeRequestProfile("claude-sonnet-4-6")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
-    expect(await getNativeRequestProfile("claude-sonnet-4.6")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
+    expect(await getRequestProfile("claude-sonnet-4-6", "native")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
+    expect(await getRequestProfile("claude-sonnet-4.6", "native")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
   });
 
   it("derives the thinking shape from the capability flags, adaptive winning over budget", async () => {
@@ -387,10 +409,10 @@ describe("getNativeRequestProfile", () => {
       { id: "neither", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: false, adaptiveThinking: false } },
     ]);
 
-    expect((await getNativeRequestProfile("budget"))?.thinking.shape).toBe("budget");
-    expect((await getNativeRequestProfile("adaptive"))?.thinking.shape).toBe("adaptive");
-    expect((await getNativeRequestProfile("both"))?.thinking.shape).toBe("adaptive");
-    expect((await getNativeRequestProfile("neither"))?.thinking.shape).toBe("none");
+    expect((await getRequestProfile("budget", "native"))?.thinking.shape).toBe("budget");
+    expect((await getRequestProfile("adaptive", "native"))?.thinking.shape).toBe("adaptive");
+    expect((await getRequestProfile("both", "native"))?.thinking.shape).toBe("adaptive");
+    expect((await getRequestProfile("neither", "native"))?.thinking.shape).toBe("none");
   });
 
   it("keeps thinkingRequired tri-state: stated true, stated false, and never assessed", async () => {
@@ -402,11 +424,11 @@ describe("getNativeRequestProfile", () => {
       { id: "no-block", provider: "anthropic", costTier: "standard", harness: "native" },
     ]);
 
-    expect((await getNativeRequestProfile("always"))?.thinking.required).toBe(true);
-    expect((await getNativeRequestProfile("optional"))?.thinking.required).toBe(false);
-    expect((await getNativeRequestProfile("unassessed"))?.thinking.required).toBeUndefined();
-    expect((await getNativeRequestProfile("malformed"))?.thinking.required).toBeUndefined();
-    expect((await getNativeRequestProfile("no-block"))?.thinking).toEqual(NO_THINKING);
+    expect((await getRequestProfile("always", "native"))?.thinking.required).toBe(true);
+    expect((await getRequestProfile("optional", "native"))?.thinking.required).toBe(false);
+    expect((await getRequestProfile("unassessed", "native"))?.thinking.required).toBeUndefined();
+    expect((await getRequestProfile("malformed", "native"))?.thinking.required).toBeUndefined();
+    expect((await getRequestProfile("no-block", "native"))?.thinking).toEqual(NO_THINKING);
   });
 
   it("states no ceiling when the row's value is absent or not a positive integer", async () => {
@@ -418,7 +440,7 @@ describe("getNativeRequestProfile", () => {
     ]);
 
     for (const id of ["a", "b", "c", "d"]) {
-      expect((await getNativeRequestProfile(id))?.maxOutputTokens).toBeUndefined();
+      expect((await getRequestProfile(id, "native"))?.maxOutputTokens).toBeUndefined();
     }
   });
 
@@ -429,9 +451,9 @@ describe("getNativeRequestProfile", () => {
       { id: "malformed", provider: "anthropic", costTier: "standard", harness: "native", contextWindowTokens: "200000" },
     ]);
 
-    expect((await getNativeRequestProfile("sized"))?.contextWindowTokens).toBe(1_000_000);
-    expect((await getNativeRequestProfile("unsized"))?.contextWindowTokens).toBeUndefined();
-    expect((await getNativeRequestProfile("malformed"))?.contextWindowTokens).toBeUndefined();
+    expect((await getRequestProfile("sized", "native"))?.contextWindowTokens).toBe(1_000_000);
+    expect((await getRequestProfile("unsized", "native"))?.contextWindowTokens).toBeUndefined();
+    expect((await getRequestProfile("malformed", "native"))?.contextWindowTokens).toBeUndefined();
   });
 
   it("returns undefined for Auto, an unknown model, a cursor-only model, and an unreachable registry", async () => {
@@ -439,15 +461,15 @@ describe("getNativeRequestProfile", () => {
       { id: "composer-2.5", provider: "cursor", costTier: "economy", harness: "cursor", maxOutputTokens: 64000 },
     ]);
 
-    expect(await getNativeRequestProfile("default")).toBeUndefined();
-    expect(await getNativeRequestProfile("")).toBeUndefined();
-    expect(await getNativeRequestProfile("composer-2.5")).toBeUndefined();
-    expect(await getNativeRequestProfile("no-such-model")).toBeUndefined();
+    expect(await getRequestProfile("default", "native")).toBeUndefined();
+    expect(await getRequestProfile("", "native")).toBeUndefined();
+    expect(await getRequestProfile("composer-2.5", "native")).toBeUndefined();
+    expect(await getRequestProfile("no-such-model", "native")).toBeUndefined();
 
     _resetRegistryCache();
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network down"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(await getNativeRequestProfile("claude-sonnet-5")).toBeUndefined();
+    expect(await getRequestProfile("claude-sonnet-5", "native")).toBeUndefined();
   });
 });
 

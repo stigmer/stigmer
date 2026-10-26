@@ -318,8 +318,10 @@ export interface GateFacts {
 
 /** A call a person was asked about, as its WAITING row holds it. */
 export interface WaitingCall {
-  /** The row's name: `Bash` for the host's shell, a built-in's or an MCP tool's engine name. */
+  /** The row's name: `Bash` for the host's shell, a built-in's, or an MCP tool's bare name. */
   readonly name: string;
+  /** The MCP server the row's tool belongs to; "" for a built-in. */
+  readonly mcpServerSlug: string;
   readonly args: Record<string, unknown>;
 }
 
@@ -518,7 +520,7 @@ export class ClaudeGate {
 
     // 4: the hooks, a person's refusal, an approved call's arguments, a rewrite.
     const evaluator = evaluatorFor(facts.hooks, caller);
-    const hookCall = { id: toolUseId, name: server?.tool ?? name, args: input, serverSlug: server?.slug ?? "", ...(server !== undefined ? { rowName: toolName } : {}) };
+    const hookCall = { id: toolUseId, name: server?.tool ?? name, args: input, serverSlug: server?.slug ?? "" };
     const scope = caller.kind === "subagent" && agentId !== undefined ? { subAgent: { type: caller.type, id: agentId } } : {};
     const pre: PreToolUseOutcome = evaluator === null ? NO_PRE_TOOL_USE : await evaluator.preToolUse(hookCall, scope);
     if (pre.decision === "deny") return refuse(hookRefusalMessage(pre.hook, pre.reason), "hook", pre.hook);
@@ -527,7 +529,7 @@ export class ClaudeGate {
       const comment = facts.denyMessages.get(toolUseId) ?? "";
       return { kind: "refuse", message: personDecisionSentence(name, answer === ApprovalAction.SKIP ? "skip" : "reject", comment), source: undefined, caller, hook: undefined, byPerson: true };
     }
-    if ((answer === ApprovalAction.APPROVE || answer === ApprovalAction.APPROVE_ALL) && !this.isAsShown(toolUseId, name, server === undefined ? undefined : toolName, input)) return refuse(CHANGED_MESSAGE);
+    if ((answer === ApprovalAction.APPROVE || answer === ApprovalAction.APPROVE_ALL) && !this.isAsShown(toolUseId, server?.tool ?? name, server?.slug ?? "", input)) return refuse(CHANGED_MESSAGE);
     let args = input;
     if (pre.updatedArgs !== undefined) {
       args = pre.updatedArgs;
@@ -559,10 +561,10 @@ export class ClaudeGate {
     return this.wouldAsk(call, caller, { message: requirement.message, source: requirement.source, hook: undefined }, args, allow);
   }
 
-  /** Whether an approved call is the one its WAITING row shows: its tool, and its arguments as the log holds them. */
-  private isAsShown(toolUseId: string, name: string, mcpName: string | undefined, input: Record<string, unknown>): boolean {
+  /** Whether an approved call is the one its WAITING row shows: its tool and server, and its arguments as the log holds them. */
+  private isAsShown(toolUseId: string, name: string, mcpServerSlug: string, input: Record<string, unknown>): boolean {
     const shown = this.facts.waitingCallOf(toolUseId);
-    return shown !== undefined && shown.name === (mcpName ?? name) && sameAsShown(shown.args, input);
+    return shown !== undefined && shown.name === name && shown.mcpServerSlug === mcpServerSlug && sameAsShown(shown.args, input);
   }
 
   /** Item 8 of the header: what a call that asks a person comes to. */

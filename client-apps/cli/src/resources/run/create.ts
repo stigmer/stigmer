@@ -19,7 +19,7 @@ import {
   type RunConfig,
   RunConfigSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ENGINES } from "./engines.js";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -151,8 +151,7 @@ function buildSessionSpec(input: CreateRunInput): SessionSpec {
       version: agentRef.version ?? "",
     });
   }
-  if (harness === "cursor") spec.harness = Harness.CURSOR;
-  else if (harness === "native") spec.harness = Harness.NATIVE;
+  if (harness !== "") spec.harness = ENGINES[harness].harness;
   return spec;
 }
 

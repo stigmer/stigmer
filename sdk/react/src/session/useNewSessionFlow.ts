@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getUserMessage, type ResourceRef } from "@stigmer/client";
-import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
+import { accountDefaultModel, type AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";
 import { parseModelKey } from "../models/registry.js";
-import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
+import { DEFAULT_HARNESS, isHarnessOption, type HarnessOption } from "../models/harness.js";
+import { modelStorageKey } from "./usePersistedModel.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 
 import type { SessionComposerSubmitContext } from "../composer/index.js";
@@ -52,12 +53,6 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
  * and the create carries none.
  */
 const GUEST_LOCAL_HARNESS: HarnessOption = DEFAULT_HARNESS;
-
-function modelStorageKey(harness: HarnessOption): string {
-  return harness === "cursor"
-    ? "stigmer:session:model:cursor"
-    : "stigmer:session:model";
-}
 
 /** Options for {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowOptions {
@@ -442,7 +437,7 @@ export function useNewSessionFlow(
     // stored value always outranks the account default and the embedder's
     // defaultHarness.
     const stored = localStorage.getItem(STORAGE_KEY_HARNESS);
-    if (stored === "native" || stored === "cursor") return stored;
+    if (stored !== null && isHarnessOption(stored)) return stored;
     return accountDefaults?.harness ?? defaultHarness ?? DEFAULT_HARNESS;
   });
   // Set once the user picks a harness this mount — a late-arriving account
@@ -578,8 +573,7 @@ export function useNewSessionFlow(
   // through to the harness default — self-healing). Derived, never written
   // into `modelId` state: the persist effect below stores only explicit
   // choices, and a derived seed cannot leak into localStorage.
-  const accountModelForHarness =
-    harness === "cursor" ? accountDefaults?.cursorModel : accountDefaults?.nativeModel;
+  const accountModelForHarness = accountDefaultModel(accountDefaults, harness);
   const accountModelId =
     accountModelForHarness && getModel(accountModelForHarness)
       ? accountModelForHarness

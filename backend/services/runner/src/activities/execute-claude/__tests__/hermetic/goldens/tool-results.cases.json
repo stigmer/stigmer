@@ -1,0 +1,73 @@
+[
+  {
+    "id": "toolu_shell_ok",
+    "toolName": "Bash",
+    "mcpServerSlug": "",
+    "args": {
+      "command": "printf 'one\\ntwo\\n'",
+      "description": "Print two lines"
+    },
+    "result": "one\ntwo\n"
+  },
+  {
+    "id": "toolu_shell_fail",
+    "toolName": "Bash",
+    "mcpServerSlug": "",
+    "args": {
+      "command": "echo broken >&2; exit 3",
+      "description": "Fail on purpose"
+    },
+    "result": "broken\n",
+    "error": "[stderr] broken\n\nExit code: 3",
+    "status": "TOOL_CALL_FAILED"
+  },
+  {
+    "id": "toolu_write",
+    "toolName": "Write",
+    "mcpServerSlug": "",
+    "args": {
+      "file_path": "/workspace/notes.md",
+      "content": "# Notes\n\nfirst\n"
+    },
+    "result": "File created successfully at: /workspace/notes.md (file state is current in your context — no need to Read it back)"
+  },
+  {
+    "id": "toolu_read",
+    "toolName": "Read",
+    "mcpServerSlug": "",
+    "args": {
+      "file_path": "/workspace/notes.md"
+    },
+    "result": "1\t# Notes\n2\t\n3\tfirst\n4\t"
+  },
+  {
+    "id": "toolu_edit",
+    "toolName": "Edit",
+    "mcpServerSlug": "",
+    "args": {
+      "file_path": "/workspace/notes.md",
+      "old_string": "first\n",
+      "new_string": "first\nsecond\n"
+    },
+    "result": "The file /workspace/notes.md has been updated successfully. (file state is current in your context — no need to Read it back)"
+  },
+  {
+    "id": "toolu_glob",
+    "toolName": "Glob",
+    "mcpServerSlug": "",
+    "args": {
+      "pattern": "*.md"
+    },
+    "result": "notes.md"
+  },
+  {
+    "id": "toolu_grep",
+    "toolName": "Grep",
+    "mcpServerSlug": "",
+    "args": {
+      "pattern": "second",
+      "output_mode": "content"
+    },
+    "result": "notes.md:4:second"
+  }
+]

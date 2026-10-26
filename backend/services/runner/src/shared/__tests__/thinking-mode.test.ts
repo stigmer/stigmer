@@ -15,7 +15,7 @@ import {
   toAnthropicThinking,
   type EffectiveThinkingMode,
 } from "../thinking-mode.js";
-import type { NativeThinkingProfile } from "../model-registry.js";
+import type { ThinkingProfile } from "../model-registry.js";
 
 const ADAPTIVE = { type: "adaptive", display: "summarized" } as const;
 const BUDGET = { type: "enabled", budget_tokens: BUDGET_THINKING_TOKENS } as const;
@@ -24,7 +24,7 @@ const DISABLED = { type: "disabled" } as const;
 type Row = readonly [
   label: string,
   mode: EffectiveThinkingMode,
-  profile: NativeThinkingProfile | undefined,
+  profile: ThinkingProfile | undefined,
   wire: ReturnType<typeof toAnthropicThinking>,
   thinks: boolean,
 ];

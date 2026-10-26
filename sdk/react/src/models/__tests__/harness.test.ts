@@ -21,8 +21,8 @@ const unsupported: HarnessOption = "codex";
 void unsupported;
 
 describe("the option set is the proto's harness set", () => {
-  it("offers the engines the platform runs, in proto order, and not Claude until it runs it", () => {
-    expect(HARNESS_OPTIONS).toEqual(["native", "cursor"]);
+  it("offers every engine the platform runs, in proto order", () => {
+    expect(HARNESS_OPTIONS).toEqual(["native", "cursor", "claude"]);
   });
 
   it("names every engine Harness names, offered or not", () => {
@@ -48,7 +48,8 @@ describe("the option set is the proto's harness set", () => {
   it("recognises a stored string only when it names an offered engine", () => {
     expect(isHarnessOption("native")).toBe(true);
     expect(isHarnessOption("cursor")).toBe(true);
-    for (const stored of ["claude", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    expect(isHarnessOption("claude")).toBe(true);
+    for (const stored of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isHarnessOption(stored)).toBe(false);
     }
     for (const word of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {

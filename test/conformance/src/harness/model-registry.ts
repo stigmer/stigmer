@@ -6,7 +6,7 @@
 // The harness reads only the fields the arms compare on — the id pair for
 // resolution, the three the runner's economy-tier pick keys on, the
 // native request facts a row states (its output ceiling and thinking form,
-// runner shared/model-registry.ts getNativeRequestProfile), and whether the
+// runner shared/model-registry.ts getRequestProfile), and whether the
 // row carries pricing at all (the runner's pricing table is the rows that do,
 // runner shared/model-pricing-data.ts; a model with none is costed at its
 // default rate) — so other registry schema growth (the prices themselves,

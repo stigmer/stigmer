@@ -7,9 +7,16 @@
  * model-pricing-data.ts) and uses `costTier` + `harness` fields to
  * dynamically resolve economy-tier models for extraction/summarization,
  * plus `capabilities` catalog metadata for per-model capability lookups
- * (getModelVisionCapability) and the request facts a native row states
- * (getNativeRequestProfile).
+ * (getModelVisionCapability) and the request facts a row states for its
+ * engine (getRequestProfile).
+ *
+ * Each engine lists its own models: a row's `harness` names its section, and
+ * the same id (`claude-sonnet-5`) may have a row in several. What a turn
+ * sends and defaults to is read from its own engine's section
+ * ({@link getDefaultModel}, {@link getRequestProfile}).
  */
+
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
   resolveModelRegistryUrl,
@@ -47,8 +54,8 @@ interface RegistryModel {
   maxOutputTokens?: number;
   /** The model's context window in input tokens, as the row states it; `undefined` like {@link maxOutputTokens}. */
   contextWindowTokens?: number;
-  /** The thinking form the row declares; see {@link NativeThinkingProfile}. */
-  thinking: NativeThinkingProfile;
+  /** The thinking form the row declares; see {@link ThinkingProfile}. */
+  thinking: ThinkingProfile;
 }
 
 /**
@@ -67,22 +74,23 @@ interface RegistryModel {
  *   was never assessed. The absence matters: a runner that read it as
  *   `false` would send `disabled` to a model that refuses it.
  */
-export interface NativeThinkingProfile {
+export interface ThinkingProfile {
   readonly shape: "budget" | "adaptive" | "none";
   readonly required: boolean | undefined;
 }
 
 /**
- * The request facts a native-harness model's registry row states, read by
- * the native execution turn when it builds its model client. One home for
- * what the provider needs to be told about a model (the runner never names
- * models in code); a field is `undefined` when the row does not state it.
+ * The request facts a model's registry row states for its engine, read by
+ * the native turn when it builds its model client and by the Claude turn for
+ * its thinking form. One home for what the provider needs to be told about a
+ * model (the runner never names models in code); a field is `undefined` when
+ * the row does not state it.
  */
-export interface NativeRequestProfile {
+export interface RequestProfile {
   readonly maxOutputTokens: number | undefined;
   /** The context window the row states, one source of the turn's compaction window (`model-window.ts`). */
   readonly contextWindowTokens: number | undefined;
-  readonly thinking: NativeThinkingProfile;
+  readonly thinking: ThinkingProfile;
 }
 
 let cache: { models: readonly RegistryModel[]; expiresAt: number } | null = null;
@@ -118,7 +126,7 @@ function parsePositiveInteger(value: unknown): number | undefined {
  * declares no shape and leaves `required` unknown, the same tri-state
  * posture as {@link parseVisionCapability}.
  */
-function parseThinkingProfile(capabilities: unknown): NativeThinkingProfile {
+function parseThinkingProfile(capabilities: unknown): ThinkingProfile {
   if (!capabilities || typeof capabilities !== "object") return { shape: "none", required: undefined };
   const flags = capabilities as Record<string, unknown>;
   const shape = flags.adaptiveThinking === true ? "adaptive" : flags.thinking === true ? "budget" : "none";
@@ -175,6 +183,19 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
 
 /** A registry section: the engine a model row is listed for. */
 export type RegistryHarness = "native" | "cursor" | "claude";
+
+/** The registry section an engine's models are listed in: each engine lists its own. */
+export function registrySectionOf(engine: Exclude<Harness, Harness.UNSPECIFIED>): RegistryHarness {
+  const section = REGISTRY_SECTIONS[engine] as RegistryHarness | undefined;
+  if (section === undefined) throw new Error(`model registry: harness ${String(engine)} names no engine`);
+  return section;
+}
+
+const REGISTRY_SECTIONS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, RegistryHarness>> = {
+  [Harness.NATIVE]: "native",
+  [Harness.CURSOR]: "cursor",
+  [Harness.CLAUDE]: "claude",
+};
 
 /**
  * Whether one engine's registry section lists a model by its id: a model a
@@ -243,20 +264,22 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
 }
 
 /**
- * Resolve the default agent execution model from the registry.
+ * Resolve an engine's default agent execution model from the registry.
  *
  * Used when no settings layer named a model (an empty status.runConfig.modelName).
  * Returns the provider's API model identifier (e.g., "claude-sonnet-4-6"),
  * not the Stigmer registry ID (e.g., "claude-sonnet-4.6").
  *
- * Resolution order:
- * 1. Featured + standard + native (platform's curated default)
- * 2. Any standard + native model
- * 3. Hardcoded fallback (registry unavailable)
+ * Resolution order, in the engine's own section (the server derives the
+ * same default per engine, `modelcatalog/document-catalog.ts`):
+ * 1. Featured + standard (the platform's curated default)
+ * 2. Any standard model
+ * 3. Hardcoded fallback (registry unavailable), a model both the native and
+ *    the Claude engine run
  */
 const FALLBACK_DEFAULT_MODEL = "claude-sonnet-4-6";
 
-export async function getDefaultModel(): Promise<string> {
+export async function getDefaultModel(harness: RegistryHarness): Promise<string> {
   const registry = await getRegistry();
   if (registry.length === 0) {
     console.warn(
@@ -266,12 +289,12 @@ export async function getDefaultModel(): Promise<string> {
   }
 
   const featuredStandard = registry.find(
-    (m) => m.featured && m.costTier === "standard" && m.harness === "native",
+    (m) => m.featured && m.costTier === "standard" && m.harness === harness,
   );
   if (featuredStandard) return featuredStandard.apiModelId ?? featuredStandard.id;
 
   const anyStandard = registry.find(
-    (m) => m.costTier === "standard" && m.harness === "native",
+    (m) => m.costTier === "standard" && m.harness === harness,
   );
   if (anyStandard) return anyStandard.apiModelId ?? anyStandard.id;
 
@@ -332,22 +355,23 @@ export async function getModelVisionCapability(
 }
 
 /**
- * The native-harness row's request facts for a model, matched by registry
- * `id` or `apiModelId` (the turn's resolved settings carry the former, the
- * registry default the latter) and filtered to `harness: native`: ids such
- * as `claude-sonnet-5` exist on both harnesses, and only the native row
- * describes the native request. `undefined` when the registry is
- * unreachable, the name is empty or Auto, or no native row matches — the
- * caller then sends what it sent before.
+ * An engine's row's request facts for a model, matched by registry `id` or
+ * `apiModelId` (the turn's resolved settings carry the former, the registry
+ * default the latter) and filtered to the engine's section: ids such as
+ * `claude-sonnet-5` have a row on several engines, and only the turn's own
+ * engine's row describes its request. `undefined` when the registry is
+ * unreachable, the name is empty or Auto, or no row of the engine matches —
+ * the caller then sends what it sent before.
  */
-export async function getNativeRequestProfile(
+export async function getRequestProfile(
   modelName: string,
-): Promise<NativeRequestProfile | undefined> {
+  harness: RegistryHarness,
+): Promise<RequestProfile | undefined> {
   if (!modelName || modelName === "default") return undefined;
 
   const registry = await getRegistry();
   const entry = registry.find(
-    (m) => m.harness === "native" && (m.id === modelName || m.apiModelId === modelName),
+    (m) => m.harness === harness && (m.id === modelName || m.apiModelId === modelName),
   );
   if (!entry) return undefined;
   return { maxOutputTokens: entry.maxOutputTokens, contextWindowTokens: entry.contextWindowTokens, thinking: entry.thinking };

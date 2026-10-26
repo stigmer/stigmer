@@ -38,8 +38,9 @@
  * Every way the case differs from the run is a note: an answer kept from
  * the first of several, an answer longer than the session keeps inline,
  * a platform tool, a name no mock file can hold, a call that never
- * returned, a request's attachments, a history the Cursor engine cannot
- * resume.
+ * returned, a request's attachments, a history the conversation's own
+ * engine cannot resume (`@stigmer/plugin-package`
+ * `EVAL_ENGINE_UNSUPPORTED_FEATURES`).
  *
  * Proven by __tests__/case-from-run.test.ts: each part over a run's stored
  * events, and every case it builds loads through the library's
@@ -51,7 +52,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { isToolNameSegment } from "@stigmer/plugin-package";
+import { EVAL_ENGINE_UNSUPPORTED_FEATURES, isToolNameSegment, type EvalEngine } from "@stigmer/plugin-package";
 import { EvalCaseArchiveSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { EvalCaseArchive } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -71,12 +72,19 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { sessionIdOf } from "../run/target.js";
 import { EVAL_METRIC, FEEDBACK_METRIC, JUDGE_METRIC } from "../score/constants.js";
+import { EVAL_ENGINES } from "../eval-run/matrix.js";
 import { evalTraceOf } from "../score/eval/trace.js";
 import { listRunScores } from "../score/queries.js";
 import { toolUsesOf, turnOfTranscript } from "../score/turn.js";
 import { readSessionEvents } from "../session/events/run-events.js";
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import { MAX_CASE_ARCHIVE_BYTES, evalCaseSkillMessage, evalCaseTooLargeMessage } from "./constants.js";
+
+/** The engines a recorded history resumes on, as a case's note names them. */
+const RESUMING_ENGINES = (Object.keys(EVAL_ENGINE_UNSUPPORTED_FEATURES) as EvalEngine[])
+  .filter((engine) => !EVAL_ENGINE_UNSUPPORTED_FEATURES[engine].includes("resumed conversations"))
+  .map((engine) => `the ${engine} engine`)
+  .join(" or ");
 
 /** What a case is built from. */
 export interface CaseFromRunInput {
@@ -157,8 +165,9 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     if (unanswered > 0) {
       notes.push(`${count(unanswered, "tool call")} in the conversation before this turn never returned; the history records ${unanswered === 1 ? "it" : "them"} with an empty answer`);
     }
-    if (harness === Harness.CURSOR) {
-      notes.push("the conversation ran on the Cursor engine, which cannot resume a recorded history: the case runs on the native engine only");
+    const engine = EVAL_ENGINES[harness];
+    if (EVAL_ENGINE_UNSUPPORTED_FEATURES[engine.word].includes("resumed conversations")) {
+      notes.push(`the conversation ran on the ${engine.label} engine, which cannot resume a recorded history: the case runs on ${RESUMING_ENGINES} only`);
     }
   }
 

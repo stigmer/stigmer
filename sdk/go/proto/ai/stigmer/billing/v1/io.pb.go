@@ -114,7 +114,7 @@ type RecordLlmCallUsageInput struct {
 	ProxyTiming *v1.ProxyTiming `protobuf:"bytes,12,opt,name=proxy_timing,json=proxyTiming,proto3" json:"proxy_timing,omitempty"`
 	// Raw provider usage JSON for audit/debug.
 	ProviderUsageJson string `protobuf:"bytes,13,opt,name=provider_usage_json,json=providerUsageJson,proto3" json:"provider_usage_json,omitempty"`
-	// Harness that originated this call ("native" or "cursor").
+	// Harness that originated this call ("native", "cursor" or "claude").
 	// Set by the proxy controller based on which proxy path handled the request.
 	// When empty, the billing handler falls back to the model catalog.
 	Harness string `protobuf:"bytes,14,opt,name=harness,proto3" json:"harness,omitempty"`

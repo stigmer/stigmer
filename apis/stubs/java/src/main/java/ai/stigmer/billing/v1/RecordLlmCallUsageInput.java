@@ -604,7 +604,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object harness_ = "";
   /**
    * <pre>
-   * Harness that originated this call ("native" or "cursor").
+   * Harness that originated this call ("native", "cursor" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    * </pre>
@@ -627,7 +627,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Harness that originated this call ("native" or "cursor").
+   * Harness that originated this call ("native", "cursor" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    * </pre>
@@ -2834,7 +2834,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object harness_ = "";
     /**
      * <pre>
-     * Harness that originated this call ("native" or "cursor").
+     * Harness that originated this call ("native", "cursor" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2856,7 +2856,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native" or "cursor").
+     * Harness that originated this call ("native", "cursor" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2879,7 +2879,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native" or "cursor").
+     * Harness that originated this call ("native", "cursor" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2898,7 +2898,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native" or "cursor").
+     * Harness that originated this call ("native", "cursor" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2914,7 +2914,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native" or "cursor").
+     * Harness that originated this call ("native", "cursor" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>

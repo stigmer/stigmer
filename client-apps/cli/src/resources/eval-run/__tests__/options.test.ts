@@ -127,7 +127,7 @@ describe("readEvalRunOptions", () => {
     [{ realMcpServers: true, allowRealServers: true }, "--allow-real-servers goes with --mocks record"],
     [{ allowTools: ["bash"] }, "--allow-tools 'bash' is not a tool name"],
     [{ allowTools: ["mcp__plugin__github__*"] }, "is not a tool name"],
-    [{ model: ["claude/sonnet"] }, "names no engine Stigmer runs"],
+    [{ model: ["codex/gpt-5"] }, "names no engine Stigmer runs"],
     [{ judgeModel: "m".repeat(129) }, "--judge-model is longer than 128 characters"],
     [{ model: Array.from({ length: 7 }, () => "native/claude-sonnet-4-6") }, "at most 6 times"],
   ])("refuses %o with exit 1", (flags, message) => {
@@ -229,6 +229,7 @@ describe("parseTarget", () => {
   it("reads a bare model as the native engine's, and default as the engine's default model", () => {
     expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" });
     expect(parseTarget("cursor/default")).toEqual({ harness: Harness.CURSOR, modelName: "" });
+    expect(parseTarget("claude/claude-sonnet-5")).toEqual({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" });
   });
 
   it("refuses an engine with no model", () => {
