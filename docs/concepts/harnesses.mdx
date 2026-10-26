@@ -100,18 +100,16 @@ console and the CLI name it **Claude**, Powered by Claude.
 - The Agent's tool lists, Skills, sub-agents, MCP servers and hooks in either
   format, file review, the cost cap, stop, and the Session's event log, as on
   the other harnesses.
+- Nothing to install: the runner images carry Anthropic's engine, and the
+  desktop app and `stigmer up` download it on the first Claude turn.
+  [Set up the Claude harness](/docs/guides/runners/claude-harness) says where it
+  comes from in each edition.
 
 **What it does not offer yet:**
 
 - The fast tier: a Claude run takes the standard tier.
 - Resuming a recorded conversation in an eval case: such a case is listed as
   `not run on Claude: resumed conversations` and runs on native.
-- The runner images (Stigmer Cloud's sandboxes, Docker Compose, Helm) do not
-  carry the engine yet, and refuse a Claude turn plainly: "Claude is not
-  installed on this runner, so this turn cannot run on Claude. Run it on another
-  engine." The desktop app and `stigmer up` download it on the first Claude
-  turn; [Set up the Claude harness](/docs/guides/runners/claude-harness) says
-  how.
 
 ## Choosing a Harness
 

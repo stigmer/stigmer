@@ -146,7 +146,17 @@ fi
 unset NODE_OPTIONS NODE_PATH
 
 # The runner reads this to know it runs in a container shape, where it
-# starts the agent's side as the agent user (src/shared/agent-identity.ts).
+# starts the agent's side as the agent user (src/shared/agent-identity.ts),
+# and never downloads an engine (src/activities/execute-claude/adapter.ts).
 export STIGMER_RUNNER_LAYER=1
+
+# The Claude engine the layer carries: engines beside this file's directory
+# (/runner/engines), unless the deployment names its own
+# (src/activities/execute-claude/engine-home.ts).
+if [ -z "${STIGMER_ENGINES_DIR-}" ]; then
+  layer_bin="${0%/*}"
+  STIGMER_ENGINES_DIR="${layer_bin%/*}/engines"
+fi
+export STIGMER_ENGINES_DIR
 
 exec "${0%/*}/node" "$@"

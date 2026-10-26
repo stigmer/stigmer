@@ -8,8 +8,9 @@
 // packages, so this test reads both and fails when the CMD is not the
 // server's runner command, when the runner layer does not put the start
 // script, the Node it execs, the slim artifact and the release file where
-// that command looks for them, or when the release file the server names is
-// not the one the start script reads beside itself.
+// that command looks for them, when the release file the server names is
+// not the one the start script reads beside itself, or when the Claude
+// engine is not where the start script names it (STIGMER_ENGINES_DIR).
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -78,6 +79,26 @@ test("the release file is the one the start script reads beside its own director
     RUNNER_RELEASE_FILE,
     join(dirname(dirname(RUNNER_START)), "RELEASE"),
   );
+});
+
+test("the runner layer puts the Claude engine where the start script names it", () => {
+  const script = readFileSync(
+    join(ROOT, "backend/services/runner/layer/start.sh"),
+    "utf8",
+  );
+  // The start script names the engines beside its own directory's parent:
+  // layer_bin="${0%/*}" (/runner/bin), then "${layer_bin%/*}/engines".
+  assert.match(script, /layer_bin="\$\{0%\/\*\}"/, "start.sh no longer takes its own directory");
+  assert.match(
+    script,
+    /STIGMER_ENGINES_DIR="\$\{layer_bin%\/\*\}\/engines"/,
+    "start.sh no longer names the engines beside its directory",
+  );
+  assert.match(script, /^export STIGMER_ENGINES_DIR$/m, "start.sh no longer exports STIGMER_ENGINES_DIR");
+  const engines = `${join(dirname(dirname(RUNNER_START)), "engines")}/`;
+  const copies = stage("runner-layer").filter((line) => /^COPY\s/.test(line));
+  const destinations = copies.map((line) => line.trim().split(/\s+/).at(-1));
+  assert.ok(destinations.includes(engines), `no COPY lands on ${engines}: ${destinations.join(", ")}`);
 });
 
 test("the sandbox image is the base plus the runner layer's own COPY lines", () => {

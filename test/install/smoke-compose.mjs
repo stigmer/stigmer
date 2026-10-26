@@ -35,7 +35,10 @@
  *      complete with the fake's reply as its last message;
  *   7. the runner wrote to its artifact store, the volume it shares with
  *      the server: no turn degraded with an "[artifact-storage]" warning;
- *   8. clean teardown (`docker compose down --volumes`).
+ *   8. the runner found the Claude engine its runner layer carries and
+ *      logged it ready at the version this checkout pins
+ *      (test/install/lib/claude-engine.mjs);
+ *   9. clean teardown (`docker compose down --volumes`).
  *
  * Usage:
  *   node test/install/smoke-compose.mjs --build
@@ -82,6 +85,7 @@ import {
   COMPOSE_SERVER_PORT,
   createComposeStack,
 } from "./lib/install-compose.mjs";
+import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 
 // First boot pulls/starts four containers, runs Temporal schema setup, and
 // waits for the server's start-period; generous on shared CI hosts.
@@ -177,6 +181,9 @@ async function main() {
     const unavailable = stack.logs("stigmer-runner").split("\n").filter((line) => /\[artifact-storage\] (unavailable|local path not writable)/.test(line));
     if (unavailable.length > 0) throw new Error(`the runner's artifact store was not writable: ${unavailable[0]}`);
     log("artifact store: the runner wrote to the shared volume");
+
+    // 8. The runner found the Claude engine its runner layer carries.
+    log(`claude: ${assertClaudeReady(stack.logs("stigmer-runner"), LAYER_ENGINES)}`);
 
     log("PASS");
   } catch (error) {

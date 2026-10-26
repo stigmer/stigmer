@@ -295,15 +295,17 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
 
 ### Bring your own base image
 
-The runner layer is everything Stigmer adds to an image: the runner, and the
-Node it runs on, under `/runner` and nowhere else. Stigmer publishes it on its
-own as `ghcr.io/stigmer/runner-layer`, for `linux/amd64` and `linux/arm64`,
-tagged with the release it belongs to. Add it to the image your Agents should
-work in, the one your engineers already use, and name the result in
-`STIGMER_SANDBOX_RUNNER_IMAGE`. Your tools stay yours; nothing has to be copied
-out of Stigmer's own Dockerfile. The preceding warning still holds for the
-shipped stacks: this is how a driver's image is made, ready for when they can
-select one.
+The runner layer is everything Stigmer adds to an image: the runner, the Node it
+runs on, and the [Claude engine](/docs/guides/runners/claude-harness)
+(Anthropic's Agent SDK and its `claude` program for the image's architecture,
+unmodified, at `/runner/engines`), under `/runner` and nowhere else. Stigmer
+publishes it on its own as `ghcr.io/stigmer/runner-layer`, for `linux/amd64` and
+`linux/arm64`, tagged with the release it belongs to. Add it to the image your
+Agents should work in, the one your engineers already use, and name the result
+in `STIGMER_SANDBOX_RUNNER_IMAGE`. Your tools stay yours; nothing has to be
+copied out of Stigmer's own Dockerfile. The preceding warning still holds for
+the shipped stacks: this is how a driver's image is made, ready for when they
+can select one.
 
 The join is one file, `deploy/runner-layer/Dockerfile` in the Stigmer
 repository:

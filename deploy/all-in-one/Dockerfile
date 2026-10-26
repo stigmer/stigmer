@@ -18,8 +18,9 @@
 # client-apps/cli/src/local/) runs here in the foreground. There is no second
 # launcher.
 #
-# Build (scripts/stage-all-in-one.mjs stages the packages and the Temporal
-# binary for THIS host's arch into ./stage; the smoke and CI do the same):
+# Build (scripts/stage-all-in-one.mjs stages the packages, the Temporal
+# binary and the Claude engine for THIS host's arch into ./stage; the smoke
+# and CI do the same):
 #   node scripts/stage-all-in-one.mjs
 #   docker build --build-arg STIGMER_VERSION=$(cat deploy/all-in-one/stage/VERSION) \
 #     -t stigmer-all-in-one:local deploy/all-in-one
@@ -63,7 +64,8 @@ RUN apt-get update \
 # temporal/manager.ts). Set before the install so the paths below are
 # derived from one place.
 ENV STIGMER_RUNTIMES_DIR=/opt/stigmer/runtimes \
-    STIGMER_TEMPORAL_BIN=/opt/stigmer/bin/temporal
+    STIGMER_TEMPORAL_BIN=/opt/stigmer/bin/temporal \
+    STIGMER_ENGINES_DIR=/opt/stigmer/engines
 
 # The acquisitions, pre-warmed: every workspace package (the CLI, its
 # @stigmer/* deps, the plugin catalogue) plus @stigmer/server-slim and
@@ -84,6 +86,14 @@ RUN test -n "${STIGMER_VERSION}" || { echo "STIGMER_VERSION build-arg is require
 # CLI's own downloader at staging time (one pin, one verification, shared
 # with `stigmer up`).
 COPY --chmod=755 stage/temporal ${STIGMER_TEMPORAL_BIN}
+
+# The Claude engine for this arch, installed at staging time by the runner's
+# own installer, the download a local runner makes on its first Claude turn
+# (one pin, one verification, shared with `stigmer up`). Root-owned and
+# read-only to the node user the stack runs as: the runner loads it from
+# STIGMER_ENGINES_DIR and never downloads (the runner's README, "The Claude
+# engine"). Anthropic's two packages, unmodified.
+COPY stage/engines/ ${STIGMER_ENGINES_DIR}/
 
 # The entrypoint: the evaluation banner, the volume and key checks, then
 # `exec stigmer up --foreground`. Any argument replaces that command

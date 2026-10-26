@@ -25,6 +25,13 @@
  *   stage/temporal       the Temporal CLI for linux/<arch>, downloaded and
  *                        checksum-verified by the CLI's own downloader — one
  *                        pin, one verification, for `stigmer up` and the image.
+ *   stage/engines        the Claude engine for linux/<arch>, installed into
+ *                        its engine home by the runner's own installer (the
+ *                        download a local runner makes on its first Claude
+ *                        turn, verified against the lockfile's integrity):
+ *                        one pin, one verification, for `stigmer up` and the
+ *                        image (backend/services/runner/src/activities/
+ *                        execute-claude/engine-fetch.ts, from the built dist).
  *   stage/VERSION        the stamped version; the Dockerfile's STIGMER_VERSION
  *                        build-arg must equal it (the build asserts).
  *
@@ -160,6 +167,23 @@ async function stageTemporal(opts, outDir) {
   });
 }
 
+/**
+ * The Claude engine for linux/<arch>, through the runner's own installer
+ * (built by `make build-runner`, which stageRunnerPackages requires): the
+ * pin the runner's lockfile records, the glibc package node:22-slim runs, the
+ * same download and verification a local runner's first Claude turn makes.
+ */
+async function stageClaudeEngine(opts, outDir) {
+  const installer = join(runnerRoot, "dist", "activities", "execute-claude", "engine-fetch.js");
+  requireBuilt(installer, "make build-runner");
+  const { installClaudeEngine } = await import(pathToFileURL(installer).href);
+  const { CLAUDE_SDK, claudeEnginePinFromLockfile } = await import(pathToFileURL(join(runnerRoot, "scripts", "claude-engine-pin.mjs")).href);
+  const pin = claudeEnginePinFromLockfile(join(runnerRoot, "package-lock.json"));
+  const platformPackage = `${CLAUDE_SDK}-linux-${opts.arch === "amd64" ? "x64" : "arm64"}`;
+  log(`installing the Claude engine ${pin.version} (${platformPackage}), verified against the lockfile's integrity`);
+  await installClaudeEngine({ root: join(outDir, "engines"), pin, platformPackage, signal: new AbortController().signal });
+}
+
 async function main() {
   const opts = parseArgs();
   log(`version ${opts.version}, arch ${opts.arch}, out ${opts.out}`);
@@ -172,6 +196,7 @@ async function main() {
   stageServerPackages(opts, pkgsDir);
   stageRunnerPackages(opts, pkgsDir);
   await stageTemporal(opts, opts.out);
+  await stageClaudeEngine(opts, opts.out);
 
   writeFileSync(join(opts.out, "VERSION"), `${opts.version}\n`);
   const staged = readdirSync(pkgsDir).sort();

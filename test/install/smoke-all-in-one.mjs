@@ -77,6 +77,7 @@ import {
 } from "./lib/stigmer-smoke.mjs";
 import { fakeModelEnv, parseFakeModelArg, startFakeModel } from "./lib/fake-model.mjs";
 import { STOP_GRACE_SECONDS, allInOneImage, createAllInOne } from "./lib/install-all-in-one.mjs";
+import { ALL_IN_ONE_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 
 // Temporal boots, the server gates, the runner polls; generous for shared CI hosts.
 const HEALTHY_TIMEOUT_MS = 180_000;
@@ -170,6 +171,10 @@ async function main() {
       return true;
     });
     log("banner: evaluation label and mirrored component logs present; no no-key warning");
+
+    // The runner found the Claude engine the image carries.
+    await pollUntil("the Claude engine ready", HEALTHY_TIMEOUT_MS, () => assertClaudeReady(docker(["logs", container]), ALL_IN_ONE_ENGINES));
+    log(`claude: ${assertClaudeReady(docker(["logs", container]), ALL_IN_ONE_ENGINES)}`);
 
     // 3. SERVING and the console lane.
     await waitForServing(baseUrl, HEALTHY_TIMEOUT_MS);

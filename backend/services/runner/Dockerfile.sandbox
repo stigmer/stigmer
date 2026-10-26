@@ -43,11 +43,12 @@
 #                    this build's platform (its @cursor/sdk platform package
 #                    is the one npm installed here, so each arch's leg
 #                    builds its own; the Claude engine npm installs here is
-#                    never staged, scripts/bundle-slim.mjs NEVER_STAGED)
+#                    staged beside the artifact into its own engine home,
+#                    never inside it, scripts/bundle-slim.mjs NEVER_STAGED)
 #   runner-layer   — FROM scratch, /runner only. Published as
 #                    ghcr.io/stigmer/runner-layer, and `base` as
 #                    ghcr.io/stigmer/runner-base (release.sandbox-cloud)
-#   sandbox        — base plus the runner layer's five layers. The
+#   sandbox        — base plus the runner layer's six layers. The
 #                    CLOUD sandbox image (release.sandbox-cloud builds
 #                    `--target sandbox`). The runner process is started by
 #                    the control plane (the drivers set the command), so CMD
@@ -222,10 +223,13 @@ RUN cd backend/libs/ts/eval-runtime && npm run build
 
 # ---------- The runner, compiled and bundled ----------
 # Built against the real libs (the file: references resolve to libs' tree),
-# with every dependency; only the slim artifact leaves this stage, split in
-# two by how often each part changes: /build/slim/node_modules (the staged
-# packages, which change with the lockfile) and /build/slim/dist (the
-# bundles, which change with the runner). Every file's time is set to npm's
+# with every dependency; only the slim artifact and the Claude engine leave
+# this stage, split by how often each part changes: /build/slim/engines (the
+# Claude engine's home, which changes only when its pin moves),
+# /build/slim/node_modules (the staged packages, which change with the
+# lockfile) and /build/slim/dist (the bundles, which change with the runner).
+# The engine is Anthropic's SDK and this arch's glibc platform package,
+# copied unmodified from the install (bundle-slim.mjs --claude-engine-home). Every file's time is set to npm's
 # fixed tarball date, so an unchanged dependency tree is the same layer
 # bytes build after build and a node holding it pulls only the bundles
 # (stigmer/stigmer#1244). The layer's start script (layer/start.sh) leaves
@@ -249,7 +253,7 @@ WORKDIR /build/backend/services/runner
 RUN npm ci --legacy-peer-deps
 
 COPY backend/services/runner/ .
-RUN npm run build:slim && rm dist-slim/meta.json && \
+RUN npm run build:slim -- --claude-engine-home=/build/slim/engines && rm dist-slim/meta.json && \
     mkdir -p /build/slim && mv dist-slim/node_modules /build/slim/node_modules && \
     mv dist-slim /build/slim/dist && cp layer/start.sh /build/slim/start && \
     find /build/slim -exec touch -h -d 1985-10-26T08:15:00Z {} +
@@ -275,10 +279,13 @@ RUN release="${RUNNER_LAYER_RELEASE}" && \
 
 # ---------- The runner layer ----------
 # Everything Stigmer adds to a base image, under /runner and nowhere else,
-# as five layers ordered by how often they change: the Node binary alone
-# (no npm: the runner needs nothing else of it), the start script every
-# driver launches (it checks the base and the release, then execs that
-# Node: layer/start.sh), the staged packages, the bundles, and last the
+# as six layers ordered by how often they change: the Node binary alone
+# (no npm: the runner needs nothing else of it), the Claude engine
+# (/runner/engines, root-owned and read-only to the agent, which the start
+# script names as STIGMER_ENGINES_DIR; it changes only when its pin moves),
+# the start script every driver launches (it checks the base and the
+# release, then execs that Node: layer/start.sh), the staged packages, the
+# bundles, and last the
 # release file, so a release's bundles are the same layer bytes as the
 # same commit's development build. The packages and bundles are the slim
 # artifact's self-contained directory at /runner/dist. Published per release as
@@ -287,19 +294,21 @@ RUN release="${RUNNER_LAYER_RELEASE}" && \
 FROM scratch AS runner-layer
 
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/engines/ /runner/engines/
 COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/
 COPY --from=builder /build/slim/RELEASE /runner/RELEASE
 
 # ---------- The cloud sandbox image ----------
-# The default base plus the runner layer: the same five COPY lines as the
+# The default base plus the runner layer: the same six COPY lines as the
 # runner-layer stage (scripts/runner-launch-contract.test.mjs holds them
-# equal), so the image keeps the runner layer's five layers rather than
+# equal), so the image keeps the runner layer's six layers rather than
 # one, and a runner-only release changes only the bundles and the release.
 FROM base AS sandbox
 
 COPY --from=node-runtime /usr/local/bin/node /runner/bin/node
+COPY --from=builder /build/slim/engines/ /runner/engines/
 COPY --from=builder /build/slim/start /runner/bin/start
 COPY --from=builder /build/slim/node_modules/ /runner/dist/node_modules/
 COPY --from=builder /build/slim/dist/ /runner/dist/

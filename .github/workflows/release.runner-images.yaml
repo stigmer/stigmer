@@ -267,7 +267,10 @@ jobs:
       # host network: the cloud-mode boot to the Temporal dial, @cursor/sdk
       # and its platform package, the attach waiter, a worker that reaches
       # RUNNING, and the manager lifecycle, its authenticated run with an
-      # OTLP endpoint set, as production sets one. A broken image or a runner
+      # OTLP endpoint set, as production sets one; and the Claude engine the
+      # layer carries: exactly the pinned packages, its executable run as the
+      # agent user, and the boot logging it ready (--claude-engines, check
+      # 4c). A broken image or a runner
       # that dies at boot (the 2026-04 stale-image failure mode) fails here,
       # and no tag but the stage tag names it.
       - name: Smoke-test the runner in the image
@@ -280,7 +283,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
             --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
             "$IMAGE" \
-            /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist
+            /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist --claude-engines /runner/engines
 
       - name: Promote the smoke-tested image
         if: matrix.arch == 'amd64' && steps.tags.outputs.moves_latest == 'true'
@@ -365,7 +368,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
             --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
             probe/ubuntu-joined \
-            /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist
+            /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist --claude-engines /runner/engines
           got="$(docker run --rm --env 'NODE_OPTIONS=--require /nonexistent.js' --env NODE_PATH=/nonexistent \
             probe/ubuntu-joined \
             /runner/bin/start -e 'console.log(JSON.stringify([process.argv.slice(1), process.env.NODE_OPTIONS ?? null, process.env.NODE_PATH ?? null]))' a 'b c' 2>/dev/null)"

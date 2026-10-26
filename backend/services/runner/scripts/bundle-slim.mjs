@@ -55,7 +55,16 @@
  * Build with `npm run build` first; this consumes the compiled dist/.
  *
  * Usage:
- *   node scripts/bundle-slim.mjs [--platform=<darwin-arm64|darwin-x64|linux-x64|linux-arm64|win32-x64>] [--emit-packages] [--version=<semver>]
+ *   node scripts/bundle-slim.mjs [--platform=<darwin-arm64|darwin-x64|linux-x64|linux-arm64|win32-x64>] [--emit-packages] [--version=<semver>] [--claude-engine-home=<dir>]
+ *
+ * --claude-engine-home stages the Claude engine the pin names into an engine
+ * home under <dir> (<dir>/claude/<version>, the layout
+ * src/activities/execute-claude/engine-home.ts reads), OUTSIDE the artifact:
+ * the image builder passes /build/slim/engines, which becomes the runner
+ * layer's /runner/engines. Exactly two packages, copied byte for byte from
+ * the install: the SDK and this platform's glibc package, named explicitly,
+ * never "whatever npm installed" (the lockfile records no libc, so an install
+ * may hold the musl twin too). The artifact itself never carries the engine.
  *
  * --version stamps the emitted manifests instead of the package's own
  * version. The release lane stamps package.json in its ephemeral checkout; a
@@ -71,7 +80,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stripExternalSourceMapPragma } from "../../../../scripts/lib/source-map-pragma.mjs";
 import { forbiddenAttachModules } from "./attach-graph-rule.mjs";
-import { ENGINE_PIN_FILE, claudeEnginePinFromLockfile } from "./claude-engine-pin.mjs";
+import { CLAUDE_SDK, ENGINE_PIN_FILE, claudeEnginePinFromLockfile } from "./claude-engine-pin.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -143,18 +152,21 @@ function parseArgs() {
   let platform = hostPlatform;
   let emitPackages = false;
   let version;
+  let claudeEngineHome;
   for (const arg of process.argv.slice(2)) {
     const m = arg.match(/^--platform=(.+)$/);
     const v = arg.match(/^--version=(.+)$/);
+    const c = arg.match(/^--claude-engine-home=(.+)$/);
     if (m) platform = m[1];
     else if (v) version = v[1];
+    else if (c) claudeEngineHome = c[1];
     else if (arg === "--emit-packages") emitPackages = true;
     else fail(`unknown argument: ${arg}`);
   }
   if (!(platform in CORE_BRIDGE_TRIPLES)) {
     fail(`Unsupported platform "${platform}". Supported: ${Object.keys(CORE_BRIDGE_TRIPLES).join(", ")}`);
   }
-  return { platform, isCrossBuild: platform !== hostPlatform, emitPackages, version };
+  return { platform, isCrossBuild: platform !== hostPlatform, emitPackages, version, claudeEngineHome };
 }
 
 function fail(message) {
@@ -591,6 +603,28 @@ function writeClaudeEnginePin() {
   console.log(`  Claude engine pin: ${pin.version} (${Object.keys(pin.packages).length} packages)`);
 }
 
+/**
+ * Stages the pinned engine into an engine home under `root`, outside the
+ * artifact (the header's --claude-engine-home). The two packages are copied
+ * from this install as npm wrote them, and each must be the pinned version:
+ * an image runs exactly what CI installed and tested.
+ */
+function stageClaudeEngineHome(root, platform) {
+  const pin = claudeEnginePinFromLockfile(join(runnerRoot, "package-lock.json"));
+  const names = [CLAUDE_SDK, `${CLAUDE_SDK}-${platform}`];
+  const home = join(root, "claude", pin.version);
+  rmSync(home, { recursive: true, force: true });
+  for (const name of names) {
+    if (pin.packages[name] === undefined) fail(`the Claude engine pin names no ${name}`);
+    const src = join(nodeModulesDir, name);
+    if (!existsSync(src)) fail(`cannot stage ${name} into the engine home: not installed (an install on ${platform} installs it)`);
+    const installed = readPackageJson(src).version;
+    if (installed !== pin.version) fail(`cannot stage ${name}: the install holds ${installed}, the pin ${pin.version}`);
+    cpSync(src, join(home, "node_modules", name), { recursive: true });
+  }
+  console.log(`  Claude engine home: ${home} (${names.join(", ")})`);
+}
+
 // ─── Step 6 (optional): publishable npm package directories ─────────────────
 
 // Files that ship in the published @stigmer/runner-slim tarball. Sourcemaps are
@@ -689,7 +723,7 @@ function printSizeReport(platform) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-const { platform, isCrossBuild, emitPackages, version } = parseArgs();
+const { platform, isCrossBuild, emitPackages, version, claudeEngineHome } = parseArgs();
 // The emitted manifests' version: the package's own unless --version stamps it.
 if (version !== undefined) runnerPkg.version = version;
 
@@ -706,6 +740,9 @@ await buildMainBundle();
 await buildAttachBundle();
 stageSelfContained(platform, isCrossBuild);
 writeClaudeEnginePin();
+if (claudeEngineHome !== undefined) {
+  stageClaudeEngineHome(claudeEngineHome, platform);
+}
 if (emitPackages) {
   emitNpmPackages();
 }

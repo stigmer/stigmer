@@ -18,7 +18,8 @@
 // compute what this machine lacks (the loader, /proc, root) and expect
 // exactly that beside the tools a case hides. The success case (the Node
 // beside the script exec'd with its arguments unchanged, NODE_OPTIONS and
-// NODE_PATH gone, STIGMER_RUNNER_LAYER set) and the release cases, which the script reaches only
+// NODE_PATH gone, STIGMER_RUNNER_LAYER set, STIGMER_ENGINES_DIR named
+// beside the script unless the deployment set it) and the release cases, which the script reaches only
 // once the base passes, run only as root on glibc and otherwise skip. The
 // runner lane runs this file again as root in Node's Debian image, with
 // STIGMER_TEST_AS_ROOT=1, where that skip is a failure; the image itself
@@ -93,11 +94,16 @@ function layerBin(release) {
   copyFileSync(SCRIPT, join(bin, "start"));
   writeFileSync(
     join(bin, "node"),
-    '#!/bin/sh\nprintf "args=%s|" "$@"\nprintf "NODE_OPTIONS=%s NODE_PATH=%s LAYER=%s\\n" "${NODE_OPTIONS-unset}" "${NODE_PATH-unset}" "${STIGMER_RUNNER_LAYER-unset}"\n',
+    '#!/bin/sh\nprintf "args=%s|" "$@"\nprintf "NODE_OPTIONS=%s NODE_PATH=%s LAYER=%s ENGINES=%s\\n" "${NODE_OPTIONS-unset}" "${NODE_PATH-unset}" "${STIGMER_RUNNER_LAYER-unset}" "${STIGMER_ENGINES_DIR-unset}"\n',
     { mode: 0o755 },
   );
   if (release !== undefined) writeFileSync(join(root, "RELEASE"), release);
   return bin;
+}
+
+/** The engines directory the script names for a layer whose `bin` is this: beside `bin`. */
+function enginesBeside(bin) {
+  return join(dirname(bin), "engines");
 }
 
 function start(bin, path, args = [], env = {}) {
@@ -177,11 +183,12 @@ test("a layer of another release than the server's is refused in one line naming
 
 test("a layer of the server's own release starts, with or without the file's newline", ON_A_RUNNABLE_BASE, () => {
   for (const written of ["3.42.0-rc.1\n", "3.42.0-rc.1"]) {
-    const result = start(layerBin(written), pathWith(REQUIRED), ["/runner/dist/main.js"], {
+    const bin = layerBin(written);
+    const result = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js"], {
       STIGMER_SERVER_RELEASE: "3.42.0-rc.1",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1\n");
+    assert.equal(result.stdout, `args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1 ENGINES=${enginesBeside(bin)}\n`);
     assert.deepEqual(withoutToolWarnings(result.stderr), []);
   }
 });
@@ -196,11 +203,12 @@ test("a server naming no release checks nothing, whatever the layer is", ON_A_RU
 
 test("a layer naming no release, empty or without the file, is warned about under a release server and starts", ON_A_RUNNABLE_BASE, () => {
   for (const release of ["", undefined]) {
-    const result = start(layerBin(release), pathWith(REQUIRED), ["/runner/dist/main.js"], {
+    const bin = layerBin(release);
+    const result = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js"], {
       STIGMER_SERVER_RELEASE: "3.42.0",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1\n");
+    assert.equal(result.stdout, `args=/runner/dist/main.js|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1 ENGINES=${enginesBeside(bin)}\n`);
     assert.deepEqual(withoutToolWarnings(result.stderr), [
       `stigmer runner: warning: this runner layer names no release, so it is not checked against the server, which is 3.42.0 (${GUIDE_URL})`,
     ]);
@@ -211,12 +219,13 @@ test(
   "on a base it can run on, it warns per missing optional tool, clears the Node variables and execs the Node beside it",
   ON_A_RUNNABLE_BASE,
   () => {
-    const result = start(layerBin(), pathWith(REQUIRED), ["/runner/dist/main.js", "a b"], {
+    const bin = layerBin();
+    const result = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js", "a b"], {
       NODE_OPTIONS: "--require /nonexistent.js",
       NODE_PATH: "/somewhere",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, "args=/runner/dist/main.js|args=a b|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1\n");
+    assert.equal(result.stdout, `args=/runner/dist/main.js|args=a b|NODE_OPTIONS=unset NODE_PATH=unset LAYER=1 ENGINES=${enginesBeside(bin)}\n`);
     const warnings = result.stderr.trimEnd().split("\n");
     assert.deepEqual(
       warnings.map((line) => line.match(/^stigmer runner: warning: (\S+) is not on PATH/)?.[1]),
@@ -224,6 +233,16 @@ test(
     );
   },
 );
+
+test("a deployment's own engines directory is kept, and the layer's is named beside the script otherwise", ON_A_RUNNABLE_BASE, () => {
+  const bin = layerBin();
+  const own = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js"], { STIGMER_ENGINES_DIR: "/opt/engines" });
+  assert.equal(own.status, 0, own.stderr);
+  assert.match(own.stdout, / ENGINES=\/opt\/engines\n$/);
+  const layer = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js"], { STIGMER_ENGINES_DIR: "" });
+  assert.equal(layer.status, 0, layer.stderr);
+  assert.match(layer.stdout, new RegExp(` ENGINES=${enginesBeside(bin).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\n$`));
+});
 
 test("the guide's contract names every tool the script checks", () => {
   const heading = GUIDE.indexOf("\n### Bring your own base image\n");

@@ -113,6 +113,7 @@ import {
   createStigmerRelease,
   profileValues,
 } from "./lib/install-helm.mjs";
+import { LAYER_ENGINES, assertClaudeReady } from "./lib/claude-engine.mjs";
 
 const chartRoot = CHECKOUT_CHART;
 
@@ -300,6 +301,9 @@ async function probeStack(release, fake) {
     log(
       `agent run: execution ${run.executionId} COMPLETED through the runner with the model's reply (${fake.requests()} model calls)`,
     );
+    // The runner found the Claude engine its runner layer carries.
+    const runnerLogs = kubectl(["-n", release.namespace, "logs", "-l", "app.kubernetes.io/component=stigmer", "-c", "runner", "--tail=-1"]);
+    log(`claude: ${assertClaudeReady(runnerLogs, LAYER_ENGINES)}`);
     return run.executionId;
   } finally {
     forward.stop();
