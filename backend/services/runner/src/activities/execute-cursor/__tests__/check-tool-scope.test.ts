@@ -7,7 +7,7 @@
  * saved subagent that brings its own plugins, hooks, MCP servers or tool
  * lists (one
  * sentence, naming it). Also the read root an excluded `Read`
- * is confined to (`platformReadRoot`), the root a hidden skill's read is
+ * is confined to (`shared/workspace/stigmer-link.ts` `platformReadRoot`), the root a hidden skill's read is
  * refused under (`platformRealRoot`), and the outputs folder whose writes
  * are never reviewed (`platformOutputsRoot`). The hermetic
  * tool-lists test pins the settled status for the two refusals a local
@@ -22,10 +22,10 @@ import {
   CursorToolListRefusal,
   checkToolScope,
   platformOutputsRoot,
-  platformReadRoot,
   platformRealRoot,
   subagentBringsOwnMessage,
 } from "../turn-setup.js";
+import { platformReadRoot } from "../../../shared/workspace/stigmer-link.js";
 import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
