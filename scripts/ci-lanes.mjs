@@ -155,6 +155,7 @@ export const LANES = {
       "client-apps/cli/src/local/**",
       "client-apps/cli/src/commands/up.ts",
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       // The model path a self-hoster's runner takes: the client, the base URL
       // it reads (ANTHROPIC_BASE_URL) and the provider routing it applies. The
@@ -290,6 +291,7 @@ export const LANES = {
       // bundler, the native-bridge shim it aliases and the attach rule it
       // imports are what the image contains.
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
       "backend/services/stigmer-server/Dockerfile",
@@ -539,6 +541,7 @@ export const LANES = {
       // bundler, the native-bridge shim it aliases and the attach rule it
       // imports are what the image contains.
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
       // The server's packaging script, which `make smoke-helm` runs
