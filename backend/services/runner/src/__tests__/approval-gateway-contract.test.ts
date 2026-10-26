@@ -26,11 +26,8 @@ const deepAgent = createDeepAgentSubstrate();
 const cursor = createCursorSubstrate();
 const claude = createClaudeSubstrate();
 
-/** The open issue the Claude substrate's platform-read mark names. */
-const CLAUDE_PLATFORM_READ = "stigmer/stigmer#2593";
-
 describeGatewayContract(deepAgent);
 describeGatewayContract(cursor);
-describeGatewayContract(claude, { knownGaps: { "platform-read-under-lists": CLAUDE_PLATFORM_READ } });
+describeGatewayContract(claude);
 
-describeCrossSubstrateAgreement([deepAgent, cursor, claude], { claude: { "platform-read-under-lists": CLAUDE_PLATFORM_READ } });
+describeCrossSubstrateAgreement([deepAgent, cursor, claude]);

@@ -57,7 +57,7 @@ import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator, HookSetupError, hookPermissionMode } from "../../shared/hooks/setup.js";
-import { stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
+import { platformReadRoot, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 import { compileHookToolScope } from "./hook-scope.js";
 import { computeAgentFingerprint, takeCachedAgent } from "./agent-session-cache.js";
 import {
@@ -413,18 +413,6 @@ export async function prepareHooks(
     );
   }
   return { evaluator, hiddenTools };
-}
-
-/**
- * The real path an excluded `Read` may still reach files inside
- * (`HookToolScope.readRoot`): the platform dir's, on a turn whose workspace
- * `.stigmer` is the link to it (`stigmerSymlinkPointsAt`), else "". A turn
- * that mounted no skill and no File made no link and has no platform
- * content, so a `.stigmer` there is the repository's own and admits nothing.
- */
-export async function platformReadRoot(primaryDir: string, platformDir: string): Promise<string> {
-  if (!(await stigmerSymlinkPointsAt(primaryDir, platformDir))) return "";
-  return realpath(platformDir);
 }
 
 /**

@@ -45,7 +45,13 @@
  *     but its outputs folder, the session's platform folder by any path)
  *     and nothing in the engine's own home, as the native engine's
  *     read-only mount holds (`shared/outputs.ts` `isReadOnlyPlatformPath`).
- *     A caller whose lists deny `Skill` reads no skill's files.
+ *     A caller whose lists deny `Skill` reads no skill's files. A caller
+     whose lists exclude `Read` is still offered it, for the platform's
+     own content alone: a file whose real path lies inside the platform
+     folder, on a turn whose `.stigmer` is the link to it, as Cursor's
+     hook admits it (`shared/workspace/stigmer-link.ts`
+     `readsPlatformContent`) and the native engine admits it by its
+     route.
  *  3. The secret-like write block (`shared/file-edit-policy.ts`), ahead of
  *     any hook, its path recorded for the turn's review.
  *  4. The agent's `PreToolUse` hooks (`hooks.ts`): a deny refuses, naming
@@ -124,6 +130,7 @@ import { isReadOnlyPlatformPath, OUTPUTS_SUBDIR } from "../../shared/outputs.js"
 import { SKILL_CONTENT_PATTERN } from "../../shared/skill-mount.js";
 import { ELISION_MARKER } from "../../shared/status-offload.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../../shared/tool-kind.js";
+import { readsPlatformContent } from "../../shared/workspace/stigmer-link.js";
 import { HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { evaluatorFor, type TurnHookEvaluators } from "./hooks.js";
 import type { ServedCall } from "./loopback-mcp.js";
@@ -161,6 +168,10 @@ export const UNKNOWN_CALLER_MESSAGE = "This call came from a helper this turn di
 /** What a call that writes platform content or the engine's own files is refused with. */
 export const READ_ONLY_MESSAGE = "This path holds the platform's own files, which are read-only; it was not run. Save files for the person in the outputs folder.";
 
+/** What a read outside the platform's content is refused with when the caller's lists exclude `Read`. */
+export const PLATFORM_READ_ONLY_MESSAGE =
+  "Read reaches only the platform's own files (under .stigmer/) for this agent: its tool lists exclude Read. It was not run.";
+
 /** What a read of a skill's files is refused with when the caller's lists deny `Skill`. */
 export const HIDDEN_SKILLS_MESSAGE = "Skill files are not available to this agent: its tool lists exclude Skill. It was not run.";
 
@@ -187,6 +198,9 @@ export function helperOverrideMessage(fields: readonly string[]): string {
 /** What the host's tools answer a call the gate did not admit (`loopback-mcp.ts`). */
 export const NOT_ADMITTED_MESSAGE = "The gate allowed no such call; it was not run.";
 
+/** The engine's tool that reads a file, offered for the platform's content alone to a caller whose lists exclude it. */
+export const READ_TOOL = "Read";
+
 /** The engine's tool that loads a skill. */
 export const SKILL_TOOL = "Skill";
 
@@ -212,6 +226,8 @@ export interface Reach {
   readonly agentTypes: ReadonlySet<string>;
   /** Whether its lists deny `Skill` (`shared/tool-lists.ts` `hidesSkills`). */
   readonly hidesSkills: boolean;
+  /** Whether its lists exclude `Read`, which it is offered for the platform's own content alone (the header, item 2). */
+  readonly confinedRead: boolean;
 }
 
 /** A call the gate lets run. */
@@ -282,6 +298,8 @@ export interface GateFacts {
   readonly engineHome: string;
   /** Whether a read of a path in the workspace's dialect opens a skill's files (`shared/skill-mount.ts` `skillContentReadCheck`). */
   readonly readsSkillContent: (workspacePath: string) => Promise<boolean>;
+  /** The real path a confined `Read` reaches files inside (`shared/workspace/stigmer-link.ts` `platformReadRoot`); "" on a turn with no platform link. */
+  readonly platformReadRoot: string;
   /** Every caller's hooks (`hooks.ts`). */
   readonly hooks: TurnHookEvaluators;
   /** A person's answers to this run's WAITING rows, by call id (`TurnInput.approvalDecisions`). */
@@ -309,7 +327,12 @@ export interface WaitingCall {
 export interface GateFactSources {
   readonly agents: { readonly root: Reach; readonly subagents: ReadonlyMap<string, Reach> };
   readonly bridge: { readonly serverOf: GateFacts["serverOf"]; readonly mcpDefault: McpApprovalDefault };
-  readonly paths: { readonly platformDir: string | undefined; readonly engineHome: string; readonly readsSkillContent: GateFacts["readsSkillContent"] };
+  readonly paths: {
+    readonly platformDir: string | undefined;
+    readonly engineHome: string;
+    readonly readsSkillContent: GateFacts["readsSkillContent"];
+    readonly platformReadRoot: string;
+  };
   readonly isCapturablePath: (workspacePath: string) => Promise<boolean>;
   readonly hooks: TurnHookEvaluators;
   readonly waitingCallOf: GateFacts["waitingCallOf"];
@@ -567,6 +590,7 @@ export class ClaudeGate {
     const path = this.judgedPath(args);
     if ((call.category === "write" || call.category === "delete") && this.isReadOnly(path)) return READ_ONLY_MESSAGE;
     if (reach.hidesSkills && call.name === "Read" && (await this.opensSkillContent(path))) return HIDDEN_SKILLS_MESSAGE;
+    if (reach.confinedRead && call.name === "Read" && !(await this.readsPlatformContent(path))) return PLATFORM_READ_ONLY_MESSAGE;
     if (global) return undefined;
     const inside = path.kind === "inside";
     const posture = inside ? this.facts.posture : { ...this.facts.posture, isCapturablePath: async () => false };
@@ -613,6 +637,13 @@ export class ClaudeGate {
     const { platformDir, engineHome } = this.facts;
     if (isWithin(engineHome, path.absolute, true)) return true;
     return platformDir !== undefined && isWithin(platformDir, path.absolute, true) && !isWithin(join(platformDir, OUTPUTS_SUBDIR), path.absolute, false);
+  }
+
+  /** Whether a read opens the platform's own content, by the real path it resolves to (the header, item 2). */
+  private async readsPlatformContent(path: JudgedPath): Promise<boolean> {
+    if (path.kind === "none") return false;
+    const absolute = path.kind === "outside" ? path.absolute : join(this.facts.primaryDir, path.workspacePath);
+    return readsPlatformContent(this.facts.platformReadRoot, absolute);
   }
 
   /** Whether a read opens a skill's files: through `.stigmer`, in the platform folder, or the copies in the engine's home. */

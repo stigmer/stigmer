@@ -204,6 +204,40 @@ export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: 
 }
 
 /**
+ * The real path an excluded `Read` may still reach files inside: the
+ * platform dir's, on a turn whose workspace `.stigmer` is the link to it
+ * ({@link stigmerSymlinkPointsAt}), else "". A turn that mounted no skill and
+ * no File made no link and has no platform content, so a `.stigmer` there is
+ * the repository's own and admits nothing. Read once per turn by the engines
+ * that read real paths (Cursor's hook, `execute-cursor/hook-scope.ts`
+ * `readRoot`; Claude's gate, `execute-claude/gate.ts`); the native engine
+ * admits the platform's content by its own route instead
+ * (`execute-deep-agent/platform-route.ts` `admitsRoutedRead`).
+ */
+export async function platformReadRoot(workspaceDir: string, platformDir: string): Promise<string> {
+  if (!(await stigmerSymlinkPointsAt(workspaceDir, platformDir))) return "";
+  return agentFs().realpath(platformDir);
+}
+
+/**
+ * Whether a read of `absolutePath` opens the platform's content: its REAL
+ * path lies inside `readRoot` ({@link platformReadRoot}). Real path, not
+ * prefix: a repository's own `.stigmer` on an unlinked turn, or a link inside
+ * platform content pointing out, would otherwise stretch the confinement to
+ * any target. A missing file, or a turn with no root, admits nothing.
+ * Cursor's hook runs the same test inline, in a process that cannot load
+ * this module (`execute-cursor/hook-script.ts`).
+ */
+export async function readsPlatformContent(readRoot: string, absolutePath: string): Promise<boolean> {
+  if (readRoot === "") return false;
+  try {
+    return (await agentFs().realpath(absolutePath)).startsWith(readRoot + sep);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Remove the workspace `.stigmer` symlink created by
  * {@link ensureStigmerSymlink}.
  *

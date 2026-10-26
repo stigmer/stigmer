@@ -28,7 +28,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -40,6 +40,7 @@ import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
+import { platformReadRoot } from "../../../shared/workspace/stigmer-link.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { contractHookSources } from "../../../__test-utils__/approval-contract/hook-commands.js";
 import type {
@@ -56,7 +57,7 @@ import type {
 } from "../../../__test-utils__/approval-contract/types.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import { turnAgentsOf, type SubagentSpec } from "../agents.js";
-import { ClaudeGate, canUseToolOf, gateHooks, notOfferedMessage, type GateFacts, type Reach, type WaitingCall } from "../gate.js";
+import { ClaudeGate, canUseToolOf, gateHooks, notOfferedMessage, PLATFORM_READ_ONLY_MESSAGE, type GateFacts, type Reach, type WaitingCall } from "../gate.js";
 import { ClaudeToolViews } from "../hook-views.js";
 import { HookFeedback, NO_HOOKS, type TurnHookEvaluators } from "../hooks.js";
 import { HOST_SHELL_TOOL } from "../host-shell.js";
@@ -147,6 +148,8 @@ function mcpDefaultFor(action: ProposedAction): McpApprovalDefault {
 /** What one drive's world holds. */
 interface DriveWorld {
   readonly root: string;
+  /** The real path a confined `Read` reaches inside (`platformReadRoot`): the platform folder's on a read's drive, else "". */
+  readonly platformReadRoot: string;
   readonly reach: { root: Reach; subagents: Map<string, Reach> };
   readonly leases: ActiveLeases;
   readonly mcpDefault: McpApprovalDefault;
@@ -167,9 +170,10 @@ function factsOf(world: DriveWorld, answer: { decision: ApprovalAction; shown: W
     unattended: world.unattended,
     posture: { fileCaptureMode: false, fileReviewOff: false, fileCaptureSubstrate: false, isCapturablePath: async () => false, captureIgnored: false },
     primaryDir: world.root,
-    platformDir: undefined,
+    platformDir: platformDirOf(world.root),
     engineHome: join(world.root, ".engine-home"),
-    readsSkillContent: skillContentReadCheck(undefined),
+    readsSkillContent: skillContentReadCheck(platformDirOf(world.root)),
+    platformReadRoot: world.platformReadRoot,
     hooks: world.hooks,
     decisions: answer === undefined || answer.decision === ApprovalAction.UNSPECIFIED ? new Map() : new Map([[CALL_ID, answer.decision]]),
     denyMessages: new Map(),
@@ -276,20 +280,34 @@ async function drive(
 }
 
 /** The workspace a drive runs in; for a read, seeded with the file it reads and the platform's content. */
+/** A drive's workspace; a read's also holds a file, and its `.stigmer` links to the session's platform folder ({@link platformDirOf}) holding a skill, as a turn that mounted one makes it. */
 function workspace(action: ProposedAction): string {
   const root = mkdtempSync(join(tmpdir(), "contract-claude-"));
   mkdirSync(join(root, "work"), { recursive: true });
   if (action.kind !== "read") return root;
-  for (const rel of ["work/alpha.txt", ".stigmer/skills/guide/SKILL.md"]) {
-    mkdirSync(dirname(join(root, rel)), { recursive: true });
-    writeFileSync(join(root, rel), "seeded");
-  }
+  writeFileSync(join(root, "work/alpha.txt"), "seeded");
+  const platform = platformDirOf(root);
+  mkdirSync(join(platform, "skills/guide"), { recursive: true });
+  writeFileSync(join(platform, "skills/guide/SKILL.md"), "seeded");
+  symlinkSync(platform, join(root, ".stigmer"), "dir");
   return root;
 }
 
-function worldOf(root: string, action: ProposedAction, over: Partial<DriveWorld> = {}): DriveWorld {
+/** The session's platform folder beside a drive's workspace, outside it as a turn's is. */
+function platformDirOf(root: string): string {
+  return `${root}.platform`;
+}
+
+/** Remove a drive's workspace and its platform folder. */
+function discard(root: string): void {
+  rmSync(root, { recursive: true, force: true });
+  rmSync(platformDirOf(root), { recursive: true, force: true });
+}
+
+async function worldOf(root: string, action: ProposedAction, over: Partial<DriveWorld> = {}): Promise<DriveWorld> {
   return {
     root,
+    platformReadRoot: await platformReadRoot(root, platformDirOf(root)),
     reach: reachOf(undefined, undefined),
     leases: { global: false, categories: new Set(), servers: new Set(), hooks: new Set() },
     mcpDefault: mcpDefaultFor(action),
@@ -329,13 +347,13 @@ function pausedSource(invocation: Invocation): string {
 async function authorizeWith(action: ProposedAction, decision: GatewayDecision, over: Partial<DriveWorld> = {}, probe?: ProposedAction): Promise<GatewayOutcome> {
   const root = workspace(action);
   try {
-    const world = worldOf(root, action, over);
+    const world = await worldOf(root, action, over);
     const call = engineCallOf(action, root);
     const { first, last, counts } = await drive(world, call, decision, probe === undefined ? call : engineCallOf(probe, root));
     const executionCount = executionCountOf(probe ?? action, root, counts, last.ran);
     return { executed: executionCount > 0, gated: first.deferred, executionCount, policySource: pausedSource(first) };
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    discard(root);
   }
 }
 
@@ -362,7 +380,7 @@ async function runHooksProbe(hooks: readonly ContractHook[], action: ProposedAct
       homeDir: pluginRoot,
       leases: leased ? new Set([hookLeaseFor(leased.plugin, leased.action, root)]) : new Set(),
     });
-    const world = worldOf(root, action, {
+    const world = await worldOf(root, action, {
       reach: reachOf(options.lists, undefined),
       leases: { global: options.autoApproveAll ?? false, categories: new Set(options.categoryLease ? [options.categoryLease] : []), servers: new Set(), hooks: new Set() },
       unattended: options.unattended ?? false,
@@ -391,7 +409,7 @@ async function runHooksProbe(hooks: readonly ContractHook[], action: ProposedAct
       writtenPaths,
     };
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    discard(root);
     rmSync(pluginRoot, { recursive: true, force: true });
   }
 }
@@ -400,14 +418,14 @@ async function runHooksProbe(hooks: readonly ContractHook[], action: ProposedAct
 function refusedByOf(gate: ClaudeGate, call: EngineCall): HooksOutcome["refusedBy"] {
   const verdict = gate.verdictOf(CALL_ID);
   if (verdict?.kind !== "refuse") return undefined;
-  if (verdict.message === notOfferedMessage(call.name)) return "lists";
+  if (verdict.message === notOfferedMessage(call.name) || verdict.message === PLATFORM_READ_ONLY_MESSAGE) return "lists";
   return verdict.source === "hook" && verdict.message.includes("refused this call") ? "hook" : undefined;
 }
 
 async function runListsProbe(lists: ContractToolLists, action: ProposedAction, options: ListsDriveOptions): Promise<ListsOutcome> {
   const root = workspace(action);
   try {
-    const world = worldOf(root, action, {
+    const world = await worldOf(root, action, {
       reach: reachOf(lists, options.subAgent),
       leases: { global: options.autoApproveAll ?? false, categories: new Set(), servers: new Set(), hooks: new Set() },
       subAgent: options.subAgent !== undefined,
@@ -417,7 +435,7 @@ async function runListsProbe(lists: ContractToolLists, action: ProposedAction, o
     const executionCount = executionCountOf(action, root, counts, first.ran);
     return { executed: !refused && executionCount > 0, gated: first.deferred, refused };
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    discard(root);
   }
 }
 

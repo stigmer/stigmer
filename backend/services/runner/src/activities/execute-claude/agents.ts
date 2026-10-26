@@ -26,6 +26,10 @@
  * tool search or in its listing, a tool or skill only a sub-agent may use,
  * and is refused if it calls it.
  *
+ * An agent whose lists exclude `Read` is still offered it, and the gate
+ * lets it read the platform's own content alone (`gate.ts`, item 2), as
+ * the other engines keep that content readable under the same lists.
+ *
  * Nothing nests: every sub-agent's scope denies `Agent`
  * (`shared/subagents.ts`), so no definition lists it, and the engine is
  * told to start no sub-agent below the first (`engine-env.ts`).
@@ -42,7 +46,7 @@ import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { pluginSubagentScope, subagentModel } from "../../shared/subagents.js";
 import { checkMainToolListResolution, checkToolListResolution, claudeToolsOf, ToolScope, type TurnToolInventory } from "../../shared/tool-lists.js";
 import { CLAUDE_ENGINE_TOOL_COVERS, engineAddedTools, engineTools, offeredBuiltins } from "./engine-options.js";
-import { AGENT_TOOL, SKILL_TOOL, type Reach } from "./gate.js";
+import { AGENT_TOOL, READ_TOOL, SKILL_TOOL, type Reach } from "./gate.js";
 import { HOST_SHELL_TOOL } from "./host-shell.js";
 import type { McpBridge } from "./mcp-bridge.js";
 import { engineSkillOf, spellingsOf, turnSkillsOf, type EngineSkill } from "./skill-plugins.js";
@@ -186,16 +190,18 @@ export function turnAgentsOf(
   };
   const worldOf = (scope: ToolScope, servers: readonly ResolvedMcpServer[], skills: readonly SkillMetadata[], shellValues: Readonly<Record<string, string>>, extra: readonly string[]) => {
     const builtins = offeredBuiltins(scope, opts.planMode);
+    const confinedRead = !builtins.includes(READ_TOOL);
     const mcp = mcpOf(servers, scope);
     const own = skills.map((skill) => engineSkillOf(skill, primaryDir));
     const tools = new Set([
       ...engineTools(builtins, mcp.allowed.length > 0),
+      ...(confinedRead ? [READ_TOOL] : []),
       ...mcp.allowed,
       ...(builtins.includes(HOST_SHELL_TOOL.engineName) ? [HOST_SHELL_TOOL.aliasedName] : []),
       ...(own.length > 0 ? [SKILL_TOOL] : []),
       ...extra,
     ]);
-    return { builtins, mcp, own, tools, shellValues };
+    return { builtins, confinedRead, mcp, own, tools, shellValues };
   };
 
   const subagents = new Map<string, SubagentWorld>();
@@ -203,7 +209,7 @@ export function turnAgentsOf(
     const world = worldOf(spec.scope, spec.servers, spec.skills, spec.shellValues, []);
     subagents.set(spec.name, {
       spec,
-      reach: { tools: world.tools, skills: skillSpellings(world.own), agentTypes: new Set(), hidesSkills: spec.scope.hidesSkills },
+      reach: { tools: world.tools, skills: skillSpellings(world.own), agentTypes: new Set(), hidesSkills: spec.scope.hidesSkills, confinedRead: world.confinedRead },
       builtins: world.builtins,
       mcpTools: world.mcp.allowed,
       deniedMcpTools: world.mcp.denied,
@@ -215,7 +221,13 @@ export function turnAgentsOf(
   const rootExtra = [...engineAddedTools(opts.structuredOutput), ...(specs.length > 0 ? [AGENT_TOOL] : [])];
   const rootWorld = worldOf(rootScope, input.mcp.servers, input.skills.root, shellRunValues(input.values), rootExtra);
   const root: AgentWorld = {
-    reach: { tools: rootWorld.tools, skills: skillSpellings(rootWorld.own), agentTypes: new Set(specs.map((spec) => spec.name)), hidesSkills: rootScope.hidesSkills },
+    reach: {
+      tools: rootWorld.tools,
+      skills: skillSpellings(rootWorld.own),
+      agentTypes: new Set(specs.map((spec) => spec.name)),
+      hidesSkills: rootScope.hidesSkills,
+      confinedRead: rootWorld.confinedRead,
+    },
     builtins: rootWorld.builtins,
     mcpTools: rootWorld.mcp.allowed,
     skills: rootWorld.own,
@@ -226,6 +238,7 @@ export function turnAgentsOf(
   const skills = turnSkillsOf(worlds.map((world) => world.skills));
   const sessionTools = new Set<string>();
   for (const world of worlds) for (const tool of engineTools(world.builtins, world.mcpTools.length > 0)) sessionTools.add(tool);
+  if (worlds.some((world) => world.reach.confinedRead)) sessionTools.add(READ_TOOL);
   if (skills.length > 0) sessionTools.add(SKILL_TOOL);
   if (specs.length > 0) sessionTools.add(AGENT_TOOL);
   return {
