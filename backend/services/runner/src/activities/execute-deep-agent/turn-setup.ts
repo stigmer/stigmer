@@ -87,7 +87,7 @@ import { workspaceResourcesOf } from "../../shared/workspace/provisioner.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
-import { CasCaptureObserver } from "./cas-capture-observer.js";
+import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
 import { createShellBinding } from "./shell-tool.js";
 import type { BackgroundCommands } from "../../shared/shell/background-commands.js";

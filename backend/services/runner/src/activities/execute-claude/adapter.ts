@@ -44,6 +44,7 @@ export function resolveClaudeConfig(config: Config): ClaudeAdapterConfig {
     proxyEndpoint: config.proxyEndpoint,
     shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
     mode: config.mode,
+    cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
   };
 }
 

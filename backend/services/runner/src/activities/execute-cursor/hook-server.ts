@@ -63,7 +63,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { PolicySource } from "../../shared/approval-policy.js";
 import type { HookEvaluator, HookToolCall } from "../../shared/hooks/evaluate.js";
-import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookLabel, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
+import { askWithRewriteMessage, hookAskMessage, hookFeedbackSection, hookRefusalMessage, personDecisionSentence } from "../../shared/hooks/messages.js";
 import { grantToken, toolIdentity, type PersonRefusal } from "./approval-state.js";
 import { extractArgKey } from "./approval-policy.js";
 import { rowNameOf } from "./hook-views.js";
@@ -113,11 +113,6 @@ export class HookDecisionLog {
     const [taken] = this.records.splice(index, 1);
     return taken!.record;
   }
-}
-
-/** Why a hook's ask with a rewrite is refused; the agent reads it. */
-export function askWithRewriteMessage(hook: string): string {
-  return `${hookLabel(hook)} asked for approval of this call and rewrote it too. An approval here would show the call as written, not as rewritten, so the call was refused.`;
 }
 
 /** How a hook's allow or ask is stamped on its row, as the native gate stamps it. */
@@ -298,7 +293,7 @@ export class HookRequestHandler {
     if (call === undefined) return { decision: "none" };
     const outcome = await this.evaluator.preToolUse(call, {});
     const toolName = this.evaluator.viewOf(call)?.toolName ?? call.name;
-    const context = outcome.additionalContext.length > 0 ? `${HOOK_FEEDBACK_HEADING}\n${outcome.additionalContext.join("\n\n")}` : undefined;
+    const context = outcome.additionalContext.length > 0 ? hookFeedbackSection(outcome.additionalContext) : undefined;
     const allow = JSON.stringify({
       permission: "allow",
       ...(outcome.updatedArgs !== undefined ? { updated_input: outcome.updatedArgs } : {}),
@@ -388,7 +383,7 @@ export class HookRequestHandler {
     const outcome = await this.evaluator.postToolUse(call, {}, output);
     for (const error of outcome.errors) console.warn(`[hooks] a PostToolUse hook failed: ${error}`);
     const feedback = [...outcome.blockReasons, ...outcome.additionalContext];
-    return feedback.length === 0 ? "{}" : JSON.stringify({ additional_context: `${HOOK_FEEDBACK_HEADING}\n${feedback.join("\n\n")}` });
+    return feedback.length === 0 ? "{}" : JSON.stringify({ additional_context: hookFeedbackSection(feedback) });
   }
 
   /** The call a pre-execution payload asks about; `undefined` for an event the server does not answer. */

@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "toolu_publish",
+          "name": "Bash",
+          "args": {
+            "command": "echo publish >> ledger.txt",
+            "description": "toolu_publish"
+          },
+          "result": "<no output>\n\nHook feedback:\naudited",
+          "status": "TOOL_CALL_COMPLETED",
+          "completedAt": "2026-01-01T00:00:05.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "publishing needs a person",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"echo publish >> ledger.txt\",\"description\":\"toolu_publish\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Published.",
+      "timestamp": "2026-01-01T00:00:06.000Z"
+    }
+  ]
+}

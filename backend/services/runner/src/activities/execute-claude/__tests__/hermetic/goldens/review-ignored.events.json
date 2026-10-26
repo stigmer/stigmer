@@ -1,0 +1,166 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_tracked_read",
+      "input": {
+        "file_path": "/var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/notes.md"
+      },
+      "name": "Read"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_tracked_read.r",
+      "tool_use_id": "aex_claude_0001.toolu_tracked_read",
+      "content": [
+        {
+          "type": "text",
+          "text": "1\t# Notes\n2\t"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_tracked",
+      "input": {
+        "file_path": "/var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/notes.md",
+        "content": "# Notes\nbuilt\n"
+      },
+      "name": "Write"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_tracked.r",
+      "tool_use_id": "aex_claude_0001.toolu_tracked",
+      "content": [
+        {
+          "type": "text",
+          "text": "The file /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/notes.md has been updated successfully. (file state is current in your context — no need to Read it back)"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_ignored_read",
+      "input": {
+        "file_path": "/var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/dist/out.js"
+      },
+      "name": "Read"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_ignored_read.r",
+      "tool_use_id": "aex_claude_0001.toolu_ignored_read",
+      "content": [
+        {
+          "type": "text",
+          "text": "1\told();\n2\t"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_ignored",
+      "input": {
+        "file_path": "/var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/dist/out.js",
+        "content": "built();\n"
+      },
+      "name": "Write"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_ignored.r",
+      "tool_use_id": "aex_claude_0001.toolu_ignored",
+      "content": [
+        {
+          "type": "text",
+          "text": "The file /var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/dist/out.js has been updated successfully. (file state is current in your context — no need to Read it back)"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_secret",
+      "input": {
+        "path": "/var/folders/ll/3p1tg3856w30ltw7h04bqnnm0000gn/T/stigmer-hermetic-8btAFv/workspaces/repos/app/.env.local"
+      },
+      "name": "Write"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_secret.r",
+      "tool_use_id": "aex_claude_0001.toolu_secret",
+      "content": [
+        {
+          "type": "text",
+          "text": "Tool 'Write' was blocked for security: '/.env.local' matches a secret-like path Stigmer will not capture for review. Nothing was written."
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Built."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "stigmer_file_review_changes": {
+      "id": "aex_claude_0001.fr0",
+      "change_set_id": "aex_claude_0001:0",
+      "files": [
+        {
+          "file_change_id": "aex_claude_0001:0:notes.md",
+          "path": "notes.md",
+          "change": "modified",
+          "digest": "59a622685963417045875535b0143b665fff29b71a64014cefd771d1d37ed6df",
+          "lines_added": 1,
+          "reviewable": "complete"
+        },
+        {
+          "file_change_id": "aex_claude_0001:0:dist/out.js",
+          "path": "dist/out.js",
+          "change": "modified",
+          "digest": "b74f6a627ba481843c56d98f799d4b72e9a9d98919fd046cf5f17c1c3322d940",
+          "lines_added": 1,
+          "lines_removed": 1,
+          "reviewable": "complete"
+        },
+        {
+          "file_change_id": "aex_claude_0001:0:.env.local",
+          "path": ".env.local",
+          "change": "modified",
+          "digest": "bdf96a3fa89dd73bd8c7521a4ed76cd26bb7ef06211d95642e374814f2de8ca5",
+          "reviewable": "secret"
+        }
+      ],
+      "aggregate_digest": "83ef1120d8e6346d8739dc2815c213fe350a18e74fa5147d9e72469604d36735"
+    }
+  }
+]

@@ -11,7 +11,7 @@ import { Command, MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import {
   registerStigmerDeepagentsProfiles,
   resetStigmerDeepagentsProfilesForTests,

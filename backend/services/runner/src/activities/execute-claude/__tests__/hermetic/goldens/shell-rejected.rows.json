@@ -1,0 +1,30 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "toolu_release",
+          "name": "Bash",
+          "args": {
+            "command": "echo toolu_release >> ledger.txt",
+            "description": "Record toolu_release"
+          },
+          "status": "TOOL_CALL_SKIPPED",
+          "error": "Rejected by user",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: echo toolu_release >> ledger.txt",
+          "approvalAction": "APPROVAL_ACTION_REJECT",
+          "argsPreview": "{\"command\":\"echo toolu_release >> ledger.txt\",\"description\":\"Record toolu_release\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Not releasing.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ]
+}

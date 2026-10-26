@@ -37,7 +37,7 @@ import { FilesystemBackend, isSandboxBackend } from "deepagents";
 import type { AnyBackendProtocol, BackendProtocolV2 } from "deepagents";
 
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import {
   DEEPAGENTS_HISTORY_ROOT,
   DEEPAGENTS_OFFLOAD_ROOT,

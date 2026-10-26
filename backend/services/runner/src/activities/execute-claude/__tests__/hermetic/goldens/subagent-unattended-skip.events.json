@@ -46,6 +46,7 @@
         "command": "touch .ran"
       },
       "name": "Bash",
+      "evaluated_permission": "deny",
       "session_thread_id": "aex_claude_0001.toolu_delegate"
     }
   },

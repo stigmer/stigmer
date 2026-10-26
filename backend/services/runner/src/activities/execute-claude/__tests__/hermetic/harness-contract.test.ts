@@ -8,10 +8,8 @@
  * proxy. Nothing of the adapter or the engine is doubled; the control-plane
  * client is the one double every hermetic run substitutes.
  *
- * Known gaps, each marked by its issue so the arm passes while the gap's
- * outcome holds and fails the day it closes: every arm that drives a
- * person's approval (stigmer#2578: this engine refuses a call that needs
- * approval instead of pausing at it).
+ * Every arm that drives a person's approval runs: the gate pauses at the
+ * call (`defer`), and the resumed engine runs exactly that call.
  *
  * Declared off, each with its reason:
  *  - the `actionable` and `internal` failure surfaces: no model answer
@@ -36,9 +34,6 @@ import { ScriptedClock, createHermeticEnvironment } from "../../../../__test-uti
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { createClaudeContractSubject } from "../../__test-utils__/contract-subject.js";
 
-/** The open issue every approval arm's mark names. */
-const GATE_ISSUE = "stigmer/stigmer#2578";
-
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
 const subject = createClaudeContractSubject(env);
@@ -58,20 +53,11 @@ describe("ExecuteClaude hermetic — the harness contract kit against the real a
     env.dispose();
   });
 
-  describeHarnessContract(subject, {
-    knownGaps: { "proposal-waits": GATE_ISSUE, "decisions-execute-once": GATE_ISSUE, "concurrent-turns": GATE_ISSUE },
-  });
+  describeHarnessContract(subject);
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["engine"],
     toolCallLimit: false,
     engineCancel: false,
     streamCut: false,
-    knownGaps: {
-      "approval-round-trip": GATE_ISSUE,
-      deny: GATE_ISSUE,
-      "deny-with-reason": GATE_ISSUE,
-      "reinvocation-carries": GATE_ISSUE,
-      "drain-after-approval": GATE_ISSUE,
-    },
   });
 });

@@ -2,7 +2,8 @@
  * Pins the Claude harness's settle (`settle.ts`) branch by branch, in its
  * documented order: the unattended skips folded first, then a lost
  * conversation, then a stop (sub-agents cancelled), then a missing result,
- * the engine's failed result, an error-marked success, the structured
+ * the engine's failed result, a call the engine could not resume, an
+ * error-marked success, a deferral the turn proposed, the structured
  * output, and only then `completed`.
  *
  * Why the order matters: each earlier branch must win over every later one.
@@ -17,7 +18,7 @@ import type { SDKResultError, SDKResultMessage, SDKResultSuccess } from "@anthro
 
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import { ApprovalPolicySource, SubAgentStatus, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { settleClaudeTurn, type InvocationEnd } from "../settle.js";
+import { DEFERRED_UNAVAILABLE_MESSAGE, settleClaudeTurn, type InvocationEnd } from "../settle.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -72,6 +73,7 @@ function end(overrides: Partial<InvocationEnd> = {}): InvocationEnd {
     mirrorError: undefined,
     unattendedSkips: new Map(),
     structuredOutput: false,
+    awaitingApproval: false,
     ...overrides,
   };
 }
@@ -161,6 +163,16 @@ describe("settleClaudeTurn", () => {
       surface: "engine",
       message: "Claude failed.",
     });
+  });
+
+  it("waits for a person when the engine stopped at a deferred call the turn proposed, unless the turn was stopped", () => {
+    expect(settleClaudeTurn(sinkWithRows(), end({ awaitingApproval: true }))).toEqual({ kind: "awaiting_approval" });
+    expect(settleClaudeTurn(sinkWithRows(), end({ awaitingApproval: true, stopped: true }))).toEqual({ kind: "interrupted" });
+  });
+
+  it("fails internal when the engine could not resume an answered call, its tool gone", () => {
+    const unavailable = success({ is_error: true, result: "", terminal_reason: "tool_deferred_unavailable" } as Partial<SDKResultSuccess>);
+    expect(settleClaudeTurn(sinkWithRows(), end({ result: unavailable }))).toEqual({ kind: "failed", surface: "internal", message: DEFERRED_UNAVAILABLE_MESSAGE });
   });
 
   it("completes a successful result and leaves a running sub-agent as it is", () => {

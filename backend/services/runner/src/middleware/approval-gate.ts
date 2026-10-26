@@ -106,7 +106,7 @@ import {
   resolveToolApproval,
   unattendedSkipMessage,
 } from "../shared/approval-policy.js";
-import { HOOK_FEEDBACK_HEADING, hookAskMessage, hookRefusalMessage, personDecisionSentence } from "../shared/hooks/messages.js";
+import { hookAskMessage, hookFeedbackSection, hookRefusalMessage, personDecisionSentence } from "../shared/hooks/messages.js";
 import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
 import { TOOL_REFUSED_EVENT, customStreamWriterOf, type ToolRefusedPayload } from "./tool-scope.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
@@ -545,7 +545,7 @@ async function appendHookFeedback(
     for (const error of post.errors) console.warn(`[hooks] a PostToolUse hook failed: ${error}`);
   }
   if (feedback.length === 0) return result;
-  const appended = `${HOOK_FEEDBACK_HEADING}\n${feedback.join("\n\n")}`;
+  const appended = hookFeedbackSection(feedback);
   return new ToolMessage({
     content: typeof result.content === "string"
       ? `${result.content}\n\n${appended}`

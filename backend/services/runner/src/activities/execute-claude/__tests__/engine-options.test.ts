@@ -217,7 +217,7 @@ describe("engineOptions", () => {
     expect(options.agents).not.toBe(agents);
   });
 
-  it("copies the in-process servers rather than sharing the caller's record", () => {
+  it("copies the servers rather than sharing the caller's record", () => {
     const mcpServers: Record<string, McpServerConfig> = { stigmer: { type: "http", url: "http://127.0.0.1:1/mcp" } };
     const options = engineOptions(inputs({ mcpServers }));
     expect(options.mcpServers).toEqual(mcpServers);

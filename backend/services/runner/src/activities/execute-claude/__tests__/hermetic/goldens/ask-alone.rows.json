@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "toolCalls": [
+        {
+          "id": "toolu_second_alone",
+          "name": "Bash",
+          "args": {
+            "command": "echo toolu_second_alone >> ledger.txt",
+            "description": "Record toolu_second_alone"
+          },
+          "result": "<no output>",
+          "status": "TOOL_CALL_COMPLETED",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: echo toolu_second_alone >> ledger.txt",
+          "approvalAction": "APPROVAL_ACTION_APPROVE",
+          "argsPreview": "{\"command\":\"echo toolu_second_alone >> ledger.txt\",\"description\":\"Record toolu_second_alone\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Both done.",
+      "timestamp": "2026-01-01T00:00:03.000Z"
+    }
+  ]
+}

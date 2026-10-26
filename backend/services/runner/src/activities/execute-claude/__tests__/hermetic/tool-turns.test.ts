@@ -12,8 +12,7 @@
  *    its parent is the host (here, the test process the loopback host runs
  *    in), never the engine, and its environment carries none of the
  *    engine's variables and no credential.
- *  - The shell under the default is refused with the one sentence this
- *    engine has until its pause lands, and nothing runs.
+ *  - The shell under the default waits for a person (`approvals.test.ts`).
  *  - On an unattended lane the same call is skipped with the shared
  *    sentence, as every engine's gate skips it, and nothing runs.
  *
@@ -37,7 +36,6 @@ import { ToolCallStatus, TodoStatus } from "../../../../gen/turn/ai/stigmer/runn
 import { anthropicText, anthropicToolUses, type WireConversation, type WireScript } from "../../__test-utils__/claude-wire.js";
 import { FIXTURE, claudeExecutionRecord, claudeScenarioFile, sessionWorkspaceDir } from "../../__test-utils__/hermetic-claude.js";
 import { PROGRESS_CAPTURE_MIN_INTERVAL_MS } from "../../../../shared/filereview/progress.js";
-import { NEEDS_APPROVAL_MESSAGE } from "../../gate.js";
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
@@ -155,18 +153,6 @@ describe("ExecuteClaude hermetic — tool turns", () => {
     const added = Object.keys(process.env).filter((k) => !hostKeysBefore.has(k));
     expect(added, "a Claude turn writes nothing into the host's own environment").toEqual([]);
     expect(existsSync(join(sessionWorkspaceDir(env), "made.txt")), "it ran in the workspace").toBe(true);
-  });
-
-  it("the shell under the default is refused, and nothing runs", async () => {
-    const record = claudeExecutionRecord({ message: "Clean up." });
-    const invocation = await file.run(record, calls([{ id: "toolu_shell_no", name: "Bash", input: { command: "echo ran > ran.txt", description: "Clean up" } }], "I could not run that."));
-
-    expect(phaseOf(invocation)).toBe("RUN_COMPLETED");
-    const row = record.toolCalls().find((r) => r.id === "toolu_shell_no")!;
-    expect([row.status, row.error]).toEqual([ToolCallStatus.TOOL_CALL_FAILED, NEEDS_APPROVAL_MESSAGE]);
-    expect(file.wire().conversations.at(-1)!.toolResults.get("toolu_shell_no")?.text, "the model reads the same sentence").toContain(NEEDS_APPROVAL_MESSAGE);
-    expect(existsSync(join(sessionWorkspaceDir(env), "ran.txt"))).toBe(false);
-    await goldens(record, "shell-refused");
   });
 
   it("on an unattended lane the call is skipped with the shared sentence, and nothing runs", async () => {

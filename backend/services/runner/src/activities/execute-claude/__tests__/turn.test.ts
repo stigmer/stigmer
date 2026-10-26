@@ -54,6 +54,7 @@ const CONFIG: ClaudeAdapterConfig = {
   proxyEndpoint: "http://127.0.0.1:1",
   shellTimeoutMaxSeconds: 60,
   mode: "local" satisfies Config["mode"],
+  cursorStreamStallTimeoutMs: 300_000,
 };
 
 /** What a scripted engine is handed, and how a script tells the test where it is. */

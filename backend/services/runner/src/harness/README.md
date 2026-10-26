@@ -27,8 +27,10 @@ pinned somewhere. Read a row across before searching for anything.
 | The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts`, `activities/execute-cursor/cursor-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `cursor` | `claude` |
 | The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@cursor/sdk` | `@anthropic-ai/claude-agent-sdk` |
 
-The runner runs a Claude turn, the agent's skills and sub-agents included
-(`activities/execute-claude/agents.ts`); the server refuses Claude until the
+The runner runs a Claude turn, the agent's skills, sub-agents and hooks
+included (`activities/execute-claude/agents.ts`, `activities/execute-claude/hooks.ts`),
+and a call that needs a person waits for one (`activities/execute-claude/gate.ts`);
+the server refuses Claude until the
 platform offers it (`backend/services/stigmer-server/src/domain/session/harness.ts`),
 and no published runner carries its engine yet
 (`backend/services/runner/scripts/bundle-slim.mjs` stages none of it).

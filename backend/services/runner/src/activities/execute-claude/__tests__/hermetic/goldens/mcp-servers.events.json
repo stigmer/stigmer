@@ -3,7 +3,10 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_mcp_load",
-      "input": {},
+      "input": {
+        "query": "select:mcp__docs__lookup,mcp__stigmer-memory__remember",
+        "max_results": 2
+      },
       "name": "ToolSearch"
     }
   },
@@ -24,7 +27,9 @@
     "run_id": "aex_claude_0001",
     "agent_mcp_tool_use": {
       "id": "aex_claude_0001.toolu_mcp_docs",
-      "input": {},
+      "input": {
+        "q": "the thing"
+      },
       "mcp_server_name": "docs",
       "name": "mcp__docs__lookup"
     }
@@ -46,7 +51,9 @@
     "run_id": "aex_claude_0001",
     "agent_mcp_tool_use": {
       "id": "aex_claude_0001.toolu_mcp_memory",
-      "input": {},
+      "input": {
+        "q": "the thing is found"
+      },
       "mcp_server_name": "stigmer-memory",
       "name": "mcp__stigmer-memory__remember"
     }

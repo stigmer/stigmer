@@ -21,7 +21,7 @@ import { HumanMessage } from "@langchain/core/messages";
 import { createDeepAgent } from "deepagents";
 
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { registerStigmerDeepagentsProfiles, resetStigmerDeepagentsProfilesForTests } from "../deepagents-profiles.js";
 import { ENGINE_TOOL } from "../engine-tools.js";
 import { createBuiltinSubagents } from "../subagent-transformer.js";

@@ -25,15 +25,15 @@
  *
  * | Capability        | Native (LangGraph)          | Cursor (`@cursor/sdk`)                  | Claude (`@anthropic-ai/claude-agent-sdk`)     | Codex (`@openai/codex-sdk`)                    |
  * |-------------------|-----------------------------|-----------------------------------------|-----------------------------------------------|------------------------------------------------|
- * | `pausePrimitive`  | `interrupt` (checkpoint)    | `deny-and-retry` (hook, ledger, cancel) | `interrupt` (`defer` from `PreToolUse`; the resumed session runs exactly that call) | no gate (approvalPolicy only); refused until a confinement exists |
+ * | `pausePrimitive`  | `interrupt` (checkpoint)    | `deny-and-retry` (hook, ledger, cancel) | `interrupt` (`defer` from `PreToolUse`, one call a turn; the resumed session runs exactly that call, checked against the call the person saw) | no gate (approvalPolicy only); refused until a confinement exists |
  * | `stateIdSource`   | `deterministic` (thread id) | `engine-minted` (agent id)              | `deterministic` (session id derived from the thread id) | `engine-minted` (thread id)            |
  * | system prompt     | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
  * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`, in the foreground, one level); a sub-agent's gated call cannot wait, so it is refused | no |
  * | tool restriction  | yes (tool list)             | no (the hook enforces)                  | yes (`tools` is the session's pool; each definition's `tools`, `disallowedTools`; the gate per caller) | per-server config |
- * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | not yet (through the gate once it pauses; an agent with hooks is refused) | (surveyed later)   |
+ * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (in the gate, the native order; an ask that rewrites the call is refused, as on Cursor) | (surveyed later)   |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | PNG, JPEG, WebP, GIF (native's: the same Messages API) | (surveyed later)                      |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | `claude`, no excludes (its state is outside the workspace) | (surveyed later)                  |
- * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | none                                 | (surveyed later)                               |
+ * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | a call until it settles, but a helper's start (the gate decides after the call streams) | (surveyed later)                               |
  * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | `streamed` (`forwardSubagentText`)        | (no sub-agents)                                |
  * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | `checkpoint` (the session store's transcript) | (surveyed later)                  |
  * | `contextCompaction` | `runner-summarizer` (deepagents' in the graph) | `vendor-server` (Cursor's server) | `engine-cli` (the SDK's own)           | (surveyed later)                               |

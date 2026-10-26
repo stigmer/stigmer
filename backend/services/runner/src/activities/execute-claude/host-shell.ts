@@ -23,8 +23,10 @@
  *  - its output streamed to its own row as it prints (the runtime's preview
  *    pump keeps the streaming floor, `harness/preview-pump.ts`), and the
  *    stall watchdog told of every chunk, so a long build is never a stall;
- *  - the gate's decision, read again by the call's id before anything runs
- *    (`gate.ts`): a call the gate did not allow is refused here too.
+ *  - only a call the gate admitted (`gate.ts` `ClaudeGate.admit`, run by
+ *    the endpoint the engine reaches this through, `loopback-mcp.ts`): its
+ *    own allow verdict, once, with exactly the arguments judged, which name
+ *    the caller whose environment it runs in.
  *
  * Background commands are off for this engine (`engine-env.ts`), so a call
  * always runs in the foreground. The engine shows the call under the name
@@ -35,7 +37,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import { formatCommandOutput, runCommand } from "../../shared/shell/run-command.js";
 import type { Caller, ClaudeGate } from "./gate.js";
-import { inProcessServer, textResult, type InProcessCall } from "./in-process-server.js";
+import { textResult, type ServedCall, type ServedServer } from "./loopback-mcp.js";
 
 /** The shell's names: the server and tool the engine is pointed at, and the built-in it stands in for. */
 export const HOST_SHELL_TOOL = {
@@ -83,17 +85,15 @@ const BASH_TOOL = {
   },
 };
 
-/** The host's shell as an in-process server for the engine. */
-export function hostShellServer(options: HostShellOptions): ReturnType<typeof inProcessServer> {
-  return inProcessServer(HOST_SHELL_TOOL.server, () => [BASH_TOOL], (call) => runShellCall(options, call));
+/** The host's shell as a server the engine reaches (`loopback-mcp.ts`). */
+export function hostShellServer(options: HostShellOptions): ServedServer {
+  return { name: HOST_SHELL_TOOL.server, tools: () => [BASH_TOOL], call: (call) => runShellCall(options, call) };
 }
 
-/** One `Bash` call, run once the gate's decision for it reads allow. */
-export async function runShellCall(options: HostShellOptions, call: InProcessCall): Promise<CallToolResult> {
+/** One `Bash` call the gate admitted, run in its caller's environment. */
+export async function runShellCall(options: HostShellOptions, call: ServedCall): Promise<CallToolResult> {
   const verdict = options.gate.verdictOf(call.toolUseId);
-  if (verdict === undefined || !verdict.allow) {
-    return textResult(verdict?.allow === false ? verdict.message : "The gate made no decision for this call; it was not run.", true);
-  }
+  if (verdict?.kind !== "allow") return textResult("The gate allowed no such call; it was not run.", true);
   const command = typeof call.args.command === "string" ? call.args.command : "";
   if (command.trim() === "") return textResult("No command was given.", true);
   const { timeoutSeconds, clamped } = timeoutOf(call.args.timeout, options.maxTimeoutSeconds);

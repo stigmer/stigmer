@@ -19,6 +19,11 @@
  *    sub-agent's prompt, never the person's message);
  *  - a stopping or yielding turn takes nothing, so its continuation reads
  *    what waits;
+ *  - an invocation resuming a call a person answered takes nothing until
+ *    that call's result is in, so no message reaches the engine before it;
+ *  - while working it takes nothing the turn's rule forbids (an open call
+ *    the gate has not decided, or one waiting for a person), since a pushed
+ *    message cancels a deferral;
  *  - a message's images come before its text, as a turn's own message's do.
  */
 
@@ -185,6 +190,36 @@ describe("MidTurnInput", () => {
     await input.atResult();
     expect(runtime.events).toEqual([]);
     expect(runtime.queue, "the message waits for the continuation").toHaveLength(1);
+  });
+
+  it("resuming an answered call, takes nothing until that call's result is in", async () => {
+    runtime.pending = true;
+    runtime.queue = [message("um-1", "sent while waiting")];
+    input.holdUntilResultOf("toolu_held");
+    await input.whileWorking();
+    await input.atResult();
+    expect(runtime.events).toEqual([]);
+    const result = (id: string): SDKMessage =>
+      ({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "ok" }] }, parent_tool_use_id: null, session_id: "s" }) as SDKMessage;
+    input.observe(result("toolu_other"));
+    input.observe({ type: "user", message: { role: "user", content: "plain" }, parent_tool_use_id: null, session_id: "s" } as SDKMessage);
+    await input.whileWorking();
+    expect(runtime.events, "another call's result, or a plain message, releases nothing").toEqual([]);
+    input.observe(result("toolu_held"));
+    await input.whileWorking();
+    expect(runtime.events).toEqual(["markPersisted", "persist", "claim", `push ${sentMessageIdOf("um-1")}`]);
+  });
+
+  it("while working, takes nothing the turn's rule forbids, and takes it once the rule allows", async () => {
+    let allowed = false;
+    const guarded = new MidTurnInput(runtime.sink, runtime.stream, () => allowed);
+    runtime.pending = true;
+    runtime.queue = [message("um-1", "held back")];
+    await guarded.whileWorking();
+    expect(runtime.events).toEqual([]);
+    allowed = true;
+    await guarded.whileWorking();
+    expect(runtime.events).toEqual(["markPersisted", "persist", "claim", `push ${sentMessageIdOf("um-1")}`]);
   });
 
   it("halted while its persist is in flight, claims nothing", async () => {

@@ -3,7 +3,9 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_skill_review",
-      "input": {},
+      "input": {
+        "skill": "agent:review"
+      },
       "name": "Skill"
     }
   },
@@ -24,7 +26,9 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_skill_notes",
-      "input": {},
+      "input": {
+        "skill": "agent:notes.style"
+      },
       "name": "Skill"
     }
   },
@@ -45,7 +49,9 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_skill_glob",
-      "input": {},
+      "input": {
+        "pattern": "*.md"
+      },
       "name": "Glob"
     }
   },
