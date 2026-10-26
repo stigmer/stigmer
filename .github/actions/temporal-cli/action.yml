@@ -29,7 +29,9 @@
 #     pin bump starts a new one.
 #
 # A caller runs it after checkout and the root `npm ci`: the installer runs
-# from source through the workspace's tsx (node_modules/.bin/tsx).
+# from source through the workspace's tsx (node_modules/.bin/tsx), over the
+# download contract in @stigmer/artifact-fetch, which it imports from that
+# library's dist, so the first step builds it.
 #
 # This is a reader. There is no save here and must never be: a reader that
 # saved would turn every lane into a writer (turbo-cache's header).
@@ -54,6 +56,7 @@ runs:
       id: resolve
       shell: bash
       run: |
+        (cd "$GITHUB_WORKSPACE" && npm run build --silent -w @stigmer/artifact-fetch)
         archive=$("$GITHUB_WORKSPACE/node_modules/.bin/tsx" "$GITHUB_WORKSPACE/client-apps/cli/scripts/install-temporal-cli.ts" --print-archive)
         if [ -z "$archive" ]; then
           echo "temporal-cli: the installer named no release asset" >&2

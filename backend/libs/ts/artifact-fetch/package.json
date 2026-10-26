@@ -1,0 +1,65 @@
+{
+  "name": "@stigmer/artifact-fetch",
+  "version": "0.0.0-dev",
+  "description": "How Stigmer's TypeScript processes fetch a published artifact they did not build: the download retry contract, the digest every download is checked against (a release's sha256 checksum line or npm's SRI integrity) before a byte is extracted, and one ustar reader, over a buffer or a stream, that extracts one entry by name or a whole npm package under strict path rules",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "keywords": [
+    "stigmer",
+    "download",
+    "integrity",
+    "tar"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "import": "./dist/testing.js",
+        "default": "./dist/testing.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "backend/libs/ts/artifact-fetch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}

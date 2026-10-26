@@ -6,10 +6,12 @@
  * config slice taken at boot; and nothing is held per session or across
  * turns.
  *
- * Why it matters: the engine ships with no published runner yet, and one
- * engine's missing package must never take a worker's other engines down
- * with it. The SDK and the turn module are mocked per test (`vi.doMock`)
- * because the adapter imports both dynamically inside `boot`.
+ * Why it matters: a runner may lack the engine (a runner layer that predates
+ * it, a runner without its pin), and one engine's missing package must never
+ * take a worker's other engines down with it. The SDK and the turn module
+ * are mocked per test (`vi.doMock`) because the adapter imports both
+ * dynamically inside `boot`. Where the engine comes from, and the download a
+ * local runner makes, are `adapter-engine-source.test.ts`'s.
  */
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";

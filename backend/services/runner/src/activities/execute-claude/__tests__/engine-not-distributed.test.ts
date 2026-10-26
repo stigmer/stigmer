@@ -6,13 +6,14 @@
  * optional dependency, which it would.
  *
  * Why it matters: the full `@stigmer/runner` package is published from this
- * manifest on every release (`scripts/publish-standalone.mjs`), and nothing
- * of Anthropic's engine is distributed with Stigmer until the platform
- * offers Claude. The slim artifact keeps it out on its own
- * (`scripts/bundle-slim.mjs` `NEVER_STAGED`, checked by
- * `scripts/verify-slim-artifact.mjs`); this is the same rule for the
- * package. A runner without the engine boots and refuses Claude turns
- * (`adapter.ts`).
+ * manifest on every release (`scripts/publish-standalone.mjs`), and the
+ * engine is 120 to 140 MB per platform that an install would pull for
+ * people who may never run an agent on Claude. The slim artifact keeps it
+ * out on its own (`scripts/bundle-slim.mjs` `NEVER_STAGED`, checked by
+ * `scripts/verify-slim-artifact.mjs`) and carries its pin, which a local
+ * runner downloads on its first Claude turn (`engine-fetch.ts`); this is
+ * the same rule for the package, whose embedder installs the SDK beside it
+ * when it wants Claude.
  */
 
 import { readFileSync } from "node:fs";

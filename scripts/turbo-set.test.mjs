@@ -101,6 +101,7 @@ test("runner-deps set in this repo names the libs both standalone packages link 
   ]);
   assert.deepEqual(runnerLinkedSet(), [
     "@stigmer/apis",
+    "@stigmer/artifact-fetch",
     "@stigmer/eval-runtime",
     "@stigmer/outbound",
     "@stigmer/plugin-package",
@@ -251,6 +252,7 @@ test("turboArgs: task first, one --filter per package, caller flags last", () =>
     "run",
     "build",
     "--filter=@stigmer/apis",
+    "--filter=@stigmer/artifact-fetch",
     "--filter=@stigmer/eval-runtime",
     "--filter=@stigmer/outbound",
     "--filter=@stigmer/plugin-package",

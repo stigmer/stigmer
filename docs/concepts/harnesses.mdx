@@ -106,10 +106,12 @@ console and the CLI name it **Claude**, Powered by Claude.
 - The fast tier: a Claude run takes the standard tier.
 - Resuming a recorded conversation in an eval case: such a case is listed as
   `not run on Claude: resumed conversations` and runs on native.
-- Published runners, the self-hosted images and the desktop app do not carry the
-  engine yet. A runner without it refuses a Claude turn plainly: "Claude is not
+- The runner images (Stigmer Cloud's sandboxes, Docker Compose, Helm) do not
+  carry the engine yet, and refuse a Claude turn plainly: "Claude is not
   installed on this runner, so this turn cannot run on Claude. Run it on another
-  engine."
+  engine." The desktop app and `stigmer up` download it on the first Claude
+  turn; [Set up the Claude harness](/docs/guides/runners/claude-harness) says
+  how.
 
 ## Choosing a Harness
 

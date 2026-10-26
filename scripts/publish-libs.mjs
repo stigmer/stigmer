@@ -86,6 +86,11 @@ export const PACKAGES = [
   // It MUST publish for the same reason as temporal-codecs: the runner links
   // it and pins the exact release version at stamp time.
   "backend/libs/ts/zip-structure",
+  // @stigmer/artifact-fetch has no deps at all, so its position is
+  // order-free. It MUST publish: @stigmer/cli depends on it (pinned to the
+  // lockstep version at stamp time), and the runner links it and pins the
+  // exact release version at stamp time.
+  "backend/libs/ts/artifact-fetch",
   // @stigmer/eval-runtime has no deps at all. It MUST publish, and before
   // @stigmer/plugin-package, whose eval suite reader depends on it: the
   // runner executes an eval run's case with it and the server reads the
