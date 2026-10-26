@@ -154,7 +154,8 @@ function reply(res: ServerResponse, status: number, text: string): void {
 }
 
 async function closeAll(http: HttpServer, sessions: Map<string, StreamableHTTPServerTransport>): Promise<void> {
-  for (const transport of [...sessions.values()]) await transport.close().catch(() => undefined);
+  // A session that fails to close must not keep the endpoint open.
+  await Promise.allSettled([...sessions.values()].map((transport) => transport.close()));
   sessions.clear();
   http.closeAllConnections();
   await new Promise<void>((resolve) => http.close(() => resolve()));
