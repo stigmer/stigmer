@@ -75,19 +75,23 @@ export const LIST_RESULT_KEY = "listResult";
 
 // ---------------------------------------------------------------------------
 // ValidateHarnessImmutability — validate_harness_immutability.go: rejects
-// session updates that attempt to change the harness after the session has
-// been used for execution. Each harness owns its conversation state
-// independently (LangGraph uses Stigmer checkpoints via harness_state_id;
-// Cursor uses a Cursor-hosted Agent via cursor_agent_id in
-// harness_state_id); switching harness mid-session would silently discard
-// conversation history. A session counts as "used" when its
-// harness_state_id is non-empty — set after the first execution completes.
+// session updates that change the harness once the session has run. Each
+// harness owns its conversation state independently (native keeps it under
+// the session's own LangGraph thread; Cursor in a Cursor-hosted agent whose
+// id it binds as harness_state_id); switching harness mid-session would
+// silently discard conversation history. A session counts as "used" once it
+// has a run row, the fact every engine leaves (stigmer/stigmer#2566), or a
+// bound harness_state_id, so a Cursor session whose runs were deleted stays
+// locked. An engine that derives its state from the session never binds an
+// id, so the sentinel alone left those engines movable.
 // ---------------------------------------------------------------------------
 
-export function newValidateHarnessImmutabilityStep(): PipelineStep<SessionDesc> {
+export function newValidateHarnessImmutabilityStep(
+  store: Store,
+): PipelineStep<SessionDesc> {
   return {
     name: "ValidateHarnessImmutability",
-    execute(ctx: RequestContext<SessionDesc>): void {
+    async execute(ctx: RequestContext<SessionDesc>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
       if (existing === undefined) {
         return;
@@ -95,11 +99,6 @@ export function newValidateHarnessImmutabilityStep(): PipelineStep<SessionDesc> 
 
       const existingSpec = existing.spec;
       if (existingSpec === undefined) {
-        return;
-      }
-
-      // Session has not been used yet — harness can still change.
-      if ((existing.status?.harnessStateId ?? "") === "") {
         return;
       }
 
@@ -121,14 +120,45 @@ export function newValidateHarnessImmutabilityStep(): PipelineStep<SessionDesc> 
       if (existingHarness === Harness.UNSPECIFIED) {
         existingHarness = Harness.NATIVE;
       }
-
-      if (inputHarness !== existingHarness) {
-        throw failedPreconditionError(
-          "session harness cannot be changed after the first execution — each harness owns its conversation state independently",
-        );
+      if (inputHarness === existingHarness) {
+        return;
       }
+
+      // A session that has not run yet can still change engines.
+      if (!(await sessionHasRun(store, existing))) {
+        return;
+      }
+
+      throw failedPreconditionError(
+        "session harness cannot be changed after the first execution — each harness owns its conversation state independently",
+      );
     },
   };
+}
+
+/**
+ * Whether the session has run: a bound harness_state_id, else any run row
+ * in it, read through the list index's session key as
+ * listExecutionsBySession reads them. A store fault is Internal, never a
+ * reading of the session.
+ */
+async function sessionHasRun(store: Store, session: Session): Promise<boolean> {
+  if ((session.status?.harnessStateId ?? "") !== "") {
+    return true;
+  }
+  const sessionId = session.metadata?.id ?? "";
+  if (sessionId === "") {
+    return false;
+  }
+  try {
+    const rows = await store.queryResources(agentExecutionListIndex, {
+      anyKey: [{ name: "session", value: sessionId }],
+      limit: 1,
+    });
+    return rows.length > 0;
+  } catch (error) {
+    throw internalError(error, "failed to list agent executions");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -147,8 +177,9 @@ export function newValidateHarnessImmutabilityStep(): PipelineStep<SessionDesc> 
 // nothing on cloud-defaulting deployments and wave through updates that
 // really do move the session (oss#397).
 //
-// Uses the same sentinel as harness immutability: harness_state_id is
-// non-empty after the first execution completes.
+// Locks on the harness_state_id sentinel alone, which only an engine that
+// binds a state id sets; reading the run rows, as harness immutability
+// does, is stigmer/stigmer#2598.
 // ---------------------------------------------------------------------------
 
 /**
