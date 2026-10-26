@@ -6,8 +6,8 @@
   },
   "packages": {
     "backend/libs/ts/artifact-fetch": {
-      "lines": 98.5,
-      "branches": 89.5,
+      "lines": 99.5,
+      "branches": 95,
       "cases": 46
     },
     "backend/libs/ts/eval-runtime": {

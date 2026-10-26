@@ -52,6 +52,7 @@
  * import `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  */
 
+import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import type { Config } from "../../config.js";
@@ -100,12 +101,24 @@ export function resolveClaudeConfig(config: Config): ClaudeAdapterConfig {
   };
 }
 
-type Ready = { readonly kind: "ready"; readonly config: ClaudeAdapterConfig; readonly sdk: ClaudeSdk; readonly runClaudeTurn: typeof import("./turn.js").runClaudeTurn };
+/** Where a local runner installs its engine: what a fetch needs, kept so a home removed under the runner is fetched again. */
+type FetchTarget = { readonly pin: ClaudeEnginePin; readonly root: string };
+
+type Ready = {
+  readonly kind: "ready";
+  readonly config: ClaudeAdapterConfig;
+  readonly sdk: ClaudeSdk;
+  readonly runClaudeTurn: typeof import("./turn.js").runClaudeTurn;
+  /** The home the engine loaded from, or `null` for the runner's own install. */
+  readonly home: string | null;
+  /** Where to fetch it again, on a runner allowed to fetch. */
+  readonly refetch: FetchTarget | null;
+};
 
 /** What `boot` leaves behind (the header's three states). */
 type BootedClaudeHarness =
   | Ready
-  | { readonly kind: "fetchable"; readonly config: ClaudeAdapterConfig; readonly pin: ClaudeEnginePin; readonly root: string }
+  | ({ readonly kind: "fetchable"; readonly config: ClaudeAdapterConfig } & FetchTarget)
   | { readonly kind: "absent"; readonly reason: string };
 
 /** What `boot` reads from where it runs; a test replaces any of it. */
@@ -141,12 +154,23 @@ export function createClaudeAdapter(overrides: Partial<ClaudeBootDeps> = {}): Ha
   let booted: BootedClaudeHarness | undefined;
 
   // Loads a found engine and the turn module; logs the ready line.
-  async function loadEngine(engine: FoundEngine, config: ClaudeAdapterConfig): Promise<Ready> {
+  async function loadEngine(engine: FoundEngine, config: ClaudeAdapterConfig, refetch: FetchTarget | null): Promise<Ready> {
     const sdk = await deps.load(engine);
     const { runClaudeTurn } = await import("./turn.js");
     if (engine.home !== null) touchLastUsed(engine.home);
     console.log(`[claude] engine ready ${engine.version} (${engine.home ?? "the runner's own install"})`);
-    return { kind: "ready", config, sdk, runClaudeTurn };
+    return { kind: "ready", config, sdk, runClaudeTurn, home: engine.home, refetch };
+  }
+
+  // Every turn on a home stamps it, so another release's install keeps it
+  // (engine-fetch.ts prunes a home unused for 30 days). A home removed while
+  // this runner sat idle that long is fetched again, or refused on a runner
+  // that may not fetch.
+  function confirmHome(state: Ready): BootedClaudeHarness {
+    if (state.home === null || touchLastUsed(state.home) || existsSync(state.home)) return state;
+    console.warn(`[claude] the engine home ${state.home} is gone`);
+    if (state.refetch !== null) return { kind: "fetchable", config: state.config, ...state.refetch };
+    return { kind: "absent", reason: `the engine home ${state.home} is gone` };
   }
 
   // The fetchable state's turn: install (shared with any other turn waiting),
@@ -176,7 +200,7 @@ export function createClaudeAdapter(overrides: Partial<ClaudeBootDeps> = {}): Ha
       );
       const search = deps.find({ pin: state.pin, root: state.root, resolveFromRunner: () => null, platform });
       if (search.kind !== "found") throw new Error(`the downloaded engine at ${installed.home} did not load: ${search.skipped.join("; ") || "it is incomplete"}`);
-      ready = await loadEngine(search.engine, state.config);
+      ready = await loadEngine(search.engine, state.config, { pin: state.pin, root: state.root });
     } catch (err) {
       if (sink.stopSignal.aborted) return { kind: "interrupted" };
       console.warn(`[claude] the Claude engine could not be downloaded: ${messageOf(err)}`);
@@ -202,11 +226,12 @@ export function createClaudeAdapter(overrides: Partial<ClaudeBootDeps> = {}): Ha
         return;
       }
       const root = enginesRoot(deps.env);
+      const refetch = pin !== null && deps.env[RUNNER_LAYER_ENV] !== "1" ? { pin, root } : null;
       const search = deps.find({ pin, root });
       for (const skipped of search.skipped) console.warn(`[claude] skipped an engine: ${skipped}`);
       if (search.kind === "found") {
         try {
-          booted = await loadEngine(search.engine, config);
+          booted = await loadEngine(search.engine, config, refetch);
           return;
         } catch (err) {
           const reason = messageOf(err);
@@ -215,9 +240,9 @@ export function createClaudeAdapter(overrides: Partial<ClaudeBootDeps> = {}): Ha
           return;
         }
       }
-      if (pin !== null && deps.env[RUNNER_LAYER_ENV] !== "1") {
-        console.log(`[claude] the Claude engine is not on this runner; the first Claude turn downloads ${pin.version} into ${root}`);
-        booted = { kind: "fetchable", config, pin, root };
+      if (refetch !== null) {
+        console.log(`[claude] the Claude engine is not on this runner; the first Claude turn downloads ${refetch.pin.version} into ${root}`);
+        booted = { kind: "fetchable", config, ...refetch };
         return;
       }
       const reason = pin === null ? `${CLAUDE_SDK} is not installed beside the runner` : `no engine ${pin.version} under ${root}`;
@@ -235,6 +260,7 @@ export function createClaudeAdapter(overrides: Partial<ClaudeBootDeps> = {}): Ha
       if (booted === undefined) {
         throw new Error("claude adapter: runTurn before boot (the registry boots every adapter before the worker polls)");
       }
+      if (booted.kind === "ready") booted = confirmHome(booted);
       if (booted.kind === "absent") return { kind: "failed", surface: "actionable", message: NOT_INSTALLED_MESSAGE };
       if (booted.kind === "fetchable") return fetchThenRun(booted, input, sink);
       return booted.runClaudeTurn(input, sink, booted.config, booted.sdk);

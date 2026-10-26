@@ -16,9 +16,8 @@
  *     first so a developer's tests never read a home a desktop app or
  *     `stigmer up` on the same machine left behind.
  *  2. The home under the engines root ({@link enginesRoot}):
- *     `STIGMER_ENGINES_DIR` when the deployment sets it (the runner layer's
- *     start script sets it to the engines it carries, `/runner/engines`),
- *     else `~/.stigmer/engines` beside `stigmer up`'s runtimes, where a local
+ *     `STIGMER_ENGINES_DIR` when the deployment sets it, else
+ *     `~/.stigmer/engines` beside `stigmer up`'s runtimes, where a local
  *     runner installs the engine on its first Claude turn
  *     (`engine-fetch.ts`).
  *
@@ -53,7 +52,7 @@ export const CLAUDE_SDK = "@anthropic-ai/claude-agent-sdk";
 /** The pin file a published runner carries beside its entry. */
 export const ENGINE_PIN_FILE = "claude-engine.json";
 
-/** Names the engines root; the runner layer's start script sets it. */
+/** Names the engines root. */
 export const ENGINES_DIR_ENV = "STIGMER_ENGINES_DIR";
 
 /** The file a load touches in a home, so an install never prunes a home some runner still uses. */

@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildTar } from "@stigmer/artifact-fetch/testing";
 
@@ -36,6 +36,11 @@ const VERSION = "9.9.9-test";
 const PLATFORM_PACKAGE = platformPackages(currentPlatform())[0] as string;
 const CHILD = fileURLToPath(new URL("../../../__test-utils__/engine-install-child.ts", import.meta.url));
 const noWait = async (): Promise<void> => {};
+
+/** Resolves once `ready()` holds, checking every 10 ms. */
+async function until(ready: () => boolean): Promise<void> {
+  while (!ready()) await new Promise((resolve) => setTimeout(resolve, 10));
+}
 
 let registry: FixtureRegistry;
 let root: string;
@@ -219,6 +224,94 @@ describe("two installs into one root at once", () => {
   });
 });
 
+describe("an install whose lock is taken from under it", () => {
+  it("says so and goes on; a second install takes the lock and renames first, and the first then serves that home", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      // The first request for the platform package is held; every later one is served.
+      let finish = (): void => {};
+      registry.override(PLATFORM_PACKAGE, (res, hit, body) => {
+        if (hit > 1) return false;
+        res.writeHead(200, { "content-length": String(body.length) });
+        res.write(body.subarray(0, 100));
+        finish = () => res.end(body.subarray(100));
+        return true;
+      });
+      const first = installClaudeEngine({ root, pin: registry.pin, platformPackage: PLATFORM_PACKAGE, signal: new AbortController().signal, lockStaleMs: 2_000 });
+      await until(() => registry.hits(PLATFORM_PACKAGE) === 1);
+      rmSync(join(root, "claude", ".install.lock"), { recursive: true });
+      await until(() => warn.mock.calls.some(([line]) => String(line).startsWith("[claude] the engine install lock was compromised (continuing):")));
+
+      await expect(installClaudeEngine({ root, pin: registry.pin, platformPackage: PLATFORM_PACKAGE, signal: new AbortController().signal })).resolves.toEqual({
+        home: engineHomeDir(root, VERSION),
+        downloaded: true,
+      });
+      finish();
+      await expect(first).resolves.toEqual({ home: engineHomeDir(root, VERSION), downloaded: false });
+      expect(warn.mock.calls.some(([line]) => String(line).startsWith("[claude] releasing the engine install lock failed (ignored):"))).toBe(true);
+      expect(claudeDirEntries()).toEqual([VERSION]);
+      expect(findClaudeEngine({ pin: registry.pin, root, resolveFromRunner: () => null }).kind).toBe("found");
+    } finally {
+      warn.mockRestore();
+    }
+  }, 30_000);
+});
+
+describe("an install that cannot finish", () => {
+  // The first request for the platform package is held until `finish`.
+  function holdFirst(): { finish: () => void } {
+    const held = { finish: (): void => {} };
+    registry.override(PLATFORM_PACKAGE, (res, hit, body) => {
+      if (hit > 1) return false;
+      res.writeHead(200, { "content-length": String(body.length) });
+      res.write(body.subarray(0, 100));
+      held.finish = () => res.end(body.subarray(100));
+      return true;
+    });
+    return held;
+  }
+
+  it("fails with the reason when the lock cannot be taken at all", async () => {
+    mkdirSync(join(root, "claude"), { recursive: true });
+    chmodSync(join(root, "claude"), 0o500);
+    try {
+      await expect(install()).rejects.toMatchObject({ code: "EACCES" });
+    } finally {
+      chmodSync(join(root, "claude"), 0o700);
+    }
+  });
+
+  it("stops a turn waiting on another install's lock with the stop's reason", async () => {
+    const held = holdFirst();
+    const first = install();
+    await until(() => registry.hits(PLATFORM_PACKAGE) === 1);
+    const waiting = new AbortController();
+    const reason = new Error("the waiting turn was stopped");
+    const second = install(waiting.signal);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    waiting.abort(reason);
+    await expect(second).rejects.toBe(reason);
+    held.finish();
+    await expect(first).resolves.toMatchObject({ downloaded: true });
+  });
+
+  it("fails when the home cannot be renamed into place and no other install put one there", async () => {
+    const held = holdFirst();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = install();
+    await until(() => registry.hits(PLATFORM_PACKAGE) === 1);
+    chmodSync(join(root, "claude"), 0o500);
+    try {
+      held.finish();
+      await expect(first).rejects.toMatchObject({ code: "EACCES" });
+      expect(existsSync(engineHomeDir(root, VERSION))).toBe(false);
+    } finally {
+      chmodSync(join(root, "claude"), 0o700);
+      warn.mockRestore();
+    }
+  });
+});
+
 describe("two processes installing into one root at once", () => {
   it("download once, and both load the engine", async () => {
     // A slow body keeps the first install inside its lock while the second arrives.
@@ -259,7 +352,7 @@ describe("installForTurn", () => {
     const seen: [number[], number[]] = [[], []];
     const first = installForTurn(options(), { signal: new AbortController().signal, onProgress: (f) => seen[0].push(f) });
     const second = installForTurn(options(), { signal: new AbortController().signal, onProgress: (f) => seen[1].push(f) });
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await until(() => registry.hits(PLATFORM_PACKAGE) === 1);
     held.release();
     await expect(Promise.all([first, second])).resolves.toEqual([
       { home: engineHomeDir(root, VERSION), downloaded: true },
@@ -276,7 +369,7 @@ describe("installForTurn", () => {
     const reason = new Error("this turn was stopped");
     const left = installForTurn(options(), { signal: leaving.signal });
     const staying = installForTurn(options(), { signal: new AbortController().signal });
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await until(() => registry.hits(PLATFORM_PACKAGE) === 1);
     leaving.abort(reason);
     await expect(left).rejects.toBe(reason);
     held.release();
@@ -288,7 +381,7 @@ describe("installForTurn", () => {
     const only = new AbortController();
     const reason = new Error("stopped");
     const first = installForTurn(options(), { signal: only.signal });
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await until(() => registry.hits(PLATFORM_PACKAGE) === 1);
     only.abort(reason);
     await expect(first).rejects.toBe(reason);
 

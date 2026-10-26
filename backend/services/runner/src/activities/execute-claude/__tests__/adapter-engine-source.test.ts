@@ -17,10 +17,10 @@
  *   without a pin, or with a broken one.
  */
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIXTURE_MARKER, startFixtureRegistry } from "../../../__test-utils__/claude-engine-fixture.js";
 
@@ -40,7 +40,9 @@ const PIN: ClaudeEnginePin = {
     [CLAUDE_SDK, ...platformPackages(currentPlatform())].map((name) => [name, { resolved: `https://registry.test/${name}.tgz`, integrity: "sha512-AAAA" }]),
   ),
 };
-const HOME_ENGINE: FoundEngine = { entry: "/engines/claude/9.9.9-test/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs", version: VERSION, home: "/engines/claude/9.9.9-test" };
+// A home that exists, as one an engine loaded from does: every turn checks it is still there.
+const HOME_DIR = mkdtempSync(join(tmpdir(), "claude-adapter-engines-home-"));
+const HOME_ENGINE: FoundEngine = { entry: join(HOME_DIR, "node_modules", "@anthropic-ai", "claude-agent-sdk", "sdk.mjs"), version: VERSION, home: HOME_DIR };
 const MISSING: EngineSearch = { kind: "missing", skipped: [] };
 const FOUND: EngineSearch = { kind: "found", engine: HOME_ENGINE, skipped: [] };
 
@@ -62,6 +64,10 @@ beforeEach(() => {
 afterEach(() => {
   vi.doUnmock("../turn.js");
   vi.restoreAllMocks();
+});
+
+afterAll(() => {
+  rmSync(HOME_DIR, { recursive: true, force: true });
 });
 
 async function adapterWith(overrides: Partial<ClaudeBootDeps>) {
@@ -114,7 +120,7 @@ describe("a local runner without the engine", () => {
       return { home: HOME_ENGINE.home as string, downloaded: true };
     });
     const adapter = await adapterWith({ readPin: () => PIN, find: () => (installed ? FOUND : MISSING), load: async () => sdk, install, now: () => clock });
-    expect(logged("log").at(-1)).toMatch(new RegExp(`the first Claude turn downloads ${VERSION.replace(/\./g, "\\.")} into `));
+    expect(logged("log").at(-1)).toContain(`the first Claude turn downloads ${VERSION} into `);
 
     const sink = new RecordingTurnSink();
     await expect(adapter.runTurn(turnInputFixture(), sink)).resolves.toEqual({ kind: "completed" });
@@ -277,5 +283,55 @@ describe("a local runner's first Claude turn, with nothing injected but its pin"
       await registry.close();
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("an engine home on every turn", () => {
+  function homeEngine(home: string): EngineSearch {
+    return { kind: "found", engine: { ...HOME_ENGINE, home, entry: join(home, "node_modules", "@anthropic-ai", "claude-agent-sdk", "sdk.mjs") }, skipped: [] };
+  }
+
+  it("is stamped by each turn, so another release's install keeps it", async () => {
+    const home = mkdtempSync(join(tmpdir(), "claude-adapter-home-"));
+    try {
+      const adapter = await adapterWith({ readPin: () => PIN, find: () => homeEngine(home), load: async () => ({}) as ClaudeSdk });
+      const stamp = join(home, "last-used");
+      const old = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+      utimesSync(stamp, old, old);
+      await expect(adapter.runTurn(turnInputFixture(), new RecordingTurnSink())).resolves.toEqual({ kind: "completed" });
+      expect(Date.now() - statSync(stamp).mtimeMs).toBeLessThan(60_000);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("removed while the runner sat idle, is downloaded again on a local runner's next turn", async () => {
+    const home = mkdtempSync(join(tmpdir(), "claude-adapter-home-"));
+    const install = vi.fn<ClaudeBootDeps["install"]>(async () => {
+      mkdirSync(home, { recursive: true });
+      return { home, downloaded: true };
+    });
+    const adapter = await adapterWith({ readPin: () => PIN, find: () => homeEngine(home), load: async () => ({}) as ClaudeSdk, install });
+    rmSync(home, { recursive: true, force: true });
+    try {
+      const sink = new RecordingTurnSink();
+      await expect(adapter.runTurn(turnInputFixture(), sink)).resolves.toEqual({ kind: "completed" });
+      expect(install).toHaveBeenCalledTimes(1);
+      expect(sink.progressLabels[0]).toBe("Downloading Claude (one time): 0%");
+      expect(logged("warn")).toContain(`[claude] the engine home ${home} is gone`);
+      expect(existsSync(home)).toBe(true);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("removed under a runner started from the runner layer, refuses the turn and downloads nothing", async () => {
+    const home = mkdtempSync(join(tmpdir(), "claude-adapter-home-"));
+    const install = vi.fn<ClaudeBootDeps["install"]>();
+    const adapter = await adapterWith({ env: { [RUNNER_LAYER_ENV]: "1" }, readPin: () => PIN, find: () => homeEngine(home), load: async () => ({}) as ClaudeSdk, install });
+    rmSync(home, { recursive: true, force: true });
+    const { NOT_INSTALLED_MESSAGE } = await import("../adapter.js");
+    expect(await adapter.runTurn(turnInputFixture(), new RecordingTurnSink())).toEqual({ kind: "failed", surface: "actionable", message: NOT_INSTALLED_MESSAGE });
+    expect(install).not.toHaveBeenCalled();
   });
 });

@@ -17,17 +17,18 @@
  * then renamed to `claude/<version>` under a cross-process lock
  * (proper-lockfile, the workspace lock's idiom), so a desktop app and a
  * `stigmer up` sharing one root download once, and no runner ever loads a
- * half-written home. A waiter re-checks for the home each time the lock is
- * busy, so the second process loads what the first installed. Inside one
+ * half-written home. A waiter takes the lock once it is free and finds the
+ * home the first process installed. Inside one
  * process, {@link installForTurn} shares one install among every turn waiting
  * on it, and stops it only when every one of them has stopped.
  *
  * OLD VERSIONS: under the lock, an install removes another version's home
  * whose `last-used` stamp (or, unstamped, the home itself) is older than
  * {@link PRUNE_AFTER_MS}, and a partial directory a crashed install left
- * older than {@link PARTIAL_STALE_MS}. A home a runner of another release
- * loaded recently is kept, so two runners of different releases on one
- * machine never delete each other's engine.
+ * older than {@link PARTIAL_STALE_MS}. Every Claude turn on a home stamps it
+ * (`adapter.ts`), so a home a runner of another release used in the last 30
+ * days is kept; a runner whose home was removed while it sat idle longer
+ * downloads it again on its next Claude turn.
  */
 
 import { randomBytes } from "node:crypto";
@@ -70,6 +71,8 @@ export interface InstallOptions {
   readonly sleep?: (ms: number) => Promise<void>;
   /** How often a waiter re-checks a busy lock (tests). */
   readonly lockPollMs?: number;
+  /** The lock's stale window (tests; proper-lockfile takes no less than 2 s, and refreshes at half of it). */
+  readonly lockStaleMs?: number;
   /** The clock pruning reads (tests). */
   readonly now?: () => number;
 }
@@ -89,8 +92,7 @@ export async function installClaudeEngine(options: InstallOptions): Promise<Inst
   const platform = pinned(pin, options.platformPackage);
   await mkdir(claudeDir, { recursive: true });
 
-  const release = await acquire(claudeDir, home, signal, options.lockPollMs ?? DEFAULT_LOCK_POLL_MS);
-  if (release === null) return { home, downloaded: false };
+  const release = await acquire(claudeDir, signal, options.lockPollMs ?? DEFAULT_LOCK_POLL_MS, options.lockStaleMs ?? LOCK_STALE_MS);
   try {
     if (await exists(home)) return { home, downloaded: false };
     await prune(claudeDir, pin.version, (options.now ?? Date.now)());
@@ -139,7 +141,15 @@ export async function installClaudeEngine(options: InstallOptions): Promise<Inst
       });
       await rm(join(partial, ".tarballs"), { recursive: true, force: true });
       signal.throwIfAborted();
-      await rename(partial, home);
+      try {
+        await rename(partial, home);
+      } catch (err) {
+        // A second install whose lock was compromised can reach here after
+        // the first renamed its verified home into place: that home serves.
+        if (!(await exists(home))) throw err;
+        await rm(partial, { recursive: true, force: true });
+        return { home, downloaded: false };
+      }
       return { home, downloaded: true };
     } catch (err) {
       await rm(partial, { recursive: true, force: true });
@@ -163,32 +173,30 @@ async function exists(path: string): Promise<boolean> {
   );
 }
 
-// The install lock, or `null` once another process has installed the home
-// while this one waited. Polls rather than queueing inside proper-lockfile, so
-// a stop is honoured between attempts.
-async function acquire(claudeDir: string, home: string, signal: AbortSignal, pollMs: number): Promise<(() => Promise<void>) | null> {
+// The install lock. Polls rather than queueing inside proper-lockfile, so a
+// stop is honoured between attempts; a waiter that gets the lock after
+// another process installed the home finds it there, under the lock.
+async function acquire(claudeDir: string, signal: AbortSignal, pollMs: number, staleMs: number): Promise<() => Promise<void>> {
   for (;;) {
     signal.throwIfAborted();
     try {
       const release = await lockfile.lock(claudeDir, {
         lockfilePath: join(claudeDir, LOCK_FILE),
         realpath: false,
-        stale: LOCK_STALE_MS,
+        stale: staleMs,
         retries: 0,
-        // A lock whose refresh missed its window must not crash the agent
-        // host: the worst case is a second download into its own partial
-        // directory, and the rename into place stays atomic.
-        /* v8 ignore next -- @preserve: proper-lockfile calls it only when its refresh misses the 10 s stale window, which no test can force without stalling the event loop that long */
-        onCompromised: (err) => console.warn(`[claude] the engine install lock was compromised (continuing): ${err}`),
+        // A lock compromised under the install (its directory removed or
+        // touched by another, or a refresh that missed its window) must not
+        // crash the agent host: the worst case is a second download into its
+        // own partial directory, and the rename into place stays atomic.
+        onCompromised: (err) => console.warn(`[claude] the engine install lock was compromised (continuing): ${err.message}`),
       });
       return async () => {
-        /* v8 ignore next -- @preserve: a release fails only on a lock taken over or removed under it, the compromise above */
         await release().catch((err: unknown) => console.warn(`[claude] releasing the engine install lock failed (ignored): ${String(err)}`));
       };
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== "ELOCKED") throw err;
     }
-    if (await exists(home)) return null;
     await delay(pollMs, undefined, { signal }).catch(() => signal.throwIfAborted());
   }
 }

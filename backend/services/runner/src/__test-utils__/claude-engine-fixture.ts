@@ -85,7 +85,7 @@ export async function startFixtureRegistry(version: string, platformPackage: str
   const counts = new Map<string, number>();
   const overrides = new Map<string, RouteOverride>();
   const byPath = new Map<string, string>();
-  for (const name of tarballs.keys()) byPath.set(`/${name.replace("/", "%2f")}.tgz`, name);
+  for (const name of tarballs.keys()) byPath.set(`/${encodeURIComponent(name)}.tgz`, name);
 
   const server: Server = createServer((req, res) => {
     const name = byPath.get(req.url ?? "");

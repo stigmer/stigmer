@@ -24,7 +24,9 @@ const PAYLOAD = randomBytes(300_000);
 const INTEGRITY = parseIntegrity(sriSha512(PAYLOAD));
 
 type Route = (res: ServerResponse, hit: number) => void;
-const routes = new Map<string, Route>();
+// The one artifact the server serves, at PKG; any other path is a 404.
+const PKG = "/pkg.tgz";
+let route: Route | undefined;
 const hits = new Map<string, number>();
 let server: Server;
 let base: string;
@@ -35,8 +37,7 @@ beforeAll(async () => {
     const path = req.url ?? "/";
     const hit = (hits.get(path) ?? 0) + 1;
     hits.set(path, hit);
-    const route = routes.get(path);
-    if (route === undefined) {
+    if (path !== PKG || route === undefined) {
       res.writeHead(404).end();
       return;
     }
@@ -51,7 +52,7 @@ afterAll(async () => {
 });
 
 afterEach(() => {
-  routes.clear();
+  route = undefined;
   hits.clear();
   if (dir !== undefined) rmSync(dir, { recursive: true, force: true });
 });
@@ -66,7 +67,7 @@ const noWait = async (): Promise<void> => {};
 
 describe("downloadToFile", () => {
   it("writes the verified bytes and reports progress against the advertised length", async () => {
-    routes.set("/pkg.tgz", serve(PAYLOAD));
+    route = serve(PAYLOAD);
     const dest = scratch();
     const progress: [number, number | undefined][] = [];
     const { bytes } = await downloadToFile({
@@ -83,7 +84,7 @@ describe("downloadToFile", () => {
   });
 
   it("verifies a sha256 hex digest the same way", async () => {
-    routes.set("/pkg.tgz", serve(PAYLOAD));
+    route = serve(PAYLOAD);
     const dest = scratch();
     await downloadToFile({ url: `${base}/pkg.tgz`, dest, expected: sha256Digest(createHash("sha256").update(PAYLOAD).digest("hex")), label: "pkg" });
     expect(readFileSync(dest).equals(PAYLOAD)).toBe(true);
@@ -92,7 +93,7 @@ describe("downloadToFile", () => {
   it("refuses bytes that do not match, once, and leaves no file behind", async () => {
     const other = Buffer.from(PAYLOAD);
     other[0] = (other[0] ?? 0) ^ 0xff;
-    routes.set("/pkg.tgz", serve(other));
+    route = serve(other);
     const dest = scratch();
     writeFileSync(dest, "a stale copy");
     const err: unknown = await downloadToFile({ url: `${base}/pkg.tgz`, dest, expected: INTEGRITY, label: "pkg", sleep: noWait }).catch((e: unknown) => e);
@@ -105,7 +106,7 @@ describe("downloadToFile", () => {
   });
 
   it("retries a body cut short of its advertised length, then keeps the whole one", async () => {
-    routes.set("/pkg.tgz", (res, hit) => {
+    route = ((res, hit) => {
       if (hit === 1) {
         res.writeHead(200, { "content-length": String(PAYLOAD.length) });
         res.write(PAYLOAD.subarray(0, 1000));
@@ -121,7 +122,7 @@ describe("downloadToFile", () => {
   });
 
   it("retries a 503 and takes a 404 as the answer, leaving no file", async () => {
-    routes.set("/pkg.tgz", (res, hit) => (hit === 1 ? res.writeHead(503).end() : serve(PAYLOAD)(res, hit)));
+    route = ((res, hit) => (hit === 1 ? res.writeHead(503).end() : serve(PAYLOAD)(res, hit)));
     const dest = scratch();
     await downloadToFile({ url: `${base}/pkg.tgz`, dest, expected: INTEGRITY, label: "pkg", sleep: noWait });
     expect(hits.get("/pkg.tgz")).toBe(2);
@@ -133,7 +134,7 @@ describe("downloadToFile", () => {
   it("stops mid-body on its signal, throwing the reason and removing the file", async () => {
     const controller = new AbortController();
     const reason = new Error("stopped by the person");
-    routes.set("/pkg.tgz", (res) => {
+    route = ((res) => {
       res.writeHead(200, { "content-length": String(PAYLOAD.length) });
       res.write(PAYLOAD.subarray(0, 65_536));
       // The rest never comes: the download waits until the stop.
@@ -153,7 +154,7 @@ describe("downloadToFile", () => {
   });
 
   it("accepts a body with no advertised length and reports an unknown total", async () => {
-    routes.set("/pkg.tgz", (res) => {
+    route = ((res) => {
       res.writeHead(200, { "transfer-encoding": "chunked" });
       res.end(PAYLOAD);
     });

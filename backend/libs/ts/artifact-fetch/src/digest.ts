@@ -54,8 +54,10 @@ export function parseIntegrity(sri: string): ExpectedDigest {
     const dash = token.indexOf("-");
     if (dash <= 0) continue;
     const algorithm = token.slice(0, dash);
-    if (!(algorithm in STRENGTH)) continue;
-    const digest = Buffer.from(token.slice(dash + 1).replace(/\?.*$/, ""), "base64");
+    if (!Object.hasOwn(STRENGTH, algorithm)) continue;
+    // An SRI token may carry options after a `?`; the digest ends there.
+    const options = token.indexOf("?", dash);
+    const digest = Buffer.from(token.slice(dash + 1, options === -1 ? undefined : options), "base64");
     const candidate = { algorithm: algorithm as DigestAlgorithm, digest };
     if (digest.length > 0 && (best === undefined || STRENGTH[candidate.algorithm] > STRENGTH[best.algorithm])) best = candidate;
   }

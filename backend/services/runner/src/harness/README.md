@@ -148,9 +148,10 @@ The Claude adapter runs Anthropic's engine, the Agent SDK and its per-platform
 then the home for the version the runner pins under `STIGMER_ENGINES_DIR`
 (the pin file beside the runner's entry, written from the lockfile by
 `backend/services/runner/scripts/claude-engine-pin.mjs`).
-The images carry it in a layer of their own; a local runner downloads it on
-its first Claude turn (`activities/execute-claude/engine-fetch.ts`); a runner
-started from the runner layer never downloads. The runner's README, "The
+A local runner downloads it on its first Claude turn
+(`activities/execute-claude/engine-fetch.ts`); a runner started from the
+runner layer never downloads, and refuses Claude turns until its image carries
+the engine. The runner's README, "The
 Claude engine", has the operator's view.
 
 Anthropic permits running the engine in a product, hosted sandboxes and agent

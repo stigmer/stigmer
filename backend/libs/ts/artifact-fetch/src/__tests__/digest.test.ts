@@ -46,6 +46,7 @@ describe("parseIntegrity", () => {
     expect(() => parseIntegrity(`sha1-${createHash("sha1").update(bytes).digest("base64")}`)).toThrow(/names no sha256, sha384 or sha512 digest/);
     expect(() => parseIntegrity("")).toThrow(/names no/);
     expect(() => parseIntegrity("sha512-")).toThrow(/names no/);
+    expect(() => parseIntegrity("constructor-AAAA toString-AAAA")).toThrow(/names no/);
   });
 });
 
