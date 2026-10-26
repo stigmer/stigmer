@@ -1,12 +1,15 @@
 // Conformance suite for Session immutability sentinels (Class B).
 // Domain: agentic / session — the harness and execution_target immutability
-// validators gated by status.harness_state_id.
+// validators.
 //
 // A Session's harness (NATIVE vs CURSOR) and execution_target (LOCAL vs CLOUD)
 // each own conversation/workspace state that is not portable once a run has
-// started. The server enforces this with two update-time validators: once
-// status.harness_state_id is non-empty, changing harness or execution_target
-// is rejected with FAILED_PRECONDITION. Both validators treat the UNSPECIFIED
+// started. The server enforces this with two update-time validators. The
+// harness locks once the session has a run (stigmer/stigmer#2566: an engine
+// that derives its state from the session, as native does, never binds a
+// state id) or a bound status.harness_state_id; execution_target locks once
+// status.harness_state_id is non-empty. A change past either lock is
+// rejected with FAILED_PRECONDITION. Both validators treat the UNSPECIFIED
 // enum as its default (harness UNSPECIFIED == NATIVE, target UNSPECIFIED ==
 // LOCAL), so a no-op "change" to the default is allowed.
 //
@@ -22,7 +25,10 @@
 // a genuinely set sentinel.
 //
 // Asserted contract:
-// - harness/execution_target are freely mutable while harness_state_id is empty.
+// - harness is freely mutable while the session has no run and no state id;
+//   execution_target while harness_state_id is empty.
+// - once a native turn has completed, with no state id bound, changing harness
+//   -> FAILED_PRECONDITION.
 // - once harness_state_id is set, changing harness -> FAILED_PRECONDITION, and
 //   changing execution_target -> FAILED_PRECONDITION.
 // - a no-op apply to the same (or default-equivalent) value is accepted.
@@ -107,7 +113,7 @@ async function seedSentinel(org: string, sessionId: string): Promise<void> {
 }
 
 describe("[rpc:SessionCommandController.apply] Session immutability — harness", () => {
-  it("is freely mutable while the harness_state_id sentinel is empty", async () => {
+  it("is freely mutable while the session has not run", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
@@ -121,12 +127,45 @@ describe("[rpc:SessionCommandController.apply] Session immutability — harness"
     const toCursor = await clients.sessionCommand.apply(
       makeSession({ org, name, agentRef, harness: Harness.CURSOR }),
     );
-    expect(toCursor.spec?.harness, "harness change is allowed before the sentinel is set").toBe(Harness.CURSOR);
+    expect(toCursor.spec?.harness, "harness change is allowed before the first run").toBe(Harness.CURSOR);
 
     const backToNative = await clients.sessionCommand.apply(
       makeSession({ org, name, agentRef, harness: Harness.NATIVE }),
     );
     expect(backToNative.spec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("is immutable once a native turn has run, with no state id bound", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionAgentRef(org);
+    const name = uniqueName("session-imm");
+
+    const session = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.NATIVE }));
+    const sessionId = session.metadata!.id;
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId }));
+
+    mock.enqueue(anthropicText("Answered on native."));
+    const run = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("imm-run"), sessionId, message: "run once" }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: run.metadata!.id }).catch(() => undefined));
+    const done = await awaitTerminal(clients, run.metadata!.id);
+    expect(done.status?.phase, "the native turn must complete for this test to be meaningful").toBe(
+      RunPhase.RUN_COMPLETED,
+    );
+    const ran = await clients.sessionQuery.get({ value: sessionId });
+    expect(ran.status?.harnessStateId ?? "", "native binds no state id").toBe("");
+
+    await expectGrpcCode(
+      () => clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.CURSOR })),
+      Code.FailedPrecondition,
+      "change harness after a native turn has run",
+    );
+
+    const sameHarness = await clients.sessionCommand.apply(
+      makeSession({ org, name, agentRef, harness: Harness.NATIVE }),
+    );
+    expect(sameHarness.spec?.harness).toBe(Harness.NATIVE);
   });
 
   it("is immutable once harness_state_id is set", async () => {

@@ -30,8 +30,9 @@
  *   - every engine the proto names is offered at create and at update
  *     (Claude included); a number no engine owns is refused by proto
  *     validation;
- *   - harness immutability locks only once harness_state_id is non-empty,
- *     with a stored UNSPECIFIED read as NATIVE and the exact
+ *   - harness immutability locks once the session has a run row
+ *     (stigmer/stigmer#2566), or a bound harness_state_id when its runs are
+ *     gone, with a stored UNSPECIFIED read as NATIVE and the exact
  *     FAILED_PRECONDITION copy; an update that names no harness keeps the
  *     stored one, used or not (a caller re-applying a session it created
  *     never resets the engine);
@@ -232,7 +233,7 @@ function updateInput(
   };
 }
 
-/** Simulates a completed first execution: sets the immutability sentinel. */
+/** Simulates a Cursor session's bound agent: sets the harness_state_id sentinel. */
 async function markSessionUsed(
   sessionId: string,
   harnessStateId: string,
@@ -700,6 +701,22 @@ describe("session — the offered-engine rule", () => {
     expect(updated.spec?.harness).toBe(Harness.CLAUDE);
   });
 
+  it("keeps a native conversation that has run off Claude, by the engine lock, and a Claude one off native", async () => {
+    const native = await createSession({ harness: Harness.NATIVE });
+    await seedExecution(native.metadata!.id, RunPhase.RUN_COMPLETED);
+    const toClaude = await grpcError(() =>
+      command.update({ resource: updateInput(native, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
+    );
+    expect([toClaude.code, toClaude.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
+
+    const claude = await createSession({ harness: Harness.CLAUDE });
+    await seedExecution(claude.metadata!.id, RunPhase.RUN_COMPLETED);
+    const toNative = await grpcError(() =>
+      command.update({ resource: updateInput(claude, { harness: Harness.NATIVE }), updateMask: { paths: ["*"] } }),
+    );
+    expect([toNative.code, toNative.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
+  });
+
   it("refuses a number no engine owns by validation", async () => {
     const error = await grpcError(() => createSession({ harness: 7 as Harness }));
     expect(error.code).toBe(Code.InvalidArgument);
@@ -708,7 +725,7 @@ describe("session — the offered-engine rule", () => {
 });
 
 describe("session update — harness immutability", () => {
-  it("allows a harness change while harness_state_id is empty (session not yet used)", async () => {
+  it("allows a harness change while the session has no run", async () => {
     const session = await createSession({
       harness: Harness.NATIVE,
     });
@@ -721,7 +738,43 @@ describe("session update — harness immutability", () => {
     expect(updated.spec?.harness).toBe(Harness.CURSOR);
   });
 
-  it("rejects a harness change after the first execution with the exact copy", async () => {
+  it("rejects a native session's move once it has a run, with no state id bound (stigmer/stigmer#2566)", async () => {
+    const session = await createSession({ harness: Harness.NATIVE });
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
+    expect(session.status?.harnessStateId ?? "").toBe("");
+
+    const error = await grpcError(() =>
+      command.update({ resource: updateInput(session, { harness: Harness.CURSOR }), updateMask: { paths: ["*"] } }),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(HARNESS_IMMUTABILITY_REFUSAL);
+    const stored = await server.store.getResource(ApiResourceKind.session, session.metadata!.id, SessionSchema);
+    expect(stored.spec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("answers Internal, never a reading of the session, when its runs cannot be read", async () => {
+    const session = await createSession({ harness: Harness.NATIVE });
+    const read = vi.spyOn(server.store, "queryResources").mockRejectedValueOnce(new Error("store down"));
+    try {
+      const error = await grpcError(() =>
+        command.update({ resource: updateInput(session, { harness: Harness.CURSOR }), updateMask: { paths: ["*"] } }),
+      );
+      expect(error.code).toBe(Code.Internal);
+    } finally {
+      read.mockRestore();
+    }
+  });
+
+  it("a session with a run still accepts an update naming its own engine", async () => {
+    const session = await createSession({ harness: Harness.CURSOR });
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
+
+    const updated = await command.update({ resource: updateInput(session, { harness: Harness.CURSOR, subject: "same engine" }), updateMask: { paths: ["*"] } });
+    expect(updated.spec?.harness).toBe(Harness.CURSOR);
+    expect(updated.spec?.subject).toBe("same engine");
+  });
+
+  it("rejects a harness change once a state id is bound, with no run row left, with the exact copy", async () => {
     const session = await createSession({
       harness: Harness.NATIVE,
     });

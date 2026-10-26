@@ -452,7 +452,7 @@ async function update(
       .addStep(newBuildUpdateStateStep())
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
-      .addStep(newValidateHarnessImmutabilityStep())
+      .addStep(newValidateHarnessImmutabilityStep(deps.store))
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newValidateEnvironmentImmutabilityStep())
