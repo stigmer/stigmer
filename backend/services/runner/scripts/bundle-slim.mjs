@@ -117,8 +117,9 @@ const RUNTIME_EXTERNALS = ["@cursor/sdk", "@anthropic-ai/claude-agent-sdk"];
  * desktop app ship to people who may never run an agent on Claude. So it
  * carries the engine's pin (`claude-engine.json`, {@link writeClaudeEnginePin})
  * and a local runner downloads the engine on its first Claude turn
- * (`activities/execute-claude/engine-fetch.ts`). `verify-slim-artifact.mjs`
- * fails if one is staged here.
+ * (`activities/execute-claude/engine-fetch.ts`); the images carry it in a
+ * layer of their own, outside this artifact ({@link stageClaudeEngineHome}).
+ * `verify-slim-artifact.mjs` fails if one is staged here.
  */
 const NEVER_STAGED = new Set(["@anthropic-ai/claude-agent-sdk"]);
 

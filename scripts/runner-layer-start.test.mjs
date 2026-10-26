@@ -238,10 +238,10 @@ test("a deployment's own engines directory is kept, and the layer's is named bes
   const bin = layerBin();
   const own = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js"], { STIGMER_ENGINES_DIR: "/opt/engines" });
   assert.equal(own.status, 0, own.stderr);
-  assert.match(own.stdout, / ENGINES=\/opt\/engines\n$/);
+  assert.ok(own.stdout.endsWith(" ENGINES=/opt/engines\n"), own.stdout);
   const layer = start(bin, pathWith(REQUIRED), ["/runner/dist/main.js"], { STIGMER_ENGINES_DIR: "" });
   assert.equal(layer.status, 0, layer.stderr);
-  assert.match(layer.stdout, new RegExp(` ENGINES=${enginesBeside(bin).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\n$`));
+  assert.ok(layer.stdout.endsWith(` ENGINES=${enginesBeside(bin)}\n`), layer.stdout);
 });
 
 test("the guide's contract names every tool the script checks", () => {
