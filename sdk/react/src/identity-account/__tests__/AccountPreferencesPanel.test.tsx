@@ -361,6 +361,19 @@ describe("AccountPreferencesPanel", () => {
       expect(screen.getByLabelText("Default model — Claude")).toBeTruthy();
     });
 
+    it("discards an unsaved engine and model back to the saved ones", async () => {
+      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
+      await findSyncedField("Keep answers terse.");
+      await waitFor(() => expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true));
+
+      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+      fireEvent.change(screen.getByLabelText("Default model — Claude"), { target: { value: "claude-sonnet-5" } });
+      fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+
+      expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true);
+      expect(screen.getByLabelText("Default model — Claude")).toHaveProperty("value", "");
+    });
+
     it("saves Claude as the default engine with its own default model", async () => {
       const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
       renderPanel(createMockStigmer({ update }));
