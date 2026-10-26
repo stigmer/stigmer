@@ -18,9 +18,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { parseIntegrity, sha256Digest } from "../digest.js";
 import { downloadToFile } from "../download.js";
 import { ArtifactFetchError } from "../errors.js";
+import { sriSha512 } from "../testing.js";
 
 const PAYLOAD = randomBytes(300_000);
-const INTEGRITY = parseIntegrity(`sha512-${createHash("sha512").update(PAYLOAD).digest("base64")}`);
+const INTEGRITY = parseIntegrity(sriSha512(PAYLOAD));
 
 type Route = (res: ServerResponse, hit: number) => void;
 const routes = new Map<string, Route>();
@@ -162,4 +163,20 @@ describe("downloadToFile", () => {
     expect([...totals]).toEqual([undefined]);
     expect(readFileSync(dest).equals(PAYLOAD)).toBe(true);
   });
+
+  it("retries a response with no body, or one shorter than its length, waiting the contract's real second", async () => {
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls += 1;
+      if (calls === 1) return new Response(null, { status: 200 });
+      if (calls === 2) return new Response(PAYLOAD.subarray(0, 10), { headers: { "content-length": String(PAYLOAD.length) } });
+      return new Response(PAYLOAD, { headers: { "content-length": String(PAYLOAD.length) } });
+    }) as unknown as typeof fetch;
+    const dest = scratch();
+    const started = Date.now();
+    await downloadToFile({ url: "https://registry.test/pkg.tgz", dest, expected: INTEGRITY, label: "pkg", fetchImpl });
+    expect(calls).toBe(3);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(2_900);
+    expect(readFileSync(dest).equals(PAYLOAD)).toBe(true);
+  }, 15_000);
 });

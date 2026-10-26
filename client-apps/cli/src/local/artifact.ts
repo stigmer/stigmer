@@ -233,8 +233,7 @@ async function asExitError<T>(run: () => Promise<T>): Promise<T> {
   try {
     return await run();
   } catch (err) {
-    if (err instanceof ArtifactFetchError) throw new CliExitError(err.message, ExitCode.General, err.details.length > 0 ? err.details : undefined);
-    throw err;
+    throw err instanceof ArtifactFetchError ? new CliExitError(err.message, ExitCode.General, err.details.length > 0 ? err.details : undefined) : err;
   }
 }
 

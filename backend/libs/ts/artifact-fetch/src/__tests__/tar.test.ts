@@ -48,6 +48,12 @@ describe("parseTarHeader", () => {
     expect(header).toEqual({ name: longName, mode: 0o755, size: 3, kind: "file", typeFlag: "0", checksumValid: true });
   });
 
+  it("reads a blank mode field as no permission bits", () => {
+    const tar = buildTar([{ name: "a", content: "x" }]);
+    tar.fill(0, 100, 108);
+    expect(parseTarHeader(tar.subarray(0, TAR_BLOCK))?.mode).toBe(0);
+  });
+
   it("returns null for a zero block and flags a corrupt checksum", () => {
     expect(parseTarHeader(new Uint8Array(TAR_BLOCK))).toBeNull();
     const tar = buildTar([{ name: "a", content: "x", corruptChecksum: true }]);
@@ -97,6 +103,14 @@ describe("readTar", () => {
     };
     await expect(walk(tar.subarray(0, TAR_BLOCK + 100))).rejects.toThrow("the archive ends inside a");
     await expect(walk(tar.subarray(0, TAR_BLOCK + 2048))).rejects.toThrow("the archive ends without its end-of-archive block");
+  });
+
+  it("throws on an archive that ends inside an entry nobody read", async () => {
+    const tar = buildTar([{ name: "unread", content: "u".repeat(2000) }]);
+    const walk = async (): Promise<void> => {
+      for await (const _ of readTar(Readable.from([tar.subarray(0, TAR_BLOCK + 700)])));
+    };
+    await expect(walk()).rejects.toThrow("the archive ends inside unread");
   });
 
   it("throws on a size field that is not octal", async () => {

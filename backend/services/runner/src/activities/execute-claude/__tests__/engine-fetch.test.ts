@@ -17,7 +17,7 @@
  */
 
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -174,6 +174,49 @@ describe("installClaudeEngine", () => {
 
     await installClaudeEngine({ root, pin: registry.pin, platformPackage: PLATFORM_PACKAGE, signal: new AbortController().signal, now: () => now });
     expect(claudeDirEntries()).toEqual([".partial-live", "0.0.3", VERSION]);
+  });
+});
+
+describe("two installs into one root at once", () => {
+  it("in one process, the second waits on the lock and finds the first's home", async () => {
+    // The first install is held inside its lock (its partial directory
+    // exists, its body is unfinished) until the second has polled the lock.
+    let finish = (): void => {};
+    registry.override(PLATFORM_PACKAGE, (res, _hit, body) => {
+      res.writeHead(200, { "content-length": String(body.length) });
+      res.write(body.subarray(0, 100));
+      finish = () => res.end(body.subarray(100));
+      return true;
+    });
+    const first = install();
+    while (!existsSync(join(root, "claude")) || !readdirSync(join(root, "claude")).some((name) => name.startsWith(".partial-")) || registry.hits(PLATFORM_PACKAGE) === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    const second = install();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    finish();
+    await expect(first).resolves.toMatchObject({ downloaded: true });
+    await expect(second).resolves.toMatchObject({ downloaded: false });
+    expect(registry.hits(PLATFORM_PACKAGE)).toBe(1);
+  });
+
+  it("an old home it cannot remove stays, and the install goes on", async () => {
+    if (process.platform === "win32") return;
+    const now = Date.now();
+    const old = new Date(now - PRUNE_AFTER_MS - 60_000);
+    const stuck = engineHomeDir(root, "0.0.1");
+    writeHome(stuck, "0.0.1", PLATFORM_PACKAGE);
+    utimesSync(stuck, old, old);
+    const locked = join(stuck, "node_modules");
+    chmodSync(locked, 0o500);
+    try {
+      await expect(installClaudeEngine({ root, pin: registry.pin, platformPackage: PLATFORM_PACKAGE, signal: new AbortController().signal, now: () => now })).resolves.toMatchObject({
+        downloaded: true,
+      });
+      expect(claudeDirEntries()).toEqual(["0.0.1", VERSION]);
+    } finally {
+      chmodSync(locked, 0o700);
+    }
   });
 });
 

@@ -176,10 +176,10 @@ export interface FindEngineOptions {
   readonly platform?: PlatformFacts;
 }
 
-/** The SDK's entry, resolved from the runner's own location; `null` when the runner has no install of it. */
-export function resolveFromRunner(): string | null {
+/** The SDK's entry, resolved from the runner's own location (or `from`); `null` when there is no install of it there. */
+export function resolveFromRunner(from: string | URL = import.meta.url): string | null {
   try {
-    return createRequire(import.meta.url).resolve(CLAUDE_SDK);
+    return createRequire(from).resolve(CLAUDE_SDK);
   } catch {
     return null;
   }

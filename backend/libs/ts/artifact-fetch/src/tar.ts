@@ -23,7 +23,7 @@
 
 import { createReadStream } from "node:fs";
 import { mkdir, open } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, sep } from "node:path";
+import { dirname, isAbsolute, join, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { createGunzip } from "node:zlib";
 import { ArtifactFetchError } from "./errors.js";
@@ -284,8 +284,7 @@ function packagePath(name: string, prefix: string, refuse: (reason: string) => n
   if (!name.startsWith(prefix)) refuse(`entry ${quoted} is not under ${prefix}`);
   const rel = name.slice(prefix.length);
   if (rel === "" || isAbsolute(rel) || rel.includes("\\") || rel.includes("\0")) refuse(`entry ${quoted} is not a plain relative path`);
+  // With no absolute start and no empty, . or .. segment, the path cannot leave the package.
   if (rel.split("/").some((segment) => segment === "" || segment === "." || segment === "..")) refuse(`entry ${quoted} has an empty, . or .. segment`);
-  const nativeRel = rel.split("/").join(sep);
-  if (relative(".", nativeRel).startsWith("..")) refuse(`entry ${quoted} leaves the package`);
-  return nativeRel;
+  return rel.split("/").join(sep);
 }

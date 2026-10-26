@@ -145,8 +145,9 @@ suites and both kits run it through the remote adapter
 The Claude adapter runs Anthropic's engine, the Agent SDK and its per-platform
 `claude` executable, and finds it once at boot
 (`activities/execute-claude/engine-home.ts`): the runner's own install first,
-then the home for the version the runner pins (`claude-engine.json`, written
-by `scripts/bundle-slim.mjs` from the lockfile) under `STIGMER_ENGINES_DIR`.
+then the home for the version the runner pins under `STIGMER_ENGINES_DIR`
+(the pin file beside the runner's entry, written from the lockfile by
+`backend/services/runner/scripts/claude-engine-pin.mjs`).
 The images carry it in a layer of their own; a local runner downloads it on
 its first Claude turn (`activities/execute-claude/engine-fetch.ts`); a runner
 started from the runner layer never downloads. The runner's README, "The

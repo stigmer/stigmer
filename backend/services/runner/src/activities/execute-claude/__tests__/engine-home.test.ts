@@ -170,8 +170,9 @@ describe("findClaudeEngine", () => {
     ]);
   });
 
-  it("resolves the runner's own install from this checkout, where the SDK is a development dependency", () => {
+  it("resolves the runner's own install from this checkout, where the SDK is a development dependency, and nothing where there is none", () => {
     expect(resolveFromRunner()).toMatch(/claude-agent-sdk[\\/]sdk\.mjs$/);
+    expect(resolveFromRunner(join(scratch(), "index.js"))).toBeNull();
   });
 });
 

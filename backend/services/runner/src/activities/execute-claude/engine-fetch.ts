@@ -178,9 +178,11 @@ async function acquire(claudeDir: string, home: string, signal: AbortSignal, pol
         // A lock whose refresh missed its window must not crash the agent
         // host: the worst case is a second download into its own partial
         // directory, and the rename into place stays atomic.
+        /* v8 ignore next -- @preserve: proper-lockfile calls it only when its refresh misses the 10 s stale window, which no test can force without stalling the event loop that long */
         onCompromised: (err) => console.warn(`[claude] the engine install lock was compromised (continuing): ${err}`),
       });
       return async () => {
+        /* v8 ignore next -- @preserve: a release fails only on a lock taken over or removed under it, the compromise above */
         await release().catch((err: unknown) => console.warn(`[claude] releasing the engine install lock failed (ignored): ${String(err)}`));
       };
     } catch (err) {
@@ -195,7 +197,7 @@ async function acquire(claudeDir: string, home: string, signal: AbortSignal, pol
 // directories older than PARTIAL_STALE_MS. Best effort: a home that cannot be
 // read or removed stays, and the install goes on.
 async function prune(claudeDir: string, keep: string, now: number): Promise<void> {
-  for (const name of await readdir(claudeDir).catch(() => [] as string[])) {
+  for (const name of await readdir(claudeDir)) {
     if (name === keep || name === LOCK_FILE) continue;
     const path = join(claudeDir, name);
     const partial = name.startsWith(PARTIAL_PREFIX);

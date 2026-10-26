@@ -17,7 +17,12 @@
  *   without a pin, or with a broken one.
  */
 
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { FIXTURE_MARKER, startFixtureRegistry } from "../../../__test-utils__/claude-engine-fixture.js";
 
 import { testConfig } from "../../../__test-utils__/config-fixture.js";
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
@@ -25,7 +30,7 @@ import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js"
 import { RUNNER_LAYER_ENV, agentIdentity } from "../../../shared/agent-identity.js";
 import type { TurnOutcome } from "../../../harness/types.js";
 import type { ClaudeBootDeps } from "../adapter.js";
-import { CLAUDE_SDK, platformPackages, currentPlatform, type ClaudeEnginePin, type EngineSearch, type FoundEngine } from "../engine-home.js";
+import { CLAUDE_SDK, ENGINES_DIR_ENV, engineHomeDir, platformPackages, currentPlatform, type ClaudeEnginePin, type EngineSearch, type FoundEngine } from "../engine-home.js";
 import type { ClaudeSdk } from "../turn.js";
 
 const VERSION = "9.9.9-test";
@@ -252,5 +257,25 @@ describe("a runner that must not fetch", () => {
     expect(await broken.runTurn(turnInputFixture(), new RecordingTurnSink())).toMatchObject({ kind: "failed", surface: "actionable" });
     expect(logged("warn").at(-1)).toContain("is not a Claude engine pin");
     expect(install).not.toHaveBeenCalled();
+  });
+});
+
+describe("a local runner's first Claude turn, with nothing injected but its pin", () => {
+  it("downloads the engine its pin names from the registry, loads it from the home and runs the turn on it", async () => {
+    const registry = await startFixtureRegistry(VERSION, platformPackages(currentPlatform())[0] as string);
+    const root = mkdtempSync(join(tmpdir(), "claude-adapter-engines-"));
+    try {
+      const { createClaudeAdapter } = await import("../adapter.js");
+      const adapter = createClaudeAdapter({ env: { [ENGINES_DIR_ENV]: root }, readPin: () => registry.pin });
+      await adapter.boot(testConfig());
+      const sink = new RecordingTurnSink();
+      await expect(adapter.runTurn(turnInputFixture(), sink)).resolves.toEqual({ kind: "completed" });
+      expect((ran[0]?.sdk as unknown as { marker: string }).marker).toBe(FIXTURE_MARKER);
+      expect(sink.progressLabels.at(-1)).toBe("Downloading Claude (one time): 100%");
+      expect(logged("log")).toContain(`[claude] engine ready ${VERSION} (${engineHomeDir(root, VERSION)})`);
+    } finally {
+      await registry.close();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
