@@ -170,7 +170,7 @@ export interface HookToolScopeInput {
   readonly listing: McpToolListing | undefined;
   /** The synthesized attachments' slugs: the platform's servers, outside every list. */
   readonly platformServerSlugs: ReadonlySet<string>;
-  /** {@link HookToolScope.readRoot}, resolved by the caller (`turn-setup.ts` `platformReadRoot`). */
+  /** {@link HookToolScope.readRoot}, resolved by the caller (`shared/workspace/stigmer-link.ts` `platformReadRoot`). */
   readonly readRoot: string;
   /** The platform dir's real path (`turn-setup.ts` `platformRealRoot`); kept only when the scope hides skills. Absent reads as "". */
   readonly platformRoot?: string;

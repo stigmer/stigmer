@@ -9,7 +9,8 @@
  *    own shell, another caller's tools or skills, a helper the turn does not
  *    define or one whose definition a call would override, platform content
  *    and the engine's home, skill files for a caller whose lists deny
- *    `Skill`: refused even when the whole run is trusted;
+ *    `Skill`, and any read but the platform's content for a caller whose
+ *    lists exclude `Read`: refused even when the whole run is trusted;
  *  - the pause: the main agent's call that needs a person pauses with the
  *    card's message; one deferral an invocation, a second refused with the
  *    sentence that asks for it alone, the deferral freed when the engine
@@ -33,7 +34,10 @@
  * decision per call id.
  */
 
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -56,6 +60,7 @@ import {
   ClaudeGate,
   HALTED_MESSAGE,
   HIDDEN_SKILLS_MESSAGE,
+  PLATFORM_READ_ONLY_MESSAGE,
   NOT_ADMITTED_MESSAGE,
   READ_ONLY_MESSAGE,
   ROOT_CALLER,
@@ -92,6 +97,7 @@ const ROOT_REACH: Reach = {
   skills: new Set(["agent:review", "agent:platform-x", "agent:platform.x"]),
   agentTypes: new Set(["test-runner", "acme:helper"]),
   hidesSkills: false,
+  confinedRead: false,
 };
 
 /** A saved helper's reach: the read tools, the shell, its own server and skill, no `Agent`. */
@@ -100,10 +106,11 @@ const RUNNER_REACH: Reach = {
   skills: new Set(["agent:ci-checklist"]),
   agentTypes: new Set(),
   hidesSkills: false,
+  confinedRead: false,
 };
 
 /** A plugin helper whose lists deny `Skill`. */
-const HELPER_REACH: Reach = { tools: new Set(["Read", "Write"]), skills: new Set(), agentTypes: new Set(), hidesSkills: true };
+const HELPER_REACH: Reach = { tools: new Set(["Read", "Write"]), skills: new Set(), agentTypes: new Set(), hidesSkills: true, confinedRead: false };
 
 const RUNNER: Caller = { kind: "subagent", type: "test-runner" };
 
@@ -156,6 +163,7 @@ function facts(over: Partial<GateFacts> = {}): GateFacts {
     platformDir: PLATFORM,
     engineHome: HOME,
     readsSkillContent: async (path) => /^\/\.stigmer\/(skills|plugins)\//i.test(path),
+    platformReadRoot: "",
     hooks: NO_HOOKS,
     decisions: new Map(),
     denyMessages: new Map(),
@@ -587,7 +595,7 @@ describe("the gate's facts", () => {
     const read = gateFactsOf(input, {
       agents: { root: ROOT_REACH, subagents },
       bridge: { serverOf, mcpDefault: mcpDefault() },
-      paths: { platformDir: PLATFORM, engineHome: HOME, readsSkillContent },
+      paths: { platformDir: PLATFORM, engineHome: HOME, readsSkillContent, platformReadRoot: "/real/platform" },
       isCapturablePath,
       hooks: NO_HOOKS,
       waitingCallOf,
@@ -602,6 +610,7 @@ describe("the gate's facts", () => {
       leases: input.mcp.leases,
       platformDir: PLATFORM,
       engineHome: HOME,
+      platformReadRoot: "/real/platform",
       decisions: input.approvalDecisions,
       denyMessages: input.approvalDenyMessages,
       staleCallId: "toolu_s",
@@ -740,6 +749,49 @@ describe("platform content and the engine's home", () => {
     expect(await decide(gate, "Write", { file_path: `${PLATFORM}/outputs/report.md`, content: "x" }, "toolu_out_abs")).toEqual(allowed("auto_approve_all"));
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/.stigmerx/a.md`, content: "x" }, "toolu_lookalike")).toEqual(allowed("auto_approve_all"));
     expect(await decide(gate, "Read", { file_path: `${WORKSPACE}/.stigmer/skills/review/SKILL.md` }, "toolu_read")).toEqual(allowed("auto_approve_all"));
+  });
+});
+
+describe("a caller whose lists exclude Read", () => {
+  /** A workspace whose `.stigmer` links to a platform folder holding an input and a skill, and one whose link points out of it. */
+  function linkedWorkspace(): { workspace: string; platform: string; root: string } {
+    const base = realpathSync(mkdtempSync(join(tmpdir(), "gate-confined-read-")));
+    onTestFinished(() => rmSync(base, { recursive: true, force: true }));
+    const workspace = join(base, "repo");
+    const platform = join(base, "platform");
+    for (const dir of [join(workspace, "src"), join(platform, "inputs"), join(platform, "skills", "review")]) mkdirSync(dir, { recursive: true });
+    writeFileSync(join(workspace, "src", "a.ts"), "x");
+    writeFileSync(join(platform, "inputs", "brief.md"), "the brief");
+    writeFileSync(join(platform, "skills", "review", "SKILL.md"), "the skill");
+    symlinkSync(join(workspace, "src", "a.ts"), join(platform, "inputs", "escape.md"));
+    symlinkSync(platform, join(workspace, ".stigmer"), "dir");
+    return { workspace, platform, root: platform };
+  }
+
+  const CONFINED: Reach = { tools: new Set(["Glob", "Grep", "Read"]), skills: new Set(), agentTypes: new Set(), hidesSkills: false, confinedRead: true };
+
+  it("reads the platform's content through the link or by its own path, even trusted whole, and nothing else", async () => {
+    const { workspace, platform, root } = linkedWorkspace();
+    const gate = new ClaudeGate(facts({ root: CONFINED, primaryDir: workspace, platformDir: platform, platformReadRoot: root, leases: leases({ global: true }) }));
+    expect(await decide(gate, "Read", { file_path: join(workspace, ".stigmer", "inputs", "brief.md") }, "toolu_link")).toEqual(allowed("auto_approve_all"));
+    expect(await decide(gate, "Read", { file_path: ".stigmer/inputs/brief.md" }, "toolu_relative")).toEqual(allowed("auto_approve_all"));
+    expect(await decide(gate, "Read", { file_path: join(platform, "inputs", "brief.md") }, "toolu_own")).toEqual(allowed("auto_approve_all"));
+    for (const [index, input] of [{ file_path: join(workspace, "src", "a.ts") }, { file_path: join(workspace, ".stigmer", "inputs", "escape.md") }, { file_path: join(platform, "inputs", "missing.md") }, {}].entries()) {
+      expect(await decide(gate, "Read", input, `toolu_out${index}`), JSON.stringify(input)).toEqual(refused(PLATFORM_READ_ONLY_MESSAGE));
+    }
+  });
+
+  it("reads nothing on a turn whose .stigmer is not the platform's link", async () => {
+    const { workspace, platform } = linkedWorkspace();
+    const gate = new ClaudeGate(facts({ root: CONFINED, primaryDir: workspace, platformDir: platform, platformReadRoot: "" }));
+    expect(await decide(gate, "Read", { file_path: join(workspace, ".stigmer", "inputs", "brief.md") }, "toolu_unlinked")).toEqual(refused(PLATFORM_READ_ONLY_MESSAGE));
+  });
+
+  it("still reads no skill's files when its lists deny Skill too", async () => {
+    const { workspace, platform, root } = linkedWorkspace();
+    const gate = new ClaudeGate(facts({ root: { ...CONFINED, hidesSkills: true }, primaryDir: workspace, platformDir: platform, platformReadRoot: root, readsSkillContent: async (path) => path.startsWith("/.stigmer/skills/") }));
+    expect(await decide(gate, "Read", { file_path: join(workspace, ".stigmer", "skills", "review", "SKILL.md") }, "toolu_skill")).toEqual(refused(HIDDEN_SKILLS_MESSAGE));
+    expect(await decide(gate, "Read", { file_path: join(workspace, ".stigmer", "inputs", "brief.md") }, "toolu_brief")).toEqual(allowed(undefined));
   });
 });
 

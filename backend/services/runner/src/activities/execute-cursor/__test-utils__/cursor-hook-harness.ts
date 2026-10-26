@@ -144,7 +144,7 @@ export interface CursorHookHarnessOptions {
    * when `lists` is set, else nothing): `platform`, the runner's link to the
    * harness's throwaway platform dir; `repo`, a repository's own symlink to a
    * real directory inside the workspace (an unlinked turn); `none`. The read
-   * root is derived from it as `turn-setup.ts` `platformReadRoot` derives it.
+   * root is derived from it as `shared/workspace/stigmer-link.ts` `platformReadRoot` derives it.
    */
   stigmerLink?: "platform" | "repo" | "none";
   /** The turn's MCP servers and the tools the turn start listed of each (null: its listing failed). */

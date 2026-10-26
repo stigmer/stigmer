@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtemp, mkdir, rm, writeFile, readFile, readdir, rename, lstat, readlink } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile, readdir, rename, lstat, readlink, realpath, symlink } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +14,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 import {
   ensureStigmerSymlink,
+  readsPlatformContent,
   removeStigmerSymlink,
   stigmerSymlinkPointsAt,
   STIGMER_LOCAL_STATE_DIR,
@@ -54,6 +55,36 @@ describe("stigmer-link", () => {
   });
 
   const linkPath = () => join(workspaceDir, STIGMER_LOCAL_STATE_DIR);
+
+  describe("readsPlatformContent", () => {
+    it("admits a file whose real path lies inside the root, by the link or by the platform dir's own path", async () => {
+      await writeFile(join(platformDir, "plan.md"), "the plan");
+      await ensureStigmerSymlink(workspaceDir, platformDir);
+      const root = await realpath(platformDir);
+
+      expect(await readsPlatformContent(root, join(linkPath(), "plan.md"))).toBe(true);
+      expect(await readsPlatformContent(root, join(platformDir, "plan.md"))).toBe(true);
+    });
+
+    it("refuses the root itself, a missing file, a workspace file, and any path on a turn with no root", async () => {
+      await writeFile(join(platformDir, "plan.md"), "the plan");
+      await writeFile(join(workspaceDir, "notes.md"), "the workspace's");
+      const root = await realpath(platformDir);
+
+      expect(await readsPlatformContent(root, platformDir)).toBe(false);
+      expect(await readsPlatformContent(root, join(platformDir, "missing.md"))).toBe(false);
+      expect(await readsPlatformContent(root, join(workspaceDir, "notes.md"))).toBe(false);
+      expect(await readsPlatformContent("", join(platformDir, "plan.md"))).toBe(false);
+    });
+
+    it("judges a link inside the platform's content by where it points, never by its spelling", async () => {
+      await writeFile(join(workspaceDir, "secret.md"), "the workspace's");
+      await symlink(join(workspaceDir, "secret.md"), join(platformDir, "escape.md"));
+      const root = await realpath(platformDir);
+
+      expect(await readsPlatformContent(root, join(platformDir, "escape.md"))).toBe(false);
+    });
+  });
 
   describe("ensureStigmerSymlink", () => {
     it("creates the workspace symlink pointing at the platform dir", async () => {
