@@ -27,6 +27,10 @@
  *      workflow-worker-thread.cjs  ← Temporal's workflow sandbox thread entry;
  *                                    worker_threads needs a real file on disk
  *      mappings.wasm               ← source-map's lazy-loaded wasm
+ *      claude-engine.json          ← the Claude engine's pin, from the
+ *                                    lockfile (scripts/claude-engine-pin.mjs):
+ *                                    what a local runner downloads on its
+ *                                    first Claude turn, never the engine itself
  *      node_modules/
  *        @stigmer/runner-slim-<platform>  ← Temporal's native bridge, pruned
  *                                           to ONE platform (~22 of ~127 MB)
@@ -67,6 +71,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stripExternalSourceMapPragma } from "../../../../scripts/lib/source-map-pragma.mjs";
 import { forbiddenAttachModules } from "./attach-graph-rule.mjs";
+import { ENGINE_PIN_FILE, claudeEnginePinFromLockfile } from "./claude-engine-pin.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -86,7 +91,7 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  *   1.0.31; the native `sqlite3` module it once pulled in is gone.)
  * - @anthropic-ai/claude-agent-sdk: the Claude engine, a native executable
  *   in a per-platform package. External, and never staged
- *   ({@link NEVER_STAGED}).
+ *   ({@link NEVER_STAGED}); the artifact carries its pin instead.
  *
  * @temporalio/core-bridge (the other native piece) is NOT listed here: it is
  * aliased to core-bridge-shim.cjs, which dispatches to the per-platform
@@ -98,13 +103,14 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
 const RUNTIME_EXTERNALS = ["@cursor/sdk", "@anthropic-ai/claude-agent-sdk"];
 
 /**
- * Externals the artifact never carries. Anthropic's engine is not ours to
- * distribute until its terms are settled for every edition, and every
- * published runner (the CLI's on-demand install, the desktop app, the
- * sandbox image) is this artifact, so it stays out of all of them. A runner
- * built from it boots without the engine and refuses a Claude turn with a
- * sentence saying so (`activities/execute-claude/adapter.ts`);
- * `verify-slim-artifact.mjs` fails if one is staged.
+ * Externals the artifact never carries. Anthropic's engine is 120 to 140 MB
+ * per platform, and the artifact is what the CLI's on-demand install and the
+ * desktop app ship to people who may never run an agent on Claude. So it
+ * carries the engine's pin (`claude-engine.json`, {@link writeClaudeEnginePin})
+ * and a local runner downloads the engine on its first Claude turn
+ * (`activities/execute-claude/engine-fetch.ts`); the images carry it in a
+ * layer of their own, outside this artifact. `verify-slim-artifact.mjs`
+ * fails if one is staged here.
  */
 const NEVER_STAGED = new Set(["@anthropic-ai/claude-agent-sdk"]);
 
@@ -574,6 +580,18 @@ function stageSelfContained(platform, isCrossBuild) {
   writeFileSync(join(outDir, "package.json"), JSON.stringify(metaPackageJson(), null, 2) + "\n");
 }
 
+/**
+ * Writes the Claude engine's pin beside main.js, where the bundled engine
+ * home reads it (`new URL("./claude-engine.json", import.meta.url)`, and the
+ * bundle's `import.meta.url` is main.js's). Derived from the lockfile, so the
+ * artifact names exactly the engine CI installed and tested.
+ */
+function writeClaudeEnginePin() {
+  const pin = claudeEnginePinFromLockfile(join(runnerRoot, "package-lock.json"));
+  writeFileSync(join(outDir, ENGINE_PIN_FILE), JSON.stringify(pin, null, 2) + "\n");
+  console.log(`  Claude engine pin: ${pin.version} (${Object.keys(pin.packages).length} packages)`);
+}
+
 // ─── Step 6 (optional): publishable npm package directories ─────────────────
 
 // Files that ship in the published @stigmer/runner-slim tarball. Sourcemaps are
@@ -587,6 +605,7 @@ const META_PACKAGE_FILES = [
   "workflow-bundle.js",
   "workflow-worker-thread.cjs",
   "mappings.wasm",
+  ENGINE_PIN_FILE,
 ];
 
 function emitNpmPackages() {
@@ -687,6 +706,7 @@ await buildWorkerThreadBundle();
 await buildMainBundle();
 await buildAttachBundle();
 stageSelfContained(platform, isCrossBuild);
+writeClaudeEnginePin();
 if (emitPackages) {
   emitNpmPackages();
 }

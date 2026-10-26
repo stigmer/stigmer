@@ -121,6 +121,7 @@
     "@opentelemetry/sdk-metrics": "^2.0.0",
     "@opentelemetry/sdk-trace-base": "^2.0.0",
     "@opentelemetry/sdk-trace-node": "^2.0.0",
+    "@stigmer/artifact-fetch": "file:../../libs/ts/artifact-fetch",
     "@stigmer/eval-runtime": "file:../../libs/ts/eval-runtime",
     "@stigmer/outbound": "file:../../libs/ts/outbound",
     "@stigmer/apis": "file:../../../apis/stubs/ts",

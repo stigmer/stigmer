@@ -40,6 +40,7 @@ on:
       - "client-apps/cli/src/local/artifact.ts"
       - "client-apps/cli/src/local/temporal/download.ts"
       - "client-apps/cli/scripts/install-temporal-cli.ts"
+      - "backend/libs/ts/artifact-fetch/src/**"
   schedule:
     - cron: "47 5 * * *"
   # A dispatch is watched, so it does not notify.

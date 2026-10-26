@@ -1,0 +1,113 @@
+---
+title: Set up the Claude harness
+description:
+  Run Agent Sessions on Claude, Powered by Claude. Where each edition gets
+  Anthropic's engine, the one-time download a local runner makes, and how to
+  install the engine on a machine that cannot download it.
+---
+
+A [Harness](/docs/concepts/harnesses) is the engine that runs an Agent's turns.
+The **Claude** harness, Powered by Claude, runs them on Anthropic's Claude Agent
+SDK, on your Organization's own Anthropic key. If you are deciding _whether_ to
+use it, read the [Harnesses concept page](/docs/concepts/harnesses) first.
+
+This guide covers what is particular to Claude: the engine it runs, which is
+Anthropic's own program, and how that engine reaches your runner.
+
+## The engine
+
+A Claude turn runs two packages Anthropic publishes on npm: the Agent SDK
+(`@anthropic-ai/claude-agent-sdk`) and the package that holds its `claude`
+program for your platform (`@anthropic-ai/claude-agent-sdk-darwin-arm64`,
+`-linux-x64` and so on). Together they are 120 to 140 MB to download and about
+300 MB on disk.
+
+Each Stigmer release pins one version of the engine, the version it was tested
+with, and records the address and checksum of both packages. A runner runs only
+that version, and it never changes, repacks or re-signs Anthropic's files.
+
+## Where the engine comes from
+
+| Where the runner runs                                | The engine                                |
+| ---------------------------------------------------- | ----------------------------------------- |
+| The desktop app                                      | Downloaded on the first Claude turn       |
+| `stigmer up`                                         | Downloaded on the first Claude turn       |
+| A runner image (Stigmer Cloud, Docker Compose, Helm) | Not carried yet; a Claude turn is refused |
+
+### The one-time download
+
+On the desktop app and with `stigmer up`, nothing is installed until someone
+runs an Agent on Claude. The first Claude turn then downloads the engine from
+npm, shown in the turn's progress as **Downloading Claude (one time): 40%**. The
+runner checks each package against the checksum its release pinned before it
+unpacks it, and refuses one that does not match. Every later turn starts at
+once.
+
+The engine is installed under `~/.stigmer/engines/claude/<version>`, shared by
+every runner on the machine: the desktop app and `stigmer up` download it once
+between them, even when both start a Claude turn at the same moment. When a new
+release pins a new version, the next Claude turn downloads that one, and a
+version no runner has used for 30 days is removed.
+
+If the download fails, the turn ends with:
+
+```text
+Claude could not be downloaded to this computer (<reason>). Check the connection
+and try again, or run this turn on another engine.
+```
+
+Nothing is left half-installed, and the next Claude turn tries again.
+
+### A machine that cannot download
+
+A runner reads the engine from `STIGMER_ENGINES_DIR` when it is set, and from
+`~/.stigmer/engines` otherwise. On a machine without access to
+`registry.npmjs.org`, install the two packages there yourself, exactly as npm
+publishes them:
+
+```text
+$STIGMER_ENGINES_DIR/claude/<version>/node_modules/@anthropic-ai/claude-agent-sdk/
+$STIGMER_ENGINES_DIR/claude/<version>/node_modules/@anthropic-ai/claude-agent-sdk-<platform>/
+```
+
+The runner names the version it pins when it starts:
+
+```text
+[claude] the Claude engine is not on this runner; the first Claude turn downloads 0.3.310 into /home/you/.stigmer/engines
+```
+
+One way to fill the directory is npm itself, on a machine that can reach the
+registry, then copying the directory across:
+
+```bash
+mkdir -p claude/0.3.310 && cd claude/0.3.310
+npm install --no-save --no-package-lock @anthropic-ai/claude-agent-sdk@0.3.310
+```
+
+npm installs the platform package for the machine it runs on, so run it on the
+same operating system and architecture as the runner. When the runner finds the
+engine it logs `[claude] engine ready 0.3.310 (<directory>)`.
+
+### Embedding the runner
+
+An app that embeds the full `@stigmer/runner` package and wants Claude installs
+`@anthropic-ai/claude-agent-sdk` beside it, at the exact version the runner
+names as its peer. The runner uses that install first. The slim
+`@stigmer/runner-slim` package downloads the engine as the desktop app does.
+
+## Your Anthropic key
+
+Every Claude turn runs on your Organization's own Anthropic key: Stigmer runs no
+Claude turn on a key of its own, and offers no Claude account sign-in. On
+Stigmer Cloud, an administrator adds the key under
+[Model Provider Keys](/docs/guides/integrations/model-provider-keys); a Claude
+run with no Anthropic key is refused when it is created, naming Anthropic.
+
+## What's next
+
+- [Harnesses](/docs/concepts/harnesses) — how Claude compares with the native
+  and Cursor harnesses.
+- [Approval flows](/docs/concepts/approval-flows) — a Claude turn stops at the
+  exact call that needs a person.
+- [Runner environment variables](https://github.com/stigmer/stigmer/blob/main/backend/services/runner/README.md#environment-variable-reference)
+  — `STIGMER_ENGINES_DIR` and the rest.

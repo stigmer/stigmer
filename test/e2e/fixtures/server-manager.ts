@@ -21,6 +21,12 @@
 // the shape is one a self-host or a laptop really runs: the OIDC posture and
 // the single-organization shape boot the shipped entry.
 //
+// The runner is the repository's built entry on this process's Node, unless
+// STIGMER_E2E_RUNNER_ENTRY names a staged payload's entry (and
+// STIGMER_E2E_RUNNER_NODE the Node it ships with): the desktop app's
+// resources/runner/dist/main.js on its resources/runtime/node, so a spec
+// proves the payload a person installs, not the checkout it was built from.
+//
 // Playwright runs globalSetup and globalTeardown in the SAME (main) process, so
 // the running handles live in a module singleton between the two; the state
 // file carries only what workers need.
@@ -107,11 +113,18 @@ export async function startBackendStack(opts: {
   // Both entries run the built server; the library entry imports its body.
   const shippedEntry = builtEntry(tsServerEntryPath(), "make build-server", "stigmer-server");
   const serverEntry = opts.singleOrg === true ? shippedEntry : libraryServerEntryPath();
-  const runnerEntry = builtEntry(
-    runnerEntryPath(),
-    "npm run build -w @stigmer/apis && npm run build -w @stigmer/runner (or make build-runner)",
-    "Unified runner",
-  );
+  // A staged runner payload instead of the built entry (the header says why).
+  const payloadEntry = process.env.STIGMER_E2E_RUNNER_ENTRY ?? "";
+  const payloadNode = process.env.STIGMER_E2E_RUNNER_NODE ?? "";
+  const runnerEntry =
+    payloadEntry !== ""
+      ? builtEntry(payloadEntry, "stage the payload it names", "Runner payload")
+      : builtEntry(
+          runnerEntryPath(),
+          "npm run build -w @stigmer/apis && npm run build -w @stigmer/runner (or make build-runner)",
+          "Unified runner",
+        );
+  const runnerNode = payloadNode !== "" ? builtEntry(payloadNode, "stage the payload's Node", "Runner payload's Node") : undefined;
   // STIGMER_E2E_DIAG (fixtures/diag.ts): each stream's log starts fresh with
   // the run, as the mock's does, and the server logs at info, so the three
   // logs cover the same run at the depth the resume probe reads.
@@ -140,6 +153,7 @@ export async function startBackendStack(opts: {
     console.log("[e2e] Starting unified runner (static mode)...");
     const runner = await spawnRunner({
       entryPath: runnerEntry,
+      ...(runnerNode !== undefined ? { nodePath: runnerNode } : {}),
       temporalHostPort: temporal.hostPort,
       backendEndpoint: server.baseUrl,
       registryOrigin: server.baseUrl,

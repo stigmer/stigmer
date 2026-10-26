@@ -31,10 +31,8 @@ The runner runs a Claude turn, the agent's skills, sub-agents and hooks
 included (`activities/execute-claude/agents.ts`, `activities/execute-claude/hooks.ts`),
 and a call that needs a person waits for one (`activities/execute-claude/gate.ts`);
 the server offers it on every surface
-(`backend/services/stigmer-server/src/domain/session/harness.ts`); no published
-runner carries its engine yet (`backend/services/runner/scripts/bundle-slim.mjs`
-stages none of it), so a runner without it refuses a Claude turn plainly
-(`activities/execute-claude/adapter.ts`).
+(`backend/services/stigmer-server/src/domain/session/harness.ts`). Where its
+engine comes from in each edition is "The Claude engine" below.
 
 ## Modules, in reading order
 
@@ -141,6 +139,34 @@ which holds none of its keys; the runner's own process loads no engine SDK
 An adapter written to the contract needs nothing more to be hosted: the hermetic
 suites and both kits run it through the remote adapter
 (`__test-utils__/loopback-host.ts`).
+
+## The Claude engine
+
+The Claude adapter runs Anthropic's engine, the Agent SDK and its per-platform
+`claude` executable, and finds it once at boot
+(`activities/execute-claude/engine-home.ts`): the runner's own install first,
+then the home for the version the runner pins (`claude-engine.json`, written
+by `scripts/bundle-slim.mjs` from the lockfile) under `STIGMER_ENGINES_DIR`.
+The images carry it in a layer of their own; a local runner downloads it on
+its first Claude turn (`activities/execute-claude/engine-fetch.ts`); a runner
+started from the runner layer never downloads. The runner's README, "The
+Claude engine", has the operator's view.
+
+Anthropic permits running the engine in a product, hosted sandboxes and agent
+infrastructure included, under its Commercial Terms and two conditions
+(code.claude.com/docs/en/legal-and-compliance). They bind this code:
+
+- **The engine's bytes are never changed.** A home holds the two packages
+  exactly as npm serves them, verified against the lockfile's integrity; no
+  build step patches, repacks or re-signs them (the desktop's signer never
+  walks a home, which lives outside the app bundle).
+- **It runs on the API-key method only** (`activities/execute-claude/engine-env.ts`),
+  and its built-in authentication methods are left as they are; the product
+  never offers a Claude account sign-in.
+- **No Claude turn runs on a Stigmer-owned key.** Each organization
+  authenticates with its own Anthropic key.
+
+The product calls it "Claude" or "Powered by Claude".
 
 ## Adapter files
 

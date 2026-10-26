@@ -5,6 +5,7 @@
     "embedding",
     "ipc-protocol",
     "cursor-harness",
+    "claude-harness",
     "model-backends",
     "payload-encryption"
   ]

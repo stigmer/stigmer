@@ -11,7 +11,7 @@
 // Domain: test support (stack spawns).
 import { rmSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill, describeRunnerSlowExit, makeRunnerDirs, runnerArtifactEnv, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
+import { describeRunnerForceKill, describeRunnerSlowExit, makeRunnerDirs, runnerArtifactEnv, runnerCommand, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {
@@ -173,6 +173,16 @@ describe("runnerHomeEnv", () => {
 // The runner's artifact store, set in either LLM mode: a direct-mode runner
 // left on its default wrote file-review blobs under its own HOME, where the
 // server never reads them (stigmer#2142).
+describe("runnerCommand", () => {
+  it("runs the entry on this process's Node, or on the Node a staged payload brings", () => {
+    expect(runnerCommand({ entryPath: "/repo/runner/dist/main.js" })).toEqual({ command: process.execPath, args: ["/repo/runner/dist/main.js"] });
+    expect(runnerCommand({ entryPath: "/app/resources/runner/dist/main.js", nodePath: "/app/resources/runtime/node" })).toEqual({
+      command: "/app/resources/runtime/node",
+      args: ["/app/resources/runner/dist/main.js"],
+    });
+  });
+});
+
 describe("runnerArtifactEnv", () => {
   it("points the runner at the given directory, the server's when shared", () => {
     expect(runnerArtifactEnv({}, "/tmp/server-artifacts")).toEqual({

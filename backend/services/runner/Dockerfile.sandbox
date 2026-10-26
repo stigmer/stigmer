@@ -179,6 +179,14 @@ RUN cd backend/libs/ts/zip-structure && npm install --ignore-scripts
 COPY backend/libs/ts/zip-structure/ backend/libs/ts/zip-structure/
 RUN cd backend/libs/ts/zip-structure && npm run build
 
+# Build @stigmer/artifact-fetch (file: dependency of the runner) — the
+# verified download and the tar reader a local runner installs the Claude
+# engine with, shared with the CLI. Same treatment as the other libs.
+COPY backend/libs/ts/artifact-fetch/package.json backend/libs/ts/artifact-fetch/
+RUN cd backend/libs/ts/artifact-fetch && npm install --ignore-scripts
+COPY backend/libs/ts/artifact-fetch/ backend/libs/ts/artifact-fetch/
+RUN cd backend/libs/ts/artifact-fetch && npm run build
+
 # Build @stigmer/outbound (file: dependency of the runner) — the egress
 # address policy and the MCP OAuth rules the runner shares with the control
 # plane. Same treatment as the other libs: install, copy source, build dist.

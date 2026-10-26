@@ -210,6 +210,7 @@ jobs:
           path: |
             backend/libs/ts/temporal-codecs/coverage/
             backend/libs/ts/zip-structure/coverage/
+            backend/libs/ts/artifact-fetch/coverage/
             backend/libs/ts/plugin-package/coverage/
             backend/libs/ts/outbound/coverage/
             backend/libs/ts/tool-vocabulary/coverage/
@@ -574,6 +575,7 @@ jobs:
           npm run build -w @stigmer/eval-runtime
           npm run build -w @stigmer/plugin-package
           npm run build -w @stigmer/zip-structure
+          npm run build -w @stigmer/artifact-fetch
 
       # Build configs only: the resolution-split class this job exists for
       # surfaces in the shipping surface. Test-file typechecking is the locked

@@ -1,13 +1,11 @@
-// Shared primitives for acquiring a single executable from a GitHub-release
-// `.tar.gz`: release platform/arch mapping, a fetch + gunzip + minimal tar
-// reader, optional sha256 verification, and an executable write.
+// Acquiring a single executable from a GitHub-release `.tar.gz`: release
+// platform/arch mapping, the cache below, and the CLI's exit errors, over the
+// download contract in `@stigmer/artifact-fetch` (the retry rules, the digest
+// check, the tar reader), which the runner shares for the Claude engine.
 //
 // The Temporal CLI downloader (`temporal/download.ts`) builds on this, and any
-// future release-binary downloader should too, so the fetch/verify/extract
-// contract lives in exactly one place. (The `stigmer-server` Go binary was its
-// second consumer until the server became an npm artifact.) The tar reader is a
-// tiny POSIX/ustar implementation: no native `tar` dependency, which keeps the
-// base install lean.
+// future release-binary downloader should too. (The `stigmer-server` Go binary
+// was its second consumer until the server became an npm artifact.)
 //
 // Retrying a transient failure is part of the contract. A connection that resets
 // before or during the body, a 5xx or a 429 is tried again with a doubling wait,
@@ -24,13 +22,23 @@
 // default: a user's machine already keeps the binary it installed, so
 // `stigmer up` and the image staging pass none.
 
-import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
+import {
+  ArtifactFetchError,
+  describeFailure,
+  extractTarEntry,
+  fetchWithRetry,
+  network,
+  parseShasum,
+  sha256Hex,
+  type Network,
+} from "@stigmer/artifact-fetch";
 import { gunzipSync } from "fflate";
 import { CliExitError } from "../errors/cli-exit-error.js";
 import { ExitCode } from "../errors/exit-codes.js";
+
+export { DOWNLOAD_ATTEMPTS, DOWNLOAD_RETRY_BASE_DELAY_MS, extractTarEntry, parseShasum, sha256Hex } from "@stigmer/artifact-fetch";
 
 /** Release OS token, matching the `<os>` segment of our release asset names. */
 export function mapReleaseOs(platform: NodeJS.Platform): string {
@@ -96,12 +104,6 @@ export type CacheMiss = "unused" | "absent" | "mismatch";
 /** Where the installed binary came from. */
 export type TarballInstall = { source: "cache" } | { source: "network"; cache: CacheMiss };
 
-/** Attempts per download before a transient failure is reported. */
-export const DOWNLOAD_ATTEMPTS = 4;
-
-/** The wait before the second attempt; it doubles before each later one (1 s, 2 s, 4 s). */
-export const DOWNLOAD_RETRY_BASE_DELAY_MS = 1_000;
-
 /**
  * Install the named entry of a `.tar.gz` at `binPath` with executable
  * permissions: from the cache directory when it holds a copy that matches its
@@ -131,7 +133,7 @@ export async function fetchTarballBinary(src: TarballBinarySource): Promise<Tarb
     }
   }
 
-  const net: Download = { doFetch: src.fetchImpl ?? fetch, sleep: src.sleep ?? delay };
+  const net = network({ fetchImpl: src.fetchImpl, sleep: src.sleep });
   const archive = await fetchBytes(net, src.url, src.label);
   let checksums: string | undefined;
   if (src.checksumUrl !== undefined) {
@@ -218,90 +220,22 @@ function writeCachedPair(paths: CachePaths, archive: Uint8Array, checksums: stri
   }
 }
 
-/** Lowercase hex sha256 of `bytes`. */
-export function sha256Hex(bytes: Uint8Array): string {
-  return createHash("sha256").update(bytes).digest("hex");
+async function fetchBytes(net: Network, url: string, label: string): Promise<Uint8Array> {
+  return asExitError(() => fetchWithRetry(net, url, label, async (res) => new Uint8Array(await res.arrayBuffer())));
 }
 
-// The network a download runs over: the fetch it calls and the wait between attempts.
-interface Download {
-  doFetch: typeof fetch;
-  sleep: (ms: number) => Promise<void>;
+async function fetchText(net: Network, url: string, label: string): Promise<string> {
+  return asExitError(() => fetchWithRetry(net, url, label, (res) => res.text()));
 }
 
-async function fetchBytes(net: Download, url: string, label: string): Promise<Uint8Array> {
-  return fetchWithRetry(net, url, label, async (res) => new Uint8Array(await res.arrayBuffer()));
-}
-
-async function fetchText(net: Download, url: string, label: string): Promise<string> {
-  return fetchWithRetry(net, url, label, (res) => res.text());
-}
-
-// One download, with its body read inside the attempt: a connection that drops
-// after the headers is as transient as one that never connects, and is retried
-// the same way. The error after the last attempt carries the last failure's
-// cause, which for Node's fetch is the socket error behind "fetch failed".
-async function fetchWithRetry<T>(
-  net: Download,
-  url: string,
-  label: string,
-  read: (res: Response) => Promise<T>,
-): Promise<T> {
-  let lastFailure = "";
-  for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt++) {
-    if (attempt > 1) await net.sleep(DOWNLOAD_RETRY_BASE_DELAY_MS * 2 ** (attempt - 2));
-
-    let res: Response;
-    try {
-      res = await net.doFetch(url);
-    } catch (err) {
-      lastFailure = describeFailure(err);
-      continue;
-    }
-    if (!res.ok) {
-      if (!isTransientStatus(res.status)) {
-        throw new CliExitError(`failed to download ${label}: HTTP ${res.status} from ${url}`, ExitCode.General);
-      }
-      lastFailure = `HTTP ${res.status}`;
-      continue;
-    }
-    try {
-      return await read(res);
-    } catch (err) {
-      lastFailure = describeFailure(err);
-    }
+// The library's failures, as the CLI's exit error with the same message and hints.
+async function asExitError<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    if (err instanceof ArtifactFetchError) throw new CliExitError(err.message, ExitCode.General, err.details.length > 0 ? err.details : undefined);
+    throw err;
   }
-  throw new CliExitError(
-    `failed to download ${label} from ${url} after ${DOWNLOAD_ATTEMPTS} attempts: ${lastFailure}`,
-    ExitCode.General,
-    ["check the network connection, then run the command again"],
-  );
-}
-
-// A server error or a rate limit may clear on its own; any other status will not.
-function isTransientStatus(status: number): boolean {
-  return status >= 500 || status === 429;
-}
-
-function describeFailure(err: unknown): string {
-  if (!(err instanceof Error)) return String(err);
-  return err.cause instanceof Error ? `${err.message}: ${err.cause.message}` : err.message;
-}
-
-/**
- * The sha256 a `shasum`/`sha256sum`-format file records for `filename`, lowercase
- * hex, or "" when the file has no entry for it. Each line is "<hex>  <filename>";
- * `sha256sum -b` writes the filename with a leading "*" (binary mode), which is
- * not part of the name. A release-wide file lists every asset, so the match is
- * by filename, never by position.
- */
-export function parseShasum(content: string, filename: string): string {
-  for (const line of content.split("\n")) {
-    const [hex, name] = line.trim().split(/\s+/, 2);
-    if (hex === undefined || name === undefined) continue;
-    if (name.replace(/^\*/, "") === filename) return hex.toLowerCase();
-  }
-  return "";
 }
 
 // The archive's basename as the checksum file names it: the last path segment
@@ -309,43 +243,4 @@ export function parseShasum(content: string, filename: string): string {
 function archiveBasename(url: string): string {
   const segments = new URL(url).pathname.split("/");
   return segments[segments.length - 1] ?? "";
-}
-
-/**
- * Extract a single regular-file entry whose basename matches `name` from an
- * (uncompressed) tar buffer. Minimal POSIX/ustar reader: 512-byte header blocks,
- * octal size at offset 124, type flag at 156, data padded to 512 bytes.
- */
-export function extractTarEntry(buf: Uint8Array, name: string): Uint8Array | null {
-  let offset = 0;
-  while (offset + 512 <= buf.length) {
-    const header = buf.subarray(offset, offset + 512);
-    const entryName = readCString(header, 0, 100);
-    if (entryName === "") break; // zero block marks end of archive
-
-    const size = Number.parseInt(readCString(header, 124, 12).trim() || "0", 8) || 0;
-    const typeFlag = String.fromCharCode(header[156] ?? 0);
-    const dataStart = offset + 512;
-
-    const isRegularFile = typeFlag === "0" || typeFlag === "\0";
-    if (isRegularFile && basename(entryName) === name) {
-      return buf.subarray(dataStart, dataStart + size);
-    }
-
-    // Advance past this entry's data, rounded up to the 512-byte block size.
-    offset = dataStart + Math.ceil(size / 512) * 512;
-  }
-  return null;
-}
-
-function readCString(block: Uint8Array, start: number, length: number): string {
-  let end = start;
-  const limit = start + length;
-  while (end < limit && block[end] !== 0) end += 1;
-  return Buffer.from(block.subarray(start, end)).toString("utf8");
-}
-
-function basename(path: string): string {
-  const parts = path.split("/");
-  return parts[parts.length - 1] ?? path;
 }

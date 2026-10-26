@@ -30,9 +30,15 @@
  *      proof.
  *   4. Cursor SDK — @cursor/sdk imports, and its platform package (the
  *      helper binaries) resolves, from the artifact as the runner resolves it.
- *   4b. No Claude engine — no package of Anthropic's engine is staged and the
- *      manifest names none: the artifact is what every edition publishes, and
- *      the engine is not distributed (`bundle-slim.mjs` `NEVER_STAGED`).
+ *   4b. The Claude engine's pin, not the engine — no package of Anthropic's
+ *      engine is staged and the manifest names none (`bundle-slim.mjs`
+ *      `NEVER_STAGED`: the npm package and the desktop app never carry it),
+ *      and `claude-engine.json` sits beside the entry, naming the SDK and a
+ *      platform package for each machine with a registry URL and an
+ *      integrity; when the checkout's lockfile is beside these scripts, the
+ *      pin must equal what it records (`claude-engine-pin.mjs`). The image
+ *      smoke mounts only this directory, so there the pin's shape is checked
+ *      and the lockfile comparison is the build lane's.
  *   5. Attach entry (not on Windows) — attach/main.js beside the entry serves readiness,
  *      refuses a foreign push and stops cleanly (verify-attach-boot.mjs, run
  *      by the same Node). Skipped on Windows: the waiter runs only in a
@@ -86,8 +92,8 @@
  * and HOME a driver gives a sandbox; the Cursor SDK probe alone is written
  * beside the entry, inside a throwaway container.
  * The script imports only Node built-ins and its siblings
- * verify-attach-boot.mjs and verify-agent-host-boot.mjs, so it runs from a
- * mounted checkout.
+ * verify-attach-boot.mjs, verify-agent-host-boot.mjs and
+ * claude-engine-pin.mjs, so it runs from a mounted checkout.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -96,6 +102,8 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+
+import { CLAUDE_SDK, ENGINE_PIN_FILE, claudeEnginePinFromLockfile } from "./claude-engine-pin.mjs";
 
 const { values: options } = parseArgs({
   options: {
@@ -358,6 +366,30 @@ function verifyNoClaudeEngine() {
   if (named.length > 0) throw new Error(`the artifact's manifest names the Claude engine: ${named.join(", ")}`);
 }
 
+/**
+ * The pin beside the entry: present, well formed, and, when the lockfile is
+ * reachable, equal to it. Returns the line the check prints.
+ */
+function verifyClaudeEnginePin() {
+  const file = join(dirname(join(artifactDir, entry)), ENGINE_PIN_FILE);
+  if (!existsSync(file)) throw new Error(`${file} is missing: a local runner built from this artifact cannot install the Claude engine`);
+  const pin = JSON.parse(readFileSync(file, "utf8"));
+  const packages = Object.entries(pin.packages ?? {});
+  if (typeof pin.version !== "string" || pin.packages?.[CLAUDE_SDK] === undefined || packages.length < 2) {
+    throw new Error(`${file} does not pin ${CLAUDE_SDK} and its platform packages`);
+  }
+  for (const [name, { resolved, integrity }] of packages) {
+    if (!/^https:\/\/registry\.npmjs\.org\//.test(resolved) || !/^sha512-/.test(integrity)) {
+      throw new Error(`${file} pins ${name} at ${resolved} (${integrity}), not a registry tarball with a sha512 integrity`);
+    }
+  }
+  const lockfile = fileURLToPath(new URL("../package-lock.json", import.meta.url));
+  if (!existsSync(lockfile)) return `pin ${pin.version} (${packages.length} packages); no lockfile beside these scripts to compare`;
+  const expected = JSON.stringify(claudeEnginePinFromLockfile(lockfile));
+  if (JSON.stringify(pin) !== expected) throw new Error(`${file} differs from the pin ${lockfile} records:\n${expected}`);
+  return `pin ${pin.version} (${packages.length} packages) equals the lockfile`;
+}
+
 // ─── Attach entry (no Temporal required) ────────────────────────────────────
 
 function verifyAttachEntry() {
@@ -514,6 +546,7 @@ try {
   console.log(`[cursor] OK: @cursor/sdk imported; its platform package resolved at ${cursorPlatform}`);
   verifyNoClaudeEngine();
   console.log("[claude] OK: no package of the Claude engine is staged and the manifest names none");
+  console.log(`[claude] OK: ${verifyClaudeEnginePin()}`);
   if (windows) {
     console.log("[attach] skipped on Windows: the attach waiter runs only in Linux sandboxes");
   } else {

@@ -687,6 +687,15 @@ pages:
       Cloud through the Organization's own Cursor key, and pin a Session to it.
     medium: none
 
+  guides/runners/claude-harness:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Where each edition gets Anthropic's Claude engine, the one-time download a
+      local runner makes, and how to install the engine on a machine that cannot
+      download it.
+    medium: none
+
   guides/runners/model-backends:
     fate: keep
     diataxis: how-to

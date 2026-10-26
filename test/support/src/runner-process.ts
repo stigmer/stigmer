@@ -138,6 +138,10 @@ export interface RunnerProxyOptions {
 export interface RunnerOptions {
   // Absolute path to the runner's compiled entry (dist/main.js).
   entryPath: string;
+  // The Node that runs the entry: this process's own unless a staged payload
+  // brings its own (the desktop app's resources/runtime/node runs its
+  // resources/runner/dist/main.js), so the payload runs as it ships.
+  nodePath?: string;
   // host:port of the live Temporal frontend the runner should connect to.
   // Mutually exclusive with cloudBootstrap: an explicit address makes the
   // runner skip its control-plane discovery entirely (bootstrap.ts branch 1).
@@ -259,6 +263,11 @@ export interface RunningRunner {
   kill(signal: "SIGKILL" | "SIGTERM"): Promise<void>;
 }
 
+// The process a runner is started as: its entry on its Node (RunnerOptions.nodePath).
+export function runnerCommand(opts: Pick<RunnerOptions, "entryPath" | "nodePath">): { command: string; args: string[] } {
+  return { command: opts.nodePath ?? process.execPath, args: [opts.entryPath] };
+}
+
 export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
   if ((opts.temporalHostPort === undefined) === (opts.cloudBootstrap === undefined)) {
     throw new Error(
@@ -289,7 +298,8 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       : undefined;
   const artifactDir = opts.artifactDir ?? ownedArtifactDir!;
 
-  const child = spawn(process.execPath, [opts.entryPath], {
+  const { command, args } = runnerCommand(opts);
+  const child = spawn(command, args, {
     cwd: runnerDir(),
     stdio: ["ignore", "pipe", "pipe"],
     env: {

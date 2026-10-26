@@ -123,7 +123,9 @@ export const LANES = {
       "backend/libs/ts/tool-vocabulary/**",
       "backend/libs/ts/zip-structure/**",
       // The Temporal CLI the lane installs through .github/actions/temporal-cli:
-      // the installer and the CLI source that holds its pin.
+      // the installer and the CLI source that holds its pin, and the download
+      // library it imports by package name (not traced, so kept by hand).
+      "backend/libs/ts/artifact-fetch/**",
       "client-apps/cli/scripts/install-temporal-cli.ts",
       "client-apps/cli/src/errors/cli-exit-error.ts",
       "client-apps/cli/src/errors/exit-codes.ts",

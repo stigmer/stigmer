@@ -230,11 +230,13 @@ test("the checked-in @stigmer/cli closure is exactly what the compose-runner ima
   // stages it with `--only @stigmer/cli`. Pinned so a new @stigmer/* dep on
   // the CLI's path is a visible change here, not a silent registry fetch in
   // the image build. The SDK folds a session's events with session-log,
-  // which reads the tool vocabulary. plugins, embed and temporal-codecs are
+  // which reads the tool vocabulary; the Temporal download reads
+  // artifact-fetch. plugins, embed and temporal-codecs are
   // NOT on the CLI's path and stay out of the image.
   assert.deepEqual(packageClosure("@stigmer/cli"), [
     "apis/stubs/ts",
     "backend/libs/ts/zip-structure",
+    "backend/libs/ts/artifact-fetch",
     "backend/libs/ts/eval-runtime",
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/tool-vocabulary",
