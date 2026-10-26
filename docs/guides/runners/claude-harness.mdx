@@ -58,6 +58,14 @@ and try again, or run this turn on another engine.
 
 Nothing is left half-installed, and the next Claude turn tries again.
 
+### Behind a proxy
+
+The download uses the runner's own Node, which ignores `HTTPS_PROXY` unless
+`NODE_USE_ENV_PROXY=1` is also set (measured on the Node 22 the runner ships
+with; Node prints a warning that the feature is experimental). Set both in the
+environment the desktop app or `stigmer up` starts in, and every request the
+runner makes, the download included, goes through the proxy.
+
 ### A machine that cannot download
 
 A runner reads the engine from `STIGMER_ENGINES_DIR` when it is set, and from

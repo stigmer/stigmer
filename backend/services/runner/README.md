@@ -120,6 +120,7 @@ A Claude turn runs Anthropic's engine: the Agent SDK (`@anthropic-ai/claude-agen
 
 - **The images** (the cloud sandbox, the runner layer, compose, Helm and the all-in-one) carry the engine; the runner layer's start script points `STIGMER_ENGINES_DIR` at it.
 - **A local runner** (the desktop app, `stigmer up`, the `local-process` driver) carries only the pin. Its first Claude turn downloads the SDK and this machine's platform package from npm (120 to 140 MB), checks each against the pinned integrity before extracting it, and installs the home atomically under a lock, so runners sharing a machine download once (`src/activities/execute-claude/engine-fetch.ts`). The turn shows "Downloading Claude (one time): N%" while it does; a failed download ends the turn with a sentence saying so, and the next turn tries again. An install removes another version's home unused for 30 days.
+- **Behind a proxy**, the runner's Node 22 honours `HTTPS_PROXY` for the download only with `NODE_USE_ENV_PROXY=1` set beside it (measured; Node calls it experimental).
 - **A runner started from the runner layer never downloads**: its agent host runs as the agent user, which must never install an engine later turns run. Without the engine it refuses Claude turns.
 
 Anthropic's conditions for running the engine in a product bind every path: its bytes are never changed or re-signed, it runs on the API-key method only, and a Claude turn runs on the organization's own Anthropic key, never one of Stigmer's (`src/harness/README.md`, "The Claude engine").
