@@ -32,7 +32,7 @@ import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { BillingAccountStatus } from "@stigmer/apis/ai/stigmer/billing/v1/enum_pb";
-import { ModelPricingBaselineStatus } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
+import { ModelPricingBaselineStatus, type ModelPricingBaseline } from "@stigmer/apis/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { FAKE_CARD, paymentMethodAttached, postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
@@ -507,6 +507,20 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     return revision;
   }
 
+  // Every baseline the catalog lists, across its pages: a target's catalog
+  // can hold more entries before an arm's key than one page carries, so an
+  // arm never looks for its rows on the first page alone.
+  async function everyBaseline(op: PrivilegedScope, includeHistory = false): Promise<ModelPricingBaseline[]> {
+    const all: ModelPricingBaseline[] = [];
+    let pageToken = "";
+    do {
+      const page = await op.clients.billingQuery.listModelPricingBaselines({ includeHistory, pageToken });
+      all.push(...page.entries);
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    return all;
+  }
+
   it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] an operator's upsert is listed ACTIVE with the server's stamps, a second upsert of the same key supersedes the first, and a variant carrying a Cursor rate is refused", async () => {
     const op = await operator();
     const modelId = uniqueName("conf-model");
@@ -519,19 +533,19 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     expect(first.pricing?.effectiveAt, "effective_at is stamped by the server").toBeDefined();
     expect(first.pricing?.inputPriceMicrosPerMillion).toBe(1_000_000n);
 
-    const active = await op.clients.billingQuery.listModelPricingBaselines({});
-    const listed = active.entries.find((b) => b.modelId === modelId);
+    const active = await everyBaseline(op);
+    const listed = active.find((b) => b.modelId === modelId);
     expect(listed?.baselineId).toBe(first.baselineId);
     expect(listed?.pricing?.outputPriceMicrosPerMillion).toBe(5_000_000n);
-    for (const baseline of active.entries) expect(baseline.status, `${baseline.modelId} in the ACTIVE list`).toBe(ModelPricingBaselineStatus.pricing_baseline_active);
+    for (const baseline of active) expect(baseline.status, `${baseline.modelId} in the ACTIVE list`).toBe(ModelPricingBaselineStatus.pricing_baseline_active);
 
     // The same key again is a revision: the prior document is superseded and chained, not duplicated.
     const second = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, 2_000_000n, 5_000_000n), revisionNote: "conformance revision" });
     expect(second.baselineId).not.toBe(first.baselineId);
     expect(second.supersedesBaselineId).toBe(first.baselineId);
-    const activeNow = (await op.clients.billingQuery.listModelPricingBaselines({})).entries.filter((b) => b.modelId === modelId);
+    const activeNow = (await everyBaseline(op)).filter((b) => b.modelId === modelId);
     expect(activeNow.map((b) => b.baselineId), "exactly one ACTIVE document per key").toEqual([second.baselineId]);
-    const history = (await op.clients.billingQuery.listModelPricingBaselines({ includeHistory: true })).entries.filter((b) => b.modelId === modelId);
+    const history = (await everyBaseline(op, true)).filter((b) => b.modelId === modelId);
     expect(history.map((b) => [b.baselineId, b.status]), "history lists the ACTIVE revision first, then the superseded one").toEqual([
       [second.baselineId, ModelPricingBaselineStatus.pricing_baseline_active],
       [first.baselineId, ModelPricingBaselineStatus.pricing_baseline_superseded],
@@ -567,10 +581,10 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     const retired = await op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native", revisionNote: "conformance retire" });
     expect(retired.baselineId).toBe(upserted.baselineId);
     expect(retired.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
-    const active = await op.clients.billingQuery.listModelPricingBaselines({});
-    expect(active.entries.some((b) => b.modelId === modelId), "a retired key is not ACTIVE").toBe(false);
-    const history = await op.clients.billingQuery.listModelPricingBaselines({ includeHistory: true });
-    expect(history.entries.find((b) => b.baselineId === upserted.baselineId)?.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
+    const active = await everyBaseline(op);
+    expect(active.some((b) => b.modelId === modelId), "a retired key is not ACTIVE").toBe(false);
+    const history = await everyBaseline(op, true);
+    expect(history.find((b) => b.baselineId === upserted.baselineId)?.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
 
     const again = await expectGrpcCode(
       () => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }),
