@@ -68,6 +68,7 @@ describe("the Claude views", () => {
     expect(views.viewsOf(call("Grep")).cursor).toEqual({ toolName: "Grep", toolInput: { pattern: "TODO", file_path: ROOT, glob: "*.ts", output_mode: "content" } });
     expect(views.viewsOf(call("Glob")).cursor).toEqual({ toolName: "Grep", toolInput: { pattern: "", glob: "**/*.ts", file_path: `${ROOT}/src`, output_mode: "files_with_matches" } });
     expect(views.viewsOf(call("Glob", { pattern: "*.md" })).cursor?.toolInput.file_path, "a glob with no path searches the workspace").toBe(ROOT);
+    expect(views.viewsOf(call("Grep", { pattern: "x" })).cursor?.toolInput, "a search with no path names none").toEqual({ pattern: "x" });
     for (const name of ["NotebookEdit", "TodoWrite", "Agent", "Skill", "ToolSearch", "StructuredOutput"]) {
       expect(views.viewsOf(call(name)).cursor, name).toBeUndefined();
     }

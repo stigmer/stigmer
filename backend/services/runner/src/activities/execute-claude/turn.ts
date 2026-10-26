@@ -423,7 +423,12 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
  * proposal, with no arguments, so the row keeps the model's own call as
  * the session's log holds it.
  */
-function proposeDeferred(sink: TurnSink, gate: ClaudeGate, bridge: McpBridge, callId: string): void {
+export function proposeDeferred(
+  sink: Pick<TurnSink, "transcript">,
+  gate: Pick<ClaudeGate, "verdictOf">,
+  bridge: Pick<McpBridge, "serverOf">,
+  callId: string,
+): void {
   const verdict = gate.verdictOf(callId);
   if (verdict?.kind !== "pause") throw new Error(`the engine deferred call ${callId}, which the gate did not hold for a person`);
   const name = isHostShell(verdict.toolName) ? HOST_SHELL_TOOL.engineName : verdict.toolName;

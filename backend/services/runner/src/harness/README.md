@@ -510,8 +510,8 @@ second net: they pin a turn's persisted status byte for byte.
 
 ## Footprint
 
-Measured on 2026-10-25 at 27d72cc165 with the change that gave the Claude adapter
-skills and sub-agents applied, production TypeScript only, `__tests__/` and `__test-utils__/`
+Measured on 2026-10-26 at 49dad9ecd3 with the change that gave the Claude adapter
+its approvals and hooks applied, production TypeScript only, `__tests__/` and `__test-utils__/`
 excluded. Run from `backend/services/runner/` to re-measure:
 
 ```bash
@@ -525,12 +525,12 @@ done
 | What                                                                                                     | Lines  | Files |
 | -------------------------------------------------------------------------------------------------------- | ------ | ----- |
 | The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator | 609    | 1     |
-| The native adapter, `activities/execute-deep-agent/`                                                     | 6,405  | 28    |
-| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,938 | 40    |
-| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 3,444  | 22    |
+| The native adapter, `activities/execute-deep-agent/`                                                     | 6,273  | 27    |
+| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,933 | 40    |
+| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 4,416  | 24    |
 | The runtime, `harness/`, for scale: written once                                                         | 11,397 | 29    |
 | The test side the native adapter adds: its subject, its hermetic kit file, its two fences                | 935    | 4     |
-| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 910    | 5     |
+| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 883    | 5     |
 
 ## Design history
 

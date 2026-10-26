@@ -14,10 +14,13 @@
  * native engine, and its feedback must reach the model and the row alike.
  */
 
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { TurnSubagent } from "../../../harness/types.js";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
@@ -99,6 +102,20 @@ const base = { session_id: "s", transcript_path: "", cwd: "/ws" };
 const post = (id: string, response: unknown): HookInput => ({ ...base, hook_event_name: "PostToolUse", tool_name: "x", tool_input: {}, tool_response: response, tool_use_id: id });
 const failure = (id: string): HookInput => ({ ...base, hook_event_name: "PostToolUseFailure", tool_name: "x", tool_input: {}, tool_use_id: id, error: "boom" });
 
+describe("a hook that runs long", () => {
+  it("tells the turn it is alive while it runs", async () => {
+    const seen: string[] = [];
+    const sink = { stopSignal: new AbortController().signal, recordActivity: (detail?: string) => void seen.push(detail ?? "") };
+    const input = turnInputFixture({
+      workspaceDir: mkdtempSync(join(tmpdir(), "claude-hooks-")),
+      hooks: { sources: [{ plugin: null, format: "claude-code", groups: [group("PreToolUse", "sleep 0.4")] }], serverNames: new Map() },
+    });
+    const hooks = await turnHookEvaluators(input, sink, 90);
+    await hooks.root!.preToolUse({ id: "toolu_slow", name: "Bash", args: { command: "ls" }, serverSlug: "" }, {});
+    expect(seen.length).toBeGreaterThan(0);
+  });
+});
+
 describe("HookFeedback", () => {
   const signal = new AbortController().signal;
 
@@ -111,6 +128,15 @@ describe("HookFeedback", () => {
     expect(await after(post("toolu_1", [{ type: "text", text: "listing" }]), "toolu_1", { signal })).toEqual({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: section } });
     expect(feedback.sectionOf("toolu_1")).toBe(section);
     expect(outputs, "the hook read the tool's text as Bash's stdout").toEqual([JSON.stringify({ stdout: "listing", stderr: "", interrupted: false, isImage: false })]);
+  });
+
+  it("logs a PostToolUse hook that failed, and hands back nothing of it", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const hooks = { root: postHooks({ exitCode: 1, stderr: "crashed" }), subagents: new Map() };
+    const feedback = feedbackOver(hooks, new Map([["toolu_x", allowed()]]));
+    expect(await feedback.callbacks().PostToolUse![0]!.hooks[0]!(post("toolu_x", "out"), "toolu_x", { signal })).toEqual({});
+    expect(warn.mock.calls.some(([line]) => String(line).includes("a PostToolUse hook failed"))).toBe(true);
+    warn.mockRestore();
   });
 
   it("on a failed call hands back the PreToolUse context alone, through the failure callback", async () => {

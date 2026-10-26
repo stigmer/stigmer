@@ -57,6 +57,13 @@ function textOf(result: CallToolResult): string {
 }
 
 describe("the loopback endpoint", () => {
+  it("closes with a session still open, and the client's next call fails", async () => {
+    const { client, endpoint } = await connectServed([echoServer([])]);
+    await endpoint.close();
+    await expect(client.listTools()).rejects.toThrow();
+    await client.close().catch(() => undefined);
+  });
+
   it("names each server and lists each tool's JSON schema exactly as written, read on every listing", async () => {
     let tools: Tool[] = [];
     const { client, endpoint } = await connect(echoServer([], () => tools));
@@ -110,7 +117,16 @@ describe("the loopback endpoint", () => {
     expect((await post(url)).status).toBe(401);
     expect((await post(url, "Bearer not-the-token")).status).toBe(401);
     expect((await post(url.replace(/probe$/, "other"), endpoint.configs.probe!.headers!.Authorization)).status).toBe(404);
-    expect((await post(url, endpoint.configs.probe!.headers!.Authorization)).status).toBe(200);
+    const auth = endpoint.configs.probe!.headers!.Authorization;
+    expect((await post(url, auth)).status).toBe(200);
+    expect((await post(url.replace(/\/mcp\/probe$/, "/other"), auth)).status, "a path outside the endpoint's").toBe(404);
+    expect((await post(url.replace(/probe$/, "%E0%A4%A"), auth)).status, "a path that does not decode").toBe(404);
+    const stale = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: auth, "mcp-session-id": "no-such-session" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
+    });
+    expect(stale.status, "a session the endpoint never opened").toBe(404);
     await endpoint.close();
     await expect(post(url, endpoint.configs.probe!.headers!.Authorization)).rejects.toThrow();
   });

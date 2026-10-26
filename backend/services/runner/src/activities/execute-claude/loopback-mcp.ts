@@ -94,6 +94,7 @@ export async function startLoopbackMcp(servers: readonly ServedServer[], admit: 
   };
 
   const http = createServer((req, res) => {
+    /* v8 ignore next 4 -- @preserve: a net for a transport that throws; the MCP SDK's answers every request it is handed */
     handle(req, res).catch((err: unknown) => {
       console.warn(`[claude-mcp] the loopback endpoint failed a request: ${err instanceof Error ? err.message : String(err)}`);
       if (!res.headersSent) reply(res, 500, "The request failed.");
