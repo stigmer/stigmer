@@ -51,7 +51,8 @@
               "status": "TOOL_CALL_COMPLETED",
               "startedAt": "2026-01-01T00:00:02.000Z",
               "completedAt": "2026-01-01T00:00:02.000Z",
-              "argsPreview": "{\"skill\":\"acme:lint\"}"
+              "argsPreview": "{\"skill\":\"acme:lint\"}",
+              "toolKind": "TOOL_KIND_SKILL"
             },
             {
               "id": "toolu_helper_docs",

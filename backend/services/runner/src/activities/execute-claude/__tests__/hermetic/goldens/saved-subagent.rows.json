@@ -53,7 +53,8 @@
               "status": "TOOL_CALL_COMPLETED",
               "startedAt": "2026-01-01T00:00:02.000Z",
               "completedAt": "2026-01-01T00:00:02.000Z",
-              "argsPreview": "{\"skill\":\"agent:ci-checklist\"}"
+              "argsPreview": "{\"skill\":\"agent:ci-checklist\"}",
+              "toolKind": "TOOL_KIND_SKILL"
             },
             {
               "id": "toolu_runner_ci",
