@@ -5,9 +5,10 @@
  * A routine whose fires would run the CURSOR harness must pin a model: an
  * empty model there selects Auto, whose price variant follows the provider
  * ACCOUNT's out-of-band default speed setting — nobody at a 3 AM fire is
- * watching a rate change. The native harness is exempt on purpose: an
- * empty model resolves to the platform's own registry-priced default at an
- * explicitly requested tier — deterministic, nothing to pin.
+ * watching a rate change. The native and Claude harnesses are exempt on
+ * purpose: an empty model resolves to the engine's own registry-priced
+ * default row at an explicitly requested tier — deterministic, nothing to
+ * pin.
  *
  * Only an EXPLICIT cursor harness trips this save-time rule. A routine
  * that names no harness fires on its agent's engine when it names no model

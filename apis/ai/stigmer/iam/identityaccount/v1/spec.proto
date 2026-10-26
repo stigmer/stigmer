@@ -120,7 +120,7 @@ message IdentityAccountPreferences {
   // frames it as context, not instructions that override the task.
   string standing_context = 1 [(buf.validate.field).string.max_len = 2000];
 
-  // Default harness for new sessions: "native" or "cursor".
+  // Default harness for new sessions: "native", "cursor" or "claude".
   // Empty means no preference — the platform default applies.
   //
   // @internal
@@ -133,7 +133,8 @@ message IdentityAccountPreferences {
     (buf.validate.field).string = {
       in: [
         "native",
-        "cursor"
+        "cursor",
+        "claude"
       ]
     }
   ];
@@ -188,4 +189,11 @@ message IdentityAccountPreferences {
   // account default > the host app's StigmerProvider approvalDefaults >
   // fail-closed (gated). Never applied to guest/observer surfaces.
   bool default_auto_approve = 6;
+
+  // Default model (registry model ID) for claude-harness sessions.
+  // Empty means no preference — the platform default applies.
+  //
+  // @internal
+  // Same client-side validation contract as default_native_model.
+  string default_claude_model = 7 [(buf.validate.field).string.max_len = 100];
 }

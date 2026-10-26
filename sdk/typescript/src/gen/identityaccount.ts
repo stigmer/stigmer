@@ -165,6 +165,7 @@ export interface IdentityAccountPreferencesInput {
   defaultCursorModel?: string;
   memoryEnabled?: boolean;
   defaultAutoApprove?: boolean;
+  defaultClaudeModel?: string;
 }
 
 function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesInput) {
@@ -175,6 +176,7 @@ function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesI
     defaultCursorModel: input.defaultCursorModel,
     memoryEnabled: input.memoryEnabled,
     defaultAutoApprove: input.defaultAutoApprove,
+    defaultClaudeModel: input.defaultClaudeModel,
   }));
 }
 
@@ -214,6 +216,7 @@ function toIdentityAccountPreferencesInput(msg: IdentityAccountPreferences): Ide
     defaultCursorModel: msg.defaultCursorModel || undefined,
     memoryEnabled: msg.memoryEnabled || undefined,
     defaultAutoApprove: msg.defaultAutoApprove || undefined,
+    defaultClaudeModel: msg.defaultClaudeModel || undefined,
   };
 }
 

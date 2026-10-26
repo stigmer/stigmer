@@ -1,6 +1,262 @@
 {
   "models" : [ {
     "id" : "claude-fable-5",
+    "apiModelId" : "claude-fable-5",
+    "displayName" : "Claude Fable 5",
+    "shortDescription" : "Frontier long-running agent model",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "premium",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 10.0,
+      "outputPricePerMillion" : 50.0,
+      "cacheWritePricePerMillion" : 12.5,
+      "cacheReadPricePerMillion" : 1.0,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Fable 5 $10/$50, cache write $12.50, read $1. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; adaptive thinking only.",
+      "effectiveAt" : "2026-07-22T14:05:25.960449352Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : true
+    }
+  }, {
+    "id" : "claude-haiku-4.5",
+    "apiModelId" : "claude-haiku-4-5-20251001",
+    "displayName" : "Claude Haiku 4.5",
+    "shortDescription" : "Quick responses, lower cost",
+    "speedTier" : "fastest",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "economy",
+    "featured" : true,
+    "pricing" : {
+      "inputPricePerMillion" : 1.0,
+      "outputPricePerMillion" : 5.0,
+      "cacheWritePricePerMillion" : 1.25,
+      "cacheReadPricePerMillion" : 0.1,
+      "source" : "anthropic_api",
+      "effectiveAt" : "2026-05-03T00:00:00Z"
+    },
+    "contextWindowTokens" : 200000,
+    "maxOutputTokens" : 64000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-opus-4.5",
+    "apiModelId" : "claude-opus-4-5-20251101",
+    "displayName" : "Claude Opus 4.5",
+    "shortDescription" : "Advanced reasoning, previous gen",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "premium",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "source" : "anthropic_api",
+      "effectiveAt" : "2026-05-03T00:00:00Z"
+    },
+    "contextWindowTokens" : 200000,
+    "maxOutputTokens" : 64000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-opus-4.6",
+    "apiModelId" : "claude-opus-4-6",
+    "displayName" : "Claude Opus 4.6",
+    "shortDescription" : "Complex reasoning & analysis",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "premium",
+    "featured" : true,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "source" : "anthropic_api",
+      "effectiveAt" : "2026-05-03T00:00:00Z"
+    },
+    "contextWindowTokens" : 200000,
+    "maxOutputTokens" : 128000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-opus-4.7",
+    "apiModelId" : "claude-opus-4-7",
+    "displayName" : "Claude Opus 4.7",
+    "shortDescription" : "Complex agentic work, prior gen",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "premium",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Opus 4.7 $5/$25, cache write $6.25, read $0.50. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; thinking.type.enabled rejected, thinking.type.adaptive accepted.",
+      "effectiveAt" : "2026-07-22T14:05:25.040914622Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-opus-4.8",
+    "apiModelId" : "claude-opus-4-8",
+    "displayName" : "Claude Opus 4.8",
+    "shortDescription" : "Frontier agentic coding",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "premium",
+    "featured" : true,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Opus 4.8 $5/$25, cache write $6.25, read $0.50. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; adaptive thinking only. Anthropic offers a native fast mode at 2x standard pricing — NOT dispatched by the native runner today, so no pricingVariants.fast recorded; add one before ever requesting fast mode.",
+      "effectiveAt" : "2026-07-22T14:05:25.379184893Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-sonnet-4.5",
+    "apiModelId" : "claude-sonnet-4-5-20250929",
+    "displayName" : "Claude Sonnet 4.5",
+    "shortDescription" : "Reliable all-purpose model",
+    "speedTier" : "fast",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "standard",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 3.0,
+      "outputPricePerMillion" : 15.0,
+      "cacheWritePricePerMillion" : 3.75,
+      "cacheReadPricePerMillion" : 0.3,
+      "source" : "anthropic_api",
+      "effectiveAt" : "2026-05-03T00:00:00Z"
+    },
+    "contextWindowTokens" : 200000,
+    "maxOutputTokens" : 64000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : true,
+      "adaptiveThinking" : false,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-sonnet-4.6",
+    "apiModelId" : "claude-sonnet-4-6",
+    "displayName" : "Claude Sonnet 4.6",
+    "shortDescription" : "Best for most tasks",
+    "speedTier" : "fast",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "standard",
+    "featured" : true,
+    "pricing" : {
+      "inputPricePerMillion" : 3.0,
+      "outputPricePerMillion" : 15.0,
+      "cacheWritePricePerMillion" : 3.75,
+      "cacheReadPricePerMillion" : 0.3,
+      "source" : "anthropic_api",
+      "effectiveAt" : "2026-05-03T00:00:00Z"
+    },
+    "contextWindowTokens" : 200000,
+    "maxOutputTokens" : 65536,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-sonnet-5",
+    "apiModelId" : "claude-sonnet-5",
+    "displayName" : "Claude Sonnet 5",
+    "shortDescription" : "High-performance coding and agents",
+    "speedTier" : "fast",
+    "provider" : "anthropic",
+    "harness" : "claude",
+    "costTier" : "standard",
+    "featured" : true,
+    "pricing" : {
+      "inputPricePerMillion" : 2.0,
+      "outputPricePerMillion" : 10.0,
+      "cacheWritePricePerMillion" : 2.5,
+      "cacheReadPricePerMillion" : 0.2,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Sonnet 5 INTRODUCTORY pricing $2/$10 (cache write $2.50, read $0.20) through 2026-08-31; standard $3/$15 thereafter — RE-BASELINE ON 2026-09-01. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; adaptive thinking only.",
+      "effectiveAt" : "2026-07-22T14:05:25.664875544Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true,
+      "thinkingRequired" : false
+    }
+  }, {
+    "id" : "claude-fable-5",
     "displayName" : "Claude Fable 5",
     "shortDescription" : "Anthropic's frontier agent model",
     "speedTier" : "slow",

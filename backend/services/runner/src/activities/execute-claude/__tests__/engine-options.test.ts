@@ -15,6 +15,8 @@ import { describe, it, expect } from "vitest";
 import type { CanUseTool, HookCallbackMatcher, HookEvent, McpServerConfig, SessionStore } from "@anthropic-ai/claude-agent-sdk";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
+import type { ThinkingProfile } from "../../../shared/model-registry.js";
+import { BUDGET_THINKING_TOKENS } from "../../../shared/thinking-mode.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import {
   BUILT_IN_PLUGINS,
@@ -27,6 +29,7 @@ import {
   offeredBuiltins,
   userMessageOf,
   type EngineOptionsInputs,
+  thinkingOf,
 } from "../engine-options.js";
 import { HOST_SHELL_TOOL } from "../host-shell.js";
 
@@ -52,7 +55,7 @@ function inputs(overrides: Partial<EngineOptionsInputs> = {}): EngineOptionsInpu
     agents: {},
     systemAppend: "the append",
     model: "claude-sonnet-4-5",
-    thinkingMode: ThinkingMode.DISABLED,
+    thinking: { type: "disabled" },
     hooks,
     canUseTool,
     sessionStore,
@@ -250,9 +253,30 @@ describe("engineOptions", () => {
     expect(engineOptions(inputs({ structuredOutputSchema: schema })).outputFormat).toEqual({ type: "json_schema", schema });
   });
 
-  it("thinks adaptively when thinking is on and not at all when it is off", () => {
-    expect(engineOptions(inputs({ thinkingMode: ThinkingMode.ENABLED })).thinking).toEqual({ type: "adaptive" });
-    expect(engineOptions(inputs({ thinkingMode: ThinkingMode.DISABLED })).thinking).toEqual({ type: "disabled" });
+  it("hands the engine the turn's thinking, and leaves it out when the turn has none to send", () => {
+    expect(engineOptions(inputs({ thinking: { type: "adaptive", display: "summarized" } })).thinking).toEqual({ type: "adaptive", display: "summarized" });
+    expect(engineOptions(inputs({ thinking: undefined }))).not.toHaveProperty("thinking");
+  });
+});
+
+describe("thinkingOf", () => {
+  const ADAPTIVE: ThinkingProfile = { shape: "adaptive", required: false };
+  const BUDGET: ThinkingProfile = { shape: "budget", required: false };
+
+  it("sends the form the model's row declares when thinking is on, its reasoning readable", () => {
+    expect(thinkingOf(ThinkingMode.ENABLED, ADAPTIVE)).toEqual({ type: "adaptive", display: "summarized" });
+    expect(thinkingOf(ThinkingMode.ENABLED, BUDGET)).toEqual({ type: "enabled", budgetTokens: BUDGET_THINKING_TOKENS });
+  });
+
+  it("turns thinking off on a model that accepts it, and keeps the form on one that requires thinking", () => {
+    expect(thinkingOf(ThinkingMode.DISABLED, ADAPTIVE)).toEqual({ type: "disabled" });
+    expect(thinkingOf(ThinkingMode.DISABLED, { shape: "adaptive", required: true })).toEqual({ type: "adaptive", display: "summarized" });
+  });
+
+  it("sends nothing where the row declares no form, or no row lists the model, so the engine keeps its own", () => {
+    expect(thinkingOf(ThinkingMode.ENABLED, { shape: "none", required: undefined })).toBeUndefined();
+    expect(thinkingOf(ThinkingMode.DISABLED, { shape: "adaptive", required: undefined })).toBeUndefined();
+    expect(thinkingOf(ThinkingMode.ENABLED, undefined)).toBeUndefined();
   });
 });
 

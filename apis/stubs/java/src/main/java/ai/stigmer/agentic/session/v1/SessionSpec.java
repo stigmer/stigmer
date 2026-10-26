@@ -403,8 +403,7 @@ java.lang.String defaultValue) {
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
    * - CURSOR: the Cursor SDK
-   * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-   * offers it
+   * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
    * is managed, available models, and billing tier. Once set and a run
@@ -427,8 +426,7 @@ java.lang.String defaultValue) {
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
    * - CURSOR: the Cursor SDK
-   * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-   * offers it
+   * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
    * is managed, available models, and billing tier. Once set and a run
@@ -2800,8 +2798,7 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
-     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-     * offers it
+     * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2824,8 +2821,7 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
-     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-     * offers it
+     * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2853,8 +2849,7 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
-     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-     * offers it
+     * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2879,8 +2874,7 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
-     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-     * offers it
+     * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2908,8 +2902,7 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
-     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
-     * offers it
+     * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run

@@ -45,10 +45,10 @@
 
 import type { AgentDefinition, McpServerConfig, Options, SdkPluginConfig, SDKUserMessage, SessionStore, ThinkingConfig } from "@anthropic-ai/claude-agent-sdk";
 import type { ClaudeTool } from "@stigmer/tool-vocabulary";
-import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { ToolScope } from "../../shared/tool-lists.js";
-import type { EffectiveThinkingMode } from "../../shared/thinking-mode.js";
+import type { ThinkingProfile } from "../../shared/model-registry.js";
+import { toAnthropicThinking, type EffectiveThinkingMode } from "../../shared/thinking-mode.js";
 import { HOST_SHELL_TOOL } from "./host-shell.js";
 
 /**
@@ -117,7 +117,8 @@ export interface EngineOptionsInputs {
   readonly agents: Readonly<Record<string, AgentDefinition>>;
   readonly systemAppend: string;
   readonly model: string;
-  readonly thinkingMode: EffectiveThinkingMode;
+  /** The turn's thinking in the engine's form ({@link thinkingOf}); undefined leaves the engine its own. */
+  readonly thinking: ThinkingConfig | undefined;
   readonly hooks: NonNullable<Options["hooks"]>;
   readonly canUseTool: NonNullable<Options["canUseTool"]>;
   readonly sessionStore: SessionStore;
@@ -157,7 +158,7 @@ export function engineOptions(inputs: EngineOptionsInputs): Options {
     verbatimPrompts: true,
     systemPrompt: { type: "preset", preset: "claude_code", append: inputs.systemAppend, snapshot: false },
     model: inputs.model,
-    thinking: thinkingOf(inputs.thinkingMode),
+    ...(inputs.thinking !== undefined ? { thinking: inputs.thinking } : {}),
     hooks: inputs.hooks,
     canUseTool: inputs.canUseTool,
     sessionStore: inputs.sessionStore,
@@ -172,9 +173,28 @@ export function engineOptions(inputs: EngineOptionsInputs): Options {
 /** The engine's built-in plugins, each turned off (the header). The ids the engine reports in its init. */
 export const BUILT_IN_PLUGINS: readonly string[] = ["cc-plugin-agents-md@builtin", "cc-plugin-plugin-authoring@builtin"];
 
-/** The turn's thinking mode in the engine's form: the model decides how much when it thinks at all. */
-function thinkingOf(mode: EffectiveThinkingMode): ThinkingConfig {
-  return mode === ThinkingMode.ENABLED ? { type: "adaptive" } : { type: "disabled" };
+/**
+ * The turn's thinking in the engine's form: the native engine's one mapping
+ * for the model's own Claude row (`shared/thinking-mode.ts`
+ * `toAnthropicThinking`), translated to the SDK's type. A row that requires
+ * thinking gets its form whatever the mode, adaptive reasoning arrives
+ * summarized rather than empty, and a budget row gets its fixed budget.
+ * Where the mapping sends nothing (no row, a row with no form), `thinking`
+ * is left out and the engine thinks by its own default (measured on SDK
+ * 0.3.310), which a model that requires thinking accepts and `disabled`
+ * would not.
+ */
+export function thinkingOf(mode: EffectiveThinkingMode, profile: ThinkingProfile | undefined): ThinkingConfig | undefined {
+  const wire = toAnthropicThinking(mode, profile);
+  if (wire === undefined) return undefined;
+  switch (wire.type) {
+    case "adaptive":
+      return { type: "adaptive", ...(wire.display ? { display: wire.display } : {}) };
+    case "enabled":
+      return { type: "enabled", budgetTokens: wire.budget_tokens, ...(wire.display ? { display: wire.display } : {}) };
+    case "disabled":
+      return { type: "disabled" };
+  }
 }
 
 /** One message of the prompt stream: the person's text (and images first, as content blocks) under an id. */

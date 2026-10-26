@@ -364,7 +364,7 @@ describe("ClaudeTranslator: sub-agents", () => {
 
 describe("ClaudeTranslator: names", () => {
   it("reports the host's aliased shell as Bash, with no server slug, streamed or whole", () => {
-    const t = translator({ serverOf: () => ({ slug: "stigmer" }) });
+    const t = translator({ serverOf: () => ({ slug: "stigmer", tool: "bash" }) });
     t.translate(messageStart("msg_1"));
     expect(t.translate(toolBlockStart(0, "toolu_sh", "mcp__stigmer__bash"))).toEqual([{ kind: "tool_started", callId: "toolu_sh", name: "Bash", input: {}, mcpServerSlug: "" }]);
     expect(t.translate(assistant("msg_2", [{ type: "tool_use", id: "toolu_sh2", name: "mcp__stigmer__bash", input: { command: "ls" } }]))).toEqual([
@@ -372,10 +372,10 @@ describe("ClaudeTranslator: names", () => {
     ]);
   });
 
-  it("carries a bridged server's slug on its tool's row, under the engine's name", () => {
-    const t = translator({ serverOf: (name) => (name.startsWith("mcp__github__") ? { slug: "github" } : undefined) });
+  it("names a bridged server's tool's row by the tool's bare name, beside its server's slug", () => {
+    const t = translator({ serverOf: (name) => (name.startsWith("mcp__github__") ? { slug: "github", tool: name.slice("mcp__github__".length) } : undefined) });
     expect(t.translate(assistant("msg_1", [{ type: "tool_use", id: "toolu_gh", name: "mcp__github__create_issue", input: { title: "x" } }]))).toEqual([
-      { kind: "tool_started", callId: "toolu_gh", name: "mcp__github__create_issue", input: { title: "x" }, mcpServerSlug: "github" },
+      { kind: "tool_started", callId: "toolu_gh", name: "create_issue", input: { title: "x" }, mcpServerSlug: "github" },
     ]);
   });
 });

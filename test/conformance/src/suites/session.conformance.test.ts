@@ -866,6 +866,20 @@ describe("Session conformance — a new conversation's engine", () => {
 
     expect(created.spec?.harness).toBe(Harness.NATIVE);
   });
+  it("[rpc:SessionCommandController.create] a conversation on Claude, named or from a Claude agent's defaults, is stored on Claude", async () => {
+    const { org } = await target.provisionTenancy();
+    const claudeAgent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("claude-agent"), harness: Harness.CLAUDE }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: claudeAgent.metadata!.id }));
+    expect(claudeAgent.spec?.harness, "an agent's defaults may name Claude").toBe(Harness.CLAUDE);
+
+    const inherited = await createSession(org, uniqueName("session"), agentRefOf(claudeAgent));
+    expect(inherited.spec?.harness).toBe(Harness.CLAUDE);
+
+    const named = await createSession(org, uniqueName("session"), await provisionAgentRef(org), { harness: Harness.CLAUDE });
+    expect((await clients.sessionQuery.get({ value: named.metadata!.id })).spec?.harness).toBe(Harness.CLAUDE);
+  });
 });
 
 describe("Session conformance — references across organizations and on update", () => {

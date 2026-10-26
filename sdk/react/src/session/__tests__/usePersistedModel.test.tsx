@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { usePersistedModel } from "../usePersistedModel";
+import { modelStorageKey, usePersistedModel } from "../usePersistedModel";
 import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
@@ -170,5 +170,16 @@ describe("usePersistedModel", () => {
 
       expect(result.current[0]).toBe(DEFAULT_CURSOR_MODEL_ID);
     });
+  });
+});
+
+describe("modelStorageKey", () => {
+  it("keeps one key per engine, the native and Cursor keys as they always were", () => {
+    expect([modelStorageKey("native"), modelStorageKey("cursor"), modelStorageKey("claude")]).toEqual([
+      "stigmer:session:model",
+      "stigmer:session:model:cursor",
+      "stigmer:session:model:claude",
+    ]);
+    expect(modelStorageKey()).toBe("stigmer:session:model");
   });
 });

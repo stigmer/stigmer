@@ -19,9 +19,10 @@
  *  - A table lists engine names in a fixed order and each name's covered
  *    Claude tools in a fixed order. The reverse reading takes the first
  *    covered tool, so the order is part of the contract, pinned by tests.
- *  - `Skill` is a Claude name no engine tool covers: both engines activate a
- *    skill by reading its `SKILL.md`, which is a read. The runner gives
- *    `Skill` its own meaning (a deny hides skills); the tables never list it.
+ *  - `Skill` is a Claude name no engine tool covers: native and Cursor
+ *    activate a skill by reading its `SKILL.md`, which is a read, and the
+ *    Claude engine's own `Skill` tool is itself. The runner gives `Skill` its
+ *    own meaning (a deny hides skills); the tables never list it.
  *  - Names Claude Code has that Stigmer runs nothing for (`AskUserQuestion`,
  *    `NotebookRead`, the task tools) are not in {@link ClaudeTool}: a list
  *    entry naming one is an entry naming no tool, which the runner ignores
@@ -143,8 +144,19 @@ export const CURSOR_SDK_EXTRA_TOOLS: readonly string[] = [
   "applyAgentDiff",
 ];
 
+/**
+ * The names a recorded Claude-engine transcript carries, and the Claude tool
+ * each is: the engine is Claude Code's own, so each name is itself (the
+ * host's shell is recorded as `Bash`). `Skill` is not listed, as in every
+ * table, and still reads as itself, as any name a table does not carry
+ * does; so does `ToolSearch`, the engine's own way to its deferred tools.
+ */
+export const CLAUDE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map(
+  CLAUDE_TOOLS.filter((tool) => tool !== "Skill").map((tool): [string, readonly ClaudeTool[]] => [tool, [tool]]),
+);
+
 /** The engines whose recorded tool calls {@link claudeNameOf} reads. */
-export type ToolEngine = "native" | "cursor";
+export type ToolEngine = "native" | "cursor" | "claude";
 
 /** The table a recorded call of each engine is named in. */
 function recordedTable(engine: ToolEngine): ReadonlyMap<string, readonly ClaudeTool[]> {
@@ -154,6 +166,8 @@ function recordedTable(engine: ToolEngine): ReadonlyMap<string, readonly ClaudeT
     case "cursor":
       // A Cursor transcript records the SDK's names, not the hook's.
       return CURSOR_SDK_TOOL_COVERS;
+    case "claude":
+      return CLAUDE_TOOL_COVERS;
     /* v8 ignore start -- @preserve: the never arm; the compiler proves no engine reaches it */
     default: {
       const exhaustive: never = engine;

@@ -16,10 +16,8 @@
  *   - hooks at apply: an inline block is stored with Claude Code's format
  *     filled, and a malformed one is refused on the create and on the
  *     update an apply delegates to (ValidateHooks runs on both chains);
- *   - an engine this platform does not offer is refused on create and on
- *     the update an apply delegates to, with FailedPrecondition and the
- *     engine's name (Claude, until it is offered); an existing agent keeps
- *     its engine;
+ *   - every engine the proto names is offered on create and on the update
+ *     an apply delegates to, Claude included;
  *   - cascade delete (oss#611): same-org channels of every type, and the
  *     agent's routines with their fire history, are
  *     deleted, a stored cross-org channel of the same agent SURVIVES, and
@@ -384,21 +382,16 @@ describe("agent hooks at apply", () => {
 });
 
 describe("agent engine — the offered-engine rule", () => {
-  it("refuses an agent on Claude on create, and moving one to Claude on update", async () => {
+  it("accepts an agent on Claude on create, and moving one to Claude on update", async () => {
     const input = agentInput({ name: "Claude Agent" });
-    const created = await grpcError(() =>
-      command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } }),
-    );
-    expect(created.code).toBe(Code.FailedPrecondition);
-    expect(created.rawMessage).toBe("Claude is not available on this platform yet (spec.harness)");
+    const created = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } });
+    expect(created.spec?.harness).toBe(Harness.CLAUDE);
 
     const native = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.NATIVE } });
-    const moved = await grpcError(() =>
-      command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } }),
-    );
-    expect(moved.code).toBe(Code.FailedPrecondition);
-    const stored = await query.get({ value: native.metadata!.id });
-    expect(stored.spec?.harness).toBe(Harness.NATIVE);
+    expect(native.spec?.harness).toBe(Harness.NATIVE);
+    const moved = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } });
+    const stored = await query.get({ value: moved.metadata!.id });
+    expect(stored.spec?.harness).toBe(Harness.CLAUDE);
   });
 });
 

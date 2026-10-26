@@ -136,7 +136,6 @@ export class HookFeedback {
         name: server?.tool ?? (isHostShell(verdict.toolName) ? HOST_SHELL_TOOL.engineName : verdict.toolName),
         args: verdict.args,
         serverSlug: server?.slug ?? "",
-        ...(server !== undefined ? { rowName: verdict.toolName } : {}),
       };
       const scope = verdict.caller.kind === "subagent" && agentId !== undefined ? { subAgent: { type: verdict.caller.type, id: agentId } } : {};
       const post = await evaluator.postToolUse(call, scope, output);

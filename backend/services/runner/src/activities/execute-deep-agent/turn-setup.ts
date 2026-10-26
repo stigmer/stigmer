@@ -63,7 +63,7 @@ import type { ApprovalGateConfig, PersonRefusal } from "../../middleware/approva
 import { WEB_FETCH_TOOL_NAME, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
 import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
-import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-registry.js";
+import { getDefaultModel, getRequestProfile } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import { recordModelWindow, windowLogLines } from "../../shared/model-window.js";
 import { createCompactionMiddleware } from "../../middleware/compaction.js";
@@ -207,7 +207,7 @@ export type DeepAgentGraphInput =
  * read the spec field beside the runtime's resolved copy.)
  */
 export async function resolveModelName(input: TurnInput): Promise<string> {
-  return input.model.requested === "default" ? await getDefaultModel() : input.model.requested;
+  return input.model.requested === "default" ? await getDefaultModel("native") : input.model.requested;
 }
 
 /**
@@ -501,7 +501,7 @@ export async function buildEngine(
   // row's `contextWindowTokens`), and said once per model in the turn's log.
   const windowLines = new Set<string>();
   const buildModelFor = async (name: string) => {
-    const profile = await getNativeRequestProfile(name);
+    const profile = await getRequestProfile(name, "native");
     const built = await buildChatModel({
       modelName: name,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
@@ -526,7 +526,7 @@ export async function buildEngine(
   // Whether this graph reasons natively, derived from the same mapping the
   // request carries: it decides the structured-output strategy below, so the
   // strategy cannot disagree with the wire.
-  const parentThinks = graphThinks(input.model.thinkingMode, (await getNativeRequestProfile(modelName))?.thinking);
+  const parentThinks = graphThinks(input.model.thinkingMode, (await getRequestProfile(modelName, "native"))?.thinking);
   sink.setupTiming.mark("build_model");
 
   await ensurePricingLoaded();

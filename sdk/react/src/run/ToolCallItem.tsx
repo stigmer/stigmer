@@ -632,8 +632,18 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   mcp: McpPlugIcon,
   memory: BookmarkIcon,
   "background-stop": StopSquareIcon,
+  skill: BookIcon,
   unknown: WrenchIcon,
 };
+
+function BookIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 2.5a1 1 0 0 1 1-1h6.5v8H3a1 1 0 0 0-1 1z" />
+      <path d="M2 10.5a1 1 0 0 1 1-1h6.5v1.5H3a1 1 0 0 1-1-1z" />
+    </svg>
+  );
+}
 
 function StopSquareIcon() {
   return (

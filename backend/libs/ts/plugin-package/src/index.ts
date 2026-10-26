@@ -70,13 +70,14 @@ export { readPluginPackage } from "./read-plugin-package.js";
 export { isToolNameSegment, toolServerSegment } from "./tool-names.js";
 export {
   DEFAULT_EVAL_DIR,
-  EVAL_CURSOR_UNSUPPORTED_FEATURES,
+  EVAL_ENGINE_UNSUPPORTED_FEATURES,
   EVAL_MAX_APPEND_SYSTEM_PROMPT,
   EVAL_MAX_GRADERS,
   EVAL_UNSUPPORTED_FEATURES,
-  type EvalCursorUnsupportedFeature,
+  type EvalEngine,
+  type EvalEngineUnsupportedFeature,
   type EvalUnsupportedFeature,
-  evalCaseUnsupportedOnCursor,
+  evalCaseUnsupportedOn,
   readEvalFolder,
   readEvalSuite,
 } from "./evals/read-eval-suite.js";

@@ -36,8 +36,12 @@
  * Names: the engine's shell is reported under the name its model used,
  * `Bash`; a call the model made to the host's aliased name
  * (`mcp__stigmer__bash`, `host-shell.ts`) is reported as `Bash` too, so the
- * aliased name never reaches a row. An MCP call carries its bridged
- * server's slug (`mcp-bridge.ts`); every other name is a built-in's.
+ * aliased name never reaches a row. An MCP call's row is its tool, by the
+ * bare name its server gave it, with the bridged server's slug
+ * (`mcp-bridge.ts`), as the native and Cursor engines name it, so every
+ * reader of a row (the session's log, the eval trace, the views) reads one
+ * spelling; the engine's own `mcp__<slug>__<tool>` never reaches a row.
+ * Every other name is a built-in's.
  *
  * Everything else the engine sends (its status, retries, its own init, the
  * result) is the turn loop's (`turn.ts`), not a transcript fact.
@@ -55,7 +59,7 @@ const AGENT_TOOL = "Agent";
 /** What the translator reads beside the stream. */
 export interface ClaudeTranslatorDeps {
   /** The bridged server an engine tool name belongs to; undefined for a built-in. */
-  readonly serverOf: (toolName: string) => { readonly slug: string } | undefined;
+  readonly serverOf: (toolName: string) => { readonly slug: string; readonly tool: string } | undefined;
   /** The gate's decision for a call, once made. */
   readonly verdictOf: (toolUseId: string) => GateVerdict | undefined;
   /** The hooks' feedback section for a call, once its result is in; undefined for none. */
@@ -183,7 +187,8 @@ export class ClaudeTranslator {
 
   /** A call's row opened (or reconciled, when it is already open), with the sub-agent row an `Agent` call opens before it. */
   private toolStarted(callId: string, engineName: string, input: Record<string, unknown>, scope: Scope): StreamFact[] {
-    const name = isHostShell(engineName) ? HOST_SHELL_TOOL.engineName : engineName;
+    const server = isHostShell(engineName) ? undefined : this.deps.serverOf(engineName);
+    const name = isHostShell(engineName) ? HOST_SHELL_TOOL.engineName : (server?.tool ?? engineName);
     const known = this.callNames.has(callId);
     this.callNames.set(callId, name);
     const out: StreamFact[] = [];
@@ -203,7 +208,7 @@ export class ClaudeTranslator {
       callId,
       name,
       input,
-      mcpServerSlug: isHostShell(engineName) ? "" : (this.deps.serverOf(engineName)?.slug ?? ""),
+      mcpServerSlug: server?.slug ?? "",
       ...scope,
     });
     return out;

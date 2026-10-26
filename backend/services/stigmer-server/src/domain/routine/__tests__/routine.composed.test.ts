@@ -10,8 +10,10 @@
  *   - the create refusals an unattended run needs: a resource that is a
  *     local folder, a File that does not exist (domain/file/routine-files.ts
  *     owns the File checks), a Cursor routine with no pinned model, and
- *     a pin the model registry does not know, and an engine this platform
- *     does not offer (Claude, until it is offered);
+ *     and a pin the model registry does not know, on that engine's own
+ *     rows (a Claude routine's pin is judged on Claude's); a Claude routine
+ *     with no pinned model is accepted, since Claude's default is a
+ *     catalog row;
  *   - status preservation across apply-as-update (the auto-pause can never
  *     be clobbered declaratively) and the update graft's status honesty;
  *   - an update keeps the tick's pause that lands between its read and its
@@ -258,16 +260,23 @@ describe("create — the defaults resolver through the real chain", () => {
     expect(err.rawMessage).toContain("spec.agent.run_config.model_name");
   });
 
-  it("refuses a routine on an engine this platform does not offer", async () => {
+  it("accepts a Claude routine with no pinned model, and judges a Claude pin on Claude's rows", async () => {
     const input = routineInput({ name: "Claude rounds" });
+    const created = await command.create({
+      ...input,
+      spec: { ...input.spec, agent: { ...input.spec.agent, harness: Harness.CLAUDE, runConfig: undefined } },
+    });
+    expect(created.spec?.agent?.harness).toBe(Harness.CLAUDE);
+
+    const cursorOnly = routineInput({ name: "Claude on a Cursor model" });
     const err = await refusal(() =>
       command.create({
-        ...input,
-        spec: { ...input.spec, agent: { ...input.spec.agent, harness: Harness.CLAUDE } },
+        ...cursorOnly,
+        spec: { ...cursorOnly.spec, agent: { ...cursorOnly.spec.agent, harness: Harness.CLAUDE, runConfig: { modelName: "composer-2.5" } } },
       }),
     );
-    expect(err.code).toBe(Code.FailedPrecondition);
-    expect(err.rawMessage).toBe("Claude is not available on this platform yet (spec.agent.harness)");
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toContain("model 'composer-2.5' is not in the model registry (claude harness)");
   });
 
   it("refuses a resource that is a local folder", async () => {

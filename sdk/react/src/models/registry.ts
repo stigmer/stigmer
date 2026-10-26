@@ -452,6 +452,13 @@ export interface DefaultModelResolution {
   readonly source: DefaultModelSource;
 }
 
+/** Each engine's last-resort model, for a registry with no usable row: the native and Claude engines run the same Claude model, Cursor its Auto pool. */
+const PLATFORM_FALLBACK_MODEL_IDS: Readonly<Record<HarnessOption, string>> = {
+  native: DEFAULT_MODEL_ID,
+  cursor: DEFAULT_CURSOR_MODEL_ID,
+  claude: DEFAULT_MODEL_ID,
+};
+
 /**
  * Resolve the default model for a given harness using a priority chain.
  *
@@ -475,8 +482,9 @@ export interface DefaultModelResolution {
  *   suggesting Auto and sending it explicitly are byte-identical to the
  *   pre-#663 empty send. Auto prices no fast variant, so the fast-tier
  *   switch correctly never renders for a fresh composer.
- * - `native` — the runner's own `getDefaultModel()` rule: featured AND
- *   standard cost, then any standard-cost model. A first-featured pick
+ * - `native` and `claude` — the runner's own `getDefaultModel()` rule, in
+ *   the engine's own rows: featured AND standard cost, then any
+ *   standard-cost model. A first-featured pick
  *   with no cost filter (the pre-#663 behavior) could suggest — and now
  *   would run — a premium model for users who never opened the picker.
  */
@@ -537,6 +545,5 @@ export function resolveDefaultModelId(
   );
   if (featured) return { modelId: featured.modelId, source: "harness_default" };
 
-  const fallbackId = harness === "cursor" ? DEFAULT_CURSOR_MODEL_ID : DEFAULT_MODEL_ID;
-  return { modelId: fallbackId, source: "platform_fallback" };
+  return { modelId: PLATFORM_FALLBACK_MODEL_IDS[harness], source: "platform_fallback" };
 }

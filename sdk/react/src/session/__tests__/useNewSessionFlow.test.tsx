@@ -1058,6 +1058,7 @@ describe("useNewSessionFlow", () => {
         { id: "gpt-5.3", displayName: "GPT 5.3", shortDescription: "", speedTier: "fast", provider: "openai", harness: "native", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8, cacheWritePricePerMillion: 2, cacheReadPricePerMillion: 0.2 } },
         { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
         { id: "composer-2.5", displayName: "Composer 2.5", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1, cacheReadPricePerMillion: 0.1 } },
+        { id: "claude-sonnet-5", displayName: "Claude Sonnet 5", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 0.2 } },
       ],
     });
 
@@ -1173,6 +1174,21 @@ describe("useNewSessionFlow", () => {
 
       expect(result.current.harness).toBe("cursor");
       expect(result.current.modelId).toBe("composer-2.5");
+    });
+
+    it("follows the active harness: claudeModel seeds Claude sessions, a stored Claude pick outranks the account's engine", () => {
+      const opts = {
+        ...defaultOptions(),
+        accountDefaults: { harness: "claude" as const, nativeModel: "gpt-5.3", claudeModel: "claude-sonnet-5" },
+      };
+      const { result, unmount } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
+      expect(result.current.harness).toBe("claude");
+      expect(result.current.modelId).toBe("claude-sonnet-5");
+      unmount();
+
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
+      const stored = renderHook(() => useNewSessionFlow({ ...defaultOptions(), accountDefaults: { harness: "cursor" as const } }), { wrapper: seedWrapper() });
+      expect(stored.result.current.harness).toBe("claude");
     });
 
     it("submits the seeded model explicitly — the pill promise (#663): the preference seeds, the execution spec records", async () => {

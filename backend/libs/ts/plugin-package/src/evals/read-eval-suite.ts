@@ -58,7 +58,7 @@
  * `unsupported` naming the first such feature in `EVAL_UNSUPPORTED_FEATURES`
  * order: running it without the feature would produce a wrong score. A
  * feature one engine cannot run is that engine's alone
- * ({@link evalCaseUnsupportedOnCursor}): the server lists the case as not
+ * ({@link evalCaseUnsupportedOn}): the server lists the case as not
  * run on that engine's targets and runs it on the others.
  *
  * A plugin's suite may mock only the servers its plugin declares, the
@@ -124,22 +124,36 @@ export const EVAL_UNSUPPORTED_FEATURES = ["plugins", "more than 32 graders"] as 
 
 export type EvalUnsupportedFeature = (typeof EVAL_UNSUPPORTED_FEATURES)[number];
 
+/** An engine a case may run on, by the word the model catalog files its rows under. */
+export type EvalEngine = "native" | "cursor" | "claude";
+
+/** A feature some engine cannot run: a recorded conversation to resume, or `env` for the case's commands. */
+export type EvalEngineUnsupportedFeature = "resumed conversations" | "env";
+
 /**
- * The features the Cursor engine cannot run, in the order a case is
- * checked for them. Its SDK keeps a conversation's history in a store it
- * owns, so a recorded conversation cannot be resumed there, and its shell
- * runs in the runner's process with no per-run environment, so `env` cannot
- * reach it.
+ * The features each engine cannot run, in the order a case is checked for
+ * them. The native engine runs every one. The Cursor engine's SDK keeps a
+ * conversation's history in a store it owns, so a recorded conversation
+ * cannot be resumed there, and its shell runs in the runner's process with
+ * no per-run environment, so `env` cannot reach it. The Claude engine's
+ * conversation lives in its own transcript, which no recorded history seeds
+ * yet; its shell is the runner's, so `env` reaches it as on native.
  */
-export const EVAL_CURSOR_UNSUPPORTED_FEATURES = ["resumed conversations", "env"] as const;
+export const EVAL_ENGINE_UNSUPPORTED_FEATURES: Readonly<Record<EvalEngine, readonly EvalEngineUnsupportedFeature[]>> = {
+  native: [],
+  cursor: ["resumed conversations", "env"],
+  claude: ["resumed conversations"],
+};
 
-export type EvalCursorUnsupportedFeature = (typeof EVAL_CURSOR_UNSUPPORTED_FEATURES)[number];
+/** Whether `evalCase` uses `feature`. */
+const USES: Readonly<Record<EvalEngineUnsupportedFeature, (evalCase: EvalCase) => boolean>> = {
+  "resumed conversations": (evalCase) => evalCase.context.historyFile !== undefined,
+  env: (evalCase) => Object.keys(evalCase.env).length > 0,
+};
 
-/** The first feature of `evalCase` the Cursor engine cannot run, or `undefined`. */
-export function evalCaseUnsupportedOnCursor(evalCase: EvalCase): EvalCursorUnsupportedFeature | undefined {
-  if (evalCase.context.historyFile !== undefined) return "resumed conversations";
-  if (Object.keys(evalCase.env).length > 0) return "env";
-  return undefined;
+/** The first feature of `evalCase` that `engine` cannot run, or `undefined`. */
+export function evalCaseUnsupportedOn(engine: EvalEngine, evalCase: EvalCase): EvalEngineUnsupportedFeature | undefined {
+  return EVAL_ENGINE_UNSUPPORTED_FEATURES[engine].find((feature) => USES[feature](evalCase));
 }
 
 const PROMPT_FILE = "prompt.md";

@@ -1,7 +1,7 @@
 /**
  * Pins that the server and the runner pick the same default model from the
  * same registry document. The runner decides which model a run with no model
- * named executes (`getDefaultModel`); the server's catalog answers the same
+ * named executes on an engine (`getDefaultModel`); the server's catalog answers the same
  * question (`defaultModel`) so the cloud's run admission can tell, before the
  * runner starts, which provider key such a run needs. Two implementations of
  * one rule drift silently, so this test runs both over the server's committed
@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { newModelCatalogProviderFromDocument } from "../../../../stigmer-server/src/modelcatalog/document-catalog.js";
 import { REAL_REGISTRY_PATH } from "../../__test-utils__/real-model-registry.js";
 import { inferProvider } from "../llm-proxy.js";
-import { _resetRegistryCache, getDefaultModel } from "../model-registry.js";
+import { _resetRegistryCache, getDefaultModel, type RegistryHarness } from "../model-registry.js";
 
 function serveRegistry(document: string): void {
   vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
@@ -25,10 +25,11 @@ function serveRegistry(document: string): void {
   );
 }
 
-async function bothDefaults(document: string): Promise<{ runner: string; server: string | undefined }> {
+async function bothDefaults(document: string, engine: RegistryHarness = "native"): Promise<{ runner: string; server: string | undefined }> {
+  _resetRegistryCache();
   serveRegistry(document);
-  const runner = await getDefaultModel();
-  const server = newModelCatalogProviderFromDocument(document).defaultModel("native");
+  const runner = await getDefaultModel(engine);
+  const server = newModelCatalogProviderFromDocument(document).defaultModel(engine);
   return { runner, server };
 }
 
@@ -48,6 +49,13 @@ describe("the default model, runner and server", () => {
     expect(server).toBe(runner);
     const catalog = newModelCatalogProviderFromDocument(document);
     expect(catalog.providerOf("native", runner)).toBe(inferProvider(runner));
+  });
+
+  it("agree on the Claude engine's own default in the server's committed registry", async () => {
+    const document = readFileSync(REAL_REGISTRY_PATH, "utf-8");
+    const { runner, server } = await bothDefaults(document, "claude");
+    expect(server).toBe(runner);
+    expect(newModelCatalogProviderFromDocument(document).providerOf("claude", runner)).toBe("anthropic");
   });
 
   it("agree when the first featured standard entry comes after a plain one", async () => {

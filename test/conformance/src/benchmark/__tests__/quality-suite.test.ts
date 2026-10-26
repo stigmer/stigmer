@@ -18,7 +18,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  evalCaseUnsupportedOnCursor,
+  evalCaseUnsupportedOn,
   inMemoryPluginFiles,
   readEvalSuite,
   readPluginPackage,
@@ -90,7 +90,7 @@ describe("the working agent's plugin", () => {
       expect(evalCase.unsupported, evalCase.name).toBeUndefined();
       expect(evalCase.context.scaffoldScript, evalCase.name).toBe("scaffold.sh");
       expect(await caseFile(evalCase.name, "scaffold.sh"), evalCase.name).toContain('cp -R "$(dirname "$0")/../_fixture/workspace/." .');
-      expect(evalCaseUnsupportedOnCursor(evalCase), evalCase.name).toBe(evalCase.name === "refine-over-turns" ? "resumed conversations" : undefined);
+      expect(evalCaseUnsupportedOn("cursor", evalCase), evalCase.name).toBe(evalCase.name === "refine-over-turns" ? "resumed conversations" : undefined);
     }
   });
 

@@ -2031,7 +2031,7 @@
         {
           "name": "HARNESS_CLAUDE",
           "number": 3,
-          "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer. Refused until the platform offers it."
+          "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
         }
       ]
     },

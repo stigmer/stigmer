@@ -79,9 +79,8 @@ export interface UseModelRegistryReturn {
  * `isLoading` is `true` and `models` is empty.
  *
  * **Modes:**
- * - `options.harness === "cursor"` — Cursor-harness models only
- * - `options.harness === "native"` — native models, excluding disabled providers
- * - `options.harness` omitted — unified: both harnesses, excluding disabled providers
+ * - `options.harness` set — that engine's own models, excluding disabled providers
+ * - `options.harness` omitted — unified: every engine's, excluding disabled providers
  *
  * @example
  * ```tsx

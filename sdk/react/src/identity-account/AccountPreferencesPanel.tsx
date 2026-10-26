@@ -13,11 +13,13 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
+import { ACCOUNT_DEFAULT_MODELS } from "./useAccountExecutionDefaults.js";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { useModelRegistry } from "../models/index.js";
 import { useServerInfo } from "../server-info.js";
-import { HARNESS_META, type HarnessOption } from "../models/harness.js";
+import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "../models/harness.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -37,10 +39,32 @@ export interface AccountPreferencesPanelProps {
 const PREFERENCES_FORM_PATHS = [
   "spec.preferences.standing_context",
   "spec.preferences.default_harness",
-  "spec.preferences.default_native_model",
-  "spec.preferences.default_cursor_model",
+  ...Object.values(ACCOUNT_DEFAULT_MODELS).map(({ path }) => path),
   "spec.preferences.default_auto_approve",
 ];
+
+/** Each engine's default model, by engine. */
+type DefaultModels = Readonly<Record<HarnessOption, string>>;
+
+/** The default models `prefs` declares, "" for none. */
+function defaultModelsOf(prefs: IdentityAccountPreferences | undefined): DefaultModels {
+  const entries = Object.entries(ACCOUNT_DEFAULT_MODELS) as [HarnessOption, (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]][];
+  return Object.fromEntries(entries.map(([harness, { preference }]) => [harness, prefs?.[preference] ?? ""])) as DefaultModels;
+}
+
+/** The default models as the account's preferences carry them. */
+function preferencesOf(models: DefaultModels): Pick<IdentityAccountPreferences, (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]["preference"]> {
+  const entries = Object.entries(ACCOUNT_DEFAULT_MODELS) as [HarnessOption, (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]][];
+  return Object.fromEntries(entries.map(([harness, { preference }]) => [preference, models[harness]])) as Pick<
+    IdentityAccountPreferences,
+    (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]["preference"]
+  >;
+}
+
+/** Whether two engines' default models differ anywhere. */
+function modelsDiffer(a: DefaultModels, b: DefaultModels): boolean {
+  return HARNESS_OPTIONS.some((harness) => a[harness] !== b[harness]);
+}
 /**
  * Self-contained editor for the current user's declared preferences
  * (`IdentityAccountSpec.preferences`): standing context plus the
@@ -108,15 +132,13 @@ export function AccountPreferencesPanel({
 
   const [standingContext, setStandingContext] = useState("");
   const [defaultHarness, setDefaultHarness] = useState("");
-  const [defaultNativeModel, setDefaultNativeModel] = useState("");
-  const [defaultCursorModel, setDefaultCursorModel] = useState("");
+  const [defaultModels, setDefaultModels] = useState<DefaultModels>(() => defaultModelsOf(undefined));
   const [defaultAutoApprove, setDefaultAutoApprove] = useState(false);
 
   const serverPreferences = account?.spec?.preferences;
   const serverStandingContext = serverPreferences?.standingContext ?? "";
   const serverDefaultHarness = serverPreferences?.defaultHarness ?? "";
-  const serverDefaultNativeModel = serverPreferences?.defaultNativeModel ?? "";
-  const serverDefaultCursorModel = serverPreferences?.defaultCursorModel ?? "";
+  const serverDefaultModels = useMemo(() => defaultModelsOf(serverPreferences), [serverPreferences]);
   const serverDefaultAutoApprove = serverPreferences?.defaultAutoApprove ?? false;
 
   // Sync the form fields when server data changes.
@@ -125,8 +147,7 @@ export function AccountPreferencesPanel({
     const prefs = account.spec?.preferences;
     setStandingContext(prefs?.standingContext ?? "");
     setDefaultHarness(prefs?.defaultHarness ?? "");
-    setDefaultNativeModel(prefs?.defaultNativeModel ?? "");
-    setDefaultCursorModel(prefs?.defaultCursorModel ?? "");
+    setDefaultModels(defaultModelsOf(prefs));
     setDefaultAutoApprove(prefs?.defaultAutoApprove ?? false);
   }, [account]);
 
@@ -134,19 +155,16 @@ export function AccountPreferencesPanel({
     () =>
       standingContext.trim() !== serverStandingContext ||
       defaultHarness !== serverDefaultHarness ||
-      defaultNativeModel !== serverDefaultNativeModel ||
-      defaultCursorModel !== serverDefaultCursorModel ||
+      modelsDiffer(defaultModels, serverDefaultModels) ||
       defaultAutoApprove !== serverDefaultAutoApprove,
     [
       standingContext,
       defaultHarness,
-      defaultNativeModel,
-      defaultCursorModel,
+      defaultModels,
       defaultAutoApprove,
       serverStandingContext,
       serverDefaultHarness,
-      serverDefaultNativeModel,
-      serverDefaultCursorModel,
+      serverDefaultModels,
       serverDefaultAutoApprove,
     ],
   );
@@ -156,15 +174,13 @@ export function AccountPreferencesPanel({
   const handleDiscard = useCallback(() => {
     setStandingContext(serverStandingContext);
     setDefaultHarness(serverDefaultHarness);
-    setDefaultNativeModel(serverDefaultNativeModel);
-    setDefaultCursorModel(serverDefaultCursorModel);
+    setDefaultModels(serverDefaultModels);
     setDefaultAutoApprove(serverDefaultAutoApprove);
     clearError();
   }, [
     serverStandingContext,
     serverDefaultHarness,
-    serverDefaultNativeModel,
-    serverDefaultCursorModel,
+    serverDefaultModels,
     serverDefaultAutoApprove,
     clearError,
   ]);
@@ -186,8 +202,7 @@ export function AccountPreferencesPanel({
               preferences: {
                 standingContext: standingContext.trim(),
                 defaultHarness,
-                defaultNativeModel,
-                defaultCursorModel,
+                ...preferencesOf(defaultModels),
                 defaultAutoApprove,
               },
             },
@@ -205,8 +220,7 @@ export function AccountPreferencesPanel({
       account,
       standingContext,
       defaultHarness,
-      defaultNativeModel,
-      defaultCursorModel,
+      defaultModels,
       defaultAutoApprove,
       update,
       clearError,
@@ -321,42 +335,27 @@ export function AccountPreferencesPanel({
             onSelect={setDefaultHarness}
             disabled={isUpdating}
           />
-          <HarnessOptionRow
-            radioName={`${baseId}-default-harness`}
-            value="native"
-            label={HARNESS_META.native.label}
-            description={HARNESS_META.native.description}
-            checked={defaultHarness === "native"}
-            onSelect={setDefaultHarness}
-            disabled={isUpdating}
-          >
-            <DefaultModelSelect
-              id={`${baseId}-default-native-model`}
-              harness="native"
-              label="Default model"
-              value={defaultNativeModel}
-              onChange={setDefaultNativeModel}
+          {HARNESS_OPTIONS.map((harness) => (
+            <HarnessOptionRow
+              key={harness}
+              radioName={`${baseId}-default-harness`}
+              value={harness}
+              label={HARNESS_META[harness].label}
+              description={HARNESS_META[harness].description}
+              checked={defaultHarness === harness}
+              onSelect={setDefaultHarness}
               disabled={isUpdating}
-            />
-          </HarnessOptionRow>
-          <HarnessOptionRow
-            radioName={`${baseId}-default-harness`}
-            value="cursor"
-            label={HARNESS_META.cursor.label}
-            description={HARNESS_META.cursor.description}
-            checked={defaultHarness === "cursor"}
-            onSelect={setDefaultHarness}
-            disabled={isUpdating}
-          >
-            <DefaultModelSelect
-              id={`${baseId}-default-cursor-model`}
-              harness="cursor"
-              label="Default model"
-              value={defaultCursorModel}
-              onChange={setDefaultCursorModel}
-              disabled={isUpdating}
-            />
-          </HarnessOptionRow>
+            >
+              <DefaultModelSelect
+                id={`${baseId}-default-${harness}-model`}
+                harness={harness}
+                label="Default model"
+                value={defaultModels[harness]}
+                onChange={(model) => setDefaultModels((models) => ({ ...models, [harness]: model }))}
+                disabled={isUpdating}
+              />
+            </HarnessOptionRow>
+          ))}
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
             Each harness&apos;s default model applies whenever a session runs
             on that harness — even when it isn&apos;t your default.
@@ -463,10 +462,11 @@ export function AccountPreferencesPanel({
  * a `<select>` inside the label would toggle the radio on every
  * interaction with it.
  *
- * The shipped-harness rows must stay in lockstep with the proto's
- * `default_harness` in-list validation (`["native", "cursor"]`) — each
- * shipped harness binds to its own proto model field, so a new harness
- * adds a field, a row, and a validation entry together.
+ * The rows are the offered engines (`HARNESS_OPTIONS`), each bound to its
+ * own proto model field through `ACCOUNT_DEFAULT_MODELS`, and must stay in
+ * lockstep with the proto's `default_harness` in-list validation
+ * (`["native", "cursor", "claude"]`): a new engine adds a field, a table
+ * entry and a validation entry together.
  */
 function HarnessOptionRow({
   radioName,

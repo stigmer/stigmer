@@ -67,6 +67,7 @@ import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -138,8 +139,8 @@ import { PLUGINS_SUBDIR } from "../shared/plugin-mount.js";
 import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../shared/workspace/stigmer-link.js";
 import { pluginAgentName } from "../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
-import { VisionBudget, type NotViewableEntry, type VisionImage, type VisionProfile } from "../shared/attachment-vision.js";
-import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
+import { VisionBudget, type NotViewableEntry, type VisionImage } from "../shared/attachment-vision.js";
+import { getDefaultModel, getModelVisionCapability, registrySectionOf } from "../shared/model-registry.js";
 import { pluginSubagentScope, savedSubagentScope, subagentModel } from "../shared/subagents.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
 import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
@@ -1703,14 +1704,15 @@ export async function holdPlatformToTurnPhase(
  * policy); a document is listed, never shown. The budget carries the vision
  * capability of the model the turn will run on: the one the turn's resolved
  * settings name (`status.run_config`, which the control plane resolved once
- * at create), or the registry's default when they name none — the model the
- * native harness builds in that case, so the budget asks about the model
- * that will actually see the image. The Cursor harness with no model named
- * builds its own catalog default instead (`resolveModelId("default")`), so
- * for it this is an approximation: today both answers read as sighted. The
+ * at create), or the engine's own registry default when they name none —
+ * the model the native and Claude engines build in that case, so the budget
+ * asks about the model that will actually see the image. The Cursor harness
+ * with no model named runs Auto, which has no row, and builds its own
+ * catalog default instead (`resolveModelId("default")`), so for it the
+ * native default stands in: today both answers read as sighted. The
  * registry is asked only when the message carries an image. The vision
- * profile is the harness's (each engine accepts different image shapes), so
- * it arrives as an argument.
+ * profile and the engine are the harness's (each engine accepts different
+ * image shapes), so they arrive as arguments.
  */
 export async function mountTurnFiles(
   deps: ResolutionDeps,
@@ -1719,7 +1721,7 @@ export async function mountTurnFiles(
     readonly session: Session;
     readonly sessionId: string;
     readonly primaryDir: string;
-    readonly visionProfile: VisionProfile;
+    readonly capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile">;
   },
 ): Promise<TurnFiles> {
   deps.enterPhase("mount_files");
@@ -1747,13 +1749,13 @@ export type MessageFilesView = Pick<TurnFiles, "message" | "visionImages" | "vis
 export async function mountMessageFiles(
   client: StigmerClient,
   turn: Pick<TurnInput, "executionId" | "execution" | "sessionId" | "workspace">,
-  visionProfile: VisionProfile,
+  capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile">,
   blocks: readonly ContentBlock[],
 ): Promise<MessageFilesView> {
   const entries = await fetchRunFileMounts(client, turn.executionId);
   const mounted = await mountFiles(entries, { sessionId: turn.sessionId, primaryWorkspaceDir: turn.workspace.primaryDir });
   const { message } = splitMessageFiles(blocks, mounted);
-  return viewMessageImages(turn.executionId, { execution: turn.execution, sessionId: turn.sessionId, visionProfile }, message);
+  return viewMessageImages(turn.executionId, { execution: turn.execution, sessionId: turn.sessionId, capabilities }, message);
 }
 
 /**
@@ -1763,15 +1765,17 @@ export async function mountMessageFiles(
  */
 async function viewMessageImages(
   executionId: string,
-  args: { readonly execution: Run; readonly sessionId: string; readonly visionProfile: VisionProfile },
+  args: { readonly execution: Run; readonly sessionId: string; readonly capabilities: Pick<HarnessCapabilities, "harness" | "visionProfile"> },
   message: readonly MessageFile[],
 ): Promise<MessageFilesView> {
   const visionImages: VisionImage[] = [];
   const visionNotViewable: NotViewableEntry[] = [];
   const images = message.filter((file) => file.kind === "image");
   if (images.length > 0) {
-    const modelName = args.execution.status?.runConfig?.modelName || (await getDefaultModel());
-    const budget = new VisionBudget(args.visionProfile, { modelVision: await getModelVisionCapability(modelName) });
+    const { harness, visionProfile } = args.capabilities;
+    // Cursor's empty model is Auto, which has no row: native's default stands in (the header).
+    const modelName = args.execution.status?.runConfig?.modelName || (await getDefaultModel(harness === Harness.CURSOR ? "native" : registrySectionOf(harness)));
+    const budget = new VisionBudget(visionProfile, { modelVision: await getModelVisionCapability(modelName) });
     for (const image of images) {
       const outcome = await offerMountedImage(image, args.sessionId, budget);
       if (outcome.kind === "accepted") visionImages.push(outcome.image);
@@ -2089,7 +2093,7 @@ export async function resolveTurnContext(
     session,
     sessionId,
     primaryDir: workspace.primaryDir,
-    visionProfile: capabilities.visionProfile,
+    capabilities,
   });
   const files: TurnFiles = prepared === undefined ? mountedFiles : { ...mountedFiles, references: prepared.case.referenceInputs };
   const appliedToolCallIds = await applyApprovedWrites(deps, {

@@ -285,18 +285,18 @@ describe("eval run create", () => {
     expect(typo.code).toBe(Code.InvalidArgument);
     expect(typo.rawMessage).toContain("spec.targets[0].model_name: model 'claude-sonet-4.6' is not in the model registry");
 
-    const unoffered = await refusal(
+    const unlisted = await refusal(
       evals.create(
         evalOf(plugin, {
           targets: [
             { harness: Harness.NATIVE, modelName: "" },
-            { harness: Harness.CLAUDE, modelName: "" },
+            { harness: Harness.CLAUDE, modelName: "composer-2.5" },
           ],
         }),
       ),
     );
-    expect(unoffered.code).toBe(Code.FailedPrecondition);
-    expect(unoffered.rawMessage).toBe("Claude is not available on this platform yet (spec.targets[1].harness)");
+    expect(unlisted.code).toBe(Code.InvalidArgument);
+    expect(unlisted.rawMessage).toContain("spec.targets[1].model_name: model 'composer-2.5' is not in the model registry (claude harness)");
 
     expect((await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).entries).toHaveLength(before);
   });

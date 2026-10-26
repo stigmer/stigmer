@@ -57,7 +57,7 @@
             },
             {
               "id": "toolu_runner_ci",
-              "name": "mcp__ci__run",
+              "name": "run",
               "args": {
                 "target": "all"
               },
@@ -88,7 +88,7 @@
             },
             {
               "id": "toolu_runner_docs",
-              "name": "mcp__docs__lookup",
+              "name": "lookup",
               "args": {
                 "target": "x"
               },

@@ -15,6 +15,9 @@
 //   - a Cursor run is refused the same way when the organization holds no
 //     Cursor key: the engine names the provider, and a run on Auto names no
 //     model, so the copy names none;
+//   - a Claude run is refused the same way when the organization holds no
+//     Anthropic key: the engine runs Claude models only, so it names the
+//     provider, and the copy names the run's model or the engine's default;
 //   - the same organization, once it saves its keys, runs to completion: the
 //     provider bills the organization directly.
 //
@@ -124,6 +127,27 @@ describe.skipIf(!billingEnabled)(
       expect(err.rawMessage).toBe(
         "This organization has no Cursor key, so the run was not started. An admin can add one in Settings → Provider keys.",
       );
+      expect(mock.remaining()).toBe(0);
+    });
+
+    it("[billing.gate.provider-key.keyless-claude-run-refused] a Claude run of an organization with no Anthropic key is refused at create with PROVIDER_KEY_REQUIRED naming Anthropic, and nothing reaches a model", async () => {
+      const { org } = await provisionBare();
+      const agentRef = await provisionAgent(org);
+
+      const err = await expectGrpcCode(
+        () =>
+          clients.agentExecutionCommand.create(
+            makeAgentExecution({ org, name: uniqueName("aex-claude"), agentRef, sessionSpec: { harness: Harness.CLAUDE } }),
+          ),
+        Code.FailedPrecondition,
+        "keyless Claude create",
+      );
+      const [info] = err.findDetails(ErrorInfoSchema);
+      expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
+      expect(info?.metadata["org"]).toBe(org);
+      expect(info?.metadata["provider"]).toBe("anthropic");
+      expect(err.rawMessage).toMatch(/^This organization has no Anthropic key( for model '.+')?, so the run was not started\./);
+      expect(err.rawMessage).toContain("An admin can add one in Settings → Provider keys.");
       expect(mock.remaining()).toBe(0);
     });
 

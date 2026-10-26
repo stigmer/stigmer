@@ -37,6 +37,7 @@ export type ToolCategory =
   | "mcp"
   | "memory"
   | "background-stop"
+  | "skill"
   | "unknown";
 
 /**
@@ -100,6 +101,9 @@ const QUIET_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   // The agent's stop of a background command reads as narration ("Stopped
   // `npm test`"): the command's own row carries its output and its end.
   "background-stop",
+  // A loaded skill reads as narration ("Use skill review"): the skill's
+  // instructions are the model's, not evidence to show.
+  "skill",
 ]);
 
 /**
@@ -247,6 +251,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   todo:        { category: "internal",  label: "Todos",     primaryField: "todos" },
   memory:      { category: "memory",    label: "Remember",  primaryField: "fact" },
   background_stop: { category: "background-stop", label: "Stop command", primaryField: "" },
+  skill:       { category: "skill",     label: "Use skill", primaryField: "skill" },
 };
 
 /**

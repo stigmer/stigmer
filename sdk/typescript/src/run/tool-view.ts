@@ -43,7 +43,8 @@ export type ToolKind =
   | "subagent"
   | "mcp"
   | "memory"
-  | "background_stop";
+  | "background_stop"
+  | "skill";
 
 /** A single match in a search/grep result. */
 export interface ToolSearchMatch {
@@ -225,6 +226,8 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["Agent", "subagent"],
 
   ["stop_background_command", "background_stop"],
+
+  ["Skill", "skill"],
 ]);
 
 /**
@@ -496,7 +499,7 @@ function normalizeWrite(args: Args): ToolResultView {
 
 function normalizeRead(args: Args, result: string): ToolResultView {
   const path = firstString(args, PATH_FIELDS) ?? "";
-  const framed = splitNativeReadFrame(result);
+  const framed = splitNativeReadFrame(result) ?? splitNumberedReadFrame(result);
   return {
     type: "file",
     path,
@@ -531,10 +534,37 @@ function splitNativeReadFrame(result: string): { body: string; truncated: boolea
   return { body: lines.slice(at + 1).join("\n"), truncated: fields.includes("truncated") };
 }
 
+// The Claude engine answers a text read as the file's lines, each after its
+// 1-based number and a tab, counting up from the first line it read (`1\t# Notes`).
+// Format owned by the engine; covered by test/fixtures/tool-view/result-views.json.
+// Every line must carry the next number, so a file that merely starts with a
+// number and a tab, read by another engine, is never stripped.
+const NUMBERED_READ_LINE = /^ *(\d+)\t/;
+
+function splitNumberedReadFrame(result: string): { body: string; truncated: boolean } | undefined {
+  const lines = result.split("\n");
+  const first = NUMBERED_READ_LINE.exec(lines[0] ?? "");
+  if (first === null) return undefined;
+  const start = Number(first[1]);
+  const body: string[] = [];
+  for (const [index, line] of lines.entries()) {
+    const numbered = NUMBERED_READ_LINE.exec(line);
+    if (numbered === null || Number(numbered[1]) !== start + index) return undefined;
+    body.push(line.slice(numbered[0].length));
+  }
+  return { body: body.join("\n"), truncated: false };
+}
+
 // Matches the deepagents shell marker, e.g. "[Command failed with exit code 2]"
 // or "[Command succeeded]". Format owned by the engine; covered by
 // test/fixtures/tool-view/result-views.json so a format change fails one test.
 const SHELL_EXIT_MARKER = /\n?\[Command (?:succeeded|failed with exit code (\d+))\]\s*$/;
+
+// The exit line the runner's own shell formatter appends after a failed exit
+// (`shared/shell/run-command.ts` `formatCommandOutput`): the Claude engine's
+// shell and a native background command's output. Covered by
+// test/fixtures/tool-view/result-views.json.
+const SHELL_EXIT_LINE = /\n\nExit code: (\d+)$/;
 
 function normalizeBackground(background: BackgroundCommandView, args: Args): ToolResultView {
   const command = firstString(args, ["command"]);
@@ -582,7 +612,10 @@ function normalizeShell(result: string, args: Args): ToolResultView {
     return { type: "terminal", command, stdout, stderr: "", exitCode };
   }
 
-  return { type: "terminal", command, stdout: result, stderr: "" };
+  // The formatter writes an exit line only after a failed exit, so a plain
+  // answer with none exited 0.
+  const exitLine = result.match(SHELL_EXIT_LINE);
+  return { type: "terminal", command, stdout: result.replace(SHELL_EXIT_LINE, ""), stderr: "", exitCode: exitLine !== null ? Number(exitLine[1]) : 0 };
 }
 
 // A grep-style match line, e.g. "  12: // TODO: fix".

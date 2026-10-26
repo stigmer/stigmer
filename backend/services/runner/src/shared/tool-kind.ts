@@ -81,6 +81,8 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["Agent", ToolKind.SUBAGENT],
 
   ["stop_background_command", ToolKind.BACKGROUND_STOP],
+
+  ["Skill", ToolKind.SKILL],
 ]);
 
 /**

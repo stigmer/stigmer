@@ -55,7 +55,7 @@
             },
             {
               "id": "toolu_helper_docs",
-              "name": "mcp__docs__lookup",
+              "name": "lookup",
               "args": {
                 "target": "style guide"
               },

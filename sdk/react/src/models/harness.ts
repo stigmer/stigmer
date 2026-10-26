@@ -69,12 +69,12 @@ export const HARNESS_LABELS: Readonly<Record<HarnessOption, string>> = Object.fr
 
 /**
  * The engines the platform offers, in proto enum order: what every picker
- * lists. A subset of the named engines, kept by hand because offering an
- * engine is a product decision, not a fact of the proto: Claude is named
- * but not offered until the server runs it, and the server refuses it
- * until then.
+ * lists. Kept by hand because offering an engine is a product decision,
+ * not a fact of the proto: an engine is named before it is offered, and
+ * the server refuses one it does not offer. Every named engine is offered
+ * today.
  */
-export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "cursor"];
+export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "cursor", "claude"];
 
 /** Platform default — resolves to the native engine. */
 export const DEFAULT_HARNESS: HarnessOption = "native";

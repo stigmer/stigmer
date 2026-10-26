@@ -13,7 +13,7 @@ import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_p
 import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { isModelListedFor, type RegistryHarness } from "./model-registry.js";
+import { isModelListedFor, registrySectionOf } from "./model-registry.js";
 import { ToolScope } from "./tool-lists.js";
 
 /** The owner a saved subagent's lists are reported under, in a log line or a refusal. */
@@ -91,20 +91,4 @@ export async function subagentModel(
     return undefined;
   }
   return (await isModelListedFor(name, registrySectionOf(engine))) ? name : undefined;
-}
-
-/** The model registry's section for an engine: each engine lists its own models. */
-function registrySectionOf(engine: Exclude<Harness, Harness.UNSPECIFIED>): RegistryHarness {
-  switch (engine) {
-    case Harness.NATIVE:
-      return "native";
-    case Harness.CURSOR:
-      return "cursor";
-    case Harness.CLAUDE:
-      return "claude";
-    default: {
-      const unknown: never = engine;
-      throw new Error(`subagent model: harness ${String(unknown)} names no engine`);
-    }
-  }
 }

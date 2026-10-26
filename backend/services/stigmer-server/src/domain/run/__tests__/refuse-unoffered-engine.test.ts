@@ -1,7 +1,8 @@
 /**
  * RefuseUnofferedEngine (refuse-unoffered-engine.ts): a turn is judged on
- * the engine ResolveRunConfig placed its conversation on. Claude is refused
- * with FailedPrecondition and its copy; an offered engine passes; a chain
+ * the engine ResolveRunConfig placed its conversation on. Every engine the
+ * proto names is offered and passes; a number no engine owns (a row stored
+ * before validation, say) is refused with FailedPrecondition naming it; a chain
  * without the placement (the step composed without ResolveRunConfig) has
  * nothing to judge and passes.
  */
@@ -29,22 +30,22 @@ function contextPlacedOn(engine: Harness | undefined): RequestContext<typeof Run
 describe("RefuseUnofferedEngine", () => {
   const step = newRefuseUnofferedEngineStep();
 
-  it("refuses a turn placed on Claude", () => {
+  it("refuses a turn placed on a number no engine owns", () => {
     let thrown: unknown;
     try {
-      step.execute(contextPlacedOn(Harness.CLAUDE));
+      step.execute(contextPlacedOn(7 as Harness));
     } catch (error) {
       thrown = error;
     }
     expect(thrown).toBeInstanceOf(ConnectError);
     expect((thrown as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((thrown as ConnectError).rawMessage).toBe(
-      "Claude is not available on this platform yet (the conversation's engine)",
+      "the conversation's engine names engine 7, which is not one this platform runs",
     );
   });
 
   it("passes a turn on an offered engine, or the platform default", () => {
-    for (const engine of [Harness.UNSPECIFIED, Harness.NATIVE, Harness.CURSOR]) {
+    for (const engine of [Harness.UNSPECIFIED, Harness.NATIVE, Harness.CURSOR, Harness.CLAUDE]) {
       expect(() => step.execute(contextPlacedOn(engine))).not.toThrow();
     }
   });

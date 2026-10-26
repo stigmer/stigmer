@@ -302,6 +302,14 @@ describe("a case from a turn that continues a conversation", () => {
     );
   });
 
+  it("notes that the Claude engine cannot resume the history either", async () => {
+    const run = await seedConversation(Harness.CLAUDE);
+    const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "on-claude", skill: "", callerId: CALLER });
+    expect(built.notes).toContain(
+      "the conversation ran on the Claude engine, which cannot resume a recorded history: the case runs on the native engine only",
+    );
+  });
+
   it("leaves out an event of the session that belongs to no run", async () => {
     const run = await seedConversation();
     const noRun = create(SessionEventSchema, { runId: "", event: { case: "sessionStatusIdle", value: { id: "ses_1.idle", stopReason: { type: "end_turn" } } } });

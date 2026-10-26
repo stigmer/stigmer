@@ -418,7 +418,9 @@ export function savedChoiceRefusal(placement: RunConfigPlacement): string {
 /**
  * The run-time pin-presence refusal, or "": an unattended turn that will
  * run Cursor with no model at any layer would run Auto, priced by the
- * provider account's own setting with nobody watching.
+ * provider account's own setting with nobody watching. Cursor's alone: an
+ * empty model on native or Claude is that engine's catalog default row,
+ * priced by the catalog.
  */
 export function unattendedPinRefusal(placement: RunConfigPlacement): string {
   if (

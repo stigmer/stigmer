@@ -21,9 +21,10 @@
  * text. The mock calls are the calls to the servers the run's case mocked,
  * by the server's key, with the answer the mock gave. A path no change set
  * touched is read from the files the runner returned for the graders, a
- * change set's content winning where both have one. A Claude run fails
- * loudly: its engine has no tool vocabulary yet, and reading its calls as
- * native's would grade them against the wrong tools.
+ * change set's content winning where both have one. A Claude run's calls
+ * already carry Claude Code's names, and an MCP call its bare tool beside
+ * its server, so they read as they were made; a number no engine owns fails
+ * loudly rather than being read as native's.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -369,12 +370,19 @@ describe("the eval trace, Cursor transcript", () => {
   });
 });
 
-describe("the eval trace, an engine with no tool vocabulary", () => {
-  it("fails loudly for a Claude run rather than grading its calls as native's", async () => {
-    const run = runOf([call("k1", "Bash", { command: "ls" })], []);
-    await expect(evalTraceOf(run, deps(Harness.CLAUDE))).rejects.toThrow(
-      "eval trace: the Claude engine has no tool vocabulary yet",
+describe("the eval trace, by the engine that made the calls", () => {
+  it("reads a Claude run's calls as they were made, an MCP call by its server and tool", async () => {
+    const run = runOf(
+      [
+        call("k1", "Bash", { command: "ls" }),
+        call("k2", "Skill", { skill: "thermos:review" }),
+        call("k3", "ToolSearch", { query: "select:mcp__docs__lookup" }),
+        call("k4", "lookup", { q: "x" }, { mcpServerSlug: "docs" }),
+      ],
+      [],
     );
+    const trace = await evalTraceOf(run, deps(Harness.CLAUDE));
+    expect(trace.toolCalls.map((c) => c.name)).toEqual(["Bash", "Skill", "ToolSearch", "mcp__docs__lookup"]);
   });
 
   it("names a number no engine owns rather than reading its calls as native's", async () => {

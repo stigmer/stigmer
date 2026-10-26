@@ -12,7 +12,9 @@
  *  - the platform's memory server, a synthesized attachment at the bridge
  *    endpoint, is reached the same way, with the run's attribution headers;
  *  - the engine's tools keep Claude Code's names, `mcp__<server>__<tool>`,
- *    behind the engine's tool search, and a call's result is the server's.
+ *    behind the engine's tool search, and a call's result is the server's;
+ *    its row is named by the bare tool beside its server's slug, as on the
+ *    other engines, so the memory card reads a Claude `remember`.
  *
  * A stdio server is the same bridge with another transport; that it is the
  * host's child and never the engine's is `__tests__/mcp-bridge.test.ts`'s.
@@ -65,7 +67,12 @@ const docs = new HttpMcpServer([{ name: "lookup", description: "Look a thing up.
   seenWhileWorking.push(hostDescendantCommandLines());
   return "Found it.";
 });
-const memory = new HttpMcpServer([{ name: "remember", description: "Remember a fact.", inputSchema: OBJECT }], async () => "Remembered.");
+/** The platform memory server's answer to `remember`: a proposal the person decides, its record in proto JSON (the memory card's input). */
+const PROPOSAL = JSON.stringify({
+  outcome: "Proposed — the user decides. Nothing is remembered unless they confirm this fact.",
+  memory: { metadata: { id: "mem_claude_1", org: "hermetic-org" }, spec: { content: "The thing is found." }, status: { lifecycle_state: "lifecycle_state_proposed" } },
+});
+const memory = new HttpMcpServer([{ name: "remember", description: "Remember a fact.", inputSchema: { type: "object" as const, properties: { fact: { type: "string" } } } }], async () => PROPOSAL);
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
@@ -93,7 +100,7 @@ describe("ExecuteClaude hermetic — MCP servers through the host's bridge", () 
     const steps = [
       { id: "toolu_mcp_load", name: "ToolSearch", input: { query: "select:mcp__docs__lookup,mcp__stigmer-memory__remember", max_results: 2 } },
       { id: "toolu_mcp_docs", name: "mcp__docs__lookup", input: { q: "the thing" } },
-      { id: "toolu_mcp_memory", name: "mcp__stigmer-memory__remember", input: { q: "the thing is found" } },
+      { id: "toolu_mcp_memory", name: "mcp__stigmer-memory__remember", input: { fact: "The thing is found." } },
     ];
     let tools: readonly string[] = [];
     const invocation = await file.run(record, (c: WireConversation) => {
@@ -105,12 +112,12 @@ describe("ExecuteClaude hermetic — MCP servers through the host's bridge", () 
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(record.toolCalls().map((row) => [row.name, row.status, row.result])).toEqual([
       ["ToolSearch", ToolCallStatus.TOOL_CALL_COMPLETED, "mcp__docs__lookup\nmcp__stigmer-memory__remember"],
-      ["mcp__docs__lookup", ToolCallStatus.TOOL_CALL_COMPLETED, "Found it."],
-      ["mcp__stigmer-memory__remember", ToolCallStatus.TOOL_CALL_COMPLETED, "Remembered."],
+      ["lookup", ToolCallStatus.TOOL_CALL_COMPLETED, "Found it."],
+      ["remember", ToolCallStatus.TOOL_CALL_COMPLETED, PROPOSAL],
     ]);
     expect(tools, "MCP tools are deferred behind the engine's tool search").toContain("ToolSearch");
     expect(docs.calls).toEqual([{ tool: "lookup", args: { q: "the thing" } }]);
-    expect(memory.calls).toEqual([{ tool: "remember", args: { q: "the thing is found" } }]);
+    expect(memory.calls).toEqual([{ tool: "remember", args: { fact: "The thing is found." } }]);
 
     expect(docs.requests.every((r) => r.headers.authorization === `Bearer ${SECRET}`), "the host sends the agent's login").toBe(true);
     expect(memory.requests.every((r) => r.path.startsWith(MEMORY_ROUTE)), "the memory server is reached at its bridge route").toBe(true);

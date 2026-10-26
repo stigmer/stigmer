@@ -211,6 +211,22 @@ describe("planMatrix", () => {
     ]);
   });
 
+  it("lists a resumed conversation as not run on a Claude target, and runs a case's env there", () => {
+    const targets = [create(EvalRunTargetSchema, { harness: Harness.NATIVE }), create(EvalRunTargetSchema, { harness: Harness.CLAUDE })];
+    const matrix = planMatrix(
+      suiteOf(
+        evalCase("resumed", { runs: 1, context: { addDirs: [], historyFile: "h.jsonl" } }),
+        evalCase("vars", { runs: 1, env: { EVAL_X: "1" } }),
+      ),
+      specOf({ targets }),
+      catalog,
+    );
+    expect(matrix.cases.map((c) => c.targets.map((t) => t.notRunReason))).toEqual([
+      [undefined, "not run on Claude: resumed conversations"],
+      [undefined, undefined],
+    ]);
+  });
+
   it("runs a case's catalog model on the native harness when the spec names no target", () => {
     const matrix = planMatrix(
       suiteOf(

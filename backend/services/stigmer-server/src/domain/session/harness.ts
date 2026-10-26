@@ -23,6 +23,10 @@
  * FailedPrecondition, the code ResolveRunConfig refuses with: the request
  * is valid, and this platform cannot run it.
  *
+ * Every engine the proto names is offered today, so the rule's refusals are
+ * met by a number the proto does not name, and by the next engine the
+ * proto names before this platform runs it.
+ *
  * Proven by __tests__/harness.test.ts and the run-admission conformance
  * suite's engine arm.
  */
@@ -33,10 +37,18 @@ import { failedPreconditionError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 
-/** The engines this platform runs. Unspecified is native, the platform default, and is always offered. */
+/**
+ * The engines this platform runs: every engine the proto names today.
+ * Unspecified is native, the platform default, and is always offered.
+ * Offering an engine means every runner that carries it runs it; a runner
+ * without it refuses the turn plainly, before anything runs (Claude's
+ * adapter, runner `activities/execute-claude/adapter.ts`), so the offer
+ * never waits on every runner carrying every engine.
+ */
 export const OFFERED_HARNESSES: ReadonlySet<Harness> = new Set([
   Harness.NATIVE,
   Harness.CURSOR,
+  Harness.CLAUDE,
 ]);
 
 /**

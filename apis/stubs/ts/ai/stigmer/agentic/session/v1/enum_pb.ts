@@ -85,7 +85,8 @@ export enum Harness {
    * Anthropic's Claude Agent SDK execution engine.
    *
    * Approvals that stop at the exact call, conversation state mirrored to
-   * Stigmer. Refused until the platform offers it.
+   * Stigmer, model calls on the organization's own Anthropic key. A runner
+   * that does not carry the engine refuses its turns plainly.
    *
    * @generated from enum value: HARNESS_CLAUDE = 3;
    */

@@ -9,11 +9,11 @@
  * seed with SaveResource.
  *
  * Load-bearing pins the conformance suite cannot cover:
- *   - a turn whose conversation would run on an engine the platform does
- *     not offer (Claude, until it is offered) is refused before the engine
- *     gate and before anything is stored: a new conversation naming it,
- *     and a message to a stored conversation on it (a row written before
- *     the rule);
+ *   - a turn whose conversation runs on Claude reaches the engine gate like
+ *     any offered engine's, a new conversation naming it and a message to a
+ *     stored one alike; a stored conversation whose engine is a number no
+ *     engine owns (a row written before validation) is refused before the
+ *     engine gate;
  *   - the MANGLED unknown-execution message on getRunUsageReport,
  *     byte-for-byte (a faithful port of the Go message);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
@@ -341,7 +341,7 @@ describe("create over the wire (engine gate)", () => {
 });
 
 describe("the offered-engine rule over the wire", () => {
-  it("refuses a new conversation on Claude before the engine gate, creating no session", async () => {
+  it("admits a new conversation on Claude to the engine gate", async () => {
     await namingSaves(server.store).saveResource(
       ApiResourceKind.agent,
       "agt_claude_gate",
@@ -366,20 +366,12 @@ describe("the offered-engine rule over the wire", () => {
             message: "hello",
           },
         }),
-      Code.FailedPrecondition,
+      Code.Unavailable,
     );
-    expect(err.rawMessage).toBe(
-      "Claude is not available on this platform yet (the conversation's engine)",
-    );
-    for (const data of await server.store.listResources(ApiResourceKind.run)) {
-      expect(fromBinary(RunSchema, data).metadata?.name).not.toBe("claude-exec");
-    }
-    for (const data of await server.store.listResources(ApiResourceKind.session)) {
-      expect(fromBinary(SessionSchema, data).spec?.harness).not.toBe(Harness.CLAUDE);
-    }
+    expect(err.rawMessage).not.toContain("not available on this platform");
   });
 
-  it("refuses a message to a stored conversation on Claude", async () => {
+  it("admits a message to a stored conversation on Claude to the engine gate", async () => {
     await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       "ses_stored_on_claude",
@@ -399,11 +391,34 @@ describe("the offered-engine rule over the wire", () => {
           metadata: { name: "a-claude-message", org: ORG },
           spec: { target: { case: "sessionId", value: "ses_stored_on_claude" }, message: "hello" },
         }),
+      Code.Unavailable,
+    );
+    expect(err.rawMessage).not.toContain("not available on this platform");
+  });
+
+  it("refuses a message to a stored conversation whose engine is a number no engine owns, before the engine gate", async () => {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.session,
+      "ses_stored_on_seven",
+      SessionSchema,
+      create(SessionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Session",
+        metadata: { id: "ses_stored_on_seven", name: "seven-session", slug: "seven-session", org: ORG_ID },
+        spec: { harness: 7 as Harness },
+      }),
+    );
+    const err = await expectCode(
+      () =>
+        command.sendMessage({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "a-seven-message", org: ORG },
+          spec: { target: { case: "sessionId", value: "ses_stored_on_seven" }, message: "hello" },
+        }),
       Code.FailedPrecondition,
     );
-    expect(err.rawMessage).toBe(
-      "Claude is not available on this platform yet (the conversation's engine)",
-    );
+    expect(err.rawMessage).toBe("the conversation's engine names engine 7, which is not one this platform runs");
   });
 });
 

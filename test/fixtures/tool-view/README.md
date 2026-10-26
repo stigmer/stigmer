@@ -7,7 +7,7 @@ renderers. (An earlier Go CLI `toolrender` package consumed them too; it was
 retired by the CLI TypeScript migration, PR #203.)
 
 They exist because tool *result* payloads are produced by third-party engines
-(deepagents, the Cursor SDK) whose formats are version-fragile. Encoding every
+(deepagents, the Cursor SDK, the Claude Agent SDK) whose formats are version-fragile. Encoding every
 format assumption here means a future engine/SDK bump fails one test and is fixed
 in one place, instead of silently drifting across client implementations.
 
@@ -69,10 +69,14 @@ so they are asserted in each surface's own unit tests (e.g.
 
 ## Consumers
 
-- TS reader: `sdk/typescript/src/execution/__tests__/tool-view.fixtures.test.ts`
+- TS reader: `sdk/typescript/src/run/__tests__/tool-view.fixtures.test.ts`
 - Runner writer (intent-title): `backend/services/runner/src/middleware/__tests__/tool-intent.test.ts`
 - Runner writer (secret-args): `backend/services/runner/src/shared/__tests__/args-preview.test.ts`
-- React reader (intent-title rendering): `sdk/react/src/execution/__tests__/intent-title.test.tsx`
+- React reader (intent-title rendering): `sdk/react/src/run/__tests__/intent-title.test.tsx`
+- Claude writer (result views): `backend/services/runner/src/activities/execute-claude/__tests__/tool-view-fixtures.test.ts`
+  holds every `harness: "claude"` case equal to the row the real engine wrote
+  in a hermetic run (`__tests__/hermetic/goldens/`); those cases are captured,
+  never written by hand.
 
 When you change an engine's result format, update the fixture here; the test
 suite will guide the corresponding parser change.

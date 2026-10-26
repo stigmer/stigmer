@@ -23,6 +23,7 @@
  */
 
 import { afterAll, beforeAll, beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -38,7 +39,8 @@ import { FileResourceSchema, SessionResourceSchema } from "@stigmer/apis/ai/stig
 import { ContentBlockSchema, ContentSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { FileMountSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 
-vi.mock("../../shared/model-registry.js", () => ({
+vi.mock("../../shared/model-registry.js", async (importOriginal) => ({
+  registrySectionOf: (await importOriginal<typeof import("../../shared/model-registry.js")>()).registrySectionOf,
   getDefaultModel: vi.fn(async () => "registry-default-model"),
   getModelVisionCapability: vi.fn(async () => true),
 }));
@@ -154,13 +156,13 @@ function execution(opts: { readonly messageFiles?: readonly [string, string][]; 
   });
 }
 
-async function run(client: StigmerClient, session: Session, exec: Run) {
+async function run(client: StigmerClient, session: Session, exec: Run, harness: Exclude<Harness, Harness.UNSPECIFIED> = Harness.NATIVE) {
   return mountTurnFiles(deps(client), {
     execution: exec,
     session,
     sessionId: SESSION_ID,
     primaryDir: workspace,
-    visionProfile: DEEP_AGENT_VISION_PROFILE,
+    capabilities: { harness, visionProfile: DEEP_AGENT_VISION_PROFILE },
   });
 }
 
@@ -248,8 +250,18 @@ describe("mountTurnFiles", () => {
     await run(client, sessionHolding(["file_img"]), execution({ requested: "requested-model", messageFiles: [["image", "file_img"]] }));
 
     expect(getDefaultModel).toHaveBeenCalledTimes(1);
+    expect(getDefaultModel).toHaveBeenCalledWith("native");
     expect(getModelVisionCapability).toHaveBeenCalledWith("registry-default-model");
     expect(getModelVisionCapability).not.toHaveBeenCalledWith("requested-model");
+  });
+
+  it("asks about the turn's own engine's default: Claude's on Claude, native's for Cursor's Auto", async () => {
+    const client = mockStigmerClient({ mountRunFiles: vi.fn().mockResolvedValue([file("file_img", "shot.png", PNG, "image/png")]) });
+
+    await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.CLAUDE);
+    expect(getDefaultModel).toHaveBeenLastCalledWith("claude");
+    await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.CURSOR);
+    expect(getDefaultModel).toHaveBeenLastCalledWith("native");
   });
 
   it("asks nothing of the registry when the message carries no image", async () => {
@@ -277,7 +289,7 @@ describe("mountMessageFiles", () => {
     const shown = await mountMessageFiles(
       client,
       { executionId: "aex_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
-      DEEP_AGENT_VISION_PROFILE,
+      { harness: Harness.NATIVE, visionProfile: DEEP_AGENT_VISION_PROFILE },
       blocks,
     );
 

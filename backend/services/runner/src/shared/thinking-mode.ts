@@ -34,7 +34,7 @@
 import type { ThinkingConfigParam } from "@anthropic-ai/sdk/resources/messages";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-import type { NativeThinkingProfile } from "./model-registry.js";
+import type { ThinkingProfile } from "./model-registry.js";
 
 /**
  * The effective mode after platform-default resolution: never UNSPECIFIED.
@@ -94,7 +94,7 @@ export const BUDGET_THINKING_TOKENS = 16_000;
  */
 export function toAnthropicThinking(
   mode: EffectiveThinkingMode,
-  profile: NativeThinkingProfile | undefined,
+  profile: ThinkingProfile | undefined,
 ): ThinkingConfigParam | undefined {
   if (profile === undefined) return undefined;
   if (profile.required === true || mode === ThinkingMode.ENABLED) {
@@ -118,7 +118,7 @@ export function toAnthropicThinking(
  */
 export function graphThinks(
   mode: EffectiveThinkingMode,
-  profile: NativeThinkingProfile | undefined,
+  profile: ThinkingProfile | undefined,
 ): boolean {
   const thinking = toAnthropicThinking(mode, profile);
   return thinking !== undefined && thinking.type !== "disabled";

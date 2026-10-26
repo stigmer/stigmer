@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { isHarnessOption, type HarnessOption } from "../models/harness.js";
 
@@ -15,6 +16,8 @@ export interface AccountExecutionDefaults {
   readonly nativeModel?: string;
   /** Preferred model for cursor-harness sessions, when declared. */
   readonly cursorModel?: string;
+  /** Preferred model for claude-harness sessions, when declared. */
+  readonly claudeModel?: string;
   /**
    * Start sessions with "auto-approve tool calls" armed
    * (`default_auto_approve`, stigmer/stigmer#816). A seed like every other
@@ -22,6 +25,27 @@ export interface AccountExecutionDefaults {
    * and it is never applied to guest/observer surfaces.
    */
   readonly autoApprove?: boolean;
+}
+
+/**
+ * Each engine's default model, by where it lives: its field on
+ * {@link AccountExecutionDefaults}, its field on the account's preferences,
+ * and the path an update names it by. One table for every reader and the
+ * editor (`AccountPreferencesPanel`), so an engine added to
+ * {@link HarnessOption} is a compile error here until it has all three.
+ */
+export const ACCOUNT_DEFAULT_MODELS = {
+  native: { defaults: "nativeModel", preference: "defaultNativeModel", path: "spec.preferences.default_native_model" },
+  cursor: { defaults: "cursorModel", preference: "defaultCursorModel", path: "spec.preferences.default_cursor_model" },
+  claude: { defaults: "claudeModel", preference: "defaultClaudeModel", path: "spec.preferences.default_claude_model" },
+} as const satisfies Record<
+  HarnessOption,
+  { readonly defaults: keyof AccountExecutionDefaults; readonly preference: keyof IdentityAccountPreferences; readonly path: string }
+>;
+
+/** The account's default model for `harness`, when declared. */
+export function accountDefaultModel(defaults: AccountExecutionDefaults | undefined, harness: HarnessOption): string | undefined {
+  return defaults?.[ACCOUNT_DEFAULT_MODELS[harness].defaults];
 }
 
 /**
@@ -58,13 +82,14 @@ export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefi
     // must not trust persisted data it did not write — unknown values are
     // treated as undeclared.
     const harness = isHarnessOption(prefs.defaultHarness) ? prefs.defaultHarness : undefined;
-    const nativeModel = prefs.defaultNativeModel || undefined;
-    const cursorModel = prefs.defaultCursorModel || undefined;
+    const models = Object.fromEntries(
+      Object.values(ACCOUNT_DEFAULT_MODELS).flatMap(({ defaults, preference }) => (prefs[preference] ? [[defaults, prefs[preference]]] : [])),
+    ) as Pick<AccountExecutionDefaults, "nativeModel" | "cursorModel" | "claudeModel">;
     // Only a declared `true` travels — an unset bool is "no preference",
     // matching the empty-string convention of the fields above.
     const autoApprove = prefs.defaultAutoApprove || undefined;
 
-    if (!harness && !nativeModel && !cursorModel && !autoApprove) return undefined;
-    return { harness, nativeModel, cursorModel, autoApprove };
+    if (!harness && Object.keys(models).length === 0 && !autoApprove) return undefined;
+    return { harness, ...models, autoApprove };
   }, [account]);
 }

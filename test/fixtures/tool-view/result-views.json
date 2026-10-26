@@ -200,6 +200,107 @@
       "args": { "fact": "Any fact." },
       "result": "unexpected plain text",
       "expected": { "type": "text" }
+    },
+    {
+      "name": "claude_shell_success",
+      "harness": "claude",
+      "toolName": "Bash",
+      "mcpServerSlug": "",
+      "args": { "command": "printf 'one\\ntwo\\n'", "description": "Print two lines" },
+      "result": "one\ntwo\n",
+      "expected": { "type": "terminal", "exitCode": 0, "command": "printf 'one\\ntwo\\n'" }
+    },
+    {
+      "name": "claude_shell_failure",
+      "harness": "claude",
+      "toolName": "Bash",
+      "mcpServerSlug": "",
+      "args": { "command": "echo broken >&2; exit 3", "description": "Fail on purpose" },
+      "result": "broken\n",
+      "error": "[stderr] broken\n\nExit code: 3",
+      "status": "TOOL_CALL_FAILED",
+      "expected": { "type": "error" }
+    },
+    {
+      "name": "claude_write",
+      "harness": "claude",
+      "toolName": "Write",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/notes.md", "content": "# Notes\n\nfirst\n" },
+      "result": "File created successfully at: /workspace/notes.md (file state is current in your context — no need to Read it back)",
+      "expected": { "type": "file", "path": "/workspace/notes.md" }
+    },
+    {
+      "name": "claude_read_numbered_lines",
+      "harness": "claude",
+      "toolName": "Read",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/notes.md" },
+      "result": "1\t# Notes\n2\t\n3\tfirst\n4\t",
+      "expected": { "type": "file", "path": "/workspace/notes.md" }
+    },
+    {
+      "name": "claude_edit",
+      "harness": "claude",
+      "toolName": "Edit",
+      "mcpServerSlug": "",
+      "args": { "file_path": "/workspace/notes.md", "old_string": "first\n", "new_string": "first\nsecond\n" },
+      "result": "The file /workspace/notes.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+      "expected": { "type": "diff", "path": "/workspace/notes.md" }
+    },
+    {
+      "name": "claude_glob",
+      "harness": "claude",
+      "toolName": "Glob",
+      "mcpServerSlug": "",
+      "args": { "pattern": "*.md" },
+      "result": "notes.md",
+      "expected": { "type": "search", "count": 1 }
+    },
+    {
+      "name": "claude_grep",
+      "harness": "claude",
+      "toolName": "Grep",
+      "mcpServerSlug": "",
+      "args": { "pattern": "second", "output_mode": "content" },
+      "result": "notes.md:4:second",
+      "expected": { "type": "search", "count": 1 }
+    },
+    {
+      "name": "claude_todo_write",
+      "harness": "claude",
+      "toolName": "TodoWrite",
+      "mcpServerSlug": "",
+      "args": { "todos": [{ "content": "Read the fixture", "status": "pending", "activeForm": "Reading the fixture" }, { "content": "Summarise it", "status": "in_progress", "activeForm": "Summarising it" }] },
+      "result": "Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable",
+      "expected": { "type": "text" }
+    },
+    {
+      "name": "claude_skill",
+      "harness": "claude",
+      "toolName": "Skill",
+      "mcpServerSlug": "",
+      "args": { "skill": "acme:lint" },
+      "result": "Launching skill: acme:lint",
+      "expected": { "type": "text" }
+    },
+    {
+      "name": "claude_agent",
+      "harness": "claude",
+      "toolName": "Agent",
+      "mcpServerSlug": "",
+      "args": { "description": "run the tests", "prompt": "Run the tests and report.", "subagent_type": "test-runner" },
+      "result": "All suites pass.",
+      "expected": { "type": "text" }
+    },
+    {
+      "name": "claude_remember_proposal",
+      "harness": "claude",
+      "toolName": "remember",
+      "mcpServerSlug": "stigmer-memory",
+      "args": { "fact": "The thing is found." },
+      "result": "{\"outcome\":\"Proposed — the user decides. Nothing is remembered unless they confirm this fact.\",\"memory\":{\"metadata\":{\"id\":\"mem_claude_1\",\"org\":\"hermetic-org\"},\"spec\":{\"content\":\"The thing is found.\"},\"status\":{\"lifecycle_state\":\"lifecycle_state_proposed\"}}}",
+      "expected": { "type": "memoryProposal", "memoryId": "mem_claude_1", "fact": "The thing is found." }
     }
   ]
 }

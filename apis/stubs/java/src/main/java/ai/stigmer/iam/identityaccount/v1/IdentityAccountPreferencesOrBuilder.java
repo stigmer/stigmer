@@ -34,7 +34,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
 
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "cursor".
+   * Default harness for new sessions: "native", "cursor" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -44,7 +44,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
   java.lang.String getDefaultHarness();
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "cursor".
+   * Default harness for new sessions: "native", "cursor" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -120,4 +120,26 @@ public interface IdentityAccountPreferencesOrBuilder extends
    * @return The defaultAutoApprove.
    */
   boolean getDefaultAutoApprove();
+
+  /**
+   * <pre>
+   * Default model (registry model ID) for claude-harness sessions.
+   * Empty means no preference — the platform default applies.
+   * </pre>
+   *
+   * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultClaudeModel.
+   */
+  java.lang.String getDefaultClaudeModel();
+  /**
+   * <pre>
+   * Default model (registry model ID) for claude-harness sessions.
+   * Empty means no preference — the platform default applies.
+   * </pre>
+   *
+   * <code>string default_claude_model = 7 [json_name = "defaultClaudeModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultClaudeModel.
+   */
+  com.google.protobuf.ByteString
+      getDefaultClaudeModelBytes();
 }

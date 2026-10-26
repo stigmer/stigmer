@@ -171,21 +171,18 @@ export interface EvalTraceDeps {
 }
 
 /**
- * The tool vocabulary a run's recorded calls are named in. Claude has none
- * yet: its tool names enter the vocabulary when the platform offers it,
- * and no Claude run reaches a grader before then (the offered-engine rule,
- * domain/session/harness.ts). Naming its calls as native's would grade
- * them against the wrong tools, so its arm fails loudly instead.
+ * The tool vocabulary a run's recorded calls are named in, by the engine
+ * that made them: each engine records its own names (`@stigmer/tool-vocabulary`).
  */
 function toolEngineOf(harness: Harness): ToolEngine {
   switch (harness) {
     case Harness.CURSOR:
       return "cursor";
+    case Harness.CLAUDE:
+      return "claude";
     case Harness.NATIVE:
     case Harness.UNSPECIFIED:
       return "native";
-    case Harness.CLAUDE:
-      throw new Error("eval trace: the Claude engine has no tool vocabulary yet");
     default: {
       const unknown: never = harness;
       throw new Error(`eval trace: harness ${String(unknown)} names no engine`);

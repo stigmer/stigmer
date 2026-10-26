@@ -53,6 +53,7 @@ const TEST_MODELS = parseRegistryJson({
   models: [
     { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
     { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
+    { id: "claude-sonnet-5", displayName: "Claude Sonnet 5", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 0.2 } },
   ],
 });
 
@@ -143,6 +144,7 @@ describe("AccountPreferencesPanel", () => {
       "spec.preferences.default_harness",
       "spec.preferences.default_native_model",
       "spec.preferences.default_cursor_model",
+      "spec.preferences.default_claude_model",
       "spec.preferences.default_auto_approve",
     ]);
     // An update names its account by id.
@@ -353,8 +355,27 @@ describe("AccountPreferencesPanel", () => {
       expect(screen.getByRole("radio", { name: "Platform default" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Cursor" })).toBeTruthy();
+      expect(screen.getByRole("radio", { name: "Claude" })).toBeTruthy();
       expect(screen.getByLabelText("Default model — Stigmer")).toBeTruthy();
       expect(screen.getByLabelText("Default model — Cursor")).toBeTruthy();
+      expect(screen.getByLabelText("Default model — Claude")).toBeTruthy();
+    });
+
+    it("saves Claude as the default engine with its own default model", async () => {
+      const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
+      renderPanel(createMockStigmer({ update }));
+      await findSyncedField("Keep answers terse.");
+
+      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+      fireEvent.change(screen.getByLabelText("Default model — Claude"), { target: { value: "claude-sonnet-5" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
+        defaultHarness: "claude",
+        defaultClaudeModel: "claude-sonnet-5",
+        defaultNativeModel: "",
+      });
     });
 
     it("pairs each harness row with its description (the row IS the context)", async () => {

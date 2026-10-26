@@ -27,16 +27,17 @@ describe("HarnessSelector", () => {
       expect(group).toBeDefined();
     });
 
-    it("renders exactly two radio buttons", () => {
+    it("renders one radio button per offered engine", () => {
       renderSelector();
       const radios = screen.getAllByRole("radio");
-      expect(radios).toHaveLength(2);
+      expect(radios).toHaveLength(3);
     });
 
     it("labels radio buttons with user-facing harness names", () => {
       renderSelector();
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeDefined();
       expect(screen.getByRole("radio", { name: "Cursor" })).toBeDefined();
+      expect(screen.getByRole("radio", { name: "Claude" }), "Claude carries no premium mark: it bills at Anthropic's prices, as native does").toBeDefined();
     });
   });
 
@@ -98,15 +99,15 @@ describe("HarnessSelector", () => {
       expect(onValueChange).toHaveBeenCalledWith("cursor");
     });
 
-    it("ArrowLeft from native wraps to cursor", () => {
+    it("ArrowLeft from native wraps to the last engine", () => {
       const { onValueChange } = renderSelector({ value: "native" });
       const group = screen.getByRole("radiogroup");
       fireEvent.keyDown(group, { key: "ArrowLeft" });
-      expect(onValueChange).toHaveBeenCalledWith("cursor");
+      expect(onValueChange).toHaveBeenCalledWith("claude");
     });
 
-    it("ArrowRight from cursor wraps to native", () => {
-      const { onValueChange } = renderSelector({ value: "cursor" });
+    it("ArrowRight from the last engine wraps to native", () => {
+      const { onValueChange } = renderSelector({ value: "claude" });
       const group = screen.getByRole("radiogroup");
       fireEvent.keyDown(group, { key: "ArrowRight" });
       expect(onValueChange).toHaveBeenCalledWith("native");
