@@ -12,7 +12,7 @@
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1`
 // (Makefile) and resets the queue per test. The script is the engine's two
 // model calls: the shell call, then the answer after its result.
-import { Code, ConnectError } from "@connectrpc/connect";
+import { StigmerError } from "@stigmer/client";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
@@ -80,10 +80,15 @@ test.describe("A conversation on Claude (deterministic mock LLM)", () => {
       await awaitMockRemaining(control, 0);
 
       // A conversation that has run keeps its engine.
-      const moved = await stigmerClient.session
-        .update({ metadata: { id: sessionId }, spec: { harness: Harness.NATIVE } }, ["spec.harness"])
-        .then(() => undefined, (error: unknown) => ConnectError.from(error));
-      expect(moved?.code, "a conversation that has run cannot change engines").toBe(Code.FailedPrecondition);
+      const ran = await stigmerClient.session.get(sessionId);
+      ran.spec!.harness = Harness.NATIVE;
+      const moved = await stigmerClient.session.update(ran, ["spec.harness"]).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(moved, "a conversation that has run cannot change engines").toBeInstanceOf(StigmerError);
+      expect((moved as StigmerError).code).toBe("failed-precondition");
+      expect((moved as StigmerError).message).toContain("session harness cannot be changed after the first execution");
       expect((await stigmerClient.session.get(sessionId)).spec?.harness).toBe(Harness.CLAUDE);
     } finally {
       await stigmerClient.session.delete(sessionId).catch(() => {});
