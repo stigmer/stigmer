@@ -2,8 +2,8 @@
  * Hermetic golden: MCP servers on a Claude turn, on the real engine, through
  * the host's bridge (`mcp-bridge.ts`).
  *
- * The host connects every server itself and hands each to the engine as an
- * in-process server, so:
+ * The host connects every server itself and serves each to the engine from
+ * its own loopback endpoint (`loopback-mcp.ts`), so:
  *
  *  - an agent's own server is reached with its login header, and that
  *    header is on no process's command line while the engine works (the

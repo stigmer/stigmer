@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
-import { CasCaptureFilesystemBackend } from "../cas-capture-backend.js";
+import { CasCaptureFilesystemBackend } from "../../../activities/execute-deep-agent/cas-capture-backend.js";
 
 /**
  * The observer is the single, shared owner of one turn's CAS-capture state. It

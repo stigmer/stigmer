@@ -29,7 +29,7 @@ import { createDeepAgent, StateBackend } from "deepagents";
 import type { ApprovalGateConfig } from "../../../middleware/approval-gate.js";
 import { partitionIgnoredPathsBySecret } from "../../../shared/filereview/secret-paths.js";
 import { resolveWorkspacePath } from "../../../shared/file-change.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { compileSubagents, type TransformedSubagent } from "../subagent-transformer.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 import { ToolScope } from "../../../shared/tool-lists.js";

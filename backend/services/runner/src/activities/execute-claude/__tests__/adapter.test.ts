@@ -119,6 +119,7 @@ describe("resolveClaudeConfig", () => {
       proxyEndpoint: "http://127.0.0.1:9/proxy",
       shellTimeoutMaxSeconds: 600,
       mode: "cloud",
+      cursorStreamStallTimeoutMs: 240_000,
     });
     const slice = resolveClaudeConfig(config);
     expect(slice).toEqual({
@@ -128,6 +129,7 @@ describe("resolveClaudeConfig", () => {
       proxyEndpoint: "http://127.0.0.1:9/proxy",
       shellTimeoutMaxSeconds: 600,
       mode: "cloud",
+      cursorStreamStallTimeoutMs: 240_000,
     });
     expect(slice.stigmerTokenRef).toBe(tokenRef);
   });

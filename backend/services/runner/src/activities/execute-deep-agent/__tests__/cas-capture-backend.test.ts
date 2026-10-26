@@ -8,7 +8,7 @@ import {
   CasCaptureShellBackend,
   createCasCaptureBackend,
 } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { ScriptedModel } from "../__test-utils__/scripted-model.js";
 
 /**

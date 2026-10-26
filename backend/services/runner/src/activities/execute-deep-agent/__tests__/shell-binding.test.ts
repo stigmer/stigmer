@@ -30,7 +30,7 @@ import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.
 import { createShellMiddleware } from "../../../middleware/shell.js";
 import { createToolIntentMiddleware } from "../../../middleware/tool-intent.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { registerStigmerDeepagentsProfiles, resetStigmerDeepagentsProfilesForTests } from "../deepagents-profiles.js";
 import { createShellTool } from "../shell-tool.js";
 import { compileSubagents } from "../subagent-transformer.js";

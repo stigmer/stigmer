@@ -3,7 +3,10 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_todo_load",
-      "input": {},
+      "input": {
+        "query": "select:TodoWrite",
+        "max_results": 1
+      },
       "name": "ToolSearch"
     }
   },
@@ -24,7 +27,20 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_todo_1",
-      "input": {},
+      "input": {
+        "todos": [
+          {
+            "content": "Read the fixture",
+            "status": "pending",
+            "activeForm": "Reading the fixture"
+          },
+          {
+            "content": "Summarise it",
+            "status": "in_progress",
+            "activeForm": "Summarising it"
+          }
+        ]
+      },
       "name": "TodoWrite"
     }
   },

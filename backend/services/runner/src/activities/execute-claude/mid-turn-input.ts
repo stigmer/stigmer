@@ -19,6 +19,15 @@
  * ({@link MidTurnInput.observe}); the turn ends only once every pushed
  * message is read. A turn that is stopping or
  * yielding takes nothing: what waits is its continuation's to read.
+ *
+ * An invocation that resumes a call a person answered takes nothing until
+ * that call's result is in ({@link MidTurnInput.holdUntilResultOf}): a
+ * message taken earlier could reach the engine before the call it resumes.
+ * And while a call is open it takes nothing until the gate has decided
+ * every open call and none waits for a person (`mayTake`, `turn.ts`): a
+ * message pushed into the prompt before a deferral lands cancels it
+ * (measured on SDK 0.3.310: the engine then takes the message and runs the
+ * call undecided through `canUseTool`, which refuses it).
  */
 
 import type { SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
@@ -48,15 +57,24 @@ export class MidTurnInput {
   /** Sent-message ids pushed and not yet read. */
   private readonly unread = new Set<string>();
   private halted = false;
+  /** The resumed call whose result must be in before anything is taken. */
+  private held: string | undefined;
 
   constructor(
     private readonly sink: Pick<TurnSink, "input" | "transcript" | "requestPersist">,
     private readonly stream: Pick<PromptStream, "push">,
+    /** Whether a message may be taken while a call is open (the header). */
+    private readonly mayTake: () => boolean = () => true,
   ) {}
 
   /** The turn is stopping or yielding: nothing more is taken. */
   halt(): void {
     this.halted = true;
+  }
+
+  /** Take nothing until the call `toolUseId` has its result (the header). */
+  holdUntilResultOf(toolUseId: string): void {
+    this.held = toolUseId;
   }
 
   /** Whether a pushed message is still unread. */
@@ -66,13 +84,13 @@ export class MidTurnInput {
 
   /** While a call is open and its message has finished: persist, then take what the hint says waits (the header). */
   async whileWorking(): Promise<void> {
-    if (this.halted || !this.sink.input.pending()) return;
+    if (this.halted || this.held !== undefined || !this.mayTake() || !this.sink.input.pending()) return;
     await this.take(false);
   }
 
   /** At a result: persist, then take whatever waits (the header). */
   async atResult(): Promise<void> {
-    if (this.halted) return;
+    if (this.halted || this.held !== undefined) return;
     await this.take(true);
   }
 
@@ -96,6 +114,10 @@ export class MidTurnInput {
    * when a turn starts from it, counts too.
    */
   observe(message: SDKMessage): void {
+    if (this.held !== undefined && message.type === "user" && Array.isArray(message.message.content)) {
+      const held = this.held;
+      if (message.message.content.some((block) => block.type === "tool_result" && block.tool_use_id === held)) this.held = undefined;
+    }
     const lifecycle = message as { readonly type: string; readonly command_uuid?: unknown; readonly state?: unknown };
     if (lifecycle.type === COMMAND_LIFECYCLE && typeof lifecycle.command_uuid === "string" && READ_STATES.has(String(lifecycle.state))) {
       this.unread.delete(lifecycle.command_uuid);

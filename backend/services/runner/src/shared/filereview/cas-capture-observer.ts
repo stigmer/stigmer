@@ -1,6 +1,9 @@
 /**
- * The single owner of one turn's CAS (content-addressed) capture state for the
- * deep-agent activity — the `.gitignored` half of apply-then-review.
+ * The single owner of one turn's CAS (content-addressed) capture state — the
+ * `.gitignored` half of apply-then-review — for every engine that observes
+ * a write before it lands: the native engine's filesystem backend
+ * (`execute-deep-agent/cas-capture-backend.ts`) and the Claude engine's gate
+ * (`execute-claude/gate.ts`), which records before it lets a file tool run.
  *
  * WHY ONE SHARED OBSERVER (NOT PER-BACKEND STATE)
  * -----------------------------------------------
@@ -34,8 +37,8 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { resolveWorkspacePath } from "../../shared/file-change.js";
-import type { CasTouchedSnapshot } from "../../shared/filereview/cas-touched.js";
+import { resolveWorkspacePath } from "../file-change.js";
+import type { CasTouchedSnapshot } from "./cas-touched.js";
 
 /**
  * Pre-turn bytes of each first-touched gitignored path, keyed by workspace-root-

@@ -6,13 +6,16 @@
  * identity; its evidence, the gate's registry, exists only in the harness);
  * on a stop, every sub-agent still running marked cancelled through the
  * shared act and `interrupted`; the engine's structured output folded onto
- * the rows; then the outcome the engine's result names.
+ * the rows; then the outcome the engine's result names: `awaiting_approval`
+ * when the engine stopped at a call the gate deferred, whose WAITING row the
+ * turn already proposed (`turn.ts`).
  *
  * Failures, by who can fix them: the engine's own failed result is the
  * `engine` surface, its words the result's; a conversation the store lost
  * part of is `internal`, naming the lost history, because the next turn
  * would resume from a transcript with a hole; an engine that ended with no
- * result is `internal`. A refused turn (a feature this harness does not run
+ * result is `internal`, and so is one that could not resume an answered
+ * call because its tool was gone (`tool_deferred_unavailable`). A refused turn (a feature this harness does not run
  * yet) never reaches here: `turn.ts` refuses it before the engine starts.
  *
  * What this never does: write a phase, a terminal copy or `completedAt`
@@ -39,7 +42,12 @@ export interface InvocationEnd {
   readonly unattendedSkips: ReadonlyMap<string, string | null>;
   /** Whether the turn asked for structured output. */
   readonly structuredOutput: boolean;
+  /** Whether the engine stopped at a deferred call and the turn proposed its row. */
+  readonly awaitingApproval: boolean;
 }
+
+/** What a result says when the engine could not resume an answered call. */
+export const DEFERRED_UNAVAILABLE_MESSAGE = "The call waiting for approval could not resume: its tool is no longer available in this conversation.";
 
 /** The outcome of an invocation (the header). */
 export function settleClaudeTurn(sink: TurnSink, end: InvocationEnd): TurnOutcome {
@@ -63,7 +71,9 @@ export function settleClaudeTurn(sink: TurnSink, end: InvocationEnd): TurnOutcom
     const detail = result.errors.length > 0 ? result.errors.join("; ") : result.subtype;
     return { kind: "failed", surface: "engine", message: `Claude failed: ${detail}` };
   }
+  if (result.terminal_reason === "tool_deferred_unavailable") return { kind: "failed", surface: "internal", message: DEFERRED_UNAVAILABLE_MESSAGE };
   if (result.is_error) return { kind: "failed", surface: "engine", message: result.result || "Claude failed." };
+  if (end.awaitingApproval) return { kind: "awaiting_approval" };
   if (end.structuredOutput) foldStructuredOutput(sink, result);
   return { kind: "completed" };
 }

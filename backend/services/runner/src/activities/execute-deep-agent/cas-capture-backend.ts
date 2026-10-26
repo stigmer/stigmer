@@ -61,14 +61,14 @@
 
 import { FilesystemBackend, LocalShellBackend } from "deepagents";
 import type { DeleteResult, ExecuteResponse, LocalShellBackendOptions } from "deepagents";
-import type { CasCaptureObserver } from "./cas-capture-observer.js";
+import type { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import { endingOf, formatCommandOutput, runCommand, type CommandResult, type RunCommandOptions } from "../../shared/shell/run-command.js";
 import { editLoosely } from "./loose-edit.js";
 
 /** deepagents' default shell timeout, in seconds: the bound of a command the model did not raise. */
 export const DEFAULT_SHELL_TIMEOUT_SECONDS = 120;
 
-export type { CasBeforeMap } from "./cas-capture-observer.js";
+export type { CasBeforeMap } from "../../shared/filereview/cas-capture-observer.js";
 
 type FilesystemBackendOptions = NonNullable<
   ConstructorParameters<typeof FilesystemBackend>[0]

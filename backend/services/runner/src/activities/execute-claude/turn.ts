@@ -11,25 +11,40 @@
  *  1. Refuse what this harness does not run yet, before anything starts:
  *     the fast tier, a model that is not Claude. Each refusal is
  *     `actionable`, with the sentence that says how; so is a turn whose
- *     skills cannot be named apart (`skill-plugins.ts`).
+ *     skills cannot be named apart (`skill-plugins.ts`), or whose hooks
+ *     cannot run as written (`hooks.ts`).
  *  2. Decide the turn's agents, the main one and every sub-agent it may
  *     start (`agents.ts`); connect their MCP servers in the host, once each
- *     (`mcp-bridge.ts`); decide what each is offered (`engine-options.ts`)
- *     and build the gate over every caller's reach (`gate.ts`); write the
- *     turn's skills as plugins in the engine's home (`skill-plugins.ts`).
+ *     (`mcp-bridge.ts`); decide what each is offered (`engine-options.ts`);
+ *     build every caller's hooks (`hooks.ts`) and the gate over every
+ *     caller's reach (`gate.ts`); serve the host's tools to the engine
+ *     (`loopback-mcp.ts`); write the turn's skills as plugins in the
+ *     engine's home (`skill-plugins.ts`).
  *  3. Read the session's transcript from the store (`session-store.ts`,
  *     `transcript-facts.ts`): a new run hands the engine its message; a run
  *     the engine already took is continued without the task (stigmer#2417),
  *     with the messages sent while it worked that it never read, or a short
  *     note to go on; a run whose engine had already finished settles with no
- *     model call.
+ *     model call. A run whose call waits on a person's answer (its WAITING
+ *     row, `sink.rows`) resumes with no prompt at all: the engine re-runs
+ *     that call first, the gate answering it from the person's decision
+ *     (`gate.ts`), and nothing a person sent meanwhile is taken before its
+ *     result. A call the transcript left pending that this run never
+ *     proposed is refused when the engine reaches it: from an earlier,
+ *     stopped run as a call nobody answered, from this run (a yield crossed
+ *     its deferral) as one to ask for again alone.
  *  4. Run the engine to its result, folding each message into the
  *     transcript (`translator.ts`), reporting each model call's usage
  *     (`usage.ts`), persisting on the shared cadence, and taking every
  *     message a person sends while it works into the open prompt, where the
  *     engine reads it before its next model call. Before it may end, the
  *     turn claims once more; a message the engine has not read keeps it
- *     going one more round.
+ *     going one more round. A result that names a deferred call
+ *     (`deferred_tool_use`, never `terminal_reason`: the engine defers
+ *     again with no reason set, measured on SDK 0.3.310) ends the
+ *     invocation instead, taking nothing: the turn proposes that call's
+ *     WAITING row from the gate's pause verdict, with no arguments, so the
+ *     row, the card and the session's log keep the model's own call.
  *  5. Settle (`settle.ts`).
  *
  * Stop: the runtime's stop interrupts the engine at once, and aborts it
@@ -46,11 +61,15 @@
 
 import { mkdir, rm } from "node:fs/promises";
 import type { McpServerConfig, Query, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { JsonObject } from "@bufbuild/protobuf";
 import { InteractionMode, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { TurnInputChannel } from "../../harness/turn-input.js";
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
+import { ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
+import { HookSetupError } from "../../shared/hooks/setup.js";
 import { buildMcpApprovalDefault } from "../../shared/approval-policy.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { toAnthropicImageBlocks } from "../../shared/attachment-vision.js";
@@ -72,9 +91,11 @@ import { engineEnvironment } from "./engine-env.js";
 import { engineOptions, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
-import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller } from "./gate.js";
-import { hostShellServer, HOST_SHELL_TOOL } from "./host-shell.js";
+import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller, type WaitingCall } from "./gate.js";
+import { HookFeedback, turnHookEvaluators } from "./hooks.js";
+import { hostShellServer, HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { HttpTranscripts } from "./http-store.js";
+import { startLoopbackMcp, type ServedServer } from "./loopback-mcp.js";
 import { connectBridge, type McpBridge } from "./mcp-bridge.js";
 import { composeSubagentPrompt, composeSystemAppend, composeTurnMessage, instructionRoots, skillsSection, workspaceInstructionReader } from "./prompt.js";
 import { PromptStream } from "./prompt-stream.js";
@@ -90,7 +111,10 @@ import { ClaudeUsage } from "./usage.js";
 export type ClaudeSdk = typeof import("@anthropic-ai/claude-agent-sdk");
 
 /** The runner config this harness reads per turn; a whole `Config` satisfies it. */
-export type ClaudeAdapterConfig = Pick<Config, "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "shellTimeoutMaxSeconds" | "mode">;
+export type ClaudeAdapterConfig = Pick<
+  Config,
+  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "shellTimeoutMaxSeconds" | "mode" | "cursorStreamStallTimeoutMs"
+>;
 
 /** How long a stopped engine has to end on its own before its process is aborted. */
 export const STOP_GRACE_MS = 5_000;
@@ -108,14 +132,17 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
   if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
   let bridge: McpBridge | undefined;
   const home = getClaudeInvocationDir(input.sessionId, input.executionId, input.turnSeq);
+  const observer = captureObserverOf(input);
+  // What the gate observes before a file tool writes where git cannot (`gate.ts`).
+  sink.bindCasObservations(() => observer.snapshot());
   try {
     refuseUnsupported(input);
     const model = await resolveModel(input);
     const specs = await subagentSpecsOf(input);
     bridge = await connectTools(input, sink, specs);
-    return await engineTurn(input, sink, config, sdk, { model, bridge, home, specs });
+    return await engineTurn(input, sink, config, sdk, { model, bridge, home, specs, observer });
   } catch (err) {
-    if (err instanceof Refusal || err instanceof SkillNameClash) {
+    if (err instanceof Refusal || err instanceof SkillNameClash || err instanceof HookSetupError) {
       console.warn(`ExecuteClaude refused the turn: execution=${input.executionId}, ${err.message}`);
       return { kind: "failed", surface: "actionable", message: err.message, cause: err };
     }
@@ -126,6 +153,15 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
     await closeQuietly(input.executionId, "MCP connections", () => bridge?.close());
     await closeQuietly(input.executionId, "engine directory", () => rm(home, { recursive: true, force: true }));
   }
+}
+
+/** The turn's capture observer: an ignored path's before-bytes in a git workspace, every path's in one with no git (the native engine's rule). */
+function captureObserverOf(input: TurnInput): CasCaptureObserver {
+  const { primaryDir, gitWorkspace } = input.workspace;
+  return new CasCaptureObserver({
+    rootDir: primaryDir,
+    isIgnored: gitWorkspace ? async (relPath) => !(await isPathCapturable(primaryDir, relPath)) : async () => true,
+  });
 }
 
 /** Step 1 of the header. */
@@ -172,10 +208,42 @@ function backingFor(config: ClaudeAdapterConfig, sessionId: string): TranscriptB
 /** What the engine is handed first, by the transcript's facts (step 3 of the header). */
 type Opening =
   | { readonly kind: "finished" }
-  | { readonly kind: "run"; readonly messages: readonly SDKUserMessage[] };
+  | { readonly kind: "run"; readonly messages: readonly SDKUserMessage[] }
+  | { readonly kind: "resume"; readonly call: string };
 
-async function openingOf(input: TurnInput, channel: TurnInputChannel, facts: TranscriptFacts): Promise<Opening> {
+/** The transcript's pending call, by who left it (step 3 of the header). */
+interface PendingCall {
+  /** The call waits on a person's answer: this run proposed it. */
+  readonly answered: string | undefined;
+  /** An earlier, stopped run left it, and nobody answered it. */
+  readonly staleCallId: string | undefined;
+  /** This run left it pending without proposing it. */
+  readonly unproposedCallId: string | undefined;
+}
+
+/** Who left the transcript's pending call: this run's WAITING row, an earlier run, or this run unproposed. */
+function pendingCallOf(input: TurnInput, facts: TranscriptFacts, waiting: ReadonlyMap<string, WaitingCall>): PendingCall {
+  const id = facts.pendingCall;
+  const none: PendingCall = { answered: undefined, staleCallId: undefined, unproposedCallId: undefined };
+  if (id === undefined) return none;
+  if (!facts.taken.has(runMessageIdOf(input.executionId))) return { ...none, staleCallId: id };
+  return waiting.has(id) ? { ...none, answered: id } : { ...none, unproposedCallId: id };
+}
+
+/** The main agent's rows still WAITING for a person, by call id, with the tool and arguments the session's log holds for each. */
+function waitingRowsOf(sink: TurnSink): Map<string, WaitingCall> {
+  const waiting = new Map<string, WaitingCall>();
+  for (const message of sink.rows.messages) {
+    for (const row of message.toolCalls) {
+      if (row.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) waiting.set(row.id, { name: row.name, args: (row.args ?? {}) as JsonObject });
+    }
+  }
+  return waiting;
+}
+
+async function openingOf(input: TurnInput, channel: TurnInputChannel, facts: TranscriptFacts, pending: PendingCall): Promise<Opening> {
   const runId = runMessageIdOf(input.executionId);
+  if (pending.answered !== undefined) return { kind: "resume", call: pending.answered };
   if (!facts.taken.has(runId)) {
     return { kind: "run", messages: [userMessageOf(firstMessageContent(input), runId)] };
   }
@@ -199,6 +267,7 @@ interface EngineTurnDeps {
   readonly bridge: McpBridge;
   readonly home: string;
   readonly specs: readonly SubagentSpec[];
+  readonly observer: CasCaptureObserver;
 }
 
 async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk, deps: EngineTurnDeps): Promise<TurnOutcome> {
@@ -213,25 +282,35 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
   const planMode = input.execution.spec!.interactionMode === InteractionMode.PLAN;
   const agents = turnAgentsOf(input, deps.specs, bridge, { planMode, structuredOutput: input.structuredOutputSchema !== undefined });
   checkAgentToolLists(input, agents, bridge, { planMode });
+  const hooks = await turnHookEvaluators(input, sink, config.cursorStreamStallTimeoutMs);
+
+  // The conversation so far, and the call it left pending.
+  const backing = backingFor(config, input.sessionId);
+  const facts = transcriptFactsOf(await backing.load(input.threadId, undefined));
+  const waiting = waitingRowsOf(sink);
+  const pending = pendingCallOf(input, facts, waiting);
+
   let halted = false;
   const platformDir = getPlatformDir(input.sessionId);
   const isCapturable = (path: string): Promise<boolean> => (workspace.gitWorkspace ? isPathCapturable(workspace.primaryDir, path.replace(/^\/+/, "")) : Promise.resolve(false));
   const gate = new ClaudeGate(
-    gateFactsOf(
-      input,
-      { root: agents.root.reach, subagents: new Map([...agents.subagents].map(([name, world]) => [name, world.reach])) },
-      { serverOf: bridge.serverOf, mcpDefault: buildMcpApprovalDefault(bridge.listing, input.mcp.leases) },
-      { platformDir, engineHome: home, readsSkillContent: skillContentReadCheck(platformDir) },
-      isCapturable,
-    ),
+    gateFactsOf(input, {
+      agents: { root: agents.root.reach, subagents: new Map([...agents.subagents].map(([name, world]) => [name, world.reach])) },
+      bridge: { serverOf: bridge.serverOf, mcpDefault: buildMcpApprovalDefault(bridge.listing, input.mcp.leases) },
+      paths: { platformDir, engineHome: home, readsSkillContent: skillContentReadCheck(platformDir) },
+      isCapturablePath: isCapturable,
+      hooks,
+      waitingCallOf: (id) => waiting.get(id),
+      pending,
+      observer: deps.observer,
+    }),
     () => halted,
   );
+  const feedback = new HookFeedback({ hooks, verdictOf: (id) => gate.verdictOf(id), serverOf: bridge.serverOf });
   sink.setupTiming.mark("build_gate");
 
-  // The conversation so far, and what the engine is handed first.
-  const backing = backingFor(config, input.sessionId);
-  const facts = transcriptFactsOf(await backing.load(input.threadId, undefined));
-  const opening = await openingOf(input, sink.input, facts);
+  // What the engine is handed first.
+  const opening = await openingOf(input, sink.input, facts, pending);
   if (opening.kind === "finished") {
     console.log(`[claude-turn] execution=${input.executionId} continued a run its engine had finished; settling with no model call`);
     return { kind: "completed" };
@@ -248,11 +327,11 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     composeSubagentPrompt(world, { turnSkillCount, planMode, repositoryInstructionsSection, primaryDir: workspace.primaryDir }),
   );
 
-  // The engine's servers: the host's shell and the bridged ones.
+  // The engine's servers: the host's shell and the bridged ones, served by the host, each call admitted by the gate.
   const abort = new AbortController();
-  const mcpServers: Record<string, McpServerConfig> = {};
+  const served: ServedServer[] = [];
   if (agents.shell) {
-    const shellServer = hostShellServer({
+    served.push(hostShellServer({
       cwd: workspace.primaryDir,
       envFor: (caller) => buildShellEnv(shellValuesOf(agents, caller)),
       maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
@@ -260,70 +339,111 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       stopSignal: sink.stopSignal,
       onOutput: (callId, delta) => sink.transcript.apply({ kind: "tool_output_delta", callId, delta }),
       onActivity: (detail) => sink.recordActivity(detail),
-    });
-    mcpServers[HOST_SHELL_TOOL.server] = { type: "sdk", name: HOST_SHELL_TOOL.server, instance: shellServer };
+    }));
   }
-  for (const [slug, server] of bridge.servers) mcpServers[slug] = { type: "sdk", name: slug, instance: server };
+  served.push(...bridge.servers.values());
+  const endpoint = served.length > 0 ? await startLoopbackMcp(served, (call) => gate.admit(call)) : undefined;
+  try {
+    // The prompt the engine reads, and the messages sent while it works
+    // (`mid-turn-input.ts`), taken only once the gate decided every open call and none waits.
+    const stream = new PromptStream();
+    const openCalls = new Set<string>();
+    const midTurn = new MidTurnInput(sink, stream, () => [...openCalls].every((id) => {
+      const verdict = gate.verdictOf(id);
+      return verdict !== undefined && verdict.kind !== "pause";
+    }));
+    if (opening.kind === "resume") midTurn.holdUntilResultOf(opening.call);
+    else for (const message of opening.messages) stream.push(message);
 
-  // The prompt the engine reads, and the messages sent while it works (`mid-turn-input.ts`).
-  const stream = new PromptStream();
-  for (const message of opening.messages) stream.push(message);
-  const midTurn = new MidTurnInput(sink, stream);
+    await mkdir(home, { recursive: true });
+    const plugins = await writeSkillPlugins(home, agents.skills);
+    const sessionId = engineSessionIdOf(input.threadId);
+    const options = engineOptions({
+      cwd: workspace.primaryDir,
+      additionalDirectories: workspace.dirs.filter((dir) => dir !== workspace.primaryDir),
+      env: engineEnvironment({
+        home,
+        anthropicBaseUrl: modelLaneUrl({ endpoint: laneEndpoint.replace(/\/+$/, ""), token: "" }, "anthropic"),
+        turnKey,
+        projectKey: sessionId,
+        path: process.env.PATH ?? "/usr/bin:/bin",
+      }),
+      tools: agents.sessionTools,
+      mcpServers: { ...endpoint?.configs },
+      plugins,
+      skills: agents.skills.map((skill) => skill.id),
+      agents: definitions,
+      systemAppend,
+      model: model.apiId,
+      thinkingMode: input.model.thinkingMode,
+      hooks: { ...gateHooks(gate), ...feedback.callbacks() },
+      canUseTool: canUseToolOf(gate),
+      sessionStore: sessionStoreFor(input.threadId, backing),
+      session: facts.exists ? { resume: sessionId } : { start: sessionId },
+      abortController: abort,
+      structuredOutputSchema: input.structuredOutputSchema,
+      stderr: (data) => console.warn(`[claude-engine] execution=${input.executionId} ${data.trimEnd().slice(0, STDERR_LINE_CHARS)}`),
+    });
 
-  await mkdir(home, { recursive: true });
-  const plugins = await writeSkillPlugins(home, agents.skills);
-  const sessionId = engineSessionIdOf(input.threadId);
-  const options = engineOptions({
-    cwd: workspace.primaryDir,
-    additionalDirectories: workspace.dirs.filter((dir) => dir !== workspace.primaryDir),
-    env: engineEnvironment({
-      home,
-      anthropicBaseUrl: modelLaneUrl({ endpoint: laneEndpoint.replace(/\/+$/, ""), token: "" }, "anthropic"),
-      turnKey,
-      projectKey: sessionId,
-      path: process.env.PATH ?? "/usr/bin:/bin",
-    }),
-    tools: agents.sessionTools,
-    mcpServers,
-    plugins,
-    skills: agents.skills.map((skill) => skill.id),
-    agents: definitions,
-    systemAppend,
-    model: model.apiId,
-    thinkingMode: input.model.thinkingMode,
-    hooks: gateHooks(gate),
-    canUseTool: canUseToolOf(gate),
-    sessionStore: sessionStoreFor(input.threadId, backing),
-    session: facts.exists ? { resume: sessionId } : { start: sessionId },
-    abortController: abort,
-    structuredOutputSchema: input.structuredOutputSchema,
-    stderr: (data) => console.warn(`[claude-engine] execution=${input.executionId} ${data.trimEnd().slice(0, STDERR_LINE_CHARS)}`),
+    await ensurePricingLoaded();
+    emitTimingLog("execution_setup", {
+      execution_id: input.executionId,
+      session_id: input.sessionId,
+      harness: "claude",
+      mcp_server_count: declaredServerCount(input.mcp.servers),
+      skill_count: agents.skills.length,
+      workspace_entry_count: workspace.provision.provisionResults.length,
+    }, sink.setupTiming);
+
+    const end = await runEngine(input, sink, sdk, {
+      expected: { skills: agents.skills.map((skill) => skill.id), agents: Object.keys(definitions) },
+      stream,
+      midTurn,
+      openCalls,
+      onDecided: (listener) => gate.onDecided(listener),
+      options,
+      abort,
+      translator: new ClaudeTranslator({ serverOf: bridge.serverOf, verdictOf: (id) => gate.verdictOf(id), feedbackOf: (id) => feedback.sectionOf(id) }),
+      usage: new ClaudeUsage(getModelPricing(model.registryId), model.registryId),
+      halt: () => {
+        halted = true;
+      },
+      unattendedSkips: gate.unattendedSkips,
+      propose: (callId) => proposeDeferred(sink, gate, bridge, callId),
+    });
+    return settleClaudeTurn(sink, end);
+  } finally {
+    await closeQuietly(input.executionId, "the tools' endpoint", () => endpoint?.close());
+  }
+}
+
+/**
+ * The WAITING row of the call the engine deferred, from the gate's pause
+ * verdict (step 4 of the header): its provenance and asking hook, then the
+ * proposal, with no arguments, so the row keeps the model's own call as
+ * the session's log holds it.
+ */
+export function proposeDeferred(
+  sink: Pick<TurnSink, "transcript">,
+  gate: Pick<ClaudeGate, "verdictOf">,
+  bridge: Pick<McpBridge, "serverOf">,
+  callId: string,
+): void {
+  const verdict = gate.verdictOf(callId);
+  if (verdict?.kind !== "pause") throw new Error(`the engine deferred call ${callId}, which the gate did not hold for a person`);
+  const name = isHostShell(verdict.toolName) ? HOST_SHELL_TOOL.engineName : verdict.toolName;
+  const mcpServerSlug = isHostShell(verdict.toolName) ? "" : (bridge.serverOf(verdict.toolName)?.slug ?? "");
+  const hook = verdict.hook === undefined ? {} : { policyHook: verdict.hook };
+  if (verdict.source !== undefined) sink.transcript.apply({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: verdict.hook ?? "" });
+  sink.transcript.apply({
+    kind: "approval_proposed",
+    callId,
+    name,
+    mcpServerSlug,
+    message: verdict.message,
+    ...(verdict.source !== undefined ? { provenance: verdict.source } : {}),
+    ...hook,
   });
-
-  await ensurePricingLoaded();
-  emitTimingLog("execution_setup", {
-    execution_id: input.executionId,
-    session_id: input.sessionId,
-    harness: "claude",
-    mcp_server_count: declaredServerCount(input.mcp.servers),
-    skill_count: agents.skills.length,
-    workspace_entry_count: workspace.provision.provisionResults.length,
-  }, sink.setupTiming);
-
-  const end = await runEngine(input, sink, sdk, {
-    expected: { skills: agents.skills.map((skill) => skill.id), agents: Object.keys(definitions) },
-    stream,
-    midTurn,
-    options,
-    abort,
-    translator: new ClaudeTranslator({ serverOf: bridge.serverOf, verdictOf: (id) => gate.verdictOf(id) }),
-    usage: new ClaudeUsage(getModelPricing(model.registryId), model.registryId),
-    halt: () => {
-      halted = true;
-    },
-    unattendedSkips: gate.unattendedSkips,
-  });
-  return settleClaudeTurn(sink, end);
 }
 
 /** The run values a caller's shell holds: a sub-agent's own, else the main agent's. */
@@ -336,6 +456,10 @@ interface EngineRun {
   readonly expected: { readonly skills: readonly string[]; readonly agents: readonly string[] };
   readonly stream: PromptStream;
   readonly midTurn: MidTurnInput;
+  /** The calls open on the stream, which the mid-turn input's rule reads. */
+  readonly openCalls: Set<string>;
+  /** Be told each time the gate decides a call. */
+  readonly onDecided: (listener: () => void) => void;
   readonly options: Parameters<ClaudeSdk["query"]>[0]["options"];
   readonly abort: AbortController;
   readonly translator: ClaudeTranslator;
@@ -343,6 +467,13 @@ interface EngineRun {
   /** Tells the gate the turn is stopping or yielding. */
   readonly halt: () => void;
   readonly unattendedSkips: ReadonlyMap<string, string | null>;
+  /** Propose the WAITING row of the call the engine deferred. */
+  readonly propose: (callId: string) => void;
+}
+
+/** The call a result says the engine deferred; undefined when it deferred none (step 4 of the header). */
+function deferredCallOf(result: SDKResultMessage): string | undefined {
+  return (result as { deferred_tool_use?: { id?: unknown } }).deferred_tool_use?.id as string | undefined;
 }
 
 /** Step 4 of the header: the engine run to its last result. */
@@ -351,12 +482,13 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
   const builder = sink.transcript;
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
   const query: Query = sdk.query({ prompt: stream, options: run.options });
-  const openCalls = new Set<string>();
+  const { openCalls } = run;
   let stopped = false;
   let yielding = false;
   let forceAbort: ReturnType<typeof setTimeout> | undefined;
   let result: SDKResultMessage | undefined;
   let mirrorError: string | undefined;
+  let deferred: string | undefined;
   let events = 0;
 
   const interrupt = (): void => {
@@ -380,6 +512,10 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
   /** The model's message on the main thread is still streaming. */
   let answering = false;
   const offPending = sink.input.onPending(() => {
+    if (openCalls.size > 0 && !answering) void midTurn.whileWorking();
+  });
+  // A call the gate lets run may open the way for a message the turn held back while it was undecided.
+  run.onDecided(() => {
     if (openCalls.size > 0 && !answering) void midTurn.whileWorking();
   });
 
@@ -427,7 +563,8 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
       }
       if (message.type === "result") {
         result = message;
-        if (stopped || yielding) {
+        deferred = stopped || yielding ? undefined : deferredCallOf(message);
+        if (stopped || yielding || deferred !== undefined) {
           stream.close();
         } else {
           await midTurn.atResult();
@@ -458,7 +595,9 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
     if (forceAbort !== undefined) clearTimeout(forceAbort);
     query.close();
   }
-  return { stopped: stopped || yielding, result, mirrorError, unattendedSkips: run.unattendedSkips, structuredOutput: input.structuredOutputSchema !== undefined };
+  const awaitingApproval = deferred !== undefined && !(stopped || yielding) && result?.is_error !== true;
+  if (awaitingApproval) run.propose(deferred!);
+  return { stopped: stopped || yielding, result, mirrorError, unattendedSkips: run.unattendedSkips, structuredOutput: input.structuredOutputSchema !== undefined, awaitingApproval };
 }
 
 /** Best-effort teardown: a failed close is logged and never masks the turn's outcome. */

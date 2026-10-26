@@ -2,7 +2,8 @@
  * Pins what a Claude session's saved transcript is read to say
  * (`transcript-facts.ts`): whether it exists, which message ids it took
  * (as a user entry's own id, or as an absorbed mid-turn message's
- * `source_uuid`), and whether the engine had finished the run.
+ * `source_uuid`), whether the engine had finished the run, and the call the
+ * main thread left pending (where a deferral leaves the transcript).
  *
  * Why it matters: these facts decide whether an invocation hands the engine
  * the task again. Each unknown or missing field must read "not taken" and
@@ -36,7 +37,7 @@ describe("transcriptFactsOf", () => {
   });
 
   it("reads an empty transcript as existing but unfinished", () => {
-    expect(transcriptFactsOf([])).toEqual({ exists: true, taken: new Set(), finished: false });
+    expect(transcriptFactsOf([])).toEqual({ exists: true, taken: new Set(), finished: false, pendingCall: undefined });
   });
 
   it("takes every user entry's own id", () => {
@@ -96,5 +97,28 @@ describe("transcriptFactsOf", () => {
   it("reads an assistant entry whose content is not a block list as calling no tool", () => {
     expect(transcriptFactsOf([user("u-1"), { type: "assistant", uuid: "a-1", message: { role: "assistant", content: "plain" } }]).finished).toBe(true);
     expect(transcriptFactsOf([user("u-1"), { type: "assistant", uuid: "a-2" }]).finished).toBe(true);
+  });
+
+  it("names the main thread's last call with no result: a deferral's, after a batch's read that ran", () => {
+    const deferred = [
+      user("u-1"),
+      assistant("a-1", [{ type: "tool_use", id: "toolu_read", name: "Read", input: {} }]),
+      assistant("a-2", [{ type: "tool_use", id: "toolu_write", name: "Write", input: {} }]),
+      user("u-2", { message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_read", content: "x" }] } }),
+      { type: "attachment", uuid: "att-d", attachment: { type: "hook_deferred_tool", toolUseID: "toolu_write" } },
+    ];
+    expect(transcriptFactsOf(deferred).pendingCall).toBe("toolu_write");
+  });
+
+  it("names no pending call when every call has its result, and ignores a sub-agent's", () => {
+    const entries = [
+      user("u-1"),
+      assistant("a-1", [{ type: "tool_use", id: "toolu_1", name: "Bash", input: {} }]),
+      user("u-2", { message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: "ok" }] } }),
+      assistant("side-a", [{ type: "tool_use", id: "toolu_side", name: "Read", input: {} }], { isSidechain: true }),
+      assistant("a-2", [{ type: "text", text: "done" }]),
+    ];
+    expect(transcriptFactsOf(entries).pendingCall).toBeUndefined();
+    expect(transcriptFactsOf(null).pendingCall).toBeUndefined();
   });
 });

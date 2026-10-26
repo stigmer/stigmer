@@ -26,7 +26,7 @@ import { join } from "node:path";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 
 import { buildPlanModePermissions } from "../../../shared/plan-mode-permissions.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 import { ToolScope } from "../../../shared/tool-lists.js";

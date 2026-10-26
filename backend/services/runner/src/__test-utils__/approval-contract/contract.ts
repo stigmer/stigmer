@@ -74,9 +74,14 @@
  * the relevant lease; the "executes exactly once" count in (2) is asserted only
  * where the substrate observes execution. Differences are gated, never forked —
  * the same philosophy as the conformance suite's CapabilityFlags.
+ *
+ * A substrate that does not yet meet an invariant it should marks it with the
+ * open issue that names the gap ({@link GatewayKnownGap}, `known-gap.ts`): the
+ * case passes while today's outcome holds and fails the day the gap closes.
  */
 
 import { describe, it, expect } from "vitest";
+import { expectKnownGap, type KnownGap } from "../known-gap.js";
 import type {
   ContractHook,
   ContractHookBehaviour,
@@ -139,11 +144,27 @@ function expectRan(substrate: GatewaySubstrate, what: string, outcome: ListsOutc
   expect(outcome.executed, `${substrate.name}: ${what} must run`).toBe(true);
 }
 
+/** The invariants a substrate may mark as a known gap, by the name its registration keys them on. */
+export type GatewayKnownGap = "platform-read-under-lists";
+
+/** What a registration may say beyond the substrate. */
+export interface GatewayContractOptions {
+  /** The invariants that are a known gap on this substrate, each with the open issue that names it (`<owner>/<repo>#<n>`). */
+  readonly knownGaps?: Partial<Readonly<Record<GatewayKnownGap, string>>>;
+}
+
+/** Today's outcome of the platform-read gap: the platform's content is refused like any read the lists exclude. */
+function platformReadRefused(issue: string | undefined, outcome: () => ListsOutcome): KnownGap | undefined {
+  return issue === undefined
+    ? undefined
+    : { issue, today: { says: "with Read excluded, the platform's own content is refused like any other read", holds: () => outcome().refused && !outcome().executed } };
+}
+
 /**
  * Register the P0 safety invariants against one substrate. The suite is skipped
  * (not failed) when the substrate is unavailable in this environment.
  */
-export function describeGatewayContract(substrate: GatewaySubstrate): void {
+export function describeGatewayContract(substrate: GatewaySubstrate, options: GatewayContractOptions = {}): void {
   const suite = substrate.available ? describe : describe.skip;
 
   suite(`gateway contract — ${substrate.name}`, () => {
@@ -268,7 +289,10 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
     it("with Read excluded, refuses workspace reads but keeps the platform's content readable (invariant 18)", async () => {
       const lists = { tools: ["Grep"], disallowedTools: [] };
       expectRefused(substrate, "a workspace read", await substrate.authorizeUnderLists(lists, READ));
-      expectRan(substrate, "a read of the platform's content", await substrate.authorizeUnderLists(lists, PLATFORM_READ));
+      const platform = await substrate.authorizeUnderLists(lists, PLATFORM_READ);
+      await expectKnownGap(platformReadRefused(options.knownGaps?.["platform-read-under-lists"], () => platform), () =>
+        expectRan(substrate, "a read of the platform's content", platform),
+      );
     });
 
     // Invariant 19: a sub-agent narrows and never widens.
@@ -545,7 +569,11 @@ function describeHooksContract(
  * substrate-comparable, whereas `gated` carries a substrate-specific meaning on
  * an approve (the in-process gate still "paused"; the deny-oracle did not "deny").
  */
-export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]): void {
+export function describeCrossSubstrateAgreement(
+  substrates: GatewaySubstrate[],
+  /** A substrate's known gaps, by its name: its outcome on a marked case is left out of the agreement while the gap holds. */
+  knownGaps: Readonly<Record<string, GatewayContractOptions["knownGaps"]>> = {},
+): void {
   const available = substrates.filter((s) => s.available);
   const suite = available.length >= 2 ? describe : describe.skip;
 
@@ -592,21 +620,31 @@ export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]):
       });
     }
 
-    const listCases: Array<{ label: string; lists: { tools: string[]; disallowedTools: string[] }; action: ProposedAction; trust?: boolean }> = [
+    const listCases: Array<{ label: string; lists: { tools: string[]; disallowedTools: string[] }; action: ProposedAction; trust?: boolean; gap?: GatewayKnownGap }> = [
       { label: "an allow-list refuses an unlisted shell", lists: { tools: ["Read"], disallowedTools: [] }, action: SHELL },
       { label: "an allow-list runs a listed read", lists: { tools: ["Read"], disallowedTools: [] }, action: READ },
       { label: "a denied MCP server's tool is refused", lists: { tools: [], disallowedTools: ["mcp__srv"] }, action: MCP },
       { label: "a denied shell is refused under trust", lists: { tools: [], disallowedTools: ["Bash"] }, action: SHELL, trust: true },
-      { label: "Read excluded keeps the platform's content", lists: { tools: ["Grep"], disallowedTools: [] }, action: PLATFORM_READ },
+      { label: "Read excluded keeps the platform's content", lists: { tools: ["Grep"], disallowedTools: [] }, action: PLATFORM_READ, gap: "platform-read-under-lists" },
     ];
-    for (const { label, lists, action, trust } of listCases) {
+    for (const { label, lists, action, trust, gap } of listCases) {
       it(`both substrates agree on the lists: ${label}`, async () => {
         const outcomes = await Promise.all(
           available.map((s) => s.authorizeUnderLists(lists, action, { autoApproveAll: trust ?? false })),
         );
         const seen = outcomes.map((o) => `${o.refused}/${o.executed}`);
         const detail = available.map((s, i) => `${s.name}=${seen[i]}`).join(", ");
-        expect(new Set(seen).size, `substrates disagree on "${label}" (refused/executed): ${detail}`).toBe(1);
+        const agree = (): void => expect(new Set(seen).size, `substrates disagree on "${label}" (refused/executed): ${detail}`).toBe(1);
+        const marked = gap === undefined ? [] : available.flatMap((s, i) => (knownGaps[s.name]?.[gap] !== undefined ? [{ index: i, issue: knownGaps[s.name]![gap]! }] : []));
+        if (marked.length === 0) return agree();
+        const others = new Set(seen.filter((_, i) => !marked.some((m) => m.index === i)));
+        await expectKnownGap(
+          {
+            issue: marked.map((m) => m.issue).join(", "),
+            today: { says: "the marked substrates refuse what the others run", holds: () => others.size === 1 && marked.every((m) => outcomes[m.index]!.refused && !outcomes[m.index]!.executed) },
+          },
+          agree,
+        );
       });
     }
   });

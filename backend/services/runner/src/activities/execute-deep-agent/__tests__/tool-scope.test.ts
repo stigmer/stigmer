@@ -46,7 +46,7 @@ import type { ApprovalGateConfig } from "../../../middleware/approval-gate.js";
 import type { ModelCallRequest, ToolCallRequest } from "../../../middleware/types.js";
 import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/tool-lists.js";
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
 import { admitsRoutedRead, mountPlatformRoute } from "../platform-route.js";
 import { offloadDirBeside } from "../../../shared/workspace/platform-dir.js";

@@ -13,7 +13,8 @@
  * execution. On every call the model plays the first step the conversation
  * does not yet show: a `propose`, `read` or `open` whose tool-use id already
  * has a result anywhere in the conversation is done (run, or refused by the
- * gate); a `say` already spoken after the turn's task is done; `usage` folds
+ * gate or by a person); a `say` already spoken after the turn's task is
+ * done; `usage` folds
  * into the first model call of the arrangement. Nothing is remembered on the
  * subject: the session store is the engine's memory, which is why one plan
  * is right on a later invocation too.
@@ -23,11 +24,13 @@
  *                       closes the first with a neutral step, a `Glob` of the
  *                       workspace (no approval, no change): a model reply
  *                       that ends on text ends the engine's turn.
- *  - `propose(id, a)` → ONE gated built-in whose execution is counted by a
- *                       real side effect read back from disk: `write r` →
- *                       `Write` of a file holding `id` at `r` in the
- *                       workspace; `shell r` → `Bash` appending `id` to the
- *                       session's shell ledger, `r` riding as a comment.
+ *  - `propose(id, a)` → ONE gated built-in, which the gate pauses (`defer`),
+ *                       whose execution is counted by a real side effect
+ *                       read back from disk: `write r` → `Write` of a file
+ *                       holding `id` at `r` in the workspace; `shell r` →
+ *                       `Bash` appending `id` to the session's shell ledger,
+ *                       `r` riding as a comment. The engine re-runs it when
+ *                       the run resumes with the person's answer.
  *  - `read(id, path)` → `Read` of a file the subject seeds.
  *  - `usage(delta)`   → the model call's own usage, the input given net of
  *                       the cache buckets as the API reports it; every other
@@ -94,7 +97,6 @@ import { loopbackHostedRow } from "../../../__test-utils__/loopback-host.js";
 import { FIXTURE_CLAUDE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { createClaudeAdapter } from "../adapter.js";
-import { NEEDS_APPROVAL_MESSAGE } from "../gate.js";
 import { startClaudeWire, type ClaudeWire, type WireConversation } from "./claude-wire.js";
 import { hermeticClaudeConfig } from "./hermetic-claude.js";
 
@@ -152,8 +154,6 @@ export interface ClaudeContractSubject extends HarnessContractSubject {
   readonly wire: ClaudeWire | undefined;
   /** The session's workspace directory, as the runtime's provisioner resolves it and this subject seeds it. */
   workspaceDirOf(sessionId: string): string;
-  /** Whether the latest gated call the engine made was refused for want of a person's approval, and never ran. */
-  lastProposalRefusedForApproval(): boolean;
   /** Stop the wire; the file's `afterAll`. */
   close(): Promise<void>;
 }
@@ -179,8 +179,6 @@ class ClaudeSubject implements ClaudeContractSubject {
   private readonly sentMessages = new Map<string, Set<string>>();
   private readonly hangWaiters: Array<() => void> = [];
   private readonly operations: KitOperations;
-  /** Every gated call the model made, in order, by its id. */
-  private readonly proposals: string[] = [];
   /** Per execution, how many times the engine compacted its conversation. */
   private readonly compacted = new Map<string, number>();
   private mintCounter = 0;
@@ -260,16 +258,6 @@ class ClaudeSubject implements ClaudeContractSubject {
 
   workspaceDirOf(sessionId: string): string {
     return join(this.env.workspaceRootDir, "sessions", sessionId);
-  }
-
-  lastProposalRefusedForApproval(): boolean {
-    const id = this.proposals.at(-1);
-    if (id === undefined) return false;
-    const refused = [...this.lastConversations.values()].some((conversation) => {
-      const result = conversation.toolResults.get(id);
-      return result !== undefined && result.isError && result.text.includes(NEEDS_APPROVAL_MESSAGE);
-    });
-    return refused && this.executionCount(id) === 0;
   }
 
   // ── The engine's model ────────────────────────────────────────────────────
@@ -398,7 +386,6 @@ class ClaudeSubject implements ClaudeContractSubject {
         case "propose":
           if (settled.has(step.toolCallId)) break;
           this.sendAfter(plan, index);
-          this.proposals.push(step.toolCallId);
           return answer([this.gatedCall(step.toolCallId, step.action, plan.view.sessionId, workspaceDir)]);
         case "read":
           if (settled.has(step.toolCallId)) break;

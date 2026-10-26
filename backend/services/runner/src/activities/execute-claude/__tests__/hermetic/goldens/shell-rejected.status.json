@@ -1,0 +1,16 @@
+{
+  "phase": "RUN_COMPLETED",
+  "startedAt": "2026-01-01T00:00:01.000Z",
+  "completedAt": "2026-01-01T00:00:02.000Z",
+  "streamingUsage": {
+    "inputTokens": "10",
+    "outputTokens": "10",
+    "totalTokens": "20",
+    "turnCount": 2,
+    "estimatedCostUsd": 0.00017999999999999998,
+    "model": "claude-sonnet-4.6",
+    "observedAt": "2026-01-01T00:00:02.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  }
+}

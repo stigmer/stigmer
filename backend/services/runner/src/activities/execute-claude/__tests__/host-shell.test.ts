@@ -7,28 +7,32 @@
  * can end (an exit code, its timeout, the turn's stop, a shell that never
  * started) reported as a failure the model reads.
  *
- * Why the gate is read again here: the engine's own permission hook is the
- * first check, but the shell is what runs the command, so a call the gate
- * did not allow (or never decided) must not run even if the engine sent
- * it. Each refusal is proven by a marker file the command would have
- * created. Why the environment is exact: the command is the agent's, and
- * nothing of the runner's (a token, a key) may reach it.
+ * Why the verdict is read here: the endpoint admits a call only under its
+ * allow (`loopback-mcp.ts`, `gate.ts` `admit`), and the verdict names the
+ * caller whose environment the command runs in; a call with no allow runs
+ * nothing even so. Each refusal is proven by a marker file the command
+ * would have created. Why the environment is exact: the command is the
+ * agent's, and nothing of the runner's (a token, a key) may reach it.
  */
 
 import { existsSync } from "node:fs";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ROOT_CALLER, type Caller, type GateVerdict } from "../gate.js";
 import { DEFAULT_SHELL_TIMEOUT_MS, HOST_SHELL_TOOL, hostShellServer, isHostShell, runShellCall, timeoutOf, type HostShellOptions } from "../host-shell.js";
-import type { InProcessCall } from "../in-process-server.js";
+import type { ServedCall } from "../loopback-mcp.js";
+import { connectServed } from "../__test-utils__/served-client.js";
 
-const ALLOW: GateVerdict = { allow: true, source: undefined, caller: ROOT_CALLER };
+/** An allow for a shell call, judged as `caller`. */
+function allowFor(caller: Caller = ROOT_CALLER): GateVerdict {
+  return { kind: "allow", source: undefined, caller, toolName: HOST_SHELL_TOOL.aliasedName, args: {}, rewritten: false, hook: undefined, context: [] };
+}
+
+const ALLOW = allowFor();
 
 let cwd: string;
 let verdicts: Map<string, GateVerdict>;
@@ -60,8 +64,8 @@ function options(overrides: Partial<HostShellOptions> = {}): HostShellOptions {
   };
 }
 
-function bash(toolUseId: string, args: Record<string, unknown>): InProcessCall {
-  return { tool: HOST_SHELL_TOOL.tool, args, toolUseId };
+function bash(toolUseId: string, args: Record<string, unknown>): ServedCall {
+  return { server: HOST_SHELL_TOOL.server, tool: HOST_SHELL_TOOL.tool, args, toolUseId };
 }
 
 function textOf(result: CallToolResult): string {
@@ -101,18 +105,21 @@ describe("runShellCall", () => {
     const marker = join(cwd, "ran");
     const result = await runShellCall(options(), bash("toolu_undecided", { command: `touch ${marker}` }));
     expect(result.isError).toBe(true);
-    expect(textOf(result)).toBe("The gate made no decision for this call; it was not run.");
+    expect(textOf(result)).toBe("The gate allowed no such call; it was not run.");
     expect(existsSync(marker)).toBe(false);
     expect(outputs).toEqual([]);
   });
 
-  it("refuses a call the gate denied with the gate's own words, and runs nothing", async () => {
+  it("refuses a call the gate denied or paused, and runs nothing", async () => {
     const marker = join(cwd, "ran");
-    verdicts.set("toolu_denied", { allow: false, message: "Denied by policy: no touching.", source: undefined, caller: ROOT_CALLER });
+    verdicts.set("toolu_denied", { kind: "refuse", message: "Denied by policy: no touching.", source: undefined, caller: ROOT_CALLER, hook: undefined, byPerson: false });
+    verdicts.set("toolu_paused", { kind: "pause", message: "Run touch?", source: "builtin_category", caller: ROOT_CALLER, toolName: HOST_SHELL_TOOL.aliasedName, args: {}, hook: undefined });
     verdicts.set("toolu_other", ALLOW);
-    const result = await runShellCall(options(), bash("toolu_denied", { command: `touch ${marker}` }));
-    expect(result.isError).toBe(true);
-    expect(textOf(result)).toBe("Denied by policy: no touching.");
+    for (const id of ["toolu_denied", "toolu_paused"]) {
+      const result = await runShellCall(options(), bash(id, { command: `touch ${marker}` }));
+      expect(result.isError).toBe(true);
+      expect(textOf(result)).toBe("The gate allowed no such call; it was not run.");
+    }
     expect(existsSync(marker), "another call's allow is not this call's").toBe(false);
   });
 
@@ -148,7 +155,7 @@ describe("runShellCall", () => {
   it("runs a sub-agent's command with its own environment, never the main agent's", async () => {
     const helper: Caller = { kind: "subagent", type: "test-runner" };
     verdicts.set("toolu_main", ALLOW);
-    verdicts.set("toolu_helper", { allow: true, source: undefined, caller: helper });
+    verdicts.set("toolu_helper", allowFor(helper));
     const envFor = (caller: Caller): Record<string, string> => ({
       PATH: process.env.PATH ?? "/usr/bin:/bin",
       WHOSE: caller.kind === "root" ? "main" : caller.type,
@@ -227,11 +234,7 @@ describe("runShellCall", () => {
 describe("hostShellServer", () => {
   it("lists the engine's Bash schema under the host's tool name and runs a call under the engine's own id", async () => {
     verdicts.set("toolu_engine", ALLOW);
-    const server = hostShellServer(options());
-    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-    await server.connect(serverSide);
-    const client = new Client({ name: "engine", version: "1.0.0" });
-    await client.connect(clientSide);
+    const { client, close } = await connectServed([hostShellServer(options())]);
     try {
       const { tools } = await client.listTools();
       expect(tools.map((t) => t.name)).toEqual(["bash"]);
@@ -244,10 +247,9 @@ describe("hostShellServer", () => {
 
       const unkeyed = (await client.callTool({ name: "bash" })) as CallToolResult;
       expect(unkeyed.isError, "a call with no id has no decision").toBe(true);
-      expect(textOf(unkeyed)).toBe("The gate made no decision for this call; it was not run.");
+      expect(textOf(unkeyed)).toBe("The gate allowed no such call; it was not run.");
     } finally {
-      await client.close();
-      await server.close();
+      await close();
     }
   });
 });

@@ -81,7 +81,7 @@ export interface SubagentRepositoryInstructions {
 }
 import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
 import { outputsFolderInstruction } from "../../shared/prompt-sections.js";
-import type { CasCaptureObserver } from "./cas-capture-observer.js";
+import type { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { withSubAgentSpan } from "../../middleware/otel-spans.js";

@@ -1,0 +1,60 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_release",
+      "input": {
+        "command": "echo toolu_release >> ledger.txt",
+        "description": "Record toolu_release"
+      },
+      "name": "Bash",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_claude_0001.toolu_release.ask",
+      "tool_use_id": "aex_claude_0001.toolu_release",
+      "message": "Run command: echo toolu_release >> ledger.txt",
+      "args_preview": "{\"command\":\"echo toolu_release >> ledger.txt\",\"description\":\"Record toolu_release\"}",
+      "policy_source": "builtin_category"
+    }
+  },
+  {
+    "session_id": "ses_claude_0001",
+    "run_id": "aex_claude_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_ee77d925b82bb49dfbffc8eada310c0b41a6bb88",
+      "result": "deny",
+      "tool_use_id": "aex_claude_0001.toolu_release",
+      "deny_message": "not today"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_release.r",
+      "tool_use_id": "aex_claude_0001.toolu_release",
+      "content": [
+        {
+          "type": "text",
+          "text": "Rejected by user"
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Not releasing."
+        }
+      ]
+    }
+  }
+]

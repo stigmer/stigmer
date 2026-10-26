@@ -32,9 +32,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult, type Tool } from "@modelcontextprotocol/sdk/types.js";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
@@ -43,6 +41,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { connectBridge, mcpToolName, type McpBridge } from "../mcp-bridge.js";
+import type { ServedServer } from "../loopback-mcp.js";
+import { connectServed } from "../__test-utils__/served-client.js";
 
 const SDK_DIST = fileURLToPath(new URL("../../../../node_modules/@modelcontextprotocol/sdk/dist/esm/", import.meta.url));
 
@@ -172,6 +172,7 @@ afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 afterEach(async () => {
+  for (const served of servedClients.splice(0)) await served.close();
   for (const bridge of bridges.splice(0)) await bridge.close();
 });
 
@@ -200,14 +201,14 @@ function inScope(scope: ToolScope): (slug: string, tool: string) => boolean {
   return (slug, tool) => scope.allowsMcpTool(slug, tool);
 }
 
-/** The engine's side of one bridged server: a client over the SDK's in-process channel. */
-async function engineClient(server: McpServer): Promise<Client> {
-  const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  await server.connect(serverSide);
-  const client = new Client({ name: "engine", version: "1.0.0" });
-  await client.connect(clientSide);
-  return client;
+/** The engine's client on one served server, over the host's real endpoint; closed with the test's other clients. */
+async function engineClient(server: ServedServer): Promise<Client> {
+  const served = await connectServed([server]);
+  servedClients.push(served);
+  return served.client;
 }
+
+const servedClients: { close(): Promise<void> }[] = [];
 
 function textOf(result: CallToolResult): string {
   return result.content.map((block) => (block.type === "text" ? block.text : "")).join("");

@@ -2,64 +2,83 @@
  * The Claude gate's decisions, one rule per case, in the order the gate
  * takes them (`gate.ts`).
  *
- * Why it matters: on this engine nothing waits for a person yet, so every
- * call the shared default would ask about must be refused, never run; and
- * the engine offers tools of its own beyond what the runtime classifies, so
- * a call to a tool the turn never offered must be refused before any
- * classification is consulted. Each refusal here is written so that it
- * fails if its rule is removed: an undeclared built-in under "trust this
- * whole run", the shell under the default (under both of its names), an
- * edit, a destructive MCP tool and a tool of a server that could not be
- * listed. The allows prove the same table does not over-refuse: a leased
- * category, a read, an MCP tool its server does not mark, the file-edit
- * flows under capture, with review off and into the outputs folder.
+ * Why it matters: the gate is the only thing between the model and a side
+ * effect, and nothing that needs a person may run without one. Pinned here,
+ * each case written so that it fails if its rule is removed:
+ *  - the closed world and scope: a tool the turn never offered, the engine's
+ *    own shell, another caller's tools or skills, a helper the turn does not
+ *    define or one whose definition a call would override, platform content
+ *    and the engine's home, skill files for a caller whose lists deny
+ *    `Skill`: refused even when the whole run is trusted;
+ *  - the pause: the main agent's call that needs a person pauses with the
+ *    card's message; one deferral an invocation, a second refused with the
+ *    sentence that asks for it alone, the deferral freed when the engine
+ *    ignored it; a sub-agent's call is refused (or skipped, unattended);
+ *  - a person's answer by the call's id: a refusal binds with their reason,
+ *    an approval runs the call only as they saw it (a value the log cut
+ *    compared on the head it kept), a hook's deny binds after an approval;
+ *  - a call an earlier, stopped run left waiting, and one this run left
+ *    pending without proposing it;
+ *  - the agent's hooks in the native gate's order: deny, ask (with the
+ *    hook named), allow (a lease on an ask included), a rewrite judged
+ *    again and returned to the engine, an ask with a rewrite refused, under
+ *    "trust this whole run" only the hooks, a sub-agent's own hooks and its
+ *    hook's ask refused naming the hook;
+ *  - observations: a write the gate lets run where review captures an
+ *    ignored path is observed before it lands, a blocked secret recorded;
+ *  - admission: the host's tools run a call only under its own allow
+ *    verdict, for its tool, with exactly its arguments, once.
  *
- * The engine's two mechanisms (`PreToolUse` and `canUseTool`) read one
- * memoized decision per call id, and neither ever returns a changed input.
- *
- * Every call is judged as its caller's: the main agent, or a sub-agent the
- * `SubagentStart` callback named. Pinned here: a sub-agent the gate cannot
- * name is refused; each caller is held to its own reach, its own tools and
- * its own skills; `Agent` starts only a defined helper on its own
- * definition; the engine's own shell never runs; a sub-agent's call that
- * would ask is refused with the helper's sentence (or skipped, unattended);
- * no file tool writes platform content or the engine's home, even under
- * "trust this whole run"; and a caller whose lists deny `Skill` reads no
- * skill's files.
+ * The engine's mechanisms (`PreToolUse` and `canUseTool`) read one memoized
+ * decision per call id.
  */
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
 
-import type { ActiveLeases, McpApprovalDefault } from "../../../shared/approval-policy.js";
-import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
-import { unattendedSkipMessage } from "../../../shared/approval-policy.js";
+import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { hookLeaseKey, resolveToolApproval, unattendedSkipMessage, type ActiveLeases, type McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { secretBlockMessage } from "../../../shared/file-edit-policy.js";
+import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
+import { HookSet } from "../../../shared/hooks/hook-set.js";
+import { askWithRewriteMessage, hookRefusalMessage, personDecisionSentence } from "../../../shared/hooks/messages.js";
+import type { HookProcessRunner, HookRunResult } from "../../../shared/hooks/run.js";
+import { ELISION_MARKER } from "../../../shared/status-offload.js";
+import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import {
+  ASK_ALONE_MESSAGE,
+  CHANGED_MESSAGE,
   ClaudeGate,
   HALTED_MESSAGE,
   HIDDEN_SKILLS_MESSAGE,
-  NEEDS_APPROVAL_MESSAGE,
+  NOT_ADMITTED_MESSAGE,
   READ_ONLY_MESSAGE,
   ROOT_CALLER,
+  STALE_CALL_MESSAGE,
   SUBAGENT_APPROVAL_MESSAGE,
   UNKNOWN_CALLER_MESSAGE,
   canUseToolOf,
   gateFactsOf,
   gateHooks,
   helperOverrideMessage,
+  helperStartAskMessage,
   notOfferedMessage,
+  sameAsShown,
   skillNotOwnedMessage,
+  subagentHookAskMessage,
   unknownHelperMessage,
   type Caller,
   type GateFacts,
   type GateVerdict,
   type Reach,
 } from "../gate.js";
+import { ClaudeToolViews } from "../hook-views.js";
+import { NO_HOOKS, type TurnHookEvaluators } from "../hooks.js";
 
 const WORKSPACE = "/work/repo";
 const PLATFORM = "/sessions/ses_1/platform";
@@ -88,17 +107,28 @@ const HELPER_REACH: Reach = { tools: new Set(["Read", "Write"]), skills: new Set
 
 const RUNNER: Caller = { kind: "subagent", type: "test-runner" };
 
-function allowed(source: GateVerdict["source"], caller: Caller = ROOT_CALLER): GateVerdict {
-  return { allow: true, source, caller };
+/** An allow under `source`, judged as `caller`. */
+function allowed(source: GateVerdict["source"], caller: Caller = ROOT_CALLER): unknown {
+  return expect.objectContaining({ kind: "allow", source, caller });
 }
 
-/** A refusal judged as `caller`; `null` for a call whose caller could not be named. */
-function refused(message: string, source?: GateVerdict["source"], caller: Caller | null = ROOT_CALLER): GateVerdict {
-  return { allow: false, message, source, caller: caller ?? undefined };
+/** A refusal no person made, judged as `caller`; `null` for a call whose caller could not be named. */
+function refused(message: string, source?: GateVerdict["source"], caller: Caller | null = ROOT_CALLER, hook?: string): GateVerdict {
+  return { kind: "refuse", message, source, caller: caller ?? undefined, hook, byPerson: false };
 }
 
-function leases(over: Partial<{ global: boolean; categories: ToolApprovalCategory[]; servers: string[] }> = {}): ActiveLeases {
-  return { global: over.global ?? false, categories: new Set(over.categories ?? []), servers: new Set(over.servers ?? []), hooks: new Set() };
+/** A pause with the card's `message`. */
+function paused(message: string, source: GateVerdict["source"], hook?: string): unknown {
+  return expect.objectContaining({ kind: "pause", message, source, caller: ROOT_CALLER, hook });
+}
+
+/** The default's card for a call. */
+function cardOf(name: string, args: Record<string, unknown>, slug = ""): string {
+  return resolveToolApproval(name, slug, args, mcpDefault({ destructive: ["docs/drop"] }), new Set()).message;
+}
+
+function leases(over: Partial<{ global: boolean; categories: ToolApprovalCategory[]; servers: string[]; hooks: string[] }> = {}): ActiveLeases {
+  return { global: over.global ?? false, categories: new Set(over.categories ?? []), servers: new Set(over.servers ?? []), hooks: new Set(over.hooks ?? []) };
 }
 
 function mcpDefault(over: Partial<{ destructive: string[]; unlisted: string[]; leased: string[] }> = {}): McpApprovalDefault {
@@ -126,11 +156,18 @@ function facts(over: Partial<GateFacts> = {}): GateFacts {
     platformDir: PLATFORM,
     engineHome: HOME,
     readsSkillContent: async (path) => /^\/\.stigmer\/(skills|plugins)\//i.test(path),
+    hooks: NO_HOOKS,
+    decisions: new Map(),
+    denyMessages: new Map(),
+    waitingCallOf: () => undefined,
+    staleCallId: undefined,
+    unproposedCallId: undefined,
+    observer: undefined,
     ...over,
   };
 }
 
-async function decide(gate: ClaudeGate, toolName: string, input: Record<string, unknown> = {}, id = `toolu_${toolName}`, agentId?: string) {
+async function decide(gate: ClaudeGate, toolName: string, input: Record<string, unknown> = {}, id = `toolu_${toolName}`, agentId?: string): Promise<GateVerdict> {
   return gate.decide(toolName, id, input, agentId);
 }
 
@@ -142,6 +179,37 @@ function startedGate(over: Partial<GateFacts> = {}): ClaudeGate {
   return gate;
 }
 
+/** The `safety` plugin's hooks, whose PreToolUse answer for every call they match is `pre`, and PostToolUse answer `post`. */
+function hooksAnswering(pre: Partial<HookRunResult>, opts: { matcher?: string; leases?: string[]; seen?: Record<string, unknown>[] } = {}): HookEvaluator {
+  const run: HookProcessRunner = async (spec) => {
+    opts.seen?.push(JSON.parse(spec.stdin) as Record<string, unknown>);
+    return { exitCode: 0, stdout: "", stderr: "", timedOut: false, ...pre };
+  };
+  return new HookEvaluator({
+    set: HookSet.of([
+      {
+        source: { plugin: "safety", root: "/p", data: "/d", options: new Map() },
+        groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: opts.matcher ?? ".*", handlers: [create(HookHandlerSchema, { command: "pre" })] })],
+      },
+    ]),
+    views: new ClaudeToolViews({ workspaceRoot: WORKSPACE, serverNames: new Map(), platformServerSlugs: new Set() }),
+    sessionId: "ses",
+    workspaceRoot: WORKSPACE,
+    permissionMode: "default",
+    baseEnv: {},
+    homeDir: "/home",
+    leases: new Set(opts.leases ?? []),
+    run,
+  });
+}
+
+/** A hook's PreToolUse answer, as its process prints it. */
+function hookSays(permissionDecision: string, extra: Record<string, unknown> = {}): Partial<HookRunResult> {
+  return { stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision, ...extra } }) };
+}
+
+const withRootHooks = (evaluator: HookEvaluator): TurnHookEvaluators => ({ root: evaluator, subagents: new Map() });
+
 describe("the closed world: a tool the turn never offered", () => {
   it("is refused before any policy, even when the whole run is trusted", async () => {
     const gate = new ClaudeGate(facts({ leases: leases({ global: true }) }));
@@ -151,9 +219,9 @@ describe("the closed world: a tool the turn never offered", () => {
 });
 
 describe("the shell", () => {
-  it("is refused under the default, never asked of a person", async () => {
+  it("pauses under the default, the card the default's", async () => {
     const gate = new ClaudeGate(facts());
-    expect(await decide(gate, SHELL, { command: "rm -rf build" })).toEqual(refused(NEEDS_APPROVAL_MESSAGE, "builtin_category"));
+    expect(await decide(gate, SHELL, { command: "rm -rf build" })).toEqual(paused(cardOf("Bash", { command: "rm -rf build" }), "builtin_category"));
   });
 
   it("never runs as the engine's own, under its own name, even when the whole run is trusted", async () => {
@@ -174,11 +242,11 @@ describe("the shell", () => {
 });
 
 describe("file edits", () => {
-  it("Write, Edit and NotebookEdit are refused under review with nothing to capture into", async () => {
+  it("Write, Edit and NotebookEdit pause under review with nothing to capture into", async () => {
     const gate = new ClaudeGate(facts());
-    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/a.ts`, content: "x" })).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
-    expect(await decide(gate, "Edit", { file_path: `${WORKSPACE}/a.ts`, old_string: "x", new_string: "y" })).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
-    expect(await decide(gate, "NotebookEdit", { notebook_path: `${WORKSPACE}/n.ipynb`, new_source: "" })).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/a.ts`, content: "x" })).toMatchObject({ kind: "pause", source: "builtin_category" });
+    expect(await decide(gate, "Edit", { file_path: `${WORKSPACE}/a.ts`, old_string: "x", new_string: "y" })).toMatchObject({ kind: "pause", source: "builtin_category" });
+    expect(await decide(gate, "NotebookEdit", { notebook_path: `${WORKSPACE}/n.ipynb`, new_source: "" })).toMatchObject({ kind: "pause", source: "builtin_category" });
   });
 
   it("flow with review off, and under capture for a capturable path, judged in the workspace's own dialect", async () => {
@@ -199,8 +267,8 @@ describe("file edits", () => {
 
   it("outside the workspace are never capturable, so they fall to the default", async () => {
     const gate = new ClaudeGate(facts({ posture: { fileCaptureMode: true, fileCaptureSubstrate: true, isCapturablePath: async () => true } }));
-    expect(await decide(gate, "Write", { file_path: "/etc/hosts" })).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
-    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/../other/a.ts` }, "toolu_up")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    expect(await decide(gate, "Write", { file_path: "/etc/hosts" })).toMatchObject({ kind: "pause" });
+    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/../other/a.ts` }, "toolu_up")).toMatchObject({ kind: "pause" });
   });
 
   it("resolve against the workspace: a relative path that climbs out, or an absolute one outside, takes no flow", async () => {
@@ -209,10 +277,10 @@ describe("file edits", () => {
       posture: { fileCaptureMode: true, fileCaptureSubstrate: true, captureIgnored: false, isCapturablePath: async (path) => (asked.push(path), true) },
     });
     const gate = new ClaudeGate(capture);
-    expect(await decide(gate, "Write", { file_path: "src/../../outside.txt", content: "x" }, "toolu_climb")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
-    expect(await decide(gate, "Write", { file_path: "/.stigmer/outputs/x.md", content: "x" }, "toolu_root_outputs")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    expect(await decide(gate, "Write", { file_path: "src/../../outside.txt", content: "x" }, "toolu_climb")).toMatchObject({ kind: "pause" });
+    expect(await decide(gate, "Write", { file_path: "/.stigmer/outputs/x.md", content: "x" }, "toolu_root_outputs")).toMatchObject({ kind: "pause" });
     const reviewOff = new ClaudeGate(facts({ posture: { fileReviewOff: true, isCapturablePath: async () => false } }));
-    expect(await decide(reviewOff, "Edit", { file_path: "/etc/hosts" }, "toolu_off_outside")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    expect(await decide(reviewOff, "Edit", { file_path: "/etc/hosts" }, "toolu_off_outside")).toMatchObject({ kind: "pause" });
     expect(await decide(gate, "Write", { file_path: "src/a.ts", content: "x" }, "toolu_relative")).toEqual(allowed("file_capture"));
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/..notes`, content: "x" }, "toolu_dots_name")).toEqual(allowed("file_capture"));
     expect(asked, "only the paths inside the workspace were asked about, in its dialect").toEqual(["/src/a.ts", "/..notes"]);
@@ -220,9 +288,12 @@ describe("file edits", () => {
     expect(await decide(gate, "Write", { file_path: "/etc/app/.env", content: "KEY=1" }, "toolu_outside_secret")).toEqual(refused(secretBlockMessage("Write", "/etc/app/.env")));
   });
 
-  it("a secret-like path is blocked even when a write lease would clear the category", async () => {
-    const gate = new ClaudeGate(facts({ leases: leases({ categories: ["write"] }), posture: { fileReviewOff: true, isCapturablePath: async () => false } }));
+  it("a secret-like path is blocked even when a write lease would clear the category, and recorded for review", async () => {
+    const blocked: string[] = [];
+    const observer = { recordBefore: async () => undefined, recordBlockedSecret: (path: string) => void blocked.push(path) };
+    const gate = new ClaudeGate(facts({ leases: leases({ categories: ["write"] }), posture: { fileReviewOff: true, isCapturablePath: async () => false }, observer }));
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/.env`, content: "KEY=1" })).toEqual(refused(secretBlockMessage("Write", "/.env")));
+    expect(blocked).toEqual(["/.env"]);
   });
 
   it("a write leased by category runs", async () => {
@@ -236,17 +307,17 @@ describe("reads and MCP tools", () => {
     expect(await decide(new ClaudeGate(facts()), "Read", { file_path: `${WORKSPACE}/a.ts` })).toEqual(allowed(undefined));
   });
 
-  it("a tool its server marks destructive is refused; one it does not mark runs; a leased server's runs", async () => {
+  it("a tool its server marks destructive pauses; one it does not mark runs; a leased server's runs", async () => {
     const gate = new ClaudeGate(facts({ mcpDefault: mcpDefault({ destructive: ["docs/drop"] }) }));
-    expect(await decide(gate, "mcp__docs__drop")).toEqual(refused(NEEDS_APPROVAL_MESSAGE, "annotation_destructive_tighten"));
+    expect(await decide(gate, "mcp__docs__drop")).toEqual(paused(cardOf("drop", {}, "docs"), "annotation_destructive_tighten"));
     expect(await decide(gate, "mcp__docs__search")).toEqual(allowed(undefined));
     const leased = new ClaudeGate(facts({ mcpDefault: mcpDefault({ destructive: ["docs/drop"], leased: ["docs"] }) }));
     expect(await decide(leased, "mcp__docs__drop")).toEqual(allowed("approval_lease"));
   });
 
-  it("a tool of a server that could not be listed is refused", async () => {
+  it("a tool of a server that could not be listed pauses", async () => {
     const gate = new ClaudeGate(facts({ mcpDefault: mcpDefault({ unlisted: ["plugin"] }) }));
-    expect(await decide(gate, "mcp__plugin__any")).toEqual(refused(NEEDS_APPROVAL_MESSAGE, "annotation_destructive_tighten"));
+    expect(await decide(gate, "mcp__plugin__any")).toMatchObject({ kind: "pause", source: "annotation_destructive_tighten" });
   });
 });
 
@@ -261,52 +332,283 @@ describe("one decision per call", () => {
     expect(gate.verdictOf("toolu_a")).toBe(first);
     expect(await decide(gate, "Read", {}, "toolu_b")).toEqual(refused(HALTED_MESSAGE));
   });
+});
 
-  it("the PreToolUse callback and canUseTool agree, and neither returns a changed input", async () => {
+describe("the pause: one deferral an invocation", () => {
+  const signal = new AbortController().signal;
+  const hookInput = (name: string, id: string, input: Record<string, unknown>): HookInput => ({
+    hook_event_name: "PreToolUse",
+    tool_name: name,
+    tool_input: input,
+    tool_use_id: id,
+    session_id: "s",
+    transcript_path: "",
+    cwd: WORKSPACE,
+  });
+
+  it("defers the first call that needs a person, refuses a second with the sentence that asks for it alone, and allows a read", async () => {
     const gate = new ClaudeGate(facts());
-    const callback = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
-    const signal = new AbortController().signal;
-    const hookInput = (name: string, id: string): HookInput => ({
-      hook_event_name: "PreToolUse",
-      tool_name: name,
-      tool_input: { command: "ls", file_path: `${WORKSPACE}/a.ts` },
-      tool_use_id: id,
-      session_id: "s",
-      transcript_path: "",
-      cwd: WORKSPACE,
+    const preToolUse = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
+    expect(await preToolUse(hookInput(SHELL, "toolu_1", { command: "rm -rf build" }), "toolu_1", { signal })).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "defer" } });
+    expect(await preToolUse(hookInput(SHELL, "toolu_2", { command: "make release" }), "toolu_2", { signal })).toEqual({
+      hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: ASK_ALONE_MESSAGE },
     });
-    expect(await callback(hookInput(SHELL, "toolu_s"), "toolu_s", { signal })).toEqual({
-      hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: NEEDS_APPROVAL_MESSAGE },
-    });
-    expect(await callback(hookInput("Read", "toolu_r"), "toolu_r", { signal })).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } });
-    expect(await callback({ ...hookInput("Read", "toolu_x"), hook_event_name: "PostToolUse", tool_response: "" } as HookInput, "toolu_x", { signal })).toEqual({});
+    expect(gate.deferredCall).toBe("toolu_1");
+    expect(await preToolUse(hookInput(SHELL, "toolu_1", { command: "rm -rf build" }), "toolu_1", { signal }), "the same call asked again keeps its deferral").toMatchObject({ hookSpecificOutput: { permissionDecision: "defer" } });
+    expect(await preToolUse(hookInput("Read", "toolu_r", { file_path: `${WORKSPACE}/a.ts` }), "toolu_r", { signal })).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } });
+    expect(await preToolUse({ ...hookInput("Read", "toolu_x", {}), hook_event_name: "PostToolUse", tool_response: "" } as HookInput, "toolu_x", { signal })).toEqual({});
+  });
 
+  it("canUseTool never runs a call that would pause: it refuses it, and frees the deferral the engine ran past", async () => {
+    const gate = new ClaudeGate(facts());
+    const preToolUse = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
     const canUseTool = canUseToolOf(gate);
-    const options = { signal, toolUseID: "toolu_s", requestId: "req_1" };
-    expect(await canUseTool(SHELL, { command: "ls" }, options)).toEqual({ behavior: "deny", message: NEEDS_APPROVAL_MESSAGE });
-    expect(await canUseTool("Read", {}, { ...options, toolUseID: "toolu_r" })).toEqual({ behavior: "allow" });
+    await preToolUse(hookInput(SHELL, "toolu_1", { command: "rm -rf build" }), "toolu_1", { signal });
+    expect(await canUseTool(SHELL, { command: "rm -rf build" }, { signal, toolUseID: "toolu_1", requestId: "r1" })).toEqual({ behavior: "deny", message: ASK_ALONE_MESSAGE });
+    expect(gate.deferredCall).toBeUndefined();
+    expect(await preToolUse(hookInput(SHELL, "toolu_3", { command: "rm -rf build" }), "toolu_3", { signal }), "the call asked for again alone defers").toMatchObject({ hookSpecificOutput: { permissionDecision: "defer" } });
+    expect(await canUseTool("Read", {}, { signal, toolUseID: "toolu_r", requestId: "r2" })).toEqual({ behavior: "allow" });
+    expect(await canUseTool("WebFetch", {}, { signal, toolUseID: "toolu_w", requestId: "r3" })).toEqual({ behavior: "deny", message: notOfferedMessage("WebFetch") });
+  });
+
+  it("a call this run left pending without proposing it is asked for again alone", async () => {
+    const gate = new ClaudeGate(facts({ unproposedCallId: "toolu_old" }));
+    expect(await decide(gate, SHELL, { command: "make" }, "toolu_old")).toEqual(refused(ASK_ALONE_MESSAGE, "builtin_category"));
+    expect(await decide(gate, SHELL, { command: "make" }, "toolu_new")).toMatchObject({ kind: "pause" });
+  });
+});
+
+describe("a call left waiting by a stopped run", () => {
+  it("is refused by its id whatever the policy, even under a trusted run", async () => {
+    const gate = new ClaudeGate(facts({ staleCallId: "toolu_stale", leases: leases({ global: true }) }));
+    expect(await decide(gate, SHELL, { command: "rm -rf build" }, "toolu_stale")).toEqual(refused(STALE_CALL_MESSAGE));
+    expect(await decide(gate, SHELL, { command: "ls" }, "toolu_fresh")).toEqual(allowed("auto_approve_all"));
+  });
+});
+
+describe("a person's answer, by the call's id", () => {
+  const SHOWN = { command: "rm -rf build", description: "clean" };
+  const answered = (action: ApprovalAction, over: Partial<GateFacts> = {}): ClaudeGate =>
+    new ClaudeGate(facts({ decisions: new Map([["toolu_w", action]]), waitingCallOf: (id) => (id === "toolu_w" ? { name: "Bash", args: SHOWN } : undefined), ...over }));
+
+  it("an approval runs exactly the call the person saw, under the source that asked", async () => {
+    expect(await decide(answered(ApprovalAction.APPROVE), SHELL, { ...SHOWN }, "toolu_w")).toEqual(allowed("builtin_category"));
+    expect(await decide(answered(ApprovalAction.APPROVE_ALL), SHELL, { ...SHOWN }, "toolu_w")).toEqual(allowed("builtin_category"));
+  });
+
+  it("an approved call the engine re-runs with other arguments is refused", async () => {
+    expect(await decide(answered(ApprovalAction.APPROVE), SHELL, { ...SHOWN, command: "rm -rf /" }, "toolu_w")).toEqual(refused(CHANGED_MESSAGE));
+    expect(await decide(answered(ApprovalAction.APPROVE), SHELL, { command: "rm -rf build" }, "toolu_w"), "a missing argument is a change").toEqual(refused(CHANGED_MESSAGE));
+    expect(await decide(answered(ApprovalAction.APPROVE, { leases: leases({ categories: ["write"] }) }), "Write", { ...SHOWN }, "toolu_w"), "another tool under the approved id").toEqual(refused(CHANGED_MESSAGE));
+    expect(await decide(answered(ApprovalAction.APPROVE, { waitingCallOf: () => undefined }), SHELL, { ...SHOWN }, "toolu_w"), "an answer with no row to show").toEqual(refused(CHANGED_MESSAGE));
+  });
+
+  it("a value the log cut is compared on the head it kept", async () => {
+    const head = "x".repeat(4000);
+    const cut = { command: `${head}\n\n${ELISION_MARKER}` };
+    const gate = (actual: string) => decide(new ClaudeGate(facts({ decisions: new Map([["toolu_c", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Bash", args: cut }) })), SHELL, { command: actual }, "toolu_c");
+    expect(await gate(`${head}${"y".repeat(10_000)}`)).toEqual(allowed("builtin_category"));
+    expect(await gate(`z${head.slice(1)}${"y".repeat(10_000)}`)).toEqual(refused(CHANGED_MESSAGE));
+    expect(sameAsShown([1, { a: "b" }], [1, { a: "b" }])).toBe(true);
+    expect(sameAsShown([1], [1, 2])).toBe(false);
+    expect(sameAsShown({ a: 1 }, ["a"])).toBe(false);
+    expect(sameAsShown(cut, { command: 7 })).toBe(false);
+  });
+
+  it("a refusal never runs, the model reading the person's own reason, and is marked as theirs", async () => {
+    const gate = answered(ApprovalAction.REJECT, { denyMessages: new Map([["toolu_w", "not today"]]) });
+    expect(await decide(gate, SHELL, { ...SHOWN }, "toolu_w")).toEqual({
+      kind: "refuse",
+      message: personDecisionSentence("Bash", "reject", "not today"),
+      source: undefined,
+      caller: ROOT_CALLER,
+      hook: undefined,
+      byPerson: true,
+    });
+    expect(await decide(answered(ApprovalAction.SKIP), SHELL, { ...SHOWN }, "toolu_w")).toMatchObject({ kind: "refuse", message: personDecisionSentence("Bash", "skip", ""), byPerson: true });
+  });
+
+  it("a hook's deny binds after an approval; a person's refusal binds before a hook's allow", async () => {
+    const denying = withRootHooks(hooksAnswering(hookSays("deny", { permissionDecisionReason: "frozen" })));
+    expect(await decide(answered(ApprovalAction.APPROVE, { hooks: denying }), SHELL, { ...SHOWN }, "toolu_w")).toEqual(refused(hookRefusalMessage("safety", "frozen"), "hook", ROOT_CALLER, "safety"));
+    const allowing = withRootHooks(hooksAnswering(hookSays("allow")));
+    expect(await decide(answered(ApprovalAction.REJECT, { hooks: allowing }), SHELL, { ...SHOWN }, "toolu_w")).toMatchObject({ kind: "refuse", byPerson: true });
+  });
+});
+
+describe("the agent's hooks", () => {
+  it("a deny refuses, naming the hook", async () => {
+    const gate = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("deny", { permissionDecisionReason: "no pushes on Friday" }))) }));
+    expect(await decide(gate, SHELL, { command: "git push" })).toEqual(refused(hookRefusalMessage("safety", "no pushes on Friday"), "hook", ROOT_CALLER, "safety"));
+  });
+
+  it("an allow runs a call the default would ask about, named for the hook; a lease on its ask counts as its allow", async () => {
+    const gate = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("allow"))) }));
+    expect(await decide(gate, SHELL, { command: "git push" })).toMatchObject({ kind: "allow", source: "hook", hook: "safety", rewritten: false });
+    const leased = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("ask"), { leases: [hookLeaseKey("safety", "", "Bash")] })) }));
+    expect(await decide(leased, SHELL, { command: "git push" })).toMatchObject({ kind: "allow", source: "approval_lease", hook: "safety" });
+  });
+
+  it("an ask pauses a call the default lets run, with its reason or Claude's tool name, and the hook named", async () => {
+    const gate = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("ask"))) }));
+    expect(await decide(gate, "Read", { file_path: `${WORKSPACE}/a.ts` })).toEqual(paused("The safety plugin asks before Read", "hook", "safety"));
+    const reasoned = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("ask", { permissionDecisionReason: "Confirm the push" }))) }));
+    expect(await decide(reasoned, SHELL, { command: "git push" })).toEqual(paused("Confirm the push", "hook", "safety"));
+  });
+
+  it("an ask a person approved runs; an unattended turn skips it with the hook recorded", async () => {
+    const ask = withRootHooks(hooksAnswering(hookSays("ask")));
+    const approved = new ClaudeGate(facts({ hooks: ask, decisions: new Map([["toolu_a", ApprovalAction.APPROVE]]), waitingCallOf: () => ({ name: "Read", args: { file_path: `${WORKSPACE}/a.ts` } }) }));
+    expect(await decide(approved, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_a")).toMatchObject({ kind: "allow", source: "hook", hook: "safety" });
+    const unattended = new ClaudeGate(facts({ hooks: ask, unattended: true }));
+    expect(await decide(unattended, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_u")).toEqual(refused(unattendedSkipMessage("Read"), "unattended_skip", ROOT_CALLER, "safety"));
+    expect([...unattended.unattendedSkips]).toEqual([["toolu_u", "safety"]]);
+  });
+
+  it("a rewrite runs as rewritten, returned to the engine by both mechanisms, after the rules are judged again", async () => {
+    const rewrite = (input: Record<string, unknown>) => withRootHooks(hooksAnswering(hookSays("allow", { updatedInput: input })));
+    const gate = new ClaudeGate(facts({ hooks: rewrite({ command: "npm test -- --ci" }) }));
+    expect(await decide(gate, SHELL, { command: "npm test" }, "toolu_rw")).toMatchObject({ kind: "allow", args: { command: "npm test -- --ci" }, rewritten: true });
+    const signal = new AbortController().signal;
+    expect(await canUseToolOf(gate)(SHELL, { command: "npm test" }, { signal, toolUseID: "toolu_rw", requestId: "r" })).toEqual({ behavior: "allow", updatedInput: { command: "npm test -- --ci" } });
+    const preToolUse = gateHooks(gate).PreToolUse![0]!.hooks[0]!;
+    expect(await preToolUse({ hook_event_name: "PreToolUse", tool_name: SHELL, tool_input: { command: "npm test" }, tool_use_id: "toolu_rw", session_id: "s", transcript_path: "", cwd: WORKSPACE }, "toolu_rw", { signal })).toEqual({
+      hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", updatedInput: { command: "npm test -- --ci" } },
+    });
+    const onto = (path: string) => new ClaudeGate(facts({ hooks: rewrite({ file_path: path, content: "x" }), leases: leases({ categories: ["write"] }) }));
+    expect(await decide(onto(`${WORKSPACE}/.env`), "Write", { file_path: `${WORKSPACE}/a.ts`, content: "x" })).toEqual(refused(secretBlockMessage("Write", "/.env")));
+    expect(await decide(onto(`${WORKSPACE}/.stigmer/skills/x/SKILL.md`), "Write", { file_path: `${WORKSPACE}/a.ts`, content: "x" })).toEqual(refused(READ_ONLY_MESSAGE));
+  });
+
+  it("an ask that also rewrites the call is refused: the card would show the model's call", async () => {
+    const gate = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("ask", { updatedInput: { command: "git push --dry-run" } }))) }));
+    expect(await decide(gate, SHELL, { command: "git push" })).toEqual(refused(askWithRewriteMessage("safety"), "hook", ROOT_CALLER, "safety"));
+  });
+
+  it("under a trusted run only the hooks: a deny binds, an ask is satisfied, a rewrite applies", async () => {
+    const trusted = (pre: Partial<HookRunResult>) => new ClaudeGate(facts({ leases: leases({ global: true }), hooks: withRootHooks(hooksAnswering(pre)) }));
+    expect(await decide(trusted(hookSays("deny")), SHELL, { command: "git push" })).toEqual(refused(hookRefusalMessage("safety", ""), "hook", ROOT_CALLER, "safety"));
+    expect(await decide(trusted(hookSays("ask")), SHELL, { command: "git push" })).toMatchObject({ kind: "allow", source: "auto_approve_all", hook: "safety" });
+    expect(await decide(trusted(hookSays("ask", { updatedInput: { command: "git push --dry-run" } })), SHELL, { command: "git push" })).toMatchObject({
+      kind: "allow",
+      source: "auto_approve_all",
+      args: { command: "git push --dry-run" },
+    });
+    expect(await decide(trusted(hookSays("allow")), SHELL, { command: "git push" })).toMatchObject({ kind: "allow", source: "hook" });
+    expect(await decide(trusted({}), SHELL, { command: "git push" })).toMatchObject({ kind: "allow", source: "auto_approve_all", hook: undefined });
+  });
+
+  it("an MCP call reaches a hook under Claude Code's name, its PreToolUse context kept for the result", async () => {
+    const seen: Record<string, unknown>[] = [];
+    const gate = new ClaudeGate(facts({ hooks: withRootHooks(hooksAnswering(hookSays("allow", { additionalContext: "logged" }), { seen })) }));
+    expect(await decide(gate, "mcp__docs__search", { q: "x" })).toMatchObject({ kind: "allow", context: ["logged"] });
+    expect(seen[0]).toMatchObject({ tool_name: "mcp__docs__search", tool_input: { q: "x" }, tool_use_id: "toolu_mcp__docs__search" });
+  });
+
+  it("a sub-agent runs its own evaluator, and its hook's ask is refused naming the hook", async () => {
+    const own = hooksAnswering(hookSays("ask"));
+    const gate = startedGate({ hooks: { root: null, subagents: new Map([["test-runner", own]]) } });
+    expect(await decide(gate, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_sub", "agent_runner")).toEqual(refused(subagentHookAskMessage("safety"), "hook", RUNNER, "safety"));
+    expect(await decide(gate, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_root")).toEqual(allowed(undefined));
+    const plugin = startedGate({ hooks: withRootHooks(hooksAnswering(hookSays("deny"))) });
+    expect(await decide(plugin, "Read", { file_path: `${WORKSPACE}/a.ts` }, "toolu_helper", "agent_helper"), "a plugin's helper runs the main agent's hooks").toMatchObject({ kind: "refuse", source: "hook" });
+  });
+});
+
+describe("a hook's ask on the main agent's start of a helper", () => {
+  it("is refused naming the hook, since the start reaches the log before an ask could ride it", async () => {
+    const gate = startedGate({ hooks: withRootHooks(hooksAnswering(hookSays("ask"))) });
+    expect(await decide(gate, "Agent", { description: "x", prompt: "y", subagent_type: "test-runner" }, "toolu_start")).toEqual(refused(helperStartAskMessage("safety"), "hook", ROOT_CALLER, "safety"));
+  });
+});
+
+describe("decisions as they are made", () => {
+  it("are told to each listener with the call's id, once per call", async () => {
+    const gate = new ClaudeGate(facts());
+    const told: [string, GateVerdict["kind"]][] = [];
+    gate.onDecided((id, verdict) => told.push([id, verdict.kind]));
+    await decide(gate, "Read", {}, "toolu_1");
+    await decide(gate, "Read", {}, "toolu_1");
+    await decide(gate, SHELL, { command: "make" }, "toolu_2");
+    expect(told).toEqual([["toolu_1", "allow"], ["toolu_2", "pause"]]);
+  });
+});
+
+describe("observations for review", () => {
+  it("a write the gate lets run where review captures ignored paths is observed before it lands, whatever let it run", async () => {
+    const recorded: string[] = [];
+    const observer = { recordBefore: async (path: string) => void recorded.push(path), recordBlockedSecret: () => undefined };
+    const posture = { fileCaptureMode: true, fileCaptureSubstrate: true, captureIgnored: true, isCapturablePath: async () => false };
+    const gate = new ClaudeGate(facts({ posture, observer }));
+    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/dist/out.js`, content: "x" }, "toolu_1")).toEqual(allowed("file_capture"));
+    expect(await decide(gate, "Read", { file_path: `${WORKSPACE}/dist/out.js` }, "toolu_2")).toEqual(allowed(undefined));
+    const trusted = new ClaudeGate(facts({ posture, observer, leases: leases({ global: true }) }));
+    expect(await decide(trusted, "Edit", { file_path: `${WORKSPACE}/build/x.js`, old_string: "a", new_string: "b" }, "toolu_3")).toEqual(allowed("auto_approve_all"));
+    expect(await decide(trusted, "Write", { file_path: "/etc/hosts", content: "x" }, "toolu_4")).toEqual(allowed("auto_approve_all"));
+    expect(recorded).toEqual(["/dist/out.js", "/build/x.js"]);
+  });
+
+  it("nothing is observed where an ignored path is not captured", async () => {
+    const recorded: string[] = [];
+    const observer = { recordBefore: async (path: string) => void recorded.push(path), recordBlockedSecret: () => undefined };
+    const gate = new ClaudeGate(facts({ observer, posture: { fileCaptureMode: true, captureIgnored: false, isCapturablePath: async () => true }, leases: leases({ categories: ["write"] }) }));
+    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/a.ts`, content: "x" })).toEqual(allowed("file_capture"));
+    expect(recorded).toEqual([]);
+  });
+});
+
+describe("admission to the host's tools", () => {
+  it("runs a call only under its own allow verdict, for its tool, with exactly its arguments, once", async () => {
+    const gate = new ClaudeGate(facts({ leases: leases({ categories: ["shell"] }), mcpDefault: mcpDefault({ destructive: ["docs/drop"] }) }));
+    await decide(gate, SHELL, { command: "npm test" }, "toolu_ok");
+    await decide(gate, "mcp__docs__drop", {}, "toolu_paused");
+    const call = (over: Partial<{ server: string; tool: string; args: Record<string, unknown>; toolUseId: string }> = {}) => ({ server: "stigmer", tool: "bash", args: { command: "npm test" }, toolUseId: "toolu_ok", ...over });
+    expect(gate.admit(call({ args: { command: "rm -rf /" } }))).toBe(NOT_ADMITTED_MESSAGE);
+    expect(gate.admit(call({ server: "docs", tool: "drop" }))).toBe(NOT_ADMITTED_MESSAGE);
+    expect(gate.admit(call({ toolUseId: "toolu_unknown" }))).toBe(NOT_ADMITTED_MESSAGE);
+    expect(gate.admit(call({ toolUseId: "toolu_paused", server: "docs", tool: "drop", args: {} }))).toBe(NOT_ADMITTED_MESSAGE);
+    expect(gate.admit(call())).toBeUndefined();
+    expect(gate.admit(call())).toBe("This call already ran; it was not run again.");
+    await decide(gate, "WebFetch", {}, "toolu_refused");
+    expect(gate.admit(call({ toolUseId: "toolu_refused" }))).toBe(notOfferedMessage("WebFetch"));
   });
 });
 
 describe("the gate's facts", () => {
-  it("are read from the turn's record: leases, capture posture, the workspace root and whether anyone can approve", () => {
+  it("are read from the turn's record: leases, capture posture, the workspace root, the answers and whether anyone can approve", () => {
     const input = turnInputFixture({
       workspaceDir: WORKSPACE,
       execution: create(RunSchema, { status: create(RunStatusSchema, { approvalMode: ApprovalMode.UNATTENDED }) }),
     });
-    const isCapturable = async (): Promise<boolean> => true;
+    const isCapturablePath = async (): Promise<boolean> => true;
     const subagents = new Map([["test-runner", RUNNER_REACH]]);
     const readsSkillContent = async (): Promise<boolean> => false;
-    const read = gateFactsOf(input, { root: ROOT_REACH, subagents }, { serverOf, mcpDefault: mcpDefault() }, { platformDir: PLATFORM, engineHome: HOME, readsSkillContent }, isCapturable);
-    expect(read).toMatchObject({ root: ROOT_REACH, subagents, unattended: true, primaryDir: WORKSPACE, leases: input.mcp.leases, platformDir: PLATFORM, engineHome: HOME });
-    expect(read.readsSkillContent).toBe(readsSkillContent);
-    expect(read.posture).toEqual({
-      fileCaptureMode: false,
-      fileReviewOff: false,
-      fileCaptureSubstrate: false,
-      isCapturablePath: isCapturable,
-      captureIgnored: false,
+    const waitingCallOf = (): undefined => undefined;
+    const read = gateFactsOf(input, {
+      agents: { root: ROOT_REACH, subagents },
+      bridge: { serverOf, mcpDefault: mcpDefault() },
+      paths: { platformDir: PLATFORM, engineHome: HOME, readsSkillContent },
+      isCapturablePath,
+      hooks: NO_HOOKS,
+      waitingCallOf,
+      pending: { staleCallId: "toolu_s", unproposedCallId: undefined },
+      observer: undefined,
     });
+    expect(read).toMatchObject({
+      root: ROOT_REACH,
+      subagents,
+      unattended: true,
+      primaryDir: WORKSPACE,
+      leases: input.mcp.leases,
+      platformDir: PLATFORM,
+      engineHome: HOME,
+      decisions: input.approvalDecisions,
+      denyMessages: input.approvalDenyMessages,
+      staleCallId: "toolu_s",
+    });
+    expect(read.readsSkillContent).toBe(readsSkillContent);
+    expect(read.waitingCallOf).toBe(waitingCallOf);
+    expect(read.posture).toEqual({ fileCaptureMode: false, fileReviewOff: false, fileCaptureSubstrate: false, isCapturablePath, captureIgnored: false });
   });
 });
 

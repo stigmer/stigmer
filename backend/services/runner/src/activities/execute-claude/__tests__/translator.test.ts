@@ -88,6 +88,11 @@ function user(content: readonly unknown[] | string, parent: string | null = null
   return { type: "user", message: { role: "user", content: content as UserContent }, parent_tool_use_id: parent };
 }
 
+/** The gate's allow for a main-agent call under `source`. */
+function allowVerdict(source: GateVerdict["source"]): GateVerdict {
+  return { kind: "allow", source, caller: ROOT_CALLER, toolName: "Read", args: {}, rewritten: false, hook: undefined, context: [] };
+}
+
 function translator(overrides: Partial<ClaudeTranslatorDeps> = {}): ClaudeTranslator {
   return new ClaudeTranslator({ serverOf: () => undefined, verdictOf: () => undefined, ...overrides });
 }
@@ -218,8 +223,8 @@ describe("ClaudeTranslator: tool results", () => {
 
   it("stamps the gate's provenance before the settle, so the row says which layer decided", () => {
     const verdicts = new Map<string, GateVerdict>([
-      ["toolu_allowed", { allow: true, source: "approval_lease", caller: ROOT_CALLER }],
-      ["toolu_refused", { allow: false, message: "no", source: "builtin_category", caller: ROOT_CALLER }],
+      ["toolu_allowed", allowVerdict("approval_lease")],
+      ["toolu_refused", { kind: "refuse", message: "no", source: "builtin_category", caller: ROOT_CALLER, hook: undefined, byPerson: false }],
     ]);
     const t = translator({ verdictOf: (id) => verdicts.get(id) });
     expect(t.translate(user([toolResult("toolu_allowed", "ok")]))).toEqual([
@@ -233,8 +238,30 @@ describe("ClaudeTranslator: tool results", () => {
   });
 
   it("stamps no provenance when the gate's verdict names no source", () => {
-    const t = translator({ verdictOf: () => ({ allow: true, source: undefined, caller: ROOT_CALLER }) });
+    const t = translator({ verdictOf: () => allowVerdict(undefined) });
     expect(t.translate(user([toolResult("toolu_1", "ok")]))).toEqual([{ kind: "tool_finished", callId: "toolu_1", result: "ok" }]);
+  });
+
+  it("names the hook that decided on the row", () => {
+    const t = translator({ verdictOf: () => ({ ...allowVerdict("hook"), hook: "safety" }) });
+    expect(t.translate(user([toolResult("toolu_1", "ok")]))).toEqual([
+      { kind: "tool_policy", callId: "toolu_1", provenance: "hook", policyHook: "safety" },
+      { kind: "tool_finished", callId: "toolu_1", result: "ok" },
+    ]);
+  });
+
+  it("leaves a call a person refused to the runtime: neither its provenance nor the engine's refusal reaches its row", () => {
+    const t = translator({ verdictOf: () => ({ kind: "refuse", message: "rejected", source: undefined, caller: ROOT_CALLER, hook: undefined, byPerson: true }) });
+    expect(t.translate(user([toolResult("toolu_1", "Tool 'Bash' was rejected by the user.", true)]))).toEqual([]);
+  });
+
+  it("appends the hooks' feedback to the call's row, on a success and a failure alike", () => {
+    const t = translator({ feedbackOf: (id) => (id === "toolu_quiet" ? undefined : "Hook feedback:\nlogged") });
+    expect(t.translate(user([toolResult("toolu_1", "ok"), toolResult("toolu_2", "boom", true), toolResult("toolu_quiet", "plain")]))).toEqual([
+      { kind: "tool_finished", callId: "toolu_1", result: "ok\n\nHook feedback:\nlogged" },
+      { kind: "tool_error", callId: "toolu_2", message: "boom\n\nHook feedback:\nlogged" },
+      { kind: "tool_finished", callId: "toolu_quiet", result: "plain" },
+    ]);
   });
 
   it("scopes a sub-agent's tool result to it", () => {

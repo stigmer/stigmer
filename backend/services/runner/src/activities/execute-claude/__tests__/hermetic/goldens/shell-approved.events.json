@@ -1,0 +1,58 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_clean",
+      "input": {
+        "command": "echo toolu_clean >> ledger.txt",
+        "description": "Record toolu_clean"
+      },
+      "name": "Bash",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_claude_0001.toolu_clean.ask",
+      "tool_use_id": "aex_claude_0001.toolu_clean",
+      "message": "Run command: echo toolu_clean >> ledger.txt",
+      "args_preview": "{\"command\":\"echo toolu_clean >> ledger.txt\",\"description\":\"Record toolu_clean\"}",
+      "policy_source": "builtin_category"
+    }
+  },
+  {
+    "session_id": "ses_claude_0001",
+    "run_id": "aex_claude_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_fa9c7ce28b1dd3985752df227698b9bf85869e0f",
+      "result": "allow",
+      "tool_use_id": "aex_claude_0001.toolu_clean"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_clean.r",
+      "tool_use_id": "aex_claude_0001.toolu_clean",
+      "content": [
+        {
+          "type": "text",
+          "text": "<no output>"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Cleaned."
+        }
+      ]
+    }
+  }
+]

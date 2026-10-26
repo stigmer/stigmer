@@ -20,7 +20,7 @@ import { join } from "node:path";
 import { HumanMessage } from "@langchain/core/messages";
 
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import {
   EXCLUDED_BUILTIN_TOOLS,
   registerStigmerDeepagentsProfiles,

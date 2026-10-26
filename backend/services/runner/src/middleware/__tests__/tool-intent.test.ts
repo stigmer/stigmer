@@ -29,7 +29,7 @@ import {
 } from "../tool-intent.js";
 import { buildSubAgentMiddleware } from "../../activities/execute-deep-agent/subagent-wiring.js";
 import { createCasCaptureBackend } from "../../activities/execute-deep-agent/cas-capture-backend.js";
-import { CasCaptureObserver } from "../../activities/execute-deep-agent/cas-capture-observer.js";
+import { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import {
   ScriptedModel,
   type ScriptSelector,

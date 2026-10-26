@@ -107,7 +107,7 @@ export interface EngineOptionsInputs {
   readonly env: Record<string, string>;
   /** The session's tools: every agent's built-ins and the engine's own tools any of them needs (`agents.ts`). */
   readonly tools: readonly string[];
-  /** Every in-process server: the host's shell, when offered, and the bridged ones, by name. */
+  /** Every server the host serves the engine (`loopback-mcp.ts`): its shell, when offered, and the bridged ones, by name. */
   readonly mcpServers: Readonly<Record<string, McpServerConfig>>;
   /** The skills-only plugins this adapter wrote (`skill-plugins.ts`). */
   readonly plugins: readonly SdkPluginConfig[];

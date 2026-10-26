@@ -43,7 +43,9 @@ import { FIXTURE_CLAUDE_MODEL, stubRegistryFetch } from "../../../__test-utils__
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import { HttpMcpServer } from "../__test-utils__/http-mcp-server.js";
 import { runMessageIdOf, sentMessageIdOf } from "../engine-session-id.js";
-import { STOP_GRACE_MS, runClaudeTurn, type ClaudeAdapterConfig, type ClaudeSdk } from "../turn.js";
+import { ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { ROOT_CALLER, type GateVerdict } from "../gate.js";
+import { STOP_GRACE_MS, proposeDeferred, runClaudeTurn, type ClaudeAdapterConfig, type ClaudeSdk } from "../turn.js";
 
 const env = createHermeticEnvironment();
 const SESSION = "ses_turn_unit";
@@ -54,6 +56,7 @@ const CONFIG: ClaudeAdapterConfig = {
   proxyEndpoint: "http://127.0.0.1:1",
   shellTimeoutMaxSeconds: 60,
   mode: "local" satisfies Config["mode"],
+  cursorStreamStallTimeoutMs: 300_000,
 };
 
 /** What a scripted engine is handed, and how a script tells the test where it is. */
@@ -386,5 +389,34 @@ describe("runClaudeTurn", () => {
       chmodSync(engineDir, 0o700);
     }
     expect(warn.mock.calls.some((args) => String(args[0]).includes("engine directory cleanup failed"))).toBe(true);
+  });
+});
+
+describe("proposeDeferred", () => {
+  const paused = (toolName: string, hook?: string): GateVerdict => ({
+    kind: "pause",
+    message: "Run rm -rf build?",
+    source: hook === undefined ? "builtin_category" : "hook",
+    caller: ROOT_CALLER,
+    toolName,
+    args: { command: "rm -rf build" },
+    hook,
+  });
+  const bridge = { serverOf: (name: string) => (name === "mcp__ops__purge" ? { slug: "ops", tool: "purge" } : undefined) };
+
+  it("opens the deferred call's WAITING row from the gate's pause: the shell as Bash, an MCP call with its server, the asking hook named", () => {
+    const sink = new RecordingTurnSink();
+    proposeDeferred(sink, { verdictOf: () => paused("mcp__stigmer__bash") }, bridge, "toolu_shell");
+    proposeDeferred(sink, { verdictOf: () => paused("mcp__ops__purge", "safety") }, bridge, "toolu_mcp");
+    const rows = sink.rows.messages.flatMap((message) => message.toolCalls);
+    expect(rows.map((row) => [row.id, row.name, row.mcpServerSlug, row.status, row.approvalMessage, row.approvalPolicySource, row.approvalPolicyHook])).toEqual([
+      ["toolu_shell", "Bash", "", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, "Run rm -rf build?", ApprovalPolicySource.BUILTIN_CATEGORY, ""],
+      ["toolu_mcp", "mcp__ops__purge", "ops", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, "Run rm -rf build?", ApprovalPolicySource.HOOK, "safety"],
+    ]);
+    expect(rows.every((row) => row.args === undefined || Object.keys(row.args).length === 0), "the proposal carries no arguments: the row keeps the model's call").toBe(true);
+  });
+
+  it("refuses a deferral the gate did not hold for a person", () => {
+    expect(() => proposeDeferred(new RecordingTurnSink(), { verdictOf: () => undefined }, bridge, "toolu_x")).toThrow(/did not hold for a person/);
   });
 });

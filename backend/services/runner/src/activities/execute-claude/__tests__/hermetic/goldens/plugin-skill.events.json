@@ -3,7 +3,9 @@
     "run_id": "aex_claude_0001",
     "agent_tool_use": {
       "id": "aex_claude_0001.toolu_skill_lint",
-      "input": {},
+      "input": {
+        "skill": "acme:lint"
+      },
       "name": "Skill"
     }
   },

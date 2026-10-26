@@ -19,7 +19,12 @@
  *  - A `tool_result` in a user message settles its row: `tool_finished`, or
  *    `tool_error` when the engine marks it an error (a refusal included).
  *    The gate's provenance for the call (`gate.ts`) is stamped first
- *    (`tool_policy`), so the row says which layer let it run or refused it.
+ *    (`tool_policy`), with the hook that decided, so the row says which
+ *    layer let it run or refused it. The hooks' feedback on the call
+ *    (`hooks.ts` `HookFeedback`) is appended to its result, as the native
+ *    engine's row carries it. A call a person refused on its card is the
+ *    runtime's to settle (`harness/approval-decisions.ts`, "Rejected by
+ *    user"), so the engine's refusal of it is applied to nothing.
  *  - An `Agent` call opens and closes a sub-agent row around it, the
  *    sub-agent's own messages scoped to it by `parent_tool_use_id`. Its
  *    result, on the call's row and the sub-agent's, is the sub-agent's own
@@ -53,6 +58,8 @@ export interface ClaudeTranslatorDeps {
   readonly serverOf: (toolName: string) => { readonly slug: string } | undefined;
   /** The gate's decision for a call, once made. */
   readonly verdictOf: (toolUseId: string) => GateVerdict | undefined;
+  /** The hooks' feedback section for a call, once its result is in; undefined for none. */
+  readonly feedbackOf?: (toolUseId: string) => string | undefined;
 }
 
 /** One translator per turn: it remembers which calls streamed and which rows it opened. */
@@ -160,10 +167,13 @@ export class ClaudeTranslator {
       if (block.type !== "tool_result") continue;
       const callId = block.tool_use_id;
       const verdict = this.deps.verdictOf(callId);
-      if (verdict?.source !== undefined) out.push({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: "", ...scope });
+      if (verdict?.kind === "refuse" && verdict.byPerson) continue;
+      if (verdict?.source !== undefined) out.push({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: verdict.hook ?? "", ...scope });
       const answer = this.agentCalls.has(callId) && block.is_error !== true ? agentAnswerOf(message.tool_use_result) : undefined;
       const text = answer ?? resultText(block.content);
-      out.push(block.is_error === true ? { kind: "tool_error", callId, message: text, ...scope } : { kind: "tool_finished", callId, result: text, ...scope });
+      const feedback = this.deps.feedbackOf?.(callId);
+      const rowText = feedback === undefined ? text : `${text}\n\n${feedback}`;
+      out.push(block.is_error === true ? { kind: "tool_error", callId, message: rowText, ...scope } : { kind: "tool_finished", callId, result: rowText, ...scope });
       if (this.agentCalls.delete(callId)) {
         out.push(block.is_error === true ? { kind: "sub_agent_failed", subAgentId: callId, error: text } : { kind: "sub_agent_finished", subAgentId: callId, output: text });
       }

@@ -53,7 +53,7 @@ import { SqliteCheckpointSaver } from "../../../shared/checkpointer/sqlite-saver
 import { BackgroundCommands, backgroundOutputFileName, type BackgroundOutputPaths } from "../../../shared/shell/background-commands.js";
 import { startStallWatchdog } from "../../../shared/stall-watchdog.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "../cas-capture-backend.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { registerStigmerDeepagentsProfiles, resetStigmerDeepagentsProfilesForTests } from "../deepagents-profiles.js";
 import { backgroundArtifactOf, createShellBinding, STOP_BACKGROUND_TOOL_NAME } from "../shell-tool.js";
 import { DeepAgentTranslator } from "../translator.js";

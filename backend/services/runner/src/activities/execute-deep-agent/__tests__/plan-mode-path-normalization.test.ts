@@ -39,7 +39,7 @@ import { buildPlanModePermissions } from "../../../shared/plan-mode-permissions.
 import { buildMiddlewareStack } from "../../../middleware/index.js";
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { mountPlatformRoute } from "../platform-route.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
+import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-observer.js";
 import { ScriptedModel, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 
 const SEEDED_CONTENT = "PLAN_MODE_README_TOKEN: hello from the seeded file";

@@ -1,0 +1,127 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_first",
+      "input": {
+        "command": "echo toolu_first >> ledger.txt",
+        "description": "Record toolu_first"
+      },
+      "name": "Bash",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_claude_0001.toolu_first.ask",
+      "tool_use_id": "aex_claude_0001.toolu_first",
+      "message": "Run command: echo toolu_first >> ledger.txt",
+      "args_preview": "{\"command\":\"echo toolu_first >> ledger.txt\",\"description\":\"Record toolu_first\"}",
+      "policy_source": "builtin_category"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_second",
+      "input": {
+        "command": "echo toolu_second >> ledger.txt",
+        "description": "Record toolu_second"
+      },
+      "name": "Bash"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_second.r",
+      "tool_use_id": "aex_claude_0001.toolu_second",
+      "content": [
+        {
+          "type": "text",
+          "text": "Ask for this call on its own: it needs a person's approval, and only one call can wait at a time. It was not run."
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "session_id": "ses_claude_0001",
+    "run_id": "aex_claude_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_5c5b8eec177bc30265455d4f1c2031450d044537",
+      "result": "allow",
+      "tool_use_id": "aex_claude_0001.toolu_first"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_first.r",
+      "tool_use_id": "aex_claude_0001.toolu_first",
+      "content": [
+        {
+          "type": "text",
+          "text": "<no output>"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_second_alone",
+      "input": {
+        "command": "echo toolu_second_alone >> ledger.txt",
+        "description": "Record toolu_second_alone"
+      },
+      "name": "Bash",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_claude_0001.toolu_second_alone.ask",
+      "tool_use_id": "aex_claude_0001.toolu_second_alone",
+      "message": "Run command: echo toolu_second_alone >> ledger.txt",
+      "args_preview": "{\"command\":\"echo toolu_second_alone >> ledger.txt\",\"description\":\"Record toolu_second_alone\"}",
+      "policy_source": "builtin_category"
+    }
+  },
+  {
+    "session_id": "ses_claude_0001",
+    "run_id": "aex_claude_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_04f5e121bc7ac6462b1ad60268cf2b03d82590ad",
+      "result": "allow",
+      "tool_use_id": "aex_claude_0001.toolu_second_alone"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_second_alone.r",
+      "tool_use_id": "aex_claude_0001.toolu_second_alone",
+      "content": [
+        {
+          "type": "text",
+          "text": "<no output>"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Both done."
+        }
+      ]
+    }
+  }
+]
