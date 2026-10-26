@@ -743,6 +743,19 @@ describe("session update — harness immutability", () => {
     expect(stored.spec?.harness).toBe(Harness.NATIVE);
   });
 
+  it("answers Internal, never a reading of the session, when its runs cannot be read", async () => {
+    const session = await createSession({ harness: Harness.NATIVE });
+    const read = vi.spyOn(server.store, "queryResources").mockRejectedValueOnce(new Error("store down"));
+    try {
+      const error = await grpcError(() =>
+        command.update({ resource: updateInput(session, { harness: Harness.CURSOR }), updateMask: { paths: ["*"] } }),
+      );
+      expect(error.code).toBe(Code.Internal);
+    } finally {
+      read.mockRestore();
+    }
+  });
+
   it("a session with a run still accepts an update naming its own engine", async () => {
     const session = await createSession({ harness: Harness.CURSOR });
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);

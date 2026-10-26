@@ -146,13 +146,9 @@ async function sessionHasRun(store: Store, session: Session): Promise<boolean> {
   if ((session.status?.harnessStateId ?? "") !== "") {
     return true;
   }
-  const sessionId = session.metadata?.id ?? "";
-  if (sessionId === "") {
-    return false;
-  }
   try {
     const rows = await store.queryResources(agentExecutionListIndex, {
-      anyKey: [{ name: "session", value: sessionId }],
+      anyKey: [{ name: "session", value: session.metadata?.id ?? "" }],
       limit: 1,
     });
     return rows.length > 0;
