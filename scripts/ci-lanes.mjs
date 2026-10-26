@@ -155,6 +155,13 @@ export const LANES = {
       "client-apps/cli/src/local/**",
       "client-apps/cli/src/commands/up.ts",
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
+      // The Claude engine stage-all-in-one installs through the runner's own
+      // installer (its built dist), and what that imports.
+      "backend/services/runner/src/activities/execute-claude/engine-fetch.ts",
+      "backend/services/runner/src/activities/execute-claude/engine-home.ts",
+      "backend/services/runner/src/shared/agent-identity.ts",
+      "backend/libs/ts/artifact-fetch/**",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       // The model path a self-hoster's runner takes: the client, the base URL
       // it reads (ANTHROPIC_BASE_URL) and the provider routing it applies. The
@@ -217,6 +224,7 @@ export const LANES = {
       // The published install's registry wait (test/install/lib/install-cli.mjs).
       "scripts/publish-standalone.mjs",
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/stigmer-server/scripts/bundle-slim.mjs",
       // The runner's model path (ci.all-in-one says why these files).
       "backend/services/runner/src/shared/model-client.ts",
@@ -290,6 +298,7 @@ export const LANES = {
       // bundler, the native-bridge shim it aliases and the attach rule it
       // imports are what the image contains.
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
       "backend/services/stigmer-server/Dockerfile",
@@ -539,6 +548,7 @@ export const LANES = {
       // bundler, the native-bridge shim it aliases and the attach rule it
       // imports are what the image contains.
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
       // The server's packaging script, which `make smoke-helm` runs
@@ -704,6 +714,11 @@ export const LANES = {
       // bundler, the native-bridge shim it aliases and the attach rule it
       // imports are what the image contains.
       "backend/services/runner/scripts/bundle-slim.mjs",
+      "backend/services/runner/scripts/claude-engine-pin.mjs",
+      "backend/services/runner/src/activities/execute-claude/engine-fetch.ts",
+      "backend/services/runner/src/activities/execute-claude/engine-home.ts",
+      "backend/services/runner/src/shared/agent-identity.ts",
+      "backend/libs/ts/artifact-fetch/**",
       "backend/services/runner/scripts/core-bridge-shim.cjs",
       "backend/services/runner/scripts/attach-graph-rule.mjs",
       // The server's packaging script, which the compose, Helm and CLI

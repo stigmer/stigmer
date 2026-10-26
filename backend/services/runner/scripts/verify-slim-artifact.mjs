@@ -39,6 +39,12 @@
  *      pin must equal what it records (`claude-engine-pin.mjs`). The image
  *      smoke mounts only this directory, so there the pin's shape is checked
  *      and the lockfile comparison is the build lane's.
+ *   4c. The Claude engine an image carries (with --claude-engines <dir>, the
+ *      runner layer's /runner/engines): the home for the pinned version holds
+ *      exactly the SDK and this machine's glibc platform package, each at
+ *      the pin; its `claude --version` exits 0 run as the agent user
+ *      (stigmer-agent, when this runs as root, as the image smoke does); and
+ *      static mode's boot (check 6) logs the engine ready from that home.
  *   5. Attach entry (not on Windows) — attach/main.js beside the entry serves readiness,
  *      refuses a foreign push and stops cleanly (verify-attach-boot.mjs, run
  *      by the same Node). Skipped on Windows: the waiter runs only in a
@@ -77,6 +83,7 @@
  *   --artifact <dir>     the staged artifact directory (default: dist-slim/)
  *   --entry <relative>   the entry inside it (default: main.js)
  *   --in-place           boot the artifact where it lives instead of a copy
+ *   --claude-engines <dir>  the engines the image carries (check 4c)
  *
  * The desktop app runs exactly that after staging its bundle
  * (client-apps/desktop/scripts/verify-staged-runtime.mjs): its pinned Node
@@ -105,6 +112,9 @@ import { parseArgs } from "node:util";
 
 import { CLAUDE_SDK, ENGINE_PIN_FILE, claudeEnginePinFromLockfile } from "./claude-engine-pin.mjs";
 
+// The agent user a runner started as root through the layer runs its engines as (src/shared/agent-identity.ts).
+const AGENT_UID = 10001;
+
 const { values: options } = parseArgs({
   options: {
     "no-temporal": { type: "boolean", default: false },
@@ -112,6 +122,7 @@ const { values: options } = parseArgs({
     artifact: { type: "string" },
     entry: { type: "string", default: "main.js" },
     "in-place": { type: "boolean", default: false },
+    "claude-engines": { type: "string" },
   },
 });
 
@@ -390,6 +401,40 @@ function verifyClaudeEnginePin() {
   return `pin ${pin.version} (${packages.length} packages) equals the lockfile`;
 }
 
+/**
+ * 4c: the engine home an image carries. Returns the ready line static mode's
+ * boot must print, and the line the check prints.
+ */
+function verifyClaudeEngineHome(enginesDir) {
+  const pin = JSON.parse(readFileSync(join(dirname(join(artifactDir, entry)), ENGINE_PIN_FILE), "utf8"));
+  const home = join(enginesDir, "claude", pin.version);
+  const platformPackage = `${CLAUDE_SDK}-${process.platform}-${process.arch}`;
+  const scope = join(home, "node_modules", "@anthropic-ai");
+  if (!existsSync(scope)) throw new Error(`no engine home for the pinned ${pin.version} at ${home}`);
+  const held = readdirSync(scope).sort();
+  const expected = [CLAUDE_SDK, platformPackage].map((name) => name.slice("@anthropic-ai/".length)).sort();
+  if (JSON.stringify(held) !== JSON.stringify(expected)) {
+    throw new Error(`the engine home holds ${held.join(", ")}, not exactly ${expected.join(", ")}`);
+  }
+  for (const name of [CLAUDE_SDK, platformPackage]) {
+    const { version } = JSON.parse(readFileSync(join(home, "node_modules", name, "package.json"), "utf8"));
+    if (version !== pin.version) throw new Error(`${name} in the engine home is ${version}, not the pinned ${pin.version}`);
+  }
+  const executable = join(home, "node_modules", platformPackage, process.platform === "win32" ? "claude.exe" : "claude");
+  const asAgent = typeof process.getuid === "function" && process.getuid() === 0;
+  const [command, args] = asAgent
+    ? ["setpriv", [`--reuid=${AGENT_UID}`, `--regid=${AGENT_UID}`, "--clear-groups", executable, "--version"]]
+    : [executable, ["--version"]];
+  const run = spawnSync(command, args, { encoding: "utf8", cwd: "/", env: { PATH: process.env.PATH, HOME: tmpdir() }, timeout: BOOT_TIMEOUT_MS });
+  if (run.status !== 0) {
+    throw new Error(`${executable} --version exited ${run.status}${asAgent ? " as the agent user" : ""}: ${`${run.stdout}${run.stderr}`.slice(-1000)}`);
+  }
+  return {
+    readyLine: `[claude] engine ready ${pin.version} (${home})`,
+    report: `engine ${pin.version} at ${home}: ${held.join(" and ")}; claude --version exits 0${asAgent ? " as the agent user" : ""} (${run.stdout.trim()})`,
+  };
+}
+
 // ─── Attach entry (no Temporal required) ────────────────────────────────────
 
 function verifyAttachEntry() {
@@ -419,7 +464,7 @@ function verifyAgentHost() {
 
 // ─── 6. Static mode ──────────────────────────────────────────────────────────
 
-async function verifyStaticMode() {
+async function verifyStaticMode(readyLine) {
   return new Promise((resolve, reject) => {
     const proc = bootRunner({});
     let output = "";
@@ -446,6 +491,8 @@ async function verifyStaticMode() {
         reject(new Error(`static mode exited (code ${code}) before reaching RUNNING.\n${output.slice(-2000)}`));
       } else if (code !== 0) {
         reject(new Error(`static mode shutdown was not graceful (exit ${code}).\n${output.slice(-2000)}`));
+      } else if (readyLine !== undefined && !output.includes(readyLine)) {
+        reject(new Error(`static mode's boot did not log the Claude engine ready ("${readyLine}").\n${output.slice(-2000)}`));
       } else {
         resolve();
       }
@@ -547,6 +594,8 @@ try {
   verifyNoClaudeEngine();
   console.log("[claude] OK: no package of the Claude engine is staged and the manifest names none");
   console.log(`[claude] OK: ${verifyClaudeEnginePin()}`);
+  const engineHome = options["claude-engines"] === undefined ? undefined : verifyClaudeEngineHome(options["claude-engines"]);
+  if (engineHome !== undefined) console.log(`[claude] OK: ${engineHome.report}`);
   if (windows) {
     console.log("[attach] skipped on Windows: the attach waiter runs only in Linux sandboxes");
   } else {
@@ -559,8 +608,8 @@ try {
   if (skipTemporalBoots) {
     console.log("verify-slim-artifact: PASS (checks 1–5; Temporal boots skipped via --no-temporal)");
   } else {
-    await verifyStaticMode();
-    console.log("[static] OK: worker reached RUNNING and shut down gracefully");
+    await verifyStaticMode(engineHome?.readyLine);
+    console.log(`[static] OK: worker reached RUNNING and shut down gracefully${engineHome === undefined ? "" : ", its boot logging the Claude engine ready"}`);
     await verifyManagerMode();
     console.log("[mgr]    OK: ready → addSession → shutdown lifecycle, exit 0");
     // Same lifecycle, but on the authenticated path (token + proxy). The

@@ -28,11 +28,26 @@ that version, and it never changes, repacks or re-signs Anthropic's files.
 
 ## Where the engine comes from
 
-| Where the runner runs                                | The engine                                |
-| ---------------------------------------------------- | ----------------------------------------- |
-| The desktop app                                      | Downloaded on the first Claude turn       |
-| `stigmer up`                                         | Downloaded on the first Claude turn       |
-| A runner image (Stigmer Cloud, Docker Compose, Helm) | Not carried yet; a Claude turn is refused |
+| Where the runner runs                                         | The engine                                     |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| Stigmer Cloud's sandboxes                                     | Carried in the image                           |
+| Docker Compose, Helm, and your own base with the runner layer | Carried in the runner layer, `/runner/engines` |
+| The all-in-one image                                          | Carried in the image, `/opt/stigmer/engines`   |
+| The desktop app                                               | Downloaded on the first Claude turn            |
+| `stigmer up`                                                  | Downloaded on the first Claude turn            |
+
+### In the images
+
+Every image Stigmer publishes carries the engine for its architecture, in a
+layer of its own that changes only when a release pins a new version, so an
+upgrade that keeps the version pulls nothing new for it. The runner layer's
+start script points the runner at it; a runner started from the layer never
+downloads an engine, and the unprivileged user an Agent's commands run as can
+read the engine but not change it. If you build your own base image with the
+runner layer
+([Bring your own base image](/docs/guides/self-hosting/runners#bring-your-own-base-image)),
+the engine comes with it. The engine adds about 133 MB, compressed, to each
+image.
 
 ### The one-time download
 
