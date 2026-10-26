@@ -201,7 +201,6 @@ describe("two installs into one root at once", () => {
   });
 
   it("an old home it cannot remove stays, and the install goes on", async () => {
-    if (process.platform === "win32") return;
     const now = Date.now();
     const old = new Date(now - PRUNE_AFTER_MS - 60_000);
     const stuck = engineHomeDir(root, "0.0.1");

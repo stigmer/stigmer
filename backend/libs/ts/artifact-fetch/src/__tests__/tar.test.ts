@@ -196,7 +196,6 @@ describe("extractPackageTarball", () => {
   });
 
   it("refuses a destination file it cannot create", async () => {
-    if (process.platform === "win32") return;
     const root = scratch();
     const dest = join(root, "out");
     const archive = writeArchive(buildPackageTarball({ "sub/a": "x" }));
