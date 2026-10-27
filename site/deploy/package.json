@@ -3,6 +3,6 @@
   "private": true,
   "description": "The one tool the website's deploy jobs install: Cloudflare's wrangler, pinned and locked. The deploy jobs hold a Cloudflare key, so they never install the website's own dependencies; they deploy the export an unkeyed job built.",
   "devDependencies": {
-    "wrangler": "4.147.0"
+    "wrangler": "4.154.0"
   }
 }
