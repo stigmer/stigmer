@@ -220,7 +220,7 @@ function DropZonePhase({
           </>
         )}
 
-        <p className="stg:mt-2 stg:text-[10px] stg:text-muted-foreground-subtle">
+        <p className="stg:mt-2 stg:text-2xs stg:text-muted-foreground-subtle">
           Accepts .zip files following the Anthropic Agent Skills format
         </p>
 
@@ -316,7 +316,7 @@ function PreviewPhase({
           <span className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Files ({preview.files.filter((f) => !f.isDirectory).length})
           </span>
-          <span className="stg:text-[10px] stg:text-muted-foreground-subtle">
+          <span className="stg:text-2xs stg:text-muted-foreground-subtle">
             {formatBytes(preview.totalSize)} total
           </span>
         </div>

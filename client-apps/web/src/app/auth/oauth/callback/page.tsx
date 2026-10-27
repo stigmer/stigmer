@@ -107,7 +107,7 @@ function ConnectLinkCompletion({ token }: { readonly token: string }) {
   const colorMode: ResolvedColorMode = resolvedTheme === "dark" ? "dark" : "light";
   const client = useMemo(() => new Stigmer({ baseUrl: getApiBaseUrl(), getAccessToken: () => null }), []);
   return (
-    <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
+    <StigmerProvider client={client} colorMode={colorMode}>
       <ConnectLinkCallback token={token} className="min-h-screen" />
     </StigmerProvider>
   );

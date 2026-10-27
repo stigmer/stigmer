@@ -99,7 +99,6 @@ function RunnerAdapterBridge({
       executionTarget="local"
       runnerAdapter={runnerAdapter}
       colorMode={colorMode}
-      preset="monochrome"
     >
       <AppContent isInitialized={isInitialized} isAuthenticated={isAuthenticated} />
     </StigmerProvider>

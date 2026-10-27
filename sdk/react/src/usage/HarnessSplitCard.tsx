@@ -101,7 +101,7 @@ export function HarnessSplitCard({
                 <span className="stg:text-xs stg:tabular-nums stg:font-medium stg:text-foreground">
                   {formatTokens(entry.totalTokens)}
                 </span>
-                <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
+                <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
                   {formatCalls(entry.callCount)} ({pct}%)
                 </span>
               </div>

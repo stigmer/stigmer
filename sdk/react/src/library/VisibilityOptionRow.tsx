@@ -14,7 +14,7 @@ export type VisibilityTone = VisibilityLevelOption["tone"];
 
 /** Base classes for the visibility chip (badge + selector trigger). */
 export const VISIBILITY_CHIP_CLASS =
-  "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground";
+  "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1 stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground";
 
 // ---------------------------------------------------------------------------
 // Option row — one selectable level inside the popover (role="option") or the
@@ -118,7 +118,7 @@ export const VisibilityOptionRow = forwardRef<
         >
           {option.label}
         </span>
-        <span className="stg:block stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+        <span className="stg:block stg:text-2xs stg:leading-snug stg:text-muted-foreground">
           {locked ? option.lockedReason : option.description}
         </span>
       </span>

@@ -200,7 +200,7 @@ function CollapsibleSection({
         <div>
           <span className="stg:text-sm stg:font-medium stg:text-foreground">{title}</span>
           {count > 0 && (
-            <span className="stg:ml-2 stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary-foreground">
+            <span className="stg:ml-2 stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary-foreground">
               {count}
             </span>
           )}

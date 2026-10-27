@@ -54,7 +54,7 @@ export function PlanStreamingDocument({
       <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-2">
         <span
           role="status"
-          className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
+          className="stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
         >
           <WritingDot />
           Writing…

@@ -23,7 +23,7 @@ export function UnknownPublicAddressNotice({
   subject,
 }: UnknownPublicAddressNoticeProps) {
   return (
-    <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+    <p className="stg:text-2xs stg:text-muted-foreground">
       This app doesn&apos;t know your Stigmer server&apos;s public address, so
       it can&apos;t show {subject}.
     </p>

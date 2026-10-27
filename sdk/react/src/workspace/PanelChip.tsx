@@ -71,7 +71,7 @@ export function PanelChip({ isOpen, onToggle, badgeCount }: PanelChipProps) {
         {showCount && (
           <span
             aria-label={`${badgeCount} new items`}
-            className="stg:inline-flex stg:min-w-[1rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none stg:text-primary-foreground"
+            className="stg:inline-flex stg:min-w-[1rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground"
           >
             {badgeCount}
           </span>

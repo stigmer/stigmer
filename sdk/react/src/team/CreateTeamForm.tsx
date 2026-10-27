@@ -93,7 +93,7 @@ export function CreateTeamForm({ org, onCreated, onCancel, billingHref, classNam
       {error && upgradeFeature !== null ? (
         <UpgradeNotice feature={upgradeFeature} error={error} billingHref={billingHref} />
       ) : error ? (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       ) : null}

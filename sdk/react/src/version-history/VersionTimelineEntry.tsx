@@ -87,7 +87,7 @@ export function VersionTimelineEntry({
           <Tooltip>
             <TooltipTrigger
               render={
-                <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:font-medium stg:text-foreground" />
+                <code className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:font-medium stg:text-foreground" />
               }
             >
               {entry.label}
@@ -98,19 +98,19 @@ export function VersionTimelineEntry({
           </Tooltip>
 
           {isCompareSource && (
-            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary-foreground">
+            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary-foreground">
               A
             </span>
           )}
 
           {entry.tag && (
-            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">
+            <span className="stg:shrink-0 stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
               {entry.tag}
             </span>
           )}
 
           {entry.isCurrent && (
-            <span className="stg:shrink-0 stg:rounded-full stg:bg-status-ready-subtle stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-status-ready">
+            <span className="stg:shrink-0 stg:rounded-full stg:bg-status-ready-subtle stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-status-ready">
               current
             </span>
           )}
@@ -180,7 +180,7 @@ function GitProvenanceRow({
     : null;
 
   return (
-    <div className="stg:flex stg:items-center stg:gap-1.5 stg:text-[11px] stg:text-muted-foreground">
+    <div className="stg:flex stg:items-center stg:gap-1.5 stg:text-2xs stg:text-muted-foreground">
       <GitIcon className="stg:size-3 stg:shrink-0" />
       {provenance.ref && (
         <span className="stg:font-medium">{provenance.ref}</span>

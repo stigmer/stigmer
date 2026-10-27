@@ -113,7 +113,7 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
             <span id={titleId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
               Members can create agents
             </span>
-            <p id={descriptionId} className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+            <p id={descriptionId} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
               When on, every member can create agents. A member&apos;s agent is theirs to keep
               private or share with the organization. When off, only admins create agents.
               Changes apply immediately.
@@ -132,14 +132,14 @@ export function OrgPoliciesPanel({ org, onUpdated, className }: OrgPoliciesPanel
           </span>
         </div>
         {error && (
-          <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+          <p className="stg:text-2xs stg:text-destructive" role="alert">
             {getUserMessage(error)}
           </p>
         )}
       </div>
 
       {!canEdit && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Only organization admins can change these policies.
         </p>
       )}

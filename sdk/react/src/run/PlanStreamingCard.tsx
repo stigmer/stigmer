@@ -75,7 +75,7 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
         <div className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {title ?? "Writing plan…"}
         </div>
-        <div className="stg:text-[0.65rem] stg:text-muted-foreground-faint">
+        <div className="stg:text-2xs stg:text-muted-foreground-faint">
           <span role="status">Writing…</span>
           <span aria-hidden="true"> · </span>
           <span className="stg:tabular-nums">{formatFileSize(sizeBytes)}</span>

@@ -13,8 +13,8 @@ export const THEME_PRESETS = [
     id: "default",
     name: "Default",
     className: "",
-    description: "Stigmer's built-in teal palette",
-    swatch: "oklch(0.55 0.12 190)",
+    description: "Stigmer's own look: black and white, typographic, sharp",
+    swatch: "oklch(0.15 0 0)",
   },
   {
     id: "corporate",
@@ -48,7 +48,7 @@ export const THEME_PRESETS = [
     id: "monochrome",
     name: "Monochrome",
     className: "stgm-theme-monochrome",
-    description: "Black-and-white editorial — zero chroma, typographic, sharp",
+    description: "The default look, named; kept for code that sets it explicitly",
     swatch: "oklch(0.18 0 0)",
   },
 ] as const satisfies readonly ThemePreset[];

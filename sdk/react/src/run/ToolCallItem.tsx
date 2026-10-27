@@ -251,7 +251,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       {approvalBadge && (
         <span
           className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
+            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
             approvalBadge.colorClass,
           )}
         >
@@ -262,7 +262,7 @@ export const ToolCallItem = memo(function ToolCallItem({
       {reviewBadge && (
         <span
           className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
+            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
             reviewBadge.colorClass,
           )}
           data-cursor-target="file-review-row-badge"
@@ -553,10 +553,10 @@ interface ApprovalBadgeInfo {
 function getApprovalBadge(toolUse: ToolUse): ApprovalBadgeInfo | null {
   if (toolUse.ask === undefined) return null;
   if (toolUse.confirmation?.result === "deny") {
-    return { label: "Denied", colorClass: "stg:bg-destructive/15 stg:text-destructive" };
+    return { label: "Denied", colorClass: "stg:bg-status-failed-subtle stg:text-status-failed" };
   }
   if (toolUse.confirmation?.result === "allow" || toolUse.grant !== undefined) {
-    return { label: "Approved", colorClass: "stg:bg-success/15 stg:text-success" };
+    return { label: "Approved", colorClass: "stg:bg-status-ready-subtle stg:text-status-ready" };
   }
   return null;
 }
@@ -577,10 +577,10 @@ function isFileEditCategory(category: ToolCategory): boolean {
  * the same language.
  */
 const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
-  pending: { label: "Pending review", colorClass: "stg:bg-warning/15 stg:text-warning" },
-  kept: { label: "Kept", colorClass: "stg:bg-success/15 stg:text-success" },
-  discarded: { label: "Discarded", colorClass: "stg:bg-destructive/15 stg:text-destructive" },
-  failed: { label: "Review failed", colorClass: "stg:bg-destructive/15 stg:text-destructive" },
+  pending: { label: "Pending review", colorClass: "stg:bg-status-degraded-subtle stg:text-status-degraded" },
+  kept: { label: "Kept", colorClass: "stg:bg-status-ready-subtle stg:text-status-ready" },
+  discarded: { label: "Discarded", colorClass: "stg:bg-status-failed-subtle stg:text-status-failed" },
+  failed: { label: "Review failed", colorClass: "stg:bg-status-failed-subtle stg:text-status-failed" },
 };
 
 // ---------------------------------------------------------------------------

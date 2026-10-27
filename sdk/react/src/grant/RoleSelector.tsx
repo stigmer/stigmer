@@ -116,7 +116,7 @@ export function RoleSelector({
                 className="stg:sr-only"
               />
               <span>{opt.label}</span>
-              <span className="stg:text-[0.625rem] stg:text-muted-foreground stg:font-normal stg:mt-0.5">
+              <span className="stg:text-2xs stg:text-muted-foreground stg:font-normal stg:mt-0.5">
                 {opt.description}
               </span>
             </label>

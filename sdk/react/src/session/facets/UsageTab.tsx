@@ -58,7 +58,7 @@ export function UsageTab({ runs }: UsageTabProps) {
         <p className="stg:px-2 stg:text-xs stg:tabular-nums stg:text-foreground">
           {formatWorkingTime(usage.workingSeconds)}
         </p>
-        <p className="stg:px-2 stg:pt-1 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:px-2 stg:pt-1 stg:text-2xs stg:text-muted-foreground">
           Time an agent was working on this session; waiting for a person is not counted.
         </p>
       </FacetSection>
@@ -102,7 +102,7 @@ function ExecutionModelList({
                 {requestedTier && <RowBadge>{requestedTier} requested</RowBadge>}
                 {entry.isEstimated && <RowBadge>Estimated</RowBadge>}
               </span>
-              <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground">
+              <span className="stg:shrink-0 stg:tabular-nums stg:text-2xs stg:text-muted-foreground">
                 {formatTokens(entry.totalTokens)} · {formatWorkingTime(entry.workingSeconds)}
               </span>
             </div>
@@ -116,7 +116,7 @@ function ExecutionModelList({
 /** Quiet inline qualifier chip for a provenance row. */
 function RowBadge({ children }: { readonly children: React.ReactNode }) {
   return (
-    <span className="stg:ml-1 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:text-muted-foreground">
+    <span className="stg:ml-1 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-muted-foreground">
       {children}
     </span>
   );

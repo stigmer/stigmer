@@ -126,7 +126,7 @@ export function CreateServiceAccountKeyForm({
       <KeyExpiryFieldset value={expiry} onChange={setExpiry} disabled={isCreating} />
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}

@@ -251,7 +251,7 @@ export function CreateOAuthAppForm({
           <button
             type="button"
             onClick={() => setShowAdvanced((v) => !v)}
-            className="stg:text-muted-foreground stg:hover:text-foreground stg:flex stg:items-center stg:gap-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors"
+            className="stg:text-muted-foreground stg:hover:text-foreground stg:flex stg:items-center stg:gap-1 stg:text-2xs stg:font-medium stg:transition-colors"
           >
             <ChevronIcon expanded={showAdvanced} />
             Advanced settings
@@ -321,7 +321,7 @@ export function CreateOAuthAppForm({
                     client_secret_post (form body)
                   </option>
                 </select>
-                <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+                <p className="stg:text-2xs stg:text-muted-foreground">
                   How the client secret is sent to the vendor&apos;s token
                   endpoint. Most vendors accept HTTP Basic; some (e.g.
                   HubSpot) require client_secret_post.
@@ -355,7 +355,7 @@ export function CreateOAuthAppForm({
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
                 </select>
-                <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+                <p className="stg:text-2xs stg:text-muted-foreground">
                   Vendor marketplace approval lifecycle status
                 </p>
               </div>
@@ -375,7 +375,7 @@ export function CreateOAuthAppForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}
@@ -474,7 +474,7 @@ function FormField({
         )}
       />
       {hint && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
+        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );

@@ -247,7 +247,7 @@ export function ResolveSpinner() {
       >
         <path d="M8 2a6 6 0 1 0 6 6" />
       </svg>
-      <span className="stg:text-[0.6rem] stg:text-muted-foreground">
+      <span className="stg:text-2xs stg:text-muted-foreground">
         Checking agent requirements...
       </span>
     </div>

@@ -243,13 +243,13 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactCount(report.totalAgents)}
           </div>
-          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Agents</div>
+          <div className="stg:text-2xs stg:text-muted-foreground">Agents</div>
         </div>
         <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
             {formatCompactCount(report.totalSessions)}
           </div>
-          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Sessions</div>
+          <div className="stg:text-2xs stg:text-muted-foreground">Sessions</div>
         </div>
       </div>
     </div>
@@ -324,18 +324,18 @@ function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
         {/* X-axis labels — show first, middle, and last */}
         {entries.length > 0 && (
           <div className="stg:mt-1.5 stg:flex stg:justify-between">
-            <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
+            <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
               {formatChartDate(entries[0].date)}
             </span>
             {entries.length > 2 && (
-              <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
+              <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
                 {formatChartDate(
                   entries[Math.floor(entries.length / 2)].date,
                 )}
               </span>
             )}
             {entries.length > 1 && (
-              <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
+              <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
                 {formatChartDate(entries[entries.length - 1].date)}
               </span>
             )}
@@ -367,7 +367,7 @@ function ModelBreakdownList({
       >
         <div
           role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Model</span>
           <span role="columnheader" className="stg:text-right">
@@ -403,7 +403,7 @@ function ModelBreakdownList({
                   <span className="stg:block stg:truncate stg:text-xs stg:font-medium stg:text-foreground">
                     {m.model}
                   </span>
-                  <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+                  <span className="stg:text-2xs stg:text-muted-foreground">
                     {m.provider}
                   </span>
                 </div>
@@ -433,7 +433,7 @@ function ModelBreakdownList({
                 </span>
               </div>
               {hasCache && (
-                <div className="stg:mt-0.5 stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
+                <div className="stg:mt-0.5 stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
                   cache{" "}
                   {cacheRead > 0 &&
                     `${formatCompactCount(cacheRead)} read`}

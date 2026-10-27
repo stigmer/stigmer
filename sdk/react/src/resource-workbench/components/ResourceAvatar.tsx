@@ -47,7 +47,7 @@ function hashSlug(slug: string): number {
 }
 
 const SIZE_CLASSES = {
-  sm: "stg:size-6 stg:text-[10px]",
+  sm: "stg:size-6 stg:text-2xs",
   md: "stg:size-8 stg:text-xs",
 } as const;
 

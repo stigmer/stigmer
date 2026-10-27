@@ -208,7 +208,7 @@ const stigmerTheme = EditorView.theme({
     height: "100%",
     backgroundColor: "var(--stgm-background, #fff)",
     color: "var(--stgm-foreground, #1a1a2e)",
-    fontSize: "13px",
+    fontSize: "var(--stgm-text-sm)",
   },
   ".cm-content": {
     caretColor: "var(--stgm-foreground, #1a1a2e)",

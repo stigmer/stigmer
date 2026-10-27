@@ -214,7 +214,6 @@ export default function ChatLinkPage() {
         <StigmerProvider
           client={guestRuntime.client}
           colorMode={colorMode}
-          preset="monochrome"
         >
           <div className="h-screen bg-background text-foreground">
             <SignInIfYouHaveAccess onSignIn={auth.login} />
@@ -226,7 +225,6 @@ export default function ChatLinkPage() {
       <StigmerProvider
         client={memberClient}
         colorMode={colorMode}
-        preset="monochrome"
       >
         <div className="h-screen bg-background text-foreground">
           <VisitorChat channelId={channelId} linkAudience="org" />
@@ -246,7 +244,6 @@ export default function ChatLinkPage() {
     <StigmerProvider
       client={guestRuntime.client}
       colorMode={colorMode}
-      preset="monochrome"
     >
       <div className="h-screen bg-background text-foreground">
         <VisitorChat channelId={channelId} linkToken={linkToken} />

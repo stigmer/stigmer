@@ -158,7 +158,7 @@ export function RoutineApiPanel({
           <CopyBlock label="Start a run" value={curl} />
         ) : (
           <div className="stg:space-y-1">
-            <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:font-medium stg:text-muted-foreground">
               Start a run
             </p>
             <UnknownPublicAddressNotice subject="the command" />
@@ -284,7 +284,7 @@ function Step({
     <li className="stg:flex stg:gap-3">
       <span
         aria-hidden="true"
-        className="stg:flex stg:size-5 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
+        className="stg:flex stg:size-5 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:text-2xs stg:font-medium stg:text-muted-foreground"
       >
         {number}
       </span>

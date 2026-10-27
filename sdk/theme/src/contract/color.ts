@@ -1,4 +1,4 @@
-import { converter, parse, wcagContrast, type Rgb } from "culori";
+import { clampRgb, converter, parse, wcagContrast, type Rgb } from "culori";
 
 /**
  * Color math for the token contrast audit, backed by culori.
@@ -12,13 +12,15 @@ import { converter, parse, wcagContrast, type Rgb } from "culori";
 const toRgb = converter("rgb");
 const toOklch = converter("oklch");
 
-/** Parse a CSS color token value; throws on non-color values. */
+/** Parse a CSS color token value into the sRGB a browser paints; throws on non-color values. */
 export function parseColor(value: string): Rgb {
   const parsed = parse(value);
   if (!parsed) {
     throw new Error(`Not a parseable CSS color: "${value}"`);
   }
-  return toRgb(parsed);
+  // A token may name a colour outside sRGB (a vivid OKLCH red); a browser
+  // paints it clipped to the screen's range, so the audit measures that.
+  return clampRgb(toRgb(parsed));
 }
 
 /** True when the token value is a color (vs. a length, shadow, font, ...). */

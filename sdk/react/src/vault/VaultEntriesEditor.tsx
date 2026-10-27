@@ -135,7 +135,7 @@ export function VaultEntriesEditor({
     <div className={cn("stg:space-y-5", className)}>
       <section aria-label="Secrets" className="stg:space-y-2">
         <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Secrets</h3>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Matched by name, such as OPENAI_API_KEY. Saved values are never shown again.
         </p>
         {secrets.length === 0 ? (
@@ -169,7 +169,7 @@ export function VaultEntriesEditor({
 
       <section aria-label="Logins" className="stg:space-y-2">
         <h3 className="stg:text-xs stg:font-semibold stg:text-foreground">Logins</h3>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Matched by the address of the tool or Git host they are for, such as
           https://mcp.linear.app/mcp or github.com.
         </p>
@@ -203,7 +203,7 @@ export function VaultEntriesEditor({
       </section>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {error}
         </p>
       )}
@@ -253,7 +253,7 @@ function EntryRow({
             {title}
           </span>
           {detail && (
-            <span className="stg:block stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">{detail}</span>
+            <span className="stg:block stg:truncate stg:text-2xs stg:text-muted-foreground">{detail}</span>
           )}
         </div>
         {extra}
@@ -287,7 +287,7 @@ function EntryRow({
       </div>
       {confirmingRemove && (
         <div role="group" aria-label={`Confirm removing ${title}`} className="stg:mt-2 stg:space-y-2">
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Remove {title}? Its value cannot be read back, so it cannot be restored; you would enter it again.
           </p>
           <div className="stg:flex stg:items-center stg:gap-2">
@@ -393,7 +393,7 @@ function AddSecretForm({
         Add
       </button>
       {!nameValid && (
-        <p className="stg:col-span-full stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:col-span-full stg:text-destructive stg:text-2xs" role="alert">
           A name starts with a letter or underscore and holds only letters, digits and underscores.
         </p>
       )}
@@ -458,7 +458,7 @@ function AddConnectionForm({
         Add
       </button>
       {!addressValid && (
-        <p className="stg:col-span-full stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:col-span-full stg:text-destructive stg:text-2xs" role="alert">
           Enter a tool&apos;s full URL (https://…) or a Git host such as github.com.
         </p>
       )}

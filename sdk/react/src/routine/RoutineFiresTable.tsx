@@ -108,7 +108,7 @@ export function RoutineFiresTable({
           role="row"
           className={cn(
             rowGridClasses,
-            "stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground",
+            "stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground",
           )}
         >
           <span role="columnheader">Outcome</span>
@@ -182,7 +182,7 @@ function FireTableRow({
       <span role="cell">
         <span
           className={cn(
-            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
             badge.className,
           )}
         >
@@ -223,14 +223,14 @@ function FireTableRow({
               type="button"
               onClick={() => onNavigateToRun(fire.runId)}
               className={cn(
-                "stg:max-w-full stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
+                "stg:max-w-full stg:truncate stg:font-mono stg:text-2xs stg:text-primary stg:underline-offset-2 stg:hover:underline",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
               )}
             >
               {fire.runId}
             </button>
           ) : (
-            <span className="stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
+            <span className="stg:font-mono stg:text-2xs stg:text-muted-foreground">
               {fire.runId}
             </span>
           )
@@ -319,7 +319,7 @@ function CompactFireRow({
       <div className="stg:flex stg:items-center stg:gap-2">
         <span
           className={cn(
-            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+            "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
             badge.className,
           )}
         >
@@ -358,14 +358,14 @@ function CompactFireRow({
             type="button"
             onClick={() => onNavigateToRun(fire.runId)}
             className={cn(
-              "stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-primary stg:underline-offset-2 stg:hover:underline",
+              "stg:self-start stg:font-mono stg:text-2xs stg:text-primary stg:underline-offset-2 stg:hover:underline",
               "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:rounded-sm",
             )}
           >
             {fire.runId}
           </button>
         ) : (
-          <span className="stg:self-start stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
+          <span className="stg:self-start stg:font-mono stg:text-2xs stg:text-muted-foreground">
             {fire.runId}
           </span>
         ))}

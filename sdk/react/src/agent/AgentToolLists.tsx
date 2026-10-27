@@ -60,7 +60,7 @@ function ToolListRow({
       <span
         className={cn(
           "stg:font-medium stg:text-muted-foreground",
-          density === "section" ? "stg:text-xs" : "stg:text-[0.7rem]",
+          density === "section" ? "stg:text-xs" : "stg:text-2xs",
         )}
       >
         {label}

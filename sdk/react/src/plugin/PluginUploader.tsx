@@ -137,7 +137,7 @@ function DropZonePhase({
             </div>
           </>
         )}
-        <p className="stg:mt-2 stg:text-[10px] stg:text-muted-foreground-subtle">
+        <p className="stg:mt-2 stg:text-2xs stg:text-muted-foreground-subtle">
           A Cursor, Claude Code, Codex or Agent Plugins folder installs unchanged.
         </p>
 

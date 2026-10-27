@@ -254,7 +254,7 @@ function ApiKeyRow({
             )}
           </p>
           {error && (
-            <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
+            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
               {getUserMessage(error)}
             </p>
           )}

@@ -2058,7 +2058,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                   setConfigActivePanel("agent");
                 }}
                 disabled={isDisabled}
-                className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:hover:bg-warning/20 stg:disabled:pointer-events-none stg:disabled:opacity-50"
+                className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:hover:bg-warning/20 stg:disabled:pointer-events-none stg:disabled:opacity-50"
               >
                 Configure
               </button>

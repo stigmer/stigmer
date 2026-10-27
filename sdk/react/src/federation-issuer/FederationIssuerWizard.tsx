@@ -270,7 +270,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
             )}
             <span
               className={cn(
-                "stg:text-[0.65rem] stg:font-medium",
+                "stg:text-2xs stg:font-medium",
                 state === "active"
                   ? "stg:text-primary"
                   : state === "done"
@@ -376,7 +376,7 @@ function ConfigureStep({
       />
 
       {discoveryError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(discoveryError)}
         </p>
       )}
@@ -501,7 +501,7 @@ function ReviewStep({
       />
 
       {createError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(createError)}
         </p>
       )}
@@ -564,7 +564,7 @@ function SuccessStep({
       <div className="stg:space-y-2">
         <p className="stg:text-xs stg:font-medium stg:text-foreground">What happens next</p>
 
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           {createsAccounts
             ? "A person's first sign-in creates their account."
             : "Accounts must be created through the API before people can sign in."}{" "}
@@ -580,7 +580,7 @@ function SuccessStep({
           )}
         </p>
 
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           {claim ? (
             <>
               Each token is bound to the child organization whose external id
@@ -593,7 +593,7 @@ function SuccessStep({
           )}
         </p>
 
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           To verify the setup, have a user authenticate with a JWT from this
           issuer and confirm they can access the organization&apos;s resources.
         </p>
@@ -681,7 +681,7 @@ function FieldInput({
         />
       )}
       {hint && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
+        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );

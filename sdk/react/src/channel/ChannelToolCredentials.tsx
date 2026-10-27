@@ -47,7 +47,7 @@ export function ChannelToolCredentials({
 }: ChannelToolCredentialsProps) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         Shared vaults whose keys workspace conversations use — name one
         holding the keys this agent&apos;s tools need (a read-only token is
         safest). You can name only vaults you may use; create one in

@@ -102,7 +102,7 @@ function ExplorerRoot({
                 onClick={() => setExpanded((prev) => !prev)}
                 aria-expanded={expanded}
                 className={cn(
-                  "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1.5 stg:px-1.5 stg:py-1 stg:text-left stg:text-[0.7rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover",
+                  "stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1.5 stg:px-1.5 stg:py-1 stg:text-left stg:text-2xs stg:font-semibold stg:uppercase stg:tracking-wide stg:text-foreground stg:transition-colors stg:hover:bg-accent-hover",
                   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
                 )}
               />
@@ -110,7 +110,7 @@ function ExplorerRoot({
           >
             <span
               aria-hidden="true"
-              className="stg:text-[10px] stg:text-muted-foreground-subtle"
+              className="stg:text-2xs stg:text-muted-foreground-subtle"
             >
               {expanded ? "▼" : "▶"}
             </span>
@@ -246,7 +246,7 @@ function ExplorerRootBody({
         </ul>
       </nav>
       {truncated && (
-        <p className="stg:px-3 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:px-3 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
           Showing a partial listing — too many files to load in full.
         </p>
       )}

@@ -144,7 +144,7 @@ export function InlineEditTextarea({
         )}
       />
       <div className="stg:flex stg:items-center stg:justify-between">
-        <span className="stg:text-[10px] stg:text-muted-foreground">
+        <span className="stg:text-2xs stg:text-muted-foreground">
           {isSaving ? "Saving..." : "Ctrl+Enter to save, Escape to cancel"}
         </span>
         <div className="stg:flex stg:items-center stg:gap-1.5">

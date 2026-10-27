@@ -139,7 +139,7 @@ export function MemoryProposalCardBody({
       )}
 
       {actionError && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(actionError)}
         </p>
       )}

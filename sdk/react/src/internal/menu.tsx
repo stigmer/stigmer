@@ -142,7 +142,7 @@ function MenuLabel({
   return (
     <span
       className={cn(
-        "stg:text-muted-foreground stg:block stg:px-1.5 stg:py-1 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:select-none",
+        "stg:text-muted-foreground stg:block stg:px-1.5 stg:py-1 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:select-none",
         className,
       )}
       {...props}

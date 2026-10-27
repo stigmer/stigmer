@@ -272,7 +272,7 @@ function MemoryRow({
             Forget this permanently? <q className="stg:italic">{content}</q>
           </p>
           {deleteError && (
-            <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
+            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
               {getUserMessage(deleteError)}
             </p>
           )}
@@ -325,7 +325,7 @@ function MemoryRow({
             {formatStateStamp(state, stateChangedAt ? timestampDate(stateChangedAt) : undefined, now)}
           </p>
           {actionError && (
-            <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive" role="alert">
+            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive" role="alert">
               {getUserMessage(actionError)}
             </p>
           )}
@@ -421,7 +421,7 @@ function MemoryEditRow({
         )}
       />
       <div className="stg:mt-1.5 stg:flex stg:items-center stg:justify-between">
-        <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <span className="stg:text-2xs stg:text-muted-foreground">
           {trimmed.length}/500
         </span>
         <div className="stg:flex stg:items-center stg:gap-1.5">
@@ -440,7 +440,7 @@ function MemoryEditRow({
         </div>
       </div>
       {error && (
-        <p className="stg:mt-1 stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:mt-1 stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}

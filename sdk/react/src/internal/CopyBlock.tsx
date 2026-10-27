@@ -25,7 +25,7 @@ export function CopyBlock({
   return (
     <div className="stg:space-y-1">
       <div className="stg:flex stg:items-center stg:justify-between">
-        <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:font-medium stg:text-muted-foreground">
           {label}
         </p>
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
@@ -33,7 +33,7 @@ export function CopyBlock({
       <pre
         className={cn(
           "stg:max-h-40 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
-          "stg:px-2.5 stg:py-2 stg:font-mono stg:text-[0.65rem] stg:leading-relaxed stg:text-foreground",
+          "stg:px-2.5 stg:py-2 stg:font-mono stg:text-2xs stg:leading-relaxed stg:text-foreground",
         )}
       >
         {value}
@@ -58,7 +58,7 @@ export function CopyButton({
       onClick={onCopy}
       data-cursor-target={copyTargetId}
       className={cn(
-        "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
+        "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-2xs stg:font-medium stg:transition-colors",
         copied
           ? "stg:text-success"
           : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",

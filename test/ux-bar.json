@@ -202,12 +202,7 @@
     },
     {
       "id": "KIT-04",
-      "promise": "Every hero screen passes the accessibility audit in light and dark.",
-      "pending": [
-        "stigmer#2643",
-        "stigmer#2644",
-        "stigmer#2645"
-      ]
+      "promise": "Every hero screen passes the accessibility audit in light and dark."
     },
     {
       "id": "CON-01",
@@ -240,10 +235,7 @@
     },
     {
       "id": "CON-05",
-      "promise": "Type, spacing and the brand colour come from tokens; no text is smaller than the scale allows.",
-      "pending": [
-        "stigmer#2632"
-      ]
+      "promise": "Type and spacing come from tokens; no text is smaller than the scale allows."
     },
     {
       "id": "DSK-01",

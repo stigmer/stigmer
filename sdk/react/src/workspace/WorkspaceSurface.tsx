@@ -405,7 +405,7 @@ function ActivityRail({
                 {showBadge && (
                   <span
                     aria-hidden="true"
-                    className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-flex stg:min-w-[0.875rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-[9px] stg:font-medium stg:leading-none stg:text-primary-foreground"
+                    className="stg:absolute stg:-right-0.5 stg:-top-0.5 stg:inline-flex stg:min-w-[0.875rem] stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-1 stg:py-px stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground"
                   >
                     {item.badge}
                   </span>
@@ -587,7 +587,7 @@ function SearchModeToggle({
               onClick={() => onChange(option.value)}
               onKeyDown={handleKeyDown}
               className={cn(
-                "stg:rounded stg:px-2.5 stg:py-0.5 stg:text-[0.7rem] stg:font-medium stg:transition-colors",
+                "stg:rounded stg:px-2.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:transition-colors",
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 isSelected
                   ? "stg:bg-background stg:text-foreground stg:shadow-sm"
@@ -790,7 +790,7 @@ function Breadcrumbs({
   const crumbs = entryName ? [entryName, ...segments] : segments;
 
   return (
-    <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1 stg:border-b stg:border-border-muted stg:px-3 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground">
+    <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-1 stg:border-b stg:border-border-muted stg:px-3 stg:py-1 stg:text-2xs stg:text-muted-foreground">
       <nav aria-label="File location" className="stg:flex stg:min-w-0 stg:flex-1 stg:items-center stg:gap-1">
         {crumbs.map((crumb, i) => {
           const isLast = i === crumbs.length - 1;
@@ -844,7 +844,7 @@ function SidebarHeader({ title }: { readonly title: string }) {
     <div
       className={cn(
         HEADER_ROW_HEIGHT,
-        "stg:flex stg:shrink-0 stg:items-center stg:border-b stg:border-border stg:px-3 stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wide stg:text-muted-foreground",
+        "stg:flex stg:shrink-0 stg:items-center stg:border-b stg:border-border stg:px-3 stg:text-2xs stg:font-semibold stg:uppercase stg:tracking-wide stg:text-muted-foreground",
       )}
     >
       {title}

@@ -117,7 +117,7 @@ export function HarnessSelector({
             {option === "cursor" && (
               <span
                 aria-label="premium"
-                className="stg:text-[0.6rem] stg:text-muted-foreground"
+                className="stg:text-2xs stg:text-muted-foreground"
               >
                 $$$
               </span>

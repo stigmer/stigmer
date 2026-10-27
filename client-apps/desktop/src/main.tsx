@@ -18,7 +18,7 @@ class BootErrorBoundary extends Component<
         <div style={{ padding: "2rem", color: "#f87171", fontFamily: "monospace", whiteSpace: "pre-wrap", backgroundColor: "#09090b", minHeight: "100vh" }}>
           <h2 style={{ marginBottom: "1rem" }}>Runtime Error</h2>
           <p>{this.state.error.message}</p>
-          <pre style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#a1a1aa" }}>{this.state.error.stack}</pre>
+          <pre style={{ marginTop: "1rem", fontSize: "var(--stgm-text-xs)", color: "#a1a1aa" }}>{this.state.error.stack}</pre>
         </div>
       );
     }
@@ -90,7 +90,7 @@ function TauriRequiredNotice() {
       <div style={{ maxWidth: "28rem", textAlign: "center" }}>
         <h1
           style={{
-            fontSize: "1.125rem",
+            fontSize: "var(--stgm-text-lg)",
             fontWeight: 600,
             marginBottom: "0.75rem",
           }}
@@ -99,7 +99,7 @@ function TauriRequiredNotice() {
         </h1>
         <p
           style={{
-            fontSize: "0.875rem",
+            fontSize: "var(--stgm-text-sm)",
             color: "#a1a1aa",
             lineHeight: 1.6,
             marginBottom: "1.5rem",
@@ -120,7 +120,7 @@ function TauriRequiredNotice() {
         >
           <p
             style={{
-              fontSize: "0.75rem",
+              fontSize: "var(--stgm-text-xs)",
               color: "#71717a",
               marginBottom: "0.5rem",
             }}
@@ -130,7 +130,7 @@ function TauriRequiredNotice() {
           <code
             style={{
               fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-              fontSize: "0.875rem",
+              fontSize: "var(--stgm-text-sm)",
               color: "#fafafa",
             }}
           >
@@ -139,7 +139,7 @@ function TauriRequiredNotice() {
         </div>
         <p
           style={{
-            fontSize: "0.75rem",
+            fontSize: "var(--stgm-text-xs)",
             color: "#52525b",
             marginTop: "1rem",
             lineHeight: 1.5,

@@ -232,11 +232,11 @@ export function InvitationRedemption({
             <ShieldIcon />
             {roleName} access
           </span>
-          <span className="stg:text-[0.7rem] stg:text-muted-foreground">
+          <span className="stg:text-2xs stg:text-muted-foreground">
             {grantableRoleDescription(ApiResourceKind.organization, preview.role)}
           </span>
           {expiresAt && (
-            <span className="stg:text-[0.7rem] stg:text-muted-foreground">
+            <span className="stg:text-2xs stg:text-muted-foreground">
               {formatExpiry(expiresAt)}
             </span>
           )}
@@ -267,7 +267,7 @@ export function InvitationRedemption({
                   {isRedeeming ? "Accepting\u2026" : "Accept Invitation"}
                 </button>
                 {redeemError && (
-                  <p className="stg:mt-2 stg:text-center stg:text-[0.65rem] stg:text-destructive" role="alert">
+                  <p className="stg:mt-2 stg:text-center stg:text-2xs stg:text-destructive" role="alert">
                     {getUserMessage(redeemError)}
                   </p>
                 )}

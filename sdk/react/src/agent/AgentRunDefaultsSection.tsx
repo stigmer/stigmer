@@ -307,7 +307,7 @@ function RunDefaultsEditor({
             </button>
           </div>
         )}
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           A new conversation on this agent starts on this engine unless the
           person picks another. The model, its speed and thinking apply on
           this engine to every message that does not choose its own.
@@ -327,7 +327,7 @@ function RunDefaultsEditor({
           aria-invalid={!costValid}
           className={cn(inputClasses, "stg:sm:max-w-48")}
         />
-        <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <span className="stg:text-2xs stg:text-muted-foreground">
           A message stops when it reaches this spend. A message can lower it, never raise it.
         </span>
       </label>

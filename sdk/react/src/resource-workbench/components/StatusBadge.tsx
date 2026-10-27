@@ -54,7 +54,7 @@ export function StatusBadge({
   const badge = (
     <span
       className={cn(
-        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[11px] stg:font-medium stg:leading-none",
+        "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
         statusClasses(phase),
         className,
       )}

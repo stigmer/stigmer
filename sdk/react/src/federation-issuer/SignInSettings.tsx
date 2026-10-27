@@ -120,7 +120,7 @@ export function SignInSettingsSection({
       <legend className="stg:text-xs stg:font-medium stg:text-foreground">
         Sign-in
       </legend>
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         What happens when someone signs in with a token from this issuer.
       </p>
 
@@ -152,7 +152,7 @@ export function SignInSettingsSection({
             Create accounts on sign-in
           </span>
         </div>
-        <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:pl-11 stg:text-2xs stg:text-muted-foreground">
           Create a person&apos;s account from their token the first time
           they sign in. When off, accounts are created through the API before
           people can sign in
@@ -191,7 +191,7 @@ export function SignInSettingsSection({
         </select>
         <p
           id={roleHintId}
-          className="stg:text-[0.65rem] stg:text-muted-foreground"
+          className="stg:text-2xs stg:text-muted-foreground"
         >
           Granted the first time someone signs in to the organization; None
           grants nothing. A role an admin removes later is not granted again.
@@ -225,7 +225,7 @@ export function SignInSettingsSection({
         />
         <p
           id={claimHintId}
-          className="stg:text-[0.65rem] stg:text-muted-foreground"
+          className="stg:text-2xs stg:text-muted-foreground"
         >
           Optional. The token claim that names one of this
           organization&apos;s child organizations by its external id: each

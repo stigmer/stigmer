@@ -134,7 +134,7 @@ export function TrendChart({
       <div className="stg:flex stg:gap-1.5">
         <div
           aria-hidden="true"
-          className="stg:flex stg:h-20 stg:flex-col stg:justify-between stg:text-right stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground"
+          className="stg:flex stg:h-20 stg:flex-col stg:justify-between stg:text-right stg:text-2xs stg:tabular-nums stg:text-muted-foreground"
         >
           <span>{formatValue(scaleMax)}</span>
           <span>{formatValue(0)}</span>
@@ -246,7 +246,7 @@ export function TrendChart({
         {hasPoints && (
           <div
             aria-hidden="true"
-            className="stg:flex stg:justify-between stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground"
+            className="stg:flex stg:justify-between stg:text-2xs stg:tabular-nums stg:text-muted-foreground"
           >
             <span>{from ?? earliestDate(points)}</span>
             <span>{to ?? latestDate(points)}</span>

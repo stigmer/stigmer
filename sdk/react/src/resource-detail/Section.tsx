@@ -51,7 +51,7 @@ export function Section({
           {title}
         </h3>
         {count != null && count > 0 && (
-          <span className="stg:inline-flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1 stg:text-[10px] stg:font-semibold stg:text-muted-foreground">
+          <span className="stg:inline-flex stg:h-5 stg:min-w-5 stg:items-center stg:justify-center stg:rounded-full stg:bg-muted stg:px-1 stg:text-2xs stg:font-semibold stg:text-muted-foreground">
             {countIsLowerBound ? `${count}+` : count}
           </span>
         )}

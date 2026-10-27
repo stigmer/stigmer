@@ -199,7 +199,7 @@ function AccessSection({
     <section className="stg:px-6 stg:py-4">
       <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">{title}</h3>
       {description && (
-        <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
           {description}
         </p>
       )}

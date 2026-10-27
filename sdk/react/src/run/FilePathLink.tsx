@@ -126,7 +126,7 @@ export function FilePathLink({
   ) : (
     <>
       {dirDisplay === "dim" && dir && (
-        <span className="stg:min-w-0 stg:truncate stg:text-muted-foreground-faint">{dir}</span>
+        <span className="stg:min-w-0 stg:truncate stg:text-muted-foreground">{dir}</span>
       )}
       <span className="stg:shrink-0">{base}</span>
     </>

@@ -307,7 +307,7 @@ export function PackagesFields({ value, onChange, disabled = false, availability
 }
 
 const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const hintClasses = "stg:text-[0.65rem] stg:text-muted-foreground";
+const hintClasses = "stg:text-2xs stg:text-muted-foreground";
 const inputClasses = cn(
   "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
   "stg:placeholder:text-muted-foreground",

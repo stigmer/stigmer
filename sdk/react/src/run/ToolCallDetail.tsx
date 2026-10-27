@@ -335,7 +335,7 @@ function ProvenanceNote({ toolUse }: { toolUse: ToolUse }) {
   if (!provenance) return null;
 
   return (
-    <p className="stg:text-[11px] stg:italic stg:text-muted-foreground">
+    <p className="stg:text-2xs stg:italic stg:text-muted-foreground">
       {provenance}
     </p>
   );

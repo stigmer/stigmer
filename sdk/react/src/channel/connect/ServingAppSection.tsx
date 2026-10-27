@@ -179,7 +179,7 @@ function ServingAppOption({
       />
       <span className="stg:min-w-0">
         <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">{label}</span>
-        <span className="stg:block stg:text-[0.65rem] stg:text-muted-foreground">{hint}</span>
+        <span className="stg:block stg:text-2xs stg:text-muted-foreground">{hint}</span>
       </span>
     </label>
   );

@@ -4,6 +4,10 @@
    by site/scripts/generate-theme-docs), and the contrast contract in
    src/contract/ gates every value against WCAG thresholds in CI.
 
+   These defaults are Stigmer's own look: black and white, with hue only
+   in the status, diff, syntax and named chart colors. The
+   presets in presets/ dress an embedder's product differently.
+
    Light values live on :root; dark values in the block below. Descriptions
    are written once, on the light declarations — a dark declaration changes
    the value, never the meaning. */
@@ -14,49 +18,85 @@
   --stgm-font-sans: var(--font-geist-sans, system-ui, sans-serif);
   /* Code and tabular-figure font stack. */
   --stgm-font-mono: var(--font-geist-mono, ui-monospace, monospace);
+  /* Text size, step 2xs: the smallest step, 11px: dense metadata only (badges, counters, key hints). Nothing is drawn smaller; the scale check in CI holds every preset to it. */
+  --stgm-text-2xs: 0.6875rem;
+  /* Line height paired with step 2xs. */
+  --stgm-leading-2xs: 1rem;
+  /* Text size, step xs: metadata and supporting text: timestamps, captions, table cells in dense lists. */
+  --stgm-text-xs: 0.75rem;
+  /* Line height paired with step xs. */
+  --stgm-leading-xs: 1rem;
+  /* Text size, step sm: body text in panels, labels, and controls. */
+  --stgm-text-sm: 0.875rem;
+  /* Line height paired with step sm. */
+  --stgm-leading-sm: 1.25rem;
+  /* Text size, step base: reading text: message bodies and long prose. */
+  --stgm-text-base: 1rem;
+  /* Line height paired with step base. */
+  --stgm-leading-base: 1.5rem;
+  /* Text size, step lg: section titles. */
+  --stgm-text-lg: 1.125rem;
+  /* Line height paired with step lg. */
+  --stgm-leading-lg: 1.75rem;
+  /* Text size, step xl: page titles. */
+  --stgm-text-xl: 1.25rem;
+  /* Line height paired with step xl. */
+  --stgm-leading-xl: 1.75rem;
+  /* Text size, step 2xl: prominent figures and empty-state headings. */
+  --stgm-text-2xl: 1.5rem;
+  /* Line height paired with step 2xl. */
+  --stgm-leading-2xl: 2rem;
+  /* Text size, step 3xl: display headings. */
+  --stgm-text-3xl: 1.875rem;
+  /* Line height paired with step 3xl. */
+  --stgm-leading-3xl: 2.25rem;
+
+  /* @group Spacing */
+  /* The base spacing unit. Every padding, margin and gap step is a multiple of it (Tailwind's `p-4` is four units), so one override sets a whole screen's density. */
+  --stgm-spacing: 0.25rem;
 
   /* @group Shape */
   /* Base corner radius. The Tailwind radius scale (sm/md/lg/xl) is derived from this single token, so one override reshapes every component. */
-  --stgm-radius: 0.625rem;
+  --stgm-radius: 0.375rem;
 
   /* @group Core surfaces & text */
   /* Page background behind all Stigmer content. */
-  --stgm-background: oklch(0.98 0 0);
+  --stgm-background: oklch(0.99 0 0);
   /* Primary body text on the page background. */
-  --stgm-foreground: oklch(0.145 0 0);
+  --stgm-foreground: oklch(0.15 0 0);
   /* Card fill (approval cards, plan cards, panels). */
   --stgm-card: oklch(1 0 0);
   /* Text on card surfaces. */
-  --stgm-card-foreground: oklch(0.145 0 0);
+  --stgm-card-foreground: oklch(0.15 0 0);
   /* Floating surface fill (dropdowns, dialogs, tooltips). */
   --stgm-popover: oklch(1 0 0);
   /* Text on floating surfaces. */
-  --stgm-popover-foreground: oklch(0.145 0 0);
+  --stgm-popover-foreground: oklch(0.15 0 0);
   /* Brand action color (primary buttons, active states, links). */
-  --stgm-primary: oklch(0.52 0.12 190);
+  --stgm-primary: oklch(0.15 0 0);
   /* Text on primary-filled elements. */
-  --stgm-primary-foreground: oklch(0.985 0 0);
+  --stgm-primary-foreground: oklch(0.99 0 0);
   /* Secondary button and low-emphasis control fill. */
-  --stgm-secondary: oklch(0.94 0 0);
+  --stgm-secondary: oklch(0.96 0 0);
   /* Text on secondary-filled elements. */
-  --stgm-secondary-foreground: oklch(0.205 0 0);
+  --stgm-secondary-foreground: oklch(0.25 0 0);
   /* Muted panel fill (code blocks, quiet notices). */
-  --stgm-muted: oklch(0.94 0 0);
+  --stgm-muted: oklch(0.96 0 0);
   /* Supporting text (captions, timestamps, the Thinking indicator). */
-  --stgm-muted-foreground: oklch(0.5 0 0);
+  --stgm-muted-foreground: oklch(0.45 0 0);
   /* Avatar circle behind a person's initial or a team's glyph. Distinct from
      --stgm-muted because an avatar sits on cards, dialogs and menus, where a
      muted fill can equal the surface; the contrast contract holds it apart
      from each in dark mode. */
-  --stgm-avatar: oklch(0.94 0 0);
+  --stgm-avatar: oklch(0.96 0 0);
   /* Hover/selection fill for menu items and list rows. */
-  --stgm-accent: oklch(0.94 0 0);
+  --stgm-accent: oklch(0.96 0 0);
   /* Text on accent-filled elements. */
-  --stgm-accent-foreground: oklch(0.205 0 0);
+  --stgm-accent-foreground: oklch(0.25 0 0);
 
   /* @group Semantic colors */
   /* Destructive action color (deny buttons, error text). */
-  --stgm-destructive: oklch(0.55 0.245 27.325);
+  --stgm-destructive: oklch(0.53 0.2 27.325);
   /* Text on destructive-filled elements. */
   --stgm-destructive-foreground: oklch(0.985 0 0);
   /* Positive state color (success badges, confirmations). */
@@ -76,25 +116,25 @@
 
   /* @group Forms & focus */
   /* Default border for cards, dividers, and containers. */
-  --stgm-border: oklch(0.885 0 0);
+  --stgm-border: oklch(0.92 0 0);
   /* Input control border. */
-  --stgm-input: oklch(0.87 0 0);
+  --stgm-input: oklch(0.92 0 0);
   /* Input control fill. */
   --stgm-input-bg: oklch(1 0 0);
   /* Focus ring color. */
-  --stgm-ring: oklch(0.55 0.1 190);
+  --stgm-ring: oklch(0.15 0 0);
 
   /* @group Charts */
   /* Categorical chart series 1. */
-  --stgm-chart-1: oklch(0.646 0.222 41.116);
+  --stgm-chart-1: oklch(0.25 0 0);
   /* Categorical chart series 2. */
-  --stgm-chart-2: oklch(0.6 0.118 184.704);
+  --stgm-chart-2: oklch(0.40 0 0);
   /* Categorical chart series 3. */
-  --stgm-chart-3: oklch(0.398 0.07 227.392);
+  --stgm-chart-3: oklch(0.55 0 0);
   /* Categorical chart series 4. */
-  --stgm-chart-4: oklch(0.828 0.189 84.429);
+  --stgm-chart-4: oklch(0.70 0 0);
   /* Categorical chart series 5. */
-  --stgm-chart-5: oklch(0.769 0.188 70.08);
+  --stgm-chart-5: oklch(0.82 0 0);
   /* Named chart color for cross-view consistency (e.g. token usage). */
   --stgm-chart-purple: oklch(0.585 0.233 292);
   /* Named chart color for cross-view consistency. */
@@ -110,71 +150,71 @@
   /* Stronger border for emphasized containers and separators. */
   --stgm-border-prominent: oklch(0.75 0 0);
   /* Small elevation shadow (inputs, buttons). */
-  --stgm-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --stgm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 1px -1px rgb(0 0 0 / 0.03);
   /* Medium elevation shadow (cards, panels). */
-  --stgm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --stgm-shadow-md: 0 3px 5px -1px rgb(0 0 0 / 0.05), 0 1px 3px -2px rgb(0 0 0 / 0.04);
   /* Large elevation shadow (dialogs, popovers). */
-  --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --stgm-shadow-lg: 0 8px 12px -3px rgb(0 0 0 / 0.06), 0 3px 5px -4px rgb(0 0 0 / 0.04);
 
   /* @group Motion & layering */
   /* Base transition duration for interactive state changes. */
-  --stgm-transition-duration: 150ms;
+  --stgm-transition-duration: 100ms;
   /* Base transition easing curve. */
-  --stgm-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --stgm-transition-timing: cubic-bezier(0, 0, 0.2, 1);
   /* Stacking order for portaled surfaces (dropdowns, dialogs). */
   --stgm-z-popover: 50;
 
   /* @group State shades */
   /* Primary fill on hover. */
-  --stgm-primary-hover: oklch(0.47 0.11 190);
+  --stgm-primary-hover: oklch(0.25 0 0);
   /* Quiet primary-tinted surface (selected rows, active nav). */
-  --stgm-primary-subtle: oklch(0.95 0.02 190);
+  --stgm-primary-subtle: oklch(0.96 0 0);
   /* Quiet destructive surface (error notices, danger zones). */
-  --stgm-destructive-subtle: oklch(0.95 0.03 27);
+  --stgm-destructive-subtle: oklch(0.96 0.02 25);
   /* Subtlest distinct fill on the page background (user message bubble). Kept borderless-legible: the contrast contract enforces its separation from --stgm-background. */
-  --stgm-muted-subtle: oklch(0.96 0 0);
+  --stgm-muted-subtle: oklch(0.97 0 0);
   /* De-emphasized supporting text, one step quieter than muted-foreground. */
-  --stgm-muted-foreground-subtle: oklch(0.64 0 0);
+  --stgm-muted-foreground-subtle: oklch(0.55 0 0);
   /* Accent fill on hover. */
-  --stgm-accent-hover: oklch(0.96 0 0);
+  --stgm-accent-hover: oklch(0.97 0 0);
   /* Destructive fill on hover. */
-  --stgm-destructive-hover: oklch(0.52 0.22 27.325);
+  --stgm-destructive-hover: oklch(0.48 0.19 27.325);
   /* Foreground-colored interactive text on hover. */
   --stgm-foreground-hover: oklch(0.20 0 0);
   /* Quieter border for nested or low-emphasis containers. */
-  --stgm-border-muted: oklch(0.92 0 0);
+  --stgm-border-muted: oklch(0.95 0 0);
   /* Faintest distinct fill (zebra stripes, ghost rows). */
-  --stgm-muted-faint: oklch(0.975 0 0);
+  --stgm-muted-faint: oklch(0.98 0 0);
   /* Desaturated primary for secondary indicators. */
-  --stgm-primary-muted: oklch(0.62 0.08 190);
+  --stgm-primary-muted: oklch(0.40 0 0);
   /* Desaturated destructive for secondary error indicators. */
   --stgm-destructive-muted: oklch(0.65 0.12 27.325);
   /* Faintest readable text (placeholder-level hints). Held to a 3:1 floor by the contrast contract. */
-  --stgm-muted-foreground-faint: oklch(0.64 0 0);
+  --stgm-muted-foreground-faint: oklch(0.63 0 0);
   /* Modal backdrop overlay behind dialogs. */
-  --stgm-backdrop: oklch(0.98 0 0 / 80%);
+  --stgm-backdrop: oklch(0.99 0 0 / 80%);
 
   /* @group Sidebar */
   /* Sidebar background. Sidebar tokens form their own context: presets may give the sidebar a contrasting (e.g. dark-on-light) treatment. */
   --stgm-sidebar: oklch(0.97 0 0);
   /* Primary text in the sidebar. */
-  --stgm-sidebar-foreground: oklch(0.145 0 0);
+  --stgm-sidebar-foreground: oklch(0.15 0 0);
   /* Brand action color inside the sidebar. */
-  --stgm-sidebar-primary: oklch(0.52 0.12 190);
+  --stgm-sidebar-primary: oklch(0.15 0 0);
   /* Text on sidebar-primary fills. */
-  --stgm-sidebar-primary-foreground: oklch(0.985 0 0);
+  --stgm-sidebar-primary-foreground: oklch(0.99 0 0);
   /* Muted panel fill inside the sidebar. */
   --stgm-sidebar-muted: oklch(0.94 0 0);
   /* Supporting text in the sidebar (section headers, resting nav labels). */
-  --stgm-sidebar-muted-foreground: oklch(0.5 0 0);
+  --stgm-sidebar-muted-foreground: oklch(0.45 0 0);
   /* Hover/active item fill in the sidebar. */
   --stgm-sidebar-accent: oklch(0.94 0 0);
   /* Text on sidebar accent fills. */
-  --stgm-sidebar-accent-foreground: oklch(0.205 0 0);
+  --stgm-sidebar-accent-foreground: oklch(0.25 0 0);
   /* Borders and dividers inside the sidebar. */
-  --stgm-sidebar-border: oklch(0.885 0 0);
+  --stgm-sidebar-border: oklch(0.92 0 0);
   /* Focus ring inside the sidebar. */
-  --stgm-sidebar-ring: oklch(0.55 0.1 190);
+  --stgm-sidebar-ring: oklch(0.15 0 0);
 
   /* @group Status */
   /* Ready/healthy status accent (pill text, solid fills, dots). */
@@ -202,7 +242,7 @@
   /* Quiet degraded surface. */
   --stgm-status-degraded-subtle: oklch(0.95 0.03 80);
   /* Failed/error status accent. */
-  --stgm-status-failed: oklch(0.55 0.245 27.325);
+  --stgm-status-failed: oklch(0.53 0.2 27.325);
   /* Text on a solid failed fill. */
   --stgm-status-failed-foreground: oklch(0.985 0 0);
   /* Quiet failed surface. */
@@ -259,20 +299,20 @@
    light value (fonts, radius, motion, z-index). */
 [data-stgm-color-mode="dark"] {
   --stgm-background: oklch(0.145 0 0);
-  --stgm-foreground: oklch(0.985 0 0);
-  --stgm-card: oklch(0.205 0 0);
-  --stgm-card-foreground: oklch(0.985 0 0);
-  --stgm-popover: oklch(0.269 0 0);
-  --stgm-popover-foreground: oklch(0.985 0 0);
-  --stgm-primary: oklch(0.72 0.12 190);
+  --stgm-foreground: oklch(0.96 0 0);
+  --stgm-card: oklch(0.21 0 0);
+  --stgm-card-foreground: oklch(0.96 0 0);
+  --stgm-popover: oklch(0.24 0 0);
+  --stgm-popover-foreground: oklch(0.96 0 0);
+  --stgm-primary: oklch(0.96 0 0);
   --stgm-primary-foreground: oklch(0.145 0 0);
-  --stgm-secondary: oklch(0.269 0 0);
-  --stgm-secondary-foreground: oklch(0.985 0 0);
-  --stgm-muted: oklch(0.269 0 0);
-  --stgm-muted-foreground: oklch(0.75 0 0);
-  --stgm-avatar: oklch(0.34 0 0);
-  --stgm-accent: oklch(0.371 0 0);
-  --stgm-accent-foreground: oklch(0.985 0 0);
+  --stgm-secondary: oklch(0.21 0 0);
+  --stgm-secondary-foreground: oklch(0.96 0 0);
+  --stgm-muted: oklch(0.21 0 0);
+  --stgm-muted-foreground: oklch(0.64 0 0);
+  --stgm-avatar: oklch(0.31 0 0);
+  --stgm-accent: oklch(0.25 0 0);
+  --stgm-accent-foreground: oklch(0.96 0 0);
   /* Dark fills are lightened, so their foregrounds flip to near-black
      (matching --stgm-primary-foreground) to preserve AA contrast. */
   --stgm-destructive: oklch(0.704 0.191 22.216);
@@ -284,48 +324,48 @@
   --stgm-warning-foreground: oklch(0.145 0 0);
   --stgm-info: oklch(0.7 0.15 250);
   --stgm-info-foreground: oklch(0.145 0 0);
-  --stgm-border: oklch(1 0 0 / 14%);
-  --stgm-input: oklch(1 0 0 / 20%);
-  --stgm-input-bg: oklch(0.205 0 0);
-  --stgm-ring: oklch(0.55 0.1 190);
-  --stgm-chart-1: oklch(0.488 0.243 264.376);
-  --stgm-chart-2: oklch(0.696 0.17 162.48);
-  --stgm-chart-3: oklch(0.769 0.188 70.08);
-  --stgm-chart-4: oklch(0.627 0.265 303.9);
-  --stgm-chart-5: oklch(0.645 0.246 16.439);
+  --stgm-border: oklch(0.27 0 0);
+  --stgm-input: oklch(0.32 0 0);
+  --stgm-input-bg: oklch(0.21 0 0);
+  --stgm-ring: oklch(0.96 0 0);
+  --stgm-chart-1: oklch(0.85 0 0);
+  --stgm-chart-2: oklch(0.70 0 0);
+  --stgm-chart-3: oklch(0.55 0 0);
+  --stgm-chart-4: oklch(0.40 0 0);
+  --stgm-chart-5: oklch(0.28 0 0);
   --stgm-chart-purple: oklch(0.714 0.200 292);
   --stgm-chart-blue: oklch(0.680 0.200 262);
   --stgm-chart-green: oklch(0.720 0.174 149);
   --stgm-chart-orange: oklch(0.750 0.180 41);
   --stgm-chart-yellow: oklch(0.820 0.160 86);
   --stgm-border-prominent: oklch(1 0 0 / 30%);
-  --stgm-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25);
-  --stgm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.25);
-  --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.35), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  --stgm-primary-hover: oklch(0.66 0.11 190);
-  --stgm-primary-subtle: oklch(0.24 0.03 190);
-  --stgm-destructive-subtle: oklch(0.24 0.04 22);
-  --stgm-muted-subtle: oklch(0.24 0 0);
-  --stgm-muted-foreground-subtle: oklch(0.60 0 0);
-  --stgm-accent-hover: oklch(0.30 0 0);
-  --stgm-destructive-hover: oklch(0.64 0.17 22.216);
-  --stgm-foreground-hover: oklch(0.90 0 0);
-  --stgm-border-muted: oklch(1 0 0 / 8%);
-  --stgm-muted-faint: oklch(0.19 0 0);
-  --stgm-primary-muted: oklch(0.65 0.08 190);
-  --stgm-destructive-muted: oklch(0.60 0.10 22.216);
-  --stgm-muted-foreground-faint: oklch(0.55 0 0);
+  --stgm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 1px -1px rgb(0 0 0 / 0.18);
+  --stgm-shadow-md: 0 3px 5px -1px rgb(0 0 0 / 0.24), 0 1px 3px -2px rgb(0 0 0 / 0.20);
+  --stgm-shadow-lg: 0 8px 12px -3px rgb(0 0 0 / 0.28), 0 3px 5px -4px rgb(0 0 0 / 0.22);
+  --stgm-primary-hover: oklch(0.88 0 0);
+  --stgm-primary-subtle: oklch(0.21 0 0);
+  --stgm-destructive-subtle: oklch(0.21 0.03 25);
+  --stgm-muted-subtle: oklch(0.20 0 0);
+  --stgm-muted-foreground-subtle: oklch(0.55 0 0);
+  --stgm-accent-hover: oklch(0.22 0 0);
+  --stgm-destructive-hover: oklch(0.64 0.17 22);
+  --stgm-foreground-hover: oklch(0.88 0 0);
+  --stgm-border-muted: oklch(0.22 0 0);
+  --stgm-muted-faint: oklch(0.17 0 0);
+  --stgm-primary-muted: oklch(0.80 0 0);
+  --stgm-destructive-muted: oklch(0.60 0.10 22);
+  --stgm-muted-foreground-faint: oklch(0.5 0 0);
   --stgm-backdrop: oklch(0.145 0 0 / 80%);
-  --stgm-sidebar: oklch(0.12 0 0);
-  --stgm-sidebar-foreground: oklch(0.985 0 0);
-  --stgm-sidebar-primary: oklch(0.72 0.12 190);
+  --stgm-sidebar: oklch(0.11 0 0);
+  --stgm-sidebar-foreground: oklch(0.96 0 0);
+  --stgm-sidebar-primary: oklch(0.96 0 0);
   --stgm-sidebar-primary-foreground: oklch(0.145 0 0);
-  --stgm-sidebar-muted: oklch(0.20 0 0);
-  --stgm-sidebar-muted-foreground: oklch(0.708 0 0);
+  --stgm-sidebar-muted: oklch(0.18 0 0);
+  --stgm-sidebar-muted-foreground: oklch(0.6 0 0);
   --stgm-sidebar-accent: oklch(0.20 0 0);
-  --stgm-sidebar-accent-foreground: oklch(0.985 0 0);
-  --stgm-sidebar-border: oklch(1 0 0 / 14%);
-  --stgm-sidebar-ring: oklch(0.5 0.08 190);
+  --stgm-sidebar-accent-foreground: oklch(0.96 0 0);
+  --stgm-sidebar-border: oklch(0.24 0 0);
+  --stgm-sidebar-ring: oklch(0.96 0 0);
 
   /* Dark status fills are the status colour at 15%, a tint of whatever
      surface the pill sits on. The page, card and dialog surfaces sit too
@@ -344,9 +384,9 @@
   --stgm-status-degraded: oklch(0.78 0.16 80);
   --stgm-status-degraded-foreground: oklch(0.145 0 0);
   --stgm-status-degraded-subtle: oklch(0.78 0.16 80 / 15%);
-  --stgm-status-failed: oklch(0.744 0.191 22.216);
+  --stgm-status-failed: oklch(0.78 0.15 22.216);
   --stgm-status-failed-foreground: oklch(0.145 0 0);
-  --stgm-status-failed-subtle: oklch(0.744 0.191 22.216 / 15%);
+  --stgm-status-failed-subtle: oklch(0.78 0.15 22.216 / 15%);
   --stgm-status-disabled: oklch(0.72 0 0);
   --stgm-status-disabled-foreground: oklch(0.145 0 0);
   --stgm-status-disabled-subtle: oklch(0.72 0 0 / 15%);

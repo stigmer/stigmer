@@ -21,12 +21,7 @@ import { SCENARIO_CLOCK } from "@stigmer/react-sdk/test";
 import { MODES, SCENES, WIDTHS, screenshotsOf, sceneUrl, type Mode, type Scene, type SceneId, type WidthName } from "../src/catalog.ts";
 
 /** The rules each scene fails today, in each mode, against the issue that tracks each. */
-const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
-  "thread-failed light": [{ rule: "color-contrast", issue: "stigmer#2643" }],
-  "thread-subagent-finished light": [{ rule: "color-contrast", issue: "stigmer#2644" }],
-  "file-review-dock light": [{ rule: "color-contrast", issue: "stigmer#2645" }],
-  "file-review-dock dark": [{ rule: "color-contrast", issue: "stigmer#2645" }],
-};
+const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {};
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));
 

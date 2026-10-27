@@ -42,7 +42,7 @@ export type ColorMode = (typeof COLOR_MODES)[number];
  * ships fixing only some severities first.
  *
  * `color-contrast`: the SDK's deliberately dense small muted text (the
- * workspace panel's tree labels and `text-[0.65rem]` path subtitles, count
+ * workspace panel's tree labels and `text-2xs` path subtitles, count
  * badges, captions across the consoles) falls below WCAG AA 4.5:1 in both
  * modes. This is a PRE-EXISTING, app-wide design-token/density concern (the
  * `--stgm-muted-foreground` token at small sizes), and its fix needs a

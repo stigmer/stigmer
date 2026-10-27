@@ -396,7 +396,7 @@ export const FileReviewCard = memo(function FileReviewCard({
       {interactive && incomplete && showBulkControls && (
         <p
           id={incompleteNoticeId}
-          className="stg:px-2.5 stg:pb-1.5 stg:text-[11px] stg:italic stg:text-muted-foreground"
+          className="stg:px-2.5 stg:pb-1.5 stg:text-2xs stg:italic stg:text-muted-foreground"
         >
           {incompleteNotice(showPerFile, blockSummary, binaryOnly)}
         </p>
@@ -708,7 +708,7 @@ function CapturedChangeDiff({
   );
   if (adapted) return <FileChangeDiff change={adapted} bounded />;
   return (
-    <p className="stg:text-[11px] stg:italic stg:text-muted-foreground">
+    <p className="stg:text-2xs stg:italic stg:text-muted-foreground">
       {diffState === "loading"
         ? "Loading the diff…"
         : diffState === "error"
@@ -778,24 +778,24 @@ function VerdictBadge({ state }: { state: FileReviewFile["state"] }) {
   switch (state) {
     case "kept":
       return (
-        <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-added-fg">Kept</span>
+        <span className="stg:shrink-0 stg:text-2xs stg:font-medium stg:text-diff-added-fg">Kept</span>
       );
     case "undoing":
     case "undone":
       return (
-        <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-removed-fg">
+        <span className="stg:shrink-0 stg:text-2xs stg:font-medium stg:text-diff-removed-fg">
           Discarded
         </span>
       );
     case "undo_failed":
       return (
-        <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-destructive">
+        <span className="stg:shrink-0 stg:text-2xs stg:font-medium stg:text-destructive">
           Undo failed
         </span>
       );
     case "undecided":
       return (
-        <span className="stg:shrink-0 stg:text-[11px] stg:italic stg:text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-2xs stg:italic stg:text-muted-foreground">
           Not reviewed
         </span>
       );
@@ -977,7 +977,7 @@ function CaptureBadge({ captured }: { captured: CapturedFileChange | undefined }
   if (!provenance) return null;
   return (
     <span
-      className="stg:inline-flex stg:w-fit stg:items-center stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
+      className="stg:inline-flex stg:w-fit stg:items-center stg:rounded stg:border stg:border-border stg:bg-muted-subtle stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
       aria-label={provenance.aria}
       data-cursor-target="file-review-capture"
     >
@@ -1010,7 +1010,7 @@ function BlockReasonNote({
   return (
     <p
       id={id}
-      className="stg:text-[11px] stg:italic stg:text-muted-foreground"
+      className="stg:text-2xs stg:italic stg:text-muted-foreground"
       data-cursor-target="file-review-block-reason"
     >
       {text}
@@ -1077,7 +1077,7 @@ function incompleteNotice(
 
 function ReviewProgress({ decided, total }: { decided: number; total: number }) {
   return (
-    <p role="status" className="stg:text-[11px] stg:text-muted-foreground">
+    <p role="status" className="stg:text-2xs stg:text-muted-foreground">
       {decided} of {total} files reviewed
       {decided > 0 && decided < total && " — decide the rest to continue"}
     </p>

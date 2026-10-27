@@ -146,11 +146,11 @@ export function CreateOrganizationForm({
             )}
           />
           {nameError ? (
-            <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+            <p className="stg:text-2xs stg:text-destructive" role="alert">
               {nameError}
             </p>
           ) : (
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               A human-readable display name for the organization.
             </p>
           )}
@@ -183,11 +183,11 @@ export function CreateOrganizationForm({
             )}
           />
           {slugError ? (
-            <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+            <p className="stg:text-2xs stg:text-destructive" role="alert">
               {slugError}
             </p>
           ) : (
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               URL-friendly identifier used in resource references. 2&ndash;63
               characters: lowercase letters, numbers, and hyphens.
             </p>
@@ -221,7 +221,7 @@ export function CreateOrganizationForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}

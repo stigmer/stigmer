@@ -182,13 +182,13 @@ export function VaultPicker({
       )}
 
       {value.length + (myVault?.checked ? 1 : 0) > 1 && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Vaults are read in order: the first one holding a key or a login wins.
         </p>
       )}
 
       {value.length > 0 && selectionNote && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{selectionNote}</p>
+        <p className="stg:text-2xs stg:text-muted-foreground">{selectionNote}</p>
       )}
 
       <div>
@@ -254,7 +254,7 @@ function MyVaultRow({
       />
       <label htmlFor={inputId} className="stg:flex-1 stg:min-w-0 stg:cursor-pointer stg:select-none">
         <span className="stg:block stg:text-sm stg:font-medium stg:text-foreground">{MY_VAULT_LABEL}</span>
-        <span className="stg:block stg:text-[0.65rem] stg:text-muted-foreground">
+        <span className="stg:block stg:text-2xs stg:text-muted-foreground">
           Read first. Each person who sends a message uses their own.
         </span>
       </label>
@@ -302,7 +302,7 @@ function SelectedList({
               {resolveName(ref)}
             </span>
             {resolveDescription(ref) && (
-              <span className="stg:text-[0.65rem] stg:text-muted-foreground stg:truncate stg:block">
+              <span className="stg:text-2xs stg:text-muted-foreground stg:truncate stg:block">
                 {resolveDescription(ref)}
               </span>
             )}

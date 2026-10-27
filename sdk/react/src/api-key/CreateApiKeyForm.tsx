@@ -166,7 +166,7 @@ export function CreateApiKeyForm({
           </label>
           <p
             id={`${baseId}-org-only-hint`}
-            className="stg:text-[0.65rem] stg:text-muted-foreground"
+            className="stg:text-2xs stg:text-muted-foreground"
           >
             {limitWithoutOrg
               ? "Open an organization to limit the key to it, or clear the box."
@@ -178,7 +178,7 @@ export function CreateApiKeyForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}
