@@ -1,0 +1,22 @@
+ You
+ Invoices are off by a cent. Can you fix the rounding?
+
+ Agent
+ I changed two files; review them before keeping.
+
+  ✎ File review — 2 files changed +42 -4
+    M src/billing/invoice.ts +12 -4 (not reviewed)
+    A src/billing/rounding.ts +30 -0 (not reviewed)
+
+ Fix invoice rounding
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│  ✎ 2 files awaiting review +42 -4                                            │
+│                                                                              │
+│    [a] Approve all  [r] Reject all  [f] Review files                         │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ Agent mode — full tool access
+
+ Reply...

@@ -1,0 +1,22 @@
+ Fix invoice rounding
+
+ ● Waiting for approval
+ You
+ Rename the rounding helper and update its callers.
+
+  ○ ▶ write_file
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│  ⚠ Approval required                                                                                                 │
+│                                                                                                                      │
+│    Tool: write_file                                                                                                  │
+│    Args: {"path":"src/billing/rounding.ts"}                                                                          │
+│    Why: required by built-in tool policy                                                                             │
+│                                                                                                                      │
+│    ▸ [y] Approve    [a] Approve all file edits    [n] Deny                                                           │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+ Reply...
