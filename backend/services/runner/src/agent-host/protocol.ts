@@ -95,6 +95,12 @@ export interface HostConfigWire {
   readonly mcpBridgeEndpoint: string | null;
   readonly mcpPublicEndpoint: string | null;
   readonly cursorStreamStallTimeoutMs: number;
+  /**
+   * The runtime's backstop for one open operation: the Claude engine runs in
+   * the host, and every MCP server it is served carries this as its per-call
+   * timeout (`execute-claude/loopback-mcp.ts`).
+   */
+  readonly openOperationMaxMs: number;
   /** The native shell's timeout ceiling: the shell runs in the host. */
   readonly shellTimeoutMaxSeconds: number;
   /** Whether the native shell may run commands in the background: the shell runs in the host. */

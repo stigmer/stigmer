@@ -6,7 +6,8 @@
 // Pinned: the run refuses a quality target whose model the registry does not
 // carry for its harness, and runs one eval for the rest; a failure to push the
 // plugin lands in the report by stage, never thrown; a plan with no quality
-// target leaves `quality` null. runQualityEval itself, over fake clients:
+// target leaves `quality` null; a Claude target is named `claude/<model>` and
+// checked against the Claude engine's registry row. runQualityEval itself, over fake clients:
 // each stage's failure lands by stage with what it cleans up, a failed eval
 // keeps its document beside the failure, and a finished one keeps its
 // document alone. The summary ends with the quality table, read
@@ -30,6 +31,7 @@ const REGISTRY = {
   models: [
     { id: PARITY_MODEL["deep-agent"], harness: "native" },
     { id: PARITY_MODEL.cursor, harness: "cursor" },
+    { id: PARITY_MODEL.claude, harness: "claude" },
   ],
 };
 
@@ -99,6 +101,23 @@ describe("runBenchmark's quality arm", () => {
       "Refused:",
       "- quality/cursor: model not in registry for harness",
     ]);
+  });
+
+  it("names a Claude target claude/<model>, beside native's, in one eval", async () => {
+    vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
+    const plan: CellPlan = {
+      nativeModel: PARITY_MODEL["deep-agent"],
+      cells: [],
+      judge: false,
+      quality: [
+        { id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] },
+        { id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude },
+      ],
+      refused: [],
+    };
+    const report = await runBenchmark(refusingStack(), plan, OPTIONS, quietIo());
+    expect(report.refused).toEqual([]);
+    expect(report.quality?.targets).toEqual([`native/${PARITY_MODEL["deep-agent"]}`, `claude/${PARITY_MODEL.claude}`]);
   });
 
   it("leaves quality null when no target is planned", async () => {

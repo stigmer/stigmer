@@ -23,6 +23,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
+  EXECUTE_CLAUDE_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } from "../../../../backend/libs/ts/temporal-codecs/src/activity-names/names";
@@ -33,18 +34,16 @@ const execFileAsync = promisify(execFile);
 
 export { invokeWorkflowIdFor };
 
+/** The runner activity each harness's turn runs as, by the runtime's harness label. */
+const EXECUTE_ACTIVITY_NAME: Record<BenchmarkHarness, string> = {
+  "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  cursor: EXECUTE_CURSOR_ACTIVITY_NAME,
+  claude: EXECUTE_CLAUDE_ACTIVITY_NAME,
+};
+
 /** The runner activity a harness's turn runs as, by the runtime's harness label. */
 export function executeActivityNameFor(harness: BenchmarkHarness): string {
-  switch (harness) {
-    case "deep-agent":
-      return EXECUTE_DEEP_AGENT_ACTIVITY_NAME;
-    case "cursor":
-      return EXECUTE_CURSOR_ACTIVITY_NAME;
-    default: {
-      const exhaustive: never = harness;
-      throw new Error(`unknown harness ${String(exhaustive)}`);
-    }
-  }
+  return EXECUTE_ACTIVITY_NAME[harness];
 }
 
 export interface HistoryEvent {

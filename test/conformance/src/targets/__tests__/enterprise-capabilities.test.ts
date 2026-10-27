@@ -41,6 +41,7 @@ const ENTERPRISE_MATRIX: CapabilityFlags = {
   accessHistory: "served",
   membershipOnArrival: false,
   cursorRunsAdmitted: true,
+  claudeTurnsRun: false,
   licenseStatus: "licensed",
   teams: "served",
   invitations: true,

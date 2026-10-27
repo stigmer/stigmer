@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 
 import { startLoopbackMcp, textResult, type ServedCall, type ServedServer } from "../loopback-mcp.js";
-import { connectServed, type ServedClient } from "../__test-utils__/served-client.js";
+import { SERVED_CALL_TIMEOUT_MS, connectServed, type ServedClient } from "../__test-utils__/served-client.js";
 
 const ECHO: Tool = {
   name: "echo",
@@ -105,8 +105,22 @@ describe("the loopback endpoint", () => {
     expect(asked.map((call) => call.toolUseId)).toEqual(["toolu_forged", "toolu_ok"]);
   });
 
+  it("hands the engine the turn's bound on one call with every server (stigmer#2625), so a silent call outlives the engine's own idle limit", async () => {
+    const endpoint = await startLoopbackMcp([echoServer([]), { ...echoServer([]), name: "other" }], () => undefined, { callTimeoutMs: 1_234_000 });
+    expect(Object.values(endpoint.configs).map((config) => config.timeout)).toEqual([1_234_000, 1_234_000]);
+    await endpoint.close();
+  });
+
+  it("answers a GET 405, so the engine opens no server stream to time out (stigmer#2636)", async () => {
+    const endpoint = await startLoopbackMcp([echoServer([])], () => undefined, { callTimeoutMs: SERVED_CALL_TIMEOUT_MS });
+    const config = endpoint.configs.probe!;
+    const response = await fetch(config.url, { method: "GET", headers: { ...config.headers, accept: "text/event-stream" } });
+    expect(response.status).toBe(405);
+    await endpoint.close();
+  });
+
   it("turns away a request without the token, with another, or for a server it does not serve, and stops when closed", async () => {
-    const endpoint = await startLoopbackMcp([echoServer([])], () => undefined);
+    const endpoint = await startLoopbackMcp([echoServer([])], () => undefined, { callTimeoutMs: SERVED_CALL_TIMEOUT_MS });
     const url = endpoint.configs.probe!.url;
     const post = (target: string, authorization?: string) =>
       fetch(target, {

@@ -58,9 +58,15 @@
 //   falls to the default's ask; and an edit the agent's own shell makes to
 //   the plugin's installed files does not survive to the next hook run.
 //
+// On Claude (the block at the end, where the target runs Claude turns):
+// the engine's shell call waits before it runs, an allow runs exactly that
+// call once on the engine resumed in a new activity, a deny and its reason
+// reach the model and the call never runs, and a batch's gated call waits
+// alone while the call beside it runs.
+//
 // Out of scope: a server whose tool listing fails asks before every one of
-// its tools (fail closed). On the native engine, which every arm here runs
-// on, that case does not arise: the engine reads the marks from the tools it
+// its tools (fail closed). On the native engine, which every other arm here
+// runs on, that case does not arise: the engine reads the marks from the tools it
 // loads, and a server it could not load offers the model no tool to call.
 // The Cursor engine lists each server separately and asks for every tool of
 // one whose listing failed; no conformance suite drives the Cursor engine
@@ -75,7 +81,7 @@ import { Code } from "@connectrpc/connect";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolUse, Turn } from "@stigmer/session-log";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -97,10 +103,19 @@ import { toolServerSegment } from "../support/plugins";
 import { answersOf, awaitIdleWith, awaitRequiresAction, confirmPerContract, newestIdle, sessionLog } from "../support/answers";
 import { toolUseByCallId, toolUsesOf, turnById, turnOfRun } from "../support/turn";
 import { uniqueName } from "../support/naming";
+import { EXECUTE_CLAUDE_ACTIVITY_NAME } from "../../../../backend/libs/ts/temporal-codecs/src/activity-names/names";
+import { invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
+import { CLAUDE_ARM, type ArmStep, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 import { zipFiles } from "../support/skills";
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { hookifyExampleRule, realPluginFiles, upstreamManifest } from "@stigmer/test-support/real-plugins";
+
+// Collection-time capability read: whether this target runs Claude turns.
+const { capabilities } = createTarget();
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -943,5 +958,122 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
     const quiet = requireToolUse(await turnOfRun(clients, final), "call_hookify_quiet");
     expect(quiet.state).toBe("completed");
     expect(quiet.result?.text).toContain("built");
+  });
+});
+
+// The gate on Claude, where the pause is the engine's own: its PreToolUse
+// callback defers a call that asks, the turn ends at the gate, and the
+// person's answer reaches the engine's resumed session in a new activity,
+// which runs exactly the call that waited (or hands the model the refusal).
+// The call is the engine's shell, which the default asks before; each run
+// counts its executions in a ledger file of its own.
+describe("Run approval — on Claude", () => {
+  beforeEach(claudeTurnsOnly(capabilities));
+  /** A file a scripted shell call appends one line to each time it runs. */
+  function ledger(): { readonly command: string; runs(): number } {
+    const dir = mkdtempSync(join(tmpdir(), "stigmer-claude-gate-"));
+    fixtures.defer(async () => rmSync(dir, { recursive: true, force: true }));
+    const file = join(dir, "ran");
+    return {
+      command: `echo ran >> '${file}'`,
+      runs: () => (existsSync(file) ? readFileSync(file, "utf8").split("\n").filter((line) => line === "ran").length : 0),
+    };
+  }
+
+  /** A Claude run of a fresh agent whose model plays `steps`, created and followed to its gate. */
+  async function claudeRunToGate(steps: readonly ArmStep[]): Promise<{ readonly runId: string; readonly sessionId: string }> {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-claude-gate") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const task = uniqueName("Clean the build directory");
+    CLAUDE_ARM.script(mock, task, steps);
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-claude-gate"), agentRef: agentRefOf(agent), message: task, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+    );
+    const runId = created.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+    const gated = await awaitPhase(clients, runId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
+    return { runId, sessionId: sessionIdOf(gated) };
+  }
+
+  /** How many times the workflow ran the turn's Claude activity. */
+  async function claudeActivities(runId: string): Promise<number> {
+    const engine = target.engineCoordinates?.();
+    if (engine === undefined) return -1;
+    const history = await showWorkflow(engine.temporalHostPort, "default", invokeWorkflowIdFor(runId));
+    return history.events.filter((event) => event.activityTaskScheduledEventAttributes?.activityType?.name === EXECUTE_CLAUDE_ACTIVITY_NAME).length;
+  }
+
+  const callId = (label: string): string => `toolu_${uniqueName(label).replace(/-/g, "_")}`;
+
+  it("[rpc:SessionCommandController.confirmToolUse] the shell call waits before it runs; an allow runs it once, on a resumed engine in a new activity, and the turn completes", async () => {
+    const shell = ledger();
+    const id = callId("gate_allow");
+    const { runId, sessionId } = await claudeRunToGate([{ kind: "shell", id, command: shell.command }, { kind: "text", text: "Cleaned." }]);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    expect(toolUseId, "the idle names the call").toBe(`${runId}.${id}`);
+    expect(shell.runs(), "nothing ran before the answer").toBe(0);
+
+    await confirmPerContract({ clients, sessionId, runId, expectedRemaining: 0, label: "the allow clears the gate", answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: toolUseId!, result: "allow" }) });
+    const final = await awaitTerminal(clients, runId);
+    expect(final.status?.phase, `the allowed turn: ${final.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+    expect(shell.runs(), "the approved call ran exactly once").toBe(1);
+    expect(await answersOf(clients, sessionId, runId)).toEqual([`${toolUseId} allow`]);
+    const allowed = requireToolUse(await turnOfRun(clients, final), id);
+    expect([allowed.name, allowed.state, allowed.confirmation?.result]).toEqual(["Bash", "completed", "allow"]);
+    expect(await claudeActivities(runId), "the gate's invocation and the resumed one").toBe(2);
+    await awaitIdleWith(clients, sessionId, "end_turn");
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] a deny: the call never runs, its result is an error, and the turn completes", async () => {
+    const shell = ledger();
+    const id = callId("gate_deny");
+    const { runId, sessionId } = await claudeRunToGate([{ kind: "shell", id, command: shell.command }, { kind: "text", text: "Left it alone." }]);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    await confirmPerContract({ clients, sessionId, runId, expectedRemaining: 0, label: "the deny clears the gate", answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: toolUseId!, result: "deny" }) });
+
+    const final = await awaitTerminal(clients, runId);
+    expect(final.status?.phase, "a deny never fails the run").toBe(RunPhase.RUN_COMPLETED);
+    expect(shell.runs(), "the denied call never ran").toBe(0);
+    const denied = requireToolUse(await turnOfRun(clients, final), id);
+    expect(denied.state).toBe("denied");
+    expect(denied.result?.isError, "its result is an error").toBe(true);
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] a deny's reason is what the model reads on its next request", async () => {
+    const shell = ledger();
+    const id = callId("gate_deny_reason");
+    const { runId, sessionId } = await claudeRunToGate([{ kind: "shell", id, command: shell.command }, { kind: "text", text: "Understood." }]);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    const reason = `keep the build directory ${uniqueName("reason")}`;
+    await confirmPerContract({ clients, sessionId, runId, expectedRemaining: 0, label: "the deny clears the gate", answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: toolUseId!, result: "deny", denyMessage: reason }) });
+
+    const final = await awaitTerminal(clients, runId);
+    expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    expect(shell.runs()).toBe(0);
+    expect(await answersOf(clients, sessionId, runId)).toEqual([`${toolUseId} deny "${reason}"`]);
+    const loop = CLAUDE_ARM.loopRequests(mock);
+    expect(JSON.stringify(loop.at(-1)?.body ?? ""), "the model reads the person's reason").toContain(reason);
+    expect(loop.slice(0, -1).some((request) => JSON.stringify(request.body).includes(reason)), "and never before the answer").toBe(false);
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] a batch's gated call waits alone: the call beside it runs at once, and the approved one runs once", async () => {
+    const shell = ledger();
+    const gatedId = callId("gate_batch_shell");
+    const besideId = callId("gate_batch_glob");
+    const { runId, sessionId } = await claudeRunToGate([
+      { kind: "batch", calls: [{ kind: "call", id: besideId, name: "Glob", input: { pattern: "*" } }, { kind: "shell", id: gatedId, command: shell.command }] },
+      { kind: "text", text: "Both done." },
+    ]);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    expect(toolUseId, "only the shell call waits").toBe(`${runId}.${gatedId}`);
+    await confirmPerContract({ clients, sessionId, runId, expectedRemaining: 0, label: "the allow clears the gate", answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: toolUseId!, result: "allow" }) });
+
+    const final = await awaitTerminal(clients, runId);
+    expect(final.status?.phase, `the batch's turn: ${final.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+    expect(shell.runs(), "the approved call ran exactly once").toBe(1);
+    const turn = await turnOfRun(clients, final);
+    expect(requireToolUse(turn, besideId).state, "the call beside it ran, unasked").toBe("completed");
+    expect(requireToolUse(turn, gatedId).state).toBe("completed");
   });
 });

@@ -1566,6 +1566,47 @@ export async function assertDrainedTurnYieldsAtTheNextBoundary(harness: RuntimeC
 }
 
 /**
+ * A turn continued twice completes (stigmer#2624): drained while one tool
+ * runs, continued, drained again while the next one runs, continued again.
+ * Each continuation picks the turn up where the one before it stopped, the
+ * second as surely as the first (an engine handed the first continuation's
+ * note again reads nothing new and never moves), each tool runs once, and
+ * the engine is handed the task once.
+ */
+export async function assertTurnContinuedTwiceCompletes(harness: RuntimeContractHarness, label = "rt-continued-twice"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const first = `${label}-build`;
+  const second = `${label}-test`;
+  let invocationControls: InvocationControls | undefined;
+  const drainWhileOpen = (id: string): Promise<void> =>
+    controls.whenOpen(id).then(async () => {
+      invocationControls!.signalWorkerShutdown();
+      await theYieldHasCrossed();
+      await controls.release(id);
+    });
+  const plan = (closing: string) => [scenario.say("Building."), scenario.open(first), scenario.open(second), scenario.say(closing)];
+
+  const firstDrain = drainWhileOpen(first);
+  const one = await driver.turn(plan(NEVER_SEEN), { onControls: (c) => (invocationControls = c) });
+  await firstDrain;
+  expect(continuationCauseOf(one.outcome), `${subject.name}: the first drain throws the typed continuation`).toBe("drain");
+
+  const secondDrain = drainWhileOpen(second);
+  const two = await driver.turn(plan(NEVER_SEEN), { onControls: (c) => (invocationControls = c) });
+  await secondDrain;
+  expect(continuationCauseOf(two.outcome), `${subject.name}: the first continuation moved on to the next tool and drained there`).toBe("drain");
+
+  const three = await driver.turn(plan("Built and tested after two moves."));
+  expectCompleted(harness, driver, three, "Built and tested after two moves.");
+  expect([controls.opened(first), controls.opened(second)], `${subject.name}: each tool ran once across the three invocations`).toEqual([1, 1]);
+  expect(harnessNotesOf(driver), `${subject.name}: each drain's note, once`).toEqual([TERMINAL_COPY.continuation.notes.drain, TERMINAL_COPY.continuation.notes.drain]);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [one, two, three], final: finalStatusOf(harness, driver) };
+}
+
+/**
  * A drained turn yields at its boundary even while the session's log lags
  * behind the engine: every status write takes a while once the drain is
  * asked, as a slow control plane's does, and the engine must not run past
@@ -2229,6 +2270,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       it("a drained turn yields at the step boundary after its running tool, writes no ending, and the continuation completes", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertDrainedTurnYieldsAtTheNextBoundary(harness));
+      });
+      it("a turn drained twice continues twice and completes, each tool run once (stigmer#2624)", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertTurnContinuedTwiceCompletes(harness));
       });
       it("a drained turn yields at its boundary while the log lags behind the engine, and the continuation asks the next round", async () => {
         clock.reset();

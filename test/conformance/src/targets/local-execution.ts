@@ -106,6 +106,9 @@ export class LocalExecutionTarget implements TargetProfile {
     cloudTargetRefusesLocalPrograms: false,
     // No provider keys, as on `local`: a Cursor run is admitted at create.
     cursorRunsAdmitted: true,
+    // The runner this target spawns carries the Claude engine in its own
+    // install (target.ts).
+    claudeTurnsRun: true,
     // No meter, as on `local`: every run is counted from its runner's report.
     runModelCallsMetered: false,
     // Open source serves the token service; the minting lane is the OIDC

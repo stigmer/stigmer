@@ -62,8 +62,10 @@
  *  - `compact`        → a neutral step whose usage says the window is nearly
  *                       full: the engine compacts its own conversation
  *                       before its next call. Its summary request is
- *                       answered out of band with {@link COMPACTION_SUMMARY}
- *                       and counted, never taken for a step; a step before a
+ *                       answered out of band by the wire's router
+ *                       (`claude-engine-wire.ts`) with
+ *                       {@link COMPACTION_SUMMARY} and counted here, never
+ *                       taken for a step; a step before a
  *                       compaction the engine already did is done, since
  *                       the conversation that held it is now the summary.
  *  - `limit`, `cancelled` and `cut` are refused at `arrange` as test bugs:
@@ -75,6 +77,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { AnthropicMessageBody } from "@stigmer/test-support/llm-wire";
 import type { RoutedResponse } from "@stigmer/test-support/mock-llm";
+import { headerOf } from "@stigmer/test-support/claude-engine-wire";
 
 import type { Config } from "../../../config.js";
 import type { HarnessAdapter } from "../../../harness/types.js";
@@ -105,13 +108,6 @@ const KIT_USER_MESSAGE = "Do what the scenario says.";
 
 /** What a seeded `read` target contains; never asserted. */
 const READ_FILE_CONTENT = "seeded by the harness contract kit\n";
-
-/**
- * How the engine's own compaction asks the model for its summary (the
- * engine's prompt, SDK 0.3.310): a call carrying it is the engine
- * summarizing, never a step of the plan.
- */
-const COMPACTION_PROMPT_MARK = "Your task is to create a detailed summary of the conversation so far";
 
 /** What the model answers a compaction with; it must never reach the person as the agent's words. */
 const COMPACTION_SUMMARY = "The kit's conversation so far, summarized for the engine.";
@@ -200,7 +196,10 @@ class ClaudeSubject implements ClaudeContractSubject {
       name: adapter.name,
       capabilities: adapter.capabilities,
       async boot(config: Config): Promise<void> {
-        subject.wire ??= await startClaudeWire(subject.config, (conversation) => subject.play(conversation));
+        subject.wire ??= await startClaudeWire(subject.config, (conversation) => subject.play(conversation), {
+          compactionSummary: COMPACTION_SUMMARY,
+          onCompaction: (conversation) => subject.noteCompaction(conversation),
+        });
         hosted ??= loopbackHostedRow({ harness: "claude", adapter }, { proxy: subject.wire.proxy }).adapter;
         await hosted.boot(config);
       },
@@ -337,16 +336,17 @@ class ClaudeSubject implements ClaudeContractSubject {
     plan.view.sendMessage(message.text);
   }
 
+  /** The engine summarized its conversation, answered out of band by the wire: the plan's next step is still next. */
+  noteCompaction(conversation: WireConversation): void {
+    const executionId = headerOf(conversation, "x-stigmer-execution-id");
+    if (executionId !== undefined) this.compacted.set(executionId, (this.compacted.get(executionId) ?? 0) + 1);
+  }
+
   /** One model call's answer: the plan's first step the conversation does not show (the header). */
   play(conversation: WireConversation): AnthropicMessageBody | RoutedResponse {
     const executionId = headerOf(conversation, "x-stigmer-execution-id");
     const plan = executionId === undefined ? undefined : this.arranged.get(executionId);
     if (plan === undefined || executionId === undefined) throw new Error(`${this.name}: the model was asked for execution '${executionId ?? "<none>"}' with no turn arranged (kit bug)`);
-    if (conversation.userTexts.some((text) => text.includes(COMPACTION_PROMPT_MARK))) {
-      // The engine summarizing, out of band: the plan's next step is still next.
-      this.compacted.set(executionId, (this.compacted.get(executionId) ?? 0) + 1);
-      return this.body(`<analysis>The kit's turn.</analysis>\n<summary>${COMPACTION_SUMMARY}</summary>`, [], { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
-    }
     if (conversation.system.includes(KIT_SUBAGENT_INSTRUCTIONS)) return this.playHelper(plan, conversation);
     this.lastConversations.set(executionId, conversation);
     const settled = new Set(conversation.toolResults.keys());
@@ -503,11 +503,6 @@ function inWorkspace(workspaceDir: string, path: string): string {
  */
 function readTexts(conversation: WireConversation): string[] {
   return [...conversation.userTexts, ...[...conversation.toolResults.values()].map((result) => result.text)];
-}
-
-function headerOf(conversation: WireConversation, name: string): string | undefined {
-  const value = conversation.headers[name];
-  return Array.isArray(value) ? value[0] : value;
 }
 
 /**

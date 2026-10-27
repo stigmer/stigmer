@@ -283,12 +283,28 @@ export function stepProgressOf(markerText: string): StepProgress {
   return { started, ended, open };
 }
 
-/** The instruction a live model is given for a step: the scripted run's tool call, in words. */
-export function narrateStep(step: LongTurnStep, files: StepFiles): string {
+/** The subagent a live model hands the `subagent` step to, and the tool it hands it with. */
+export interface StepHelper {
+  readonly tool: string;
+  readonly name: string;
+  /** A built-in helper is one of a kind ("a general-purpose subagent"); a saved one is named ("the <name> subagent"). */
+  readonly saved: boolean;
+}
+
+/** Native's (and Cursor's) built-in helper: `task` to `general-purpose`, the wording every live run before Claude's read. */
+export const GENERAL_PURPOSE_HELPER: StepHelper = { tool: "task", name: "general-purpose", saved: false };
+
+/**
+ * The instruction a live model is given for a step: the scripted run's tool
+ * call, in words. The `subagent` step names `helper`: an engine with no
+ * general-purpose helper of its own (Claude) is handed a saved one, by its
+ * name and its engine's tool.
+ */
+export function narrateStep(step: LongTurnStep, files: StepFiles, helper: StepHelper = GENERAL_PURPOSE_HELPER): string {
   const timeout = timeoutSecondsOf(step);
   const run = `Run exactly this shell command${timeout === undefined ? "" : `, with a timeout of ${timeout} seconds,`} and wait for it to finish: ${shellCommandOf(step, files)}`;
   if (step.kind === "subagent") {
-    return `Hand this to a general-purpose subagent with the task tool, and wait for its answer: "${run.replace(/"/g, "'")} Then answer in one line: done."`;
+    return `Hand this to ${helper.saved ? "the" : "a"} ${helper.name} subagent with the ${helper.tool} tool, and wait for its answer: "${run.replace(/"/g, "'")} Then answer in one line: done."`;
   }
   if (step.kind === "chained" && step.after !== undefined) {
     return `Run this shell command, with ${CHAIN_KEY} replaced by the key step ${step.after} printed on its last line ("next key: ..."), and wait for it to finish: ${shellCommandOf(step, files)}`;
@@ -302,7 +318,7 @@ export interface LongTurnFlags {
   readonly minutes: number | undefined;
   readonly steps: readonly string[];
   readonly out: string | undefined;
-  /** The live run's harness (`deep-agent` or `cursor`); the real-clock run is native only. */
+  /** The run's harness: `deep-agent` or `cursor` live, `deep-agent` or `claude` on the real clock. */
   readonly harness: string;
   /** The live run's model, a registry id; absent, the harness's parity model. The real-clock run plays the profile's on the mock. */
   readonly model: string | undefined;
