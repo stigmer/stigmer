@@ -19,9 +19,12 @@
  * address, which may differ from a person's (a sandbox on a local stack;
  * stigmer#2364). A server that predates the door (`Unimplemented`) is read
  * by the Eval's reference at the stamped version, the read that asks
- * can_view of the run's caller; a server with no transfer lane answers
- * that read inline. Any other refusal of the door fails the try naming the
- * Eval: falling back past it would hide the gate's answer.
+ * can_view of the run's caller. A `FailedPrecondition` from the door (most
+ * often no transfer lane; also a finished run or a run with no Eval case,
+ * which a live try never is) is read inline by that same reference read,
+ * so it reaches no byte the run's caller may not view. Any other refusal
+ * of the door, a gate refusal among them, fails the try naming the Eval:
+ * falling back past it would hide the gate's answer.
  *
  * A plugin that moved past the eval's version is refused: the case workflow
  * starts no try then, so meeting it here means a push landed between the
@@ -94,7 +97,7 @@ async function fetchEvalArchive(client: StigmerClient, context: EvalCaseContext,
 /**
  * The run's door first, under its scoped credential; the reference read
  * only when the server predates the door. Every other answer of the door
- * stands, `FailedPrecondition` included, which the transport reads inline.
+ * stands; the transport reads a `FailedPrecondition` inline (the header).
  */
 async function mintEvalCaseUrl(client: StigmerClient, executionId: string, ref: ApiResourceReference): Promise<EvalArchiveDownloadUrl> {
   const scopedToken = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
