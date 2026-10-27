@@ -4,7 +4,9 @@
  * picker), and the connected view telling the person when a disconnect
  * failed, so a GitHub login still in My vault is never shown as removed;
  * a connect that fails, from the prompt or after a blocked popup, is
- * reported by the connection (connectError), never thrown out of a click.
+ * reported by the connection (connectError), never thrown out of a click;
+ * and a connect still in flight shows its progress with a Cancel that drops
+ * the connection.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -262,5 +264,23 @@ describe("WorkspaceEditor initialPanel", () => {
 
     expect(screen.getByText("Back")).toBeTruthy();
     expect(screen.getByText("Checking GitHub connection...")).toBeTruthy();
+  });
+
+  it("shows a connect in flight with a Cancel that drops the connection", () => {
+    const connection = createMockGitHubConnection({ isConnecting: true });
+
+    render(
+      <WorkspaceEditor
+        workspace={createMockWorkspace()}
+        enableGitHub
+        enableLocal={false}
+        gitHubConnection={connection}
+        initialPanel="github"
+      />,
+    );
+
+    expect(screen.getByText("Connecting to GitHub...")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(connection.disconnect).toHaveBeenCalledTimes(1);
   });
 });
