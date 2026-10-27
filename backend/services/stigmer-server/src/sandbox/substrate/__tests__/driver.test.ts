@@ -1176,17 +1176,27 @@ describe("the lifecycle a composition's own sweep calls", () => {
       }),
     ).toEqual({ redeleted: 0, moved: 0, retired: 0, failed: [] });
     expect(h.substrate.calls.slice(untouched)).toEqual(["listActors "]);
-    // A shutdown after a failure returns the failure it gathered.
+    // A shutdown between two sandboxes returns the failure it gathered
+    // and leaves the second untouched.
+    h.substrate.put({
+      name: "sbx-ses-000000000004",
+      state: "deleting",
+      template: "t",
+    });
     h.substrate.fail("deleteActor", new Error("Substrate unavailable"));
     let asked = 0;
-    const stopped = await h.driver.lifecycle.maintain(
-      await h.driver.lifecycle.list(),
-      { stopping: () => (asked += 1) > 1 },
-    );
+    const listedTwo = await h.driver.lifecycle.list();
+    const beforeStop = h.substrate.calls.length;
+    const stopped = await h.driver.lifecycle.maintain(listedTwo, {
+      stopping: () => (asked += 1) > 1,
+    });
     expect(stopped.retired).toBe(0);
     expect(stopped.failed.map((failure) => failure.name)).toEqual([
       "sbx-ses-000000000003",
     ]);
+    expect(h.substrate.calls.slice(beforeStop)).not.toContain(
+      "getActor sbx-ses-000000000004",
+    );
   });
 
   it("prepares the template, and logs instead of rejecting when it cannot", async () => {
