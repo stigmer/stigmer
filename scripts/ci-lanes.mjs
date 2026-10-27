@@ -632,6 +632,10 @@ export const LANES = {
       "apis/**",
       "scripts/publish-libs.mjs",
       "test/install/smoke-libs.mjs",
+      // The size budgets the same lane holds (test/install/smoke-budgets.mjs),
+      // which bundle the kit with the locked Vite and read these ceilings.
+      "test/install/smoke-budgets.mjs",
+      "test/bundle-budgets.json",
       "test/install/lib/**",
       // build-libs builds through turbo's task graph.
       "turbo.json",

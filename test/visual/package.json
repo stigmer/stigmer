@@ -1,0 +1,38 @@
+{
+  "name": "@stigmer/visual-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The React kit's gallery: every hero component drawn from fixed data, compared with an approved screenshot and audited with axe in one pinned browser.",
+  "type": "module",
+  "scripts": {
+    "gallery": "vite",
+    "gallery:build": "vite build",
+    "gallery:serve": "vite build && vite preview --strictPort --port 4179",
+    "test": "vitest run",
+    "test:visual": "vitest run && playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.0.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@stigmer/apis": "*",
+    "@stigmer/client": "*",
+    "@stigmer/design-tokens": "*",
+    "@stigmer/react-sdk": "*",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.3",
+    "@playwright/test": "1.60.0",
+    "@stigmer/test-support": "*",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5.8.0",
+    "vite": "^6",
+    "vitest": "^3.2.4",
+    "yaml": "2.9.0"
+  }
+}

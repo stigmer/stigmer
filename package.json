@@ -26,7 +26,8 @@
     "marketing",
     "test/support",
     "test/conformance",
-    "test/e2e"
+    "test/e2e",
+    "test/visual"
   ],
   "scripts": {
     "prepare": "husky || true",

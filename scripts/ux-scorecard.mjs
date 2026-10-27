@@ -26,7 +26,10 @@
  * one `node --test` through test/install/lib/json-reporter.mjs, which writes
  * the same report shape; and with --smoke the install smokes the same way
  * (they pack and install the libraries, minutes rather than seconds, from
- * the dist/ `make ux-scorecard SMOKE=1` builds first). The
+ * the dist/ `make ux-scorecard SMOKE=1` builds first); and with --visual the
+ * visual suite's spec (test/visual/tests), through the pinned browser image
+ * as `make test-visual` runs it, its results written in the same shape by
+ * test/visual/reporter/vitest-shape.ts. The
  * reports land in --input, emptied of earlier reports first, which a later
  * run without --run reads again.
  *
@@ -38,7 +41,7 @@
  * and `summarize`, so the two tools never count differently.
  *
  * Usage:
- *   node scripts/ux-scorecard.mjs --input <dir> [--run] [--smoke]
+ *   node scripts/ux-scorecard.mjs --input <dir> [--run] [--smoke] [--visual]
  *       [--mutation <dir>]... [--format text|markdown] [--typescript <dir>]
  * Exit: 0 printed, 2 the script could not judge.
  */
@@ -54,13 +57,19 @@ import { holdersOf, readTree } from "./ux-bar.mjs";
 
 /** The node:test reporter that writes vitest's report shape. */
 export const NODE_REPORTER = "test/install/lib/json-reporter.mjs";
+/** The Playwright reporter that writes the same shape, for the visual suite. */
+export const VISUAL_REPORTER = "test/visual/reporter/vitest-shape.ts";
+/** What runs the visual suite with every picture drawn by the pinned image's browser. */
+export const VISUAL_RUNNER = "test/visual/run-in-image.mjs";
 const SMOKE = /^test\/install\/smoke-[^/]+\.mjs$/;
+const VISUAL = /^test\/visual\/tests\/.+\.spec\.ts$/;
 const TOOLING = /\.test\.mjs$/;
 const PROMISE_WIDTH = 60;
 
-/** How a holding file is run: by vitest in its package, by node's runner, or as an install smoke. */
+/** How a holding file is run: by vitest in its package, by node's runner, as an install smoke, or as the visual suite. */
 export function runnerOf(path) {
   if (SMOKE.test(path)) return "smoke";
+  if (VISUAL.test(path)) return "visual";
   if (TOOLING.test(path)) return "node";
   return "vitest";
 }
@@ -75,17 +84,20 @@ export function packageOf(path, hasManifest) {
 
 /**
  * The runs a scorecard needs: one per vitest package, one for the tooling
- * tests, one per smoke (only with `smoke`). Each names its files relative to
- * the directory it runs in. Pure.
+ * tests, one per smoke (only with `smoke`), one for the visual suite (only
+ * with `visual`). Each names its files relative to the directory it runs in.
+ * Pure.
  */
-export function planRuns(paths, hasManifest, { smoke = false } = {}) {
+export function planRuns(paths, hasManifest, { smoke = false, visual = false } = {}) {
   const vitest = new Map();
   const node = [];
   const smokes = [];
+  const visuals = [];
   for (const path of [...new Set(paths)].sort()) {
     const runner = runnerOf(path);
     if (runner === "node") node.push(path);
     else if (runner === "smoke") smokes.push(path);
+    else if (runner === "visual") visuals.push(posix.relative("test/visual", path));
     else {
       const pkg = packageOf(path, hasManifest);
       if (!vitest.has(pkg)) vitest.set(pkg, []);
@@ -95,13 +107,21 @@ export function planRuns(paths, hasManifest, { smoke = false } = {}) {
   const runs = [...vitest].map(([cwd, files]) => ({ kind: "vitest", cwd, files, report: `vitest-${cwd.replaceAll("/", "-")}.json` }));
   if (node.length > 0) runs.push({ kind: "node", cwd: ".", files: node, report: "node-tooling.json" });
   if (smoke) for (const path of smokes) runs.push({ kind: "smoke", cwd: ".", files: [path], report: `${basename(path, ".mjs")}.json` });
+  if (visual && visuals.length > 0) runs.push({ kind: "visual", cwd: ".", files: visuals, report: "visual.json" });
   return runs;
 }
 
-/** The command line of one run, writing its report to `reportPath`. Pure. */
+/**
+ * The command line of one run, writing its report to `reportPath`, and the
+ * variables it adds to the environment. Pure.
+ */
 export function commandOf(run, reportPath, root) {
   if (run.kind === "vitest") {
     return ["npx", ["vitest", "run", ...run.files, "--reporter=json", `--outputFile=${reportPath}`]];
+  }
+  if (run.kind === "visual") {
+    // The reporter writes where STIGMER_VISUAL_REPORT says (its header).
+    return [process.execPath, [join(root, VISUAL_RUNNER), ...run.files, `--reporter=list,${join(root, VISUAL_REPORTER)}`], { STIGMER_VISUAL_REPORT: reportPath }];
   }
   const reporter = ["--test-reporter", join(root, NODE_REPORTER), "--test-reporter-destination", reportPath];
   if (run.kind === "node") return [process.execPath, ["--test", ...reporter, ...run.files]];
@@ -160,6 +180,7 @@ export function caseStatus(holder, byFile) {
 export function placeOf(path) {
   const name = basename(path).replace(/\.(test|spec)\.(ts|tsx|mts|mjs)$/, "").replace(/\.mjs$/, "");
   if (SMOKE.test(path)) return name;
+  if (VISUAL.test(path)) return `visual/${name}`;
   const at = path.indexOf("/src/");
   return `${basename(at >= 0 ? path.slice(0, at) : posix.dirname(path))}/${name}`;
 }
@@ -238,12 +259,13 @@ export function formatScorecard(rows, { format = "text", mutation } = {}) {
 }
 
 function parseArgs(argv) {
-  const opts = { input: undefined, run: false, smoke: false, mutation: [], format: "text", typescriptDirs: [] };
+  const opts = { input: undefined, run: false, smoke: false, visual: false, mutation: [], format: "text", typescriptDirs: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--input") opts.input = argv[++i];
     else if (arg === "--run") opts.run = true;
     else if (arg === "--smoke") opts.smoke = true;
+    else if (arg === "--visual") opts.visual = true;
     else if (arg === "--mutation") opts.mutation.push(argv[++i]);
     else if (arg === "--format") opts.format = argv[++i];
     else if (arg === "--typescript") opts.typescriptDirs.push(argv[++i]);
@@ -274,13 +296,13 @@ function main(argv) {
     mkdirSync(input, { recursive: true });
     for (const file of readdirSync(input).filter((f) => f.endsWith(".json"))) rmSync(join(input, file));
     const paths = [...holders.values()].flat().map((h) => h.path);
-    for (const run of planRuns(paths, (dir) => existsSync(join(root, dir, "package.json")), { smoke: opts.smoke })) {
+    for (const run of planRuns(paths, (dir) => existsSync(join(root, dir, "package.json")), { smoke: opts.smoke, visual: opts.visual })) {
       const reportPath = join(input, run.report);
-      const [command, args] = commandOf(run, reportPath, root);
+      const [command, args, extraEnv = {}] = commandOf(run, reportPath, root);
       console.error(`ux-scorecard: ${run.kind} in ${run.cwd}: ${run.files.length} file(s)`);
       // A run never inherits a parent test runner's context: node's runner
       // would report to that parent instead of through the reporter named.
-      const env = { ...process.env };
+      const env = { ...process.env, ...extraEnv };
       delete env.NODE_TEST_CONTEXT;
       const outcome = spawnSync(command, args, { cwd: join(root, run.cwd), env, stdio: ["ignore", "ignore", "inherit"] });
       if (!existsSync(reportPath)) console.error(`ux-scorecard: ${run.kind} in ${run.cwd} wrote no report (exit ${outcome.status}); its cases read "not run"`);

@@ -1,0 +1,8 @@
+{
+  "budgets": {
+    "react-sdk/provider": 11747,
+    "react-sdk/session": 533506,
+    "react-sdk/styles": 16521,
+    "embed/loader": 1558
+  }
+}

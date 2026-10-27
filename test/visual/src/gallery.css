@@ -1,0 +1,140 @@
+/* The gallery page: the console's typefaces, and a frame that paints the
+   scene's theme edge to edge.
+
+   The faces are the console's own vendored files
+   (client-apps/web/src/app/fonts, whose fonts.ts says where each came
+   from), under the variable names the theme's font stacks fall back
+   through, so the page reads no machine font and no network. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("../../../client-apps/web/src/app/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../../../client-apps/web/src/app/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("../../../client-apps/web/src/app/fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Nunito";
+  src: url("../../../client-apps/web/src/app/fonts/Nunito-Variable.woff2") format("woff2");
+  font-weight: 200 1000;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexSans-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexSans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../../../client-apps/web/src/app/fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: block;
+}
+
+:root {
+  --font-geist-sans: "Geist";
+  --font-geist-mono: "Geist Mono";
+  --font-inter: "Inter";
+  --font-nunito: "Nunito";
+  --font-ibm-plex-sans: "IBM Plex Sans";
+  --font-ibm-plex-mono: "IBM Plex Mono";
+}
+
+html,
+body {
+  margin: 0;
+}
+
+/* The host page's type, as the console's Tailwind preflight sets it on
+   `html`: what the kit draws outside its in-tree root (the popup container
+   it appends to the body) inherits it, as it does in the console. */
+html {
+  font-family: var(--stgm-font-sans);
+  line-height: 1.5;
+}
+
+/* The kit's in-tree root, as a host page sets it: the theme's surface, text
+   and type. Its height is the content's, so nothing the scene draws is
+   clipped by a scroll box; a short scene still paints the first screen.
+   Selected by `data-stgm-root`, the kit's seam for its in-tree container
+   alone: the popup container it appends to the body carries the same
+   class, and must not take a screen's height. */
+.gallery-scene[data-stgm-root] {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--stgm-background);
+  color: var(--stgm-foreground);
+  font-family: var(--stgm-font-sans);
+}
+
+/* The index page, for a person browsing the gallery. */
+.gallery-index {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  font-family: "Geist", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.gallery-index table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.gallery-index td {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid #e5e5e5;
+}

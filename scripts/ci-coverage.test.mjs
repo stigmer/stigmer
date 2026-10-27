@@ -77,6 +77,10 @@ const NOT_SUBJECTS = new Map([
     "test/support",
     "the suites' shared machinery, not a product package: its layout rule (test-integrity.mjs `layout-support-import`) lets it import only `node:*` and its own files, so it cannot carry a vitest config and its coverage block",
   ],
+  [
+    "test/visual",
+    "the kit's gallery, a test package: its vitest checks hold the gallery's catalogue and its browser pin, and what the package exists to judge, how the kit draws, its screenshots judge; no shipped code is measured here",
+  ],
 ]);
 
 const isUpload = (step) => String(step.uses ?? "").startsWith("actions/upload-artifact@");

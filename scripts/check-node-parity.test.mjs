@@ -53,6 +53,10 @@ const EXEMPT = new Map([
     "the browser-mode suite needs a real Chromium (the playwright-chromium action), which the local gate does not provision",
   ],
   [
+    "turbo-set workspace test:visual --only=@stigmer/visual-tests",
+    "the visual suite draws in the pinned browser image, which needs Docker and a pull of the image; `make test-visual` runs it on a workstation",
+  ],
+  [
     "turbo-set libs test --only=@stigmer/react-sdk",
     "not a separate check: `turbo-set libs test` runs the React suite with the other libs; the lane only gives its coverage run and its vmForks run a job each",
   ],

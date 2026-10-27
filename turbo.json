@@ -179,6 +179,25 @@
       "dependsOn": ["build"],
       "outputs": []
     },
+    // The kit's gallery (test/visual, the `visual` job): its unit checks, then
+    // every scene compared with its approved screenshot in the pinned browser
+    // image. It draws with the console's vendored typefaces, and its checks
+    // read the visual job's workflow and the lockfile (the image pin's
+    // partners), so those are inputs. Cached: the outcome depends only on its
+    // inputs and the image, whose digest is one of them. The image says where
+    // its browsers are (PLAYWRIGHT_BROWSERS_PATH), which turbo's strict
+    // environment would otherwise withhold from the task.
+    "@stigmer/visual-tests#test:visual": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/client-apps/web/src/app/fonts/**",
+        "$TURBO_ROOT$/.github/workflows/ci.ts-workspace.yaml",
+        "$TURBO_ROOT$/package-lock.json"
+      ],
+      "outputs": []
+    },
     // The conformance suite boots a server (and, on its execution targets,
     // Temporal and a runner); the e2e suite drives a browser against a stack.
     // Their outcome is a property of the infrastructure they ran against, not

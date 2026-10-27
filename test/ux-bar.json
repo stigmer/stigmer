@@ -179,6 +179,10 @@
       "promise": "A strict TypeScript consumer compiles against every library's types."
     },
     {
+      "id": "LIB-03",
+      "promise": "No library entry grows past its size budget unnoticed."
+    },
+    {
       "id": "KIT-01",
       "promise": "An app without the optional peers imports the React kit.",
       "pending": [
@@ -190,6 +194,19 @@
       "promise": "The chat drops into an app as one component, within a size budget.",
       "pending": [
         "stigmer#2629"
+      ]
+    },
+    {
+      "id": "KIT-03",
+      "promise": "The look changes only on purpose: every hero screen matches an approved screenshot in light and dark."
+    },
+    {
+      "id": "KIT-04",
+      "promise": "Every hero screen passes the accessibility audit in light and dark.",
+      "pending": [
+        "stigmer#2643",
+        "stigmer#2644",
+        "stigmer#2645"
       ]
     },
     {

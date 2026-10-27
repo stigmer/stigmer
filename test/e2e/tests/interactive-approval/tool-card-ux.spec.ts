@@ -1,10 +1,12 @@
 // Tool-card & approval UX, end-to-end against the real stack (deterministic
 // via the mock LLM proxy). This is the maintained guardrail for the gate card:
 //
-//  - Visual regression (element-scoped `toHaveScreenshot`) of the approval gate
-//    card (proposed-content body) and the post-execution diff preview, in light
-//    AND dark, so a future change to the card's structure, spacing, or content
-//    rendering is caught.
+//  - What the approval gate card shows (the proposed content, the file named
+//    once) and its rendered chrome, read by computed style. How it LOOKS, in
+//    light and dark, is the kit's gallery's (test/visual, the
+//    `thread-approval` scene), compared with no tolerance in one pinned
+//    browser; this suite's pictures were taken on macOS and never compared in
+//    CI.
 //  - Accessibility (axe-core) of the page while a gate is shown, plus keyboard
 //    operability of the disclosure row and the approve action.
 //
@@ -34,7 +36,6 @@ import { isFileGateStack } from "../../helpers/mock-llm-control";
 
 const mockUrl = getMockControlUrl();
 const fileGates = isFileGateStack();
-const COLOR_SCHEMES = ["light", "dark"] as const;
 
 import type { Locator } from "@playwright/test";
 
@@ -88,39 +89,32 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     await control.reset();
   });
 
-  // --- Visual regression: the approval gate card ---------------------------
+  // --- The approval gate card's content ------------------------------------
   // The gate is PRE-execution: the change has not been captured (the tool is
   // denied, awaiting the decision), so there is no FileChangeSet and no
   // before/after diff — the card shows the PROPOSED content from the tool
   // args. (The diff surface lives on the apply-then-review path's file-review
   // card, pinned by file-review.spec.ts on the capture stack.)
-  for (const scheme of COLOR_SCHEMES) {
-    test(`approval gate card renders the proposed content (${scheme})`, async ({
-      page,
-      stigmerClient,
-    }) => {
-      seeded = await seedGatedSession(stigmerClient, control, {
-        gateBlocks: [writeFileBlock("call_write_1", "/tmp/e2e-gate.txt", "alpha\nbeta\n")],
-      });
-      await page.emulateMedia({ colorScheme: scheme });
-      await page.goto(`/sessions/${seeded.sessionId}`);
-
-      // Wait for the gate to render with its decision actions.
-      const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
-      await expect(gateRow).toBeVisible({ timeout: 30_000 });
-      // The proposed content is the body of the gate: shown, not hidden.
-      await expect(gateRow.getByText("alpha")).toBeVisible();
-      await expect(gateRow.getByText("beta")).toBeVisible();
-      // The file name appears exactly once — in the card's header subtitle
-      // (the body deliberately suppresses it; the old design repeated the
-      // absolute path three times).
-      await expect(gateRow.getByText("e2e-gate.txt", { exact: true })).toHaveCount(1);
-
-      await expect(gateRow).toHaveScreenshot(`approval-gate-card-${scheme}.png`, {
-        maxDiffPixelRatio: 0.02,
-      });
+  test("approval gate card renders the proposed content", async ({
+    page,
+    stigmerClient,
+  }) => {
+    seeded = await seedGatedSession(stigmerClient, control, {
+      gateBlocks: [writeFileBlock("call_write_1", "/tmp/e2e-gate.txt", "alpha\nbeta\n")],
     });
-  }
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    // Wait for the gate to render with its decision actions.
+    const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
+    await expect(gateRow).toBeVisible({ timeout: 30_000 });
+    // The proposed content is the body of the gate: shown, not hidden.
+    await expect(gateRow.getByText("alpha")).toBeVisible();
+    await expect(gateRow.getByText("beta")).toBeVisible();
+    // The file name appears exactly once — in the card's header subtitle
+    // (the body deliberately suppresses it; the old design repeated the
+    // absolute path three times).
+    await expect(gateRow.getByText("e2e-gate.txt", { exact: true })).toHaveCount(1);
+  });
 
   // --- Empty-file create: honest representation, no redundant filename ------
   test("an empty-file create gate shows the create notice and names the file once", async ({
@@ -157,7 +151,8 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
   // when a host app recompiles the stylesheet. Three prior fixes shipped with the
   // reset above `utilities` — every border inside `.stgm` silently zeroed — and
   // it went unnoticed because `toHaveScreenshot({ maxDiffPixelRatio: 0.02 })`
-  // cannot see a 1px outline (well under 2% of the card's pixels) and the jsdom
+  // cannot see a 1px outline (well under 2% of the card's pixels; the kit's
+  // gallery, test/visual, now compares with no tolerance) and the jsdom
   // unit tests assert only the class *string*, never the rendered width. This
   // reads the real computed style in Chromium, so a layer regression fails loudly.
   // Each read is polled: a read on the row a refetch has just replaced sees

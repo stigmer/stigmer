@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { AXE_TAGS, describeViolations, judgeAxe } from "@stigmer/test-support/axe-policy";
 
 /**
  * Accessibility tests.
@@ -7,31 +8,18 @@ import AxeBuilder from "@axe-core/playwright";
  * Runs axe-core WCAG 2.0 AA audits on key pages and verifies keyboard
  * navigation on critical interactive surfaces.
  *
- * Initial rollout: fails on critical and serious violations only.
- * Moderate and minor violations are logged but do not fail.
+ * The policy is test/support's `axe-policy`, the one the kit's gallery
+ * (test/visual) audits with: critical and serious violations fail, contrast
+ * included; moderate and minor ones pass.
  *
  * Prerequisites:
  * - Local dev server (auto-started by Playwright config)
  */
 
 async function runAxeAudit(page: import("@playwright/test").Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa"])
-    .analyze();
-
-  const serious = results.violations.filter(
-    (v) => v.impact === "critical" || v.impact === "serious",
-  );
-
-  if (serious.length > 0) {
-    const summary = serious
-      .map(
-        (v) =>
-          `[${v.impact}] ${v.id}: ${v.description} (${v.nodes.length} node(s))`,
-      )
-      .join("\n");
-    expect(serious, `axe violations:\n${summary}`).toHaveLength(0);
-  }
+  const results = await new AxeBuilder({ page }).withTags([...AXE_TAGS]).analyze();
+  const { failing } = judgeAxe(results.violations);
+  expect(failing, `axe violations:\n${describeViolations(failing)}`).toHaveLength(0);
 }
 
 test.describe("Accessibility audits", () => {

@@ -51,7 +51,7 @@ const CI_PR = {
     "stigmer/stigmer/.github/workflows/ci.ts-workspace.yaml@refs/pull/9/merge",
 };
 
-test("LANE_TASKS are the tasks the lane runs; the browser suite is one of them", () => {
+test("LANE_TASKS are the tasks the lane runs; the browser and visual suites are among them", () => {
   assert.deepEqual(LANE_TASKS, [
     "build",
     "typecheck",
@@ -59,6 +59,7 @@ test("LANE_TASKS are the tasks the lane runs; the browser suite is one of them",
     "tsdoc:check",
     "test",
     "test:a11y",
+    "test:visual",
   ]);
 });
 
