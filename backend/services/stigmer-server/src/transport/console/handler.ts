@@ -24,14 +24,16 @@
  *     (zero no_side_effects methods), the adapter must stay the authority
  *     for its own namespace if one ever does.
  *
- * Header policy follows nginx.conf's four explicit postures byte-for-byte
+ * Header policy is nginx.conf's, byte-for-byte: four explicit postures
  * (immutable /_next/static/, no-cache index.html, no-store config.json,
- * max-age=300 embed.js). Everything else is served `no-cache` — a
- * deliberate divergence from nginx, which falls back to default validator
- * behavior (ETag/Last-Modified) this handler does not emit; no-cache
- * keeps every document fresh across server upgrades at the cost of
- * revalidating tiny files, while the heavy assets all live under the
- * immutable /_next/static/ rule.
+ * max-age=300 embed.js) and `no-cache` for everything else, so every
+ * document stays fresh across upgrades while the heavy assets live under
+ * the immutable /_next/static/ rule. The equivalence test holds every
+ * route's document and payload to the nginx model's header. Two
+ * differences remain: nginx answers a revalidation with its ETag and a
+ * 304, while this handler emits no validators and resends the file; and
+ * on a 404 nginx sends no Cache-Control, while this handler sends
+ * `no-cache` (see cacheControlOf).
  */
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -219,7 +221,7 @@ function serveConfigJson(
 ): void {
   response.statusCode = 200;
   response.setHeader("Content-Type", "application/json");
-  response.setHeader("Cache-Control", CONFIG_JSON_CACHE_CONTROL);
+  response.setHeader("Cache-Control", cacheControlOf(CONFIG_JSON_PATH, 200));
   response.setHeader("Content-Length", String(Buffer.byteLength(body)));
   if (request.method === "HEAD") {
     response.end();
@@ -311,11 +313,15 @@ async function streamFile(
  * nginx's explicit `index.html → no-cache` rule is subsumed by the
  * default here. Only 200 responses carry cache headers beyond the
  * default — nginx's add_header skips error statuses, and a cached 404
- * page would mask a later upgrade that adds the route.
+ * page would mask a later upgrade that adds the route. Exported for the
+ * equivalence test, which compares it with the nginx model's headers.
  */
-function cacheControlOf(file: string, statusCode: number): string {
+export function cacheControlOf(file: string, statusCode: number): string {
   if (statusCode !== 200) {
     return DEFAULT_CACHE_CONTROL;
+  }
+  if (file === CONFIG_JSON_PATH) {
+    return CONFIG_JSON_CACHE_CONTROL;
   }
   if (file.startsWith("/_next/static/")) {
     return IMMUTABLE_CACHE_CONTROL;

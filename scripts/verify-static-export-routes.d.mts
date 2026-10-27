@@ -19,9 +19,18 @@ export interface GateRoute {
   readonly pageFile: string;
 }
 
+/** One `add_header`: sent on 404s too only when `always`. */
+export interface GateHeader {
+  readonly name: string;
+  readonly value: string;
+  readonly always: boolean;
+}
+
 export interface GateServerModel {
   readonly indexFile: string;
   readonly errorPage: { readonly code: number; readonly uri: string } | null;
+  /** Server-level headers, inherited by every location with none of its own. */
+  readonly headers: readonly GateHeader[];
 }
 
 /** Enumerate every App Router route; refuses unmodelled constructs. */
@@ -49,3 +58,14 @@ export function resolveRequest(
   files: ReadonlySet<string>,
   depth?: number,
 ): string | null;
+
+/**
+ * The headers nginx sends with the response to a request: the serving
+ * location's own, or the server's when it has none; a 404 carries only
+ * `always` headers. Header name → value, as written in the config.
+ */
+export function headersOf(
+  model: GateServerModel,
+  uri: string,
+  files: ReadonlySet<string>,
+): Readonly<Record<string, string>>;

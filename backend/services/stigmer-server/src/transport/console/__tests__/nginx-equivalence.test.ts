@@ -2,11 +2,13 @@
  * The one-contract gate: proves the console resolver serves every real
  * route to the SAME document as the nginx model in
  * scripts/verify-static-export-routes.mjs — the module that already holds
- * nginx.conf and the App Router route tree together in CI. With this test
+ * nginx.conf and the App Router route tree together in CI — and that the
+ * lane sends each document, its .txt payload and the four explicitly
+ * cached files with the same Cache-Control nginx does. With this test
  * in the server suite, the repo's two serving implementations (the cloud
  * nginx config and this server's lane 4) cannot drift apart silently: a
- * new route, a changed nginx rule, or a resolver edit that lands them on
- * different documents fails here by name.
+ * new route, a changed nginx rule or header, or a resolver or header edit
+ * that sets them apart fails here by name.
  *
  * Hermetic by construction: the export file set is SYNTHESIZED from the
  * enumerated routes via the gate's own exportFileOf (each page's .html
@@ -16,6 +18,9 @@
  * The RSC flight arms assert against the derived twins directly (the
  * nginx model is NOT the oracle there: nginx never handled flight
  * rewrites — the disclosed cloud-side gap this lane deliberately fixes).
+ * The header arm requests each payload by its export path, which both
+ * serve. 404 responses are left out: nginx sends no Cache-Control on one,
+ * and the lane deliberately sends `no-cache`.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -25,10 +30,12 @@ import {
   buildServerModel,
   enumerateRoutes,
   exportFileOf,
+  headersOf,
   parseNginxConfig,
   representativeUrlOf,
   resolveRequest,
 } from "../../../../../../../scripts/verify-static-export-routes.mjs";
+import { cacheControlOf } from "../handler.js";
 import { buildConsoleFileIndex, resolveConsoleRequest } from "../resolver.js";
 
 const repoRoot = new URL("../../../../../../../", import.meta.url);
@@ -139,6 +146,50 @@ describe("RSC flight payloads across the whole route tree", () => {
         resolution.kind === "file" ? resolution.file : resolution.kind,
         `route ${route.url} (${url})`,
       ).toBe(expected);
+    }
+  });
+});
+
+describe("Cache-Control ≡ nginx model", () => {
+  // The files nginx gives an explicit header, beside the synthesized export.
+  const explicitFiles = [
+    "/_next/static/chunks/app-1a2b3c.js",
+    "/embed.js",
+    "/config.json",
+  ];
+  const servedFiles = new Set([...files, ...explicitFiles]);
+
+  const servedIndex = buildConsoleFileIndex(servedFiles);
+
+  /**
+   * The lane's header for the document it serves a request, or the
+   * resolution's kind when it serves none. /config.json is answered
+   * before resolution, as the handler does.
+   */
+  function laneCacheControlOf(url: string): string {
+    if (url === "/config.json") return cacheControlOf(url, 200);
+    const resolution = resolveConsoleRequest(url, servedIndex);
+    return resolution.kind === "file"
+      ? cacheControlOf(resolution.file, 200)
+      : resolution.kind;
+  }
+
+  it("sends every route's document and payload the same Cache-Control as nginx", () => {
+    for (const route of routes) {
+      const payload = exportFileOf(route).replace(/\.html$/, ".txt");
+      for (const url of [representativeUrlOf(route), payload]) {
+        expect(laneCacheControlOf(url), `route ${route.url} (${url})`).toBe(
+          headersOf(model, url, servedFiles)["Cache-Control"],
+        );
+      }
+    }
+  });
+
+  it("sends the four explicitly cached files the same Cache-Control as nginx", () => {
+    for (const url of ["/", ...explicitFiles]) {
+      expect(laneCacheControlOf(url), url).toBe(
+        headersOf(model, url, servedFiles)["Cache-Control"],
+      );
     }
   });
 });

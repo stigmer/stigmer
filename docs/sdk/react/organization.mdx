@@ -633,6 +633,10 @@ Fetches the organization by ID, displays editable fields (name,
 description, logo URL) and read-only identifiers (slug, ID).
 On save, calls `organization.update()` and fires `onUpdated`.
 
+Editing needs `can_edit` on the organization (its admins). Anyone else
+reads the profile: the fields are read-only, a line says who edits them,
+and there is no Save. Neither state shows until the server answers.
+
 The organization's owners (`can_delete` on it) can also rename it: the
 slug becomes an editable field whose Rename action calls
 `organization.rename()` and fires `onUpdated` with the renamed resource.

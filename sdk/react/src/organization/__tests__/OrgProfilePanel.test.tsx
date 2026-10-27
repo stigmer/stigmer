@@ -1,6 +1,9 @@
 /**
  * OrgProfilePanel: the profile save keeps every spec field it does not
- * edit, the federation-issuer summary's empty state follows the caller's
+ * edit, and the profile is editable only by a caller the server allows
+ * `can_edit`: anyone it refuses reads muted fields, a line naming the
+ * admins, and no Save, and nobody sees either state until the check
+ * settles. The federation-issuer summary's empty state follows the caller's
  * rights, and the slug is renamable by owners only, and never on a server
  * that holds one organization. A rename lands once: the Rename action stays
  * disabled until the panel shows the renamed slug. A save or a rename inside
@@ -56,8 +59,35 @@ const ORG: Organization = create(OrganizationSchema, {
   },
 });
 
+/**
+ * How the server answers `can_edit`: allowed, refused, never (the check
+ * stays in flight), or by failing. Every other relation is refused.
+ */
+type EditAnswer = "allowed" | "refused" | "pending" | "failed";
+
+function answerCanEdit(canEdit: EditAnswer) {
+  return vi.fn((input: CheckMyPermissionInput) => {
+    if (input.relation !== "can_edit") return Promise.resolve({ isAuthorized: false });
+    switch (canEdit) {
+      case "allowed":
+        return Promise.resolve({ isAuthorized: true });
+      case "refused":
+        return Promise.resolve({ isAuthorized: false });
+      case "pending":
+        return new Promise<{ isAuthorized: boolean }>(() => undefined);
+      case "failed":
+        return Promise.reject(new Error("permission service unavailable"));
+      default: {
+        const unreachable: never = canEdit;
+        throw new Error(`unknown answer ${String(unreachable)}`);
+      }
+    }
+  });
+}
+
 function createMockStigmer(overrides?: {
   update?: ReturnType<typeof vi.fn>;
+  checkMyPermission?: ReturnType<typeof answerCanEdit>;
 }) {
   return {
     organization: {
@@ -65,7 +95,7 @@ function createMockStigmer(overrides?: {
       update: overrides?.update ?? vi.fn(async () => ORG),
     },
     platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
-    grant: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+    grant: { checkMyPermission: overrides?.checkMyPermission ?? answerCanEdit("allowed") },
   } as never;
 }
 
@@ -99,7 +129,7 @@ describe("OrgProfilePanel save payload", () => {
       expect(description).toHaveProperty("value", "We make everything."),
     );
     fireEvent.change(description, { target: { value: "New description" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<Organization>(update);
@@ -121,12 +151,106 @@ describe("OrgProfilePanel save payload", () => {
     const name = await screen.findByLabelText("Name");
     await waitFor(() => expect(name).toHaveProperty("value", "Acme Corp"));
     fireEvent.change(name, { target: { value: "Acme Corporation" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<Organization>(update);
     expect(sent.resource.metadata?.name).toBe("Acme Corporation");
     expect(sent.paths).not.toContain("spec.preferences");
+  });
+});
+
+describe("OrgProfilePanel edit gate", () => {
+  const ADMINS_LINE = "Only organization admins can edit this profile.";
+  const fields = () =>
+    ["Name", "Description", "Logo URL"].map(
+      (label) => screen.getByLabelText(label) as HTMLInputElement | HTMLTextAreaElement,
+    );
+
+  /** Renders the panel and waits until the form holds the server's values. */
+  async function renderFilled(canEdit: EditAnswer, update = vi.fn(async () => ORG)) {
+    const checkMyPermission = answerCanEdit(canEdit);
+    renderPanel(createMockStigmer({ update, checkMyPermission }));
+    const name = await screen.findByLabelText("Name");
+    await waitFor(() => expect(name).toHaveProperty("value", "Acme Corp"));
+    return { update, checkMyPermission };
+  }
+
+  it("shows a caller refused can_edit muted read-only fields, the admins line, and no Save or Discard", async () => {
+    const { checkMyPermission } = await renderFilled("refused");
+
+    expect(await screen.findByText(ADMINS_LINE)).toBeTruthy();
+    for (const field of fields()) {
+      expect(field.readOnly).toBe(true);
+      expect(field.className).toContain("stg:bg-muted-subtle");
+      expect(field.getAttribute("placeholder")).toBeNull();
+    }
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
+    expect(screen.queryByText(/characters$/)).toBeNull();
+    // The profile still reads in full, logo included.
+    expect(screen.getByLabelText("Description")).toHaveProperty("value", "We make everything.");
+    expect(screen.getByAltText("Organization logo preview")).toBeTruthy();
+    expect(
+      checkMyPermission.mock.calls.map(([i]) => [
+        i.resource?.kind,
+        i.resource?.id,
+        i.relation,
+      ]),
+    ).toContainEqual(["organization", ACME_ID, "can_edit"]);
+  });
+
+  it("submits nothing for a caller refused can_edit, even when the form is submitted", async () => {
+    const { update } = await renderFilled("refused");
+    await screen.findByText(ADMINS_LINE);
+
+    const name = screen.getByLabelText("Name");
+    fireEvent.change(name, { target: { value: "Acme Corporation" } });
+    fireEvent.submit(name.closest("form")!);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("shows neither Save nor the admins line while the check is in flight, and keeps the fields read-only and unmuted", async () => {
+    await renderFilled("pending");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
+    expect(screen.queryByText(ADMINS_LINE)).toBeNull();
+    for (const field of fields()) {
+      expect(field.readOnly).toBe(true);
+      expect(field.className).not.toContain("stg:bg-muted-subtle");
+      // No edit cue before the yes: an example value reads as a value.
+      expect(field.getAttribute("placeholder")).toBeNull();
+    }
+    expect(screen.queryByText(/characters$/)).toBeNull();
+  });
+
+  it("leaves the form editable when the check fails, since the server re-checks the save", async () => {
+    const update = vi.fn(async () => ORG);
+    await renderFilled("failed", update);
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Acme Corporation" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(ADMINS_LINE)).toBeNull();
+  });
+
+  it("gives a caller allowed can_edit the editable form, with no admins line", async () => {
+    await renderFilled("allowed");
+
+    expect(await screen.findByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(screen.queryByText(ADMINS_LINE)).toBeNull();
+    for (const field of fields()) {
+      expect(field.readOnly).toBe(false);
+      expect(field.className).not.toContain("stg:bg-muted-subtle");
+    }
+    expect(screen.getByText(/\/500 characters$/)).toBeTruthy();
+    expect(screen.getByLabelText("Logo URL").getAttribute("placeholder")).toBe(
+      "https://example.com/logo.png",
+    );
   });
 });
 
@@ -211,7 +335,8 @@ describe("OrgProfilePanel rename", () => {
     onUpdated?: (org: Organization) => void;
   }) {
     const checkMyPermission = vi.fn(async (input: CheckMyPermissionInput) => ({
-      isAuthorized: input.relation === "can_delete" ? owner : false,
+      isAuthorized:
+        input.relation === "can_delete" ? owner : input.relation === "can_edit",
     }));
     const client = {
       organization: {
@@ -395,7 +520,7 @@ describe("OrgProfilePanel rename", () => {
       await waitFor(() => expect(name).toHaveProperty("value", "Acme Corp"));
 
       fireEvent.change(name, { target: { value: "Acme Corporation" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(listMine).toHaveBeenCalledTimes(2));
       await new Promise((resolve) => setTimeout(resolve, 0));
