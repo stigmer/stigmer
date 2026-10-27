@@ -74,11 +74,10 @@ A text size is a step of the type scale (`text-2xs` 11px, `text-xs` 12px,
 smaller. An inline style reads the token (`fontSize: "var(--stgm-text-sm)"`).
 Spacing utilities are multiples of `--stgm-spacing`. The kit, the console and
 the desktop app build their utilities from one mapping,
-`sdk/theme/src/tailwind-theme.css`; a new token is mapped there once, never in
-a face's own `@theme` block. The `stigmer/text-size-from-scale` rule refuses a
-hand-picked size, and the CON-05 sweep
-(`scripts/text-size-from-scale.test.mjs`)
-reads every face's source for one.
+`sdk/theme/src/tailwind-theme.css`; a new token is mapped there once, never in a
+face's own `@theme` block. The `text-size-from-scale` rule refuses a hand-picked
+size, and the CON-05 sweep (`scripts/text-size-from-scale.test.mjs`) reads every
+face's source for one.
 
 ## Interactive elements in non-standard contexts
 

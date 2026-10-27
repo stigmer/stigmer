@@ -66,7 +66,7 @@ Every text size is a step of one scale, each a token with its line height:
 `--stgm-text-<step>` holds the size and `--stgm-leading-<step>` its line
 height. A preset or a host may retune a step; none may go under 11px. The
 kit, the console and the desktop app write sizes only as these steps
-(`stg:text-xs`); the `stigmer/text-size-from-scale` lint rule refuses a size
+(`stg:text-xs`); the `text-size-from-scale` lint rule refuses a size
 picked by hand (`text-[10px]`, an inline `fontSize: "13px"`).
 
 ### Tailwind mapping

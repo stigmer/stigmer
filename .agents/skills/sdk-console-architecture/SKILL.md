@@ -207,7 +207,7 @@ page framing.
    `@tauri-apps/*`.
 3. No hard-coded colours or sizes: no hex values, no `bg-white`, no
    `text-[14px]` (a type-scale step, `text-2xs` the smallest; the
-   `stigmer/text-size-from-scale` lint rule refuses the rest).
+   `text-size-from-scale` lint rule refuses the rest).
 4. No opacity modifiers on tokens: a dedicated variant
    (`text-sidebar-muted-foreground`), never a `/60` suffix; a missing variant is
    a new token.
