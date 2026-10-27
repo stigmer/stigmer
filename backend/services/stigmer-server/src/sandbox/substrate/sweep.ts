@@ -46,7 +46,10 @@
  * templates retired, a stuck delete repeated), are the driver's lifecycle
  * operations, the same ones a composition with its own sweep calls
  * (driver.ts); this sweep holds only the decision of what is idle and the
- * map from sandboxes to sessions.
+ * map from sandboxes to sessions. Upkeep returns the sandboxes it failed
+ * on rather than logging each, and the sweep sums them in one warning per
+ * pass: a delete Substrate keeps refusing is repeated every pass, and a
+ * line per sandbox per pass is one nobody can count.
  */
 import type { Logger } from "../../boot/logger.js";
 import { sandboxBaseName } from "../naming.js";
@@ -58,6 +61,7 @@ import type {
 import type {
   SubstrateActorSummary,
   SubstrateDriverInternals,
+  SubstrateMaintenance,
   SubstrateSandboxLifecycle,
 } from "./driver.js";
 import { decideIdle, type IdleAction } from "./idle-decision.js";
@@ -67,6 +71,10 @@ import { CLOCK_SKEW_ALLOWANCE_MS } from "./limits.js";
 export const SCAN_INTERVAL_MS = 10 * 60_000;
 /** Every session sandbox's name starts so (naming.ts, the session scope's code). */
 const SESSION_ACTOR_PREFIX = "sbx-ses-";
+/** How many failed sandboxes a pass's upkeep warning names; the count covers all. */
+const UPKEEP_FAILURES_SAMPLED = 5;
+/** Substrate's workflow errors run to several hundred characters; a sample keeps their start. */
+const UPKEEP_ERROR_MAX_LENGTH = 300;
 
 export interface SubstrateSweepOptions {
   readonly driver: SubstrateDriverInternals;
@@ -187,7 +195,26 @@ export async function runSweepPass(
   }
 
   if (stopping()) return;
-  await lifecycle.maintain(actors, { stopping });
+  logUpkeepFailures(await lifecycle.maintain(actors, { stopping }), logger);
+}
+
+/** One warning for every sandbox a pass's upkeep failed on: a count and a capped sample. */
+function logUpkeepFailures(upkeep: SubstrateMaintenance, logger: Logger): void {
+  if (upkeep.failed.length === 0) return;
+  logger.warn(
+    "Substrate idle sweep could not keep up sandboxes; each is tried again next pass",
+    {
+      count: upkeep.failed.length,
+      sample: upkeep.failed
+        .slice(0, UPKEEP_FAILURES_SAMPLED)
+        .map((failure) => ({
+          actor: failure.name,
+          state: failure.state,
+          since: failure.since,
+          error: failure.error.slice(0, UPKEEP_ERROR_MAX_LENGTH),
+        })),
+    },
+  );
 }
 
 /** Whether a sandbox may be newer than `instant`, leaning that way by the clock-skew allowance. */

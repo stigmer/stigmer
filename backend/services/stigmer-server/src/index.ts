@@ -924,6 +924,7 @@ export type {
   SubstrateSandboxLifecycle,
   SubstrateSandboxState,
   SubstrateReattachResult,
+  SubstrateSandboxFailure,
   SubstrateSleepGuard,
   SubstrateSleepOutcome,
   SubstrateSuspendGuard,
