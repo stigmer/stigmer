@@ -51,6 +51,10 @@ export interface OrgProfilePanelProps {
  * description, logo URL) and read-only identifiers (slug, ID).
  * On save, calls `organization.update()` and fires `onUpdated`.
  *
+ * Editing needs `can_edit` on the organization (its admins). Anyone else
+ * reads the profile: the fields are read-only, a line says who edits them,
+ * and there is no Save. Neither state shows until the server answers.
+ *
  * The organization's owners (`can_delete` on it) can also rename it: the
  * slug becomes an editable field whose Rename action calls
  * `organization.rename()` and fires `onUpdated` with the renamed resource.
@@ -120,6 +124,17 @@ export function OrgProfilePanel({
   );
   const canRename = singleOrg === false && renameCheck.allowed;
 
+  // Editing is the admins' (`can_edit`). The answer is read only once it
+  // settles, both ways, so a member never sees an editable form and an
+  // admin never sees the refusal while the server answers. A failed check
+  // settles open: the server re-checks every save.
+  const editCheck = useCheckPermission(
+    serverOrgId ? { kind: "organization", id: serverOrgId } : null,
+    "can_edit",
+  );
+  const canEdit = !editCheck.isLoading && editCheck.allowed;
+  const editDenied = !editCheck.isLoading && !editCheck.allowed;
+
   // Sync form fields when server data changes.
   useEffect(() => {
     if (!organization) return;
@@ -136,7 +151,7 @@ export function OrgProfilePanel({
     [name, description, logoUrl, serverName, serverDescription, serverLogoUrl],
   );
 
-  const canSubmit = name.trim().length > 0 && !isUpdating && hasChanges;
+  const canSubmit = canEdit && name.trim().length > 0 && !isUpdating && hasChanges;
 
   // The provider's one refresh after a save or a rename. It re-selects the
   // active organization by its id, which a rename leaves alone, so renaming
@@ -280,12 +295,14 @@ export function OrgProfilePanel({
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={isUpdating}
+            readOnly={!canEdit}
             required
             className={cn(
               "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
               "stg:placeholder:text-muted-foreground",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
             )}
           />
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
@@ -308,17 +325,21 @@ export function OrgProfilePanel({
             maxLength={DESCRIPTION_MAX_LEN}
             rows={3}
             disabled={isUpdating}
-            placeholder="What is this organization for?"
+            readOnly={!canEdit}
+            placeholder={editDenied ? undefined : "What is this organization for?"}
             className={cn(
               "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
               "stg:placeholder:text-muted-foreground",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
             )}
           />
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            {description.length}/{DESCRIPTION_MAX_LEN} characters
-          </p>
+          {!editDenied && (
+            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+              {description.length}/{DESCRIPTION_MAX_LEN} characters
+            </p>
+          )}
         </div>
 
         {/* Logo URL */}
@@ -336,12 +357,14 @@ export function OrgProfilePanel({
             onChange={(e) => setLogoUrl(e.target.value)}
             maxLength={LOGO_URL_MAX_LEN}
             disabled={isUpdating}
-            placeholder="https://example.com/logo.png"
+            readOnly={!canEdit}
+            placeholder={editDenied ? undefined : "https://example.com/logo.png"}
             className={cn(
               "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
               "stg:placeholder:text-muted-foreground",
               "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+              editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
             )}
           />
           <p className="stg:text-[0.65rem] stg:text-muted-foreground">
@@ -351,6 +374,12 @@ export function OrgProfilePanel({
         </div>
       </div>
 
+      {editDenied && (
+        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          Only organization admins can edit this profile.
+        </p>
+      )}
+
       {/* -- Error feedback -- */}
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
@@ -359,33 +388,35 @@ export function OrgProfilePanel({
       )}
 
       {/* -- Actions -- */}
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {isUpdating && <SpinnerIcon size={12} />}
-          Save changes
-        </button>
-
-        {hasChanges && !isUpdating && (
+      {canEdit && (
+        <div className="stg:flex stg:items-center stg:gap-2">
           <button
-            type="button"
-            onClick={handleDiscard}
+            type="submit"
+            disabled={!canSubmit}
             className={cn(
-              "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              "stg:inline-flex stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
+              "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
+              "stg:disabled:pointer-events-none stg:disabled:opacity-40",
             )}
           >
-            Discard
+            {isUpdating && <SpinnerIcon size={12} />}
+            Save changes
           </button>
-        )}
-      </div>
+
+          {hasChanges && !isUpdating && (
+            <button
+              type="button"
+              onClick={handleDiscard}
+              className={cn(
+                "stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs",
+                "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
+              )}
+            >
+              Discard
+            </button>
+          )}
+        </div>
+      )}
 
       {/* -- Federation Issuers summary -- */}
       <FederationIssuersSummary orgId={serverOrgId} />

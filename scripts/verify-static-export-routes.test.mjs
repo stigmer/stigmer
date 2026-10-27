@@ -8,6 +8,7 @@ import {
   buildServerModel,
   enumerateRoutes,
   exportFileOf,
+  headersOf,
   parseNginxConfig,
   representativeUrlOf,
   resolveRequest,
@@ -19,9 +20,10 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * The serving shape shipped by client-apps/web/nginx.conf (comments and
- * cache headers stripped — the resolver ignores both): the probe chain,
- * trailing-slash canonicalization, and the honest not-found posture.
+ * The serving shape shipped by client-apps/web/nginx.conf (comments
+ * stripped): the probe chain, trailing-slash canonicalization, the honest
+ * not-found posture, and the cache headers — one server-level `no-cache`
+ * every location without its own header inherits.
  */
 const PROBE_CONFIG = `
 server {
@@ -32,9 +34,19 @@ server {
     error_page 404 /404.html;
     absolute_redirect off;
 
+    add_header Cache-Control "no-cache";
+
     location ^~ /_next/static/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
     }
     location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+    location = /config.json {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+    location = /embed.js {
+        add_header Cache-Control "public, max-age=300";
     }
 
     location ~ ^(.+)/$ {
@@ -104,6 +116,18 @@ const FILES = new Set([
   "/conversations/archived/__placeholder__.html",
   "/library/skills/__placeholder__/__placeholder__.html",
 ]);
+
+/**
+ * The cache headers as they stood before every page was told to
+ * revalidate: only /index.html said `no-cache`, so every other page and
+ * its .txt payload went out with no Cache-Control, and a browser could
+ * keep the previous deploy's console for hours. Kept as a fixture so the
+ * revalidation rule provably fails on the config that had the bug.
+ */
+const PRE_REVALIDATION_CONFIG = PROBE_CONFIG.replace(
+  `    add_header Cache-Control "no-cache";\n\n    location ^~`,
+  `    location ^~`,
+);
 
 const probeModel = buildServerModel(parseNginxConfig(PROBE_CONFIG));
 const resolveProbe = (uri) => resolveRequest(probeModel, uri, FILES);
@@ -200,6 +224,99 @@ test("^~ prefix locations win over regex blocks (asset serving)", () => {
     resolveRequest(probeModel, "/_next/static/chunks/app.js", files),
     "/_next/static/chunks/app.js",
   );
+});
+
+// ---------------------------------------------------------------------------
+// Response headers (nginx add_header inheritance, modelled)
+// ---------------------------------------------------------------------------
+
+test("parses quoted directive arguments as one argument each", () => {
+  const [server] = parseNginxConfig(
+    `server { add_header Cache-Control "public, max-age=300"; add_header X-A 'b c' always; }`,
+  );
+  assert.deepEqual(
+    server.block.map((d) => d.args),
+    [
+      ["Cache-Control", "public, max-age=300"],
+      ["X-A", "b c", "always"],
+    ],
+  );
+});
+
+test("a location with no add_header of its own inherits the server's", () => {
+  assert.deepEqual(headersOf(probeModel, "/login", FILES), { "Cache-Control": "no-cache" });
+  assert.deepEqual(headersOf(probeModel, "/sessions/ses_abc", FILES), {
+    "Cache-Control": "no-cache",
+  });
+  assert.deepEqual(headersOf(probeModel, "/sessions/__placeholder__.txt", new Set([...FILES, "/sessions/__placeholder__.txt"])), {
+    "Cache-Control": "no-cache",
+  });
+});
+
+test("a location's own add_header replaces the server's, whatever its name", () => {
+  const files = new Set([...FILES, "/_next/static/chunks/app.js"]);
+  assert.deepEqual(headersOf(probeModel, "/_next/static/chunks/app.js", files), {
+    "Cache-Control": "public, max-age=31536000, immutable",
+  });
+  // nginx inherits by level, not by header name: one add_header in a
+  // location drops every server-level one, Cache-Control included.
+  const model = buildServerModel(
+    parseNginxConfig(`server {
+      add_header Cache-Control "no-cache";
+      location / { add_header X-Frame-Options "DENY"; try_files $uri $uri.html =404; }
+    }`),
+  );
+  assert.deepEqual(headersOf(model, "/login", FILES), { "X-Frame-Options": "DENY" });
+});
+
+test("headers come from the location that finally served the request", () => {
+  // "/" enters `location /`, reaches the export root through `$uri/`, and
+  // the index module redirects internally to /index.html, whose exact
+  // location answers with its own header.
+  const model = buildServerModel(
+    parseNginxConfig(`server {
+      index index.html;
+      add_header X-Level "server";
+      location = /index.html { add_header X-Level "index"; }
+      location / { try_files $uri $uri.html $uri/ =404; }
+    }`),
+  );
+  assert.deepEqual(headersOf(model, "/", FILES), { "X-Level": "index" });
+  assert.deepEqual(headersOf(model, "/login", FILES), { "X-Level": "server" });
+  // A trailing-slash URL answers with its canonical document's headers.
+  assert.deepEqual(headersOf(probeModel, "/login/", FILES), { "Cache-Control": "no-cache" });
+});
+
+test("the not-found page answers 404, which only `always` headers reach", () => {
+  assert.deepEqual(headersOf(probeModel, "/no-such-route", FILES), {});
+  const model = buildServerModel(
+    parseNginxConfig(`server {
+      error_page 404 /404.html;
+      add_header X-Always "yes" always;
+      location / { try_files $uri $uri.html =404; }
+    }`),
+  );
+  assert.deepEqual(headersOf(model, "/no-such-route", FILES), { "X-Always": "yes" });
+});
+
+test("refuses unmodelled add_header forms", () => {
+  for (const directive of [
+    `add_header Cache-Control;`,
+    `add_header Cache-Control "no-cache" sometimes;`,
+    `add_header X-Path $uri;`,
+    `add_header X-A "1"; add_header X-A "2";`,
+  ]) {
+    assert.throws(
+      () => buildServerModel(parseNginxConfig(`server { ${directive} }`)),
+      /does not model.*add_header/s,
+      directive,
+    );
+    assert.throws(
+      () => buildServerModel(parseNginxConfig(`server { location / { ${directive} } }`)),
+      /does not model.*add_header/s,
+      directive,
+    );
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -376,12 +493,37 @@ test("verifyRoutes passes the probe config and fails the historical one, naming 
     // URLs serving the shell, and trailing-slash URLs falling through.
     const historical = buildServerModel(parseNginxConfig(HISTORICAL_CONFIG));
     const failures = verifyRoutes(routes, historical);
-    assert.equal(failures.length, 3);
+    assert.equal(failures.length, 4);
     const joined = failures.join("\n");
     assert.match(joined, /conversations\/\[channelId\]\/\[key\]/);
     assert.match(joined, /blank-page failure/);
     assert.match(joined, /not-found posture/);
     assert.match(joined, /trailing-slash posture/);
+    assert.match(joined, /revalidation posture/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("verifyRoutes fails a page or payload that would not revalidate, naming the route and its location", () => {
+  const dir = makeAppDir([[], ["conversations"], ["sessions", "[id]"]]);
+  try {
+    const routes = enumerateRoutes(dir);
+    const failures = verifyRoutes(
+      routes,
+      buildServerModel(parseNginxConfig(PRE_REVALIDATION_CONFIG)),
+    );
+    assert.equal(failures.length, 1);
+    const [failure] = failures;
+    assert.match(failure, /revalidation posture/);
+    // The page by its URL and its payload by its export path, each with
+    // the location that served it. The root document revalidates through
+    // its own exact location; its .txt payload does not.
+    assert.match(failure, /\/conversations \("\/conversations", served by location \/\)/);
+    assert.match(failure, /"\/sessions\/__placeholder__\.txt", served by location ~ \^\(\.\+\)\/\[\^\/\]\+\$/);
+    assert.match(failure, /"\/index\.txt"/);
+    assert.doesNotMatch(failure, /\("\/",/);
+    assert.match(failure, /add_header Cache-Control "no-cache";/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

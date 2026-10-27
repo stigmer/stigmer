@@ -21,7 +21,9 @@
  * It then resolves a representative real-value URL for every route through
  * a model of nginx's location/try_files semantics and asserts each dynamic
  * route lands on its own placeholder file — and each static route on its
- * own page — never on /index.html.
+ * own page — never on /index.html. It also answers the response headers
+ * nginx attaches, because a page that is served right but cached wrong
+ * keeps a returning browser on the previous deploy's console.
  *
  * Trustworthiness rules, so the model can never silently diverge from the
  * config it judges:
@@ -37,17 +39,22 @@
  *     itself is validated whenever the artifact is available.
  *
  * The model was validated against real nginx (the production image over a
- * synthesized export tree, and again when redirects and the error page
- * landed).
+ * synthesized export tree, and again when redirects, the error page and
+ * the response headers landed).
  * Its semantics: exact locations, then ^~ prefix locations, then regex
  * locations in declaration order, then the longest plain prefix;
  * try_files checks all-but-last args as files (trailing `/` means
  * directory) and treats the last as an internal redirect, except a final
  * `=404`, which resolves through the server's `error_page`; a
  * `return 30x <target>` location is followed to the destination document.
- * Beyond per-route resolution, the gate asserts two standing postures:
- * unknown URLs never serve the blank app shell, and trailing-slash URLs
- * reach the same document as their canonical form.
+ * Headers: the location that finally serves a request (after every
+ * internal redirect) sends its own `add_header`s; a location with none
+ * inherits the server's, all or nothing, never merged by name; a 404
+ * response carries only the `always` ones.
+ * Beyond per-route resolution, the gate asserts three standing postures:
+ * unknown URLs never serve the blank app shell, trailing-slash URLs
+ * reach the same document as their canonical form, and every page and its
+ * .txt payload is sent with a Cache-Control that revalidates.
  *
  * Usage:
  *   node scripts/verify-static-export-routes.mjs
@@ -180,13 +187,28 @@ export function parseNginxConfig(source) {
         return nodes;
       }
       const start = pos;
-      while (pos < text.length && !";{}".includes(text[pos])) pos++;
+      while (pos < text.length && !";{}".includes(text[pos])) {
+        // A quoted argument may hold the delimiters (`"public, max-age=300"`).
+        if (text[pos] === '"' || text[pos] === "'") {
+          const close = text.indexOf(text[pos], pos + 1);
+          if (close === -1) {
+            throw new Error(
+              `nginx.conf parse error: unterminated quote near "${text.slice(start, start + 60).trim()}"`,
+            );
+          }
+          pos = close + 1;
+        } else {
+          pos++;
+        }
+      }
       if (pos >= text.length || text[pos] === "}") {
         throw new Error(
           `nginx.conf parse error: unterminated directive near "${text.slice(start, start + 60).trim()}"`,
         );
       }
-      const head = text.slice(start, pos).trim().split(/\s+/);
+      const head = [
+        ...text.slice(start, pos).matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g),
+      ].map((match) => match[1] ?? match[2] ?? match[3]);
       const delimiter = text[pos];
       pos++;
       nodes.push(
@@ -217,13 +239,13 @@ const REDIRECT_CODES = new Set(["301", "302", "307", "308"]);
 const QUERY_VARIABLES = new Set(["is_args", "args"]);
 
 /**
- * Directives that cannot affect which FILE a request resolves to.
- * `absolute_redirect` shapes the Location header's form (relative vs
- * absolute-with-listen-port — load-bearing behind the ingress), never
- * the destination document this model answers for.
+ * Directives that cannot affect which FILE a request resolves to, or
+ * which headers it is sent with. `absolute_redirect` shapes the Location
+ * header's form (relative vs absolute-with-listen-port — load-bearing
+ * behind the ingress), never the destination document this model answers
+ * for.
  */
 const INERT_SERVER_DIRECTIVES = new Set(["listen", "root", "absolute_redirect"]);
-const INERT_LOCATION_DIRECTIVES = new Set(["add_header"]);
 
 const refuse = (message) => {
   throw new Error(
@@ -243,11 +265,13 @@ export function buildServerModel(nodes) {
     refuse(`expected exactly one top-level server block`);
   }
 
-  const model = { indexFile: "index.html", locations: [], errorPage: null };
+  const model = { indexFile: "index.html", locations: [], errorPage: null, headers: [] };
 
   for (const directive of servers[0].block) {
     if (directive.name === "location") {
       model.locations.push(parseLocation(directive));
+    } else if (directive.name === "add_header") {
+      addHeader(model.headers, directive);
     } else if (directive.name === "index") {
       if (directive.args.length !== 1) refuse(`multi-argument index directive`);
       model.indexFile = directive.args[0];
@@ -283,6 +307,7 @@ function parseLocation(directive) {
 
   let tryFiles = null;
   let redirect = null;
+  const headers = [];
   for (const inner of directive.block ?? []) {
     if (inner.name === "try_files") {
       inner.args.forEach((arg, index) => {
@@ -314,7 +339,9 @@ function parseLocation(directive) {
         }
       }
       redirect = { code: Number(inner.args[0]), target: inner.args[1] };
-    } else if (!INERT_LOCATION_DIRECTIVES.has(inner.name)) {
+    } else if (inner.name === "add_header") {
+      addHeader(headers, inner);
+    } else {
       refuse(`location-level directive "${inner.name}"`);
     }
   }
@@ -328,7 +355,31 @@ function parseLocation(directive) {
     regex: modifier === "~" ? new RegExp(pattern) : null,
     tryFiles,
     redirect,
+    headers,
   };
+}
+
+/**
+ * Exactly `add_header <name> <literal value> [always];`. A value with a
+ * variable, or a name repeated on one level (nginx sends both), is
+ * refused until modelled.
+ */
+function addHeader(headers, directive) {
+  const [name, value, flag] = directive.args;
+  if (
+    value === undefined ||
+    directive.args.length > 3 ||
+    (flag !== undefined && flag !== "always")
+  ) {
+    refuse(`add_header form "${directive.args.join(" ")}"`);
+  }
+  if (value.includes("$")) {
+    refuse(`add_header value variable in "${directive.args.join(" ")}"`);
+  }
+  if (headers.some((header) => header.name.toLowerCase() === name.toLowerCase())) {
+    refuse(`add_header "${name}" repeated on one level`);
+  }
+  headers.push({ name, value, always: flag === "always" });
 }
 
 // ---------------------------------------------------------------------------
@@ -351,17 +402,51 @@ function parseLocation(directive) {
  * @param files  Set of existing file paths, e.g. "/conversations.html".
  */
 export function resolveRequest(model, uri, files, depth = 0) {
+  return serve(model, uri, files, depth).file;
+}
+
+/**
+ * The headers nginx sends with the response to a request: those of the
+ * location that finally served it (after internal redirects; a `return`
+ * redirect is followed to the destination's response), or the server's
+ * when that location declares none. A 404 carries only `always` headers.
+ *
+ * @returns Header name → value, as written in the config.
+ */
+export function headersOf(model, uri, files) {
+  return headersOfServed(model, serve(model, uri, files));
+}
+
+function headersOfServed(model, served) {
+  const own = served.location?.headers ?? [];
+  const effective = own.length > 0 ? own : model.headers;
+  return Object.fromEntries(
+    effective
+      .filter((header) => served.status === 200 || header.always)
+      .map((header) => [header.name, header.value]),
+  );
+}
+
+/**
+ * Resolution with what the response's headers depend on: `{ file,
+ * location, status }`, where `location` is the one that finally served
+ * the request (`null` when none matched) and `status` is 200 for a file
+ * served, 404 for the error page or nothing.
+ */
+function serve(model, uri, files, depth = 0) {
   if (depth > 5) {
     throw new Error(`internal redirect loop resolving "${uri}"`);
   }
 
   const directories = directoriesOf(files);
   const location = matchLocation(model, uri);
-  const serveFile = (path) => (files.has(path) ? path : null);
-  const serveErrorPage = () =>
-    model.errorPage
-      ? resolveRequest(model, model.errorPage.uri, files, depth + 1)
-      : null;
+  const served = (file) => ({ file, location, status: file === null ? 404 : 200 });
+  const serveFile = (path) => served(files.has(path) ? path : null);
+  const serveErrorPage = () => {
+    if (!model.errorPage) return served(null);
+    // The error document keeps the 404 status of the request it answers.
+    return { ...serve(model, model.errorPage.uri, files, depth + 1), status: 404 };
+  };
 
   if (!location) return serveFile(uri);
 
@@ -385,21 +470,16 @@ export function resolveRequest(model, uri, files, depth = 0) {
   if (location.redirect) {
     // The browser re-requests the target; model that as a fresh
     // resolution (the depth guard catches redirect loops).
-    return resolveRequest(model, substitute(location.redirect.target), files, depth + 1);
+    return serve(model, substitute(location.redirect.target), files, depth + 1);
   }
 
   if (!location.tryFiles) {
-    if (files.has(uri)) return uri;
+    if (files.has(uri)) return served(uri);
     // Bare directory hit: nginx's index module redirects internally.
     if (directories.has(stripTrailingSlash(uri))) {
-      return resolveRequest(
-        model,
-        joinUri(uri, model.indexFile),
-        files,
-        depth + 1,
-      );
+      return serve(model, joinUri(uri, model.indexFile), files, depth + 1);
     }
-    return null;
+    return served(null);
   }
 
   const args = location.tryFiles;
@@ -407,23 +487,35 @@ export function resolveRequest(model, uri, files, depth = 0) {
     const candidate = substitute(arg);
     if (candidate.endsWith("/")) {
       if (directories.has(stripTrailingSlash(candidate))) {
-        return resolveRequest(
-          model,
-          joinUri(candidate, model.indexFile),
-          files,
-          depth + 1,
-        );
+        return serve(model, joinUri(candidate, model.indexFile), files, depth + 1);
       }
     } else if (files.has(candidate)) {
-      return candidate;
+      return served(candidate);
     }
   }
   // The last argument: `=404` resolves through error_page; anything else
   // is an internal redirect re-entering location matching.
   const last = args[args.length - 1];
   if (last === "=404") return serveErrorPage();
-  return resolveRequest(model, substitute(last), files, depth + 1);
+  return serve(model, substitute(last), files, depth + 1);
 }
+
+/** How a failure names the location that served a request. */
+const locationLabel = (location) =>
+  location === null
+    ? "no location"
+    : `location ${location.modifier ? `${location.modifier} ` : ""}${location.pattern}`;
+
+/** Whether a Cache-Control value makes the browser revalidate before reuse. */
+const revalidates = (cacheControl) =>
+  cacheControl !== undefined &&
+  cacheControl
+    .split(",")
+    .map((directive) => directive.trim().toLowerCase())
+    .some((directive) => directive === "no-cache" || directive === "no-store");
+
+/** The most offenders a coalesced failure names before counting the rest. */
+const MAX_NAMED_OFFENDERS = 10;
 
 function matchLocation(model, uri) {
   let longestPrefix = null;
@@ -589,6 +681,48 @@ export function verifyRoutes(routes, model) {
     );
   }
 
+  // Revalidation posture: every page, requested by its URL, and its .txt
+  // payload, requested by its export path (what in-console navigation
+  // fetches), must be sent with a Cache-Control that revalidates. A page
+  // the browser may reuse unasked keeps a returning visitor on the
+  // previous deploy's console, pointing at chunks the new deploy no
+  // longer serves. One coalesced failure names the offenders.
+  const staleOffenders = [];
+  for (const route of routes) {
+    const payload = exportFileOf(route).replace(/\.html$/, ".txt");
+    for (const url of [representativeUrlOf(route), payload]) {
+      let served;
+      try {
+        served = serve(model, url, files);
+      } catch (error) {
+        staleOffenders.push(`${route.url} ("${url}"): resolution error — ${error.message}`);
+        continue;
+      }
+      const headers = headersOfServed(model, served);
+      const name = Object.keys(headers).find((key) => key.toLowerCase() === "cache-control");
+      const cacheControl = name === undefined ? undefined : headers[name];
+      if (!revalidates(cacheControl)) {
+        staleOffenders.push(
+          `${route.url} ("${url}", served by ${locationLabel(served.location)}): ` +
+            (cacheControl === undefined ? "no Cache-Control" : `Cache-Control "${cacheControl}"`),
+        );
+      }
+    }
+  }
+  if (staleOffenders.length > 0) {
+    const rest = staleOffenders.length - MAX_NAMED_OFFENDERS;
+    failures.push(
+      `revalidation posture: ${staleOffenders.length} page(s) or payload(s) can be ` +
+        `reused from the browser's cache without revalidating, so a returning ` +
+        `browser keeps the previous deploy's console — ` +
+        staleOffenders.slice(0, MAX_NAMED_OFFENDERS).join("; ") +
+        (rest > 0 ? `; and ${rest} more` : "") +
+        `. Declare \`add_header Cache-Control "no-cache";\` at server level ` +
+        `(client-apps/web/nginx.conf), or give the location that serves them ` +
+        `its own revalidating Cache-Control.`,
+    );
+  }
+
   return failures;
 }
 
@@ -669,15 +803,15 @@ function main() {
     console.error(`  FAIL (${failures.length})`);
     for (const failure of failures) console.error(`       ${failure}`);
     console.error(
-      `\nverify-static-export-routes: FAIL — a deep link or hard reload would ` +
-        `render a blank page in production.\n`,
+      `\nverify-static-export-routes: FAIL — a deep link, a hard reload or a ` +
+        `returning browser would be served the wrong page in production.\n`,
     );
     process.exit(1);
   }
 
   console.log(
     `verify-static-export-routes: OK — ${routes.length} routes ` +
-      `(${dynamicCount} dynamic) all resolve` +
+      `(${dynamicCount} dynamic) all resolve and revalidate` +
       `${hasExport ? ", export cross-check clean" : " (no out/ build present; hermetic mode)"}.\n`,
   );
 }
