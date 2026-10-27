@@ -97,7 +97,7 @@ export function RenameSlugField<T>({
     <div className={cn("stg:space-y-1", className)}>
       <label
         htmlFor={inputId}
-        className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider"
+        className="stg:text-2xs stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider"
       >
         {label}
       </label>
@@ -140,11 +140,11 @@ export function RenameSlugField<T>({
         </button>
       </div>
       {error ? (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       ) : (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
+        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );

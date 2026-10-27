@@ -199,7 +199,7 @@ function ExitBadge({ exitCode }: { exitCode?: number }) {
       <span className="stg:sr-only">Command exited with code {exitCode}</span>
       <span
         aria-hidden="true"
-        className="stg:inline-block stg:rounded stg:bg-destructive-subtle stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none stg:tabular-nums stg:text-destructive"
+        className="stg:inline-block stg:rounded stg:bg-destructive-subtle stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:tabular-nums stg:text-destructive"
       >
         exit {exitCode}
       </span>

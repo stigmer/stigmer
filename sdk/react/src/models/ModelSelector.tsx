@@ -475,7 +475,7 @@ export function ModelSelector({
           <span
             className={cn(
               "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded-full stg:border stg:border-primary stg:px-1.5 stg:py-px",
-              "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-primary",
+              "stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-primary",
             )}
           >
             <BoltIcon />
@@ -486,7 +486,7 @@ export function ModelSelector({
           <span
             className={cn(
               "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:rounded-full stg:border stg:border-primary stg:px-1.5 stg:py-px",
-              "stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-primary",
+              "stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-primary",
             )}
           >
             Thinking
@@ -582,7 +582,7 @@ export function ModelSelector({
               <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
                 <div className="stg:flex stg:flex-col">
                   <span className="stg:text-xs stg:text-foreground">Fast tier</span>
-                  <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+                  <span className="stg:text-2xs stg:text-muted-foreground">
                     Faster responses at higher per-token rates
                   </span>
                 </div>
@@ -600,7 +600,7 @@ export function ModelSelector({
               <div className="stg:flex stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-3 stg:py-2">
                 <div className="stg:flex stg:flex-col">
                   <span className="stg:text-xs stg:text-foreground">Thinking</span>
-                  <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+                  <span className="stg:text-2xs stg:text-muted-foreground">
                     {thinkingIsLocked
                       ? "This model always reasons before it answers"
                       : "Extended reasoning; uses more output tokens"}
@@ -695,7 +695,7 @@ export function ModelSelector({
               {groupedModels ? (
                 Array.from(groupedModels.entries()).map(([group, groupModels]) => (
                   <div key={group}>
-                    <div className="stg:px-2 stg:pb-0.5 stg:pt-2 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+                    <div className="stg:px-2 stg:pb-0.5 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
                       {group}
                     </div>
                     {groupModels.map((model) => (
@@ -789,13 +789,13 @@ function ModelRow({
             registry's tri-state convention. Visible text, not a tooltip:
             keyboard and touch users must see it before picking the model. */}
         {model.visionCapability === false && (
-          <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:text-[0.6rem] stg:text-muted-foreground">
+          <span className="stg:flex stg:shrink-0 stg:items-center stg:gap-0.5 stg:text-2xs stg:text-muted-foreground">
             <NoImageInputIcon />
             No image input
           </span>
         )}
 
-        <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
           {showSpeedBadge
             ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
             : COST_TIER_LABEL[model.costTier]}
@@ -805,7 +805,7 @@ function ModelRow({
       </div>
 
       {showDescription && model.shortDescription && (
-        <span className="stg:mt-0.5 stg:block stg:text-left stg:text-[0.65rem] stg:text-muted-foreground">
+        <span className="stg:mt-0.5 stg:block stg:text-left stg:text-2xs stg:text-muted-foreground">
           {model.shortDescription}
         </span>
       )}

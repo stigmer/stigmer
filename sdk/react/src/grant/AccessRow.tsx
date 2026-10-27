@@ -73,14 +73,14 @@ export function AccessRow({
         <div className="stg:min-w-0">
           <p className="stg:text-xs stg:text-foreground stg:truncate">{displayName}</p>
           {subline && (
-            <p className="stg:text-[0.6rem] stg:text-muted-foreground stg:truncate">{subline}</p>
+            <p className="stg:text-2xs stg:text-muted-foreground stg:truncate">{subline}</p>
           )}
         </div>
       </div>
 
       <div className="stg:flex stg:items-center stg:gap-1.5 stg:shrink-0">
         {showRoles && (
-          <span className="stg:text-[0.6rem] stg:text-muted-foreground stg:capitalize">
+          <span className="stg:text-2xs stg:text-muted-foreground stg:capitalize">
             {roleNames || "—"}
           </span>
         )}

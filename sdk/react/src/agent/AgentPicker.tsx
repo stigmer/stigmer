@@ -171,7 +171,7 @@ export function AgentPicker({
       {/* Selected agent */}
       {value && (
         <div className="stg:space-y-1">
-          <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+          <div className="stg:text-2xs stg:font-medium stg:text-muted-foreground">
             Selected
           </div>
           <div className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted-faint stg:px-2 stg:py-1 stg:text-xs">
@@ -258,14 +258,14 @@ export function AgentPicker({
                   <span className="stg:truncate stg:font-medium">
                     <HighlightMatch text={result.name} query={query} />
                   </span>
-                  <span className="stg:ml-auto stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
+                  <span className="stg:ml-auto stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
                     <OrgSlugText orgId={result.org} />
                   </span>
                 </span>
                 {result.description && (
                   <span
                     className={cn(
-                      "stg:pl-5 stg:text-[0.65rem] stg:text-muted-foreground",
+                      "stg:pl-5 stg:text-2xs stg:text-muted-foreground",
                       idx !== focusIndex &&
                         "stg:line-clamp-2 stg:group-hover:line-clamp-none",
                     )}

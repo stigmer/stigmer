@@ -87,11 +87,11 @@ export function SkillDiffDialog({ state, onClose }: SkillDiffDialogProps) {
         <div className="stg:flex stg:shrink-0 stg:items-center stg:justify-between stg:border-b stg:border-border stg:px-4 stg:py-3">
           <div className="stg:flex stg:items-center stg:gap-2 stg:text-sm">
             <span className="stg:font-medium stg:text-foreground">Comparing</span>
-            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:text-muted-foreground">
+            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-muted-foreground">
               {state.fromLabel}
             </code>
             <ArrowIcon className="stg:size-3.5 stg:text-muted-foreground-faint" />
-            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[11px] stg:text-muted-foreground">
+            <code className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-muted-foreground">
               {state.toLabel}
             </code>
           </div>

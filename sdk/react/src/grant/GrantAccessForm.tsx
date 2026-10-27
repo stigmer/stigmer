@@ -196,14 +196,14 @@ export function GrantAccessForm({
         />
 
         {roleNote && (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             {roleNote}
           </p>
         )}
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}

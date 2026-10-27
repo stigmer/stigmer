@@ -92,7 +92,7 @@ export function ConfigureMenu({
             <span className="stg:relative">
               <ConfigureIcon />
               {totalCount > 0 && (
-                <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
+                <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-primary-foreground">
                   {totalCount}
                 </span>
               )}
@@ -171,7 +171,7 @@ function MenuList({
             />
           )}
           {item.count > 0 && (
-            <span className="stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:text-[0.6rem] stg:font-medium stg:text-primary">
+            <span className="stg:rounded-full stg:bg-primary-subtle stg:px-1.5 stg:text-2xs stg:font-medium stg:text-primary">
               {item.count}
             </span>
           )}

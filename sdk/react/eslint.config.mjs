@@ -22,6 +22,8 @@ export default defineConfig([
       "stigmer/no-handrolled-dialog": "error",
       "stigmer/no-literal-dom-ids": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
+      // Every text size comes from the type scale (--stgm-text-* tokens, 11px floor).
+      "stigmer/text-size-from-scale": "error",
       "stigmer/no-main-tokens-in-sidebar": "warn",
       // Error (not warn): the #695 sweep left zero violations — every UI
       // list carries UNSTYLED_LIST and every content list declares its

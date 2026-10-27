@@ -78,7 +78,7 @@ export function AgentVersionsTab({ agent, className }: AgentVersionsTabProps) {
           <div className="stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-muted-foreground">
             <span>
               Comparing{" "}
-              <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[11px]">
+              <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-2xs">
                 {selectedHash.slice(0, 8)}
               </code>{" "}
               with current

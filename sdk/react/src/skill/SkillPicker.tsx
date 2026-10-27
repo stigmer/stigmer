@@ -155,7 +155,7 @@ export function SkillPicker({
       {/* Selected items */}
       {value.length > 0 && (
         <div className="stg:space-y-1">
-          <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+          <div className="stg:text-2xs stg:font-medium stg:text-muted-foreground">
             Selected
           </div>
           <div className="stg:relative">
@@ -258,14 +258,14 @@ export function SkillPicker({
                   <span className="stg:truncate stg:font-medium">
                     <HighlightMatch text={result.name} query={query} />
                   </span>
-                  <span className="stg:ml-auto stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
+                  <span className="stg:ml-auto stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
                     <OrgSlugText orgId={result.org} />
                   </span>
                 </span>
                 {result.description && (
                   <span
                     className={cn(
-                      "stg:pl-5 stg:text-[0.65rem] stg:text-muted-foreground",
+                      "stg:pl-5 stg:text-2xs stg:text-muted-foreground",
                       idx !== focusIndex &&
                         "stg:line-clamp-2 stg:group-hover:line-clamp-none",
                     )}

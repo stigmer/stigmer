@@ -60,7 +60,7 @@ export function BackgroundCommandTrail({ toolUse }: { readonly toolUse: ToolUse 
   return (
     <>
       <span
-        className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none stg:text-muted-foreground"
+        className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-muted-foreground"
         data-cursor-target="background-command-chip"
       >
         Background

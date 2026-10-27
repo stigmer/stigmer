@@ -91,11 +91,12 @@ Pass a `preset` prop to apply a complete design language — colors, border radi
 
 | Preset | Archetype | Description |
 |--------|-----------|-------------|
-| `"default"` | Stigmer identity | Teal palette, balanced radius (omit the prop for this) |
+| `"default"` | Stigmer identity | Black and white, typographic, tight radius (omit the prop for this) |
 | `"corporate"` | Enterprise SaaS | Tight radius, blue accent, cool grays, dark sidebar |
 | `"startup"` | Dev tools | Monochrome, violet accent, minimal shadows, snappy transitions |
 | `"friendly"` | Consumer SaaS | Very rounded, warm coral, cream surfaces, soft shadows |
 | `"fintech"` | Premium financial | Sharp corners, indigo accent, crisp shadows, precise transitions |
+| `"monochrome"` | Stigmer identity | The default look, named; kept for code that sets it |
 
 Each preset overrides the full token surface. See [`@stigmer/design-tokens` README](../theme/README.md) for the complete token reference and preset details.
 

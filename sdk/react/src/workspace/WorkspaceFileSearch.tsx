@@ -223,7 +223,7 @@ export function WorkspaceFileSearch({
               })}
             </ul>
             {totalMatches > flatResults.length && (
-              <p className="stg:border-t stg:border-border stg:px-3 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+              <p className="stg:border-t stg:border-border stg:px-3 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
                 Showing the first {flatResults.length} of {totalMatches} matches
                 — refine your search to narrow the list.
               </p>
@@ -347,7 +347,7 @@ function ResultRow({
         />
       </span>
       {dir && (
-        <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">
+        <span className="stg:truncate stg:text-2xs stg:text-muted-foreground">
           <HighlightedPath
             text={dir}
             offset={0}
@@ -396,7 +396,7 @@ function GroupHeader({ name }: { readonly name: string }) {
   return (
     <li
       role="presentation"
-      className="stg:truncate stg:px-3 stg:pb-0.5 stg:pt-2 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
+      className="stg:truncate stg:px-3 stg:pb-0.5 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
     >
       {name}
     </li>
@@ -414,7 +414,7 @@ function GroupNotice({
     <li
       role="presentation"
       className={cn(
-        "stg:px-3 stg:py-1 stg:text-[0.65rem]",
+        "stg:px-3 stg:py-1 stg:text-2xs",
         isError ? "stg:text-destructive" : "stg:text-muted-foreground",
       )}
     >

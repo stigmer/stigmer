@@ -483,7 +483,7 @@ function ContentViewToggle({
     <div
       role="radiogroup"
       aria-label="Content view mode"
-      className="stg:inline-flex stg:rounded-md stg:border stg:border-input stg:text-[11px]"
+      className="stg:inline-flex stg:rounded-md stg:border stg:border-input stg:text-2xs"
     >
       <button
         type="button"
@@ -596,7 +596,7 @@ function GitProvenanceDisplay({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[10px]" />
+                  <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-2xs" />
                 }
               >
                 {truncatedCommit}

@@ -366,7 +366,7 @@ export function VisibilitySelector({
                 >
                   <span
                     className={cn(
-                      "stg:flex-1 stg:text-[0.65rem] stg:leading-snug",
+                      "stg:flex-1 stg:text-2xs stg:leading-snug",
                       PROMPT_STYLES[pendingOption.tone].text,
                     )}
                   >
@@ -376,7 +376,7 @@ export function VisibilitySelector({
                     type="button"
                     onClick={() => setPendingInline(null)}
                     className={cn(
-                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
                       "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                       PROMPT_STYLES[pendingOption.tone].cancel,
                     )}
@@ -387,7 +387,7 @@ export function VisibilitySelector({
                     type="button"
                     onClick={() => apply(pendingOption.value)}
                     className={cn(
-                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-white",
+                      "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-white",
                       "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                       PROMPT_STYLES[pendingOption.tone].confirm,
                     )}

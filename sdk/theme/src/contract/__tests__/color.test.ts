@@ -13,6 +13,15 @@ describe("contrastRatio", () => {
     expect(ratio).toBeGreaterThan(15);
   });
 
+  it("measures a colour outside sRGB as the browser paints it, clipped to the screen's range", () => {
+    // The destructive red the tokens named until 2026-10-27 lies outside
+    // sRGB; browsers paint it as #dd0000, which axe measured at 4.36:1 on the old error-notice fill
+    // (stigmer/stigmer#2643). Unclipped, the math reported a pass.
+    const clipped = contrastRatio("#dd0000", "oklch(0.95 0.03 27)");
+    expect(contrastRatio("oklch(0.55 0.245 27.325)", "oklch(0.95 0.03 27)")).toBeCloseTo(clipped, 2);
+    expect(clipped).toBeLessThan(4.5);
+  });
+
   it("composites a translucent foreground over the background first", () => {
     // 50% white over black is a grey; contrast must be far below solid white's.
     const solid = contrastRatio("white", "black");

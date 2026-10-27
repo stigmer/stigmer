@@ -111,12 +111,12 @@ export function InlineEditKeyValue({
                   </span>
                 )}
                 {showSecretToggle && (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
                     {row.isSecret ? "secret" : "config"}
                   </span>
                 )}
                 {showOptionalToggle && row.optional && (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground-subtle">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground-subtle">
                     optional
                   </span>
                 )}

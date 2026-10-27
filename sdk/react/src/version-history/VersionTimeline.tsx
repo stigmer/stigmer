@@ -122,7 +122,7 @@ function CompareInfoBar({
       <CompareIcon className="stg:size-3.5 stg:shrink-0 stg:text-primary" />
       <span className="stg:flex-1 stg:text-foreground">
         Select another version to compare with{" "}
-        <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-[10px] stg:font-medium">
+        <code className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-2xs stg:font-medium">
           {selectedLabel}
         </code>
       </span>
@@ -130,7 +130,7 @@ function CompareInfoBar({
         type="button"
         onClick={onCancel}
         className={cn(
-          "stg:rounded stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground stg:transition-colors",
+          "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground stg:transition-colors",
           "stg:hover:bg-accent-hover stg:hover:text-foreground",
           "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         )}

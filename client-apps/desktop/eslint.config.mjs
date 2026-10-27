@@ -15,6 +15,8 @@ export default defineConfig([
       "stigmer/sdk-import-boundaries": "error",
       "stigmer/no-native-title": "error",
       "stigmer/no-token-opacity-modifiers": "warn",
+      // Every text size comes from the type scale (--stgm-text-* tokens, 11px floor).
+      "stigmer/text-size-from-scale": "error",
       "stigmer/no-main-tokens-in-sidebar": "warn",
     },
   },

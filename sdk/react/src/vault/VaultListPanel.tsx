@@ -302,7 +302,7 @@ function VaultDetailsForm({
         />
       )}
       {(error || deleteError) && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {deleteError ?? (error ? getUserMessage(error) : "")}
         </p>
       )}

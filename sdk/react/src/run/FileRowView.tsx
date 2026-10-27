@@ -83,12 +83,12 @@ export function FileRowView({
           <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
             {item.name}
             {item.subtitlePath && (
-              <span className="stg:ml-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+              <span className="stg:ml-1.5 stg:text-2xs stg:text-muted-foreground">
                 {item.subtitlePath}
               </span>
             )}
           </span>
-          <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground-faint">
+          <span className="stg:shrink-0 stg:tabular-nums stg:text-2xs stg:text-muted-foreground-faint">
             {formatFileSize(item.sizeBytes)}
           </span>
         </TooltipTrigger>

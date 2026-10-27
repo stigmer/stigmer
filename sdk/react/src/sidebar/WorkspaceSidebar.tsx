@@ -288,7 +288,7 @@ function WantsHumanBadge({ count }: { readonly count: number }) {
     <span className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center">
       <span
         aria-hidden="true"
-        className="stg:bg-sidebar-primary stg:text-sidebar-primary-foreground stg:rounded-full stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:leading-none stg:font-semibold stg:tabular-nums"
+        className="stg:bg-sidebar-primary stg:text-sidebar-primary-foreground stg:rounded-full stg:px-1.5 stg:py-0.5 stg:text-2xs stg:leading-none stg:font-semibold stg:tabular-nums"
       >
         {count > 99 ? "99+" : count}
       </span>
@@ -320,7 +320,7 @@ function ActivityGroupList({
         {groups.map((group) => (
           <div key={group.label}>
             {/* One step below the section label: same voice, 10px. */}
-            <p className="stg:text-sidebar-muted-foreground stg:mb-1 stg:px-2 stg:text-[10px] stg:font-medium stg:tracking-wide stg:uppercase">
+            <p className="stg:text-sidebar-muted-foreground stg:mb-1 stg:px-2 stg:text-2xs stg:font-medium stg:tracking-wide stg:uppercase">
               {group.label}
             </p>
             <ul className={`${UNSTYLED_LIST} stg:space-y-0.5`} role="list">
@@ -370,7 +370,7 @@ const ActivityEntry = memo(function ActivityEntry({
         <span className="stg:line-clamp-2 stg:flex-1">{entry.subject}</span>
         {/* Last-activity stamp: the list sorts by activity, so the row
             says when it last moved ("2h"). */}
-        <span className="stg:shrink-0 stg:text-[10px] stg:leading-tight stg:text-sidebar-muted-foreground stg:tabular-nums">
+        <span className="stg:shrink-0 stg:text-2xs stg:leading-tight stg:text-sidebar-muted-foreground stg:tabular-nums">
           {formatRelativeTime(entry.updatedAt, now)}
         </span>
         {renderEntryAccessory?.(entry)}

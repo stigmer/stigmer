@@ -107,7 +107,7 @@ export function AgentEnvironmentSection({
             defaultLabel={inheritedRowLabel(inherited, nameOf)}
             disabled={isSaving}
           />
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             The packages and network a conversation on this agent gets when the conversation names no environment.
           </p>
           <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">

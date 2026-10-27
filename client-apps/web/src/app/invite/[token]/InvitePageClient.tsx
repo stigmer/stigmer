@@ -79,12 +79,12 @@ export default function InvitePageClient() {
   }, []);
 
   return (
-    <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <StigmerProvider client={client} colorMode={colorMode}>
+      <div className="bg-background flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center">
             <StigmerLogo />
-            <h1 className="mt-4 text-lg font-semibold text-foreground">
+            <h1 className="text-foreground mt-4 text-lg font-semibold">
               You&rsquo;re invited
             </h1>
           </div>

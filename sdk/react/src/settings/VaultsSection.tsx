@@ -62,7 +62,7 @@ function MyVaultCard({ org }: { org: string }) {
         <h2 id={headingId} className="stg:text-foreground stg:text-sm stg:font-semibold">
           My vault
         </h2>
-        <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wider">
+        <span className="stg:bg-primary-subtle stg:text-primary stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider">
           You
         </span>
       </div>

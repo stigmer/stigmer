@@ -143,7 +143,7 @@ export function WorkspaceEditor({
         <button
           type="button"
           onClick={goBack}
-          className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-sm stg:text-[0.65rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+          className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-sm stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           <ChevronLeftIcon />
           Back
@@ -196,7 +196,7 @@ export function WorkspaceEditor({
                 className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:border stg:border-border stg:bg-muted-faint stg:px-2.5 stg:py-1.5 stg:text-xs"
               >
                 {TYPE_LABELS[entry.type] ? (
-                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
+                  <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:text-muted-foreground">
                     {TYPE_LABELS[entry.type]}
                   </span>
                 ) : (
@@ -306,13 +306,13 @@ function GitHubPanel({
           <p className="stg:text-xs stg:font-medium stg:text-foreground">
             Choose a GitHub repo to add to workspace
           </p>
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Connect your GitHub account so the agent can access your repos
           </p>
         </div>
         {connection.popupBlocked ? (
           <div className="stg:space-y-2">
-            <p className="stg:text-[0.65rem] stg:text-destructive">
+            <p className="stg:text-2xs stg:text-destructive">
               Popup was blocked by your browser. Allow popups for this site, then try again.
             </p>
             <div className="stg:flex stg:items-center stg:justify-center stg:gap-2">
@@ -337,7 +337,7 @@ function GitHubPanel({
           </button>
         )}
         {connection.connectError && !connection.popupBlocked && (
-          <p role="alert" className="stg:text-[0.65rem] stg:text-destructive">
+          <p role="alert" className="stg:text-2xs stg:text-destructive">
             Could not connect GitHub: {getUserMessage(connection.connectError)}
           </p>
         )}
@@ -363,13 +363,13 @@ function GitHubPanel({
         <button
           type="button"
           onClick={connection.disconnect}
-          className="stg:rounded-sm stg:text-[0.6rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+          className="stg:rounded-sm stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-destructive stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
         >
           Disconnect
         </button>
       </div>
       {connection.disconnectError && (
-        <p role="alert" className="stg:text-[0.65rem] stg:text-destructive">
+        <p role="alert" className="stg:text-2xs stg:text-destructive">
           Could not disconnect GitHub: {getUserMessage(connection.disconnectError)}
         </p>
       )}
@@ -470,7 +470,7 @@ function GitHubConnectingState({ onCancel }: { onCancel: () => void }) {
       <button
         type="button"
         onClick={onCancel}
-        className="stg:rounded-sm stg:text-[0.65rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+        className="stg:rounded-sm stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
       >
         Cancel
       </button>

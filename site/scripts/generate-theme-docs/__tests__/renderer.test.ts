@@ -3,7 +3,8 @@
  * default token under its `@group` heading with its light and dark values;
  * the presets page tables each preset, shows a preset's CSS import from
  * `@stigmer/design-tokens` and its class, and lists only the tokens that
- * preset overrides, in the defaults' order. Both carry the do-not-edit
+ * preset overrides, in the defaults' order (a preset that overrides
+ * nothing says so in a sentence, with no table). Both carry the do-not-edit
  * banner. The input is hand-built token maps.
  */
 
@@ -85,5 +86,16 @@ describe("renderPresetsPage", () => {
         '| `--stgm-radius` | <TokenValue v="0.25rem" /> | — |\n',
     );
     expect(section).not.toContain("--stgm-background");
+  });
+
+  it("says in words that a preset overriding nothing is the default look, with no table", () => {
+    const named: PresetDoc = {
+      meta: { id: "monochrome", name: "Monochrome", className: "stgm-theme-monochrome", description: "The default look, named", swatch: "oklch(0.15 0 0)" },
+      tokens: tokens([]),
+    };
+    const mdx = renderPresetsPage(DEFAULTS, [named, CORPORATE]);
+    const section = mdx.slice(mdx.indexOf("## Monochrome"), mdx.indexOf("## Corporate"));
+    expect(section).toContain("It overrides no token: it is the default look under a name.\n");
+    expect(section).not.toContain("| Token |");
   });
 });

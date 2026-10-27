@@ -76,7 +76,7 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
         <>
           {hasSignInRoleProviders && (
             <div className="stg:mb-3 stg:rounded-md stg:border stg:border-border-muted stg:bg-muted-faint stg:px-3 stg:py-2">
-              <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+              <p className="stg:text-2xs stg:text-muted-foreground">
                 This organization has federation issuers that grant a sign-in
                 role. People appear here the first time they sign in through
                 one of them.

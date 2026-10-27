@@ -156,7 +156,7 @@ function PhaseCaption({
   return (
     <span
       className={cn(
-        "stg:shrink-0 stg:text-[10px] stg:font-medium stg:tabular-nums",
+        "stg:shrink-0 stg:text-2xs stg:font-medium stg:tabular-nums",
         phase === WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED
           ? "stg:text-destructive"
           : "stg:text-muted-foreground",

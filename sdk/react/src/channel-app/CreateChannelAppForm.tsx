@@ -230,7 +230,7 @@ export function CreateChannelAppForm({
       </div>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}
@@ -353,7 +353,7 @@ function SlackCreateSection({
         <p className="stg:text-xs stg:font-medium stg:text-foreground">
           1. Create the Slack app
         </p>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           On{" "}
           <a
             href="https://api.slack.com/apps?new_app=1"
@@ -378,7 +378,7 @@ function SlackCreateSection({
         <p className="stg:text-xs stg:font-medium stg:text-foreground">
           2. Paste the app&apos;s credentials
         </p>
-        <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:-mt-2 stg:text-2xs stg:text-muted-foreground">
           From the app&apos;s <span className="stg:font-medium">Basic
           Information</span> page. They are encrypted at rest and never
           shown again.
@@ -453,7 +453,7 @@ function WhatsAppCreateSection({
         <p className="stg:text-xs stg:font-medium stg:text-foreground">
           1. Create the Meta app
         </p>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           On{" "}
           <a
             href="https://developers.facebook.com/apps"
@@ -474,7 +474,7 @@ function WhatsAppCreateSection({
         <p className="stg:text-xs stg:font-medium stg:text-foreground">
           2. Paste the app&apos;s credentials
         </p>
-        <p className="stg:-mt-2 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:-mt-2 stg:text-2xs stg:text-muted-foreground">
           The app ID and secret are on <span className="stg:font-medium">App
           settings → Basic</span>; mint a long-lived system-user access
           token with WhatsApp permissions in Meta Business settings. The

@@ -209,7 +209,7 @@ export function EnvVarForm({
         <div className="stg:space-y-0.5">
           <h3 className="stg:text-xs stg:font-medium stg:text-foreground">{title}</h3>
           {description && (
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               {description}
             </p>
           )}
@@ -232,11 +232,11 @@ export function EnvVarForm({
               <div key={variable.key} className="stg:space-y-1">
                 <label
                   htmlFor={inputId}
-                  className="stg:flex stg:items-baseline stg:gap-1.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
+                  className="stg:flex stg:items-baseline stg:gap-1.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
                 >
                   <span className="stg:font-mono">{variable.key}</span>
                   {variable.isSecret && (
-                    <span className="stg:text-[0.55rem] stg:uppercase stg:tracking-wider stg:text-muted-foreground-subtle">
+                    <span className="stg:text-2xs stg:uppercase stg:tracking-wider stg:text-muted-foreground-subtle">
                       secret
                     </span>
                   )}
@@ -289,13 +289,13 @@ export function EnvVarForm({
                 {variable.description && (
                   <p
                     id={descId}
-                    className="stg:text-[0.6rem] stg:leading-relaxed stg:text-muted-foreground-subtle"
+                    className="stg:text-2xs stg:leading-relaxed stg:text-muted-foreground-subtle"
                   >
                     {variable.description}
                   </p>
                 )}
                 {prefilledKeys.has(variable.key) && (
-                  <p className="stg:text-[0.55rem] stg:text-primary-muted">
+                  <p className="stg:text-2xs stg:text-primary-muted">
                     Pre-filled
                   </p>
                 )}

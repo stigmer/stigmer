@@ -288,7 +288,7 @@ export function OrgProfilePanel({
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             The display name shown in the sidebar and across the platform.
           </p>
         </div>
@@ -316,7 +316,7 @@ export function OrgProfilePanel({
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             {description.length}/{DESCRIPTION_MAX_LEN} characters
           </p>
         </div>
@@ -344,7 +344,7 @@ export function OrgProfilePanel({
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           />
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             A public URL to your organization&apos;s logo image.
           </p>
           <LogoPreview url={logoUrl.trim()} />
@@ -353,7 +353,7 @@ export function OrgProfilePanel({
 
       {/* -- Error feedback -- */}
       {updateError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {saveErrorMessage(updateError, "organization")}
         </p>
       )}
@@ -419,7 +419,7 @@ function FederationIssuersSummary({ orgId }: { orgId: string }) {
     <>
       <hr className="stg:border-border" />
       <div className="stg:space-y-2">
-        <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
+        <p className="stg:text-2xs stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
           Federation Issuers
         </p>
 
@@ -455,7 +455,7 @@ function FederationIssuersSummary({ orgId }: { orgId: string }) {
                   <ShieldSmallIcon />
                   <span className="stg:text-foreground stg:truncate">{displayName}</span>
                   {isJit && (
-                    <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-[0.6rem] stg:font-medium stg:text-primary">
+                    <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-2xs stg:font-medium stg:text-primary">
                       JIT
                     </span>
                   )}
@@ -464,7 +464,7 @@ function FederationIssuersSummary({ orgId }: { orgId: string }) {
             })}
             <a
               href="/settings/federation-issuers"
-              className="stg:inline-block stg:text-[0.65rem] stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
+              className="stg:inline-block stg:text-2xs stg:text-primary stg:hover:text-primary-hover stg:underline stg:underline-offset-2"
             >
               Manage
             </a>
@@ -545,7 +545,7 @@ function ReadOnlyField({
 
   return (
     <div className="stg:space-y-0.5">
-      <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
+      <p className="stg:text-2xs stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider">
         {label}
       </p>
       <div className="stg:flex stg:items-center stg:gap-2">
@@ -561,7 +561,7 @@ function ReadOnlyField({
           type="button"
           onClick={() => void copy(value)}
           className={cn(
-            "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem]",
+            "stg:rounded stg:px-1.5 stg:py-0.5 stg:text-2xs",
             "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
             "stg:transition-colors",
           )}

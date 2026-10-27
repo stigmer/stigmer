@@ -41,7 +41,7 @@ falls through to the defaults. Apply one via the `preset` prop on
 | `startup` | `stgm-theme-startup` | Modern dev tools — clean, monochrome, violet accent, minimal |
 | `friendly` | `stgm-theme-friendly` | Consumer SaaS — very rounded, warm coral, cream surfaces |
 | `fintech` | `stgm-theme-fintech` | Premium financial — sharp corners, indigo, crisp, dark sidebar |
-| `monochrome` | `stgm-theme-monochrome` | Black-and-white editorial — zero chroma, typographic, sharp |
+| `monochrome` | `stgm-theme-monochrome` | The default look, named; kept for code that sets it explicitly |
 
 ```tsx
 import "@stigmer/design-tokens/tokens.css";
@@ -300,61 +300,6 @@ Premium financial — sharp corners, indigo, crisp, dark sidebar — `import "@s
 
 ## Monochrome
 
-Black-and-white editorial — zero chroma, typographic, sharp — `import "@stigmer/design-tokens/presets/monochrome.css"`, class `stgm-theme-monochrome`.
+The default look, named; kept for code that sets it explicitly — `import "@stigmer/design-tokens/presets/monochrome.css"`, class `stgm-theme-monochrome`.
 
-| Token | Light | Dark |
-|-------|-------|------|
-| `--stgm-radius` | <TokenValue v="0.375rem" /> | — |
-| `--stgm-background` | <TokenValue v="oklch(0.99 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> |
-| `--stgm-foreground` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-card` | <TokenValue v="oklch(1 0 0)" /> | <TokenValue v="oklch(0.21 0 0)" /> |
-| `--stgm-card-foreground` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-popover` | <TokenValue v="oklch(1 0 0)" /> | <TokenValue v="oklch(0.24 0 0)" /> |
-| `--stgm-popover-foreground` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-primary` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-primary-foreground` | <TokenValue v="oklch(0.99 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> |
-| `--stgm-secondary` | <TokenValue v="oklch(0.96 0 0)" /> | <TokenValue v="oklch(0.21 0 0)" /> |
-| `--stgm-secondary-foreground` | <TokenValue v="oklch(0.25 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-muted` | <TokenValue v="oklch(0.96 0 0)" /> | <TokenValue v="oklch(0.21 0 0)" /> |
-| `--stgm-muted-foreground` | <TokenValue v="oklch(0.45 0 0)" /> | <TokenValue v="oklch(0.64 0 0)" /> |
-| `--stgm-avatar` | <TokenValue v="oklch(0.96 0 0)" /> | <TokenValue v="oklch(0.31 0 0)" /> |
-| `--stgm-accent` | <TokenValue v="oklch(0.96 0 0)" /> | <TokenValue v="oklch(0.25 0 0)" /> |
-| `--stgm-accent-foreground` | <TokenValue v="oklch(0.25 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-border` | <TokenValue v="oklch(0.92 0 0)" /> | <TokenValue v="oklch(0.27 0 0)" /> |
-| `--stgm-input` | <TokenValue v="oklch(0.92 0 0)" /> | <TokenValue v="oklch(0.32 0 0)" /> |
-| `--stgm-input-bg` | <TokenValue v="oklch(1 0 0)" /> | <TokenValue v="oklch(0.21 0 0)" /> |
-| `--stgm-ring` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-chart-1` | <TokenValue v="oklch(0.25 0 0)" /> | <TokenValue v="oklch(0.85 0 0)" /> |
-| `--stgm-chart-2` | <TokenValue v="oklch(0.40 0 0)" /> | <TokenValue v="oklch(0.70 0 0)" /> |
-| `--stgm-chart-3` | <TokenValue v="oklch(0.55 0 0)" /> | <TokenValue v="oklch(0.55 0 0)" /> |
-| `--stgm-chart-4` | <TokenValue v="oklch(0.70 0 0)" /> | <TokenValue v="oklch(0.40 0 0)" /> |
-| `--stgm-chart-5` | <TokenValue v="oklch(0.82 0 0)" /> | <TokenValue v="oklch(0.28 0 0)" /> |
-| `--stgm-shadow-sm` | <TokenValue v="0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 1px -1px rgb(0 0 0 / 0.03)" /> | <TokenValue v="0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 1px -1px rgb(0 0 0 / 0.18)" /> |
-| `--stgm-shadow-md` | <TokenValue v="0 3px 5px -1px rgb(0 0 0 / 0.05), 0 1px 3px -2px rgb(0 0 0 / 0.04)" /> | <TokenValue v="0 3px 5px -1px rgb(0 0 0 / 0.24), 0 1px 3px -2px rgb(0 0 0 / 0.20)" /> |
-| `--stgm-shadow-lg` | <TokenValue v="0 8px 12px -3px rgb(0 0 0 / 0.06), 0 3px 5px -4px rgb(0 0 0 / 0.04)" /> | <TokenValue v="0 8px 12px -3px rgb(0 0 0 / 0.28), 0 3px 5px -4px rgb(0 0 0 / 0.22)" /> |
-| `--stgm-transition-duration` | <TokenValue v="100ms" /> | — |
-| `--stgm-transition-timing` | <TokenValue v="cubic-bezier(0, 0, 0.2, 1)" /> | — |
-| `--stgm-primary-hover` | <TokenValue v="oklch(0.25 0 0)" /> | <TokenValue v="oklch(0.88 0 0)" /> |
-| `--stgm-primary-subtle` | <TokenValue v="oklch(0.96 0 0)" /> | <TokenValue v="oklch(0.21 0 0)" /> |
-| `--stgm-destructive-subtle` | <TokenValue v="oklch(0.96 0.02 25)" /> | <TokenValue v="oklch(0.21 0.03 25)" /> |
-| `--stgm-muted-subtle` | <TokenValue v="oklch(0.97 0 0)" /> | <TokenValue v="oklch(0.20 0 0)" /> |
-| `--stgm-muted-foreground-subtle` | <TokenValue v="oklch(0.55 0 0)" /> | <TokenValue v="oklch(0.55 0 0)" /> |
-| `--stgm-accent-hover` | <TokenValue v="oklch(0.97 0 0)" /> | <TokenValue v="oklch(0.22 0 0)" /> |
-| `--stgm-destructive-hover` | <TokenValue v="oklch(0.52 0.22 27.325)" /> | <TokenValue v="oklch(0.64 0.17 22)" /> |
-| `--stgm-foreground-hover` | <TokenValue v="oklch(0.20 0 0)" /> | <TokenValue v="oklch(0.88 0 0)" /> |
-| `--stgm-border-muted` | <TokenValue v="oklch(0.95 0 0)" /> | <TokenValue v="oklch(0.22 0 0)" /> |
-| `--stgm-muted-faint` | <TokenValue v="oklch(0.98 0 0)" /> | <TokenValue v="oklch(0.17 0 0)" /> |
-| `--stgm-primary-muted` | <TokenValue v="oklch(0.40 0 0)" /> | <TokenValue v="oklch(0.80 0 0)" /> |
-| `--stgm-destructive-muted` | <TokenValue v="oklch(0.65 0.12 27.325)" /> | <TokenValue v="oklch(0.60 0.10 22)" /> |
-| `--stgm-muted-foreground-faint` | <TokenValue v="oklch(0.63 0 0)" /> | <TokenValue v="oklch(0.5 0 0)" /> |
-| `--stgm-backdrop` | <TokenValue v="oklch(0.99 0 0 / 80%)" /> | <TokenValue v="oklch(0.145 0 0 / 80%)" /> |
-| `--stgm-sidebar` | <TokenValue v="oklch(0.97 0 0)" /> | <TokenValue v="oklch(0.11 0 0)" /> |
-| `--stgm-sidebar-foreground` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-sidebar-primary` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-sidebar-primary-foreground` | <TokenValue v="oklch(0.99 0 0)" /> | <TokenValue v="oklch(0.145 0 0)" /> |
-| `--stgm-sidebar-muted` | <TokenValue v="oklch(0.94 0 0)" /> | <TokenValue v="oklch(0.18 0 0)" /> |
-| `--stgm-sidebar-muted-foreground` | <TokenValue v="oklch(0.45 0 0)" /> | <TokenValue v="oklch(0.6 0 0)" /> |
-| `--stgm-sidebar-accent` | <TokenValue v="oklch(0.94 0 0)" /> | <TokenValue v="oklch(0.20 0 0)" /> |
-| `--stgm-sidebar-accent-foreground` | <TokenValue v="oklch(0.25 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
-| `--stgm-sidebar-border` | <TokenValue v="oklch(0.92 0 0)" /> | <TokenValue v="oklch(0.24 0 0)" /> |
-| `--stgm-sidebar-ring` | <TokenValue v="oklch(0.15 0 0)" /> | <TokenValue v="oklch(0.96 0 0)" /> |
+It overrides no token: it is the default look under a name.

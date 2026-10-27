@@ -291,12 +291,12 @@ export function OAuthAppDetailPanel({
           <p className="stg:text-foreground stg:mb-2 stg:text-xs stg:font-medium">
             Delete this OAuth app?
           </p>
-          <p className="stg:text-muted-foreground stg:mb-3 stg:text-[0.65rem]">
+          <p className="stg:text-muted-foreground stg:mb-3 stg:text-2xs">
             This action is permanent. Any MCP server overrides referencing
             this app will lose their binding.
           </p>
           {deleteError && (
-            <p className="stg:text-destructive stg:mb-2 stg:text-[0.65rem]" role="alert">
+            <p className="stg:text-destructive stg:mb-2 stg:text-2xs" role="alert">
               {getUserMessage(deleteError)}
             </p>
           )}
@@ -500,7 +500,7 @@ export function OAuthAppDetailPanel({
           />
 
           {updateError && (
-            <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+            <p className="stg:text-destructive stg:text-2xs" role="alert">
               {saveErrorMessage(updateError, "OAuth app")}
             </p>
           )}
@@ -685,7 +685,7 @@ function Field({
   if (!value) return null;
   return (
     <div>
-      <dt className="stg:text-muted-foreground stg:text-[0.65rem] stg:font-medium">
+      <dt className="stg:text-muted-foreground stg:text-2xs stg:font-medium">
         {label}
       </dt>
       <dd
@@ -742,7 +742,7 @@ function FieldInput({
         )}
       />
       {hint && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
+        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );

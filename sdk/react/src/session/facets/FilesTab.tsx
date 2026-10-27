@@ -223,7 +223,7 @@ export function FilesTab({
 function FileGroup({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
     <section aria-label={title} className="stg:flex stg:flex-col stg:pb-2">
-      <h3 className="stg:px-2 stg:pb-1 stg:pt-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground-faint">
+      <h3 className="stg:px-2 stg:pb-1 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground-faint">
         {title}
       </h3>
       <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col`}>
@@ -264,7 +264,7 @@ function OutputRow({
             type="button"
             aria-expanded={expanded}
             onClick={() => setExpanded((open) => !open)}
-            className="stg:self-start stg:px-2 stg:pb-1 stg:pl-8 stg:text-[0.65rem] stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
+            className="stg:self-start stg:px-2 stg:pb-1 stg:pl-8 stg:text-2xs stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring"
           >
             {expanded ? "Hide" : "Show"} {count} earlier {count === 1 ? "version" : "versions"}
           </button>

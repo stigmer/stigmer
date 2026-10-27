@@ -207,7 +207,7 @@ function OptionCard({
         <span className="stg:text-xs stg:text-muted-foreground">{description}</span>
       </div>
       {badge && (
-        <span className="stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-muted-foreground">
+        <span className="stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
           {badge}
         </span>
       )}

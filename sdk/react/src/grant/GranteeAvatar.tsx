@@ -28,7 +28,7 @@ export function GranteeAvatar({ kind, name, className }: GranteeAvatarProps) {
   return (
     <div
       className={cn(
-        "stg:flex stg:h-6 stg:w-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-avatar stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground",
+        "stg:flex stg:h-6 stg:w-6 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-full stg:bg-avatar stg:text-2xs stg:font-medium stg:text-muted-foreground",
         className,
       )}
       aria-hidden="true"

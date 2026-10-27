@@ -533,7 +533,7 @@ export function NewSessionViewer({
 
         {footerContent}
 
-        <p className="stg:text-center stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-center stg:text-2xs stg:text-muted-foreground">
           Press Enter to send, Shift+Enter for a new line
         </p>
       </div>

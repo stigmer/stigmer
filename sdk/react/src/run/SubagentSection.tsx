@@ -200,7 +200,7 @@ function CollapsibleCard({
         )}
         <span
           className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none",
+            "stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none",
             statusInfo.badgeClass,
           )}
         >
@@ -452,13 +452,13 @@ const SUB_AGENT_STATUS_MAP: Record<Thread["state"], SubagentStatusInfo> = {
   completed: {
     label: "Completed",
     colorClass: "stg:text-success",
-    badgeClass: "stg:bg-success/15 stg:text-success",
+    badgeClass: "stg:bg-status-ready-subtle stg:text-status-ready",
     icon: CheckCircleIcon,
   },
   failed: {
     label: "Failed",
     colorClass: "stg:text-destructive",
-    badgeClass: "stg:bg-destructive/15 stg:text-destructive",
+    badgeClass: "stg:bg-status-failed-subtle stg:text-status-failed",
     icon: XCircleIcon,
   },
   // Its turn ended before the subagent finished.

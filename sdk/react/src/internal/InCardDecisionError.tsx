@@ -38,7 +38,7 @@ export function InCardDecisionError({
   return (
     <p
       role="alert"
-      className="stg:text-[11px] stg:text-destructive"
+      className="stg:text-2xs stg:text-destructive"
       data-cursor-target={cursorTarget}
     >
       Couldn&rsquo;t {leadIn} — {error.message}

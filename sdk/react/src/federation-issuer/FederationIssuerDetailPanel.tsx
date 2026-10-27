@@ -266,7 +266,7 @@ export function FederationIssuerDetailPanel({
           />
 
           {error && (
-            <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+            <p className="stg:text-destructive stg:text-2xs" role="alert">
               {saveErrorMessage(error, "federation issuer")}
             </p>
           )}
@@ -380,7 +380,7 @@ function Field({
   if (!value) return null;
   return (
     <div>
-      <dt className="stg:text-muted-foreground stg:text-[0.65rem] stg:font-medium">
+      <dt className="stg:text-muted-foreground stg:text-2xs stg:font-medium">
         {label}
       </dt>
       <dd
@@ -439,7 +439,7 @@ function FieldInput({
         )}
       />
       {hint && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
+        <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );
@@ -452,7 +452,7 @@ function FieldInput({
 function ProvisioningModeBadge({ spec }: { spec: FederationIssuer["spec"] }) {
   if (spec?.createAccountsOnSignIn) {
     return (
-      <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
+      <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
         JIT
       </span>
     );

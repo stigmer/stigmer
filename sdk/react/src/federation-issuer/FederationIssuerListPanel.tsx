@@ -190,7 +190,7 @@ function IssuerRow({
             Delete <span className="stg:font-medium">{name}</span>?
           </p>
           {error && (
-            <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
+            <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
               {getUserMessage(error)}
             </p>
           )}
@@ -247,7 +247,7 @@ function IssuerRow({
 
       <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
         {isJit && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
+          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
             JIT
           </span>
         )}

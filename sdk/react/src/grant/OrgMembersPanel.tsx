@@ -174,7 +174,7 @@ export function OrgMembersPanel({
       <div className="stg:flex stg:items-center stg:gap-2">
         <span className="stg:text-sm stg:font-semibold stg:text-foreground">Members</span>
         {people.length > 0 && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
             {people.length}
           </span>
         )}
@@ -205,7 +205,7 @@ export function OrgMembersPanel({
             <span className="stg:text-xs stg:font-medium stg:text-foreground">
               Users from your product
             </span>
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
               {productUsers.length}
             </span>
           </button>
@@ -240,7 +240,7 @@ export function OrgMembersPanel({
             <span className="stg:text-xs stg:font-medium stg:text-foreground">
               Service accounts
             </span>
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
               {serviceAccounts.length}
             </span>
           </button>
@@ -415,7 +415,7 @@ function MemberRow({
             {name}
           </span>
           {isSelf && (
-            <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground">
+            <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
               You
             </span>
           )}
@@ -472,7 +472,7 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
         render={
           <span
             className={cn(
-              "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium",
+              "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
               grant.isInherited
                 ? "stg:border-border-muted stg:text-muted-foreground stg:bg-muted-subtle stg:italic"
                 : "stg:border-border stg:bg-muted stg:text-foreground",
@@ -482,7 +482,7 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
       >
         {roleName}
         {grant.isInherited && (
-          <span className="stg:ml-1 stg:text-[0.55rem] stg:text-muted-foreground">
+          <span className="stg:ml-1 stg:text-2xs stg:text-muted-foreground">
             (inherited)
           </span>
         )}
@@ -536,7 +536,7 @@ function RemoveConfirmation({
           <RemoveCopy audience={audience} memberName={memberName} />
         </p>
         {error && (
-          <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
+          <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
             {getUserMessage(error)}
           </p>
         )}
@@ -712,7 +712,7 @@ function ChangeRoleRow({
       />
 
       {error && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}

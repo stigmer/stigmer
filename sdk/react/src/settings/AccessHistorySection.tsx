@@ -205,7 +205,7 @@ function AccessHistoryRow({ entry }: { readonly entry: AccessHistoryEntry }) {
   return (
     <li className="stg:rounded-md stg:px-2 stg:py-1.5 stg:hover:bg-accent-hover">
       <p className="stg:text-foreground stg:text-xs">{sentence}</p>
-      <p className="stg:text-muted-foreground stg:text-[0.6rem]">
+      <p className="stg:text-muted-foreground stg:text-2xs">
         {when ? `${when} · ` : ""}
         {CAUSE_WORDS[entry.cause] ?? CAUSE_WORDS[AccessChangeCause.access_change_cause_unspecified]}
         {` · #${entry.sequence.toString()}`}

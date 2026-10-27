@@ -92,7 +92,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
       <div className="stg:flex stg:items-center stg:gap-2">
         <h4 className="stg:text-xs stg:font-semibold stg:text-foreground">Members</h4>
         {!isLoading && accessList.length > 0 && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
             {accessList.length}
           </span>
         )}
@@ -105,7 +105,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
       )}
 
       {fetchError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(fetchError)}
         </p>
       )}
@@ -128,7 +128,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
       )}
 
       {revokeError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(revokeError)}
         </p>
       )}
@@ -164,7 +164,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
         {grantError && planUpgradeFeature(grantError) === Feature.teams ? (
           <UpgradeNotice feature={Feature.teams} error={grantError} className="stg:mt-1" />
         ) : grantError ? (
-          <p className="stg:mt-1 stg:text-destructive stg:text-[0.65rem]" role="alert">
+          <p className="stg:mt-1 stg:text-destructive stg:text-2xs" role="alert">
             {getUserMessage(grantError)}
           </p>
         ) : null}

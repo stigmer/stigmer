@@ -116,6 +116,8 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   pair("--stgm-card-foreground", "--stgm-card", "text", "card bodies (ApprovalCard, TodoCard, plan cards)"),
   pair("--stgm-popover-foreground", "--stgm-popover", "text", "dropdowns, dialogs, menus"),
   pair("--stgm-primary-foreground", "--stgm-primary", "text", "primary buttons (composer send, approval Approve)"),
+  pair("--stgm-primary", "--stgm-background", "text", "links and primary-coloured text on the page (stg:text-primary)"),
+  pair("--stgm-primary", "--stgm-card", "text", "links and primary-coloured text inside cards"),
   pair("--stgm-secondary-foreground", "--stgm-secondary", "text", "secondary buttons"),
   pair("--stgm-accent-foreground", "--stgm-accent", "text", "hovered menu items, selected rows"),
   pair("--stgm-muted-foreground", "--stgm-muted", "text", "supporting text in muted panels (ExecutionErrorNotice interrupted state)"),

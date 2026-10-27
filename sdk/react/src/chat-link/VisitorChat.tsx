@@ -244,7 +244,7 @@ export function VisitorChat({
             href="https://stigmer.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
+            className="stg:text-2xs stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
           >
             Powered by Stigmer
           </a>

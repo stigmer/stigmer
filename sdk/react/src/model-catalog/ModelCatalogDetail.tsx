@@ -45,12 +45,12 @@ export function ModelCatalogDetail({
           <h4 className="stg:flex stg:flex-wrap stg:items-center stg:gap-2 stg:text-sm stg:font-semibold stg:text-foreground">
             {baseline.displayName || baseline.modelId}
             {baseline.featured && (
-              <span className="stg:rounded stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-[10px] stg:font-medium stg:text-primary">
+              <span className="stg:rounded stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-primary">
                 Featured
               </span>
             )}
           </h4>
-          <p className="stg:mt-0.5 stg:text-[11px] stg:text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
             {baseline.modelId} · {baseline.provider} · {baseline.harness}
             {baseline.shortDescription ? ` — ${baseline.shortDescription}` : ""}
           </p>
@@ -70,13 +70,13 @@ export function ModelCatalogDetail({
 
       {/* ── rate card ───────────────────────────────────────────────────── */}
       <section aria-label="Rates">
-        <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+        <h5 className="stg:mb-1.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Rates ($ per million tokens)
         </h5>
         <div className="stg:rounded-md stg:border stg:border-border-muted" role="table" aria-label="Baseline rates">
           <div
             role="row"
-            className="stg:grid stg:grid-cols-[1.5fr_1fr] stg:gap-2 stg:border-b stg:border-border-muted stg:px-2.5 stg:py-1.5 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
+            className="stg:grid stg:grid-cols-[1.5fr_1fr] stg:gap-2 stg:border-b stg:border-border-muted stg:px-2.5 stg:py-1.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
           >
             <span role="columnheader">Rate</span>
             <span role="columnheader" className="stg:text-right">Price</span>
@@ -99,21 +99,21 @@ export function ModelCatalogDetail({
       {/* ── variants ─────────────────────────────────────────────────────── */}
       {Object.keys(baseline.pricingVariants).length > 0 && (
         <section aria-label="Pricing variants">
-          <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+          <h5 className="stg:mb-1.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
             Variants
           </h5>
           <div className="stg:space-y-2">
             {Object.entries(baseline.pricingVariants).map(([key, variant]) => (
               <div key={key} className="stg:rounded-md stg:border stg:border-border-muted stg:px-2.5 stg:py-2">
                 <p className="stg:text-xs stg:font-medium stg:text-foreground">{key}</p>
-                <p className="stg:mt-0.5 stg:text-[11px] stg:text-muted-foreground">
+                <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
                   {blockRates(variant.pricing)
                     .filter(([, micros]) => micros > ZERO)
                     .map(([label, micros]) => `${label} ${formatRate(micros)}`)
                     .join(" · ") || "No rates set"}
                 </p>
                 {variant.wireIds.length > 0 && (
-                  <p className="stg:mt-0.5 stg:text-[11px] stg:text-muted-foreground">
+                  <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
                     Wire ids: {variant.wireIds.join(", ")}
                   </p>
                 )}
@@ -125,7 +125,7 @@ export function ModelCatalogDetail({
 
       {/* ── catalog metadata ─────────────────────────────────────────────── */}
       <section aria-label="Catalog metadata">
-        <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+        <h5 className="stg:mb-1.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Catalog
         </h5>
         <dl className="stg:grid stg:grid-cols-2 stg:gap-x-4 stg:gap-y-1 stg:text-xs stg:sm:grid-cols-3">
@@ -146,17 +146,17 @@ export function ModelCatalogDetail({
 
       {/* ── revision history ─────────────────────────────────────────────── */}
       <section aria-label="Revision history">
-        <h5 className="stg:mb-1.5 stg:text-[11px] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+        <h5 className="stg:mb-1.5 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
           Revision History
         </h5>
         {row.history.length === 0 ? (
-          <p className="stg:text-[11px] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             No previous revisions — this is the original entry.
           </p>
         ) : (
           <div className="stg:space-y-1">
             {row.history.map((revision) => (
-              <p key={revision.baselineId} className="stg:text-[11px] stg:text-muted-foreground">
+              <p key={revision.baselineId} className="stg:text-2xs stg:text-muted-foreground">
                 {revision.status === ModelPricingBaselineStatus.pricing_baseline_retired
                   ? "Retired"
                   : "Superseded"}
@@ -178,7 +178,7 @@ export function ModelCatalogDetail({
 function MetaItem({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div>
-      <dt className="stg:text-[11px] stg:text-muted-foreground">{label}</dt>
+      <dt className="stg:text-2xs stg:text-muted-foreground">{label}</dt>
       <dd className="stg:text-foreground">{value}</dd>
     </div>
   );

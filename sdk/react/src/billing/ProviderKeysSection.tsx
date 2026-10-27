@@ -170,7 +170,7 @@ function ProviderKeysContent({ org }: { readonly org: string }) {
           {getUserMessage(actions.error)}
         </p>
       )}
-      <p className="stg:text-muted-foreground stg:text-[0.65rem]">
+      <p className="stg:text-muted-foreground stg:text-2xs">
         A failure on your key, such as a rejected key, an exhausted provider balance or a usage limit, is reported as
         your key&apos;s.
         Stigmer never serves a call on keys of its own.
@@ -242,7 +242,7 @@ function ProviderRow({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           <p className="stg:text-foreground stg:text-xs stg:font-medium">{provider.name}</p>
-          <p className="stg:text-muted-foreground stg:text-[0.7rem]">{describe(stored, provider.name)}</p>
+          <p className="stg:text-muted-foreground stg:text-2xs">{describe(stored, provider.name)}</p>
         </div>
         {!editing && !confirming && (
           <div className="stg:flex stg:shrink-0 stg:gap-2">
@@ -334,12 +334,12 @@ function ProviderRow({
             </div>
           )}
           {provider.keyHint !== null && (
-            <p id={keyHintId} className="stg:text-muted-foreground stg:w-full stg:text-[0.65rem]">
+            <p id={keyHintId} className="stg:text-muted-foreground stg:w-full stg:text-2xs">
               {provider.keyHint}
             </p>
           )}
           {provider.baseUrlExample !== null && (
-            <p id={baseUrlHintId} className="stg:text-muted-foreground stg:w-full stg:text-[0.65rem]">
+            <p id={baseUrlHintId} className="stg:text-muted-foreground stg:w-full stg:text-2xs">
               Empty uses {provider.name}&apos;s own API. For your own {provider.name}-compatible endpoint, give an
               https URL as {provider.name}&apos;s SDK takes it, such as {provider.baseUrlExample}.
             </p>

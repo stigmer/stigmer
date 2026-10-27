@@ -404,7 +404,7 @@ export function GitHubRepoPicker({
         </div>
 
         <div className="stg:space-y-1.5">
-          <label className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <label className="stg:text-2xs stg:text-muted-foreground">
             Branch
           </label>
           {loadingBranches ? (
@@ -510,7 +510,7 @@ export function GitHubRepoPicker({
           type="button"
           onClick={() => handleModeSwitch("my-repos")}
           className={[
-            "stg:flex-1 stg:rounded stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
+            "stg:flex-1 stg:rounded stg:px-2 stg:py-1 stg:text-2xs stg:font-medium stg:transition-colors",
             mode === "my-repos"
               ? "stg:bg-background stg:text-foreground stg:shadow-sm"
               : "stg:text-muted-foreground stg:hover:text-foreground",
@@ -522,7 +522,7 @@ export function GitHubRepoPicker({
           type="button"
           onClick={() => handleModeSwitch("all-github")}
           className={[
-            "stg:flex-1 stg:rounded stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
+            "stg:flex-1 stg:rounded stg:px-2 stg:py-1 stg:text-2xs stg:font-medium stg:transition-colors",
             mode === "all-github"
               ? "stg:bg-background stg:text-foreground stg:shadow-sm"
               : "stg:text-muted-foreground stg:hover:text-foreground",
@@ -616,7 +616,7 @@ export function GitHubRepoPicker({
       </div>
 
       {/* Footer: manual URL + manage access */}
-      <div className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:pt-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+      <div className="stg:flex stg:items-center stg:gap-3 stg:border-t stg:border-border stg:pt-1.5 stg:text-2xs stg:text-muted-foreground">
         <button
           type="button"
           onClick={() => setShowManualEntry(true)}
@@ -675,7 +675,7 @@ function MyReposList({
     <>
       {groups.map((group, gi) => (
         <div key={group.key}>
-          <div className="stg:sticky stg:top-0 stg:z-[1] stg:bg-card stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:backdrop-blur-sm">
+          <div className="stg:sticky stg:top-0 stg:z-[1] stg:bg-card stg:px-2 stg:py-1 stg:text-2xs stg:font-medium stg:text-muted-foreground stg:backdrop-blur-sm">
             {group.label}
             {!group.isRecent && (
               <span className="stg:ml-1 stg:opacity-50">
@@ -702,7 +702,7 @@ function MyReposList({
       ))}
 
       {isBackgroundLoading && (
-        <div className="stg:py-1 stg:text-center stg:text-[0.6rem] stg:text-muted-foreground">
+        <div className="stg:py-1 stg:text-center stg:text-2xs stg:text-muted-foreground">
           Loading more...
         </div>
       )}
@@ -756,7 +756,7 @@ function SearchResultsList({
   return (
     <>
       {totalCount > 0 && (
-        <div className="stg:px-2 stg:py-1 stg:text-[0.6rem] stg:text-muted-foreground">
+        <div className="stg:px-2 stg:py-1 stg:text-2xs stg:text-muted-foreground">
           {totalCount.toLocaleString()} {totalCount === 1 ? "result" : "results"}
         </div>
       )}
@@ -774,7 +774,7 @@ function SearchResultsList({
       ))}
 
       {isSearching && (
-        <div className="stg:py-1 stg:text-center stg:text-[0.6rem] stg:text-muted-foreground">
+        <div className="stg:py-1 stg:text-center stg:text-2xs stg:text-muted-foreground">
           Searching...
         </div>
       )}
@@ -783,7 +783,7 @@ function SearchResultsList({
         <button
           type="button"
           onClick={onLoadMore}
-          className="stg:w-full stg:py-1.5 stg:text-center stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
+          className="stg:w-full stg:py-1.5 stg:text-center stg:text-2xs stg:text-muted-foreground stg:hover:text-foreground stg:transition-colors"
         >
           Load more results
         </button>
@@ -829,7 +829,7 @@ function RepoRow({
       <span className="stg:min-w-0 stg:flex-1 stg:truncate">
         <HighlightMatch text={displayName} query={query} />
       </span>
-      <span className="stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-[0.6rem] stg:bg-muted stg:text-muted-foreground">
+      <span className="stg:shrink-0 stg:rounded stg:px-1 stg:py-0.5 stg:text-2xs stg:bg-muted stg:text-muted-foreground">
         {repo.isPrivate ? "private" : "public"}
       </span>
     </button>
