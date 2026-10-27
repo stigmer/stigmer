@@ -119,7 +119,8 @@ scripts/agents-context-hook.mjs   the postToolUse hook: package guides and scope
 The skills are of two kinds. Package doctrine skills carry `paths:` and surface
 when a matching file is touched: `ts-server-dev-guidelines`,
 `sdk-console-architecture`, `runner-dev-guidelines`, `docs-writing`,
-`conformance-test-authoring`, `model-proto-resource`. Action skills are
+`conformance-test-authoring`, `model-proto-resource`, and `design-principles`
+(the maintainer's taste brief, on every face a person sees). Action skills are
 procedures a person invokes by name (`disable-model-invocation: true`), because
 they act on git, GitHub or a release: `commit-stigmer-oss-changes`,
 `create-stigmer-oss-pull-request`, `release-stigmer-oss`,
