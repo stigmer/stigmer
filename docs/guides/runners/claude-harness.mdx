@@ -93,23 +93,24 @@ $STIGMER_ENGINES_DIR/claude/<version>/node_modules/@anthropic-ai/claude-agent-sd
 $STIGMER_ENGINES_DIR/claude/<version>/node_modules/@anthropic-ai/claude-agent-sdk-<platform>/
 ```
 
-The runner names the version it pins when it starts:
+The runner names the version it pins when it starts, and that is the `<version>`
+the directory holds:
 
 ```text
-[claude] the Claude engine is not on this runner; the first Claude turn downloads 0.3.310 into /home/you/.stigmer/engines
+[claude] the Claude engine is not on this runner; the first Claude turn downloads <version> into /home/you/.stigmer/engines
 ```
 
 One way to fill the directory is npm itself, on a machine that can reach the
 registry, then copying the directory across:
 
 ```bash
-mkdir -p claude/0.3.310 && cd claude/0.3.310
-npm install --no-save --no-package-lock @anthropic-ai/claude-agent-sdk@0.3.310
+mkdir -p claude/<version> && cd claude/<version>
+npm install --no-save --no-package-lock @anthropic-ai/claude-agent-sdk@<version>
 ```
 
 npm installs the platform package for the machine it runs on, so run it on the
 same operating system and architecture as the runner. When the runner finds the
-engine it logs `[claude] engine ready 0.3.310 (<directory>)`.
+engine it logs `[claude] engine ready <version> (<directory>)`.
 
 ### Embedding the runner
 

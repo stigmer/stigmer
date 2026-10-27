@@ -123,6 +123,7 @@ when a matching file is touched: `ts-server-dev-guidelines`,
 procedures a person invokes by name (`disable-model-invocation: true`), because
 they act on git, GitHub or a release: `commit-stigmer-oss-changes`,
 `create-stigmer-oss-pull-request`, `release-stigmer-oss`,
+`upgrade-claude-engine` (which moves the runner's pinned engine),
 `wrap-up-github-issue`, and `review-pull-request` (which posts a review verdict,
 and which the pull-request skill runs by path). Three skills the model reaches
 for on its own: `verify-stigmer-oss-changes`, because a session should verify
