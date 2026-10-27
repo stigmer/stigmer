@@ -81,7 +81,7 @@ import { SETS, runTurbo, workspaceSet } from "./turbo-set.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The tasks the lane runs; turbo is asked about exactly these. */
-export const LANE_TASKS = ["build", "typecheck", "lint", "tsdoc:check", "test", "test:a11y"];
+export const LANE_TASKS = ["build", "typecheck", "lint", "tsdoc:check", "test", "test:a11y", "test:visual"];
 
 /**
  * The committed coverage floors the gate's Coverage job judges every package

@@ -308,6 +308,54 @@ jobs:
       - name: Run browser-mode suites
         run: node scripts/turbo-set.mjs workspace test:a11y --only=@stigmer/react-sdk
 
+  # The kit's gallery (test/visual): every hero component drawn from fixed
+  # data, compared with its approved screenshot and audited with axe. Pixels
+  # compare only when one machine draws them, so the job runs inside the
+  # pinned Playwright image, on GitHub's arm64 runner to match the image's
+  # arm64 manifest, which a maintainer's Apple-silicon Mac draws with too
+  # (`make test-visual`). test/visual/playwright-image.json is the pin; a unit
+  # check in the package holds this `image` and `runs-on` to it. The image
+  # carries its browser, so nothing is installed. The task runs the package's
+  # unit checks, then the spec (turbo.json says what it hashes). On a failure
+  # the expected, actual and diff pictures upload.
+  visual:
+    name: Visual Suite (Screenshots + A11y)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/visual-tests')
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble@sha256:beddddcf96f19abec078cd2f3da676f40abd460e0e734ad5eed73627ce161d33
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies (npm ci, tracked lockfile)
+        run: npm ci
+
+      - name: Run the visual suite
+        run: node scripts/turbo-set.mjs workspace test:visual --only=@stigmer/visual-tests
+
+      - name: Upload the screenshot differences
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: visual-differences
+          path: test/visual/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
   # The React SDK's default (happy-dom) suite, with coverage, in its own job.
   # A coverage run puts every file on the `forks` pool (sdk/react's
   # vitest.config.ts says why), which takes the suite from about 145 s to
