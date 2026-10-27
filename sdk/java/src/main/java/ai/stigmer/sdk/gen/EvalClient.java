@@ -15,10 +15,12 @@ import ai.stigmer.agentic.eval.v1.EvalId;
 import ai.stigmer.agentic.eval.v1.EvalList;
 import ai.stigmer.agentic.eval.v1.EvalQueryControllerGrpc;
 import ai.stigmer.agentic.eval.v1.EvalVersionEntry;
+import ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput;
 import ai.stigmer.agentic.eval.v1.ListEvalVersionsInput;
 import ai.stigmer.agentic.eval.v1.ListEvalVersionsResponse;
 import ai.stigmer.agentic.eval.v1.ListEvalsRequest;
 import ai.stigmer.agentic.eval.v1.PushEvalRequest;
+import ai.stigmer.agentic.eval.v1.RunEvalCaseControllerGrpc;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -29,10 +31,12 @@ import io.grpc.StatusRuntimeException;
 public final class EvalClient {
     private final EvalCommandControllerGrpc.EvalCommandControllerBlockingStub command;
     private final EvalQueryControllerGrpc.EvalQueryControllerBlockingStub query;
+    private final RunEvalCaseControllerGrpc.RunEvalCaseControllerBlockingStub runEvalCase;
 
     EvalClient(Channel channel) {
         this.command = EvalCommandControllerGrpc.newBlockingStub(channel);
         this.query = EvalQueryControllerGrpc.newBlockingStub(channel);
+        this.runEvalCase = RunEvalCaseControllerGrpc.newBlockingStub(channel);
     }
 
     public Eval push(PushEvalRequest input) {
@@ -136,6 +140,12 @@ public final class EvalClient {
     public EvalCaseArchive buildCaseFromRun(BuildEvalCaseFromRunRequest input) {
         try {
             return query.buildCaseFromRun(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EvalArchiveDownloadUrl getArchiveDownloadUrl(GetRunEvalCaseArchiveInput input) {
+        try {
+            return runEvalCase.getArchiveDownloadUrl(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

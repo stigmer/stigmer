@@ -15,14 +15,16 @@ import (
 
 // EvalClient provides operations on eval resources.
 type EvalClient struct {
-	command evalv1.EvalCommandControllerClient
-	query   evalv1.EvalQueryControllerClient
+	command     evalv1.EvalCommandControllerClient
+	query       evalv1.EvalQueryControllerClient
+	runEvalCase evalv1.RunEvalCaseControllerClient
 }
 
 func NewEvalClient(conn grpc.ClientConnInterface) *EvalClient {
 	return &EvalClient{
-		command: evalv1.NewEvalCommandControllerClient(conn),
-		query:   evalv1.NewEvalQueryControllerClient(conn),
+		command:     evalv1.NewEvalCommandControllerClient(conn),
+		query:       evalv1.NewEvalQueryControllerClient(conn),
+		runEvalCase: evalv1.NewRunEvalCaseControllerClient(conn),
 	}
 }
 
@@ -149,6 +151,11 @@ func (e *EvalClient) GetDownloadUrl(ctx context.Context, ref ResourceRef) (*eval
 
 func (e *EvalClient) BuildCaseFromRun(ctx context.Context, input *evalv1.BuildEvalCaseFromRunRequest) (*evalv1.EvalCaseArchive, error) {
 	resp, err := e.query.BuildCaseFromRun(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (e *EvalClient) GetArchiveDownloadUrl(ctx context.Context, input *evalv1.GetRunEvalCaseArchiveInput) (*evalv1.EvalArchiveDownloadUrl, error) {
+	resp, err := e.runEvalCase.GetArchiveDownloadUrl(ctx, input)
 	return resp, wrapErr(err)
 }
 
