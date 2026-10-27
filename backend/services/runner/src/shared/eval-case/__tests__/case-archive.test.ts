@@ -4,11 +4,14 @@
  * and indexed by cleaned path; a plugin that cannot be read, moved past the
  * eval's version, records no archive, cannot be fetched, holds no bytes or
  * serves bytes of another digest is refused with a sentence naming why. An
- * Eval's archive is read by its reference at the stamped digest, never via
- * a plugin: over the download URL, inline when the server has no transfer
- * lane (`FailedPrecondition`) or predates it (`Unimplemented`), refused
- * naming the Eval when the read is (a caller who may not view it), when it
- * holds no bytes, or when the bytes are another version's. The index
+ * Eval's archive is read through the run's own door, under the run's
+ * scoped credential, never via a plugin and never by the reference when
+ * the door answers (stigmer#2364); inline when the door says the server
+ * has no transfer lane (`FailedPrecondition`); by the reference at the
+ * stamped digest only when the server predates the door (`Unimplemented`),
+ * that read itself over its URL or inline; refused naming the Eval when
+ * the door or the read is (a refusal of the door never falls back), when
+ * it holds no bytes, or when the bytes are another version's. The index
  * answers the root (`""`) with every file, an Eval's suite being its root.
  */
 
@@ -30,6 +33,9 @@ const ARCHIVE = buildZip([
 ]);
 const DIGEST = createHash("sha256").update(ARCHIVE).digest("hex");
 
+const RUN_ID = "run_1";
+const SCOPED = "scoped-run-token";
+
 const context = (digest = DIGEST) => create(EvalCaseContextSchema, { pluginId: "plg_1", pluginDigest: digest });
 
 const pluginRecord = (status: { digest?: string; artifactStorageKey?: string }): Plugin =>
@@ -50,7 +56,7 @@ function clientServing(fields: {
 
 describe("fetchCaseArchive", () => {
   it("indexes the verified archive's files by path", async () => {
-    const archive = await fetchCaseArchive(clientServing({}), context());
+    const archive = await fetchCaseArchive(clientServing({}), context(), RUN_ID);
     expect(archive.text("evals/fix/case.yaml")).toBe("name: fix\n");
     expect(archive.under("evals/fix/resources").map(([path]) => path)).toEqual(["a.md", "b.md"]);
   });
@@ -64,29 +70,41 @@ describe("fetchCaseArchive", () => {
     ["the server holds no bytes", { bytes: new Uint8Array() }, context(), "the server holds no archive for the plugin"],
     ["the bytes are another version's", { bytes: buildZip([{ name: "x", content: "y" }]) }, context(), "the fetched archive does not match the eval's version"],
   ] as const)("refuses when %s", async (_why, fields, ctx, detail) => {
-    const refused = fetchCaseArchive(clientServing(fields), ctx);
+    const refused = fetchCaseArchive(clientServing(fields), ctx, RUN_ID);
     await expect(refused).rejects.toBeInstanceOf(CaseArchiveError);
     await expect(refused).rejects.toThrow(`the eval run's case could not be read: ${detail}`);
   });
 
   it("refuses a plugin whose status carries no digest", async () => {
     const client = clientServing({ plugin: () => Promise.resolve(create(PluginSchema, {})) });
-    await expect(fetchCaseArchive(client, context())).rejects.toThrow("the plugin has moved past the eval's version");
+    await expect(fetchCaseArchive(client, context(), RUN_ID)).rejects.toThrow("the plugin has moved past the eval's version");
   });
 });
 
 const EVAL_ID = "evs_1";
 const evalContext = (digest = DIGEST) => create(EvalCaseContextSchema, { evalId: EVAL_ID, evalDigest: digest, caseDir: "fix" });
 
-/** A client serving an Eval's reads, recording the references they named; `getPlugin` is never asked. */
+/**
+ * A client serving an Eval's reads, recording the references they named
+ * and the door's asks; `getPlugin` is never asked. The door answers as
+ * `door` says, by default as a server that predates it.
+ */
 function evalClient(fields: {
+  door?: () => Promise<{ url: string; sizeBytes: bigint }>;
   mint?: () => Promise<{ url: string; sizeBytes: bigint }>;
   inline?: () => Promise<{ artifact: Uint8Array }>;
   refs?: Array<{ id: string; version: string; kind: number }>;
+  doorAsks?: Array<[string, string | undefined]>;
 }): StigmerClient {
   const record = (ref: { id: string; version: string; kind: number }) => fields.refs?.push({ id: ref.id, version: ref.version, kind: ref.kind });
   return {
     getPlugin: () => Promise.reject(new Error("an Eval's case reads no plugin")),
+    acquireScopedRunnerToken: ({ agentExecutionId }: { agentExecutionId: string }) =>
+      Promise.resolve(agentExecutionId === RUN_ID ? SCOPED : undefined),
+    getRunEvalCaseArchiveDownloadUrl: (runId: string, scopedToken?: string) => {
+      fields.doorAsks?.push([runId, scopedToken]);
+      return (fields.door ?? (() => Promise.reject(new ConnectError("no door", Code.Unimplemented))))();
+    },
     getEvalDownloadUrl: (ref: { id: string; version: string; kind: number }) => {
       record(ref);
       return (fields.mint ?? (() => Promise.reject(new ConnectError("no lane", Code.FailedPrecondition))))();
@@ -101,20 +119,54 @@ function evalClient(fields: {
 const dataUrl = (bytes: Uint8Array): string => `data:application/zip;base64,${Buffer.from(bytes).toString("base64")}`;
 
 describe("fetchCaseArchive for an Eval's case", () => {
-  it("reads the Eval at its stamped digest over the download URL, verified and indexed", async () => {
+  it("reads the case through the run's door under its scoped credential, never by the reference", async () => {
     const refs: Array<{ id: string; version: string; kind: number }> = [];
-    const client = evalClient({ mint: () => Promise.resolve({ url: dataUrl(ARCHIVE), sizeBytes: BigInt(ARCHIVE.length) }), refs });
-    const archive = await fetchCaseArchive(client, evalContext());
+    const doorAsks: Array<[string, string | undefined]> = [];
+    const client = evalClient({
+      door: () => Promise.resolve({ url: dataUrl(ARCHIVE), sizeBytes: BigInt(ARCHIVE.length) }),
+      refs,
+      doorAsks,
+    });
+    const archive = await fetchCaseArchive(client, evalContext(), RUN_ID);
+    expect(archive.text("evals/fix/case.yaml")).toBe("name: fix\n");
+    expect(doorAsks).toEqual([[RUN_ID, SCOPED]]);
+    expect(refs).toEqual([]);
+  });
+
+  it("reads it inline by the reference when the door says the server has no transfer lane", async () => {
+    const refs: Array<{ id: string; version: string; kind: number }> = [];
+    const client = evalClient({ door: () => Promise.reject(new ConnectError("no lane", Code.FailedPrecondition)), refs });
+    const archive = await fetchCaseArchive(client, evalContext(), RUN_ID);
     expect(archive.text("evals/fix/case.yaml")).toBe("name: fix\n");
     expect(refs).toEqual([{ id: EVAL_ID, version: DIGEST, kind: ApiResourceKind.eval }]);
+  });
+
+  it("reads the Eval at its stamped digest over the download URL when the server predates the door", async () => {
+    const refs: Array<{ id: string; version: string; kind: number }> = [];
+    const client = evalClient({ mint: () => Promise.resolve({ url: dataUrl(ARCHIVE), sizeBytes: BigInt(ARCHIVE.length) }), refs });
+    const archive = await fetchCaseArchive(client, evalContext(), RUN_ID);
+    expect(archive.text("evals/fix/case.yaml")).toBe("name: fix\n");
+    expect(refs).toEqual([{ id: EVAL_ID, version: DIGEST, kind: ApiResourceKind.eval }]);
+  });
+
+  it("never falls back past the door's refusal", async () => {
+    const refs: Array<{ id: string; version: string; kind: number }> = [];
+    const client = evalClient({
+      door: () => Promise.reject(new ConnectError("only the runner acting for this run may fetch its eval case", Code.PermissionDenied)),
+      refs,
+    });
+    const refused = fetchCaseArchive(client, evalContext(), RUN_ID);
+    await expect(refused).rejects.toBeInstanceOf(CaseArchiveError);
+    await expect(refused).rejects.toThrow(`eval ${EVAL_ID} could not be read ([permission_denied] only the runner acting for this run`);
+    expect(refs).toEqual([]);
   });
 
   it.each([
     ["has no transfer lane", Code.FailedPrecondition],
     ["predates the transfer lane", Code.Unimplemented],
-  ])("reads it inline when the server %s", async (_why, code) => {
+  ])("reads it inline when a server that predates the door %s", async (_why, code) => {
     const client = evalClient({ mint: () => Promise.reject(new ConnectError("no lane", code)) });
-    const archive = await fetchCaseArchive(client, evalContext());
+    const archive = await fetchCaseArchive(client, evalContext(), RUN_ID);
     expect(archive.under("evals/fix/resources").map(([path]) => path)).toEqual(["a.md", "b.md"]);
   });
 
@@ -131,7 +183,7 @@ describe("fetchCaseArchive for an Eval's case", () => {
       "the fetched archive does not match the eval's version",
     ],
   ] as const)("refuses when %s, naming the Eval", async (_why, fields, detail) => {
-    const refused = fetchCaseArchive(evalClient(fields), evalContext());
+    const refused = fetchCaseArchive(evalClient(fields), evalContext(), RUN_ID);
     await expect(refused).rejects.toBeInstanceOf(CaseArchiveError);
     await expect(refused).rejects.toThrow(`the eval run's case could not be read: ${detail}`);
   });

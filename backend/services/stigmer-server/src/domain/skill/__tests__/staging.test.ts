@@ -5,7 +5,7 @@
  * delete best-effort and loud; the one "unknown or expired" condition for
  * a malformed, missing or already-consumed reference; a driver fault
  * propagating untouched; the download capability's floor TTL, signed for
- * the runner that reads it. First over
+ * the reader its caller names (a runner or a person). First over
  * a recording fake driver (what any bucket sees), then over the real local
  * driver with its slot registry, wired exactly as boot/compose.ts wires it
  * — the two drivers must be indistinguishable above this module.
@@ -236,16 +236,23 @@ describe("newArchiveStaging over a bucket-shaped driver", () => {
     await expect(staging.consume(minted.ref)).rejects.toBe(fault);
   });
 
-  it("downloadUrl signs the stored key for the runner, for the floor TTL, and reports it", async () => {
+  it("downloadUrl signs the stored key for the reader it is given, for the floor TTL, and reports it", async () => {
     const { driver, recorded } = fakeDriver();
     const staging = newArchiveStaging(driver, logger);
-    const capability = await staging.downloadUrl("skills/abc.zip");
+    const capability = await staging.downloadUrl("skills/abc.zip", "runner");
+    await staging.downloadUrl("evals/abc.zip", "person");
     expect(recorded.signed).toEqual([
       {
         key: "skills/abc.zip",
         expiresInMs: DOWNLOAD_URL_TTL_MS,
         downloadFilename: "",
         reader: "runner",
+      },
+      {
+        key: "evals/abc.zip",
+        expiresInMs: DOWNLOAD_URL_TTL_MS,
+        downloadFilename: "",
+        reader: "person",
       },
     ]);
     expect(capability).toEqual({
@@ -304,7 +311,7 @@ describe("newArchiveStaging over LocalArtifactStorage and its slot registry", ()
   });
 
   it("downloadUrl renders the lane's own GET route, signed for the floor TTL", async () => {
-    const capability = await staging.downloadUrl("skills/abc.zip");
+    const capability = await staging.downloadUrl("skills/abc.zip", "runner");
     expect(capability.ttlMs).toBe(DOWNLOAD_URL_TTL_MS);
     const url = new URL(capability.url);
     expect(`${url.origin}${url.pathname}`).toBe(

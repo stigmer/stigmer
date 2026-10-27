@@ -87,6 +87,7 @@ Eval evalResource = client.evals().get("evs_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single eval by ID. |
+| [`getArchiveDownloadUrl`](#getarchivedownloadurl) | A link to the archive of the Eval version a run's case names, valid for an hour. |
 | [`getByReference`](#getbyreference) | Get an eval by API resource reference, at a version. |
 | [`getDownloadUrl`](#getdownloadurl) | Mint a URL for downloading one version of an eval over HTTP. |
 | [`list`](#list) | List an organization's evals, newest first. |
@@ -134,6 +135,45 @@ Eval evalResource = client.evals().get(id);
 | `id` | `string` | Eval identifier. |
 
 **Returns**: [`Eval`](#eval)
+
+### getArchiveDownloadUrl
+
+A link to the archive of the Eval version a run's case names, valid for an hour.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const evalArchiveDownloadUrl = await stigmer.eval.getArchiveDownloadUrl({
+  runId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+evalArchiveDownloadUrl, err := client.Eval.GetArchiveDownloadUrl(ctx, &stigmer.GetRunEvalCaseArchiveInput{
+  RunId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+eval_archive_download_url = client.evals.get_archive_download_url(GetRunEvalCaseArchiveInput(
+    run_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+EvalArchiveDownloadUrl evalArchiveDownloadUrl = client.evals().getArchiveDownloadUrl(GetRunEvalCaseArchiveInput.builder()
+    .runId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetRunEvalCaseArchiveInput`](#getrunevalcasearchiveinput)
+
+**Returns**: [`EvalArchiveDownloadUrl`](#evalarchivedownloadurl)
 
 ### getByReference
 
@@ -973,6 +1013,16 @@ EvalCaseArchive is one eval case folder as a ZIP archive: the case's directory a
     artifact: { type: "Uint8Array", description: "The archive bytes." },
     digest: { type: "string", description: "SHA-256 of the archive." },
     notes: { type: "string[]", description: "What the case leaves out or keeps differently from the run, one sentence each: a tool answered differently on a later call, a platform tool no mock stands in for, an attachment, a tool use the conversation never answered." },
+  }}
+/>
+
+### GetRunEvalCaseArchiveInput
+
+Which run's eval case to fetch.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run's id." },
   }}
 />
 

@@ -174,6 +174,7 @@ import { registerSessionServices } from "../domain/session/controller.js";
 import { SessionEventBroker } from "../domain/session/events/broker.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
 import { registerEvalServices } from "../domain/eval/controller.js";
+import { registerRunEvalCaseService } from "../domain/eval/run-eval-case.js";
 import { EVAL_ARTIFACT_KEY_PREFIX } from "../domain/eval/constants.js";
 import { refreshLegacyPluginStatuses } from "../domain/plugin/legacy-status.js";
 import { newLocalProgramPolicy } from "../domain/run/local-programs.js";
@@ -2197,6 +2198,16 @@ export async function composeServer(
       artifactStorage: evalArtifactStorage,
       staging: skillArchiveStaging,
       credentialBinding,
+    });
+    // The runner's door to its run's eval case, under its run credential:
+    // the Eval's archive at the version the run's case names, signed for
+    // the runner's address (domain/eval/run-eval-case.ts).
+    registerRunEvalCaseService(router, {
+      store,
+      logger,
+      runnerAuth: runnerCredentials,
+      artifactStorage: evalArtifactStorage,
+      staging: skillArchiveStaging,
     });
     // The staging port is the skill lane's: one upload surface for every
     // archive. A tools listing's deps are wired unconditionally per the

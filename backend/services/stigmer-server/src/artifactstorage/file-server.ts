@@ -12,7 +12,10 @@
  * link that local backend signed: an expired, tampered or unsigned link is
  * answered the 404 a missing key gets, before the disk is touched, so a
  * refusal says nothing about what exists (artifactstorage/url-signer.ts).
- * Unlike
+ * Past the signature, a missing file is 404 and one that cannot be read (a
+ * permission refused, a disk error) a 500 with a static body and the cause
+ * in the server log, so a broken artifact never reads as a gone one
+ * (stigmer#1352; __tests__/file-server-faults.test.ts). Unlike
  * Go, a bind failure fails the boot: the composition binds the lane before
  * SERVING and lets listen()'s rejection stand (stigmer#1089). It is not a
  * unified-port lane: Go ran it as a separate listener, and so does this
@@ -154,9 +157,24 @@ async function serveArtifact(
     let info;
     try {
       info = await stat(filePath);
-    } catch {
-      res.writeHead(404);
-      res.end("404 page not found\n");
+    } catch (error) {
+      // Missing is 404. A file that is there but cannot be read (a
+      // permission refused, a disk error) is the server's fault, never
+      // "not found": a client told 404 takes the artifact for gone
+      // (stigmer#1352). The body is static, so no path reaches the wire.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ENOENT" || code === "ENOTDIR") {
+        res.writeHead(404);
+        res.end("404 page not found\n");
+        return;
+      }
+      logger.error("artifact file could not be read", {
+        key,
+        code,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.writeHead(500);
+      res.end("500 internal server error\n");
       return;
     }
     if (!info.isFile()) {

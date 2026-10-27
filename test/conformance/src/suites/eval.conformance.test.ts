@@ -16,7 +16,9 @@
 //     refusing a level the kind does not support (child organizations);
 //   - an archive that is not a zip, a folder where no case loads and the tag
 //     `latest` are refused before any write;
-//   - delete removes it, and a read then answers NotFound.
+//   - delete removes it, and a read then answers NotFound;
+//   - the runner's door to its run's eval case answers no person: a
+//     signed-in person's own credential is refused.
 //
 // Out of scope here: renaming (rename.conformance.test.ts, the renamable
 // kinds' table), who may push, read and download (the eval cells of
@@ -232,6 +234,17 @@ describe("Eval conformance — downloads", () => {
     // Content addressing must not care how the bytes travelled.
     const inline = await clients.evalCommand.push({ org: org(), slug, artifact: archive });
     expect(inline).toEqual(staged);
+  });
+});
+
+describe("Eval conformance — the runner's door", () => {
+  it("[rpc:RunEvalCaseController.getArchiveDownloadUrl] a person's own credential is no runner's: a run's eval case link is refused", async () => {
+    const refused = await expectGrpcCode(
+      () => clients.runEvalCase.getArchiveDownloadUrl({ runId: "run_01conformancenotarunner" }),
+      Code.PermissionDenied,
+      "an eval case link with a signed-in person's credential",
+    );
+    expect(refused.rawMessage).toBe("only the runner acting for this run may fetch its eval case");
   });
 });
 

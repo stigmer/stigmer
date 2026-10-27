@@ -76,7 +76,10 @@ service EvalQueryController {
   //
   // @internal
   // Authorization in-handler, as download: can_view on the resolved eval
-  // before any URL is minted.
+  // before any URL is minted. A person asks it (the CLI's download eval,
+  // the SDK), so the link is signed for a person's address; a runner
+  // fetching its run's case asks RunEvalCaseController, whose link is
+  // signed for the runner's.
   rpc getDownloadUrl(ai.stigmer.commons.apiresource.ApiResourceReference) returns (EvalArchiveDownloadUrl) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

@@ -120,6 +120,21 @@
           "description": "Build an eval case from a run, to keep on disk or push in an eval.\n\n The case is the turn the run answered: its request as the prompt, the\n conversation before it as the case's history (so the case resumes where\n the person was), each MCP tool answer the run got as a fixed mock under\n the server name the turn gave it, and a rubric to fill in, seeded with\n why the run went wrong (an AI judge's failing reason, or the caller's\n own thumbs-down note). It never carries a verdict of its own.\n\n Error Cases:\n\n - NOT_FOUND: no such run\n - PERMISSION_DENIED: the caller may not view the run\n - FAILED_PRECONDITION: the run has not ended\n - RESOURCE_EXHAUSTED: the case is too large to answer inline; add it\n   to an eval with addCaseFromRun, which writes it on the server"
         }
       ]
+    },
+    {
+      "name": "RunEvalCaseController",
+      "role": "runEvalCase",
+      "protoFile": "ai/stigmer/agentic/eval/v1/run_eval_case.proto",
+      "methods": [
+        {
+          "name": "GetArchiveDownloadUrl",
+          "inputType": "GetRunEvalCaseArchiveInput",
+          "inputFullType": "ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput",
+          "outputType": "EvalArchiveDownloadUrl",
+          "outputFullType": "ai.stigmer.agentic.eval.v1.EvalArchiveDownloadUrl",
+          "description": "A link to the archive of the Eval version a run's case names, valid\n for an hour."
+        }
+      ]
     }
   ],
   "methodTypes": [
@@ -938,6 +953,27 @@
           },
           "description": "What the case leaves out or keeps differently from the run, one\n sentence each: a tool answered differently on a later call, a platform\n tool no mock stands in for, an attachment, a tool use the conversation\n never answered. Empty when the case is the run's turn whole.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetRunEvalCaseArchiveInput",
+      "description": "Which run's eval case to fetch.",
+      "protoType": "ai.stigmer.agentic.eval.v1.GetRunEvalCaseArchiveInput",
+      "protoFile": "apis/ai/stigmer/agentic/eval/v1/run_eval_case.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run's id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
         }
       ]
     }
