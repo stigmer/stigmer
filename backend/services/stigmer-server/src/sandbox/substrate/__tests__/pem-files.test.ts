@@ -4,7 +4,8 @@
  *
  *   - a CA file is parsed, not only searched for a marker: a block whose
  *     body is garbage is a boot throw naming the variable, the path and
- *     the certificate's place in the file, and a file with no block still
+ *     the certificate's place in the file, a block cut off before its END
+ *     line is refused rather than dropped, and a file with no block still
  *     holds no PEM certificate;
  *   - a bundle of several CAs, as a trust bundle carries across a
  *     rotation, is accepted whole;
@@ -69,6 +70,10 @@ function rotate(file: string, contents: string, step: number): void {
   utimesSync(file, when, when);
 }
 
+function credentialPem(): string {
+  return `${credential.key}\n${credential.cert}\n`;
+}
+
 function ca(file: string): () => string {
   return caFromFile(file, CA_VARIABLE, "the Control API's CA");
 }
@@ -87,6 +92,23 @@ describe("a CA file", () => {
       "bundle.pem",
     );
     expect(() => ca(bundle)).toThrow(/certificate 2 of 2 cannot be parsed/);
+  });
+
+  it("refuses at boot a certificate block cut off before its END line, never dropping it", () => {
+    const truncated = pemFile(
+      `${oldCa.pem}\n-----BEGIN CERTIFICATE-----\nMIIB\n`,
+      "truncated.pem",
+    );
+    expect(() => ca(truncated)).toThrow(
+      /truncated\.pem holds 2 certificate blocks, and 1 of them has no END line/,
+    );
+    const credential = pemFile(
+      `${credentialPem()}-----BEGIN CERTIFICATE-----\nMIIB\n`,
+      "credential.pem",
+    );
+    expect(() => credentialFromFile(credential, CREDENTIAL_VARIABLE)).toThrow(
+      /credential\.pem holds 2 certificate blocks, and 1 of them has no END line/,
+    );
   });
 
   it("refuses at boot a file with no certificate block, and a missing file", () => {

@@ -43,9 +43,7 @@ export function caFromFile(
   purpose: string,
 ): () => string {
   return followFile(path, variable, purpose, (text) => {
-    const certificates = pemBlocks(text).filter((block) =>
-      block.startsWith(CERTIFICATE_BEGIN),
-    );
+    const certificates = certificateBlocks(path, text);
     if (certificates.length === 0) {
       throw new Error(`${path} holds no PEM certificate`);
     }
@@ -68,9 +66,7 @@ export function credentialFromFile(
       const key = blocks.find((block) =>
         /^-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(block),
       );
-      const chain = blocks.filter((block) =>
-        block.startsWith(CERTIFICATE_BEGIN),
-      );
+      const chain = certificateBlocks(path, text);
       if (key === undefined || chain.length === 0) {
         throw new Error(
           `${path} must hold a private key and its certificate chain as PEM`,
@@ -123,6 +119,24 @@ function followFile<T>(
 
 function pemBlocks(text: string): string[] {
   return text.match(PEM_BLOCK) ?? [];
+}
+
+/**
+ * The file's whole certificate blocks. A block cut off before its END line
+ * is refused, never dropped: the bundle would otherwise be trusted short of
+ * a CA it names.
+ */
+function certificateBlocks(path: string, text: string): string[] {
+  const blocks = pemBlocks(text).filter((block) =>
+    block.startsWith(CERTIFICATE_BEGIN),
+  );
+  const begun = text.split(CERTIFICATE_BEGIN).length - 1;
+  if (begun !== blocks.length) {
+    throw new Error(
+      `${path} holds ${begun} certificate blocks, and ${begun - blocks.length} of them ${begun - blocks.length === 1 ? "has" : "have"} no END line`,
+    );
+  }
+  return blocks;
 }
 
 /** Parses each certificate on its own, naming the one that fails by its place in the file. */
