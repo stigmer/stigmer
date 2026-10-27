@@ -14,6 +14,14 @@
  *    no input yet), its `input_json_delta`s fill the row's arguments as they
  *    stream (`tool_arg_delta`), and the whole message's block re-announces
  *    it with the complete input, which the builder reconciles onto the row.
+ *    The engine streams a call before its gate decides it, so the row opens
+ *    PENDING (`undecided`), and turns RUNNING only once both are in: the
+ *    gate let it run, and the whole message gave its complete input
+ *    (announced again decided, by {@link ClaudeTranslator.admitted} or by
+ *    the whole message, whichever comes second). A RUNNING row is written to
+ *    the session's log as it is, so it must never be released with half its
+ *    input or before a refusal's stamp. A helper's start is never held
+ *    (`gate.ts`), so it opens RUNNING.
  *  - A whole assistant message whose call never streamed (a sub-agent's,
  *    forwarded with `forwardSubagentText`) is folded from its blocks alone.
  *  - A `tool_result` in a user message settles its row: `tool_finished`, or
@@ -78,6 +86,10 @@ export class ClaudeTranslator {
   private readonly agentCalls = new Set<string>();
   /** The name each call was opened under, for its settle. */
   private readonly callNames = new Map<string, string>();
+  /** The scope and bridged server each call was opened in, for its admission. */
+  private readonly callPlaces = new Map<string, { readonly scope: Scope; readonly mcpServerSlug: string }>();
+  /** Calls whose whole message has given their complete input. */
+  private readonly wholeCalls = new Set<string>();
 
   constructor(private readonly deps: ClaudeTranslatorDeps) {}
 
@@ -144,6 +156,7 @@ export class ClaudeTranslator {
     let opened = false;
     for (const block of message.message.content) {
       if (block.type === "tool_use") {
+        this.wholeCalls.add(block.id);
         out.push(...this.toolStarted(block.id, block.name, toolInputOf(block.input), scope));
         continue;
       }
@@ -185,12 +198,26 @@ export class ClaudeTranslator {
     return out;
   }
 
+  /**
+   * The start that makes a call's row RUNNING once its gate let it run (the
+   * header); nothing for a call whose whole message is not in yet, which
+   * {@link toolStarted} announces decided when the verdict is already in.
+   */
+  admitted(callId: string): StreamFact[] {
+    const name = this.callNames.get(callId);
+    const place = this.callPlaces.get(callId);
+    if (name === undefined || place === undefined || !this.wholeCalls.has(callId)) return [];
+    return [{ kind: "tool_started", callId, name, input: {}, mcpServerSlug: place.mcpServerSlug, ...place.scope }];
+  }
+
   /** A call's row opened (or reconciled, when it is already open), with the sub-agent row an `Agent` call opens before it. */
   private toolStarted(callId: string, engineName: string, input: Record<string, unknown>, scope: Scope): StreamFact[] {
     const server = isHostShell(engineName) ? undefined : this.deps.serverOf(engineName);
     const name = isHostShell(engineName) ? HOST_SHELL_TOOL.engineName : (server?.tool ?? engineName);
     const known = this.callNames.has(callId);
     this.callNames.set(callId, name);
+    this.callPlaces.set(callId, { scope, mcpServerSlug: server?.slug ?? "" });
+    const decided = name === AGENT_TOOL || (this.wholeCalls.has(callId) && this.deps.verdictOf(callId)?.kind === "allow");
     const out: StreamFact[] = [];
     if (name === AGENT_TOOL && !this.agentCalls.has(callId) && Object.keys(input).length > 0) {
       this.agentCalls.add(callId);
@@ -209,6 +236,7 @@ export class ClaudeTranslator {
       name,
       input,
       mcpServerSlug: server?.slug ?? "",
+      ...(decided ? {} : { undecided: true as const }),
       ...scope,
     });
     return out;

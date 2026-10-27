@@ -129,6 +129,15 @@ export interface ToolStartedEvent extends Scoped {
   readonly provenance?: PolicySource;
   /** The plugin whose hook the provenance names (`""` for the agent's own hooks block); absent when no hook did. */
   readonly policyHook?: string;
+  /**
+   * The engine streamed the call before its gate decided it (Claude's
+   * PreToolUse runs once the call has streamed): the row opens PENDING, and
+   * a start that repeats it while undecided changes no row's status. The
+   * start the harness sends once the gate lets the call run carries no flag,
+   * and makes the row RUNNING, which is when the session's log may show it
+   * (`execute-claude/claude-capabilities.ts`, `claudeRowAwaitsGate`).
+   */
+  readonly undecided?: true;
 }
 
 /**
