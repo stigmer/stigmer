@@ -85,7 +85,7 @@ export const THREAD_STATES = [
 /** The conversation states no thread scene draws, each with what draws it instead. */
 export const THREAD_DRAWN_ELSEWHERE: Readonly<Partial<Record<ScenarioName, string>>> = {
   "load-failed":
-    "a session that cannot load never reaches the thread: SessionViewer draws its own full-page error, a scene of the session view",
+    "not pictured yet: a session that cannot load never reaches the thread, and SessionViewer's own full-page error waits for the session view's scene",
 };
 
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */

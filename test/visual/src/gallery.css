@@ -97,6 +97,14 @@ body {
   margin: 0;
 }
 
+/* The host page's type, as the console's Tailwind preflight sets it on
+   `html`: what the kit draws outside its in-tree root (the popup container
+   it appends to the body) inherits it, as it does in the console. */
+html {
+  font-family: var(--stgm-font-sans);
+  line-height: 1.5;
+}
+
 /* The kit's in-tree root, as a host page sets it: the theme's surface, text
    and type. Its height is the content's, so nothing the scene draws is
    clipped by a scroll box; a short scene still paints the first screen.

@@ -10,7 +10,11 @@
  * this machine's own install, through Playwright's
  * `PW_TEST_CONNECT_WS_ENDPOINT` and `PW_TEST_CONNECT_EXPOSE_NETWORK`
  * (`<loopback>` routes the remote browser's `localhost` back here, to the
- * gallery the config serves). No `node_modules` crosses into Linux.
+ * gallery the config serves). The server is this checkout's own
+ * `playwright-core`, the lockfile's, mounted read-only into the image: it is
+ * plain JavaScript, so it runs on the image's Node, and nothing is fetched
+ * from the registry outside the lockfile. No other `node_modules` crosses
+ * into Linux.
  *
  * The image is the arm64 one, which an Apple-silicon Mac and GitHub's
  * arm64 runner both run natively; an x64 machine runs it under emulation,
@@ -23,13 +27,17 @@
 
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const playwrightCore = join(here, "..", "..", "node_modules", "playwright-core");
 const { image, platform } = JSON.parse(readFileSync(`${here}/playwright-image.json`, "utf8"));
 const version = /playwright:v([0-9]+\.[0-9]+\.[0-9]+)-/.exec(image)?.[1];
-if (!version) throw new Error(`run-in-image: ${image} names no Playwright version`);
+const installed = JSON.parse(readFileSync(join(playwrightCore, "package.json"), "utf8")).version;
+if (version !== installed) {
+  throw new Error(`run-in-image: ${image} was built for Playwright ${version ?? "(no version)"}, but this checkout installs ${installed}; move the pin and the lockfile together`);
+}
 
 const name = `stigmer-visual-${process.pid}`;
 const LISTENING = /Listening on ws:\/\//;
@@ -51,8 +59,9 @@ async function main(args) {
     "--publish", "127.0.0.1::3000",
     "--user", "pwuser",
     "--workdir", "/home/pwuser",
+    "--volume", `${playwrightCore}:/opt/playwright-core:ro`,
     image,
-    "/bin/sh", "-c", `npx -y playwright@${version} run-server --port 3000 --host 0.0.0.0`,
+    "node", "/opt/playwright-core/cli.js", "run-server", "--port", "3000", "--host", "0.0.0.0",
   ]);
   const deadline = Date.now() + READY_MS;
   while (!LISTENING.test(docker(["logs", name], { stdio: ["ignore", "pipe", "pipe"] }))) {
