@@ -92,7 +92,7 @@ import { engineEnvironment } from "./engine-env.js";
 import { engineOptions, thinkingOf, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
-import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller, type WaitingCall } from "./gate.js";
+import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller, type GateVerdict, type WaitingCall } from "./gate.js";
 import { HookFeedback, turnHookEvaluators } from "./hooks.js";
 import { hostShellServer, HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { HttpTranscripts } from "./http-store.js";
@@ -358,6 +358,11 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     if (opening.kind === "resume") midTurn.holdUntilResultOf(opening.call);
     else for (const message of opening.messages) stream.push(message);
 
+    // A runner lost mid-turn never reaches the `finally` that removes the
+    // home, and the retried invocation's home is the same path: the engine
+    // would find its own local copy of the session there and refuse to start
+    // it (stigmer#2613). The home holds nothing durable; the store does.
+    await rm(home, { recursive: true, force: true });
     await mkdir(home, { recursive: true });
     const plugins = await writeSkillPlugins(home, agents.skills);
     const sessionId = engineSessionIdOf(input.threadId);
@@ -463,7 +468,7 @@ interface EngineRun {
   /** The calls open on the stream, which the mid-turn input's rule reads. */
   readonly openCalls: Set<string>;
   /** Be told each time the gate decides a call. */
-  readonly onDecided: (listener: () => void) => void;
+  readonly onDecided: (listener: (toolUseId: string, verdict: GateVerdict) => void) => void;
   readonly options: Parameters<ClaudeSdk["query"]>[0]["options"];
   readonly abort: AbortController;
   readonly translator: ClaudeTranslator;
@@ -518,8 +523,18 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
   const offPending = sink.input.onPending(() => {
     if (openCalls.size > 0 && !answering) void midTurn.whileWorking();
   });
-  // A call the gate lets run may open the way for a message the turn held back while it was undecided.
-  run.onDecided(() => {
+  run.onDecided((toolUseId, verdict) => {
+    // A call the gate lets run is RUNNING, and in the session's log while it
+    // runs (`translator.ts`): written now, since a long call sends no
+    // message to the loop below until it returns.
+    if (verdict.kind === "allow") {
+      for (const event of translator.admitted(toolUseId)) builder.apply(event);
+      if (builder.dirty) {
+        builder.markPersisted();
+        void sink.requestPersist();
+      }
+    }
+    // A call the gate lets run may open the way for a message the turn held back while it was undecided.
     if (openCalls.size > 0 && !answering) void midTurn.whileWorking();
   });
 

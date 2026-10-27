@@ -667,6 +667,21 @@ describe("TranscriptBuilder — tool_output_delta streams the row's output", () 
 // ═══════════════════════════════════════════════════════════════════
 
 describe("TranscriptBuilder — a row per callId, reconciled in place, never duplicated", () => {
+  it("an undecided start opens its row PENDING and moves no row; the decided start makes it RUNNING (stigmer#2614)", () => {
+    const { sb, status } = feed(builder(), [
+      { kind: "tool_started", callId: "c1", name: "Bash", input: {}, mcpServerSlug: "", undecided: true },
+      { kind: "tool_started", callId: "c1", name: "Bash", input: { command: "make" }, mcpServerSlug: "", undecided: true },
+    ]);
+    expect(rowOf(status, "c1").status, "still undecided").toBe(ToolCallStatus.TOOL_CALL_PENDING);
+    expect(rowOf(status, "c1").args, "the repeat still fills the args").toEqual({ command: "make" });
+    feed({ sb, status }, [{ kind: "approval_proposed", callId: "c1", name: "Bash", mcpServerSlug: "", message: "ask" }]);
+    feed({ sb, status }, [{ kind: "tool_started", callId: "c1", name: "Bash", input: {}, mcpServerSlug: "", undecided: true }]);
+    expect(rowOf(status, "c1").status, "an undecided repeat leaves a WAITING row waiting").toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    feed({ sb, status }, [{ kind: "tool_started", callId: "c1", name: "Bash", input: {}, mcpServerSlug: "" }]);
+    expect(rowOf(status, "c1").status, "decided").toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    expect(status.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === "c1"), "one row").toHaveLength(1);
+  });
+
   it("a re-emitted start for a known row is a no-op on the row's identity; a WAITING row flips to RUNNING and takes the args it lacked", () => {
     const status = create(TurnRowsSchema, {
       messages: [

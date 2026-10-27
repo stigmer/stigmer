@@ -119,12 +119,12 @@ describe("ClaudeTranslator: the streamed model call", () => {
   it("opens a tool row with no input when its block starts, streams its arguments, and reconciles the whole input after", () => {
     const t = translator();
     t.translate(messageStart("msg_1"));
-    expect(t.translate(toolBlockStart(1, "toolu_1", "Read"))).toEqual([{ kind: "tool_started", callId: "toolu_1", name: "Read", input: {}, mcpServerSlug: "" }]);
+    expect(t.translate(toolBlockStart(1, "toolu_1", "Read"))).toEqual([{ kind: "tool_started", callId: "toolu_1", name: "Read", input: {}, mcpServerSlug: "", undecided: true }]);
     expect(t.translate(inputDelta(1, '{"file_path":'))).toEqual([{ kind: "tool_arg_delta", callId: "toolu_1", argsChunk: '{"file_path":' }]);
     expect(t.translate(inputDelta(1, '"/a.txt"}'))).toEqual([{ kind: "tool_arg_delta", callId: "toolu_1", argsChunk: '"/a.txt"}' }]);
     t.translate(messageStop());
     expect(t.translate(assistant("msg_1", [{ type: "tool_use", id: "toolu_1", name: "Read", input: { file_path: "/a.txt" } }]))).toEqual([
-      { kind: "tool_started", callId: "toolu_1", name: "Read", input: { file_path: "/a.txt" }, mcpServerSlug: "" },
+      { kind: "tool_started", callId: "toolu_1", name: "Read", input: { file_path: "/a.txt" }, mcpServerSlug: "", undecided: true },
     ]);
   });
 
@@ -138,7 +138,7 @@ describe("ClaudeTranslator: the streamed model call", () => {
   it("reads a tool input that is not an object as empty", () => {
     const t = translator();
     expect(t.translate(assistant("msg_2", [{ type: "tool_use", id: "toolu_9", name: "Glob", input: ["not", "an", "object"] }]))).toEqual([
-      { kind: "tool_started", callId: "toolu_9", name: "Glob", input: {}, mcpServerSlug: "" },
+      { kind: "tool_started", callId: "toolu_9", name: "Glob", input: {}, mcpServerSlug: "", undecided: true },
     ]);
   });
 
@@ -171,7 +171,7 @@ describe("ClaudeTranslator: the streamed model call", () => {
     expect(t.translate(textDelta(0, "sub text", "toolu_agent"))).toEqual([{ kind: "text_delta", runId: "msg_sub", text: "sub text", subAgentId: "toolu_agent" }]);
     expect(t.translate(textDelta(0, "root text"))).toEqual([{ kind: "text_delta", runId: "msg_root", text: "root text" }]);
     expect(t.translate(toolBlockStart(1, "toolu_sub_read", "Read", "toolu_agent"))).toEqual([
-      { kind: "tool_started", callId: "toolu_sub_read", name: "Read", input: {}, mcpServerSlug: "", subAgentId: "toolu_agent" },
+      { kind: "tool_started", callId: "toolu_sub_read", name: "Read", input: {}, mcpServerSlug: "", undecided: true, subAgentId: "toolu_agent" },
     ]);
     expect(t.translate(inputDelta(1, "{}", "toolu_agent"))).toEqual([{ kind: "tool_arg_delta", callId: "toolu_sub_read", argsChunk: "{}", subAgentId: "toolu_agent" }]);
     expect(t.translate(messageStop("toolu_agent"))).toEqual([{ kind: "message_finish", runId: "msg_sub", subAgentId: "toolu_agent" }]);
@@ -204,9 +204,48 @@ describe("ClaudeTranslator: a call that never streamed", () => {
   it("opens no segment for a whole message holding only a tool call, or only a block it does not carry", () => {
     const t = translator();
     expect(t.translate(assistant("msg_a", [{ type: "tool_use", id: "toolu_1", name: "Grep", input: { pattern: "x" } }]))).toEqual([
-      { kind: "tool_started", callId: "toolu_1", name: "Grep", input: { pattern: "x" }, mcpServerSlug: "" },
+      { kind: "tool_started", callId: "toolu_1", name: "Grep", input: { pattern: "x" }, mcpServerSlug: "", undecided: true },
     ]);
     expect(t.translate(assistant("msg_b", [{ type: "redacted_thinking", data: "opaque" }]))).toEqual([]);
+  });
+});
+
+describe("ClaudeTranslator: a call's row waits for its gate (stigmer#2614)", () => {
+  const sub = "toolu_agent";
+
+  it("opens a call undecided, and announces it decided once the gate allowed it and its whole input is in, in its own scope", () => {
+    const verdicts = new Map<string, GateVerdict>();
+    const t = translator({ verdictOf: (id) => verdicts.get(id) });
+    t.translate(messageStart("msg_s", sub));
+    expect(t.translate(toolBlockStart(0, "toolu_sh", "Bash", sub))).toEqual([
+      { kind: "tool_started", callId: "toolu_sh", name: "Bash", input: {}, mcpServerSlug: "", undecided: true, subAgentId: sub },
+    ]);
+    // The gate decides before the whole message reaches the translator: no row moves yet.
+    verdicts.set("toolu_sh", allowVerdict(undefined));
+    expect(t.admitted("toolu_sh"), "no release before the whole input").toEqual([]);
+    expect(t.translate(assistant("msg_s", [{ type: "tool_use", id: "toolu_sh", name: "Bash", input: { command: "make" } }], sub))).toEqual([
+      { kind: "tool_started", callId: "toolu_sh", name: "Bash", input: { command: "make" }, mcpServerSlug: "", subAgentId: sub },
+    ]);
+  });
+
+  it("announces a call decided when the gate allows it after its whole message", () => {
+    const t = translator();
+    const bridged = translator({ serverOf: (name) => (name === "mcp__github__create_issue" ? { slug: "github", tool: "create_issue" } : undefined) });
+    bridged.translate(assistant("msg_a", [{ type: "tool_use", id: "toolu_gh", name: "mcp__github__create_issue", input: { title: "x" } }]));
+    expect(bridged.admitted("toolu_gh")).toEqual([{ kind: "tool_started", callId: "toolu_gh", name: "create_issue", input: {}, mcpServerSlug: "github" }]);
+    expect(t.admitted("toolu_unknown"), "a call it never opened").toEqual([]);
+  });
+
+  it("keeps a call the gate refused or paused undecided, so its stamp or its ask reaches the log first", () => {
+    for (const verdict of [
+      { kind: "refuse", message: "no", source: "builtin_category", caller: ROOT_CALLER, hook: undefined, byPerson: false },
+      { kind: "pause", message: "ask", source: "builtin_category", caller: ROOT_CALLER, toolName: "Bash", args: {}, hook: undefined },
+    ] as const satisfies readonly GateVerdict[]) {
+      const t = translator({ verdictOf: () => verdict });
+      expect(t.translate(assistant("msg_a", [{ type: "tool_use", id: "toolu_1", name: "Bash", input: { command: "rm" } }])), verdict.kind).toEqual([
+        { kind: "tool_started", callId: "toolu_1", name: "Bash", input: { command: "rm" }, mcpServerSlug: "", undecided: true },
+      ]);
+    }
   });
 });
 
@@ -366,16 +405,16 @@ describe("ClaudeTranslator: names", () => {
   it("reports the host's aliased shell as Bash, with no server slug, streamed or whole", () => {
     const t = translator({ serverOf: () => ({ slug: "stigmer", tool: "bash" }) });
     t.translate(messageStart("msg_1"));
-    expect(t.translate(toolBlockStart(0, "toolu_sh", "mcp__stigmer__bash"))).toEqual([{ kind: "tool_started", callId: "toolu_sh", name: "Bash", input: {}, mcpServerSlug: "" }]);
+    expect(t.translate(toolBlockStart(0, "toolu_sh", "mcp__stigmer__bash"))).toEqual([{ kind: "tool_started", callId: "toolu_sh", name: "Bash", input: {}, mcpServerSlug: "", undecided: true }]);
     expect(t.translate(assistant("msg_2", [{ type: "tool_use", id: "toolu_sh2", name: "mcp__stigmer__bash", input: { command: "ls" } }]))).toEqual([
-      { kind: "tool_started", callId: "toolu_sh2", name: "Bash", input: { command: "ls" }, mcpServerSlug: "" },
+      { kind: "tool_started", callId: "toolu_sh2", name: "Bash", input: { command: "ls" }, mcpServerSlug: "", undecided: true },
     ]);
   });
 
   it("names a bridged server's tool's row by the tool's bare name, beside its server's slug", () => {
     const t = translator({ serverOf: (name) => (name.startsWith("mcp__github__") ? { slug: "github", tool: name.slice("mcp__github__".length) } : undefined) });
     expect(t.translate(assistant("msg_1", [{ type: "tool_use", id: "toolu_gh", name: "mcp__github__create_issue", input: { title: "x" } }]))).toEqual([
-      { kind: "tool_started", callId: "toolu_gh", name: "create_issue", input: { title: "x" }, mcpServerSlug: "github" },
+      { kind: "tool_started", callId: "toolu_gh", name: "create_issue", input: { title: "x" }, mcpServerSlug: "github", undecided: true },
     ]);
   });
 });

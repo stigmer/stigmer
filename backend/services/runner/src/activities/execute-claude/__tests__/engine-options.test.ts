@@ -168,7 +168,7 @@ describe("engineOptions", () => {
     expect(options.hooks).toBe(hooks);
     expect(options.canUseTool).toBe(canUseTool);
     expect(options.sessionStore).toBe(sessionStore);
-    expect(options.sessionStoreFlush).toBe("batched");
+    expect(options.sessionStoreFlush, "every entry reaches the store as it is written (stigmer#2612)").toBe("eager");
     expect(options.abortController).toBe(abortController);
     expect(options.stderr).toBe(stderr);
     expect(options.includePartialMessages).toBe(true);
