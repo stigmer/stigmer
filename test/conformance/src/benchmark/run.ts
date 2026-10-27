@@ -56,7 +56,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { FixtureTracker } from "../harness/fixtures";
 import { awaitGrpcReady } from "../harness/grpc-ready";
@@ -84,6 +83,7 @@ import {
   BENCHMARK_SESSION_SUBJECT,
   JUDGE_MODEL,
   PARITY_MODEL,
+  SESSION_HARNESS,
   doneChecksHold,
   explicitProvider,
   nativeApi,
@@ -97,7 +97,8 @@ import { summarizeBackground } from "./background-readings";
 import { renderQuality, runQualityEval } from "./quality-eval";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
-  costRatio,
+  HARNESSES,
+  comparisonOf,
   summarize,
   type AgentShape,
   type BenchmarkComparison,
@@ -314,18 +315,8 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
   const comparisons: BenchmarkComparison[] = [];
   for (const cell of cells) {
     if (comparisons.some((comparison) => comparison.scenario === cell.scenario.name)) continue;
-    const sides = statsByScenario.get(cell.scenario.name) ?? {};
-    const ratio = costRatio(sides["deep-agent"], sides.cursor);
-    comparisons.push({
-      scenario: cell.scenario.name,
-      prompts: [...cell.scenario.prompts],
-      mode: cell.scenario.mode,
-      session_shape: cell.scenario.sessionShape,
-      agent: cell.scenario.agent,
-      ...(sides["deep-agent"] !== undefined ? { native: sides["deep-agent"] } : {}),
-      ...(sides.cursor !== undefined ? { cursor: sides.cursor } : {}),
-      ...(ratio !== undefined ? { cost_ratio: ratio } : {}),
-    });
+    /* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects; comparisonOf is tested */
+    comparisons.push(comparisonOf(cell.scenario, statsByScenario.get(cell.scenario.name) ?? {}));
   }
 
   let quality: QualityEval | null = null;
@@ -352,8 +343,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
       shell_background: options.shellBackground,
     },
     models: {
-      parity_native: plan.nativeModel,
-      parity_cursor: PARITY_MODEL.cursor,
+      parity: { ...PARITY_MODEL, "deep-agent": plan.nativeModel },
       judge_requested: JUDGE_MODEL,
       native_endpoint: options.nativeEndpoint,
       // The planner refuses every native cell whose provider it cannot place, so an unknown API measured nothing.
@@ -374,13 +364,11 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
  */
 function registryHas(registry: ModelRegistryDocument, id: string, harness: BenchmarkHarness): boolean {
   if (harness === "deep-agent" && explicitProvider(id) !== undefined) return true;
-  const wanted = harness === "cursor" ? "cursor" : "native";
-  return registry.models.some((row) => row.id === id && row.harness === wanted);
+  return registry.models.some((row) => row.id === id && row.harness === REGISTRY_ROW_HARNESS[harness]);
 }
 
-function sessionHarness(harness: BenchmarkHarness): Harness {
-  return harness === "cursor" ? Harness.CURSOR : Harness.NATIVE;
-}
+/** The engine a harness's rows name in the model registry (`row.harness`). */
+const REGISTRY_ROW_HARNESS: Record<BenchmarkHarness, string> = { "deep-agent": "native", cursor: "cursor", claude: "claude" };
 
 /** The agent an attempt runs, provisioned fresh; its resources are deferred on `fixtures`. */
 interface ProvisionedAgent {
@@ -395,7 +383,7 @@ async function provisionAgent(
   fixtures: FixtureTracker,
   cell: { agent: AgentShape; harness: BenchmarkHarness; overlay?: Scenario["overlay"] },
 ): Promise<ProvisionedAgent> {
-  const harness = sessionHarness(cell.harness);
+  const harness = SESSION_HARNESS[cell.harness];
   if (cell.agent === "working") {
     const agent = await provisionWorkingAgent(stack.clients, fixtures, {
       mcpUrl: stack.mcpFixture.url(WORKING_AGENT_MCP_TOOLS),
@@ -530,7 +518,8 @@ function renderBackgroundTable(report: BenchmarkReport): string[] {
   const rows: string[] = [];
   const value = (n: number | null): string => (n === null ? "n/a" : String(Math.round(n)));
   for (const comparison of report.comparisons) {
-    for (const side of [comparison.native, comparison.cursor]) {
+    for (const harness of HARNESSES) {
+      const side = comparison.sides[harness];
       if (side === undefined) continue;
       const summary = summarizeBackground(side.samples);
       if (summary === null) continue;
@@ -574,7 +563,7 @@ export function renderSummary(report: BenchmarkReport): string {
   const defaultRate = report.models.native_cost_basis === "default-rate";
   let markedNative = false;
   lines.push(
-    `Native arm: ${report.models.parity_native} at ${report.models.native_endpoint}, ${report.models.native_api} API, cost basis ${report.models.native_cost_basis}`,
+    `Native arm: ${report.models.parity["deep-agent"]} at ${report.models.native_endpoint}, ${report.models.native_api} API, cost basis ${report.models.native_cost_basis}`,
     `Code: ${report.git.code_sha}${report.git.code_sha === report.git.head_sha ? " (the instrument's own)" : `, measured by the instrument at ${report.git.head_sha}`}`,
     `Runner log: ${renderRunnerLog(report.runner_log)}`,
     "",
@@ -584,7 +573,8 @@ export function renderSummary(report: BenchmarkReport): string {
   );
   lines.push(`|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|`);
   for (const comparison of report.comparisons) {
-    for (const side of [comparison.native, comparison.cursor]) {
+    for (const harness of HARNESSES) {
+      const side = comparison.sides[harness];
       if (side === undefined) continue;
       const m = side.median;
       const marked = defaultRate && side.harness === "deep-agent" && m !== null;
@@ -598,7 +588,7 @@ export function renderSummary(report: BenchmarkReport): string {
   if (markedNative) {
     lines.push(
       "",
-      `* ${report.models.parity_native} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,
+      `* ${report.models.parity["deep-agent"]} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,
     );
   }
   lines.push(...renderBackgroundTable(report));

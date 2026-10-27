@@ -1,13 +1,13 @@
-// Measures the native and Cursor harnesses against REAL providers and writes
+// Measures the native, Cursor and Claude harnesses against REAL providers and writes
 // the report the harness work is judged on
 // (`make benchmark-harnesses`; `npm run benchmark:harnesses -- <flags>`).
 // Domain: conformance benchmark (the live instrument's entrypoint).
 //
 // THIS IS AN EXPERIMENT, NOT A TEST. It makes live model calls and spends
-// real money: at the defaults, twelve scenarios on two harnesses, one warm-up
+// real money: at the defaults, twelve scenarios on each of three harnesses, one warm-up
 // plus five samples each, three turns per sample on the four three-turn
 // scenarios (the bare turn-2 cell and the working agent's read-edit,
-// cross-turn and long-log cells) — 240 executions — plus the quality arm: one
+// cross-turn and long-log cells) — 120 executions a harness — plus the quality arm: one
 // eval run of the working agent's eleven cases, three tries per case on each
 // harness, the AI-graded checks judged by three votes each. It is in no vitest
 // config and `npm test` cannot reach it. Its numbers are a new baseline for the
@@ -19,7 +19,8 @@
 // rule under "What to refuse").
 //
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
-// ANTHROPIC_API_KEY for the judge and a Claude native model; OPENAI_API_KEY for
+// ANTHROPIC_API_KEY for the judge, a Claude native model and the Claude cells
+// (the runner's own key, in this direct mode); OPENAI_API_KEY for
 // an OpenAI-provider native model (`--native-model openai:<name>`, or a `gpt*`
 // catalog id), with OPENAI_BASE_URL when that model is served on another
 // OpenAI-compatible address (Google's, a router's); CURSOR_API_KEY for
@@ -38,10 +39,10 @@
 //   --reps N                 warm samples per cell (default 5; odd keeps the median an observed sample)
 //   --quality-reps N         tries per quality case per harness (default 3)
 //   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/cursor`)
-//   --only native|cursor     one harness
+//   --only native|cursor|claude  one harness
 //   --native-model <id>      the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
 //                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
-//                            report records the host, API and cost basis it ran on. Not with --only cursor.
+//                            report records the host, API and cost basis it ran on. Not with --only cursor or claude.
 //   --stack <checkout>       boot that stigmer checkout's server and runner (built there first: `npm ci`,
 //                            `make build-runner build-server`) instead of this tree's; this tree stays the
 //                            instrument, so its clients and readers measure both alike. The report records
@@ -74,7 +75,7 @@ import { runJudgeCalibration } from "../src/benchmark/judge/calibrate";
 import { renderCalibrationModule, shortfallsOf } from "../src/benchmark/judge/calibration-tally";
 import { JUDGE_EXAMPLES } from "../src/benchmark/judge/examples";
 import { bootBenchmarkStack, renderSummary, resolveStackRoot, runBenchmark, writeReport } from "../src/benchmark/run";
-import type { BenchmarkHarness, BenchmarkReport, ShellBackground } from "../src/benchmark/report";
+import { ARM_WORD, HARNESSES, type BenchmarkReport, type ShellBackground } from "../src/benchmark/report";
 
 const execFileAsync = promisify(execFile);
 const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
@@ -140,8 +141,9 @@ function parseFlags(argv: readonly string[]): Flags {
         break;
       case "--only": {
         const only = value();
-        if (only !== "native" && only !== "cursor") throw new Error("--only needs native or cursor");
-        flags.only = (only === "native" ? "deep-agent" : "cursor") satisfies BenchmarkHarness;
+        const harness = HARNESSES.find((candidate) => ARM_WORD[candidate] === only);
+        if (harness === undefined) throw new Error(`--only needs ${HARNESSES.map((candidate) => ARM_WORD[candidate]).join(", ")}`);
+        flags.only = harness;
         break;
       }
       case "--native-model": {
@@ -199,8 +201,8 @@ function parseFlags(argv: readonly string[]): Flags {
         throw new Error(`unknown flag ${String(flag)}`);
     }
   }
-  if (flags.nativeModel !== undefined && flags.only === "cursor") {
-    throw new Error("--native-model names the native arm's model, and --only cursor runs no native cell");
+  if (flags.nativeModel !== undefined && flags.only !== undefined && flags.only !== "deep-agent") {
+    throw new Error(`--native-model names the native arm's model, and --only ${ARM_WORD[flags.only]} runs no native cell`);
   }
   return flags;
 }

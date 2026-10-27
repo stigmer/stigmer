@@ -41,8 +41,8 @@
 // verbatim, so a category keeps its meaning from one run to the next:
 //   git show 4c968690b^:test/integration/cost_benchmark_test.go (L269, L295-325)
 // The `default` cells let each harness pick its model; the `parity` twins pin
-// both to the same served model so the difference is harness overhead. The
-// turn-2 scenario is that suite's multi-turn cell (L103-135), three turns in
+// every harness to the same served model so the difference is harness
+// overhead. The turn-2 scenario is that suite's multi-turn cell (L103-135), three turns in
 // one session with the SECOND turn sampled: the warm-session experience no
 // first-turn cell can show.
 //
@@ -66,18 +66,37 @@
 // runner accept on native without a catalog row (server modelcatalog/
 // pin-validation.ts). It replaces PARITY_MODEL["deep-agent"] in the native
 // parity, turn-2 and working cells and the native quality target; the Cursor
-// arm, the judge and every prompt stay as they are, so the grader is the same
-// in every arm. One run measures one native model, because the runner the
+// and Claude arms, the judge and every prompt stay as they are, so the grader
+// is the same in every arm.
+//
+// The Claude arm runs Anthropic's engine on the organization's Anthropic key
+// (in the benchmark's direct mode, the runner's own ANTHROPIC_API_KEY), so a
+// Claude cell needs the Anthropic key; its parity model is the native arm's
+// served model under the Claude engine's catalog row, so a parity cell
+// measures the engine and not the model.
+//
+// One run measures one native model, because the runner the
 // benchmark spawns holds one OpenAI-slot key and address (its environment's
 // OPENAI_API_KEY and OPENAI_BASE_URL) for the whole run. Which key a native
 // cell needs follows the model's provider, derived here the way the runner
 // derives it (`nativeProvider`).
-import type { AgentShape, BenchmarkHarness, ComparisonMode, NativeApi, RefusedCell, SessionShape } from "./report";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { HARNESSES, type AgentShape, type BenchmarkHarness, type ComparisonMode, type NativeApi, type RefusedCell, type SessionShape } from "./report";
 
-/** The registry ids the parity cells pin, per harness: one served model, two registry rows. */
+export { HARNESSES };
+
+/** The registry ids the parity cells pin, per harness: one served model, a registry row per engine. */
 export const PARITY_MODEL: Record<BenchmarkHarness, string> = {
   "deep-agent": "claude-sonnet-4.6",
   cursor: "claude-sonnet-4-6",
+  claude: "claude-sonnet-4.6",
+};
+
+/** The engine a harness's sessions are created on (`SessionSpec.harness`, an eval run's target). */
+export const SESSION_HARNESS: Record<BenchmarkHarness, Harness> = {
+  "deep-agent": Harness.NATIVE,
+  cursor: Harness.CURSOR,
+  claude: Harness.CLAUDE,
 };
 
 /** The judge model the quality arm's eval names for its AI-graded checks. */
@@ -236,8 +255,6 @@ export const SCENARIOS: readonly Scenario[] = [
     ],
   },
 ];
-
-export const HARNESSES: readonly BenchmarkHarness[] = ["deep-agent", "cursor"];
 
 /** One scenario on one harness. */
 export interface BenchmarkCell {
@@ -404,8 +421,10 @@ function hostOf(raw: string | undefined, variable: string, fallback: string): st
  * What the environment and the flags allow, decided before the stack boots.
  * A native cell needs the key of its model's provider (`nativeProvider`;
  * a model it cannot place is refused as the runner would refuse it); a
- * Cursor cell the Cursor key; a quality target needs its harness's key AND
- * the Anthropic key, because the judge runs on the native path. Every
+ * Cursor cell the Cursor key; a Claude cell the Anthropic key, whatever its
+ * model, since the engine runs Claude only; a quality target needs its
+ * harness's key AND the Anthropic key, because the judge runs on the native
+ * path. Every
  * working-agent timing cell also needs the `stigmer` CLI. The judge cell runs
  * only when `--cells` names it, and needs the Anthropic key. Under
  * `--native-model` the native `default` cells are refused: their point is
@@ -419,14 +438,19 @@ function hostOf(raw: string | undefined, variable: string, fallback: string): st
 export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
   const nativeModel = flags.nativeModel ?? PARITY_MODEL["deep-agent"];
   const refused: RefusedCell[] = [];
-  const keyReason = (harness: BenchmarkHarness, model: string | null): RefusedCell["reason"] | undefined => {
-    if (harness === "cursor") return env.cursorKey ? undefined : "missing CURSOR_API_KEY";
-    // A default cell names no model; the harness's default is a catalog Claude model.
-    const provider = model === null ? "anthropic" : nativeProvider(model);
-    if (provider === undefined) return "model provider unknown";
-    if (provider === "openai") return env.openaiKey ? undefined : "missing OPENAI_API_KEY";
-    return env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY";
+  // One rule per harness, so a harness the benchmark gains cannot run with no key rule.
+  const keyRules: Record<BenchmarkHarness, (model: string | null) => RefusedCell["reason"] | undefined> = {
+    "deep-agent": (model) => {
+      // A default cell names no model; the harness's default is a catalog Claude model.
+      const provider = model === null ? "anthropic" : nativeProvider(model);
+      if (provider === undefined) return "model provider unknown";
+      if (provider === "openai") return env.openaiKey ? undefined : "missing OPENAI_API_KEY";
+      return env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY";
+    },
+    cursor: () => (env.cursorKey ? undefined : "missing CURSOR_API_KEY"),
+    claude: () => (env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY"),
   };
+  const keyReason = (harness: BenchmarkHarness, model: string | null): RefusedCell["reason"] | undefined => keyRules[harness](model);
   const excludedByFlags = (id: string, harness: BenchmarkHarness): RefusedCell["reason"] | undefined => {
     if (flags.only !== undefined && flags.only !== harness) return "excluded by --only";
     if (flags.cells !== undefined && !globMatches(flags.cells, id)) return "excluded by --cells";

@@ -3,9 +3,9 @@
 // script over this module). Domain: conformance benchmark (the readout).
 //
 // An arm is a harness on one model at one endpoint, on one version of the
-// code: native on the report's `models.parity_native` at its
-// `models.native_endpoint`, or Cursor on `models.parity_cursor`, each on the
-// report's `git.code_sha` (the server and runner it booted; the script's
+// code: native on the report's `models.parity["deep-agent"]` at its
+// `models.native_endpoint`, or Cursor or Claude on its own entry of
+// `models.parity`, each on the report's `git.code_sha` (the server and runner it booted; the script's
 // `--stack`). One run measures one native model on one version of the code
 // (cells.ts, run.ts), so another model or another version is another report,
 // and the comparison is across reports. Reports are compared only when one
@@ -55,15 +55,17 @@
 import { summarizeBackground, type BackgroundSummary } from "./background-readings";
 import { PARITY_MODEL } from "./cells";
 import { renderRunnerLog } from "./log-markers";
-import type {
-  BenchmarkComparison,
-  BenchmarkHarness,
-  BenchmarkReport,
-  BenchmarkSample,
-  BenchmarkStat,
-  RefusalReason,
-  RunnerLogMarkers,
-  ToolCallFact,
+import {
+  ARM_WORD,
+  HARNESSES,
+  type BenchmarkComparison,
+  type BenchmarkHarness,
+  type BenchmarkReport,
+  type BenchmarkSample,
+  type BenchmarkStat,
+  type RefusalReason,
+  type RunnerLogMarkers,
+  type ToolCallFact,
 } from "./report";
 
 /** At least this many samples (or cases graded on both arms) on each side, or the clause is "not measured". */
@@ -165,12 +167,25 @@ interface QualityCase {
   passK: boolean;
 }
 
-/** `native/<model>@<endpoint>#<code>`, with `+background-off` when the runner's background commands were off, or `cursor/<model>#<code>`; the code as the first ten characters of `git.code_sha`. */
+/**
+ * `native/<model>@<endpoint>#<code>`, with `+background-off` when the
+ * runner's background commands were off, or `cursor/<model>#<code>` or
+ * `claude/<model>#<code>`; the code as the first ten characters of
+ * `git.code_sha`. The endpoint and the background setting are native's
+ * alone.
+ */
 export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): string {
   const code = `#${shortSha(report.git.code_sha)}`;
-  if (harness === "cursor") return `cursor/${report.models.parity_cursor}${code}`;
-  const off = report.methodology.shell_background === "off" ? "+background-off" : "";
-  return `native/${report.models.parity_native}@${report.models.native_endpoint}${code}${off}`;
+  const model = report.models.parity[harness];
+  switch (harness) {
+    case "deep-agent": {
+      const off = report.methodology.shell_background === "off" ? "+background-off" : "";
+      return `${ARM_WORD[harness]}/${model}@${report.models.native_endpoint}${code}${off}`;
+    }
+    case "cursor":
+    case "claude":
+      return `${ARM_WORD[harness]}/${model}${code}`;
+  }
 }
 
 /** A SHA's first ten characters, keeping a `-dirty` mark. */
@@ -244,7 +259,7 @@ function runnerLogsOf(reports: readonly ComparedReport[]): RunnerLogReading[] {
     .sort((a, b) => Date.parse(a.report.timestamp) - Date.parse(b.report.timestamp))
     .map(({ path, report }) => ({
       path,
-      arms: (["deep-agent", "cursor"] as const)
+      arms: HARNESSES
         .filter((harness) => report.comparisons.some((comparison) => sideOf(comparison, harness) !== undefined) || qualityCases(report, harness) !== null)
         .map((harness) => armLabel(report, harness)),
       markers: report.runner_log,
@@ -269,14 +284,13 @@ function poolArms(reports: readonly ComparedReport[]): Map<string, PooledArm> {
     const label = armLabel(report, harness);
     let arm = arms.get(label);
     if (arm === undefined) {
-      const model = harness === "deep-agent" ? report.models.parity_native : report.models.parity_cursor;
-      arm = { label, harness, model, stats: new Map(), refused: new Map(), cases: null };
+      arm = { label, harness, model: report.models.parity[harness], stats: new Map(), refused: new Map(), cases: null };
       arms.set(label, arm);
     }
     return arm;
   };
   for (const { report } of ordered) {
-    for (const harness of ["deep-agent", "cursor"] as const) {
+    for (const harness of HARNESSES) {
       const sides = report.comparisons.filter((comparison) => sideOf(comparison, harness) !== undefined);
       const cases = qualityCases(report, harness);
       if (sides.length === 0 && cases === null) continue;
@@ -293,15 +307,14 @@ function poolArms(reports: readonly ComparedReport[]): Map<string, PooledArm> {
 }
 
 function sideOf(comparison: BenchmarkComparison, harness: BenchmarkHarness): BenchmarkStat | undefined {
-  return harness === "deep-agent" ? comparison.native : comparison.cursor;
+  return comparison.sides[harness];
 }
 
 /** The arm's cases from the report's quality document, or `null` when the document carries no target for it. */
 function qualityCases(report: BenchmarkReport, harness: BenchmarkHarness): QualityCase[] | null {
   const document = report.quality?.document;
   if (document === null || document === undefined) return null;
-  const model = harness === "deep-agent" ? report.models.parity_native : report.models.parity_cursor;
-  const wanted = `${harness === "deep-agent" ? "native" : "cursor"}/${model}`;
+  const wanted = `${ARM_WORD[harness]}/${report.models.parity[harness]}`;
   const block = recordOf(arrayOf(document["plugins"])[0]);
   const target = arrayOf(block["targets"]).map(recordOf).find((entry) => entry["label"] === wanted);
   if (target === undefined) return null;

@@ -22,6 +22,9 @@
 // samples that ran, or three cases graded on both arms, reads "not measured";
 // a create failure is not a sample that ran; a cell the arm's report refused
 // by design is expected, and one refused for want of a key is not measured.
+// A Claude arm is `claude/<model>#<code>`, its side and its quality target
+// found under its own harness, and pools against the native reference like
+// any other arm.
 import { describe, expect, it } from "vitest";
 import { PARITY_MODEL } from "../cells";
 import {
@@ -33,7 +36,7 @@ import {
   type ComparedReport,
 } from "../compare";
 import { emptyMarkers } from "../log-markers";
-import { summarize, type BackgroundReadings, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
+import { ARM_WORD, summarize, type BackgroundReadings, type BenchmarkHarness, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
 import { makeSample } from "./sample-fixture";
 
 const REF = PARITY_MODEL["deep-agent"];
@@ -66,13 +69,15 @@ function samples(n: number, calls: ToolCallFact["outcome"][] = ["ok"], overrides
 }
 
 interface ArmSpec {
+  /** The harness whose side the cells and the quality target are; native by default. */
+  harness?: BenchmarkHarness;
   model?: string;
   endpoint?: string;
   basis?: "catalog" | "default-rate";
   timestamp?: string;
-  /** Per scenario, the native side's samples; omitted scenarios have no native side. */
+  /** Per scenario, the harness's side's samples; omitted scenarios have no side. */
   cells?: Record<string, BenchmarkSample[]>;
-  /** Per case, the native target's score and pass^k; omitted means no quality document. */
+  /** Per case, the harness's target's score and pass^k; omitted means no quality document. */
   quality?: Record<string, { score: number | null; passK?: boolean }>;
   refused?: BenchmarkReport["refused"];
   headSha?: string;
@@ -83,9 +88,12 @@ interface ArmSpec {
 
 function report(spec: ArmSpec = {}): BenchmarkReport {
   const model = spec.model ?? REF;
+  const harness = spec.harness ?? "deep-agent";
+  const parity = { ...PARITY_MODEL, "deep-agent": model };
+  const target = `${ARM_WORD[harness]}/${parity[harness]}`;
   const cells = spec.cells ?? { "working-read-edit": samples(3) };
   return {
-    schema_version: 10,
+    schema_version: 11,
     timestamp: spec.timestamp ?? "2026-10-23T10:00:00Z",
     git: { head_sha: spec.headSha ?? "h".repeat(40), main_sha: "m".repeat(40), code_sha: spec.codeSha ?? "c".repeat(40) },
     host: { platform: "darwin/arm64", node: "v22.22.1" },
@@ -99,8 +107,7 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
       shell_background: spec.shellBackground ?? "on",
     },
     models: {
-      parity_native: model,
-      parity_cursor: PARITY_MODEL.cursor,
+      parity,
       judge_requested: REF,
       native_endpoint: spec.endpoint ?? (model.startsWith("openai:") ? "api.openai.com" : "api.anthropic.com"),
       native_api: model.startsWith("openai:") ? "chat-completions" : "messages",
@@ -112,7 +119,8 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
       mode: "working-agent" as const,
       session_shape: "one-session-three-turns" as const,
       agent: "working" as const,
-      native: summarize("deep-agent", makeSample(), list, null),
+      sides: { [harness]: summarize(harness, makeSample(), list, null) },
+      cost_ratio: {},
     })),
     quality:
       spec.quality === undefined
@@ -120,7 +128,7 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
         : {
             plugin: "working-agent",
             eval_id: "evr_1",
-            targets: [`native/${model}`],
+            targets: [target],
             judge_model: REF,
             runs: 3,
             document: {
@@ -129,7 +137,7 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
                 {
                   targets: [
                     {
-                      label: `native/${model}`,
+                      label: target,
                       cases: Object.entries(spec.quality).map(([name, c]) => ({ name, aggregates: { score: c.score }, passK: c.passK ?? false })),
                     },
                   ],
@@ -202,6 +210,7 @@ describe("compareReports: arms and pooling", () => {
     expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com${C}`);
     expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}`, `native/openai:gemini-3-pro@generativelanguage.googleapis.com${C}`]);
     expect(armLabel(report(), "cursor")).toBe(`cursor/${PARITY_MODEL.cursor}${C}`);
+    expect(armLabel(report(), "claude"), "Claude's label names its model and code, no endpoint").toBe(`claude/${PARITY_MODEL.claude}${C}`);
     expect(armLabel(report({ codeSha: `${"d".repeat(40)}-dirty` }), "deep-agent")).toBe(`native/${REF}@api.anthropic.com#${"d".repeat(10)}-dirty`);
   });
 
@@ -238,12 +247,30 @@ describe("compareReports: arms and pooling", () => {
     const reports = [at("off.json", off), at("on.json", report())];
     expect(armLabel(off, "deep-agent")).toBe(`native/${REF}@api.anthropic.com${C}+background-off`);
     expect(armLabel(off, "cursor"), "the setting is native's alone").toBe(`cursor/${PARITY_MODEL.cursor}${C}`);
+    expect(armLabel(off, "claude"), "native's alone, on Claude too").toBe(`claude/${PARITY_MODEL.claude}${C}`);
     const comparison = compareReports(reports, `native/${REF}@api.anthropic.com${C}+background-off`);
     expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}+background-off`, `native/${REF}@api.anthropic.com${C}`]);
     expect(comparison.readings[0]!.arm).toBe(`native/${REF}@api.anthropic.com${C}`);
     expect(compareReports(reports, `native/${REF}@api.anthropic.com${C}`).reference, "the full label of the arm with them on names it alone").toBe(`native/${REF}@api.anthropic.com${C}`);
     expect(comparison.readings[0]!.cells[0]!.wasted, "the off arm's samples were not pooled into the on arm").toMatchObject({ arm: 0, reference: 1 });
     expect(() => compareReports(reports), "the bare model now names two arms").toThrow("matches several arms");
+  });
+
+  it("reads a Claude arm against the native reference: its side and its quality target found under its own harness", () => {
+    const quality = { a: { score: 1, passK: true }, b: { score: 0.9 }, c: { score: 0.5 } };
+    const reports = [
+      at("native.json", report({ quality, cells: { "working-read-edit": samples(3) } })),
+      at("claude.json", report({ harness: "claude", quality: GOOD_QUALITY, cells: { "working-read-edit": samples(3, ["failed"]) } })),
+    ];
+    const comparison = compareReports(reports);
+    expect(comparison.reference, "the default reference is native").toBe(`native/${REF}@api.anthropic.com${C}`);
+    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}`, `claude/${PARITY_MODEL.claude}${C}`]);
+    const reading = comparison.readings[0]!;
+    expect(reading.arm).toBe(`claude/${PARITY_MODEL.claude}${C}`);
+    expect(reading.quality.cases, "the Claude target's cases, graded on both arms").toBe(3);
+    expect(reading.cells[0]!.wasted, "the Claude side's samples against native's").toMatchObject({ arm: 1, reference: 0, status: "misses" });
+    expect(reading.verdict).toBe("misses the bar");
+    expect(comparison.runnerLogs.map((log) => log.arms)).toEqual([[`native/${REF}@api.anthropic.com${C}`], [`claude/${PARITY_MODEL.claude}${C}`]]);
   });
 
   it("pools an arm's reports, a later scenario replacing an earlier one", () => {
