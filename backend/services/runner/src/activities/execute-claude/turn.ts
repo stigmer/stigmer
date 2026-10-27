@@ -114,7 +114,7 @@ export type ClaudeSdk = typeof import("@anthropic-ai/claude-agent-sdk");
 /** The runner config this harness reads per turn; a whole `Config` satisfies it. */
 export type ClaudeAdapterConfig = Pick<
   Config,
-  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "shellTimeoutMaxSeconds" | "mode" | "cursorStreamStallTimeoutMs"
+  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "shellTimeoutMaxSeconds" | "mode" | "cursorStreamStallTimeoutMs" | "openOperationMaxMs"
 >;
 
 /** How long a stopped engine has to end on its own before its process is aborted. */
@@ -255,7 +255,23 @@ async function openingOf(input: TurnInput, channel: TurnInputChannel, facts: Tra
   const owed = (await channel.claimed(new Set())).filter((message) => !facts.taken.has(sentMessageIdOf(message.id)));
   if (owed.length > 0) return { kind: "run", messages: owed.map(sentMessageOf) };
   if (facts.finished) return { kind: "finished" };
-  return { kind: "run", messages: [userMessageOf(CONTINUE_NOTE, runMessageIdOf(`${input.executionId}:${input.turnSeq}`))] };
+  return { kind: "run", messages: [userMessageOf(CONTINUE_NOTE, continueNoteIdOf(input, facts))] };
+}
+
+/**
+ * The id the continuation's note is sent under: the first of the run's note
+ * ids the transcript has not taken. A recovered activity keeps its turn
+ * number, so a turn continued twice would otherwise send the first note's id
+ * again, which the engine already holds and reads as nothing new (it never
+ * moves; stigmer#2624). A note the engine never read keeps its id, so a
+ * retried invocation does not hand it two.
+ */
+function continueNoteIdOf(input: TurnInput, facts: TranscriptFacts): string {
+  const base = `${input.executionId}:${input.turnSeq}`;
+  for (let n = 0; ; n += 1) {
+    const id = runMessageIdOf(n === 0 ? base : `${base}:${n}`);
+    if (!facts.taken.has(id)) return id;
+  }
 }
 
 /** The run's own message: its images first, as content blocks, then its text (`prompt.ts`). */
@@ -345,7 +361,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     }));
   }
   served.push(...bridge.servers.values());
-  const endpoint = served.length > 0 ? await startLoopbackMcp(served, (call) => gate.admit(call)) : undefined;
+  const endpoint = served.length > 0 ? await startLoopbackMcp(served, (call) => gate.admit(call), { callTimeoutMs: config.openOperationMaxMs }) : undefined;
   try {
     // The prompt the engine reads, and the messages sent while it works
     // (`mid-turn-input.ts`), taken only once the gate decided every open call and none waits.

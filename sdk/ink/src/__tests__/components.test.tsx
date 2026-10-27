@@ -299,7 +299,7 @@ describe("TodoList", () => {
 });
 
 describe("ApprovalPrompt", () => {
-  it("offers Approve, scope-truthful approve-all, and Deny", () => {
+  it("INK-02 offers Approve, scope-truthful approve-all, and Deny", () => {
     const output = render(
       <ApprovalPrompt toolUse={waitingToolUse("write_file")} onAnswer={() => {}} />,
     ).lastFrame() ?? "";

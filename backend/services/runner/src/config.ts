@@ -195,8 +195,9 @@ export interface Config {
   /**
    * The runtime's backstop for one open operation (milliseconds,
    * STIGMER_OPEN_OPERATION_MAX_MS, the `openOperationMaxMs` option): see
-   * `harness/open-operations.ts`. Read by the turn runtime only,
-   * which runs in the runner's own process, never in the agent host.
+   * `harness/open-operations.ts`. Read by the turn runtime, in the runner's
+   * own process, and by the Claude adapter in the agent host, as every
+   * served MCP server's per-call timeout (`execute-claude/loopback-mcp.ts`).
    */
   readonly openOperationMaxMs: number;
   /**

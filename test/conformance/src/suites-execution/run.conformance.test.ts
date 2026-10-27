@@ -73,7 +73,7 @@ import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -91,8 +91,11 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { pollUntil } from "../support/run-poll";
-import { messagesOf, turnById } from "../support/turn";
+import { messagesOf, toolUseByCallId, turnById } from "../support/turn";
 import { foreignId, uniqueName } from "../support/naming";
+import { EXECUTE_CLAUDE_ACTIVITY_NAME } from "../../../../backend/libs/ts/temporal-codecs/src/activity-names/names";
+import { invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
+import { CLAUDE_ARM, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -1325,5 +1328,50 @@ describe("Run conformance — populated read surfaces", () => {
     expect(before.totalRuns, "a window ending the day before leaves the run out").toBe(0);
     const after = await clients.agentExecutionQuery.getOrgUsageReport({ org, fromDate: dayShift(day, 1), toDate: dayShift(day, 1) });
     expect(after.totalRuns, "a window starting the day after leaves the run out").toBe(0);
+  });
+});
+
+describe("Run conformance — a turn on Claude", () => {
+  beforeEach(claudeTurnsOnly(capabilities));
+  it("[rpc:RunCommandController.create] runs one turn end to end on the Claude engine: the workflow's Claude arm, the session's engine kept, the call and the answer in the log, the runner's usage", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org);
+    const task = uniqueName("Print the marker");
+    const marker = uniqueName("claude-marker");
+    const callId = `toolu_${uniqueName("print").replace(/-/g, "_")}`;
+    CLAUDE_ARM.script(mock, task, [
+      { kind: "shell", id: callId, command: `echo ${marker}` },
+      { kind: "text", text: "Printed the marker." },
+    ]);
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+    );
+    const runId = created.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+    const sessionId = sessionIdOf(created);
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId }));
+
+    const settled = await awaitTerminal(clients, runId);
+    expect(settled.status?.phase, `the Claude turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+    expect((await clients.sessionQuery.get({ value: sessionId })).spec?.harness, "the session keeps its engine").toBe(Harness.CLAUDE);
+
+    const turn = await turnById(clients, sessionId, runId);
+    const call = toolUseByCallId(turn, callId);
+    expect(call?.name, "the shell call, under Claude's name").toBe("Bash");
+    expect(call?.result?.text ?? "", "its result").toContain(marker);
+    expect(messagesOf(turn).map((message) => message.text), "the answer").toEqual(["Printed the marker."]);
+
+    // Two model calls, the scripted 10 input and 5 output tokens each.
+    const usage = settled.status?.streamingUsage;
+    expect([usage?.inputTokens, usage?.outputTokens, usage?.turnCount], "the runner's report of the engine's calls").toEqual([20n, 10n, 2]);
+    expect(usage?.model ?? "", "the model it ran").not.toBe("");
+    expect(CLAUDE_ARM.loopRequests(mock).length, "the engine asked the model twice").toBe(2);
+
+    const engine = target.engineCoordinates?.();
+    if (engine !== undefined) {
+      const history = await showWorkflow(engine.temporalHostPort, "default", invokeWorkflowIdFor(runId));
+      const activities = history.events.flatMap((event) => event.activityTaskScheduledEventAttributes?.activityType?.name ?? []);
+      expect(activities, "the workflow ran the turn on its Claude arm").toContain(EXECUTE_CLAUDE_ACTIVITY_NAME);
+    }
   });
 });

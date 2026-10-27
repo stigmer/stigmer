@@ -64,6 +64,8 @@ truth.
   published output).
 - Embedded components announce new messages to screen readers and never trap
   focus, hijack shortcuts or inject global styles.
+- A kit's promises live on `test/ux-bar.json`, each held by a test or an open
+  issue.
 
 ## Skills
 

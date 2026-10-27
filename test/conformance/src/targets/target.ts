@@ -495,6 +495,19 @@ export interface CapabilityFlags {
   // can stand in for one. A Cursor arm reads this and skips with
   // CURSOR_KEY_SKIP_REASON (targets/cloud.ts) where it is false.
   cursorRunsAdmitted: boolean;
+  // A Claude turn runs here on the wire mock: the engine the runner carries
+  // in its own install plays the turn against the suite's mock LLM through
+  // the runner's proxy, so the execution arms that prove a case on Claude
+  // (support/engine-arms.ts) run.
+  //
+  // True for the local execution targets, whose runner the target spawns
+  // from this checkout's build, with the engine in its install. False
+  // everywhere else: the CRUD targets run no turn, and the cloud execution
+  // target BY THE ENVIRONMENT, whose runner and server are the
+  // composition's, with no restart door, no lane in CI and no Anthropic
+  // key for a mock run. A Claude arm skips with CLAUDE_TURNS_SKIP_REASON
+  // (support/engine-arms.ts) where it is false.
+  claudeTurnsRun: boolean;
   // The runs an execution arm creates have their model calls served through
   // a meter the server reads its usage reports from: the run's report then
   // counts the calls the meter saw (llm_call_count above zero, not

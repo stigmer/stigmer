@@ -26,7 +26,7 @@
 // shutdown worth waiting for (the runner drains its worker; the launcher tears
 // down containers and the JVM), SIGKILL where it does not (the TS server
 // against throwaway state).
-import type { ChildProcess } from "node:child_process";
+import { execFileSync, type ChildProcess } from "node:child_process";
 import type { EventEmitter } from "node:events";
 import { once } from "node:events";
 import { createWriteStream, mkdirSync, type WriteStream } from "node:fs";
@@ -90,6 +90,49 @@ export async function stopChild(child: ChildHandle, opts: StopChildOptions): Pro
     if (fallback !== undefined) clearTimeout(fallback);
   }
   return { exitedAfterMs: Date.now() - startedAt, forced };
+}
+
+// Every process descended from `pid` (children, theirs, and so on), read
+// from `ps` at the moment of the call. A child that started processes of its
+// own (the runner's agent host, the engine it runs, their shells) leaves them
+// running when only it is signalled; a SIGKILL meant to stand for a lost
+// machine reaches them through this list (killTree). `[]` when `ps` cannot be
+// read.
+export function descendantPids(pid: number): number[] {
+  let table: string;
+  try {
+    table = execFileSync("ps", ["-A", "-o", "pid=,ppid="], { encoding: "utf8" });
+  } catch {
+    return [];
+  }
+  const childrenOf = new Map<number, number[]>();
+  for (const line of table.split("\n")) {
+    const [child, parent] = line.trim().split(/\s+/).map(Number);
+    if (child === undefined || parent === undefined || Number.isNaN(child) || Number.isNaN(parent)) continue;
+    childrenOf.set(parent, [...(childrenOf.get(parent) ?? []), child]);
+  }
+  const found: number[] = [];
+  const walk = (of: number): void => {
+    for (const child of childrenOf.get(of) ?? []) {
+      found.push(child);
+      walk(child);
+    }
+  };
+  walk(pid);
+  return found;
+}
+
+// SIGKILL every descendant of `pid` (descendantPids), all at once, as a lost
+// machine ends them. The caller kills `pid` itself, through stopChild, so it
+// still awaits the exit. A process that already left is skipped.
+export function killTree(pid: number): void {
+  for (const descendant of descendantPids(pid)) {
+    try {
+      process.kill(descendant, "SIGKILL");
+    } catch {
+      // Gone already (ESRCH).
+    }
+  }
 }
 
 export interface TeeChildOutputOptions {

@@ -1,0 +1,10 @@
+exit 2
+
+Error: --json and --quiet cannot be used together
+
+--- with --debug ---
+Error: --json and --quiet cannot be used together
+
+--- debug ---
+Raw error: UsageError: --json and --quiet cannot be used together
+    at command (src/commands/example.ts:1:1)

@@ -34,6 +34,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Command, Option } from "commander";
 import { buildProgram } from "../src/program.js";
+import {
+  commandPath,
+  documentedCommands,
+  registeredArguments,
+  visibleSubcommands,
+} from "../src/command-tree.js";
 
 // ---------------------------------------------------------------------------
 // Command grouping
@@ -122,37 +128,8 @@ interface FlagDoc {
 }
 
 // ---------------------------------------------------------------------------
-// Command-tree introspection
+// Command-tree introspection (the walker itself is src/command-tree.ts)
 // ---------------------------------------------------------------------------
-
-// Commander does not expose a public `hidden` getter on Command; the internal
-// `_hidden` flag is the only signal (set via .command(name, { hidden: true })).
-function isHidden(cmd: Command): boolean {
-  return (cmd as unknown as { _hidden?: boolean })._hidden === true;
-}
-
-// Positional arguments were renamed from `_args` to `registeredArguments` in
-// commander v11+; read the public field with a typed fallback for safety.
-interface RegisteredArgument {
-  name(): string;
-  required: boolean;
-  variadic: boolean;
-}
-
-function registeredArguments(cmd: Command): RegisteredArgument[] {
-  const c = cmd as unknown as { registeredArguments?: RegisteredArgument[]; _args?: RegisteredArgument[] };
-  return c.registeredArguments ?? c._args ?? [];
-}
-
-function commandPath(cmd: Command): string {
-  const parts: string[] = [];
-  let current: Command | null = cmd;
-  while (current) {
-    parts.unshift(current.name());
-    current = current.parent;
-  }
-  return parts.join(" ");
-}
 
 function shortDescription(cmd: Command): string {
   return cmd.summary() || cmd.description();
@@ -167,16 +144,6 @@ function resolveGroup(cmd: Command): GroupId {
     );
   }
   return group;
-}
-
-function documentedCommands(program: Command): Command[] {
-  return program.commands.filter((cmd) => !isHidden(cmd) && cmd.name() !== "help");
-}
-
-function visibleSubcommands(cmd: Command): Command[] {
-  return cmd.commands
-    .filter((sub) => !isHidden(sub) && sub.name() !== "help")
-    .sort((a, b) => a.name().localeCompare(b.name()));
 }
 
 function groupCommands(program: Command): Map<GroupId, Command[]> {

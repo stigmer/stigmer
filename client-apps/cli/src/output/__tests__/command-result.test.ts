@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { CommandResult, resultToHuman, resultToJson, resultToQuiet } from "../command-result.js";
+// Pins the structured command result: its JSON form (status, sections,
+// hints, the data payload), its human and quiet forms, and which stream each
+// goes to: JSON data alone on stdout, every human and quiet line on stderr;
+// and the read verbs' json form, which is the data and nothing else.
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { samples } from "@stigmer/react-sdk/test";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { libraryTable } from "../../resources/list.js";
+import { renderCollection, renderResource } from "../../resources/render.js";
+import { CommandResult, renderResult, resultToHuman, resultToJson, resultToQuiet } from "../command-result.js";
 
 describe("resultToJson", () => {
   it("emits status as a lowercase string", () => {
@@ -71,3 +79,57 @@ describe("resultToQuiet (plain, no color)", () => {
     expect(out).not.toContain("Details");
   });
 });
+
+describe("CLI-01 data goes to stdout and everything else to stderr; -o json prints clean data", () => {
+  let noColor: string | undefined;
+  beforeEach(() => {
+    noColor = process.env.NO_COLOR;
+    delete process.env.NO_COLOR;
+  });
+  afterEach(() => {
+    if (noColor !== undefined) process.env.NO_COLOR = noColor;
+  });
+
+  function streams(isTTY: boolean) {
+    const out = { stdout: "", stderr: "" };
+    return {
+      out,
+      streams: {
+        stdout: { write: (chunk: string) => (out.stdout += chunk) },
+        stderr: { isTTY, write: (chunk: string) => (out.stderr += chunk) },
+      },
+    };
+  }
+
+  function created(): CommandResult {
+    const result = CommandResult.success("Agent created").withData({ slug: "release-notes" });
+    result.addSection().field("Name", "release-notes");
+    result.hint("stigmer run release-notes");
+    return result;
+  }
+
+  it("writes exactly one parseable document to stdout under json, and nothing to stderr", () => {
+    const { out, streams: s } = streams(true);
+    renderResult(created(), "json", s);
+    expect(out.stderr).toBe("");
+    expect(out.stdout.endsWith("}\n")).toBe(true);
+    expect(JSON.parse(out.stdout)).toMatchObject({ status: "success", message: "Agent created", data: { slug: "release-notes" } });
+  });
+
+  it("renders get and list under json as one parseable document of the data, with no table text", () => {
+    const agents = [samples.agent(), samples.agent({ id: "agt-2", slug: "second" })];
+    const one = renderResource(AgentSchema, agents[0]!, "json");
+    expect(JSON.parse(one)).toMatchObject({ metadata: { slug: "demo-agent" } });
+    const many = renderCollection(AgentSchema, agents, "json", libraryTable("agents"));
+    expect(JSON.parse(many).map((a: { metadata: { slug: string } }) => a.metadata.slug)).toEqual(["demo-agent", "second"]);
+    for (const text of [one, many]) expect(text).not.toMatch(/NAME|-{3}|^\s*ID:/m);
+  });
+
+  it.each(["human", "quiet"] as const)("writes the %s form to stderr and nothing to stdout", (format) => {
+    const { out, streams: s } = streams(false);
+    renderResult(created(), format, s);
+    expect(out.stdout).toBe("");
+    expect(out.stderr).toMatch(/^✓ Agent created\n/);
+  });
+});
+

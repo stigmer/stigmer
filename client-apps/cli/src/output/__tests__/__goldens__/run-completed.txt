@@ -1,0 +1,7 @@
+--- stdout ---
+Fixed: invoices now round once, at the total.
+--- stderr ---
+
+> Invoices are off by a cent. Can you fix the rounding?
+
+  ✓ edit_file

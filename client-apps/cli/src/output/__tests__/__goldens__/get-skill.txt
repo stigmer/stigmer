@@ -1,0 +1,6 @@
+
+  ID:           skl-00000000-0000-0000-0000-000000000001
+  Name:         Demo Skill
+  Slug:         demo-skill
+  Org:          demo
+  Description:  A sample skill for demo purposes.

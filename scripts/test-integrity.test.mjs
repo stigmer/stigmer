@@ -691,12 +691,14 @@ it("in a package with a live config, every other vitest config excludes the live
   assert.deepEqual(layout({}, { configs: { "pkg/vitest.config.ts": `export default { test: {} };` } }), []);
 });
 
-it("a TypeScript test lives in __tests__, a spec under the e2e homes; the suites' trees are placed by their suite", () => {
+it("a TypeScript test lives in __tests__, a spec under the spec homes; the suites' trees are placed by their suite", () => {
   const ok = `it("a", () => {});`;
   assert.deepEqual(layout({ "pkg/src/cmd/run.test.ts": ok }), ["layout-placement pkg/src/cmd/run.test.ts"]);
   assert.deepEqual(layout({ "pkg/src/cmd/__tests__/run.test.ts": ok }), []);
   assert.deepEqual(layout({ "pkg/e2e/flow.spec.ts": ok }), ["layout-placement pkg/e2e/flow.spec.ts"]);
   assert.deepEqual(layout({ "site/e2e/demos/demo.spec.ts": ok }, { packages: ["site"] }), []);
+  assert.deepEqual(layout({ "test/visual/tests/gallery.spec.ts": ok }, { packages: ["test/visual"] }), []);
+  assert.deepEqual(layout({ "test/visual/src/gallery.spec.ts": ok }, { packages: ["test/visual"] }), ["layout-placement test/visual/src/gallery.spec.ts"]);
   assert.deepEqual(layout({ "test/conformance/src/suites-execution/agent.harness.test.ts": ok }, { packages: ["test/conformance"] }), []);
 });
 

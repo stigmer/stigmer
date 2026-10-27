@@ -99,6 +99,11 @@
  * its root), so the outputs folder and the capture substrate read it as
  * they read the native engine's. A path that resolves outside the
  * workspace takes none of the file-edit flows: the default decides it.
+ * The engine works in its directories' real paths, so a root (the
+ * workspace, the engine's home, the platform folder) is matched in the
+ * spelling the session names it by and in its real path, without resolving
+ * any link inside it (stigmer#2623: a workspace under a link, such as
+ * macOS's `/var`, had every write judged outside it).
  *
  * Every verdict is kept by call id, so the translator stamps the row's
  * provenance and leaves a person's refusal to the runtime
@@ -107,7 +112,8 @@
  * returns to the engine (`updatedInput`).
  */
 
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { CanUseTool, HookCallback, HookCallbackMatcher, HookEvent, PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 
@@ -408,11 +414,20 @@ export class ClaudeGate {
   /** Told each time a call's decision is made. */
   private readonly decided: ((toolUseId: string, verdict: GateVerdict) => void)[] = [];
 
+  /** Every spelling of the workspace's root, the engine's home and the platform folder (the header). */
+  private readonly primaryRoots: readonly string[];
+  private readonly engineHomes: readonly string[];
+  private readonly platformDirs: readonly string[];
+
   constructor(
     private readonly facts: GateFacts,
     /** Whether the turn is stopping or yielding (the header, item 0). */
     private readonly halted: () => boolean = () => false,
-  ) {}
+  ) {
+    this.primaryRoots = spellingsOf(facts.primaryDir);
+    this.engineHomes = spellingsOf(facts.engineHome);
+    this.platformDirs = facts.platformDir === undefined ? [] : spellingsOf(facts.platformDir);
+  }
 
   /** A sub-agent started: the engine's id for it, and the definition it runs. */
   subagentStarted(agentId: string, agentType: string): void {
@@ -627,18 +642,19 @@ export class ClaudeGate {
     const path = extractFilePath(input);
     if (path === null) return { kind: "none" };
     const absolute = resolve(this.facts.primaryDir, path);
-    const rel = relative(this.facts.primaryDir, absolute);
-    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return { kind: "outside", absolute };
-    return { kind: "inside", workspacePath: `/${rel.split(sep).join("/")}` };
+    for (const root of this.primaryRoots) {
+      const rel = relative(root, absolute);
+      if (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)) return { kind: "inside", workspacePath: `/${rel.split(sep).join("/")}` };
+    }
+    return { kind: "outside", absolute };
   }
 
   /** Whether a path is platform content or the engine's own (the header, item 2). */
   private isReadOnly(path: JudgedPath): boolean {
     if (path.kind === "none") return false;
     if (path.kind === "inside") return isReadOnlyPlatformPath(path.workspacePath);
-    const { platformDir, engineHome } = this.facts;
-    if (isWithin(engineHome, path.absolute, true)) return true;
-    return platformDir !== undefined && isWithin(platformDir, path.absolute, true) && !isWithin(join(platformDir, OUTPUTS_SUBDIR), path.absolute, false);
+    if (withinAny(this.engineHomes, path.absolute, true)) return true;
+    return this.platformDirs.some((platformDir) => isWithin(platformDir, path.absolute, true) && !isWithin(join(platformDir, OUTPUTS_SUBDIR), path.absolute, false));
   }
 
   /** Whether a read opens the platform's own content, by the real path it resolves to (the header, item 2). */
@@ -652,9 +668,9 @@ export class ClaudeGate {
   private async opensSkillContent(path: JudgedPath): Promise<boolean> {
     if (path.kind === "none") return false;
     if (path.kind === "inside") return this.facts.readsSkillContent(path.workspacePath);
-    const { platformDir, engineHome } = this.facts;
-    if (isWithin(join(engineHome, SKILL_PLUGINS_SUBDIR), path.absolute, true)) return true;
-    if (platformDir === undefined || !isWithin(platformDir, path.absolute, false)) return false;
+    if (withinAny(this.engineHomes.map((home) => join(home, SKILL_PLUGINS_SUBDIR)), path.absolute, true)) return true;
+    const platformDir = this.platformDirs.find((dir) => isWithin(dir, path.absolute, false));
+    if (platformDir === undefined) return false;
     return SKILL_CONTENT_PATTERN.test(relative(platformDir, path.absolute).split(sep).join("/"));
   }
 }
@@ -667,6 +683,26 @@ function refusal(message: string, caller: Caller | undefined, source?: PolicySou
 /** How a hook's allow is stamped: a lease on its ask, or the hook itself. */
 function hookSource(pre: PreToolUseOutcome): PolicySource {
   return pre.leased ? "approval_lease" : "hook";
+}
+
+/** `dir` as named, and its real path when that differs; a part that does not exist yet keeps its name under its nearest real ancestor (the header). */
+export function spellingsOf(dir: string): readonly string[] {
+  const real = realSpelling(dir);
+  return real === dir ? [dir] : [dir, real];
+}
+
+function realSpelling(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    const parent = dirname(path);
+    return parent === path ? path : join(realSpelling(parent), basename(path));
+  }
+}
+
+/** Whether `path` is within any of `dirs` (isWithin). */
+function withinAny(dirs: readonly string[], path: string, orSelf: boolean): boolean {
+  return dirs.some((dir) => isWithin(dir, path, orSelf));
 }
 
 /** Whether `path` is `dir` (when `orSelf`) or inside it. */

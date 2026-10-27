@@ -28,6 +28,16 @@
 # itself is the pull request's, since GitHub takes a pull request's workflow
 # from its merge commit (#1584).
 #
+# The same job holds the UX bar (scripts/ux-bar.mjs): every promise in
+# test/ux-bar.json is held by a test whose title starts with its id, or
+# pending on an open issue, and a body that closes an issue the bar still
+# lists as pending is refused. It needs what this job already has (the
+# parser, `issues: read`, the body) and must re-run in seconds on a body
+# edit for the same reason. Its script is the base branch's too, with the
+# base's test-integrity.mjs it imports beside it in one folder; the pull
+# request that introduces it has no base copy and runs its own. It runs
+# after a red integrity step as well, so both verdicts show.
+#
 # The job never carries an `if:`: a required check that is skipped counts as
 # passed.
 # =============================================================================
@@ -131,3 +141,30 @@ jobs:
       - name: Judge the tree (merge queue)
         if: github.event_name == 'merge_group'
         run: node scripts/test-integrity.mjs --typescript "$RUNNER_TEMP/ts"
+
+      # The body is written from `env` again, never through `${{ }}` inside
+      # `run`, so this step does not depend on the one above having run.
+      - name: Hold the UX bar (pull request)
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ux-bar"
+          if git cat-file -e "origin/$BASE_REF:scripts/ux-bar.mjs" 2>/dev/null; then
+            git show "origin/$BASE_REF:scripts/ux-bar.mjs" > "$RUNNER_TEMP/ux-bar/ux-bar.mjs"
+            git show "origin/$BASE_REF:scripts/test-integrity.mjs" > "$RUNNER_TEMP/ux-bar/test-integrity.mjs"
+          else
+            echo "$BASE_REF has no scripts/ux-bar.mjs: this pull request introduces it, so its own copy judges it."
+            cp scripts/ux-bar.mjs scripts/test-integrity.mjs "$RUNNER_TEMP/ux-bar/"
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/ux-bar-body.md"
+          node "$RUNNER_TEMP/ux-bar/ux-bar.mjs" --check-issues \
+            --pr-body-file "$RUNNER_TEMP/ux-bar-body.md" \
+            --typescript "$RUNNER_TEMP/ts"
+
+      # The queue has no body, and the pull request's run read the issues.
+      - name: Hold the UX bar (merge queue)
+        if: ${{ !cancelled() && github.event_name == 'merge_group' }}
+        run: node scripts/ux-bar.mjs --typescript "$RUNNER_TEMP/ts"

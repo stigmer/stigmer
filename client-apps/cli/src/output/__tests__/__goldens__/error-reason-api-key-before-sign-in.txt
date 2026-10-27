@@ -1,0 +1,19 @@
+exit 4
+
+Error: this API key was created before sign-in was turned on
+
+Sign in, then create a new key:
+  stigmer auth login
+  stigmer apikey create --name <name>
+
+--- with --debug ---
+Error: this API key was created before sign-in was turned on
+
+Sign in, then create a new key:
+  stigmer auth login
+  stigmer apikey create --name <name>
+
+--- debug ---
+gRPC code: Unauthenticated (16)
+Raw error: ConnectError: [unauthenticated] this API key was created before sign-in was turned on
+    at command (src/commands/example.ts:1:1)

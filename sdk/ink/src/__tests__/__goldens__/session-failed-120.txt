@@ -1,0 +1,10 @@
+ You
+ Invoices are off by a cent. Can you fix the rounding?
+
+ Fix invoice rounding
+
+ ● Failed
+
+ Agent mode — full tool access
+
+ Reply...

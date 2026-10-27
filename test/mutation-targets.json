@@ -97,6 +97,31 @@
         "!src/**/*.test.ts"
       ],
       "concurrency": 4
+    },
+    "cli-output": {
+      "title": "the CLI's output, errors and run rendering",
+      "package": "client-apps/cli",
+      "mutate": [
+        "src/output/*.ts",
+        "src/errors/*.ts",
+        "src/resources/render.ts",
+        "src/resources/stream/*.ts",
+        "src/resources/run/epilogue.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "ink-logic": {
+      "title": "the terminal kit's file review and markdown",
+      "package": "sdk/ink",
+      "mutate": [
+        "src/file-review.ts",
+        "src/markdown.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
     }
   }
 }

@@ -1,0 +1,11 @@
+ Fix invoice rounding
+
+ ⠋ Running
+ You
+ Invoices are off by a cent. Can you fix the rounding?
+
+  ⟳ ↳ find the rounding code (1m 30s) ▸
+
+ Agent mode — full tool access
+
+ Reply...

@@ -1,0 +1,275 @@
+{
+  "surfaces": {
+    "CLI": "the stigmer CLI",
+    "INK": "the terminal kit, @stigmer/ink-ui",
+    "LIB": "every published TypeScript library",
+    "KIT": "the React kit, @stigmer/react-sdk",
+    "CON": "the web console",
+    "DSK": "the desktop app",
+    "SDK": "the Go, Python and Java SDKs"
+  },
+  "promises": [
+    {
+      "id": "CLI-01",
+      "promise": "Data goes to stdout and everything else to stderr; -o json prints clean data."
+    },
+    {
+      "id": "CLI-02",
+      "promise": "Every command that prints machine output accepts -o.",
+      "pending": [
+        "stigmer#2620"
+      ]
+    },
+    {
+      "id": "CLI-03",
+      "promise": "A usage error exits 2, in the CLI's own error style.",
+      "pending": [
+        "stigmer#2620"
+      ]
+    },
+    {
+      "id": "CLI-04",
+      "promise": "Every error says what happened, why, and what to do; stacks only in debug.",
+      "pending": [
+        "stigmer#2626"
+      ]
+    },
+    {
+      "id": "CLI-05",
+      "promise": "Off a terminal there is no colour, spinner or prompt, and NO_COLOR is honoured."
+    },
+    {
+      "id": "CLI-06",
+      "promise": "A headless run settles each approval by --approve-default, and denies when it is unset."
+    },
+    {
+      "id": "CLI-07",
+      "promise": "A destructive command confirms on a terminal; --force is the only bypass."
+    },
+    {
+      "id": "CLI-08",
+      "promise": "--help, version and completion never load the heavy modules."
+    },
+    {
+      "id": "CLI-09",
+      "promise": "get shows a view designed for each kind, and list fits the terminal.",
+      "pending": [
+        "stigmer#2626"
+      ]
+    },
+    {
+      "id": "CLI-10",
+      "promise": "Help groups commands and gives an example for each.",
+      "pending": [
+        "stigmer#2626"
+      ]
+    },
+    {
+      "id": "CLI-11",
+      "promise": "stigmer run ends the way its mode promises.",
+      "pending": [
+        "stigmer#2595"
+      ]
+    },
+    {
+      "id": "CLI-12",
+      "promise": "Provider keys are saved, listed and removed from the CLI.",
+      "pending": [
+        "stigmer#2145"
+      ]
+    },
+    {
+      "id": "CLI-13",
+      "promise": "A run's subagent rows show the right status and duration.",
+      "pending": [
+        "stigmer#2619"
+      ]
+    },
+    {
+      "id": "INK-01",
+      "promise": "Every state a run passes through has its own frame: loading, streaming, tools, approvals, file review, subagents, failure, completion."
+    },
+    {
+      "id": "INK-02",
+      "promise": "An approval prompt is unmissable, keyboard-driven, and never times out into approval."
+    },
+    {
+      "id": "INK-03",
+      "promise": "The published stigmer-ink starts with Node alone.",
+      "pending": [
+        "stigmer#2617"
+      ]
+    },
+    {
+      "id": "INK-04",
+      "promise": "Off a terminal the session view renders read-only and never crashes.",
+      "pending": [
+        "stigmer#2618"
+      ]
+    },
+    {
+      "id": "INK-05",
+      "promise": "A load failure says what was tried and what to do.",
+      "pending": [
+        "stigmer#2618"
+      ]
+    },
+    {
+      "id": "INK-06",
+      "promise": "A host CLI starts a run and gets control back when it completes.",
+      "pending": [
+        "stigmer#2617"
+      ]
+    },
+    {
+      "id": "INK-07",
+      "promise": "Esc stops a running turn and leaves the session usable.",
+      "pending": [
+        "stigmer#2627"
+      ]
+    },
+    {
+      "id": "INK-08",
+      "promise": "The composer takes several lines, paste, and history.",
+      "pending": [
+        "stigmer#2627"
+      ]
+    },
+    {
+      "id": "INK-09",
+      "promise": "A host CLI adds its own slash commands and @ completions.",
+      "pending": [
+        "stigmer#2627"
+      ]
+    },
+    {
+      "id": "INK-10",
+      "promise": "Thinking shows, and a working indicator counts the time.",
+      "pending": [
+        "stigmer#2628"
+      ]
+    },
+    {
+      "id": "INK-11",
+      "promise": "The frame survives a terminal resize.",
+      "pending": [
+        "stigmer#2628"
+      ]
+    },
+    {
+      "id": "INK-12",
+      "promise": "Colours follow the terminal's light or dark background.",
+      "pending": [
+        "stigmer#2628"
+      ]
+    },
+    {
+      "id": "INK-13",
+      "promise": "Long markdown (lists, code, tables) reads cleanly in the terminal.",
+      "pending": [
+        "stigmer#2628"
+      ]
+    },
+    {
+      "id": "LIB-01",
+      "promise": "Every library installs from its packed tarball and imports under Node."
+    },
+    {
+      "id": "LIB-02",
+      "promise": "A strict TypeScript consumer compiles against every library's types."
+    },
+    {
+      "id": "KIT-01",
+      "promise": "An app without the optional peers imports the React kit.",
+      "pending": [
+        "stigmer#2621"
+      ]
+    },
+    {
+      "id": "KIT-02",
+      "promise": "The chat drops into an app as one component, within a size budget.",
+      "pending": [
+        "stigmer#2629"
+      ]
+    },
+    {
+      "id": "CON-01",
+      "promise": "The console never offers an act the server refuses.",
+      "pending": [
+        "stigmer#2402",
+        "stigmer#2308"
+      ]
+    },
+    {
+      "id": "CON-02",
+      "promise": "A new person is led from sign-in to a provider key and a first answer.",
+      "pending": [
+        "stigmer#2630"
+      ]
+    },
+    {
+      "id": "CON-03",
+      "promise": "The launcher says a provider is missing before a run fails; the model picker shows which models are ready.",
+      "pending": [
+        "stigmer#2630"
+      ]
+    },
+    {
+      "id": "CON-04",
+      "promise": "Every settings page shares one shell, with its empty and loading states.",
+      "pending": [
+        "stigmer#2631"
+      ]
+    },
+    {
+      "id": "CON-05",
+      "promise": "Type, spacing and the brand colour come from tokens; no text is smaller than the scale allows.",
+      "pending": [
+        "stigmer#2632"
+      ]
+    },
+    {
+      "id": "DSK-01",
+      "promise": "Clicking the Dock icon reopens a closed window.",
+      "pending": [
+        "stigmer#2622"
+      ]
+    },
+    {
+      "id": "DSK-02",
+      "promise": "Sign-in reads its identity provider from configuration.",
+      "pending": [
+        "stigmer#1078",
+        "stigmer#1080"
+      ]
+    },
+    {
+      "id": "DSK-03",
+      "promise": "Commands the app runs see the user's own PATH.",
+      "pending": [
+        "stigmer#1347"
+      ]
+    },
+    {
+      "id": "DSK-04",
+      "promise": "A notification opens the thread it is about.",
+      "pending": [
+        "stigmer#2633"
+      ]
+    },
+    {
+      "id": "SDK-01",
+      "promise": "Every language quickstart ends by printing the agent's answer.",
+      "pending": [
+        "stigmer#2634"
+      ]
+    },
+    {
+      "id": "SDK-02",
+      "promise": "Examples show API keys as stk_.",
+      "pending": [
+        "stigmer#1436"
+      ]
+    }
+  ]
+}

@@ -63,6 +63,7 @@ import { docSteps } from "./lib/doc-steps.mjs";
 import { fakeModelEnv, startFakeModel } from "./lib/fake-model.mjs";
 import { CLI_SERVER_PORT, createCliInstall, spawnCommand } from "./lib/install-cli.mjs";
 import { assertPortFree } from "./lib/stigmer-smoke.mjs";
+import { typeChecker } from "./lib/type-checker.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const SDK_PACKAGE = "@stigmer/client";
@@ -155,24 +156,6 @@ function sdkInstallArgs(args, scratch) {
     .map((name) => join(dir, name));
   if (tarballs.length === 0) throw new Error(`no SDK tarballs in ${dir}`);
   return tarballs;
-}
-
-// The TypeScript compiler the page's code is checked with: the workspace's,
-// or in the published mode (a checkout with no install) the same versions the
-// workspace locks, installed beside the reader's folder, never into it.
-async function typeChecker(args, scratch, run) {
-  if (!args.published) {
-    return {
-      tsc: join(repoRoot, "node_modules", ".bin", "tsc"),
-      typeRoots: join(repoRoot, "node_modules", "@types"),
-    };
-  }
-  const lock = JSON.parse(readFileSync(join(repoRoot, "package-lock.json"), "utf8"));
-  const pinned = (name) => `${name}@${lock.packages[`node_modules/${name}`].version}`;
-  const tools = join(scratch, "tools");
-  mkdirSync(tools, { recursive: true });
-  await run(`npm install --no-save --prefix ${tools} ${pinned("typescript")} ${pinned("@types/node")}`, scratch);
-  return { tsc: join(tools, "node_modules", ".bin", "tsc"), typeRoots: join(tools, "node_modules", "@types") };
 }
 
 const args = parseArgs();
@@ -278,7 +261,9 @@ try {
   log(`PASS (${fake.requests()} model calls)`);
 
   async function typecheck(files, runIn) {
-    const { tsc, typeRoots } = await typeChecker(args, scratch, runIn);
+    // The page's code is checked with the workspace's compiler, or in the
+    // published mode the locked one installed beside the reader's folder.
+    const { tsc, typeRoots } = await typeChecker({ repoRoot, published: args.published, scratch, run: runIn });
     const tsconfig = join(scratch, "tsconfig.json");
     writeFileSync(
       tsconfig,

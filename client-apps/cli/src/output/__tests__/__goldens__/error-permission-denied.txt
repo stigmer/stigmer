@@ -1,0 +1,17 @@
+exit 4
+
+Error: Permission denied: you cannot edit agent 'demo/reviewer'
+
+Check your permissions, or re-authenticate:
+  stigmer auth login
+
+--- with --debug ---
+Error: Permission denied: you cannot edit agent 'demo/reviewer'
+
+Check your permissions, or re-authenticate:
+  stigmer auth login
+
+--- debug ---
+gRPC code: PermissionDenied (7)
+Raw error: ConnectError: [permission_denied] you cannot edit agent 'demo/reviewer'
+    at command (src/commands/example.ts:1:1)

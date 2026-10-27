@@ -98,6 +98,7 @@ export function resolveClaudeConfig(config: Config): ClaudeAdapterConfig {
     shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
     mode: config.mode,
     cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
+    openOperationMaxMs: config.openOperationMaxMs,
   };
 }
 

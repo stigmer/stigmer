@@ -25,7 +25,7 @@
  * make deterministic by moving the clock between folds.
  */
 
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, onTestFinished, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../builder.js";
@@ -590,6 +590,9 @@ describe("TranscriptBuilder — context_compacted marks where the engine summari
 
 describe("TranscriptBuilder — a background wait and reminder are no rows", () => {
   it("takes background_wait_started, background_wait_finished and background_reminded as nothing, in any scope", () => {
+    // One instant for both builders, so the comparison reads the rows and never the clock between them.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-01-01T00:00:00.000Z") });
+    onTestFinished(() => void vi.useRealTimers());
     const reply: TranscriptEvent[] = [
       { kind: "message_start", runId: "run-1" },
       { kind: "text_delta", runId: "run-1", text: "It runs." },
