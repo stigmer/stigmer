@@ -569,6 +569,16 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-getting-started.mjs
 
+# The published TypeScript libraries as an outside developer installs them:
+# the terminal kit, the React kit, the embed and the design tokens, packed
+# from this checkout with their @stigmer/* closure, installed into an empty
+# project with every peer they declare, then resolved, imported, typechecked
+# and rendered from there. build-libs builds the dist/ the pack stages, so the
+# smoke packs with --skip-build rather than building every library again.
+.PHONY: smoke-libs
+smoke-libs: build-libs ## Install the published TypeScript libraries from their packed tarballs into an empty project, then resolve, import, typecheck and render them
+	node test/install/smoke-libs.mjs --skip-build
+
 # The bundle targets linux for THIS machine's arch (the docker daemon's
 # native platform), not the host OS — the smoke builds a linux container.
 .PHONY: smoke-docker-image

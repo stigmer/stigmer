@@ -581,6 +581,67 @@ export const LANES = {
       ".github/workflows/ci.java-sdk.yaml",
     ],
   },
+  "ci.libs-install.yaml": {
+    // The published TypeScript libraries installed from their packed
+    // tarballs (test/install/smoke-libs.mjs): the terminal kit, the React
+    // kit, the embed and the design tokens, and the @stigmer/* closure the
+    // pack carries with them (the core SDK, session-log, tool-vocabulary,
+    // plugin-package, eval-runtime, and @stigmer/apis built from apis/).
+    // Each one's sources, manifest and build config decide what its tarball
+    // ships, and the React kit's styles and the embed's loader are built by
+    // their own build steps.
+    paths: [
+      "sdk/typescript/src/**",
+      "sdk/typescript/package.json",
+      "sdk/typescript/tsconfig.json",
+      "sdk/typescript/tsconfig.build.json",
+      "sdk/theme/src/**",
+      "sdk/theme/package.json",
+      "sdk/theme/tsconfig.json",
+      "sdk/theme/tsconfig.build.json",
+      "sdk/react/src/**",
+      "sdk/react/package.json",
+      "sdk/react/tsconfig.json",
+      "sdk/react/tsconfig.build.json",
+      "sdk/embed/src/**",
+      "sdk/embed/package.json",
+      "sdk/embed/tsconfig.json",
+      "sdk/embed/tsconfig.build.json",
+      "sdk/ink/src/**",
+      "sdk/ink/package.json",
+      "sdk/ink/tsconfig.json",
+      "sdk/ink/tsconfig.build.json",
+      "backend/libs/ts/session-log/src/**",
+      "backend/libs/ts/session-log/package.json",
+      "backend/libs/ts/session-log/tsconfig.json",
+      "backend/libs/ts/session-log/tsconfig.build.json",
+      "backend/libs/ts/tool-vocabulary/src/**",
+      "backend/libs/ts/tool-vocabulary/package.json",
+      "backend/libs/ts/tool-vocabulary/tsconfig.json",
+      "backend/libs/ts/tool-vocabulary/tsconfig.build.json",
+      "backend/libs/ts/plugin-package/src/**",
+      "backend/libs/ts/plugin-package/package.json",
+      "backend/libs/ts/plugin-package/tsconfig.json",
+      "backend/libs/ts/plugin-package/tsconfig.build.json",
+      "backend/libs/ts/eval-runtime/src/**",
+      "backend/libs/ts/eval-runtime/package.json",
+      "backend/libs/ts/eval-runtime/tsconfig.json",
+      "backend/libs/ts/eval-runtime/tsconfig.build.json",
+      "sdk/react/scripts/build-styles.ts",
+      "sdk/embed/vite.config.ts",
+      "apis/**",
+      "scripts/publish-libs.mjs",
+      "test/install/smoke-libs.mjs",
+      "test/install/lib/**",
+      // The Makefile its steps' targets come from (ci.all-in-one says why).
+      "Makefile",
+      // What the lane sets up and installs from (ci.all-in-one says why).
+      ".nvmrc",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.libs-install.yaml",
+    ],
+  },
   "ci.plugins-static.yaml": {
     paths: [
       "plugins/**",

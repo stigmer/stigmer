@@ -1,0 +1,75 @@
+# =============================================================================
+# Libraries Install — the published TypeScript libraries, as npm installs them
+# =============================================================================
+# Proves the libraries an outside developer adds to their own app install
+# and work from their tarballs, not only from the workspace's sources
+# (test/install/smoke-libs.mjs): the terminal kit, the React kit, the embed
+# and the design tokens are packed with their @stigmer/* closure by
+# scripts/publish-libs.mjs, installed into an empty project with every peer
+# they declare, and from there every exports entry is resolved, the entries
+# Node runs are imported, a strict TypeScript consumer is compiled, and the
+# terminal kit renders a scenario of the catalogue.
+#
+# Its own lane rather than a step of ci.cli-up: that lane boots `stigmer
+# up`, and a change to a library alone needs no server.
+#
+# The peers come from the npm registry, so an outage reads red with npm's
+# error; the fetch retries below absorb a dropped download, and nothing
+# retries the smoke itself.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): the packed libraries'
+# sources, manifests and build config, the protos @stigmer/apis is built
+# from, the packer, the smoke and its lib.
+# =============================================================================
+
+name: ci.libs-install
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The consumer's `npm install` fetches every peer from the registry: retry
+  # a dropped download with backoff instead of failing on the first
+  # ECONNRESET (the same settings as ci.install-script.yaml).
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres and Temporal helpers read it); a caller's env does not
+  # reach a called workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  smoke:
+    name: Libraries from their tarballs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # make smoke-libs = build-libs, then the pack, the install and the
+      # cases. One entry point, identical to what a contributor runs locally.
+      - name: Pack, install and exercise the libraries
+        run: make smoke-libs
