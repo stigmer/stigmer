@@ -162,7 +162,12 @@ export function engineOptions(inputs: EngineOptionsInputs): Options {
     hooks: inputs.hooks,
     canUseTool: inputs.canUseTool,
     sessionStore: inputs.sessionStore,
-    sessionStoreFlush: "batched",
+    // Every entry reaches the store as the engine writes it: under the
+    // default batching, a tool running for 20 s left the store empty while
+    // the engine's local transcript held the whole turn (stigmer#2612), so a
+    // runner lost mid-tool lost the turn. The store is the only copy a
+    // replacement reads (`session-store.ts`).
+    sessionStoreFlush: "eager",
     ...("start" in inputs.session ? { sessionId: inputs.session.start } : { resume: inputs.session.resume }),
     abortController: inputs.abortController,
     ...(inputs.structuredOutputSchema !== undefined ? { outputFormat: { type: "json_schema", schema: inputs.structuredOutputSchema } } : {}),

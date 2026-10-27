@@ -583,9 +583,11 @@ export class TranscriptBuilder {
     // Cursor accumulator's merge). Either way an UNSETTLED row becomes RUNNING
     // (before #1097 only WAITING flipped); a settled one keeps
     // its outcome. Args it lacked are filled and previewed, once.
+    // An undecided start (ToolStartedEvent.undecided) re-announces a call
+    // its gate has not let run yet, so it moves no row.
     const existing = scope.toolCalls.get(callId);
     if (existing) {
-      if (!isSettled(existing.status)) {
+      if (!isSettled(existing.status) && event.undecided !== true) {
         existing.status = ToolCallStatus.TOOL_CALL_RUNNING;
       }
       if (Object.keys(input).length > 0) {
@@ -601,15 +603,16 @@ export class TranscriptBuilder {
     // only when the scope has no message yet.
     const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);
 
-    // A started call is RUNNING and carries no approval fact: whether it is
-    // held is known only after the engine's gate has run, and a held call
-    // reaches the transcript as `approval_proposed` (Cursor's boundary after
-    // the hook denied it; native's post-stream seed, where a held call never
-    // starts at all). The builder decides nothing about approval.
+    // A started call is RUNNING (PENDING while its gate is undecided) and
+    // carries no approval fact: whether it is held is known only after the
+    // engine's gate has run, and a held call reaches the transcript as
+    // `approval_proposed` (Cursor's boundary after the hook denied it;
+    // native's post-stream seed, where a held call never starts at all).
+    // The builder decides nothing about approval.
     const tc = create(ToolCallSchema, {
       id: callId,
       name,
-      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      status: event.undecided === true ? ToolCallStatus.TOOL_CALL_PENDING : ToolCallStatus.TOOL_CALL_RUNNING,
       startedAt: this.instant(),
     });
 

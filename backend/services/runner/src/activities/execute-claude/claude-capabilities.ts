@@ -29,11 +29,15 @@
  *    they happen (`forwardSubagentText`).
  *  - A continued turn resumes from the engine's own transcript, which holds
  *    every step (`session-store.ts`).
- *  - A call's row reaches the session's log once it settles, or at the
- *    turn's terminal write (`boundaryRewritesRow`): the engine streams a
- *    call before the gate decides it, and a call the gate pauses must reach
- *    the log as an ask, its `stigmer.permission.asked` beside it, which a
- *    resumed turn is seeded from (`harness/transcript/resume-seed.ts`). A
+ *  - A call's row reaches the session's log once its gate lets it run (its
+ *    row turns RUNNING, `translator.ts`), once it settles, or at the turn's
+ *    terminal write (`boundaryRewritesRow`): the engine streams a call
+ *    before the gate decides it, so its row opens PENDING, and a call the
+ *    gate pauses must reach the log as an ask, its
+ *    `stigmer.permission.asked` beside it, which a resumed turn is seeded
+ *    from (`harness/transcript/resume-seed.ts`). A running call is in the
+ *    log while it runs, so a runner lost mid-call leaves it there
+ *    (stigmer#2614). A
  *    helper's start (`Agent`) is written as it streams, so the helper's own
  *    thread reaches the log as it works; its call never pauses (`gate.ts`).
  *  - A message sent while the turn works reaches the engine before its next
@@ -54,10 +58,9 @@ export const CLAUDE_HARNESS_ID = "claude";
 /** The engine's tool that starts a helper, whose row is never held back (the header). */
 const HELPER_START = "Agent";
 
-/** Whether a call's row is held from the session's log: unsettled, and not a helper's start (the header). */
+/** Whether a call's row is held from the session's log: its gate undecided (PENDING), and not a helper's start (the header). */
 export function claudeRowAwaitsGate(row: ToolCall): boolean {
-  const unsettled = row.status === ToolCallStatus.TOOL_CALL_PENDING || row.status === ToolCallStatus.TOOL_CALL_RUNNING;
-  return unsettled && row.name !== HELPER_START;
+  return row.status === ToolCallStatus.TOOL_CALL_PENDING && row.name !== HELPER_START;
 }
 
 export const CLAUDE_CAPABILITIES: HarnessCapabilities = {

@@ -33,7 +33,7 @@
  * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (in the gate, the native order; an ask that rewrites the call is refused, as on Cursor) | (surveyed later)   |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | PNG, JPEG, WebP, GIF (native's: the same Messages API) | (surveyed later)                      |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | `claude`, no excludes (its state is outside the workspace) | (surveyed later)                  |
- * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | a call until it settles, but a helper's start (the gate decides after the call streams) | (surveyed later)                               |
+ * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | a call until its gate lets it run, but a helper's start (the gate decides after the call streams) | (surveyed later)                               |
  * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | `streamed` (`forwardSubagentText`)        | (no sub-agents)                                |
  * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | `checkpoint` (the session store's transcript) | (surveyed later)                  |
  * | `contextCompaction` | `runner-summarizer` (deepagents' in the graph) | `vendor-server` (Cursor's server) | `engine-cli` (the SDK's own)           | (surveyed later)                               |
