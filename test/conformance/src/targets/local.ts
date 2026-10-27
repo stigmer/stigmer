@@ -86,6 +86,8 @@ export class LocalTarget implements TargetProfile {
     cloudTargetRefusesLocalPrograms: false,
     // No provider keys in this edition: a Cursor run is admitted at create.
     cursorRunsAdmitted: true,
+    // No engine on this target: no turn runs.
+    claudeTurnsRun: false,
     // No meter in this edition: every run's usage is counted from its
     // runner's own report and marked estimated.
     runModelCallsMetered: false,

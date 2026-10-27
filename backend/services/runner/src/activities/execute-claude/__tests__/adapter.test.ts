@@ -122,6 +122,7 @@ describe("resolveClaudeConfig", () => {
       shellTimeoutMaxSeconds: 600,
       mode: "cloud",
       cursorStreamStallTimeoutMs: 240_000,
+      openOperationMaxMs: 1_800_000,
     });
     const slice = resolveClaudeConfig(config);
     expect(slice).toEqual({
@@ -132,6 +133,7 @@ describe("resolveClaudeConfig", () => {
       shellTimeoutMaxSeconds: 600,
       mode: "cloud",
       cursorStreamStallTimeoutMs: 240_000,
+      openOperationMaxMs: 1_800_000,
     });
     expect(slice.stigmerTokenRef).toBe(tokenRef);
   });

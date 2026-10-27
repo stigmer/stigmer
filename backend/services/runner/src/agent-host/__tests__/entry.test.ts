@@ -49,6 +49,7 @@ const CONFIG: HostConfigWire = {
   mcpBridgeEndpoint: null,
   mcpPublicEndpoint: null,
   cursorStreamStallTimeoutMs: 1,
+  openOperationMaxMs: 1,
   shellTimeoutMaxSeconds: 1,
   shellBackgroundEnabled: true,
   agentResolveTimeoutMs: 1,

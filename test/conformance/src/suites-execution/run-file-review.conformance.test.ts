@@ -40,7 +40,9 @@
 // the content-addressed store and put back from it.
 //
 // Every arm decides through reviewFileChanges. Reads of the workspace are the
-// suite's own fixture, not a runner internal.
+// suite's own fixture, not a runner internal. On Claude (its own block, where
+// the target runs Claude turns) a keep and an undo settle the engine's own
+// Write and Edit, offered under the Claude harness's id.
 import { Code } from "@connectrpc/connect";
 import { create, toJson } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -59,7 +61,7 @@ import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_p
 import { RoutineFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -87,6 +89,7 @@ import { uniqueName } from "../support/naming";
 import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { toolUsesOf, turnById, turnOfRun } from "../support/turn";
+import { CLAUDE_ARM, type ArmStep, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Read once at collection time to gate the edition-specific describes
@@ -1042,3 +1045,78 @@ describe.skipIf(!collectionTarget.capabilities.billingGates)(
     });
   },
 );
+
+// File review on Claude: the engine's own `Write` and `Edit` flow into the
+// git workspace, the turn's delta is offered under the Claude harness's id,
+// and a keep and an undo settle Claude's edits exactly as they settle
+// native's. The turn is scripted by conversation (support/engine-arms.ts);
+// a relative path is the engine's workspace's.
+describe("Run file review — on Claude", () => {
+  beforeEach(claudeTurnsOnly(collectionTarget.capabilities));
+  /** A Claude review session on `workspace` and one turn playing `steps`, followed to its review. */
+  async function claudeRunToReview(workspace: GitWorkspace, steps: readonly ArmStep[]): Promise<Reviewed> {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-filereview-claude"), instructions: "You are a test agent. Use the file tools as instructed." }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const session = await clients.sessionCommand.create(
+      makeSession({ org, name: uniqueName("ses-filereview-claude"), agentRef: agentRefOf(agent), harness: Harness.CLAUDE, localWorkspaces: [{ name: "repo", path: workspace.dir }], fileReview: true }),
+    );
+    const sessionId = session.metadata!.id;
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId }));
+    const task = uniqueName("Use the file tools as instructed");
+    CLAUDE_ARM.script(mock, task, steps);
+    const execution = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-filereview-claude"), sessionId, message: task }));
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    const ended = await awaitFileReview(clients, executionId);
+    expect(ended.status?.phase, `a turn never waits on review: ${ended.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+    const turn = await turnById(clients, sessionId, executionId);
+    expect(toolUsesOf(turn).filter((use) => use.ask !== undefined), "the edits flowed; no tool approval").toHaveLength(0);
+    const set = requireReviewSet(ended);
+    await expectUndecided(sessionId, set.id);
+    return { org, sessionId, executionId, ended, set };
+  }
+
+  it("[rpc:SessionCommandController.reviewFileChanges] a Claude turn's Write is applied and offered under the Claude harness's id; keep records the decision and starts no turn", async () => {
+    const workspace = await freshWorkspace();
+    const path = "feature.txt";
+    const content = "hello from Claude\n";
+    const reviewed = await claudeRunToReview(workspace, [
+      { kind: "write", id: `toolu_${uniqueName("write").replace(/-/g, "_")}`, path, content },
+      { kind: "text", text: "Created the file." },
+    ]);
+    expect(reviewed.set.harnessId, "the Claude harness stamps its id").toBe("claude");
+    const change = expectChange(reviewed.set, path, FileChangeKind.ADD);
+    expect(change.after?.body).toEqual({ case: "inline", value: content });
+    expect(await workspace.readFile(path), "the edit is applied before anyone decides").toBe(content);
+
+    const kept = await reviewFileByPath(clients, reviewed.sessionId, reviewed.set, path, "keep");
+    expect(kept.reconcileRunId, "a keep has nothing to put back").toBe("");
+    expect(reviewStatesOf(await reviewSetNow(clients, reviewed.sessionId, reviewed.set.id))).toEqual([[path, "kept", "person"]]);
+    expect(await workspace.readFile(path)).toBe(content);
+    expect(await sessionRuns(reviewed.sessionId), "a keep starts no turn").toHaveLength(1);
+  });
+
+  it("[rpc:SessionCommandController.reviewFileChanges] undoing a Claude turn's Edit puts the baseline back through a reconcile turn that asks no model", async () => {
+    const workspace = await freshWorkspace();
+    const path = "notes.md";
+    const original = "# Notes\noriginal line\n";
+    await workspace.seedFile(path, original);
+    const reviewed = await claudeRunToReview(workspace, [
+      // The engine's Edit refuses a file this session has not read.
+      { kind: "read", id: `toolu_${uniqueName("read").replace(/-/g, "_")}`, path },
+      { kind: "edit", id: `toolu_${uniqueName("edit").replace(/-/g, "_")}`, path, oldString: "original line", newString: "changed line" },
+      { kind: "text", text: "Edited the file." },
+    ]);
+    expectChange(reviewed.set, path, FileChangeKind.MODIFY);
+    expect(await workspace.readFile(path), "the edit is applied when the turn ends").toBe("# Notes\nchanged line\n");
+    const asked = CLAUDE_ARM.loopRequests(mock).length;
+
+    const undone = await reviewFileByPath(clients, reviewed.sessionId, reviewed.set, path, "undo");
+    const reconciled = await awaitUndone(reviewed, reviewed.set.id, undone.reconcileRunId);
+    expect(reconciled.undonePaths).toEqual([path]);
+    expect(await workspace.readFile(path), "an undo snaps the file back byte for byte").toBe(original);
+    expect(reviewStatesOf(await reviewSetNow(clients, reviewed.sessionId, reviewed.set.id))).toEqual([[path, "undone", "person"]]);
+    expect(CLAUDE_ARM.loopRequests(mock).length, "the reconcile asked no model").toBe(asked);
+  });
+});

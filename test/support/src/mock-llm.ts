@@ -69,7 +69,10 @@
 // so the same conversation state gets the same answer however often it
 // arrives; returning undefined falls through to the queue (and so to the loud
 // unscripted 500). Every request is captured with its headers, so a test can
-// read which credential and scope each model call carried.
+// read which credential and scope each model call carried. A suite whose
+// target builds one mock for every file installs its router for one test
+// with routeWith(); reset() removes it at the afterEach boundary, like the
+// queue. claude-engine-wire.ts builds the Claude engine's router.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import {
   anthropicText,
@@ -149,7 +152,8 @@ export const DEFAULT_ERROR_BODY = {
 // - fenced: refused by the provider fence (a non-Anthropic proxy path);
 // - unscripted: found the queue empty (answered with the 500 authoring error,
 //   or with the persistent fault a scripted turn left behind);
-// - routed: answered by the router from the request's own content.
+// - routed: answered by the router from the request's own content (a
+//   router's background answer, marked outOfBand, is out-of-band).
 export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed";
 
 export interface CapturedLlmRequest {
@@ -189,10 +193,14 @@ export interface RoutableRequest {
 
 // What a router answers: a body to stream (or return as JSON), a JSON
 // document (a token count), or an error the SDK surfaces as an HTTP error.
-export type RoutedResponse =
+// `outOfBand` marks a background call the router recognized (an engine's
+// token count or compaction summary): captured as "out-of-band", like the
+// titling call, so it stays out of loopRequests().
+export type RoutedResponse = (
   | { body: AnthropicMessageBody; delayMs?: number }
   | { json: unknown; status?: number }
-  | { error: { status: number; body: unknown; headers?: Record<string, string> } };
+  | { error: { status: number; body: unknown; headers?: Record<string, string> } }
+) & { outOfBand?: true };
 
 // One embeddings request as the retriever sent it: the model it asked for and
 // the batched inputs (the query first, then every candidate in snapshot order).
@@ -299,6 +307,10 @@ export class MockLlmProxy {
   private readonly bindHost: string;
 
   private readonly route: ((request: RoutableRequest) => RoutedResponse | undefined) | undefined;
+
+  // The router one test installed (routeWith), consulted instead of the
+  // constructor's; cleared by reset().
+  private testRoute: ((request: RoutableRequest) => RoutedResponse | undefined) | undefined;
 
   constructor(options: MockLlmProxyOptions = {}) {
     this.onCapture = options.onCapture;
@@ -411,6 +423,14 @@ export class MockLlmProxy {
     return this;
   }
 
+  // Answer requests from their content with `route` until reset() (the
+  // header): the lever a test uses on a mock its target built without a
+  // router. Replaces any router an earlier call installed.
+  routeWith(route: (request: RoutableRequest) => RoutedResponse | undefined): this {
+    this.testRoute = route;
+    return this;
+  }
+
   // Flip the embeddings posture for this file (see header). Off by default —
   // the no-embedder posture the memory-retrieval suite pins; on for the
   // memory-selection arms. Not touched by reset(): a posture, not per-test state.
@@ -452,8 +472,8 @@ export class MockLlmProxy {
     this.activeHolds.clear();
   }
 
-  // Drop any unconsumed turns, zero the consumed counter, clear captured
-  // requests, and re-arm holds. Call in afterEach so a prior test's leftovers
+  // Drop any unconsumed turns and the router a test installed, zero the
+  // consumed counter, clear captured requests, and re-arm holds. Call in afterEach so a prior test's leftovers
   // can't leak into the next one.
   reset(): void {
     this.queue.length = 0;
@@ -463,6 +483,7 @@ export class MockLlmProxy {
     this.titleRequestCount = 0;
     this.summaryRequestCount = 0;
     this.persistentError = undefined;
+    this.testRoute = undefined;
     this.releaseHolds();
     this.draining = false;
   }
@@ -480,6 +501,14 @@ export class MockLlmProxy {
   // request's shape (the system blocks, the tool surface) rather than count it.
   scriptedRequests(): readonly CapturedLlmRequest[] {
     return this.captured.filter((request) => request.disposition === "scripted");
+  }
+
+  // The agent loop's requests however they were answered: the queue's
+  // (scripted) and a router's (routed), its out-of-band answers left out.
+  // The engine-neutral reading of scriptedRequests() for a suite that runs
+  // one case on a queued engine and on a routed one.
+  loopRequests(): readonly CapturedLlmRequest[] {
+    return this.captured.filter((request) => request.disposition === "scripted" || request.disposition === "routed");
   }
 
   // Holds the response for `ms`, resolving early (returning true) if the client
@@ -637,9 +666,9 @@ export class MockLlmProxy {
       return;
     }
 
-    const routed = this.route?.({ path, body: parsedBody, headers });
+    const routed = (this.testRoute ?? this.route)?.({ path, body: parsedBody, headers });
     if (routed !== undefined) {
-      this.capture({ path, body: parsedBody, disposition: "routed", headers, receivedAt });
+      this.capture({ path, body: parsedBody, disposition: routed.outOfBand === true ? "out-of-band" : "routed", headers, receivedAt });
       await this.answerRouted(req, res, routed, streaming);
       return;
     }

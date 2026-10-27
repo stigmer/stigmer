@@ -15,7 +15,9 @@
 // runner's own prompt opening, read from the runner's source; a router
 // answers from the request's content before the queue, an error or a token
 // count as it says, and falls through to the queue when it answers nothing;
-// every captured request keeps the headers it arrived with.
+// every captured request keeps the headers it arrived with; a router one test
+// installs (routeWith) lasts until reset(), its background answers are
+// out of band, and loopRequests() is the loop's calls however answered.
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -265,6 +267,31 @@ describe("MockLlmProxy's router", () => {
     } finally {
       await routed.close();
     }
+  });
+});
+
+describe("MockLlmProxy.routeWith", () => {
+  const ask = (content: string): Promise<Response> => post(ANTHROPIC_PATH, { model: "m", messages: [{ role: "user", content }] });
+
+  it("installs a router for one test on a mock built without one; reset() removes it, as it clears the queue", async () => {
+    mock.routeWith((request) => {
+      const last = (request.body as { messages?: { content?: unknown }[] }).messages?.at(-1)?.content;
+      if (last === "count") return { json: { input_tokens: 3 }, outOfBand: true };
+      return { body: anthropicText(`routed ${String(last)}`) };
+    });
+    mock.enqueue(anthropicText("queued"));
+    const routed = (await (await ask("hello")).json()) as { content: { text: string }[] };
+    expect(routed.content[0]?.text).toBe("routed hello");
+    expect(await (await ask("count")).json()).toEqual({ input_tokens: 3 });
+    expect(mock.requests().map((r) => r.disposition), "a router's background answer is out of band").toEqual(["routed", "out-of-band"]);
+    expect(mock.loopRequests().map((r) => r.disposition), "the loop's requests, however answered").toEqual(["routed"]);
+    expect(mock.remaining(), "the queue untouched").toBe(1);
+
+    mock.reset();
+    mock.enqueue(anthropicText("queued"));
+    const queued = (await (await ask("hello")).json()) as { content: { text: string }[] };
+    expect(queued.content[0]?.text, "after reset the queue answers").toBe("queued");
+    expect(mock.loopRequests().map((r) => r.disposition)).toEqual(["scripted"]);
   });
 });
 

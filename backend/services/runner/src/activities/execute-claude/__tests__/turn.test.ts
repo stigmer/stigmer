@@ -57,6 +57,7 @@ const CONFIG: ClaudeAdapterConfig = {
   shellTimeoutMaxSeconds: 60,
   mode: "local" satisfies Config["mode"],
   cursorStreamStallTimeoutMs: 300_000,
+  openOperationMaxMs: 3_600_000,
 };
 
 /** What a scripted engine is handed, and how a script tells the test where it is. */

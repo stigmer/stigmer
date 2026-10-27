@@ -35,6 +35,11 @@
 //   - a parent pinned to an older version of a subagent that was renamed
 //     since calls it by its current name, still running the pinned version
 //     (a version is its spec; the name is the resource's);
+//   - on Claude, a hand-off is the engine's `Agent` tool: the saved helper
+//     runs its own instructions on its own thread and its answer is the
+//     hand-off's result; a helper's call that would wait for a person is
+//     refused at once with the sentence that sends it back, and the turn
+//     never waits (CapabilityFlags.claudeTurnsRun);
 //   - on the Cursor engine, a subagent that brings its own tool lists is
 //     refused at turn start with one sentence, before any model call
 //     (CapabilityFlags.cursorRunsAdmitted: on the cloud target the run needs
@@ -58,7 +63,7 @@ import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/sessi
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse, anthropicToolUses } from "@stigmer/test-support/mock-llm";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
@@ -88,6 +93,8 @@ import {
 } from "../support/runs";
 import { STIGMER_STDIO_SERVER, stigmerMcpPlugin } from "../support/stigmer-mcp-stdio";
 import { threadsOf, toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
+import { readConversation } from "@stigmer/test-support/claude-engine-wire";
+import { CLAUDE_ARM, type ArmStep, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 import { CURSOR_KEY_SKIP_REASON } from "../targets/cloud";
 
@@ -652,4 +659,71 @@ describe("Run — a subagent's local program runs where a person's own runner ru
       });
     },
   );
+});
+
+// A hand-off on Claude: the engine's own `Agent` tool (native's `task`,
+// @stigmer/tool-vocabulary) starts a saved agent the conversation's agent
+// lists, which the engine runs from the definition the runner gave it, in
+// the foreground, on its own thread; and a helper never waits for a person:
+// a call of its that would ask is refused at once, with the sentence that
+// sends it back to the agent that delegated. Each turn is scripted by
+// conversation (support/engine-arms.ts): the parent's by its task, the
+// helper's by the prompt it was handed.
+describe("Run — a subagent on Claude", () => {
+  beforeEach(claudeTurnsOnly(collectionTarget.capabilities));
+  /** A Claude parent listing one saved Claude helper, and the turn's ids. */
+  async function claudeHandOff(options: { readonly autoApproveAll: boolean; readonly helperSteps: (prompt: string) => readonly ArmStep[] }) {
+    const { org } = await target.provisionTenancy();
+    const { agent, subagents } = await parentWith(
+      org,
+      [{ name: uniqueName("claude-helper"), instructions: "You do the delegated work with your tools and report in one sentence.", harness: Harness.CLAUDE }],
+      { harness: Harness.CLAUDE },
+    );
+    const helper = subagents[0]!.metadata!.slug;
+    const task = uniqueName("Hand the report to the helper");
+    const prompt = uniqueName("Write the report and say when it is done");
+    const delegation = `toolu_${uniqueName("delegate").replace(/-/g, "_")}`;
+    CLAUDE_ARM.script(mock, task, [{ kind: "delegate", id: delegation, agent: helper, prompt }, { kind: "text", text: `The helper reported: ${SUBAGENT_ANSWER}` }]);
+    CLAUDE_ARM.script(mock, prompt, options.helperSteps(prompt));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-claude-subagent"), agentRef: agentRefOf(agent), message: task, autoApproveAll: options.autoApproveAll, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+    const final = await awaitTerminal(clients, runId);
+    return { final, helper, delegation, runId };
+  }
+
+  it("a Claude turn hands off to a saved agent through the engine's Agent tool: the helper runs its own definition on its own thread, and its answer is the hand-off's result", async () => {
+    const shellId = `toolu_${uniqueName("helper_shell").replace(/-/g, "_")}`;
+    const { final, helper, delegation, runId } = await claudeHandOff({
+      autoApproveAll: true,
+      helperSteps: () => [{ kind: "shell", id: shellId, command: "echo shell-ran-in-the-helper" }, { kind: "text", text: SUBAGENT_ANSWER }],
+    });
+    expect(final.status?.phase, `the turn: ${final.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+
+    const helperRequests = CLAUDE_ARM.loopRequests(mock).filter((request) => readConversation(request).system.includes("You do the delegated work"));
+    expect(helperRequests.length, "the helper's two model calls ran on its own instructions").toBe(2);
+
+    const turn = await turnOfRun(clients, final);
+    const handOffUse = toolUseByCallId(turn, delegation);
+    expect([handOffUse?.name, handOffUse?.state], "the parent's hand-off, under Claude's name").toEqual(["Agent", "completed"]);
+    expect(handOffUse?.result?.text, "its result is the helper's answer").toContain(SUBAGENT_ANSWER);
+    const record = await subagentRecordOf(final, helper);
+    expect(toolUsesOf(record).map((use) => use.id), "the helper's call is on its own thread").toEqual([`${runId}.${shellId}`]);
+    expect(toolUseByCallId(turn, shellId)?.result?.text).toContain("shell-ran-in-the-helper");
+  });
+
+  it("a helper's call that would wait for a person is refused at once, sending it back to the agent that delegated, and the turn completes without waiting", async () => {
+    const shellId = `toolu_${uniqueName("helper_gated").replace(/-/g, "_")}`;
+    const { final } = await claudeHandOff({
+      autoApproveAll: false,
+      helperSteps: () => [{ kind: "shell", id: shellId, command: "echo should-not-run" }, { kind: "text", text: SUBAGENT_ANSWER }],
+    });
+    expect(final.status?.phase, `the turn never waits: ${final.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+    const refused = toolUseByCallId(await turnOfRun(clients, final), shellId);
+    expect(refused?.result?.isError, "the helper's call was refused").toBe(true);
+    expect(refused?.result?.text, "with the sentence that sends it back").toContain("ask the agent that delegated to you to run this");
+    expect(refused?.result?.text ?? "").not.toContain("should-not-run");
+  });
 });
