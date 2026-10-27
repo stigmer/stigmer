@@ -831,7 +831,8 @@ async function getArtifactDownloadUrl(
 
   let capability: DownloadCapability;
   try {
-    capability = await staging.downloadUrl(req.artifactStorageKey);
+    // Only a runner mounting a skill asks this @internal lane.
+    capability = await staging.downloadUrl(req.artifactStorageKey, "runner");
   } catch (error) {
     throw internalError(error, "failed to mint skill artifact download URL");
   }

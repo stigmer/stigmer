@@ -30,7 +30,10 @@
  */
 import { randomBytes } from "node:crypto";
 
-import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
+import type {
+  ArtifactStorage,
+  SignedUrlReader,
+} from "../../../artifactstorage/artifact-storage.js";
 import { ArtifactStorageNotFoundError } from "../../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../../boot/logger.js";
 import {
@@ -119,8 +122,17 @@ export interface ArchiveStaging {
    * fault.
    */
   consume(ref: string): Promise<Uint8Array>;
-  /** A time-limited download URL for a stored archive key. */
-  downloadUrl(storageKey: string): Promise<DownloadCapability>;
+  /**
+   * A time-limited download URL for a stored archive key, signed for the
+   * address `reader` reaches the store at: a runner's may differ from a
+   * person's (artifact-storage.ts, SignedUrlReader). Every caller names
+   * its reader, because a link signed for the wrong one resolves nowhere
+   * (stigmer#2364).
+   */
+  downloadUrl(
+    storageKey: string,
+    reader: SignedUrlReader,
+  ): Promise<DownloadCapability>;
 }
 
 export function newArchiveStaging(
@@ -180,14 +192,12 @@ export function newArchiveStaging(
       return data;
     },
 
-    async downloadUrl(storageKey) {
-      // Only a runner mounting a skill or plugin archive asks for this
-      // link (the @internal GetArtifactDownloadUrl RPCs).
+    async downloadUrl(storageKey, reader) {
       const url = await driver.getSignedUrl(
         storageKey,
         DOWNLOAD_URL_TTL_MS,
         "",
-        "runner",
+        reader,
       );
       return { url, ttlMs: DOWNLOAD_URL_TTL_MS };
     },

@@ -792,7 +792,7 @@ export async function prepareEvalCasePhase(
   if (context === undefined) return { kind: "ready", prepared: undefined };
   deps.enterPhase("prepare_eval_case");
   await deps.reportProgress("Preparing the eval case");
-  const archive = await fetchCaseArchive(deps.client, context);
+  const archive = await fetchCaseArchive(deps.client, context, deps.input.executionId);
   const outcome = await prepareEvalCase({ context, archive, sessionId: args.sessionId, primaryDir: args.workspace.primaryDir });
   deps.timing.mark("prepare_eval_case");
   if (outcome.kind === "scaffold-failed") {

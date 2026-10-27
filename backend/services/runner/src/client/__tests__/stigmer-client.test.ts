@@ -23,6 +23,7 @@ import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
 import { VaultValueController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import { RunFileController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
+import { RunEvalCaseController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 function makeRequest(
@@ -190,6 +191,19 @@ describe("StigmerClient", () => {
       });
 
       const req = makeRequest(RunFileController.typeName, "mount");
+      await runInterceptor(req);
+      expect(req.header.get("authorization")).toBe("Bearer runner-tok");
+    });
+
+    it("uses the runner credential for the eval-case door, which answers a link to a run's case", async () => {
+      new StigmerClient({
+        endpoint: "http://localhost",
+        token: null,
+        tokenRef: { current: "control-plane-tok" },
+        runnerTokenRef: { current: "runner-tok" },
+      });
+
+      const req = makeRequest(RunEvalCaseController.typeName, "getArchiveDownloadUrl");
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer runner-tok");
     });

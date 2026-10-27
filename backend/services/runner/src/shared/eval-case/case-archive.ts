@@ -13,10 +13,15 @@
  * may read are the callers' own writes, each said where it happens.
  *
  * A plugin's archive is read by its storage key, as a mount reads it. An
- * Eval's is read by its reference at the stamped version, the read that
- * asks can_view of the run's caller first, since an Eval may hold copies
- * of conversations: a caller who may no longer view it gets no byte, and
- * the try fails naming the Eval.
+ * Eval's is read through the run's own door (RunEvalCaseController), under
+ * the run's scoped credential as the File mount is: the server answers the
+ * archive of the version the run's spec names, signed for the runner's
+ * address, which may differ from a person's (a sandbox on a local stack;
+ * stigmer#2364). A server that predates the door (`Unimplemented`) is read
+ * by the Eval's reference at the stamped version, the read that asks
+ * can_view of the run's caller; a server with no transfer lane answers
+ * that read inline. Any other refusal of the door fails the try naming the
+ * Eval: falling back past it would hide the gate's answer.
  *
  * A plugin that moved past the eval's version is refused: the case workflow
  * starts no try then, so meeting it here means a push landed between the
@@ -25,10 +30,12 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import type { EvalArchiveDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
+import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { downloadArchive } from "../archive-mount.js";
 import { cleanEntryPath, sha256Hex } from "../plugin-mount.js";
@@ -52,19 +59,23 @@ export class CaseArchiveError extends Error {
   }
 }
 
-/** Fetch, verify and index the archive the case names. Throws {@link CaseArchiveError}. */
-export async function fetchCaseArchive(client: StigmerClient, context: EvalCaseContext): Promise<CaseArchive> {
-  return context.evalId !== "" ? fetchEvalArchive(client, context) : fetchPluginArchive(client, context);
+/**
+ * Fetch, verify and index the archive the case names, for the run
+ * `executionId` (the turn's execution, whose spec carries `context`).
+ * Throws {@link CaseArchiveError}.
+ */
+export async function fetchCaseArchive(client: StigmerClient, context: EvalCaseContext, executionId: string): Promise<CaseArchive> {
+  return context.evalId !== "" ? fetchEvalArchive(client, context, executionId) : fetchPluginArchive(client, context);
 }
 
-/** An Eval's archive at its stamped digest, through the read that asks can_view. */
-async function fetchEvalArchive(client: StigmerClient, context: EvalCaseContext): Promise<CaseArchive> {
+/** An Eval's archive at its stamped digest, through the run's door (see the header). */
+async function fetchEvalArchive(client: StigmerClient, context: EvalCaseContext, executionId: string): Promise<CaseArchive> {
   const ref = create(ApiResourceReferenceSchema, { kind: ApiResourceKind.eval, id: context.evalId, version: context.evalDigest });
   let bytes: Uint8Array | undefined;
   try {
     bytes = await downloadArchive(
       {
-        mintDownloadUrl: () => client.getEvalDownloadUrl(ref),
+        mintDownloadUrl: () => mintEvalCaseUrl(client, executionId, ref),
         fetchUnary: () => client.downloadEval(ref),
         inlineOn: [Code.Unimplemented, Code.FailedPrecondition],
       },
@@ -78,6 +89,21 @@ async function fetchEvalArchive(client: StigmerClient, context: EvalCaseContext)
   if (bytes === undefined) throw new CaseArchiveError(`the server holds no archive for eval ${context.evalId}`);
   if (sha256Hex(bytes) !== context.evalDigest) throw new CaseArchiveError("the fetched archive does not match the eval's version");
   return caseArchiveOf(await extractZipFileEntries(bytes));
+}
+
+/**
+ * The run's door first, under its scoped credential; the reference read
+ * only when the server predates the door. Every other answer of the door
+ * stands, `FailedPrecondition` included, which the transport reads inline.
+ */
+async function mintEvalCaseUrl(client: StigmerClient, executionId: string, ref: ApiResourceReference): Promise<EvalArchiveDownloadUrl> {
+  const scopedToken = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+  try {
+    return await client.getRunEvalCaseArchiveDownloadUrl(executionId, scopedToken);
+  } catch (err) {
+    if (err instanceof ConnectError && err.code === Code.Unimplemented) return client.getEvalDownloadUrl(ref);
+    throw err;
+  }
 }
 
 /** A plugin's archive at the eval's digest, by its storage key, as a mount reads it. */

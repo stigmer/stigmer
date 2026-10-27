@@ -22,6 +22,7 @@ import { ChannelMessageQueryController } from "@stigmer/apis/ai/stigmer/agentic/
 import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import { EvalCommandController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/command_pb";
 import { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/query_pb";
+import { RunEvalCaseController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
 import { EvalRunCommandController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/command_pb";
 import { EvalRunQueryController } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/query_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
@@ -159,6 +160,7 @@ export interface ConformanceClients {
   pluginQuery: Client<typeof PluginQueryController>;
   evalCommand: Client<typeof EvalCommandController>;
   evalQuery: Client<typeof EvalQueryController>;
+  runEvalCase: Client<typeof RunEvalCaseController>;
   evalRunCommand: Client<typeof EvalRunCommandController>;
   evalRunQuery: Client<typeof EvalRunQueryController>;
   platformQuery: Client<typeof PlatformQueryController>;
@@ -300,6 +302,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     pluginQuery: createClient(PluginQueryController, transport),
     evalCommand: createClient(EvalCommandController, transport),
     evalQuery: createClient(EvalQueryController, transport),
+    runEvalCase: createClient(RunEvalCaseController, transport),
     evalRunCommand: createClient(EvalRunCommandController, transport),
     evalRunQuery: createClient(EvalRunQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),

@@ -30,6 +30,7 @@ import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/query_pb";
+import { GetRunEvalCaseArchiveInputSchema, RunEvalCaseController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
 import type { EvalArchive, EvalArchiveDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
@@ -187,6 +188,7 @@ export class StigmerClient {
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly pluginQuery: Client<typeof PluginQueryController>;
   private readonly evalQuery: Client<typeof EvalQueryController>;
+  private readonly runEvalCase: Client<typeof RunEvalCaseController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
@@ -258,6 +260,7 @@ export class StigmerClient {
           const usesRunnerCredential =
             req.service.typeName === VaultValueController.typeName ||
             req.service.typeName === RunFileController.typeName ||
+            req.service.typeName === RunEvalCaseController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
               req.method.name === PlatformQueryController.method.getRunnerScopedToken.name);
           const token =
@@ -283,6 +286,7 @@ export class StigmerClient {
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.pluginQuery = createClient(PluginQueryController, this.transport);
     this.evalQuery = createClient(EvalQueryController, this.transport);
+    this.runEvalCase = createClient(RunEvalCaseController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
   }
@@ -752,11 +756,30 @@ export class StigmerClient {
   /**
    * Mint an HTTP download URL for one version of an Eval, named by its
    * reference (its id and the digest as the version). The server asks
-   * can_view on the Eval first, of the run's caller; a server with no
-   * transfer lane answers FAILED_PRECONDITION.
+   * can_view on the Eval first, of the run's caller, and signs the link for
+   * a person's address; a server with no transfer lane answers
+   * FAILED_PRECONDITION. A try reads its case through
+   * {@link getRunEvalCaseArchiveDownloadUrl}, and through this only on a
+   * server that predates that door.
    */
   async getEvalDownloadUrl(ref: ApiResourceReference): Promise<EvalArchiveDownloadUrl> {
     return this.evalQuery.getDownloadUrl(ref);
+  }
+
+  /**
+   * Mint an HTTP download URL for the archive of the Eval version a run's
+   * case names, signed for this runner's address: the run's own door,
+   * which the server answers only to a runner credential acting for this
+   * very run, authenticated as {@link mountRunFiles} is. The run's spec
+   * names the Eval and its version, so the request names only the run. A
+   * server that predates the door answers UNIMPLEMENTED; one with no
+   * transfer lane, FAILED_PRECONDITION.
+   */
+  async getRunEvalCaseArchiveDownloadUrl(runId: string, scopedToken?: string): Promise<EvalArchiveDownloadUrl> {
+    return this.runEvalCase.getArchiveDownloadUrl(
+      create(GetRunEvalCaseArchiveInputSchema, { runId }),
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
   }
 
   /** One version of an Eval's archive inline, after the same can_view; capped by the gRPC message limit. */
