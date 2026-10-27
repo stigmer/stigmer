@@ -21,7 +21,12 @@ import { SCENARIO_CLOCK } from "@stigmer/react-sdk/test";
 import { MODES, SCENES, WIDTHS, screenshotsOf, sceneUrl, type Mode, type Scene, type SceneId, type WidthName } from "../src/catalog.ts";
 
 /** The rules each scene fails today, in each mode, against the issue that tracks each. */
-const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {};
+const KNOWN_VIOLATIONS: Readonly<Partial<Record<`${SceneId} ${Mode}`, readonly KnownViolation[]>>> = {
+  "thread-failed light": [{ rule: "color-contrast", issue: "stigmer#2643" }],
+  "thread-subagent-finished light": [{ rule: "color-contrast", issue: "stigmer#2644" }],
+  "file-review-dock light": [{ rule: "color-contrast", issue: "stigmer#2645" }],
+  "file-review-dock dark": [{ rule: "color-contrast", issue: "stigmer#2645" }],
+};
 
 const SCREENSHOTS = fileURLToPath(new URL("./__screenshots__/", import.meta.url));
 
@@ -56,7 +61,12 @@ test.describe("KIT-03 the look changes only on purpose", () => {
     const approved = readdirSync(SCREENSHOTS).filter((name) => !name.startsWith(".")).sort();
     const taken = screenshotsOf(SCENES).map((shot) => shot.file).sort();
     expect(approved.filter((name) => !taken.includes(name)), "screenshots no scene takes: delete them").toEqual([]);
-    expect(taken.filter((name) => !approved.includes(name)), "scenes with no approved screenshot: mint them").toEqual([]);
+    // While the screenshots are minted again (`--update-snapshots`), the
+    // cases beside this one are writing the missing ones as it runs.
+    const minting = ["all", "changed"].includes(test.info().config.updateSnapshots);
+    if (!minting) {
+      expect(taken.filter((name) => !approved.includes(name)), "scenes with no approved screenshot: mint them").toEqual([]);
+    }
   });
 });
 

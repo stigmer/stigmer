@@ -202,7 +202,12 @@
     },
     {
       "id": "KIT-04",
-      "promise": "Every hero screen passes the accessibility audit in light and dark."
+      "promise": "Every hero screen passes the accessibility audit in light and dark.",
+      "pending": [
+        "stigmer#2643",
+        "stigmer#2644",
+        "stigmer#2645"
+      ]
     },
     {
       "id": "CON-01",
