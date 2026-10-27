@@ -42,8 +42,8 @@ describe("the browser image pin", () => {
     const job = workflow.jobs.visual;
     expect(job, "ci.ts-workspace.yaml has a `visual` job").toBeDefined();
     const image = typeof job?.container === "string" ? job.container : job?.container?.image;
-    expect(image).toBe(pin.image);
-    expect(job?.["runs-on"]).toBe(RUNNER_OF_PLATFORM[pin.platform]);
+    expect(image, "the visual job's container.image is playwright-image.json's image; move both together").toBe(pin.image);
+    expect(job?.["runs-on"], `the visual job runs on the runner of ${pin.platform}`).toBe(RUNNER_OF_PLATFORM[pin.platform]);
   });
 
   it("was built for the Playwright the lockfile pins and the package declares", () => {
