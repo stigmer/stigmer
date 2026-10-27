@@ -20,7 +20,6 @@
 
 @custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));
 
-
 /* Mirrors the SDK build's z-popover definition (sdk/react/src/styles.css) for
    this app's OWN usages: since the console consumes the compiled SDK
    stylesheet (#454), SDK `@utility` definitions no longer flow into this

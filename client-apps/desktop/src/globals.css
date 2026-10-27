@@ -20,7 +20,6 @@
 
 @custom-variant dark (&:is([data-stgm-color-mode="dark"] *));
 
-
 body {
   background-color: var(--stgm-background);
   color: var(--stgm-foreground);
