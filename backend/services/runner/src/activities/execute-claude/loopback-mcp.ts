@@ -71,8 +71,12 @@ export interface ServedServer {
   readonly call: (call: ServedCall) => Promise<CallToolResult>;
 }
 
-/** Whether a call may run: undefined lets it, a string is the refusal the engine reads (the header). */
-export type CallAdmission = (call: ServedCall) => string | undefined;
+/**
+ * Whether a call may run: undefined lets it, a string is the refusal the
+ * engine reads (the header). It may be awaited: the turn admits a call only
+ * once the session store holds it (`turn.ts`).
+ */
+export type CallAdmission = (call: ServedCall) => string | undefined | Promise<string | undefined>;
 
 /** The running endpoint (the header). */
 export interface LoopbackMcp {
@@ -152,7 +156,7 @@ async function openSession(served: ServedServer, admit: CallAdmission, sessions:
       args: (request.params.arguments ?? {}) as Record<string, unknown>,
       toolUseId: typeof meta?.[TOOL_USE_ID_META] === "string" ? meta[TOOL_USE_ID_META] : "",
     };
-    const refused = admit(call);
+    const refused = await admit(call);
     return refused === undefined ? served.call(call) : textResult(refused, true);
   });
   await server.connect(transport);
