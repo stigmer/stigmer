@@ -99,12 +99,12 @@ test("refuses a promise with no sentence, an unknown key, a malformed or duplica
 test("refuses a pending entry that is not a list of stigmer#N", () => {
   const read = bar([
     { id: "CLI-01", promise: "a", pending: "stigmer#1" },
-    { id: "CLI-02", promise: "b", pending: ["#12", "stigmer-cloud#3", "stigmer#0", "stigmer#44"] },
+    { id: "CLI-02", promise: "b", pending: ["#12", "other-repo#3", "stigmer#0", "stigmer#44"] },
   ]);
   assert.deepEqual(read.problems.map((p) => p.message), [
     'CLI-01\'s `pending` is a list of "stigmer#N"',
     'CLI-02\'s pending "#12" is not "stigmer#N", an issue of this repository',
-    'CLI-02\'s pending "stigmer-cloud#3" is not "stigmer#N", an issue of this repository',
+    'CLI-02\'s pending "other-repo#3" is not "stigmer#N", an issue of this repository',
     'CLI-02\'s pending "stigmer#0" is not "stigmer#N", an issue of this repository',
   ]);
   assert.deepEqual(read.promises[1].pending, [44]);
