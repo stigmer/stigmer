@@ -3,13 +3,16 @@
  * and the input-files lines, grouped and in order. What each harness renders AROUND these is pinned whole by
  * the two builders' prompt goldens (`execute-deep-agent/__tests__/
  * prompt-goldens.test.ts`, `execute-cursor/__tests__/prompt-goldens.test.ts`);
- * this file pins the glue's own contract, harness-free.
+ * this file pins the glue's own contract, harness-free, and the outputs
+ * folder's instruction, whose wording decides where an agent saves a file
+ * the person asked for (stigmer#2661).
  */
 
 import { describe, it, expect } from "vitest";
 import {
   hasInputFiles,
   inputFileLines,
+  outputsFolderInstruction,
   standingContextSections,
   visionPromptInfoOf,
   type InputFileGroups,
@@ -126,5 +129,14 @@ describe("visionPromptInfoOf", () => {
       inlineFilenames: ["b.png", "a.jpg"],
       notViewable: [{ path: ".stigmer/uploads/big.png", reason: "too_large" }],
     });
+  });
+});
+
+describe("outputsFolderInstruction", () => {
+  it("opens with the rule for a file asked for at a path, so the folder never reads as that file's place", () => {
+    const line = outputsFolderInstruction("/ws/.stigmer/outputs/");
+    expect(line.startsWith("When the user asks for a file at a path, write it at that path in the workspace.")).toBe(true);
+    expect(line).toContain("save it in `/ws/.stigmer/outputs/`");
+    expect(line.indexOf("at that path in the workspace")).toBeLessThan(line.indexOf("/ws/.stigmer/outputs/"));
   });
 });

@@ -73,7 +73,7 @@ The user has referenced the following workspace files. Read them when relevant:
 ---
 
 <outputs_folder>
-To give the user a file, save it in `.stigmer/outputs/`; everything there is returned to them when the turn ends. Files you edit in the workspace are not returned this way.
+When the user asks for a file at a path, write it at that path in the workspace. To hand the user a file that has no place in the workspace, save it in `.stigmer/outputs/`; everything there is returned to them when the turn ends. Files you edit in the workspace are not returned this way.
 </outputs_folder>
 
 ---
