@@ -60,3 +60,18 @@ export function evalCaseVersionMessage(name: string, runId: string): string {
 export function evalCaseSkillMessage(raw: string): string {
   return `skill '${raw}' names no skill: write <plugin>:<skill> on one line, as in thermos:review`;
 }
+
+/** The one PermissionDenied every caller of the runner's eval-case door gets but the run's runner. */
+export const RUN_EVAL_CASE_NOT_THE_RUNS_RUNNER = "only the runner acting for this run may fetch its eval case";
+
+/** FailedPrecondition copy for a finished run asking for its eval case. */
+export function runEvalCaseFinishedMessage(runId: string): string {
+  return `run '${runId}' is finished; it fetches no eval case`;
+}
+
+/** FailedPrecondition copy for a run whose spec names no Eval's case: none at all, or a plugin's. */
+export function runEvalCaseNoneMessage(runId: string, pluginCase: boolean): string {
+  return pluginCase
+    ? `run '${runId}' tries a plugin's eval case; it is fetched from the plugin's archive`
+    : `run '${runId}' tries no eval case`;
+}

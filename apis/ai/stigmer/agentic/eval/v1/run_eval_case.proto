@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.eval.v1;
+
+import "ai/stigmer/agentic/eval/v1/io.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "buf/validate/validate.proto";
+
+// RunEvalCaseController is a runner's door to the eval case its run tries:
+// it hands the turn a link to the archive of the Eval version the run's
+// case names, signed for the runner's address.
+//
+// @internal
+// A service of its own, apart from the Eval's queries, as RunFileController
+// is apart from the File's, so the one surface that answers a runner an
+// Eval's archive is one file to audit. A person downloads an Eval through
+// EvalQueryController, whose
+// links are signed for a person's address; a runner may reach the store at
+// another address (a sandbox on a local stack, a self-host's private
+// network), so its link is minted here. The authority is the runner
+// credential acting for the run, and the run's own spec names the Eval and
+// its version: no request field can name another.
+service RunEvalCaseController {
+  // A link to the archive of the Eval version a run's case names, valid
+  // for an hour.
+  //
+  // @internal
+  // Runner-only. Skip-authorization with a handler-level gate: the bearer
+  // must be the runner credential acting for this run, and the run must not
+  // be finished (the decision RunFileController.mount asks). Every other
+  // caller is refused with PERMISSION_DENIED. A run whose spec names no
+  // Eval case (none, or a plugin's) is FAILED_PRECONDITION; a missing Eval,
+  // version or archive is NOT_FOUND, as on EvalQueryController.
+  rpc getArchiveDownloadUrl(GetRunEvalCaseArchiveInput) returns (EvalArchiveDownloadUrl) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}
+
+// Which run's eval case to fetch.
+message GetRunEvalCaseArchiveInput {
+  // The run's id.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+}

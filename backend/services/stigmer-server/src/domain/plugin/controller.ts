@@ -690,7 +690,9 @@ async function getArtifactDownloadUrl(
 
   let capability: DownloadCapability;
   try {
-    capability = await staging.downloadUrl(req.artifactStorageKey);
+    // Only a runner mounting a plugin, or fetching a plugin's eval case,
+    // asks this @internal lane.
+    capability = await staging.downloadUrl(req.artifactStorageKey, "runner");
   } catch (error) {
     throw internalError(error, "failed to mint plugin artifact download URL");
   }

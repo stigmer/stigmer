@@ -17,7 +17,10 @@
  * person who can no longer view it can download no version, whatever
  * digest they remember. A plugin's and a skill's archives are fetched by
  * storage key instead, the capability a runner holds; nothing here serves
- * a key.
+ * a key. These are a person's lanes, so getDownloadUrl's link is signed for
+ * a person's address; a runner fetching its run's eval case asks its own
+ * door, RunEvalCaseController (run-case.ts), whose link is signed for the
+ * runner's (stigmer#2364).
  *
  * Wiring mirrors the plugin controller's: the store and the archive store
  * are required; the transfer lane is OPTIONAL (absent, the upload mint and
@@ -74,6 +77,7 @@ import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import type { CallerIdentity } from "../../extensions/identity.js";
 
 import { ArtifactNotFoundError } from "../../archive/content-store.js";
+import type { SignedUrlReader } from "../../artifactstorage/artifact-storage.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
 import { MAX_ZIP_SIZE } from "../../archive/limits.js";
 import { openArchiveFiles } from "../../archive/open-files.js";
@@ -769,9 +773,7 @@ async function download(deps: EvalControllerDeps, ref: ApiResourceReference, ctx
 
 /**
  * GetDownloadUrl — the transfer-lane twin of Download: after can_view on
- * the eval, stats (never loads) the version's archive, then asks the
- * shared staging port for its URL. ttl_seconds is the floor of the URL's
- * validity, as on the skill lane.
+ * the eval, mints the version's link for a person (archiveDownloadUrl).
  */
 async function getDownloadUrl(
   deps: EvalControllerDeps,
@@ -789,17 +791,36 @@ async function getDownloadUrl(
     ref,
     ctx,
   );
+  // A person asks this lane; a runner fetching its run's case asks
+  // RunEvalCaseController (run-case.ts), whose link is signed for it.
+  return archiveDownloadUrl(deps.artifactStorage, staging, version, "person");
+}
+
+/**
+ * The download link of one eval version's archive, signed for `reader`:
+ * stats (never loads) the archive, then asks the shared staging port for
+ * its URL. ttl_seconds is the floor of the URL's validity, as on the skill
+ * lane. A missing archive is NotFound naming the version; any other fault
+ * an Internal. Asks no authorization: each lane decides who may ask
+ * before it gets here.
+ */
+export async function archiveDownloadUrl(
+  artifactStorage: ContentAddressedArchiveStore,
+  staging: ArchiveStaging,
+  version: Eval,
+  reader: SignedUrlReader,
+): Promise<EvalArchiveDownloadUrl> {
   const digest = digestOf(version);
-  const storageKey = deps.artifactStorage.getStorageKey(digest);
+  const storageKey = artifactStorage.getStorageKey(digest);
   let size: number;
   try {
-    size = await deps.artifactStorage.size(storageKey);
+    size = await artifactStorage.size(storageKey);
   } catch (error) {
     throw archiveReadError(error, digest, "failed to stat eval archive");
   }
   let capability: DownloadCapability;
   try {
-    capability = await staging.downloadUrl(storageKey);
+    capability = await staging.downloadUrl(storageKey, reader);
   } catch (error) {
     throw internalError(error, "failed to mint eval archive download URL");
   }
