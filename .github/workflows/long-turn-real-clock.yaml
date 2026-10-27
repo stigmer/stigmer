@@ -17,7 +17,8 @@ name: long-turn-real-clock
 # nothing. A pull request that changes the run plays the shortest slice of
 # `goal` (one bulk read) to prove the script boots the stack and writes its
 # report; GitHub dispatches a workflow only once it is on the default branch,
-# so the full profiles are first dispatched after the merge.
+# so the full profiles are first dispatched after the merge. The boot check
+# plays that slice on both engines; a dispatch picks one (`harness`).
 
 on:
   workflow_dispatch:
@@ -32,11 +33,18 @@ on:
         description: "endurance only: how long it runs"
         required: false
         default: "180"
+      harness:
+        description: "the engine the turn runs on: deep-agent (native) or claude"
+        required: true
+        default: deep-agent
+        type: choice
+        options: [deep-agent, claude]
   pull_request:
     paths:
       - '.github/workflows/long-turn-real-clock.yaml'
       - 'test/conformance/scripts/long-turn-real-clock.ts'
       - 'test/conformance/src/long-turn/**'
+      - 'test/conformance/src/support/engine-arms.ts'
 
 permissions:
   contents: read
@@ -47,7 +55,7 @@ concurrency:
 
 jobs:
   real-clock:
-    name: Long turn, real clock (${{ github.event_name == 'pull_request' && 'boot check' || inputs.profile }})
+    name: Long turn, real clock (${{ github.event_name == 'pull_request' && 'boot check' || format('{0}, {1}', inputs.profile, inputs.harness) }})
     runs-on: ubuntu-24.04
     # Endurance's three hours, its 30-minute budget margin, and the stack's boot.
     timeout-minutes: 230
@@ -93,22 +101,24 @@ jobs:
           EVENT: ${{ github.event_name }}
           PROFILE: ${{ inputs.profile }}
           MINUTES: ${{ inputs.minutes }}
+          HARNESS: ${{ inputs.harness }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
             npm run long-turn:real-clock -- --profile goal --steps bulk-1 --out "$RUNNER_TEMP/long-turn"
+            npm run long-turn:real-clock -- --profile goal --steps bulk-1 --harness claude --out "$RUNNER_TEMP/long-turn-claude"
           else
-            npm run long-turn:real-clock -- --profile "$PROFILE" --minutes "$MINUTES" --out "$RUNNER_TEMP/long-turn"
+            npm run long-turn:real-clock -- --profile "$PROFILE" --minutes "$MINUTES" --harness "$HARNESS" --out "$RUNNER_TEMP/long-turn"
           fi
 
       - name: Show the summary
         if: always()
-        run: cat "$RUNNER_TEMP/long-turn/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat "$RUNNER_TEMP"/long-turn*/summary.md >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Keep the report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: long-turn-real-clock-${{ github.run_id }}
-          path: ${{ runner.temp }}/long-turn
+          path: ${{ runner.temp }}/long-turn*
           retention-days: 30
           if-no-files-found: warn

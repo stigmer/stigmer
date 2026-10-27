@@ -2,7 +2,10 @@
 // to a turn whose runner dies, is drained, or is sent a message while it works.
 // Domain: agentic / agentexecution — a turn's survival across its runner's life.
 //
-// Each arm runs the native harness against the wire mock, with a REAL
+// Each arm runs against the wire mock, on native and on Claude
+// (support/engine-arms.ts: native's model on the queue, Claude's answered
+// from each request's conversation, since the engine re-sends its history
+// when a replacement resumes it), with a REAL
 // `execute` the model asks for: a shell that records each start in a marker
 // file the arm owns and waits for the arm's release file, so the arm knows the
 // step is running and decides when it may finish (no sleep guesses). The runs
@@ -46,6 +49,12 @@
 //     no second run ever starts, and the log lists the message once, read,
 //     as the working turn's.
 //
+// On Claude the kill reaches every process the runner started, as a lost
+// machine's does (test-support's killTree), and the replacement resumes the
+// engine from the session's store. The cut call is not run again: the engine
+// hands the model its result as interrupted, its outcome unknown. The Claude
+// arms run where the target runs Claude turns (claudeTurnsRun).
+//
 // Cursor is not here: its SDK cannot run inside a runner process against a
 // double (the hermetic kit mocks `@cursor/sdk` in the test process), so its
 // continuation is proven in process by the contract kit's re-sent-task arm.
@@ -60,9 +69,8 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { readTurnShapes } from "@stigmer/test-support/llm-wire";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
@@ -70,8 +78,12 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { managedAgentsClient } from "../support/managed-agents";
 import { uniqueName } from "../support/naming";
 import { awaitPhase, awaitRunThatReadMessage, awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
+import { CLAUDE_ARM, NATIVE_ARM, claudeTurnsOnly, type EngineArm } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 import type { RunnerRestartOptions } from "../targets/target";
+
+// Collection-time capability read: whether this target runs Claude turns.
+const { capabilities } = createTarget();
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -155,15 +167,24 @@ class HeldStep {
   }
 }
 
-/** A run of a fresh agent, trusted for the whole run, whose model asks for `step` then says `closing`. */
-async function startHeldRun(task: string, step: HeldStep, closing: string): Promise<{ readonly id: string; readonly org: string }> {
+/** A run of a fresh agent on `arm`'s engine, trusted for the whole run, whose model asks for `step` then says `closing`. */
+async function startHeldRun(task: string, step: HeldStep, closing: string, arm: EngineArm = NATIVE_ARM): Promise<{ readonly id: string; readonly org: string }> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
-  mock.enqueue(anthropicToolUse(uniqueName("call_held"), "execute", { command: step.command() }));
-  mock.enqueue(anthropicText(closing));
+  arm.script(mock, task, [
+    { kind: "shell", id: `toolu_${uniqueName("held").replace(/-/g, "_")}`, command: step.command() },
+    { kind: "text", text: closing },
+  ]);
   const created = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("long-turn-run"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true }),
+    makeAgentExecution({
+      org,
+      name: uniqueName("long-turn-run"),
+      agentRef: agentRefOf(agent),
+      message: task,
+      autoApproveAll: true,
+      ...(arm.harness === undefined ? {} : { sessionSpec: { harness: arm.harness } }),
+    }),
   );
   const id = created.metadata!.id;
   fixtures.defer(async () => {
@@ -198,9 +219,9 @@ async function followToTheEnd(id: string, budgetMs: number, settleMs = 15_000): 
   }
 }
 
-/** How many user messages carrying `task` the newest model request handed the provider. */
-function taskHandedInLastRequest(task: string): number {
-  const last = mock.scriptedRequests().at(-1);
+/** How many user messages carrying `task` the newest model request on `arm` handed the provider. */
+function taskHandedInLastRequest(task: string, arm: EngineArm = NATIVE_ARM): number {
+  const last = arm.loopRequests(mock).at(-1);
   const messages = (last?.body as { messages?: Array<{ role?: string; content?: unknown }> } | undefined)?.messages ?? [];
   return messages.filter((m) => m.role === "user" && JSON.stringify(m.content ?? "").includes(task)).length;
 }
@@ -448,3 +469,156 @@ async function runIdsOf(sessionId: string): Promise<string[]> {
   return page.entries.map((run) => run.metadata?.id ?? "").reverse();
 }
 
+
+// The same proofs on Claude, where the engine is a program of its own that
+// the runner starts: it keeps its conversation in the session's store, and a
+// replacement runner resumes it from there. One difference is written into
+// the kill arm: a call the kill cut is not run again. The engine hands the
+// model the call's result as interrupted, its outcome unknown, and the model
+// decides; native re-runs the step from its last checkpoint.
+describe("a long turn on a real runner, on Claude", () => {
+  beforeEach(claudeTurnsOnly(capabilities));
+  it(
+    "a runner killed mid-tool is replaced, the turn completes, and the model is handed the task once and told the cut call's outcome is unknown",
+    async () => {
+      const task = uniqueName("Migrate the database");
+      const step = new HeldStep();
+      const run = await startHeldRun(task, step, "The migration is done.", CLAUDE_ARM);
+      await step.whenStarted();
+      const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: run.id }));
+      const askedBeforeTheKill = CLAUDE_ARM.loopRequests(mock).length;
+
+      // The runner and every process it started (its agent host, the engine,
+      // the shell) end at once, as a lost machine's do.
+      await restartRunner({ signal: "SIGKILL" });
+      step.release();
+      await awaitPhase(clients, run.id, RunPhase.RUN_IN_PROGRESS, { timeoutMs: 10_000 });
+      const settled = await awaitTerminal(clients, run.id, { timeoutMs: KILL_RECOVERY_MS });
+      const handed = taskHandedInLastRequest(task, CLAUDE_ARM);
+      const cut = cutCallResultInLastRequest();
+      console.log(`[long turn] kill on Claude: ${RunPhase[settled.status?.phase ?? 0]}, the task in the last request ${handed} time(s), the step began ${step.started()} time(s), the cut call: ${cut}`);
+
+      const notes = await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: ["stigmer.harness.note"] });
+      const story = (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events
+        .filter((event) => event.runId === run.id)
+        .map((event) => event.event.case)
+        .join(", ");
+      expect(settled.status?.phase, `the killed turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(handed, "the model was handed the task once").toBe(1);
+      expect(cut, "the cut call's result says its outcome is unknown").toMatch(/interrupted/i);
+      expect(step.started(), "the cut call is not run again").toBe(1);
+      expect(notes.events.length, `the log says once why the turn paused (the run's log: ${story})`).toBe(1);
+      expect((await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: ["agent.tool_use"] })).events.length, "the call the killed runner made is in the log").toBe(1);
+      expect(CLAUDE_ARM.loopRequests(mock).length - askedBeforeTheKill, "the replacement asked only the round after the step").toBe(1);
+    },
+    KILL_ARM_TIMEOUT_MS,
+  );
+
+  it(
+    "a runner drained mid-tool lets the running step finish, and the turn completes",
+    async () => {
+      const step = new HeldStep();
+      const run = await startHeldRun(uniqueName("Run the test suite"), step, "The suite passed.", CLAUDE_ARM);
+      await step.whenStarted();
+
+      let requestsByTheDrainedRunner = -1;
+      const draining = restartRunner({ signal: "SIGTERM", onEnded: () => (requestsByTheDrainedRunner = CLAUDE_ARM.loopRequests(mock).length) });
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      step.release();
+      await draining;
+      const { phases, run: settled } = await followToTheEnd(run.id, ARM_TIMEOUT_MS - 30_000, 20_000);
+      console.log(`[long turn] drain on Claude: phases ${phases.map((p) => RunPhase[p]).join(" > ")}, the step began ${step.started()} time(s)`);
+
+      const sessionId = sessionIdOf(settled);
+      const logged = async (type: string): Promise<number> =>
+        (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: [type] })).events.length;
+
+      expect(settled.status?.phase, `the drained turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(phases, "the turn never showed FAILED on the way").not.toContain(RunPhase.RUN_FAILED);
+      expect(step.started(), "the running step ran once").toBe(1);
+      expect(await logged("session.error"), "the session's log never read the turn failed").toBe(0);
+      expect(await logged("session.status_idle"), "the session went idle once, when the turn ended").toBe(1);
+      expect(await logged("stigmer.harness.note"), "the log says once why the turn moved").toBe(1);
+      expect(requestsByTheDrainedRunner, "the drained runner asked the model once, for the step, and stopped before the next round").toBe(1);
+      expect(CLAUDE_ARM.loopRequests(mock).length, "the round after the step was asked once, by the replacement").toBe(2);
+    },
+    ARM_TIMEOUT_MS,
+  );
+
+  it(
+    "a server rolled out mid-turn costs a watcher no event: each sees the whole log once, in order, the turn's end included",
+    async () => {
+      const step = new HeldStep();
+      const run = await startHeldRun(uniqueName("Rebuild the index"), step, "The index is rebuilt.", CLAUDE_ARM);
+      await step.whenStarted();
+      const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: run.id }));
+      const throughTheFront = new Watcher(clients, sessionId, { resumes: true });
+      let pinned: Watcher | undefined;
+      const restart = await target.restartServer!({
+        duringOverlap: async (incoming) => {
+          pinned = new Watcher(incoming, sessionId, { resumes: false });
+          step.release();
+          await awaitTerminal(incoming, run.id, { timeoutMs: ARM_TIMEOUT_MS / 2 });
+        },
+      });
+      if (!restart.overlapped) step.release();
+      const settled = await awaitTerminal(clients, run.id, { timeoutMs: ARM_TIMEOUT_MS / 2 });
+      const logged = await loggedSeqs(sessionId);
+      const last = logged.at(-1) ?? 0n;
+      const watchers = pinned === undefined ? [throughTheFront] : [throughTheFront, pinned];
+      for (const watcher of watchers) await watcher.until(last, WATCHER_CATCHES_UP_MS);
+
+      expect(settled.status?.phase, `the turn across the rollout: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(throughTheFront.seqs.filter((seq) => seq <= last), "the watcher through the front: every event once, in order").toEqual(logged);
+      if (pinned !== undefined) {
+        expect(pinned.seqs.filter((seq) => seq <= last), "the watcher on the incoming server: every event once, in order").toEqual(logged);
+        expect(pinned.endings, "the incoming server never ended its stream").toEqual([]);
+      }
+    },
+    ARM_TIMEOUT_MS,
+  );
+
+  it(
+    "a user.message sent through the Managed Agents wire while a turn works is queued, then read by that turn before its next model call; never a second run",
+    async () => {
+      const step = new HeldStep();
+      const first = await startHeldRun(uniqueName("Build the project"), step, "The build is done.", CLAUDE_ARM);
+      await step.whenStarted();
+      const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: first.id }));
+
+      const text = `While you build: what is left? ${uniqueName("note")}`;
+      const sdk = await sdkFor(first.org);
+      const sent = await sdk.beta.sessions.events.send(sessionId, { events: [{ type: "user.message", content: [{ type: "text", text }] }] });
+      const message = sent.data?.[0];
+      expect(message?.processed_at ?? null, "the message waits while the turn works").toBeNull();
+      expect(await runIdsOf(sessionId), "no second run starts while the first works").toEqual([first.id]);
+
+      await new Promise((resolve) => setTimeout(resolve, FIRST_TURN_WORKS_ON_MS));
+      step.release();
+      const firstSettled = await awaitTerminal(clients, first.id, { timeoutMs: ARM_TIMEOUT_MS });
+      const readerId = await awaitRunThatReadMessage(clients, sessionId, message?.id ?? "", { timeoutMs: ARM_TIMEOUT_MS });
+
+      expect(firstSettled.status?.phase, `the working turn: ${firstSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(readerId, "the working turn read the message").toBe(first.id);
+      expect(await runIdsOf(sessionId), "no second run ever starts").toEqual([first.id]);
+      const loop = CLAUDE_ARM.loopRequests(mock);
+      const firstCarrying = loop.findIndex((request) => JSON.stringify(request.body).includes(text));
+      expect(firstCarrying, "a model call carries the message").toBeGreaterThan(0);
+      expect(JSON.stringify(loop[firstCarrying - 1]?.body ?? ""), "the call before it did not: the message was read at the step after the shell").not.toContain(text);
+    },
+    ARM_TIMEOUT_MS,
+  );
+});
+
+/** The cut call's result text as the newest request on Claude hands it the model: the shell call the arm scripted. */
+function cutCallResultInLastRequest(): string {
+  const last = CLAUDE_ARM.loopRequests(mock).at(-1);
+  const messages = (last?.body as { messages?: Array<{ role?: string; content?: unknown }> } | undefined)?.messages ?? [];
+  for (const message of messages) {
+    if (message.role !== "user" || !Array.isArray(message.content)) continue;
+    for (const block of message.content as Array<{ type?: string; tool_use_id?: string; content?: unknown }>) {
+      if (block.type === "tool_result" && String(block.tool_use_id ?? "").startsWith("toolu_held")) return JSON.stringify(block.content ?? "");
+    }
+  }
+  return "";
+}

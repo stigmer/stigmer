@@ -24,6 +24,20 @@
  * (`_meta["claudecode/toolUseId"]`, measured on SDK 0.3.310 over this
  * transport too): the id the gate decided it under and the transcript keys
  * its row by. A tool's JSON schema reaches the engine as the tool wrote it.
+ *
+ * Every server's configuration carries the turn's bound on one call
+ * (`timeout`). The engine otherwise gives up on an HTTP server's call that
+ * sends nothing for 300 s (measured on SDK 0.3.310), and a shell command
+ * that prints nothing for five minutes is not a hung one (stigmer#2625). A
+ * per-server timeout raises that idle limit to itself, so the engine never
+ * cuts a call before the runtime's own bound on an open operation would.
+ *
+ * The endpoint offers no server-initiated stream: a GET is answered 405,
+ * as the Streamable HTTP transport lets a server answer it, and the engine
+ * then opens none. These servers send no message of their own, so the
+ * stream would carry nothing, and the engine times it out 360 s after it
+ * connects and takes that for a lost transport, giving up every call still
+ * running 90 to 120 s later (measured on SDK 0.3.310, stigmer#2636).
  */
 
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
@@ -72,14 +86,21 @@ export function textResult(text: string, isError = false): CallToolResult {
   return { content: [{ type: "text", text }], ...(isError ? { isError: true } : {}) };
 }
 
+/** How long the engine waits on one call before it gives up on it (the header): the runtime's open-operation bound. */
+export interface LoopbackMcpOptions {
+  readonly callTimeoutMs: number;
+}
+
 /** Serve `servers` on the loopback interface, each call admitted by `admit` (the header). */
-export async function startLoopbackMcp(servers: readonly ServedServer[], admit: CallAdmission): Promise<LoopbackMcp> {
+export async function startLoopbackMcp(servers: readonly ServedServer[], admit: CallAdmission, options: LoopbackMcpOptions): Promise<LoopbackMcp> {
   const byName = new Map(servers.map((server) => [server.name, server]));
   const token = randomBytes(32).toString("base64url");
   const expected = Buffer.from(`Bearer ${token}`);
   const sessions = new Map<string, StreamableHTTPServerTransport>();
 
   const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    // No server-initiated stream (the header): the engine is told so, and opens none.
+    if (req.method === "GET") return reply(res, 405, "This endpoint offers no server stream.");
     const served = byName.get(serverNameOf(req.url));
     if (served === undefined) return reply(res, 404, "No such server.");
     const auth = Buffer.from(String(req.headers.authorization ?? ""));
@@ -107,7 +128,7 @@ export async function startLoopbackMcp(servers: readonly ServedServer[], admit: 
   const base = `http://127.0.0.1:${(http.address() as AddressInfo).port}${PATH_PREFIX}`;
   const configs: Record<string, McpHttpServerConfig> = {};
   for (const server of servers) {
-    configs[server.name] = { type: "http", url: `${base}${encodeURIComponent(server.name)}`, headers: { Authorization: `Bearer ${token}` } };
+    configs[server.name] = { type: "http", url: `${base}${encodeURIComponent(server.name)}`, headers: { Authorization: `Bearer ${token}` }, timeout: options.callTimeoutMs };
   }
   return { configs, close: () => closeAll(http, sessions) };
 }

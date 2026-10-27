@@ -11,6 +11,9 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 
 import { startLoopbackMcp, type CallAdmission, type LoopbackMcp, type ServedServer } from "../loopback-mcp.js";
 
+/** The per-call bound a test's endpoint hands the engine; any value works, none is waited out. */
+export const SERVED_CALL_TIMEOUT_MS = 3_600_000;
+
 /** A client on one served server, with the endpoint it reaches. */
 export interface ServedClient {
   readonly client: Client;
@@ -20,7 +23,7 @@ export interface ServedClient {
 
 /** Serve `servers` and connect a client to the one named `name` (the first, by default). */
 export async function connectServed(servers: readonly ServedServer[], options: { readonly admit?: CallAdmission; readonly name?: string } = {}): Promise<ServedClient> {
-  const endpoint = await startLoopbackMcp(servers, options.admit ?? (() => undefined));
+  const endpoint = await startLoopbackMcp(servers, options.admit ?? (() => undefined), { callTimeoutMs: SERVED_CALL_TIMEOUT_MS });
   const name = options.name ?? servers[0]!.name;
   const config = endpoint.configs[name]!;
   const client = new Client({ name: "engine", version: "1.0.0" });

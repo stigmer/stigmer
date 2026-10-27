@@ -27,7 +27,10 @@
 // the approval default over a plugin tool's destructive mark (run-approval),
 // the values a plugin's server reads (vault-resolution), the wording of the
 // skill and sub-agent prompts (assertions read names, never prose), and the
-// Cursor harness, which this suite does not drive.
+// Cursor harness, which this suite does not drive. On Claude (its own block,
+// where the target runs Claude turns) the suite proves the skill loaded
+// through the engine's Skill tool and the hook's refusal; the plugin's
+// sub-agents and servers on Claude are the runner's hermetic suites'.
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -36,7 +39,7 @@ import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enu
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
@@ -51,6 +54,7 @@ import {
   requireMcpFixture,
 } from "../support/runs";
 import { STIGMER_STDIO_SERVER, stigmerMcpPlugin } from "../support/stigmer-mcp-stdio";
+import { CLAUDE_ARM, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 
 // The plugin's parts, by their names inside it.
@@ -253,4 +257,46 @@ describe("Run — a plugin's local program runs where a person's own runner runs
       });
     },
   );
+});
+
+// The same plugin on Claude: the engine names the plugin's skill under the
+// plugin and loads it through its own Skill tool, and the plugin's hook
+// refuses the delete with its reason (a hook decides under the whole-run
+// trust too). The turn is scripted by conversation (support/engine-arms.ts).
+describe("Run — a turn runs its plugins whole, on Claude", () => {
+  beforeEach(claudeTurnsOnly(collectionTarget.capabilities));
+  it("an agent on Claude that lists a plugin loads its skill through the Skill tool, and the plugin's hook refuses the delete", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await wholePlugin(org);
+    const name = plugin.metadata!.name;
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-whole-claude"), plugins: [plugin.metadata!.slug] }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    const task = uniqueName("Triage the report");
+    const skillId = `toolu_${uniqueName("skill").replace(/-/g, "_")}`;
+    const deleteId = `toolu_${uniqueName("rm").replace(/-/g, "_")}`;
+    CLAUDE_ARM.script(mock, task, [
+      { kind: "call", id: skillId, name: "Skill", input: { skill: `${name}:${SKILL}` } },
+      { kind: "shell", id: deleteId, command: "rm -rf build" },
+      { kind: "text", text: "Done." },
+    ]);
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-whole-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, `run ${executionId}: ${final.status?.error || "(no error)"}`).toBe(RunPhase.RUN_COMPLETED);
+
+    const first = CLAUDE_ARM.loopRequests(mock)[0];
+    expect(JSON.stringify(first?.body ?? ""), "the engine names the plugin's skill under the plugin").toContain(`${name}:${SKILL}`);
+    const turn = await turnOfRun(clients, final);
+    const skill = toolUseByCallId(turn, skillId);
+    expect([skill?.name, skill?.state], "the skill loaded through the engine's Skill tool").toEqual(["Skill", "completed"]);
+    const loaded = CLAUDE_ARM.loopRequests(mock).find((request) => JSON.stringify(request.body).includes("Sort it by severity."));
+    expect(loaded, "the skill's body reached the model").toBeDefined();
+    const refused = toolUseByCallId(turn, deleteId);
+    expect(refused?.state, "the hook refused the delete").toBe("failed");
+    expect(refused?.result?.text, "with the plugin hook's reason").toContain("recursive deletes are not allowed");
+  });
 });

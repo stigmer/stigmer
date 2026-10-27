@@ -58,6 +58,7 @@ import {
   ASK_ALONE_MESSAGE,
   CHANGED_MESSAGE,
   ClaudeGate,
+  spellingsOf,
   HALTED_MESSAGE,
   HIDDEN_SKILLS_MESSAGE,
   PLATFORM_READ_ONLY_MESSAGE,
@@ -718,6 +719,44 @@ describe("a sub-agent's call that would ask", () => {
     const gate = startedGate({ unattended: true });
     expect(await decide(gate, SHELL, { command: "npm test" }, "toolu_sub_skip", "agent_runner")).toEqual(refused(unattendedSkipMessage("Bash"), "unattended_skip", RUNNER));
     expect([...gate.unattendedSkips]).toEqual([["toolu_sub_skip", null]]);
+  });
+});
+
+describe("roots under a link (stigmer#2623)", () => {
+  /** A workspace, an engine home and a platform folder named through a link, and the real directory the link names. */
+  function linkedRoots(): { readonly named: string; readonly real: string } {
+    const base = mkdtempSync(join(tmpdir(), "claude-gate-link-"));
+    onTestFinished(() => rmSync(base, { recursive: true, force: true }));
+    const real = join(realpathSync(base), "real");
+    for (const dir of ["ws/src", "home", "platform/skills/x"]) mkdirSync(join(real, dir), { recursive: true });
+    const named = join(base, "named");
+    symlinkSync(real, named);
+    return { named, real };
+  }
+
+  it("judges a path in the roots' real spelling as the spelling the session names: inside the workspace, and read-only in the engine's home and the platform folder", async () => {
+    const { named, real } = linkedRoots();
+    const asked: string[] = [];
+    const gate = new ClaudeGate(
+      facts({
+        primaryDir: join(named, "ws"),
+        engineHome: join(named, "home"),
+        platformDir: join(named, "platform"),
+        posture: { fileCaptureMode: true, fileCaptureSubstrate: true, captureIgnored: false, isCapturablePath: async (path) => (asked.push(path), true) },
+      }),
+    );
+    expect(await decide(gate, "Write", { file_path: join(real, "ws", "src", "a.ts"), content: "x" }, "toolu_real")).toEqual(allowed("file_capture"));
+    expect(await decide(gate, "Write", { file_path: join(named, "ws", "src", "b.ts"), content: "x" }, "toolu_named")).toEqual(allowed("file_capture"));
+    expect(asked, "both spellings judged in the workspace's dialect").toEqual(["/src/a.ts", "/src/b.ts"]);
+    expect(await decide(gate, "Write", { file_path: join(real, "home", "settings.json"), content: "x" }, "toolu_home")).toEqual(refused(READ_ONLY_MESSAGE));
+    expect(await decide(gate, "Write", { file_path: join(real, "platform", "skills", "x", "SKILL.md"), content: "x" }, "toolu_platform")).toEqual(refused(READ_ONLY_MESSAGE));
+    expect(await decide(gate, "Write", { file_path: join(real, "elsewhere.txt"), content: "x" }, "toolu_outside"), "still outside").toMatchObject({ kind: "pause" });
+  });
+
+  it("names a root that does not exist yet under its nearest real ancestor", () => {
+    const { named, real } = linkedRoots();
+    expect(spellingsOf(join(named, "later", "home"))).toEqual([join(named, "later", "home"), join(real, "later", "home")]);
+    expect(spellingsOf(join(real, "ws")), "a real path has one spelling").toEqual([join(real, "ws")]);
   });
 });
 

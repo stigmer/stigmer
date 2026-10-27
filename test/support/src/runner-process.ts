@@ -49,7 +49,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { stopChild, teeChildOutput } from "./child-process.ts";
+import { killTree, stopChild, teeChildOutput } from "./child-process.ts";
 import { runnerDir } from "./runner-build.ts";
 
 // The runner bundles its Temporal workflows on boot, so first-poll readiness is
@@ -397,11 +397,19 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
   // then the tee (its sink ends only once stdio has closed — the runner's
   // shutdown lines land in the file instead of throwing write-after-end),
   // then the directories the runner was still using.
+  // A SIGKILL stands for a lost machine: it reaches every process the
+  // runner started too (its agent host, the engine, their shells), at once,
+  // as a lost pod's do (stigmer#2615). A SIGTERM goes to the runner alone,
+  // as a pod's TERM does, so its drain runs.
   const end = async (signal: "SIGKILL" | "SIGTERM"): Promise<void> => {
+    if (signal === "SIGKILL" && child.pid !== undefined) killTree(child.pid);
     const outcome = await stopChild(child, {
       signal,
       graceMs: SHUTDOWN_GRACE_MS,
-      onForceKill: () => console.error(describeRunnerForceKill(output.tail())),
+      onForceKill: () => {
+        if (child.pid !== undefined) killTree(child.pid);
+        console.error(describeRunnerForceKill(output.tail()));
+      },
     });
     // A forced kill already spoke, above; this line is for the drain that
     // stayed inside the grace but should not have taken that long.

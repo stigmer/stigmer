@@ -155,6 +155,8 @@ export class EnterpriseTarget implements TargetProfile {
     membershipOnArrival: false,
     // Cursor runs need no provider key here: no admission gates.
     cursorRunsAdmitted: true,
+    // No engine on this target: no turn runs.
+    claudeTurnsRun: false,
     // The primary runs on the license this target's entry signed.
     licenseStatus: "licensed",
     // The Enterprise identity unit serves teams, invitation links and an

@@ -392,6 +392,14 @@ server stops and starts. It records where the turn dies. `endurance` runs
 three hours of commands that avoid every known killer, to find what only
 hours show.
 
+`--harness claude` plays the same profile on Claude: the run's session is on
+Claude, each step is scripted by conversation (`src/support/engine-arms.ts`,
+below), the subagent step goes to a saved helper the agent lists (Claude has
+no general-purpose helper), and each model call reports the input its
+request stands for, so the engine compacts its own conversation where a real
+one would. A step a kill cut comes back to the model as interrupted, its
+outcome unknown, and the scripted model asks for it again.
+
 The report (`report.json` and `summary.md`, `src/long-turn/report.ts`) is
 rewritten every minute, so a stopped run still leaves one. A streaming
 follower (`src/long-turn/follow.ts`) reads the session from its first event
@@ -854,6 +862,28 @@ an execution **domain** enters the suite whole, on this same harness.
 
 Class B files run serially (`fileParallelism: false`) so multiple suites
 don't boot multiple Temporal+runner stacks at once.
+
+**Claude arms.** Where the engine meets the server, the workflow or a real
+runner process, a suite proves its case on Claude too, in a
+`describe("… on Claude")` block of its own beside its native cases:
+`run` (one turn end to end on the workflow's Claude arm), `run-long-turn`
+(kill, drain, server rollout, a message mid-turn), `run-approval` (allow,
+deny, a deny's reason, a batch's gated call), `run-subagent` (a saved helper
+through the engine's `Agent` tool, a helper's gated call refused),
+`run-plugins` (a skill through the Skill tool, a plugin's hook),
+`run-structured-output` (the engine's own answer tool) and `run-file-review`
+(keep and undo on the engine's `Write` and `Edit`). A case is written once,
+in engine-neutral steps (`src/support/engine-arms.ts`): a shell call, a file
+write, a delegation, the closing text. Native's arm queues them on the mock,
+one model call each, under native's tool names. Claude's arm answers each
+request from its conversation (`@stigmer/test-support/claude-engine-wire`,
+installed on the target's mock with `routeWith`), under the names
+`@stigmer/tool-vocabulary` maps native's to, because the engine re-sends its
+history when it resumes or recovers and a queue would answer a replay with
+the next step. The engine is the runner's own install (the runner's dev
+dependencies carry it), so no lane needs a new step. The arms run where
+`CapabilityFlags.claudeTurnsRun` is true (the local execution targets) and
+skip elsewhere, naming why (`CLAUDE_TURNS_SKIP_REASON`).
 
 `run.conformance.test.ts` is the whole execution domain. An
 agent run always hits an LLM, so the `local-execution` target also boots a

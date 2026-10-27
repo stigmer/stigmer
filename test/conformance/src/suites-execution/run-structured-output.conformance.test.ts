@@ -28,6 +28,8 @@
 //   in prose (no tool call), the field stays absent and the run COMPLETED;
 // - without a schema the field is never populated and tier 2 is never asked;
 // - the schema itself round-trips on spec.structured_output_schema as submitted.
+// - on Claude, the engine's own answer tool (`StructuredOutput`) is the
+//   primary path, and its answer is the turn's structured output.
 //
 // Deliberately NOT asserted: whether the fallback validates the value against
 // the schema (extra fields, a missing required field, a wrong type). The
@@ -37,7 +39,7 @@
 import type { JsonObject } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -46,7 +48,11 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { messagesOf, turnOfRun } from "../support/turn";
+import { CLAUDE_ARM, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
+
+// Collection-time capability read: whether this target runs Claude turns.
+const collectionTarget = createTarget();
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -273,4 +279,31 @@ describe("Run structured output — the schema round-trips on the spec", () => {
       expect(persisted!.required).toEqual(schema.required);
     });
   }
+});
+
+// On Claude the engine answers a schema through the tool it adds for one
+// (`StructuredOutput`), the primary path, and that answer is the turn's
+// stigmer.agent.structured_output. The turn is scripted by conversation
+// (support/engine-arms.ts).
+describe("Run structured output — on Claude", () => {
+  beforeEach(claudeTurnsOnly(collectionTarget.capabilities));
+  it("a Claude turn answers the schema through the engine's own StructuredOutput tool, and the answer is the turn's structured output", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-so-claude"), instructions: "Answer the question in the schema it gives." }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const task = uniqueName("Analyze the word hello");
+    CLAUDE_ARM.script(mock, task, [
+      { kind: "call", id: `toolu_${uniqueName("answer").replace(/-/g, "_")}`, name: "StructuredOutput", input: { summary: "a greeting", score: 7 } },
+      { kind: "text", text: "" },
+    ]);
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-so-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, structuredOutputSchema: SUMMARY_SCORE_SCHEMA, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, `the Claude turn: ${final.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+    expect(await structuredOutputOf(final), "the engine's answer is the turn's").toEqual({ summary: "a greeting", score: 7 });
+    expect(CLAUDE_ARM.loopRequests(mock).some((request) => JSON.stringify(request.body).includes('"name":"extract"')), "no extraction call was needed").toBe(false);
+  });
 });
