@@ -134,7 +134,7 @@ export function FileTreeNode({
         {isFolder && (
           <span
             aria-hidden="true"
-            className="stg:text-[10px] stg:text-muted-foreground-subtle"
+            className="stg:text-2xs stg:text-muted-foreground-subtle"
           >
             {expanded ? "▼" : "▶"}
           </span>

@@ -79,7 +79,7 @@ export default function InvitePageClient() {
   }, []);
 
   return (
-    <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
+    <StigmerProvider client={client} colorMode={colorMode}>
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center">

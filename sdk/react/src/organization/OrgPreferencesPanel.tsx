@@ -261,13 +261,13 @@ export function OrgPreferencesPanel({
       />
 
       {!canEdit && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Only organization admins can edit these preferences.
         </p>
       )}
 
       {updateError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {saveErrorMessage(updateError, "organization")}
         </p>
       )}

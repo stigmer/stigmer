@@ -52,7 +52,7 @@ export function FormField({
           "stg:disabled:pointer-events-none stg:disabled:opacity-50",
         )}
       />
-      {hint && <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>}
+      {hint && <p className="stg:text-2xs stg:text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -80,7 +80,7 @@ export function CopyRow({
           text={value}
           className={cn(
             "stg:min-w-0 stg:flex-1 stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
-            "stg:px-2 stg:py-1.5 stg:font-mono stg:text-[0.65rem] stg:text-foreground",
+            "stg:px-2 stg:py-1.5 stg:font-mono stg:text-2xs stg:text-foreground",
           )}
         />
         <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />

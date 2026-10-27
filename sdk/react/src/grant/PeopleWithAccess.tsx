@@ -120,7 +120,7 @@ export function PeopleWithAccess({
         </p>
 
         {fetchError && (
-          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:text-2xs" role="alert">
             {getUserMessage(fetchError)}
           </p>
         )}
@@ -140,7 +140,7 @@ export function PeopleWithAccess({
         )}
 
         {revokeError && (
-          <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+          <p className="stg:text-destructive stg:text-2xs" role="alert">
             {getUserMessage(revokeError)}
           </p>
         )}

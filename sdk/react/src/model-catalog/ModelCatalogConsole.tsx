@@ -234,7 +234,7 @@ function ModelCatalogBody({
             the header is a visual aid, not an ARIA table header. */}
         <div
           aria-hidden="true"
-          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-[11px] stg:font-medium stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[2fr_1fr_1fr_1fr_0.7fr] stg:gap-2 stg:border-b stg:border-border stg:px-3 stg:py-2 stg:text-2xs stg:font-medium stg:text-muted-foreground"
         >
           <span>Model</span>
           <span>Harness</span>
@@ -296,7 +296,7 @@ function ModelRow({
           </span>
           <TruncatedText
             text={`${baseline.modelId}${baseline.featured ? " · featured" : ""}`}
-            className="stg:block stg:text-[11px] stg:text-muted-foreground"
+            className="stg:block stg:text-2xs stg:text-muted-foreground"
           />
         </span>
         <span className="stg:text-muted-foreground">{baseline.harness}</span>

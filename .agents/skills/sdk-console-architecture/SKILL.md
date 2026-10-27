@@ -205,8 +205,9 @@ page framing.
    `client-apps/desktop` or an `@/` path.
 2. No framework dependencies in the SDK: no `next/*`, `next-themes`,
    `@tauri-apps/*`.
-3. No hard-coded colours or sizes: no hex values, no `text-[14px]`, no
-   `bg-white`.
+3. No hard-coded colours or sizes: no hex values, no `bg-white`, no
+   `text-[14px]` (a type-scale step, `text-2xs` the smallest; the
+   `stigmer/text-size-from-scale` lint rule refuses the rest).
 4. No opacity modifiers on tokens: a dedicated variant
    (`text-sidebar-muted-foreground`), never a `/60` suffix; a missing variant is
    a new token.

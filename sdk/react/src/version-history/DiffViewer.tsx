@@ -50,7 +50,7 @@ export function DiffViewer({ hunks, filePath, className }: DiffViewerProps) {
   return (
     <div
       className={cn(
-        "stg:overflow-auto stg:rounded-lg stg:border stg:border-border stg:font-mono stg:text-[13px] stg:leading-[1.6]",
+        "stg:overflow-auto stg:rounded-lg stg:border stg:border-border stg:font-mono stg:text-xs stg:leading-[1.6]",
         className,
       )}
     >
@@ -97,7 +97,7 @@ function HunkRows({
         <tr>
           <td
             colSpan={3}
-            className="stg:select-none stg:bg-diff-hunk-header-bg stg:px-3 stg:py-1 stg:text-[11px] stg:text-diff-hunk-header-fg"
+            className="stg:select-none stg:bg-diff-hunk-header-bg stg:px-3 stg:py-1 stg:text-2xs stg:text-diff-hunk-header-fg"
             aria-label={`Hunk: ${header}`}
           >
             {header}
@@ -116,7 +116,7 @@ function HunkRows({
 // ---------------------------------------------------------------------------
 
 const LINE_NUM_CLASSES =
-  "stg:w-[1px] stg:min-w-10 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-[11px] stg:text-muted-foreground-faint";
+  "stg:w-[1px] stg:min-w-10 stg:select-none stg:whitespace-nowrap stg:px-2 stg:text-right stg:text-2xs stg:text-muted-foreground-faint";
 const MARKER_CLASSES = "stg:w-[1px] stg:select-none stg:px-1 stg:text-center";
 
 function DiffLineRow({ line }: { readonly line: DiffLine }) {

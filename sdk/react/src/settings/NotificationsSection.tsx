@@ -61,7 +61,7 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
             </span>
             <p
               id={`${switchId}-description`}
-              className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground"
+              className="stg:text-2xs stg:leading-snug stg:text-muted-foreground"
             >
               A notification when a conversation you started finishes, stops with an error, or waits for your
               answer, unless you are looking at it.
@@ -77,10 +77,10 @@ export function NotificationsSection({ requestPermission, unsupported = false }:
           />
         </div>
         {unsupported && (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">This browser cannot show notifications.</p>
+          <p className="stg:text-2xs stg:text-muted-foreground">This browser cannot show notifications.</p>
         )}
         {refused && (
-          <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+          <p className="stg:text-2xs stg:text-destructive" role="alert">
             Notifications are blocked. Allow them for this site in your browser or system settings, then turn this on.
           </p>
         )}

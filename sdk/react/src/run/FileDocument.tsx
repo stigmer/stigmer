@@ -91,7 +91,7 @@ export function FileDocument({
         <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
           {name}
         </span>
-        <span className="stg:shrink-0 stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
+        <span className="stg:shrink-0 stg:text-2xs stg:tabular-nums stg:text-muted-foreground-faint">
           {formatFileSize(file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {inspection.isDetecting && !inspection.detectionLabel && (

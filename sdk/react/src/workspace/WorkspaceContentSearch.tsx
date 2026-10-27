@@ -248,7 +248,7 @@ export function WorkspaceContentSearch({
               })}
             </ul>
             {totalMatches > flatResults.length && (
-              <p className="stg:border-t stg:border-border stg:px-3 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+              <p className="stg:border-t stg:border-border stg:px-3 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
                 Showing the first {flatResults.length} of {totalMatches} matches — refine
                 your search to narrow the list.
               </p>
@@ -376,7 +376,7 @@ function LineRow({
         !isFocused && !isOpen && "stg:hover:bg-muted",
       )}
     >
-      <span className="stg:w-8 stg:shrink-0 stg:text-right stg:font-mono stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-subtle">
+      <span className="stg:w-8 stg:shrink-0 stg:text-right stg:font-mono stg:text-2xs stg:tabular-nums stg:text-muted-foreground-subtle">
         {match.line}
       </span>
       <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:font-mono stg:text-muted-foreground">
@@ -421,7 +421,7 @@ function EntryHeader({ name }: { readonly name: string }) {
   return (
     <li
       role="presentation"
-      className="stg:truncate stg:px-3 stg:pb-0.5 stg:pt-2 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
+      className="stg:truncate stg:px-3 stg:pb-0.5 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
     >
       {name}
     </li>
@@ -439,7 +439,7 @@ function FileHeader({ path }: { readonly path: string }) {
       className="stg:flex stg:items-baseline stg:gap-1.5 stg:px-3 stg:pb-0.5 stg:pt-1.5 stg:text-xs"
     >
       <span className="stg:shrink-0 stg:font-medium stg:text-foreground">{basename}</span>
-      {dir && <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">{dir}</span>}
+      {dir && <span className="stg:truncate stg:text-2xs stg:text-muted-foreground">{dir}</span>}
     </li>
   );
 }
@@ -455,7 +455,7 @@ function GroupNotice({
     <li
       role="presentation"
       className={cn(
-        "stg:px-3 stg:py-1 stg:text-[0.65rem]",
+        "stg:px-3 stg:py-1 stg:text-2xs",
         isError ? "stg:text-destructive" : "stg:text-muted-foreground",
       )}
     >

@@ -25,7 +25,7 @@ import { MAX_EVAL_TARGETS, type EvalRunSettings } from "./eval-view.js";
 export const LABEL_CLASS =
   "stg:block stg:text-xs stg:font-medium stg:text-foreground";
 /** A form field's hint below it. */
-export const HINT_CLASS = "stg:text-[0.65rem] stg:text-muted-foreground";
+export const HINT_CLASS = "stg:text-2xs stg:text-muted-foreground";
 
 /**
  * The models switch and, while it is off, the picked models with Add and

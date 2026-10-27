@@ -1,0 +1,126 @@
+/* Tailwind's theme, read from the --stgm-* tokens: the one mapping the
+   React kit, the web console and the desktop app import, so a token added
+   to tokens.css reaches every face's utilities from one place.
+
+   Import it after `tailwindcss` (or its theme layer) and after tokens.css.
+   `inline` makes each utility read the token itself (`stg:text-xs` is
+   `font-size: var(--stgm-text-xs)`), so a preset or a host that sets a
+   token restyles every utility built on it. The type steps and the spacing
+   unit replace Tailwind's own values with the same numbers, now tokens. */
+
+@theme inline {
+
+  --radius-sm: calc(var(--stgm-radius) - 4px);
+  --radius-md: calc(var(--stgm-radius) - 2px);
+  --radius-lg: var(--stgm-radius);
+  --radius-xl: calc(var(--stgm-radius) + 4px);
+  --color-background: var(--stgm-background);
+  --color-foreground: var(--stgm-foreground);
+  --color-card: var(--stgm-card);
+  --color-card-foreground: var(--stgm-card-foreground);
+  --color-popover: var(--stgm-popover);
+  --color-popover-foreground: var(--stgm-popover-foreground);
+  --color-primary: var(--stgm-primary);
+  --color-primary-foreground: var(--stgm-primary-foreground);
+  --color-secondary: var(--stgm-secondary);
+  --color-secondary-foreground: var(--stgm-secondary-foreground);
+  --color-muted: var(--stgm-muted);
+  --color-muted-foreground: var(--stgm-muted-foreground);
+  --color-avatar: var(--stgm-avatar);
+  --color-accent: var(--stgm-accent);
+  --color-accent-foreground: var(--stgm-accent-foreground);
+  --color-destructive: var(--stgm-destructive);
+  --color-destructive-foreground: var(--stgm-destructive-foreground);
+  --color-success: var(--stgm-success);
+  --color-success-foreground: var(--stgm-success-foreground);
+  --color-success-subtle: var(--stgm-success-subtle);
+  --color-warning: var(--stgm-warning);
+  --color-warning-foreground: var(--stgm-warning-foreground);
+  --color-info: var(--stgm-info);
+  --color-info-foreground: var(--stgm-info-foreground);
+  --color-border: var(--stgm-border);
+  --color-input: var(--stgm-input);
+  --color-input-bg: var(--stgm-input-bg);
+  --color-ring: var(--stgm-ring);
+  --color-chart-1: var(--stgm-chart-1);
+  --color-chart-2: var(--stgm-chart-2);
+  --color-chart-3: var(--stgm-chart-3);
+  --color-chart-4: var(--stgm-chart-4);
+  --color-chart-5: var(--stgm-chart-5);
+  --font-sans: var(--stgm-font-sans);
+  --font-mono: var(--stgm-font-mono);
+  --color-primary-hover: var(--stgm-primary-hover);
+  --color-primary-subtle: var(--stgm-primary-subtle);
+  --color-primary-muted: var(--stgm-primary-muted);
+  --color-destructive-subtle: var(--stgm-destructive-subtle);
+  --color-destructive-hover: var(--stgm-destructive-hover);
+  --color-destructive-muted: var(--stgm-destructive-muted);
+  --color-accent-hover: var(--stgm-accent-hover);
+  --color-foreground-hover: var(--stgm-foreground-hover);
+  --color-muted-subtle: var(--stgm-muted-subtle);
+  --color-muted-faint: var(--stgm-muted-faint);
+  --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
+  --color-muted-foreground-faint: var(--stgm-muted-foreground-faint);
+  --color-border-muted: var(--stgm-border-muted);
+  --color-border-prominent: var(--stgm-border-prominent);
+  --color-backdrop: var(--stgm-backdrop);
+  --color-sidebar: var(--stgm-sidebar);
+  --color-sidebar-foreground: var(--stgm-sidebar-foreground);
+  --color-sidebar-primary: var(--stgm-sidebar-primary);
+  --color-sidebar-primary-foreground: var(--stgm-sidebar-primary-foreground);
+  --color-sidebar-muted: var(--stgm-sidebar-muted);
+  --color-sidebar-muted-foreground: var(--stgm-sidebar-muted-foreground);
+  --color-sidebar-accent: var(--stgm-sidebar-accent);
+  --color-sidebar-accent-foreground: var(--stgm-sidebar-accent-foreground);
+  --color-sidebar-border: var(--stgm-sidebar-border);
+  --color-sidebar-ring: var(--stgm-sidebar-ring);
+  --color-status-ready: var(--stgm-status-ready);
+  --color-status-ready-foreground: var(--stgm-status-ready-foreground);
+  --color-status-ready-subtle: var(--stgm-status-ready-subtle);
+  --color-status-running: var(--stgm-status-running);
+  --color-status-running-foreground: var(--stgm-status-running-foreground);
+  --color-status-running-subtle: var(--stgm-status-running-subtle);
+  --color-status-pending: var(--stgm-status-pending);
+  --color-status-pending-foreground: var(--stgm-status-pending-foreground);
+  --color-status-pending-subtle: var(--stgm-status-pending-subtle);
+  --color-status-degraded: var(--stgm-status-degraded);
+  --color-status-degraded-foreground: var(--stgm-status-degraded-foreground);
+  --color-status-degraded-subtle: var(--stgm-status-degraded-subtle);
+  --color-status-failed: var(--stgm-status-failed);
+  --color-status-failed-foreground: var(--stgm-status-failed-foreground);
+  --color-status-failed-subtle: var(--stgm-status-failed-subtle);
+  --color-status-disabled: var(--stgm-status-disabled);
+  --color-status-disabled-foreground: var(--stgm-status-disabled-foreground);
+  --color-status-disabled-subtle: var(--stgm-status-disabled-subtle);
+  --color-status-draft: var(--stgm-status-draft);
+  --color-status-draft-foreground: var(--stgm-status-draft-foreground);
+  --color-status-draft-subtle: var(--stgm-status-draft-subtle);
+  --color-diff-added-bg: var(--stgm-diff-added-bg);
+  --color-diff-added-fg: var(--stgm-diff-added-fg);
+  --color-diff-removed-bg: var(--stgm-diff-removed-bg);
+  --color-diff-removed-fg: var(--stgm-diff-removed-fg);
+  --color-diff-hunk-header-bg: var(--stgm-diff-hunk-header-bg);
+  --color-diff-hunk-header-fg: var(--stgm-diff-hunk-header-fg);
+  --shadow-sm: var(--stgm-shadow-sm);
+  --shadow-md: var(--stgm-shadow-md);
+  --shadow-lg: var(--stgm-shadow-lg);
+  --default-transition-duration: var(--stgm-transition-duration);
+  --default-transition-timing-function: var(--stgm-transition-timing);
+  --spacing: var(--stgm-spacing);
+  --text-2xs: var(--stgm-text-2xs);
+  --text-2xs--line-height: var(--stgm-leading-2xs);
+  --text-xs: var(--stgm-text-xs);
+  --text-xs--line-height: var(--stgm-leading-xs);
+  --text-sm: var(--stgm-text-sm);
+  --text-sm--line-height: var(--stgm-leading-sm);
+  --text-base: var(--stgm-text-base);
+  --text-base--line-height: var(--stgm-leading-base);
+  --text-lg: var(--stgm-text-lg);
+  --text-lg--line-height: var(--stgm-leading-lg);
+  --text-xl: var(--stgm-text-xl);
+  --text-xl--line-height: var(--stgm-leading-xl);
+  --text-2xl: var(--stgm-text-2xl);
+  --text-2xl--line-height: var(--stgm-leading-2xl);
+  --text-3xl: var(--stgm-text-3xl);
+  --text-3xl--line-height: var(--stgm-leading-3xl);
+}

@@ -150,7 +150,7 @@ export function PaymentMethodCard({
 function CardBrandIcon({ brand }: { brand: string }) {
   return (
     <div className="stg:flex stg:size-9 stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-border stg:bg-background">
-      <span className="stg:text-[0.6rem] stg:font-bold stg:uppercase stg:text-muted-foreground">
+      <span className="stg:text-2xs stg:font-bold stg:uppercase stg:text-muted-foreground">
         {brand.slice(0, 4)}
       </span>
     </div>

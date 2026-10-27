@@ -55,7 +55,7 @@ export function AgentBreakdownList({
       >
         <div
           role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Agent</span>
           <span role="columnheader" className="stg:text-right">
@@ -117,7 +117,7 @@ export function AgentBreakdownList({
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
                 >
                   {formatCompactCount(tokens)}
-                  <span className="stg:ml-1.5 stg:text-[0.6rem] stg:text-muted-foreground">
+                  <span className="stg:ml-1.5 stg:text-2xs stg:text-muted-foreground">
                     {pct}%
                   </span>
                 </span>

@@ -1100,7 +1100,7 @@ function VaultsInlineEditor({
         disabled={isSaving}
         allowMyVault={viewerIsCreator}
       />
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         The keys and logins every fire uses. Without them, an agent whose
         tools need credentials is refused every run, naming the key.
       </p>
@@ -1173,7 +1173,7 @@ function RoutineEnvironmentRow({
   return (
     <div className="stg:flex stg:flex-col stg:gap-2">
       <RoutineEnvironmentField org={org} agentRef={agentRef} value={draft} onChange={setDraft} disabled={isSaving} />
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         The packages and network every fire&rsquo;s sandbox gets.
       </p>
       <InlineEditActions
@@ -1266,13 +1266,13 @@ function EngineModelInlineEditor({
               setThinkingMode("disabled");
             }}
             disabled={isSaving}
-            className="stg:rounded-md stg:px-2 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
+            className="stg:rounded-md stg:px-2 stg:py-1 stg:text-2xs stg:text-muted-foreground stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
           >
             Reset to platform default
           </button>
         )}
       </div>
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         Runs use the platform&rsquo;s default engine and model unless you pick
         one here. Picking a model pins the engine it belongs to.
       </p>
@@ -1339,7 +1339,7 @@ function BudgetInlineEditor({
         disabled={isSaving}
         className={cn(editorInputClasses, "stg:sm:max-w-48")}
       />
-      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:text-muted-foreground">
         Each run stops when it reaches this spend. You can lower the
         platform&rsquo;s per-run cap, never raise it past the
         platform&rsquo;s ceiling. Blank inherits the platform default.

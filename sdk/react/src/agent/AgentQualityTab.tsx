@@ -291,7 +291,7 @@ function QualityForm({
 }
 
 const LABEL_CLASS = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const HINT_CLASS = "stg:text-[0.65rem] stg:text-muted-foreground";
+const HINT_CLASS = "stg:text-2xs stg:text-muted-foreground";
 
 function usd(amount: number): string {
   return `$${amount.toFixed(2)}`;

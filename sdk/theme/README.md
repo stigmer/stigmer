@@ -28,7 +28,8 @@ defaults, and swatches — is documented at
 That reference is generated directly from `src/tokens.css`, so it can never
 drift from the shipped values. The token groups:
 
-- **Typography** — `--stgm-font-sans`, `--stgm-font-mono`
+- **Typography** — `--stgm-font-sans`, `--stgm-font-mono`, and the type scale (below)
+- **Spacing** — `--stgm-spacing`, the unit every padding, margin and gap is a multiple of
 - **Shape** — `--stgm-radius` (the whole radius scale derives from it)
 - **Core surfaces & text** — background/foreground, card, popover, primary, secondary, muted, accent (each with its `-foreground` pair)
 - **Semantic colors** — destructive, success, warning, info
@@ -47,20 +48,54 @@ lightness-delta floor for borderless surfaces) across all presets and both
 color modes. Run `npx tsx scripts/contrast-report.ts` in this package to see
 the full matrix.
 
+### Type scale
+
+Every text size is a step of one scale, each a token with its line height:
+
+| Step | Size | Use |
+|------|------|-----|
+| `2xs` | 11px | dense metadata only: badges, counters, key hints. The floor: nothing is drawn smaller |
+| `xs` | 12px | metadata and supporting text: timestamps, captions, dense table cells |
+| `sm` | 14px | body text in panels, labels, controls |
+| `base` | 16px | reading text: message bodies, long prose |
+| `lg` | 18px | section titles |
+| `xl` | 20px | page titles |
+| `2xl` | 24px | prominent figures, empty-state headings |
+| `3xl` | 30px | display headings |
+
+`--stgm-text-<step>` holds the size and `--stgm-leading-<step>` its line
+height. A preset or a host may retune a step; none may go under 11px. The
+kit, the console and the desktop app write sizes only as these steps
+(`stg:text-xs`); the `stigmer/text-size-from-scale` lint rule refuses a size
+picked by hand (`text-[10px]`, an inline `fontSize: "13px"`).
+
+### Tailwind mapping
+
+`@stigmer/design-tokens/tailwind-theme.css` is Tailwind v4's theme read from
+these tokens: colours, radius, the type scale, the spacing unit, shadows and
+motion, as one `@theme inline` block. Import it after Tailwind and
+`tokens.css`, and every utility reads its token, so a preset restyles it:
+
+```css
+@import "tailwindcss";
+@import "@stigmer/design-tokens/tokens.css";
+@import "@stigmer/design-tokens/tailwind-theme.css";
+```
+
 ## Design Language Presets
 
 Stigmer ships with 6 design language presets. Each represents a real-world product category's visual DNA — not just a color swap, but a complete design language with different border radius, surface treatments, border styles, sidebar appearance, and color palette.
 
 | Preset | Archetype | Import | CSS Class |
 |--------|-----------|--------|-----------|
-| Default | Stigmer's own identity | (built-in) | *(none)* |
+| Default | Stigmer's own look: black and white, typographic, sharp | (built-in) | *(none)* |
 | Corporate | Enterprise SaaS (Azure, Salesforce) | `@stigmer/design-tokens/presets/corporate.css` | `stgm-theme-corporate` |
 | Startup | Dev tools (Linear, Vercel) | `@stigmer/design-tokens/presets/startup.css` | `stgm-theme-startup` |
 | Friendly | Consumer SaaS (Notion, Intercom) | `@stigmer/design-tokens/presets/friendly.css` | `stgm-theme-friendly` |
 | Fintech | Premium financial (Stripe, Mercury) | `@stigmer/design-tokens/presets/fintech.css` | `stgm-theme-fintech` |
-| Monochrome | Editorial black-and-white (Linear, Notion) | `@stigmer/design-tokens/presets/monochrome.css` | `stgm-theme-monochrome` |
+| Monochrome | The default look, named (kept for code that sets it) | `@stigmer/design-tokens/presets/monochrome.css` | `stgm-theme-monochrome` |
 
-Each preset overrides most of the token surface — radius, surface colors, borders, sidebar, and accent palette — for both light and dark modes, and falls through to the defaults for anything it leaves alone (Monochrome deliberately keeps the semantic status colors). The full per-preset override tables are at [stigmer.ai/docs/sdk/theme/presets](https://stigmer.ai/docs/sdk/theme/presets).
+Each preset overrides most of the token surface — radius, surface colors, borders, sidebar, and accent palette — for both light and dark modes, and falls through to the defaults for anything it leaves alone. The defaults are Stigmer's own black-and-white look, with hue only in the status, diff and syntax colors; Monochrome adds nothing to them. The full per-preset override tables are at [stigmer.ai/docs/sdk/theme/presets](https://stigmer.ai/docs/sdk/theme/presets).
 
 ### Using a Preset
 
@@ -167,12 +202,13 @@ import { cn } from "@stigmer/design-tokens";
 |--------|---------|
 | `@stigmer/design-tokens` | `cn()`, `ClassValue`, `THEME_PRESETS`, `ThemePreset` |
 | `@stigmer/design-tokens/tokens.css` | Base CSS custom properties (light + dark) |
+| `@stigmer/design-tokens/tailwind-theme.css` | Tailwind v4 theme mapping read from the tokens |
 | `@stigmer/design-tokens/presets` | `THEME_PRESETS` array and `ThemePreset` type |
 | `@stigmer/design-tokens/presets/corporate.css` | Corporate (Enterprise SaaS) design language |
 | `@stigmer/design-tokens/presets/startup.css` | Startup (Modern dev tools) design language |
 | `@stigmer/design-tokens/presets/friendly.css` | Friendly (Consumer SaaS) design language |
 | `@stigmer/design-tokens/presets/fintech.css` | Fintech (Premium financial) design language |
-| `@stigmer/design-tokens/presets/monochrome.css` | Monochrome (Editorial black-and-white) design language |
+| `@stigmer/design-tokens/presets/monochrome.css` | Monochrome: the default look, named |
 
 ## License
 

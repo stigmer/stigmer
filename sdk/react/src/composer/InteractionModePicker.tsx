@@ -154,7 +154,7 @@ export function InteractionModePicker({
                   )}
                 >
                   <span className="stg:text-xs stg:font-medium">{meta.label}</span>
-                  <span className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+                  <span className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
                     {meta.description}
                   </span>
                 </button>

@@ -399,7 +399,7 @@ export function BaselineEditor({
                 <span className="stg:font-medium">{change.after}</span>
               </p>
             ))}
-            <p className="stg:text-[11px] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               New rates govern charges from the moment this revision is applied
               (forward-only; already-billed records keep their stamps).
             </p>

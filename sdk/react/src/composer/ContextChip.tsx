@@ -58,12 +58,12 @@ export function ContextChip({
           aria-hidden="true"
         />
       )}
-      <span className="stg:text-[0.55rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+      <span className="stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
         {CHIP_TYPE_LABELS[type]}
       </span>
       <TruncatedText text={label} className="stg:max-w-[120px]" />
       {detail != null && (
-        <span className="stg:shrink-0 stg:text-[0.6rem] stg:font-medium stg:text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-2xs stg:font-medium stg:text-muted-foreground">
           {detail}
         </span>
       )}

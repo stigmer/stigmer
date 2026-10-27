@@ -261,7 +261,7 @@ export function PrincipalPicker({
           </div>
         </div>
         {excludedNow && (
-          <span className="stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">Has access</span>
+          <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">Has access</span>
         )}
       </li>
     );
@@ -327,7 +327,7 @@ export function PrincipalPicker({
             )}
 
             {!isLoading && error && (
-              <li className="stg:px-2.5 stg:py-2 stg:text-[0.65rem] stg:text-destructive" role="alert">
+              <li className="stg:px-2.5 stg:py-2 stg:text-2xs stg:text-destructive" role="alert">
                 {getUserMessage(error)}
               </li>
             )}
@@ -399,7 +399,7 @@ function OptionGroup({
     <li role="presentation">
       <div
         id={headingId}
-        className="stg:px-2.5 stg:pt-1.5 stg:pb-1 stg:text-[0.6rem] stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
+        className="stg:px-2.5 stg:pt-1.5 stg:pb-1 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wide stg:text-muted-foreground"
       >
         {label}
       </div>
@@ -419,18 +419,18 @@ function CandidateSubline({ candidate }: { readonly candidate: GranteeCandidate 
         : "";
   if (!text) return null;
   return (
-    <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">{text}</span>
+    <span className="stg:block stg:truncate stg:text-2xs stg:text-muted-foreground">{text}</span>
   );
 }
 
 function SelectedSubline({ value }: { readonly value: SelectedGrantee }) {
   if (value.kind === "team") {
-    return <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">Team</span>;
+    return <span className="stg:block stg:truncate stg:text-2xs stg:text-muted-foreground">Team</span>;
   }
   // Out of its group, a chosen service account still says what it is.
   if (isServiceAccount(value.view)) {
     return (
-      <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">
+      <span className="stg:block stg:truncate stg:text-2xs stg:text-muted-foreground">
         {SERVICE_ACCOUNT_LABEL}
       </span>
     );

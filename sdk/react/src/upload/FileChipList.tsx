@@ -287,7 +287,7 @@ function ImageChip({
             aria-label={`Retry uploading ${entry.file.name}`}
             className={cn(
               UNSTYLED_BUTTON,
-              "stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-full stg:bg-destructive stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:leading-none stg:text-destructive-foreground stg:shadow-sm stg:hover:bg-destructive-hover stg:disabled:pointer-events-none",
+              "stg:absolute stg:left-1/2 stg:top-1/2 stg:-translate-x-1/2 stg:-translate-y-1/2 stg:rounded-full stg:bg-destructive stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:leading-none stg:text-destructive-foreground stg:shadow-sm stg:hover:bg-destructive-hover stg:disabled:pointer-events-none",
             )}
           >
             Retry
@@ -353,7 +353,7 @@ function DocumentChip({
 
       <span className="stg:truncate">{entry.file.name}</span>
 
-      <span className="stg:shrink-0 stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
+      <span className="stg:shrink-0 stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
         {formatFileSize(entry.file.size)}
       </span>
 
@@ -383,7 +383,7 @@ function RetryButton({
       disabled={disabled}
       className={cn(
         UNSTYLED_BUTTON,
-        "stg:shrink-0 stg:text-[0.6rem] stg:font-medium stg:text-destructive stg:underline stg:hover:text-destructive-muted stg:disabled:pointer-events-none",
+        "stg:shrink-0 stg:text-2xs stg:font-medium stg:text-destructive stg:underline stg:hover:text-destructive-muted stg:disabled:pointer-events-none",
       )}
       aria-label={`Retry uploading ${filename}`}
     >

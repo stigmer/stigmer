@@ -128,7 +128,7 @@ export function SidebarSeparator() {
  */
 export function navRowClassName(active: boolean): string {
   return cn(
-    "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-[13px] stg:leading-4 stg:transition-colors",
+    "stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1 stg:text-sm stg:leading-4 stg:transition-colors",
     active
       ? "stg:bg-sidebar-accent stg:text-sidebar-accent-foreground"
       : "stg:text-sidebar-muted-foreground stg:hover:bg-sidebar-accent stg:hover:text-sidebar-accent-foreground",
@@ -143,5 +143,5 @@ export function navRowClassName(active: boolean): string {
  * cannot drift.
  */
 export function sectionLabelClassName(): string {
-  return "stg:text-sidebar-muted-foreground stg:px-2 stg:text-[11px] stg:leading-4 stg:font-medium stg:tracking-wide stg:uppercase";
+  return "stg:text-sidebar-muted-foreground stg:px-2 stg:text-2xs stg:leading-4 stg:font-medium stg:tracking-wide stg:uppercase";
 }

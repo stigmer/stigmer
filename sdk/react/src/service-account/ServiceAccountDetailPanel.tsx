@@ -218,7 +218,7 @@ function NameSection({
         )}
       />
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {saveErrorMessage(error, "service account")}
         </p>
       )}
@@ -305,7 +305,7 @@ function RoleSection({
         disabled={isWorking || access.isLoading}
       />
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}
@@ -451,7 +451,7 @@ function DeleteSection({
         created stays with the organization.
       </p>
       {error && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}

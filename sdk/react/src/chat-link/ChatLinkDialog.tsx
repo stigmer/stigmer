@@ -416,11 +416,11 @@ function CreateChatLinkForm({
           )}
         />
         {nameError ? (
-          <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+          <p className="stg:text-2xs stg:text-destructive" role="alert">
             {nameError}
           </p>
         ) : (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             A display name for this chat link — e.g. the site or campaign it
             serves.
           </p>
@@ -451,11 +451,11 @@ function CreateChatLinkForm({
           )}
         />
         {slugError ? (
-          <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+          <p className="stg:text-2xs stg:text-destructive" role="alert">
             {slugError}
           </p>
         ) : (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Names this chat link in the CLI and API. The link itself is made
             when you create it.
           </p>
@@ -468,7 +468,7 @@ function CreateChatLinkForm({
           Who can chat
         </span>
         <AudienceSelector audience={audience} onChange={setAudience} disabled={isPending} />
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           {audience === "org"
             ? "Only signed-in members of the organization can chat. You can change this later."
             : "Anyone who has the link can chat, without signing in. You can change this later."}
@@ -947,7 +947,7 @@ function ResetLinkControl({
           <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
             Reset link
           </h3>
-          <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
             {hasLinkToken
               ? "Generates a new link and kills the current one immediately — even mid-conversation. Send the new link to the people who should keep access."
               : "Got forwarded further than you wanted? Resetting locks the link behind a secret and kills the plain address immediately."}
@@ -1037,7 +1037,7 @@ function ToolCredentialsSection({
 
       {expanded && (
         <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Shared vaults whose keys visitors&apos; chats use — name one
             holding the keys this agent&apos;s tools need (a read-only token is
             safest). You can name only vaults you may use; create one in
@@ -1196,7 +1196,7 @@ function IframeAlternative({
 
       {expanded && (
         <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-2">
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             For sites that can&apos;t run scripts. A blocked embed shows an
             empty frame instead of hiding.
           </p>
@@ -1273,7 +1273,7 @@ function OriginsEditor({
       <h3 className="stg:text-xs stg:font-medium stg:text-muted-foreground">
         Allowed embed origins
       </h3>
-      <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:mt-0.5 stg:text-2xs stg:text-muted-foreground">
         Sites allowed to embed this agent. An empty list allows any site;
         adding origins restricts embedding to those sites. The hosted link
         works either way.
@@ -1421,7 +1421,7 @@ function MessagesEditor({
 
       {expanded && (
         <div className="stg:mt-2 stg:flex stg:flex-col stg:gap-3">
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Shown to visitors when a limit is reached. Leave empty to use the
             platform defaults.
           </p>
@@ -1486,7 +1486,7 @@ function MessageField({
     <label className="stg:flex stg:flex-col stg:gap-1">
       <span className="stg:flex stg:items-center stg:justify-between stg:text-xs stg:font-medium stg:text-muted-foreground">
         {label}
-        <span className="stg:tabular-nums stg:text-[0.65rem]">
+        <span className="stg:tabular-nums stg:text-2xs">
           {value.length}/{MAX_MESSAGE_LENGTH}
         </span>
       </span>

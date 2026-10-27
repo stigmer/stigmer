@@ -149,9 +149,14 @@ import "@stigmer/design-tokens/presets/corporate.css";
   for (const { meta, tokens } of presets) {
     mdx += `\n## ${meta.name}\n\n`;
     mdx += `${escapeMdxText(meta.description)} — \`import "@stigmer/design-tokens/presets/${meta.id}.css"\`, class \`${meta.className}\`.\n\n`;
+    const names = new Set([...tokens.light.keys(), ...tokens.dark.keys()]);
+    if (names.size === 0) {
+      // A preset that only names the default look has no table to show.
+      mdx += `It overrides no token: it is the default look under a name.\n`;
+      continue;
+    }
     mdx += `| Token | Light | Dark |\n`;
     mdx += `|-------|-------|------|\n`;
-    const names = new Set([...tokens.light.keys(), ...tokens.dark.keys()]);
     for (const name of defaults.light.keys()) {
       if (!names.has(name)) continue;
       mdx += `| \`${name}\` | ${valueCell(tokens.light.get(name))} | ${valueCell(tokens.dark.get(name))} |\n`;

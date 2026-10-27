@@ -47,7 +47,7 @@ export function Field({
 }) {
   return (
     <label className={cn("stg:block stg:space-y-1", className)}>
-      <span className="stg:text-[11px] stg:font-medium stg:text-muted-foreground">
+      <span className="stg:text-2xs stg:font-medium stg:text-muted-foreground">
         {label}
         {required ? " *" : ""}
       </span>

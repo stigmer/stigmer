@@ -41,6 +41,15 @@ describe("cn: stg: prefix is transparent for conflict grouping", () => {
     );
   });
 
+  it("the type scale's 2xs step merges as a text size, never as a colour", () => {
+    // tailwind-merge reads any t-shirt size as a font size; a later version
+    // that did not would keep both sizes, or drop the colour beside them.
+    expect(cn("stg:text-xs", "stg:text-2xs")).toBe("stg:text-2xs");
+    expect(cn("stg:text-2xs stg:text-muted-foreground", "stg:text-sm")).toBe(
+      "stg:text-muted-foreground stg:text-sm",
+    );
+  });
+
   it("conditional falsy inputs are dropped (clsx semantics)", () => {
     expect(cn("stg:flex", false, undefined, null, "stg:gap-2")).toBe(
       "stg:flex stg:gap-2",

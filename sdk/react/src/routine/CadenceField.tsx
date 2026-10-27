@@ -237,7 +237,7 @@ export function CadenceField({
             <span className="stg:text-muted-foreground">of every month</span>
           </div>
           {value.day >= 29 && (
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               Months without day {value.day} are skipped — February never
               fires a day-{value.day} schedule
               {value.day === 29 ? " except in leap years" : ""}.
@@ -271,11 +271,11 @@ export function CadenceField({
             )}
           />
           {cronError ? (
-            <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+            <p className="stg:text-2xs stg:text-destructive" role="alert">
               {cronError}
             </p>
           ) : (
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               5 fields (minute hour day-of-month month day-of-week) or
               @hourly, @daily, @weekly, @monthly, @yearly.
             </p>

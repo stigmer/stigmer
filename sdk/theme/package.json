@@ -12,6 +12,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css",
+    "./tailwind-theme.css": "./src/tailwind-theme.css",
     "./presets": "./src/presets/index.ts",
     "./presets/corporate.css": "./src/presets/corporate.css",
     "./presets/startup.css": "./src/presets/startup.css",
@@ -21,7 +22,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json && cp src/tokens.css dist/tokens.css && mkdir -p dist/presets && cp src/presets/*.css dist/presets/",
+    "build": "tsc -p tsconfig.build.json && cp src/tokens.css dist/tokens.css && cp src/tailwind-theme.css dist/tailwind-theme.css && mkdir -p dist/presets && cp src/presets/*.css dist/presets/",
     "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -50,6 +51,7 @@
         "import": "./dist/index.js"
       },
       "./tokens.css": "./dist/tokens.css",
+      "./tailwind-theme.css": "./dist/tailwind-theme.css",
       "./presets": {
         "types": "./dist/presets/index.d.ts",
         "import": "./dist/presets/index.js"

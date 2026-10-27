@@ -273,7 +273,7 @@ function SubagentRow({
         )}
         {pin && (
           <span
-            className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-[10px] stg:text-muted-foreground"
+            className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-muted-foreground"
           >
             <span className="stg:sr-only">Pinned version </span>
             {pin.slice(0, SHORT_HASH)}

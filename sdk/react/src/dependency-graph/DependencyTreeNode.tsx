@@ -87,7 +87,7 @@ export function DependencyTreeNode({
       {!isRoot && (
         <span
           className={cn(
-            "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-px stg:text-[10px] stg:font-medium stg:leading-tight",
+            "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-px stg:text-2xs stg:font-medium stg:leading-tight",
             kindBadgeClasses(node.kind),
           )}
         >

@@ -78,7 +78,7 @@ function ChangeTypeBadge({
 
   return (
     <span
-      className={cn("stg:shrink-0 stg:font-mono stg:text-[10px] stg:font-bold", color)}
+      className={cn("stg:shrink-0 stg:font-mono stg:text-2xs stg:font-bold", color)}
       aria-label={changeType}
     >
       {letter}
@@ -98,7 +98,7 @@ function DeltaCount({
   readonly deletions: number;
 }) {
   return (
-    <span className="stg:shrink-0 stg:font-mono stg:text-[10px]">
+    <span className="stg:shrink-0 stg:font-mono stg:text-2xs">
       {additions > 0 && (
         <span className="stg:text-diff-added-fg">+{additions}</span>
       )}

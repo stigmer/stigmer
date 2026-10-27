@@ -117,7 +117,7 @@ function MobileProgress({
   readonly total: number;
 }) {
   return (
-    <span className="stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-semibold stg:text-primary-foreground">
+    <span className="stg:inline-flex stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-2 stg:py-0.5 stg:text-2xs stg:font-semibold stg:text-primary-foreground">
       {current}/{total}
     </span>
   );

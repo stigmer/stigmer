@@ -195,7 +195,7 @@ function EditTeamForm({
         />
       </Field>
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {saveErrorMessage(error, "team")}
         </p>
       )}
@@ -274,7 +274,7 @@ function DeleteTeam({
         the access shared with the team. Access granted to them directly stays.
       </p>
       {error && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}

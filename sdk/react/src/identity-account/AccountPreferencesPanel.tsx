@@ -316,7 +316,7 @@ export function AccountPreferencesPanel({
           <h3 className="stg:text-xs stg:font-medium stg:text-foreground">
             Execution defaults
           </h3>
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Seed new sessions across your devices and the CLI. An explicit
             pick in the composer always wins for that device.
           </p>
@@ -356,7 +356,7 @@ export function AccountPreferencesPanel({
               />
             </HarnessOptionRow>
           ))}
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p className="stg:text-2xs stg:text-muted-foreground">
             Each harness&apos;s default model applies whenever a session runs
             on that harness — even when it isn&apos;t your default.
           </p>
@@ -380,7 +380,7 @@ export function AccountPreferencesPanel({
             >
               Auto-approve tool calls
             </span>
-            <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+            <p className="stg:text-2xs stg:text-muted-foreground">
               Start your sessions with tool calls running unattended — no
               approval prompts. A plugin&apos;s hooks and an agent&apos;s tool
               lists still apply. Each conversation can turn this off (or on)
@@ -410,7 +410,7 @@ export function AccountPreferencesPanel({
       )}
 
       {updateError && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {saveErrorMessage(updateError, "account")}
         </p>
       )}
@@ -529,7 +529,7 @@ function HarnessOptionRow({
           </span>
           <span
             id={descriptionId}
-            className="stg:block stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground"
+            className="stg:block stg:text-2xs stg:leading-snug stg:text-muted-foreground"
           >
             {description}
           </span>
@@ -636,7 +636,7 @@ function OrganizationGovernedMemory() {
       <span className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
         Memory
       </span>
-      <p className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
         On this server, memory follows your organization&apos;s setting. Turn it
         on or off in the organization&apos;s preferences.
       </p>

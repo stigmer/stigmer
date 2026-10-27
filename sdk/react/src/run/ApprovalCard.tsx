@@ -368,7 +368,7 @@ export function ApprovalCardBody({
           never re-gates. A mixed turn (commands + file-tool edits) still
           reviews everything, so this line under-promises rather than over-. */}
       {categoryInfo.category === "shell" && (
-        <p className="stg:text-[11px] stg:italic stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:italic stg:text-muted-foreground">
           Files this command creates or changes are covered by this approval —
           they are kept automatically, with no second review.
         </p>
@@ -379,7 +379,7 @@ export function ApprovalCardBody({
           turn's invocation, which a later approval pause ends. */}
       {categoryInfo.category === "shell" && toolUse.input["background"] === true && (
         <p
-          className="stg:text-[11px] stg:italic stg:text-muted-foreground"
+          className="stg:text-2xs stg:italic stg:text-muted-foreground"
           data-cursor-target="approval-background-note"
         >
           Runs in the background while the agent works; it stops when the turn
@@ -469,7 +469,7 @@ export function ApprovalCardBody({
           informative reasons reach here (see showGateReason). */}
       {showGateReason && (
         <p
-          className="stg:text-[11px] stg:italic stg:text-muted-foreground"
+          className="stg:text-2xs stg:italic stg:text-muted-foreground"
           data-cursor-target="approval-gate-reason"
         >
           {gateReason}

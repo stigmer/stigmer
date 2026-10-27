@@ -223,7 +223,7 @@ function EmbeddingForm({
 
   return (
     <form className={cn("stg:flex stg:flex-col stg:gap-5", className)} onSubmit={(event) => void handleSubmit(event)}>
-      <p className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+      <p className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
         Your product&apos;s backend signs its users in to this organization by minting a token for
         each, with the API key of a service account that is an admin here.
         {canEdit && serviceAccountsHref !== undefined && (
@@ -244,7 +244,7 @@ function EmbeddingForm({
             <span id={`${createId}-title`} className="stg:block stg:text-xs stg:text-foreground">
               Create accounts on sign-in
             </span>
-            <p id={`${createId}-description`} className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+            <p id={`${createId}-description`} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
               Create a person&apos;s Stigmer account the first time a token is minted for them. When
               off, the account must already exist.
             </p>
@@ -276,7 +276,7 @@ function EmbeddingForm({
               </option>
             ))}
           </select>
-          <p id={`${roleId}-hint`} className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <p id={`${roleId}-hint`} className="stg:text-2xs stg:text-muted-foreground">
             Granted on this organization when a sign-in creates an account; None grants nothing.
             Accounts that already exist keep the roles they hold.
           </p>
@@ -285,7 +285,7 @@ function EmbeddingForm({
 
       <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={locked}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">Allowed origins</legend>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Web pages whose origin is listed here may use the tokens. Leave empty to allow every
           origin.
         </p>
@@ -318,7 +318,7 @@ function EmbeddingForm({
             {draft.allowedOrigins.map((origin) => (
               <li
                 key={origin}
-                className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:font-mono stg:text-[0.65rem] stg:text-foreground"
+                className="stg:inline-flex stg:items-center stg:gap-1 stg:rounded-full stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:font-mono stg:text-2xs stg:text-foreground"
               >
                 {origin}
                 {canEdit && (
@@ -340,7 +340,7 @@ function EmbeddingForm({
 
       <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")} disabled={locked}>
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">Vaults</legend>
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Shared vaults whose keys the conversations of people signed in from your product use, in
           order.
         </p>
@@ -353,7 +353,7 @@ function EmbeddingForm({
       </fieldset>
 
       {error && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}
@@ -373,13 +373,13 @@ function EmbeddingForm({
             Save
           </button>
           {saved && !isUpdating && (
-            <span className="stg:text-[0.65rem] stg:text-muted-foreground" role="status">
+            <span className="stg:text-2xs stg:text-muted-foreground" role="status">
               Saved
             </span>
           )}
         </div>
       ) : (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           Only organization admins can change these settings.
         </p>
       )}

@@ -66,6 +66,20 @@ every preset file, and wire it into the Tailwind bridge in
 `client-apps/web/src/app/globals.css`. Never work around a missing token with an
 opacity modifier or a literal colour.
 
+## Text sizes and spacing come from the scale
+
+A text size is a step of the type scale (`text-2xs` 11px, `text-xs` 12px,
+`text-sm` 14px, up to `text-3xl`), each reading `--stgm-text-<step>` and its
+`--stgm-leading-<step>`; `text-2xs` is for dense metadata only and nothing is
+smaller. An inline style reads the token (`fontSize: "var(--stgm-text-sm)"`).
+Spacing utilities are multiples of `--stgm-spacing`. The kit, the console and
+the desktop app build their utilities from one mapping,
+`sdk/theme/src/tailwind-theme.css`; a new token is mapped there once, never in
+a face's own `@theme` block. The `stigmer/text-size-from-scale` rule refuses a
+hand-picked size, and the CON-05 sweep
+(`tools/eslint-plugin-stigmer/rules/__tests__/text-size-from-scale.test.mjs`)
+reads every face's source for one.
+
 ## Interactive elements in non-standard contexts
 
 A button, link or other interactive component placed inside the sidebar, or on

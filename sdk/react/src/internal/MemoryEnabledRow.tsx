@@ -65,7 +65,7 @@ export function MemoryEnabledRow({
           </span>
           <p
             id={descriptionId}
-            className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground"
+            className="stg:text-2xs stg:leading-snug stg:text-muted-foreground"
           >
             {helperText}
           </p>
@@ -83,7 +83,7 @@ export function MemoryEnabledRow({
         </span>
       </div>
       {error && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {getUserMessage(error)}
         </p>
       )}

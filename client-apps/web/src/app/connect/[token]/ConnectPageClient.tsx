@@ -26,7 +26,7 @@ export default function ConnectPageClient() {
   const client = useMemo(() => new Stigmer({ baseUrl: getApiBaseUrl(), getAccessToken: () => null }), []);
 
   return (
-    <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
+    <StigmerProvider client={client} colorMode={colorMode}>
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center">

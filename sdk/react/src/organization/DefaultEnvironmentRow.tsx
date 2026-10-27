@@ -81,7 +81,7 @@ export function DefaultEnvironmentRow({ id, organization, readOnly, onSaved }: D
       <span id={titleId} className="stg:block stg:text-xs stg:font-medium stg:text-foreground">
         Default environment
       </span>
-      <p id={descriptionId} className="stg:text-[0.65rem] stg:leading-snug stg:text-muted-foreground">
+      <p id={descriptionId} className="stg:text-2xs stg:leading-snug stg:text-muted-foreground">
         {availability?.applies === false ? ENVIRONMENTS_NOT_APPLYING_COPY["not-on-server"] : DEFAULT_ENVIRONMENT_HELPER_TEXT}
       </p>
       {readOnly ? (
@@ -101,7 +101,7 @@ export function DefaultEnvironmentRow({ id, organization, readOnly, onSaved }: D
         </div>
       )}
       {error && (
-        <p className="stg:text-[0.65rem] stg:text-destructive" role="alert">
+        <p className="stg:text-2xs stg:text-destructive" role="alert">
           {saveErrorMessage(error, "organization")}
         </p>
       )}

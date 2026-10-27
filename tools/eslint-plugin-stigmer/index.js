@@ -9,6 +9,7 @@ const noTokenOpacityModifiers = require("./rules/no-token-opacity-modifiers");
 const requireListReset = require("./rules/require-list-reset");
 const requireLoadingRegion = require("./rules/require-loading-region");
 const sdkImportBoundaries = require("./rules/sdk-import-boundaries");
+const textSizeFromScale = require("./rules/text-size-from-scale");
 
 const plugin = {
   meta: {
@@ -25,6 +26,7 @@ const plugin = {
     "require-list-reset": requireListReset,
     "require-loading-region": requireLoadingRegion,
     "sdk-import-boundaries": sdkImportBoundaries,
+    "text-size-from-scale": textSizeFromScale,
   },
 };
 

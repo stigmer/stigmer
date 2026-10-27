@@ -151,7 +151,7 @@ export function PlanEditor({
             />
           )}
         </div>
-        <span className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
+        <span className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground-faint">
           {formatFileSize(plan.file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {/* The reason the Edit tab is disabled must be visible text: a
@@ -159,7 +159,7 @@ export function PlanEditor({
             no hover- or focus-dependent hint can ever reach the user who
             needs it. */}
         {activeDraft !== undefined && !canEdit && (
-          <span className="stg:min-w-0 stg:text-[0.65rem] stg:text-muted-foreground">
+          <span className="stg:min-w-0 stg:text-2xs stg:text-muted-foreground">
             This plan is too large to edit in place — download it instead.
           </span>
         )}
@@ -167,13 +167,13 @@ export function PlanEditor({
         <div className="stg:ml-auto stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
           {activeDraft?.isEdited && (
             <span className="stg:inline-flex stg:items-center stg:gap-2">
-              <span className="stg:rounded-md stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+              <span className="stg:rounded-md stg:bg-accent stg:px-1.5 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
                 Edited
               </span>
               <button
                 type="button"
                 onClick={() => activeDraft.setDraft(null)}
-                className="stg:rounded stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
+                className="stg:rounded stg:text-2xs stg:font-medium stg:text-muted-foreground stg:underline-offset-2 stg:hover:text-foreground stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
               >
                 Revert
               </button>
@@ -182,7 +182,7 @@ export function PlanEditor({
           {readOnly ? (
             <span
               role="status"
-              className="stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground"
+              className="stg:rounded-md stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground"
             >
               Superseded by a newer plan
             </span>
@@ -232,7 +232,7 @@ export function PlanEditor({
       )}
 
       {isTruncated && (
-        <p role="status" className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p role="status" className="stg:text-2xs stg:text-muted-foreground">
           Preview truncated — download the plan for the full text.
         </p>
       )}
@@ -325,7 +325,7 @@ function ViewTab({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "stg:rounded stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
+        "stg:rounded stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:transition-colors",
         "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
         active
           ? "stg:bg-card stg:text-foreground stg:shadow-sm"

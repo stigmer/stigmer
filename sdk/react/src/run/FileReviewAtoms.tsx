@@ -80,7 +80,7 @@ export function FileKindBadge({ kind }: { kind: FileChangeKind }) {
   if (!badge) return null;
   return (
     <span
-      className={cn("stg:shrink-0 stg:font-mono stg:text-[10px] stg:font-bold", badge.colorClass)}
+      className={cn("stg:shrink-0 stg:font-mono stg:text-2xs stg:font-bold", badge.colorClass)}
       aria-label={badge.label}
     >
       {badge.letter}

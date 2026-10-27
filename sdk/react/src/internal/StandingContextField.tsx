@@ -78,12 +78,12 @@ export function StandingContextField({
         )}
       />
       {helperText && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           {helperText}
         </p>
       )}
       {!readOnly && remaining <= COUNTER_THRESHOLD && (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:text-muted-foreground">
           {remaining} characters left
         </p>
       )}

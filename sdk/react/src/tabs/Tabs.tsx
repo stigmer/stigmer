@@ -157,7 +157,7 @@ export function Tabs({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:py-px stg:text-[10px] stg:font-medium stg:leading-none",
+                    "stg:inline-flex stg:min-w-[1.25rem] stg:items-center stg:justify-center stg:rounded-full stg:px-1 stg:py-px stg:text-2xs stg:font-medium stg:leading-none",
                     isActive
                       ? "stg:bg-primary-subtle stg:text-primary"
                       : "stg:bg-muted stg:text-muted-foreground",

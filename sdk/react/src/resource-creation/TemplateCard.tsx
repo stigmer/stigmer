@@ -124,7 +124,7 @@ export function TemplateCard<TData>({
           <p className="stg:text-sm stg:font-medium stg:text-foreground">{template.name}</p>
           <span
             className={cn(
-              "stg:mt-1 stg:inline-block stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[10px] stg:font-medium",
+              "stg:mt-1 stg:inline-block stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
               CATEGORY_COLORS[template.category] ?? CATEGORY_COLORS.general,
             )}
           >

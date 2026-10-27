@@ -172,7 +172,7 @@ export function InvitationManager({
           {/* The count covers the loaded pages only, so it is shown once
               they are all loaded rather than undercount. */}
           {activeCount > 0 && !hasMore && (
-            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+            <span className="stg:inline-flex stg:items-center stg:rounded-full stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-muted-foreground">
               {activeCount} active
             </span>
           )}
@@ -401,7 +401,7 @@ function CreateInvitationForm({
       </fieldset>
 
       {error && (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
+        <p className="stg:text-destructive stg:text-2xs" role="alert">
           {getUserMessage(error)}
         </p>
       )}
@@ -509,7 +509,7 @@ function InvitationRow({
       {/* Metadata columns */}
       <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3">
         {/* Role badge */}
-        <span className="stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-foreground">
+        <span className="stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
           {iamRoleDisplayName(role)}
         </span>
 
@@ -606,7 +606,7 @@ function RevokeConfirmation({
           stop working immediately.
         </p>
         {error && (
-          <p className="stg:mt-0.5 stg:text-[0.65rem] stg:text-destructive">
+          <p className="stg:mt-0.5 stg:text-2xs stg:text-destructive">
             {getUserMessage(error)}
           </p>
         )}
@@ -652,7 +652,7 @@ function StateBadge({ state }: { state: InvitationState }) {
   return (
     <span
       className={cn(
-        "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-[0.6rem] stg:font-medium",
+        "stg:inline-flex stg:items-center stg:rounded-full stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium",
         config.className,
       )}
     >
@@ -764,7 +764,7 @@ function RedemptionRadio({
         className="stg:sr-only"
       />
       <span>{label}</span>
-      <span className="stg:text-[0.625rem] stg:text-muted-foreground stg:font-normal stg:mt-0.5">
+      <span className="stg:text-2xs stg:text-muted-foreground stg:font-normal stg:mt-0.5">
         {description}
       </span>
     </label>

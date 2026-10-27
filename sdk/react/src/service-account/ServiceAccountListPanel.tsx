@@ -119,7 +119,7 @@ export function ServiceAccountListPanel({
                   </span>
                 )}
               </span>
-              <span className="stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-foreground">
+              <span className="stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:bg-muted stg:px-2 stg:py-0.5 stg:text-2xs stg:font-medium stg:text-foreground">
                 {access.isLoading ? "…" : role ? iamRoleDisplayName(role.role) : "No role"}
               </span>
             </button>

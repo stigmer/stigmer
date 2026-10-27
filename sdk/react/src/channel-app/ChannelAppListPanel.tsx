@@ -157,18 +157,18 @@ function ChannelAppRow({
           </span>
           {/* Fall back to the raw oneof case for providers this UI
               doesn't know yet — honest, and never an empty label. */}
-          <span className="stg:text-[0.65rem] stg:text-muted-foreground">
+          <span className="stg:text-2xs stg:text-muted-foreground">
             {provider?.label ?? providerCase ?? ""}
           </span>
         </div>
         <div className="stg:flex stg:items-baseline stg:gap-2">
           {providerAppId && (
-            <span className="stg:truncate stg:font-mono stg:text-[0.65rem] stg:text-muted-foreground">
+            <span className="stg:truncate stg:font-mono stg:text-2xs stg:text-muted-foreground">
               {providerAppId}
             </span>
           )}
           {createdAt && (
-            <span className="stg:shrink-0 stg:text-[0.65rem] stg:text-muted-foreground">
+            <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
               {timestampDate(createdAt).toLocaleDateString()}
             </span>
           )}

@@ -473,7 +473,7 @@ function FileViewerBody({
   return (
     <>
       {change && (
-        <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
           Live — may differ from the reviewed change.
         </p>
       )}
@@ -528,7 +528,7 @@ function ImageFileContent({
   return (
     <>
       {change && (
-        <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+        <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
           Live — may differ from the reviewed change.
         </p>
       )}
@@ -559,7 +559,7 @@ function ImageFileContent({
             aria-hidden="true"
           />
         )}
-        <p className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground">
+        <p className="stg:text-2xs stg:tabular-nums stg:text-muted-foreground">
           {mime}
           {size ? ` · ${formatBytes(size)}` : ""}
         </p>
@@ -605,7 +605,7 @@ function CapturedFileContent({
 
   return (
     <>
-      <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
+      <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-2xs stg:text-muted-foreground">
         As of the agent&rsquo;s last change — not yet in the workspace source.
       </p>
       <TextContentRenderer
@@ -665,7 +665,7 @@ function ViewerHeader({
           </TooltipContent>
         </Tooltip>
         {dir && (
-          <span className="stg:truncate stg:text-[0.65rem] stg:text-muted-foreground">{dir}</span>
+          <span className="stg:truncate stg:text-2xs stg:text-muted-foreground">{dir}</span>
         )}
       </div>
       {onRefresh && (

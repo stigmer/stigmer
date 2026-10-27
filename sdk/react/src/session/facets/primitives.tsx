@@ -28,7 +28,7 @@ export function FacetSection({
 }) {
   return (
     <section className="stg:flex stg:flex-col stg:gap-1">
-      <h3 className="stg:px-2 stg:text-[0.65rem] stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+      <h3 className="stg:px-2 stg:text-2xs stg:font-semibold stg:uppercase stg:tracking-wider stg:text-muted-foreground">
         {heading}
         {count != null && count > 0 && (
           <span className="stg:ml-1 stg:text-muted-foreground-faint">({count})</span>
@@ -74,7 +74,7 @@ export function FacetRow({
         {children}
       </span>
       {meta && (
-        <span className="stg:shrink-0 stg:text-[0.65rem] stg:text-muted-foreground">
+        <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
           {meta}
         </span>
       )}

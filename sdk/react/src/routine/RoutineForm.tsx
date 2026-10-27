@@ -446,7 +446,7 @@ export function RoutineForm({
               }}
               disabled={isCreating}
               className={cn(
-                "stg:rounded-md stg:px-2 stg:py-1 stg:text-[0.65rem] stg:text-muted-foreground",
+                "stg:rounded-md stg:px-2 stg:py-1 stg:text-2xs stg:text-muted-foreground",
                 "stg:hover:text-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
                 "stg:disabled:pointer-events-none stg:disabled:opacity-50",
               )}
@@ -569,7 +569,7 @@ export function RoutineForm({
 // ---------------------------------------------------------------------------
 
 const labelClasses = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const hintClasses = "stg:text-[0.65rem] stg:text-muted-foreground";
+const hintClasses = "stg:text-2xs stg:text-muted-foreground";
 
 /**
  * Assemble a {@link RunConfigInput} from the model choice and budget, or
