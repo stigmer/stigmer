@@ -359,6 +359,13 @@ describe("ClaudeTranslator: sub-agents", () => {
     ]);
   });
 
+  it("drops the engine's list of the tools the sub-agent used from its answer, in one text block or its own", () => {
+    const frame = "<tools-used-before-summary>Bash, Skill, mcp__ci__run</tools-used-before-summary>";
+    expect(agentAnswerOf({ content: [{ type: "text", text: `${frame}\n\nAll suites pass.` }] })).toBe("All suites pass.");
+    expect(agentAnswerOf({ content: [{ type: "text", text: frame }, { type: "text", text: "All suites pass." }] })).toBe("All suites pass.");
+    expect(agentAnswerOf({ content: [{ type: "text", text: `The answer quotes ${frame} as text.` }] })).toBe(`The answer quotes ${frame} as text.`);
+  });
+
   it("falls back to the result's text when the structured result carries no answer", () => {
     expect(agentAnswerOf(undefined)).toBeUndefined();
     expect(agentAnswerOf({ content: "plain" })).toBeUndefined();
