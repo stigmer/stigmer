@@ -579,15 +579,35 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 smoke-libs: build-libs ## Install the published TypeScript libraries from their packed tarballs into an empty project, then resolve, import, typecheck and render them
 	node test/install/smoke-libs.mjs --skip-build
 
+# What the published libraries make an app download, against the ceilings in
+# test/bundle-budgets.json (test/install/smoke-budgets.mjs): the React kit's
+# provider and session screens, bundled from the workspace by the locked
+# Vite, its stylesheet and the embed's loader as built. build-libs builds the
+# stylesheet and the loader it measures.
+.PHONY: smoke-budgets
+smoke-budgets: build-libs ## Hold the React kit's entries, its stylesheet and the embed's loader to their gzip size budgets
+	node test/install/smoke-budgets.mjs
+
+# The kit's gallery (test/visual): every hero component drawn from fixed data,
+# compared with its approved screenshot and audited with axe, every picture
+# drawn by the pinned image's browser (test/visual/playwright-image.json) as
+# CI's `visual` job draws it; Docker runs the image. The package's unit
+# checks run first. UPDATE=1 mints the screenshots again, for review.
+.PHONY: test-visual
+test-visual: build-libs ## Compare every gallery scene with its approved screenshot and audit it with axe, drawn in the pinned browser image (UPDATE=1 re-mints)
+	cd test/visual && npx vitest run
+	node test/visual/run-in-image.mjs $(if $(UPDATE),--update-snapshots)
+
 # The UX scorecard (scripts/ux-scorecard.mjs, test/README.md "The UX bar"):
 # every promise on test/ux-bar.json with the tests that hold it and how they
 # did, or its open issue. It runs only the files that hold a promise, writing
 # their reports under .test-output-ux-scorecard/. SMOKE=1 adds the library
-# smoke, built first; MUTATION=<dir> reads a sweep's reports for the
-# planted-bug line; FORMAT=markdown prints the table as Markdown.
+# smokes, built first; VISUAL=1 adds the visual suite through the pinned
+# browser image; MUTATION=<dir> reads a sweep's reports for the planted-bug
+# line; FORMAT=markdown prints the table as Markdown.
 .PHONY: ux-scorecard
-ux-scorecard: $(if $(SMOKE),build-libs) ## Print every UX promise with its tests and their results, or its open issue (SMOKE=1, MUTATION=<dir>, FORMAT=markdown)
-	node scripts/ux-scorecard.mjs --run --input .test-output-ux-scorecard $(if $(SMOKE),--smoke) $(if $(MUTATION),--mutation $(MUTATION)) $(if $(FORMAT),--format $(FORMAT))
+ux-scorecard: $(if $(SMOKE)$(VISUAL),build-libs) ## Print every UX promise with its tests and their results, or its open issue (SMOKE=1, VISUAL=1, MUTATION=<dir>, FORMAT=markdown)
+	node scripts/ux-scorecard.mjs --run --input .test-output-ux-scorecard $(if $(SMOKE),--smoke) $(if $(VISUAL),--visual) $(if $(MUTATION),--mutation $(MUTATION)) $(if $(FORMAT),--format $(FORMAT))
 
 # The bundle targets linux for THIS machine's arch (the docker daemon's
 # native platform), not the host OS — the smoke builds a linux container.
