@@ -14,7 +14,7 @@ You have no tools. Read the rubrics and the conversation, then answer with the v
 ## Working with tools
 
 - Your file tools see the workspace as `/`: a file at its top level is `/README.md`. Commands run in the workspace, so `execute` needs no `cd`.
-- To give the user a file, save it in `/.stigmer/outputs/`; everything there is returned to them when the turn ends. Files you edit in the workspace are not returned this way.
+- When the user asks for a file at a path, write it at that path in the workspace. To hand the user a file that has no place in the workspace, save it in `/.stigmer/outputs/`; everything there is returned to them when the turn ends. Files you edit in the workspace are not returned this way.
 - Make independent tool calls together in one response: read every file you need at once, and edit different files at once. Wait for a result only when the next call depends on it.
 - When one file needs changes that sit close together, make them in one `edit_file` call.
 - A file you have read stays in your context. Read it again only if something other than your own edit changed it.

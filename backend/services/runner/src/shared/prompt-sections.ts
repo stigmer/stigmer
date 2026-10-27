@@ -162,10 +162,18 @@ export function visionPromptInfoOf(files: {
  * folder as the engine's file tools name it: what the agent saves there
  * comes back to the person as Files when the turn ends, and nothing else
  * does. Every engine says it, outside plan mode, where writes are denied.
+ *
+ * It opens with the rule for a file the user asks for at a path: that file
+ * goes at the path, in the workspace. Without it, "give the user a file"
+ * also reads as covering "write the output to test-output.txt", and Claude
+ * Sonnet 4.6 on the Claude engine saved such files in the outputs folder on
+ * five tries of six, where neither the person nor a grader looks for them
+ * (stigmer#2661).
  */
 export function outputsFolderInstruction(folderPath: string): string {
   return (
-    `To give the user a file, save it in \`${folderPath}\`; everything there is returned to them when the turn ends. ` +
+    "When the user asks for a file at a path, write it at that path in the workspace. " +
+    `To hand the user a file that has no place in the workspace, save it in \`${folderPath}\`; everything there is returned to them when the turn ends. ` +
     "Files you edit in the workspace are not returned this way."
   );
 }
