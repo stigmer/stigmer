@@ -22,7 +22,7 @@ describe("CLI-07 confirm: a destructive command confirms on a terminal, and --fo
     expect(await confirm("Proceed? [y/N]", { force: true })).toBe(true);
   });
 
-  it("refuses (no prompt) when input is not a TTY", async () => {
+  it("CLI-05 refuses (no prompt) when input is not a TTY", async () => {
     const { input, output } = ttyPair(false);
     expect(await confirm("Proceed? [y/N]", { input, output })).toBe(false);
   });

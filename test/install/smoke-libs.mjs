@@ -66,6 +66,7 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 
+import { exportEntries, matchTarget, subpathFor } from "./lib/exports-map.mjs";
 import { lockedSpec, typeChecker } from "./lib/type-checker.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -149,18 +150,6 @@ function compare(a, b) {
   return 0;
 }
 
-/**
- * Each entry of an exports map with every path it names, under every
- * condition: `{ key: "./x", targets: ["./dist/x.d.ts", "./dist/x.js"] }`.
- * A string map is the "." entry.
- */
-function exportEntries(exportsField) {
-  const map = typeof exportsField === "string" || Array.isArray(exportsField) ? { ".": exportsField } : exportsField ?? {};
-  const targetsOf = (value) =>
-    typeof value === "string" ? [value] : Array.isArray(value) ? value.flatMap(targetsOf) : value === null ? [] : Object.values(value).flatMap(targetsOf);
-  return Object.entries(map).map(([key, value]) => ({ key, targets: [...new Set(targetsOf(value))] }));
-}
-
 /** Files under `dir`, as package-relative POSIX paths. */
 function filesUnder(dir, base = dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -168,14 +157,6 @@ function filesUnder(dir, base = dir) {
     if (statSync(path).isDirectory()) return name === "node_modules" ? [] : filesUnder(path, base);
     return [relative(base, path).split(sep).join("/")];
   });
-}
-
-/** The shipped files a target matches: itself, or for a `*` pattern every file it covers. */
-function matchTarget(target, shipped) {
-  const path = target.replace(/^\.\//, "");
-  if (!path.includes("*")) return shipped.includes(path) ? [path] : [];
-  const [prefix, suffix] = path.split("*");
-  return shipped.filter((file) => file.startsWith(prefix) && file.endsWith(suffix) && file.length > prefix.length + suffix.length);
 }
 
 const args = parseArgs();
@@ -333,8 +314,7 @@ test(
           const matches = matchTarget(target, pkg.shipped);
           if (matches.length === 0) problems.push(`${pkg.name} exports "${key}" -> ${target}, which the tarball does not ship`);
           if (example === "" && matches.length > 0 && key.includes("*")) {
-            const [prefix, suffix] = target.replace(/^\.\//, "").split("*");
-            example = key.replace("*", matches[0].slice(prefix.length, matches[0].length - suffix.length));
+            example = subpathFor(key, target, matches[0]) ?? "";
           }
         }
         const subpath = key.includes("*") ? example : key;

@@ -125,7 +125,7 @@ function agentRefOf(agent: Agent | undefined): AgentRefInput | undefined {
 
 // Progress lines go to stderr, but only when it is a TTY — matching Go's spinner,
 // which is suppressed under pipes/CI so it never pollutes captured output.
-function stderrProgress(): (line: string) => void {
+export function stderrProgress(): (line: string) => void {
   if (process.stderr.isTTY !== true) return () => {};
   return (line) => void process.stderr.write(`${line}\n`);
 }

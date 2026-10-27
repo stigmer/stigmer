@@ -1,9 +1,11 @@
 // Pins when the CLI colours its output: only an interactive terminal, never
 // with NO_COLOR set to any value; the plain styler passes text through
-// untouched; and the outputs a pipe reads (a command's result off a
-// terminal, the plaintext run transcript) carry no escape code at all.
+// untouched; the outputs a pipe reads (a command's result off a terminal,
+// the plaintext run transcript) carry no escape code at all; and a run's
+// progress lines are written only to a terminal.
 import { scenarios, SCENARIO_NAMES } from "@stigmer/react-sdk/test";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { stderrProgress } from "../../resources/run/agent-exec.js";
 import { PlaintextRenderer } from "../../resources/stream/render-plaintext.js";
 import { CommandResult, renderResult } from "../command-result.js";
 import { shouldColorize, styler } from "../style.js";
@@ -57,6 +59,27 @@ describe("CLI-05 off a terminal there is no colour, spinner or prompt, and NO_CO
     expect(write(true)).toContain(ESCAPE);
     process.env.NO_COLOR = "1";
     expect(write(true)).not.toContain(ESCAPE);
+  });
+
+  it("writes a run's progress lines to a terminal only", () => {
+    const tty = Object.getOwnPropertyDescriptor(process.stderr, "isTTY");
+    let text = "";
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      text += String(chunk);
+      return true;
+    });
+    try {
+      Object.defineProperty(process.stderr, "isTTY", { value: false, configurable: true });
+      stderrProgress()("Creating session...");
+      expect(text).toBe("");
+      Object.defineProperty(process.stderr, "isTTY", { value: true, configurable: true });
+      stderrProgress()("Creating session...");
+      expect(text).toBe("Creating session...\n");
+    } finally {
+      spy.mockRestore();
+      if (tty) Object.defineProperty(process.stderr, "isTTY", tty);
+      else delete (process.stderr as { isTTY?: boolean }).isTTY;
+    }
   });
 
   it("writes every catalogue run's plaintext transcript with no escape code", () => {

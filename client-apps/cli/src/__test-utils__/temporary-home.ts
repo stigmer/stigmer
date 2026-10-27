@@ -14,14 +14,17 @@
 // suite a fresh home of its own and makes `os.homedir()` answer whatever HOME
 // says, in every pool. A test that redirects HOME further still does so the
 // way it always has.
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { vi } from "vitest";
+import { afterAll, vi } from "vitest";
 
 const home = mkdtempSync(join(tmpdir(), "stigmer-cli-test-home-"));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
+afterAll(() => {
+  rmSync(home, { recursive: true, force: true });
+});
 
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();

@@ -1,7 +1,12 @@
 // Pins the structured command result: its JSON form (status, sections,
 // hints, the data payload), its human and quiet forms, and which stream each
-// goes to: JSON data alone on stdout, every human and quiet line on stderr.
+// goes to: JSON data alone on stdout, every human and quiet line on stderr;
+// and the read verbs' json form, which is the data and nothing else.
+import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { samples } from "@stigmer/react-sdk/test";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { libraryTable } from "../../resources/list.js";
+import { renderCollection, renderResource } from "../../resources/render.js";
 import { CommandResult, renderResult, resultToHuman, resultToJson, resultToQuiet } from "../command-result.js";
 
 describe("resultToJson", () => {
@@ -109,6 +114,15 @@ describe("CLI-01 data goes to stdout and everything else to stderr; -o json prin
     expect(out.stderr).toBe("");
     expect(out.stdout.endsWith("}\n")).toBe(true);
     expect(JSON.parse(out.stdout)).toMatchObject({ status: "success", message: "Agent created", data: { slug: "release-notes" } });
+  });
+
+  it("renders get and list under json as one parseable document of the data, with no table text", () => {
+    const agents = [samples.agent(), samples.agent({ id: "agt-2", slug: "second" })];
+    const one = renderResource(AgentSchema, agents[0]!, "json");
+    expect(JSON.parse(one)).toMatchObject({ metadata: { slug: "demo-agent" } });
+    const many = renderCollection(AgentSchema, agents, "json", libraryTable("agents"));
+    expect(JSON.parse(many).map((a: { metadata: { slug: string } }) => a.metadata.slug)).toEqual(["demo-agent", "second"]);
+    for (const text of [one, many]) expect(text).not.toMatch(/NAME|-{3}|^\s*ID:/m);
   });
 
   it.each(["human", "quiet"] as const)("writes the %s form to stderr and nothing to stdout", (format) => {

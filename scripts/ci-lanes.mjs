@@ -633,6 +633,9 @@ export const LANES = {
       "scripts/publish-libs.mjs",
       "test/install/smoke-libs.mjs",
       "test/install/lib/**",
+      // build-libs builds through turbo's task graph.
+      "turbo.json",
+      "scripts/turbo-set.mjs",
       // The Makefile its steps' targets come from (ci.all-in-one says why).
       "Makefile",
       // What the lane sets up and installs from (ci.all-in-one says why).
