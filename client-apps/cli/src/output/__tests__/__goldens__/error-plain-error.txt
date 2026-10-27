@@ -1,0 +1,10 @@
+exit 1
+
+Error: ENOENT: no such file or directory, open 'agent.yaml'
+
+--- with --debug ---
+Error: ENOENT: no such file or directory, open 'agent.yaml'
+
+--- debug ---
+Raw error: Error: ENOENT: no such file or directory, open 'agent.yaml'
+    at command (src/commands/example.ts:1:1)

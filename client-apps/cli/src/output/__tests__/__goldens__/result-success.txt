@@ -1,0 +1,10 @@
+✓ Agent created
+
+  Name            release-notes
+  Organization    demo
+  Visibility      private
+
+Next:
+  - stigmer run release-notes "Draft the notes"
+
+  Push a new version with: stigmer push agent ./agent

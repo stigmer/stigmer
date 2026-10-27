@@ -1,0 +1,17 @@
+exit 1
+
+Error: Internal server error
+
+This is unexpected. If the problem persists, check the server logs.
+Run with --debug for more details.
+
+--- with --debug ---
+Error: Internal server error
+
+This is unexpected. If the problem persists, check the server logs.
+Run with --debug for more details.
+
+--- debug ---
+gRPC code: Internal (13)
+Raw error: ConnectError: [internal] nil pointer
+    at command (src/commands/example.ts:1:1)

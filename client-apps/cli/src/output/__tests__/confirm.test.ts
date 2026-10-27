@@ -17,12 +17,12 @@ async function answer(reply: string): Promise<boolean> {
   return pending;
 }
 
-describe("confirm", () => {
+describe("CLI-07 confirm: a destructive command confirms on a terminal, and --force is the only bypass", () => {
   it("auto-confirms when forced, without reading input", async () => {
     expect(await confirm("Proceed? [y/N]", { force: true })).toBe(true);
   });
 
-  it("refuses (no prompt) when input is not a TTY", async () => {
+  it("CLI-05 refuses (no prompt) when input is not a TTY", async () => {
     const { input, output } = ttyPair(false);
     expect(await confirm("Proceed? [y/N]", { input, output })).toBe(false);
   });

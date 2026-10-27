@@ -1,0 +1,17 @@
+exit 4
+
+Error: Not authenticated
+
+Please sign in:
+  stigmer auth login
+
+--- with --debug ---
+Error: Not authenticated
+
+Please sign in:
+  stigmer auth login
+
+--- debug ---
+gRPC code: Unauthenticated (16)
+Raw error: ConnectError: [unauthenticated] token expired
+    at command (src/commands/example.ts:1:1)

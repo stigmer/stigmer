@@ -113,7 +113,7 @@ describe("runHeadlessStream", () => {
     expect(renderer.types).toHaveLength(4);
   });
 
-  it("answers each ask the session waits on once, with the --approve-default answer", async () => {
+  it("CLI-06 answers each ask the session waits on once, with the --approve-default answer", async () => {
     const renderer = new RecordingRenderer();
     const answers: Array<[string, AskAnswer]> = [];
     const result = await runHeadlessStream(
@@ -162,7 +162,7 @@ describe("runHeadlessStream", () => {
     expect(answers).toEqual([]);
   });
 
-  it("denies with the neutral reason when --approve-default is unset", async () => {
+  it("CLI-06 denies with the neutral reason when --approve-default is unset", async () => {
     const answers: AskAnswer[] = [];
     await runHeadlessStream(
       deps({ follow: source([...waitingTurn().slice(0, 4), idle("requires_action", [`${R}.c1`]), phase(R, "completed")]), answer: async (_id, answer) => void answers.push(answer) }),

@@ -1,0 +1,16 @@
+exit 4
+
+Error: not signed in to https://stigmer.example
+
+Sign in:
+  stigmer auth login
+
+--- with --debug ---
+Error: not signed in to https://stigmer.example
+
+Sign in:
+  stigmer auth login
+
+--- debug ---
+Raw error: CliExitError: not signed in to https://stigmer.example
+    at command (src/commands/example.ts:1:1)

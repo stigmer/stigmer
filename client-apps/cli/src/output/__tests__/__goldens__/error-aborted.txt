@@ -1,0 +1,15 @@
+exit 1
+
+Error: Operation aborted: the session changed while it was written
+
+The operation was interrupted. You can safely retry.
+
+--- with --debug ---
+Error: Operation aborted: the session changed while it was written
+
+The operation was interrupted. You can safely retry.
+
+--- debug ---
+gRPC code: Aborted (10)
+Raw error: ConnectError: [aborted] the session changed while it was written
+    at command (src/commands/example.ts:1:1)

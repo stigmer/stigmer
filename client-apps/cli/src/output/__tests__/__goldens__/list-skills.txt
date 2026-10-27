@@ -1,0 +1,5 @@
+
+NAME              DESCRIPTION                         VISIBILITY   CREATED
+---------------   ---------------------------------   ----------   -------
+demo/demo-skill   A sample skill for demo purposes.                -
+demo/triage       Labels new issues.                               -

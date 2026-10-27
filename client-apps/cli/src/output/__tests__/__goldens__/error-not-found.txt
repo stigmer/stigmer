@@ -1,0 +1,11 @@
+exit 5
+
+Error: agent 'demo/reviewer' not found
+
+--- with --debug ---
+Error: agent 'demo/reviewer' not found
+
+--- debug ---
+gRPC code: NotFound (5)
+Raw error: ConnectError: [not_found] agent 'demo/reviewer' not found
+    at command (src/commands/example.ts:1:1)

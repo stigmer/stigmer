@@ -1,6 +1,7 @@
 // The CLI's suite keeps vitest's own collection (every *.test.ts outside
-// node_modules); this file carries the gate's coverage block and the timeout
-// a coverage run needs.
+// node_modules); this file carries the gate's coverage block, the timeout a
+// coverage run needs, and the setup file that gives every test a temporary
+// home.
 import { coverageConfigDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -23,5 +24,8 @@ export default defineConfig({
     // (6.4, 9.5 and 5.0 s, 2026-10-01). The same headroom sdk/react's config
     // gives its suite for CI load.
     testTimeout: 15_000,
+    // A temporary home for every test file, in every pool (the file says
+    // why): no run of this suite writes the developer's own ~/.stigmer.
+    setupFiles: ["./src/__test-utils__/temporary-home.ts"],
   },
 });

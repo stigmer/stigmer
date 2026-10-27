@@ -126,11 +126,15 @@ async function upload(...args: string[]): Promise<{ out: string; err: string }> 
 describe("stigmer file upload", () => {
   it("uploads each path as the person's own File, in order, and prints each id beside its name", async () => {
     const { err } = await upload(write("q3-ledger.xlsx", "ledger"), write("notes.md", "notes"));
-    expect(server.uploads.map((u) => [u.org, u.sessionId, u.filename])).toEqual([
-      ["acme", "", "q3-ledger.xlsx"],
+    // A few upload at a time (uploadAll), so the server sees them in any
+    // order; the order kept is the ids', in the result printed below.
+    expect(server.uploads.map((u) => [u.org, u.sessionId, u.filename]).sort()).toEqual([
       ["acme", "", "notes.md"],
+      ["acme", "", "q3-ledger.xlsx"],
     ]);
     expect(err).toContain("Uploaded 2 files");
+    const result = err.slice(err.indexOf("Uploaded 2 files"));
+    expect(result.indexOf("file_q3ledgerxlsx")).toBeLessThan(result.indexOf("file_notesmd"));
     expect(err).toContain("q3-ledger.xlsx");
     expect(err).toContain("file_q3ledgerxlsx");
     expect(err).toContain("stigmer run <agent> --file-id <id>");

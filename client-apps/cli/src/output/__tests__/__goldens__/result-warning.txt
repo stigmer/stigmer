@@ -1,0 +1,4 @@
+⚠ Plugin installed with 1 MCP server that needs sign-in
+
+Sign in:
+  linear    stigmer connect plugin acme/linear

@@ -569,6 +569,26 @@ smoke-getting-started: build-runner build-server build-web ## Run the Getting St
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-getting-started.mjs
 
+# The published TypeScript libraries as an outside developer installs them:
+# the terminal kit, the React kit, the embed and the design tokens, packed
+# from this checkout with their @stigmer/* closure, installed into an empty
+# project with every peer they declare, then resolved, imported, typechecked
+# and rendered from there. build-libs builds the dist/ the pack stages, so the
+# smoke packs with --skip-build rather than building every library again.
+.PHONY: smoke-libs
+smoke-libs: build-libs ## Install the published TypeScript libraries from their packed tarballs into an empty project, then resolve, import, typecheck and render them
+	node test/install/smoke-libs.mjs --skip-build
+
+# The UX scorecard (scripts/ux-scorecard.mjs, test/README.md "The UX bar"):
+# every promise on test/ux-bar.json with the tests that hold it and how they
+# did, or its open issue. It runs only the files that hold a promise, writing
+# their reports under .test-output-ux-scorecard/. SMOKE=1 adds the library
+# smoke, built first; MUTATION=<dir> reads a sweep's reports for the
+# planted-bug line; FORMAT=markdown prints the table as Markdown.
+.PHONY: ux-scorecard
+ux-scorecard: $(if $(SMOKE),build-libs) ## Print every UX promise with its tests and their results, or its open issue (SMOKE=1, MUTATION=<dir>, FORMAT=markdown)
+	node scripts/ux-scorecard.mjs --run --input .test-output-ux-scorecard $(if $(SMOKE),--smoke) $(if $(MUTATION),--mutation $(MUTATION)) $(if $(FORMAT),--format $(FORMAT))
+
 # The bundle targets linux for THIS machine's arch (the docker daemon's
 # native platform), not the host OS — the smoke builds a linux container.
 .PHONY: smoke-docker-image

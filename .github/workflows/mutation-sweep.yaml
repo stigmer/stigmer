@@ -130,8 +130,16 @@ jobs:
       - name: Build the libraries the packages link
         run: npm run build:runner-deps
 
+      # A target in a workspace member (the CLI, the terminal kit) has no
+      # lockfile of its own: the root install above is its install, and its
+      # tests link every library the workspace builds, not only the runner's.
       - name: Install the target's package
-        run: cd "$PACKAGE" && npm ci
+        run: |
+          if [ -f "$PACKAGE/package-lock.json" ]; then
+            cd "$PACKAGE" && npm ci
+          else
+            npm run build:libs
+          fi
 
       # Stigmer Enterprise links the server through the server's compiled
       # dist (ee/server's file: dependencies), so its targets need the server

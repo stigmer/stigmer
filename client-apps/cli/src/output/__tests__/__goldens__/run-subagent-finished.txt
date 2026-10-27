@@ -1,0 +1,10 @@
+--- stdout ---
+The researcher found it; fixing lineTotal next.
+--- stderr ---
+
+> Invoices are off by a cent. Can you fix the rounding?
+
+  ⠋ task
+  ↳ Subagent: researcher
+    ⠋ grep
+  ✓ Subagent completed: researcher
