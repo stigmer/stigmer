@@ -7,10 +7,13 @@
  * all the Control API serves (a plain gRPC server, no Connect or gRPC-Web
  * handler), and sends `authorization: Bearer <token>` with every call, the
  * token read from a file and re-read when the file changes (a projected
- * ServiceAccount token rotates under a running server). The stubs are
- * generated from the Substrate release this server speaks to
- * (../../../buf.gen.substrate.yaml): Substrate refuses any field it does
- * not know, so they must match the deployment's release exactly.
+ * ServiceAccount token rotates under a running server). The CA, like the
+ * token, follows its file (pem-files.ts): a changed CA builds a new
+ * connection under it, and the old one closes once its calls finish
+ * (transportFollowingCa). The stubs are generated from the Substrate
+ * release this server speaks to (../../../buf.gen.substrate.yaml):
+ * Substrate refuses any field it does not know, so they must match the
+ * deployment's release exactly.
  *
  * Errors are translated where the driver must act on them and passed on
  * otherwise: NOT_FOUND becomes "absent" on reads and success on deletes,
@@ -57,7 +60,10 @@ import {
   type Interceptor,
   type Transport,
 } from "@connectrpc/connect";
-import { createGrpcTransport } from "@connectrpc/connect-node";
+import {
+  createGrpcTransport,
+  Http2SessionManager,
+} from "@connectrpc/connect-node";
 
 import {
   AccessPolicySchema,
@@ -77,6 +83,9 @@ import {
   type EgressRule,
 } from "./gen/ateapipb/ateapi_pb.js";
 import type { SubstrateDriverSettings } from "./config.js";
+import { caFromFile } from "./pem-files.js";
+
+const API_CA_FILE_VARIABLE = "STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE";
 
 /** Lease contention or a crash during resume; re-read the actor (module header). */
 export class SubstrateAbortedError extends Error {
@@ -228,21 +237,150 @@ export function newSubstrateClientGateway(
   settings: SubstrateDriverSettings,
 ): SubstrateGateway {
   const url = new URL(settings.apiEndpoint);
-  const transport = createGrpcTransport({
-    baseUrl: settings.apiEndpoint,
-    interceptors: [bearerFromFile(settings.apiTokenFile)],
-    nodeOptions: {
-      servername:
-        settings.apiServerName !== "" ? settings.apiServerName : url.hostname,
-      minVersion: "TLSv1.3",
-      ...(settings.apiCaFile !== ""
-        ? { ca: readFileSync(settings.apiCaFile, "utf8") }
-        : {}),
-    },
-  });
+  // One interceptor for every connection, so the token's cache outlives a
+  // CA rotation.
+  const interceptors = [bearerFromFile(settings.apiTokenFile)];
+  const tls = {
+    servername:
+      settings.apiServerName !== "" ? settings.apiServerName : url.hostname,
+    minVersion: "TLSv1.3" as const,
+  };
+  const transport =
+    settings.apiCaFile === ""
+      ? createGrpcTransport({
+          baseUrl: settings.apiEndpoint,
+          interceptors,
+          nodeOptions: tls,
+        })
+      : transportFollowingCa(
+          caFromFile(
+            settings.apiCaFile,
+            API_CA_FILE_VARIABLE,
+            "the Control API's CA",
+          ),
+          (ca) => {
+            // Given a session manager, the transport takes its TLS options
+            // from it and ignores nodeOptions.
+            const sessionManager = new Http2SessionManager(
+              settings.apiEndpoint,
+              undefined,
+              { ...tls, ca },
+            );
+            return {
+              sessionManager,
+              transport: createGrpcTransport({
+                baseUrl: settings.apiEndpoint,
+                interceptors,
+                sessionManager,
+              }),
+            };
+          },
+        );
   return newSubstrateGatewayOverTransport(transport, settings.atespace, {
     principal: () => subjectOfTokenFile(settings.apiTokenFile),
   });
+}
+
+/** One transport built under one CA, and the HTTP/2 session manager its connection lives in. */
+export interface CaGeneration {
+  readonly transport: Transport;
+  readonly sessionManager: Pick<Http2SessionManager, "abort">;
+}
+
+/**
+ * A transport that follows a CA: before each call it reads `ca`, and when
+ * the CA changed (by identity) it builds a new generation under it and
+ * retires the old one, whose connection was trusted under the replaced
+ * CA. A retired generation's calls in flight finish on it, as the
+ * router's requests do on a retired agent (push.ts), and its session is
+ * closed when the last one settles, at once when none is in flight,
+ * rather than at the session manager's own 15-minute idle timeout. A
+ * unary call is in flight until it settles; a stream until its messages
+ * end or the call rejects. A `ca` that throws fails the call, and the
+ * next call reads it again.
+ */
+export function transportFollowingCa(
+  ca: () => string,
+  build: (ca: string) => CaGeneration,
+): Transport {
+  interface Live {
+    readonly ca: string;
+    readonly generation: CaGeneration;
+    inFlight: number;
+    retired: boolean;
+  }
+  let current: Live | undefined;
+  const closeIfDone = (live: Live): void => {
+    if (live.retired && live.inFlight === 0)
+      live.generation.sessionManager.abort();
+  };
+  const begin = (): Live => {
+    const pem = ca();
+    if (current === undefined || current.ca !== pem) {
+      const replaced = current;
+      current = {
+        ca: pem,
+        generation: build(pem),
+        inFlight: 0,
+        retired: false,
+      };
+      if (replaced !== undefined) {
+        replaced.retired = true;
+        closeIfDone(replaced);
+      }
+    }
+    current.inFlight += 1;
+    return current;
+  };
+  const settle = (live: Live): void => {
+    live.inFlight -= 1;
+    closeIfDone(live);
+  };
+  return {
+    async unary(method, signal, timeoutMs, header, input, contextValues) {
+      const live = begin();
+      try {
+        return await live.generation.transport.unary(
+          method,
+          signal,
+          timeoutMs,
+          header,
+          input,
+          contextValues,
+        );
+      } finally {
+        settle(live);
+      }
+    },
+    async stream(method, signal, timeoutMs, header, input, contextValues) {
+      const live = begin();
+      let response;
+      try {
+        response = await live.generation.transport.stream(
+          method,
+          signal,
+          timeoutMs,
+          header,
+          input,
+          contextValues,
+        );
+      } catch (error) {
+        settle(live);
+        throw error;
+      }
+      const messages = response.message;
+      return {
+        ...response,
+        message: (async function* () {
+          try {
+            yield* messages;
+          } finally {
+            settle(live);
+          }
+        })(),
+      };
+    },
+  };
 }
 
 /** The subject of the token in `path`; undefined when the file cannot be read or names none. */

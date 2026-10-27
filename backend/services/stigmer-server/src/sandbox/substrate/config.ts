@@ -41,7 +41,10 @@ export interface SubstrateDriverSettings {
   readonly apiEndpoint: string;
   /** The name the Control API's certificate is checked against; "" uses the endpoint's host. */
   readonly apiServerName: string;
-  /** PEM file of the CA the Control API's certificate chains to; "" uses the system roots. */
+  /**
+   * PEM file of the CA the Control API's certificate chains to, re-read
+   * when it changes; "" uses the system roots.
+   */
   readonly apiCaFile: string;
   /** File holding the bearer token, re-read when it changes (a projected token rotates). */
   readonly apiTokenFile: string;

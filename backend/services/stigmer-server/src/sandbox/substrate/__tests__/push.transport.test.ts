@@ -12,6 +12,9 @@
  *   - a CA file replaced on disk is trusted on the next push, and the
  *     idle connection made under the old one is not reused;
  *   - http:// still works, the push's retries included;
+ *   - a reply longer than any waiter sends is a RouterReplyError at once,
+ *     never retried, and a redirect is returned as the reply, never
+ *     followed;
  *   - a router that asks for a client certificate, as Substrate 0.5's
  *     does, is reached with the credential bundle's key and chain; one
  *     presented with none, or with a certificate it does not accept, is a
@@ -483,6 +486,51 @@ describe("an http:// router", () => {
     // Sent once: a retry would hand the runner's secrets over again.
     expect(requests).toBe(1);
     expect(time.elapsed()).toBe(0);
+  });
+
+  it("fails a push whose reply is longer than any waiter sends at once, never retried", async () => {
+    let requests = 0;
+    const router = await httpRouter((_req, res) => {
+      requests += 1;
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(`{"started":true,"pad":"${"x".repeat(70 * 1024)}"}`);
+    });
+    const time = clock();
+    const failure = await push(
+      router.url,
+      newRouterFetch({
+        routerUrl: router.url,
+        routerCaFile: "",
+        routerServerName: "",
+      }),
+      time,
+    ).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(RouterReplyError);
+    expect((failure as Error).message).toMatch(
+      /the router at http:\/\/127\.0\.0\.1:\d+ sent a reply longer than 65536 bytes/,
+    );
+    // Sent once: a retry would hand the runner's secrets over again.
+    expect(requests).toBe(1);
+    expect(time.elapsed()).toBe(0);
+  });
+
+  it("returns a redirect as the reply and never follows it, so the secrets go nowhere else", async () => {
+    const elsewhere = await httpRouter();
+    const router = await httpRouter((_req, res) => {
+      res.writeHead(307, { location: `${elsewhere.url}/attach` });
+      res.end();
+    });
+    const result = await push(
+      router.url,
+      newRouterFetch({
+        routerUrl: router.url,
+        routerCaFile: "",
+        routerServerName: "",
+      }),
+    );
+    expect(result).toEqual({ ok: false, status: 307, code: "", error: "" });
+    expect(router.seen).toHaveLength(1);
+    expect(elsewhere.seen).toEqual([]);
   });
 
   it("gives a reply with no body as one", async () => {

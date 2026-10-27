@@ -162,8 +162,11 @@ describe("newSubstrateSandboxDriver", () => {
 
   it("hands the driver the router's transport, which reaches a router under the configured CA", async () => {
     const ca = await mintCa("builtin router ca");
+    // It names the address the test dials as well, so the global fetch
+    // below is refused for the CA alone, never for the name.
     const certificate = await mintServerCertificate(ca, {
       dns: ["atenet-router.ate-system.svc"],
+      ip: ["127.0.0.1"],
     });
     const router = https.createServer(
       { cert: certificate.cert, key: certificate.key },
@@ -197,7 +200,12 @@ describe("newSubstrateSandboxDriver", () => {
       const reply = await handed!(`${routerUrl}/attach`, { method: "POST" });
       expect(await reply.json()).toEqual({ started: true });
       // The global fetch does not trust that CA, so the push must not be it.
-      await expect(fetch(`${routerUrl}/attach`)).rejects.toThrow();
+      const refusal = await fetch(`${routerUrl}/attach`).catch(
+        (e: unknown) => e,
+      );
+      expect((refusal as Error).cause).toMatchObject({
+        code: "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+      });
     } finally {
       router.closeAllConnections();
       await new Promise<void>((resolve) => router.close(() => resolve()));
