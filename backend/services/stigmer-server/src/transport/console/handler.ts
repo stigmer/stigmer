@@ -29,9 +29,11 @@
  * max-age=300 embed.js) and `no-cache` for everything else, so every
  * document stays fresh across upgrades while the heavy assets live under
  * the immutable /_next/static/ rule. The equivalence test holds every
- * route's document and payload to the nginx model's header. One
- * difference remains: nginx answers a revalidation with its ETag and a
- * 304, while this handler emits no validators and resends the file.
+ * route's document and payload to the nginx model's header. Two
+ * differences remain: nginx answers a revalidation with its ETag and a
+ * 304, while this handler emits no validators and resends the file; and
+ * on a 404 nginx sends no Cache-Control, while this handler sends
+ * `no-cache` (see cacheControlOf).
  */
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";

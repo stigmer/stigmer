@@ -50,7 +50,9 @@
  * Headers: the location that finally serves a request (after every
  * internal redirect) sends its own `add_header`s; a location with none
  * inherits the server's, all or nothing, never merged by name; a 404
- * response carries only the `always` ones.
+ * response carries only the `always` ones. A `return 30x` response is
+ * the redirecting location's own, so it carries that location's headers,
+ * not the destination's.
  * Beyond per-route resolution, the gate asserts three standing postures:
  * unknown URLs never serve the blank app shell, trailing-slash URLs
  * reach the same document as their canonical form, and every page and its
@@ -407,9 +409,10 @@ export function resolveRequest(model, uri, files, depth = 0) {
 
 /**
  * The headers nginx sends with the response to a request: those of the
- * location that finally served it (after internal redirects; a `return`
- * redirect is followed to the destination's response), or the server's
- * when that location declares none. A 404 carries only `always` headers.
+ * location that finally served it (after internal redirects), or the
+ * server's when that location declares none. A `return` redirect is its
+ * location's own response, so it answers with that location's headers. A
+ * 404 carries only `always` headers.
  *
  * @returns Header name → value, as written in the config.
  */
@@ -422,7 +425,7 @@ function headersOfServed(model, served) {
   const effective = own.length > 0 ? own : model.headers;
   return Object.fromEntries(
     effective
-      .filter((header) => served.status === 200 || header.always)
+      .filter((header) => served.status !== 404 || header.always)
       .map((header) => [header.name, header.value]),
   );
 }
@@ -431,7 +434,9 @@ function headersOfServed(model, served) {
  * Resolution with what the response's headers depend on: `{ file,
  * location, status }`, where `location` is the one that finally served
  * the request (`null` when none matched) and `status` is 200 for a file
- * served, 404 for the error page or nothing.
+ * served, 404 for the error page or nothing, and the redirect's code for
+ * a `return` location, whose `file` is still the destination document the
+ * browser ends up with.
  */
 function serve(model, uri, files, depth = 0) {
   if (depth > 5) {
@@ -469,8 +474,10 @@ function serve(model, uri, files, depth = 0) {
 
   if (location.redirect) {
     // The browser re-requests the target; model that as a fresh
-    // resolution (the depth guard catches redirect loops).
-    return serve(model, substitute(location.redirect.target), files, depth + 1);
+    // resolution (the depth guard catches redirect loops). The response
+    // that carries the headers is the redirect itself, from this location.
+    const destination = serve(model, substitute(location.redirect.target), files, depth + 1);
+    return { file: destination.file, location, status: location.redirect.code };
   }
 
   if (!location.tryFiles) {

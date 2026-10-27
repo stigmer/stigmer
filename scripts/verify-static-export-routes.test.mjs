@@ -283,8 +283,21 @@ test("headers come from the location that finally served the request", () => {
   );
   assert.deepEqual(headersOf(model, "/", FILES), { "X-Level": "index" });
   assert.deepEqual(headersOf(model, "/login", FILES), { "X-Level": "server" });
-  // A trailing-slash URL answers with its canonical document's headers.
+});
+
+test("a redirect answers with its own location's headers, not its destination's", () => {
+  // The 301 inherits the server's header under the shipped config.
   assert.deepEqual(headersOf(probeModel, "/login/", FILES), { "Cache-Control": "no-cache" });
+  const model = buildServerModel(
+    parseNginxConfig(`server {
+      add_header X-Level "server";
+      location ~ ^(.+)/$ { add_header X-Level "redirect"; return 301 $1; }
+      location / { try_files $uri $uri.html =404; }
+    }`),
+  );
+  assert.deepEqual(headersOf(model, "/login/", FILES), { "X-Level": "redirect" });
+  // The document the browser ends up with is still the destination.
+  assert.equal(resolveRequest(model, "/login/", FILES), "/login.html");
 });
 
 test("the not-found page answers 404, which only `always` headers reach", () => {
@@ -297,6 +310,13 @@ test("the not-found page answers 404, which only `always` headers reach", () => 
     }`),
   );
   assert.deepEqual(headersOf(model, "/no-such-route", FILES), { "X-Always": "yes" });
+});
+
+test("refuses an unterminated quote", () => {
+  assert.throws(
+    () => parseNginxConfig(`server { add_header Cache-Control "no-cache; }`),
+    /unterminated quote/,
+  );
 });
 
 test("refuses unmodelled add_header forms", () => {
@@ -524,6 +544,53 @@ test("verifyRoutes fails a page or payload that would not revalidate, naming the
     assert.match(failure, /"\/index\.txt"/);
     assert.doesNotMatch(failure, /\("\/",/);
     assert.match(failure, /add_header Cache-Control "no-cache";/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("verifyRoutes fails a Cache-Control that is present but lets the browser reuse the page", () => {
+  const dir = makeAppDir([[], ["conversations"]]);
+  try {
+    const cached = PROBE_CONFIG.replace(
+      `add_header Cache-Control "no-cache";\n\n    location ^~`,
+      `add_header Cache-Control "public, max-age=3600";\n\n    location ^~`,
+    );
+    const failures = verifyRoutes(
+      enumerateRoutes(dir),
+      buildServerModel(parseNginxConfig(cached)),
+    );
+    assert.equal(failures.length, 1);
+    assert.match(failures[0], /revalidation posture/);
+    assert.match(failures[0], /\("\/conversations", served by location \/\): Cache-Control "public, max-age=3600"/);
+    // `no-store` revalidates too, and directive case does not matter.
+    const stored = PROBE_CONFIG.replace(
+      `add_header Cache-Control "no-cache";\n\n    location ^~`,
+      `add_header Cache-Control "private, No-Store";\n\n    location ^~`,
+    );
+    assert.deepEqual(
+      verifyRoutes(enumerateRoutes(dir), buildServerModel(parseNginxConfig(stored))),
+      [],
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("verifyRoutes reports a payload whose resolution fails under the revalidation posture", () => {
+  const dir = makeAppDir([["conversations"]]);
+  try {
+    // A payload that redirects to itself never reaches a response.
+    const looping = PROBE_CONFIG.replace(
+      `    location / {`,
+      `    location ~ \\.txt$ {\n        return 301 $uri;\n    }\n\n    location / {`,
+    );
+    const failures = verifyRoutes(
+      enumerateRoutes(dir),
+      buildServerModel(parseNginxConfig(looping)),
+    );
+    assert.equal(failures.length, 1);
+    assert.match(failures[0], /"\/conversations\.txt"\): resolution error — internal redirect loop/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
