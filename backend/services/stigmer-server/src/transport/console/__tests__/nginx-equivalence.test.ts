@@ -152,7 +152,11 @@ describe("RSC flight payloads across the whole route tree", () => {
 
 describe("Cache-Control ≡ nginx model", () => {
   // The files nginx gives an explicit header, beside the synthesized export.
-  const explicitFiles = ["/_next/static/chunks/app-1a2b3c.js", "/embed.js", "/config.json"];
+  const explicitFiles = [
+    "/_next/static/chunks/app-1a2b3c.js",
+    "/embed.js",
+    "/config.json",
+  ];
   const servedFiles = new Set([...files, ...explicitFiles]);
 
   const servedIndex = buildConsoleFileIndex(servedFiles);
@@ -165,7 +169,9 @@ describe("Cache-Control ≡ nginx model", () => {
   function laneCacheControlOf(url: string): string {
     if (url === "/config.json") return cacheControlOf(url, 200);
     const resolution = resolveConsoleRequest(url, servedIndex);
-    return resolution.kind === "file" ? cacheControlOf(resolution.file, 200) : resolution.kind;
+    return resolution.kind === "file"
+      ? cacheControlOf(resolution.file, 200)
+      : resolution.kind;
   }
 
   it("sends every route's document and payload the same Cache-Control as nginx", () => {
