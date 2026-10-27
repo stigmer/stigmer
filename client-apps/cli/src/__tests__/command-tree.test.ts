@@ -26,16 +26,21 @@ function tree(): Command {
   backend.command("use <name>").option("-o, --output <format>", "format");
   backend.command("add [names...]");
   backend.command("secret", { hidden: true });
+  // A help command a tree registers itself, as `.addHelpCommand(cmd)` does:
+  // it sits in `.commands`, where commander's implicit one never does.
+  backend.addCommand(new Command("help"));
   program.command("apply").option("--quiet", "quiet");
-  program.addHelpCommand(true);
+  program.addCommand(new Command("help"));
   return program;
 }
 
 describe("the command tree", () => {
   it("sees neither a hidden command nor commander's help, at the root or below it", () => {
     const program = tree();
+    expect(program.commands.map((c) => c.name())).toContain("help");
     expect(documentedCommands(program).map((c) => c.name())).toEqual(["version", "config", "apply"]);
     const backend = program.commands.find((c) => c.name() === "config")!.commands.find((c) => c.name() === "backend")!;
+    expect(backend.commands.map((c) => c.name())).toContain("help");
     expect(visibleSubcommands(backend).map((c) => c.name())).toEqual(["add", "use"]);
     expect(isHidden(program.commands.find((c) => c.name() === "internal-daemon")!)).toBe(true);
     expect(isHidden(backend)).toBe(false);
