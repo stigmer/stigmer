@@ -10,7 +10,7 @@
 
 import { cn } from "@stigmer/design-tokens";
 import { AgentHoursWindow, type AgentHours } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/io_pb";
-import { formatUsd } from "./format.js";
+import { formatPrice } from "./format.js";
 import { formatAgentHours, formatPeriodDay } from "./plan-features.js";
 
 const SECONDS_PER_HOUR = 3600;
@@ -81,8 +81,8 @@ function terms(reached: boolean, included: number | undefined, price: bigint | u
       : `Resets ${resets} (UTC). New work pauses at the allowance.`;
   }
   return reached
-    ? `Past the allowance: each hour is ${formatUsd(price)} on this period's invoice. Resets ${resets} (UTC).`
-    : `Resets ${resets} (UTC). Then ${formatUsd(price)} an hour, on this period's invoice.`;
+    ? `Past the allowance: each hour is ${formatPrice(price)} on this period's invoice. Resets ${resets} (UTC).`
+    : `Resets ${resets} (UTC). Then ${formatPrice(price)} an hour, on this period's invoice.`;
 }
 
 /** The meter's fill, whole percent, full at or past the allowance. */

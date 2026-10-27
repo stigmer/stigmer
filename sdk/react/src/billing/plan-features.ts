@@ -8,14 +8,15 @@
 // free text that can promise a feature before it is built. The console
 // shows only what an organization can use today.
 
+import { create } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { PlanInstrument, type PlanTerms } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
 import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
-import { Feature, type Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import { EntitlementsSchema, Feature, type Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { FEATURE_COPY, isNamedFeature, type NamedFeature } from "../internal/features.js";
-import { formatUsd } from "./format.js";
+import { formatPrice } from "./format.js";
 
 // BigInt(0), not a literal: the docs site compiles this source for a
 // target below ES2020, which has no BigInt literal syntax.
@@ -89,6 +90,28 @@ export const ENTERPRISE_CLOUD_PLAN: {
 };
 
 /**
+ * Stigmer Cloud's Free plan, which every organization is on until it
+ * subscribes, so the catalog never lists it: its features, what it offers
+ * that is not a feature, and its agent hours and agents at once. The
+ * console's plan comparison and stigmer.ai's pricing page both render it
+ * from here, so the two read alike. These are the Cloud's Free terms as set
+ * on 2026-10-25, kept by hand because Free has no catalog row; a change to
+ * them changes this value.
+ */
+export const FREE_PLAN: {
+  readonly name: string;
+  readonly entitlements: Entitlements;
+  readonly extras: readonly string[];
+} = {
+  name: "Free",
+  entitlements: create(EntitlementsSchema, {
+    features: [Feature.channels, Feature.sharing],
+    limits: { includedAgentHours: 30, maxActiveSessionSandboxes: 5 },
+  }),
+  extras: ["Unlimited members"],
+};
+
+/**
  * The name of the plan that unlocks `feature`: the cheapest buyable plan
  * that includes it, else Enterprise Cloud when only that plan does. Empty
  * when no plan includes it.
@@ -114,9 +137,28 @@ function compareFees(a: Plan, b: Plan): number {
   return left === right ? 0 : left < right ? -1 : 1;
 }
 
-/** A plan's monthly fee, e.g. "$99.00/month". */
+// A count as a price list writes it, e.g. "1,500".
+const COUNT = new Intl.NumberFormat("en-US");
+
+/** A plan's monthly fee, e.g. "$99/month". */
 export function formatMonthlyFee(terms: PlanTerms | undefined): string {
-  return `${formatUsd(terms?.monthlyMinimumMicros ?? ZERO)}/month`;
+  return `${formatPrice(terms?.monthlyMinimumMicros ?? ZERO)}/month`;
+}
+
+/**
+ * A plan's terms beyond its features, one line each, in the order every
+ * plan list shows them: its child organizations, its agent hours and how
+ * many agents it runs at once. A term the plan does not state is left out.
+ */
+export function planTermLines(
+  entitlements: Entitlements | undefined,
+  terms: PlanTerms | undefined,
+): readonly string[] {
+  return [
+    formatChildOrgs(entitlements, terms),
+    formatAgentHoursTerms(entitlements, terms),
+    formatAgentsAtOnce(entitlements),
+  ].filter((line) => line !== "");
 }
 
 /** The child organizations a plan includes and what each beyond costs, or empty. */
@@ -132,14 +174,14 @@ export function formatChildOrgs(
   if (included === undefined) {
     return "Unlimited child organizations";
   }
-  const beyond = fee > ZERO ? `, then ${formatUsd(fee)}/month each` : "";
-  return `${included} child organization${included === 1 ? "" : "s"} included${beyond}`;
+  const beyond = fee > ZERO ? `, then ${formatPrice(fee)}/month each` : "";
+  return `${COUNT.format(included)} child organization${included === 1 ? "" : "s"} included${beyond}`;
 }
 
 /**
  * The agent hours a plan includes each month and what happens past them,
- * e.g. "25 agent hours a month, then $0.50 an hour" or "10 agent hours a
- * month, then new work pauses"; empty when the plan states no allowance,
+ * e.g. "1,500 agent hours a month, then $0.40 an hour" or "30 agent hours
+ * a month, then new work pauses"; empty when the plan states no allowance,
  * so a plan whose hours are not yet set promises nothing.
  */
 export function formatAgentHoursTerms(
@@ -150,9 +192,9 @@ export function formatAgentHoursTerms(
   if (included === undefined) {
     return "";
   }
-  const hours = `${included} agent hour${included === 1 ? "" : "s"} a month`;
+  const hours = `${COUNT.format(included)} agent hour${included === 1 ? "" : "s"} a month`;
   const price = terms?.perAgentHourMicros;
-  return price === undefined ? `${hours}, then new work pauses` : `${hours}, then ${formatUsd(price)} an hour`;
+  return price === undefined ? `${hours}, then new work pauses` : `${hours}, then ${formatPrice(price)} an hour`;
 }
 
 /**
@@ -164,7 +206,7 @@ export function formatAgentsAtOnce(entitlements: Entitlements | undefined): stri
   if (limit === undefined) {
     return "";
   }
-  return `${limit} agent${limit === 1 ? "" : "s"} at once`;
+  return `${COUNT.format(limit)} agent${limit === 1 ? "" : "s"} at once`;
 }
 
 /**

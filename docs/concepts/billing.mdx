@@ -27,6 +27,19 @@ Self-hosted Stigmer (open source) has no billing; see
 | Business         | $499, plus $25 for each child organization past five | Everything in Team, child organizations for your customers, priority support |
 | Enterprise Cloud | Quoted, annual contract                              | Everything in Business, plus the access history                              |
 
+What each plan includes every month:
+
+| Plan             | Agent hours | Past the allowance | Agents at once |
+| ---------------- | ----------- | ------------------ | -------------- |
+| Free             | 30          | New work pauses    | 5              |
+| Team             | 300         | $0.40 an hour      | 25             |
+| Business         | 1,500       | $0.40 an hour      | 100            |
+| Enterprise Cloud | Quoted      | Quoted             | Quoted         |
+
+On Business, the hours and the agents at once are one pool shared with its child
+organizations. [Agent hours](#agent-hours) and [Agents at once](#agents-at-once)
+say what each counts.
+
 Every Organization starts on Free and stays there until an admin picks a paid
 plan in **Settings → Billing**. Picking a paid plan needs a saved card, which
 the same page asks for. A
@@ -92,6 +105,26 @@ date, with a link to the plans.
 The [usage reports](#see-your-usage) show each run's working time, which can be
 more than your plan's agent hours: a turn that runs on your own computer, and an
 eval's automatic grading, are working time but never agent hours.
+
+## Agents at once
+
+Each plan sets how many of your Organization's conversations can have an Agent
+awake at the same time. An Agent wakes for a conversation's first turn, stays
+awake while it works and for a short while after its last turn, then sleeps
+until the next message. Each conversation with an awake Agent counts toward the
+number; a sleeping one does not.
+
+- **A message to a conversation whose Agent is awake** is never refused for this
+  number.
+- **A new conversation, or a message that has to wake a sleeping Agent,** counts
+  like a new conversation. At the number, it is refused with a note saying new
+  runs start as conversations go idle or are deleted; try again once one has.
+- **A
+  [child organization](/docs/guides/authentication/federation/child-organizations#billing)**
+  shares its parent's number, since it runs on its parent's plan.
+
+An admin who needs more agents at once moves to a larger plan in **Settings →
+Billing**, or contacts support for more than any plan includes.
 
 ## Model calls run on your own keys
 

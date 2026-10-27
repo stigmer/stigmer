@@ -816,6 +816,26 @@ function formatUsd(micros: bigint | undefined): string
 ```
 
 
+### FREE_PLAN
+
+Stigmer Cloud's Free plan, which every organization is on until it
+subscribes, so the catalog never lists it: its features, what it offers
+that is not a feature, and its agent hours and agents at once. The
+console's plan comparison and stigmer.ai's pricing page both render it
+from here, so the two read alike. These are the Cloud's Free terms as set
+on 2026-10-25, kept by hand because Free has no catalog row; a change to
+them changes this value.
+
+
+### offeredFeatures
+
+The features `entitlements` grant that Cloud offers today, in contract order.
+
+```tsx
+function offeredFeatures(entitlements: Entitlements | undefined): readonly OfferedFeature[]
+```
+
+
 ### PAYMENT_METHOD_REQUIRED
 
 The reason a plan change is refused for want of a saved card (billing/subscription/v1/command.proto).
@@ -855,6 +875,17 @@ function planStanding(subscription: Subscription | null, now: Date): PlanStandin
 ### PlanStanding
 
 An organization's standing on its plan.
+
+
+### planTermLines
+
+A plan's terms beyond its features, one line each, in the order every
+plan list shows them: its child organizations, its agent hours and how
+many agents it runs at once. A term the plan does not state is left out.
+
+```tsx
+function planTermLines(entitlements: Entitlements | undefined, terms: PlanTerms | undefined): readonly string[]
+```
 
 
 ### planUpgradeFeature

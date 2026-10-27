@@ -3,17 +3,20 @@
  * plans, and the rule that models run on the customer's own provider keys.
  *
  * Pins the plans and their fees (Free $0, Team $99, Business $499 with five
- * child organizations and $25 each beyond, Enterprise Cloud quoted), what
- * each card adds, the Enterprise Cloud card read from the console's own
- * description of it, the two ways to run Stigmer yourself (open source at
- * $0, Stigmer Enterprise quoted), the own-keys line under the plans, the
- * billing questions, and what must not come back: any credit wording, a
- * free model, an undefined SLA, single sign-on, a sandbox limit on a card,
+ * child organizations and $25 each beyond, Enterprise Cloud quoted), each
+ * Cloud card's lines whole (its features, then its agent hours and how many
+ * agents it runs at once, in the console's words), the Free and Enterprise
+ * Cloud cards read from the console's own descriptions of them, the two ways
+ * to run Stigmer yourself (open source at $0, Stigmer Enterprise quoted),
+ * the own-keys line under the plans, the hero's price with its hours, the
+ * billing questions, the sign-up button in sentence case, and what must not
+ * come back: any credit wording, a free model, an undefined SLA, single
+ * sign-on, a sandbox limit on a card, a flat fee stated as the whole price,
  * or a fetch of a model price list.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY } from "@stigmer/react-sdk";
+import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY, FREE_PLAN, offeredFeatures, planTermLines } from "@stigmer/react-sdk";
 import { PricingPage } from "../PricingPage";
 
 afterEach(() => {
@@ -40,14 +43,26 @@ describe("PricingPage", () => {
     expect(screen.getByText("$499")).toBeTruthy();
     expect(screen.getAllByText("Custom")).toHaveLength(2);
 
-    expect(within(card("Free")).getByText("Chat links")).toBeTruthy();
-    expect(within(card("Free")).getByText("Slack and WhatsApp")).toBeTruthy();
-    expect(within(card("Free")).getByText("Unlimited members")).toBeTruthy();
-    expect(within(card("Team")).getByText("Teams")).toBeTruthy();
-    expect(within(card("Business")).getByText("Child organizations")).toBeTruthy();
-    expect(
-      within(card("Business")).getByText("5 child organizations included, then $25/month each"),
-    ).toBeTruthy();
+    expect(lines("Free")).toEqual([
+      "Slack and WhatsApp",
+      "Chat links",
+      "Unlimited members",
+      "30 agent hours a month, then new work pauses",
+      "5 agents at once",
+    ]);
+    expect(lines("Team")).toEqual([
+      "Everything in Free",
+      "Teams",
+      "300 agent hours a month, then $0.40 an hour",
+      "25 agents at once",
+    ]);
+    expect(lines("Business")).toEqual([
+      "Everything in Team",
+      "Child organizations",
+      "5 child organizations included, then $25/month each",
+      "1,500 agent hours a month, then $0.40 an hour",
+      "100 agents at once",
+    ]);
     expect(lines("Enterprise Cloud")).toEqual([
       "Everything in Business",
       "Access history",
@@ -65,6 +80,16 @@ describe("PricingPage", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Stigmer Enterprise" })).toBeTruthy();
     expect(within(card("Stigmer Enterprise")).getByText("Teams and invitations")).toBeTruthy();
     expect(within(card("Stigmer Enterprise")).getByText("Access history")).toBeTruthy();
+  });
+
+  it("renders Free from the console's description of it", () => {
+    render(<PricingPage />);
+
+    expect(lines(FREE_PLAN.name)).toEqual([
+      ...offeredFeatures(FREE_PLAN.entitlements).map((feature) => feature.label),
+      ...FREE_PLAN.extras,
+      ...planTermLines(FREE_PLAN.entitlements, undefined),
+    ]);
   });
 
   it("renders Enterprise Cloud from the console's description of it", () => {
@@ -90,6 +115,25 @@ describe("PricingPage", () => {
     expect(screen.getByText(/Stigmer runs no model of its own, so add a key before your first run\./)).toBeTruthy();
     expect(screen.getByText("How are plans billed?")).toBeTruthy();
     expect(screen.getByText("What is an agent hour?")).toBeTruthy();
+    expect(screen.getByText('What does "agents at once" mean?')).toBeTruthy();
+    expect(screen.getByText(/never held back by this number/)).toBeTruthy();
+  });
+
+  it("states the price with its hours, never a flat fee as the whole of it", () => {
+    const { container } = render(<PricingPage />);
+
+    expect(
+      screen.getByText(/^Every Stigmer Cloud plan is a flat monthly fee with agent hours included\./),
+    ).toBeTruthy();
+    expect(container.textContent).not.toMatch(/flat monthly fee(?! with agent hours included)/);
+    expect(screen.getByText(/plus the agent hours past its allowance on a paid plan/)).toBeTruthy();
+  });
+
+  it("writes the sign-up button in sentence case", () => {
+    const { container } = render(<PricingPage />);
+
+    expect(container.textContent).not.toMatch(/Start Free/);
+    expect(screen.getAllByRole("link", { name: "Start free" }).length).toBeGreaterThan(0);
   });
 
   it("names no credits, no sandbox limit, and fetches no price list", () => {

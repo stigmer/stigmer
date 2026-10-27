@@ -114,7 +114,7 @@ function Header({ className, ...props }: HeaderProps) {
 
                 <Button asChild size="sm">
                   <a href={SITE_CONFIG.cloudSignupUrl}>
-                    Start Free
+                    Start free
                   </a>
                 </Button>
               </div>
