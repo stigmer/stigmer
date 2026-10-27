@@ -22,18 +22,20 @@
  * Never retried: a refusal from the waiter itself, a router whose
  * certificate this server does not accept (RouterTlsError), which is a
  * configuration fault and not a router still coming up, and a reply no
- * router or waiter sends (RouterReplyError), which retrying would only
- * answer with the runner's secrets again. Neither the body
- * nor any secret is ever logged; only the code and the waiter's text.
+ * router or waiter sends (RouterReplyError: a status no reply carries, a
+ * header a Response refuses, or a body past MAX_REPLY_BYTES), which
+ * retrying would only answer with the runner's secrets again. Neither the
+ * body nor any secret is ever logged; only the code and the waiter's text.
  *
  * The transport (newRouterFetch) is a fetch-shaped function over
  * `node:http` and `node:https`, because the push carries secrets and
  * Node's global fetch takes no CA: Substrate's router serves HTTPS under
  * the cluster's own CA (its servicedns trust bundle, the one the Control
- * API's certificate also chains to). The CA file is read at boot and read
- * again whenever its mtime moves, because that CA is a refreshing pool on
- * Substrate's side and a CA read once would fail every wake after a
- * rotation. The server name defaults to the URL's host; in a cluster,
+ * API's certificate also chains to). The CA file is followed, read at boot
+ * and again whenever it changes (pem-files.ts), because a CA read once
+ * would fail every wake after a rotation; a file that becomes unusable
+ * fails the push, retried like a router that is not up. The server name
+ * defaults to the URL's host; in a cluster,
  * `https://atenet-router.ate-system.svc` matches the certificate's only
  * name, and a port-forward needs the override. Connections are kept
  * alive. One transport serves both schemes, so a push behaves the same
@@ -46,12 +48,11 @@
  * refused during the handshake). The server presents the credential bundle
  * a podCertificate projected volume writes (its private key, then its
  * certificate chain, in one PEM file), named by ROUTER_CLIENT_CERT_FILE and
- * read again whenever its mtime moves, since such a certificate lives a
- * day. A handshake the router refuses for the client certificate, as for
- * its own, is a RouterTlsError: a configuration fault, never retried.
+ * followed like the CA, since such a certificate lives a day. A handshake
+ * the router refuses for the client certificate, as for its own, is a
+ * RouterTlsError: a configuration fault, never retried.
  */
 
-import { readFileSync, statSync } from "node:fs";
 import * as http from "node:http";
 import * as https from "node:https";
 import type { Socket } from "node:net";
@@ -59,6 +60,11 @@ import type { Socket } from "node:net";
 import type { RunnerEnvironment } from "../environment.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { delay } from "./delay.js";
+import {
+  caFromFile,
+  credentialFromFile,
+  type ClientCredential,
+} from "./pem-files.js";
 
 const CA_FILE_VARIABLE = "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE";
 const SERVER_NAME_VARIABLE = "STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME";
@@ -83,8 +89,8 @@ export class RouterTlsError extends Error {
 
 /**
  * The router's reply is not one a push can be answered with: a status
- * outside 200-599, or a header a Response refuses. Thrown by the
- * transport, rethrown by the push at once.
+ * outside 200-599, a header a Response refuses, or a body past
+ * MAX_REPLY_BYTES. Thrown by the transport, rethrown by the push at once.
  */
 export class RouterReplyError extends Error {
   constructor(message: string, cause?: unknown) {
@@ -134,6 +140,14 @@ const CLIENT_CERTIFICATE_REFUSALS: ReadonlySet<string> = new Set([
   "ERR_SSL_SSLV3_ALERT_CERTIFICATE_EXPIRED",
 ]);
 
+/**
+ * The largest reply body a push reads. The waiter answers a few hundred
+ * bytes of JSON (runner src/attach/waiter.ts) and readReply keeps 200
+ * characters of anything else, so a longer reply, relayed from inside a
+ * sandbox, is cut off instead of buffered for the push's whole window.
+ */
+const MAX_REPLY_BYTES = 64 * 1024;
+
 /** Statuses whose reply carries no body, which a Response refuses one for. */
 const NULL_BODY_STATUSES: ReadonlySet<number> = new Set([204, 205, 304]);
 
@@ -162,10 +176,12 @@ export function newRouterFetch(
   }
   const caPem =
     settings.routerCaFile !== ""
-      ? caFromFile(settings.routerCaFile)
+      ? caFromFile(settings.routerCaFile, CA_FILE_VARIABLE, "the router's CA")
       : undefined;
   const clientCredential =
-    clientCertFile !== "" ? credentialFromFile(clientCertFile) : undefined;
+    clientCertFile !== ""
+      ? credentialFromFile(clientCertFile, CLIENT_CERT_FILE_VARIABLE)
+      : undefined;
   const plainAgent = new http.Agent({ keepAlive: true });
   let secure:
     | {
@@ -289,7 +305,20 @@ export function newRouterFetch(
           return;
         }
         const chunks: Buffer[] = [];
-        reply.on("data", (chunk: Buffer) => chunks.push(chunk));
+        let received = 0;
+        reply.on("data", (chunk: Buffer) => {
+          received += chunk.length;
+          if (received > MAX_REPLY_BYTES) {
+            reply.destroy();
+            fail(
+              new RouterReplyError(
+                `the router at ${url.origin} sent a reply longer than ${MAX_REPLY_BYTES} bytes, which no waiter sends`,
+              ),
+            );
+            return;
+          }
+          chunks.push(chunk);
+        });
         reply.on("error", fail);
         reply.on("end", () => {
           signal.removeEventListener("abort", onAbort);
@@ -338,79 +367,6 @@ export function newRouterFetch(
       else signal.addEventListener("abort", onAbort, { once: true });
       outgoing.end(body);
     });
-  };
-}
-
-/**
- * The CA file's contents, read now (an unreadable file is a boot throw
- * naming the variable) and read again whenever its mtime moves. A read that
- * fails later is a failed push, retried like a router that is not up.
- */
-function caFromFile(path: string): () => string {
-  let cached: { mtimeMs: number; pem: string };
-  const read = (): { mtimeMs: number; pem: string } => {
-    const mtimeMs = statSync(path).mtimeMs;
-    const pem = readFileSync(path, "utf8");
-    if (!pem.includes("-----BEGIN CERTIFICATE-----")) {
-      throw new Error(`${path} holds no PEM certificate`);
-    }
-    return { mtimeMs, pem };
-  };
-  try {
-    cached = read();
-  } catch (error) {
-    throw new Error(
-      `${CA_FILE_VARIABLE} (${path}) cannot be used as the router's CA: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-  return () => {
-    if (statSync(path).mtimeMs !== cached.mtimeMs) cached = read();
-    return cached.pem;
-  };
-}
-
-/** A client certificate: its private key and its chain, as PEM. */
-interface ClientCredential {
-  readonly key: string;
-  readonly cert: string;
-}
-
-/**
- * The client credential bundle, read now (an unusable file is a boot throw
- * naming the variable) and read again whenever its mtime moves. The same
- * object is returned until then, so the agent is rebuilt only on a change.
- */
-function credentialFromFile(path: string): () => ClientCredential {
-  let cached: { mtimeMs: number; credential: ClientCredential };
-  const read = (): { mtimeMs: number; credential: ClientCredential } => {
-    const mtimeMs = statSync(path).mtimeMs;
-    const blocks =
-      readFileSync(path, "utf8").match(
-        /-----BEGIN ([A-Z ]+)-----[\s\S]*?-----END \1-----/g,
-      ) ?? [];
-    const key = blocks.find((block) =>
-      /^-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(block),
-    );
-    const cert = blocks
-      .filter((block) => block.startsWith("-----BEGIN CERTIFICATE-----"))
-      .join("\n");
-    if (key === undefined || cert === "") {
-      throw new Error(
-        `${path} must hold a private key and its certificate chain as PEM`,
-      );
-    }
-    return { mtimeMs, credential: { key, cert: `${cert}\n` } };
-  };
-  try {
-    cached = read();
-  } catch (error) {
-    throw new Error(
-      `${CLIENT_CERT_FILE_VARIABLE} (${path}) cannot be used as the router's client certificate: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-  return () => {
-    if (statSync(path).mtimeMs !== cached.mtimeMs) cached = read();
-    return cached.credential;
   };
 }
 

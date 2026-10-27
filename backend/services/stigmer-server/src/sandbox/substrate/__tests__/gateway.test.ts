@@ -1,6 +1,7 @@
 /**
  * Pins the gateway against the generated Control service, served in
- * process (gateway.ts), with no network:
+ * process (gateway.ts), with no network, and the live client against it
+ * served over HTTP/2 and TLS under CAs minted at test time:
  *
  *   - every call carries `authorization: Bearer <token>` from the token
  *     file, re-read when the file changes;
@@ -22,9 +23,20 @@
  *   - the egress policy is read by its singleton name, "default";
  *   - lists follow page tokens, in Substrate's list options;
  *   - a move replaces the stored actor with only its template changed, and
- *     refuses one that changed since it was read.
+ *     refuses one that changed since it was read;
+ *   - the live client's CA follows its file: a CA file replaced on disk is
+ *     trusted from the next call, on a new connection, and the connection
+ *     made under the old CA is closed, at once when idle and after the
+ *     call in flight across the rotation finishes; a file unusable after
+ *     boot fails the call naming its variable and is read again on the
+ *     next; a CA file whose certificate cannot be parsed is a boot throw;
+ *   - under that, transportFollowingCa builds one generation per CA and
+ *     closes a replaced one when its last call settles: a unary call when
+ *     it settles, a stream when its messages end or the call rejects.
  */
 import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import * as http2 from "node:http2";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -35,8 +47,18 @@ import {
   ConnectError,
   createRouterTransport,
   type ServiceImpl,
+  type Transport,
 } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { connectNodeAdapter } from "@connectrpc/connect-node";
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import type { SubstrateDriverSettings } from "../config.js";
+import {
+  mintCa,
+  mintServerCertificate,
+  type TestCa,
+  type TestServerCertificate,
+} from "../__test-utils__/test-ca.js";
 
 import {
   AccessPolicySchema,
@@ -55,6 +77,8 @@ import {
   stateOf,
   subjectOfTokenFile,
   tokenSubject,
+  transportFollowingCa,
+  type CaGeneration,
   SubstrateAbortedError,
   SubstrateNoWorkerError,
   SubstratePermissionError,
@@ -781,31 +805,318 @@ describe("the calls that succeed", () => {
   });
 });
 
+/** The live client's settings, toward `apiEndpoint` under the CA in `apiCaFile`. */
+function liveSettings(
+  apiEndpoint: string,
+  apiCaFile: string,
+): SubstrateDriverSettings {
+  return {
+    apiEndpoint,
+    apiServerName: API_NAME,
+    apiCaFile,
+    apiTokenFile: tokenFile,
+    routerUrl: "http://127.0.0.1:2",
+    routerCaFile: "",
+    routerServerName: "",
+    routerClientCertFile: "",
+    atespace: "stigmer",
+    storageLocation: "gs://b/p",
+    workerSelector: { workload: "stigmer" },
+    httpsEgress: "none",
+    extraHttpEgress: [],
+    platformHttpsHosts: [],
+    suspendAfterSeconds: 1800,
+    sweepIntervalSeconds: 60,
+  };
+}
+
+/** The Control API's in-cluster name, the only one its certificate carries. */
+const API_NAME = "api.ate-system.svc";
+
+let apiCa: TestCa;
+let rotatedCa: TestCa;
+let apiCertificate: TestServerCertificate;
+let rotatedCertificate: TestServerCertificate;
+
+beforeAll(async () => {
+  apiCa = await mintCa("control api test ca");
+  rotatedCa = await mintCa("rotated control api test ca");
+  apiCertificate = await mintServerCertificate(apiCa, { dns: [API_NAME] });
+  rotatedCertificate = await mintServerCertificate(rotatedCa, {
+    dns: [API_NAME],
+  });
+});
+
+function caFile(pem: string, name = "ca.pem"): string {
+  const file = path.join(dir, name);
+  writeFileSync(file, pem);
+  return file;
+}
+
+/** Replaces the CA file's contents and moves its mtime, as a rotation does. */
+function rotate(file: string, pem: string, step: number): void {
+  writeFileSync(file, pem);
+  const when = new Date(Date.now() + step * 10_000);
+  utimesSync(file, when, when);
+}
+
 describe("the live client", () => {
   it("dials the configured endpoint over TLS with the token and the CA it was given", async () => {
-    const caFile = path.join(dir, "ca.pem");
-    writeFileSync(caFile, "not a certificate");
-    const gateway = newSubstrateClientGateway({
-      apiEndpoint: "https://127.0.0.1:1",
-      apiServerName: "api.ate-system.svc",
-      apiCaFile: caFile,
-      apiTokenFile: tokenFile,
-      routerUrl: "http://127.0.0.1:2",
-      routerCaFile: "",
-      routerServerName: "",
-      routerClientCertFile: "",
-      atespace: "stigmer",
-      storageLocation: "gs://b/p",
-      workerSelector: { workload: "stigmer" },
-      httpsEgress: "none",
-      extraHttpEgress: [],
-      platformHttpsHosts: [],
-      suspendAfterSeconds: 1800,
-      sweepIntervalSeconds: 60,
-    });
+    const gateway = newSubstrateClientGateway(
+      liveSettings("https://127.0.0.1:1", caFile(apiCa.pem)),
+    );
     await expect(gateway.getActor("a")).rejects.toBeInstanceOf(ConnectError);
     await expect(gateway.ensureAtespace()).rejects.toBeInstanceOf(
       ConnectError,
     );
+  });
+
+  it("refuses at boot a CA file whose certificate cannot be parsed, naming the variable", () => {
+    const garbage = caFile(
+      "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n",
+      "garbage.pem",
+    );
+    expect(() =>
+      newSubstrateClientGateway(liveSettings("https://127.0.0.1:1", garbage)),
+    ).toThrow(
+      /STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE \(.*garbage\.pem\) cannot be used as the Control API's CA: certificate 1 of 1 cannot be parsed/,
+    );
+  });
+});
+
+interface ControlApi {
+  readonly endpoint: string;
+  /** Connections the server has accepted, counted once each. */
+  sessions: number;
+  /** Connections the server holds open now. */
+  readonly open: Set<http2.ServerHttp2Session>;
+  /** Serves `certificate` to every connection from now on, as a rotation does. */
+  serve(certificate: TestServerCertificate): void;
+  /** Drops every connection, which the gateway would hold open, and stops. */
+  close(): Promise<void>;
+}
+
+describe("the live client's CA", () => {
+  const apis: ControlApi[] = [];
+
+  afterEach(async () => {
+    for (const api of apis.splice(0)) await api.close();
+  });
+
+  /** The Control service over HTTP/2 and TLS, as Substrate serves it. */
+  async function controlApi(
+    impl: Partial<ServiceImpl<typeof Control>>,
+  ): Promise<ControlApi> {
+    const server = http2.createSecureServer(
+      { cert: apiCertificate.cert, key: apiCertificate.key },
+      connectNodeAdapter({ routes: (router) => router.service(Control, impl) }),
+    );
+    const api = {
+      endpoint: "",
+      sessions: 0,
+      open: new Set<http2.ServerHttp2Session>(),
+      serve: (certificate: TestServerCertificate) =>
+        server.setSecureContext({
+          cert: certificate.cert,
+          key: certificate.key,
+        }),
+      close: () =>
+        new Promise<void>((resolve) => {
+          server.close(() => resolve());
+          for (const session of api.open) session.destroy();
+        }),
+    };
+    server.on("session", (session: http2.ServerHttp2Session) => {
+      api.sessions += 1;
+      api.open.add(session);
+      session.on("close", () => api.open.delete(session));
+    });
+    apis.push(api);
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", () => resolve()),
+    );
+    const { port } = server.address() as AddressInfo;
+    return Object.assign(api, { endpoint: `https://127.0.0.1:${port}` });
+  }
+
+  const running = {
+    getActor: (request: { actor?: { name: string } }) =>
+      actor(request.actor?.name ?? "", ActorState.RUNNING),
+  };
+
+  it("trusts a CA file replaced on disk from the next call, on a new connection, and closes the one made under the old CA", async () => {
+    const api = await controlApi(running);
+    const file = caFile(apiCa.pem);
+    const gateway = newSubstrateClientGateway(liveSettings(api.endpoint, file));
+    expect((await gateway.getActor("a"))?.state).toBe("running");
+    expect(api.sessions).toBe(1);
+
+    api.serve(rotatedCertificate);
+    rotate(file, rotatedCa.pem, 1);
+    expect((await gateway.getActor("a"))?.state).toBe("running");
+    expect(api.sessions).toBe(2);
+    // The idle connection trusted under the old CA is closed at once,
+    // not at the session manager's 15-minute idle timeout.
+    await expect.poll(() => api.open.size, { timeout: 2_000 }).toBe(1);
+
+    // A client still holding the old CA cannot connect: the second
+    // connection above was made under the file read again.
+    const stale = newSubstrateClientGateway(
+      liveSettings(api.endpoint, caFile(apiCa.pem, "stale.pem")),
+    );
+    await expect(stale.getActor("a")).rejects.toBeInstanceOf(ConnectError);
+    expect(api.sessions).toBe(2);
+  });
+
+  it("finishes a call in flight across a rotation, then closes its connection", async () => {
+    let release = (): void => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let calls = 0;
+    const api = await controlApi({
+      async getActor(request) {
+        calls += 1;
+        if (calls === 1) await held;
+        return running.getActor(request);
+      },
+    });
+    const file = caFile(apiCa.pem);
+    const gateway = newSubstrateClientGateway(liveSettings(api.endpoint, file));
+
+    const inFlight = gateway.getActor("a");
+    await expect.poll(() => calls).toBe(1);
+    // The old CA beside the new one, as a trust bundle carries them.
+    api.serve(rotatedCertificate);
+    rotate(file, `${apiCa.pem}\n${rotatedCa.pem}`, 1);
+    expect((await gateway.getActor("b"))?.name).toBe("b");
+    expect(api.open.size).toBe(2);
+    release();
+    expect((await inFlight)?.name).toBe("a");
+    // Only the connection made under the current bundle stays open.
+    await expect.poll(() => api.open.size, { timeout: 2_000 }).toBe(1);
+  });
+
+  it("fails a call naming the variable once the CA file becomes unusable, and reads it again on the next", async () => {
+    const api = await controlApi(running);
+    const file = caFile(apiCa.pem);
+    const gateway = newSubstrateClientGateway(liveSettings(api.endpoint, file));
+    expect((await gateway.getActor("a"))?.state).toBe("running");
+
+    rotate(file, "not a certificate", 1);
+    await expect(gateway.getActor("a")).rejects.toThrow(
+      /STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE \(.*ca\.pem\) cannot be used as the Control API's CA: .*holds no PEM certificate/,
+    );
+    rmSync(file);
+    await expect(gateway.getActor("a")).rejects.toThrow(/ENOENT/);
+
+    rotate(file, apiCa.pem, 2);
+    expect((await gateway.getActor("a"))?.state).toBe("running");
+  });
+});
+
+describe("transportFollowingCa", () => {
+  /** A generation whose calls answer when `answer` resolves, recording its closing. */
+  interface Fake extends CaGeneration {
+    readonly ca: string;
+    aborted: number;
+  }
+
+  function following(answer: () => Promise<void>) {
+    let ca = "ca-1";
+    const built: Fake[] = [];
+    const transport = transportFollowingCa(
+      () => {
+        if (ca === "") throw new Error("the CA cannot be read");
+        return ca;
+      },
+      (pem) => {
+        const fake: Fake = {
+          ca: pem,
+          aborted: 0,
+          sessionManager: { abort: () => void (fake.aborted += 1) },
+          transport: {
+            unary: async () => {
+              await answer();
+              return pem;
+            },
+            stream: async () => {
+              await answer();
+              if (pem === "ca-refused") throw new Error("refused");
+              return {
+                message: (async function* () {
+                  yield pem;
+                })(),
+              };
+            },
+          } as unknown as Transport,
+        };
+        built.push(fake);
+        return fake;
+      },
+    );
+    const call = transport.unary as unknown as () => Promise<string>;
+    const stream = transport.stream as unknown as () => Promise<{
+      message: AsyncIterable<string>;
+    }>;
+    return {
+      built,
+      call,
+      stream,
+      rotate: (next: string) => void (ca = next),
+    };
+  }
+
+  it("builds one generation per CA, and closes a replaced one when its last call settles", async () => {
+    let release = (): void => {};
+    let hold = true;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const t = following(() => (hold ? held : Promise.resolve()));
+    const inFlight = t.call();
+    hold = false;
+    expect(await t.call()).toBe("ca-1");
+    expect(t.built).toHaveLength(1);
+
+    t.rotate("ca-2");
+    expect(await t.call()).toBe("ca-2");
+    expect(t.built.map((fake) => fake.aborted)).toEqual([0, 0]);
+    release();
+    expect(await inFlight).toBe("ca-1");
+    expect(t.built.map((fake) => fake.aborted)).toEqual([1, 0]);
+
+    // An idle generation is closed as soon as it is replaced.
+    t.rotate("ca-3");
+    expect(await t.call()).toBe("ca-3");
+    expect(t.built.map((fake) => fake.aborted)).toEqual([1, 1, 0]);
+  });
+
+  it("counts a stream until its messages end, and one that rejects not at all", async () => {
+    const t = following(() => Promise.resolve());
+    const open = await t.stream();
+    t.rotate("ca-2");
+    await t.call();
+    expect(t.built[0]?.aborted).toBe(0);
+    const messages: string[] = [];
+    for await (const message of open.message) messages.push(message);
+    expect(messages).toEqual(["ca-1"]);
+    expect(t.built[0]?.aborted).toBe(1);
+
+    t.rotate("ca-refused");
+    await expect(t.stream()).rejects.toThrow("refused");
+    t.rotate("ca-4");
+    await t.call();
+    expect(t.built.map((fake) => fake.aborted)).toEqual([1, 1, 1, 0]);
+  });
+
+  it("fails a call whose CA cannot be read, builds nothing, and reads it again on the next", async () => {
+    const t = following(() => Promise.resolve());
+    t.rotate("");
+    await expect(t.call()).rejects.toThrow("the CA cannot be read");
+    expect(t.built).toHaveLength(0);
+    t.rotate("ca-1");
+    expect(await t.call()).toBe("ca-1");
+    expect(t.built).toHaveLength(1);
   });
 });

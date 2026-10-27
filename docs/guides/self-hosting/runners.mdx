@@ -567,7 +567,10 @@ What the driver needs:
   `api.ate-system.svc`. Substrate's namespace denies traffic by default, so the
   server's own namespace carries the label `ate.dev/api-access=true`, or its
   calls never arrive. The CA is the cluster's servicedns trust bundle, the
-  ClusterTrustBundle `servicedns.podcert.ate.dev:identity:primary-bundle`.
+  ClusterTrustBundle `servicedns.podcert.ate.dev:identity:primary-bundle`. The
+  server reads the CA file again when it changes too, so the bundle can rotate
+  under a running server, and it refuses to start when a certificate in the file
+  can't be read.
 - **Its router**: `STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL`, the address the server
   pushes each Session's queue and credentials through. In the cluster, use
   `https://atenet-router.ate-system.svc` with
