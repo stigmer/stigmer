@@ -107,6 +107,11 @@ console and the CLI name it **Claude**, Powered by Claude.
 
 **What it does not offer yet:**
 
+- Background commands: a long command runs in the foreground, and the turn waits
+  for it to end.
+- Web fetch and web search: give the Agent an MCP server for the web.
+- The native Harness's built-in helpers: a Claude turn delegates only to the
+  Agent's own sub-agents and its plugins' agents.
 - The fast tier: a Claude run takes the standard tier.
 - Resuming a recorded conversation in an eval case: such a case is listed as
   `not run on Claude: resumed conversations` and runs on native.

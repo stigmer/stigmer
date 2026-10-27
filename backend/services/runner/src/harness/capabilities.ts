@@ -20,7 +20,8 @@
  *
  * The matrix the contract was designed against (2026-09 survey; the Claude
  * column re-measured 2026-10 against SDK 0.3.310 and built,
- * `activities/execute-claude/claude-capabilities.ts`; Codex is surveyed, not
+ * `activities/execute-claude/claude-capabilities.ts`, then held against
+ * native on the harness benchmark at SDK 0.3.311; Codex is surveyed, not
  * built):
  *
  * | Capability        | Native (LangGraph)          | Cursor (`@cursor/sdk`)                  | Claude (`@anthropic-ai/claude-agent-sdk`)     | Codex (`@openai/codex-sdk`)                    |
@@ -28,14 +29,14 @@
  * | `pausePrimitive`  | `interrupt` (checkpoint)    | `deny-and-retry` (hook, ledger, cancel) | `interrupt` (`defer` from `PreToolUse`, one call a turn; the resumed session runs exactly that call, checked against the call the person saw) | no gate (approvalPolicy only); refused until a confinement exists |
  * | `stateIdSource`   | `deterministic` (thread id) | `engine-minted` (agent id)              | `deterministic` (session id derived from the thread id) | `engine-minted` (thread id)            |
  * | system prompt     | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
- * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`, in the foreground, one level); a sub-agent's gated call cannot wait, so it is refused | no |
+ * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`, in the foreground, one level); a sub-agent's gated call cannot wait, so it is refused; none of native's built-in helpers, which no benchmark cell needed (#2589) | no |
  * | tool restriction  | yes (tool list)             | no (the hook enforces)                  | yes (`tools` is the session's pool; each definition's `tools`, `disallowedTools`; the gate per caller) | per-server config |
  * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (in the gate, the native order; an ask that rewrites the call is refused, as on Cursor) | (surveyed later)   |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | PNG, JPEG, WebP, GIF (native's: the same Messages API) | (surveyed later)                      |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | `claude`, no excludes (its state is outside the workspace) | (surveyed later)                  |
  * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | a call until its gate lets it run, but a helper's start (the gate decides after the call streams) | (surveyed later)                               |
  * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | `streamed` (`forwardSubagentText`)        | (no sub-agents)                                |
- * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | `checkpoint` (the session store's transcript) | (surveyed later)                  |
+ * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | `checkpoint` (the session store's transcript, which keeps every entry across compactions, #2654) | (surveyed later)                  |
  * | `contextCompaction` | `runner-summarizer` (deepagents' in the graph) | `vendor-server` (Cursor's server) | `engine-cli` (the SDK's own)           | (surveyed later)                               |
  * | `readsToolMarks`  | yes (it loads the MCP tools itself) | no (the runtime lists each server's tools at turn start) | yes (the host's bridge loads them, `mcp-bridge.ts`) | (surveyed later)                  |
  * | `midTurnInput`    | `next-step` (before the next model call) | `next-step` (steered into the running run; once it ends when Cursor refuses a steer) | `next-step` (pushed into the open prompt, `mid-turn-input.ts`) | (surveyed later) |
