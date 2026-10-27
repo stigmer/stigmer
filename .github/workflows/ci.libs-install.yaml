@@ -8,7 +8,11 @@
 # scripts/publish-libs.mjs, installed into an empty project with every peer
 # they declare, and from there every exports entry is resolved, the entries
 # Node runs are imported, a strict TypeScript consumer is compiled, and the
-# terminal kit renders a scenario of the catalogue.
+# terminal kit renders a scenario of the catalogue. The same job then holds
+# what the libraries make an app download to the ceilings in
+# test/bundle-budgets.json (test/install/smoke-budgets.mjs), bundled from
+# the workspace at its locked versions, so a third-party release never moves
+# a figure.
 #
 # Its own lane rather than a step of ci.cli-up: that lane boots `stigmer
 # up`, and a change to a library alone needs no server.
@@ -19,7 +23,7 @@
 #
 # When it runs (its list in scripts/ci-lanes.mjs): the packed libraries'
 # sources, manifests and build config, the protos @stigmer/apis is built
-# from, the packer, the smoke and its lib.
+# from, the packer, the two smokes and their lib, and the budgets.
 # =============================================================================
 
 name: ci.libs-install
@@ -71,5 +75,8 @@ jobs:
 
       # make smoke-libs = build-libs, then the pack, the install and the
       # cases. One entry point, identical to what a contributor runs locally.
-      - name: Pack, install and exercise the libraries
-        run: make smoke-libs
+      # One make invocation, so build-libs builds the libraries once for both:
+      # the packed-tarball smoke, then the size budgets
+      # (test/install/smoke-budgets.mjs against test/bundle-budgets.json).
+      - name: Pack, install and exercise the libraries, and hold them to their size budgets
+        run: make smoke-libs smoke-budgets
