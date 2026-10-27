@@ -62,9 +62,10 @@ bg-sidebar-muted
 ```
 
 When no token fits, add one to `sdk/theme/src/tokens.css`, give it a value in
-every preset file, and wire it into the Tailwind bridge in
-`client-apps/web/src/app/globals.css`. Never work around a missing token with an
-opacity modifier or a literal colour.
+every preset file, and map it once in the shared Tailwind mapping,
+`sdk/theme/src/tailwind-theme.css`, which the kit, the console and the desktop
+app import. Never work around a missing token with an opacity modifier or a
+literal colour.
 
 ## Text sizes and spacing come from the scale
 

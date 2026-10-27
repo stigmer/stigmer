@@ -11,6 +11,13 @@
 //   import in place of a theme block of their own;
 // - the sweep: every source file of the three faces through the rule's own
 //   matcher, so a file a lint config misses is still read.
+// Spacing is held as a token (the unit and its mapping), not by refusing
+// arbitrary spacing: three icon-alignment offsets stay hand-picked because
+// they match an icon's geometry, not the rhythm
+// (`sdk/react/src/dependency-graph/DependencyTreeNode.tsx`, `ml-[11px]` and
+// `top-[14px]`; `sdk/react/src/resource-creation/StepIndicator.tsx`,
+// `ml-[18px]`). A number in an inline style (`fontSize: 14`) is not read: pages
+// drawn without the stylesheet, such as the console's global error page, use it.
 // Run via the root `npm run test:root`.
 
 import { describe, it } from "node:test";
@@ -79,7 +86,7 @@ const tester = new RuleTester({
   },
 });
 
-describe("CON-05 type, spacing and Stigmer's look come from tokens", () => {
+describe("CON-05 the type scale and the spacing unit are tokens, and no face picks a text size by hand", () => {
   describe("the rule refuses a hand-picked text size", () => {
     tester.run("text-size-from-scale", rule, {
       valid: [
@@ -93,12 +100,15 @@ describe("CON-05 type, spacing and Stigmer's look come from tokens", () => {
         { code: '<p className="stg:text-muted-foreground" />' },
         { code: '<p className="stg:text-[var(--stgm-text-sm)]" />' },
         { code: '<p className="stg:text-[#333]" />' },
+        { code: '<p className="stg:text-[rgb(10%,20%,30%)]" />' },
+        { code: '<p className="stg:text-xs/5" />' },
         // Arbitrary lengths on other utilities.
         { code: '<p className="stg:leading-[1.6] stg:ml-[11px]" />' },
         // A style that reads a token, a number, or a non-size key.
         { code: '<p style={{ fontSize: "var(--stgm-text-sm)" }} />' },
         { code: "<p style={{ fontSize: 14 }} />" },
         { code: '<p style={{ lineHeight: "13px" }} />' },
+        { code: '<p style={{ "fontSize": "var(--stgm-text-xs)" }} />' },
       ],
       invalid: [
         { code: '<p className="stg:text-[10px]" />', errors: [{ messageId: "arbitraryClass" }] },
@@ -110,6 +120,16 @@ describe("CON-05 type, spacing and Stigmer's look come from tokens", () => {
         { code: "const row = `stg:text-[9px] ${tone}`;", errors: [{ messageId: "arbitraryClass" }] },
         { code: '<p style={{ fontSize: "13px" }} />', errors: [{ messageId: "lengthFontSize" }] },
         { code: "<p style={{ fontSize: `0.8rem` }} />", errors: [{ messageId: "lengthFontSize" }] },
+        { code: '<p style={{ "fontSize": "11px" }} />', errors: [{ messageId: "lengthFontSize" }] },
+        { code: '<p style={{ fontSize: "clamp(9px, 1vw, 12px)" }} />', errors: [{ messageId: "lengthFontSize" }] },
+        // Any CSS unit, a percentage, a function holding a length, any case.
+        ...["8pt", "0.6vw", "60%", "1ch", "calc(10px)", "clamp(9px,1vw,12px)", "10PX"].map((value) => ({
+          code: `<p className="text-[${value}]" />`,
+          errors: [{ messageId: "arbitraryClass" }],
+        })),
+        // A line-height modifier after the size.
+        { code: '<p className="stg:text-[13px]/5" />', errors: [{ messageId: "arbitraryClass" }] },
+        { code: '<p className="stg:text-[10px]/[14px]" />', errors: [{ messageId: "arbitraryClass" }] },
       ],
     });
   });
