@@ -2,18 +2,10 @@
 
 import { cn } from "@stigmer/design-tokens";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
-import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { FEATURE_COPY } from "../internal/features.js";
-import {
-  ENTERPRISE_CLOUD_PLAN,
-  formatAgentHoursTerms,
-  formatAgentsAtOnce,
-  formatChildOrgs,
-  formatMonthlyFee,
-  offeredFeatures,
-} from "./plan-features.js";
+import { ENTERPRISE_CLOUD_PLAN, FREE_PLAN, formatMonthlyFee, offeredFeatures, planTermLines } from "./plan-features.js";
 import { planMove, type PlanMove, type PlanStanding } from "./plan-state.js";
 
 /** Where Enterprise Cloud enquiries go by default. */
@@ -62,9 +54,13 @@ export function PlanPicker({
   return (
     <ul className={cn(UNSTYLED_LIST, "stg:grid stg:gap-3 stg:sm:grid-cols-2", className)} aria-label="Plans">
       <PlanOption
-        name="Free"
-        price="$0/month"
-        features={[FEATURE_COPY[Feature.channels].label, FEATURE_COPY[Feature.sharing].label, "Unlimited members"]}
+        name={FREE_PLAN.name}
+        price={formatMonthlyFee(undefined)}
+        features={[
+          ...offeredFeatures(FREE_PLAN.entitlements).map((feature) => feature.label),
+          ...FREE_PLAN.extras,
+          ...planTermLines(FREE_PLAN.entitlements, undefined),
+        ]}
         current={standing.kind === "free"}
         action={canManage && freeMove !== null ? { label: "Move to Free", move: freeMove } : undefined}
         disabled={disabled}
@@ -72,9 +68,6 @@ export function PlanPicker({
       />
       {plans.map((plan) => {
         const move = planMove(standing, plan, periodEnd);
-        const managed = formatChildOrgs(plan.spec?.entitlements, plan.spec?.terms);
-        const hours = formatAgentHoursTerms(plan.spec?.entitlements, plan.spec?.terms);
-        const atOnce = formatAgentsAtOnce(plan.spec?.entitlements);
         return (
           <PlanOption
             key={plan.metadata?.id ?? plan.metadata?.slug}
@@ -82,9 +75,7 @@ export function PlanPicker({
             price={formatMonthlyFee(plan.spec?.terms)}
             features={[
               ...offeredFeatures(plan.spec?.entitlements).map((feature) => feature.label),
-              ...(managed === "" ? [] : [managed]),
-              ...(hours === "" ? [] : [hours]),
-              ...(atOnce === "" ? [] : [atOnce]),
+              ...planTermLines(plan.spec?.entitlements, plan.spec?.terms),
             ]}
             current={move === null && standing.kind !== "free"}
             action={canManage && move !== null ? { label: actionLabel(move), move } : undefined}

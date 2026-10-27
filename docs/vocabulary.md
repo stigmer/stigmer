@@ -126,6 +126,7 @@ definitions, API names, and examples follow below.
 | **Approval flow**      | approval flow              | approval flow                          | approval flow, HITL | `destructiveHint`, `confirmToolUse`                 | HITL, approval     |
 | **Organization**       | Organization               | Organization                           | Organization        | Organization, `kind: organization`                  | Organization       |
 | **Agent hour**         | agent hours                | ---                                    | agent hours         | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
+| **Agents at once**     | agents at once             | ---                                    | agents at once      | `max_active_session_sandboxes`                      | agents at once     |
 | **Working time**       | ---                        | working time                           | working time        | `working_seconds`                                   | working time       |
 | **Edition**            | the three names            | ---                                    | edition             | `ServerEdition`, `DeploymentMode`                   | edition            |
 | **Team**               | teams                      | ---                                    | Team                | Team, `kind: team`                                  | Team               |
@@ -1105,6 +1106,25 @@ is never an agent hour.
   its allowance is on **Settings → Billing** and in `stigmer usage hours`.
 - **Context rule**: "agent hours" in every context. Never "compute hours" or
   "session hours".
+
+---
+
+#### Agents at once
+
+How many of an Organization's conversations can have an agent awake at the same
+time. An agent is awake from a conversation's first turn until it sleeps after a
+short idle window; a message to an awake conversation is never refused for it,
+while a message that has to wake a sleeping one counts like a new conversation.
+
+- **Capitalize**: No. Write "agents at once", "25 agents at once".
+- **API surface**: the plan limit `max_active_session_sandboxes` on
+  `EntitlementLimits`.
+- **Note**: Stigmer Cloud pools the number per payer: a child organization
+  shares its parent's. A license ignores the field. At the number, a new
+  conversation waits for room: it can start once another goes idle or is
+  deleted. Each plan's number is on the pricing page and in the billing docs.
+- **Context rule**: "agents at once" in user copy. Never "sandboxes" or
+  "concurrency", which name the mechanism, not what the plan offers.
 
 ---
 

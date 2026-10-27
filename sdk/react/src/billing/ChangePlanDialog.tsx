@@ -5,7 +5,13 @@ import { getErrorReason, getUserMessage } from "@stigmer/client";
 import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { formatChildOrgs, formatDay, formatMonthlyFee, type OfferedFeature } from "./plan-features.js";
+import {
+  formatAgentHoursTerms,
+  formatChildOrgs,
+  formatDay,
+  formatMonthlyFee,
+  type OfferedFeature,
+} from "./plan-features.js";
 import type { PlanMove } from "./plan-state.js";
 
 /** The reason a plan change is refused for want of a saved card (billing/subscription/v1/command.proto). */
@@ -217,12 +223,19 @@ function listFeatures(features: readonly OfferedFeature[]): string {
 
 /**
  * What a period of the plan is billed at its end, in the customer's words:
- * the monthly fee, and the fee for each child organization beyond those the
- * plan includes. Model usage runs on the organization's own provider keys
- * and is never on the invoice.
+ * the monthly fee, the fee for each child organization beyond those the
+ * plan includes, and the price of each agent hour past the plan's
+ * allowance, which the invoice also carries. Hours on a plan with no
+ * hourly price pause instead, so they are never a charge and are left out,
+ * as is how many agents the plan runs at once. Model usage runs on the
+ * organization's own provider keys and is never on the invoice.
  */
 function periodCharge(plan: Plan): string {
-  const fee = formatMonthlyFee(plan.spec?.terms);
-  const childOrgs = formatChildOrgs(plan.spec?.entitlements, plan.spec?.terms);
-  return childOrgs === "" ? `${fee}.` : `${fee}; ${childOrgs}.`;
+  const terms = plan.spec?.terms;
+  const charges = [
+    formatMonthlyFee(terms),
+    formatChildOrgs(plan.spec?.entitlements, terms),
+    terms?.perAgentHourMicros === undefined ? "" : formatAgentHoursTerms(plan.spec?.entitlements, terms),
+  ];
+  return `${charges.filter((charge) => charge !== "").join("; ")}.`;
 }

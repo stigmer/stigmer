@@ -6,17 +6,29 @@
  * its own, so agents run on the customer's own provider keys, the provider
  * bills every token, and Stigmer charges only for the platform.
  *
- * A plan feature is named through @stigmer/react-sdk's plan vocabulary, the
- * words the console's plan cards use, and Enterprise Cloud is rendered from
- * the console's own description of it, so a visitor reads the same words
- * before and after signing up. Prices are hand-kept: the catalog needs a
- * sign-in and this page is static. Nothing is fetched: there is no price
- * list to load because no token is priced.
+ * A plan feature and a plan's terms (its child organizations, agent hours
+ * and agents at once) are worded by @stigmer/react-sdk's plan vocabulary,
+ * the words the console's plan cards use, and Free and Enterprise Cloud are
+ * rendered from the console's own descriptions of them, so a visitor reads
+ * the same words before and after signing up. Team's and Business's fees and
+ * numbers are the Cloud's launch terms, hand-kept: the catalog needs a
+ * sign-in and this page is static, so a new version of those terms updates
+ * them here too. Nothing is fetched: there is no price list to load because
+ * no token is priced.
  */
 import * as React from "react";
 import Link from "next/link";
-import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
-import { ENTERPRISE_CLOUD_PLAN, FEATURE_COPY, type NamedFeature } from "@stigmer/react-sdk";
+import { create } from "@bufbuild/protobuf";
+import { PlanTermsSchema, type PlanTerms } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { EntitlementsSchema, Feature, type Entitlements } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+import {
+  ENTERPRISE_CLOUD_PLAN,
+  FEATURE_COPY,
+  FREE_PLAN,
+  offeredFeatures,
+  planTermLines,
+  type NamedFeature,
+} from "@stigmer/react-sdk";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";
@@ -41,19 +53,30 @@ type Plan = {
    * words, or a term the catalog states that is not a feature.
    */
   features: readonly (NamedFeature | string)[];
+  /**
+   * A Cloud plan's terms beyond its features, listed after them in the
+   * console's words: its child organizations, agent hours and agents at once.
+   */
+  terms?: { entitlements: Entitlements; terms?: PlanTerms };
   cta: { label: string; href: string; internal?: boolean };
   featured?: boolean;
 };
 
+// Money in micro-USD, as the catalog holds it. BigInt(…), not a literal:
+// the site compiles for a target with no BigInt literal syntax.
+const USD = BigInt(1_000_000);
+const PER_AGENT_HOUR = (USD * BigInt(4)) / BigInt(10);
+
 const CLOUD_PLANS: readonly Plan[] = [
   {
     id: "free",
-    name: "Free",
+    name: FREE_PLAN.name,
     price: "$0",
     period: "/month",
     description: "Build agents and put them in front of people.",
-    features: [Feature.sharing, Feature.channels, "Unlimited members"],
-    cta: { label: "Start Free", href: SITE_CONFIG.cloudSignupUrl },
+    features: [...offeredFeatures(FREE_PLAN.entitlements).map((offered) => offered.feature), ...FREE_PLAN.extras],
+    terms: { entitlements: FREE_PLAN.entitlements },
+    cta: { label: "Start free", href: SITE_CONFIG.cloudSignupUrl },
   },
   {
     id: "team",
@@ -63,6 +86,13 @@ const CLOUD_PLANS: readonly Plan[] = [
     description: "Organize your members and grant access by team.",
     includes: "Everything in Free",
     features: [Feature.teams],
+    terms: {
+      entitlements: create(EntitlementsSchema, {
+        features: [Feature.teams],
+        limits: { includedAgentHours: 300, maxActiveSessionSandboxes: 25 },
+      }),
+      terms: create(PlanTermsSchema, { perAgentHourMicros: PER_AGENT_HOUR }),
+    },
     cta: { label: "Get Started", href: SITE_CONFIG.cloudSignupUrl },
     featured: true,
   },
@@ -71,12 +101,24 @@ const CLOUD_PLANS: readonly Plan[] = [
     name: "Business",
     price: "$499",
     period: "/month",
-    description: "Run organizations for your own customers under yours.",
+    description:
+      "Run organizations for your own customers under yours, on one pool of hours and agents.",
     includes: "Everything in Team",
-    features: [
-      Feature.child_orgs,
-      "5 child organizations included, then $25/month each",
-    ],
+    features: [Feature.child_orgs],
+    terms: {
+      entitlements: create(EntitlementsSchema, {
+        features: [Feature.child_orgs],
+        limits: {
+          includedChildOrgs: 5,
+          includedAgentHours: 1500,
+          maxActiveSessionSandboxes: 100,
+        },
+      }),
+      terms: create(PlanTermsSchema, {
+        perExtraOrgMicros: USD * BigInt(25),
+        perAgentHourMicros: PER_AGENT_HOUR,
+      }),
+    },
     cta: { label: "Get Started", href: SITE_CONFIG.cloudSignupUrl },
   },
   {
@@ -145,7 +187,7 @@ type FaqItem = {
 const FAQ_ITEMS: readonly FaqItem[] = [
   {
     q: "Do you charge for tokens?",
-    a: "No. A plan's price is its flat monthly fee, and Stigmer never adds anything to a model call. Your token usage is still counted, so you can see it per run, session, agent and organization in the console and the CLI.",
+    a: "No. A plan's price is its monthly fee, plus the agent hours past its allowance on a paid plan, and Stigmer never adds anything to a model call. Your token usage is still counted, so you can see it per run, session, agent and organization in the console and the CLI.",
     link: {
       href: "/docs/concepts/billing#see-your-usage",
       label: "See your usage",
@@ -169,6 +211,14 @@ const FAQ_ITEMS: readonly FaqItem[] = [
     link: {
       href: "/docs/concepts/billing#agent-hours",
       label: "Agent hours",
+    },
+  },
+  {
+    q: 'What does "agents at once" mean?',
+    a: "How many of your organization's conversations can have an agent awake at the same time. An agent stays awake while it works and for a short while after, then sleeps until the next message. At the limit, a new conversation, or a message to one whose agent is asleep, waits for room: it can start once another conversation goes idle or is deleted. A message to a conversation whose agent is awake is never held back by this number. A child organization shares its parent's number.",
+    link: {
+      href: "/docs/concepts/billing#agents-at-once",
+      label: "Agents at once",
     },
   },
   {
@@ -199,7 +249,8 @@ function PricingPage() {
                 Pay for the platform, not the tokens.
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Every Stigmer Cloud plan is a flat monthly fee. Stigmer runs no
+                Every Stigmer Cloud plan is a flat monthly fee with agent hours
+                included. Stigmer runs no
                 model of its own: your agents run on your own model provider
                 keys, so your provider bills every token directly and Stigmer
                 adds nothing to it.
@@ -343,7 +394,7 @@ function PricingPage() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button asChild size="lg">
-                  <a href={SITE_CONFIG.cloudSignupUrl}>Start Free</a>
+                  <a href={SITE_CONFIG.cloudSignupUrl}>Start free</a>
                 </Button>
                 <Button asChild variant="outline" size="lg">
                   <Link href={SITE_CONFIG.contactSalesUrl}>
@@ -430,12 +481,23 @@ function PlanCard({ plan }: PlanCardProps) {
   );
 }
 
-/** A card's lines: what it includes, then each feature in the console's words. */
+/**
+ * A card's lines: what it includes, then each feature and each of a Cloud
+ * plan's terms, in the console's words.
+ */
 function featureLines(plan: Plan): readonly string[] {
   const features = plan.features.map((feature) =>
     typeof feature === "string" ? feature : FEATURE_COPY[feature].label,
   );
-  return plan.includes === undefined ? features : [plan.includes, ...features];
+  const terms =
+    plan.terms === undefined
+      ? []
+      : planTermLines(plan.terms.entitlements, plan.terms.terms);
+  return [
+    ...(plan.includes === undefined ? [] : [plan.includes]),
+    ...features,
+    ...terms,
+  ];
 }
 
 export { PricingPage };
