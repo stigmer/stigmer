@@ -49,12 +49,8 @@ const baseURL = process.env.STIGMER_E2E_BASE_URL ?? "http://localhost:3000";
 export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // Visual baselines are minted per-platform (…-darwin.png, committed from
-  // macOS dev machines) and CI runs Linux, where no baseline exists — a
-  // `toHaveScreenshot` there would fail on the missing snapshot, not on a
-  // regression. CI skips the pixel comparisons; every functional assertion
-  // still runs. The screenshots remain a local regression tool.
-  ignoreSnapshots: !!process.env.CI,
+  // No screenshots here: how the console's components look is the kit's
+  // gallery's (test/visual), drawn in one pinned browser and compared in CI.
   // No retries anywhere: a spec that passes on its second try has failed, and
   // a flaky one is quarantined by name on an issue instead
   // (scripts/test-integrity.mjs refuses a config that retries).
