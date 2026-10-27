@@ -197,6 +197,15 @@ function step(body) {
   };
 }
 
+/**
+ * A case's body through {@link step}, under a function literal of the case's
+ * own: the UX bar's inventory (scripts/ux-bar.mjs) reads a case only as
+ * `test(title, fn)`, so a body handed over as `step(fn)` would hold nothing.
+ */
+function guarded(body) {
+  return step(body)();
+}
+
 before(
   step(() => {
     let dir = args.tarballs;
@@ -310,7 +319,7 @@ export const used = { fold, props, hook, connect, views: [MessageThread, Session
 
 test(
   "LIB-01 every entry of every installed exports map resolves to a file the tarball shipped",
-  step(() => {
+  () => guarded(() => {
     const problems = [];
     const specifiers = [];
     for (const pkg of installed) {
@@ -346,7 +355,7 @@ test(
 
 test(
   "LIB-01 the entries Node runs import under Node",
-  step(() => {
+  () => guarded(() => {
     const specifiers = [];
     for (const pkg of installed.filter((p) => IMPORTED.includes(p.name))) {
       for (const { key, targets } of exportEntries(pkg.manifest.exports)) {
@@ -371,7 +380,7 @@ test(
 
 test(
   "LIB-02 a strict TypeScript consumer compiles against every library's types",
-  step(async () => {
+  () => guarded(async () => {
     const { tsc, typeRoots } = await typeChecker({ repoRoot, published: false, scratch, run: () => Promise.resolve() });
     writeFileSync(join(consumer, "consumer.ts"), CONSUMER_TS);
     writeFileSync(
@@ -405,7 +414,7 @@ test(
 
 test(
   "INK-01 the installed terminal kit renders a catalogue scenario",
-  step(() => {
+  () => guarded(() => {
     writeFileSync(join(consumer, "render.mjs"), RENDER_SCRIPT);
     const frame = stripVTControlCharacters(node("render.mjs"));
     if (!frame.includes(COMPLETED_REPLY)) throw new Error(`the rendered thread does not show the reply "${COMPLETED_REPLY}":\n${frame}`);

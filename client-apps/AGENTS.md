@@ -63,8 +63,8 @@ names are the truth.
 
 ## Laws, every surface
 
-- Error messages are the interface, on every surface: what happened, why, what
-  to do.
+- Errors say what happened, why, what to do; promises live on
+  `test/ux-bar.json`.
 - The same word for the same thing and the same confirmation for the same
   destructive act across CLI, console, desktop and SDK.
 
