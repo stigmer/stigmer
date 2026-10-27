@@ -51,7 +51,7 @@ provider key: Stigmer runs no model of its own.
 
 | Capability                            | Stigmer open source                                                                                   | Stigmer Enterprise                                                                                    | Stigmer Cloud                                                                                       |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Price                                 | Free, Apache 2.0                                                                                      | Annual license, quoted                                                                                | Free, then flat monthly plans                                                                       |
+| Price                                 | Free, Apache 2.0                                                                                      | Annual license, quoted                                                                                | Free, then flat monthly plans with agent hours included                                             |
 | Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                                             | Full — the same contracts                                                                             | Full — the same contracts                                                                           |
 | Storage                               | SQLite on a laptop, or your Postgres                                                                  | Your Postgres                                                                                         | Managed                                                                                             |
 | Authentication                        | Your OIDC provider, API keys, service accounts and minted user tokens                                 | The same, plus federation with other identity providers                                               | Hosted login, identity federation, service accounts, minted user tokens                             |
@@ -139,8 +139,8 @@ layers on what only a managed, multi-tenant service has:
   endpoint), with every call's tokens counted and never priced; the provider
   bills you directly. See
   [Model provider keys](/docs/guides/integrations/model-provider-keys).
-- **Plans and billing.** Free to start, then flat monthly plans; see
-  [Billing](/docs/concepts/billing).
+- **Plans and billing.** Free to start, then flat monthly plans with agent hours
+  included; see [Billing](/docs/concepts/billing).
 - **Someone else on call.** Upgrades, backups, scaling, and sandbox isolation
   are operated for you.
 

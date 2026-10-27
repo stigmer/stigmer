@@ -31,8 +31,9 @@
  *     the turn's own ensure pushes to); `maintain`
  *     repeats a stuck delete, writes no egress policy (an awake sandbox's
  *     is its next ensure's), moves only a sleeping sandbox
- *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
- *     retirement when asked; `deleteByName` deletes only a name this driver
+ *     off an older template, then retires, returning a sandbox whose upkeep fails (name, state,
+ *     since when, error) in place of a warning of its own, and stopping before
+ *     retirement when asked with what it gathered; `deleteByName` deletes only a name this driver
  *     gives (a leftover workflow-scope `sbx-wfx-` sandbox is refused before
  *     any gateway call, left for an operator), and with a guard asks it inside the actor's queue from a
  *     fresh read, so a sandbox a turn woke while the delete waited is
@@ -969,6 +970,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       redeleted: 1,
       moved: 1,
       retired: 1,
+      failed: [],
     });
     expect(h.substrate.actors.has("sbx-ses-000000000001")).toBe(false);
     expect(h.substrate.actors.get("sbx-ses-000000000002")?.template).toBe(
@@ -1111,12 +1113,26 @@ describe("the lifecycle a composition's own sweep calls", () => {
     expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeUndefined();
   });
 
-  it("skips a sandbox whose upkeep fails, and stops before retiring when asked", async () => {
-    const h = harness();
+  it("reports a sandbox whose upkeep fails instead of logging it, and stops before retiring when asked", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      undefined,
+      undefined,
+      createLogger({
+        level: "warn",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => warned.push(entry),
+      }),
+    );
+    // Substrate stamps a DELETING actor once, when it marks it; the stamp is
+    // how long the delete has been failing.
+    const stuckSince = new Date("2026-10-03T11:00:00Z");
     h.substrate.put({
       name: "sbx-ses-000000000001",
       state: "deleting",
       template: "t",
+      updateTime: stuckSince,
     });
     h.substrate.put({
       name: "sbx-ses-000000000002",
@@ -1125,7 +1141,18 @@ describe("the lifecycle a composition's own sweep calls", () => {
     });
     h.substrate.fail("deleteActor", new Error("Substrate unavailable"));
     const listed = await h.driver.lifecycle.list();
-    expect((await h.driver.lifecycle.maintain(listed)).redeleted).toBe(1);
+    const pass = await h.driver.lifecycle.maintain(listed);
+    expect(pass.redeleted).toBe(1);
+    expect(pass.failed).toEqual([
+      {
+        name: "sbx-ses-000000000001",
+        state: "deleting",
+        since: stuckSince,
+        error: "Substrate unavailable",
+      },
+    ]);
+    // The caller sums a pass's failures in one line (sweep.ts).
+    expect(warned).toEqual([]);
     expect(h.substrate.actors.size).toBe(1);
     const second = await h.driver.lifecycle.list();
     const before = h.substrate.calls.length;
@@ -1134,7 +1161,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       await h.driver.lifecycle.maintain(second, {
         stopping: () => (checks += 1) > 1,
       }),
-    ).toEqual({ redeleted: 1, moved: 0, retired: 0 });
+    ).toEqual({ redeleted: 1, moved: 0, retired: 0, failed: [] });
     expect(h.substrate.calls.slice(before)).not.toContain("listTemplates ");
     // A shutdown before the first sandbox touches none.
     h.substrate.put({
@@ -1147,8 +1174,29 @@ describe("the lifecycle a composition's own sweep calls", () => {
       await h.driver.lifecycle.maintain(await h.driver.lifecycle.list(), {
         stopping: () => true,
       }),
-    ).toEqual({ redeleted: 0, moved: 0, retired: 0 });
+    ).toEqual({ redeleted: 0, moved: 0, retired: 0, failed: [] });
     expect(h.substrate.calls.slice(untouched)).toEqual(["listActors "]);
+    // A shutdown between two sandboxes returns the failure it gathered
+    // and leaves the second untouched.
+    h.substrate.put({
+      name: "sbx-ses-000000000004",
+      state: "deleting",
+      template: "t",
+    });
+    h.substrate.fail("deleteActor", new Error("Substrate unavailable"));
+    let asked = 0;
+    const listedTwo = await h.driver.lifecycle.list();
+    const beforeStop = h.substrate.calls.length;
+    const stopped = await h.driver.lifecycle.maintain(listedTwo, {
+      stopping: () => (asked += 1) > 1,
+    });
+    expect(stopped.retired).toBe(0);
+    expect(stopped.failed.map((failure) => failure.name)).toEqual([
+      "sbx-ses-000000000003",
+    ]);
+    expect(h.substrate.calls.slice(beforeStop)).not.toContain(
+      "getActor sbx-ses-000000000004",
+    );
   });
 
   it("prepares the template, and logs instead of rejecting when it cannot", async () => {

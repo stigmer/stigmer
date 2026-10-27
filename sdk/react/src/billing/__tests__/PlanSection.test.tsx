@@ -1,7 +1,9 @@
 // The plan section end to end over a mock client: Free with the comparison
-// (only what Cloud offers today, Enterprise Cloud as "Talk to us"), a viewer's
+// (only what Cloud offers today, Free's own terms from the SDK's description
+// of it, Enterprise Cloud as "Talk to us"), a viewer's
 // read-only view, the card door (leaving through the host's openUrl with
-// the plan to come back to), a subscribe, an active plan's estimate and
+// the plan to come back to), a subscribe that names the plan's fee and its
+// hourly price, an active plan's estimate and
 // its switch and cancel copy (child organizations beyond those included
 // among its lines), the agent hours used of those the plan includes on
 // every plan (pausing, priced, unlimited, past the allowance, and left out
@@ -83,7 +85,7 @@ describe("PlanSection", () => {
     renderSection(mockClient());
     const plans = await screen.findByRole("list", { name: "Plans" });
     const business = await planOption("Business");
-    expect(within(business).getByText("5 child organizations included, then $25.00/month each")).toBeTruthy();
+    expect(within(business).getByText("5 child organizations included, then $25/month each")).toBeTruthy();
     expect(within(business).getByText("Child organizations")).toBeTruthy();
     // Provider keys are on every plan, so no plan sells them.
     expect(within(plans).queryByText("Bring your own provider keys")).toBeNull();
@@ -100,6 +102,19 @@ describe("PlanSection", () => {
     ]);
     expect(within(plans).queryByText(/\bSLA\b|dedicated deployment/)).toBeNull();
     expect(within(plans).getAllByRole("button", { name: "Subscribe" })).toHaveLength(2);
+  });
+
+  it("shows Free with its features, its hours that pause and its agents at once", async () => {
+    renderSection(mockClient());
+    const free = await planOption("Free");
+    expect(Array.from(free.querySelectorAll("li"), (line) => line.textContent)).toEqual([
+      "Slack and WhatsApp",
+      "Chat links",
+      "Unlimited members",
+      "30 agent hours a month, then new work pauses",
+      "5 agents at once",
+    ]);
+    expect(within(free).getByText("$0/month")).toBeTruthy();
   });
 
   it("says what agent hours a plan includes and what happens past them, and nothing for a plan that states none", async () => {
@@ -157,11 +172,27 @@ describe("PlanSection", () => {
     renderSection(client);
     await userEvent.click(within(await planOption("Team")).getByRole("button", { name: "Subscribe" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/billed when it ends: \$99\.00\/month\.$/)).toBeTruthy();
+    expect(within(dialog).getByText(/billed when it ends: \$99\/month\.$/)).toBeTruthy();
     expect(within(dialog).getByText("Nothing is charged today.")).toBeTruthy();
     await userEvent.click(within(dialog).getByRole("button", { name: "Subscribe" }));
     await waitFor(() => expect(client.subscription.changePlan).toHaveBeenCalledTimes(1));
     expect(client.subscription.changePlan.mock.calls[0]?.[0]).toMatchObject({ org: "acme", planId: "pln_team" });
+  });
+
+  it("names the hourly price past the allowance when subscribing to a plan that states one", async () => {
+    const client = mockClient();
+    const hourly = clone(PlanSchema, TEAM);
+    if (hourly.spec?.entitlements === undefined || hourly.spec.terms === undefined) throw new Error("TEAM has no terms");
+    hourly.spec.entitlements.limits = create(EntitlementLimitsSchema, { includedAgentHours: 300, maxActiveSessionSandboxes: 25 });
+    hourly.spec.terms.perAgentHourMicros = (USD * 4n) / 10n;
+    client.plan.list.mockResolvedValue({ entries: [hourly, BUSINESS], nextPageToken: "" });
+    renderSection(client);
+    await userEvent.click(within(await planOption("Team")).getByRole("button", { name: "Subscribe" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText(/billed when it ends: \$99\/month; 300 agent hours a month, then \$0\.40 an hour\.$/),
+    ).toBeTruthy();
+    expect(within(dialog).queryByText(/at once/)).toBeNull();
   });
 
   it("shows an active plan's estimate, and says a cancel runs to the period's end", async () => {

@@ -161,7 +161,7 @@ export interface NavGroup {
 
 /**
  * Header navigation structure.
- * Layout: Logo | Docs | Pricing | Resources ▾ | [GH] [DC] | Sign In | [Start Free]
+ * Layout: Logo | Docs | Pricing | Resources ▾ | [GH] [DC] | Sign In | [Start free]
  *
  * Primary links are rendered as top-level text links.
  * The resources group renders as a single dropdown trigger.

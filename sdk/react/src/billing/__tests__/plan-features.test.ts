@@ -1,9 +1,11 @@
 // What a plan shows: only the features Cloud offers today, in contract
 // order (a feature listed ahead of its gate is left out), its monthly fee
-// its child organizations and its agent hours; every period day in UTC; working agent time
-// in tenths of an hour; and which plans are offered, cheapest first, with
-// what a switch gives up; and the plan that unlocks a feature, the quoted
-// Enterprise Cloud plan when no buyable plan includes it.
+// its child organizations and its agent hours, counts grouped and whole
+// dollars without cents; its term lines in one order; Free's terms; every
+// period day in UTC; working agent time in tenths of an hour; and which
+// plans are offered, cheapest first, with what a switch gives up; and the
+// plan that unlocks a feature, the quoted Enterprise Cloud plan when no
+// buyable plan includes it.
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -12,6 +14,7 @@ import { PlanTermsSchema } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_p
 import { EntitlementsSchema, Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 import {
   ENTERPRISE_CLOUD_PLAN,
+  FREE_PLAN,
   buyablePlans,
   featuresLost,
   formatAgentHours,
@@ -22,6 +25,7 @@ import {
   formatPeriodDay,
   lowestPlanWith,
   offeredFeatures,
+  planTermLines,
   unlockingPlanName,
 } from "../plan-features";
 import { BUSINESS as BUSINESS_PLAN, RETIRED, TEAM } from "./fixtures";
@@ -52,13 +56,13 @@ describe("plan terms", () => {
   });
 
   it("reads the monthly fee", () => {
-    expect(formatMonthlyFee(terms)).toBe("$499.00/month");
-    expect(formatMonthlyFee(create(PlanTermsSchema, { monthlyMinimumMicros: 99n * USD }))).toBe("$99.00/month");
-    expect(formatMonthlyFee(undefined)).toBe("$0.00/month");
+    expect(formatMonthlyFee(terms)).toBe("$499/month");
+    expect(formatMonthlyFee(create(PlanTermsSchema, { monthlyMinimumMicros: 99n * USD }))).toBe("$99/month");
+    expect(formatMonthlyFee(undefined)).toBe("$0/month");
   });
 
   it("reads the included child organizations and the fee beyond, only when the plan admits them", () => {
-    expect(formatChildOrgs(BUSINESS, terms)).toBe("5 child organizations included, then $25.00/month each");
+    expect(formatChildOrgs(BUSINESS, terms)).toBe("5 child organizations included, then $25/month each");
     expect(formatChildOrgs(create(EntitlementsSchema, { features: [Feature.teams] }), terms)).toBe("");
     expect(
       formatChildOrgs(create(EntitlementsSchema, { features: [Feature.child_orgs] }), terms),
@@ -74,6 +78,9 @@ describe("formatAgentHoursTerms", () => {
     );
     expect(formatAgentHoursTerms(hours(10), create(PlanTermsSchema))).toBe("10 agent hours a month, then new work pauses");
     expect(formatAgentHoursTerms(hours(1), undefined)).toBe("1 agent hour a month, then new work pauses");
+    expect(formatAgentHoursTerms(hours(1500), create(PlanTermsSchema, { perAgentHourMicros: (USD * 4n) / 10n }))).toBe(
+      "1,500 agent hours a month, then $0.40 an hour",
+    );
     expect(formatAgentHoursTerms(BUSINESS, create(PlanTermsSchema, { perAgentHourMicros: USD }))).toBe("");
     expect(formatAgentHoursTerms(undefined, undefined)).toBe("");
   });
@@ -84,8 +91,57 @@ describe("formatAgentsAtOnce", () => {
     const atOnce = (maxActiveSessionSandboxes: number) => create(EntitlementsSchema, { limits: { maxActiveSessionSandboxes } });
     expect(formatAgentsAtOnce(atOnce(25))).toBe("25 agents at once");
     expect(formatAgentsAtOnce(atOnce(1))).toBe("1 agent at once");
+    expect(formatAgentsAtOnce(atOnce(1000))).toBe("1,000 agents at once");
     expect(formatAgentsAtOnce(BUSINESS)).toBe("");
     expect(formatAgentsAtOnce(undefined)).toBe("");
+  });
+});
+
+describe("planTermLines", () => {
+  const hourly = (USD * 4n) / 10n;
+
+  it("lists a plan's child organizations, agent hours and agents at once, in that order", () => {
+    const business = create(EntitlementsSchema, {
+      features: [Feature.teams, Feature.child_orgs],
+      limits: { includedChildOrgs: 5, includedAgentHours: 1500, maxActiveSessionSandboxes: 100 },
+    });
+    const terms = create(PlanTermsSchema, { monthlyMinimumMicros: 499n * USD, perExtraOrgMicros: 25n * USD, perAgentHourMicros: hourly });
+    expect(planTermLines(business, terms)).toEqual([
+      "5 child organizations included, then $25/month each",
+      "1,500 agent hours a month, then $0.40 an hour",
+      "100 agents at once",
+    ]);
+    const team = create(EntitlementsSchema, {
+      features: [Feature.teams],
+      limits: { includedAgentHours: 300, maxActiveSessionSandboxes: 25 },
+    });
+    expect(planTermLines(team, create(PlanTermsSchema, { perAgentHourMicros: hourly }))).toEqual([
+      "300 agent hours a month, then $0.40 an hour",
+      "25 agents at once",
+    ]);
+  });
+
+  it("lists only what a plan states, and nothing for a plan that states no terms", () => {
+    expect(planTermLines(BUSINESS_PLAN.spec?.entitlements, BUSINESS_PLAN.spec?.terms)).toEqual([
+      "5 child organizations included, then $25/month each",
+    ]);
+    expect(planTermLines(TEAM.spec?.entitlements, TEAM.spec?.terms)).toEqual([]);
+    expect(planTermLines(undefined, undefined)).toEqual([]);
+  });
+});
+
+describe("FREE_PLAN", () => {
+  it("states Free's features, its members, and its hours that pause and its agents at once", () => {
+    expect(FREE_PLAN.name).toBe("Free");
+    expect(offeredFeatures(FREE_PLAN.entitlements).map((feature) => feature.label)).toEqual([
+      "Slack and WhatsApp",
+      "Chat links",
+    ]);
+    expect(FREE_PLAN.extras).toEqual(["Unlimited members"]);
+    expect(planTermLines(FREE_PLAN.entitlements, undefined)).toEqual([
+      "30 agent hours a month, then new work pauses",
+      "5 agents at once",
+    ]);
   });
 });
 

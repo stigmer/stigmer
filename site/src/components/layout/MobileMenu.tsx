@@ -269,7 +269,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
             >
               <Button asChild className="w-full" size="lg">
                 <a href={SITE_CONFIG.cloudSignupUrl}>
-                  Start Free
+                  Start free
                 </a>
               </Button>
             </motion.div>

@@ -195,6 +195,7 @@ import type {
   RoutineFireCallerInput,
   SubstrateMaintenance,
   SubstrateRunnerMode,
+  SubstrateSandboxFailure,
   SubstrateSleepGuard,
   SubstrateSleepOutcome,
   SubstrateSuspendGuard,
@@ -928,6 +929,8 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
       await lifecycle.list(),
     );
     void upkeep.retired;
+    const stuck: readonly SubstrateSandboxFailure[] = upkeep.failed;
+    void stuck.map((failure) => [failure.name, failure.since, failure.error]);
     // An orphan is a sandbox the composition's own records do not name.
     const recorded = (name: string): Promise<boolean> =>
       Promise.resolve(name !== "");
