@@ -126,7 +126,8 @@ export function OrgProfilePanel({
 
   // Editing is the admins' (`can_edit`). The answer is read only once it
   // settles, both ways, so a member never sees an editable form and an
-  // admin never sees the refusal while the server answers. A failed check
+  // admin never sees the refusal while the server answers; the edit cues
+  // (placeholders, the counter, Save) wait for the yes. A failed check
   // settles open: the server re-checks every save.
   const editCheck = useCheckPermission(
     serverOrgId ? { kind: "organization", id: serverOrgId } : null,
@@ -326,7 +327,7 @@ export function OrgProfilePanel({
             rows={3}
             disabled={isUpdating}
             readOnly={!canEdit}
-            placeholder={editDenied ? undefined : "What is this organization for?"}
+            placeholder={canEdit ? "What is this organization for?" : undefined}
             className={cn(
               "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
               "stg:placeholder:text-muted-foreground",
@@ -335,7 +336,7 @@ export function OrgProfilePanel({
               editDenied && "stg:bg-muted-subtle stg:text-muted-foreground",
             )}
           />
-          {!editDenied && (
+          {canEdit && (
             <p className="stg:text-2xs stg:text-muted-foreground">
               {description.length}/{DESCRIPTION_MAX_LEN} characters
             </p>
@@ -358,7 +359,7 @@ export function OrgProfilePanel({
             maxLength={LOGO_URL_MAX_LEN}
             disabled={isUpdating}
             readOnly={!canEdit}
-            placeholder={editDenied ? undefined : "https://example.com/logo.png"}
+            placeholder={canEdit ? "https://example.com/logo.png" : undefined}
             className={cn(
               "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
               "stg:placeholder:text-muted-foreground",

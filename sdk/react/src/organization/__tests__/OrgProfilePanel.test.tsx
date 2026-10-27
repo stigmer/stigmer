@@ -221,7 +221,10 @@ describe("OrgProfilePanel edit gate", () => {
     for (const field of fields()) {
       expect(field.readOnly).toBe(true);
       expect(field.className).not.toContain("stg:bg-muted-subtle");
+      // No edit cue before the yes: an example value reads as a value.
+      expect(field.getAttribute("placeholder")).toBeNull();
     }
+    expect(screen.queryByText(/characters$/)).toBeNull();
   });
 
   it("leaves the form editable when the check fails, since the server re-checks the save", async () => {
@@ -245,6 +248,9 @@ describe("OrgProfilePanel edit gate", () => {
       expect(field.className).not.toContain("stg:bg-muted-subtle");
     }
     expect(screen.getByText(/\/500 characters$/)).toBeTruthy();
+    expect(screen.getByLabelText("Logo URL").getAttribute("placeholder")).toBe(
+      "https://example.com/logo.png",
+    );
   });
 });
 
