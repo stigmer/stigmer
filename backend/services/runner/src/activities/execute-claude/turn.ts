@@ -18,8 +18,9 @@
  *     (`mcp-bridge.ts`); decide what each is offered (`engine-options.ts`);
  *     build every caller's hooks (`hooks.ts`) and the gate over every
  *     caller's reach (`gate.ts`); serve the host's tools to the engine
- *     (`loopback-mcp.ts`); write the turn's skills as plugins in the
- *     engine's home (`skill-plugins.ts`).
+ *     (`loopback-mcp.ts`), each call run only once the gate admits it and
+ *     the session store holds the call ({@link admitHeld}); write the
+ *     turn's skills as plugins in the engine's home (`skill-plugins.ts`).
  *  3. Read the session's transcript from the store (`session-store.ts`,
  *     `transcript-facts.ts`): a new run hands the engine its message; a run
  *     the engine already took is continued without the task (stigmer#2417),
@@ -96,12 +97,12 @@ import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller, type Gat
 import { HookFeedback, turnHookEvaluators } from "./hooks.js";
 import { hostShellServer, HOST_SHELL_TOOL, isHostShell } from "./host-shell.js";
 import { HttpTranscripts } from "./http-store.js";
-import { startLoopbackMcp, type ServedServer } from "./loopback-mcp.js";
+import { startLoopbackMcp, type ServedCall, type ServedServer } from "./loopback-mcp.js";
 import { connectBridge, type McpBridge } from "./mcp-bridge.js";
 import { composeSubagentPrompt, composeSystemAppend, composeTurnMessage, instructionRoots, skillsSection, workspaceInstructionReader } from "./prompt.js";
 import { PromptStream } from "./prompt-stream.js";
 import { MidTurnInput, sentMessageOf } from "./mid-turn-input.js";
-import { MemoryTranscripts, sessionStoreFor, type TranscriptBacking } from "./session-store.js";
+import { MemoryTranscripts, MirroredCalls, sessionStoreFor, type TranscriptBacking } from "./session-store.js";
 import { settleClaudeTurn, type InvocationEnd } from "./settle.js";
 import { SkillNameClash, writeSkillPlugins } from "./skill-plugins.js";
 import { transcriptFactsOf, type TranscriptFacts } from "./transcript-facts.js";
@@ -119,6 +120,30 @@ export type ClaudeAdapterConfig = Pick<
 
 /** How long a stopped engine has to end on its own before its process is aborted. */
 export const STOP_GRACE_MS = 5_000;
+
+/** How long a served call waits for the session store to hold it before it runs anyway ({@link admitHeld}). */
+export const MIRROR_WAIT_MS = 10_000;
+
+/**
+ * Admit a served call (`loopback-mcp.ts`): the gate's verdict first, then,
+ * for a call it lets run, the session store holding the call. The engine
+ * mirrors each entry to the store as it goes, and the host's shell would
+ * otherwise start before the entry that made the call is stored. A runner
+ * lost in that window left a store without the call, and the resumed
+ * engine made the call again, so it ran twice (stigmer#2669). Once the
+ * store holds it, a lost runner's call is one the resumed engine reports
+ * interrupted. A store that never acknowledges within {@link MIRROR_WAIT_MS}
+ * has already lost the turn's durability, so the call runs then, with a
+ * warning.
+ */
+export async function admitHeld(gate: Pick<ClaudeGate, "admit">, mirrored: MirroredCalls, call: ServedCall, executionId: string): Promise<string | undefined> {
+  const refused = gate.admit(call);
+  if (refused !== undefined || call.toolUseId === "") return refused;
+  if (!(await mirrored.whenHeld(call.toolUseId, MIRROR_WAIT_MS))) {
+    console.warn(`[claude] execution=${executionId} call=${call.toolUseId}: the session store did not hold the call within ${MIRROR_WAIT_MS} ms; it runs`);
+  }
+  return undefined;
+}
 
 /** What a continued turn is told when there is nothing new to read: never the task again. */
 export const CONTINUE_NOTE = "Continue where you left off.";
@@ -361,7 +386,8 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     }));
   }
   served.push(...bridge.servers.values());
-  const endpoint = served.length > 0 ? await startLoopbackMcp(served, (call) => gate.admit(call), { callTimeoutMs: config.openOperationMaxMs }) : undefined;
+  const mirrored = new MirroredCalls();
+  const endpoint = served.length > 0 ? await startLoopbackMcp(served, (call) => admitHeld(gate, mirrored, call, input.executionId), { callTimeoutMs: config.openOperationMaxMs }) : undefined;
   try {
     // The prompt the engine reads, and the messages sent while it works
     // (`mid-turn-input.ts`), taken only once the gate decided every open call and none waits.
@@ -402,7 +428,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       thinking: thinkingOf(input.model.thinkingMode, model.thinking),
       hooks: { ...gateHooks(gate), ...feedback.callbacks() },
       canUseTool: canUseToolOf(gate),
-      sessionStore: sessionStoreFor(input.threadId, backing),
+      sessionStore: sessionStoreFor(input.threadId, backing, mirrored),
       session: facts.exists ? { resume: sessionId } : { start: sessionId },
       abortController: abort,
       structuredOutputSchema: input.structuredOutputSchema,

@@ -15,7 +15,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 
-import { startLoopbackMcp, textResult, type ServedCall, type ServedServer } from "../loopback-mcp.js";
+import { startLoopbackMcp, textResult, type CallAdmission, type ServedCall, type ServedServer } from "../loopback-mcp.js";
 import { SERVED_CALL_TIMEOUT_MS, connectServed, type ServedClient } from "../__test-utils__/served-client.js";
 
 const ECHO: Tool = {
@@ -46,7 +46,7 @@ function echoServer(calls: ServedCall[], tools: () => readonly Tool[] = () => [E
   };
 }
 
-async function connect(server: ServedServer, admit?: (call: ServedCall) => string | undefined): Promise<ServedClient> {
+async function connect(server: ServedServer, admit?: CallAdmission): Promise<ServedClient> {
   const served = await connectServed([server], admit === undefined ? {} : { admit });
   open.push(served);
   return served;
@@ -103,6 +103,22 @@ describe("the loopback endpoint", () => {
     await client.callTool({ name: "echo", arguments: { text: "y" }, _meta: { "claudecode/toolUseId": "toolu_ok" } });
     expect(calls.map((call) => call.toolUseId)).toEqual(["toolu_ok"]);
     expect(asked.map((call) => call.toolUseId)).toEqual(["toolu_forged", "toolu_ok"]);
+  });
+
+  it("runs a call only once an awaited admission resolves (the store holding it, stigmer#2669)", async () => {
+    const calls: ServedCall[] = [];
+    let admitNow!: () => void;
+    const admitted = new Promise<void>((resolve) => (admitNow = resolve));
+    const { client } = await connect(echoServer(calls), async () => {
+      await admitted;
+      return undefined;
+    });
+    const result = client.callTool({ name: "echo", arguments: { text: "z" }, _meta: { "claudecode/toolUseId": "toolu_wait" } });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(calls, "nothing runs while the admission is pending").toEqual([]);
+    admitNow();
+    expect(textOf((await result) as CallToolResult)).toBe("z");
+    expect(calls.map((call) => call.toolUseId)).toEqual(["toolu_wait"]);
   });
 
   it("hands the engine the turn's bound on one call with every server (stigmer#2625), so a silent call outlives the engine's own idle limit", async () => {

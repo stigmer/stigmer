@@ -49,7 +49,61 @@ export interface TranscriptBacking {
 export class ForeignSessionError extends Error {}
 
 /** The SDK's store for one turn's thread, over `backing` (the header). */
-export function sessionStoreFor(threadId: string, backing: TranscriptBacking): SessionStore {
+/**
+ * The calls the store holds: each tool use the engine mirrored, noted once
+ * its backing's append resolved, and each one a load read back (a resumed
+ * run's calls, mirrored by the run before). The host runs a served call only once the
+ * store holds it (`turn.ts`), so a runner lost while the call runs leaves a
+ * store that has the call, and the resumed engine reports it interrupted
+ * rather than making it again (stigmer#2669).
+ */
+export class MirroredCalls {
+  private readonly held = new Set<string>();
+  private readonly waiting = new Map<string, Array<() => void>>();
+
+  /** Record the tool uses in `entries`, waking whoever waits on one. */
+  note(entries: readonly SessionStoreEntry[]): void {
+    for (const id of toolUseIdsOf(entries)) {
+      this.held.add(id);
+      for (const wake of this.waiting.get(id) ?? []) wake();
+      this.waiting.delete(id);
+    }
+  }
+
+  /** Whether the store holds the call `id` within `timeoutMs`. */
+  whenHeld(id: string, timeoutMs: number): Promise<boolean> {
+    if (this.held.has(id)) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => {
+        const rest = (this.waiting.get(id) ?? []).filter((wake) => wake !== onHeld);
+        if (rest.length === 0) this.waiting.delete(id);
+        else this.waiting.set(id, rest);
+        resolve(false);
+      }, timeoutMs);
+      const onHeld = (): void => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      this.waiting.set(id, [...(this.waiting.get(id) ?? []), onHeld]);
+    });
+  }
+}
+
+/** The ids of the tool uses `entries` carry: each assistant message's `tool_use` blocks. */
+export function toolUseIdsOf(entries: readonly SessionStoreEntry[]): string[] {
+  const ids: string[] = [];
+  for (const entry of entries) {
+    if (entry.type !== "assistant") continue;
+    const content = (entry["message"] as { content?: unknown } | undefined)?.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content as Array<{ type?: unknown; id?: unknown }>) {
+      if (block.type === "tool_use" && typeof block.id === "string") ids.push(block.id);
+    }
+  }
+  return ids;
+}
+
+export function sessionStoreFor(threadId: string, backing: TranscriptBacking, mirrored?: MirroredCalls): SessionStore {
   const own = engineSessionIdOf(threadId);
   const check = (sessionId: string): void => {
     if (sessionId !== own) throw new ForeignSessionError(`the session store serves session ${own} alone, not ${sessionId}`);
@@ -58,10 +112,13 @@ export function sessionStoreFor(threadId: string, backing: TranscriptBacking): S
     async append(key: SessionKey, entries: SessionStoreEntry[]): Promise<void> {
       check(key.sessionId);
       await backing.append(threadId, key.subpath, entries);
+      mirrored?.note(entries);
     },
     async load(key: SessionKey): Promise<SessionStoreEntry[] | null> {
       check(key.sessionId);
-      return backing.load(threadId, key.subpath);
+      const entries = await backing.load(threadId, key.subpath);
+      if (entries !== null) mirrored?.note(entries);
+      return entries;
     },
     async listSubkeys(key: { projectKey: string; sessionId: string }): Promise<string[]> {
       check(key.sessionId);

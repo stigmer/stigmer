@@ -18,6 +18,10 @@
  * refuses every other session id, so no turn reaches another's
  * conversation whatever the engine asks.
  *
+ * The store also says which calls it holds (`MirroredCalls`): the host runs
+ * a served call only once its call is stored, so a lost runner's call is
+ * never made again on resume (stigmer#2669).
+ *
  * Then each backing's own specifics: the file backing's layout on disk and
  * its reading of what an earlier turn left there, and the HTTP backing's
  * credential, turn key, retry and error paths.
@@ -35,7 +39,7 @@ import { runWithExecutionContext, TURN_KEY_HEADER } from "../../../shared/execut
 import { engineSessionIdOf } from "../engine-session-id.js";
 import { FileTranscripts } from "../file-store.js";
 import { ENGINE_SESSIONS_LANE, HttpTranscripts } from "../http-store.js";
-import { ForeignSessionError, MemoryTranscripts, sessionStoreFor, unseenEntries, type TranscriptBacking } from "../session-store.js";
+import { ForeignSessionError, MemoryTranscripts, MirroredCalls, sessionStoreFor, toolUseIdsOf, unseenEntries, type TranscriptBacking } from "../session-store.js";
 
 const THREAD = "thread-ses-store";
 const OTHER_THREAD = "thread-ses-other";
@@ -498,5 +502,49 @@ describe("the HTTP backing on the wire", () => {
   it("raises a network failure once the budget is spent", async () => {
     const http = new HttpTranscripts("http://127.0.0.1:9", { current: TOKEN }, { maxRetries: 0 });
     await expect(http.load(THREAD, undefined)).rejects.toThrow(/fetch failed/);
+  });
+});
+
+describe("the calls the store holds (stigmer#2669)", () => {
+  const assistantCall = (id: string): SessionStoreEntry => ({ type: "assistant", uuid: `u-${id}`, message: { content: [{ type: "text", text: "running" }, { type: "tool_use", id, name: "mcp__stigmer__bash", input: {} }] } });
+
+  it("reads the tool uses of assistant entries alone", () => {
+    expect(toolUseIdsOf([assistantCall("toolu_a"), { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "toolu_b" }] } }, { type: "assistant", message: { content: "plain" } }])).toEqual(["toolu_a"]);
+  });
+
+  it("holds a call only once the backing's append resolved, never for an append that failed, and holds what a load read back", async () => {
+    const memory = new MemoryTranscripts();
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const slow: TranscriptBacking = { ...memory, append: async (...args) => { await held; await memory.append(...args); }, load: (...args) => memory.load(...args), listSubkeys: (...args) => memory.listSubkeys(...args), delete: (...args) => memory.delete(...args) };
+    const mirrored = new MirroredCalls();
+    const store = sessionStoreFor(THREAD, slow, mirrored);
+    const key = { projectKey: "p", sessionId: engineSessionIdOf(THREAD) };
+    const appending = store.append(key, [assistantCall("toolu_slow")]);
+    expect(await mirrored.whenHeld("toolu_slow", 20), "not held while the append is in flight").toBe(false);
+    release();
+    await appending;
+    expect(await mirrored.whenHeld("toolu_slow", 20)).toBe(true);
+
+    const failing = sessionStoreFor(THREAD, { ...slow, append: async () => { throw new Error("disk full"); } }, mirrored);
+    await expect(failing.append(key, [assistantCall("toolu_lost")])).rejects.toThrow("disk full");
+    expect(await mirrored.whenHeld("toolu_lost", 20)).toBe(false);
+
+    const resumed = new MirroredCalls();
+    await sessionStoreFor(THREAD, memory, resumed).load(key);
+    expect(await resumed.whenHeld("toolu_slow", 20), "a resumed run holds the calls the run before stored").toBe(true);
+  });
+
+  it("wakes a waiter when its call is noted, and answers false at its bound", async () => {
+    const mirrored = new MirroredCalls();
+    const waiting = mirrored.whenHeld("toolu_later", 1_000);
+    mirrored.note([assistantCall("toolu_later")]);
+    expect(await waiting).toBe(true);
+    expect(await mirrored.whenHeld("toolu_never", 10)).toBe(false);
+
+    const patient = mirrored.whenHeld("toolu_two", 1_000);
+    expect(await mirrored.whenHeld("toolu_two", 10), "one waiter's bound ends only its own wait").toBe(false);
+    mirrored.note([assistantCall("toolu_two")]);
+    expect(await patient).toBe(true);
   });
 });
