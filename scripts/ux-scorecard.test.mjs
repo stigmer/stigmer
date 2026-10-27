@@ -34,6 +34,8 @@ import {
   planRuns,
   resultsByFile,
   runnerOf,
+  VISUAL_REPORTER,
+  VISUAL_RUNNER,
   scoreRows,
   summaryLine,
 } from "./ux-scorecard.mjs";
@@ -50,11 +52,13 @@ test("runs a vitest file in its package, a tooling test with node's runner, and 
   assert.equal(runnerOf("scripts/ux-bar.test.mjs"), "node");
   assert.equal(runnerOf("test/install/lib/type-checker.test.mjs"), "node");
   assert.equal(runnerOf("test/install/smoke-libs.mjs"), "smoke");
+  assert.equal(runnerOf("test/visual/tests/gallery.spec.ts"), "visual");
+  assert.equal(runnerOf("test/e2e/tests/functional/accessibility.spec.ts"), "vitest", "only the visual suite's specs run as the visual suite");
   assert.equal(packageOf("client-apps/cli/src/output/__tests__/x.test.ts", hasManifest), "client-apps/cli");
   assert.equal(packageOf("loose/__tests__/x.test.ts", hasManifest), ".");
 });
 
-test("plans one vitest run per package, one node run, and the smokes only when asked", () => {
+test("plans one vitest run per package, one node run, and the smokes and the visual suite only when asked", () => {
   const paths = [
     "client-apps/cli/src/output/__tests__/a.test.ts",
     "sdk/ink/src/__tests__/b.test.tsx",
@@ -62,6 +66,7 @@ test("plans one vitest run per package, one node run, and the smokes only when a
     "client-apps/cli/src/__tests__/c.test.ts",
     "scripts/d.test.mjs",
     "test/install/smoke-libs.mjs",
+    "test/visual/tests/gallery.spec.ts",
   ];
   assert.deepEqual(planRuns(paths, hasManifest), [
     { kind: "vitest", cwd: "client-apps/cli", files: ["src/__tests__/c.test.ts", "src/output/__tests__/a.test.ts"], report: "vitest-client-apps-cli.json" },
@@ -69,6 +74,7 @@ test("plans one vitest run per package, one node run, and the smokes only when a
     { kind: "node", cwd: ".", files: ["scripts/d.test.mjs"], report: "node-tooling.json" },
   ]);
   assert.deepEqual(planRuns(paths, hasManifest, { smoke: true }).at(-1), { kind: "smoke", cwd: ".", files: ["test/install/smoke-libs.mjs"], report: "smoke-libs.json" });
+  assert.deepEqual(planRuns(paths, hasManifest, { visual: true }).at(-1), { kind: "visual", cwd: ".", files: ["tests/gallery.spec.ts"], report: "visual.json" });
 });
 
 test("writes each run's report through vitest's JSON reporter or the node reporter", () => {
@@ -79,6 +85,11 @@ test("writes each run's report through vitest's JSON reporter or the node report
   const reporter = ["--test-reporter", join("/repo", NODE_REPORTER), "--test-reporter-destination", "/r/n.json"];
   assert.deepEqual(commandOf({ kind: "node", files: ["scripts/a.test.mjs"] }, "/r/n.json", "/repo"), [process.execPath, ["--test", ...reporter, "scripts/a.test.mjs"]]);
   assert.deepEqual(commandOf({ kind: "smoke", files: ["test/install/smoke-libs.mjs"] }, "/r/n.json", "/repo"), [process.execPath, [...reporter, "test/install/smoke-libs.mjs", "--skip-build"]]);
+  assert.deepEqual(commandOf({ kind: "visual", files: ["tests/gallery.spec.ts"] }, "/r/vis.json", "/repo"), [
+    process.execPath,
+    [join("/repo", VISUAL_RUNNER), "tests/gallery.spec.ts", `--reporter=list,${join("/repo", VISUAL_REPORTER)}`],
+    { STIGMER_VISUAL_REPORT: "/r/vis.json" },
+  ]);
 });
 
 test("matches a key exactly, and a template title by its shape", () => {
@@ -122,6 +133,7 @@ test("names a holding file by its package's folder and its name", () => {
   assert.equal(placeOf("client-apps/cli/src/output/__tests__/human.goldens.test.ts"), "cli/human.goldens");
   assert.equal(placeOf("sdk/ink/src/__tests__/session-frames.test.tsx"), "ink/session-frames");
   assert.equal(placeOf("test/install/smoke-libs.mjs"), "smoke-libs");
+  assert.equal(placeOf("test/visual/tests/gallery.spec.ts"), "visual/gallery");
   assert.equal(placeOf("scripts/ux-bar.test.mjs"), "scripts/ux-bar");
 });
 
