@@ -180,6 +180,19 @@ export type SubstrateSleepOutcome = "done" | "skipped" | "thawed";
 /** The paths an ensure takes, named by the state it first acts on (module header). */
 type EnsurePath = "created" | "suspended" | "running" | "crashed";
 
+/**
+ * A sandbox an act failed on this pass, as listed when the act was tried.
+ * For a DELETING sandbox `since` is roughly when its delete first failed:
+ * Substrate stamps the update time when it marks the actor DELETING, and a
+ * repeated delete does not stamp it again.
+ */
+export interface SubstrateSandboxFailure {
+  readonly name: string;
+  readonly state: SubstrateSandboxState;
+  readonly since: Date | undefined;
+  readonly error: string;
+}
+
 /** What one pass of upkeep did (SubstrateSandboxLifecycle.maintain). */
 export interface SubstrateMaintenance {
   /** Sandboxes left DELETING by a delete that failed part-way, deleted again. */
@@ -188,6 +201,8 @@ export interface SubstrateMaintenance {
   readonly moved: number;
   /** Templates no sandbox uses any more, deleted. */
   readonly retired: number;
+  /** Sandboxes whose upkeep failed; each is tried again next pass. */
+  readonly failed: readonly SubstrateSandboxFailure[];
 }
 
 /**
@@ -233,8 +248,10 @@ export interface SubstrateSandboxLifecycle {
    * left part-way, moves a sleeping sandbox on an older template to the
    * current one, then retires unused templates. It writes no egress policy:
    * an awake sandbox gets its own at its next ensure (module header). A
-   * sandbox whose upkeep fails is logged and skipped. `stopping` ends the
-   * pass after the sandbox in hand, before any template is retired.
+   * sandbox whose upkeep fails is reported in `failed` and skipped, so the
+   * caller can sum a pass's failures in one line. `stopping` ends the pass
+   * after the sandbox in hand, before any template is retired, and returns
+   * what the pass gathered.
    */
   maintain(
     listed: readonly SubstrateActorSummary[],
@@ -766,9 +783,10 @@ export function newSubstrateSandboxDriverOverGateway(
       const stopping = options?.stopping ?? (() => false);
       let redeleted = 0;
       let moved = 0;
+      const failed: SubstrateSandboxFailure[] = [];
       for (const actor of listed) {
         // A shutdown waits for the sandbox in hand, never for the whole pass.
-        if (stopping()) return { redeleted, moved, retired: 0 };
+        if (stopping()) return { redeleted, moved, retired: 0, failed };
         try {
           switch (actor.state) {
             case "deleting":
@@ -802,15 +820,17 @@ export function newSubstrateSandboxDriverOverGateway(
               break;
           }
         } catch (error) {
-          logger.warn("Substrate sandbox upkeep skipped a sandbox", {
-            actor: actor.name,
+          failed.push({
+            name: actor.name,
+            state: actor.state,
+            since: actor.updateTime,
             error: error instanceof Error ? error.message : String(error),
           });
         }
       }
-      if (stopping()) return { redeleted, moved, retired: 0 };
+      if (stopping()) return { redeleted, moved, retired: 0, failed };
       const retired = await lifecycle.retireTemplates();
-      return { redeleted, moved, retired };
+      return { redeleted, moved, retired, failed };
     },
     async retireTemplates() {
       const [templates, actors] = await Promise.all([

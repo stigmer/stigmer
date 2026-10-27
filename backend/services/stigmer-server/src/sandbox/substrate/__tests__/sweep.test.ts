@@ -16,13 +16,15 @@
  *     deleted; one created since the last scan (leaning by the clock-skew
  *     allowance) is left alone, and scans are rate-limited;
  *   - a sandbox left DELETING is deleted again; a suspended one on an older
- *     template is moved; unused templates are retired;
+ *     template is moved; unused templates are retired; the sandboxes upkeep
+ *     failed on are summed in one warning per pass, a count and a capped
+ *     sample with each one's state, since when and a cut error;
  *   - start runs a pass at once; a stopping sweep ends its pass after the
  *     sandbox in hand.
  */
 import { describe, expect, it, vi } from "vitest";
 
-import { createLogger } from "../../../boot/logger.js";
+import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
 import type {
   SandboxDriverConfig,
@@ -500,6 +502,70 @@ describe("failures and races", () => {
     await h.pass();
     expect(h.substrate.actors.get(bad)?.state).toBe("running");
     expect(h.substrate.actors.get(good)?.state).toBe("suspended");
+  });
+
+  it("upkeep's failures are one warning per pass: a count and a capped sample", async () => {
+    const warned: LogEntry[] = [];
+    const h = harness(
+      createLogger({
+        level: "warn",
+        pretty: false,
+        write: () => {},
+        sink: (entry) => warned.push(entry),
+      }),
+    );
+    const stuckSince = new Date(h.t() - 90 * MIN);
+    const stuck = (count: number) => {
+      h.substrate.actors.clear();
+      for (let i = 1; i <= count; i += 1) {
+        h.substrate.put({
+          name: sandboxBaseName("connect", `mcx_${i}`),
+          state: "deleting",
+          template: "t",
+          updateTime: stuckSince,
+        });
+        h.substrate.fail(
+          "deleteActor",
+          new Error(i === 1 ? "x".repeat(400) : "Substrate unavailable"),
+        );
+      }
+    };
+    const message =
+      "Substrate idle sweep could not keep up sandboxes; each is tried again next pass";
+
+    stuck(2);
+    await h.pass();
+    expect(warned.map((entry) => entry.message)).toEqual([message]);
+    expect(warned[0]?.fields).toEqual({
+      count: 2,
+      sample: [
+        {
+          actor: sandboxBaseName("connect", "mcx_1"),
+          state: "deleting",
+          since: stuckSince,
+          error: "x".repeat(300),
+        },
+        {
+          actor: sandboxBaseName("connect", "mcx_2"),
+          state: "deleting",
+          since: stuckSince,
+          error: "Substrate unavailable",
+        },
+      ],
+    });
+
+    warned.length = 0;
+    stuck(7);
+    await h.pass();
+    expect(warned).toHaveLength(1);
+    expect(warned[0]?.fields?.["count"]).toBe(7);
+    expect(warned[0]?.fields?.["sample"]).toHaveLength(5);
+
+    // A pass whose upkeep failed on nothing says nothing.
+    warned.length = 0;
+    h.substrate.actors.clear();
+    await h.pass();
+    expect(warned).toEqual([]);
   });
 
   it("a sandbox gone between the pass's read and its queue is left alone", async () => {
