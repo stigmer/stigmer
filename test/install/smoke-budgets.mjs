@@ -43,9 +43,10 @@
  * (test/ux-bar.json), so the bar's check reads it from source and the
  * scorecard reads its result through test/install/lib/json-reporter.mjs.
  *
- * A ceiling is raised by editing test/bundle-budgets.json, a gate file
- * (test/README.md, rule 5), in the open. An entry more than 10% under its
- * ceiling is said, so the ceiling follows a saving down.
+ * A ceiling is the figure it was set from and 2% (`ceilingFor`), and is
+ * raised by editing test/bundle-budgets.json, a gate file (test/README.md,
+ * rule 5), in the open. An entry more than 10% under its ceiling is said,
+ * with the ceiling to set, so the ceiling follows a saving down.
  *
  * Plain Node: `node:*`, test/install/lib, and Vite run as a child process
  * (the install layer's rule, test/README.md). The stylesheet and the loader
@@ -67,7 +68,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
-import { eagerChunks, formatBytes, heaviest, judgeBudgets, readBudgets } from "./lib/bundle-budget.mjs";
+import { ceilingFor, eagerChunks, formatBytes, heaviest, judgeBudgets, readBudgets } from "./lib/bundle-budget.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const BUDGETS = join(repoRoot, "test", "bundle-budgets.json");
@@ -204,7 +205,7 @@ test("LIB-03 every library entry stays within its size budget", () => {
     }
     const judged = judgeBudgets(measured, budgets);
     for (const { entry, bytes, ceiling } of judged.lower) {
-      log(`${entry}: ${formatBytes(bytes)} is more than 10% under its ${formatBytes(ceiling)} budget; lower it in test/bundle-budgets.json to ${bytes}`);
+      log(`${entry}: ${formatBytes(bytes)} is more than 10% under its ${formatBytes(ceiling)} budget; lower it in test/bundle-budgets.json to ${ceilingFor(bytes)}`);
     }
     const problems = [
       ...judged.over.map(({ entry, bytes, ceiling }) => {

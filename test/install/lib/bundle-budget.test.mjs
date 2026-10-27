@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { eagerChunks, formatBytes, heaviest, judgeBudgets, LOWER_NOTICE, ownerOf, readBudgets } from "./bundle-budget.mjs";
+import { ceilingFor, eagerChunks, formatBytes, heaviest, HEADROOM, judgeBudgets, LOWER_NOTICE, ownerOf, readBudgets } from "./bundle-budget.mjs";
 
 describe("readBudgets", () => {
   it("reads each entry's ceiling in gzip bytes", () => {
@@ -89,6 +89,13 @@ describe("judgeBudgets", () => {
     const judged = judgeBudgets(new Map([["provider", 10], ["embed", 10]]), new Map([["provider", 10], ["gone", 10]]));
     assert.deepEqual(judged.unbudgeted, ["embed"]);
     assert.deepEqual(judged.unmeasured, ["gone"]);
+  });
+});
+
+describe("ceilingFor", () => {
+  it(`sets a ceiling ${HEADROOM * 100}% above the figure, rounded up to a whole byte`, () => {
+    assert.equal(ceilingFor(11516), 11747);
+    assert.equal(ceilingFor(100), 102);
   });
 });
 

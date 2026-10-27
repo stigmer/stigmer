@@ -21,6 +21,14 @@
 /** How far under its ceiling an entry may fall before the smoke says to lower it. */
 export const LOWER_NOTICE = 0.1;
 
+/** The headroom a ceiling keeps above the figure it is set from. */
+export const HEADROOM = 0.02;
+
+/** The ceiling for an entry measured at `bytes`: the figure and its headroom, rounded up. */
+export function ceilingFor(bytes) {
+  return Math.ceil(bytes * (1 + HEADROOM));
+}
+
 /**
  * Reads the budgets file: `{ "budgets": { "<entry>": <gzip bytes>, ... } }`.
  * Returns the ceilings by entry, or throws with what is wrong.
