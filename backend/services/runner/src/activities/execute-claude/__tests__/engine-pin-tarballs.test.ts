@@ -9,7 +9,10 @@
  * bump whose tarball carried a directory entry, a link or a pax header would
  * pass them all and then fail every local runner's first Claude turn; this
  * fails the bump instead. The tarballs come from npm's own cache, which the
- * install that ran these tests filled, so the read is local.
+ * install that ran these tests filled, so the read is local. Each is packed
+ * by the URL the pin records, never by `name@version`: a version names a
+ * tarball through the package's metadata, and a cache whose metadata
+ * predates a new pin answers ETARGET for a version that is published.
  */
 
 import { execFileSync } from "node:child_process";
@@ -46,7 +49,7 @@ describe("the pinned Claude engine's real tarballs", () => {
   for (const name of [CLAUDE_SDK, platformPackages(currentPlatform())[0] as string]) {
     it(`match the pinned integrity and extract under the installer's rules: ${name}`, async () => {
       const packed = JSON.parse(
-        execFileSync("npm", ["pack", `${name}@${pin.version}`, "--pack-destination", dir, "--prefer-offline", "--json", "--silent"], { encoding: "utf8", cwd: dir }),
+        execFileSync("npm", ["pack", pin.packages[name]?.resolved ?? "", "--pack-destination", dir, "--prefer-offline", "--json", "--silent"], { encoding: "utf8", cwd: dir }),
       ) as { filename: string }[];
       const tarball = join(dir, packed[0]?.filename ?? "");
       const integrity = `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`;

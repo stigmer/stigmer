@@ -38,7 +38,9 @@
  *    result, on the call's row and the sub-agent's, is the sub-agent's own
  *    answer, read from the result's structured content (`tool_use_result`):
  *    the text the model reads wraps it in the engine's hand-back frame, with
- *    the sub-agent's id and timing, which no row carries.
+ *    the sub-agent's id and timing, which no row carries. Measured on SDK
+ *    0.3.311, the structured content opens with the tools the sub-agent
+ *    used, in a `<tools-used-before-summary>` tag; the row drops that too.
  *  - `compact_boundary` marks a compaction (`context_compacted`).
  *
  * Names: the engine's shell is reported under the name its model used,
@@ -257,6 +259,9 @@ function stringOf(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/** The engine's list of the tools a sub-agent used, which opens its structured result (the header). */
+const TOOLS_USED_FRAME = /^\s*<tools-used-before-summary>[\s\S]*?<\/tools-used-before-summary>\s*/;
+
 /** A sub-agent's own answer from an `Agent` call's structured result (the header); undefined when it carries none. */
 export function agentAnswerOf(toolUseResult: unknown): string | undefined {
   const content = (toolUseResult as { content?: unknown } | null | undefined)?.content;
@@ -265,7 +270,7 @@ export function agentAnswerOf(toolUseResult: unknown): string | undefined {
     const b = block as { type?: unknown; text?: unknown };
     return b.type === "text" && typeof b.text === "string" ? [b.text] : [];
   });
-  return texts.length === 0 ? undefined : texts.join("\n");
+  return texts.length === 0 ? undefined : texts.join("\n").replace(TOOLS_USED_FRAME, "");
 }
 
 /**

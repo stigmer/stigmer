@@ -49,11 +49,12 @@ between `OLD` and `NEW`:
   `CHANGELOG.md`), for every Claude Code version the SDK releases between the
   two carry (`npm view @anthropic-ai/claude-agent-sdk@$NEW claudeCodeVersion`).
 - **The SDK's types.** Unpack both tarballs into scratch directories and diff
-  them:
+  every declaration file, not `sdk.d.ts` alone: the tools' input and output
+  shapes are in `sdk-tools.d.ts`.
 
   ```bash
   for v in $OLD $NEW; do mkdir -p /tmp/sdk-$v && (cd /tmp/sdk-$v && npm pack @anthropic-ai/claude-agent-sdk@$v >/dev/null && tar xzf *.tgz); done
-  diff -u /tmp/sdk-$OLD/package/sdk.d.ts /tmp/sdk-$NEW/package/sdk.d.ts
+  for f in $(cd /tmp/sdk-$NEW/package && ls *.d.ts); do diff -u /tmp/sdk-$OLD/package/$f /tmp/sdk-$NEW/package/$f; done
   ```
 
 - **The hooks reference's defer section** (code.claude.com/docs/en/hooks.md,
@@ -71,19 +72,22 @@ Stop on any of these:
 
 ## 2. Bump the pin
 
-Edit both manifest entries to `NEW` exactly (no range), then let npm write the
-lockfile:
+Edit both manifest entries, the peer dependency and the dev dependency, to `NEW`
+exactly (no range) by hand, then let npm write the lockfile and install it:
 
 ```bash
-npm install --save-exact --save-dev @anthropic-ai/claude-agent-sdk@$NEW
+npm install --package-lock-only && npm ci
 node --input-type=module -e "const {claudeEnginePinFromLockfile}=await import('./scripts/claude-engine-pin.mjs'); const p=claudeEnginePinFromLockfile('package-lock.json'); console.log(p.version, Object.keys(p.packages).length)"
+git diff --stat
 ```
 
-The second command prints the new version and the package count (the SDK and its
-platform packages). `npm install` rewrites the dev dependency only; set the peer
-dependency by hand. No other file names the version: the "measured on SDK
-<version>" comments are claims the suites re-check, not text to bump (step 3
-says when one changes).
+The node command prints the new version and the package count: the SDK and its
+platform packages. The diff is the two manifest lines and the SDK's lockfile
+entries, nothing else. Do not use
+`npm install --save-exact --save-dev <sdk>@$NEW`: it rewrites the whole
+manifest, unescaping its strings and re-sorting its dependencies. No other file
+names the version: the "measured on SDK <version>" comments are claims the
+suites re-check, not text to bump (step 3 says when one changes).
 
 ## 3. The hermetic suites, on the real engine
 
@@ -94,7 +98,10 @@ npx vitest run src/activities/execute-claude src/__tests__/approval-gateway-cont
 Every hermetic golden is the engine's own stream through the translator, so a
 new engine can move one. Run the failing file with `-u` only after reading its
 diff, and explain every hunk in the PR body: which engine change made it, and
-why the new rows are right. A hunk with no explanation is a stop. Where a hunk
+why the new rows are right. When the translator's header says the new rows are
+wrong (an engine frame reaching a row that promises the sub-agent's own answer,
+say), fix the translator so the golden holds, with a unit case, and name the
+engine change it answers. A hunk with no explanation is a stop. Where a hunk
 shows that a fact a comment records "measured on SDK <version>" has changed,
 update that comment to the new fact and version in the same commit.
 
@@ -106,9 +113,11 @@ cd ../../.. && make build-runner-slim && (cd backend/services/runner && npm run 
 ```
 
 `engine-pin-tarballs` packs the real tarballs at the new pin. `verify:slim` is
-check 4b: `claude-engine.json` beside the entry equals the lockfile. Check 4c
-(the engine an image carries runs) needs an image; the dev build in step 8 runs
-it in its image smoke.
+check 4b: `claude-engine.json` beside the entry equals the lockfile. Its boots
+need a Temporal dev server (`temporal server start-dev --headless`; on another
+port, `TEMPORAL_SERVICE_ADDRESS=127.0.0.1:<port>`). Check 4c (the engine an
+image carries runs) needs an image; the dev build in step 8 runs it in its image
+smoke.
 
 ## 5. A local runner's first turn downloads the new pin
 
