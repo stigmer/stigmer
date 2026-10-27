@@ -1,4 +1,5 @@
-// Holds CON-05 on the UX bar: every face's text sizes and spacing come
+// Holds CON-05 on the UX bar (beside the other root suites, which read the
+// whole repository by design): every face's text sizes and spacing come
 // from tokens, and no text is smaller than the scale allows. Three readings,
 // each from the files themselves:
 // - the `text-size-from-scale` rule, which refuses a hand-picked size where
@@ -21,10 +22,10 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { RuleTester } = require("eslint");
-const rule = require("../text-size-from-scale");
-const { findHandPickedSizes } = require("../../src/text-size");
+const rule = require("../tools/eslint-plugin-stigmer/rules/text-size-from-scale");
+const { findHandPickedSizes } = require("../tools/eslint-plugin-stigmer/src/text-size");
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (path) => readFileSync(join(ROOT, path), "utf8");
 
 /** The scale's steps, smallest first. */

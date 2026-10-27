@@ -77,7 +77,7 @@ the desktop app build their utilities from one mapping,
 `sdk/theme/src/tailwind-theme.css`; a new token is mapped there once, never in
 a face's own `@theme` block. The `stigmer/text-size-from-scale` rule refuses a
 hand-picked size, and the CON-05 sweep
-(`tools/eslint-plugin-stigmer/rules/__tests__/text-size-from-scale.test.mjs`)
+(`scripts/text-size-from-scale.test.mjs`)
 reads every face's source for one.
 
 ## Interactive elements in non-standard contexts
