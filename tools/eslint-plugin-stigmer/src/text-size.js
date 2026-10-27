@@ -18,29 +18,74 @@
  * and colour classes (`text-muted-foreground`).
  */
 
-/** A number with a CSS length unit or a percent sign, in any case. */
-const LENGTH = String.raw`(?:\d+\.?\d*|\.\d+)(?:px|rem|em|pt|pc|cm|mm|in|q|vw|vh|vmin|vmax|vi|vb|dvh|svh|lvh|cqw|cqh|ch|ex|cap|ic|lh|rlh|%)(?![a-z])`;
+/** The CSS length units, and `%`, a size can be written in. */
+const UNITS = new Set(["px", "rem", "em", "pt", "pc", "cm", "mm", "in", "q", "vw", "vh", "vmin", "vmax", "vi", "vb", "dvh", "svh", "lvh", "cqw", "cqh", "ch", "ex", "cap", "ic", "lh", "rlh", "%"]);
 /** An arbitrary value that is a colour, never a size. */
 const COLOUR = /^(?:#|rgba?\(|hsla?\(|hwb\(|lab\(|lch\(|oklab\(|oklch\(|color\(|color:)/i;
-/** The value inside `text-[…]`, behind any prefix, variant or `!`, before an optional `/…` line height. */
-const ARBITRARY_TEXT = /(?:^|:)!?text-\[([^\]\s]+)\](?:\/(?:\[[^\]\s]+\]|[\w.]+))?!?$/;
-/** Every `text-[…]` class token in a stretch of source text, with its variants. */
-const ARBITRARY_TEXT_IN_TEXT = /(?<![\w-])(?:[\w\[\]&>@=.-]*:)?!?text-\[[^\]\s]+\](?:\/(?:\[[^\]\s]+\]|[\w.]+))?!?/g;
-/** A value that holds a length or a percentage somewhere (`10px`, `clamp(9px,1vw,12px)`). */
-const HOLDS_LENGTH = new RegExp(LENGTH, "i");
+/** What may follow `text-[…]`: a line-height modifier, `/5` or `/[14px]`. Anchored both ends. */
+const LINE_HEIGHT_MODIFIER = /^\/(?:\[[^\]]*\]|[\w.]+)$/;
+/** Where source text splits into candidate class tokens: whitespace and quotes. */
+const TOKEN_BREAK = /[\s"'`]+/;
 /** An inline style's `fontSize` key followed by a quoted value, in source text. */
 const FONT_SIZE_IN_TEXT = /\bfontSize\s*:\s*(["'`])([^"'`]*)\1/g;
 
 /** True when an arbitrary value (the inside of `text-[…]`, or a style string) sets a size by hand. */
 function isHandPickedSize(value) {
   const inner = value.replace(/^length:/, "");
-  return !COLOUR.test(inner) && !/^var\(/.test(inner) && HOLDS_LENGTH.test(inner);
+  return !COLOUR.test(inner) && !/^var\(/.test(inner) && holdsLength(inner);
+}
+
+/**
+ * True when a value holds a number followed by a length unit or `%`
+ * (`10px`, `clamp(9px,1vw,12px)`), in any case. One pass over the value: each
+ * number is read once, then the letters after it, so no input makes it slow.
+ */
+function holdsLength(value) {
+  let i = 0;
+  while (i < value.length) {
+    const ch = value[i];
+    if ((ch >= "0" && ch <= "9") || ch === ".") {
+      let sawDigit = false;
+      while (i < value.length && ((value[i] >= "0" && value[i] <= "9") || value[i] === ".")) {
+        if (value[i] !== ".") sawDigit = true;
+        i += 1;
+      }
+      let unit = "";
+      while (i < value.length && (/[a-z%]/i.test(value[i]))) {
+        unit += value[i].toLowerCase();
+        i += 1;
+        if (unit === "%") break;
+      }
+      if (sawDigit && UNITS.has(unit)) return true;
+    } else {
+      i += 1;
+    }
+  }
+  return false;
 }
 
 /** True when one class token sets an arbitrary length as the text size. */
 function isArbitraryTextSize(className) {
-  const match = ARBITRARY_TEXT.exec(className);
-  return match !== null && isHandPickedSize(match[1]);
+  // The utility is what follows the last `:` outside brackets: variants come
+  // before it (`stg:md:`, `[&>p]:`), and a value may hold `:` (`length:1em`).
+  // A scan, not a pattern, so no input makes it backtrack.
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < className.length; i += 1) {
+    const ch = className[i];
+    if (ch === "[") depth += 1;
+    else if (ch === "]") depth = Math.max(0, depth - 1);
+    else if (ch === ":" && depth === 0) start = i + 1;
+  }
+  let utility = className.slice(start);
+  if (utility.startsWith("!")) utility = utility.slice(1);
+  if (utility.endsWith("!")) utility = utility.slice(0, -1);
+  if (!utility.startsWith("text-[")) return false;
+  const close = utility.indexOf("]");
+  if (close < 0) return false;
+  const rest = utility.slice(close + 1);
+  if (rest !== "" && !LINE_HEIGHT_MODIFIER.test(rest)) return false;
+  return isHandPickedSize(utility.slice("text-[".length, close));
 }
 
 /** The class tokens in a string (a className, a cn() argument, a constant) that set an arbitrary text size. */
@@ -61,8 +106,8 @@ function findHandPickedSizes(source) {
   const findings = [];
   const lines = source.split("\n");
   lines.forEach((line, index) => {
-    for (const match of line.matchAll(ARBITRARY_TEXT_IN_TEXT)) {
-      if (isArbitraryTextSize(match[0])) findings.push({ line: index + 1, text: match[0] });
+    for (const token of line.split(TOKEN_BREAK)) {
+      if (token.includes("text-[") && isArbitraryTextSize(token)) findings.push({ line: index + 1, text: token });
     }
     for (const match of line.matchAll(FONT_SIZE_IN_TEXT)) {
       if (isLengthValue(match[2])) findings.push({ line: index + 1, text: match[0] });
