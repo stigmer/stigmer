@@ -1,0 +1,11 @@
+exit 2
+
+Error: spec.instructions: value is required
+
+--- with --debug ---
+Error: spec.instructions: value is required
+
+--- debug ---
+gRPC code: InvalidArgument (3)
+Raw error: ConnectError: [invalid_argument] spec.instructions: value is required
+    at command (src/commands/example.ts:1:1)

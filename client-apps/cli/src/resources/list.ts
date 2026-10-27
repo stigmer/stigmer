@@ -355,7 +355,7 @@ async function fetchListPage(
 
 // Agents, skills and plugins: what a person browses a library by. The
 // description is the spec's, as search shows it.
-function libraryTable(resourceName: string): TableShape {
+export function libraryTable(resourceName: string): TableShape {
   return {
     resourceName,
     headers: ["NAME", "DESCRIPTION", "VISIBILITY", "CREATED"],
@@ -445,7 +445,7 @@ export const SEARCH_TABLE: TableShape = {
 // STATE is whether the session works (running) or waits for input (idle),
 // which the server computes from the session's events on every read
 // (SessionStatus.state); a server that predates it sends none, shown "-".
-const SESSION_TABLE: TableShape = {
+export const SESSION_TABLE: TableShape = {
   resourceName: "sessions",
   headers: ["SESSION ID", "STATE", "AGENT", "SUBJECT", "CREATED"],
   orgs: (json) => [str(obj(obj(json, "spec"), "agent_ref"), "org")],
@@ -637,7 +637,7 @@ function providerOf(spec: JsonObject): string {
   return PROVIDER_KEYS.find((key) => key in spec) ?? "-";
 }
 
-const ORG_TABLE: TableShape = {
+export const ORG_TABLE: TableShape = {
   resourceName: "organizations",
   headers: ["NAME", "SLUG", "ID"],
   row: (json) => {

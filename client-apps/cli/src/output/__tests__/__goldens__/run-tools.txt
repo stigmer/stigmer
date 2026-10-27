@@ -1,0 +1,7 @@
+--- stdout ---
+--- stderr ---
+
+> Invoices are off by a cent. Can you fix the rounding?
+
+  ✓ read_file
+  ⠋ execute

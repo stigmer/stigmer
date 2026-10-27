@@ -1,0 +1,11 @@
+exit 2
+
+Error: Already exists: agent 'demo/reviewer'
+
+--- with --debug ---
+Error: Already exists: agent 'demo/reviewer'
+
+--- debug ---
+gRPC code: AlreadyExists (6)
+Raw error: ConnectError: [already_exists] agent 'demo/reviewer'
+    at command (src/commands/example.ts:1:1)

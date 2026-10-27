@@ -1,0 +1,17 @@
+exit 2
+
+Error: demo has used the 40 agent hours of its Team plan; they reset on Aug 1
+
+See the organization's agent hours:
+  stigmer usage hours
+
+--- with --debug ---
+Error: demo has used the 40 agent hours of its Team plan; they reset on Aug 1
+
+See the organization's agent hours:
+  stigmer usage hours
+
+--- debug ---
+gRPC code: FailedPrecondition (9)
+Raw error: ConnectError: [failed_precondition] demo has used the 40 agent hours of its Team plan; they reset on Aug 1
+    at command (src/commands/example.ts:1:1)

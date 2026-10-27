@@ -29,7 +29,7 @@ function walk(dir: string): string[] {
   return out;
 }
 
-describe("lazy-import boundary", () => {
+describe("CLI-08 lazy-import boundary: --help and the commands that print no session never load React or Ink", () => {
   it("only the lazy Ink entrypoints statically import react/ink/@stigmer/ink-ui", () => {
     const offenders = walk(SRC_ROOT)
       .filter((path) => !INK_MODULES.includes(path))
