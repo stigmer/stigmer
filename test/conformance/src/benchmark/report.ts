@@ -69,8 +69,8 @@
 //   here, because this module stays a leaf. Grades from v5 and earlier came
 //   from another judge on another scale and are not compared.
 // - The native arm runs on any model (`--native-model`), one per run, so a
-//   report says which arm it measured (schema v8): `models.parity_native` is
-//   that model, `native_endpoint` the host its calls went to (never a key or
+//   report says which arm it measured (schema v8): the native parity model
+//   (`models.parity["deep-agent"]` since v11) is that model, `native_endpoint` the host its calls went to (never a key or
 //   a path), `native_api` the API they were made on, and `native_cost_basis`
 //   whether the runner priced them from a catalog row or at its default rate
 //   (runner shared/model-pricing.ts `getModelPricing`: a model with no priced
@@ -96,11 +96,27 @@
 //   the turn left behind, `orphans.ts`), every tool call when it
 //   started, and `task_done`: whether a cell's own checks of the work held,
 //   so a fast sample that skipped the work reads as what it is.
+// - A report is keyed by engine (schema v11): a comparison's `sides` and
+//   `cost_ratio`, and the arms' models (`models.parity`), are records over
+//   `BenchmarkHarness`, where v10 named a native and a Cursor field. A third
+//   engine (Claude) then needs no schema change, and retiring one is
+//   deleting a member of the union, which the compiler follows to every
+//   site that branched on it.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 10;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 11;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
-export type BenchmarkHarness = "deep-agent" | "cursor";
+export type BenchmarkHarness = "deep-agent" | "cursor" | "claude";
+
+/** Each harness's word in an arm's label (`<word>/<model>`), a quality target and the CLI's flags. */
+export const ARM_WORD: Record<BenchmarkHarness, string> = { "deep-agent": "native", cursor: "cursor", claude: "claude" };
+
+/**
+ * Every harness the benchmark measures, in the order a report lists them:
+ * native first, the reference. Read off {@link ARM_WORD}'s keys, so the
+ * compiler holds the list whole.
+ */
+export const HARNESSES: readonly BenchmarkHarness[] = Object.keys(ARM_WORD) as BenchmarkHarness[];
 
 export type ComparisonMode = "parity" | "default" | "turn-2" | "working-agent";
 
@@ -413,10 +429,10 @@ export interface BenchmarkComparison {
   mode: ComparisonMode;
   session_shape: SessionShape;
   agent: AgentShape;
-  native?: BenchmarkStat;
-  cursor?: BenchmarkStat;
-  /** Warm median cost, native over cursor; absent when a side is. */
-  cost_ratio?: number;
+  /** Each harness the cell ran on, by harness. */
+  sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>;
+  /** Each side's warm median cost over native's, by harness; native itself is never listed, and a side without a median is left out. */
+  cost_ratio: Partial<Record<BenchmarkHarness, number>>;
 }
 
 /**
@@ -498,9 +514,8 @@ export interface BenchmarkReport {
     shell_background: ShellBackground;
   };
   models: {
-    /** The native arm's model: `--native-model`, else the parity pin. */
-    parity_native: string;
-    parity_cursor: string;
+    /** Each arm's model, by harness; native's is `--native-model`, else its parity pin. */
+    parity: Record<BenchmarkHarness, string>;
     judge_requested: string;
     /** The host the native model's calls went to, or the Anthropic backend's name; never a key or a path. */
     native_endpoint: string;
@@ -637,12 +652,45 @@ export function summarize(
   };
 }
 
-/** Native warm median cost over cursor's; `undefined` when either side has no median or cursor's cost is 0. */
-export function costRatio(native: BenchmarkStat | undefined, cursor: BenchmarkStat | undefined): number | undefined {
+/** A side's warm median cost over native's; `undefined` when either has no median or native's cost is 0. */
+export function costRatio(side: BenchmarkStat | undefined, native: BenchmarkStat | undefined): number | undefined {
+  if (side?.median === null || side?.median === undefined) return undefined;
   if (native?.median === null || native?.median === undefined) return undefined;
-  if (cursor?.median === null || cursor?.median === undefined) return undefined;
-  if (cursor.median.estimated_cost_micros === 0) return undefined;
-  return native.median.estimated_cost_micros / cursor.median.estimated_cost_micros;
+  if (native.median.estimated_cost_micros === 0) return undefined;
+  return side.median.estimated_cost_micros / native.median.estimated_cost_micros;
+}
+
+/** Every side's cost over native's, for the sides that are not native and have one (`costRatio`). */
+export function costRatios(sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>): Partial<Record<BenchmarkHarness, number>> {
+  const ratios: Partial<Record<BenchmarkHarness, number>> = {};
+  for (const harness of HARNESSES) {
+    if (harness === "deep-agent") continue;
+    const ratio = costRatio(sides[harness], sides["deep-agent"]);
+    if (ratio !== undefined) ratios[harness] = ratio;
+  }
+  return ratios;
+}
+
+/** What a comparison names of its scenario (cells.ts `Scenario`, read structurally so this module stays a leaf). */
+export interface ComparedScenario {
+  readonly name: string;
+  readonly prompts: readonly string[];
+  readonly mode: ComparisonMode;
+  readonly sessionShape: SessionShape;
+  readonly agent: AgentShape;
+}
+
+/** One scenario's comparison: each harness it ran on, and each side's cost over native's (`costRatios`). */
+export function comparisonOf(scenario: ComparedScenario, sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>): BenchmarkComparison {
+  return {
+    scenario: scenario.name,
+    prompts: [...scenario.prompts],
+    mode: scenario.mode,
+    session_shape: scenario.sessionShape,
+    agent: scenario.agent,
+    sides,
+    cost_ratio: costRatios(sides),
+  };
 }
 
 // ─── The reader ─────────────────────────────────────────────────────────────
@@ -654,7 +702,7 @@ const SHELL_BACKGROUNDS: readonly ShellBackground[] = ["on", "off"];
 /**
  * Refuses, by naming the field, a body that is not a current benchmark report. It
  * checks the discriminating fields and the shape every consumer walks
- * (`comparisons[].{native,cursor}.median`, `git.head_sha` and `git.code_sha`,
+ * (`comparisons[].sides.<harness>.median`, `git.head_sha` and `git.code_sha`,
  * `methodology.reps` and `shell_background`, the native arm in `models`,
  * `runner_log`) and trusts the rest to the producer: a full
  * structural check would be a second copy of the types above.
@@ -677,7 +725,8 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   requireNumber(methodology, "quality_reps", "report.methodology");
   requireOneOf(methodology, "shell_background", SHELL_BACKGROUNDS, "report.methodology");
   const models = asRecord(root["models"], "report.models");
-  requireString(models, "parity_native", "report.models");
+  const parity = asRecord(models["parity"], "report.models.parity");
+  for (const harness of HARNESSES) requireString(parity, harness, "report.models.parity");
   requireString(models, "native_endpoint", "report.models");
   requireOneOf(models, "native_api", NATIVE_APIS, "report.models");
   requireOneOf(models, "native_cost_basis", NATIVE_COST_BASES, "report.models");
@@ -688,17 +737,20 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
     requireString(comparison, "scenario", `report.comparisons[${index}]`);
     requireString(comparison, "mode", `report.comparisons[${index}]`);
     requireString(comparison, "agent", `report.comparisons[${index}]`);
-    for (const side of ["native", "cursor"] as const) {
-      if (comparison[side] === undefined) continue;
-      const stat = asRecord(comparison[side], `report.comparisons[${index}].${side}`);
-      requireNumber(stat, "n", `report.comparisons[${index}].${side}`);
+    const sides = asRecord(comparison["sides"], `report.comparisons[${index}].sides`);
+    asRecord(comparison["cost_ratio"], `report.comparisons[${index}].cost_ratio`);
+    for (const side of HARNESSES) {
+      if (sides[side] === undefined) continue;
+      const where = `report.comparisons[${index}].sides.${side}`;
+      const stat = asRecord(sides[side], where);
+      requireNumber(stat, "n", where);
       if (stat["median"] !== null) {
-        const measures = asRecord(stat["median"], `report.comparisons[${index}].${side}.median`);
-        requireNumber(measures, "estimated_cost_micros", `report.comparisons[${index}].${side}.median`);
-        asRecord(measures["tokens"], `report.comparisons[${index}].${side}.median.tokens`);
+        const measures = asRecord(stat["median"], `${where}.median`);
+        requireNumber(measures, "estimated_cost_micros", `${where}.median`);
+        asRecord(measures["tokens"], `${where}.median.tokens`);
       }
       if (!Array.isArray(stat["models"])) {
-        throw new Error(`not a benchmark report: comparisons[${index}].${side}.models is not an array`);
+        throw new Error(`not a benchmark report: comparisons[${index}].sides.${side}.models is not an array`);
       }
     }
   });

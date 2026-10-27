@@ -9,12 +9,18 @@
 // without the quality eval and refuses a wrong version, a missing field, a
 // malformed side, a quality eval without its document object, a native
 // arm without its endpoint, API or cost basis, and a v8 report without the
-// measured code's SHA or the runner's marker counts by name.
+// measured code's SHA or the runner's marker counts by name. A cost ratio is
+// each side's warm median over native's, for every side but native; a v11
+// report is keyed by engine, and the reader refuses a v10 report, a
+// comparison without its sides or its ratios, and an arm with no parity
+// model, by name.
 import { describe, expect, it } from "vitest";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
   cacheHitRatio,
+  comparisonOf,
   costRatio,
+  costRatios,
   median,
   medianMeasures,
   readBenchmarkReport,
@@ -95,6 +101,25 @@ describe("summarize", () => {
   });
 });
 
+describe("costRatios", () => {
+  const priced = (harness: "deep-agent" | "cursor" | "claude", micros: number) =>
+    summarize(harness, makeSample(), [makeSample({ measures: { ...makeSample().measures, estimated_cost_micros: micros } })], null);
+
+  it("is each side's warm median cost over native's, never native's own, and leaves out a side it cannot divide", () => {
+    expect(costRatios({ "deep-agent": priced("deep-agent", 200), cursor: priced("cursor", 100), claude: priced("claude", 500) })).toEqual({ cursor: 0.5, claude: 2.5 });
+    expect(costRatios({ claude: priced("claude", 500) }), "no native side, nothing to divide by").toEqual({});
+    expect(costRatios({ "deep-agent": priced("deep-agent", 0), claude: priced("claude", 500) }), "a native cost of 0").toEqual({});
+  });
+
+  it("comparisonOf names the scenario, keeps the sides by harness and their ratios over native", () => {
+    const sides = { "deep-agent": priced("deep-agent", 200), claude: priced("claude", 300) };
+    const comparison = comparisonOf({ name: "s", prompts: ["p"], mode: "parity", sessionShape: "fresh-per-execution", agent: "bare" }, sides);
+    expect([comparison.scenario, comparison.prompts, comparison.mode, comparison.session_shape, comparison.agent]).toEqual(["s", ["p"], "parity", "fresh-per-execution", "bare"]);
+    expect(comparison.sides).toBe(sides);
+    expect(comparison.cost_ratio).toEqual({ claude: 1.5 });
+  });
+});
+
 describe("readBenchmarkReport", () => {
   function validReport(): BenchmarkReport {
     return {
@@ -112,8 +137,7 @@ describe("readBenchmarkReport", () => {
         shell_background: "on",
       },
       models: {
-        parity_native: "claude-sonnet-4.6",
-        parity_cursor: "claude-sonnet-4-6",
+        parity: { "deep-agent": "claude-sonnet-4.6", cursor: "claude-sonnet-4-6", claude: "claude-sonnet-4.6" },
         judge_requested: "claude-sonnet-4.6",
         native_endpoint: "api.anthropic.com",
         native_api: "messages",
@@ -126,7 +150,8 @@ describe("readBenchmarkReport", () => {
           mode: "parity",
           session_shape: "fresh-per-execution",
           agent: "bare",
-          native: summarize("deep-agent", makeSample(), [makeSample()], null),
+          sides: { "deep-agent": summarize("deep-agent", makeSample(), [makeSample()], null), claude: summarize("claude", makeSample(), [makeSample()], null) },
+          cost_ratio: { claude: 1 },
         },
       ],
       quality: {
@@ -168,6 +193,10 @@ describe("readBenchmarkReport", () => {
     const withoutAgent = validReport();
     delete (withoutAgent.comparisons[0] as unknown as Record<string, unknown>)["agent"];
     expect(() => readBenchmarkReport(withoutAgent)).toThrow("report.comparisons[0].agent is missing");
+    const badModels = validReport();
+    const side = Object.values(badModels.comparisons[0]!.sides)[0] as unknown as Record<string, unknown>;
+    side["models"] = "claude-sonnet-4.6";
+    expect(() => readBenchmarkReport(badModels)).toThrow(/sides\.[a-z-]+\.models is not an array/);
   });
 
   it("refuses a report without the native arm's endpoint, API or cost basis, the v7 reports before one arm per run", () => {
@@ -191,7 +220,7 @@ describe("readBenchmarkReport", () => {
   });
 
   it("refuses the v8 reports before the measured code and the runner log, and either field missing, by name", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v10 benchmark report: schema_version is 8");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v11 benchmark report: schema_version is 8");
     const withoutCode = validReport() as unknown as { git: Record<string, unknown> };
     delete withoutCode.git["code_sha"];
     expect(() => readBenchmarkReport(withoutCode)).toThrow("report.git.code_sha is missing");
@@ -209,7 +238,7 @@ describe("readBenchmarkReport", () => {
   });
 
   it("refuses a v9 report, and one whose arm names no background setting or another word", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 9 })).toThrow("not a v10 benchmark report: schema_version is 9");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 9 })).toThrow("not a v11 benchmark report: schema_version is 9");
     const unnamed = validReport();
     delete (unnamed.methodology as unknown as Record<string, unknown>)["shell_background"];
     expect(() => readBenchmarkReport(unnamed)).toThrow("report.methodology.shell_background is missing, expected one of on, off");
@@ -229,8 +258,24 @@ describe("readBenchmarkReport", () => {
 
   it("refuses a side whose median is not a measures object", () => {
     const report = validReport();
-    (report.comparisons[0]!.native as unknown as { median: unknown }).median = 42;
-    expect(() => readBenchmarkReport(report)).toThrow("comparisons[0].native.median is a number");
+    (report.comparisons[0]!.sides.claude as unknown as { median: unknown }).median = 42;
+    expect(() => readBenchmarkReport(report)).toThrow("comparisons[0].sides.claude.median is a number");
+  });
+
+  it("refuses a v10 report, keyed by named sides, and a comparison or an arm a v11 report keys by engine without it", () => {
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 10 })).toThrow("not a v11 benchmark report: schema_version is 10");
+    const noSides = validReport() as unknown as { comparisons: Record<string, unknown>[] };
+    delete noSides.comparisons[0]!["sides"];
+    expect(() => readBenchmarkReport(noSides)).toThrow("report.comparisons[0].sides is missing");
+    const noRatios = validReport() as unknown as { comparisons: Record<string, unknown>[] };
+    delete noRatios.comparisons[0]!["cost_ratio"];
+    expect(() => readBenchmarkReport(noRatios)).toThrow("report.comparisons[0].cost_ratio is missing");
+    const noClaudeModel = validReport() as unknown as { models: { parity: Record<string, unknown> } };
+    delete noClaudeModel.models.parity["claude"];
+    expect(() => readBenchmarkReport(noClaudeModel)).toThrow("report.models.parity.claude is missing");
+    const noParity = validReport() as unknown as { models: Record<string, unknown> };
+    delete noParity.models["parity"];
+    expect(() => readBenchmarkReport(noParity)).toThrow("report.models.parity is missing");
   });
 
   it("refuses a body that is not an object", () => {

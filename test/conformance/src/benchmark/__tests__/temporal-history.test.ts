@@ -7,7 +7,8 @@
 // Pinned: the reader picks the EXECUTE activity's start, not the EnsureThread
 // hop's; EnsureThread's own duration is read scheduled-to-completed; a history
 // without the asked-for activity yields null, never zero; a body without an
-// events array is refused by name.
+// events array is refused by name; each harness label names its runner
+// activity, Claude's `ExecuteClaude`.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -50,6 +51,7 @@ describe("the wire names", () => {
   it("maps each harness label to its runner activity", () => {
     expect(executeActivityNameFor("deep-agent")).toBe("ExecuteDeepAgent");
     expect(executeActivityNameFor("cursor")).toBe("ExecuteCursor");
+    expect(executeActivityNameFor("claude")).toBe("ExecuteClaude");
   });
 });
 

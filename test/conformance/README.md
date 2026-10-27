@@ -176,7 +176,7 @@ their failure message, so a reproduced failure says what the runner published
 ### Benchmarking the harnesses (an experiment, not a test)
 
 `make benchmark-harnesses` (or `npm run benchmark:harnesses -w @stigmer/conformance -- <flags>`)
-drives the native and Cursor harnesses against **real providers** and writes
+drives the native, Cursor and Claude harnesses against **real providers** and writes
 the report the harness work is judged on. It boots the same
 MCP fixture + Temporal + server + runner stack the execution suites use, but
 with the runner in **direct mode** (no mock proxy) reading
@@ -185,9 +185,13 @@ with the runner in **direct mode** (no mock proxy) reading
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
 test` cannot reach it, and it spends money: at the defaults, twelve scenarios
-on two harnesses with one warm-up plus five samples each, three turns a
-sample on the four three-turn scenarios (240 executions), plus the quality
-arm's eval run (eleven cases, three tries each on each harness). Its numbers
+on each harness with one warm-up plus five samples each, three turns a
+sample on the four three-turn scenarios (120 executions a harness), plus the
+quality arm's eval run (eleven cases, three tries each on each harness).
+`--only native|cursor|claude` runs one harness; its report refuses the
+others' cells `excluded by --only`, which `benchmark-compare` reads as
+expected, so the arms of one instrument commit may be taken as one report
+each and pooled. Its numbers
 are a new baseline for the machine, model versions and runner they were
 taken on, compared only across arms of one instrument commit, machine and
 day, an arm being a model on one version of the code, as `benchmark-compare`
@@ -202,6 +206,14 @@ the working agent's memory runs its code too. The report records the
 checkout's HEAD as `git.code_sha` beside the instrument's `git.head_sha`; a
 path that is not a stigmer checkout is refused before anything boots.
 
+The Claude arm (`--only claude`) runs Anthropic's engine, the runner's own
+install of it, on the runner's `ANTHROPIC_API_KEY` in this direct mode, so a
+Claude cell needs the Anthropic key and nothing else. Its parity model is
+Claude Sonnet 4.6 under the Claude engine's own catalog row, the served model
+the native arm's parity cells pin, so a parity cell measures the engine and
+not the model; its `default` cells run the Claude engine's catalog default,
+as Cursor's run Cursor's.
+
 The native arm runs on Claude Sonnet 4.6 unless `--native-model <id>` names
 another model: a catalog id, or the own-endpoint form `openai:<name>` /
 `anthropic:<name>` the platform serves without a catalog row. Gemini runs
@@ -211,10 +223,11 @@ OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 npm run benchmark:harnesses -- --only native --native-model openai:<gemini id>`.
 The model replaces the parity pin in every native parity, turn-2 and working
 cell and in the native quality target; the native `default` cells are refused,
-and the Cursor arm, the judge and the prompts stay as they are. A native cell
+and the Cursor and Claude arms, the judge and the prompts stay as they are. A native cell
 needs the key of its model's provider. One run measures one native model,
 because the runner holds one OpenAI-slot key and address for the whole run.
-The report records the arm in `models`: the model, the host its
+The report records every arm's model in `models.parity`, by harness, and the
+native arm's in full: the model, the host its
 calls went to (`native_endpoint`, never a key or a path), the API they were
 made on (`native_api`) and whether the runner priced them from a catalog row
 or at its default rate (`native_cost_basis`). A default-rate cost is marked in
@@ -225,8 +238,13 @@ samples' tokens at the provider's published rate.
 commands turned off, through the runner's own setting
 (`STIGMER_SHELL_BACKGROUND_ENABLED=false`, the runner README): the engine as
 an operator who turned them off runs it, on the same commit, so an on and an
-off report differ in that alone. The report (schema v10) records the arm as
+off report differ in that alone. The report records the arm as
 `methodology.shell_background`.
+
+The report is keyed by engine (schema v11): each comparison's `sides` and
+`cost_ratio` (a side's warm median cost over native's), and `models.parity`,
+are records over the harnesses, so an engine joins or leaves the benchmark
+without a schema change.
 
 Two agents are measured. The **bare** agent (`support/agents.ts`
 `BARE_AGENT_INSTRUCTIONS`, the one the request-shape goldens photograph) runs
@@ -348,7 +366,7 @@ reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
 whether each arm holds the bar the reference arm sets (default: native on
 the parity model). An arm is a harness on one model at one endpoint,
 on one version of the code (`native/<model>@<host>#<code>`,
-`cursor/<model>#<code>`, the code being the first ten characters of
+`cursor/<model>#<code>`, `claude/<model>#<code>`, the code being the first ten characters of
 `git.code_sha`); a native report taken with background commands off is an
 arm of its own, `+background-off` after the code, so name the reference in
 full when reading it beside the arm with them on. `--reference` takes a label, or a prefix of one ending
@@ -407,9 +425,11 @@ through every restart, resuming from its last seq. At the end the session's
 log must read back unbroken, and the follower must have been sent exactly
 that log, once and in order. Otherwise the transcript reads broken and the
 script exits 1. The `long-turn-real-clock.yaml` workflow runs it on demand.
-`npm run long-turn:live -- --harness deep-agent|cursor` plays the same
+`npm run long-turn:live -- --harness deep-agent|cursor|claude` plays the same
 profiles against a real provider on the benchmark's stack, with the same
-follower and verdict. Its ceiling is the product's own cost cap
+follower and verdict. On Claude the agent lists one saved helper on Claude
+for the subagent step, which the step names with the engine's `Agent` tool:
+the engine has no general-purpose helper of its own. Its ceiling is the product's own cost cap
 (`spec.run_config.max_cost_usd`). That stack restarts its runner for the
 kill and drain steps, but has no server door, so a `server-restart` step is
 released as it is.

@@ -1,7 +1,8 @@
 // The long turn's plan (../profile.ts): the three profiles' shapes, the
 // bulk reads that cross three compactions, a step subset, each step's shell
 // and what its markers say (a chained step's key among them), run for real
-// through `sh`.
+// through `sh`, and the live narration of a subagent step, to native's
+// built-in helper or to a saved one by name.
 // Domain: conformance long turn (pure, plus one real shell per step kind).
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -161,6 +162,9 @@ describe("the step shells", () => {
     expect(narrated).toContain("with a timeout of 360 seconds");
     expect(narrated).toContain("sleep 240");
     expect(narrated.match(/"/g), "the quoted task holds no inner double quote").toHaveLength(2);
+    const saved = narrateStep({ kind: "subagent", id: "a", seconds: 240 }, files, { tool: "Agent", name: "long-turn-helper-1", saved: true });
+    expect(saved, "an engine with no general-purpose helper is handed a saved one by its name and its tool").toMatch(/^Hand this to the long-turn-helper-1 subagent with the Agent tool/);
+    expect(saved.slice(saved.indexOf(":")), "the same task").toBe(narrated.slice(narrated.indexOf(":")));
   });
 
   it("names a timeout past each long step's length, a long one for a held step, and none for a bulk read", () => {

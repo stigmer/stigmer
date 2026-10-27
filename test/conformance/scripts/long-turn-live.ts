@@ -16,8 +16,12 @@
 // run's spec.run_config.max_cost_usd carries it, the server keeps the smallest
 // bound any layer sets (domain/run/resolve-run-config.ts), and the runtime
 // ends the turn `budget_reached` at the crossing (harness/cost-cap-watch.ts).
-// Defaults: $10 a run on native, $20 on Cursor (which bills the Cursor
-// account).
+// Defaults: $10 a run on native and on Claude, $20 on Cursor (which bills
+// the Cursor account).
+//
+// On Claude (`--harness claude`) the agent lists one saved helper on Claude
+// for the `subagent` step, and the step names it with the engine's `Agent`
+// tool: Claude has no general-purpose helper of its own (stigmer#2589).
 //
 // The profile's `kill` and `drain` steps end the runner through the stack's
 // door (`restartRunner`, src/benchmark/run.ts), as the real-clock run does
@@ -50,20 +54,19 @@
 // bundled steps, or that compacted fewer than three times, reads void.
 // `--profile retention --model claude-haiku-4.5` is the goal-retention probe.
 //
-// Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native,
+// Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native and Claude,
 // CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
 //
 // Flags: those of the real-clock run (--profile, --minutes, --steps, --out),
-// plus --harness deep-agent|cursor (default deep-agent), --model <registry id>
+// plus --harness deep-agent|cursor|claude (default deep-agent), --model <registry id>
 // (default the harness's parity model) and --max-cost-usd N.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { PARITY_MODEL } from "../src/benchmark/cells";
-import type { BenchmarkHarness } from "../src/benchmark/report";
+import { PARITY_MODEL, SESSION_HARNESS } from "../src/benchmark/cells";
+import { HARNESSES, type BenchmarkHarness } from "../src/benchmark/report";
 import { bootBenchmarkStack } from "../src/benchmark/run";
 import { driveLongTurn } from "../src/long-turn/drive";
-import { CHAIN_KEY, narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
+import { CHAIN_KEY, GENERAL_PURPOSE_HELPER, narrateStep, parseLongTurnFlags, profileOf, type StepFiles, type StepHelper } from "../src/long-turn/profile";
 import { compactionVerdictOf, finishedCheckOf, goalVerdictOf, messageVerdictOf, stepFidelityOf, transcriptVerdictOf, writeLongTurnReport, type LongTurnReport } from "../src/long-turn/report";
 import { AttentionFollower } from "../src/long-turn/follow";
 import { agentRefOf, makeAgent } from "../src/support/agents";
@@ -72,8 +75,11 @@ import { createUniqueOrganization } from "../src/support/organizations";
 import { makeAgentExecution } from "../src/support/runs";
 
 /** The product cost cap each harness's run carries unless --max-cost-usd says otherwise. */
-const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { "deep-agent": 10, cursor: 20 };
-const KEY_OF: Record<BenchmarkHarness, string> = { "deep-agent": "ANTHROPIC_API_KEY", cursor: "CURSOR_API_KEY" };
+const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { "deep-agent": 10, cursor: 20, claude: 10 };
+const KEY_OF: Record<BenchmarkHarness, string> = { "deep-agent": "ANTHROPIC_API_KEY", cursor: "CURSOR_API_KEY", claude: "ANTHROPIC_API_KEY" };
+
+/** Whether the harness's `subagent` step needs a saved helper: its engine has no general-purpose one. */
+const NEEDS_SAVED_HELPER: Record<BenchmarkHarness, boolean> = { "deep-agent": false, cursor: false, claude: true };
 
 /**
  * The live agent says what the run is. Without it a model reads a list of
@@ -91,8 +97,8 @@ const LIVE_AGENT_INSTRUCTIONS =
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const flags = parseLongTurnFlags(argv);
-  if (flags.harness !== "deep-agent" && flags.harness !== "cursor") throw new Error(`--harness must be deep-agent or cursor, not '${flags.harness}'`);
-  const harness: BenchmarkHarness = flags.harness;
+  const harness = HARNESSES.find((candidate) => candidate === flags.harness);
+  if (harness === undefined) throw new Error(`--harness must be ${HARNESSES.join(", ")}, not '${flags.harness}'`);
   if (!process.env[KEY_OF[harness]]) throw new Error(`${KEY_OF[harness]} is not set: the live ${harness} run needs it`);
   const capIndex = argv.indexOf("--max-cost-usd");
   const maxCostUsd = capIndex >= 0 ? Number(argv[capIndex + 1]) : DEFAULT_MAX_COST_USD[harness];
@@ -126,7 +132,18 @@ async function main(): Promise<void> {
   try {
     const { clients } = stack;
     const { id: org } = await createUniqueOrganization(clients.organizationCommand, "the live long turn");
-    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-live-agent"), instructions: LIVE_AGENT_INSTRUCTIONS }));
+    let helper: StepHelper = GENERAL_PURPOSE_HELPER;
+    const subagents: string[] = [];
+    if (NEEDS_SAVED_HELPER[harness]) {
+      const saved = await clients.agentCommand.create(
+        makeAgent({ org, name: uniqueName("long-turn-live-helper"), instructions: LIVE_AGENT_INSTRUCTIONS, harness: SESSION_HARNESS[harness] }),
+      );
+      helper = { tool: "Agent", name: saved.metadata!.slug, saved: true };
+      subagents.push(saved.metadata!.slug);
+    }
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("long-turn-live-agent"), instructions: LIVE_AGENT_INSTRUCTIONS, ...(subagents.length > 0 ? { subagents } : {}) }),
+    );
     attention = new AttentionFollower(clients, org);
     const message = [
       "This is the platform's long-turn measurement: the operator wants each step below run exactly as written, to see how a turn that runs for a long time is carried. " +
@@ -136,7 +153,7 @@ async function main(): Promise<void> {
         (profile.steps.some((step) => step.kind === "chained")
           ? ` Each step's output ends with a line 'next key: ...'; the next step's command takes that key in place of ${CHAIN_KEY}.`
           : ""),
-      ...profile.steps.map((step, i) => `${i + 1}. ${narrateStep(step, files)}`),
+      ...profile.steps.map((step, i) => `${i + 1}. ${narrateStep(step, files, helper)}`),
       `When every step is done, write the file '${finishedFile}' with the shell, holding three lines: the id of the first step you ran ` +
         "(the word after 'start' in its command), the id of the last, and how many steps you ran. Then reply with exactly: done",
     ].join("\n");
@@ -145,7 +162,7 @@ async function main(): Promise<void> {
         org,
         name: uniqueName("long-turn-live-run"),
         agentRef: agentRefOf(agent),
-        sessionSpec: { harness: harness === "cursor" ? Harness.CURSOR : Harness.NATIVE },
+        sessionSpec: { harness: SESSION_HARNESS[harness] },
         message,
         autoApproveAll: true,
         runConfig: { modelName: profile.model, maxCostUsd },
