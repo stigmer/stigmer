@@ -37,6 +37,8 @@
  * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | `streamed` (`forwardSubagentText`)        | (no sub-agents)                                |
  * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | `checkpoint` (the session store's transcript) | (surveyed later)                  |
  * | `contextCompaction` | `runner-summarizer` (deepagents' in the graph) | `vendor-server` (Cursor's server) | `engine-cli` (the SDK's own)           | (surveyed later)                               |
+ * | `readsToolMarks`  | yes (it loads the MCP tools itself) | no (the runtime lists each server's tools at turn start) | yes (the host's bridge loads them, `mcp-bridge.ts`) | (surveyed later)                  |
+ * | `midTurnInput`    | `next-step` (before the next model call) | `next-step` (steered into the running run; once it ends when Cursor refuses a steer) | `next-step` (pushed into the open prompt, `mid-turn-input.ts`) | (surveyed later) |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a

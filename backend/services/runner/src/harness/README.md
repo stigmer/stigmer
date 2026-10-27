@@ -193,8 +193,8 @@ What the contract requires:
   `activities/execute-claude/translator.ts`.
 
 Everything else in an adapter's folder is the engine's business and is not a
-template: 25 of the native adapter's 28 modules, 37 of the Cursor adapter's 40
-and 17 of the Claude adapter's 20, at the commit the footprint below measures. That business is:
+template: 24 of the native adapter's 27 modules, 37 of the Cursor adapter's 40
+and 23 of the Claude adapter's 26, counted as the footprint below counts files. That business is:
 
 - how the engine is created or resumed,
 - how the prompt is placed,
@@ -237,8 +237,8 @@ What every adapter's test side carries:
 
 ## Sites a new harness touches
 
-Measured on 2026-10-26 at eee33f6bd3 with the change that offered Claude
-applied. Every list in this section is dated by that line.
+Measured on 2026-10-27 at d4006a60a5 with the change that added the Claude
+engine's upgrade skill applied. Every list in this section is dated by that line.
 
 ### In the runner
 
@@ -349,8 +349,9 @@ sites the compiler cannot see: prose, data and rules true of one engine.
 | `sdk/react/src/usage/HarnessSplitCard.tsx` | A colour per harness in the usage split. |
 | `sdk/react/src/run/tool-categories.ts` | The file-tool fields of each engine's tool shapes. |
 | `sdk/typescript/src/eval-run/result-document.ts` | The engine's word in an eval result. |
-| `test/conformance/src/benchmark/cells.ts`, `test/conformance/src/benchmark/compare.ts`, `test/conformance/src/benchmark/run.ts`, `test/conformance/src/benchmark/report.ts`, `test/conformance/src/benchmark/quality-eval.ts`, `test/conformance/src/benchmark/temporal-history.ts`, `test/conformance/scripts/benchmark-harnesses.ts`, `test/conformance/scripts/long-turn-live.ts` | The benchmark's harness list and its per-harness keys, models, costs and sides. |
-| `docs/concepts/harnesses.mdx`, `docs/guides/runners/cursor-harness.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current. |
+| `test/conformance/src/benchmark/cells.ts`, `test/conformance/src/benchmark/compare.ts`, `test/conformance/src/benchmark/run.ts`, `test/conformance/src/benchmark/report.ts`, `test/conformance/src/benchmark/temporal-history.ts`, `test/conformance/scripts/benchmark-harnesses.ts`, `test/conformance/scripts/long-turn-live.ts` | The benchmark's harness list and its per-harness keys, models, costs and sides. |
+| `test/conformance/src/support/engine-arms.ts` | The execution conformance suite's engine arms: how each engine's tool calls are scripted on the wire mock. A harness the suite proves adds an arm. |
+| `docs/concepts/harnesses.mdx`, `docs/guides/runners/cursor-harness.mdx`, `docs/guides/runners/claude-harness.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current. |
 
 The cloud composition that serves api.stigmer.ai has sites of the same classes
 (run admission, the usage meter's call description, the channel broker's
@@ -425,11 +426,14 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `.github/workflows/release.runner-images.yaml`,
   `client-apps/desktop/scripts/stage-runner-slim.sh`,
   `client-apps/desktop/scripts/macos-codesign-tree.sh`,
-  `client-apps/desktop/scripts/verify-staged-runtime.mjs` (name the vendor SDKs
-  in comments or version listings; a harness whose SDK ships a native helper
-  touches the staging and signing scripts).
+  `client-apps/desktop/scripts/verify-staged-runtime.mjs`,
+  `test/install/lib/claude-engine.mjs` (name the vendor SDKs in comments or
+  version listings; a harness whose SDK ships a native helper touches the
+  staging and signing scripts, and one whose engine ships in the images, the
+  image smokes' engine probe).
 - Guidance and docs: `backend/services/runner/AGENTS.md`,
-  `.agents/skills/runner-dev-guidelines/SKILL.md`, `docs/concepts/agents.mdx`,
+  `.agents/skills/runner-dev-guidelines/SKILL.md`,
+  `.agents/skills/upgrade-claude-engine/SKILL.md`, `docs/concepts/agents.mdx`,
   `docs/concepts/sessions.mdx`,
   `docs/guides/integrations/model-provider-keys.mdx`.
 - Tests and fixtures: `test/e2e/helpers/approval.ts`,
@@ -440,6 +444,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `test/fixtures/tool-view/result-views.json`, `test/support/src/llm-wire.ts`,
   `test/conformance/inventory/cloud-capabilities.yaml`,
   `test/conformance/src/benchmark/judge/calibrate.ts`,
+  `test/conformance/src/benchmark/quality-eval.ts`,
   `test/conformance/src/benchmark/tool-call-facts.ts`,
   `test/conformance/src/long-turn/profile.ts`.
 - Inside the runner: comments across `shared/` and the composition roots that
@@ -545,8 +550,8 @@ second net: they pin a turn's persisted status byte for byte.
 
 ## Footprint
 
-Measured on 2026-10-26 at 49dad9ecd3 with the change that gave the Claude adapter
-its approvals and hooks applied, production TypeScript only, `__tests__/` and `__test-utils__/`
+Measured on 2026-10-27 at d4006a60a5 with the change that added the Claude
+engine's upgrade skill applied, production TypeScript only, `__tests__/` and `__test-utils__/`
 excluded. Run from `backend/services/runner/` to re-measure:
 
 ```bash
@@ -561,11 +566,12 @@ done
 | -------------------------------------------------------------------------------------------------------- | ------ | ----- |
 | The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator | 609    | 1     |
 | The native adapter, `activities/execute-deep-agent/`                                                     | 6,273  | 27    |
-| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,933 | 40    |
-| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 4,416  | 24    |
-| The runtime, `harness/`, for scale: written once                                                         | 11,397 | 29    |
+| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,921 | 40    |
+| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 5,357  | 26    |
+| The runtime, `harness/`, for scale: written once                                                         | 11,415 | 29    |
 | The test side the native adapter adds: its subject, its hermetic kit file, its two fences                | 935    | 4     |
-| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 883    | 5     |
+| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 791    | 5     |
+| The engine reader that wire stack shares with the conformance suite, `test/support/src/claude-engine-wire.ts` | 190 | 1 |
 
 ## Design history
 

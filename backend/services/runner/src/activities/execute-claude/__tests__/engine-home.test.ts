@@ -80,7 +80,7 @@ describe("enginesRoot", () => {
   });
 
   it("names one version's home under claude/", () => {
-    expect(engineHomeDir("/r", "0.3.310")).toBe(join("/r", "claude", "0.3.310"));
+    expect(engineHomeDir("/r", "0.0.0-any")).toBe(join("/r", "claude", "0.0.0-any"));
   });
 });
 
