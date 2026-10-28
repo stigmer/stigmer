@@ -30,6 +30,9 @@
  * failure messages reach the status verbatim, where a real engine's
  * classifier rephrases them.
  *
+ * A failed turn's log line names its cause's whole chain, so a call that
+ * failed on the network reads as its network error, not "fetch failed".
+ *
  * The runtime's wait on the sandbox's Environment install
  * (`environment/install.ts`) is pinned here too: a turn awaits the boot's
  * install before its resolution, so a failed install fails the turn with
@@ -497,6 +500,38 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
       expect(persisted).toBe("persisted");
       expect(slimOf(fromOutside.subject, invocation).phase).toBe("RUN_COMPLETED");
+    });
+  });
+
+  describe("a failed turn's log line", () => {
+    it("names the whole cause chain, down to the network error", async () => {
+      const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+      const connection = Object.assign(new Error("Connection error.", { cause: new TypeError("fetch failed", { cause: reset }) }), {
+        name: "APIConnectionError",
+      });
+      const failsWithCause: HarnessAdapter = {
+        ...subject.adapter,
+        name: "fails-with-cause",
+        boot: (config) => subject.adapter.boot(config),
+        shutdown: () => subject.adapter.shutdown(),
+        releaseSession: (sessionId) => subject.adapter.releaseSession(sessionId),
+        runTurn: async () => ({ kind: "failed", surface: "engine", message: "the model could not be reached", cause: connection }),
+      };
+      const failing: RuntimeContractHarness = { ...harness, subject: { ...subject, name: failsWithCause.name, adapter: failsWithCause } };
+      await failsWithCause.boot(subject.config);
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        clock.reset();
+        const invocation = await new RuntimeExecutionDriver(failing, "fake-fails-with-cause").turn([]);
+        expect(slimOf(failing.subject, invocation).phase).toBe("RUN_FAILED");
+        const lines = consoleError.mock.calls.map((call) => String(call[0]));
+        const failed = lines.find((line) => line.includes("failed (engine)"));
+        expect(failed).toContain(
+          "cause=APIConnectionError: Connection error. <- TypeError: fetch failed <- Error ECONNRESET: read ECONNRESET",
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 

@@ -38,14 +38,16 @@
  * union of what its agents may call; each agent is narrowed to its own by
  * its definition and by the gate's closed world (`agents.ts`, `gate.ts`).
  *
- * Every connection is closed when the turn ends (`turn.ts`).
+ * Every connection is closed when the turn ends (`turn.ts`). A failed
+ * connect's network error is logged (`shared/mcp-network-errors.ts`).
  */
 
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 
-import { toMcpClientConfig } from "../../shared/mcp-manager.js";
+import { httpServerUrlsOf, toMcpClientConfig } from "../../shared/mcp-manager.js";
+import { withNetworkErrorCapture } from "../../shared/mcp-network-errors.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { sanitizeSchemaPatterns } from "../../shared/mcp-schema-sanitizer.js";
 import { definitionOf, type McpToolListing } from "../../shared/mcp-tool-listing.js";
@@ -98,7 +100,7 @@ export async function connectBridge(
   if (Object.keys(config).length === 0) return NO_BRIDGE;
   const connections = new MultiServerMCPClient(config);
   try {
-    await connections.initializeConnections();
+    await withNetworkErrorCapture(httpServerUrlsOf(config), () => connections.initializeConnections());
     const bridged: BridgedServer[] = [];
     for (const slug of Object.keys(config)) {
       const client = await connections.getClient(slug);

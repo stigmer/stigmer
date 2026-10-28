@@ -77,9 +77,9 @@ import {
   type FailedAttemptHandler,
 } from "@langchain/core/utils/async_caller";
 
+import { causeChainOf } from "./error-chain.js";
 import {
   PROVIDER_KEY_REQUIRED_SENTINEL,
-  causeChainOf,
   isModelTimeout,
   isProviderBillingMessage,
   providerErrorTypeOf,

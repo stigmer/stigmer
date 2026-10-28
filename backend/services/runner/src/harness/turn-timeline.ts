@@ -49,6 +49,14 @@
  *     a call the engine held before it ran is not a tool phase.
  *   - One `sub_agent:<name>` span per `subAgentId`, opened by
  *     `sub_agent_started`, closed by `finished` or `failed`.
+ *   - Rounds and tool calls count delegated work too: a sub-agent's model
+ *     rounds and tool calls (its events carry its `subAgentId`) open spans
+ *     like the main agent's, so the line's `rounds` and `tool_calls` are the
+ *     whole turn's, and a turn that delegated reports more of each than its
+ *     main agent made; `sub_agents` counts the delegations. A reader comparing
+ *     the main agent's own loop across turns reads them with `sub_agents`
+ *     beside them (the benchmark report reads them so,
+ *     `test/conformance/src/benchmark/report.ts`).
  *   - One `background_command:<callId>` span per command the agent started
  *     in the background, `background_command_started` to
  *     `background_command_ended`, keyed by the starting call's id; and one
