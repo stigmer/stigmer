@@ -257,6 +257,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | GitHubQueryController.listRepositories | `org` |
 | GitHubQueryController.searchRepositories | `org` |
 
+## `ai.stigmer.platform.v1`
+
+| Method | Organization fields |
+|---|---|
+| PlatformQueryController.getModelReadiness | `org` |
+
 ## `ai.stigmer.search.v1`
 
 | Method | Organization fields |
