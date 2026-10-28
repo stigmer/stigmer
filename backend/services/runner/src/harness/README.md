@@ -342,8 +342,8 @@ change on that side too.
 
 ### Outside the runner: the sites that refuse
 
-`backend/services/stigmer-server/src/domain/session/harness.ts` holds the
-offered set (`OFFERED_HARNESSES`) and the refusal. The step that applies it is
+`backend/services/stigmer-server/src/domain/session/harness.ts` holds each
+harness's label and offer (`HARNESSES`) and the refusal. The step that applies it is
 added to the agent, session, routine and eval-run write chains
 (`backend/services/stigmer-server/src/domain/agent/controller.ts`,
 `backend/services/stigmer-server/src/domain/session/controller.ts`,
@@ -352,10 +352,10 @@ added to the agent, session, routine and eval-run write chains
 the message admission chain after `ResolveRunConfig`
 (`backend/services/stigmer-server/src/domain/run/refuse-unoffered-engine.ts`,
 again in `backend/services/stigmer-server/src/domain/run/create-steps.ts`
-after a re-resolve). Offering a harness is one entry
-in `OFFERED_HARNESSES`, with the surfaces above that offer it. Every engine the
-proto names is offered today, so the rule refuses a number the proto does not
-name, and the next engine the proto names until it is offered.
+after a re-resolve). Offering a harness is its entry in `HARNESSES`, with the
+surfaces above that offer it. Every harness the proto names is offered today,
+so the rule refuses a number the proto does not name, and the next harness the
+proto names until it is offered.
 
 ### Outside the runner: sites that pass the value through
 
