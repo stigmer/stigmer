@@ -52,5 +52,20 @@
       "content": "Done.",
       "timestamp": "2026-01-01T00:00:04.000Z"
     }
+  ],
+  "mcpToolDefinitions": [
+    {
+      "mcpServerSlug": "docs",
+      "name": "lookup",
+      "description": "Look a thing up.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string"
+          }
+        }
+      }
+    }
   ]
 }

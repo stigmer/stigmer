@@ -1,0 +1,108 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Looking up the first."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_mcp_tool_definition": {
+      "id": "aex_hermetic_0001.def.he550ff649aff2c1ece5dd8aa2d24e7c4",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-mcp-def-0001",
+      "mcp_server_name": "docs",
+      "name": "lookup",
+      "description": "Look a thing up in the docs.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "What to look up."
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0001",
+      "input": {
+        "q": "alpha"
+      },
+      "mcp_server_name": "docs",
+      "name": "lookup"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0001.r",
+      "mcp_tool_use_id": "aex_hermetic_0001.call-hermetic-mcp-def-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "Found alpha."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Now the second."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0002",
+      "input": {
+        "q": "beta"
+      },
+      "mcp_server_name": "docs",
+      "name": "lookup"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0002.r",
+      "mcp_tool_use_id": "aex_hermetic_0001.call-hermetic-mcp-def-0002",
+      "content": [
+        {
+          "type": "text",
+          "text": "Found beta."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m2",
+      "content": [
+        {
+          "type": "text",
+          "text": "Both found."
+        }
+      ]
+    }
+  }
+]

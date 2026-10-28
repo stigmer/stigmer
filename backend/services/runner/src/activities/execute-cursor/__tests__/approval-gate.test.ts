@@ -263,7 +263,7 @@ describe("buildApprovalState", () => {
     const scope = compileHookToolScope({
       scope: ToolScope.of('Agent "a"', { tools: ["Read", "mcp__planton__get_cloud_resource"], disallowedTools: [] }),
       servers: [{ slug: "planton" }],
-      listing: { listed: [{ server: "planton", tools: ["get_cloud_resource", "apply_x"] }], destructive: [], unlisted: [] },
+      listing: { listed: [{ server: "planton", tools: ["get_cloud_resource", "apply_x"] }], destructive: [], unlisted: [], offered: [] },
       platformServerSlugs: new Set(),
       readRoot: "/platform",
       subAgentTypes: [],

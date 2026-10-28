@@ -165,6 +165,7 @@ export function listingOf(servers: readonly { slug: string; listedTools: readonl
     listed: servers.flatMap(({ slug, listedTools }) => (listedTools === null ? [] : [{ server: slug, tools: listedTools }])),
     destructive: [],
     unlisted: servers.filter(({ listedTools }) => listedTools === null).map(({ slug }) => slug),
+    offered: [],
   };
 }
 

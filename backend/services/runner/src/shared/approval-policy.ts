@@ -324,7 +324,7 @@ export function buildMcpApprovalDefault(
 }
 
 /** Nothing listed yet: the leases alone, before an engine reads its tools' marks. */
-export const NOTHING_LISTED: McpToolListing = { listed: [], destructive: [], unlisted: [] };
+export const NOTHING_LISTED: McpToolListing = { listed: [], destructive: [], unlisted: [], offered: [] };
 
 /**
  * Derive the authorization provenance — what decided this tool's approval —

@@ -29,11 +29,12 @@
  *  - The adapter-owned rows ({@link WireProjection}), host to runner, on
  *    every persist and at settle: the turn's rows the adapter writes
  *    ({@link ADAPTER_OWNED_ROW_FIELDS}, a `TurnRows`: messages, sub-agent
- *    rows, todos, the structured output and the background commands). The field ownership is
+ *    rows, todos, the structured output, the background commands and the
+ *    definitions of the MCP tools the turn called). The field ownership is
  *    `TurnSink`'s (`harness/types.ts`): the adapter creates and amends those
  *    while its turn runs; the runtime writes every other row and every
  *    status field, and edits the adapter's rows only before `runTurn` or
- *    after it returns. So while a turn runs, the host's copy of those five
+ *    after it returns. So while a turn runs, the host's copy of those six
  *    fields is the only writer, and the runner replaces its copy wholesale. Arrays are replaced
  *    in place (`splice`), never reassigned: the runtime's transcript builder
  *    and its chokepoint hold the rows' and the status's own arrays
@@ -473,7 +474,14 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
  * The rows an adapter writes while its turn runs (`TurnSink`'s ownership
  * list, `harness/types.ts`). The turn's other rows are the runtime's.
  */
-export const ADAPTER_OWNED_ROW_FIELDS = ["messages", "subAgentRuns", "todos", "structuredOutput", "backgroundCommands"] as const;
+export const ADAPTER_OWNED_ROW_FIELDS = [
+  "messages",
+  "subAgentRuns",
+  "todos",
+  "structuredOutput",
+  "backgroundCommands",
+  "mcpToolDefinitions",
+] as const;
 
 /** Every status field is the runtime's; an adapter reads them and never writes one. */
 const RUNTIME_OWNED_FIELDS: readonly DescField[] = RunStatusSchema.fields;
@@ -503,6 +511,7 @@ export function encodeAdapterProjection(turn: TurnFields): WireProjection {
         subAgentRuns: rows.subAgentRuns,
         todos: rows.todos,
         backgroundCommands: rows.backgroundCommands,
+        mcpToolDefinitions: rows.mcpToolDefinitions,
         ...(rows.structuredOutput !== undefined ? { structuredOutput: rows.structuredOutput } : {}),
       }),
     ),
@@ -519,6 +528,7 @@ export function applyAdapterProjection(target: TurnFields, projection: WireProje
   target.rows.messages.splice(0, target.rows.messages.length, ...rows.messages);
   target.rows.subAgentRuns.splice(0, target.rows.subAgentRuns.length, ...rows.subAgentRuns);
   target.rows.backgroundCommands.splice(0, target.rows.backgroundCommands.length, ...rows.backgroundCommands);
+  target.rows.mcpToolDefinitions.splice(0, target.rows.mcpToolDefinitions.length, ...rows.mcpToolDefinitions);
   for (const id of Object.keys(target.rows.todos)) {
     if (!(id in rows.todos)) delete target.rows.todos[id];
   }

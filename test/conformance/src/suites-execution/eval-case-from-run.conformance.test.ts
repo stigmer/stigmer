@@ -7,15 +7,18 @@
 //     agent writes itself, becomes a case: its request as the prompt, the
 //     first turn as the history (`history.jsonl`, named by `case.yaml`), the
 //     tool's recorded answer as a fixed mock under the server's own name,
-//     and a rubric to fill in; nothing the case leaves out is noted;
+//     the tool as the run offered it to the model (its description and
+//     input schema, in the server's `_tools.json`), and a rubric to fill
+//     in; nothing the case leaves out is noted;
 //   - the case added to an eval is a new version holding the eval's case
 //     and the new one, the version's message naming the case and the run; a
 //     second add of the same name is ALREADY_EXISTS, naming both; an eval of
 //     another organization than the run's is FAILED_PRECONDITION;
 //   - an eval run of that eval on the agent runs the new case: the try
 //     resumes the recorded conversation (the model is sent the first turn),
-//     the mock stands in for the server (which is never connected), and the
-//     case is graded on its rubric's votes.
+//     the mock stands in for the server (which is never connected) and
+//     offers the model the tool as the run offered it, and the case is
+//     graded on its rubric's votes.
 //
 // The refusals that need no finished run are Class A's
 // (suites/eval-case-from-run.conformance.test.ts).
@@ -52,6 +55,24 @@ import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture, sessionIdOf } from "../support/runs";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
+
+/** The fixture's echo tool as its server lists it (harness/mcp-server.ts). */
+const ECHO_DESCRIPTION = "Returns the input text unchanged. For deterministic conformance assertions.";
+const ECHO_TEXT_DESCRIPTION = "the value to echo back";
+
+/** A tool of a `_tools.json` (MCP's `tools/list` shape). */
+interface OfferedTool {
+  readonly name: string;
+  readonly description?: string;
+  readonly inputSchema?: { readonly properties?: Record<string, unknown> };
+}
+
+/** A tool as an Anthropic request offers it to the model. */
+interface OfferedToAnthropic {
+  readonly name: string;
+  readonly description?: string;
+  readonly input_schema?: { readonly properties?: Record<string, unknown> };
+}
 
 // Read once at collection time to gate the engine-backed arms.
 const runnerServesTries = createTarget().capabilities.runnerActsAsRunCreator;
@@ -147,6 +168,7 @@ describe.skipIf(!runnerServesTries)("an eval case built from a run", () => {
       `${CASE}/case.yaml`,
       `${CASE}/graders/criteria.md`,
       `${CASE}/history.jsonl`,
+      `${CASE}/mocks/${SERVER}/_tools.json`,
       `${CASE}/mocks/${SERVER}/${ECHO_TOOL_NAME}.md`,
       `${CASE}/prompt.md`,
     ]);
@@ -157,6 +179,9 @@ describe.skipIf(!runnerServesTries)("an eval case built from a run", () => {
     expect(files[`${CASE}/case.yaml`]).toContain("history_file: history.jsonl");
     const lookupMock = files[`${CASE}/mocks/${SERVER}/${ECHO_TOOL_NAME}.md`] ?? "";
     expect([lookupMock.startsWith("---\ntype: fixed\n"), lookupMock.includes(LOOKUP)]).toEqual([true, true]);
+    const [listed] = (JSON.parse(files[`${CASE}/mocks/${SERVER}/_tools.json`] ?? "{}") as { tools?: OfferedTool[] }).tools ?? [];
+    expect([listed?.name, listed?.description], "the tool as the run offered it").toEqual([ECHO_TOOL_NAME, ECHO_DESCRIPTION]);
+    expect(listed?.inputSchema?.properties?.["text"], "with its input schema").toMatchObject({ type: "string", description: ECHO_TEXT_DESCRIPTION });
     expect(files[`${CASE}/graders/criteria.md`]).toContain("type: llm");
     expect(built.notes).toEqual([]);
 
@@ -203,6 +228,14 @@ describe.skipIf(!runnerServesTries)("an eval case built from a run", () => {
     const resumed = mock.scriptedRequests().some((request) => JSON.stringify(request.body).includes(FIRST_REQUEST));
     expect(resumed, "the try's model is sent the recorded first turn").toBe(true);
     expect(mcp.capturedRequests().map((r) => r.method), "the mocked server is never connected").toEqual([]);
+    const offered = mock
+      .scriptedRequests()
+      .flatMap((request) => ((request.body as { tools?: OfferedToAnthropic[] }).tools ?? []).filter((tool) => tool.name === ECHO_TOOL_NAME));
+    expect(offered.length, "the try's model is offered the tool").toBeGreaterThan(0);
+    for (const tool of offered) {
+      expect(tool.description, "as the run offered it, never the stand-in's generic one").toBe(ECHO_DESCRIPTION);
+      expect(tool.input_schema?.properties?.["text"]).toMatchObject({ type: "string", description: ECHO_TEXT_DESCRIPTION });
+    }
   }, 480_000);
 
   it("[rpc:EvalCommandController.addCaseFromRun] refuses an eval of another organization than the run's", async () => {

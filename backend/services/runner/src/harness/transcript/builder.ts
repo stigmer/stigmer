@@ -90,6 +90,13 @@
  *     its end are discrete changes; its first end is final. Its output
  *     builds nothing and reaches the observer only. The starting call's own
  *     row and result are untouched.
+ *   - What the engine offers the model of each MCP tool arrives once, at its
+ *     setup ({@link offerTools}), and is held here, never on the rows: the
+ *     first row this builder opens for a tool (a start or a proposal) projects
+ *     that tool's definition into `rows.mcp_tool_definitions`, once per
+ *     server and tool, so the rows carry the definitions of the tools the
+ *     turn called and nothing of the rest. A tool the engine did not offer
+ *     (a platform server's, a server whose listing failed) records nothing.
  *   - `finalize()` clears every streaming flag in every scope.
  *   - Write-backs upsert by `workspaceEntryName`: the write-back coordinator
  *     registers its own here, through the one-method view it declares for
@@ -127,7 +134,8 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
-import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
+import { POLICY_ENGINE_VERSION, mcpToolKey, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
+import type { OfferedTool } from "../../shared/mcp-tool-listing.js";
 import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
 import { applyTodoUpdate } from "../../shared/todos.js";
@@ -147,6 +155,7 @@ import type {
 import {
   AgentMessageSchema,
   BackgroundCommandRowSchema,
+  McpToolDefinitionSchema,
   ToolCallSchema,
   type BackgroundCommandRow,
   type AgentMessage,
@@ -185,6 +194,8 @@ export class TranscriptBuilder {
   private observationInstant: string | undefined;
   /** Hook provenance that arrived before its call's row, by call id; stamped when the row opens. */
   private readonly pendingPolicies = new Map<string, ToolPolicyEvent>();
+  /** What the engine offers the model of each MCP tool, by `mcpToolKey` ({@link offerTools}). */
+  private offered: ReadonlyMap<string, OfferedTool> = new Map();
 
   /**
    * Builds INTO `rows`, by reference: its `messages`, `subAgentRuns` and
@@ -223,6 +234,19 @@ export class TranscriptBuilder {
    */
   seed(seeded: TranscriptSeed): void {
     this.state.seed(seeded);
+  }
+
+  /**
+   * What the turn's engine offers the model of each MCP tool
+   * (`McpToolListing.offered`), handed over once at its setup. Nothing is
+   * written for it, and the observer is not told: the first row of a tool
+   * projects that tool's definition (the header), so a tool the turn never
+   * calls never reaches the rows, and never rides a persist across the agent
+   * host's pipe. (Cursor's catalog is the runtime's own listing, which
+   * crosses once, with the turn's input.)
+   */
+  offerTools(tools: readonly OfferedTool[]): void {
+    this.offered = new Map(tools.map((tool) => [mcpToolKey(tool.server, tool.name), tool]));
   }
 
   /**
@@ -646,8 +670,27 @@ export class TranscriptBuilder {
 
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(callId, tc);
+    this.recordDefinition(tc);
 
     this._dirty = true;
+  }
+
+  /** The offered definition of a new row's MCP tool, into the rows once per server and tool (the header). */
+  private recordDefinition(row: ToolCall): void {
+    if (row.mcpServerSlug === "") return;
+    const tool = this.offered.get(mcpToolKey(row.mcpServerSlug, row.name));
+    if (tool === undefined) return;
+    const definitions = this.state.rows.mcpToolDefinitions;
+    if (definitions.some((d) => d.mcpServerSlug === tool.server && d.name === tool.name)) return;
+    definitions.push(
+      create(McpToolDefinitionSchema, {
+        mcpServerSlug: tool.server,
+        name: tool.name,
+        description: tool.description,
+        ...(tool.inputSchema === undefined ? {} : { inputSchema: tool.inputSchema }),
+        inputSchemaOmitted: tool.schemaOmitted,
+      }),
+    );
   }
 
   /**
@@ -836,6 +879,7 @@ export class TranscriptBuilder {
 
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(event.callId, tc);
+    this.recordDefinition(tc);
     this._awaitingApproval = true;
     this._dirty = true;
   }

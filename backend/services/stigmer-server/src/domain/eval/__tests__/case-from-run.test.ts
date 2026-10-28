@@ -18,6 +18,12 @@
  *   - each MCP call of the turn becomes a fixed mock under its server's
  *     turn name (an agent's own server, a plugin's), `error: true` for a
  *     failed one; a tool answered differently later keeps its first answer;
+ *     each mocked server's `_tools.json` lists its mocked tools as the turn
+ *     offered them, a tool with no recorded definition (an older turn) left
+ *     out and noted, one whose schema was too large kept by description and
+ *     noted; a case added to an eval lists the suite's own tools of that
+ *     server beside the turn's, the turn's winning per tool, and notes only
+ *     what neither defines;
  *     an answer longer than the session keeps inline, a call that never
  *     returned, the platform's own server and a name no file can carry are
  *     each noted and get no mock (or the head the session kept);
@@ -175,6 +181,89 @@ describe("a case from a single turn", () => {
       'crm.search answered with text a mock reads as a placeholder ("{{"); check its mock replays the answer as recorded',
       "stigmer-memory is the platform's own server; the case calls it for real",
       "billing.lookup.v2 has a name no mock file can carry, so it has no mock",
+      "the turn recorded no definition of billing.lookup_order, plugin_thermos_tracker.create_issue, crm.search, billing.refund " +
+        "(it ran before tools' definitions were recorded, or its server's tools could not be listed): their mocks offer a generic description and an input schema that accepts anything",
+    ]);
+    expectLoads(built);
+  });
+
+  it("lists each mocked server's tools as the turn offered them, in _tools.json, and notes what it could not", async () => {
+    await seedSession();
+    const ask = { type: "object", properties: { repoName: { type: "string" }, question: { type: "string" } }, required: ["repoName", "question"] };
+    const run = await seedRun(
+      runRow("run_3", "Ask the wiki."),
+      new RunEventsBuilder("run_3")
+        .user("Ask the wiki.")
+        .turnMessage("Asking.", [
+          { id: "c1", name: "ask_question", mcpServer: "deepwiki", result: "It uses Temporal.", definition: { description: "Ask about a repository.", inputSchema: ask } },
+          { id: "c2", name: "read_wiki", mcpServer: "deepwiki", result: "# Wiki", definition: { description: "Read a wiki.", omitted: true } },
+          { id: "c3", name: "search", mcpServer: "crm", result: "none" },
+          { id: "c4", name: "remember", mcpServer: "stigmer-memory", result: "noted", definition: { description: "never recorded for a platform server" } },
+        ])
+        .turnMessage("", [{ id: "c5", name: "ask_question", mcpServer: "deepwiki", result: "It uses Temporal." }])
+        .turnMessage("Done."),
+    );
+    const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "ask", skill: "", callerId: CALLER });
+
+    expect(JSON.parse(fileOf(built, "mocks/deepwiki/_tools.json") ?? "null")).toEqual({
+      tools: [
+        { name: "ask_question", description: "Ask about a repository.", inputSchema: ask },
+        { name: "read_wiki", description: "Read a wiki." },
+      ],
+    });
+    expect(fileOf(built, "mocks/crm/_tools.json"), "a server none of whose tools has a definition gets no file").toBeUndefined();
+    expect(fileOf(built, "mocks/stigmer-memory/_tools.json"), "the platform's server is not mocked").toBeUndefined();
+    expect(built.notes).toEqual([
+      "stigmer-memory is the platform's own server; the case calls it for real",
+      "the turn recorded no definition of crm.search (it ran before tools' definitions were recorded, or its server's tools could not be listed): its mock offers a generic description and an input schema that accepts anything",
+      "deepwiki.read_wiki had an input schema too large to record: its mock offers its description with an input schema that accepts anything",
+    ]);
+    expectLoads(built);
+    const suite = readEvalFolder(inMemoryPluginFiles(new Map(built.files.map((file) => [file.path, file.bytes]))));
+    const deepwiki = suite.cases[0]?.mocks.find((server) => server.server === "deepwiki");
+    expect(deepwiki?.toolsFile, "the library reads the file as the server's tools listing").toBe("ask/mocks/deepwiki/_tools.json");
+  });
+
+  it("added to an eval, lists the suite's own tools of each server beside the turn's, the turn's winning per tool, so nothing the suite defined is shadowed", async () => {
+    await seedSession();
+    const recorded = { type: "object", required: ["repoName", "question"] };
+    const suiteFiles = new Map([
+      [
+        "mocks/deepwiki/_tools.json",
+        JSON.stringify({
+          tools: [
+            { name: "ask_question", description: "The suite's older description.", inputSchema: { type: "object" } },
+            { name: "read_wiki", description: "Read a wiki (suite).", inputSchema: { type: "object", required: ["repoName"] } },
+            { name: "read_wiki_structure", description: "List a wiki's pages.", inputSchema: { type: "object", required: ["repoName"] } },
+          ],
+        }),
+      ],
+      ["mocks/crm/_tools.json", JSON.stringify({ tools: [{ name: "search", description: "Search the CRM." }] })],
+    ]);
+    const run = await seedRun(
+      runRow("run_3", "Ask the wiki."),
+      new RunEventsBuilder("run_3")
+        .user("Ask the wiki.")
+        .turnMessage("Asking.", [
+          { id: "c1", name: "ask_question", mcpServer: "deepwiki", result: "Temporal.", definition: { description: "Ask about a repository.", inputSchema: recorded } },
+          { id: "c2", name: "read_wiki", mcpServer: "deepwiki", result: "# Wiki", definition: { description: "Read a wiki.", omitted: true } },
+          { id: "c3", name: "search", mcpServer: "crm", result: "none" },
+          { id: "c4", name: "lookup", mcpServer: "billing", result: "paid" },
+        ])
+        .turnMessage("Done."),
+    );
+    const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "ask", skill: "", callerId: CALLER, suiteText: (path) => suiteFiles.get(path) });
+
+    expect(JSON.parse(fileOf(built, "mocks/deepwiki/_tools.json") ?? "null")).toEqual({
+      tools: [
+        { name: "ask_question", description: "Ask about a repository.", inputSchema: recorded },
+        { name: "read_wiki", description: "Read a wiki.", inputSchema: { type: "object", required: ["repoName"] } },
+        { name: "read_wiki_structure", description: "List a wiki's pages.", inputSchema: { type: "object", required: ["repoName"] } },
+      ],
+    });
+    expect(fileOf(built, "mocks/crm/_tools.json"), "no recorded definition: the suite's file applies whole").toBeUndefined();
+    expect(built.notes, "a tool the suite defines, or a schema it holds, is no difference").toEqual([
+      "the turn recorded no definition of billing.lookup (it ran before tools' definitions were recorded, or its server's tools could not be listed): its mock offers a generic description and an input schema that accepts anything",
     ]);
     expectLoads(built);
   });

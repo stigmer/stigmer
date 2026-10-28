@@ -69,7 +69,7 @@ import { recordModelWindow, windowLogLines } from "../../shared/model-window.js"
 import { createCompactionMiddleware } from "../../middleware/compaction.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
-import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import { definitionOf, type McpToolListing, type OfferedTool } from "../../shared/mcp-tool-listing.js";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
   checkMainToolListResolution,
@@ -305,7 +305,9 @@ export function toolsOf(
  * What the tools this engine loaded say of themselves: each plugin server's
  * tools whose own MCP annotation says `destructiveHint: true`
  * (`@langchain/mcp-adapters` keeps a loaded tool's annotations on its
- * `metadata`). The platform's own servers are never read: none of their
+ * `metadata`), and each one's description and schema as the model is
+ * offered them (the loader's simplified schema, loosened by
+ * `shared/mcp-manager.ts`). The platform's own servers are never read: none of their
  * tools asks. Read live every turn, so a tool its maker marks destructive
  * asks first from the turn after the mark appears; a server that did not
  * connect has no tools to call, so none is left unread.
@@ -316,15 +318,17 @@ export function listingOfLoadedTools(
 ): McpToolListing {
   const listed: { server: string; tools: string[] }[] = [];
   const destructive: { server: string; tool: string }[] = [];
+  const offered: OfferedTool[] = [];
   for (const [server, tools] of serverToolMap) {
     if (platformServerSlugs.has(server)) continue;
     listed.push({ server, tools: tools.map((tool) => tool.name) });
     for (const tool of tools) {
       const annotations = (tool.metadata as { annotations?: { destructiveHint?: unknown } } | undefined)?.annotations;
       if (annotations?.destructiveHint === true) destructive.push({ server, tool: tool.name });
+      offered.push(definitionOf(server, tool.name, tool.description, tool.schema));
     }
   }
-  return { listed, destructive, unlisted: [] };
+  return { listed, destructive, unlisted: [], offered };
 }
 
 /**
@@ -332,16 +336,14 @@ export function listingOfLoadedTools(
  * `ActiveLeases`): the pre-armed spec.auto_approve_all is the one whole-run
  * global bypass; an interactive APPROVE_ALL grants a run-lifetime lease
  * scoped to that action's class. Server leases ride the runtime's approval
- * default, completed here with the marks of the tools this engine loaded;
- * built-in category leases are applied inside the gate. Both flow into
- * sub-agents via the shared gate config.
+ * default, completed here with the marks of the tools this engine loaded
+ * (`listing`, {@link listingOfLoadedTools}); built-in category leases are
+ * applied inside the gate. Both flow into sub-agents via the shared gate
+ * config.
  */
-export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgentGateState {
+export function readGateState(input: TurnInput, tools: DeepAgentTools, listing: McpToolListing): DeepAgentGateState {
   return {
-    mcpDefault: buildMcpApprovalDefault(
-      listingOfLoadedTools(tools.serverToolMap, input.mcp.platformServerSlugs),
-      input.mcp.leases,
-    ),
+    mcpDefault: buildMcpApprovalDefault(listing, input.mcp.leases),
     toolServerMap: tools.toolServerMap,
     leasedCategories: input.mcp.leases.categories,
     globalBypass: input.mcp.leases.global,

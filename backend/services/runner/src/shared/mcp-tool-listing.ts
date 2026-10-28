@@ -25,8 +25,21 @@
  * may compile or install packages (issue #243). A local program is started
  * as the agent user on a separating runner (`stdioAsAgent`): its command is
  * the plugin's, and must never run with the runner's rights.
+ *
+ * A turn's listing also carries what the model is offered of each listed
+ * tool (`McpToolListing.offered`): its description and input schema, as
+ * {@link definitionOf} caps them. Each engine builds it from its own source
+ * (native from the tools it loaded, Claude from its bridge's listing,
+ * Cursor from this module's listing at turn start, which is the best
+ * reading there: Cursor's SDK loads the tools itself) and hands it to the
+ * turn's transcript builder, which records the definition of each tool
+ * the turn calls (`harness/transcript/builder.ts` `offerTools`), so an
+ * eval case built from the turn offers the model the same tool. A schema
+ * over {@link MAX_RECORDED_SCHEMA_BYTES} is recorded as omitted: one huge
+ * schema would otherwise ride every persist of the turn.
  */
 
+import type { JsonObject } from "@bufbuild/protobuf";
 import { MultiServerMCPClient, type Connection } from "@langchain/mcp-adapters";
 
 import { agentIdentity, setprivArgs, type AgentIdentity } from "./agent-identity.js";
@@ -40,19 +53,62 @@ const STDIO_INIT_TIMEOUT_MS = 270_000;
 /** The most pages of tools one listing reads before it gives up: a server that never stops paging asks for every tool. */
 const MAX_LIST_PAGES = 100;
 
+/** The largest input schema a turn records, as JSON bytes (the module header). */
+export const MAX_RECORDED_SCHEMA_BYTES = 64 * 1024;
+
 /** One tool a server lists. */
 export interface ListedTool {
   readonly name: string;
   readonly description: string;
+  /** The tool's input schema as the server listed it. */
+  readonly inputSchema: unknown;
   /** The tool's MCP annotation `destructiveHint === true`, and nothing else. */
   readonly destructive: boolean;
 }
 
-/** What a turn's listing found: each listed server's tool names, each destructive tool, and the servers whose listing failed. */
+/** One tool as the model is offered it, by server and name, as {@link definitionOf} records it. */
+export interface OfferedTool {
+  readonly server: string;
+  readonly name: string;
+  readonly description: string;
+  /** Its input schema as JSON; undefined when it is not a JSON object, or {@link schemaOmitted}. */
+  readonly inputSchema: JsonObject | undefined;
+  /** The schema was over {@link MAX_RECORDED_SCHEMA_BYTES}, so it is not kept. */
+  readonly schemaOmitted: boolean;
+}
+
+/**
+ * What a turn's listing found: each listed server's tool names, each
+ * destructive tool, the servers whose listing failed, and what the model
+ * is offered of each listed tool.
+ */
 export interface McpToolListing {
   readonly listed: readonly { readonly server: string; readonly tools: readonly string[] }[];
   readonly destructive: readonly { readonly server: string; readonly tool: string }[];
   readonly unlisted: readonly string[];
+  readonly offered: readonly OfferedTool[];
+}
+
+/**
+ * One tool's definition as a turn records it: its schema copied as plain
+ * JSON, or omitted when its JSON is over {@link MAX_RECORDED_SCHEMA_BYTES}.
+ * A schema that is not a JSON object (no MCP tool lists one) is left out
+ * without being called omitted.
+ */
+export function definitionOf(server: string, name: string, description: string, inputSchema: unknown): OfferedTool {
+  const json = isJsonObject(inputSchema) ? JSON.stringify(inputSchema) : undefined;
+  const schemaOmitted = json !== undefined && Buffer.byteLength(json, "utf8") > MAX_RECORDED_SCHEMA_BYTES;
+  return {
+    server,
+    name,
+    description,
+    inputSchema: json === undefined || schemaOmitted ? undefined : (JSON.parse(json) as JsonObject),
+    schemaOmitted,
+  };
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** The session-init bound for a server's transport. */
@@ -138,6 +194,7 @@ export async function listServerTools(server: ResolvedMcpServer): Promise<Listed
             tools.push({
               name: tool.name,
               description: tool.description ?? "",
+              inputSchema: tool.inputSchema,
               destructive: tool.annotations?.destructiveHint === true,
             });
           }
@@ -199,5 +256,8 @@ export async function listTurnTools(
       (tools ?? []).filter((tool) => tool.destructive).map((tool) => ({ server, tool: tool.name })),
     ),
     unlisted: listed.filter(({ tools }) => tools === undefined).map(({ server }) => server),
+    offered: listed.flatMap(({ server, tools }) =>
+      (tools ?? []).map((tool) => definitionOf(server, tool.name, tool.description, tool.inputSchema)),
+    ),
   };
 }

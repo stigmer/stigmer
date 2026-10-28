@@ -65,6 +65,7 @@ function listingOf(destructive: Record<string, string[]>, unlisted: string[] = [
     listed: Object.entries(destructive).map(([server, tools]) => ({ server, tools })),
     destructive: Object.entries(destructive).flatMap(([server, tools]) => tools.map((tool) => ({ server, tool }))),
     unlisted,
+    offered: [],
   };
 }
 

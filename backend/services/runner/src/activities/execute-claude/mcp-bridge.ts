@@ -24,6 +24,8 @@
  *  - each tool's own destructive mark, for the approval default
  *    (`shared/approval-policy.ts`), the platform's servers left out as on
  *    every engine;
+ *  - each tool's description and loosened schema, as the engine is offered
+ *    them, for the turn to record (`McpToolListing.offered`);
  *  - the agents' tool lists: a tool no agent of the turn may call is never
  *    listed to the engine. The platform's servers are outside every list
  *    (`shared/tool-lists.ts`).
@@ -46,7 +48,7 @@ import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import { toMcpClientConfig } from "../../shared/mcp-manager.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { sanitizeSchemaPatterns } from "../../shared/mcp-schema-sanitizer.js";
-import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import { definitionOf, type McpToolListing } from "../../shared/mcp-tool-listing.js";
 import { textResult, type ServedServer } from "./loopback-mcp.js";
 
 /** The most pages of tools one server's listing reads before the turn gives up on it. */
@@ -72,7 +74,7 @@ export interface McpBridge {
   readonly offered: ReadonlySet<string>;
   /** The server and tool an engine name stands for; undefined for a name no bridged server lists. */
   serverOf(toolName: string): { readonly slug: string; readonly tool: string } | undefined;
-  /** What the servers listed, for the approval default. */
+  /** What the servers listed, for the approval default and the turn's record of what the engine was offered. */
   readonly listing: McpToolListing;
   close(): Promise<void>;
 }
@@ -82,7 +84,7 @@ const NO_BRIDGE: McpBridge = {
   servers: new Map(),
   offered: new Set(),
   serverOf: () => undefined,
-  listing: { listed: [], destructive: [], unlisted: [] },
+  listing: { listed: [], destructive: [], unlisted: [], offered: [] },
   close: async () => undefined,
 };
 
@@ -155,6 +157,9 @@ function bridgeOf(bridged: readonly BridgedServer[], platformServerSlugs: Readon
         server.tools.filter((tool) => tool.annotations?.destructiveHint === true).map((tool) => ({ server: server.slug, tool: tool.name })),
       ),
       unlisted: [],
+      offered: marked.flatMap((server) =>
+        server.tools.map((tool) => definitionOf(server.slug, tool.name, tool.description ?? "", tool.inputSchema)),
+      ),
     },
     close,
   };

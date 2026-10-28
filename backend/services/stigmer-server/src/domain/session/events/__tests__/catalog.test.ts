@@ -53,6 +53,7 @@ describe("the catalog", () => {
       "stigmer.tool_result.full_output",
       "stigmer.background_command.status",
       "stigmer.background_command.stop_requested",
+      "stigmer.mcp.tool_definition",
     ]);
     const serverOnly = [
       "stigmer.file_review.decided",

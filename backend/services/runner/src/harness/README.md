@@ -198,7 +198,8 @@ and 23 of the Claude adapter's 26, counted as the footprint below counts files. 
 
 - how the engine is created or resumed,
 - how the prompt is placed,
-- how MCP servers are bound,
+- how MCP servers are bound, and what the engine offers the model of each
+  tool, which it hands the builder once (`TurnSink.transcript.offerTools`),
 - how the engine is made to stop before a gated side effect.
 
 What every adapter's test side carries:

@@ -12,7 +12,8 @@
  *  - the engine sees each tool as `mcp__<slug>__<tool>`, every page of a
  *    server's listing read, each schema loosened where a pattern cannot
  *    compile under the unicode flag, so one vendor pattern never leaves a
- *    tool uncallable;
+ *    tool uncallable, and the listing offers the turn's record that loosened
+ *    schema, as the engine sees it;
  *  - the agents' per-server and per-tool lists decide what is listed (the
  *    turn's agents answer as one predicate, `agents.ts`), and a call to a
  *    tool nobody may call is refused before it reaches its server;
@@ -258,7 +259,8 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
     expect(bridge.serverOf(mcpToolName("chan", "secret")), "the platform's server is outside every list").toEqual({ slug: "chan", tool: "secret" });
     expect(bridge.serverOf("mcp__local__hidden"), "out of the per-tool list").toBeUndefined();
     expect(bridge.serverOf("mcp__web__secret"), "denied by the per-server list").toBeUndefined();
-    expect(bridge.listing).toEqual({
+    const { offered, ...marks } = bridge.listing;
+    expect(marks).toEqual({
       listed: [
         { server: "local", tools: ["whoami", "echo", "patterned", "rm_all", "boom"] },
         { server: "web", tools: ["add", "wipe"] },
@@ -268,6 +270,22 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
         { server: "web", tool: "wipe" },
       ],
       unlisted: [],
+    });
+    expect(offered.map((tool) => `${tool.server}/${tool.name}`), "what the engine is offered, the platform's server left out").toEqual([
+      "local/whoami",
+      "local/echo",
+      "local/patterned",
+      "local/rm_all",
+      "local/boom",
+      "web/add",
+      "web/wipe",
+    ]);
+    expect(offered.find((tool) => tool.name === "patterned"), "the description and the loosened schema the engine is offered").toEqual({
+      server: "local",
+      name: "patterned",
+      description: "A vendor pattern that only compiles without the unicode flag.",
+      inputSchema: { type: "object", properties: { url: { type: "string" }, id: { type: "string", pattern: "^[a-z]+$" } } },
+      schemaOmitted: false,
     });
 
     const local = await engineClient(bridge.servers.get("local")!);
@@ -346,7 +364,7 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
       expect(bridge.servers.size).toBe(0);
       expect(bridge.offered.size).toBe(0);
       expect(bridge.serverOf("mcp__nothing__x")).toBeUndefined();
-      expect(bridge.listing).toEqual({ listed: [], destructive: [], unlisted: [] });
+      expect(bridge.listing).toEqual({ listed: [], destructive: [], unlisted: [], offered: [] });
       await expect(bridge.close()).resolves.toBeUndefined();
     }
   });

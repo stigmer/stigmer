@@ -934,5 +934,35 @@ public interface SessionEventOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder getStigmerBackgroundCommandStopRequestedOrBuilder();
 
+  /**
+   * <pre>
+   * An MCP tool the turn called, as the model was offered it: its
+   * description and input schema.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+   * @return Whether the stigmerMcpToolDefinition field is set.
+   */
+  boolean hasStigmerMcpToolDefinition();
+  /**
+   * <pre>
+   * An MCP tool the turn called, as the model was offered it: its
+   * description and input schema.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+   * @return The stigmerMcpToolDefinition.
+   */
+  ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent getStigmerMcpToolDefinition();
+  /**
+   * <pre>
+   * An MCP tool the turn called, as the model was offered it: its
+   * description and input schema.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEventOrBuilder getStigmerMcpToolDefinitionOrBuilder();
+
   ai.stigmer.agentic.session.v1.SessionEvent.EventCase getEventCase();
 }

@@ -51,7 +51,10 @@
 //     records one stigmer.background_command.stop_requested in the
 //     command's thread and answers a second with the first; a stop of a
 //     command that ended, of a call that started none, or once its turn
-//     stopped working is refused.
+//     stopped working is refused;
+//   - an MCP tool's definition, as the model was offered it, is the
+//     runner's to write: its stigmer.mcp.tool_definition before the tool's
+//     first use is kept in that order, its schema whole.
 //
 // The append arm presents a run credential through the RPC itself, beside
 // the runner's own writes, to pin the gate.
@@ -161,6 +164,7 @@ const TYPE_BY_CASE: Readonly<Record<string, string>> = {
   stigmerToolResultFullOutput: "stigmer.tool_result.full_output",
   stigmerBackgroundCommandStatus: "stigmer.background_command.status",
   stigmerBackgroundCommandStopRequested: "stigmer.background_command.stop_requested",
+  stigmerMcpToolDefinition: "stigmer.mcp.tool_definition",
 };
 
 /** The log without each turn's own stigmer.run.status: the sequence the session's arms pin. */
@@ -597,6 +601,44 @@ describe("a command the agent runs in the background", () => {
   });
 });
 
+describe("an MCP tool's definition", () => {
+  it("[rpc:SessionCommandController.appendEvents] the runner writes it before the tool's first use, kept in order with its schema whole", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    mock.enqueue(anthropicText("Held while the runner appends."), { delayMs: HOLD_MS });
+    const runId = await startTurn(org, sessionId, "ask the wiki");
+    await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
+    const minted = await clients.platformQuery.getRunnerScopedToken({ scope: { case: "runId", value: runId } });
+    const runner = target.clientsPresenting(minted.runnerScopedToken);
+
+    const toolUseId = `${runId}.call-1`;
+    const inputSchema = { type: "object", properties: { repoName: { type: "string" }, question: { type: "string" } }, required: ["repoName", "question"] };
+    await runner.sessionCommand.appendEvents({
+      runId,
+      events: [
+        {
+          event: {
+            case: "stigmerMcpToolDefinition",
+            value: { id: `${runId}.def.h1`, toolUseId, mcpServerName: "deepwiki", name: "ask_question", description: "Ask about a repository.", inputSchema },
+          },
+        },
+        { event: { case: "agentMcpToolUse", value: { id: toolUseId, mcpServerName: "deepwiki", name: "ask_question", input: { repoName: "stigmer/stigmer", question: "What runs turns?" } } } },
+      ],
+    });
+    mock.releaseHolds();
+    await awaitTerminal(clients, runId);
+
+    const stored = (await log(sessionId)).filter((event) => event.runId === runId && typeOf(event).includes("mcp"));
+    expect(stored.map(typeOf)).toEqual(["stigmer.mcp.tool_definition", "agent.mcp_tool_use"]);
+    const definition = stored[0]!.event;
+    expect(definition.case === "stigmerMcpToolDefinition" && [definition.value.toolUseId, definition.value.description, definition.value.inputSchema]).toEqual([
+      toolUseId,
+      "Ask about a repository.",
+      inputSchema,
+    ]);
+  });
+});
+
 describe("a conversation's creator is told what needs them", () => {
   it("[rpc:SessionQueryController.streamAttention] the creator is told when a turn finishes, never of a turn they stopped", async () => {
     const { org } = await target.provisionTenancy();
@@ -711,35 +753,44 @@ describe("the runner writes what the agent did", () => {
     const gated = await awaitPhase(clients, runId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
     const sessionId = gated.spec?.target.case === "sessionId" ? gated.spec.target.value : "";
     const atGate = sessionOnly((await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events);
+    // The tool as the model was offered it comes just before its first use.
     expect(atGate.map(typeOf)).toEqual([
       "user.message",
       "session.status_running",
+      "stigmer.mcp.tool_definition",
       "agent.mcp_tool_use",
       "stigmer.permission.asked",
       "session.status_idle",
     ]);
-    const waiting = atGate[4]!.event;
+    const waiting = atGate[5]!.event;
     expect(waiting.case === "sessionStatusIdle" && [waiting.value.stopReason?.type, waiting.value.stopReason?.eventIds]).toEqual([
       "requires_action",
-      [idOf(atGate[2]!)],
+      [idOf(atGate[3]!)],
     ]);
-    const use = atGate[2]!.event;
+    const definition = atGate[2]!.event;
+    expect(definition.case === "stigmerMcpToolDefinition" && [definition.value.toolUseId, definition.value.name]).toEqual([
+      `${runId}.toolu_events_echo`,
+      DESTRUCTIVE_ECHO_TOOL_NAME,
+    ]);
+    const use = atGate[3]!.event;
     expect(use.case === "agentMcpToolUse" && use.value.evaluatedPermission).toBe("ask");
-    const asked = atGate[3]!.event;
+    const asked = atGate[4]!.event;
     expect(asked.case === "stigmerPermissionAsked" && [asked.value.toolUseId, asked.value.policySource]).toEqual([
-      idOf(atGate[2]!),
+      idOf(atGate[3]!),
       "annotation_destructive_tighten",
     ]);
 
-    const answer = await clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: idOf(atGate[2]!), result: "allow" });
+    const answer = await clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: idOf(atGate[3]!), result: "allow" });
     expect(answer.event.case === "userToolConfirmation" && [answer.event.value.toolUseId, answer.event.value.result]).toEqual([
-      idOf(atGate[2]!),
+      idOf(atGate[3]!),
       "allow",
     ]);
     const events = await runLog(runId);
+    // The resumed turn writes no second definition: its id is the run's, for the server and tool.
     expect(events.map(typeOf)).toEqual([
       "user.message",
       "session.status_running",
+      "stigmer.mcp.tool_definition",
       "agent.mcp_tool_use",
       "stigmer.permission.asked",
       "session.status_idle",
@@ -749,8 +800,8 @@ describe("the runner writes what the agent did", () => {
       "agent.message",
       "session.status_idle",
     ]);
-    const result = events[7]!.event;
-    expect(result.case === "agentMcpToolResult" && [result.value.mcpToolUseId, result.value.isError]).toEqual([idOf(events[2]!), false]);
+    const result = events[8]!.event;
+    expect(result.case === "agentMcpToolResult" && [result.value.mcpToolUseId, result.value.isError]).toEqual([idOf(events[3]!), false]);
   });
 
   it("[rpc:SessionQueryController.listEvents] a sub-agent is a thread of its own, opened after the task's tool use and closed before its result", async () => {
