@@ -712,8 +712,8 @@ export class MockLlmProxy {
     if (next.delayMs !== undefined && next.delayMs > 0) {
       const aborted = await this.hold(res, request, next.delayMs);
       if (aborted) {
-        // Client disconnected, or releaseHolds() was called to quiesce the mock:
-        // the response is abandoned. The turn stays counted as consumed.
+        // The client hung up mid-hold: the response is abandoned. The turn
+        // stays counted as consumed. (A hold releaseHolds() ends is served.)
         return;
       }
     }
