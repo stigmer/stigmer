@@ -3,7 +3,7 @@
   "cases": [
     {
       "name": "native_edit_success",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "edit_file",
       "mcpServerSlug": "",
       "args": { "file_path": "/workspace/x.md", "old_string": "Hello", "new_string": "Hello world\nNew line" },
@@ -12,7 +12,7 @@
     },
     {
       "name": "native_write_confirmation",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "write_file",
       "mcpServerSlug": "",
       "args": { "file_path": "/workspace/new.txt", "contents": "alpha\nbeta\n" },
@@ -21,7 +21,7 @@
     },
     {
       "name": "native_read",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "read_file",
       "mcpServerSlug": "",
       "args": { "file_path": "/workspace/main.go" },
@@ -30,7 +30,7 @@
     },
     {
       "name": "native_read_framed",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "read_file",
       "mcpServerSlug": "",
       "args": { "file_path": "/workspace/main.go" },
@@ -39,7 +39,7 @@
     },
     {
       "name": "native_shell_success",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "execute",
       "mcpServerSlug": "",
       "args": { "command": "ls -la" },
@@ -48,7 +48,7 @@
     },
     {
       "name": "native_shell_failure",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "execute",
       "mcpServerSlug": "",
       "args": { "command": "false" },
@@ -57,7 +57,7 @@
     },
     {
       "name": "native_grep_matches",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "grep",
       "mcpServerSlug": "",
       "args": { "pattern": "TODO" },
@@ -66,7 +66,7 @@
     },
     {
       "name": "native_ls_entries",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "ls",
       "mcpServerSlug": "",
       "args": { "path": "/workspace" },
@@ -75,7 +75,7 @@
     },
     {
       "name": "mcp_content_blocks",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "search_services",
       "mcpServerSlug": "planton",
       "args": { "query": "billing" },
@@ -84,7 +84,7 @@
     },
     {
       "name": "think_text",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "think",
       "mcpServerSlug": "",
       "args": { "thought": "I should read the config first." },
@@ -93,7 +93,7 @@
     },
     {
       "name": "unknown_json_object",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "some_json_tool",
       "mcpServerSlug": "",
       "args": {},
@@ -102,7 +102,7 @@
     },
     {
       "name": "unknown_plain_text",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "some_unknown_tool",
       "mcpServerSlug": "",
       "args": {},
@@ -111,7 +111,7 @@
     },
     {
       "name": "failed_tool_error",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "execute",
       "mcpServerSlug": "",
       "args": { "command": "boom" },
@@ -122,7 +122,7 @@
     },
     {
       "name": "remember_proposal_plain",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "remember",
       "mcpServerSlug": "stigmer-memory",
       "args": { "fact": "Prefers concise answers with code examples." },
@@ -131,7 +131,7 @@
     },
     {
       "name": "remember_proposal_content_blocks",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "remember",
       "mcpServerSlug": "stigmer-memory",
       "args": { "fact": "Works primarily in Go." },
@@ -140,7 +140,7 @@
     },
     {
       "name": "remember_unrecognized_payload_degrades",
-      "harness": "native",
+      "harness": "stigmer",
       "toolName": "remember",
       "mcpServerSlug": "stigmer-memory",
       "args": { "fact": "Any fact." },

@@ -94,7 +94,7 @@ export function requireRegistryRow(document: ModelRegistryDocument, id: string):
 // carry a row on each harness (claude-sonnet-5 does); the native request is
 // described by the native one only.
 export function requireNativeRow(document: ModelRegistryDocument, id: string): ModelRegistryRow {
-  const row = document.models.find((model) => model.harness === "native" && model.id === id);
+  const row = document.models.find((model) => model.harness === "stigmer" && model.id === id);
   if (row === undefined) {
     throw new Error(`model registry has no native row with id ${JSON.stringify(id)} (${document.models.length} rows)`);
   }
@@ -103,12 +103,12 @@ export function requireNativeRow(document: ModelRegistryDocument, id: string): M
 
 // The row the runner's economy-tier pick lands on for `provider` (runner
 // shared/model-registry.ts getEconomyModel: the FIRST row with that provider,
-// costTier "economy" and harness "native"; the cross-provider fallback is any
+// costTier "economy" and harness "stigmer"; the cross-provider fallback is any
 // such row). Mirrors the runner's order so an arm on the runner's economy-tier
 // call (the structured-output extraction fallback) asserts the model the
 // runner actually chose, read off the same document.
 export function economyRowFor(document: ModelRegistryDocument, provider: string): ModelRegistryRow {
-  const economy = (row: ModelRegistryRow): boolean => row.costTier === "economy" && row.harness === "native";
+  const economy = (row: ModelRegistryRow): boolean => row.costTier === "economy" && row.harness === "stigmer";
   const row =
     document.models.find((model) => model.provider === provider && economy(model)) ??
     document.models.find(economy);

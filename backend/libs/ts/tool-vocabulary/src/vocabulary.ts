@@ -102,12 +102,12 @@ export const CLAUDE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = ne
 );
 
 /** The engines whose recorded tool calls {@link claudeNameOf} reads. */
-export type ToolEngine = "native" | "claude";
+export type ToolEngine = "stigmer" | "claude";
 
 /** The table a recorded call of each engine is named in. */
 function recordedTable(engine: ToolEngine): ReadonlyMap<string, readonly ClaudeTool[]> {
   switch (engine) {
-    case "native":
+    case "stigmer":
       return NATIVE_TOOL_COVERS;
     case "claude":
       return CLAUDE_TOOL_COVERS;

@@ -415,8 +415,8 @@ describe("ResolveSessionAgent: a new conversation's engine", () => {
   it("keeps the engine the request names", async () => {
     await seedClaudeAgent();
     const request = sessionNaming("agt_1");
-    request.spec!.harness = Harness.NATIVE;
-    expect((await pin(request)).spec?.harness).toBe(Harness.NATIVE);
+    request.spec!.harness = Harness.STIGMER;
+    expect((await pin(request)).spec?.harness).toBe(Harness.STIGMER);
   });
 
   it("reads the engine of the version pinned, not the head", async () => {

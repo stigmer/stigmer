@@ -82,7 +82,7 @@ describe("subagentModel", () => {
       new Response(
         JSON.stringify({
           models: [
-            { id: "claude-sonnet-4-5", provider: "anthropic", harness: "native" },
+            { id: "claude-sonnet-4-5", provider: "anthropic", harness: "stigmer" },
             { id: "claude-opus-5", provider: "anthropic", harness: "claude" },
           ],
         }),
@@ -97,13 +97,13 @@ describe("subagentModel", () => {
   });
 
   it("answers a listed id chosen for this engine", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.NATIVE)).toBe("claude-sonnet-4-5");
+    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.STIGMER)).toBe("claude-sonnet-4-5");
   });
 
   it("reads Claude's own section, never native's", async () => {
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.CLAUDE)).toBe("claude-opus-5");
     expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.CLAUDE), "listed only for native").toBeUndefined();
-    expect(await subagentModel("claude-opus-5", Harness.NATIVE, Harness.CLAUDE)).toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.STIGMER, Harness.CLAUDE)).toBeUndefined();
   });
 
   it("names a number no engine owns rather than reading native's section", async () => {
@@ -111,26 +111,26 @@ describe("subagentModel", () => {
   });
 
   it("counts an unspecified engine as the native one", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.UNSPECIFIED)).toBe("claude-sonnet-4-5");
+    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.UNSPECIFIED)).toBe("claude-sonnet-4-5");
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.UNSPECIFIED)).toBeUndefined();
   });
 
   it("runs the turn's model when the choice was made for another engine", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.NATIVE)).toBeUndefined();
-    expect(await subagentModel("claude-opus-5", Harness.NATIVE, Harness.CLAUDE)).toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.STIGMER)).toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.STIGMER, Harness.CLAUDE)).toBeUndefined();
   });
 
   it("runs the turn's model for an id this engine's section does not list", async () => {
-    expect(await subagentModel("gpt-9", Harness.NATIVE, Harness.NATIVE)).toBeUndefined();
-    expect(await subagentModel("claude-opus-5", Harness.NATIVE), "listed only for Claude").toBeUndefined();
+    expect(await subagentModel("gpt-9", Harness.STIGMER, Harness.STIGMER)).toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.STIGMER), "listed only for Claude").toBeUndefined();
   });
 
   it.each(["sonnet", "fast", "inherit", "", "  "])("runs the turn's model for %j", async (model) => {
-    expect(await subagentModel(model, Harness.NATIVE)).toBeUndefined();
+    expect(await subagentModel(model, Harness.STIGMER)).toBeUndefined();
   });
 
   it("counts a plugin agent's model, which names no engine, on whichever engine lists it", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE)).toBe("claude-sonnet-4-5");
+    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER)).toBe("claude-sonnet-4-5");
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE)).toBe("claude-opus-5");
   });
 
@@ -139,7 +139,7 @@ describe("subagentModel", () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network error"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.NATIVE)).toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.STIGMER)).toBeUndefined();
   });
 });
 

@@ -37,7 +37,7 @@ const emptyWorkspace = {
 
 const setAutoApproveAll = vi.fn();
 const stubEmptyFlow = {
-  harness: "native" as const,
+  harness: "stigmer" as const,
   setHarness: vi.fn(),
   modelId: undefined,
   setModelId: vi.fn(),

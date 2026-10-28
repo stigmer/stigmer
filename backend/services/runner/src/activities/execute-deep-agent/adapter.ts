@@ -72,7 +72,7 @@ export function createDeepAgentAdapter(): HarnessAdapter {
   const live = new Set<BackgroundCommands>();
 
   return {
-    name: "deep-agent",
+    name: "stigmer",
     capabilities: DEEP_AGENT_CAPABILITIES,
 
     /**

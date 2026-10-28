@@ -677,13 +677,13 @@ describe("session — the offered-engine rule", () => {
   });
 
   it("moves a conversation that has not run to Claude", async () => {
-    const session = await createSession({ harness: Harness.NATIVE });
+    const session = await createSession({ harness: Harness.STIGMER });
     const updated = await command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } });
     expect(updated.spec?.harness).toBe(Harness.CLAUDE);
   });
 
   it("keeps a native conversation that has run off Claude, by the engine lock, and a Claude one off native", async () => {
-    const native = await createSession({ harness: Harness.NATIVE });
+    const native = await createSession({ harness: Harness.STIGMER });
     await seedExecution(native.metadata!.id, RunPhase.RUN_COMPLETED);
     const toClaude = await grpcError(() =>
       command.update({ resource: updateInput(native, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
@@ -693,7 +693,7 @@ describe("session — the offered-engine rule", () => {
     const claude = await createSession({ harness: Harness.CLAUDE });
     await seedExecution(claude.metadata!.id, RunPhase.RUN_COMPLETED);
     const toNative = await grpcError(() =>
-      command.update({ resource: updateInput(claude, { harness: Harness.NATIVE }), updateMask: { paths: ["*"] } }),
+      command.update({ resource: updateInput(claude, { harness: Harness.STIGMER }), updateMask: { paths: ["*"] } }),
     );
     expect([toNative.code, toNative.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
   });
@@ -709,13 +709,13 @@ describe("session — the offered-engine rule", () => {
 
 describe("session update — harness immutability", () => {
   it("allows a harness change while the session has no run", async () => {
-    const session = await createSession({ harness: Harness.NATIVE });
+    const session = await createSession({ harness: Harness.STIGMER });
     const updated = await command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } });
     expect(updated.spec?.harness).toBe(Harness.CLAUDE);
   });
 
   it("rejects a native session's move once it has a run (stigmer/stigmer#2566)", async () => {
-    const session = await createSession({ harness: Harness.NATIVE });
+    const session = await createSession({ harness: Harness.STIGMER });
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
     const error = await grpcError(() =>
@@ -724,11 +724,11 @@ describe("session update — harness immutability", () => {
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(HARNESS_IMMUTABILITY_REFUSAL);
     const stored = await server.store.getResource(ApiResourceKind.session, session.metadata!.id, SessionSchema);
-    expect(stored.spec?.harness).toBe(Harness.NATIVE);
+    expect(stored.spec?.harness).toBe(Harness.STIGMER);
   });
 
   it("answers Internal, never a reading of the session, when its runs cannot be read", async () => {
-    const session = await createSession({ harness: Harness.NATIVE });
+    const session = await createSession({ harness: Harness.STIGMER });
     const read = vi.spyOn(server.store, "queryResources").mockRejectedValueOnce(new Error("store down"));
     try {
       const error = await grpcError(() =>
@@ -764,8 +764,8 @@ describe("session update — harness immutability", () => {
     const session = await createSession({});
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
-    const updated = await command.update({ resource: updateInput(session, { harness: Harness.NATIVE }), updateMask: { paths: ["*"] } });
-    expect(updated.spec?.harness).toBe(Harness.NATIVE);
+    const updated = await command.update({ resource: updateInput(session, { harness: Harness.STIGMER }), updateMask: { paths: ["*"] } });
+    expect(updated.spec?.harness).toBe(Harness.STIGMER);
 
     const error = await grpcError(() =>
       command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
@@ -803,7 +803,7 @@ describe("session update — execution-target immutability (oss#397, stigmer/sti
   });
 
   it("moves a session that has not run, on any harness", async () => {
-    for (const harness of [Harness.NATIVE, Harness.CLAUDE]) {
+    for (const harness of [Harness.STIGMER, Harness.CLAUDE]) {
       const session = await createSession({ harness });
       const updated = await command.update(
         { resource: updateInput(session, { harness, executionTarget: ExecutionTarget.CLOUD }), updateMask: { paths: ["*"] } },
@@ -813,7 +813,7 @@ describe("session update — execution-target immutability (oss#397, stigmer/sti
   });
 
   it("refuses unset→CLOUD once a native or Claude session has run, with the exact copy", async () => {
-    for (const harness of [Harness.NATIVE, Harness.CLAUDE]) {
+    for (const harness of [Harness.STIGMER, Harness.CLAUDE]) {
       const session = await createSession({ harness });
       await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
@@ -829,13 +829,13 @@ describe("session update — execution-target immutability (oss#397, stigmer/sti
   });
 
   it("reads the session's runs once for both locks of one update", async () => {
-    const session = await createSession({ harness: Harness.NATIVE });
+    const session = await createSession({ harness: Harness.STIGMER });
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
     const read = vi.spyOn(server.store, "queryResources");
     try {
       const error = await grpcError(() =>
         command.update(
-          { resource: updateInput(session, { harness: Harness.NATIVE, executionTarget: ExecutionTarget.CLOUD }), updateMask: { paths: ["*"] } },
+          { resource: updateInput(session, { harness: Harness.STIGMER, executionTarget: ExecutionTarget.CLOUD }), updateMask: { paths: ["*"] } },
         ),
       );
       expect(error.code).toBe(Code.FailedPrecondition);
@@ -958,7 +958,7 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
     const session = await createSession({
       agentRef: agentRef(agent.metadata!.slug),
       subject: "original",
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
     });
     const statusAuditBefore = session.status!.audit!.statusAudit!;
 
@@ -971,7 +971,7 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
     // Every other spec field survives the RMW.
     expect(updated.spec?.agentRef?.slug).toBe(agent.metadata!.slug);
     expect(updated.status?.agentId).toBe(agent.metadata!.id);
-    expect(updated.spec?.harness).toBe(Harness.NATIVE);
+    expect(updated.spec?.harness).toBe(Harness.STIGMER);
 
     // The SPEC slot took the update stamp...
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");

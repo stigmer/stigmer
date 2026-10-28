@@ -59,7 +59,7 @@ import { fileRecordOf } from "../record.js";
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-da-1";
 const CHANGE_SET_ID = `${EXEC_ID}:0`;
-const HARNESS = "deep-agent";
+const HARNESS = "stigmer";
 
 // ── deriveCaptureMode: the shared capture-vs-deny-gate decision (both harnesses) ──
 // Capture needs both facts: the turn's review is on, and the workspace has a
@@ -148,8 +148,8 @@ afterEach(async () => {
   await rm(repo, { recursive: true, force: true });
 });
 
-describe("capture orchestration — deep-agent harness", () => {
-  it("stamps harness_id=deep-agent on BASELINE and authors CANDIDATE with the captured changes", async () => {
+describe("capture orchestration — Stigmer harness", () => {
+  it("stamps harness_id=stigmer on BASELINE and authors CANDIDATE with the captured changes", async () => {
     const status = newStatus();
     const baseline = await captureBaselineToLedger({
       rows: status,

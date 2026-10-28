@@ -16,7 +16,7 @@ const SETUP_LINE = JSON.stringify({
   stigmer_timing: "execution_setup",
   execution_id: "aex_1",
   session_id: "ses_1",
-  harness: "native",
+  harness: "stigmer",
   mcp_server_count: 1,
   skill_count: 8,
   workspace_entry_count: 1,
@@ -34,7 +34,7 @@ const PHASES_LINE = JSON.stringify({
   execution_id: "aex_1",
   session_id: "ses_1",
   turn_seq: 1,
-  harness: "deep-agent",
+  harness: "stigmer",
   outcome: "completed",
   first_event_ms: 1200.5,
   first_visible_token_ms: 2100.2,
@@ -98,7 +98,7 @@ describe("timingFor and axesFromTiming", () => {
   it("joins the lines of one execution by execution_id and derives the runner axes and counts", () => {
     const timing = timingFor(parseTimingLines(LOG), "aex_1");
     expect(timing.execution_setup?.total_ms).toBe(812.4);
-    expect(timing.turn_phases?.context["harness"]).toBe("deep-agent");
+    expect(timing.turn_phases?.context["harness"]).toBe("stigmer");
     expect(axesFromTiming(timing)).toEqual({
       runner_first_visible_token_ms: 2100.2,
       runner_first_text_ms: 2100.2,

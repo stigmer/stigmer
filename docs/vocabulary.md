@@ -805,12 +805,12 @@ Agent SDK. A person picks it beside the model, and the model list follows it.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                        |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Pick the harness each agent runs on, Stigmer or Claude Agent; changing it is a setting, not a change to your product."     |
-| Quickstart | "Pick a harness: Stigmer runs any catalog model, Claude Agent runs Claude models on your Anthropic key."                    |
-| Concepts   | "A Harness determines which agent loop runs your Agent's turns. Stigmer offers two: Stigmer and Claude Agent."              |
-| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for Stigmer's own harness, `HARNESS_CLAUDE` for the Claude Agent SDK." |
+| Context    | Copy                                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Pick the harness each agent runs on, Stigmer or Claude Agent; changing it is a setting, not a change to your product."      |
+| Quickstart | "Pick a harness: Stigmer runs any catalog model, Claude Agent runs Claude models on your Anthropic key."                     |
+| Concepts   | "A Harness determines which agent loop runs your Agent's turns. Stigmer offers two: Stigmer and Claude Agent."               |
+| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_STIGMER` for Stigmer's own harness, `HARNESS_CLAUDE` for the Claude Agent SDK." |
 
 **Bad examples**:
 

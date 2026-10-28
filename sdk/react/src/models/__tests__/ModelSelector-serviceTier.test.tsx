@@ -37,7 +37,7 @@ const FAST_CAPABLE: ModelInfo = {
   shortDescription: "Fast agentic model",
   speedTier: "fastest",
   costTier: "economy",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -49,7 +49,7 @@ const ALSO_FAST_CAPABLE: ModelInfo = {
   shortDescription: "Frontier Opus",
   speedTier: "slow",
   costTier: "premium",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -61,7 +61,7 @@ const NO_FAST_TIER: ModelInfo = {
   shortDescription: "Small fast model",
   speedTier: "fastest",
   costTier: "economy",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
 };
@@ -84,7 +84,7 @@ function renderSelector(
       <ModelSelector
         value="claude-sonnet-4-6"
         onValueChange={onValueChange}
-        harness="native"
+        harness="stigmer"
         serviceTier="standard"
         onServiceTierChange={onServiceTierChange}
         {...props}

@@ -113,7 +113,7 @@ describe("an error sent flat", () => {
 describe("a hosted turn", () => {
   function hostedRow(runTurn: HarnessAdapter["runTurn"]): ReturnType<typeof loopbackHostedRow> {
     return loopbackHostedRow({
-      harness: "deep-agent",
+      harness: "stigmer",
       adapter: {
         name: "wire-error-probe",
         capabilities: DEEP_AGENT_CAPABILITIES,

@@ -172,7 +172,7 @@ export interface NewSessionViewerProps {
    * an explicit choice yet. The user can still switch before starting
    * the session, and their explicit choice wins on subsequent visits.
    *
-   * @default "native"
+   * @default "stigmer"
    */
   readonly defaultHarness?: HarnessOption;
 

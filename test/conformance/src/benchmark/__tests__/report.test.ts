@@ -85,7 +85,7 @@ describe("summarize", () => {
       makeSample({ execution_id: "aex_2", outcome: "failed", measures: { estimated_cost_micros: 9999 } }),
       makeSample({ execution_id: "aex_3", measures: { estimated_cost_micros: 300 } }),
     ];
-    const stat = summarize("deep-agent", warmup, samples, null);
+    const stat = summarize("stigmer", warmup, samples, null);
     expect(stat.n).toBe(2);
     expect(stat.failed).toBe(1);
     expect(stat.samples).toHaveLength(3);
@@ -108,13 +108,13 @@ describe("costRatios", () => {
     summarize(harness, makeSample(), [makeSample({ measures: { ...makeSample().measures, estimated_cost_micros: micros } })], null);
 
   it("is each side's warm median cost over native's, never native's own, and leaves out a side it cannot divide", () => {
-    expect(costRatios({ "deep-agent": priced("deep-agent", 200), claude: priced("claude", 500) })).toEqual({ claude: 2.5 });
+    expect(costRatios({ stigmer: priced("stigmer", 200), claude: priced("claude", 500) })).toEqual({ claude: 2.5 });
     expect(costRatios({ claude: priced("claude", 500) }), "no native side, nothing to divide by").toEqual({});
-    expect(costRatios({ "deep-agent": priced("deep-agent", 0), claude: priced("claude", 500) }), "a native cost of 0").toEqual({});
+    expect(costRatios({ stigmer: priced("stigmer", 0), claude: priced("claude", 500) }), "a native cost of 0").toEqual({});
   });
 
   it("comparisonOf names the scenario, keeps the sides by harness and their ratios over native", () => {
-    const sides = { "deep-agent": priced("deep-agent", 200), claude: priced("claude", 300) };
+    const sides = { stigmer: priced("stigmer", 200), claude: priced("claude", 300) };
     const comparison = comparisonOf({ name: "s", prompts: ["p"], mode: "parity", sessionShape: "fresh-per-execution", agent: "bare" }, sides);
     expect([comparison.scenario, comparison.prompts, comparison.mode, comparison.session_shape, comparison.agent]).toEqual(["s", ["p"], "parity", "fresh-per-execution", "bare"]);
     expect(comparison.sides).toBe(sides);
@@ -139,11 +139,11 @@ describe("readBenchmarkReport", () => {
         shell_background: "on",
       },
       models: {
-        parity: { "deep-agent": "claude-sonnet-4.6", claude: "claude-sonnet-4.6" },
+        parity: { stigmer: "claude-sonnet-4.6", claude: "claude-sonnet-4.6" },
         judge_requested: "claude-sonnet-4.6",
-        native_endpoint: "api.anthropic.com",
-        native_api: "messages",
-        native_cost_basis: "catalog",
+        stigmer_endpoint: "api.anthropic.com",
+        stigmer_api: "messages",
+        stigmer_cost_basis: "catalog",
       },
       comparisons: [
         {
@@ -152,14 +152,14 @@ describe("readBenchmarkReport", () => {
           mode: "parity",
           session_shape: "fresh-per-execution",
           agent: "bare",
-          sides: { "deep-agent": summarize("deep-agent", makeSample(), [makeSample()], null), claude: summarize("claude", makeSample(), [makeSample()], null) },
+          sides: { stigmer: summarize("stigmer", makeSample(), [makeSample()], null), claude: summarize("claude", makeSample(), [makeSample()], null) },
           cost_ratio: { claude: 1 },
         },
       ],
       quality: {
         plugin: "working-agent",
         eval_id: "pev_1",
-        targets: ["native/claude-sonnet-4.6"],
+        targets: ["stigmer/claude-sonnet-4.6"],
         judge_model: "claude-sonnet-4.6",
         runs: 3,
         document: { schemaVersion: 1, cases: [] },
@@ -179,7 +179,7 @@ describe("readBenchmarkReport", () => {
     report.models.parity["retired-engine"] = "some-model";
     report.comparisons[0]!.sides["retired-engine"] = { n: "not checked" };
     report.comparisons[0]!.cost_ratio["retired-engine"] = 1;
-    expect(readBenchmarkReport(report).models.parity["deep-agent"]).toBe("claude-sonnet-4.6");
+    expect(readBenchmarkReport(report).models.parity.stigmer).toBe("claude-sonnet-4.6");
   });
 
   it("refuses a wrong schema version by value, the v2 reports before the working agent included", () => {
@@ -210,19 +210,19 @@ describe("readBenchmarkReport", () => {
   });
 
   it("refuses a report without the native arm's endpoint, API or cost basis, the v7 reports before one arm per run", () => {
-    for (const key of ["native_endpoint", "native_api", "native_cost_basis"]) {
+    for (const key of ["stigmer_endpoint", "stigmer_api", "stigmer_cost_basis"]) {
       const report = validReport();
       delete (report.models as unknown as Record<string, unknown>)[key];
       expect(() => readBenchmarkReport(report), key).toThrow(`report.models.${key} is missing`);
     }
     const unknownApi = validReport();
-    (unknownApi.models as unknown as Record<string, unknown>)["native_api"] = "grpc";
+    (unknownApi.models as unknown as Record<string, unknown>)["stigmer_api"] = "grpc";
     expect(() => readBenchmarkReport(unknownApi)).toThrow(
-      'report.models.native_api is "grpc", expected one of messages, chat-completions, responses',
+      'report.models.stigmer_api is "grpc", expected one of messages, chat-completions, responses',
     );
     const unknownBasis = validReport();
-    (unknownBasis.models as unknown as Record<string, unknown>)["native_cost_basis"] = 3;
-    expect(() => readBenchmarkReport(unknownBasis)).toThrow("report.models.native_cost_basis is a number");
+    (unknownBasis.models as unknown as Record<string, unknown>)["stigmer_cost_basis"] = 3;
+    expect(() => readBenchmarkReport(unknownBasis)).toThrow("report.models.stigmer_cost_basis is a number");
     const noModels = validReport() as unknown as Record<string, unknown>;
     delete noModels["models"];
     expect(() => readBenchmarkReport(noModels)).toThrow("report.models is missing");

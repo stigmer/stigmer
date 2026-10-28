@@ -134,7 +134,7 @@ describe("the workspace .stigmer link on a skill turn", () => {
         org,
         name: uniqueName("ses-link"),
         agentRef: agentRefOf(agent),
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         localWorkspaces: [{ name: "repo", path: workspace.dir }],
       }),
     );

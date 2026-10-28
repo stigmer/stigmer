@@ -82,7 +82,7 @@ test.describe("An agent's run defaults in the console", () => {
     await stigmerClient.agent.update(
       {
         metadata: { id: agent.metadata!.id, etag: agent.metadata!.etag },
-        spec: { harness: Harness.NATIVE, runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED } },
+        spec: { harness: Harness.STIGMER, runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED } },
       },
       ["spec.harness", "spec.run_config"],
     );

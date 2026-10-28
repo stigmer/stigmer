@@ -126,12 +126,12 @@ describe.skipIf(collectionTarget.traceCollector === undefined)("Run — a tracin
       {
         name: uniqueName("researcher"),
         instructions: "You look things up with your tools and report in one sentence.",
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         plugins: [plugin.metadata!.slug],
       },
     ]);
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("tracer"), harness: Harness.NATIVE, subagents: subagentSlugsOf(saved) }),
+      makeAgent({ org, name: uniqueName("tracer"), harness: Harness.STIGMER, subagents: subagentSlugsOf(saved) }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     const subagentSlug = saved[0]!.metadata!.slug;

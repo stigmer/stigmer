@@ -244,16 +244,16 @@ describe("agentLayerFor: an agent's choices count only on its engine", () => {
   });
 
   it("only the bounds on the other engine", () => {
-    expect(agentLayerFor(spec, "native")).toEqual(
+    expect(agentLayerFor(spec, "stigmer")).toEqual(
       rc({ maxCostUsd: 2, maxToolRounds: 30, maxToolResultChars: 40_000 }),
     );
   });
 
   it("an unset engine is native, and no defaults is no layer", () => {
     const native = create(AgentSpecSchema, { runConfig: { maxCostUsd: 1 } });
-    expect(agentLayerFor(native, "native")).toEqual(native.runConfig);
-    expect(agentLayerFor(create(AgentSpecSchema), "native")).toBeUndefined();
-    expect(agentLayerFor(undefined, "native")).toBeUndefined();
+    expect(agentLayerFor(native, "stigmer")).toEqual(native.runConfig);
+    expect(agentLayerFor(create(AgentSpecSchema), "stigmer")).toBeUndefined();
+    expect(agentLayerFor(undefined, "stigmer")).toBeUndefined();
   });
 });
 
@@ -265,10 +265,10 @@ describe("conversationEngine", () => {
   }
 
   it("a turn in a stored session runs the session's engine, whatever the agent names", () => {
-    const stored = create(SessionSchema, { spec: { harness: Harness.NATIVE } });
+    const stored = create(SessionSchema, { spec: { harness: Harness.STIGMER } });
     expect(
       conversationEngine(turn({ case: "sessionId", value: "ses_1" }), stored, claudeAgent),
-    ).toBe(Harness.NATIVE);
+    ).toBe(Harness.STIGMER);
   });
 
   it("a new conversation takes the request's engine, else the agent's, else the platform default", () => {
@@ -281,11 +281,11 @@ describe("conversationEngine", () => {
     ).toBe(Harness.CLAUDE);
     expect(
       conversationEngine(
-        turn({ case: "sessionSpec", value: { harness: Harness.NATIVE } }),
+        turn({ case: "sessionSpec", value: { harness: Harness.STIGMER } }),
         undefined,
         claudeAgent,
       ),
-    ).toBe(Harness.NATIVE);
+    ).toBe(Harness.STIGMER);
     expect(conversationEngine(turn({ case: undefined }), undefined, claudeAgent)).toBe(Harness.CLAUDE);
     expect(conversationEngine(turn({ case: undefined }), undefined, undefined)).toBe(Harness.UNSPECIFIED);
   });
@@ -312,7 +312,7 @@ describe("ResolveRunConfig over a real store", () => {
       create(AgentSchema, {
         metadata: { id: AGENT, org: "acme", slug: "reviewer" },
         spec: {
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
           runConfig: {
             modelName: "claude-sonnet-5",
             thinkingMode: ThinkingMode.ENABLED,
@@ -330,7 +330,7 @@ describe("ResolveRunConfig over a real store", () => {
       AgentSchema,
       create(AgentSchema, {
         metadata: { id: AGENT, org: "acme", slug: "reviewer" },
-        spec: { harness: Harness.NATIVE, runConfig: { modelName: "claude-haiku-4.5" } },
+        spec: { harness: Harness.STIGMER, runConfig: { modelName: "claude-haiku-4.5" } },
         status: { versionHash: HEAD },
       }),
     );
@@ -498,9 +498,9 @@ describe("ResolveRunConfig over a real store", () => {
       }),
     );
     const target = ctx.newState.spec?.target;
-    expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.NATIVE);
-    expect(runConfigPlacementOf(ctx)?.harness).toBe("native");
-    expect(runConfigPlacementOf(ctx)?.engine).toBe(Harness.NATIVE);
+    expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.STIGMER);
+    expect(runConfigPlacementOf(ctx)?.harness).toBe("stigmer");
+    expect(runConfigPlacementOf(ctx)?.engine).toBe(Harness.STIGMER);
     // On native the Claude agent gives its cap alone.
     expect(ctx.newState.status?.runConfig).toEqual(rc({ modelName: "claude-haiku-4.5", maxCostUsd: 3 }));
 
@@ -516,7 +516,7 @@ describe("ResolveRunConfig over a real store", () => {
     expect(runConfigPlacementOf(neither)?.engine).toBe(Harness.CLAUDE);
   });
 
-  it.each([Harness.NATIVE, Harness.CLAUDE])(
+  it.each([Harness.STIGMER, Harness.CLAUDE])(
     "an unattended turn on harness %i that names no model at any layer leaves the model to the engine",
     async (harness) => {
       const ctx = await resolve(
@@ -545,7 +545,7 @@ describe("ResolveRunConfig over a real store", () => {
       store,
       exec,
       create(SessionSchema, {
-        spec: { harness: Harness.NATIVE },
+        spec: { harness: Harness.STIGMER },
         status: { agentId: AGENT, agentVersionHash: PINNED },
       }),
     );
@@ -556,7 +556,7 @@ describe("ResolveRunConfig over a real store", () => {
       store,
       exec,
       create(SessionSchema, {
-        spec: { harness: Harness.NATIVE },
+        spec: { harness: Harness.STIGMER },
         status: { agentId: AGENT, agentVersionHash: HEAD },
       }),
     );
@@ -599,7 +599,7 @@ describe("ResolveRunConfig over a real store", () => {
         create(AgentSchema, {
           metadata: { id: AGENT, org: "acme", slug: "reviewer" },
           spec: {
-            harness: Harness.NATIVE,
+            harness: Harness.STIGMER,
             runConfig: { modelName: "claude-sonnet-4.6", serviceTier: ServiceTier.FAST },
           },
           status: { versionHash: FAST_UNPRICED },
@@ -638,7 +638,7 @@ describe("ResolveRunConfig over a real store", () => {
       const ctx = await resolve(
         execution({ spec: { message: "hi" }, status: { agentId: AGENT, agentVersionHash: PINNED } }),
       );
-      const err = await createSessionPinning(ctx, { harness: Harness.NATIVE, versionHash: FAST_UNPRICED });
+      const err = await createSessionPinning(ctx, { harness: Harness.STIGMER, versionHash: FAST_UNPRICED });
       expect(err).toBeInstanceOf(ConnectError);
       expect((err as ConnectError).code).toBe(Code.InvalidArgument);
       expect((err as ConnectError).rawMessage).toContain("from the agent's run defaults");

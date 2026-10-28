@@ -42,7 +42,7 @@ describe("renderSessionHeader", () => {
 
     // Native (explicit or defaulted) stays implicit, like agent mode.
     const native = capture();
-    renderSessionHeader(native.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "native", workspaces: [] });
+    renderSessionHeader(native.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "stigmer", workspaces: [] });
     expect(native.text()).not.toContain("Harness:");
 
     const unset = capture();

@@ -74,7 +74,7 @@ import { useNewSessionFlow } from "../useNewSessionFlow";
 
 const TEST_MODELS = parseRegistryJson({
   models: [
-    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "stigmer", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
     { id: "claude-haiku-4.5", displayName: "Claude Haiku 4.5", shortDescription: "", speedTier: "fastest", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.1 } },
   ],
 });
@@ -140,7 +140,7 @@ describe("useNewSessionFlow", () => {
   describe("harness state", () => {
     it("defaults to native when localStorage is empty", () => {
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
     });
 
     it("restores claude harness from localStorage", () => {
@@ -152,7 +152,7 @@ describe("useNewSessionFlow", () => {
     it("falls back to native for unknown localStorage values", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "unknown-value");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
     });
 
     it("persists harness to localStorage on change", () => {
@@ -168,9 +168,9 @@ describe("useNewSessionFlow", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
-      act(() => result.current.setHarness("native"));
+      act(() => result.current.setHarness("stigmer"));
 
-      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("native");
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("stigmer");
     });
   });
 
@@ -450,7 +450,7 @@ describe("useNewSessionFlow", () => {
       });
 
       const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.harness).toBe("native");
+      expect(execInput.sessionSpec.harness).toBe("stigmer");
     });
 
     it("omits autoApproveAll by default (fail-closed gates unchanged)", async () => {
@@ -693,13 +693,13 @@ describe("useNewSessionFlow", () => {
         hook.result.current.setResolution({ mode: "direct" });
       });
       await waitFor(() => expect(hook.result.current.harness).toBe(
-        (agent as typeof AGENT_ON_CLAUDE | null)?.spec.harness === Harness.CLAUDE ? "claude" : "native",
+        (agent as typeof AGENT_ON_CLAUDE | null)?.spec.harness === Harness.CLAUDE ? "claude" : "stigmer",
       ));
       return hook;
     }
 
     it("opens the engine picker on the agent's engine over a remembered one", async () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "stigmer");
       const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
       expect(result.current.harness).toBe("claude");
       expect(result.current.agentRunDefaults).toEqual({ modelName: CLAUDE_MODEL_ID });
@@ -722,8 +722,8 @@ describe("useNewSessionFlow", () => {
 
     it("the person's engine pick wins over the agent's", async () => {
       const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
-      act(() => result.current.setHarness("native"));
-      expect(result.current.harness).toBe("native");
+      act(() => result.current.setHarness("stigmer"));
+      expect(result.current.harness).toBe("stigmer");
       expect(result.current.agentRunDefaults).toBeUndefined();
     });
 
@@ -777,7 +777,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("holds a send until the agent is read, so it starts on the agent's engine", async () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "stigmer");
       let resolveAgent: (agent: unknown) => void = () => {};
       mockGetByReference.mockReturnValue(new Promise((resolve) => { resolveAgent = resolve; }));
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
@@ -812,7 +812,7 @@ describe("useNewSessionFlow", () => {
       });
       // Picked on the native engine while the agent still loads...
       act(() => result.current.setModelId("claude-sonnet-4.6"));
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
 
       // ...then the agent names the claude engine.
       await act(async () => {
@@ -1019,11 +1019,11 @@ describe("useNewSessionFlow", () => {
     });
 
     it("stored user choice outranks the embedder default", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "stigmer");
       const opts = { ...defaultOptions(), defaultHarness: "claude" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
     });
 
     it("does not persist the seeded default — only explicit choices", () => {
@@ -1034,8 +1034,8 @@ describe("useNewSessionFlow", () => {
       // embedder default would stop applying after the first visit.
       expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
 
-      act(() => result.current.setHarness("native"));
-      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("native");
+      act(() => result.current.setHarness("stigmer"));
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("stigmer");
     });
 
     it("submits sessions with the seeded default harness", async () => {
@@ -1055,8 +1055,8 @@ describe("useNewSessionFlow", () => {
     // distinguishable; the shared TEST_MODELS carries one per harness.
     const SEED_MODELS = parseRegistryJson({
       models: [
-        { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
-        { id: "gpt-5.3", displayName: "GPT 5.3", shortDescription: "", speedTier: "fast", provider: "openai", harness: "native", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8, cacheWritePricePerMillion: 2, cacheReadPricePerMillion: 0.2 } },
+        { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "stigmer", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+        { id: "gpt-5.3", displayName: "GPT 5.3", shortDescription: "", speedTier: "fast", provider: "openai", harness: "stigmer", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8, cacheWritePricePerMillion: 2, cacheReadPricePerMillion: 0.2 } },
         { id: "claude-sonnet-5", displayName: "Claude Sonnet 5", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 0.2 } },
       ],
     });
@@ -1080,17 +1080,17 @@ describe("useNewSessionFlow", () => {
     });
 
     it("a stored harness choice outranks the account default", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "stigmer");
       const opts = { ...defaultOptions(), accountDefaults: { harness: "claude" as const } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
     });
 
     it("the account harness outranks the embedder defaultHarness", () => {
       const opts = {
         ...defaultOptions(),
-        defaultHarness: "native" as const,
+        defaultHarness: "stigmer" as const,
         accountDefaults: { harness: "claude" as const },
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
@@ -1111,7 +1111,7 @@ describe("useNewSessionFlow", () => {
         (opts: Parameters<typeof useNewSessionFlow>[0]) => useNewSessionFlow(opts),
         { wrapper: seedWrapper(), initialProps: base },
       );
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
 
       rerender({ ...base, accountDefaults: { harness: "claude" as const } });
 
@@ -1125,11 +1125,11 @@ describe("useNewSessionFlow", () => {
         (opts: Parameters<typeof useNewSessionFlow>[0]) => useNewSessionFlow(opts),
         { wrapper: seedWrapper(), initialProps: base },
       );
-      act(() => result.current.setHarness("native"));
+      act(() => result.current.setHarness("stigmer"));
 
       rerender({ ...base, accountDefaults: { harness: "claude" as const } });
 
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
     });
 
     it("seeds the model for the active harness when nothing is stored", () => {
@@ -1175,7 +1175,7 @@ describe("useNewSessionFlow", () => {
       unmount();
 
       localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
-      const stored = renderHook(() => useNewSessionFlow({ ...defaultOptions(), accountDefaults: { harness: "native" as const } }), { wrapper: seedWrapper() });
+      const stored = renderHook(() => useNewSessionFlow({ ...defaultOptions(), accountDefaults: { harness: "stigmer" as const } }), { wrapper: seedWrapper() });
       expect(stored.result.current.harness).toBe("claude");
     });
 
@@ -1201,7 +1201,7 @@ describe("useNewSessionFlow", () => {
       // Platform share policy: the account's engine and models never seed a
       // guest; the flow's local harness stays the platform default, and the
       // create names neither (the chat link's agent applies its own).
-      expect(result.current.harness).toBe("native");
+      expect(result.current.harness).toBe("stigmer");
       expect(result.current.modelId).toBeUndefined();
     });
   });
@@ -1353,7 +1353,7 @@ describe("useNewSessionFlow", () => {
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      act(() => result.current.setHarness("native"));
+      act(() => result.current.setHarness("stigmer"));
       act(() => result.current.setModelId(CLAUDE_MODEL_ID));
 
       expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
@@ -1363,7 +1363,7 @@ describe("useNewSessionFlow", () => {
 
     it("submits with NO engine and NO model: the chat link's agent applies its own", async () => {
       // Stored values simulate a Console-used browser: neither may leak.
-      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "stigmer");
       localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, CLAUDE_MODEL_ID);
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });

@@ -37,7 +37,7 @@ const FAST_CAPABLE: ModelInfo = {
   shortDescription: "Frontier model with a fast tier",
   speedTier: "slow",
   costTier: "premium",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -81,7 +81,7 @@ function renderComposer() {
   const result = render(
     <SessionComposer
       onSubmit={onSubmit}
-      harness="native"
+      harness="stigmer"
       defaultModelId="claude-opus-4-8"
     />,
     { wrapper: createWrapper(client) },

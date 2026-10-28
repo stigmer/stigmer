@@ -58,7 +58,7 @@ const stubWorkspace = {
 };
 
 const stubNewSessionFlow = {
-  harness: "native" as const,
+  harness: "stigmer" as const,
   setHarness: vi.fn(),
   modelId: undefined,
   setModelId: vi.fn(),
@@ -127,7 +127,7 @@ const stubConv = {
 
 const stubSessionPageFlow = {
   conv: stubConv,
-  harness: "native" as const,
+  harness: "stigmer" as const,
   executionTarget: undefined,
   model: [undefined, vi.fn()] as const,
   interactionMode: ["agent" as const, vi.fn()] as const,

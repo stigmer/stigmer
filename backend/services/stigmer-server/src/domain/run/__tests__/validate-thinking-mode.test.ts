@@ -60,7 +60,7 @@ const silentLogger = createLogger({
 function documentWithSplitRows(): string {
   const document = JSON.parse(bundledModelRegistryDocument()) as { models: unknown[] };
   document.models.push(
-    { id: "split-thinker", harness: "native", capabilities: { thinking: true, thinkingRequired: true } },
+    { id: "split-thinker", harness: "stigmer", capabilities: { thinking: true, thinkingRequired: true } },
     { id: "split-thinker", harness: "claude", capabilities: { thinking: false } },
     { id: "claude-only", harness: "claude", capabilities: { adaptiveThinking: true } },
   );
@@ -108,7 +108,7 @@ const onClaude: TargetInit = {
 };
 const onNative: TargetInit = {
   case: "sessionSpec",
-  value: { harness: Harness.NATIVE },
+  value: { harness: Harness.STIGMER },
 };
 
 async function passes(
@@ -278,7 +278,7 @@ describe("ValidateThinkingMode reads the recorded session's harness", () => {
       passes(
         { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED },
         inSession("ses_native"),
-        storedSession("ses_native", Harness.NATIVE),
+        storedSession("ses_native", Harness.STIGMER),
       ),
     ).resolves.toBeUndefined();
   });

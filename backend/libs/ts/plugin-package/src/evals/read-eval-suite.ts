@@ -125,7 +125,7 @@ export const EVAL_UNSUPPORTED_FEATURES = ["plugins", "more than 32 graders"] as 
 export type EvalUnsupportedFeature = (typeof EVAL_UNSUPPORTED_FEATURES)[number];
 
 /** An engine a case may run on, by the word the model catalog files its rows under. */
-export type EvalEngine = "native" | "claude";
+export type EvalEngine = "stigmer" | "claude";
 
 /** A feature some engine cannot run: a recorded conversation to resume. */
 export type EvalEngineUnsupportedFeature = "resumed conversations";
@@ -137,7 +137,7 @@ export type EvalEngineUnsupportedFeature = "resumed conversations";
  * shell is the runner's, so `env` reaches it as on native.
  */
 export const EVAL_ENGINE_UNSUPPORTED_FEATURES: Readonly<Record<EvalEngine, readonly EvalEngineUnsupportedFeature[]>> = {
-  native: [],
+  stigmer: [],
   claude: ["resumed conversations"],
 };
 

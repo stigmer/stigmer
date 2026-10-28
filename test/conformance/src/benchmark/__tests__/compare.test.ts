@@ -36,10 +36,10 @@ import {
   type ComparedReport,
 } from "../compare";
 import { emptyMarkers } from "../log-markers";
-import { ARM_WORD, summarize, type BackgroundReadings, type BenchmarkHarness, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
+import { summarize, type BackgroundReadings, type BenchmarkHarness, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
 import { makeSample } from "./sample-fixture";
 
-const REF = PARITY_MODEL["deep-agent"];
+const REF = PARITY_MODEL.stigmer;
 /** The label suffix of the default code, `git.code_sha` "c" * 40. */
 const C = `#${"c".repeat(10)}`;
 
@@ -88,9 +88,9 @@ interface ArmSpec {
 
 function report(spec: ArmSpec = {}): BenchmarkReport {
   const model = spec.model ?? REF;
-  const harness = spec.harness ?? "deep-agent";
-  const parity = { ...PARITY_MODEL, "deep-agent": model };
-  const target = `${ARM_WORD[harness]}/${parity[harness]}`;
+  const harness = spec.harness ?? "stigmer";
+  const parity = { ...PARITY_MODEL, stigmer: model };
+  const target = `${harness}/${parity[harness]}`;
   const cells = spec.cells ?? { "working-read-edit": samples(3) };
   return {
     schema_version: 11,
@@ -109,9 +109,9 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
     models: {
       parity,
       judge_requested: REF,
-      native_endpoint: spec.endpoint ?? (model.startsWith("openai:") ? "api.openai.com" : "api.anthropic.com"),
-      native_api: model.startsWith("openai:") ? "chat-completions" : "messages",
-      native_cost_basis: spec.basis ?? "catalog",
+      stigmer_endpoint: spec.endpoint ?? (model.startsWith("openai:") ? "api.openai.com" : "api.anthropic.com"),
+      stigmer_api: model.startsWith("openai:") ? "chat-completions" : "messages",
+      stigmer_cost_basis: spec.basis ?? "catalog",
     },
     comparisons: Object.entries(cells).map(([scenario, list]) => ({
       scenario,
@@ -207,49 +207,49 @@ describe("compareReports: arms and pooling", () => {
       at("ref.json", report()),
       at("gemini.json", report({ model: "openai:gemini-3-pro", endpoint: "generativelanguage.googleapis.com" })),
     ]);
-    expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com${C}`);
-    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}`, `native/openai:gemini-3-pro@generativelanguage.googleapis.com${C}`]);
+    expect(comparison.reference).toBe(`stigmer/${REF}@api.anthropic.com${C}`);
+    expect(comparison.arms).toEqual([`stigmer/${REF}@api.anthropic.com${C}`, `stigmer/openai:gemini-3-pro@generativelanguage.googleapis.com${C}`]);
     expect(armLabel(report(), "claude"), "Claude's label names its model and code, no endpoint").toBe(`claude/${PARITY_MODEL.claude}${C}`);
-    expect(armLabel(report({ codeSha: `${"d".repeat(40)}-dirty` }), "deep-agent")).toBe(`native/${REF}@api.anthropic.com#${"d".repeat(10)}-dirty`);
+    expect(armLabel(report({ codeSha: `${"d".repeat(40)}-dirty` }), "stigmer")).toBe(`stigmer/${REF}@api.anthropic.com#${"d".repeat(10)}-dirty`);
   });
 
   it("reads two versions of the code as two arms, never one, and resolves a reference by its code", () => {
     const before = at("before.json", report({ codeSha: "b".repeat(40), cells: { "working-read-edit": samples(3, ["failed"]) } }));
     const after = at("after.json", report({ timestamp: "2026-10-23T11:00:00Z" }));
-    const comparison = compareReports([before, after], `native/${REF}@api.anthropic.com#bbbb`);
-    expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com#${"b".repeat(10)}`);
-    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com#${"b".repeat(10)}`, `native/${REF}@api.anthropic.com${C}`]);
-    expect(comparison.readings.map((reading) => reading.arm)).toEqual([`native/${REF}@api.anthropic.com${C}`]);
+    const comparison = compareReports([before, after], `stigmer/${REF}@api.anthropic.com#bbbb`);
+    expect(comparison.reference).toBe(`stigmer/${REF}@api.anthropic.com#${"b".repeat(10)}`);
+    expect(comparison.arms).toEqual([`stigmer/${REF}@api.anthropic.com#${"b".repeat(10)}`, `stigmer/${REF}@api.anthropic.com${C}`]);
+    expect(comparison.readings.map((reading) => reading.arm)).toEqual([`stigmer/${REF}@api.anthropic.com${C}`]);
     expect(comparison.readings[0]!.cells[0]!.wasted).toMatchObject({ arm: 0, reference: 1 });
     expect(() => compareReports([before, after])).toThrow(
-      `reference native/${REF} matches several arms: native/${REF}@api.anthropic.com#${"b".repeat(10)}, native/${REF}@api.anthropic.com${C}; name one`,
+      `reference stigmer/${REF} matches several arms: stigmer/${REF}@api.anthropic.com#${"b".repeat(10)}, stigmer/${REF}@api.anthropic.com${C}; name one`,
     );
-    expect(() => compareReports([before, after], `native/${REF}@api.anthropic.com`)).toThrow("matches several arms");
+    expect(() => compareReports([before, after], `stigmer/${REF}@api.anthropic.com`)).toThrow("matches several arms");
   });
 
   it("takes a named reference, and refuses one no report carries or one that matches several arms", () => {
     const reports = [at("ref.json", report()), at("gpt.json", report({ model: "openai:gpt-5.5" }))];
-    expect(compareReports(reports, "native/openai:gpt-5.5").reference).toBe(`native/openai:gpt-5.5@api.openai.com${C}`);
-    expect(compareReports(reports, "native/openai:gpt-5.5@api.openai.com").reference).toBe(`native/openai:gpt-5.5@api.openai.com${C}`);
-    expect(compareReports(reports, `native/openai:gpt-5.5@api.openai.com${C}`).reference).toBe(`native/openai:gpt-5.5@api.openai.com${C}`);
-    expect(() => compareReports(reports, "native/claude-opus-4.7")).toThrow("no report carries the reference arm native/claude-opus-4.7");
+    expect(compareReports(reports, "stigmer/openai:gpt-5.5").reference).toBe(`stigmer/openai:gpt-5.5@api.openai.com${C}`);
+    expect(compareReports(reports, "stigmer/openai:gpt-5.5@api.openai.com").reference).toBe(`stigmer/openai:gpt-5.5@api.openai.com${C}`);
+    expect(compareReports(reports, `stigmer/openai:gpt-5.5@api.openai.com${C}`).reference).toBe(`stigmer/openai:gpt-5.5@api.openai.com${C}`);
+    expect(() => compareReports(reports, "stigmer/claude-opus-4.7")).toThrow("no report carries the reference arm stigmer/claude-opus-4.7");
     const twoEndpoints = [
       at("ref.json", report()),
       at("a.json", report({ model: "openai:x", endpoint: "a.example" })),
       at("b.json", report({ model: "openai:x", endpoint: "b.example" })),
     ];
-    expect(() => compareReports(twoEndpoints, "native/openai:x")).toThrow("matches several arms");
+    expect(() => compareReports(twoEndpoints, "stigmer/openai:x")).toThrow("matches several arms");
   });
 
   it("reads a report with background commands off as an arm of its own, beside the same model's arm with them on", () => {
     const off = report({ shellBackground: "off", timestamp: "2026-10-23T09:00:00Z", cells: { "working-read-edit": samples(3, ["failed"]) } });
     const reports = [at("off.json", off), at("on.json", report())];
-    expect(armLabel(off, "deep-agent")).toBe(`native/${REF}@api.anthropic.com${C}+background-off`);
+    expect(armLabel(off, "stigmer")).toBe(`stigmer/${REF}@api.anthropic.com${C}+background-off`);
     expect(armLabel(off, "claude"), "the setting is native's alone").toBe(`claude/${PARITY_MODEL.claude}${C}`);
-    const comparison = compareReports(reports, `native/${REF}@api.anthropic.com${C}+background-off`);
-    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}+background-off`, `native/${REF}@api.anthropic.com${C}`]);
-    expect(comparison.readings[0]!.arm).toBe(`native/${REF}@api.anthropic.com${C}`);
-    expect(compareReports(reports, `native/${REF}@api.anthropic.com${C}`).reference, "the full label of the arm with them on names it alone").toBe(`native/${REF}@api.anthropic.com${C}`);
+    const comparison = compareReports(reports, `stigmer/${REF}@api.anthropic.com${C}+background-off`);
+    expect(comparison.arms).toEqual([`stigmer/${REF}@api.anthropic.com${C}+background-off`, `stigmer/${REF}@api.anthropic.com${C}`]);
+    expect(comparison.readings[0]!.arm).toBe(`stigmer/${REF}@api.anthropic.com${C}`);
+    expect(compareReports(reports, `stigmer/${REF}@api.anthropic.com${C}`).reference, "the full label of the arm with them on names it alone").toBe(`stigmer/${REF}@api.anthropic.com${C}`);
     expect(comparison.readings[0]!.cells[0]!.wasted, "the off arm's samples were not pooled into the on arm").toMatchObject({ arm: 0, reference: 1 });
     expect(() => compareReports(reports), "the bare model now names two arms").toThrow("matches several arms");
   });
@@ -261,14 +261,14 @@ describe("compareReports: arms and pooling", () => {
       at("claude.json", report({ harness: "claude", quality: GOOD_QUALITY, cells: { "working-read-edit": samples(3, ["failed"]) } })),
     ];
     const comparison = compareReports(reports);
-    expect(comparison.reference, "the default reference is native").toBe(`native/${REF}@api.anthropic.com${C}`);
-    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}`, `claude/${PARITY_MODEL.claude}${C}`]);
+    expect(comparison.reference, "the default reference is native").toBe(`stigmer/${REF}@api.anthropic.com${C}`);
+    expect(comparison.arms).toEqual([`stigmer/${REF}@api.anthropic.com${C}`, `claude/${PARITY_MODEL.claude}${C}`]);
     const reading = comparison.readings[0]!;
     expect(reading.arm).toBe(`claude/${PARITY_MODEL.claude}${C}`);
     expect(reading.quality.cases, "the Claude target's cases, graded on both arms").toBe(3);
     expect(reading.cells[0]!.wasted, "the Claude side's samples against native's").toMatchObject({ arm: 1, reference: 0, status: "misses" });
     expect(reading.verdict).toBe("misses the bar");
-    expect(comparison.runnerLogs.map((log) => log.arms)).toEqual([[`native/${REF}@api.anthropic.com${C}`], [`claude/${PARITY_MODEL.claude}${C}`]]);
+    expect(comparison.runnerLogs.map((log) => log.arms)).toEqual([[`stigmer/${REF}@api.anthropic.com${C}`], [`claude/${PARITY_MODEL.claude}${C}`]]);
   });
 
   it("pools an arm's reports, a later scenario replacing an earlier one", () => {
@@ -342,13 +342,13 @@ describe("the timing-cell clauses", () => {
       cells: {},
       quality: GOOD_QUALITY,
       refused: [
-        { cell: "report-simple/deep-agent", reason: "the native model is pinned by --native-model" },
-        { cell: "working-read-edit/deep-agent", reason: "missing OPENAI_API_KEY" },
+        { cell: "report-simple/stigmer", reason: "the native model is pinned by --stigmer-model" },
+        { cell: "working-read-edit/stigmer", reason: "missing OPENAI_API_KEY" },
         { cell: "working-cross-turn/claude", reason: "excluded by --only" },
       ],
     });
     expect(reading.cells.map((cell) => [cell.scenario, cell.status, cell.why])).toEqual([
-      ["report-simple", "expected refusal", "the native model is pinned by --native-model"],
+      ["report-simple", "expected refusal", "the native model is pinned by --stigmer-model"],
       ["working-read-edit", "not measured", "refused: missing OPENAI_API_KEY"],
       ["working-cross-turn", "not measured", "absent from the arm's reports"],
     ]);
@@ -366,7 +366,7 @@ describe("the verdict", () => {
   it("a cell refused by design does not stop an arm holding the bar", () => {
     const reading = readingOf(
       { cells: { "report-simple": samples(3), "working-read-edit": samples(3) }, quality: GOOD_QUALITY },
-      { cells: { "working-read-edit": samples(3) }, quality: GOOD_QUALITY, refused: [{ cell: "report-simple/deep-agent", reason: "the native model is pinned by --native-model" }] },
+      { cells: { "working-read-edit": samples(3) }, quality: GOOD_QUALITY, refused: [{ cell: "report-simple/stigmer", reason: "the native model is pinned by --stigmer-model" }] },
     );
     expect(reading.verdict).toBe("holds the bar");
   });
@@ -393,8 +393,8 @@ describe("renderComparison", () => {
       at("gpt.json", report({ model: "openai:gpt-5.5", basis: "default-rate", quality: GOOD_QUALITY })),
     ];
     const text = renderComparison(compareReports(reports), reports);
-    expect(text).toContain(`Reference: native/${REF}@api.anthropic.com${C}; instrument hhhhhhhhhh, 3 reps, 3 quality tries, darwin/arm64 v22.22.1`);
-    expect(text).toContain(`## native/openai:gpt-5.5@api.openai.com${C}: holds the bar`);
+    expect(text).toContain(`Reference: stigmer/${REF}@api.anthropic.com${C}; instrument hhhhhhhhhh, 3 reps, 3 quality tries, darwin/arm64 v22.22.1`);
+    expect(text).toContain(`## stigmer/openai:gpt-5.5@api.openai.com${C}: holds the bar`);
     expect(text).toContain("Quality: holds (mean 0.900 against 0.900 over 3 cases (tolerance 0.05)); pass^k 1 against 1");
     expect(text).toContain("| working-read-edit | holds | 0 / 0 | 0.0% / 0.0% | 1000 / 1000 | 1 / 1 | 3000* / 3000 |");
     expect(text).toContain("* the runner's default rate, not a price");
@@ -406,17 +406,17 @@ describe("renderComparison", () => {
       at("ref.json", report({ quality: GOOD_QUALITY, codeSha: "b".repeat(40) })),
       at("after.json", report({ quality: GOOD_QUALITY, timestamp: "2026-10-23T11:00:00Z", runnerLog: busy })),
     ];
-    const comparison = compareReports(reports, `native/${REF}@api.anthropic.com#bbbb`);
+    const comparison = compareReports(reports, `stigmer/${REF}@api.anthropic.com#bbbb`);
     expect(comparison.readings[0]!.verdict).toBe("holds the bar");
     expect(comparison.runnerLogs.map((reading) => [reading.path, reading.arms])).toEqual([
-      ["ref.json", [`native/${REF}@api.anthropic.com#${"b".repeat(10)}`]],
-      ["after.json", [`native/${REF}@api.anthropic.com${C}`]],
+      ["ref.json", [`stigmer/${REF}@api.anthropic.com#${"b".repeat(10)}`]],
+      ["after.json", [`stigmer/${REF}@api.anthropic.com${C}`]],
     ]);
     const text = renderComparison(comparison, reports);
     expect(text).toContain("## Runner log, per run (printed, never gated)");
-    expect(text).toContain(`- native/${REF}@api.anthropic.com${C} (after.json): edits repaired 0;`);
+    expect(text).toContain(`- stigmer/${REF}@api.anthropic.com${C} (after.json): edits repaired 0;`);
     expect(text).toContain("repository instructions read on 7 turns, 0 nested; hook failures 3; from runner.log");
-    expect(text).toContain(`- native/${REF}@api.anthropic.com#${"b".repeat(10)} (ref.json): edits repaired 0;`);
+    expect(text).toContain(`- stigmer/${REF}@api.anthropic.com#${"b".repeat(10)} (ref.json): edits repaired 0;`);
   });
 
   it("prints each side's input-token median, and its background readings once a side carries them", () => {
@@ -431,7 +431,7 @@ describe("renderComparison", () => {
       at("off.json", report({ shellBackground: "off", quality: GOOD_QUALITY, cells: { "background-dev-server": [left, left, left] } })),
       at("on.json", report({ quality: GOOD_QUALITY, cells: { "background-dev-server": [used(0), used(0), used(1)] } })),
     ];
-    const text = renderComparison(compareReports(reports, `native/${REF}@api.anthropic.com${C}+background-off`), reports);
+    const text = renderComparison(compareReports(reports, `stigmer/${REF}@api.anthropic.com${C}+background-off`), reports);
     expect(text).toContain("| background-dev-server | holds | 0 / 0 | 0.0% / 0.0% | 1000 / 1000 | 1 / 1 | 3000 / 3000 | 1200 / 1000 |");
     expect(text).toContain("Background commands, over the samples that ran:");
     expect(text).toContain("| background-dev-server | 3/3 / 0/3 | 3 / 0 | 0 (1) / 0 (0) | 30000 / n/a | 3 / 0 | 0 / 0 | 0 / 3 | 0 / 3 | 0 / 0 | 0 / 3 | 3/3 / 0/3 |");

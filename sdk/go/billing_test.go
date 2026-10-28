@@ -135,14 +135,14 @@ func TestBillingRetireModelPricingBaseline_MapsKey(t *testing.T) {
 	if _, err := client.RetireModelPricingBaseline(context.Background(), &RetireModelPricingBaselineParams{
 		ModelID:      "claude-sonnet-4.5",
 		Provider:     "anthropic",
-		Harness:      "native",
+		Harness:      "stigmer",
 		RevisionNote: "deprecated upstream",
 	}); err != nil {
 		t.Fatalf("RetireModelPricingBaseline: %v", err)
 	}
 
 	in := fake.retireIn
-	if in.GetModelId() != "claude-sonnet-4.5" || in.GetProvider() != "anthropic" || in.GetHarness() != "native" {
+	if in.GetModelId() != "claude-sonnet-4.5" || in.GetProvider() != "anthropic" || in.GetHarness() != "stigmer" {
 		t.Errorf("key = (%q, %q, %q)", in.GetModelId(), in.GetProvider(), in.GetHarness())
 	}
 	if in.GetRevisionNote() != "deprecated upstream" {

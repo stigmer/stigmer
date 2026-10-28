@@ -111,7 +111,7 @@ export interface UseNewSessionFlowOptions {
    * `GUEST_LOCAL_HARNESS`), never an embedder preference or a stored Console
    * choice.
    *
-   * @default DEFAULT_HARNESS ("native")
+   * @default DEFAULT_HARNESS ("stigmer")
    */
   readonly defaultHarness?: HarnessOption;
   /**

@@ -138,7 +138,7 @@ describe("the scoring readers, from a turn's events", () => {
       { run, events },
       {
         pluginName: "thermos",
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         wantedFiles: [],
         readArtifact: () => Promise.reject(new Error("no artifacts")),
       },

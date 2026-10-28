@@ -70,9 +70,9 @@ export function providerNeededBy(
         provider: "anthropic",
         model: model !== "" ? model : (catalog.defaultModel(harnessName(Harness.CLAUDE)) ?? ""),
       };
-    case Harness.NATIVE:
+    case Harness.STIGMER:
     case Harness.UNSPECIFIED: {
-      const section = harnessName(Harness.NATIVE);
+      const section = harnessName(Harness.STIGMER);
       const resolved = model !== "" ? model : catalog.defaultModel(section);
       if (resolved === undefined) {
         return undefined;

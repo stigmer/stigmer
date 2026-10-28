@@ -9,7 +9,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
  * A named harness is not necessarily an offered one: the pickers offer
  * {@link HARNESS_OPTIONS}.
  */
-export type HarnessOption = "native" | "claude";
+export type HarnessOption = "stigmer" | "claude";
 
 /**
  * The proto {@link Harness} member for each option — the one table the
@@ -18,7 +18,7 @@ export type HarnessOption = "native" | "claude";
  * silently to NATIVE). Listed in proto enum order.
  */
 const HARNESS_BY_OPTION = {
-  native: Harness.NATIVE,
+  stigmer: Harness.STIGMER,
   claude: Harness.CLAUDE,
 } as const satisfies Record<HarnessOption, Exclude<Harness, Harness.UNSPECIFIED>>;
 
@@ -30,7 +30,7 @@ const HARNESS_BY_OPTION = {
  * entry in each.
  */
 const OPTION_BY_HARNESS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, HarnessOption>> = {
-  [Harness.NATIVE]: "native",
+  [Harness.STIGMER]: "stigmer",
   [Harness.CLAUDE]: "claude",
 };
 
@@ -50,7 +50,7 @@ export interface HarnessDisplayInfo {
  * labels for the compact trigger button.
  */
 export const HARNESS_META: Readonly<Record<HarnessOption, HarnessDisplayInfo>> = {
-  native: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
+  stigmer: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
   claude: { label: "Claude Agent", description: "Anthropic's Claude Agent SDK: Claude models on your Anthropic key" },
 };
 
@@ -71,10 +71,10 @@ export const HARNESS_LABELS: Readonly<Record<HarnessOption, string>> = Object.fr
  * offered, and the server refuses one it does not offer. Every named
  * harness is offered today.
  */
-export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "claude"];
+export const HARNESS_OPTIONS: readonly HarnessOption[] = ["stigmer", "claude"];
 
-/** Platform default — resolves to the Stigmer harness (`"native"`). */
-export const DEFAULT_HARNESS: HarnessOption = "native";
+/** Platform default — resolves to the Stigmer harness (`"stigmer"`). */
+export const DEFAULT_HARNESS: HarnessOption = "stigmer";
 
 /**
  * Whether a string names a harness the platform offers — the check for a
@@ -99,7 +99,7 @@ export function toProtoHarness(h: HarnessOption): Harness {
 /**
  * Convert a proto {@link Harness} enum to a {@link HarnessOption} string.
  *
- * `UNSPECIFIED` and any unknown values map to `"native"`.
+ * `UNSPECIFIED` and any unknown values map to `"stigmer"`.
  */
 export function fromProtoHarness(h: Harness): HarnessOption {
   // A wire value may be UNSPECIFIED, or an engine newer than this build.

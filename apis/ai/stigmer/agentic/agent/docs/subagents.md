@@ -21,7 +21,7 @@ A turn offers two kinds of subagent:
   Claude Code's plugin subagents: they work with the conversation's tools,
   narrowed by their agent file's lists.
 
-Stigmer's own harness (`native`) also offers built-in subagents, such as `explore`.
+The Stigmer harness (`stigmer`) also offers built-in subagents, such as `explore`.
 
 ## Listing Subagents
 
@@ -42,7 +42,7 @@ spec:
     - kind: plugin
       slug: ledger
   tools: [Read, mcp__plugin_ledger_ledger__get_ledger]
-  harness: HARNESS_NATIVE
+  harness: HARNESS_STIGMER
   run_config:
     model_name: claude-sonnet-4.5
 ```
@@ -219,7 +219,7 @@ To move one, write it as an Agent: its `name` as `metadata.name`, its
 `description`, `instructions` and `skill_refs`. Give it the plugins and `env`
 declarations whose tools and keys it used, since it no longer borrows the
 parent's, and its tool lists over the parent's. A `model_override` becomes
-`run_config.model_name` with `harness: HARNESS_NATIVE`. Apply it, then list it
+`run_config.model_name` with `harness: HARNESS_STIGMER`. Apply it, then list it
 in the parent's `subagents`.
 
 A local install that held such subagents removes them when it upgrades. Each

@@ -19,7 +19,7 @@ export interface HarnessSelectorProps {
  * Compact segmented control for choosing the session harness.
  *
  * Renders one mutually exclusive option per offered harness — "Stigmer"
- * (`native`) and "Claude Agent" (`claude`) — as adjacent pill segments.
+ * (`stigmer`) and "Claude Agent" (`claude`) — as adjacent pill segments.
  *
  * Built as a `radiogroup` with full arrow-key navigation and ARIA
  * semantics. All visual properties flow through `--stgm-*` tokens.
@@ -35,7 +35,7 @@ export interface HarnessSelectorProps {
  * @example
  * ```tsx
  * function LauncherToolbar() {
- *   const [harness, setHarness] = useState<HarnessOption>("native");
+ *   const [harness, setHarness] = useState<HarnessOption>("stigmer");
  *
  *   return <HarnessSelector value={harness} onValueChange={setHarness} />;
  * }

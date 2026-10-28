@@ -70,7 +70,7 @@ function statusWithRecord(changes: CapturedFileChange[], executionId: string): R
   const ctx: ChangeSetContext = {
     changeSetId: `${executionId}:0`,
     turnId: "turn-0",
-    harnessId: "deep-agent",
+    harnessId: "stigmer",
     timestamp: "2026-07-01T00:00:00Z",
   };
   const rows = create(TurnRowsSchema, {});

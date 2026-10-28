@@ -376,20 +376,20 @@ describe("Agent conformance — run defaults", () => {
       makeAgent({
         org,
         name: uniqueName("defaults"),
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED, maxCostUsd: 2 },
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-    expect(agent.spec?.harness).toBe(Harness.NATIVE);
+    expect(agent.spec?.harness).toBe(Harness.STIGMER);
     expect(agent.spec?.runConfig?.modelName).toBe("claude-sonnet-5");
     const version = await clients.agentQuery.getVersion({
       agentId: agent.metadata!.id,
       versionHash: agent.status!.versionHash,
     });
     expect(version.specSnapshot?.runConfig?.maxCostUsd).toBe(2);
-    expect(version.specSnapshot?.harness).toBe(Harness.NATIVE);
+    expect(version.specSnapshot?.harness).toBe(Harness.STIGMER);
   });
 
   it("[rpc:AgentCommandController.create] accepts an engine with no model, and bounds with no engine", async () => {

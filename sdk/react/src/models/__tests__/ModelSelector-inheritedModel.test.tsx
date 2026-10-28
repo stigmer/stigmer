@@ -36,7 +36,7 @@ function model(modelId: string, displayName: string, featured: boolean): ModelIn
     shortDescription: "",
     speedTier: "fast",
     costTier: "standard",
-    harness: "native",
+    harness: "stigmer",
     featured,
     serviceTiers: [],
   };
@@ -55,7 +55,7 @@ function renderSelector(props: Partial<React.ComponentProps<typeof ModelSelector
     <ModelRegistryContext.Provider
       value={{ models: MODELS, isLoading: false, error: null, refetch: vi.fn() }}
     >
-      <ModelSelector onValueChange={vi.fn()} harness="native" {...props} />
+      <ModelSelector onValueChange={vi.fn()} harness="stigmer" {...props} />
     </ModelRegistryContext.Provider>,
   );
 }

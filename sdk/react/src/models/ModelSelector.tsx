@@ -223,7 +223,7 @@ export function ModelSelector({
 
   const isHarnessLocked = harness !== undefined;
   const [internalHarness, setInternalHarness] = useState<HarnessOption>(
-    harness ?? initialHarness ?? "native",
+    harness ?? initialHarness ?? "stigmer",
   );
   const activeHarness = harness ?? internalHarness;
 

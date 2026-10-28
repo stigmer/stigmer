@@ -19,7 +19,7 @@
  *    (`middleware/tool-scope.ts`) hides every out-of-scope tool from each
  *    model call and refuses a call to one, on the parent and every sub-agent.
  *  - PNG, JPEG, WebP and GIF inline (`shared/attachment-vision.ts`).
- *  - File review under the `deep-agent` harness id with nothing excluded:
+ *  - File review under the `stigmer` harness id with nothing excluded:
  *    this harness writes no transient file into the repo (the `.stigmer`
  *    link is the runtime's, created before its baseline pin and git-excluded
  *    at provision). The capture is the runtime's (`harness/capture.ts`,
@@ -35,15 +35,15 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { HarnessCapabilities } from "../../harness/capabilities.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 
-/** The harness id stamped on the deep-agent's file-review ledger events. */
-export const DEEP_AGENT_HARNESS_ID = "deep-agent";
+/** The harness id stamped on this harness's file-review ledger events: its one word. */
+export const STIGMER_HARNESS_ID = "stigmer";
 
 export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
-  harness: Harness.NATIVE,
+  harness: Harness.STIGMER,
   subAgents: true,
   runsHooks: true,
   visionProfile: DEEP_AGENT_VISION_PROFILE,
-  fileReview: { harnessId: DEEP_AGENT_HARNESS_ID, excludePaths: [] },
+  fileReview: { harnessId: STIGMER_HARNESS_ID, excludePaths: [] },
   // deepagents' summarizer, under the runner's wrapper, on the turn's model
   // (middleware/compaction.ts).
   contextCompaction: "runner-summarizer",

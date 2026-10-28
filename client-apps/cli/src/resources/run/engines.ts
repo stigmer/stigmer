@@ -17,26 +17,31 @@ interface EngineEntry {
 
 /** Every engine by the word the CLI takes, in proto order. */
 export const ENGINES = {
-  native: { harness: Harness.NATIVE, label: "Stigmer", accountModel: "defaultNativeModel" },
+  stigmer: { harness: Harness.STIGMER, label: "Stigmer", accountModel: "defaultStigmerModel" },
   claude: { harness: Harness.CLAUDE, label: "Claude Agent", accountModel: "defaultClaudeModel" },
 } as const satisfies Record<string, EngineEntry>;
 
-/** An engine's word: `native` or `claude`. */
+/** An engine's word: `stigmer` or `claude`. */
 export type EngineWord = keyof typeof ENGINES;
 
 /** The engine words, in proto order. */
 export const ENGINE_WORDS = Object.keys(ENGINES) as EngineWord[];
 
-/** A word as help and refusals show it, beside its label where the two differ: `"claude" (Claude Agent)`. */
+/**
+ * A word as help and refusals show it, beside its label only where the two
+ * differ: `"stigmer"`, `"claude" (Claude Agent)`. A word is its label in
+ * lower case unless the label says more (docs/vocabulary.md, "Harness").
+ */
 export function engineChoice(word: EngineWord): string {
-  return `"${word}" (${ENGINES[word].label})`;
+  const label = ENGINES[word].label;
+  return label.toLowerCase() === word ? `"${word}"` : `"${word}" (${label})`;
 }
 
-/** The words with their labels, joined for help and refusals: `"native" (Stigmer) or "claude" (Claude Agent)`. */
+/** The words with their labels, joined for help and refusals: `"stigmer" or "claude" (Claude Agent)`. */
 export const ENGINE_WORD_LIST = `${ENGINE_WORDS.slice(0, -1).map(engineChoice).join(", ")} or ${engineChoice(ENGINE_WORDS.at(-1)!)}`;
 
 const WORD_BY_HARNESS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, EngineWord>> = {
-  [Harness.NATIVE]: "native",
+  [Harness.STIGMER]: "stigmer",
   [Harness.CLAUDE]: "claude",
 };
 

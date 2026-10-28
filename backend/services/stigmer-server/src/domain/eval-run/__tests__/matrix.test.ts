@@ -72,7 +72,7 @@ function specOf(
 
 const catalog: EvalModelCatalog = {
   isCatalogModel: (harness, model) =>
-    harness === Harness.NATIVE && model === "claude-sonnet-4.6",
+    harness === Harness.STIGMER && model === "claude-sonnet-4.6",
   defaultModel: (harness) => (harness === Harness.CLAUDE ? "claude-default" : "native-default"),
 };
 
@@ -82,7 +82,7 @@ describe("planMatrix", () => {
       suiteOf(evalCase("a", { runs: 2 }), evalCase("b", { runs: 1 })),
       specOf({
         targets: [
-          create(EvalRunTargetSchema, { harness: Harness.NATIVE, modelName: "m1" }),
+          create(EvalRunTargetSchema, { harness: Harness.STIGMER, modelName: "m1" }),
           create(EvalRunTargetSchema, { harness: Harness.CLAUDE }),
         ],
       }),
@@ -90,7 +90,7 @@ describe("planMatrix", () => {
     );
     expect(matrix.cases.map((c) => c.evalCase.name)).toEqual(["a", "b"]);
     expect(matrix.cases[0]?.targets.map((t) => t.target)).toEqual([
-      { harness: Harness.NATIVE, modelName: "m1" },
+      { harness: Harness.STIGMER, modelName: "m1" },
       { harness: Harness.CLAUDE, modelName: "claude-default" },
     ]);
     expect(
@@ -191,7 +191,7 @@ describe("planMatrix", () => {
   });
 
   it("lists a resumed conversation as not run on a Claude target, and runs a case's env there", () => {
-    const targets = [create(EvalRunTargetSchema, { harness: Harness.NATIVE }), create(EvalRunTargetSchema, { harness: Harness.CLAUDE })];
+    const targets = [create(EvalRunTargetSchema, { harness: Harness.STIGMER }), create(EvalRunTargetSchema, { harness: Harness.CLAUDE })];
     const matrix = planMatrix(
       suiteOf(
         evalCase("resumed", { runs: 1, context: { addDirs: [], historyFile: "h.jsonl" } }),
@@ -226,15 +226,15 @@ describe("planMatrix", () => {
       catalog,
     );
     expect(matrix.cases.map((c) => c.targets)).toEqual([
-      [{ target: { harness: Harness.NATIVE, modelName: "claude-sonnet-4.6" }, runs: 1 }],
+      [{ target: { harness: Harness.STIGMER, modelName: "claude-sonnet-4.6" }, runs: 1 }],
       [
         {
-          target: { harness: Harness.NATIVE, modelName: "sonnet" },
+          target: { harness: Harness.STIGMER, modelName: "sonnet" },
           notRunReason: "not run: model 'sonnet' is not in Stigmer's catalog",
           runs: 1,
         },
       ],
-      [{ target: { harness: Harness.NATIVE, modelName: "native-default" }, runs: 1 }],
+      [{ target: { harness: Harness.STIGMER, modelName: "native-default" }, runs: 1 }],
     ]);
     expect(matrix.cells.map((c) => c.caseIndex)).toEqual([0, 0, 2, 2]);
     expect(modelNotInCatalogReason("sonnet")).toBe(
@@ -260,17 +260,17 @@ describe("evalModelCatalogOf", () => {
     const provider = newModelCatalogProviderFromDocument(
       JSON.stringify({
         models: [
-          { id: "native-model", harness: "native" },
+          { id: "native-model", harness: "stigmer" },
           { id: "claude-model", harness: "claude" },
         ],
       }),
     );
     const evalCatalog = evalModelCatalogOf(provider);
-    expect(evalCatalog.isCatalogModel(Harness.NATIVE, "native-model")).toBe(true);
+    expect(evalCatalog.isCatalogModel(Harness.STIGMER, "native-model")).toBe(true);
     expect(evalCatalog.isCatalogModel(Harness.UNSPECIFIED, "native-model")).toBe(true);
-    expect(evalCatalog.isCatalogModel(Harness.NATIVE, "claude-model")).toBe(false);
+    expect(evalCatalog.isCatalogModel(Harness.STIGMER, "claude-model")).toBe(false);
     expect(evalCatalog.isCatalogModel(Harness.CLAUDE, "claude-model")).toBe(true);
-    expect(evalCatalog.defaultModel(Harness.NATIVE)).toBe("");
+    expect(evalCatalog.defaultModel(Harness.STIGMER)).toBe("");
   });
 });
 
@@ -313,7 +313,7 @@ describe("sizeOfMatrix", () => {
 
   it("counts 6,000,000 tries of 10,000 cases without building them", () => {
     const suite = suiteOf(...Array.from({ length: 10_000 }, (_, index) => evalCase(`case-${index}`)));
-    const targets = Array.from({ length: 6 }, () => create(EvalRunTargetSchema, { harness: Harness.NATIVE }));
+    const targets = Array.from({ length: 6 }, () => create(EvalRunTargetSchema, { harness: Harness.STIGMER }));
     const started = performance.now();
     expect(sizeOfMatrix(suite, specOf({ runs: 50, targets }), catalog)).toEqual({ cases: 10_000, tries: 6_000_000 });
     expect(performance.now() - started).toBeLessThan(500);

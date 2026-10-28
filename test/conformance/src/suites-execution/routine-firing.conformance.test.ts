@@ -109,7 +109,7 @@ describe.skipIf(!firingEnabled)("Routine fire contract (routineFiring targets)",
       makeAgent({
         org,
         name: uniqueName("routine-refused-target"),
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: { modelName: ALWAYS_THINKING_MODEL },
       }),
     );
@@ -436,7 +436,7 @@ describe.skipIf(!realRunProvable)("Routine real-run contract (routineFiring + mo
     expect(result.outcome, `the fire's refusal: ${result.refusalReason}`).toBe(RoutineFireOutcome.STARTED);
     const run = await clients.agentExecutionQuery.get({ value: result.runId });
     const session = await clients.sessionQuery.get({ value: sessionIdOf(run) });
-    expect(session.spec?.harness).toBe(Harness.NATIVE);
+    expect(session.spec?.harness).toBe(Harness.STIGMER);
     expect(run.status?.runConfig?.modelName).toBe("claude-haiku-4.5");
 
     await awaitCompleted(result.runId);

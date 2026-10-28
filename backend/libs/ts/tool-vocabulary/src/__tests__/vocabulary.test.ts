@@ -32,15 +32,15 @@ describe("claudeNameOf on recorded native transcripts", () => {
     ["task", "Agent", "sub-agent-delegation"],
     ["write_todos", "TodoWrite", "write-todos"],
   ])("%s reads as %s (%s)", (engine, claude) => {
-    expect(claudeNameOf("native", engine)).toBe(claude);
+    expect(claudeNameOf("stigmer", engine)).toBe(claude);
   });
 
   it("ls reads as Glob, the first tool its entry covers", () => {
-    expect(claudeNameOf("native", "ls")).toBe("Glob");
+    expect(claudeNameOf("stigmer", "ls")).toBe("Glob");
   });
 
   it("a bare MCP tool name the table does not carry keeps its own name (mcp-tool-call: search_docs)", () => {
-    expect(claudeNameOf("native", "search_docs")).toBe("search_docs");
+    expect(claudeNameOf("stigmer", "search_docs")).toBe("search_docs");
   });
 });
 

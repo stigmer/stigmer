@@ -90,7 +90,7 @@ describe("the Run evals form", () => {
   it("starts from each case's own model and runs, compared, $5, one at a time", () => {
     expect(DEFAULT_EVAL_FORM).toEqual({
       caseModels: true,
-      targets: [{ harness: "native", modelName: "" }],
+      targets: [{ harness: "stigmer", modelName: "" }],
       runs: 0,
       compare: true,
       maxCostUsd: 5,
@@ -150,8 +150,8 @@ describe("the Run evals form", () => {
         caseModels: false,
         runs: 3,
         targets: [
-          { harness: "native", modelName: "" },
-          { harness: "native", modelName: "gpt-5" },
+          { harness: "stigmer", modelName: "" },
+          { harness: "stigmer", modelName: "gpt-5" },
         ],
         compare: false,
         maxCostUsd: 2.5,
@@ -162,8 +162,8 @@ describe("the Run evals form", () => {
       org: "org_acme",
       pluginId: "plg_1",
       targets: [
-        { harness: Harness.NATIVE },
-        { harness: Harness.NATIVE, modelName: "gpt-5" },
+        { harness: Harness.STIGMER },
+        { harness: Harness.STIGMER, modelName: "gpt-5" },
       ],
       runs: 3,
       ablation: EvalRunAblation.none,
@@ -439,13 +439,13 @@ describe("the pieces every subject shares", () => {
         ...DEFAULT_EVAL_FORM,
         caseModels: false,
         targets: [
-          { harness: "native", modelName: "" },
-          { harness: "native", modelName: "gpt-5" },
+          { harness: "stigmer", modelName: "" },
+          { harness: "stigmer", modelName: "gpt-5" },
         ],
       }),
     ).toEqual([
-      { harness: Harness.NATIVE },
-      { harness: Harness.NATIVE, modelName: "gpt-5" },
+      { harness: Harness.STIGMER },
+      { harness: Harness.STIGMER, modelName: "gpt-5" },
     ]);
   });
 

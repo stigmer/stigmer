@@ -31,7 +31,7 @@ import {
   aggregateOf,
   countRun,
   dailyUsageOf,
-  harnessName,
+  usageHarnessWord,
   harnessUsageOf,
   modelBreakdownOf,
   runSummaryOf,
@@ -96,7 +96,7 @@ function meterRow(overrides: Partial<MeteredUsageRow>): MeteredUsageRow {
   return {
     model: "claude-sonnet-4-5",
     provider: "anthropic",
-    harness: "native",
+    harness: "stigmer",
     providerKeySource: ProviderKeySource.ORGANIZATION,
     inputTokens: 0n,
     outputTokens: 0n,
@@ -111,11 +111,11 @@ function meterRow(overrides: Partial<MeteredUsageRow>): MeteredUsageRow {
 
 describe("a run counted from its runner's report", () => {
   it("native: input less both cache buckets, the runner's total, no provider", () => {
-    const [row] = runnerReportRows(makeRun("r1", { usage: NATIVE_USAGE }), Harness.NATIVE);
+    const [row] = runnerReportRows(makeRun("r1", { usage: NATIVE_USAGE }), Harness.STIGMER);
     expect(row).toEqual({
       model: "claude-sonnet-4-5",
       provider: "",
-      harness: "native",
+      harness: "stigmer",
       providerKeySource: ProviderKeySource.UNSPECIFIED,
       inputTokens: 1_432n,
       outputTokens: 1_210n,
@@ -129,7 +129,7 @@ describe("a run counted from its runner's report", () => {
 
   it("an unset harness is the native one", () => {
     const [row] = runnerReportRows(makeRun("r1", { usage: NATIVE_USAGE }), Harness.UNSPECIFIED);
-    expect(row?.harness).toBe("native");
+    expect(row?.harness).toBe("stigmer");
     expect(row?.inputTokens).toBe(1_432n);
   });
 
@@ -155,13 +155,13 @@ describe("a run counted from its runner's report", () => {
   it("native input never goes below zero", () => {
     const [row] = runnerReportRows(
       makeRun("r1", { usage: { inputTokens: 10n, cacheReadTokens: 30n, outputTokens: 5n, totalTokens: 15n } }),
-      Harness.NATIVE,
+      Harness.STIGMER,
     );
     expect(row?.inputTokens).toBe(0n);
   });
 
   it("is estimated, with served_by summing to the total under UNSPECIFIED", () => {
-    const counted = countRun(makeRun("r1", { usage: NATIVE_USAGE }), undefined, Harness.NATIVE, 0);
+    const counted = countRun(makeRun("r1", { usage: NATIVE_USAGE }), undefined, Harness.STIGMER, 0);
     expect(counted.estimated).toBe(true);
     const aggregate = aggregateOf([counted]);
     expect(aggregate.totalTokens).toBe(19_642n);
@@ -176,11 +176,11 @@ describe("a run counted from its runner's report", () => {
 
   it("a run with no report, or a report with no tokens, adds nothing and is not estimated", () => {
     for (const run of [makeRun("r1"), makeRun("r2", { usage: { turnCount: 0 } })]) {
-      const counted = countRun(run, undefined, Harness.NATIVE, 0);
+      const counted = countRun(run, undefined, Harness.STIGMER, 0);
       expect(counted.rows).toEqual([]);
       expect(counted.estimated).toBe(false);
     }
-    const aggregate = aggregateOf([countRun(makeRun("r3"), undefined, Harness.NATIVE, 0)]);
+    const aggregate = aggregateOf([countRun(makeRun("r3"), undefined, Harness.STIGMER, 0)]);
     expect(aggregate.totalTokens).toBe(0n);
     expect(aggregate.servedBy).toEqual([]);
   });
@@ -216,7 +216,7 @@ describe("a run counted from the meter", () => {
           }),
         ],
       },
-      Harness.NATIVE,
+      Harness.STIGMER,
       0,
     );
     const models = modelBreakdownOf([counted]);
@@ -239,7 +239,7 @@ describe("folding several runs", () => {
   const metered = countRun(
     makeRun("m1", { sessionId: "ses_a", agentId: "agt_small", createdAtMs: Date.UTC(2026, 9, 12, 23, 59), startedAt: "2026-10-13T00:01:00Z" }),
     { rows: [meterRow({ totalTokens: 500n, callCount: 4 })] },
-    Harness.NATIVE,
+    Harness.STIGMER,
     1_500,
   );
   const estimated = countRun(
@@ -251,10 +251,10 @@ describe("folding several runs", () => {
   const empty = countRun(
     makeRun("z1", { sessionId: "ses_b", agentId: "agt_small", createdAtMs: Date.UTC(2026, 9, 13, 10) }),
     undefined,
-    Harness.NATIVE,
+    Harness.STIGMER,
     0,
   );
-  const noStamp = countRun(makeRun("n1", { sessionId: "ses_b", agentId: "", usage: NATIVE_USAGE }), undefined, Harness.NATIVE, 800);
+  const noStamp = countRun(makeRun("n1", { sessionId: "ses_b", agentId: "", usage: NATIVE_USAGE }), undefined, Harness.STIGMER, 800);
   const all = [metered, estimated, empty, noStamp];
 
   it("working_seconds sums each row's runs' milliseconds and floors once per row, whichever source counts the tokens", () => {
@@ -318,18 +318,18 @@ describe("folding several runs", () => {
   it("harness rows order by tokens and count the distinct runs that contributed", () => {
     expect(harnessUsageOf(all).map((h) => [h.harness, h.totalTokens, h.callCount, h.runCount])).toEqual([
       ["claude", 46_965n, 0, 1],
-      ["native", 20_142n, 4, 2],
+      ["stigmer", 20_142n, 4, 2],
     ]);
   });
 
   it("names harnesses as the rest of the server does, Claude as its own", () => {
-    expect(harnessName(Harness.CLAUDE)).toBe("claude");
-    expect(harnessName(Harness.NATIVE)).toBe("native");
-    expect(harnessName(Harness.UNSPECIFIED)).toBe("native");
+    expect(usageHarnessWord(Harness.CLAUDE)).toBe("claude");
+    expect(usageHarnessWord(Harness.STIGMER)).toBe("stigmer");
+    expect(usageHarnessWord(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
   it.each([2, 99])("harness %i, a value no engine owns, is a defect, named rather than counted as native", (harness) => {
-    expect(() => harnessName(harness as Harness)).toThrow(new RegExp(`harness ${harness} is not one the proto names`));
+    expect(() => usageHarnessWord(harness as Harness)).toThrow(new RegExp(`harness ${harness} is not one the proto names`));
   });
 
   it("an empty fold is zero everywhere", () => {

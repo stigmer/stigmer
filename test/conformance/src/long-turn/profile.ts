@@ -318,7 +318,7 @@ export interface LongTurnFlags {
   readonly minutes: number | undefined;
   readonly steps: readonly string[];
   readonly out: string | undefined;
-  /** The run's harness: `deep-agent` or `claude`, live and on the real clock. */
+  /** The run's harness: `stigmer` or `claude`, live and on the real clock. */
   readonly harness: string;
   /** The live run's model, a registry id; absent, the harness's parity model. The real-clock run plays the profile's on the mock. */
   readonly model: string | undefined;
@@ -345,7 +345,7 @@ export function parseLongTurnFlags(argv: readonly string[]): LongTurnFlags {
     minutes: minutes === undefined ? undefined : Number(minutes),
     steps: (value("steps") ?? "").split(",").filter((s) => s !== ""),
     out: value("out"),
-    harness: value("harness") ?? "deep-agent",
+    harness: value("harness") ?? "stigmer",
     model: value("model"),
     target,
   };

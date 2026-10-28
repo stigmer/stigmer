@@ -30,7 +30,7 @@ function baseline(overrides: Record<string, unknown> = {}): ModelPricingBaseline
     baselineId: "bl-sonnet",
     modelId: "claude-sonnet-4-6",
     provider: "anthropic",
-    harness: "native",
+    harness: "stigmer",
     displayName: "Claude Sonnet",
     status: ModelPricingBaselineStatus.pricing_baseline_active,
     pricing: create(PricingBlockSchema, {

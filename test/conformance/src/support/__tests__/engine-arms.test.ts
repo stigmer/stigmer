@@ -44,8 +44,8 @@ const said = (body: AnthropicMessageBody): string[] => body.content.flatMap((blo
 
 describe("engineArms and claudeTurnsOnly", () => {
   it("lists native, and Claude only where the target runs Claude turns; a Claude block skips elsewhere, naming why", () => {
-    expect(engineArms({ claudeTurnsRun: true }).map((arm) => arm.word)).toEqual(["native", "claude"]);
-    expect(engineArms({ claudeTurnsRun: false }).map((arm) => arm.word)).toEqual(["native"]);
+    expect(engineArms({ claudeTurnsRun: true }).map((arm) => arm.word)).toEqual(["stigmer", "claude"]);
+    expect(engineArms({ claudeTurnsRun: false }).map((arm) => arm.word)).toEqual(["stigmer"]);
     expect([NATIVE_ARM.harness, CLAUDE_ARM.harness]).toEqual([undefined, Harness.CLAUDE]);
     const skipped: (string | undefined)[] = [];
     claudeTurnsOnly({ claudeTurnsRun: false })({ skip: (note) => void skipped.push(note) });

@@ -860,7 +860,7 @@ describe("file review's events", () => {
         org,
         name: uniqueName("events-review"),
         agentRef: await newAgentRef(org),
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         localWorkspaces: [{ name: "repo", path: workspace.dir }],
         fileReview: true,
       }),

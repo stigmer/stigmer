@@ -21,6 +21,10 @@
 // int64) than the protojson used by every other command. We emit protojson
 // here for consistency with the rest of the CLI (string enums/int64,
 // snake_case keys).
+//
+// The HARNESS column prints each harness's label (Stigmer, Claude Agent), and
+// a word this build does not know as it came, so a newer server's harness
+// still shows; machine output keeps the wire word.
 
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -50,6 +54,7 @@ import type { Stigmer } from "@stigmer/client";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
 import { formatTokenCount } from "./run-format.js";
+import { ENGINES, isEngineWord } from "./run/engines.js";
 
 export interface DateRange {
   readonly from: string;
@@ -304,7 +309,7 @@ export function renderOrgUsage(
 
   if (report.harnessUsage.length > 0) {
     const rows = report.harnessUsage.map((h) => [
-      h.harness,
+      isEngineWord(h.harness) ? ENGINES[h.harness].label : h.harness,
       String(h.runCount),
       formatTokenCount(h.totalTokens),
       formatShare(h.totalTokens, totalTokens),

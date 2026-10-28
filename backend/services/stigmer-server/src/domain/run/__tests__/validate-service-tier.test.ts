@@ -168,7 +168,7 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
     // conversation the tier would select a variant the turn never applies.
     const err = await refusal(
       { modelName: FAST_MODEL, serviceTier: ServiceTier.FAST },
-      Harness.NATIVE,
+      Harness.STIGMER,
     );
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("on the native harness");

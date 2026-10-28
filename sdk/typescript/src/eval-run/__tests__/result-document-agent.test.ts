@@ -31,7 +31,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apir
 
 import { toResultDocument } from "../result-document.js";
 
-const target = create(EvalRunTargetSchema, { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" });
+const target = create(EvalRunTargetSchema, { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" });
 
 function graded(score: number, costUsd: number) {
   return create(EvalRunTrySchema, { index: 1, state: EvalRunTryState.graded, score, costUsd, runId: `run_${score}` });

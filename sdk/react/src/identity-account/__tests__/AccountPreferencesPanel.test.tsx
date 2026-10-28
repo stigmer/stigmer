@@ -51,7 +51,7 @@ const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
 
 const TEST_MODELS = parseRegistryJson({
   models: [
-    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "stigmer", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
     { id: "claude-sonnet-5", displayName: "Claude Sonnet 5", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 0.2 } },
   ],
 });
@@ -141,7 +141,7 @@ describe("AccountPreferencesPanel", () => {
     expect(sent.paths).toEqual([
       "spec.preferences.standing_context",
       "spec.preferences.default_harness",
-      "spec.preferences.default_native_model",
+      "spec.preferences.default_stigmer_model",
       "spec.preferences.default_claude_model",
       "spec.preferences.default_auto_approve",
     ]);
@@ -340,7 +340,7 @@ describe("AccountPreferencesPanel", () => {
         preferences: {
           standingContext: "Keep answers terse.",
           defaultHarness: "claude",
-          defaultNativeModel: "claude-sonnet-4.6",
+          defaultStigmerModel: "claude-sonnet-4.6",
           defaultClaudeModel: "claude-sonnet-5",
         },
       },
@@ -384,7 +384,7 @@ describe("AccountPreferencesPanel", () => {
       expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         defaultHarness: "claude",
         defaultClaudeModel: "claude-sonnet-5",
-        defaultNativeModel: "",
+        defaultStigmerModel: "",
       });
     });
 
@@ -445,7 +445,7 @@ describe("AccountPreferencesPanel", () => {
       expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         standingContext: "Keep answers terse.",
         defaultHarness: "claude",
-        defaultNativeModel: "claude-sonnet-4.6",
+        defaultStigmerModel: "claude-sonnet-4.6",
         defaultClaudeModel: "",
       });
     });
@@ -464,17 +464,39 @@ describe("AccountPreferencesPanel", () => {
       expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         standingContext: "Terser still.",
         defaultHarness: "claude",
-        defaultNativeModel: "claude-sonnet-4.6",
+        defaultStigmerModel: "claude-sonnet-4.6",
         defaultClaudeModel: "claude-sonnet-5",
       });
     });
+
+    it.each(["native", "cursor"])(
+      "reads a stored harness word the platform does not offer (%s) as the platform default, and never writes it back",
+      async (word) => {
+        const stale = create(IdentityAccountSchema, {
+          metadata: { id: "ia-1", name: "Ada", slug: "ada", org: "acme" },
+          spec: { idpId: "auth0|abc", preferences: { standingContext: "Keep answers terse.", defaultHarness: word } },
+        });
+        const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => stale);
+        renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => stale), update }));
+
+        const field = await findSyncedField("Keep answers terse.");
+        expect(screen.getByRole("radio", { name: "Platform default" })).toHaveProperty("checked", true);
+        expect(screen.getByRole("button", { name: "Save changes" })).toHaveProperty("disabled", true);
+
+        fireEvent.change(field, { target: { value: "Terser still." } });
+        fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+        await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+        expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences?.defaultHarness).toBe("");
+      },
+    );
 
     it("keeps a stale saved model legible as an unavailable option", async () => {
       const stale = create(IdentityAccountSchema, {
         metadata: { id: "ia-1", name: "Ada", slug: "ada", org: "acme" },
         spec: {
           idpId: "auth0|abc",
-          preferences: { defaultNativeModel: "retired-model" },
+          preferences: { defaultStigmerModel: "retired-model" },
         },
       });
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => stale) }));

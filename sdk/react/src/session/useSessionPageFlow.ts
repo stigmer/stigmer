@@ -95,7 +95,7 @@ export interface UseSessionPageFlowReturn {
    * - Filter the model selector for follow-up messages
    * - Render a harness badge in the session header
    *
-   * Defaults to `"native"` while the session is loading.
+   * Defaults to `"stigmer"` while the session is loading.
    */
   readonly harness: HarnessOption;
 

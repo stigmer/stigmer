@@ -865,6 +865,16 @@ export type { ModelCatalogProvider } from "./modelcatalog/model-catalog-provider
 // baseline) builds providers from documents with the SAME interpretation
 // ModelRegistryStore uses — the semantics live exactly once in OSS.
 export { newModelCatalogProviderFromDocument } from "./modelcatalog/document-catalog.js";
+// Each harness's one word, the server's one statement of it: an edition's
+// catalog sections, usage stamps and configuration read it here rather than
+// keep a copy.
+export {
+  HARNESS_WORDS,
+  HARNESS_WORD_LIST,
+  harnessName,
+  harnessOfWord,
+} from "./modelcatalog/pin-validation.js";
+export type { HarnessWord } from "./modelcatalog/pin-validation.js";
 export type {
   RunnerCredentialProvider,
   // The runner-credential capability shapes: the optional methods'

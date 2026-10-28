@@ -262,7 +262,7 @@
     "shortDescription" : "Frontier long-running agent model",
     "speedTier" : "slow",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "premium",
     "featured" : false,
     "pricing" : {
@@ -297,7 +297,7 @@
     "shortDescription" : "Quick responses, lower cost",
     "speedTier" : "fastest",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "economy",
     "featured" : true,
     "pricing" : {
@@ -331,7 +331,7 @@
     "shortDescription" : "Advanced reasoning, previous gen",
     "speedTier" : "slow",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "premium",
     "featured" : false,
     "pricing" : {
@@ -365,7 +365,7 @@
     "shortDescription" : "Complex reasoning & analysis",
     "speedTier" : "slow",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "premium",
     "featured" : true,
     "pricing" : {
@@ -399,7 +399,7 @@
     "shortDescription" : "Complex agentic work, prior gen",
     "speedTier" : "slow",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "premium",
     "featured" : false,
     "pricing" : {
@@ -434,7 +434,7 @@
     "shortDescription" : "Frontier agentic coding",
     "speedTier" : "slow",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "premium",
     "featured" : true,
     "pricing" : {
@@ -469,7 +469,7 @@
     "shortDescription" : "Reliable all-purpose model",
     "speedTier" : "fast",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "standard",
     "featured" : false,
     "pricing" : {
@@ -503,7 +503,7 @@
     "shortDescription" : "Best for most tasks",
     "speedTier" : "fast",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "standard",
     "featured" : true,
     "pricing" : {
@@ -537,7 +537,7 @@
     "shortDescription" : "High-performance coding and agents",
     "speedTier" : "fast",
     "provider" : "anthropic",
-    "harness" : "native",
+    "harness" : "stigmer",
     "costTier" : "standard",
     "featured" : true,
     "pricing" : {

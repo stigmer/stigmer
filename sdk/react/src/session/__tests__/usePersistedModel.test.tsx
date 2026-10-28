@@ -8,7 +8,7 @@ import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 
 const TEST_MODELS = parseRegistryJson({
   models: [
-    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "stigmer", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
     { id: "claude-haiku-4.5", displayName: "Claude Haiku 4.5", shortDescription: "", speedTier: "fastest", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.1 } },
   ],
 });
@@ -39,24 +39,24 @@ describe("usePersistedModel", () => {
 
   describe("basic persistence", () => {
     it("returns undefined when localStorage is empty", () => {
-      const { result } = renderHook(() => usePersistedModel({ harness: "native" }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBeUndefined();
     });
 
     it("restores a valid model from localStorage", () => {
       localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
-      const { result } = renderHook(() => usePersistedModel({ harness: "native" }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
     });
 
     it("returns undefined for an invalid model in localStorage", () => {
       localStorage.setItem(STORAGE_KEY_NATIVE, "nonexistent-model-xyz");
-      const { result } = renderHook(() => usePersistedModel({ harness: "native" }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBeUndefined();
     });
 
     it("persists model on change", () => {
-      const { result } = renderHook(() => usePersistedModel({ harness: "native" }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
 
       act(() => result.current[1](DEFAULT_MODEL_ID));
 
@@ -75,7 +75,7 @@ describe("usePersistedModel", () => {
     it("returns undefined even when a valid model is stored", () => {
       localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
       const { result } = renderHook(
-        () => usePersistedModel({ harness: "native", enabled: false }),
+        () => usePersistedModel({ harness: "stigmer", enabled: false }),
         { wrapper: createWrapper() },
       );
       expect(result.current[0]).toBeUndefined();
@@ -83,7 +83,7 @@ describe("usePersistedModel", () => {
 
     it("never writes localStorage through the setter", () => {
       const { result } = renderHook(
-        () => usePersistedModel({ harness: "native", enabled: false }),
+        () => usePersistedModel({ harness: "stigmer", enabled: false }),
         { wrapper: createWrapper() },
       );
 
@@ -96,9 +96,9 @@ describe("usePersistedModel", () => {
     it("does not re-read storage on a harness transition", () => {
       localStorage.setItem(STORAGE_KEY_CLAUDE, CLAUDE_MODEL_ID);
       const { result, rerender } = renderHook(
-        ({ harness }: { harness: "native" | "claude" }) =>
+        ({ harness }: { harness: "stigmer" | "claude" }) =>
           usePersistedModel({ harness, enabled: false }),
-        { initialProps: { harness: "native" as "native" | "claude" }, wrapper: createWrapper() },
+        { initialProps: { harness: "stigmer" as "stigmer" | "claude" }, wrapper: createWrapper() },
       );
 
       rerender({ harness: "claude" });
@@ -116,7 +116,7 @@ describe("usePersistedModel", () => {
 
     it("extracts plain modelId from native compound key", () => {
       localStorage.setItem(STORAGE_KEY_NATIVE, `native/${DEFAULT_MODEL_ID}`);
-      const { result } = renderHook(() => usePersistedModel({ harness: "native" }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
     });
 
@@ -133,8 +133,8 @@ describe("usePersistedModel", () => {
       localStorage.setItem(STORAGE_KEY_CLAUDE, CLAUDE_MODEL_ID);
 
       const { result, rerender } = renderHook(
-        ({ harness }: { harness: "native" | "claude" }) => usePersistedModel({ harness }),
-        { initialProps: { harness: "native" }, wrapper: createWrapper() },
+        ({ harness }: { harness: "stigmer" | "claude" }) => usePersistedModel({ harness }),
+        { initialProps: { harness: "stigmer" }, wrapper: createWrapper() },
       );
 
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
@@ -148,8 +148,8 @@ describe("usePersistedModel", () => {
       localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
 
       const { result, rerender } = renderHook(
-        ({ harness }: { harness: "native" | "claude" }) => usePersistedModel({ harness }),
-        { initialProps: { harness: "native" }, wrapper: createWrapper() },
+        ({ harness }: { harness: "stigmer" | "claude" }) => usePersistedModel({ harness }),
+        { initialProps: { harness: "stigmer" }, wrapper: createWrapper() },
       );
 
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
@@ -163,8 +163,8 @@ describe("usePersistedModel", () => {
       localStorage.setItem(STORAGE_KEY_CLAUDE, "claude/claude-haiku-4.5");
 
       const { result, rerender } = renderHook(
-        ({ harness }: { harness: "native" | "claude" }) => usePersistedModel({ harness }),
-        { initialProps: { harness: "native" }, wrapper: createWrapper() },
+        ({ harness }: { harness: "stigmer" | "claude" }) => usePersistedModel({ harness }),
+        { initialProps: { harness: "stigmer" }, wrapper: createWrapper() },
       );
 
       rerender({ harness: "claude" });
@@ -176,7 +176,7 @@ describe("usePersistedModel", () => {
 
 describe("modelStorageKey", () => {
   it("keeps one key per engine, the native key as it always was", () => {
-    expect([modelStorageKey("native"), modelStorageKey("claude")]).toEqual([
+    expect([modelStorageKey("stigmer"), modelStorageKey("claude")]).toEqual([
       "stigmer:session:model",
       "stigmer:session:model:claude",
     ]);

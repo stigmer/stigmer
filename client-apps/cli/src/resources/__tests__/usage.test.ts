@@ -240,7 +240,7 @@ const orgReport = create(GetOrgUsageReportOutputSchema, {
   modelBreakdown: [{ model: "claude-sonnet-4", totalTokens: 10_000n }],
   topAgents: [{ agentId: "agt_1", agentName: "Reviewer", runCount: 6, totalTokens: 6000n, workingSeconds: 42n }],
   harnessUsage: [
-    { harness: "native", runCount: 7, totalTokens: 7000n, callCount: 21 },
+    { harness: "stigmer", runCount: 7, totalTokens: 7000n, callCount: 21 },
     { harness: "claude", runCount: 3, totalTokens: 3000n },
   ],
   dailyUsage: [{ date: "2026-03-01", runCount: 4, totalTokens: 4000n }],
@@ -258,11 +258,32 @@ describe("renderOrgUsage", () => {
     expect(out).toMatch(/AGENT\s+RUNS\s+TOKENS\s+SHARE\s+WORKING/);
     expect(out).toMatch(/Reviewer\s+6\s+6\.0k\s+60\.0%\s+42s/);
     expect(out).toMatch(/HARNESS\s+RUNS\s+TOKENS\s+SHARE/);
-    expect(out).toMatch(/native\s+7\s+7\.0k\s+70\.0%/);
-    expect(out).toMatch(/claude\s+3\s+3\.0k\s+30\.0%/);
+    expect(out).toMatch(/Stigmer\s+7\s+7\.0k\s+70\.0%/);
+    expect(out).toMatch(/Claude Agent\s+3\s+3\.0k\s+30\.0%/);
     expect(out).toMatch(/DATE\s+RUNS\s+TOKENS/);
     expect(out).toMatch(/2026-03-01\s+4\s+4\.0k/);
     expect(out).not.toMatch(/\$|COST|cost/);
+  });
+});
+
+describe("the harness column", () => {
+  it("prints each harness's label, a word this build does not know as it came, and keeps wire words in machine output", () => {
+    const report = create(GetOrgUsageReportOutputSchema, {
+      totalUsage: { totalTokens: 300n },
+      harnessUsage: [
+        { harness: "stigmer", runCount: 1, totalTokens: 100n },
+        { harness: "claude", runCount: 1, totalTokens: 100n },
+        { harness: "codex", runCount: 1, totalTokens: 100n },
+      ],
+    });
+    const table = renderOrgUsage(report, { from: "2026-03-01", to: "2026-03-31" }, "table");
+    expect(table).toMatch(/^Stigmer\s+1\s/m);
+    expect(table).toMatch(/^Claude Agent\s+1\s/m);
+    expect(table).toMatch(/^codex\s+1\s/m);
+    expect(table).not.toMatch(/^stigmer\s/m);
+    const json = renderOrgUsage(report, { from: "2026-03-01", to: "2026-03-31" }, "json");
+    expect(json).toContain('"harness": "stigmer"');
+    expect(json).not.toContain("Stigmer");
   });
 });
 

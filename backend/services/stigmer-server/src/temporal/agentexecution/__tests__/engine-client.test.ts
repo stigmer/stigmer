@@ -200,7 +200,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         agent_id: "agt_1",
         // Dispatch defaults: harness NATIVE (nonzero — Go's omitempty
         // keeps it, so the wire carries it) and target resolved LOCAL.
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         execution_target: ExecutionTarget.LOCAL,
         // The run credential, minted per dispatch (its own arms below).
         execution_context_token: expect.any(String),

@@ -64,7 +64,7 @@ function fullReport(): GetOrgUsageReportOutput {
       { date: "2026-10-12", runCount: 3, totalTokens: 6_400n, llmCallCount: 4 },
       { date: "2026-10-13", runCount: 1, totalTokens: 12_000n, llmCallCount: 8 },
     ],
-    harnessUsage: [{ harness: "native", totalTokens: 18_400n, callCount: 12, runCount: 4 }],
+    harnessUsage: [{ harness: "stigmer", totalTokens: 18_400n, callCount: 12, runCount: 4 }],
     topAgents: [{ agentId: "agt_1", agentName: "Support Bot", runCount: 4, totalTokens: 18_400n }],
   });
 }

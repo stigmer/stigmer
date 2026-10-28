@@ -16,10 +16,10 @@ import { samples, sampleDate } from "@stigmer/react-sdk/test";
 /** The model registry document, as `/v1/proxy/model-registry` serves it. */
 export const MODEL_REGISTRY = {
   models: [
-    model("native", "claude-haiku-4.5", "Claude Haiku 4.5", "Quick responses, lower cost", "fastest", "economy", true, { thinking: true }),
-    model("native", "claude-sonnet-4.6", "Claude Sonnet 4.6", "Best for most tasks", "fast", "standard", true, { adaptiveThinking: true }),
-    model("native", "claude-opus-4.8", "Claude Opus 4.8", "Frontier agentic coding", "slow", "premium", true, { adaptiveThinking: true }),
-    model("native", "claude-sonnet-4.5", "Claude Sonnet 4.5", "Reliable all-purpose model", "fast", "standard", false, { thinking: true }),
+    model("stigmer", "claude-haiku-4.5", "Claude Haiku 4.5", "Quick responses, lower cost", "fastest", "economy", true, { thinking: true }),
+    model("stigmer", "claude-sonnet-4.6", "Claude Sonnet 4.6", "Best for most tasks", "fast", "standard", true, { adaptiveThinking: true }),
+    model("stigmer", "claude-opus-4.8", "Claude Opus 4.8", "Frontier agentic coding", "slow", "premium", true, { adaptiveThinking: true }),
+    model("stigmer", "claude-sonnet-4.5", "Claude Sonnet 4.5", "Reliable all-purpose model", "fast", "standard", false, { thinking: true }),
     model("claude", "claude-haiku-4.5", "Claude Haiku 4.5", "Quick responses, lower cost", "fastest", "economy", true, { thinking: true }),
     model("claude", "claude-sonnet-4.6", "Claude Sonnet 4.6", "Best for most tasks", "fast", "standard", true, { adaptiveThinking: true }),
     model("claude", "claude-opus-4.8", "Claude Opus 4.8", "Frontier agentic coding", "slow", "premium", true, { adaptiveThinking: true }),
@@ -28,7 +28,7 @@ export const MODEL_REGISTRY = {
 
 /** One registry entry: an Anthropic model, with vision and the thinking it offers. */
 function model(
-  harness: "native" | "claude",
+  harness: "stigmer" | "claude",
   id: string,
   displayName: string,
   shortDescription: string,

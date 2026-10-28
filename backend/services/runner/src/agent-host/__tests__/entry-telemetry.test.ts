@@ -60,7 +60,7 @@ const CONFIG: HostConfigWire = {
 
 function probe(): HarnessAdapter {
   return {
-    name: "native",
+    name: "stigmer",
     capabilities: DEEP_AGENT_CAPABILITIES,
     boot: async () => {},
     shutdown: async () => {},
@@ -73,7 +73,7 @@ function hostProcess(initTelemetry: (lane: TelemetryLane) => Promise<(() => Prom
   const [runnerEnd, hostEnd] = loopbackChannels();
   const runner = new Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>(runnerEnd, "runner");
   const log: string[] = [];
-  const rows: readonly HarnessRow[] = [{ harness: "deep-agent", adapter: probe() }];
+  const rows: readonly HarnessRow[] = [{ harness: "stigmer", adapter: probe() }];
   const done = runAgentHostProcess({
     channel: hostEnd,
     rows,
@@ -122,8 +122,8 @@ describe("the agent host's telemetry", () => {
       return null;
     });
     await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "deep-agent", config: CONFIG });
-    await runner.call("boot", { harness: "deep-agent", config: { ...CONFIG, telemetry: TELEMETRY_OFF } });
+    await runner.call("boot", { harness: "stigmer", config: CONFIG });
+    await runner.call("boot", { harness: "stigmer", config: { ...CONFIG, telemetry: TELEMETRY_OFF } });
 
     expect(telemetrySettings(), "the first boot's settings, never re-read").toEqual(SETTINGS);
     expect(lanes).toEqual([{ endpoint: CONFIG.proxyEndpoint, token: CONFIG.token }]);
@@ -136,7 +136,7 @@ describe("the agent host's telemetry", () => {
       throw new Error("no exporter");
     });
     await runner.receivedHello(1_000);
-    await expect(runner.call("boot", { harness: "deep-agent", config: CONFIG })).resolves.toBeNull();
+    await expect(runner.call("boot", { harness: "stigmer", config: CONFIG })).resolves.toBeNull();
 
     expect(log).toContain("[agent-host] telemetry not started: no exporter");
     runnerEnd.close();
@@ -149,7 +149,7 @@ describe("the agent host's telemetry", () => {
       flushed += 1;
     });
     await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "deep-agent", config: CONFIG });
+    await runner.call("boot", { harness: "stigmer", config: CONFIG });
     expect(flushed).toBe(0);
 
     runnerEnd.close();

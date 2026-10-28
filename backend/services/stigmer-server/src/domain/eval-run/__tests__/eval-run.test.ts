@@ -274,13 +274,13 @@ describe("eval run create", () => {
     expect(filtered.code).toBe(Code.FailedPrecondition);
     expect(filtered.rawMessage).toBe("no eval case matches case_glob and case_tags");
 
-    const targets = Array.from({ length: 6 }, () => ({ harness: Harness.NATIVE, modelName: "" }));
+    const targets = Array.from({ length: 6 }, () => ({ harness: Harness.STIGMER, modelName: "" }));
     const tooLarge = await refusal(evals.create(evalOf(plugin, { runs: 50, targets })));
     expect(tooLarge.code).toBe(Code.FailedPrecondition);
     expect(tooLarge.rawMessage).toBe(evalRunTooLargeMessage(2, 2 * 6 * 2 * 50));
 
     const typo = await refusal(
-      evals.create(evalOf(plugin, { targets: [{ harness: Harness.NATIVE, modelName: "claude-sonet-4.6" }] })),
+      evals.create(evalOf(plugin, { targets: [{ harness: Harness.STIGMER, modelName: "claude-sonet-4.6" }] })),
     );
     expect(typo.code).toBe(Code.InvalidArgument);
     expect(typo.rawMessage).toContain("spec.targets[0].model_name: model 'claude-sonet-4.6' is not in the model registry");
@@ -289,7 +289,7 @@ describe("eval run create", () => {
       evals.create(
         evalOf(plugin, {
           targets: [
-            { harness: Harness.NATIVE, modelName: "" },
+            { harness: Harness.STIGMER, modelName: "" },
             { harness: Harness.CLAUDE, modelName: "claude-sonnet-9" },
           ],
         }),

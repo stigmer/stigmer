@@ -27,7 +27,7 @@ describe("realModelRegistry", () => {
 });
 
 describe("parseRealRegistry", () => {
-  const row = { id: "m", provider: "anthropic", harness: "native" };
+  const row = { id: "m", provider: "anthropic", harness: "stigmer" };
 
   it("accepts a document of rows, a provider id optional", () => {
     expect(parseRealRegistry(JSON.stringify({ models: [row, { ...row, apiModelId: "m-1" }] }), "f.json").models).toHaveLength(2);

@@ -117,7 +117,7 @@ describe("resolveActivityTaskQueue — global routing", () => {
     const store = newStore();
     const result = await resolveActivityTaskQueue(store, "", globalConfig(), silentLogger);
     expect(result.taskQueue).toBe(DEFAULT_ACTIVITY_TASK_QUEUE);
-    expect(result.harness).toBe(Harness.NATIVE);
+    expect(result.harness).toBe(Harness.STIGMER);
   });
 
   it("session not found — returns default queue without error", async () => {
@@ -152,13 +152,13 @@ describe("resolveActivityTaskQueue — session routing", () => {
     const store = newStore();
     const result = await resolveActivityTaskQueue(store, "", sessionConfig(), silentLogger);
     expect(result.taskQueue).toBe(DEFAULT_ACTIVITY_TASK_QUEUE);
-    expect(result.harness).toBe(Harness.NATIVE);
+    expect(result.harness).toBe(Harness.STIGMER);
   });
 
   it("valid session ID — returns per-session queue", async () => {
     const store = newStore();
     const sessionId = "ses_01arz3ndektsv4rrffq69g5fav";
-    await saveSession(store, sessionId, Harness.NATIVE);
+    await saveSession(store, sessionId, Harness.STIGMER);
     const result = await resolveActivityTaskQueue(
       store,
       sessionId,
@@ -166,7 +166,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
-    expect(result.harness).toBe(Harness.NATIVE);
+    expect(result.harness).toBe(Harness.STIGMER);
   });
 
   it("session not found — still returns per-session queue with NATIVE default", async () => {
@@ -179,7 +179,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
-    expect(result.harness, "NATIVE default when session not found").toBe(Harness.NATIVE);
+    expect(result.harness, "NATIVE default when session not found").toBe(Harness.STIGMER);
   });
 
   it("CLAUDE harness — returns per-session queue with correct harness", async () => {
@@ -212,7 +212,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
 describe("resolveActivityTaskQueue — execution target", () => {
   it("session with LOCAL target returns LOCAL in result", async () => {
     const store = newStore();
-    await saveSession(store, "ses_local", Harness.NATIVE, ExecutionTarget.LOCAL);
+    await saveSession(store, "ses_local", Harness.STIGMER, ExecutionTarget.LOCAL);
     const result = await resolveActivityTaskQueue(
       store,
       "ses_local",
@@ -224,7 +224,7 @@ describe("resolveActivityTaskQueue — execution target", () => {
 
   it("session with CLOUD target returns CLOUD in result", async () => {
     const store = newStore();
-    await saveSession(store, "ses_cloud", Harness.NATIVE, ExecutionTarget.CLOUD);
+    await saveSession(store, "ses_cloud", Harness.STIGMER, ExecutionTarget.CLOUD);
     const result = await resolveActivityTaskQueue(
       store,
       "ses_cloud",
@@ -236,7 +236,7 @@ describe("resolveActivityTaskQueue — execution target", () => {
 
   it("session with UNSPECIFIED target resolves based on config", async () => {
     const store = newStore();
-    await saveSession(store, "ses_unspecified", Harness.NATIVE);
+    await saveSession(store, "ses_unspecified", Harness.STIGMER);
     const result = await resolveActivityTaskQueue(
       store,
       "ses_unspecified",

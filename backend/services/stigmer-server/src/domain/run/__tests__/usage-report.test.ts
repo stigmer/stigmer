@@ -190,7 +190,7 @@ function meterRow(overrides: Partial<MeteredUsageRow>): MeteredUsageRow {
   return {
     model: "claude-sonnet-4-5",
     provider: "anthropic",
-    harness: "native",
+    harness: "stigmer",
     providerKeySource: ProviderKeySource.ORGANIZATION,
     inputTokens: 0n,
     outputTokens: 0n,
@@ -232,7 +232,7 @@ async function refusal(call: () => Promise<unknown>): Promise<ConnectError> {
 
 describe("a run counted from its runner's report", () => {
   it("the run report carries the runner's tokens, estimated, input less both cache buckets, served by UNSPECIFIED", async () => {
-    await seedSession("ses_native_1", "org_runner", Harness.NATIVE);
+    await seedSession("ses_native_1", "org_runner", Harness.STIGMER);
     const id = await seedRun("run_native_1", { org: "org_runner", sessionId: "ses_native_1", usage: NATIVE_USAGE });
     const report = await getRunUsageReport(deps(), create(GetRunUsageReportInputSchema, { runId: id }), testCallerIdentity());
     expect(report.aggregate?.totalTokens).toBe(19_642n);
@@ -265,7 +265,7 @@ describe("a run counted from its runner's report", () => {
 
 describe("the session report's sub-agent count", () => {
   it("counts each run's sub-agent threads from its session's events, not its row", async () => {
-    await seedSession("ses_threads", "org_threads", Harness.NATIVE);
+    await seedSession("ses_threads", "org_threads", Harness.STIGMER);
     await seedRun("run_threads_a", { org: "org_threads", sessionId: "ses_threads", startedAt: "2026-10-13T09:00:00Z" });
     await seedRun("run_threads_b", { org: "org_threads", sessionId: "ses_threads", startedAt: "2026-10-13T10:00:00Z" });
     await appendRunEvents(
@@ -313,7 +313,7 @@ describe("working time", () => {
   it("each run carries the stretches it started, the session and the organization their sum, an open stretch counted to the report's clock", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
-      await seedSession("ses_work", "org_work", Harness.NATIVE);
+      await seedSession("ses_work", "org_work", Harness.STIGMER);
       await seedRun("run_work_a", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", usage: NATIVE_USAGE, startedAt: "2026-10-14T09:00:00Z", createdAtMs: T0 });
       await seedRun("run_work_b", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", startedAt: "2026-10-14T09:10:00Z", createdAtMs: T0 + 600_000, phase: RunPhase.RUN_IN_PROGRESS });
       await statusAt("ses_work", "run_work_a", "running", T0);
@@ -347,7 +347,7 @@ describe("working time", () => {
   });
 
   it("a store fault on the status read fails the report as Internal", async () => {
-    await seedSession("ses_work_fault", "org_work_fault", Harness.NATIVE);
+    await seedSession("ses_work_fault", "org_work_fault", Harness.STIGMER);
     await seedRun("run_work_fault", { org: "org_work_fault", sessionId: "ses_work_fault" });
     const faulty = new Proxy(store, {
       get(target, member, receiver) {
@@ -367,7 +367,7 @@ describe("working time", () => {
 
 describe("a run counted from the meter", () => {
   it("meter rows on two models sum per model, served by the organization, not estimated; a sibling with none falls back", async () => {
-    await seedSession("ses_metered", "org_meter", Harness.NATIVE);
+    await seedSession("ses_metered", "org_meter", Harness.STIGMER);
     await seedRun("run_metered", { org: "org_meter", sessionId: "ses_metered", usage: NATIVE_USAGE, startedAt: "2026-10-13T09:00:00Z" });
     await seedRun("run_unmetered", { org: "org_meter", sessionId: "ses_metered", usage: NATIVE_USAGE, startedAt: "2026-10-13T10:00:00Z" });
     const meter = fakeMeter(
@@ -468,7 +468,7 @@ describe("the organization report", () => {
     ]);
     expect(report.harnessUsage.map((h) => [h.harness, h.totalTokens, h.runCount])).toEqual([
       ["claude", 46_965n, 1],
-      ["native", 19_642n, 1],
+      ["stigmer", 19_642n, 1],
     ]);
   });
 

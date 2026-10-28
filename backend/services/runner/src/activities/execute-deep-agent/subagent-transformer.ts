@@ -433,7 +433,7 @@ export async function transformPluginSubagent(
     readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
   },
 ): Promise<TransformedSubagent> {
-  const model = await subagentModel(agent.model, Harness.NATIVE);
+  const model = await subagentModel(agent.model, Harness.STIGMER);
   if (agent.model !== "" && model === undefined) {
     console.log(
       `[subagent-transformer] Plugin subagent '${agent.name}' names model '${agent.model}', which this engine does not list; it runs on the turn's model`,

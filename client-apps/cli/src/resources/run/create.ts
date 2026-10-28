@@ -127,7 +127,7 @@ function buildTarget(input: CreateRunInput): RunSpec["target"] {
 // field at its default, and include_my_vault's default is off, so a person's
 // run would lose their own My vault. The agent reference names the
 // conversation's agent. A resolved harness is stamped explicitly,
-// including "native": the value may be a deliberate per-run escape from the
+// including "stigmer": the value may be a deliberate per-run escape from the
 // account's default_harness preference, so it must survive any future change
 // to the server-side default. Empty means "no opinion" and stays off the wire
 // (server defaults to native). Subject is left empty: the server defaults its

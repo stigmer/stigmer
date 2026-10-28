@@ -18,12 +18,12 @@ import {
 } from "../model-registry-store.js";
 
 const VALID_BUNDLE = JSON.stringify({
-  models: [{ id: "anthropic/claude", harness: "native" }],
+  models: [{ id: "anthropic/claude", harness: "stigmer" }],
 });
 const UPGRADED = JSON.stringify({
   models: [
-    { id: "anthropic/claude", harness: "native" },
-    { id: "openai/gpt", harness: "native" },
+    { id: "anthropic/claude", harness: "stigmer" },
+    { id: "openai/gpt", harness: "stigmer" },
   ],
 });
 
@@ -152,7 +152,7 @@ describe("ModelRegistryStore catalog indexes", () => {
       {
         id: "anthropic/claude-4",
         apiModelId: "claude-4-20260101",
-        harness: "native",
+        harness: "stigmer",
         pricingVariants: { fast: { input: 1 } },
       },
       {
@@ -167,7 +167,7 @@ describe("ModelRegistryStore catalog indexes", () => {
         // false and non-boolean shapes index nothing (tri-state rule).
         capabilities: { thinking: false, vision: "yes" },
       },
-      { id: "zeta/z-1", harness: "native" },
+      { id: "zeta/z-1", harness: "stigmer" },
     ],
   });
 
@@ -182,12 +182,12 @@ describe("ModelRegistryStore catalog indexes", () => {
 
   it("validates canonical ids AND provider api ids per harness (oss#240)", () => {
     const s = catalogStore();
-    expect(s.isValidModel("native", "anthropic/claude-4")).toBe(true);
-    expect(s.isValidModel("native", "claude-4-20260101")).toBe(true);
-    expect(s.isValidModel("native", "claude-4-sdk")).toBe(false);
+    expect(s.isValidModel("stigmer", "anthropic/claude-4")).toBe(true);
+    expect(s.isValidModel("stigmer", "claude-4-20260101")).toBe(true);
+    expect(s.isValidModel("stigmer", "claude-4-sdk")).toBe(false);
     expect(s.isValidModel("claude", "claude-4-sdk")).toBe(true);
-    expect(s.isValidModel("native", "anthropic/claude-5")).toBe(false);
-    expect(s.hasHarness("native")).toBe(true);
+    expect(s.isValidModel("stigmer", "anthropic/claude-5")).toBe(false);
+    expect(s.hasHarness("stigmer")).toBe(true);
     expect(s.hasHarness("cli")).toBe(false);
     expect(s.hasAnyModels()).toBe(true);
   });
@@ -202,7 +202,7 @@ describe("ModelRegistryStore catalog indexes", () => {
       "anthropic/claude-5",
       "zeta/z-1",
     ]);
-    expect(s.canonicalModels("native")).toEqual([
+    expect(s.canonicalModels("stigmer")).toEqual([
       "anthropic/claude-4",
       "zeta/z-1",
     ]);
@@ -211,7 +211,7 @@ describe("ModelRegistryStore catalog indexes", () => {
   it("indexes pricing variants by key presence, harness-scoped and unioned", () => {
     const s = catalogStore();
     expect(
-      s.hasPricingVariantForHarness("native", "anthropic/claude-4", FAST_VARIANT_KEY),
+      s.hasPricingVariantForHarness("stigmer", "anthropic/claude-4", FAST_VARIANT_KEY),
     ).toBe(true);
     // Priced under native only — the claude section must not validate it
     // (the #357 silent-no-op class).
@@ -224,7 +224,7 @@ describe("ModelRegistryStore catalog indexes", () => {
       "anthropic/claude-4",
     ]);
     expect(
-      s.canonicalModelsWithVariantForHarness("native", FAST_VARIANT_KEY),
+      s.canonicalModelsWithVariantForHarness("stigmer", FAST_VARIANT_KEY),
     ).toEqual(["anthropic/claude-4"]);
     expect(
       s.canonicalModelsWithVariantForHarness("claude", FAST_VARIANT_KEY),
@@ -241,7 +241,7 @@ describe("ModelRegistryStore catalog indexes", () => {
     ).toBe(true);
     // Declared under claude only.
     expect(
-      s.hasCapabilityForHarness("native", "anthropic/claude-4", THINKING_CAPABILITY_KEY),
+      s.hasCapabilityForHarness("stigmer", "anthropic/claude-4", THINKING_CAPABILITY_KEY),
     ).toBe(false);
     // false / non-boolean shapes never index (tri-state).
     expect(
@@ -255,7 +255,7 @@ describe("ModelRegistryStore catalog indexes", () => {
 
   it("swaps document and indexes together on refresh", async () => {
     const upgraded = JSON.stringify({
-      models: [{ id: "new/model", harness: "native" }],
+      models: [{ id: "new/model", harness: "stigmer" }],
     });
     const s = new ModelRegistryStore({
       bundledDocument: CATALOG,
@@ -268,8 +268,8 @@ describe("ModelRegistryStore catalog indexes", () => {
     await s.refreshOnce();
 
     expect(s.document()).toBe(upgraded);
-    expect(s.isValidModel("native", "new/model")).toBe(true);
-    expect(s.isValidModel("native", "anthropic/claude-4")).toBe(false);
+    expect(s.isValidModel("stigmer", "new/model")).toBe(true);
+    expect(s.isValidModel("stigmer", "anthropic/claude-4")).toBe(false);
   });
 });
 
@@ -278,15 +278,15 @@ describe("ModelRegistryStore provider and default model", () => {
     const s = new ModelRegistryStore({
       bundledDocument: JSON.stringify({
         models: [
-          { id: "claude-a", provider: "anthropic", harness: "native", costTier: "standard", featured: true },
+          { id: "claude-a", provider: "anthropic", harness: "stigmer", costTier: "standard", featured: true },
         ],
       }),
       upstreamOrigin: "http://upstream.test",
       refreshEnabled: false,
       logger: capturingLogger().logger,
     });
-    expect(s.providerOf("native", "claude-a")).toBe("anthropic");
-    expect(s.providerOf("native", "openai:own")).toBe("openai");
-    expect(s.defaultModel("native")).toBe("claude-a");
+    expect(s.providerOf("stigmer", "claude-a")).toBe("anthropic");
+    expect(s.providerOf("stigmer", "openai:own")).toBe("openai");
+    expect(s.defaultModel("stigmer")).toBe("claude-a");
   });
 });

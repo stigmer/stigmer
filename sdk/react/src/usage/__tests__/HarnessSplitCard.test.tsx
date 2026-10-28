@@ -16,7 +16,7 @@ describe("HarnessSplitCard", () => {
     const { container } = render(
       <HarnessSplitCard
         breakdown={[
-          create(HarnessUsageSchema, { harness: "native", totalTokens: 12_000n, callCount: 40, runCount: 5 }),
+          create(HarnessUsageSchema, { harness: "stigmer", totalTokens: 12_000n, callCount: 40, runCount: 5 }),
           create(HarnessUsageSchema, { harness: "claude", totalTokens: 8_000n, callCount: 0, runCount: 1 }),
           create(HarnessUsageSchema, { harness: "later-engine", totalTokens: 0n, callCount: 0, runCount: 0 }),
         ]}
@@ -34,7 +34,7 @@ describe("HarnessSplitCard", () => {
     expect(container.firstChild).toBeNull();
     cleanup();
     const zero = render(
-      <HarnessSplitCard breakdown={[create(HarnessUsageSchema, { harness: "native", totalTokens: 0n })]} />,
+      <HarnessSplitCard breakdown={[create(HarnessUsageSchema, { harness: "stigmer", totalTokens: 0n })]} />,
     );
     expect(zero.container.firstChild).toBeNull();
   });

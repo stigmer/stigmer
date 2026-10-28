@@ -182,7 +182,7 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     if (baseline.case !== "baselineCaptured") throw new Error("unreachable");
     expect(baseline.value.changeSetId).toBe(CHANGE_SET_ID);
     expect(baseline.value.turnId).toBe(CHANGE_SET_ID);
-    expect(baseline.value.harnessId).toBe("deep-agent");
+    expect(baseline.value.harnessId).toBe("stigmer");
     expect(baseline.value.baselineSnapshot?.kind).toBe(SnapshotKind.GIT_TREE_REF);
     const candidate = events[1].payload;
     if (candidate.case !== "candidateCaptured") throw new Error("unreachable");

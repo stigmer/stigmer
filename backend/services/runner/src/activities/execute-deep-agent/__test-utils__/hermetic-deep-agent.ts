@@ -217,7 +217,7 @@ export const runtimeActivityFactory: ActivityFactory = async (config) => {
   const { createDeepAgentAdapter } = await import("../adapter.js");
   const { createHarnessActivities } = await import("../../../harness/registry.js");
   const { loopbackHostedRow } = await import("../../../__test-utils__/loopback-host.js");
-  const row = loopbackHostedRow({ harness: "deep-agent", adapter: createDeepAgentAdapter() });
+  const row = loopbackHostedRow({ harness: "stigmer", adapter: createDeepAgentAdapter() });
   await row.adapter.boot(config);
   const activities = await createHarnessActivities([row], config);
   return activities.ExecuteDeepAgent!;

@@ -108,7 +108,7 @@ function parseRegistry(json: unknown): RegistryModel[] {
       apiModelId: typeof m.apiModelId === "string" ? (m.apiModelId as string) : undefined,
       provider: m.provider as string,
       costTier: (m.costTier as string) ?? "standard",
-      harness: (m.harness as string) ?? "native",
+      harness: (m.harness as string) ?? "stigmer",
       featured: !!m.featured,
       visionCapability: parseVisionCapability(m.capabilities),
       maxOutputTokens: parsePositiveInteger(m.maxOutputTokens),
@@ -182,7 +182,7 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
 }
 
 /** A registry section: the engine a model row is listed for. */
-export type RegistryHarness = "native" | "claude";
+export type RegistryHarness = "stigmer" | "claude";
 
 /** The registry section an engine's models are listed in: each engine lists its own. */
 export function registrySectionOf(engine: Exclude<Harness, Harness.UNSPECIFIED>): RegistryHarness {
@@ -192,7 +192,7 @@ export function registrySectionOf(engine: Exclude<Harness, Harness.UNSPECIFIED>)
 }
 
 const REGISTRY_SECTIONS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, RegistryHarness>> = {
-  [Harness.NATIVE]: "native",
+  [Harness.STIGMER]: "stigmer",
   [Harness.CLAUDE]: "claude",
 };
 
@@ -245,12 +245,12 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
   const targetProvider = primary?.provider ?? "anthropic";
 
   const sameProviderEconomy = registry.find(
-    (m) => m.provider === targetProvider && m.costTier === "economy" && m.harness === "native",
+    (m) => m.provider === targetProvider && m.costTier === "economy" && m.harness === "stigmer",
   );
   if (sameProviderEconomy) return sameProviderEconomy.id;
 
   const anyEconomy = registry.find(
-    (m) => m.costTier === "economy" && m.harness === "native",
+    (m) => m.costTier === "economy" && m.harness === "stigmer",
   );
   if (anyEconomy) return anyEconomy.id;
 

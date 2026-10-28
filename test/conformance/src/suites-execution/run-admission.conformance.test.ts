@@ -263,7 +263,7 @@ describe.skipIf(!runnerProviderDeclaration)(
       // The catalog may list no OpenAI model, so the answer also judges one
       // the catalog does not list: at least one model is always missing.
       const judged = `openai:${uniqueName("conformance-model")}`;
-      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.NATIVE, model: judged } });
+      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.STIGMER, model: judged } });
       const missing = [...answer.models, ...(answer.judged === undefined ? [] : [answer.judged])].filter(
         (m) => m.availability === ProviderAvailability.missing_from_runners,
       );
@@ -303,12 +303,12 @@ describe.skipIf(!runnerProviderDeclaration)(
       const { org, agentRef } = await provisionOrgAndAgent();
       const model = `openai:${uniqueName("conformance-model")}`;
 
-      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.NATIVE, model } });
+      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.STIGMER, model } });
       expect(answer.judged?.provider).toBe("openai");
       expect(answer.judged?.availability).toBe(ProviderAvailability.missing_from_runners);
 
       const err = await expectGrpcCode(
-        () => runOn(org, agentRef, Harness.NATIVE, model),
+        () => runOn(org, agentRef, Harness.STIGMER, model),
         Code.FailedPrecondition,
         `a native run on ${model}`,
       );

@@ -22,7 +22,7 @@ void unsupported;
 
 describe("the option set is the proto's harness set", () => {
   it("offers every engine the platform runs, in proto order", () => {
-    expect(HARNESS_OPTIONS).toEqual(["native", "claude"]);
+    expect(HARNESS_OPTIONS).toEqual(["stigmer", "claude"]);
   });
 
   it("names every engine Harness names, offered or not", () => {
@@ -42,11 +42,11 @@ describe("the option set is the proto's harness set", () => {
   });
 
   it("gives every named engine display metadata and nothing else any", () => {
-    expect(Object.keys(HARNESS_META).sort()).toEqual(["claude", "native"]);
+    expect(Object.keys(HARNESS_META).sort()).toEqual(["claude", "stigmer"]);
   });
 
   it("recognises a stored string only when it names an offered engine", () => {
-    expect(isHarnessOption("native")).toBe(true);
+    expect(isHarnessOption("stigmer")).toBe(true);
     expect(isHarnessOption("claude")).toBe(true);
     for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isHarnessOption(stored)).toBe(false);
@@ -59,7 +59,7 @@ describe("the option set is the proto's harness set", () => {
 
 describe("parseModelKey", () => {
   it("reads a key on every named engine, offered or not", () => {
-    expect(parseModelKey("native/claude-sonnet-4-6")).toEqual({ harness: "native", modelId: "claude-sonnet-4-6" });
+    expect(parseModelKey("native/claude-sonnet-4-6")).toEqual({ harness: "stigmer", modelId: "claude-sonnet-4-6" });
     expect(parseModelKey("claude/claude-opus-5")).toEqual({ harness: "claude", modelId: "claude-opus-5" });
   });
 
@@ -71,24 +71,24 @@ describe("parseModelKey", () => {
 
 describe("harness constants", () => {
   it("defaults to native harness", () => {
-    expect(DEFAULT_HARNESS).toBe("native");
+    expect(DEFAULT_HARNESS).toBe("stigmer");
   });
 
   it("provides user-facing labels for both options", () => {
-    expect(HARNESS_LABELS.native).toBe("Stigmer");
+    expect(HARNESS_LABELS.stigmer).toBe("Stigmer");
     expect(HARNESS_LABELS.claude).toBe("Claude Agent");
   });
 
   // docs/vocabulary.md "Harness": one label and one description per value, the same on every surface.
   it("names each harness with the vocabulary's label and description", () => {
     expect(HARNESS_META).toEqual({
-      native: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
+      stigmer: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
       claude: { label: "Claude Agent", description: "Anthropic's Claude Agent SDK: Claude models on your Anthropic key" },
     });
   });
 
   it("covers every HarnessOption in HARNESS_LABELS", () => {
-    const options: HarnessOption[] = ["native", "claude"];
+    const options: HarnessOption[] = ["stigmer", "claude"];
     for (const opt of options) {
       expect(HARNESS_LABELS[opt]).toBeDefined();
       expect(typeof HARNESS_LABELS[opt]).toBe("string");
@@ -97,8 +97,8 @@ describe("harness constants", () => {
 });
 
 describe("toProtoHarness", () => {
-  it("maps native to Harness.NATIVE", () => {
-    expect(toProtoHarness("native")).toBe(Harness.NATIVE);
+  it("maps native to Harness.STIGMER", () => {
+    expect(toProtoHarness("stigmer")).toBe(Harness.STIGMER);
   });
 
   it("maps claude to Harness.CLAUDE", () => {
@@ -107,8 +107,8 @@ describe("toProtoHarness", () => {
 });
 
 describe("fromProtoHarness", () => {
-  it("maps Harness.NATIVE to native", () => {
-    expect(fromProtoHarness(Harness.NATIVE)).toBe("native");
+  it("maps Harness.STIGMER to native", () => {
+    expect(fromProtoHarness(Harness.STIGMER)).toBe("stigmer");
   });
 
   it("maps Harness.CLAUDE to claude", () => {
@@ -116,17 +116,17 @@ describe("fromProtoHarness", () => {
   });
 
   it("maps Harness.UNSPECIFIED to native (safe default)", () => {
-    expect(fromProtoHarness(Harness.UNSPECIFIED)).toBe("native");
+    expect(fromProtoHarness(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
   it("maps unknown numeric values to native (safe default)", () => {
-    expect(fromProtoHarness(999 as Harness)).toBe("native");
+    expect(fromProtoHarness(999 as Harness)).toBe("stigmer");
   });
 });
 
 describe("round-trip conversion", () => {
   it("native survives toProto -> fromProto", () => {
-    expect(fromProtoHarness(toProtoHarness("native"))).toBe("native");
+    expect(fromProtoHarness(toProtoHarness("stigmer"))).toBe("stigmer");
   });
 
   it("claude survives toProto -> fromProto", () => {

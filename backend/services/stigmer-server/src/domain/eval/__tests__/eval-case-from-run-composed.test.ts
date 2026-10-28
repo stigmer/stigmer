@@ -129,7 +129,7 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
       ApiResourceKind.session,
       sessionId,
       SessionSchema,
-      create(SessionSchema, { metadata: { id: sessionId, org: orgId }, spec: { harness: Harness.NATIVE }, status: { audit } }),
+      create(SessionSchema, { metadata: { id: sessionId, org: orgId }, spec: { harness: Harness.STIGMER }, status: { audit } }),
     );
     const run = (id: string, message: string, runPhase: RunPhase) =>
       create(RunSchema, {
@@ -447,7 +447,7 @@ describe("an eval case from a run (trusted-local, composed server)", () => {
       ApiResourceKind.session,
       `ses_${runId}`,
       SessionSchema,
-      create(SessionSchema, { metadata: { id: `ses_${runId}`, org: orgId }, spec: { harness: Harness.NATIVE } }),
+      create(SessionSchema, { metadata: { id: `ses_${runId}`, org: orgId }, spec: { harness: Harness.STIGMER } }),
     );
     await server.store.saveResource(
       ApiResourceKind.run,

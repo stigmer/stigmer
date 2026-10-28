@@ -175,7 +175,7 @@ export function subAgentManifest(subAgent: FrozenSubAgent, slug: string, parent:
   if (disallowedTools.length > 0) spec["disallowed_tools"] = disallowedTools;
   if (subAgent.modelOverride !== "") {
     spec["run_config"] = { model_name: subAgent.modelOverride };
-    spec["harness"] = "HARNESS_NATIVE";
+    spec["harness"] = "HARNESS_STIGMER";
   }
   return yaml.dump(
     {

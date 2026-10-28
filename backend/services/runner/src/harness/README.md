@@ -21,7 +21,7 @@ pinned somewhere. Read a row across before searching for anything.
 | The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-claude/` |
 | `HarnessName` in `harness/registry.ts` | `deep-agent` | `claude` |
 | The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteClaude` |
-| The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_NATIVE` | `HARNESS_CLAUDE` |
+| The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_STIGMER` | `HARNESS_CLAUDE` |
 | The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `claude` |
 | The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `claude` |
 | The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@anthropic-ai/claude-agent-sdk` |

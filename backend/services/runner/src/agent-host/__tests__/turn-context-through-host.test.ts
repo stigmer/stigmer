@@ -19,7 +19,7 @@ describe("the agent host's calls to the runtime", () => {
   it("run in the turn's context, with the run credential the activity entered", async () => {
     const seenBy: Array<string | undefined> = [];
     const row = loopbackHostedRow({
-      harness: "deep-agent",
+      harness: "stigmer",
       adapter: {
         name: "context-probe",
         capabilities: DEEP_AGENT_CAPABILITIES,

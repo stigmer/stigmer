@@ -736,7 +736,7 @@ const workerFactory: WorkerFactory = (deps) =>
  */
 const catalogProvider: ModelCatalogProvider =
   newModelCatalogProviderFromDocument(
-    `{"models":[{"id":"consumer-model","harness":"native"}]}`,
+    `{"models":[{"id":"consumer-model","harness":"stigmer"}]}`,
   );
 
 /**

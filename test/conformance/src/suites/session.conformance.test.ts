@@ -343,7 +343,7 @@ describe("[rpc:SessionCommandController.updateSubject] Session conformance — s
     const agentRef = await provisionAgentRef(org);
     const created = await createSession(org, uniqueName("session"), agentRef, {
       subject: "original",
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
     });
 
     const updated = await clients.sessionCommand.updateSubject({ id: created.metadata!.id, subject: "renamed thread" });
@@ -352,7 +352,7 @@ describe("[rpc:SessionCommandController.updateSubject] Session conformance — s
     expect(updated.spec?.subject).toBe("renamed thread");
     // The targeted update must leave every other field untouched.
     expect(updated.spec?.agentRef?.slug).toBe(agentRef.slug);
-    expect(updated.spec?.harness).toBe(Harness.NATIVE);
+    expect(updated.spec?.harness).toBe(Harness.STIGMER);
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
@@ -875,9 +875,9 @@ describe("Session conformance — a new conversation's engine", () => {
     const { org } = await target.provisionTenancy();
     const agent = await claudeAgent(org);
 
-    const created = await createSession(org, uniqueName("session"), agentRefOf(agent), { harness: Harness.NATIVE });
+    const created = await createSession(org, uniqueName("session"), agentRefOf(agent), { harness: Harness.STIGMER });
 
-    expect(created.spec?.harness).toBe(Harness.NATIVE);
+    expect(created.spec?.harness).toBe(Harness.STIGMER);
   });
   it("[rpc:SessionCommandController.create] a conversation on Claude, named or from a Claude agent's defaults, is stored on Claude", async () => {
     const { org } = await target.provisionTenancy();

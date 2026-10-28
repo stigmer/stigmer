@@ -198,7 +198,7 @@ export async function prepareAgentExec(
         : agentHarness !== ""
           ? agentHarness
           : accountDefaults.harness;
-  const model = wantsModelFill ? accountDefaults.models[harness === "" ? "native" : harness] : flags.model;
+  const model = wantsModelFill ? accountDefaults.models[harness === "" ? "stigmer" : harness] : flags.model;
 
   const resources = parseWorkspaceResources(
     flags.workspace,
@@ -246,7 +246,7 @@ interface AccountExecutionDefaults {
 
 const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = {
   harness: "",
-  models: { native: "", claude: "" },
+  models: { stigmer: "", claude: "" },
 };
 
 /**

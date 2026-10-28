@@ -154,7 +154,7 @@ describe("an agent's sub-agents are dropped and logged as agent manifests", () =
         tools: ["Read"],
         disallowed_tools: ["Bash", "WebFetch", "Write"],
         run_config: { model_name: "claude-sonnet-4-5" },
-        harness: "HARNESS_NATIVE",
+        harness: "HARNESS_STIGMER",
       },
     });
     expect(line.addToAgent).toEqual({ subagents: [{ kind: "agent", slug: "issue-triager" }] });

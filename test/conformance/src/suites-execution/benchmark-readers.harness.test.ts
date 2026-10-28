@@ -159,7 +159,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
     const timing = await awaitTimingLines(target.runnerLogFile!(), executionId);
     expect(timing.turn_phases, "the runtime wrote a turn_phases line for this execution").not.toBeNull();
     expect(timing.execution_setup, "the adapter wrote an execution_setup line for this execution").not.toBeNull();
-    expect(timing.turn_phases?.context["harness"], "the line carries the runtime's harness label").toBe("deep-agent");
+    expect(timing.turn_phases?.context["harness"], "the line carries the runtime's harness label").toBe("stigmer");
     const axes = axesFromTiming(timing);
     expect(axes.rounds, "the fold counted the scripted model round").toBe(1);
     expect(axes.runner_first_visible_token_ms, "the fold saw the first visible token").not.toBeNull();
@@ -167,7 +167,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
 
     const coordinates = target.engineCoordinates!();
     const history = await showWorkflow(coordinates.temporalHostPort, TEMPORAL_DEV_NAMESPACE, invokeWorkflowIdFor(executionId));
-    const before = historyAxes(history, executeActivityNameFor("deep-agent"));
+    const before = historyAxes(history, executeActivityNameFor("stigmer"));
     expect(before.before_activity_ms, "the history shows the execute activity starting").not.toBeNull();
     expect(before.ensure_thread_ms, "the history shows the EnsureThread hop completing").not.toBeNull();
   });
@@ -191,9 +191,9 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       {
         org,
         agentRef: agentRefOf(agent),
-        harness: "deep-agent",
+        harness: "stigmer",
         modelRequested: null,
-        sessionSpec: { harness: Harness.NATIVE, subject: "benchmark readers smoke" },
+        sessionSpec: { harness: Harness.STIGMER, subject: "benchmark readers smoke" },
         prompts: TURN_2_PROMPTS,
         label: "smoke/three-turns",
       },
@@ -227,7 +227,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
 
       const quality = await runQualityEval(
         clients,
-        [{ id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] }],
+        [{ id: "quality/stigmer", harness: "stigmer", modelRequested: PARITY_MODEL.stigmer }],
         { runs: 1, judgeModel: JUDGE_MODEL, concurrency: 1, caseGlob: "tool-lookup", timeoutMs: 240_000 },
         { log: () => undefined },
       );
@@ -241,7 +241,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(document.schemaVersion).toBe(1);
       expect(document.plugins.map((block) => block.schemaVersion)).toEqual([1]);
       expect(document.plugins[0]!.cases.map((c) => [c.name, c.aggregates.score])).toEqual([["tool-lookup", 1]]);
-      expect(renderQuality(quality)).toContain(`| tool-lookup | native/${PARITY_MODEL["deep-agent"]} | 1.00 | yes |`);
+      expect(renderQuality(quality)).toContain(`| tool-lookup | stigmer/${PARITY_MODEL.stigmer} | 1.00 | yes |`);
     },
     300_000,
   );
@@ -282,9 +282,9 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         {
           org: agent.org,
           agentRef: agent.agentRef,
-          harness: "deep-agent",
+          harness: "stigmer",
           modelRequested: null,
-          sessionSpec: workingAgentSessionSpec(agent, Harness.NATIVE, "benchmark readers smoke"),
+          sessionSpec: workingAgentSessionSpec(agent, Harness.STIGMER, "benchmark readers smoke"),
           prompts: ["Look up ORD-4821 and note its status in NOTES.md."],
           label: "smoke/working",
         },
@@ -320,9 +320,9 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         {
           org: agent.org,
           agentRef: agent.agentRef,
-          harness: "deep-agent",
+          harness: "stigmer",
           modelRequested: null,
-          sessionSpec: workingAgentSessionSpec(agent, Harness.NATIVE, "benchmark readers smoke"),
+          sessionSpec: workingAgentSessionSpec(agent, Harness.STIGMER, "benchmark readers smoke"),
           prompts: [prompt],
           label,
         },
@@ -385,9 +385,9 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
           {
             org: agent.org,
             agentRef: agent.agentRef,
-            harness: "deep-agent",
+            harness: "stigmer",
             modelRequested: null,
-            sessionSpec: workingAgentSessionSpec(agent, Harness.NATIVE, "benchmark readers smoke"),
+            sessionSpec: workingAgentSessionSpec(agent, Harness.STIGMER, "benchmark readers smoke"),
             prompts: ["Hello."],
             label: "smoke/stable",
           },

@@ -195,7 +195,7 @@ async function registry(): Promise<ModelRegistryDocument> {
 // The native row whose wire id the request carries (the bare agent's model
 // is the registry's default, which arrives as its provider id).
 function nativeRowOnTheWire(document: ModelRegistryDocument, wireModel: string) {
-  const row = document.models.find((model) => model.harness === "native" && wireModelIdOf(model) === wireModel);
+  const row = document.models.find((model) => model.harness === "stigmer" && wireModelIdOf(model) === wireModel);
   if (row === undefined) {
     throw new Error(`no native registry row puts ${JSON.stringify(wireModel)} on the wire`);
   }

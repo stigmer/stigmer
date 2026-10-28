@@ -177,7 +177,7 @@ beforeEach(() => {
     new Response(
       JSON.stringify({
         models: [
-          { id: "claude-sonnet-4-5", provider: "anthropic", harness: "native" },
+          { id: "claude-sonnet-4-5", provider: "anthropic", harness: "stigmer" },
           { id: "claude-opus-4-5", provider: "anthropic", harness: "claude" },
         ],
       }),
@@ -203,7 +203,7 @@ async function run(
     readonly conversationPlugins?: Plugin[];
     readonly values?: RunValues;
     readonly runSpec?: { tools?: string[]; disallowedTools?: string[] };
-    readonly capabilities?: { harness: Harness.NATIVE | Harness.CLAUDE; subAgents: boolean };
+    readonly capabilities?: { harness: Harness.STIGMER | Harness.CLAUDE; subAgents: boolean };
     /** Servers the main agent writes itself. */
     readonly mainAgentServers?: { name: string; url: string }[];
   } = {},
@@ -228,7 +228,7 @@ async function run(
     blueprint,
     values: options.values ?? NO_RUN_VALUES,
     primaryDir,
-    capabilities: options.capabilities ?? { harness: Harness.NATIVE, subAgents: true },
+    capabilities: options.capabilities ?? { harness: Harness.STIGMER, subAgents: true },
     // The main agent's servers, as the MCP phase resolves them from the conversation's plugins.
     mainServers: resolveTurnServers({
       agent:
@@ -266,7 +266,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const { client: c, fetches } = client(["alpha"]);
     const { result, labels } = await run([saved("release-notes", { skillRefs: [ref("alpha")] })], {
       c,
-      capabilities: { harness: Harness.NATIVE, subAgents: false },
+      capabilities: { harness: Harness.STIGMER, subAgents: false },
     });
     expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [] } });
     expect(labels).toEqual([]);
@@ -458,10 +458,10 @@ describe("resolveSubagents: what a subagent runs with", () => {
 
   it("runs its own model only when chosen for this engine and listed by it", async () => {
     const { result } = await run([
-      saved("native-pick", { harness: Harness.NATIVE, runConfig: { modelName: "claude-sonnet-4-5" } }),
+      saved("native-pick", { harness: Harness.STIGMER, runConfig: { modelName: "claude-sonnet-4-5" } }),
       saved("unset-pick", { runConfig: { modelName: "claude-sonnet-4-5" } }),
       saved("claude-pick", { harness: Harness.CLAUDE, runConfig: { modelName: "claude-opus-4-5" } }),
-      saved("unlisted", { harness: Harness.NATIVE, runConfig: { modelName: "gpt-9" } }),
+      saved("unlisted", { harness: Harness.STIGMER, runConfig: { modelName: "gpt-9" } }),
     ]);
     expect(ready(result).map((s) => [s.name, s.model])).toEqual([
       ["native-pick", "claude-sonnet-4-5"],

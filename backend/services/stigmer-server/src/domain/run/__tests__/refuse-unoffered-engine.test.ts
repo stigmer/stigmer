@@ -46,7 +46,7 @@ describe("RefuseUnofferedEngine", () => {
   });
 
   it("passes a turn on an offered engine, or the platform default", () => {
-    for (const engine of [Harness.UNSPECIFIED, Harness.NATIVE, Harness.CLAUDE]) {
+    for (const engine of [Harness.UNSPECIFIED, Harness.STIGMER, Harness.CLAUDE]) {
       expect(() => step.execute(contextPlacedOn(engine))).not.toThrow();
     }
   });

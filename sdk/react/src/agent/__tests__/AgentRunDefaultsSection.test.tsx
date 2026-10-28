@@ -42,7 +42,7 @@ const SONNET: ModelInfo = {
   shortDescription: "",
   speedTier: "balanced",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
   thinkingCapable: true,
@@ -59,7 +59,7 @@ function Wrapper({ children }: { children: ReactNode }) {
 }
 
 const SPEC = create(AgentSpecSchema, {
-  harness: Harness.NATIVE,
+  harness: Harness.STIGMER,
   runConfig: {
     modelName: "claude-sonnet-4-6",
     serviceTier: ServiceTier.FAST,
@@ -110,7 +110,7 @@ describe("AgentRunDefaultsSection", () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onSave.mock.calls[0][0]).toEqual({
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: {
         modelName: "claude-sonnet-4-6",
         serviceTier: ServiceTier.FAST,
@@ -144,7 +144,7 @@ describe("AgentRunDefaultsSection", () => {
     render(
       <AgentRunDefaultsSection
         spec={create(AgentSpecSchema, {
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
           runConfig: { modelName: "claude-sonnet-4-6" },
         })}
         editable
@@ -178,13 +178,13 @@ describe("AgentRunDefaultsSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
-    expect(onSave.mock.calls[0][0]).toEqual({ harness: Harness.NATIVE, runConfig: undefined });
+    expect(onSave.mock.calls[0][0]).toEqual({ harness: Harness.STIGMER, runConfig: undefined });
   });
 
   it("offers speed and thinking only once a model is picked", () => {
     const { unmount } = render(
       <AgentRunDefaultsSection
-        spec={create(AgentSpecSchema, { harness: Harness.NATIVE })}
+        spec={create(AgentSpecSchema, { harness: Harness.STIGMER })}
         editable
         isSaving={false}
         onSave={vi.fn()}

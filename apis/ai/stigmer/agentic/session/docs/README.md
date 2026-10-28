@@ -20,7 +20,7 @@ A Session is not ephemeral. It is a resource you create explicitly (or let the p
 
 ## Key Concepts
 
-**Conversation continuity** — Every run in a Session continues the same conversation: each harness keeps it under the session's own id (native's checkpoint thread, Claude's session store), which carries the full conversation history across every run. The agent "remembers" everything said in previous turns because all runs within a session continue the same conversation.
+**Conversation continuity** — Every run in a Session continues the same conversation: each harness keeps it under the session's own id (the Stigmer harness's checkpoint thread, Claude Agent's session store), which carries the full conversation history across every run. The agent "remembers" everything said in previous turns because all runs within a session continue the same conversation.
 
 **Workspace persistence** — The Session optionally provisions a sandbox (a Kubernetes pod with a persistent workspace volume, on managed deployments) with a workspace sourced from a git repository or a local path. That workspace persists across all runs in the session. Files the agent creates in turn one are still there in turn ten.
 

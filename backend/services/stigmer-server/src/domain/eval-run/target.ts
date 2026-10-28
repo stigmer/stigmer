@@ -18,7 +18,7 @@ import type { AgentTarget } from "./matrix.js";
 /** The agent version's default target (the module header). */
 export function agentTargetOf(spec: AgentSpec | undefined): AgentTarget {
   return {
-    harness: spec === undefined || spec.harness === Harness.UNSPECIFIED ? Harness.NATIVE : spec.harness,
+    harness: spec === undefined || spec.harness === Harness.UNSPECIFIED ? Harness.STIGMER : spec.harness,
     modelName: spec?.runConfig?.modelName ?? "",
   };
 }

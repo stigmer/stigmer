@@ -51,8 +51,8 @@ const TURN_KEY = "turn-key-model-lanes";
 
 const REGISTRY = {
   models: [
-    { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", harness: "native", costTier: "standard", capabilities: {}, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15 } },
-    { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", harness: "native", costTier: "standard", capabilities: {}, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8 } },
+    { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", harness: "stigmer", costTier: "standard", capabilities: {}, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15 } },
+    { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", harness: "stigmer", costTier: "standard", capabilities: {}, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8 } },
   ],
 };
 

@@ -214,13 +214,13 @@ Claude Sonnet 4.6 under the Claude engine's own catalog row, the served model
 the native arm's parity cells pin, so a parity cell measures the engine and
 not the model; its `default` cells run the Claude engine's catalog default.
 
-The native arm runs on Claude Sonnet 4.6 unless `--native-model <id>` names
+The native arm runs on Claude Sonnet 4.6 unless `--stigmer-model <id>` names
 another model: a catalog id, or the own-endpoint form `openai:<name>` /
 `anthropic:<name>` the platform serves without a catalog row. Gemini runs
 this way through Google's OpenAI-compatible address:
 `OPENAI_API_KEY=<a Gemini key>
 OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-npm run benchmark:harnesses -- --only native --native-model openai:<gemini id>`.
+npm run benchmark:harnesses -- --only native --stigmer-model openai:<gemini id>`.
 The model replaces the parity pin in every native parity, turn-2 and working
 cell and in the native quality target; the native `default` cells are refused,
 and the Claude arm, the judge and the prompts stay as they are. A native cell
@@ -228,9 +228,9 @@ needs the key of its model's provider. One run measures one native model,
 because the runner holds one OpenAI-slot key and address for the whole run.
 The report records every arm's model in `models.parity`, by harness, and the
 native arm's in full: the model, the host its
-calls went to (`native_endpoint`, never a key or a path), the API they were
-made on (`native_api`) and whether the runner priced them from a catalog row
-or at its default rate (`native_cost_basis`). A default-rate cost is marked in
+calls went to (`stigmer_endpoint`, never a key or a path), the API they were
+made on (`stigmer_api`) and whether the runner priced them from a catalog row
+or at its default rate (`stigmer_cost_basis`). A default-rate cost is marked in
 the summary and is not a price; a readout prices such an arm from the
 samples' tokens at the provider's published rate.
 
@@ -364,7 +364,7 @@ through the driver as well as single turns.
 reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
 whether each arm holds the bar the reference arm sets (default: native on
 the parity model). An arm is a harness on one model at one endpoint,
-on one version of the code (`native/<model>@<host>#<code>`,
+on one version of the code (`stigmer/<model>@<host>#<code>`,
 `claude/<model>#<code>`, the code being the first ten characters of
 `git.code_sha`); a native report taken with background commands off is an
 arm of its own, `+background-off` after the code, so name the reference in
@@ -424,7 +424,7 @@ through every restart, resuming from its last seq. At the end the session's
 log must read back unbroken, and the follower must have been sent exactly
 that log, once and in order. Otherwise the transcript reads broken and the
 script exits 1. The `long-turn-real-clock.yaml` workflow runs it on demand.
-`npm run long-turn:live -- --harness deep-agent|claude` plays the same
+`npm run long-turn:live -- --harness stigmer|claude` plays the same
 profiles against a real provider on the benchmark's stack, with the same
 follower and verdict. On Claude the agent lists one saved helper on Claude
 for the subagent step, which the step names with the engine's `Agent` tool:

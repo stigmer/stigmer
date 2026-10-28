@@ -29,7 +29,7 @@ import { renderSummary, runBenchmark, type BenchmarkStack, type RunOptions } fro
 
 const REGISTRY = {
   models: [
-    { id: PARITY_MODEL["deep-agent"], harness: "native" },
+    { id: PARITY_MODEL.stigmer, harness: "stigmer" },
     { id: PARITY_MODEL.claude, harness: "claude" },
   ],
 };
@@ -64,11 +64,11 @@ describe("runBenchmark's quality arm", () => {
   it("refuses a target the registry does not carry, runs one eval for the rest, and records a failed push by stage", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
     const plan: CellPlan = {
-      nativeModel: PARITY_MODEL["deep-agent"],
+      nativeModel: PARITY_MODEL.stigmer,
       cells: [],
       judge: false,
       quality: [
-        { id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] },
+        { id: "quality/stigmer", harness: "stigmer", modelRequested: PARITY_MODEL.stigmer },
         { id: "quality/claude", harness: "claude", modelRequested: "not-a-claude-model" },
       ],
       refused: [],
@@ -81,14 +81,14 @@ describe("runBenchmark's quality arm", () => {
     expect(report.quality).toEqual({
       plugin: "",
       eval_id: "",
-      targets: [`native/${PARITY_MODEL["deep-agent"]}`],
+      targets: [`stigmer/${PARITY_MODEL.stigmer}`],
       judge_model: JUDGE_MODEL,
       runs: 3,
       document: null,
       failure: { stage: "create", message: "push the working agent's plugin: organizations are closed" },
     });
     expect(io.lines).toEqual([
-      "quality: one eval run, quality/deep-agent, 3 tries per case",
+      "quality: one eval run, quality/stigmer, 3 tries per case",
       "quality: create: push the working agent's plugin: organizations are closed",
     ]);
     expect(renderSummary(report).split("\n").slice(-7)).toEqual([
@@ -105,23 +105,23 @@ describe("runBenchmark's quality arm", () => {
   it("names a Claude target claude/<model>, beside native's, in one eval", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
     const plan: CellPlan = {
-      nativeModel: PARITY_MODEL["deep-agent"],
+      nativeModel: PARITY_MODEL.stigmer,
       cells: [],
       judge: false,
       quality: [
-        { id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] },
+        { id: "quality/stigmer", harness: "stigmer", modelRequested: PARITY_MODEL.stigmer },
         { id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude },
       ],
       refused: [],
     };
     const report = await runBenchmark(refusingStack(), plan, OPTIONS, quietIo());
     expect(report.refused).toEqual([]);
-    expect(report.quality?.targets).toEqual([`native/${PARITY_MODEL["deep-agent"]}`, `claude/${PARITY_MODEL.claude}`]);
+    expect(report.quality?.targets).toEqual([`stigmer/${PARITY_MODEL.stigmer}`, `claude/${PARITY_MODEL.claude}`]);
   });
 
   it("leaves quality null when no target is planned", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
-    const report = await runBenchmark(refusingStack(), { nativeModel: PARITY_MODEL["deep-agent"], cells: [], quality: [], judge: false, refused: [] }, OPTIONS, quietIo());
+    const report = await runBenchmark(refusingStack(), { nativeModel: PARITY_MODEL.stigmer, cells: [], quality: [], judge: false, refused: [] }, OPTIONS, quietIo());
     expect(report.quality).toBeNull();
   });
 });
@@ -135,7 +135,7 @@ describe("renderQuality", () => {
     const quality: QualityEval = {
       plugin: "working-agent",
       eval_id: "evr_1",
-      targets: ["native/claude-sonnet-4.6"],
+      targets: ["stigmer/claude-sonnet-4.6"],
       judge_model: JUDGE_MODEL,
       runs: 2,
       document: {
@@ -143,7 +143,7 @@ describe("renderQuality", () => {
           {
         targets: [
           {
-            label: "native/claude-sonnet-4.6",
+            label: "stigmer/claude-sonnet-4.6",
             cases: [
               { name: "repo-question", aggregates: { score: 0.5 }, passK: true },
               { name: "config-fix", aggregates: {}, passK: false },
@@ -165,8 +165,8 @@ describe("renderQuality", () => {
       "",
       "| quality case | target | score | pass^k |",
       "|---|---|---|---|",
-      "| repo-question | native/claude-sonnet-4.6 | 0.50 | yes |",
-      "| config-fix | native/claude-sonnet-4.6 | n/a | no |",
+      "| repo-question | stigmer/claude-sonnet-4.6 | 0.50 | yes |",
+      "| config-fix | stigmer/claude-sonnet-4.6 | n/a | no |",
       "",
       "Quality cases not run:",
       "- refine-over-turns on claude/claude-sonnet-4.6: not run on Claude: resumed conversations",
@@ -178,7 +178,7 @@ describe("renderQuality", () => {
 });
 
 describe("runQualityEval", () => {
-  const TARGETS = [{ id: "quality/deep-agent", harness: "deep-agent", modelRequested: "claude-sonnet-4.6" }] as const;
+  const TARGETS = [{ id: "quality/stigmer", harness: "stigmer", modelRequested: "claude-sonnet-4.6" }] as const;
   const ended = (phase: EvalRunPhase, error = "") =>
     create(EvalRunSchema, {
       metadata: { id: "evr_1" },
@@ -232,7 +232,7 @@ describe("runQualityEval", () => {
     const lines: string[] = [];
     const quality = await run(fakeClients().clients, lines);
     expect(quality.failure).toBeUndefined();
-    expect(quality).toMatchObject({ plugin: "working-agent", eval_id: "evr_1", targets: ["native/claude-sonnet-4.6"], runs: 1 });
+    expect(quality).toMatchObject({ plugin: "working-agent", eval_id: "evr_1", targets: ["stigmer/claude-sonnet-4.6"], runs: 1 });
     expect(quality.document).toMatchObject({ evalRunId: "evr_1", subject: { kind: "plugin", id: "plg_1" } });
     expect(lines).toEqual(["quality: eval run evr_1 started"]);
   });

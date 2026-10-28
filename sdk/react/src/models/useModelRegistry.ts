@@ -18,7 +18,7 @@ export interface UseModelRegistryOptions {
   /**
    * Restrict to a single harness.
    *
-   * - `"native"`, `"claude"` — only that harness's models, filtered by {@link DISABLED_PROVIDERS}
+   * - `"stigmer"`, `"claude"` — only that harness's models, filtered by {@link DISABLED_PROVIDERS}
    * - omitted — **unified mode**: all enabled models from every harness
    */
   readonly harness?: HarnessOption;
@@ -86,7 +86,7 @@ export interface UseModelRegistryReturn {
  * const { featured, models, getByKey, isLoading } = useModelRegistry();
  *
  * // Legacy single-harness mode
- * const { models, defaultModel } = useModelRegistry({ harness: "native" });
+ * const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
  * ```
  */
 export function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn {

@@ -11,7 +11,7 @@ function baseProps(overrides: Partial<ComposerToolbarProps> = {}): ComposerToolb
     canSend: true,
     onSend: vi.fn(),
     showHarnessSelector: false,
-    harness: "native",
+    harness: "stigmer",
     onHarnessChange: vi.fn(),
     showInteractionModePicker: false,
     interactionMode: "agent",

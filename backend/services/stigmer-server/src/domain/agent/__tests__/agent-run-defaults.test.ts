@@ -41,7 +41,7 @@ beforeEach(async () => {
   const agent = (model: string, versionHash: string) =>
     create(AgentSchema, {
       metadata: { id: AGENT, org: "acme", slug: "reviewer" },
-      spec: { harness: Harness.NATIVE, runConfig: { modelName: model } },
+      spec: { harness: Harness.STIGMER, runConfig: { modelName: model } },
       status: { versionHash },
     });
   await store.saveAudit(ApiResourceKind.agent, AGENT, AgentSchema, agent("old-model", OLD), OLD, "");

@@ -225,7 +225,7 @@ describe("EvalRunsTab on a plugin", () => {
         org: "org_acme",
         pluginId: "plg_1",
         name: "",
-        targets: [{ harness: Harness.NATIVE, modelName: "claude-haiku-4-5" }],
+        targets: [{ harness: Harness.STIGMER, modelName: "claude-haiku-4-5" }],
         runs: 5,
         ablation: EvalRunAblation.none,
         maxCostUsd: 2,

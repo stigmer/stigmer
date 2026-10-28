@@ -143,7 +143,7 @@ describe("the eval trace, native transcript", () => {
   );
 
   it("names every call as Claude Code does", async () => {
-    const trace = await evalTraceOf(native, deps(Harness.NATIVE));
+    const trace = await evalTraceOf(native, deps(Harness.STIGMER));
     expect(trace.toolCalls.map((c) => c.name)).toEqual([
       "Skill",
       "Read",
@@ -171,7 +171,7 @@ describe("the eval trace, native transcript", () => {
       ],
       [],
     );
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    const trace = await evalTraceOf(run, deps(Harness.STIGMER));
     expect(trace.toolCalls.map((c) => c.name)).toEqual([
       "mcp__plugin_thermos_My_Server__search",
       "mcp__github__list",
@@ -193,16 +193,16 @@ describe("the eval trace, native transcript", () => {
     run.run.spec!.evalCase = create(EvalCaseContextSchema, {
       mocks: [create(EvalMockServerSchema, { server: "tracker", segment: "tracker-acme" })],
     });
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    const trace = await evalTraceOf(run, deps(Harness.STIGMER));
     expect(trace.mockCalls.map((line) => JSON.parse(line) as unknown)).toEqual([
       { server: "tracker", tool: "create_issue", input: { title: "Crash" }, answer: "result of m1" },
       { server: "tracker", tool: "close_issue", input: { id: "9" }, answer: "No such issue." },
     ]);
-    expect((await evalTraceOf(runOf([], []), deps(Harness.NATIVE))).mockCalls).toEqual([]);
+    expect((await evalTraceOf(runOf([], []), deps(Harness.STIGMER))).mockCalls).toEqual([]);
   });
 
   it("writes the trace as Claude Code's JSON lines and keeps the final message", async () => {
-    const trace = await evalTraceOf(native, deps(Harness.NATIVE));
+    const trace = await evalTraceOf(native, deps(Harness.STIGMER));
     expect(trace.lastMessage).toBe("All done.");
     const lines = trace.traceLines.map(
       (line) => JSON.parse(line) as Record<string, unknown>,
@@ -221,7 +221,7 @@ describe("the eval trace, native transcript", () => {
   it("reads the created paths and the wanted contents", async () => {
     const trace = await evalTraceOf(
       native,
-      deps(Harness.NATIVE, { wantedFiles: ["./CHANGELOG.md", "missing.md"] }),
+      deps(Harness.STIGMER, { wantedFiles: ["./CHANGELOG.md", "missing.md"] }),
     );
     expect(trace.files).toEqual({
       kind: "recorded",
@@ -253,7 +253,7 @@ describe("the eval trace, a plugin skill's read", () => {
       ],
       [],
     );
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE, { skillNames }));
+    const trace = await evalTraceOf(run, deps(Harness.STIGMER, { skillNames }));
     expect(trace.toolCalls).toEqual([
       { name: "Skill", input: JSON.stringify({ skill: "thermos:code-review" }) },
       { name: "Skill", input: JSON.stringify({ skill: "thermos:lint" }) },
@@ -284,7 +284,7 @@ describe("the eval trace, a plugin skill's read", () => {
       [],
     );
     for (const overrides of [{ skillNames }, {}]) {
-      const trace = await evalTraceOf(run, deps(Harness.NATIVE, overrides));
+      const trace = await evalTraceOf(run, deps(Harness.STIGMER, overrides));
       expect(trace.toolCalls).toEqual([
         { name: "Skill", input: JSON.stringify({ skill: "thermos:unlisted" }) },
       ]);
@@ -306,7 +306,7 @@ describe("the eval trace, a plugin skill's read", () => {
       [DIGEST, { name: "thermos", skillNames }],
       [OTHER, { name: "desk", skillNames: new Map<string, string>() }],
     ]);
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE, { pluginName: "", pluginsByDigest }));
+    const trace = await evalTraceOf(run, deps(Harness.STIGMER, { pluginName: "", pluginsByDigest }));
     expect(trace.toolCalls.map((toolCall) => toolCall.input)).toEqual([
       JSON.stringify({ skill: "thermos:code-review" }),
       JSON.stringify({ skill: "desk:triage" }),
@@ -334,7 +334,7 @@ describe("the eval trace's created paths", () => {
       [],
       [baseline("t1"), candidate("t1", [created, other]), candidate("t2", [created])],
     );
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    const trace = await evalTraceOf(run, deps(Harness.STIGMER));
     expect(trace.files).toMatchObject({
       kind: "recorded",
       created: ["CHANGELOG.md", "src/new.ts"],
@@ -371,7 +371,7 @@ describe("the eval trace's files", () => {
   it("is not recorded when the run's ledger holds no capture", async () => {
     const trace = await evalTraceOf(
       runOf([], []),
-      deps(Harness.NATIVE, { wantedFiles: ["a"] }),
+      deps(Harness.STIGMER, { wantedFiles: ["a"] }),
     );
     expect(trace.files).toEqual({ kind: "not-recorded" });
   });
@@ -391,7 +391,7 @@ describe("the eval trace's files", () => {
     }).evalFiles;
     const trace = await evalTraceOf(
       run,
-      deps(Harness.NATIVE, { wantedFiles: ["app.txt", "logo.png", "huge.log", "gone.md", "CHANGELOG.md", "never.md"] }),
+      deps(Harness.STIGMER, { wantedFiles: ["app.txt", "logo.png", "huge.log", "gone.md", "CHANGELOG.md", "never.md"] }),
     );
     const contents = trace.files.kind === "recorded" ? trace.files.contents : new Map();
     expect(Object.fromEntries(contents)).toEqual({
@@ -447,7 +447,7 @@ describe("the eval trace's files", () => {
     ];
     const trace = await evalTraceOf(
       runOf([], events),
-      deps(Harness.NATIVE, {
+      deps(Harness.STIGMER, {
         wantedFiles: ["big.md", "logo.png", "old.md", "lost.md"],
         readArtifact: async (key) => {
           if (key.endsWith("lost")) throw new Error("gone");
@@ -473,7 +473,7 @@ describe("the eval trace's files", () => {
     const run = runOf([]);
     const trace = await evalTraceOf(
       { run: run.run, events: run.events.filter((e) => e.event.case !== "userMessage") },
-      deps(Harness.NATIVE),
+      deps(Harness.STIGMER),
     );
     expect(JSON.parse(trace.traceLines[0] ?? "{}")).toEqual({
       type: "user",
@@ -493,7 +493,7 @@ describe("the eval trace's edges", () => {
       .user("and update the README", "sevt_mid_turn")
       .turnMessage("Updating it.")
       .build();
-    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.NATIVE));
+    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.STIGMER));
     expect(trace.traceLines.map((line) => JSON.parse(line) as unknown)).toEqual([
       { type: "user", message: { role: "user", content: "rename getUser" } },
       { type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Looking." }] } },
@@ -509,7 +509,7 @@ describe("the eval trace's edges", () => {
       .turnMessage("Looking.", [call("c1", "read_file", { file_path: "a.ts" })])
       .turnMessage("", [{ id: "c2", name: "read_file", input: { file_path: "b.ts" } }])
       .build();
-    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.NATIVE));
+    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.STIGMER));
     expect(trace.traceLines.map((line) => JSON.parse(line) as unknown)).toEqual([
       { type: "user", message: { role: "user", content: "rename getUser" } },
       {
@@ -548,7 +548,7 @@ describe("the eval trace's edges", () => {
       .note("the harness retried")
       .turnMessage("All done.")
       .build();
-    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.NATIVE));
+    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.STIGMER));
     expect(trace.lastMessage).toBe("All done.");
     expect(trace.traceLines).toHaveLength(2);
     expect(trace.traceLines.join("\n")).not.toContain("the harness retried");
@@ -561,7 +561,7 @@ describe("the eval trace's edges", () => {
       "",
       "",
     );
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    const trace = await evalTraceOf(run, deps(Harness.STIGMER));
     expect(trace.lastMessage).toBe("");
   });
 
@@ -582,7 +582,7 @@ describe("the eval trace's edges", () => {
     ];
     const trace = await evalTraceOf(
       runOf([], events),
-      deps(Harness.NATIVE, { wantedFiles: ["empty.md", "blank.md"] }),
+      deps(Harness.STIGMER, { wantedFiles: ["empty.md", "blank.md"] }),
     );
     expect(trace.files.kind).toBe("recorded");
     if (trace.files.kind !== "recorded") return;

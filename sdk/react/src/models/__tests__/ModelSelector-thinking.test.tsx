@@ -34,7 +34,7 @@ const NATIVE_ADAPTIVE: ModelInfo = {
   shortDescription: "Latest Sonnet",
   speedTier: "fast",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   thinkingCapable: true,
@@ -48,7 +48,7 @@ const NATIVE_ALWAYS_THINKS: ModelInfo = {
   shortDescription: "Always reasons",
   speedTier: "slow",
   costTier: "premium",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   thinkingCapable: true,
@@ -62,7 +62,7 @@ const NATIVE_UNASSESSED: ModelInfo = {
   shortDescription: "Never assessed",
   speedTier: "fast",
   costTier: "economy",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
 };
@@ -83,7 +83,7 @@ function renderSelector(props?: Partial<React.ComponentProps<typeof ModelSelecto
       <ModelSelector
         value="claude-sonnet-5"
         onValueChange={onValueChange}
-        harness="native"
+        harness="stigmer"
         thinkingMode="disabled"
         onThinkingModeChange={onThinkingModeChange}
         {...props}

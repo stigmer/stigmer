@@ -49,7 +49,7 @@ export function renderSessionHeader(out: { write(chunk: string): unknown; isTTY?
   if ((info.subject ?? "") !== "") lines.push(row(s, "Subject", info.subject ?? ""));
   if (info.model !== "") lines.push(row(s, "Model", info.model));
   // Every engine but native is surfaced; native/"" is the default and stays implicit.
-  if (info.harness !== undefined && info.harness !== "" && info.harness !== "native") lines.push(row(s, "Harness", ENGINES[info.harness].label));
+  if (info.harness !== undefined && info.harness !== "" && info.harness !== "stigmer") lines.push(row(s, "Harness", ENGINES[info.harness].label));
   // Only "plan" is surfaced; "agent"/"" is the default and stays implicit.
   if (info.mode === "plan") lines.push(row(s, "Mode", "Plan (read-only)"));
   if (info.workspaces.length > 0) {

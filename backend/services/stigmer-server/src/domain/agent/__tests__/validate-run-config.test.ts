@@ -56,7 +56,7 @@ const local = newValidateAgentRunConfigStep(
   registryOf(
     JSON.stringify({
       models: [
-        { id: "claude-sonnet-4.6", harness: "native", capabilities: { adaptiveThinking: true } },
+        { id: "claude-sonnet-4.6", harness: "stigmer", capabilities: { adaptiveThinking: true } },
         {
           id: "claude-opus-4.8",
           harness: "claude",
@@ -104,7 +104,7 @@ describe("ValidateAgentRunConfig: what passes", () => {
     [
       "a native model, thinking on in the adaptive form",
       {
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED },
       },
     ],
@@ -152,7 +152,7 @@ describe("ValidateAgentRunConfig: what is refused", () => {
   it("FAST on a model the engine prices no fast variant for", () => {
     expect(
       refusal({
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: { modelName: "claude-sonnet-5", serviceTier: ServiceTier.FAST },
       }).rawMessage,
     ).toContain("no fast variant");
@@ -160,7 +160,7 @@ describe("ValidateAgentRunConfig: what is refused", () => {
 
   it("ENABLED with no model", () => {
     expect(
-      refusal({ harness: Harness.NATIVE, runConfig: { thinkingMode: ThinkingMode.ENABLED } }).rawMessage,
+      refusal({ harness: Harness.STIGMER, runConfig: { thinkingMode: ThinkingMode.ENABLED } }).rawMessage,
     ).toContain("spec.run_config.thinking_mode 'enabled' requires spec.run_config.model_name");
   });
 
@@ -179,7 +179,7 @@ describe("ValidateAgentRunConfig: what is refused", () => {
   it("thinking off on a model that always thinks on the engine", () => {
     expect(
       refusal({
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: { modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED },
       }).rawMessage,
     ).toContain("always thinks");

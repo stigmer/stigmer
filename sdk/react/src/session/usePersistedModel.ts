@@ -40,7 +40,7 @@ export type UsePersistedModelReturn = readonly [
  * predates the table and keeps its string, so no stored pick is lost.
  */
 const MODEL_STORAGE_KEYS: Readonly<Record<HarnessOption, string>> = {
-  native: "stigmer:session:model",
+  stigmer: "stigmer:session:model",
   claude: "stigmer:session:model:claude",
 };
 

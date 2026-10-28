@@ -1214,7 +1214,7 @@ function EngineModelInlineEditor({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [modelName, setModelName] = useState("");
-  const [harness, setHarness] = useState<HarnessOption>("native");
+  const [harness, setHarness] = useState<HarnessOption>("stigmer");
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
   const [thinkingMode, setThinkingMode] = useState<ThinkingModeOption>("disabled");
 
@@ -1223,7 +1223,7 @@ function EngineModelInlineEditor({
     setHarness(
       invocation.harness !== Harness.UNSPECIFIED
         ? fromProtoHarness(invocation.harness)
-        : "native",
+        : "stigmer",
     );
     setServiceTier(
       fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",

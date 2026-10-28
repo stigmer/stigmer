@@ -120,7 +120,7 @@ export interface EvalFormSettings extends EvalRunSettings {
  */
 export const DEFAULT_EVAL_FORM: EvalFormSettings = {
   caseModels: true,
-  targets: [{ harness: "native", modelName: "" }],
+  targets: [{ harness: "stigmer", modelName: "" }],
   runs: 0,
   compare: true,
   maxCostUsd: 5,

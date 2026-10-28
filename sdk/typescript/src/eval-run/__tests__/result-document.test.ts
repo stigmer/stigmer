@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
 import { evalRunTargetLabel, toResultDocument } from "../result-document.js";
 import type { ResultDocumentOptions } from "../result-document.js";
 
-const SONNET = { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" };
+const SONNET = { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" };
 const CLAUDE = { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" };
 
 function graded(index: number, score: number, runId: string, error = "") {
@@ -162,7 +162,7 @@ describe("toResultDocument", () => {
   it("puts the first target's cases at the top level and every target's in targets", () => {
     const doc = block(evalOf({ targets: [SONNET, CLAUDE] }));
     expect(doc.targets.map((target) => [target.harness, target.model])).toEqual([
-      ["native", "claude-sonnet-4-6"],
+      ["stigmer", "claude-sonnet-4-6"],
       ["claude", "claude-sonnet-5"],
     ]);
     expect(doc.cases[0]!.aggregates.score).toBe(1);

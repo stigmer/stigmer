@@ -41,13 +41,13 @@ describe("useAccountExecutionDefaults", () => {
     // operator account exists there since the domain moved into
     // @stigmer/server, so a laptop's saved defaults seed the composer too.
     const whoAmI = vi.fn(async () =>
-      accountWithPreferences({ defaultHarness: "native" }),
+      accountWithPreferences({ defaultHarness: "stigmer" }),
     );
     const { result } = renderHook(() => useAccountExecutionDefaults(), {
       wrapper: createWrapper(whoAmI, "local"),
     });
 
-    await waitFor(() => expect(result.current).toEqual({ harness: "native" }));
+    await waitFor(() => expect(result.current).toEqual({ harness: "stigmer" }));
     expect(whoAmI).toHaveBeenCalledTimes(1);
   });
 
@@ -55,7 +55,7 @@ describe("useAccountExecutionDefaults", () => {
     const whoAmI = vi.fn(async () =>
       accountWithPreferences({
         defaultHarness: "claude",
-        defaultNativeModel: "claude-sonnet-4.6",
+        defaultStigmerModel: "claude-sonnet-4.6",
         defaultClaudeModel: "claude-sonnet-5",
       }),
     );
@@ -97,7 +97,7 @@ describe("useAccountExecutionDefaults", () => {
     const whoAmI = vi.fn(async () =>
       accountWithPreferences({
         defaultHarness: "devin",
-        defaultNativeModel: "claude-sonnet-4.6",
+        defaultStigmerModel: "claude-sonnet-4.6",
       }),
     );
     const { result } = renderHook(() => useAccountExecutionDefaults(), {
@@ -132,7 +132,7 @@ describe("useAccountExecutionDefaults", () => {
   it("an unset auto-approve bool is no preference, not an explicit false", async () => {
     const whoAmI = vi.fn(async () =>
       accountWithPreferences({
-        defaultHarness: "native",
+        defaultHarness: "stigmer",
         defaultAutoApprove: false,
       }),
     );
@@ -140,7 +140,7 @@ describe("useAccountExecutionDefaults", () => {
       wrapper: createWrapper(whoAmI),
     });
 
-    await waitFor(() => expect(result.current?.harness).toBe("native"));
+    await waitFor(() => expect(result.current?.harness).toBe("stigmer"));
     expect(result.current?.autoApprove).toBeUndefined();
   });
 

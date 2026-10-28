@@ -132,7 +132,7 @@ export function RoutineForm({
   // pinned = the platform defaults apply to both. Browsing harnesses in
   // the popover without picking a model pins nothing.
   const [modelName, setModelName] = useState("");
-  const [modelHarness, setModelHarness] = useState<HarnessOption>("native");
+  const [modelHarness, setModelHarness] = useState<HarnessOption>("stigmer");
   // Service tier is scoped by the model choice (#357): the ModelSelector
   // renders the fast-tier switch only while the selected model's registry
   // entry prices a fast variant. An active fast tier survives switches

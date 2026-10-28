@@ -33,7 +33,7 @@ export interface AccountExecutionDefaults {
  * {@link HarnessOption} is a compile error here until it has all three.
  */
 export const ACCOUNT_DEFAULT_MODELS = {
-  native: { defaults: "nativeModel", preference: "defaultNativeModel", path: "spec.preferences.default_native_model" },
+  stigmer: { defaults: "nativeModel", preference: "defaultStigmerModel", path: "spec.preferences.default_stigmer_model" },
   claude: { defaults: "claudeModel", preference: "defaultClaudeModel", path: "spec.preferences.default_claude_model" },
 } as const satisfies Record<
   HarnessOption,

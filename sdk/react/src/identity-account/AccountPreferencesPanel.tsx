@@ -19,7 +19,7 @@ import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { useModelRegistry } from "../models/index.js";
 import { useServerInfo } from "../server-info.js";
-import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "../models/harness.js";
+import { HARNESS_META, HARNESS_OPTIONS, isHarnessOption, type HarnessOption } from "../models/harness.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -42,6 +42,18 @@ const PREFERENCES_FORM_PATHS = [
   ...Object.values(ACCOUNT_DEFAULT_MODELS).map(({ path }) => path),
   "spec.preferences.default_auto_approve",
 ];
+
+/**
+ * The default harness `prefs` declares, "" for none: a stored word the
+ * platform does not offer (one a retired harness or an older build wrote)
+ * reads as no preference, as the execution defaults read it
+ * (useAccountExecutionDefaults), so the form never shows it unselected
+ * and never writes it back for the server to refuse.
+ */
+function defaultHarnessOf(prefs: IdentityAccountPreferences | undefined): HarnessOption | "" {
+  const stored = prefs?.defaultHarness ?? "";
+  return isHarnessOption(stored) ? stored : "";
+}
 
 /** Each engine's default model, by engine. */
 type DefaultModels = Readonly<Record<HarnessOption, string>>;
@@ -137,7 +149,7 @@ export function AccountPreferencesPanel({
 
   const serverPreferences = account?.spec?.preferences;
   const serverStandingContext = serverPreferences?.standingContext ?? "";
-  const serverDefaultHarness = serverPreferences?.defaultHarness ?? "";
+  const serverDefaultHarness = defaultHarnessOf(serverPreferences);
   const serverDefaultModels = useMemo(() => defaultModelsOf(serverPreferences), [serverPreferences]);
   const serverDefaultAutoApprove = serverPreferences?.defaultAutoApprove ?? false;
 
@@ -146,7 +158,7 @@ export function AccountPreferencesPanel({
     if (!account) return;
     const prefs = account.spec?.preferences;
     setStandingContext(prefs?.standingContext ?? "");
-    setDefaultHarness(prefs?.defaultHarness ?? "");
+    setDefaultHarness(defaultHarnessOf(prefs));
     setDefaultModels(defaultModelsOf(prefs));
     setDefaultAutoApprove(prefs?.defaultAutoApprove ?? false);
   }, [account]);
@@ -465,7 +477,7 @@ export function AccountPreferencesPanel({
  * The rows are the offered engines (`HARNESS_OPTIONS`), each bound to its
  * own proto model field through `ACCOUNT_DEFAULT_MODELS`, and must stay in
  * lockstep with the proto's `default_harness` in-list validation
- * (`["native", "claude"]`): a new engine adds a field, a table
+ * (`["stigmer", "claude"]`): a new engine adds a field, a table
  * entry and a validation entry together.
  */
 function HarnessOptionRow({

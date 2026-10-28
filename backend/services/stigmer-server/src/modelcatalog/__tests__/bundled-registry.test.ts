@@ -41,7 +41,7 @@ function rowsOf(document: string): Row[] {
 /** Each disagreement between the Claude rows and the native Anthropic rows, as a sentence; empty when they mirror. */
 function mirrorFindings(rows: readonly Row[]): string[] {
   const findings: string[] = [];
-  const native = new Map(rows.filter((row) => row.harness === "native" && row.provider === "anthropic").map((row) => [row.id, row]));
+  const native = new Map(rows.filter((row) => row.harness === "stigmer" && row.provider === "anthropic").map((row) => [row.id, row]));
   const claude = new Map(rows.filter((row) => row.harness === "claude").map((row) => [row.id, row]));
   for (const id of native.keys()) if (!claude.has(id)) findings.push(`native row ${id} has no claude twin`);
   for (const [id, row] of claude) {

@@ -99,7 +99,7 @@ describe("ExecuteDeepAgent hermetic — the runtime's turn_phases line", () => {
 
     expect(lines, "one line per turn").toHaveLength(1);
     const line = lines[0]!;
-    expect(line.harness, "the adapter's diagnostic name, the runtime's vocabulary").toBe("deep-agent");
+    expect(line.harness, "the adapter's diagnostic name, the runtime's vocabulary").toBe("stigmer");
     expect(line.outcome).toBe("completed");
     expect(line.execution_id).toBe(record.execution.metadata!.id);
     expect(line.turn_seq).toBeTypeOf("number");

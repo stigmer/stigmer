@@ -72,6 +72,6 @@ if (process.argv[2] === "stale") {
   channel.send(JSON.stringify({ kind: "hello", protocolVersion: AGENT_HOST_PROTOCOL_VERSION + 1 }));
   channel.onClose(() => process.exit(0));
 } else {
-  const server = serveAgentHost(channel, [{ harness: "deep-agent", adapter: probe }]);
+  const server = serveAgentHost(channel, [{ harness: "stigmer", adapter: probe }]);
   void server.closed.then(() => process.exit(0));
 }

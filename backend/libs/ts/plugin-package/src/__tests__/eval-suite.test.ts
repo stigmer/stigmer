@@ -915,7 +915,7 @@ describe("unsupported", () => {
     if (evalCase === undefined) throw new Error("expected the case to load");
     expect(evalCase.unsupported).toBeUndefined();
     expect(evalCaseUnsupportedOn("claude", evalCase)).toBe(feature);
-    expect(evalCaseUnsupportedOn("native", evalCase)).toBeUndefined();
+    expect(evalCaseUnsupportedOn("stigmer", evalCase)).toBeUndefined();
   });
 
   it("runs a case whose plugins names only the plugin under test, and keeps the list as written", () => {

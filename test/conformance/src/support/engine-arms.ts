@@ -69,7 +69,7 @@ export type ArmStep =
 export type ArmCall = Exclude<ArmStep, { kind: "text" } | { kind: "batch" }>;
 
 /** The engines a suite proves a case on. */
-export type ArmWord = "native" | "claude";
+export type ArmWord = "stigmer" | "claude";
 
 export interface EngineArm {
   readonly word: ArmWord;
@@ -118,7 +118,7 @@ function nativeCall(step: ArmCall): { readonly name: string; readonly input: Rec
 }
 
 export const NATIVE_ARM: EngineArm = {
-  word: "native",
+  word: "stigmer",
   harness: undefined,
   script(mock, _task, steps) {
     for (const step of steps) {
@@ -144,18 +144,18 @@ function claudeToolOf(step: ArmCall, conversation: WireConversation): { readonly
   switch (step.kind) {
     case "shell":
       return {
-        name: claudeNameOf("native", "execute"),
+        name: claudeNameOf("stigmer", "execute"),
         // The engine's shell takes its bound in milliseconds.
         input: { command: step.command, description: "the scripted step", ...(step.timeoutSeconds === undefined ? {} : { timeout: step.timeoutSeconds * 1_000 }) },
       };
     case "write":
-      return { name: claudeNameOf("native", "write_file"), input: { file_path: inWorkspace(step.path), content: step.content } };
+      return { name: claudeNameOf("stigmer", "write_file"), input: { file_path: inWorkspace(step.path), content: step.content } };
     case "edit":
-      return { name: claudeNameOf("native", "edit_file"), input: { file_path: inWorkspace(step.path), old_string: step.oldString, new_string: step.newString } };
+      return { name: claudeNameOf("stigmer", "edit_file"), input: { file_path: inWorkspace(step.path), old_string: step.oldString, new_string: step.newString } };
     case "read":
-      return { name: claudeNameOf("native", "read_file"), input: { file_path: inWorkspace(step.path) } };
+      return { name: claudeNameOf("stigmer", "read_file"), input: { file_path: inWorkspace(step.path) } };
     case "delegate":
-      return { name: claudeNameOf("native", "task"), input: { description: "the scripted delegation", prompt: step.prompt, subagent_type: step.agent } };
+      return { name: claudeNameOf("stigmer", "task"), input: { description: "the scripted delegation", prompt: step.prompt, subagent_type: step.agent } };
     case "call":
       return { name: step.name, input: step.input };
   }

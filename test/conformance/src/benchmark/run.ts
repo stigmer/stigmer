@@ -281,7 +281,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     return true;
   });
   const qualityTargets = plan.quality.filter((cell) => {
-    if (!registryHas(registry, cell.modelRequested, cell.harness) || !registryHas(registry, JUDGE_MODEL, "deep-agent")) {
+    if (!registryHas(registry, cell.modelRequested, cell.harness) || !registryHas(registry, JUDGE_MODEL, "stigmer")) {
       refused.push({ cell: cell.id, reason: "model not in registry for harness" });
       return false;
     }
@@ -343,12 +343,12 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
       shell_background: options.shellBackground,
     },
     models: {
-      parity: { ...PARITY_MODEL, "deep-agent": plan.nativeModel },
+      parity: { ...PARITY_MODEL, stigmer: plan.nativeModel },
       judge_requested: JUDGE_MODEL,
-      native_endpoint: options.nativeEndpoint,
+      stigmer_endpoint: options.nativeEndpoint,
       // The planner refuses every native cell whose provider it cannot place, so an unknown API measured nothing.
-      native_api: nativeApi(plan.nativeModel) ?? "chat-completions",
-      native_cost_basis: registry.models.some((row) => row.id === plan.nativeModel && row.priced) ? "catalog" : "default-rate",
+      stigmer_api: nativeApi(plan.nativeModel) ?? "chat-completions",
+      stigmer_cost_basis: registry.models.some((row) => row.id === plan.nativeModel && row.priced) ? "catalog" : "default-rate",
     },
     comparisons,
     quality,
@@ -363,12 +363,11 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
  * row (server modelcatalog/pin-validation.ts `unknownModelPinRefusal`).
  */
 function registryHas(registry: ModelRegistryDocument, id: string, harness: BenchmarkHarness): boolean {
-  if (harness === "deep-agent" && explicitProvider(id) !== undefined) return true;
-  return registry.models.some((row) => row.id === id && row.harness === REGISTRY_ROW_HARNESS[harness]);
+  if (harness === "stigmer" && explicitProvider(id) !== undefined) return true;
+  return registry.models.some((row) => row.id === id && row.harness === harness);
 }
 
 /** The engine a harness's rows name in the model registry (`row.harness`). */
-const REGISTRY_ROW_HARNESS: Record<BenchmarkHarness, string> = { "deep-agent": "native", claude: "claude" };
 
 /** The agent an attempt runs, provisioned fresh; its resources are deferred on `fixtures`. */
 interface ProvisionedAgent {
@@ -560,10 +559,10 @@ export async function writeReport(dir: string, report: BenchmarkReport): Promise
 export function renderSummary(report: BenchmarkReport): string {
   const lines: string[] = [];
   const cell = (value: number | null | undefined): string => (value === null || value === undefined ? "n/a" : String(Math.round(value)));
-  const defaultRate = report.models.native_cost_basis === "default-rate";
+  const defaultRate = report.models.stigmer_cost_basis === "default-rate";
   let markedNative = false;
   lines.push(
-    `Native arm: ${report.models.parity["deep-agent"]} at ${report.models.native_endpoint}, ${report.models.native_api} API, cost basis ${report.models.native_cost_basis}`,
+    `Native arm: ${report.models.parity.stigmer} at ${report.models.stigmer_endpoint}, ${report.models.stigmer_api} API, cost basis ${report.models.stigmer_cost_basis}`,
     `Code: ${report.git.code_sha}${report.git.code_sha === report.git.head_sha ? " (the instrument's own)" : `, measured by the instrument at ${report.git.head_sha}`}`,
     `Runner log: ${renderRunnerLog(report.runner_log)}`,
     "",
@@ -577,7 +576,7 @@ export function renderSummary(report: BenchmarkReport): string {
       const side = comparison.sides[harness];
       if (side === undefined) continue;
       const m = side.median;
-      const marked = defaultRate && side.harness === "deep-agent" && m !== null;
+      const marked = defaultRate && side.harness === "stigmer" && m !== null;
       if (marked) markedNative = true;
       const cost = `${cell(m?.estimated_cost_micros)}${marked ? "*" : ""}`;
       lines.push(
@@ -588,7 +587,7 @@ export function renderSummary(report: BenchmarkReport): string {
   if (markedNative) {
     lines.push(
       "",
-      `* ${report.models.parity["deep-agent"]} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,
+      `* ${report.models.parity.stigmer} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,
     );
   }
   lines.push(...renderBackgroundTable(report));

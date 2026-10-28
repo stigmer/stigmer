@@ -298,7 +298,7 @@ async function sessionHarnesses(
     if (sessionId === "" || harnesses.has(sessionId)) {
       continue;
     }
-    let harness = Harness.NATIVE;
+    let harness = Harness.STIGMER;
     try {
       const session = await deps.store.getResource(
         ApiResourceKind.session,
@@ -368,7 +368,7 @@ async function countRuns(
     countRun(
       run,
       meteredOf(run),
-      harnesses.get(sessionIdOf(run.spec)) ?? Harness.NATIVE,
+      harnesses.get(sessionIdOf(run.spec)) ?? Harness.STIGMER,
       working.get(run.metadata?.id ?? "") ?? 0,
     ),
   );

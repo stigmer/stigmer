@@ -2,7 +2,7 @@
  * The bundled model registry document, pinned into the artifact at build time
  * by the JSON import (tsc/esbuild). The committed file under ./data/ is never
  * hand-edited: `make sync-model-registry` refreshes model-registry.json from
- * the public cloud endpoint on demand. Its `claude` rows mirror the `native`
+ * the public cloud endpoint on demand. Its `claude` rows mirror the `stigmer`
  * Anthropic rows (the same id, api id, prices and capabilities: the same API
  * on the same key), and `__tests__/bundled-registry.test.ts` fails a refresh
  * from a registry that lacks them, or a row that drifted from its twin. (Until the Go server retired in 2026-08

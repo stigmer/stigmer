@@ -160,7 +160,7 @@ const session = await client.session.create({
   org: "acme",
   subject: "Q3 variance review",
   agentRef: { org: "acme", slug: "variance-reporter" },
-  harness: Harness.CLAUDE, // or Harness.NATIVE
+  harness: Harness.CLAUDE, // or Harness.STIGMER
 });
 ```
 
@@ -173,7 +173,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
     Org:      "acme",
     Subject:  "Q3 variance review",
     AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"},
-    Harness:  sessionv1.Harness_HARNESS_CLAUDE, // or Harness_HARNESS_NATIVE
+    Harness:  sessionv1.Harness_HARNESS_CLAUDE, // or Harness_HARNESS_STIGMER
 })
 ```
 

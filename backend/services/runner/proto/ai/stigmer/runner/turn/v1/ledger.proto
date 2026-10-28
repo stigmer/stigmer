@@ -82,7 +82,7 @@ message FileReviewBaselineCaptured {
   // The turn that produced it.
   string turn_id = 2;
 
-  // The harness that produced it ("deep-agent" | "claude").
+  // The harness that produced it ("stigmer" | "claude").
   string harness_id = 3;
 
   // The captured baseline state.

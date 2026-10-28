@@ -148,7 +148,7 @@ describe("PlatformClient.getModelReadiness", () => {
     const sent: GetModelReadinessInput[] = [];
     const client = readinessClient(async (input) => sent.push(input));
     const plain = await client.getModelReadiness("org_acme");
-    const judged = await client.getModelReadiness("org_acme", { harness: Harness.NATIVE, model: "openai:house" });
+    const judged = await client.getModelReadiness("org_acme", { harness: Harness.STIGMER, model: "openai:house" });
     expect(sent.map((input) => [input.org, input.model?.model])).toEqual([
       ["org_acme", undefined],
       ["org_acme", "openai:house"],

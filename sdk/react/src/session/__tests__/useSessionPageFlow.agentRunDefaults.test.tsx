@@ -22,7 +22,7 @@ import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 const mockConv = {
   session: {
-    spec: { agentRef: { org: "acme", slug: "reviewer" }, harness: Harness.NATIVE },
+    spec: { agentRef: { org: "acme", slug: "reviewer" }, harness: Harness.STIGMER },
     status: { agentId: "agt_1", agentVersionHash: "a".repeat(64) },
   },
   isLoading: false,
@@ -79,7 +79,7 @@ import { useSessionPageFlow } from "../useSessionPageFlow";
 const OPTS = { sessionId: "ses_1", org: "acme" };
 
 const AGENT_ON_NATIVE = {
-  harness: Harness.NATIVE,
+  harness: Harness.STIGMER,
   runConfig: { modelName: "claude-sonnet-4-6", thinkingMode: ThinkingMode.ENABLED },
 };
 

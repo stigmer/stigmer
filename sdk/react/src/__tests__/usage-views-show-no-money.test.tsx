@@ -58,7 +58,7 @@ stubs.orgReport = create(GetOrgUsageReportOutputSchema, {
     { model: "claude-sonnet", provider: "anthropic", callCount: 12, inputTokens: 4_000n, outputTokens: 1_400n, totalTokens: 18_400n },
   ],
   dailyUsage: [{ date: "2026-10-13", runCount: 4, totalTokens: 18_400n, llmCallCount: 12 }],
-  harnessUsage: [{ harness: "native", totalTokens: 18_400n, callCount: 12, runCount: 4 }],
+  harnessUsage: [{ harness: "stigmer", totalTokens: 18_400n, callCount: 12, runCount: 4 }],
   topAgents: [{ agentId: "agt_1", agentName: "Support Bot", runCount: 4, totalTokens: 18_400n }],
 });
 

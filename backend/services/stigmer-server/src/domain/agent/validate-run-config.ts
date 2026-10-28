@@ -58,7 +58,7 @@ export function newValidateAgentRunConfigStep(
       if (model !== "" && engine === Harness.UNSPECIFIED) {
         throw invalidArgumentError(
           "spec.run_config.model_name requires spec.harness: a model name belongs to a " +
-            'harness ("native" for Stigmer or "claude" for Claude Agent), and each lists its own models. ' +
+            'harness ("stigmer", or "claude" for Claude Agent), and each lists its own models. ' +
             "Name the harness the model was chosen for.",
         );
       }

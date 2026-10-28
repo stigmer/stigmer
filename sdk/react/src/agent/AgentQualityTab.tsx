@@ -242,7 +242,7 @@ function QualityForm({
             <ModelSelector
               value={draft.modelName === "" ? undefined : draft.modelName}
               onValueChange={(modelName) => setDraft({ ...draft, modelName })}
-              harness="native"
+              harness="stigmer"
               compact
               disabled={!editable || isSaving}
               placeholderLabel="Platform default"

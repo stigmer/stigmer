@@ -46,8 +46,8 @@ const models = storeOf(bundledModelRegistryDocument());
 const fastModels = storeOf(
   JSON.stringify({
     models: [
-      { id: "claude-sonnet-4.6", harness: "native" },
-      { id: "claude-opus-4.8", harness: "native", pricingVariants: { fast: { inputPricePerMillion: 30 } } },
+      { id: "claude-sonnet-4.6", harness: "stigmer" },
+      { id: "claude-opus-4.8", harness: "stigmer", pricingVariants: { fast: { inputPricePerMillion: 30 } } },
     ],
   }),
 );
@@ -57,8 +57,8 @@ const SITE = { fieldPath: "spec.run_config" };
 describe("the saved tier and thinking checks", () => {
   it("list the engine's fast models, and none for an engine with none", () => {
     const fast = create(RunConfigSchema, { modelName: "claude-sonnet-4.6", serviceTier: ServiceTier.FAST });
-    expect(savedServiceTierRefusal(fastModels, SITE, "native", fast)).toContain(
-      "models with a fast tier on 'native': claude-opus-4.8",
+    expect(savedServiceTierRefusal(fastModels, SITE, "stigmer", fast)).toContain(
+      "models with a fast tier on 'stigmer': claude-opus-4.8",
     );
     const unknownEngine = savedServiceTierRefusal(fastModels, SITE, "no-such-engine", fast);
     expect(unknownEngine).toContain("no fast variant");
@@ -76,12 +76,12 @@ describe("the saved tier and thinking checks", () => {
   });
 
   it("count the adaptive thinking form as able to think", () => {
-    expect(canThinkOn(models, "native", "claude-sonnet-5")).toBe(true);
+    expect(canThinkOn(models, "stigmer", "claude-sonnet-5")).toBe(true);
     expect(
       savedThinkingModeRefusal(
         models,
         SITE,
-        "native",
+        "stigmer",
         create(RunConfigSchema, { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED }),
       ),
     ).toBe("");

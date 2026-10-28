@@ -239,7 +239,7 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
 }
 
 /** The engines a readiness answer lists: every engine the proto names, in its order. */
-const READINESS_ENGINES: readonly Harness[] = [Harness.NATIVE, Harness.CLAUDE];
+const READINESS_ENGINES: readonly Harness[] = [Harness.STIGMER, Harness.CLAUDE];
 
 /** Each report as the wire names it. */
 function wireAvailability(report: ProviderAvailabilityReport): ProviderAvailability {
@@ -300,7 +300,7 @@ async function getModelReadiness(
   const reportOf = (provider: ModelProvider): ProviderAvailabilityReport =>
     reports.get(provider) ?? { state: "unknown" };
   const judge = (engine: Harness, model: string): ModelReadiness => {
-    const placed = engine === Harness.UNSPECIFIED ? Harness.NATIVE : engine;
+    const placed = engine === Harness.UNSPECIFIED ? Harness.STIGMER : engine;
     const need = providerNeededBy(placed, model, deps.modelCatalog);
     return create(ModelReadinessSchema, {
       harness: placed,

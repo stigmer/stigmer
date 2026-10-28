@@ -232,7 +232,7 @@ describe("toAgentInput", () => {
         tools: ["Read", "Grep", "Agent(researcher)", "mcp__plugin_github_github"],
         disallowedTools: ["mcp__plugin_github_github__delete_repo"],
         runConfig: RUN_CONFIG,
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         environmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
         mcpServers: [
           {
@@ -603,7 +603,7 @@ describe("toIdentityAccountInput (tripwire)", () => {
         preferences: {
           standingContext: "Keep answers terse.",
           defaultHarness: "claude",
-          defaultNativeModel: "claude-sonnet-4.6",
+          defaultStigmerModel: "claude-sonnet-4.6",
           defaultClaudeModel: "claude-sonnet-5",
         },
       },
@@ -738,7 +738,7 @@ describe("toRoutineInput", () => {
         agent: {
           agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
           message: "Weekly triage.",
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
           resources: ROUTINE_RESOURCES,
           vaults: [
             { org: "acme", slug: "prod", kind: ApiResourceKind.vault },

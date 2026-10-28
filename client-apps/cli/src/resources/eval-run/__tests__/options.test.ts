@@ -83,7 +83,7 @@ describe("readEvalRunOptions", () => {
       caseTags: ["smoke", "fast"],
       runs: 5,
       targets: [
-        { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" },
+        { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" },
         { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" },
       ],
       ablation: EvalRunAblation.none,
@@ -227,7 +227,7 @@ describe("parseAgentTarget", () => {
 
 describe("parseTarget", () => {
   it("reads a bare model as the native engine's, and default as the engine's default model", () => {
-    expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" });
+    expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" });
     expect(parseTarget("claude/default")).toEqual({ harness: Harness.CLAUDE, modelName: "" });
     expect(parseTarget("claude/claude-sonnet-5")).toEqual({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" });
   });
