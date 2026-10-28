@@ -2,6 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
+from ai.stigmer.platform.v1 import model_readiness_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2
 from ai.stigmer.platform.v1 import server_info_pb2 as ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2
 
 
@@ -19,6 +20,9 @@ class PlatformQueryControllerStub(object):
     Signed-in clients call getLicenseStatus to learn the state of the
     license the server holds; every edition answers, and only an Enterprise
     deployment ever answers anything but absent.
+
+    Signed-in members call getModelReadiness to learn which models can run in
+    their organization before they start a run.
     """
 
     def __init__(self, channel):
@@ -36,6 +40,11 @@ class PlatformQueryControllerStub(object):
                 '/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus',
                 request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusOutput.FromString,
+                _registered_method=True)
+        self.getModelReadiness = channel.unary_unary(
+                '/ai.stigmer.platform.v1.PlatformQueryController/getModelReadiness',
+                request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessOutput.FromString,
                 _registered_method=True)
         self.getRunnerBootstrapConfig = channel.unary_unary(
                 '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig',
@@ -63,6 +72,9 @@ class PlatformQueryControllerServicer(object):
     Signed-in clients call getLicenseStatus to learn the state of the
     license the server holds; every edition answers, and only an Enterprise
     deployment ever answers anything but absent.
+
+    Signed-in members call getModelReadiness to learn which models can run in
+    their organization before they start a run.
     """
 
     def getServerInfo(self, request, context):
@@ -91,6 +103,30 @@ class PlatformQueryControllerServicer(object):
         Authenticated, no permission: the answer is for every signed-in person
         (the console banner), and unlike getServerInfo it is not public because
         a license names its customer. The handler performs no further check.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getModelReadiness(self, request, context):
+        """Returns which model providers serve an organization and, for every model
+        on every engine, whether a run of it would start.
+
+        A run needs one provider: a Cursor run needs Cursor whatever its model,
+        a Claude run needs Anthropic, and a native run needs its model's
+        provider. A run whose provider is missing is refused at create with
+        FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+        answer is read from, so a client can mark a model and hold Send before
+        the person tries.
+
+        Every edition answers. On Stigmer Cloud a provider is served by the
+        organization's own key or its parent organization's. On a server whose
+        runners are its own processes it is served by what the runners reach,
+        as the operator declared it (on a laptop, `stigmer up` declares it), and
+        unknown when nothing was declared.
+
+        Any member of the organization may ask, because a member about to start
+        a run needs the answer; a guest never can.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -153,6 +189,11 @@ def add_PlatformQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusOutput.SerializeToString,
             ),
+            'getModelReadiness': grpc.unary_unary_rpc_method_handler(
+                    servicer.getModelReadiness,
+                    request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessOutput.SerializeToString,
+            ),
             'getRunnerBootstrapConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.getRunnerBootstrapConfig,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.FromString,
@@ -185,6 +226,9 @@ class PlatformQueryController(object):
     Signed-in clients call getLicenseStatus to learn the state of the
     license the server holds; every edition answers, and only an Enterprise
     deployment ever answers anything but absent.
+
+    Signed-in members call getModelReadiness to learn which models can run in
+    their organization before they start a run.
     """
 
     @staticmethod
@@ -231,6 +275,33 @@ class PlatformQueryController(object):
             '/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus',
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusInput.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetLicenseStatusOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getModelReadiness(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.platform.v1.PlatformQueryController/getModelReadiness',
+            ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessInput.SerializeToString,
+            ai_dot_stigmer_dot_platform_dot_v1_dot_model__readiness__pb2.GetModelReadinessOutput.FromString,
             options,
             channel_credentials,
             insecure,

@@ -13,9 +13,9 @@ function config(local?: unknown): Config {
 }
 
 describe("detectProviderFromEnv", () => {
-  it("detects Anthropic only — the sole provider local execution supports", () => {
+  it("detects Anthropic only — the one provider whose key setup saves and the launcher routes", () => {
     expect(detectProviderFromEnv({ ANTHROPIC_API_KEY: "a" })).toBe("anthropic");
-    // Other provider keys in the shell must not flip the local story.
+    // Other provider keys reach the runner by inheritance; they never pick the saved-key provider.
     expect(detectProviderFromEnv({ OPENAI_API_KEY: "b" })).toBe("");
     expect(detectProviderFromEnv({})).toBe("");
   });

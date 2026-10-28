@@ -14,6 +14,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * Signed-in clients call getLicenseStatus to learn the state of the
  * license the server holds; every edition answers, and only an Enterprise
  * deployment ever answers anything but absent.
+ * Signed-in members call getModelReadiness to learn which models can run in
+ * their organization before they start a run.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -84,6 +86,37 @@ public final class PlatformQueryControllerGrpc {
       }
     }
     return getGetLicenseStatusMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetModelReadinessInput,
+      ai.stigmer.platform.v1.GetModelReadinessOutput> getGetModelReadinessMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getModelReadiness",
+      requestType = ai.stigmer.platform.v1.GetModelReadinessInput.class,
+      responseType = ai.stigmer.platform.v1.GetModelReadinessOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetModelReadinessInput,
+      ai.stigmer.platform.v1.GetModelReadinessOutput> getGetModelReadinessMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetModelReadinessInput, ai.stigmer.platform.v1.GetModelReadinessOutput> getGetModelReadinessMethod;
+    if ((getGetModelReadinessMethod = PlatformQueryControllerGrpc.getGetModelReadinessMethod) == null) {
+      synchronized (PlatformQueryControllerGrpc.class) {
+        if ((getGetModelReadinessMethod = PlatformQueryControllerGrpc.getGetModelReadinessMethod) == null) {
+          PlatformQueryControllerGrpc.getGetModelReadinessMethod = getGetModelReadinessMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.platform.v1.GetModelReadinessInput, ai.stigmer.platform.v1.GetModelReadinessOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getModelReadiness"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetModelReadinessInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.platform.v1.GetModelReadinessOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformQueryControllerMethodDescriptorSupplier("getModelReadiness"))
+              .build();
+        }
+      }
+    }
+    return getGetModelReadinessMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput,
@@ -219,6 +252,8 @@ public final class PlatformQueryControllerGrpc {
    * Signed-in clients call getLicenseStatus to learn the state of the
    * license the server holds; every edition answers, and only an Enterprise
    * deployment ever answers anything but absent.
+   * Signed-in members call getModelReadiness to learn which models can run in
+   * their organization before they start a run.
    * </pre>
    */
   public interface AsyncService {
@@ -255,6 +290,30 @@ public final class PlatformQueryControllerGrpc {
     default void getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetLicenseStatusOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetLicenseStatusMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Returns which model providers serve an organization and, for every model
+     * on every engine, whether a run of it would start.
+     * A run needs one provider: a Cursor run needs Cursor whatever its model,
+     * a Claude run needs Anthropic, and a native run needs its model's
+     * provider. A run whose provider is missing is refused at create with
+     * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+     * answer is read from, so a client can mark a model and hold Send before
+     * the person tries.
+     * Every edition answers. On Stigmer Cloud a provider is served by the
+     * organization's own key or its parent organization's. On a server whose
+     * runners are its own processes it is served by what the runners reach,
+     * as the operator declared it (on a laptop, `stigmer up` declares it), and
+     * unknown when nothing was declared.
+     * Any member of the organization may ask, because a member about to start
+     * a run needs the answer; a guest never can.
+     * </pre>
+     */
+    default void getModelReadiness(ai.stigmer.platform.v1.GetModelReadinessInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetModelReadinessOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetModelReadinessMethod(), responseObserver);
     }
 
     /**
@@ -317,6 +376,8 @@ public final class PlatformQueryControllerGrpc {
    * Signed-in clients call getLicenseStatus to learn the state of the
    * license the server holds; every edition answers, and only an Enterprise
    * deployment ever answers anything but absent.
+   * Signed-in members call getModelReadiness to learn which models can run in
+   * their organization before they start a run.
    * </pre>
    */
   public static abstract class PlatformQueryControllerImplBase
@@ -340,6 +401,8 @@ public final class PlatformQueryControllerGrpc {
    * Signed-in clients call getLicenseStatus to learn the state of the
    * license the server holds; every edition answers, and only an Enterprise
    * deployment ever answers anything but absent.
+   * Signed-in members call getModelReadiness to learn which models can run in
+   * their organization before they start a run.
    * </pre>
    */
   public static final class PlatformQueryControllerStub
@@ -389,6 +452,31 @@ public final class PlatformQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetLicenseStatusOutput> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetLicenseStatusMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Returns which model providers serve an organization and, for every model
+     * on every engine, whether a run of it would start.
+     * A run needs one provider: a Cursor run needs Cursor whatever its model,
+     * a Claude run needs Anthropic, and a native run needs its model's
+     * provider. A run whose provider is missing is refused at create with
+     * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+     * answer is read from, so a client can mark a model and hold Send before
+     * the person tries.
+     * Every edition answers. On Stigmer Cloud a provider is served by the
+     * organization's own key or its parent organization's. On a server whose
+     * runners are its own processes it is served by what the runners reach,
+     * as the operator declared it (on a laptop, `stigmer up` declares it), and
+     * unknown when nothing was declared.
+     * Any member of the organization may ask, because a member about to start
+     * a run needs the answer; a guest never can.
+     * </pre>
+     */
+    public void getModelReadiness(ai.stigmer.platform.v1.GetModelReadinessInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetModelReadinessOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetModelReadinessMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -453,6 +541,8 @@ public final class PlatformQueryControllerGrpc {
    * Signed-in clients call getLicenseStatus to learn the state of the
    * license the server holds; every edition answers, and only an Enterprise
    * deployment ever answers anything but absent.
+   * Signed-in members call getModelReadiness to learn which models can run in
+   * their organization before they start a run.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingV2Stub
@@ -500,6 +590,30 @@ public final class PlatformQueryControllerGrpc {
     public ai.stigmer.platform.v1.GetLicenseStatusOutput getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetLicenseStatusMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Returns which model providers serve an organization and, for every model
+     * on every engine, whether a run of it would start.
+     * A run needs one provider: a Cursor run needs Cursor whatever its model,
+     * a Claude run needs Anthropic, and a native run needs its model's
+     * provider. A run whose provider is missing is refused at create with
+     * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+     * answer is read from, so a client can mark a model and hold Send before
+     * the person tries.
+     * Every edition answers. On Stigmer Cloud a provider is served by the
+     * organization's own key or its parent organization's. On a server whose
+     * runners are its own processes it is served by what the runners reach,
+     * as the operator declared it (on a laptop, `stigmer up` declares it), and
+     * unknown when nothing was declared.
+     * Any member of the organization may ask, because a member about to start
+     * a run needs the answer; a guest never can.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetModelReadinessOutput getModelReadiness(ai.stigmer.platform.v1.GetModelReadinessInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetModelReadinessMethod(), getCallOptions(), request);
     }
 
     /**
@@ -562,6 +676,8 @@ public final class PlatformQueryControllerGrpc {
    * Signed-in clients call getLicenseStatus to learn the state of the
    * license the server holds; every edition answers, and only an Enterprise
    * deployment ever answers anything but absent.
+   * Signed-in members call getModelReadiness to learn which models can run in
+   * their organization before they start a run.
    * </pre>
    */
   public static final class PlatformQueryControllerBlockingStub
@@ -609,6 +725,30 @@ public final class PlatformQueryControllerGrpc {
     public ai.stigmer.platform.v1.GetLicenseStatusOutput getLicenseStatus(ai.stigmer.platform.v1.GetLicenseStatusInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetLicenseStatusMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Returns which model providers serve an organization and, for every model
+     * on every engine, whether a run of it would start.
+     * A run needs one provider: a Cursor run needs Cursor whatever its model,
+     * a Claude run needs Anthropic, and a native run needs its model's
+     * provider. A run whose provider is missing is refused at create with
+     * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+     * answer is read from, so a client can mark a model and hold Send before
+     * the person tries.
+     * Every edition answers. On Stigmer Cloud a provider is served by the
+     * organization's own key or its parent organization's. On a server whose
+     * runners are its own processes it is served by what the runners reach,
+     * as the operator declared it (on a laptop, `stigmer up` declares it), and
+     * unknown when nothing was declared.
+     * Any member of the organization may ask, because a member about to start
+     * a run needs the answer; a guest never can.
+     * </pre>
+     */
+    public ai.stigmer.platform.v1.GetModelReadinessOutput getModelReadiness(ai.stigmer.platform.v1.GetModelReadinessInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetModelReadinessMethod(), getCallOptions(), request);
     }
 
     /**
@@ -671,6 +811,8 @@ public final class PlatformQueryControllerGrpc {
    * Signed-in clients call getLicenseStatus to learn the state of the
    * license the server holds; every edition answers, and only an Enterprise
    * deployment ever answers anything but absent.
+   * Signed-in members call getModelReadiness to learn which models can run in
+   * their organization before they start a run.
    * </pre>
    */
   public static final class PlatformQueryControllerFutureStub
@@ -724,6 +866,31 @@ public final class PlatformQueryControllerGrpc {
 
     /**
      * <pre>
+     * Returns which model providers serve an organization and, for every model
+     * on every engine, whether a run of it would start.
+     * A run needs one provider: a Cursor run needs Cursor whatever its model,
+     * a Claude run needs Anthropic, and a native run needs its model's
+     * provider. A run whose provider is missing is refused at create with
+     * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+     * answer is read from, so a client can mark a model and hold Send before
+     * the person tries.
+     * Every edition answers. On Stigmer Cloud a provider is served by the
+     * organization's own key or its parent organization's. On a server whose
+     * runners are its own processes it is served by what the runners reach,
+     * as the operator declared it (on a laptop, `stigmer up` declares it), and
+     * unknown when nothing was declared.
+     * Any member of the organization may ask, because a member about to start
+     * a run needs the answer; a guest never can.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetModelReadinessOutput> getModelReadiness(
+        ai.stigmer.platform.v1.GetModelReadinessInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetModelReadinessMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Returns everything an embedded runner needs to bootstrap itself.
      * An embedded runner (a desktop or web app hosting the runner for local
      * execution) needs two things at boot, both of which are details it should
@@ -773,8 +940,9 @@ public final class PlatformQueryControllerGrpc {
 
   private static final int METHODID_GET_SERVER_INFO = 0;
   private static final int METHODID_GET_LICENSE_STATUS = 1;
-  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 2;
-  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 3;
+  private static final int METHODID_GET_MODEL_READINESS = 2;
+  private static final int METHODID_GET_RUNNER_BOOTSTRAP_CONFIG = 3;
+  private static final int METHODID_GET_RUNNER_SCOPED_TOKEN = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -800,6 +968,10 @@ public final class PlatformQueryControllerGrpc {
         case METHODID_GET_LICENSE_STATUS:
           serviceImpl.getLicenseStatus((ai.stigmer.platform.v1.GetLicenseStatusInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetLicenseStatusOutput>) responseObserver);
+          break;
+        case METHODID_GET_MODEL_READINESS:
+          serviceImpl.getModelReadiness((ai.stigmer.platform.v1.GetModelReadinessInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.platform.v1.GetModelReadinessOutput>) responseObserver);
           break;
         case METHODID_GET_RUNNER_BOOTSTRAP_CONFIG:
           serviceImpl.getRunnerBootstrapConfig((ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput) request,
@@ -841,6 +1013,13 @@ public final class PlatformQueryControllerGrpc {
               ai.stigmer.platform.v1.GetLicenseStatusInput,
               ai.stigmer.platform.v1.GetLicenseStatusOutput>(
                 service, METHODID_GET_LICENSE_STATUS)))
+        .addMethod(
+          getGetModelReadinessMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.platform.v1.GetModelReadinessInput,
+              ai.stigmer.platform.v1.GetModelReadinessOutput>(
+                service, METHODID_GET_MODEL_READINESS)))
         .addMethod(
           getGetRunnerBootstrapConfigMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -905,6 +1084,7 @@ public final class PlatformQueryControllerGrpc {
               .setSchemaDescriptor(new PlatformQueryControllerFileDescriptorSupplier())
               .addMethod(getGetServerInfoMethod())
               .addMethod(getGetLicenseStatusMethod())
+              .addMethod(getGetModelReadinessMethod())
               .addMethod(getGetRunnerBootstrapConfigMethod())
               .addMethod(getGetRunnerScopedTokenMethod())
               .build();

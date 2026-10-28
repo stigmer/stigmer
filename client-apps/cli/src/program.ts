@@ -28,6 +28,7 @@ import { registerLogs } from "./commands/logs.js";
 import { registerMarketplace } from "./commands/marketplace.js";
 import { registerMcp } from "./commands/mcp.js";
 import { registerMcpServer } from "./commands/mcp-server.js";
+import { registerProviderKey } from "./commands/provider-key/index.js";
 import { registerPush } from "./commands/push.js";
 import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
@@ -174,6 +175,7 @@ export function buildProgram(): Command {
   registerAuth(program);
   registerApiKey(program);
   registerServiceAccount(program);
+  registerProviderKey(program);
   registerAccessHistory(program);
   registerGet(program);
   registerList(program);

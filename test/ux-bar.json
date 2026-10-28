@@ -73,10 +73,7 @@
     },
     {
       "id": "CLI-12",
-      "promise": "Provider keys are saved, listed and removed from the CLI.",
-      "pending": [
-        "stigmer#2145"
-      ]
+      "promise": "Provider keys are saved, listed and removed from the CLI."
     },
     {
       "id": "CLI-13",
@@ -84,6 +81,10 @@
       "pending": [
         "stigmer#2619"
       ]
+    },
+    {
+      "id": "CLI-14",
+      "promise": "`stigmer up` says where the console is and whether agents can run."
     },
     {
       "id": "INK-01",

@@ -15,27 +15,40 @@ way, on your Organization's own [Cursor key](#cursor), and Claude-harness runs
 on your Organization's Anthropic key: a Claude run runs Claude models only, so
 it always needs that key, whatever its model.
 
-A run whose model needs a provider your Organization has no key for is refused
-before it starts:
+Stigmer tells you which models can run before you try one. **Models &
+providers**, in the console's sidebar, shows each provider, whether it is
+connected and by whom, and the models it unlocks on each engine. The model
+picker marks a model whose provider is not connected ("Needs an Anthropic key"),
+and the new-conversation screen holds **Send** until it is. A run that still
+needs a provider your Organization has no key for is refused before it starts:
 
 ```
 This organization has no Anthropic key for model 'claude-sonnet-4-6', so the run
-was not started. An admin can add one in Settings → Provider keys.
+was not started. An admin can add one in Models & providers.
 ```
 
 ## Add a key
 
-1. Open **Settings → Provider keys**. Every member sees the list; adding,
-   replacing and removing a key needs an admin.
-2. Choose **Add key** on the Anthropic or OpenAI row and paste the key.
+1. Open **Models & providers**. Every member sees which providers are
+   connected; adding, replacing and removing a key needs an admin.
+2. Choose **Connect Anthropic** (or OpenAI) on the provider's card and paste the
+   key.
 3. Leave **Base URL** empty to use the provider's own API, or give your own
    endpoint (see below).
-4. Choose **Save key**.
+4. Choose **Connect Anthropic** again to save it.
 
-Stigmer checks the key once against the provider before saving it, and refuses a
-key the provider rejects. A saved key is never shown again, only its last four
-characters. **Replace** saves a new key over it; **Remove** deletes it, and runs
-that need that provider are refused until a key serves your Organization again.
+Stigmer checks the key once with the provider before saving it, and refuses a
+key the provider rejects. The card then says **Checked with Anthropic**, or
+**Saved, not checked** when the provider did not answer the check; such a key
+is saved, and its first run tells you whether it works. A saved key is never
+shown again, only its last four characters. **Replace key** saves a new key over
+it; **Remove** deletes it, and runs that need that provider are refused until a
+key serves your Organization again.
+
+From a terminal, `stigmer provider-key list` shows the same, and an admin saves
+and removes keys with `stigmer provider-key set anthropic` and
+`stigmer provider-key delete anthropic`. The key is read from a prompt, or from
+standard input with `--key-stdin`, never from the command line.
 
 ## The rules
 
@@ -66,13 +79,13 @@ that need that provider are refused until a key serves your Organization again.
 ## Cursor
 
 A Cursor-harness run on Stigmer Cloud runs on your Organization's own Cursor
-key. Add it on the **Cursor** row of **Settings → Provider keys**, as you would
+key. Add it on the **Cursor** card of **Models & providers**, as you would
 an Anthropic or OpenAI key, and every Cursor run of your Organization uses it. A
 Cursor run in an Organization with no Cursor key is refused before it starts:
 
 ```
 This organization has no Cursor key, so the run was not started. An admin can
-add one in Settings → Provider keys.
+add one in Models & providers.
 ```
 
 - **Which key.** A Cursor user API key, from your
@@ -125,11 +138,27 @@ call on another key.
 Someone chatting with your Agent through a chat link or a channel is not told
 about your keys. When your Organization has no key for the Agent's model, they
 read: "This agent isn't set up to answer yet. Its owner needs to connect a model
-provider." Try your own chat link to see it; the fix is a key in **Settings →
-Provider keys**.
+provider." Try your own chat link to see it; the fix is a key in **Models &
+providers**.
 
-## Self-hosted servers
+## Your own machine and self-hosted servers
 
-A self-hosted Stigmer server has no provider-keys page: its runner calls the
-providers with the operator's own keys from its environment. The `openai:<name>`
-and `anthropic:<name>` forms work there too.
+A self-hosted Stigmer server holds no provider keys: its runners call the
+providers with keys from their own environment. On your own machine,
+`stigmer setup` saves the key the runner uses, and `stigmer up` tells the server
+which providers the runner reaches, by a key, Vertex, Bedrock, Foundry or a
+gateway. **Models & providers** then shows them, and a run whose provider the
+runner cannot reach is refused before it starts:
+
+```
+This server's runners have no Anthropic key for model 'claude-sonnet-4-6', so the
+run was not started. On your own machine, run `stigmer setup`, then
+`stigmer down && stigmer up`.
+```
+
+A Docker Compose or Kubernetes install tells its server the same with
+`STIGMER_RUNNER_PROVIDERS`, the providers its runners reach
+([What the runner is given](/docs/guides/self-hosting/runners#what-the-runner-is-given)).
+Without it the server cannot see the runners' keys, so it refuses nothing and
+the runner's own error names a missing key. The `openai:<name>` and
+`anthropic:<name>` forms work there too.

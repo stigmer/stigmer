@@ -131,9 +131,9 @@ describe("an organization with no Cursor key", () => {
   // The cloud's Cursor REST lane refuses the SDK's key exchange with this
   // body; the SDK surfaces it as a thrown error carrying the message.
   const REFUSAL =
-    "This organization has no Cursor key. An admin can add one in Settings → Provider keys. " +
+    "This organization has no Cursor key. An admin can add one on the Models & providers page. " +
     `[code: ${PROVIDER_KEY_REQUIRED_SENTINEL}]`;
-  const NO_KEY = "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
+  const NO_KEY = "This organization has no Cursor key. An admin can add one on the Models & providers page.";
 
   beforeEach(() => {
     vi.spyOn(console, "log").mockImplementation(() => {});

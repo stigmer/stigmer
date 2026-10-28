@@ -52,6 +52,7 @@ import { newTrustedLocalAuthorizer } from "../authorization/trusted-local-author
 import type { Authorizer } from "../extensions/authorizer.js";
 import type { ComposedServices } from "../extensions/composed-services.js";
 import { ABSENT_LICENSE_STATUS } from "../extensions/license-status.js";
+import { runnerProviderAvailability } from "../extensions/provider-availability.js";
 import { relaxedEgressPolicy } from "../extensions/outbound-egress.js";
 import type { ListReadScope } from "../extensions/list-read-scope.js";
 import type { OrganizationDirectory } from "../extensions/organization-directory.js";
@@ -1067,6 +1068,12 @@ export async function composeServer(
   // server info's advertisement all read this object, so none of them can
   // disagree with another (domain/run/environment-admission.ts).
   const environmentPolicy = newEnvironmentPolicy(sandboxLane, temporalConfig);
+  // Which model providers serve an organization: the composed provider
+  // (the cloud's, over its keys), else the built-in answer from what this
+  // server's runners were declared to reach. One instance, read by the run
+  // create chain's refusal and by getModelReadiness alike.
+  const providerAvailability =
+    extensions.drivers.providerAvailability ?? runnerProviderAvailability(config.runnerProviders);
   if (sandboxLane.enabled) {
     logger.info("sandbox provisioner composed", {
       type: config.sandboxProvisionerType,
@@ -2159,6 +2166,7 @@ export async function composeServer(
       recoverSerializer: agentExecutionRecoverSerializer,
       engineState: executionEngineState,
       modelRegistry: modelCatalog,
+      providerAvailability,
       artifactStorage,
       gateSteps: extensions.gateSteps,
       statusObservers: runStatusObservers,
@@ -2269,6 +2277,9 @@ export async function composeServer(
       // no unit registered a license-status provider: open source and the
       // cloud hold no key, and only an Enterprise unit ever has one.
       licenseStatus: extensions.drivers.licenseStatus ?? ABSENT_LICENSE_STATUS,
+      providerAvailability,
+      modelCatalog,
+      authorizer,
       environmentPolicy,
       now: () => new Date(),
       logger,

@@ -10,6 +10,12 @@ import type {
   GetServerInfoOutput,
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
+import {
+  GetModelReadinessInputSchema,
+  ModelOnEngineSchema,
+} from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import type { GetModelReadinessOutput } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import type { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { wrapError } from "./gen/errors.js";
 import {
   deploymentModeOf,
@@ -138,6 +144,33 @@ export class PlatformClient {
     try {
       return await this.platform.getLicenseStatus(
         create(GetLicenseStatusInputSchema, {}),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Which model providers serve an organization, and for every model on
+   * every engine whether a run of it would start. A run whose provider is
+   * missing is refused at create by the same rule, so a client can mark a
+   * model before the person tries it. Every edition answers; any member of
+   * the organization may ask.
+   *
+   * @param org - The organization the answer is for.
+   * @param model - A model to judge beside the catalog's, such as an
+   *   `openai:<name>` reference the catalog does not list.
+   */
+  async getModelReadiness(
+    org: string,
+    model?: { readonly harness: Harness; readonly model: string },
+  ): Promise<GetModelReadinessOutput> {
+    try {
+      return await this.platform.getModelReadiness(
+        create(GetModelReadinessInputSchema, {
+          org,
+          model: model === undefined ? undefined : create(ModelOnEngineSchema, model),
+        }),
       );
     } catch (e) {
       throw wrapError(e);

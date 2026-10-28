@@ -23,12 +23,16 @@
  * the gate mirrors the actual load-time requirement.
  *
  * This module also hosts {@link assertLlmBackendsPreflight}, the
- * deployment-config gate the runner factories run at construction. The
- * llm-backend import below is a pure, dependency-free module, so it does
- * not compromise the load-order guarantees above.
+ * deployment-config gate the runner factories run at construction, which
+ * also logs the model providers the runner reaches. The llm-backend,
+ * credential-store and provider-reach imports below are pure modules with no
+ * deep import chains, so they do not compromise the load-order guarantees
+ * above.
  */
 
 import { preflightLlmBackends } from "./shared/llm-backend.js";
+import { describeReach, providerReach } from "./shared/provider-reach.js";
+import { runnerSecretsEnvView } from "./shared/runner-credential-store.js";
 
 /**
  * True when this Node binary provides the built-in `node:sqlite`.
@@ -84,13 +88,21 @@ export function preflightNodeRuntime(
  * execution mid-flight (the createClient factories construct lazily on
  * first request, far too late for a good operator experience).
  *
+ * A configuration that passes logs one line naming the model providers the
+ * runner reaches and how (`reaches: anthropic (vertex), cursor (key)`), by
+ * the rule `stigmer up` also uses to tell the server what its runner
+ * reaches (shared/provider-reach.ts), so an operator reads the same answer
+ * the server was given.
+ *
  * @param proxyEndpoint The effective proxy endpoint. Factories receive it
  *   via options (env-derived in main.ts flows, caller-supplied for
  *   embedders), so it is threaded explicitly instead of re-read from env —
  *   an options-supplied proxy must downgrade backend vars to warnings the
  *   same way STIGMER_PROXY_ENDPOINT does.
+ * @param cursorApiKey The Cursor key the factory resolved (its options, not
+ *   the environment, for an embedder), threaded for the same reason.
  */
-export function assertLlmBackendsPreflight(proxyEndpoint?: string | null): void {
+export function assertLlmBackendsPreflight(proxyEndpoint?: string | null, cursorApiKey?: string): void {
   const env = proxyEndpoint
     ? { ...process.env, STIGMER_PROXY_ENDPOINT: proxyEndpoint }
     : process.env;
@@ -101,4 +113,12 @@ export function assertLlmBackendsPreflight(proxyEndpoint?: string | null): void 
   if (error !== null) {
     throw new Error(error);
   }
+  // The keys left process.env at the boot capture (#508); the store's view
+  // holds them, for this in-process read only.
+  const reach = providerReach({
+    ...runnerSecretsEnvView(),
+    ...(proxyEndpoint ? { STIGMER_PROXY_ENDPOINT: proxyEndpoint } : {}),
+    ...(cursorApiKey !== undefined ? { CURSOR_API_KEY: cursorApiKey } : {}),
+  });
+  console.log(`[runner] reaches: ${reach.length > 0 ? describeReach(reach) : "no model provider"}`);
 }

@@ -57,7 +57,8 @@ import {
   LicenseState,
   LicenseTerm,
 } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
-import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ProviderAvailability } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import {
   GetRunnerScopedTokenInputSchema,
   PlatformQueryController,
@@ -80,6 +81,12 @@ import {
   RunnerAuthService,
 } from "../../../runnerauth/runnerauth.js";
 import { registerPlatformServices } from "../controller.js";
+import { runnerProviderAvailability } from "../../../extensions/provider-availability.js";
+import type { ProviderAvailabilityProvider } from "../../../extensions/provider-availability.js";
+import { organizationId, seedOrganizations } from "../../organization/__tests__/support.js";
+import { newModelCatalogProviderFromDocument } from "../../../modelcatalog/document-catalog.js";
+import { bundledModelRegistryDocument } from "../../../modelcatalog/bundled.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import type { EnvironmentPolicy } from "../../run/environment-admission.js";
 import { NO_ENVIRONMENT_SUPPORT } from "../../environment/facts.js";
 
@@ -389,6 +396,152 @@ describe("platform domain (composed for runners off the server's network)", () =
   });
 });
 
+/**
+ * getModelReadiness through the real stack: the declared setting
+ * (STIGMER_RUNNER_PROVIDERS) reaches the wire as served-by or
+ * missing-from the runners per provider, in the server's order; every
+ * catalog model carries its provider's state by the rule the create chain
+ * refuses with; and a model the input names is judged too.
+ */
+describe("platform domain (model readiness, declared runners)", () => {
+  let server: ComposedServer;
+  let client: PlatformClient;
+  let dir: string;
+  let org: string;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "platform-domain-readiness-test-"));
+    vi.stubEnv("STIGMER_ENCRYPTION_KEY", ENC_KEY.toString("base64"));
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+        STIGMER_RUNNER_PROVIDERS: "anthropic",
+      }),
+      logger: silentLogger,
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    const transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+    org = organizationId(await seedOrganizations(transport, ["readiness-acme"]), "readiness-acme");
+    client = createClient(PlatformQueryController, transport);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("reports each provider from the declared runners, in the server's order", async () => {
+    const out = await client.getModelReadiness({ org });
+    expect(out.providers.map((p) => [p.provider, p.availability])).toEqual([
+      ["anthropic", ProviderAvailability.served_by_runners],
+      ["openai", ProviderAvailability.missing_from_runners],
+      ["cursor", ProviderAvailability.missing_from_runners],
+    ]);
+  });
+
+  it("judges every catalog model on every engine by its provider", async () => {
+    const out = await client.getModelReadiness({ org });
+    const sonnet = out.models.find((m) => m.harness === Harness.NATIVE && m.model === "claude-sonnet-4.6");
+    expect(sonnet).toMatchObject({ provider: "anthropic", availability: ProviderAvailability.served_by_runners });
+    const claude = out.models.filter((m) => m.harness === Harness.CLAUDE);
+    expect(claude.length).toBeGreaterThan(0);
+    expect(claude.every((m) => m.provider === "anthropic")).toBe(true);
+    const cursor = out.models.filter((m) => m.harness === Harness.CURSOR);
+    expect(cursor.length).toBeGreaterThan(0);
+    expect(cursor.every((m) => m.availability === ProviderAvailability.missing_from_runners)).toBe(true);
+    expect(out.judged).toBeUndefined();
+  });
+
+  it("judges a model the catalog does not list when the input names it", async () => {
+    const out = await client.getModelReadiness({
+      org,
+      model: { harness: Harness.UNSPECIFIED, model: "openai:house-model" },
+    });
+    expect(out.judged).toMatchObject({
+      harness: Harness.NATIVE,
+      model: "openai:house-model",
+      provider: "openai",
+      availability: ProviderAvailability.missing_from_runners,
+    });
+  });
+
+  it("answers NOT_FOUND for an organization the server does not hold", async () => {
+    await expect(client.getModelReadiness({ org: "org-nowhere" })).rejects.toMatchObject({ code: Code.NotFound });
+  });
+});
+
+/**
+ * A composed availability provider (the cloud registers one over its
+ * keys) reaches the wire through the driver point: a parent organization's
+ * key names the parent, unknown stays unknown, and a provider that cannot
+ * be read fails the answer UNAVAILABLE, as create would.
+ */
+describe("platform domain (model readiness, composed availability)", () => {
+  let server: ComposedServer;
+  let client: PlatformClient;
+  let dir: string;
+  let org: string;
+  let broken: string;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "platform-domain-readiness-unit-test-"));
+    vi.stubEnv("STIGMER_ENCRYPTION_KEY", ENC_KEY.toString("base64"));
+    const availability: ProviderAvailabilityProvider = {
+      availability: (asked, provider) => {
+        if (asked === broken) return Promise.reject(new Error("store down"));
+        return Promise.resolve(
+          provider === "anthropic"
+            ? { state: "served", source: "organization" }
+            : provider === "openai"
+              ? { state: "served", source: "parent", parentOrg: "org-parent" }
+              : { state: "unknown" },
+        );
+      },
+    };
+    server = await composeServer({
+      config: loadConfig({
+        STIGMER_MODEL_REGISTRY_REFRESH: "off",
+        DB_PATH: path.join(dir, "stigmer.db"),
+        ARTIFACT_LOCAL_BASE_PATH: path.join(dir, "artifacts"),
+      }),
+      logger: silentLogger,
+      extensions: [{ name: "keys", drivers: { providerAvailability: availability } }],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    const port = await server.start();
+    const transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
+    const ids = await seedOrganizations(transport, ["readiness-child", "readiness-broken"]);
+    org = organizationId(ids, "readiness-child");
+    broken = organizationId(ids, "readiness-broken");
+    client = createClient(PlatformQueryController, transport);
+  });
+
+  afterAll(async () => {
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("names the parent organization whose key serves a provider, and passes unknown through", async () => {
+    const out = await client.getModelReadiness({ org });
+    expect(out.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
+      ["anthropic", ProviderAvailability.served_by_organization, ""],
+      ["openai", ProviderAvailability.served_by_parent_organization, "org-parent"],
+      ["cursor", ProviderAvailability.availability_unknown, ""],
+    ]);
+  });
+
+  it("answers UNAVAILABLE when a provider's availability cannot be read", async () => {
+    await expect(client.getModelReadiness({ org: broken })).rejects.toMatchObject({ code: Code.Unavailable });
+  });
+});
+
 describe("platform domain (keyless runner-token service)", () => {
   it("a keyless service answers not-minted — fail-soft, never an error", async () => {
     const transport = createRouterTransport((router) => {
@@ -403,6 +556,9 @@ describe("platform domain (keyless runner-token service)", () => {
         authenticationRequired: false,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
+        providerAvailability: runnerProviderAvailability(undefined),
+        modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
+        authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: NO_SANDBOX_POLICY,
         now: () => new Date(),
         logger: silentLogger,
@@ -438,6 +594,9 @@ describe("platform domain (environment availability)", () => {
         authenticationRequired: false,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
+        providerAvailability: runnerProviderAvailability(undefined),
+        modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
+        authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: policy,
         now: () => new Date(),
         logger: silentLogger,
@@ -501,6 +660,9 @@ describe("platform domain (license status)", () => {
         authenticationRequired: false,
         singleOrganization: undefined,
         licenseStatus: provider,
+        providerAvailability: runnerProviderAvailability(undefined),
+        modelCatalog: newModelCatalogProviderFromDocument(bundledModelRegistryDocument()),
+        authorizer: newPermissiveSingleTeamAuthorizer(),
         environmentPolicy: NO_SANDBOX_POLICY,
         now: () => instant,
         logger: silentLogger,

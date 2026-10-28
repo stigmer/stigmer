@@ -28,6 +28,12 @@ import {
 } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
+import {
+  isModelProvider,
+  MODEL_PROVIDERS,
+  type ModelProvider,
+} from "../modelcatalog/provider-need.js";
+
 import { SERVER_VERSION } from "../domain/platform/version.js";
 import { DEFAULT_FILE_MAX_BYTES } from "../domain/file/constants.js";
 import { DEFAULT_ROUTINE_FIRES_PER_HOUR } from "../domain/routine/fire-rate.js";
@@ -331,6 +337,18 @@ export interface ServerConfig {
    */
   readonly sandboxRunnerSecretEnv: Readonly<Record<string, string>>;
   /**
+   * The model providers this server's runners reach
+   * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic`,
+   * `openai` and `cursor`), as names, never values. Undefined when unset:
+   * the server cannot see a runner that runs as its own process, so every
+   * provider is unknown and nothing is refused for it. Set but empty: the
+   * runners reach none, and a run that needs one is refused at create
+   * (extensions/provider-availability.ts). `stigmer up` sets it from the
+   * runner environment it builds; an operator whose runners hold keys sets
+   * it for a compose or Helm install.
+   */
+  readonly runnerProviders: ReadonlySet<ModelProvider> | undefined;
+  /**
    * How many times one routine may be started by hand (Run now or the API)
    * in an hour (STIGMER_ROUTINE_FIRES_PER_HOUR, default 30); below 1, no
    * limit. A routine's own schedule is never limited by it
@@ -511,6 +529,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "stigmer-sandboxes",
     ),
     ...loadSandboxRunnerEnv(env),
+    runnerProviders: loadRunnerProviders(env),
     routineFiresPerHour: envInt(
       env,
       "STIGMER_ROUTINE_FIRES_PER_HOUR",
@@ -684,6 +703,32 @@ function loadSandboxRunnerEnv(env: NodeJS.ProcessEnv): {
     }
   }
   return { sandboxRunnerEnv: plain, sandboxRunnerSecretEnv: secret };
+}
+
+/**
+ * STIGMER_RUNNER_PROVIDERS, read strictly: a name that is not a provider is
+ * boot-FATAL, because a lenient read would turn an operator's typo into a
+ * provider reported missing and every run that needs it refused.
+ */
+function loadRunnerProviders(env: NodeJS.ProcessEnv): ReadonlySet<ModelProvider> | undefined {
+  const raw = env.STIGMER_RUNNER_PROVIDERS;
+  if (raw === undefined) {
+    return undefined;
+  }
+  const providers = new Set<ModelProvider>();
+  for (const part of raw.split(",")) {
+    const name = part.trim();
+    if (name === "") {
+      continue;
+    }
+    if (!isModelProvider(name)) {
+      throw new Error(
+        `STIGMER_RUNNER_PROVIDERS lists "${name}", which is not a model provider — list any of ${MODEL_PROVIDERS.join(", ")}`,
+      );
+    }
+    providers.add(name);
+  }
+  return providers;
 }
 
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;

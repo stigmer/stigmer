@@ -13,7 +13,8 @@ import { load as loadConfig } from "../config/config.js";
 import { configPath } from "../config/paths.js";
 import { CommandResult } from "../output/command-result.js";
 import { SERVER_PORT, TEMPORAL_UI_PORT } from "./constants.js";
-import { resolveApiKey, resolveProvider } from "./llm-config.js";
+import { resolveApiKey } from "./llm-config.js";
+import { describeReach, providerReach } from "./provider-reach.js";
 import { tcpConnects } from "./net/tcp.js";
 import { dataDir } from "./paths.js";
 import { type ComponentState, type HealthState, loadHealthState } from "./state/health-state.js";
@@ -35,8 +36,12 @@ export type PortProbe = (port: number) => Promise<boolean>;
 
 const defaultProbe: PortProbe = (port) => tcpConnects(port, "127.0.0.1", 1000);
 
-/** Build the status result for the local stack rooted at `home`. */
-export async function buildStatusResult(home: string = homedir(), probe: PortProbe = defaultProbe): Promise<CommandResult> {
+/** Build the status result for the local stack rooted at `home`; `env` is the shell `stigmer up` would launch from. */
+export async function buildStatusResult(
+  home: string = homedir(),
+  probe: PortProbe = defaultProbe,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<CommandResult> {
   const data = dataDir(home);
   const pid = readPidFile(join(data, DAEMON_PID_FILE));
   const daemonAlive = pid !== null && isProcessAlive(pid);
@@ -67,7 +72,7 @@ export async function buildStatusResult(home: string = homedir(), probe: PortPro
     addComponentSection(result, name, COMPONENT_LABELS[name], component);
   }
 
-  addLlmSection(result, home);
+  addLlmSection(result, home, env);
   addWebUiSection(result, health);
 
   return result;
@@ -108,34 +113,30 @@ function addComponentSection(result: CommandResult, name: string, label: string,
   }
 }
 
-function addLlmSection(result: CommandResult, home: string): void {
+// Judged by the runner's own reach rule (provider-reach.ts) over the
+// environment the launcher gives the runner: this shell's, with the key
+// `stigmer setup` saved written over it (launch.ts, resolveLlmKeyInputs). So a
+// laptop on a Cursor key, Vertex, Bedrock, Foundry or a gateway is reported
+// as reaching it, and only one that reaches nothing is told agents will not
+// execute.
+function addLlmSection(result: CommandResult, home: string, env: NodeJS.ProcessEnv): void {
   const config = loadConfig(configPath(home));
-  const provider = resolveProvider(config);
+  const savedKey = resolveApiKey(config, env);
+  const reach = providerReach(savedKey === "" ? env : { ...env, ANTHROPIC_API_KEY: savedKey });
   const section = result.addSection("LLM Configuration");
 
-  if (provider === "") {
-    section.field("Provider", "Not configured");
+  if (reach.length === 0) {
+    section.field("Providers", "Not configured");
     section.field("Status", "Agents will not execute");
     result.hint("Configure a provider: stigmer setup");
-    return;
-  }
-
-  // Anthropic is the only provider local execution supports. Anything else in
-  // the config (hand-edited, or left over from an older CLI) is reported as
-  // unknown rather than pretended to work.
-  if (provider !== "anthropic") {
-    section.field("Provider", `Unknown (${provider})`);
-    section.field("Status", "Agents will not execute");
-    result.hint("Reconfigure the provider: stigmer setup");
     return;
   }
 
   // The model line is a constant: the platform model registry picks the
   // execution default and the CLI has no model concept to report (oss#314
   // removed the dead config pin). Per-run overrides ride `stigmer run --model`.
-  section.field("Provider", "Anthropic (Cloud)");
+  section.field("Providers", describeReach(reach));
   section.field("Model", "Auto (platform default)");
-  section.field("API Key", resolveApiKey(config) !== "" ? "Configured ✓" : "Not configured ✗");
 }
 
 function addWebUiSection(result: CommandResult, health: HealthState): void {

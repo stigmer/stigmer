@@ -177,7 +177,7 @@ export const TRANSPORT_TIMEOUT_USER_PREFIX =
  * carried the proxy's refusal. The proxy's own copy, without its code.
  */
 const NO_CURSOR_KEY_MESSAGE =
-  "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
+  "This organization has no Cursor key. An admin can add one on the Models & providers page.";
 
 const AUTH_PATTERNS = [
   "unauthenticated", "unauthorized", "401", "forbidden",

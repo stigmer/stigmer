@@ -20,7 +20,8 @@ import "google/protobuf/timestamp.proto";
 // that provider on this key, on every plan, and on no other: a run that
 // needs a provider the organization holds no key for (by its model, or a
 // cursor-harness run needing "cursor") is refused with FAILED_PRECONDITION,
-// reason PROVIDER_KEY_REQUIRED. The provider bills the organization
+// reason PROVIDER_KEY_REQUIRED, and PlatformQueryController.getModelReadiness
+// says so before a run is tried. The provider bills the organization
 // directly, and Stigmer meters the calls without charging them.
 //
 // Provider keys are not an API resource. They are keyed by organization and
@@ -71,4 +72,24 @@ message ProviderKey {
   // "https://gateway.example.com/openai/v1" for an OpenAI-compatible
   // gateway. Always empty on an inherited row and on a Cursor key.
   string base_url = 10;
+
+  // Whether the provider confirmed the key when it was saved (updated_at).
+  // Unspecified on a key saved before the outcome was recorded.
+  ProviderKeyCheck check = 11;
+}
+
+// The outcome of the check a save makes with the provider.
+//
+// A save asks the provider once whether it accepts the key. A refusal (the
+// provider's 401 or 403) refuses the save; any other answer, or none,
+// saves the key unchecked, and its first run says whether it works.
+enum ProviderKeyCheck {
+  provider_key_check_unspecified = 0;
+
+  // The provider accepted the key.
+  checked = 1;
+
+  // The provider could not be asked or did not answer plainly; the key was
+  // saved without its confirmation.
+  unchecked = 2;
 }

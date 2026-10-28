@@ -4,10 +4,12 @@
 // non-interactive flag path and the interactive prompt, so both produce
 // identical config and the rules are unit-testable in isolation.
 //
-// Local agent execution is Anthropic-only (the native runner only constructs
-// Anthropic clients and the registry's native entries are Anthropic models),
-// so the interactive flow is a single API-key prompt rather than a provider
-// menu, followed by the skippable operator-identity prompt (oss#796). There
+// Setup saves the one key the native and Claude engines run the catalog's
+// models on, Anthropic's, so the interactive flow is a single API-key prompt
+// rather than a provider menu, followed by the skippable operator-identity
+// prompt (oss#796). The runner reaches the other providers (OpenAI, Cursor,
+// Anthropic through Vertex, Bedrock, Foundry or a gateway) by settings
+// exported in the shell; local/provider-reach.ts says which it reaches. There
 // is no model concept here at all: the platform model registry owns the
 // execution default, and per-run overrides belong to `stigmer run --model`
 // (oss#314 removed the dead setup-level pin).

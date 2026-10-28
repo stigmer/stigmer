@@ -226,6 +226,29 @@ export type {
   LicenseStatusProvider,
   LicenseStatusReport,
 } from "./extensions/license-status.js";
+// The provider-availability seam (drivers.providerAvailability): which
+// model providers serve an organization, which Stigmer Cloud answers from
+// its provider keys. The rule for which provider a run needs is exported
+// with it, so an edition's own gates judge a run exactly as core does.
+export type {
+  ProviderAvailabilityProvider,
+  ProviderAvailabilityReport,
+} from "./extensions/provider-availability.js";
+export {
+  MODEL_PROVIDERS,
+  MODEL_PROVIDER_LABELS,
+  isModelProvider,
+  providerNeededBy,
+} from "./modelcatalog/provider-need.js";
+export type {
+  ModelProvider,
+  ProviderNeed,
+  ProviderNeedCatalog,
+} from "./modelcatalog/provider-need.js";
+export {
+  PROVIDER_KEY_REQUIRED,
+  runProviderNeed,
+} from "./domain/run/require-model-provider.js";
 // The outbound-egress seam (drivers.outboundEgress): which addresses the
 // control plane may dial when it reaches a URL a user supplied. Both
 // postures are exported so a composition registers one line and owns no

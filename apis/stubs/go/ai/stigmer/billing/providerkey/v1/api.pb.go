@@ -22,6 +22,63 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// The outcome of the check a save makes with the provider.
+//
+// A save asks the provider once whether it accepts the key. A refusal (the
+// provider's 401 or 403) refuses the save; any other answer, or none,
+// saves the key unchecked, and its first run says whether it works.
+type ProviderKeyCheck int32
+
+const (
+	ProviderKeyCheck_provider_key_check_unspecified ProviderKeyCheck = 0
+	// The provider accepted the key.
+	ProviderKeyCheck_checked ProviderKeyCheck = 1
+	// The provider could not be asked or did not answer plainly; the key was
+	// saved without its confirmation.
+	ProviderKeyCheck_unchecked ProviderKeyCheck = 2
+)
+
+// Enum value maps for ProviderKeyCheck.
+var (
+	ProviderKeyCheck_name = map[int32]string{
+		0: "provider_key_check_unspecified",
+		1: "checked",
+		2: "unchecked",
+	}
+	ProviderKeyCheck_value = map[string]int32{
+		"provider_key_check_unspecified": 0,
+		"checked":                        1,
+		"unchecked":                      2,
+	}
+)
+
+func (x ProviderKeyCheck) Enum() *ProviderKeyCheck {
+	p := new(ProviderKeyCheck)
+	*p = x
+	return p
+}
+
+func (x ProviderKeyCheck) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProviderKeyCheck) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_billing_providerkey_v1_api_proto_enumTypes[0].Descriptor()
+}
+
+func (ProviderKeyCheck) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_billing_providerkey_v1_api_proto_enumTypes[0]
+}
+
+func (x ProviderKeyCheck) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProviderKeyCheck.Descriptor instead.
+func (ProviderKeyCheck) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_providerkey_v1_api_proto_rawDescGZIP(), []int{0}
+}
+
 // An organization's own model provider key, as every caller sees it: the key
 // itself never leaves the server, only which provider it is for, a hint to
 // tell two keys apart, and who saved it and when.
@@ -38,7 +95,8 @@ const (
 // that provider on this key, on every plan, and on no other: a run that
 // needs a provider the organization holds no key for (by its model, or a
 // cursor-harness run needing "cursor") is refused with FAILED_PRECONDITION,
-// reason PROVIDER_KEY_REQUIRED. The provider bills the organization
+// reason PROVIDER_KEY_REQUIRED, and PlatformQueryController.getModelReadiness
+// says so before a run is tried. The provider bills the organization
 // directly, and Stigmer meters the calls without charging them.
 //
 // Provider keys are not an API resource. They are keyed by organization and
@@ -68,7 +126,10 @@ type ProviderKey struct {
 	// it as its base URL; empty means the provider's own API. For example
 	// "https://gateway.example.com/openai/v1" for an OpenAI-compatible
 	// gateway. Always empty on an inherited row and on a Cursor key.
-	BaseUrl       string `protobuf:"bytes,10,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	BaseUrl string `protobuf:"bytes,10,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	// Whether the provider confirmed the key when it was saved (updated_at).
+	// Unspecified on a key saved before the outcome was recorded.
+	Check         ProviderKeyCheck `protobuf:"varint,11,opt,name=check,proto3,enum=ai.stigmer.billing.providerkey.v1.ProviderKeyCheck" json:"check,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -166,11 +227,18 @@ func (x *ProviderKey) GetBaseUrl() string {
 	return ""
 }
 
+func (x *ProviderKey) GetCheck() ProviderKeyCheck {
+	if x != nil {
+		return x.Check
+	}
+	return ProviderKeyCheck_provider_key_check_unspecified
+}
+
 var File_ai_stigmer_billing_providerkey_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x80\x03\n" +
+	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcb\x03\n" +
 	"\vProviderKey\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
@@ -185,7 +253,12 @@ const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"lastUsedAt\x12,\n" +
 	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n" +
 	"\bbase_url\x18\n" +
-	" \x01(\tR\abaseUrlJ\x04\b\b\x10\tR\x06in_useB\xb4\x02\n" +
+	" \x01(\tR\abaseUrl\x12I\n" +
+	"\x05check\x18\v \x01(\x0e23.ai.stigmer.billing.providerkey.v1.ProviderKeyCheckR\x05checkJ\x04\b\b\x10\tR\x06in_use*R\n" +
+	"\x10ProviderKeyCheck\x12\"\n" +
+	"\x1eprovider_key_check_unspecified\x10\x00\x12\v\n" +
+	"\achecked\x10\x01\x12\r\n" +
+	"\tunchecked\x10\x02B\xb4\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\bApiProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (
@@ -200,20 +273,23 @@ func file_ai_stigmer_billing_providerkey_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_providerkey_v1_api_proto_rawDescData
 }
 
+var file_ai_stigmer_billing_providerkey_v1_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_billing_providerkey_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_billing_providerkey_v1_api_proto_goTypes = []any{
-	(*ProviderKey)(nil),           // 0: ai.stigmer.billing.providerkey.v1.ProviderKey
-	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
+	(ProviderKeyCheck)(0),         // 0: ai.stigmer.billing.providerkey.v1.ProviderKeyCheck
+	(*ProviderKey)(nil),           // 1: ai.stigmer.billing.providerkey.v1.ProviderKey
+	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 }
 var file_ai_stigmer_billing_providerkey_v1_api_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.billing.providerkey.v1.ProviderKey.created_at:type_name -> google.protobuf.Timestamp
-	1, // 1: ai.stigmer.billing.providerkey.v1.ProviderKey.updated_at:type_name -> google.protobuf.Timestamp
-	1, // 2: ai.stigmer.billing.providerkey.v1.ProviderKey.last_used_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: ai.stigmer.billing.providerkey.v1.ProviderKey.created_at:type_name -> google.protobuf.Timestamp
+	2, // 1: ai.stigmer.billing.providerkey.v1.ProviderKey.updated_at:type_name -> google.protobuf.Timestamp
+	2, // 2: ai.stigmer.billing.providerkey.v1.ProviderKey.last_used_at:type_name -> google.protobuf.Timestamp
+	0, // 3: ai.stigmer.billing.providerkey.v1.ProviderKey.check:type_name -> ai.stigmer.billing.providerkey.v1.ProviderKeyCheck
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_providerkey_v1_api_proto_init() }
@@ -226,13 +302,14 @@ func file_ai_stigmer_billing_providerkey_v1_api_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc), len(file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_billing_providerkey_v1_api_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_billing_providerkey_v1_api_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_billing_providerkey_v1_api_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_billing_providerkey_v1_api_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_billing_providerkey_v1_api_proto = out.File

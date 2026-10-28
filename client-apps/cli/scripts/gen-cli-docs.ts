@@ -104,6 +104,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   auth: "config",
   apikey: "config",
   "service-account": "config",
+  "provider-key": "config",
   "access-history": "config",
   config: "config",
   marketplace: "config",

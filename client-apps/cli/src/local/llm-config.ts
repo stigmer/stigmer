@@ -1,5 +1,5 @@
 // Typed view over the otherwise-opaque `backend.local` config section, scoped to
-// the LLM settings `setup` writes and `status` reads.
+// the LLM settings `setup` writes and the launcher reads.
 //
 // The config module (config/config.ts) carries `backend.local` through verbatim
 // so the CLI never drops fields it does not model. This module adds a *typed
@@ -8,9 +8,13 @@
 // API-key autodetect). Writes merge into a shallow copy of `local`, preserving
 // every sibling key (temporal, execution, …).
 //
-// Local agent execution is Anthropic-only: the native runner constructs
-// Anthropic clients, and the platform model registry's native-harness entries
-// are all Anthropic models. Two invariants follow:
+// These settings hold the one key `stigmer setup` saves, Anthropic's; they do
+// not say which providers the local runner reaches. The runner also reaches
+// Cursor and OpenAI by a key in the shell, and Anthropic through a gateway or
+// a cloud backend, none of which `setup` stores. What it reaches is judged by
+// the runner's own rule over the environment the launcher builds
+// (provider-reach.ts), which is what `stigmer status`, `stigmer up`'s card and
+// the server's STIGMER_RUNNER_PROVIDERS read. Two invariants hold:
 //
 //   1. The model registry — not this config — owns the execution model, so
 //      there is deliberately NO model field here. A config-level model pin
@@ -19,9 +23,9 @@
 //      overrides belong to `stigmer run --model`. Stale `model` keys in
 //      existing config files are silently ignored (verbatim carry-through)
 //      and cleared by the next `setup` write.
-//   2. `provider` exists to route the right API key to the runner, not to
-//      select an execution backend; "anthropic" is the only provider the local
-//      stack can serve.
+//   2. `provider` exists to route the saved API key to the runner, not to
+//      select an execution backend or to report what the runner reaches;
+//      "anthropic" is the only provider whose key `setup` saves.
 
 import type { Config } from "../config/config.js";
 
@@ -47,8 +51,10 @@ export function readLlm(config: Config): LlmSettings | undefined {
 }
 
 /**
- * Detect a provider from API keys present in the environment. Anthropic is the
- * only provider local execution supports, so only ANTHROPIC_API_KEY counts.
+ * Detect the saved-key provider from the environment: ANTHROPIC_API_KEY is the
+ * only key this config section routes, so it is the only one that counts here.
+ * Other providers' keys reach the runner by inheritance and are judged by the
+ * reach rule (provider-reach.ts), not by this.
  */
 export function detectProviderFromEnv(env: NodeJS.ProcessEnv = process.env): string {
   if (env.ANTHROPIC_API_KEY) return "anthropic";

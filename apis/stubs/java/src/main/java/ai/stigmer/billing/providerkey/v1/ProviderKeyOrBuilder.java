@@ -213,4 +213,25 @@ public interface ProviderKeyOrBuilder extends
    */
   com.google.protobuf.ByteString
       getBaseUrlBytes();
+
+  /**
+   * <pre>
+   * Whether the provider confirmed the key when it was saved (updated_at).
+   * Unspecified on a key saved before the outcome was recorded.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+   * @return The enum numeric value on the wire for check.
+   */
+  int getCheckValue();
+  /**
+   * <pre>
+   * Whether the provider confirmed the key when it was saved (updated_at).
+   * Unspecified on a key saved before the outcome was recorded.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+   * @return The check.
+   */
+  ai.stigmer.billing.providerkey.v1.ProviderKeyCheck getCheck();
 }

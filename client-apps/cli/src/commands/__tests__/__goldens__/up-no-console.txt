@@ -1,0 +1,11 @@
+Starting Stigmer local stack… (first run may take a moment)
+✓ Stigmer local stack is up
+
+Endpoints:
+  server    http://localhost:7234
+
+Agents:
+  ready    anthropic (gateway)
+
+  Check status with: stigmer status
+  Stop it with:    stigmer down

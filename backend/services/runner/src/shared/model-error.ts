@@ -119,7 +119,7 @@ export function classifyModelCallError(
     const missing = callerCtx.provider ? `${providerLabel(callerCtx)} key` : "key for this model's provider";
     return {
       code: "LLM_PROVIDER_KEY_REQUIRED",
-      message: `This organization has no ${missing}. An admin can add one in Settings → Provider keys.`,
+      message: `This organization has no ${missing}. An admin can add one on the Models & providers page.`,
     };
   }
 
@@ -267,7 +267,7 @@ function classifyOrganizationKeyError(
       code: "LLM_PROVIDER_BILLING",
       message:
         `Your organization's own ${providerLabel(ctx)} key is out of credits or over quota. ` +
-        `Add credits to that provider account, or update the key in Settings → Provider keys. ` +
+        `Add credits to that provider account, or update the key on the Models & providers page. ` +
         `Provider message: ${message}`,
     };
   }
@@ -279,7 +279,7 @@ function classifyOrganizationKeyError(
       code: "LLM_AUTHENTICATION_ERROR",
       message:
         `${provider} rejected your organization's own key (authentication, HTTP 401) for ${modelLabel(ctx)}. ` +
-        `Update the key in Settings → Provider keys.`,
+        `Update the key on the Models & providers page.`,
     };
   }
   if (status === 403) {
@@ -287,7 +287,7 @@ function classifyOrganizationKeyError(
       code: "LLM_PERMISSION_DENIED",
       message:
         `${provider} denied your organization's own key (authorization, HTTP 403) for ${modelLabel(ctx)}. ` +
-        `Check that the key's account may use this model, or update the key in Settings → Provider keys.`,
+        `Check that the key's account may use this model, or update the key on the Models & providers page.`,
     };
   }
   return undefined;

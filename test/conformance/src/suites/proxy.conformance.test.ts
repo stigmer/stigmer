@@ -61,7 +61,7 @@ const fixtures = new FixtureTracker();
 
 const EXECUTION_HEADER = "x-stigmer-execution-id";
 const PROVIDER_KEY_REQUIRED_SENTINEL = "STIGMER_PROVIDER_KEY_REQUIRED";
-const CURSOR_KEY_REQUIRED_COPY = "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
+const CURSOR_KEY_REQUIRED_COPY = "This organization has no Cursor key. An admin can add one in Models & providers.";
 const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 
 // An org holding the fixture provider keys (CONFORMANCE_PROVIDER_KEYS): every

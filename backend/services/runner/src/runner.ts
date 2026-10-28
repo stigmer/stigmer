@@ -268,7 +268,7 @@ async function buildStigmerRunner(
   const runnerTokenRef: TokenRef = { current: null };
   const bootConfig = mapOptionsToConfig(options, tokenRef, runnerTokenRef);
 
-  assertLlmBackendsPreflight(bootConfig.proxyEndpoint);
+  assertLlmBackendsPreflight(bootConfig.proxyEndpoint, bootConfig.cursorApiKey);
 
   // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
   // discovery dials the control plane through connect-node, which snapshots

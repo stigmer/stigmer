@@ -223,5 +223,24 @@
       ]
     }
   ],
-  "resourceDescription": "An organization's own model provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider, where the provider\n names the wire protocol: \"anthropic\" is Anthropic's API or any endpoint\n that speaks it, \"openai\" is OpenAI's API or any endpoint that speaks it,\n and \"cursor\" is Cursor, which serves the cursor harness. A Cursor key is\n a Cursor user API key or a team service-account API key (Cursor's SDK\n refuses Team Admin keys); Cursor bills it to that user's plan or to the\n team, and it takes no base URL.\n\n The Stigmer Cloud proxy serves every one of the organization's calls to\n that provider on this key, on every plan, and on no other: a run that\n needs a provider the organization holds no key for (by its model, or a\n cursor-harness run needing \"cursor\") is refused with FAILED_PRECONDITION,\n reason PROVIDER_KEY_REQUIRED. The provider bills the organization\n directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
+  "enumTypes": [
+    {
+      "name": "ProviderKeyCheck",
+      "description": "The outcome of the check a save makes with the provider.\n\n A save asks the provider once whether it accepts the key. A refusal (the\n provider's 401 or 403) refuses the save; any other answer, or none,\n saves the key unchecked, and its first run says whether it works.",
+      "protoType": "ai.stigmer.billing.providerkey.v1.ProviderKeyCheck",
+      "values": [
+        {
+          "name": "checked",
+          "number": 1,
+          "description": "The provider accepted the key."
+        },
+        {
+          "name": "unchecked",
+          "number": 2,
+          "description": "The provider could not be asked or did not answer plainly; the key was\n saved without its confirmation."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "An organization's own model provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider, where the provider\n names the wire protocol: \"anthropic\" is Anthropic's API or any endpoint\n that speaks it, \"openai\" is OpenAI's API or any endpoint that speaks it,\n and \"cursor\" is Cursor, which serves the cursor harness. A Cursor key is\n a Cursor user API key or a team service-account API key (Cursor's SDK\n refuses Team Admin keys); Cursor bills it to that user's plan or to the\n team, and it takes no base URL.\n\n The Stigmer Cloud proxy serves every one of the organization's calls to\n that provider on this key, on every plan, and on no other: a run that\n needs a provider the organization holds no key for (by its model, or a\n cursor-harness run needing \"cursor\") is refused with FAILED_PRECONDITION,\n reason PROVIDER_KEY_REQUIRED, and PlatformQueryController.getModelReadiness\n says so before a run is tried. The provider bills the organization\n directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
 }

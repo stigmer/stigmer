@@ -129,7 +129,7 @@ describe("Run provider-error attribution (proxy mode)", () => {
     expect(error, `the stable provider-billing code (status.error was: ${error})`).toContain(PROVIDER_BILLING_CODE);
     expect(error, "the failure is the organization's own Anthropic account").toContain(
       "Your organization's own Anthropic key is out of credits or over quota. " +
-        "Add credits to that provider account, or update the key in Settings → Provider keys. Provider message: ",
+        "Add credits to that provider account, or update the key on the Models & providers page. Provider message: ",
     );
     // Anthropic's console prose is quoted after the classifier's wording, never in its place.
     const quoted = error.indexOf("Provider message: ");

@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.v1;
+
+import "ai/stigmer/agentic/session/v1/enum.proto";
+import "buf/validate/validate.proto";
+
+option java_outer_classname = "ModelReadinessProto";
+
+// Where one model provider stands for an organization: whether a run that
+// needs it is started, and if not, what is missing it.
+//
+// A run that needs a provider whose availability is missing_from_organization
+// or missing_from_runners is refused at create with FAILED_PRECONDITION,
+// ErrorInfo reason PROVIDER_KEY_REQUIRED, metadata org, provider and model.
+// The same rule and the same answer decide both, so what a client is told
+// before a run and what create refuses cannot disagree.
+enum ProviderAvailability {
+  provider_availability_unspecified = 0;
+
+  // The organization's own key serves the provider.
+  served_by_organization = 1;
+
+  // The parent organization's key serves the provider, because this
+  // organization holds none of its own for it. parent_org names the parent.
+  served_by_parent_organization = 2;
+
+  // The runners this server hands its runs to reach the provider: a key
+  // their operator gave them, a cloud backend, a gateway or a proxy.
+  served_by_runners = 3;
+
+  // No key serves the provider for this organization. An admin of the
+  // organization adds one.
+  missing_from_organization = 4;
+
+  // This server's runners do not reach the provider. Whoever runs the
+  // runners gives them a key (on a laptop, `stigmer setup`).
+  missing_from_runners = 5;
+
+  // The server cannot tell: its runners are configured where they run and
+  // it was not told what they reach. Nothing is refused for the provider;
+  // the runner's own error is the answer.
+  availability_unknown = 6;
+}
+
+// Input for getModelReadiness.
+message GetModelReadinessInput {
+  // The organization the answer is for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // A model to judge beside the catalog's, such as one the catalog does not
+  // list (`openai:<name>` on the organization's own endpoint). Optional.
+  ModelOnEngine model = 2;
+}
+
+// A model on the engine that runs it.
+message ModelOnEngine {
+  // The engine; unspecified is the platform default, native.
+  ai.stigmer.agentic.session.v1.Harness harness = 1;
+
+  // The model reference as a run names it.
+  string model = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// One provider's standing for the organization.
+message ProviderReadiness {
+  // The provider's name: "anthropic", "openai" or "cursor", the names
+  // provider keys are saved under.
+  string provider = 1;
+
+  ProviderAvailability availability = 2;
+
+  // The parent organization whose key serves this one; set only with
+  // served_by_parent_organization.
+  string parent_org = 3;
+}
+
+// Whether one model on one engine can run for the organization.
+message ModelReadiness {
+  ai.stigmer.agentic.session.v1.Harness harness = 1;
+
+  // The model's canonical id, or the reference the input named.
+  string model = 2;
+
+  // The provider a run of this model on this engine needs. Empty when the
+  // server judges none (a native model whose provider no key serves, which
+  // the runner reaches on its own); availability is then
+  // availability_unknown.
+  string provider = 3;
+
+  // The availability of `provider`, as `providers` reports it.
+  ProviderAvailability availability = 4;
+}
+
+// Which providers serve the organization, and which models can run.
+message GetModelReadinessOutput {
+  // Every provider, in the server's order (anthropic, openai, cursor).
+  repeated ProviderReadiness providers = 1;
+
+  // Every model the catalog lists on every engine this platform offers, in
+  // engine order, then in the catalog's sorted order within an engine.
+  repeated ModelReadiness models = 2;
+
+  // The input's model, judged; unset when the input named none.
+  ModelReadiness judged = 3;
+}

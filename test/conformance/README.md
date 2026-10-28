@@ -1000,6 +1000,18 @@ missing golden fails rather than being written. The cloud execution config
 excludes the file: the cloud composition's bare agent is a different
 photograph, not a missing capability.
 
+`run-admission` holds what `getModelReadiness` reports to what run create
+does, model by model. On the cloud targets (`billingGates`) the answer is the
+organization's own keys; on open source it is what the runners are declared
+to reach (`STIGMER_RUNNER_PROVIDERS`), so where
+`CapabilityFlags.runnerProviderDeclaration` is true (the local execution
+targets) the facet boots a sibling, with its own Temporal and no runner,
+declared to reach Anthropic alone: every model reported missing is refused
+`PROVIDER_KEY_REQUIRED` naming its provider, every other one is admitted.
+The plain local targets cannot hold it: with no engine, the engine gate
+refuses a run create before the provider check runs. The answer's shape on
+every edition is `platform.conformance.test.ts`'s.
+
 ## Layout
 
 ```

@@ -103,6 +103,7 @@ import type { Store } from "../../store/interface.js";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
+import type { ProviderAvailabilityProvider } from "../../extensions/provider-availability.js";
 
 import {
   getArtifactContent,
@@ -172,6 +173,7 @@ import { updateStatus } from "./update-status.js";
 import { newResolveRunConfigStep } from "./resolve-run-config.js";
 import { newValidateServiceTierStep } from "./validate-service-tier.js";
 import { newRefuseUnofferedEngineStep } from "./refuse-unoffered-engine.js";
+import { newRequireModelProviderStep } from "./require-model-provider.js";
 import { newValidateThinkingModeStep } from "./validate-thinking-mode.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
@@ -260,6 +262,12 @@ export interface AgentExecutionControllerDeps {
    * read it at create.
    */
   readonly modelRegistry: ModelCatalogProvider;
+  /**
+   * Which model providers serve an organization (the composed
+   * provider-availability point): RequireModelProvider refuses a turn
+   * whose provider it reports missing.
+   */
+  readonly providerAvailability: ProviderAvailabilityProvider;
   /** The shared artifact blob store (a run's artifact reads). */
   readonly artifactStorage: ArtifactStorage;
   /** The File store's bytes: a turn's files become the conversation's own (domain/file/message-files.ts). */
@@ -514,6 +522,14 @@ function runAdmissionChain(
     builder.addStep(step);
   }
   return builder
+    .addStep(
+      newRequireModelProviderStep({
+        catalog: deps.modelRegistry,
+        availability: deps.providerAvailability,
+        visitorClassifier: deps.visitorClassifier,
+        logger: deps.logger,
+      }),
+    )
     .addStep(
       newCreateSessionIfNeededStep({
         logger: deps.logger,

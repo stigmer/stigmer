@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PlatformQueryController_GetServerInfo_FullMethodName            = "/ai.stigmer.platform.v1.PlatformQueryController/getServerInfo"
 	PlatformQueryController_GetLicenseStatus_FullMethodName         = "/ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus"
+	PlatformQueryController_GetModelReadiness_FullMethodName        = "/ai.stigmer.platform.v1.PlatformQueryController/getModelReadiness"
 	PlatformQueryController_GetRunnerBootstrapConfig_FullMethodName = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig"
 	PlatformQueryController_GetRunnerScopedToken_FullMethodName     = "/ai.stigmer.platform.v1.PlatformQueryController/getRunnerScopedToken"
 )
@@ -42,6 +43,9 @@ const (
 // Signed-in clients call getLicenseStatus to learn the state of the
 // license the server holds; every edition answers, and only an Enterprise
 // deployment ever answers anything but absent.
+//
+// Signed-in members call getModelReadiness to learn which models can run in
+// their organization before they start a run.
 type PlatformQueryControllerClient interface {
 	// Returns the server edition and version.
 	//
@@ -64,6 +68,25 @@ type PlatformQueryControllerClient interface {
 	// (the console banner), and unlike getServerInfo it is not public because
 	// a license names its customer. The handler performs no further check.
 	GetLicenseStatus(ctx context.Context, in *GetLicenseStatusInput, opts ...grpc.CallOption) (*GetLicenseStatusOutput, error)
+	// Returns which model providers serve an organization and, for every model
+	// on every engine, whether a run of it would start.
+	//
+	// A run needs one provider: a Cursor run needs Cursor whatever its model,
+	// a Claude run needs Anthropic, and a native run needs its model's
+	// provider. A run whose provider is missing is refused at create with
+	// FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+	// answer is read from, so a client can mark a model and hold Send before
+	// the person tries.
+	//
+	// Every edition answers. On Stigmer Cloud a provider is served by the
+	// organization's own key or its parent organization's. On a server whose
+	// runners are its own processes it is served by what the runners reach,
+	// as the operator declared it (on a laptop, `stigmer up` declares it), and
+	// unknown when nothing was declared.
+	//
+	// Any member of the organization may ask, because a member about to start
+	// a run needs the answer; a guest never can.
+	GetModelReadiness(ctx context.Context, in *GetModelReadinessInput, opts ...grpc.CallOption) (*GetModelReadinessOutput, error)
 	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
@@ -128,6 +151,16 @@ func (c *platformQueryControllerClient) GetLicenseStatus(ctx context.Context, in
 	return out, nil
 }
 
+func (c *platformQueryControllerClient) GetModelReadiness(ctx context.Context, in *GetModelReadinessInput, opts ...grpc.CallOption) (*GetModelReadinessOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetModelReadinessOutput)
+	err := c.cc.Invoke(ctx, PlatformQueryController_GetModelReadiness_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *platformQueryControllerClient) GetRunnerBootstrapConfig(ctx context.Context, in *GetRunnerBootstrapConfigInput, opts ...grpc.CallOption) (*GetRunnerBootstrapConfigOutput, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRunnerBootstrapConfigOutput)
@@ -165,6 +198,9 @@ func (c *platformQueryControllerClient) GetRunnerScopedToken(ctx context.Context
 // Signed-in clients call getLicenseStatus to learn the state of the
 // license the server holds; every edition answers, and only an Enterprise
 // deployment ever answers anything but absent.
+//
+// Signed-in members call getModelReadiness to learn which models can run in
+// their organization before they start a run.
 type PlatformQueryControllerServer interface {
 	// Returns the server edition and version.
 	//
@@ -187,6 +223,25 @@ type PlatformQueryControllerServer interface {
 	// (the console banner), and unlike getServerInfo it is not public because
 	// a license names its customer. The handler performs no further check.
 	GetLicenseStatus(context.Context, *GetLicenseStatusInput) (*GetLicenseStatusOutput, error)
+	// Returns which model providers serve an organization and, for every model
+	// on every engine, whether a run of it would start.
+	//
+	// A run needs one provider: a Cursor run needs Cursor whatever its model,
+	// a Claude run needs Anthropic, and a native run needs its model's
+	// provider. A run whose provider is missing is refused at create with
+	// FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
+	// answer is read from, so a client can mark a model and hold Send before
+	// the person tries.
+	//
+	// Every edition answers. On Stigmer Cloud a provider is served by the
+	// organization's own key or its parent organization's. On a server whose
+	// runners are its own processes it is served by what the runners reach,
+	// as the operator declared it (on a laptop, `stigmer up` declares it), and
+	// unknown when nothing was declared.
+	//
+	// Any member of the organization may ask, because a member about to start
+	// a run needs the answer; a guest never can.
+	GetModelReadiness(context.Context, *GetModelReadinessInput) (*GetModelReadinessOutput, error)
 	// Returns everything an embedded runner needs to bootstrap itself.
 	//
 	// An embedded runner (a desktop or web app hosting the runner for local
@@ -235,6 +290,9 @@ func (UnimplementedPlatformQueryControllerServer) GetServerInfo(context.Context,
 }
 func (UnimplementedPlatformQueryControllerServer) GetLicenseStatus(context.Context, *GetLicenseStatusInput) (*GetLicenseStatusOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLicenseStatus not implemented")
+}
+func (UnimplementedPlatformQueryControllerServer) GetModelReadiness(context.Context, *GetModelReadinessInput) (*GetModelReadinessOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetModelReadiness not implemented")
 }
 func (UnimplementedPlatformQueryControllerServer) GetRunnerBootstrapConfig(context.Context, *GetRunnerBootstrapConfigInput) (*GetRunnerBootstrapConfigOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRunnerBootstrapConfig not implemented")
@@ -298,6 +356,24 @@ func _PlatformQueryController_GetLicenseStatus_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformQueryController_GetModelReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelReadinessInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformQueryControllerServer).GetModelReadiness(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformQueryController_GetModelReadiness_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformQueryControllerServer).GetModelReadiness(ctx, req.(*GetModelReadinessInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PlatformQueryController_GetRunnerBootstrapConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRunnerBootstrapConfigInput)
 	if err := dec(in); err != nil {
@@ -348,6 +424,10 @@ var PlatformQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getLicenseStatus",
 			Handler:    _PlatformQueryController_GetLicenseStatus_Handler,
+		},
+		{
+			MethodName: "getModelReadiness",
+			Handler:    _PlatformQueryController_GetModelReadiness_Handler,
 		},
 		{
 			MethodName: "getRunnerBootstrapConfig",

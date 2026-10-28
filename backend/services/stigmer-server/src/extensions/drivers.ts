@@ -68,6 +68,7 @@ import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { GuestTokenMinting } from "./guest-token-minting.js";
 import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
+import type { ProviderAvailabilityProvider } from "./provider-availability.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { MeteredUsageProvider } from "./metered-usage.js";
@@ -293,6 +294,16 @@ export interface ExtensionDrivers {
    * way (extensions/license-status.ts carries the contract).
    */
   readonly licenseStatus?: LicenseStatusProvider;
+  /**
+   * The provider-availability provider (single-instance point): which model
+   * providers serve an organization's runs, answered by
+   * PlatformQueryController.getModelReadiness and enforced at run create by
+   * RequireModelProvider. Stigmer Cloud registers the one that reads the
+   * organization's own keys; when absent, the built-in answer from
+   * STIGMER_RUNNER_PROVIDERS installs at the compose.ts consumption site
+   * (extensions/provider-availability.ts carries the contract).
+   */
+  readonly providerAvailability?: ProviderAvailabilityProvider;
   /**
    * The outbound-egress policy (single-instance point): which addresses
    * this edition's control plane may dial when it reaches a URL a user

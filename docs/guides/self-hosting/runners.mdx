@@ -94,8 +94,9 @@ You never edit the compose file or the chart.
 | The runner's own state                       | The `runner-data` volume              | The `stigmer-runner-data` claim      | The release. Checkpoints and Agents' working directories, not backup state. |
 | The runner's own API key                     | `STIGMER_TOKEN`                       | `runner.stigmerToken.existingSecret` | You, once [authentication is on](./authentication#give-the-runner-its-key). |
 | The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                  | `server.publicUrl`                   | You, when clients reach the API anywhere but this machine's port.           |
+| Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`) | You, so the console and create know which models can run.                   |
 
-Four of these rows carry a design decision worth knowing.
+Five of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
 setting for it. Agents on the native Harness need `ANTHROPIC_API_KEY`; Agents on
@@ -107,6 +108,16 @@ runs as a user of its own, and the runner makes each model call for it, so
 nothing an Agent runs can read the key by any path (**Root, `HOME` and Node
 settings**, below). The [all-in-one container](./all-in-one) is the exception:
 it runs `stigmer up` as one user, as on your own machine.
+
+**The server is told which providers the runners reach, never their keys.**
+`STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from
+`anthropic`, `openai` and `cursor` (`anthropic,cursor`), matching the keys you
+gave the runners. The console's **Models & providers** page and model picker
+read it, and a run on a provider left off the list is refused before it starts,
+with copy that says so. Left unset, the server cannot tell, so every provider
+shows as configured where the runner runs and nothing is refused: the runner's
+own error names a missing key. A name that is not a provider stops the server at
+boot. On your own machine `stigmer up` sets it for you.
 
 **File storage is shared by disk, not by HTTP.** The server writes a stored file
 to a path and the runner reads the same path, so the two must see one disk. That

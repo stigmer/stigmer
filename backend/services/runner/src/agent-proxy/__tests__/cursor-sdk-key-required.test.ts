@@ -32,7 +32,7 @@ const RUNNER_TOKEN = "runner-token-key-required";
 const EXECUTION = "aex-key-required";
 const TURN_KEY = "turn-key-key-required";
 const CHILD = fileURLToPath(new URL("../../__test-utils__/cursor-sdk-wire-child.ts", import.meta.url));
-const NO_KEY = "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
+const NO_KEY = "This organization has no Cursor key. An admin can add one on the Models & providers page.";
 
 interface Seen {
   readonly method: string;

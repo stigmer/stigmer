@@ -81,7 +81,7 @@ let script: Script;
 
 /** Admission's refusal of a run whose organization has no key for its model. */
 const KEYLESS_COPY =
-  "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.";
+  "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Models & providers.";
 
 function cells(count: number): SuiteCell[] {
   return Array.from({ length: count }, (_, index) => ({

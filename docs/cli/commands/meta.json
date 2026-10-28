@@ -43,6 +43,7 @@
     "completion",
     "config",
     "marketplace",
+    "provider-key",
     "service-account",
     "version"
   ]
