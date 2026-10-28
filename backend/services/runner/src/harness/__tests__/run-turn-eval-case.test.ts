@@ -67,6 +67,7 @@ vi.mock("../../shared/eval-case/mock-endpoint.js", () => ({
     return Promise.resolve({
       servers: [],
       listed: [],
+      offered: [],
       bind: (binding: MockEndpointBinding) => {
         fakes.bindings.push(binding);
         fakes.onBound?.(binding);

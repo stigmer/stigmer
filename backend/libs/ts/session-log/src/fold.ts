@@ -539,6 +539,10 @@ export class SessionLog {
           backgroundOf(tool).stopRequested = true;
         });
         break;
+      case "stigmerMcpToolDefinition":
+        // How the model was offered a tool, for a reader of the log (an eval
+        // case built from the turn); no view shows it.
+        break;
       case "sessionThreadCreated": {
         const thread = this.threadOf(this.turnOf(runId), e.value.sessionThreadId);
         thread.agentName = e.value.agentName;

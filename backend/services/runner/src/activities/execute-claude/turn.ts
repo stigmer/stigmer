@@ -214,6 +214,7 @@ async function connectTools(input: TurnInput, sink: TurnSink, specs: readonly Su
   const { servers, inScope } = bridgeServersOf(input, specs);
   if (servers.length > 0) await sink.reportProgress("Connecting tools…");
   const bridge = await connectBridge(servers, inScope, input.mcp.platformServerSlugs);
+  sink.transcript.offerTools(bridge.listing.offered);
   sink.setupTiming.mark("connect_mcp");
   sink.recordActivity();
   return bridge;

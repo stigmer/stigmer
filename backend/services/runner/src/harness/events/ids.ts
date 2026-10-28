@@ -14,6 +14,8 @@
  *   permission asked ... <tool use>.ask
  *   background command . <tool use>.bg, its end <tool use>.bg.end (the
  *                        command the tool use started in the background)
+ *   tool definition .... <run>.def.h<hash>         (one per MCP server and tool,
+ *                        the hash of `<server>/<tool>`)
  *   message ............ <run>.<scope>.m<index>
  *   thinking ........... <run>.<scope>.t<index>, its text <...>.text
  *   harness note ....... <run>.<scope>.n<index>
@@ -105,6 +107,18 @@ export function backgroundRunningEventId(toolUseId: string): string {
 /** The `stigmer.background_command.status` that says how that command ended. */
 export function backgroundEndedEventId(toolUseId: string): string {
   return `${toolUseId}.bg.end`;
+}
+
+/**
+ * The `stigmer.mcp.tool_definition` of one MCP tool in a run: one per
+ * server and tool, whichever call of it comes first, so a resumed
+ * invocation that calls the tool again names the definition the log
+ * already holds. The `/` joining the two names is outside the id pattern,
+ * so the pair is always hashed and no two pairs share an id.
+ */
+export function toolDefinitionEventId(runId: string, server: string, tool: string): string {
+  const prefix = `${runId}.def`;
+  return `${prefix}.${segment(prefix, `${server}/${tool}`)}`;
 }
 
 /** The prefix every message, thinking and note of one scope shares. */

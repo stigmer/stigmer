@@ -34,7 +34,7 @@ import { MEMORY_EXECUTION_ID_HEADER, MEMORY_ROUTE } from "../../../../shared/mem
 import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { anthropicText, anthropicToolUses, type WireConversation } from "../../__test-utils__/claude-wire.js";
 import { FIXTURE, claudeExecutionRecord, claudeScenarioFile, type ClaudeScenarioFile } from "../../__test-utils__/hermetic-claude.js";
-import { HttpMcpServer } from "../../__test-utils__/http-mcp-server.js";
+import { HttpMcpServer } from "../../../../__test-utils__/http-mcp-server.js";
 
 const SECRET = "hermetic-mcp-login-5f2b9c";
 const GOLDEN = "./goldens/mcp-servers.status.json";

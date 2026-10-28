@@ -858,6 +858,18 @@
           "description": "A person asked to stop a command running in the background.",
           "required": false,
           "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerMcpToolDefinition",
+          "jsonName": "stigmerMcpToolDefinition",
+          "protoField": "stigmer_mcp_tool_definition",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerMcpToolDefinitionEvent"
+          },
+          "description": "An MCP tool the turn called, as the model was offered it: its\n description and input schema.",
+          "required": false,
+          "oneofGroup": "event"
         }
       ]
     },

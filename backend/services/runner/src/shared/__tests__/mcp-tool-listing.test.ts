@@ -3,7 +3,12 @@
  *   - a turn's listing (`listTurnTools`) asks only plugin servers, never the
  *     platform's own, collects each server's destructive marks by server, and
  *     names a server whose listing failed in `unlisted` (and not in
- *     `listed`), so the approval default asks before every one of its tools;
+ *     `listed`), so the approval default asks before every one of its tools,
+ *     and offers each listed tool's description and schema for the turn's
+ *     record;
+ *   - a recorded definition (`definitionOf`) copies the schema, keeps one of
+ *     exactly the cap in UTF-8 bytes and omits one a byte over, keeping its
+ *     name and description;
  *   - one server's listing (`listServerTools`) marks a tool destructive only
  *     for an explicit `destructiveHint: true` and closes its client even when
  *     the listing fails;
@@ -16,6 +21,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { detectOAuthChallenge, OAuthRequiredError } from "../mcp-oauth-detect.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import {
+  MAX_RECORDED_SCHEMA_BYTES,
+  definitionOf,
   initTimeoutMessageFor,
   initTimeoutMsFor,
   listServerTools,
@@ -53,8 +60,11 @@ function pluginServer(slug: string, overrides: Partial<ResolvedMcpServer> = {}):
   };
 }
 
+/** The schema every listed tool of these tests offers. */
+const SCHEMA = { type: "object", properties: { id: { type: "string" } }, required: ["id"] };
+
 function tool(name: string, destructive = false): ListedTool {
-  return { name, description: "", destructive };
+  return { name, description: `${name} things`, inputSchema: SCHEMA, destructive };
 }
 
 beforeEach(() => {
@@ -80,6 +90,12 @@ describe("listTurnTools", () => {
         { server: "plugin_b_api", tool: "wipe" },
       ],
       unlisted: [],
+      offered: [
+        { server: "plugin_a_api", name: "read", description: "read things", inputSchema: SCHEMA, schemaOmitted: false },
+        { server: "plugin_a_api", name: "drop", description: "drop things", inputSchema: SCHEMA, schemaOmitted: false },
+        { server: "plugin_b_api", name: "drop", description: "drop things", inputSchema: SCHEMA, schemaOmitted: false },
+        { server: "plugin_b_api", name: "wipe", description: "wipe things", inputSchema: SCHEMA, schemaOmitted: false },
+      ],
     });
   });
 
@@ -103,13 +119,60 @@ describe("listTurnTools", () => {
 
     expect(list.mock.calls.map(([server]) => server.slug)).toEqual(["plugin_a_api"]);
     expect(listing.listed.map(({ server }) => server)).toEqual(["plugin_a_api"]);
+    expect(listing.offered.map(({ server }) => server), "nor offers them for the turn's record").toEqual(["plugin_a_api"]);
     expect(listing.unlisted).toEqual([]);
   });
 
   it("lists nothing for a turn without plugin servers", async () => {
     const list = vi.fn(async (): Promise<readonly ListedTool[]> => []);
-    expect(await listTurnTools([], list)).toEqual({ listed: [], destructive: [], unlisted: [] });
+    expect(await listTurnTools([], list)).toEqual({ listed: [], destructive: [], unlisted: [], offered: [] });
     expect(list).not.toHaveBeenCalled();
+  });
+});
+
+describe("definitionOf", () => {
+  it("records the schema as a copy of its JSON, so a later change to the listed schema is not recorded", () => {
+    const schema: Record<string, unknown> = { type: "object", properties: { repoName: { type: "string" } } };
+    const definition = definitionOf("deepwiki", "ask_question", "Ask about a repository.", schema);
+    schema.properties = {};
+
+    expect(definition).toEqual({
+      server: "deepwiki",
+      name: "ask_question",
+      description: "Ask about a repository.",
+      inputSchema: { type: "object", properties: { repoName: { type: "string" } } },
+      schemaOmitted: false,
+    });
+  });
+
+  it("keeps a schema of exactly the cap and omits one a byte over, keeping the name and description", () => {
+    const sized = (bytes: number) => {
+      const shell = JSON.stringify({ type: "object", description: "" }).length;
+      return { type: "object", description: "x".repeat(bytes - shell) };
+    };
+    expect(JSON.stringify(sized(MAX_RECORDED_SCHEMA_BYTES)).length).toBe(MAX_RECORDED_SCHEMA_BYTES);
+
+    expect(definitionOf("s", "t", "d", sized(MAX_RECORDED_SCHEMA_BYTES)).schemaOmitted).toBe(false);
+    expect(definitionOf("s", "t", "d", sized(MAX_RECORDED_SCHEMA_BYTES + 1))).toEqual({
+      server: "s",
+      name: "t",
+      description: "d",
+      inputSchema: undefined,
+      schemaOmitted: true,
+    });
+  });
+
+  it("measures the cap in UTF-8 bytes, not characters", () => {
+    const shell = JSON.stringify({ description: "" }).length;
+    const wide = { description: "é".repeat((MAX_RECORDED_SCHEMA_BYTES - shell) / 2 + 1) };
+    expect(JSON.stringify(wide).length).toBeLessThan(MAX_RECORDED_SCHEMA_BYTES);
+    expect(definitionOf("s", "t", "d", wide).schemaOmitted).toBe(true);
+  });
+
+  it("leaves out a schema that is not a JSON object without calling it omitted", () => {
+    for (const schema of [undefined, null, "object", ["a"]]) {
+      expect(definitionOf("s", "t", "d", schema), String(schema)).toEqual({ server: "s", name: "t", description: "d", inputSchema: undefined, schemaOmitted: false });
+    }
   });
 });
 
@@ -119,7 +182,7 @@ describe("listServerTools", () => {
     mcp.getClient.mockResolvedValue({
       listTools: vi.fn().mockResolvedValue({
         tools: [
-          { name: "drop_table", description: "Drops", annotations: { destructiveHint: true } },
+          { name: "drop_table", description: "Drops", inputSchema: { type: "object" }, annotations: { destructiveHint: true } },
           { name: "spoofed", annotations: { destructiveHint: true, readOnlyHint: true } },
           { name: "read_rows", annotations: { readOnlyHint: true } },
           { name: "unannotated" },
@@ -128,7 +191,7 @@ describe("listServerTools", () => {
     });
 
     expect(await listServerTools(pluginServer("plugin_a_api"))).toEqual([
-      { name: "drop_table", description: "Drops", destructive: true },
+      { name: "drop_table", description: "Drops", inputSchema: { type: "object" }, destructive: true },
       { name: "spoofed", description: "", destructive: true },
       { name: "read_rows", description: "", destructive: false },
       { name: "unannotated", description: "", destructive: false },

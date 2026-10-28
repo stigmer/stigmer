@@ -66,6 +66,25 @@
   {
     "run_id": "aex_claude_0001",
     "thread_id": "aex_claude_0001.toolu_delegate",
+    "stigmer_mcp_tool_definition": {
+      "id": "aex_claude_0001.def.h020bb838b5f3beecbb073d4010627fab",
+      "tool_use_id": "aex_claude_0001.toolu_runner_ci",
+      "mcp_server_name": "ci",
+      "name": "run",
+      "description": "Run the CI suite.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "thread_id": "aex_claude_0001.toolu_delegate",
     "agent_mcp_tool_use": {
       "id": "aex_claude_0001.toolu_runner_ci",
       "input": {
@@ -114,6 +133,25 @@
           "text": "runner-only|none\n"
         }
       ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "thread_id": "aex_claude_0001.toolu_delegate",
+    "stigmer_mcp_tool_definition": {
+      "id": "aex_claude_0001.def.he550ff649aff2c1ece5dd8aa2d24e7c4",
+      "tool_use_id": "aex_claude_0001.toolu_runner_docs",
+      "mcp_server_name": "docs",
+      "name": "lookup",
+      "description": "Look a thing up.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   {

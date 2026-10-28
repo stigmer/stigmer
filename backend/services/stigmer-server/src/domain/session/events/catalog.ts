@@ -19,9 +19,10 @@
  * the errors it sees first, and Stigmer's other events about the turn
  * (`RUNNER_EVENT_TYPES`, append.ts), the files a turn changed and the
  * undone files it put back among them, and where an offloaded tool
- * output is stored (`stigmer.tool_result.full_output`), and the life of
+ * output is stored (`stigmer.tool_result.full_output`), the life of
  * each command the agent runs in the background
- * (`stigmer.background_command.status`). The session's and
+ * (`stigmer.background_command.status`), and each MCP tool the turn
+ * called as the model was offered it (`stigmer.mcp.tool_definition`). The session's and
  * a turn's status have one writer, the server, so a runner may never send
  * a status event; nor a
  * decision or an answer, so a runner can never forge a person's keep,
@@ -68,4 +69,5 @@ export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "stigmer.file_review.reconciled",
   "stigmer.tool_result.full_output",
   "stigmer.background_command.status",
+  "stigmer.mcp.tool_definition",
 ]);

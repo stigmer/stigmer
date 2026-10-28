@@ -111,5 +111,33 @@
       ],
       "subject": "run the tests"
     }
+  ],
+  "mcpToolDefinitions": [
+    {
+      "mcpServerSlug": "ci",
+      "name": "run",
+      "description": "Run the CI suite.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "mcpServerSlug": "docs",
+      "name": "lookup",
+      "description": "Look a thing up.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        }
+      }
+    }
   ]
 }

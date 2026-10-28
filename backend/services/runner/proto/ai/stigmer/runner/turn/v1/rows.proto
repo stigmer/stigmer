@@ -49,6 +49,31 @@ message TurnRows {
   // it. Not a row of the transcript: the starting call's own row and its
   // result are unchanged.
   repeated BackgroundCommandRow background_commands = 30;
+
+  // The MCP tools the turn called, as its engine offered them to the model,
+  // one per server and tool, in the order each was first called: the event
+  // emitter writes each one's stigmer.mcp.tool_definition from it. The
+  // platform's own servers have none.
+  repeated McpToolDefinition mcp_tool_definitions = 31;
+}
+
+// McpToolDefinition is one MCP tool as the turn's engine offered it to the
+// model. Keyed by mcp_server_slug and name.
+message McpToolDefinition {
+  // The server the tool belongs to, as ToolCall.mcp_server_slug names it.
+  string mcp_server_slug = 1;
+
+  // The tool's name, as ToolCall.name names it.
+  string name = 2;
+
+  // The tool's description.
+  string description = 3;
+
+  // The tool's input schema (JSON Schema); unset when input_schema_omitted.
+  google.protobuf.Struct input_schema = 4;
+
+  // Whether the input schema was over the size the runner records.
+  bool input_schema_omitted = 5;
 }
 
 // BackgroundCommandRow is one command the agent started in the background,

@@ -48,7 +48,7 @@ import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/e
 import { unattendedSkipMessage } from "../../../../shared/approval-policy.js";
 import { anthropicText, anthropicToolUses, type WireConversation } from "../../__test-utils__/claude-wire.js";
 import { FIXTURE, claudeExecutionRecord, claudeScenarioFile, sessionWorkspaceDir, type ClaudeScenarioFile } from "../../__test-utils__/hermetic-claude.js";
-import { HttpMcpServer } from "../../__test-utils__/http-mcp-server.js";
+import { HttpMcpServer } from "../../../../__test-utils__/http-mcp-server.js";
 import { ACME_CLIENT, HELPER_INSTRUCTIONS, LINT_BODY, useAcme } from "../../__test-utils__/hermetic-plugin.js";
 import { SUBAGENT_APPROVAL_MESSAGE, helperOverrideMessage, unknownHelperMessage } from "../../gate.js";
 

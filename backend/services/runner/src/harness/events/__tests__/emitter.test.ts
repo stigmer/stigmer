@@ -9,8 +9,9 @@
  * read, the per-event bound, previews, what a failed or refused append
  * does, and the two file-review events the runner writes (a captured
  * change set's `changes`, once; an undo's `reconciled`, at once and before
- * the engine's turn begins), and an offloaded output's full-output event
- * after its result. The hermetic event goldens prove the same through the real
+ * the engine's turn begins), an offloaded output's full-output event
+ * after its result, and an MCP tool's definition before its first use (once
+ * per server and tool in the run, never after a use the log holds). The hermetic event goldens prove the same through the real
  * activity on both harnesses.
  */
 
@@ -35,6 +36,7 @@ import {
   nextScopeIndexes,
   type SessionEventEmitterDeps,
 } from "../emitter.js";
+import { toolDefinitionEventId } from "../ids.js";
 import { AgentMessageSchema, BackgroundCommandRowSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
@@ -415,6 +417,93 @@ describe("its memory is the log", () => {
     const log = logDouble();
     await emitter(log).flush(status({ messages: [{ type: AI, content: "early" }] }), { final: true });
     expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
+  });
+});
+
+describe("an MCP tool's definition", () => {
+  const ASK = { mcpServerSlug: "deepwiki", name: "ask_question" };
+  const definitions = [
+    { ...ASK, description: "Ask about a repository.", inputSchema: { type: "object", required: ["repoName", "question"] } },
+    { mcpServerSlug: "huge", name: "query", description: "Query.", inputSchemaOmitted: true },
+  ];
+  const definitionId = (server: string, tool: string) => toolDefinitionEventId(RUN, server, tool).slice(RUN.length + 1);
+
+  it("is written just before the tool's first use, in that use's thread, and never before a later call", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = status({
+      messages: [
+        {
+          type: AI,
+          content: "Asking twice.",
+          toolCalls: [row("a1", ASK), row("a2", ASK), row("t1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" })],
+        },
+      ],
+      subAgentRuns: [
+        {
+          id: "t1",
+          name: "helper",
+          input: "look",
+          status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+          messages: [{ type: AI, content: "Querying.", toolCalls: [row("q1", { mcpServerSlug: "huge", name: "query" })] }],
+        },
+      ],
+      mcpToolDefinitions: definitions,
+    });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(st, { final: false });
+
+    const ask = definitionId("deepwiki", "ask_question");
+    const query = definitionId("huge", "query");
+    expect(ids(log)).toEqual(["root.m0", ask, "a1", "a2", "t1", "t1.created", "t1.sent", "t1.running", "t1.m0", query, "q1", "q1.r", "a1.r", "a2.r"]);
+    const [askEvent, queryEvent] = [log.events[1]!, log.events[9]!];
+    expect(askEvent.event.case === "stigmerMcpToolDefinition" && askEvent.event.value).toMatchObject({
+      toolUseId: `${RUN}.a1`,
+      mcpServerName: "deepwiki",
+      name: "ask_question",
+      description: "Ask about a repository.",
+      inputSchema: { type: "object", required: ["repoName", "question"] },
+      inputSchemaOmitted: false,
+    });
+    expect(askEvent.threadId).toBe("");
+    expect(queryEvent.threadId, "in the thread of the use it precedes").toBe(`${RUN}.t1`);
+    expect(queryEvent.event.case === "stigmerMcpToolDefinition" && queryEvent.event.value.inputSchema, "an omitted schema is unset").toBeUndefined();
+    expect(queryEvent.event.case === "stigmerMcpToolDefinition" && queryEvent.event.value.inputSchemaOmitted).toBe(true);
+    const validator = createValidator();
+    for (const event of [askEvent, queryEvent]) {
+      expect(validator.validate(SessionEventSchema, event).kind, "the contract admits it").toBe("valid");
+    }
+  });
+
+  it("is not written again by a resumed invocation that calls the tool again", async () => {
+    const log = logDouble();
+    const first = emitter(log);
+    await first.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await first.flush(status({ messages: [{ type: AI, content: "Asking.", toolCalls: [row("a1", ASK)] }], mcpToolDefinitions: definitions }), { final: true });
+
+    // The next invocation's rows are its own: the builder recorded the definition again on its first call.
+    const second = emitter(log);
+    const st = status({ messages: [{ type: AI, content: "Asking again.", toolCalls: [row("a2", ASK)] }], mcpToolDefinitions: definitions });
+    await second.begin({ sessionId: "ses_1", resumed: true, rows: create(TurnRowsSchema) });
+    await second.flush(st, { final: true });
+    expect(ids(log).filter((id) => id === definitionId("deepwiki", "ask_question"))).toHaveLength(1);
+    expect(ids(log).slice(-3)).toEqual(["root.m1", "a2", "a2.r"]);
+  });
+
+  it("never follows a tool use the log already holds, and is not written for a use with no definition", async () => {
+    const log = logDouble();
+    const first = emitter(log);
+    const asked = (init: RowInit) => row("a1", { ...ASK, status: S.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true, result: "", ...init });
+    // A turn recorded before definitions were: the use reaches the log alone.
+    await first.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await first.flush(status({ messages: [{ type: AI, content: "May I?", toolCalls: [asked({})] }] }), { final: true });
+    expect(ids(log)).toEqual(["root.m0", "a1", "a1.ask"]);
+
+    const second = emitter(log);
+    const st = status({ messages: [{ type: AI, content: "", toolCalls: [asked({ status: S.TOOL_CALL_COMPLETED, result: "ok" })] }], mcpToolDefinitions: definitions });
+    await second.begin({ sessionId: "ses_1", resumed: true, rows: st });
+    await second.flush(st, { final: true });
+    expect(ids(log)).toEqual(["root.m0", "a1", "a1.ask", "a1.r"]);
   });
 });
 

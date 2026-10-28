@@ -68,6 +68,7 @@ import {
   buildEngine,
   composeGraphInput,
   connectTools,
+  listingOfLoadedTools,
   openCheckpointer,
   readGateState,
   resolveModelName,
@@ -110,7 +111,9 @@ export async function runDeepAgentTurn(
     connection = tools.connection;
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
 
-    const gate = readGateState(input, tools);
+    const listing = listingOfLoadedTools(tools.serverToolMap, input.mcp.platformServerSlugs);
+    sink.transcript.offerTools(listing.offered);
+    const gate = readGateState(input, tools, listing);
     const engine = await buildEngine(input, sink, config, { modelName, checkpointer, workspace, tools, gate, background });
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
 

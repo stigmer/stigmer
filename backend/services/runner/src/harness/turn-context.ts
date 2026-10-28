@@ -427,7 +427,8 @@ export function isReinvocation(
  * say nothing about the engine: `stigmer.memory.recalled` is written at the
  * turn's first write whatever the engine did, and
  * `stigmer.file_review.reconciled` at the turn's start, before any engine;
- * the rest follow one of these.
+ * the rest follow one of these, or come just before one in the same write
+ * (an MCP tool's `stigmer.mcp.tool_definition`).
  */
 export const ENGINE_EVENT_TYPES = [
   "agent.message",
@@ -854,7 +855,8 @@ export async function startEvalMocks(
   const replaced = new Set(endpoint.servers.map((server) => server.slug));
   const kept = new Set(standIns.map((server) => server.slug));
   // An engine that does not read its tools' marks scopes a server's tools
-  // by the listing: a stand-in lists its mocked tools, none destructive.
+  // by the listing: a stand-in lists its mocked tools, none destructive,
+  // and offers each as its endpoint does.
   const { listing } = args.mcp;
   return {
     ...args.mcp,
@@ -869,6 +871,10 @@ export async function startEvalMocks(
             ],
             destructive: listing.destructive.filter(({ server }) => !replaced.has(server)),
             unlisted: listing.unlisted.filter((server) => !replaced.has(server)),
+            offered: [
+              ...listing.offered.filter(({ server }) => !replaced.has(server)),
+              ...endpoint.offered.filter(({ server }) => kept.has(server)),
+            ],
           },
   };
 }
