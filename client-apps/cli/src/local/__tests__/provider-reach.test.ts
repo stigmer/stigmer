@@ -58,6 +58,35 @@ describe("providerReach", () => {
     ).toEqual([{ provider: "anthropic", via: "vertex" }]);
   });
 
+  it("reaches Anthropic on Bedrock only with a region and a model map that parses", () => {
+    const bedrock = { STIGMER_ANTHROPIC_BACKEND: "bedrock", AWS_REGION: "us-east-1" };
+    expect(providerReach(bedrock)).toEqual([{ provider: "anthropic", via: "bedrock" }]);
+    expect(providerReach({ ...bedrock, STIGMER_BEDROCK_MODEL_MAP: " claude-sonnet-4.6 = arn:sonnet , , " })).toEqual([
+      { provider: "anthropic", via: "bedrock" },
+    ]);
+    expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "bedrock" })).toEqual([]);
+    for (const map of ["no-equals", "=arn:sonnet", "claude-sonnet-4.6=", "a=b,broken"]) {
+      expect(providerReach({ ...bedrock, STIGMER_BEDROCK_MODEL_MAP: map })).toEqual([]);
+    }
+  });
+
+  it("reaches Anthropic on Foundry with exactly one of its resource and its address", () => {
+    const foundry = { STIGMER_ANTHROPIC_BACKEND: "foundry" };
+    expect(providerReach({ ...foundry, ANTHROPIC_FOUNDRY_RESOURCE: "acme" })).toEqual([
+      { provider: "anthropic", via: "foundry" },
+    ]);
+    expect(providerReach({ ...foundry, ANTHROPIC_FOUNDRY_BASE_URL: "https://acme.example" })).toEqual([
+      { provider: "anthropic", via: "foundry" },
+    ]);
+    expect(
+      providerReach({ ...foundry, ANTHROPIC_FOUNDRY_RESOURCE: "acme", ANTHROPIC_FOUNDRY_BASE_URL: "https://acme.example" }),
+    ).toEqual([]);
+    expect(providerReach(foundry)).toEqual([]);
+    expect(
+      providerReach({ ...foundry, ANTHROPIC_FOUNDRY_RESOURCE: "acme", STIGMER_FOUNDRY_DEPLOYMENT_MAP: "broken" }),
+    ).toEqual([]);
+  });
+
   it("reaches nothing with no settings at all", () => {
     expect(providerReach({})).toEqual([]);
   });

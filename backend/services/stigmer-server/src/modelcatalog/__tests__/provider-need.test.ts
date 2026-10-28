@@ -46,6 +46,10 @@ describe("providerNeededBy", () => {
       model: "claude-sonnet-4.6",
     });
     expect(providerNeededBy(Harness.CLAUDE, "", catalog)).toEqual({ provider: "anthropic", model: "claude-opus-4.8" });
+    expect(providerNeededBy(Harness.CLAUDE, "", { ...catalog, defaultModel: () => undefined })).toEqual({
+      provider: "anthropic",
+      model: "",
+    });
   });
 
   it("a native turn needs its model's provider, or the default model's, on native and unspecified alike", () => {

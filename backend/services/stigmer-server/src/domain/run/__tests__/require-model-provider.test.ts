@@ -105,6 +105,32 @@ describe("RequireModelProvider", () => {
     expect(refused.findDetails(ErrorInfoSchema)[0]?.metadata).toEqual({ org: "org-acme", provider: "cursor", model: "" });
   });
 
+  it("names no model in either copy when the turn names none, and the model when it does", async () => {
+    const organization = await refusal(
+      stepAnswering({ state: "missing", scope: "organization" }),
+      turn({ engine: Harness.CURSOR }),
+    );
+    expect(organization.rawMessage).toBe(
+      "This organization has no Cursor key, so the run was not started. An admin can add one in Models & providers.",
+    );
+    const runners = await refusal(
+      stepAnswering({ state: "missing", scope: "runners" }),
+      turn({ engine: Harness.NATIVE, model: "claude-sonnet-4.6" }),
+    );
+    expect(runners.rawMessage).toBe(
+      "This server's runners have no Anthropic key for model 'claude-sonnet-4.6', so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`.",
+    );
+  });
+
+  it("passes a run that names no organization, and is named for the chain", async () => {
+    const step = stepAnswering({ state: "missing", scope: "organization" });
+    expect(step.name).toBe("RequireModelProvider");
+    const run = create(RunSchema, { status: { runConfig: { modelName: "claude-sonnet-4.6" } } });
+    const ctx = new RequestContext(RunSchema, run, testCallerIdentity(), ApiResourceKind.run);
+    ctx.set(RUN_CONFIG_PLACEMENT_KEY, { engine: Harness.NATIVE } as Partial<RunConfigPlacement>);
+    await expect(step.execute(ctx)).resolves.toBeUndefined();
+  });
+
   it("refuses a visitor with copy that names no key, and no ErrorInfo", async () => {
     const refused = await refusal(
       stepAnswering({ state: "missing", scope: "organization" }, true),

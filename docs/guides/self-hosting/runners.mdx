@@ -86,14 +86,14 @@ console has no runner page.
 Everything the runner needs arrives through the file your shape already uses.
 You never edit the compose file or the chart.
 
-| What                                         | Docker Compose (`.env`)               | Kubernetes (values file)             | Who sets it                                                                 |
-| -------------------------------------------- | ------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
-| Server address, Temporal address, queue name | Fixed in the compose file             | Fixed in the chart                   | The release. Two things named once can't drift.                             |
-| Your LLM key                                 | `ANTHROPIC_API_KEY`, `CURSOR_API_KEY` | `runner.llm.existingSecret`          | You. The runner holds it; the server never does.                            |
-| File storage                                 | The `artifacts` volume                | The `stigmer-artifacts` claim        | The release. One disk the server writes and the runner reads.               |
-| The runner's own state                       | The `runner-data` volume              | The `stigmer-runner-data` claim      | The release. Checkpoints and Agents' working directories, not backup state. |
-| The runner's own API key                     | `STIGMER_TOKEN`                       | `runner.stigmerToken.existingSecret` | You, once [authentication is on](./authentication#give-the-runner-its-key). |
-| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                  | `server.publicUrl`                   | You, when clients reach the API anywhere but this machine's port.           |
+| What                                         | Docker Compose (`.env`)                                                  | Kubernetes (values file)                       | Who sets it                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- |
+| Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed in the chart                             | The release. Two things named once can't drift.                             |
+| Your LLM key                                 | `ANTHROPIC_API_KEY`, `CURSOR_API_KEY`                                    | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                            |
+| File storage                                 | The `artifacts` volume                                                   | The `stigmer-artifacts` claim                  | The release. One disk the server writes and the runner reads.               |
+| The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                | The release. Checkpoints and Agents' working directories, not backup state. |
+| The runner's own API key                     | `STIGMER_TOKEN`                                                          | `runner.stigmerToken.existingSecret`           | You, once [authentication is on](./authentication#give-the-runner-its-key). |
+| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                                                     | `server.publicUrl`                             | You, when clients reach the API anywhere but this machine's port.           |
 | Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`) | You, so the console and create know which models can run.                   |
 
 Five of these rows carry a design decision worth knowing.
