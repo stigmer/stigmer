@@ -97,7 +97,7 @@ jobs:
       # release via workflow_dispatch re-runs this job, and PyPI rejects
       # duplicate uploads of an already-published version (oss#908).
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: apis/stubs/python/stigmer/dist/
           skip-existing: true
@@ -160,7 +160,7 @@ jobs:
 
       # skip-existing for the same re-run idempotency as publish-protos.
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: sdk/python/dist/
           skip-existing: true
