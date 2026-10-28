@@ -719,7 +719,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
     expect(readLastUserText(request!.body)).toContain("Now shorten it.");
     const resumed = casesOf(ended)[0]!;
     expect(resumed.notes).toContain("resumed from history.jsonl");
-    expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Claude", "resumed conversations")]);
+    expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Claude Agent", "resumed conversations")]);
   }, 300_000);
 
   it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] both arms of a with-and-without eval get the case's scaffold and EVAL_* variables", async () => {

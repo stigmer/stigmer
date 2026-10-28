@@ -118,7 +118,7 @@ export interface RoutineDetailViewProps {
   readonly onRenamed?: (routine: Routine) => void;
   /**
    * Enable inline editing of the routine's mutable spec fields
-   * (cadence, message, vaults, environment, engine & model, budget). Each
+   * (cadence, message, vaults, environment, harness & model, budget). Each
    * field saves independently via a lossless full-resource re-apply
    * ({@link useUpdateRoutineSpec}). The slug is renamed on its own,
    * from the Overview's slug field, by whoever may delete the routine
@@ -692,7 +692,7 @@ export function RoutineDetailView({
           <DetailRow label="Files">
             <FilesSummary resources={target?.resources ?? []} />
           </DetailRow>
-          <DetailRow label="Engine & model">
+          <DetailRow label="Harness & model">
             {editable && target ? (
               <EngineModelInlineEditor
                 invocation={target}
@@ -1236,7 +1236,7 @@ function EngineModelInlineEditor({
 
   if (!isEditing) {
     return (
-      <InlineReadButton onEdit={startEdit} ariaLabel="Edit engine and model">
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit harness and model">
         <EngineModelSummary invocation={invocation} />
       </InlineReadButton>
     );
@@ -1273,8 +1273,8 @@ function EngineModelInlineEditor({
         )}
       </div>
       <p className="stg:text-2xs stg:text-muted-foreground">
-        Runs use the platform&rsquo;s default engine and model unless you pick
-        one here. Picking a model pins the engine it belongs to.
+        Runs use the platform&rsquo;s default harness and model unless you pick
+        one here. Picking a model pins the harness it belongs to.
       </p>
       <InlineEditActions
         onCancel={() => setIsEditing(false)}
@@ -1643,7 +1643,7 @@ function FailureStreak({ count }: { readonly count: number }) {
 // The invocation's run shape — engine+model, budget, workspace summaries
 // ---------------------------------------------------------------------------
 
-/** "Claude · claude-sonnet-4.6", either half falling back to the platform default. */
+/** "Claude Agent · claude-sonnet-4.6", either half falling back to the platform default. */
 function EngineModelSummary({
   invocation,
 }: {

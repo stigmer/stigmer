@@ -12,7 +12,7 @@ public interface EvalRunTargetOrBuilder extends
 
   /**
    * <pre>
-   * The engine. Unspecified is the native engine.
+   * The harness. Unspecified is native (Stigmer's own harness).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface EvalRunTargetOrBuilder extends
   int getHarnessValue();
   /**
    * <pre>
-   * The engine. Unspecified is the native engine.
+   * The harness. Unspecified is native (Stigmer's own harness).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -31,8 +31,8 @@ public interface EvalRunTargetOrBuilder extends
 
   /**
    * <pre>
-   * A model id from the model catalog for that engine, as in
-   * "claude-sonnet-4-6". Empty uses the engine's default model.
+   * A model id from the model catalog for that harness, as in
+   * "claude-sonnet-4-6". Empty uses the harness's default model.
    * </pre>
    *
    * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -41,8 +41,8 @@ public interface EvalRunTargetOrBuilder extends
   java.lang.String getModelName();
   /**
    * <pre>
-   * A model id from the model catalog for that engine, as in
-   * "claude-sonnet-4-6". Empty uses the engine's default model.
+   * A model id from the model catalog for that harness, as in
+   * "claude-sonnet-4-6". Empty uses the harness's default model.
    * </pre>
    *
    * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>

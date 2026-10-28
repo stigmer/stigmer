@@ -145,7 +145,7 @@ tool named in both is excluded.
 
 Rules that follow from the lists:
 
-- They hold on every engine, and when a run is set to approve everything.
+- They hold on every harness, and when a run is set to approve everything.
 - A plugin subagent starts from the main agent's tools and can narrow them,
   never widen them. A saved subagent has its own lists instead, capped by the
   turn's and not by the main agent's. See [subagents.md](subagents.md).

@@ -112,7 +112,7 @@ export interface SharedRunFields {
   /**
    * The model this message asks for. Omit it to run the model a less
    * specific layer chooses: the agent's run defaults when the conversation
-   * runs the agent's engine, else the operator profile, else the engine's
+   * runs the agent's harness, else the operator profile, else the harness's
    * own default. Maps to `RunConfig.model_name` on
    * `RunSpec.run_config`.
    */

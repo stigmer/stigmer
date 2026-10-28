@@ -42,9 +42,9 @@ type AgentInvocation struct {
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Prompt the run starts from.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// Execution engine for the run's session. Unspecified: native when
-	// run_config names a model (the engine the model was checked against at
-	// save), else the agent's own engine (AgentSpec.harness), else the
+	// Harness for the run's session. Unspecified: native (Stigmer) when
+	// run_config names a model (the harness the model was checked against at
+	// save), else the agent's own harness (AgentSpec.harness), else the
 	// embedding surface's platform default.
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Vaults whose logins and secrets the runs this invocation creates use, in
@@ -175,8 +175,8 @@ func (x *AgentInvocation) GetResources() []*v1.SessionResource {
 //     the smallest positive value any layer sets. An operator profile is a
 //     ceiling the message, the routine or channel, and the agent can lower
 //     but never raise.
-//   - The agent's choices apply only on the engine its defaults name
-//     (AgentSpec.harness). On a conversation running another engine the
+//   - The agent's choices apply only on the harness its defaults name
+//     (AgentSpec.harness). On a conversation running another harness the
 //     agent layer gives its bounds alone.
 //
 // Saved settings are self-contained: a routine, channel or agent that sets
@@ -190,8 +190,8 @@ type RunConfig struct {
 	//
 	// When the run's estimated spend reaches this limit, the run stops with a
 	// "send another message to continue" prompt and ends TERMINATED; the work
-	// done so far is kept. The limit is checked each time the engine reports
-	// its spend, so a run can end somewhat above it. The native harness
+	// done so far is kept. The limit is checked each time the harness reports
+	// its spend, so a run can end somewhat above it. Stigmer's own harness
 	// reports after every model call, counts a subagent's spend toward the
 	// limit, and advises the agent to wrap up at about 80% of the budget.
 	//
@@ -223,7 +223,7 @@ type RunConfig struct {
 	// UNSPECIFIED is not set at this layer; with no layer setting it the run
 	// uses STANDARD, never the provider account default. FAST is valid only
 	// for a model whose registry entry declares a fast pricing variant on the
-	// engine that runs it; validated fail-closed on the resolved settings at
+	// harness that runs it; validated fail-closed on the resolved settings at
 	// create.
 	ServiceTier ServiceTier `protobuf:"varint,4,opt,name=service_tier,json=serviceTier,proto3,enum=ai.stigmer.agentic.run.v1.ServiceTier" json:"service_tier,omitempty"`
 	// Thinking mode for each run's model calls: disabled (the default) or
@@ -233,7 +233,7 @@ type RunConfig struct {
 	// UNSPECIFIED is not set at this layer; with no layer setting it the run
 	// uses DISABLED, never the provider account default. ENABLED is valid only
 	// for a model whose registry entry declares the thinking capability on the
-	// engine that runs it; validated fail-closed on the resolved settings at
+	// harness that runs it; validated fail-closed on the resolved settings at
 	// create. Combines freely with service_tier.
 	ThinkingMode ThinkingMode `protobuf:"varint,5,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.run.v1.ThinkingMode" json:"thinking_mode,omitempty"`
 	// Maximum number of characters for a single tool result before truncation.

@@ -206,7 +206,7 @@ describe("runClaudeTurn", () => {
             bySubAgent: new Map(),
           },
         },
-        /both load on Claude as 'agent:notes-style'/,
+        /both load on the Claude Agent harness as 'agent:notes-style'/,
       ],
       [{ model: { requested: FIXTURE_CLAUDE_MODEL, serviceTier: ServiceTier.FAST, thinkingMode: ThinkingMode.DISABLED } }, /fast tier/],
       [{ model: { requested: "fixture-model", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED } }, /Claude models only/],

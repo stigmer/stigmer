@@ -180,7 +180,7 @@ function toolEngineOf(harness: Harness): ToolEngine {
       return "native";
     default: {
       const unknown: never = harness;
-      throw new Error(`eval trace: harness ${String(unknown)} names no engine`);
+      throw new Error(`eval trace: harness ${String(unknown)} is not one the proto names`);
     }
   }
 }

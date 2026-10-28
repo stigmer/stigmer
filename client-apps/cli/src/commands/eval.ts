@@ -23,6 +23,7 @@
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import type { EvalRunFlags } from "../resources/eval-run/options.js";
+import { engineChoice } from "../resources/run/engines.js";
 import { globalOrg } from "./shared.js";
 
 /** `eval run`'s help after the options: the model and tools a try runs with, and the exit codes. */
@@ -88,7 +89,7 @@ export function registerEval(program: Command): void {
     .option("--runs <n>", "tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)")
     .option(
       "--model <harness/model>",
-      "an engine and model to run on, as native/claude-sonnet-4-6 or claude/claude-sonnet-5 (repeatable, up to 6)",
+      `a harness and model to run on: native/<model> for ${engineChoice("native")} or claude/<model> for ${engineChoice("claude")}, as native/claude-sonnet-4-6 (repeatable, up to 6)`,
       collect,
     )
     .option("--ablation <mode>", "with --plugin: with-without also runs each case without the plugin; none runs one arm")

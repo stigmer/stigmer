@@ -61,14 +61,14 @@ spec:
 through switching a plugin's hooks on, writing your own, and what differs from
 Claude Code.
 
-Every engine runs hooks in both formats, in the Cloud and on your laptop: a
-Claude Code plugin's hooks and a Cursor plugin's work on Stigmer's own engine
-and on Claude. A few things differ:
+Every harness runs hooks in both formats, in the Cloud and on your laptop: a
+Claude Code plugin's hooks and a Cursor plugin's work on Stigmer's own harness
+and on Claude Agent. A few things differ:
 
-- A Cursor-format hook that asks gets an approval on every engine, where Cursor
+- A Cursor-format hook that asks gets an approval on every harness, where Cursor
   itself lets the call run.
-- On Stigmer's own engine, a Cursor-format hook sees web fetch as `WebFetch`, so
-  its policy holds there too.
+- On Stigmer's own harness, a Cursor-format hook sees web fetch as `WebFetch`,
+  so its policy holds there too.
 - Only the hooks of the Agent and its plugins run. Hook files in a repository
   (`.cursor/hooks.json`, `.claude/settings.json`) never run for the Agent.
 

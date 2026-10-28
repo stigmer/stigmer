@@ -85,22 +85,22 @@ type AgentSpec struct {
 	// defaults.
 	//
 	// A choice here (model_name, service_tier, thinking_mode) applies only on
-	// the engine named in harness; on a conversation running another engine
+	// the harness named in harness; on a conversation running another harness
 	// only the bounds apply. A bound here is a cap: a message, a routine or a
 	// channel can lower it, never raise it. A model must be named together with harness,
-	// and must be one that engine lists; service_tier FAST and thinking_mode
-	// ENABLED need a model that engine prices or marks capable. Checked when
+	// and must be one that harness lists; service_tier FAST and thinking_mode
+	// ENABLED need a model that harness prices or marks capable. Checked when
 	// the agent is saved.
 	RunConfig *v11.RunConfig `protobuf:"bytes,13,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
-	// The engine this agent's run defaults were chosen for, and the engine a
+	// The harness this agent's run defaults were chosen for, and the harness a
 	// new conversation on this agent starts on when the person, routine or
-	// channel starting it names neither an engine nor a model (a turn that names a
-	// model but no engine starts on native, the engine its name was checked
-	// against). Unspecified: the platform's default engine (native).
+	// channel starting it names neither a harness nor a model (a turn that names
+	// a model but no harness starts on native, the harness its name was checked
+	// against). Unspecified: the platform's default harness (native, Stigmer).
 	//
-	// Model names belong to an engine (each lists its own), so run_config's
-	// model, tier and thinking count only on this engine. A conversation keeps
-	// the engine it started on; a later version naming another engine changes
+	// Model names belong to a harness (each lists its own), so run_config's
+	// model, tier and thinking count only on this harness. A conversation keeps
+	// the harness it started on; a later version naming another harness changes
 	// only new conversations.
 	Harness v12.Harness `protobuf:"varint,14,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// Plugins this agent uses, each whole: its skills, agents, hooks and MCP

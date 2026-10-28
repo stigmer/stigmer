@@ -7,7 +7,7 @@ package ai.stigmer.agentic.evalrun.v1;
 
 /**
  * <pre>
- * EvalRunTarget is one engine and model a case runs on.
+ * EvalRunTarget is one harness and model a case runs on.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.evalrun.v1.EvalRunTarget}
@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private int harness_ = 0;
   /**
    * <pre>
-   * The engine. Unspecified is the native engine.
+   * The harness. Unspecified is native (Stigmer's own harness).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -69,7 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engine. Unspecified is the native engine.
+   * The harness. Unspecified is native (Stigmer's own harness).
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -85,8 +85,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object modelName_ = "";
   /**
    * <pre>
-   * A model id from the model catalog for that engine, as in
-   * "claude-sonnet-4-6". Empty uses the engine's default model.
+   * A model id from the model catalog for that harness, as in
+   * "claude-sonnet-4-6". Empty uses the harness's default model.
    * </pre>
    *
    * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -107,8 +107,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * A model id from the model catalog for that engine, as in
-   * "claude-sonnet-4-6". Empty uses the engine's default model.
+   * A model id from the model catalog for that harness, as in
+   * "claude-sonnet-4-6". Empty uses the harness's default model.
    * </pre>
    *
    * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -297,7 +297,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * EvalRunTarget is one engine and model a case runs on.
+   * EvalRunTarget is one harness and model a case runs on.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.evalrun.v1.EvalRunTarget}
@@ -452,7 +452,7 @@ private static final long serialVersionUID = 0L;
     private int harness_ = 0;
     /**
      * <pre>
-     * The engine. Unspecified is the native engine.
+     * The harness. Unspecified is native (Stigmer's own harness).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -463,7 +463,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine. Unspecified is the native engine.
+     * The harness. Unspecified is native (Stigmer's own harness).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine. Unspecified is the native engine.
+     * The harness. Unspecified is native (Stigmer's own harness).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -492,7 +492,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine. Unspecified is the native engine.
+     * The harness. Unspecified is native (Stigmer's own harness).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -508,7 +508,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine. Unspecified is the native engine.
+     * The harness. Unspecified is native (Stigmer's own harness).
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -524,8 +524,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object modelName_ = "";
     /**
      * <pre>
-     * A model id from the model catalog for that engine, as in
-     * "claude-sonnet-4-6". Empty uses the engine's default model.
+     * A model id from the model catalog for that harness, as in
+     * "claude-sonnet-4-6". Empty uses the harness's default model.
      * </pre>
      *
      * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -545,8 +545,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A model id from the model catalog for that engine, as in
-     * "claude-sonnet-4-6". Empty uses the engine's default model.
+     * A model id from the model catalog for that harness, as in
+     * "claude-sonnet-4-6". Empty uses the harness's default model.
      * </pre>
      *
      * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -567,8 +567,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A model id from the model catalog for that engine, as in
-     * "claude-sonnet-4-6". Empty uses the engine's default model.
+     * A model id from the model catalog for that harness, as in
+     * "claude-sonnet-4-6". Empty uses the harness's default model.
      * </pre>
      *
      * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -585,8 +585,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A model id from the model catalog for that engine, as in
-     * "claude-sonnet-4-6". Empty uses the engine's default model.
+     * A model id from the model catalog for that harness, as in
+     * "claude-sonnet-4-6". Empty uses the harness's default model.
      * </pre>
      *
      * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>
@@ -600,8 +600,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A model id from the model catalog for that engine, as in
-     * "claude-sonnet-4-6". Empty uses the engine's default model.
+     * A model id from the model catalog for that harness, as in
+     * "claude-sonnet-4-6". Empty uses the harness's default model.
      * </pre>
      *
      * <code>string model_name = 2 [json_name = "modelName", (.buf.validate.field) = { ... }</code>

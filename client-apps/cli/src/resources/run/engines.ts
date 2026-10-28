@@ -8,7 +8,7 @@
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
-/** One engine: its proto member, its name as a person reads it, and the account preference holding its default model. */
+/** One engine: its proto member, its harness label as a person reads it (docs/vocabulary.md, "Harness"), and the account preference holding its default model. */
 interface EngineEntry {
   readonly harness: Exclude<Harness, Harness.UNSPECIFIED>;
   readonly label: string;
@@ -18,7 +18,7 @@ interface EngineEntry {
 /** Every engine by the word the CLI takes, in proto order. */
 export const ENGINES = {
   native: { harness: Harness.NATIVE, label: "Stigmer", accountModel: "defaultNativeModel" },
-  claude: { harness: Harness.CLAUDE, label: "Claude", accountModel: "defaultClaudeModel" },
+  claude: { harness: Harness.CLAUDE, label: "Claude Agent", accountModel: "defaultClaudeModel" },
 } as const satisfies Record<string, EngineEntry>;
 
 /** An engine's word: `native` or `claude`. */
@@ -27,8 +27,13 @@ export type EngineWord = keyof typeof ENGINES;
 /** The engine words, in proto order. */
 export const ENGINE_WORDS = Object.keys(ENGINES) as EngineWord[];
 
-/** The words, quoted and joined for a refusal: `"native" or "claude"`. */
-export const ENGINE_WORD_LIST = `${ENGINE_WORDS.slice(0, -1).map((word) => `"${word}"`).join(", ")} or "${ENGINE_WORDS.at(-1)!}"`;
+/** A word as help and refusals show it, beside its label where the two differ: `"claude" (Claude Agent)`. */
+export function engineChoice(word: EngineWord): string {
+  return `"${word}" (${ENGINES[word].label})`;
+}
+
+/** The words with their labels, joined for help and refusals: `"native" (Stigmer) or "claude" (Claude Agent)`. */
+export const ENGINE_WORD_LIST = `${ENGINE_WORDS.slice(0, -1).map(engineChoice).join(", ")} or ${engineChoice(ENGINE_WORDS.at(-1)!)}`;
 
 const WORD_BY_HARNESS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, EngineWord>> = {
   [Harness.NATIVE]: "native",

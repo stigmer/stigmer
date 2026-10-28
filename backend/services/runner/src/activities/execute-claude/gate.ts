@@ -152,7 +152,7 @@ export function subagentHookAskMessage(hook: string): string {
 
 /** What the main agent's start of a helper is refused with when a hook asks a person about it. */
 export function helperStartAskMessage(hook: string): string {
-  return `${hookLabel(hook)} asks for a person's approval before this helper starts, which this engine cannot wait for; it was not run.`;
+  return `${hookLabel(hook)} asks for a person's approval before this helper starts, which this harness cannot wait for; it was not run.`;
 }
 
 /** What a call that would wait while another already waits is refused with: the model asks for it again, alone. */

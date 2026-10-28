@@ -46,6 +46,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { harnessName } from "../../modelcatalog/pin-validation.js";
+import { HARNESSES } from "../session/harness.js";
 import { compileGlob } from "./glob.js";
 import { subjectOf } from "./subject.js";
 
@@ -140,7 +141,7 @@ export function unsupportedFeatureReason(feature: string): string {
 /** The not-run copy for a case with a scaffold in an eval that skips scaffolds. */
 export const SCAFFOLD_SKIPPED_REASON = "not run: scaffold skipped";
 
-/** The not-run copy for a target whose engine cannot run one of the case's features. */
+/** The not-run copy for a target whose harness cannot run one of the case's features. */
 export function engineUnsupportedReason(engine: string, feature: string): string {
   return `not run on ${engine}: ${feature}`;
 }
@@ -249,11 +250,14 @@ function targetsOf(
   });
 }
 
-/** Each engine as an eval case's limits name it (unspecified is native), with the name its not-run copy reads. */
+/**
+ * Each harness as an eval case's limits name it (unspecified is native),
+ * with the label its not-run copy reads (domain/session/harness.ts).
+ */
 export const EVAL_ENGINES: Readonly<Record<Harness, { readonly word: EvalEngine; readonly label: string }>> = {
-  [Harness.UNSPECIFIED]: { word: "native", label: "native" },
-  [Harness.NATIVE]: { word: "native", label: "native" },
-  [Harness.CLAUDE]: { word: "claude", label: "Claude" },
+  [Harness.UNSPECIFIED]: { word: "native", label: HARNESSES[Harness.NATIVE].label },
+  [Harness.NATIVE]: { word: "native", label: HARNESSES[Harness.NATIVE].label },
+  [Harness.CLAUDE]: { word: "claude", label: HARNESSES[Harness.CLAUDE].label },
 };
 
 function candidateTargets(

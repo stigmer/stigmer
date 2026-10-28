@@ -49,8 +49,8 @@ sequenceDiagram
     Server-->>You: the answer
 ```
 
-Two things ride along with the run. The first is the Session's Harness (native
-or Claude); one runner serves both from the same queue. The second is a
+Two things ride along with the run. The first is the Session's Harness (Stigmer
+or Claude Agent); one runner serves both from the same queue. The second is a
 credential the server mints for that run alone. Everything the runner does for
 the run, including the status it reports and the resources it creates, is
 recorded as the person who started it, whoever's key the runner process holds.
@@ -99,7 +99,7 @@ You never edit the compose file or the chart.
 Five of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
-setting for it. Agents on the native and Claude Harnesses need
+setting for it. Agents on the Stigmer and Claude Agent Harnesses need
 `ANTHROPIC_API_KEY`. At start the runner moves its keys out of the variables it
 started with into a store only it reads, so the commands an Agent runs and the
 processes the runner starts don't inherit them. In the compose stack, the chart
@@ -306,8 +306,8 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
 ### Bring your own base image
 
 The runner layer is everything Stigmer adds to an image: the runner, the Node it
-runs on, and the [Claude engine](/docs/guides/runners/claude-harness)
-(Anthropic's Agent SDK and its `claude` program for the image's architecture,
+runs on, and the [Claude Agent SDK](/docs/guides/runners/claude-harness)
+(Anthropic's package and its `claude` program for the image's architecture,
 unmodified, at `/runner/engines`), under `/runner` and nowhere else. Stigmer
 publishes it on its own as `ghcr.io/stigmer/runner-layer`, for `linux/amd64` and
 `linux/arm64`, tagged with the release it belongs to. Add it to the image your
@@ -373,7 +373,7 @@ can't run it, and says why. The requirements:
 | `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused                                                                                                               |
 | CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                                                                                 |
 | `git` 2.31 or newer                                                         | cloning a private repository fails, naming the version it needs (Debian 11 ships 2.30); a public one still clones     |
-| `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search                                                     |
+| `rg` (ripgrep)                                                              | a warning; the Stigmer harness's grep falls back to a plain search                                                    |
 | nothing of your own at `/runner`                                            | the layer replaces it                                                                                                 |
 
 Debian 10 and newer, Ubuntu 20.04 and newer, and RHEL 8 and its rebuilds meet
@@ -407,8 +407,8 @@ itself, naming the version it needs:
 ```
 
 **Root, `HOME` and Node settings.** The runner runs as root, and starts the
-Agent's side of every turn (the engines, the commands they run, MCP servers and
-hooks) as a user of its own, `stigmer-agent` (uid and gid 10001), through
+Agent's side of every turn (the harnesses, the commands they run, MCP servers
+and hooks) as a user of its own, `stigmer-agent` (uid and gid 10001), through
 `setpriv`. That user cannot read the runner's process, its files or its keys,
 which is the boundary that keeps a prompt-injected command from taking the
 runner's credentials. The runner keeps five capabilities, `SETUID`, `SETGID`,
@@ -429,7 +429,7 @@ outside it. Agents install user-level packages (`pip install --user`, `npm` and
 own base image or, for the Agents that need it, an
 [Environment](#environments-on-your-sandboxes)'s `apt` packages. The Agent's
 environment is an allow-list: the path, locale and proxy settings, and Stigmer's
-and the engines' own settings. A cloud credential you give the runner as a
+and the harnesses' own settings. A cloud credential you give the runner as a
 variable stays with the runner, which signs the model calls itself; to pass
 another variable to Agents, list its name in `STIGMER_AGENT_ENV_PASSTHROUGH`. An
 npm registry token (`NODE_AUTH_TOKEN`) is held back too unless you list it
@@ -484,8 +484,8 @@ turn, in the order `apt`, `cargo`, `gem`, `go`, `npm`, `pip`. `apt` runs as
 root. The other five run as the Agent's user, `stigmer-agent`, into
 `/opt/stigmer/environment`, whose `bin` (and its Python virtual environment's)
 comes first on the Agent's `PATH`, so the Agent's shell and the commands its
-engines start find them, and a package's install script gets the Agent's rights,
-never the runner's. The runner's own `PATH` is untouched.
+harnesses start find them, and a package's install script gets the Agent's
+rights, never the runner's. The runner's own `PATH` is untouched.
 
 **What your base image needs.** Each installer needs its program on the image:
 `apt-get`, `cargo`, `gem`, `go`, `npm` and `python3` with its `venv` module. The

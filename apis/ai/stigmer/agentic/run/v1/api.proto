@@ -94,7 +94,7 @@ message RunStatus {
   reserved 12;
   reserved "resolved_context";
 
-  // Field 15 held the files the native engine uploaded as the agent wrote
+  // Field 15 held the files Stigmer's own harness uploaded as the agent wrote
   // them, each named by its storage key. What a turn returns is now a File:
   // whatever the agent saves in its outputs folder, listed by the File's
   // run_id. Stored entries become Files of their run when the server

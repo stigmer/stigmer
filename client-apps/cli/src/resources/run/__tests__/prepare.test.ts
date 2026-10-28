@@ -61,13 +61,13 @@ describe("validateHarness", () => {
   });
 
   it("rejects anything else before a network round trip", () => {
-    expect(() => validateHarness("turbo")).toThrow(/must be "native" or "claude"/);
+    expect(() => validateHarness("turbo")).toThrow(/must be "native" \(Stigmer\) or "claude" \(Claude Agent\)/);
   });
 
   it("rejects UI-only harness names that have no proto mapping", () => {
     // copilot/codex/etc. exist in display metadata but not on the wire —
     // accepting them here would stamp UNSPECIFIED and silently run native.
-    expect(() => validateHarness("copilot")).toThrow(/must be "native" or "claude"/);
+    expect(() => validateHarness("copilot")).toThrow(/must be "native" \(Stigmer\) or "claude" \(Claude Agent\)/);
   });
 });
 

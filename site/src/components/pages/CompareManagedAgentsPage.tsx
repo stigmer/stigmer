@@ -131,7 +131,7 @@ const FURTHER: readonly { text: string; cta: string; href: string; external?: bo
     href: "/docs/getting-started/one-organization-per-customer",
   },
   {
-    text: "A choice of engine for each session: Stigmer's own, or Anthropic's Claude Agent SDK.",
+    text: "A choice of harness for each session: Stigmer's own, or Anthropic's Claude Agent SDK.",
     cta: "Harnesses",
     href: "/docs/concepts/harnesses",
   },
@@ -275,7 +275,7 @@ function CompareManagedAgentsPage() {
                 Claude Managed Agents, if you want Anthropic to run all of it, on Claude.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Stigmer, if you want to run the whole of it yourself, choose the engine, or give
+                Stigmer, if you want to run the whole of it yourself, choose the harness, or give
                 each customer their own organization.
               </p>
             </FadeInUp>

@@ -93,7 +93,7 @@ turn, and the turn keeps going for as long as the job takes:
 - **It keeps its place as the work grows.** When the conversation outgrows the
   model's context, it is summarized and the turn carries on, and each summary is
   an `agent.thread_context_compacted` event in the Session. On the
-  [native harness](/docs/concepts/harnesses#native-harness), each summary
+  [Stigmer harness](/docs/concepts/harnesses#stigmer-harness), each summary
   carries the person's request forward, so the Agent keeps to its goal.
 
 ## Creating a Session
@@ -191,14 +191,15 @@ every source.
 
 ## Harness
 
-Every Session runs on a [Harness](/docs/concepts/harnesses) — the execution
-engine that processes the Agent's turns. Stigmer supports two: **Native** (the
-default) and **Claude** (Anthropic's Claude Agent SDK, running Claude models on
-your Organization's Anthropic key).
+Every Session runs on a [Harness](/docs/concepts/harnesses) — the loop that
+processes the Agent's turns. Stigmer supports two: **Stigmer** (`native`,
+Stigmer's own harness and the default) and **Claude Agent** (`claude`,
+Anthropic's Claude Agent SDK, running Claude models on your Organization's
+Anthropic key).
 
 You set the Harness when creating a Session; when you set none, the Session
-starts on the Agent's own `harness`, or native when the Agent names none. Once
-the first run starts, the Harness is locked for that Session.
+starts on the Agent's own `harness`, or the Stigmer harness when the Agent names
+none. Once the first run starts, the Harness is locked for that Session.
 
 ```yaml validate-as="Session"
 spec:

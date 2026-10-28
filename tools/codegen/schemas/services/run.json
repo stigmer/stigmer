@@ -1890,18 +1890,18 @@
     },
     {
       "name": "Harness",
-      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "description": "Harness identifies the harness, the agent loop that processes a session's\n turns. Each value has one label, the same on every surface: HARNESS_NATIVE\n is \"Stigmer\" and HARNESS_CLAUDE is \"Claude Agent\".\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs the harness's own)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
       "protoType": "ai.stigmer.agentic.session.v1.Harness",
       "values": [
         {
           "name": "HARNESS_NATIVE",
           "number": 1,
-          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+          "description": "Stigmer: Stigmer's own harness. Runs any catalog model, open source end\n to end.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
         {
           "name": "HARNESS_CLAUDE",
           "number": 3,
-          "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
+          "description": "Claude Agent: Anthropic's Claude Agent SDK. Claude models on the\n organization's own Anthropic key.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the Claude Agent SDK refuses its turns plainly."
         }
       ]
     },
@@ -3372,7 +3372,7 @@
     },
     {
       "name": "RunConfig",
-      "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (RunSpec.run_config),\n the saved settings of a routine (its invocation) or a channel,\n an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (RunStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the routine or channel it came\n through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the harness's registry default.\n   service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the routine or channel, and the agent can lower\n   but never raise.\n - The agent's choices apply only on the engine its defaults name\n   (AgentSpec.harness). On a conversation running another engine the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a routine, channel or agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
+      "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (RunSpec.run_config),\n the saved settings of a routine (its invocation) or a channel,\n an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (RunStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the routine or channel it came\n through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the harness's registry default.\n   service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the routine or channel, and the agent can lower\n   but never raise.\n - The agent's choices apply only on the harness its defaults name\n   (AgentSpec.harness). On a conversation running another harness the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a routine, channel or agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
       "protoType": "ai.stigmer.agentic.run.v1.RunConfig",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/invocation.proto",
       "fields": [
@@ -3393,7 +3393,7 @@
           "type": {
             "kind": "double"
           },
-          "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count; a\n run continuing after a restart, a lost runner or a stall keeps its\n count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
+          "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the harness reports\n its spend, so a run can end somewhat above it. Stigmer's own harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count; a\n run continuing after a restart, a lost runner or a stall keeps its\n count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
           "required": false
         },
         {
@@ -3418,7 +3418,7 @@
               "SERVICE_TIER_FAST"
             ]
           },
-          "description": "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.\n\n UNSPECIFIED is not set at this layer; with no layer setting it the run\n uses STANDARD, never the provider account default. FAST is valid only\n for a model whose registry entry declares a fast pricing variant on the\n engine that runs it; validated fail-closed on the resolved settings at\n create.",
+          "description": "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.\n\n UNSPECIFIED is not set at this layer; with no layer setting it the run\n uses STANDARD, never the provider account default. FAST is valid only\n for a model whose registry entry declares a fast pricing variant on the\n harness that runs it; validated fail-closed on the resolved settings at\n create.",
           "required": false
         },
         {
@@ -3433,7 +3433,7 @@
               "THINKING_MODE_ENABLED"
             ]
           },
-          "description": "Thinking mode for each run's model calls: disabled (the default) or\n enabled, where enabled selects the model's extended-reasoning variant\n (billed at base per-token rates — reasoning tokens bill as output).\n\n UNSPECIFIED is not set at this layer; with no layer setting it the run\n uses DISABLED, never the provider account default. ENABLED is valid only\n for a model whose registry entry declares the thinking capability on the\n engine that runs it; validated fail-closed on the resolved settings at\n create. Combines freely with service_tier.",
+          "description": "Thinking mode for each run's model calls: disabled (the default) or\n enabled, where enabled selects the model's extended-reasoning variant\n (billed at base per-token rates — reasoning tokens bill as output).\n\n UNSPECIFIED is not set at this layer; with no layer setting it the run\n uses DISABLED, never the provider account default. ENABLED is valid only\n for a model whose registry entry declares the thinking capability on the\n harness that runs it; validated fail-closed on the resolved settings at\n create. Combines freely with service_tier.",
           "required": false
         },
         {

@@ -129,7 +129,7 @@ describe("AgentRunDefaultsSection", () => {
       { wrapper: Wrapper },
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
@@ -154,7 +154,7 @@ describe("AgentRunDefaultsSection", () => {
       { wrapper: Wrapper },
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
-    fireEvent.click(screen.getByRole("button", { name: "No engine" }));
+    fireEvent.click(screen.getByRole("button", { name: "No harness" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
@@ -173,8 +173,8 @@ describe("AgentRunDefaultsSection", () => {
       { wrapper: Wrapper },
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
-    fireEvent.click(screen.getByRole("button", { name: "Choose an engine" }));
-    expect(screen.getByRole("button", { name: "No engine" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Choose a harness" }));
+    expect(screen.getByRole("button", { name: "No harness" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());

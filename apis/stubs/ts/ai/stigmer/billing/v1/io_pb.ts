@@ -235,7 +235,7 @@ export type MeteredRun = Message<"ai.stigmer.billing.v1.MeteredRun"> & {
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the catalog
    * fallback when the wire's requested_model came up empty. Empty when no
-   * layer named a model and the engine chose.
+   * layer named a model and the harness chose.
    *
    * @generated from field: string pinned_model = 2;
    */

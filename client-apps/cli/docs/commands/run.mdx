@@ -176,7 +176,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | Flag | Purpose |
 |------|---------|
 | `--model` | Override the LLM model (e.g., `claude-sonnet-4-6`) |
-| `--harness` | Choose the execution engine for the new session (`native` or `claude`) |
+| `--harness` | Choose the harness for the new session: `"native"` (Stigmer) or `"claude"` (Claude Agent) |
 | `--auto-approve` | Approve all tool executions without prompting (bypasses approval policies) |
 | `--approve-default` | Answer every tool call that asks, in non-interactive mode: `allow`, `deny`, or `allow-all` (allow it and every waiting call of its kind for the rest of the turn); unset denies each one, and the agent carries on without it |
 | `--verbose`, `-v` | Show run IDs and phase transitions in the TUI transcript |
@@ -191,11 +191,12 @@ stigmer run my-agent --auto-approve -m "Deploy to staging"
 
 ### Choosing a harness
 
-The harness is the engine that executes your session: `native` (Stigmer's
-own runtime, the default) or `claude` (Anthropic's Claude Agent SDK; it runs
-Claude models on your organization's own Anthropic key). A session
-keeps its harness for life — `stigmer resume` always continues on the engine
-the session started with.
+The harness is the agent loop that runs your session: `"native"` (Stigmer:
+Stigmer's own harness, the default; it runs any catalog model, open source end
+to end) or `"claude"` (Claude Agent: Anthropic's Claude Agent SDK; it runs
+Claude models on your organization's own Anthropic key). A session keeps its
+harness for life — `stigmer resume` always continues on the harness the session
+started with.
 
 You rarely need the flag. If your account declares a default harness
 (Account settings → Execution defaults, or `default_harness` on your
@@ -204,15 +205,15 @@ and an omitted `--model` fills from your default model for that harness.
 The flag is the per-run override:
 
 ```bash
-# Start a claude-harness session explicitly
+# Start a Claude Agent session explicitly
 stigmer run variance-reporter --harness claude -w . -m "Report Q3's variances"
 
 # Force one native run without changing your account's claude default
 stigmer run my-agent --harness native -m "Quick question"
 ```
 
-When a session starts on the claude harness, the session header says so —
-you always see the engine before output streams.
+When a session starts on the Claude Agent harness, the session header says so
+(`Harness: Claude Agent`) — you always see the harness before output streams.
 
 ## Examples
 

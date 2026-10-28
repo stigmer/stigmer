@@ -361,7 +361,7 @@ describe("the eval trace, by the engine that made the calls", () => {
     const run = runOf([call("k1", "Bash", { command: "ls" })], []);
     for (const number of [2, 7]) {
       await expect(evalTraceOf(run, deps(number as Harness))).rejects.toThrow(
-        `eval trace: harness ${number} names no engine`,
+        `eval trace: harness ${number} is not one the proto names`,
       );
     }
   });

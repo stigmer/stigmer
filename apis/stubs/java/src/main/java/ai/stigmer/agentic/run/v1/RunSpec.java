@@ -709,7 +709,7 @@ private static final long serialVersionUID = 0L;
    *
    * A person who may create a run in the session may set it; a visitor (a
    * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-   * prompt is its owner's to steer. On the native engine it lands after
+   * prompt is its owner's to steer. On Stigmer's own harness it lands after
    * the agent's instructions and the platform's sections, for this turn
    * only.
    * </pre>
@@ -737,7 +737,7 @@ private static final long serialVersionUID = 0L;
    *
    * A person who may create a run in the session may set it; a visitor (a
    * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-   * prompt is its owner's to steer. On the native engine it lands after
+   * prompt is its owner's to steer. On Stigmer's own harness it lands after
    * the agent's instructions and the platform's sections, for this turn
    * only.
    * </pre>
@@ -3940,7 +3940,7 @@ private static final long serialVersionUID = 0L;
      *
      * A person who may create a run in the session may set it; a visitor (a
      * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-     * prompt is its owner's to steer. On the native engine it lands after
+     * prompt is its owner's to steer. On Stigmer's own harness it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only.
      * </pre>
@@ -3967,7 +3967,7 @@ private static final long serialVersionUID = 0L;
      *
      * A person who may create a run in the session may set it; a visitor (a
      * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-     * prompt is its owner's to steer. On the native engine it lands after
+     * prompt is its owner's to steer. On Stigmer's own harness it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only.
      * </pre>
@@ -3995,7 +3995,7 @@ private static final long serialVersionUID = 0L;
      *
      * A person who may create a run in the session may set it; a visitor (a
      * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-     * prompt is its owner's to steer. On the native engine it lands after
+     * prompt is its owner's to steer. On Stigmer's own harness it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only.
      * </pre>
@@ -4019,7 +4019,7 @@ private static final long serialVersionUID = 0L;
      *
      * A person who may create a run in the session may set it; a visitor (a
      * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-     * prompt is its owner's to steer. On the native engine it lands after
+     * prompt is its owner's to steer. On Stigmer's own harness it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only.
      * </pre>
@@ -4040,7 +4040,7 @@ private static final long serialVersionUID = 0L;
      *
      * A person who may create a run in the session may set it; a visitor (a
      * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
-     * prompt is its owner's to steer. On the native engine it lands after
+     * prompt is its owner's to steer. On Stigmer's own harness it lands after
      * the agent's instructions and the platform's sections, for this turn
      * only.
      * </pre>

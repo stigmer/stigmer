@@ -754,7 +754,7 @@ func (x *EvalRunMockedServer) GetNotStartedReason() string {
 // EvalRunCaseTarget is one case's results on one target.
 type EvalRunCaseTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The engine and model.
+	// The harness and model.
 	Target *EvalRunTarget `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Why this case did not run on this target, as in "not run: model
 	// 'sonnet' is not in Stigmer's catalog"; empty when it ran.

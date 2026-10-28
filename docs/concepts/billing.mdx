@@ -128,11 +128,11 @@ Billing**, or contacts support for more than any plan includes.
 
 ## Model calls run on your own keys
 
-Every model call a native Agent run makes runs on your Organization's own
-Anthropic or OpenAI key, or on your own compatible endpoint, on every plan. An
-admin adds the keys in **Models & providers**. Claude-harness runs work the same
-way, on your Organization's own Anthropic key. Stigmer never runs a model call
-on a key of its own.
+Every model call an Agent run on the Stigmer harness makes runs on your
+Organization's own Anthropic or OpenAI key, or on your own compatible endpoint,
+on every plan. An admin adds the keys in **Models & providers**. Claude-harness
+runs work the same way, on your Organization's own Anthropic key. Stigmer never
+runs a model call on a key of its own.
 
 A run whose model needs a provider your Organization has no key for is refused
 before it starts. This holds for every run, including evals, AI grading, shared
@@ -193,10 +193,10 @@ upgrades. Air-gapped installs keep the bundled copy; set
 ## Optimizing your costs
 
 What your Agents spend on models is provider token cost, on your own provider
-bill: your model provider's for native runs, Anthropic's for Claude runs. The
-biggest savings come from sending fewer tokens, reusing cached ones, and
-matching the model and harness to the job. The levers below are ordered by
-impact.
+bill: your model provider's for runs on the Stigmer harness, Anthropic's for
+runs on Claude Agent. The biggest savings come from sending fewer tokens,
+reusing cached ones, and matching the model and harness to the job. The levers
+below are ordered by impact.
 
 ### Reuse the prompt with caching
 
@@ -206,9 +206,9 @@ about 1.25× input**. Re-reading a stable prefix (system instructions, Skills,
 earlier turns) therefore costs about **90% less** than sending it fresh, and the
 advantage compounds as a Session grows.
 
-- **Native** gives you explicit control: the harness sets cache breakpoints on
+- **Stigmer** gives you explicit control: the harness sets cache breakpoints on
   the stable prefix, and every follow-up turn re-reads it.
-- **Claude** leaves caching to Anthropic's engine — you benefit without
+- **Claude Agent** leaves caching to the Claude Agent SDK — you benefit without
   configuring anything, but with less control over what is cached.
 
 Keep the stable part of your prompt (instructions, Skills) first and the
@@ -220,11 +220,11 @@ across turns.
 Neither harness carries a Stigmer charge, so harness choice is about
 **capability and cost**.
 
-| If you need…                                | Prefer | Why                                                                |
-| ------------------------------------------- | ------ | ------------------------------------------------------------------ |
-| The widest model catalog or a cheaper model | Native | Every catalog provider; downgrade the model for simple tasks       |
-| Control over what is cached                 | Native | Explicit cache breakpoints on the stable prefix                    |
-| Anthropic's own engine on Claude models     | Claude | Anthropic's Claude Agent SDK, on your Organization's Anthropic key |
+| If you need…                                | Prefer       | Why                                                                |
+| ------------------------------------------- | ------------ | ------------------------------------------------------------------ |
+| The widest model catalog or a cheaper model | Stigmer      | Every catalog provider; downgrade the model for simple tasks       |
+| Control over what is cached                 | Stigmer      | Explicit cache breakpoints on the stable prefix                    |
+| Anthropic's own loop on Claude models       | Claude Agent | Anthropic's Claude Agent SDK, on your Organization's Anthropic key |
 
 See [Harnesses](/docs/concepts/harnesses) for the full capability comparison.
 

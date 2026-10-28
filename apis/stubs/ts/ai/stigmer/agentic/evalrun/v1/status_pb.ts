@@ -381,7 +381,7 @@ export const EvalRunMockedServerSchema: GenMessage<EvalRunMockedServer> = /*@__P
  */
 export type EvalRunCaseTarget = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCaseTarget"> & {
   /**
-   * The engine and model.
+   * The harness and model.
    *
    * @generated from field: ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1;
    */

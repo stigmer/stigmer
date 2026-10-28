@@ -73,11 +73,11 @@ import {
 import type { ClaudeAdapterConfig, ClaudeSdk } from "./turn.js";
 
 /** What a Claude turn on a runner without the engine is refused with. */
-export const NOT_INSTALLED_MESSAGE = "Claude is not installed on this runner, so this turn cannot run on Claude. Run it on another engine.";
+export const NOT_INSTALLED_MESSAGE = "The Claude Agent SDK is not installed on this runner, so this turn cannot run on the Claude Agent harness. Run it on another harness.";
 
 /** What a Claude turn whose engine could not be downloaded ends with; the next turn tries again. */
 export function downloadFailedMessage(reason: string): string {
-  return `Claude could not be downloaded to this computer (${reason}). Check the connection and try again, or run this turn on another engine.`;
+  return `The Claude Agent SDK could not be downloaded to this computer (${reason}). Check the connection and try again, or run this turn on another harness.`;
 }
 
 /** The setup label while the engine downloads. */

@@ -70,13 +70,14 @@ func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
-// Harness identifies the execution engine that processes agent activities
-// for a session.
+// Harness identifies the harness, the agent loop that processes a session's
+// turns. Each value has one label, the same on every surface: HARNESS_NATIVE
+// is "Stigmer" and HARNESS_CLAUDE is "Claude Agent".
 //
 // Each harness corresponds to a different Temporal activity type registered
 // by the runner daemon. The harness determines:
 // - Which tools the agent has access to
-// - How conversation state is managed (Stigmer checkpoints vs engine-native)
+// - How conversation state is managed (Stigmer checkpoints vs the harness's own)
 // - Which LLM models are available
 // - Billing tier and cost structure
 //
@@ -86,16 +87,18 @@ type Harness int32
 const (
 	// Platform default — resolves to HARNESS_NATIVE.
 	Harness_HARNESS_UNSPECIFIED Harness = 0
-	// Stigmer's native execution engine.
+	// Stigmer: Stigmer's own harness. Runs any catalog model, open source end
+	// to end.
 	//
 	// Stigmer-managed checkpoints, custom tools, sandbox isolation,
 	// pause/resume, and full HITL approval flow.
 	Harness_HARNESS_NATIVE Harness = 1
-	// Anthropic's Claude Agent SDK execution engine.
+	// Claude Agent: Anthropic's Claude Agent SDK. Claude models on the
+	// organization's own Anthropic key.
 	//
 	// Approvals that stop at the exact call, conversation state mirrored to
 	// Stigmer, model calls on the organization's own Anthropic key. A runner
-	// that does not carry the engine refuses its turns plainly.
+	// that does not carry the Claude Agent SDK refuses its turns plainly.
 	Harness_HARNESS_CLAUDE Harness = 3
 )
 

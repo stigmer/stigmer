@@ -33,7 +33,7 @@ describe("renderResource — run settings in the human view", () => {
     });
 
     const out = renderResource(AgentSchema, agent, "table", { hideOrg: true });
-    expect(out).toMatch(/Engine:\s+native/);
+    expect(out).toMatch(/Harness:\s+native/);
     expect(out).toMatch(/Model:\s+claude-sonnet-4-6/);
     expect(out).toMatch(/Speed tier:\s+fast/);
     expect(out).toMatch(/Thinking:\s+enabled/);

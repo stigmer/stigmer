@@ -737,7 +737,7 @@ AgentInvocation is what a caller may ask an agent to do.
   type={{
     agentRef: { type: "ResourceRef", description: "Reference to the agent to run.", typeDescriptionLink: "#resourceref", required: true },
     message: { type: "string", description: "Prompt the run starts from." },
-    harness: { type: "Harness", description: "Execution engine for the run's session.", typeDescriptionLink: "#harness" },
+    harness: { type: "Harness", description: "Harness for the run's session.", typeDescriptionLink: "#harness" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets the runs this invocation creates use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     runConfig: { type: "RunConfigInput", description: "Per-invocation model choice and run bounds.", typeDescriptionLink: "#runconfiginput" },
     environmentRef: { type: "ResourceRef", description: "The Environment the conversations this invocation starts run in: the packages their sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
@@ -976,12 +976,12 @@ What one routine fire produced.
 
 ### Harness
 
-Harness identifies the execution engine that processes agent activities for a session.
+Harness identifies the harness, the agent loop that processes a session's turns.
 
 | Value | Description |
 |-------|-------------|
-| `HARNESS_NATIVE` | Stigmer's native execution engine. |
-| `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
+| `HARNESS_NATIVE` | Stigmer: Stigmer's own harness. |
+| `HARNESS_CLAUDE` | Claude Agent: Anthropic's Claude Agent SDK. |
 
 ### ServiceTier
 

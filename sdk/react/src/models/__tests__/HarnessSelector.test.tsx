@@ -23,7 +23,7 @@ describe("HarnessSelector", () => {
   describe("ARIA structure", () => {
     it("renders a radiogroup with correct aria-label", () => {
       renderSelector();
-      const group = screen.getByRole("radiogroup", { name: "Execution engine" });
+      const group = screen.getByRole("radiogroup", { name: "Harness" });
       expect(group).toBeDefined();
     });
 
@@ -36,7 +36,7 @@ describe("HarnessSelector", () => {
     it("labels radio buttons with user-facing harness names", () => {
       renderSelector();
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeDefined();
-      expect(screen.getByRole("radio", { name: "Claude" })).toBeDefined();
+      expect(screen.getByRole("radio", { name: "Claude Agent" })).toBeDefined();
     });
   });
 
@@ -44,7 +44,7 @@ describe("HarnessSelector", () => {
     it("marks native as checked when value is native", () => {
       renderSelector({ value: "native" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const claude = screen.getByRole("radio", { name: "Claude" });
+      const claude = screen.getByRole("radio", { name: "Claude Agent" });
       expect(native.getAttribute("aria-checked")).toBe("true");
       expect(claude.getAttribute("aria-checked")).toBe("false");
     });
@@ -52,7 +52,7 @@ describe("HarnessSelector", () => {
     it("marks claude as checked when value is claude", () => {
       renderSelector({ value: "claude" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const claude = screen.getByRole("radio", { name: "Claude" });
+      const claude = screen.getByRole("radio", { name: "Claude Agent" });
       expect(native.getAttribute("aria-checked")).toBe("false");
       expect(claude.getAttribute("aria-checked")).toBe("true");
     });
@@ -62,7 +62,7 @@ describe("HarnessSelector", () => {
     it("sets tabIndex 0 on the active option and -1 on inactive", () => {
       renderSelector({ value: "native" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const claude = screen.getByRole("radio", { name: "Claude" });
+      const claude = screen.getByRole("radio", { name: "Claude Agent" });
       expect(native.tabIndex).toBe(0);
       expect(claude.tabIndex).toBe(-1);
     });
@@ -70,7 +70,7 @@ describe("HarnessSelector", () => {
     it("reverses tabIndex when claude is active", () => {
       renderSelector({ value: "claude" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const claude = screen.getByRole("radio", { name: "Claude" });
+      const claude = screen.getByRole("radio", { name: "Claude Agent" });
       expect(native.tabIndex).toBe(-1);
       expect(claude.tabIndex).toBe(0);
     });
@@ -79,7 +79,7 @@ describe("HarnessSelector", () => {
   describe("click interaction", () => {
     it("fires onValueChange when clicking an inactive option", () => {
       const { onValueChange } = renderSelector({ value: "native" });
-      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
       expect(onValueChange).toHaveBeenCalledWith("claude");
     });
 
@@ -142,7 +142,7 @@ describe("HarnessSelector", () => {
         value: "native",
         disabled: true,
       });
-      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
       expect(onValueChange).not.toHaveBeenCalled();
     });
 
@@ -169,7 +169,7 @@ describe("HarnessSelector", () => {
     it("marks no option with a price tier", () => {
       renderSelector({ value: "native" });
       expect(screen.queryByLabelText("premium")).toBeNull();
-      expect(screen.getByRole("radiogroup").textContent).toBe("StigmerClaude");
+      expect(screen.getByRole("radiogroup").textContent).toBe("StigmerClaude Agent");
     });
   });
 

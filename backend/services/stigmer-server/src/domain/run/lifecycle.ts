@@ -12,6 +12,9 @@
  * asserted by the Class A conformance lifecycle negatives. With a
  * connected engine, workflow-not-found is warn-and-proceed (the local
  * state update still applies; the workflow may simply have completed).
+ * A terminate's reason is read from its request by the persist step, never
+ * handed on by the engine step, so it is recorded whether or not the
+ * workflow still exists (stigmer#1472).
  *
  * The phase transition + persist is ONE atomic read-modify-write under
  * the store's per-resource write lock — the lifecycle counterpart of the
@@ -104,10 +107,9 @@ import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 import { sessionIdOfRun } from "../session/events/transitions.js";
 import { SESSION_TURN_UNFINISHED_REASON, sessionTurnUnfinishedMessage } from "./constants.js";
 
-// Context keys — Go's key strings, verbatim. The loaded-execution key is
+// Context key — Go's key string, verbatim. The loaded-execution key is
 // the shared pipeline constant (request-context.ts): extension gate steps
 // in the recover slot read the loaded execution through it.
-const REASON_KEY = "reason";
 const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 
 /** The pinned no-engine refusal (Go "Temporal is not available"). */
@@ -148,9 +150,9 @@ export interface LifecycleDeps {
 interface LifecycleInputShape {
   id: string;
 }
-/** Inputs that also carry a reason (Go LifecycleInputWithReason). */
+/** Inputs that also carry a reason (Go LifecycleInputWithReason); optional on the wire. */
 interface LifecycleInputWithReasonShape extends LifecycleInputShape {
-  reason: string;
+  reason?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -166,6 +168,11 @@ export type CancelDeps = Pick<
 /** The run a lifecycle chain acts on: its input's `id`. */
 function inputRunId<Desc extends DescMessage>(ctx: RequestContext<Desc>): string {
   return (ctx.newState as unknown as LifecycleInputShape).id;
+}
+
+/** The stop's reason a terminate or pause input carries, "" when none was given. */
+function inputReason<Desc extends DescMessage>(ctx: RequestContext<Desc>): string {
+  return (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ?? "";
 }
 
 function newLoadExecutionByIdStep<Desc extends DescMessage>(
@@ -341,13 +348,15 @@ export function applyLifecyclePhaseTransition(
  * per-resource write lock, so an answer a concurrent write records
  * between the earlier load and this persist can never be lost. UpdateResource requires existence (no upsert): a
  * lifecycle op racing a delete returns NOT_FOUND rather than resurrecting
- * a half-built document.
+ * a half-built document. The error text's reason is `reasonOf` the
+ * request, "" when the chain names none.
  */
 function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
   deps: Pick<LifecycleDeps, "store" | "logger" | "sessionEventBroker" | "statusObservers">,
   targetPhase: RunPhase,
   setError: boolean,
   clearError: boolean,
+  reasonOf?: (ctx: RequestContext<Desc>) => string,
 ): PipelineStep<Desc> {
   return {
     name: "UpdateExecutionPhaseAndPersist",
@@ -357,8 +366,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
       }
       const execution = loadedExecution(ctx);
       const executionId = execution.metadata?.id ?? "";
-      const reasonValue = ctx.get(REASON_KEY);
-      const reason = typeof reasonValue === "string" ? reasonValue : "";
+      const reason = reasonOf?.(ctx) ?? "";
 
       let updated: Run;
       let oldPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
@@ -585,12 +593,10 @@ export async function terminateExecution(
         name: "TerminateTemporalWorkflow",
         deps,
         invoke: async (engine, executionId, ctx) => {
-          const reason =
-            (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ||
-            "Terminated by user";
-          await engine.engine.terminateWorkflow(executionId, reason);
-          // Store the resolved reason for the phase update's error text.
-          ctx.set(REASON_KEY, reason);
+          await engine.engine.terminateWorkflow(
+            executionId,
+            inputReason(ctx) || "Terminated by user",
+          );
         },
         failureMessage: "failed to terminate Temporal workflow",
       }),
@@ -599,6 +605,7 @@ export async function terminateExecution(
         RunPhase.RUN_TERMINATED,
         true,
         false,
+        inputReason,
       ),
     ],
   );
@@ -639,11 +646,10 @@ export async function pauseExecution(
         name: "SignalPauseToTemporal",
         deps,
         invoke: async (engine, executionId, ctx) => {
-          const reason =
-            (ctx.newState as unknown as LifecycleInputWithReasonShape).reason ||
-            "Paused by user";
-          await engine.engine.signalPause(executionId, reason);
-          ctx.set(REASON_KEY, reason);
+          await engine.engine.signalPause(
+            executionId,
+            inputReason(ctx) || "Paused by user",
+          );
         },
         failureMessage: "failed to send pause signal to Temporal workflow",
       }),

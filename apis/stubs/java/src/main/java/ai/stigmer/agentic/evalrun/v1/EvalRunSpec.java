@@ -467,8 +467,8 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.evalrun.v1.EvalRunTarget> targets_;
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -481,8 +481,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -496,8 +496,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -510,8 +510,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -524,8 +524,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -2941,8 +2941,8 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -2958,8 +2958,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -2975,8 +2975,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -2992,8 +2992,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3016,8 +3016,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3037,8 +3037,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3060,8 +3060,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3084,8 +3084,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3105,8 +3105,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3126,8 +3126,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3148,8 +3148,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3168,8 +3168,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3188,8 +3188,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3202,8 +3202,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3219,8 +3219,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3237,8 +3237,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3251,8 +3251,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>
@@ -3266,8 +3266,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engines and models each case runs on, at most six. Empty runs each
-     * case on the agent as it runs (its own engine, model and settings), or,
+     * The harnesses and models each case runs on, at most six. Empty runs each
+     * case on the agent as it runs (its own harness, model and settings), or,
      * on the built-in assistant, on the model the case names or the
      * platform's default model.
      * </pre>

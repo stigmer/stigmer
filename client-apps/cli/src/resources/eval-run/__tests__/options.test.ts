@@ -127,7 +127,7 @@ describe("readEvalRunOptions", () => {
     [{ realMcpServers: true, allowRealServers: true }, "--allow-real-servers goes with --mocks record"],
     [{ allowTools: ["bash"] }, "--allow-tools 'bash' is not a tool name"],
     [{ allowTools: ["mcp__plugin__github__*"] }, "is not a tool name"],
-    [{ model: ["codex/gpt-5"] }, "names no engine Stigmer runs"],
+    [{ model: ["codex/gpt-5"] }, "names no harness Stigmer runs"],
     [{ judgeModel: "m".repeat(129) }, "--judge-model is longer than 128 characters"],
     [{ model: Array.from({ length: 7 }, () => "native/claude-sonnet-4-6") }, "at most 6 times"],
   ])("refuses %o with exit 1", (flags, message) => {

@@ -1300,8 +1300,8 @@ export function refuseUnrunnableHooks(
   return {
     kind: "hooks-refused",
     message:
-      `This conversation has hooks (${described.join(", ")}), and this engine does not run hooks yet. ` +
-      "Run it on Stigmer's native engine, or remove the hooks.",
+      `This conversation has hooks (${described.join(", ")}), and this harness does not run hooks yet. ` +
+      "Run it on the Stigmer harness, or remove the hooks.",
   };
 }
 

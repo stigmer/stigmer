@@ -515,7 +515,7 @@ function RunEvalsForm({
           id={`${baseId}-models`}
           switchLabel={
             onAgent
-              ? "Run the agent as it runs, on its own engine and model"
+              ? "Run the agent as it runs, on its own harness and model"
               : "Use each case's own model"
           }
           settings={settings}

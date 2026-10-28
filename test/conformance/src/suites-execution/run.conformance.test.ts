@@ -460,7 +460,9 @@ describe("Run conformance — lifecycle (running execution)", () => {
     expect(cancelled.status?.stopCause).toBe("user");
   });
 
-  it("[rpc:RunCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
+  // The stop records its reason as "Terminated: <reason>", the shape a
+  // composition's automated stop reads back to tell it from a person's.
+  it("[rpc:RunCommandController.terminate] terminate transitions a running execution to TERMINATED, recording its reason", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
@@ -471,6 +473,7 @@ describe("Run conformance — lifecycle (running execution)", () => {
 
     const terminated = await awaitPhase(clients, id, RunPhase.RUN_TERMINATED);
     expect(terminated.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+    expect(terminated.status?.error, `run ${id}: the terminate's reason`).toBe("Terminated: conformance");
   });
 
   // A repeated stop is a benign no-op, not an error: a client that retries an

@@ -201,10 +201,10 @@ describe("planMatrix", () => {
       catalog,
     );
     expect(matrix.cases.map((c) => c.targets.map((t) => t.notRunReason))).toEqual([
-      [undefined, engineUnsupportedReason("Claude", "resumed conversations")],
+      [undefined, engineUnsupportedReason("Claude Agent", "resumed conversations")],
       [undefined, undefined],
     ]);
-    expect(engineUnsupportedReason("Claude", "resumed conversations")).toBe("not run on Claude: resumed conversations");
+    expect(engineUnsupportedReason("Claude Agent", "resumed conversations")).toBe("not run on Claude Agent: resumed conversations");
     expect(matrix.cells.map((c) => [c.caseIndex, c.targetIndex])).toEqual([
       [0, 0],
       [0, 0],

@@ -105,7 +105,7 @@ export interface SendFollowUpOptions {
   /**
    * The model this message asks for. Omit it to run the model a less
    * specific layer chooses (the agent's run defaults, the operator
-   * profile, the engine's default).
+   * profile, the harness's default).
    *
    * @see {@link SharedRunFields.modelName}
    */

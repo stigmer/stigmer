@@ -476,7 +476,7 @@ describe("RoutineForm", () => {
     // browses the native engine first; switch it to Claude to list the model.
     fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Select harness" }));
-    fireEvent.click(await screen.findByRole("option", { name: "Claude" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Claude Agent" }));
     fireEvent.click(
       await screen.findByRole("option", { name: /Claude Sonnet 4\.6/ }),
     );
