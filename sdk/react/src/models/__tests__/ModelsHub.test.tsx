@@ -144,6 +144,16 @@ describe("ModelsHub", () => {
     expect(within(anthropic).queryByLabelText("Anthropic API key")).toBeNull();
   });
 
+  it("shows a member a connected key's details with no way to replace or remove it", async () => {
+    renderHub(server({ canManage: false, readiness: ANTHROPIC_CONNECTED, keys: [storedKey("anthropic")] }));
+    const anthropic = await card("Anthropic");
+
+    await waitFor(() => expect(within(anthropic).getByText(/Key ending in/)).toBeTruthy());
+    expect(within(anthropic).queryByRole("button", { name: "Replace key" })).toBeNull();
+    expect(within(anthropic).queryByRole("button", { name: "Remove" })).toBeNull();
+    expect(within(anthropic).queryByLabelText("Anthropic API key")).toBeNull();
+  });
+
   it("shows a laptop the command that gives its runner each provider's key, as the server's refusal says", async () => {
     const calls = renderHub(server({ readiness: LAPTOP_WITHOUT_KEYS }), "local");
     const anthropic = await card("Anthropic");
