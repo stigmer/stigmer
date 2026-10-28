@@ -54,11 +54,15 @@ export function isMissing(availability: ProviderAvailability): boolean {
 }
 
 /**
- * Whether nothing can run at all: the server judged at least one model, and
- * every one it judged is missing its provider. A served or unknown model
- * counts as able to run, so a server that cannot see its runners never
- * reads as "nothing runs".
+ * Whether nothing can run at all: some model is missing its provider, and
+ * so is every model the server judged a provider for. A model it judged no
+ * provider for (a catalog's Ollama row on the cloud, which runs only on an
+ * organization's own endpoint) says nothing either way, so it neither
+ * counts as able to run nor makes the answer "nothing runs" alone. A served
+ * or unknown provider counts as able to run, so a server that cannot see
+ * its runners never reads as "nothing runs".
  */
 export function nothingRuns(models: readonly ModelReadiness[] | null): boolean {
-  return models !== null && models.length > 0 && models.every((model) => isMissing(model.availability));
+  const judged = (models ?? []).filter((model) => model.provider !== "");
+  return judged.length > 0 && judged.every((model) => isMissing(model.availability));
 }

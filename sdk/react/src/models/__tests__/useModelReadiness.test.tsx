@@ -203,7 +203,7 @@ describe("useModelReadiness", () => {
 });
 
 describe("nothingRuns", () => {
-  it("is true only when the server judged models and every one is missing", () => {
+  it("is true only when some model is missing and every model the server judged a provider for is", () => {
     const missing = { state: "missing", scope: "organization" } as const;
     const unknown = { state: "unknown" } as const;
     expect(nothingRuns(null)).toBe(false);
@@ -215,5 +215,13 @@ describe("nothingRuns", () => {
         { harness: "native", modelId: "b", provider: "openai", availability: unknown },
       ]),
     ).toBe(false);
+    // A model the server judged no provider for says nothing either way.
+    expect(
+      nothingRuns([
+        { harness: "native", modelId: "a", provider: "anthropic", availability: missing },
+        { harness: "native", modelId: "local", provider: "", availability: unknown },
+      ]),
+    ).toBe(true);
+    expect(nothingRuns([{ harness: "native", modelId: "local", provider: "", availability: unknown }])).toBe(false);
   });
 });
