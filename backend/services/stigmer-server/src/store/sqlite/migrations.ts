@@ -229,6 +229,12 @@ import {
   unreadableSessionHarnessError,
 } from "../session-harness-state-moved.js";
 import {
+  HARNESS_WORD_KIND,
+  HARNESS_WORD_PAGE_SIZE,
+  migrateHarnessWordRow,
+  unreadableHarnessWordError,
+} from "../harness-word-renamed.js";
+import {
   ETAG_STAMPED_KIND_NAMES,
   ETAG_STAMP_PAGE_SIZE,
   logUnreadableEtagRows,
@@ -349,8 +355,11 @@ export const SCHEMA_VERSION_47 = 47;
 /** v48: the lane a queued message was sent through (extensions/queued-sender-lane.ts). */
 export const SCHEMA_VERSION_48 = 48;
 
+/** v49: an account's stored default harness takes the word the platform takes now (../harness-word-renamed.ts). */
+export const SCHEMA_VERSION_49 = 49;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_48;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_49;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -424,6 +433,7 @@ export function runMigrations(
     [SCHEMA_VERSION_46, migrateToV46],
     [SCHEMA_VERSION_47, migrateToV47],
     [SCHEMA_VERSION_48, migrateToV48],
+    [SCHEMA_VERSION_49, migrateToV49],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2864,4 +2874,43 @@ function migrateToV47(db: DatabaseSync): void {
  */
 function migrateToV48(db: DatabaseSync): void {
   db.exec(`ALTER TABLE session_queued_messages ADD COLUMN lane BLOB NOT NULL DEFAULT x'';`);
+}
+
+/**
+ * v49: an identity account's stored default harness takes the word the
+ * platform takes now — the Postgres driver's v45 in this engine's terms
+ * (../harness-word-renamed.ts says what each row becomes). Every identity
+ * account row is read in keyset pages and rewritten only when its default
+ * holds a retired word, its `updated_at` left alone. Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
+ * boot stops on the row it names.
+ */
+function migrateToV49(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const update = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (let after = ""; ; ) {
+    const rows = page.all(HARNESS_WORD_KIND, after, HARNESS_WORD_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateHarnessWordRow(row.data);
+      } catch (error) {
+        throw unreadableHarnessWordError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        update.run(migrated, HARNESS_WORD_KIND, row.id);
+      }
+    }
+    if (rows.length < HARNESS_WORD_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
 }

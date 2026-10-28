@@ -170,6 +170,8 @@ import {
   SCHEMA_VERSION_43,
   SCHEMA_VERSION_44,
   SCHEMA_VERSION_45,
+  SCHEMA_VERSION_48,
+  SCHEMA_VERSION_49,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -193,6 +195,7 @@ import {
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
+import { HARNESS_WORD_PAGE_SIZE } from "../../harness-word-renamed.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
 import { etagOf, stampEtag, storedEtagOf } from "../../etag.js";
@@ -4943,5 +4946,94 @@ describe("v45: a run's stored files wait to become Files of the run", () => {
       run_id: string;
     }>;
     expect(lifted.map((row) => row.run_id)).toEqual(ids);
+  });
+});
+
+describe("v49: an account's stored default harness takes the word the platform takes now", () => {
+  const STORED_AT = "2026-10-29 00:00:00";
+
+  /** A stored identity account whose default harness is `word`, stamped as a write stamps it. */
+  function accountRow(id: string, word: string): Uint8Array {
+    const account = create(IdentityAccountSchema, {
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "IdentityAccount",
+      metadata: { id, org: "org_1", slug: id, name: id },
+      spec: { idpId: `auth0|${id}`, preferences: { defaultHarness: word, memoryEnabled: true } },
+    });
+    stampEtag(IdentityAccountSchema, account);
+    return toBinary(IdentityAccountSchema, account);
+  }
+
+  function defaultOf(db: DatabaseSync, id: string): { word: string; etagFresh: boolean; updatedAt: string } {
+    const row = db.prepare(`SELECT data, updated_at FROM resources WHERE kind = 'identity_account' AND id = ?`).get(id) as {
+      data: Uint8Array;
+      updated_at: string;
+    };
+    const account = fromBinary(IdentityAccountSchema, new Uint8Array(row.data));
+    return {
+      word: account.spec?.preferences?.defaultHarness ?? "",
+      etagFresh: storedEtagOf(IdentityAccountSchema, account) === etagOf(IdentityAccountSchema, account),
+      updatedAt: row.updated_at,
+    };
+  }
+
+  /** A v48 database holding one account per stored word. */
+  function v48Database(): DatabaseSync {
+    const db = new DatabaseSync(tempDbPath());
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_48);
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', ?, ?, ?)`);
+    for (const [id, word] of [
+      ["ida_native", "native"],
+      ["ida_cursor", "cursor"],
+      ["ida_stigmer", "stigmer"],
+      ["ida_claude", "claude"],
+      ["ida_none", ""],
+    ]) {
+      insert.run(id, accountRow(id!, word!), STORED_AT);
+    }
+    return db;
+  }
+
+  it("rewrites native to stigmer and clears cursor, stamps them again, and leaves every other account and updated_at alone", () => {
+    const db = v48Database();
+    const untouched = (id: string) =>
+      new Uint8Array((db.prepare(`SELECT data FROM resources WHERE id = ?`).get(id) as { data: Uint8Array }).data);
+    const before = new Map(["ida_stigmer", "ida_claude", "ida_none"].map((id) => [id, untouched(id)]));
+
+    runMigrations(db, SCHEMA_VERSION_49);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_49);
+
+    expect(defaultOf(db, "ida_native")).toEqual({ word: "stigmer", etagFresh: true, updatedAt: STORED_AT });
+    expect(defaultOf(db, "ida_cursor")).toEqual({ word: "", etagFresh: true, updatedAt: STORED_AT });
+    for (const [id, bytes] of before) {
+      expect(untouched(id), id).toEqual(bytes);
+    }
+  });
+
+  it("an account that does not decode fails the step, names the row, and leaves the database at v48", () => {
+    const db = v48Database();
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_broken', ?, ?)`).run(
+      new Uint8Array([0xff, 0xff, 0xff]),
+      STORED_AT,
+    );
+    expect(() => runMigrations(db, SCHEMA_VERSION_49)).toThrow(
+      "identity_account 'ida_broken' cannot be read to rewrite its default harness",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_48);
+    expect(defaultOf(db, "ida_native").word).toBe("native");
+  });
+
+  it("reads accounts across keyset pages, missing none past the first page", () => {
+    const db = v48Database();
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', ?, ?, ?)`);
+    const ids: string[] = [];
+    for (let i = 0; i <= HARNESS_WORD_PAGE_SIZE; i++) {
+      const id = `ida_page${String(i).padStart(4, "0")}`;
+      ids.push(id);
+      insert.run(id, accountRow(id, "native"), STORED_AT);
+    }
+    runMigrations(db, SCHEMA_VERSION_49);
+    expect(ids.filter((id) => defaultOf(db, id).word !== "stigmer")).toEqual([]);
   });
 });

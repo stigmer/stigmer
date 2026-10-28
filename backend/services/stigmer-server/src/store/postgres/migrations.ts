@@ -234,6 +234,12 @@ import {
   unreadableSessionHarnessError,
 } from "../session-harness-state-moved.js";
 import {
+  HARNESS_WORD_KIND,
+  HARNESS_WORD_PAGE_SIZE,
+  migrateHarnessWordRow,
+  unreadableHarnessWordError,
+} from "../harness-word-renamed.js";
+import {
   ETAG_STAMPED_KIND_NAMES,
   ETAG_STAMP_PAGE_SIZE,
   logUnreadableEtagRows,
@@ -356,8 +362,11 @@ export const SCHEMA_VERSION_43 = 43;
 /** v44: the lane a queued message was sent through (extensions/queued-sender-lane.ts). */
 export const SCHEMA_VERSION_44 = 44;
 
+/** v45: an account's stored default harness takes the word the platform takes now (../harness-word-renamed.ts). */
+export const SCHEMA_VERSION_45 = 45;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_44;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_45;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -442,6 +451,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_42, migrateToV42],
       [SCHEMA_VERSION_43, migrateToV43],
       [SCHEMA_VERSION_44, migrateToV44],
+      [SCHEMA_VERSION_45, migrateToV45],
     ];
 
     for (const [version, migrate] of chain) {
@@ -3065,4 +3075,45 @@ async function migrateToV43(client: PoolClient): Promise<void> {
  */
 async function migrateToV44(client: PoolClient): Promise<void> {
   await client.query(`ALTER TABLE session_queued_messages ADD COLUMN lane BYTEA NOT NULL DEFAULT ''::bytea;`);
+}
+
+/**
+ * v45: an identity account's stored default harness takes the word the
+ * platform takes now (../harness-word-renamed.ts says what each row
+ * becomes). Every identity account row is read in keyset pages on
+ * `(kind, id)` and rewritten only when its default holds a retired word,
+ * its `updated_at` left alone. The chain's advisory lock keeps a second
+ * instance's boot out of the step, and the transaction makes it whole or
+ * nothing. The SQLite driver's v49 in this engine's terms.
+ */
+async function migrateToV45(client: PoolClient): Promise<void> {
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [HARNESS_WORD_KIND, after, HARNESS_WORD_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateHarnessWordRow(new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableHarnessWordError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        await client.query(
+          `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+          [Buffer.from(migrated), HARNESS_WORD_KIND, row.id],
+        );
+      }
+    }
+    if (rows.length < HARNESS_WORD_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
 }
