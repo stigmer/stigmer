@@ -333,7 +333,7 @@ export function resultBlockOf(
   };
 }
 
-/** A target as the CLI's `--model` takes it: `native/claude-sonnet-4-6`, or `native/default`. */
+/** A target as the CLI's `--model` takes it: `stigmer/claude-sonnet-4-6`, or `stigmer/default`. */
 export function evalRunTargetLabel(target: EvalRunTarget | undefined): string {
   return `${harnessName(target?.harness ?? Harness.UNSPECIFIED)}/${target?.modelName || "default"}`;
 }

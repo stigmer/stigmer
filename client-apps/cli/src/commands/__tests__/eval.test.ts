@@ -75,7 +75,7 @@ describe("stigmer eval run", () => {
       "--tag",
       "fast",
       "--model",
-      "native/claude-sonnet-4-6",
+      "stigmer/claude-sonnet-4-6",
       "--model",
       "claude/claude-sonnet-5",
       "--runs",

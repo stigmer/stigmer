@@ -208,8 +208,8 @@ describe("an eval run's rows", () => {
       [SONNET, GPT],
     );
     expect(labelsOf(evalRun)).toEqual([
-      "native/claude-sonnet-4-6",
-      "native/gpt-5",
+      "stigmer/claude-sonnet-4-6",
+      "stigmer/gpt-5",
     ]);
     const [row] = rowsOf(evalRun);
     expect(
@@ -221,8 +221,8 @@ describe("an eval run's rows", () => {
         cell.passed,
       ]),
     ).toEqual([
-      ["native/claude-sonnet-4-6", 1, 0.33, 0.67, true],
-      ["native/gpt-5", 1, 0.33, 0.67, true],
+      ["stigmer/claude-sonnet-4-6", 1, 0.33, 0.67, true],
+      ["stigmer/gpt-5", 1, 0.33, 0.67, true],
     ]);
     expect(
       row?.cells[0]?.tries.map(
@@ -326,12 +326,12 @@ describe("an eval run's rows", () => {
     const evalRun = evalWith([{ name: "a", score: 1 }], [SONNET, GPT]);
     casesOf(evalRun)[0]!.targets.pop();
     expect(labelsOf(evalRun)).toEqual([
-      "native/claude-sonnet-4-6",
-      "native/gpt-5",
+      "stigmer/claude-sonnet-4-6",
+      "stigmer/gpt-5",
     ]);
     expect(
       rowsOf(evalRun)[0]?.cells.map((cell) => cell.target),
-    ).toEqual(["native/claude-sonnet-4-6"]);
+    ).toEqual(["stigmer/claude-sonnet-4-6"]);
   });
 
   it("names every phase, and one this client does not know in words with its number", () => {
@@ -409,7 +409,7 @@ describe("compareEvals", () => {
     expect(compareRows(before, after)).toEqual([
       {
         name: "a",
-        target: "native/claude-sonnet-4-6",
+        target: "stigmer/claude-sonnet-4-6",
         before: { score: 1, delta: 0.5 },
         after: null,
         changed: true,

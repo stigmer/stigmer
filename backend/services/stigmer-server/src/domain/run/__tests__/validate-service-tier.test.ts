@@ -171,6 +171,6 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
       Harness.STIGMER,
     );
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toContain("on the native harness");
+    expect(err.rawMessage).toContain("on the stigmer harness");
   });
 });

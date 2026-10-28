@@ -32,7 +32,7 @@ describe("renderSessionHeader", () => {
     expect(agent.text()).not.toContain("Mode:");
   });
 
-  it("surfaces the claude harness but not native/default (oss#293)", () => {
+  it("surfaces the claude harness but not stigmer/default (oss#293)", () => {
     // A Claude session may have been selected by the account preference, not
     // a flag — the header is the CLI's only pre-stream channel to say so.
     const claude = capture();

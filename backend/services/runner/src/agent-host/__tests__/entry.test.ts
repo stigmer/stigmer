@@ -167,7 +167,7 @@ describe("the agent host process", () => {
     runnerEnd.close(new Error("the runner is gone"));
     await done;
 
-    expect(events).toEqual(["boot native", "boot claude-probe", "shutdown claude-probe", "shutdown native"]);
+    expect(events).toEqual(["boot stigmer", "boot claude-probe", "shutdown claude-probe", "shutdown stigmer"]);
     expect(log).toEqual([
       "[agent-host] channel closed (the runner is gone); shutting down",
       "[agent-host] claude-probe shutdown failed: would not let go",

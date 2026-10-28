@@ -134,7 +134,7 @@ describe("toResultDocument", () => {
         },
       },
     ]);
-    expect(refunds?.targets.map((t) => t.label)).toEqual(["native/claude-sonnet-4-6"]);
+    expect(refunds?.targets.map((t) => t.label)).toEqual(["stigmer/claude-sonnet-4-6"]);
     expect(tracker?.cases[0]).toMatchObject({ name: "files-ticket", passed: false, aggregates: { score: 0.5 } });
   });
 

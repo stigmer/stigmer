@@ -157,7 +157,7 @@ describe("planCells", () => {
     expect(plan.cells.map((cell) => cell.id)).toEqual(idsOn(["claude"]));
     expect(plan.quality).toEqual([{ id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude }]);
     expect(plan.refused.filter((r) => r.reason === "excluded by --only").map((r) => r.cell)).toEqual([
-      ...idsOn(.stigmer),
+      ...idsOn(["stigmer"]),
       "quality/stigmer",
       JUDGE_CALIBRATION_CELL,
     ]);

@@ -212,7 +212,7 @@ describe("an eval run about an agent: its label and sections", () => {
       ["linter", "no eval cases at this version"],
     ]);
     const [thermos] = sections;
-    expect(thermos!.labels).toEqual(["native/claude-sonnet-4-6"]);
+    expect(thermos!.labels).toEqual(["stigmer/claude-sonnet-4-6"]);
     expect(thermos!.rows[0]!.cells[0]).toMatchObject({
       withScore: 1,
       withoutScore: undefined,
@@ -249,7 +249,7 @@ describe("an eval run with Evals about an agent", () => {
       compared: false,
       casesPassed: 0,
       casesTotal: 1,
-      labels: ["native/claude-sonnet-4-6"],
+      labels: ["stigmer/claude-sonnet-4-6"],
     });
     expect(sections[1]!.rows.map((row) => row.name)).toEqual(["refund-window"]);
   });

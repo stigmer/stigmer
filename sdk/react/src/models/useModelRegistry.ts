@@ -46,7 +46,7 @@ export interface UseModelRegistryReturn {
   /** Curated subset of models marked as `featured` in the registry. */
   readonly featured: readonly ModelInfo[];
   /**
-   * Look up a model by its compound key (`"native/claude-sonnet-4.6"`).
+   * Look up a model by its compound key (`"stigmer/claude-sonnet-4.6"`).
    * Always unambiguous, even in unified mode.
    */
   readonly getByKey: (key: string) => ModelInfo | undefined;

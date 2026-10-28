@@ -155,7 +155,7 @@ describe("toResultDocument", () => {
   it("adds Stigmer's fields beside the format's: targets, passK, notRun", () => {
     const doc = block(evalOf());
     expect(doc.cases[0]!.passK).toBe(true);
-    expect(doc.targets.map((target) => target.label)).toEqual(["native/claude-sonnet-4-6"]);
+    expect(doc.targets.map((target) => target.label)).toEqual(["stigmer/claude-sonnet-4-6"]);
     expect(doc.notRun).toEqual([{ name: "needs-fixture", reason: "not run: plugins" }]);
   });
 
@@ -237,7 +237,7 @@ describe("toResultDocument", () => {
   it("reads the targets from the cases when the eval named none", () => {
     const evalRun = evalOf();
     evalRun.spec!.targets = [];
-    expect(block(evalRun).targets.map((target) => target.label)).toEqual(["native/claude-sonnet-4-6"]);
+    expect(block(evalRun).targets.map((target) => target.label)).toEqual(["stigmer/claude-sonnet-4-6"]);
   });
 });
 
@@ -245,7 +245,7 @@ describe("evalRunTargetLabel", () => {
   it("writes harness/model, the native engine for an unspecified one, default for no model", () => {
     expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" } as never)).toBe("claude/claude-sonnet-5");
     expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "" } as never)).toBe("claude/default");
-    expect(evalRunTargetLabel(undefined)).toBe("native/default");
+    expect(evalRunTargetLabel(undefined)).toBe("stigmer/default");
   });
 
   it("names an engine this client does not know by its number", () => {

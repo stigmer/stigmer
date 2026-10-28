@@ -115,7 +115,7 @@ describe("usePersistedModel", () => {
     });
 
     it("extracts plain modelId from native compound key", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, `native/${DEFAULT_MODEL_ID}`);
+      localStorage.setItem(STORAGE_KEY_NATIVE, `stigmer/${DEFAULT_MODEL_ID}`);
       const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
     });

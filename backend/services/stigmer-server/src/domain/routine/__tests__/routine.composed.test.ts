@@ -332,7 +332,7 @@ describe("create — the defaults resolver through the real chain", () => {
     );
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toMatch(
-      /^spec\.agent\.run_config\.model_name: model 'no-such-model-anywhere' is not in the model registry \(native harness\)/,
+      /^spec\.agent\.run_config\.model_name: model 'no-such-model-anywhere' is not in the model registry \(stigmer harness\)/,
     );
   });
 

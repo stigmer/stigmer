@@ -221,7 +221,7 @@ describe("ValidateThinkingMode on the native harness (#1280)", () => {
   it("ENABLED on a model with no native entry fails closed, naming the native models that think", async () => {
     const err = await refusal({ modelName: "claude-only", thinkingMode: ThinkingMode.ENABLED }, onNative);
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toContain("native harness");
+    expect(err.rawMessage).toContain("stigmer harness");
     expect(err.rawMessage).toContain("claude-sonnet-5");
     expect(err.rawMessage).toContain("claude-haiku-4.5");
   });

@@ -198,7 +198,7 @@ describe("runEvalRun about an agent", () => {
     expect(fake.err()).toContain("Started evr_2 on support-desk@v3. Ctrl+C cancels it.");
     // Each finished try once, though two reads carried it.
     expect(fake.err().match(/tracker\/refund-window · native\/claude-sonnet-4-6 · with · try 1\/1 · 1\.00/g)).toHaveLength(1);
-    expect(fake.out()).toContain("support-desk@0123456789ab · refund-policy@c0ffee111111 · native/claude-sonnet-4-6");
+    expect(fake.out()).toContain("support-desk@0123456789ab · refund-policy@c0ffee111111 · stigmer/claude-sonnet-4-6");
     expect(fake.out()).toContain("support-desk@0123456789ab · notes@abcdef333333\n  not run: not selected");
     expect(fake.out()).toContain("2 case(s) · 42s · $0.50");
     expect(fake.out()).toContain("tracker/needs-fixture: not run: plugins");
@@ -206,7 +206,7 @@ describe("runEvalRun about an agent", () => {
 
   it("reads an agent given by id, and sends the named models as targets", async () => {
     const server = fakeServer([finishedEvalRunOnAgent()]);
-    const code = await run(server.client, "", { agent: "agt_1", model: ["native/claude-opus-4-1"] }, fakeIo().io);
+    const code = await run(server.client, "", { agent: "agt_1", model: ["stigmer/claude-opus-4-1"] }, fakeIo().io);
     expect(code).toBe(0);
     expect(server.calls[0]).toBe("agent.get agt_1");
     expect(server.created[0]).toMatchObject({ agentVersion: "", cases: [], targets: [{ modelName: "claude-opus-4-1" }] });

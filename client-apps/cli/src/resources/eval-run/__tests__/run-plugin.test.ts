@@ -179,7 +179,7 @@ describe("runEvalRun about a plugin", () => {
   it("creates the eval in the plugin's organization with every option, follows it, and prints the report", async () => {
     const server = fakeServer([running(), finishedEval()]);
     const fake = fakeIo();
-    const code = await run(server.client, "acme", { runs: "2", model: ["native/claude-sonnet-4-6"], tag: ["smoke"] }, fake.io);
+    const code = await run(server.client, "acme", { runs: "2", model: ["stigmer/claude-sonnet-4-6"], tag: ["smoke"] }, fake.io);
 
     expect(code).toBe(0);
     expect(server.calls).toEqual(["plugin.ref acme/thermos", "create", "get", "get"]);

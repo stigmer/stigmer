@@ -59,7 +59,7 @@ describe("the option set is the proto's harness set", () => {
 
 describe("parseModelKey", () => {
   it("reads a key on every named engine, offered or not", () => {
-    expect(parseModelKey("native/claude-sonnet-4-6")).toEqual({ harness: "stigmer", modelId: "claude-sonnet-4-6" });
+    expect(parseModelKey("stigmer/claude-sonnet-4-6")).toEqual({ harness: "stigmer", modelId: "claude-sonnet-4-6" });
     expect(parseModelKey("claude/claude-opus-5")).toEqual({ harness: "claude", modelId: "claude-opus-5" });
   });
 

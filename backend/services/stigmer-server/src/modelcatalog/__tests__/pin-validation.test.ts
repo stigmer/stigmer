@@ -89,14 +89,14 @@ describe("unknownModelPinRefusal", () => {
       unknownModelPinRefusal(STORE, "spec.model_name", "stigmer", "anthropic/claude-5"),
     ).toBe(
       "spec.model_name: model 'anthropic/claude-5' is not in the model registry " +
-        "(native harness); did you mean 'anthropic/claude-4'?",
+        "(stigmer harness); did you mean 'anthropic/claude-4'?",
     );
     // Both candidates within the cap: distance-ascending order.
     expect(
       unknownModelPinRefusal(STORE, "f", "stigmer", "anthropic/claude-4x"),
     ).toBe(
       "f: model 'anthropic/claude-4x' is not in the model registry " +
-        "(native harness); did you mean 'anthropic/claude-4', 'anthropic/claude-4-mini'?",
+        "(stigmer harness); did you mean 'anthropic/claude-4', 'anthropic/claude-4-mini'?",
     );
   });
 
@@ -127,7 +127,7 @@ describe("unknownModelPinRefusal", () => {
     expect(
       unknownModelPinRefusal(STORE, "f", "stigmer", "totally/unrelated-thing"),
     ).toBe(
-      "f: model 'totally/unrelated-thing' is not in the model registry (native harness)",
+      "f: model 'totally/unrelated-thing' is not in the model registry (stigmer harness)",
     );
   });
 });

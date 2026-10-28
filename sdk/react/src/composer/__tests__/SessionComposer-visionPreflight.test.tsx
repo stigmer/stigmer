@@ -171,7 +171,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("leads with the model when the selected model is explicitly blind", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} defaultModelId="native/kimi-k3" />,
+      <SessionComposer onSubmit={vi.fn()} defaultModelId="stigmer/kimi-k3" />,
       { wrapper: createWrapper() },
     );
     const textarea = screen.getByRole("textbox");
@@ -189,7 +189,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("never warns about non-image files on a blind model", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} defaultModelId="native/kimi-k3" />,
+      <SessionComposer onSubmit={vi.fn()} defaultModelId="stigmer/kimi-k3" />,
       { wrapper: createWrapper() },
     );
     const textarea = screen.getByRole("textbox");

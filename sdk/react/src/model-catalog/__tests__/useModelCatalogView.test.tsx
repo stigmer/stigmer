@@ -74,7 +74,7 @@ function Probe() {
         value={view.modelQuery}
         onChange={(e) => view.setModelQuery(e.target.value)}
       />
-      <button onClick={() => view.openDetail("claude-sonnet-4-6|anthropic|native")}>detail</button>
+      <button onClick={() => view.openDetail("claude-sonnet-4-6|anthropic|stigmer")}>detail</button>
       <button onClick={() => view.openEdit()}>edit</button>
       <button onClick={() => view.openRetire()}>retire</button>
       <button onClick={() => view.backToDetail()}>back-detail</button>
@@ -107,7 +107,7 @@ describe("useModelCatalogView — rows", () => {
     render(<Probe />);
 
     const models = screen.getByTestId("models");
-    expect(models.getAttribute("data-keys")).toBe("claude-sonnet-4-6|anthropic|native");
+    expect(models.getAttribute("data-keys")).toBe("claude-sonnet-4-6|anthropic|stigmer");
     expect(models.getAttribute("data-history")).toBe("1");
   });
 
@@ -126,7 +126,7 @@ describe("useModelCatalogView — rows", () => {
     render(<Probe />);
 
     expect(screen.getByTestId("models").getAttribute("data-keys")).toBe(
-      "a-model|anthropic|native;z-model|anthropic|native",
+      "a-model|anthropic|stigmer;z-model|anthropic|stigmer",
     );
   });
 });
@@ -143,7 +143,7 @@ describe("useModelCatalogView — search", () => {
 
     fireEvent.change(screen.getByLabelText("model query"), { target: { value: "OPENAI" } });
     expect(screen.getByTestId("models").getAttribute("data-keys")).toBe(
-      "gpt-5.6|openai|native",
+      "gpt-5.6|openai|stigmer",
     );
   });
 });
@@ -159,7 +159,7 @@ describe("useModelCatalogView — flow", () => {
     fireEvent.click(screen.getByText("detail"));
     expect(flow.getAttribute("data-phase")).toBe("detail");
     expect(flow.getAttribute("data-mode")).toBe("view");
-    expect(flow.getAttribute("data-selected")).toBe("claude-sonnet-4-6|anthropic|native");
+    expect(flow.getAttribute("data-selected")).toBe("claude-sonnet-4-6|anthropic|stigmer");
 
     fireEvent.click(screen.getByText("edit"));
     expect(flow.getAttribute("data-mode")).toBe("edit");
@@ -193,7 +193,7 @@ describe("useModelCatalogView — flow", () => {
 
     fireEvent.click(screen.getByText("detail"));
     expect(screen.getByTestId("flow").getAttribute("data-selected")).toBe(
-      "claude-sonnet-4-6|anthropic|native",
+      "claude-sonnet-4-6|anthropic|stigmer",
     );
 
     setData({ baselines: [] });

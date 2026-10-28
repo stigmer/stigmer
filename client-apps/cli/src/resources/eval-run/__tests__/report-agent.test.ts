@@ -29,8 +29,8 @@ describe("finishedTries about an agent", () => {
   it("names each try's case by its plugin, and keys two plugins' same-named cases apart", () => {
     const tries = finishedTries(finishedEvalRunOnAgent());
     expect(tries.map((attempt) => attempt.line)).toEqual([
-      "refund-policy/refund-window · native/claude-sonnet-4-6 · with · try 1/1 · 1.00",
-      "tracker/refund-window · native/claude-sonnet-4-6 · with · try 1/1 · 1.00",
+      "refund-policy/refund-window · stigmer/claude-sonnet-4-6 · with · try 1/1 · 1.00",
+      "tracker/refund-window · stigmer/claude-sonnet-4-6 · with · try 1/1 · 1.00",
     ]);
     expect(new Set(tries.map((attempt) => attempt.key)).size).toBe(2);
   });
@@ -39,11 +39,11 @@ describe("finishedTries about an agent", () => {
 describe("renderEvalTables about an agent", () => {
   it("prints a one-arm block per plugin and target under the agent's and plugin's versions, and a plugin not run with its reason", () => {
     const lines = renderEvalTables(finishedEvalRunOnAgent(), "support-desk").split("\n");
-    expect(lines[0]).toBe("support-desk@0123456789ab · refund-policy@c0ffee111111 · native/claude-sonnet-4-6");
+    expect(lines[0]).toBe("support-desk@0123456789ab · refund-policy@c0ffee111111 · stigmer/claude-sonnet-4-6");
     expect(lines[1]).toMatch(/^CASE\s+SCORE\s+PASS%\s+PASS\^k\s+RUNS\s+COST\s+NOTES$/);
     expect(lines[3]).toMatch(/^refund-window\s+1\.00\s+100%\s+yes\s+1\s+\$0\.20$/);
     expect(lines[4]).toBe("");
-    expect(lines[5]).toBe("support-desk@0123456789ab · tracker@beef00222222 · native/claude-sonnet-4-6");
+    expect(lines[5]).toBe("support-desk@0123456789ab · tracker@beef00222222 · stigmer/claude-sonnet-4-6");
     expect(lines[8]).toMatch(/^refund-window\s+1\.00\s+100%\s+yes\s+1\s+\$0\.30$/);
     expect(lines.slice(9)).toEqual(["", "support-desk@0123456789ab · notes@abcdef333333", "  not run: not selected", ""]);
     expect(lines.join("\n")).not.toContain("needs-fixture");
@@ -83,7 +83,7 @@ describe("an Eval's cases about an agent", () => {
 
   it("prints each Eval after the plugins, headed by its slug and short digest, and one not run with its reason", () => {
     const tables = renderEvalTables(withEvals(), "support-desk");
-    expect(tables).toContain("support-desk@0123456789ab · eval support-evals@5e4444444444 · native/claude-sonnet-4-6");
+    expect(tables).toContain("support-desk@0123456789ab · eval support-evals@5e4444444444 · stigmer/claude-sonnet-4-6");
     expect(tables.indexOf("eval support-evals@")).toBeGreaterThan(tables.indexOf("notes@"));
     expect(tables).toContain("support-desk@0123456789ab · eval empty-evals\n  not run: no eval cases at this version");
   });
@@ -91,7 +91,7 @@ describe("an Eval's cases about an agent", () => {
   it("names an Eval's tries by the Eval, keyed apart from a plugin's same-named case", () => {
     const tries = finishedTries(withEvals());
     expect(tries.map((attempt) => attempt.line)).toContain(
-      "support-evals/refund-window · native/claude-sonnet-4-6 · with · try 1/1 · 1.00",
+      "support-evals/refund-window · stigmer/claude-sonnet-4-6 · with · try 1/1 · 1.00",
     );
     expect(new Set(tries.map((attempt) => attempt.key)).size).toBe(tries.length);
   });
@@ -112,9 +112,9 @@ describe("renderEvalTables comparing a plugin on an agent", () => {
     evalRun.spec!.ablation = EvalRunAblation.with_without;
     evalRun.status!.plugins[0]!.compared = true;
     const lines = renderEvalTables(evalRun, "support-desk").split("\n");
-    expect(lines[0]).toBe("support-desk@0123456789ab · refund-policy@c0ffee111111 (compared) · native/claude-sonnet-4-6");
+    expect(lines[0]).toBe("support-desk@0123456789ab · refund-policy@c0ffee111111 (compared) · stigmer/claude-sonnet-4-6");
     expect(lines[1]).toMatch(/^CASE\s+WITH\s+W\/OUT\s+Δ\s+PASS\^k\s+RUNS\s+COST\s+NOTES$/);
-    expect(lines[5]).toBe("support-desk@0123456789ab · tracker@beef00222222 · native/claude-sonnet-4-6");
+    expect(lines[5]).toBe("support-desk@0123456789ab · tracker@beef00222222 · stigmer/claude-sonnet-4-6");
   });
 
   it("prints the one-arm table when the comparison's ablation is none", () => {

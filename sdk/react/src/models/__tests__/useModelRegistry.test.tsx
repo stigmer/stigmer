@@ -353,7 +353,7 @@ describe("useModelRegistry", () => {
 
     it("returns undefined for unknown compound keys via getByKey", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
-      expect(result.current.getByKey("native/nonexistent")).toBeUndefined();
+      expect(result.current.getByKey("stigmer/nonexistent")).toBeUndefined();
     });
   });
 

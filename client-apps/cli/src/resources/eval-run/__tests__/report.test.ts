@@ -39,9 +39,9 @@ describe("finishedTries", () => {
   it("prints each finished try once, with its score, its not-graded reason or its error, and skips running tries", () => {
     const tries = finishedTries(finishedEval());
     expect(tries.map((attempt) => attempt.line)).toEqual([
-      "first-case · native/claude-sonnet-4-6 · with · try 1/2 · 1.00",
-      "first-case · native/claude-sonnet-4-6 · with · try 2/2 · not graded: platform busy",
-      "first-case · native/claude-sonnet-4-6 · without · try 1/2 · 0.33 (timed out after 300s)",
+      "first-case · stigmer/claude-sonnet-4-6 · with · try 1/2 · 1.00",
+      "first-case · stigmer/claude-sonnet-4-6 · with · try 2/2 · not graded: platform busy",
+      "first-case · stigmer/claude-sonnet-4-6 · without · try 1/2 · 0.33 (timed out after 300s)",
     ]);
     expect(new Set(tries.map((attempt) => attempt.key)).size).toBe(3);
   });
@@ -61,7 +61,7 @@ describe("a case's mocks", () => {
     const lines = finishedTries(evalRun).map((attempt) => attempt.line);
     expect(lines.slice(0, 2)).toEqual([
       "first-case · mocked: plugin_kit_tracker(create_issue, close_issue), plugin_kit_wiki[not started: no mock]",
-      "first-case · native/claude-sonnet-4-6 · with · try 1/2 · 0.00 (aborted by tracker.create_issue: input.title must be a string)",
+      "first-case · stigmer/claude-sonnet-4-6 · with · try 1/2 · 0.00 (aborted by tracker.create_issue: input.title must be a string)",
     ]);
     expect(lines.filter((line) => line.includes("mocked:"))).toHaveLength(1);
     expect(renderEvalTables(evalRun, "")).toContain("aborted by tracker.create_issue");
@@ -72,7 +72,7 @@ describe("renderEvalTables", () => {
   it("prints the format's columns with PASS^k under a heading for the target, leaving out cases not run", () => {
     const out = renderEvalTables(finishedEval(), "");
     const lines = out.split("\n");
-    expect(lines[0]).toBe("thermos@d10000000000 · native/claude-sonnet-4-6");
+    expect(lines[0]).toBe("thermos@d10000000000 · stigmer/claude-sonnet-4-6");
     expect(lines[1]).toMatch(/^CASE\s+WITH\s+W\/OUT\s+Δ\s+PASS\^k\s+RUNS\s+COST\s+NOTES$/);
     expect(lines[3]).toMatch(/^first-case\s+1\.00\s+0\.33\s+\+0\.67\s+yes\s+4\s+\$0\.41\s+not graded: platform busy$/);
     expect(out).not.toContain("needs-fixture");
@@ -93,7 +93,7 @@ describe("renderEvalTables", () => {
     const evalRun = finishedEval();
     evalRun.spec!.targets.push(create(EvalRunTargetSchema, { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" }));
     const out = renderEvalTables(evalRun, "");
-    expect(out.split("\n")[0]).toBe("thermos@d10000000000 · native/claude-sonnet-4-6");
+    expect(out.split("\n")[0]).toBe("thermos@d10000000000 · stigmer/claude-sonnet-4-6");
     expect(out).not.toContain("claude/claude-sonnet-5");
   });
 
@@ -122,7 +122,7 @@ describe("renderNotRun", () => {
     casesOf(evalRun)[0]!.targets[0]!.notRunReason = "not run: model 'sonnet' is not in Stigmer's catalog";
     expect(renderNotRun(evalRun)).toBe(
       "Not run:\n" +
-        "  first-case on native/claude-sonnet-4-6: not run: model 'sonnet' is not in Stigmer's catalog\n" +
+        "  first-case on stigmer/claude-sonnet-4-6: not run: model 'sonnet' is not in Stigmer's catalog\n" +
         "  needs-fixture: not run: plugins\n",
     );
   });
@@ -142,9 +142,9 @@ describe("a target's model name", () => {
       renderEvalTables(evalRun, ""),
       ...finishedTries(evalRun).map((attempt) => attempt.line),
     ].join("\n");
-    expect(printed).toContain("second on native/evil ]0;owned [2J: not run: unknown model");
-    expect(printed).toContain("first-case · native/evil ]0;owned [2J · with · try 1/2 · 1.00");
-    expect(printed.split("\n")).toContain("thermos@d10000000000 · native/evil ]0;owned [2J");
+    expect(printed).toContain("second on stigmer/evil ]0;owned [2J: not run: unknown model");
+    expect(printed).toContain("first-case · stigmer/evil ]0;owned [2J · with · try 1/2 · 1.00");
+    expect(printed.split("\n")).toContain("thermos@d10000000000 · stigmer/evil ]0;owned [2J");
     expect(printed).not.toMatch(/[\u001b\u0007]/);
   });
 });

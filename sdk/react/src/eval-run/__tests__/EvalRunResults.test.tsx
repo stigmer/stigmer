@@ -68,7 +68,7 @@ function wrap(mock: unknown, mode: "cloud" | "local" = "cloud") {
 /** The eval's tries, opened: each try's name, and whether it is a link. */
 async function triesOf(): Promise<{ readonly links: string[]; readonly texts: string[] }> {
   fireEvent.click(await screen.findByRole("button", { name: "a" }));
-  const list = screen.getByRole("list", { name: "Tries on native/claude-sonnet-4-6" });
+  const list = screen.getByRole("list", { name: "Tries on stigmer/claude-sonnet-4-6" });
   return {
     links: within(list)
       .queryAllByRole("button")
@@ -106,7 +106,7 @@ describe("EvalRunResults", () => {
       wrapper: wrap(client(evalRun)),
     });
     const table = await screen.findByRole("table");
-    for (const label of ["native/claude-sonnet-4-6", "native/gpt-5"]) {
+    for (const label of ["stigmer/claude-sonnet-4-6", "stigmer/gpt-5"]) {
       const header = within(table).getByRole("columnheader", { name: label });
       expect(header.getAttribute("colspan")).toBe("4");
     }
