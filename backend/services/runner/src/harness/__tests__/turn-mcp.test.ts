@@ -73,7 +73,7 @@ import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { NO_RUN_VALUES, toolValuesKey, type RunValues, type ToolValueGroup } from "../../shared/run-values.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
-import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import type { McpToolListing, OfferedTool } from "../../shared/mcp-tool-listing.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const listTurnTools = vi.hoisted(() =>
@@ -81,9 +81,14 @@ const listTurnTools = vi.hoisted(() =>
 );
 vi.mock("../../shared/mcp-tool-listing.js", () => ({ listTurnTools }));
 
+/** One tool as a listing offers it to the model; the module itself is mocked, so its helper is not used here. */
+function offeredTool(server: string, name: string): OfferedTool {
+  return { server, name, description: `${name} on ${server}`, inputSchema: { type: "object" }, schemaOmitted: false };
+}
+
 /** What the mocked endpoint serves: its stand-ins and their tools; `undefined` when it starts none. */
 const endpoint = vi.hoisted(() => ({
-  served: undefined as { servers: unknown[]; listed: { server: string; tools: string[] }[] } | undefined,
+  served: undefined as { servers: unknown[]; listed: { server: string; tools: string[] }[]; offered: OfferedTool[] } | undefined,
 }));
 vi.mock("../../shared/eval-case/mock-endpoint.js", () => ({
   startMockEndpoint: () =>
@@ -433,7 +438,7 @@ describe("startEvalMocks — a eval-run try's stand-ins take their servers' plac
         { server: "plugin_wiki_api", tool: "delete_page" },
       ],
       unlisted: ["plugin_linear_api", "plugin_ghost_api"],
-      offered: [],
+      offered: [offeredTool("plugin_linear_api", "search"), offeredTool("plugin_wiki_api", "read_page")],
     });
     endpoint.served = served;
     try {
@@ -469,6 +474,7 @@ describe("startEvalMocks — a eval-run try's stand-ins take their servers' plac
       { server: "plugin_linear_api", tools: ["create_issue"] },
       { server: "plugin_linear_orders", tools: ["refund"] },
     ],
+    offered: [offeredTool("plugin_linear_api", "create_issue"), offeredTool("plugin_linear_orders", "refund")],
   };
 
   it("replaces the plugin's server of each stand-in's name, and leaves out a stand-in the lists exclude whole", async () => {
@@ -481,7 +487,7 @@ describe("startEvalMocks — a eval-run try's stand-ins take their servers' plac
     expect(into.evalMocks, "the turn's finally closes it").toBeDefined();
   });
 
-  it("lists each stand-in's mocked tools in place of its server's marks, for an engine that does not read its tools' marks", async () => {
+  it("lists each stand-in's mocked tools in place of its server's marks, and offers them as the stand-in does, for an engine that does not read its tools' marks", async () => {
     const { out } = await standIns(served, false);
     expect(out.listing).toEqual({
       listed: [
@@ -490,6 +496,7 @@ describe("startEvalMocks — a eval-run try's stand-ins take their servers' plac
       ],
       destructive: [{ server: "plugin_wiki_api", tool: "delete_page" }],
       unlisted: ["plugin_ghost_api"],
+      offered: [offeredTool("plugin_wiki_api", "read_page"), offeredTool("plugin_linear_api", "create_issue")],
     });
   });
 
