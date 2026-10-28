@@ -44,7 +44,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
     defaultModel: { type: "ModelInfo | undefined", description: "The platform default model for the current mode. `undefined` while the registry is loading." },
     error: { type: "Error | null", description: "Non-null if the API fetch failed. Models will be empty in this case." },
     featured: { type: "readonly ModelInfo[]", description: "Curated subset of models marked as `featured` in the registry." },
-    getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"native/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
+    getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"stigmer/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
     getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under several harnesses (e.g. `claude-sonnet-5` on native and on claude). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
     isLoading: { type: "boolean", description: "`true` while the model registry is being fetched from the API." },
     models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
