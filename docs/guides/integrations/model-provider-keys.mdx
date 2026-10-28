@@ -121,9 +121,10 @@ providers**.
 
 A self-hosted Stigmer server holds no provider keys: its runners call the
 providers with keys from their own environment. On your own machine,
-`stigmer setup` saves the key the runner uses, and `stigmer up` tells the server
-which providers the runner reaches, by a key, Vertex, Bedrock, Foundry or a
-gateway. **Models & providers** then shows them, and a run whose provider the
+`stigmer setup` saves the Anthropic key the runner uses, an `OPENAI_API_KEY` set
+in the shell you start Stigmer from gives it OpenAI, and `stigmer up` tells the
+server which providers the runner reaches, by a key, Vertex, Bedrock, Foundry or
+a gateway. **Models & providers** then shows them, and a run whose provider the
 runner cannot reach is refused before it starts:
 
 ```
@@ -131,6 +132,8 @@ This server's runners have no Anthropic key for model 'claude-sonnet-4-6', so th
 run was not started. On your own machine, run `stigmer setup`, then
 `stigmer down && stigmer up`.
 ```
+
+For an OpenAI model the refusal says to set `OPENAI_API_KEY` instead.
 
 A Docker Compose or Kubernetes install tells its server the same with
 `STIGMER_RUNNER_PROVIDERS`, the providers its runners reach

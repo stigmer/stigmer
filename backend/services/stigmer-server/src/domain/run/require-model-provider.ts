@@ -51,6 +51,7 @@ import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import {
   MODEL_PROVIDER_LABELS,
   providerNeededBy,
+  type ModelProvider,
   type ProviderNeed,
   type ProviderNeedCatalog,
 } from "../../modelcatalog/provider-need.js";
@@ -71,12 +72,23 @@ export function organizationProviderMissingCopy(need: ProviderNeed): string {
   );
 }
 
+/**
+ * How a person gives their own machine's runner each provider's key:
+ * `stigmer setup` saves Anthropic's, and the runner takes OpenAI's from the
+ * shell `stigmer up` runs in. Keyed by every provider, so one added is a
+ * compile error here until it says how.
+ */
+const RUNNER_KEY_FIX: Readonly<Record<ModelProvider, string>> = {
+  anthropic: "run `stigmer setup`",
+  openai: "set OPENAI_API_KEY in the shell you start Stigmer from",
+};
+
 /** The copy when this server's runners do not reach the provider. */
 export function runnersProviderMissingCopy(need: ProviderNeed): string {
   const forModel = need.model === "" ? "" : ` for model '${need.model}'`;
   return (
     `This server's runners have no ${MODEL_PROVIDER_LABELS[need.provider]} key${forModel}, ` +
-    "so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`."
+    `so the run was not started. On your own machine, ${RUNNER_KEY_FIX[need.provider]}, then \`stigmer down && stigmer up\`.`
   );
 }
 

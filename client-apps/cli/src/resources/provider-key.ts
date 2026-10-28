@@ -60,7 +60,7 @@ const DISPLAY_NAMES: ReadonlyMap<string, string> = new Map([
 
 /** The fix `set` and `delete` name on an open-source server. */
 export const LOCAL_KEYS_FIX =
-  "On your own machine the runner's keys come from `stigmer setup`, then `stigmer down && stigmer up`.";
+  "On your own machine the runner's keys come from `stigmer setup` (Anthropic) and OPENAI_API_KEY in the shell you start Stigmer from (OpenAI), then `stigmer down && stigmer up`.";
 
 /** The provider a person typed, by the contract's own names. */
 export function parseProvider(value: string): Provider {

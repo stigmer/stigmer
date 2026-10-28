@@ -492,7 +492,7 @@ describe("stigmer provider-key on a server that keeps no provider keys", () => {
     const failure = await failureOf(["provider-key", "set", "anthropic"]);
     expect(failure.exitCode).toBe(ExitCode.Usage);
     expect(failure.hints).toEqual([
-      "On your own machine the runner's keys come from `stigmer setup`, then `stigmer down && stigmer up`.",
+      "On your own machine the runner's keys come from `stigmer setup` (Anthropic) and OPENAI_API_KEY in the shell you start Stigmer from (OpenAI), then `stigmer down && stigmer up`.",
     ]);
     expect(backend.prompts).toEqual([]);
     nothingSent();

@@ -181,11 +181,17 @@ const PROVIDER_LABELS: Readonly<Record<string, string>> = {
   openai: "OpenAI",
 };
 
+// How a laptop gives its runner each provider's key, as the refusal says it.
+const RUNNER_KEY_FIX: Readonly<Record<string, string>> = {
+  anthropic: "run `stigmer setup`",
+  openai: "set OPENAI_API_KEY in the shell you start Stigmer from",
+};
+
 // The copy a member reads when the runners reach no key for the run's model.
 function runnersMissingCopy(provider: string, model: string): string {
   return (
     `This server's runners have no ${PROVIDER_LABELS[provider]} key for model '${model}', ` +
-    "so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`."
+    `so the run was not started. On your own machine, ${RUNNER_KEY_FIX[provider]}, then \`stigmer down && stigmer up\`.`
   );
 }
 

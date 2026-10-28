@@ -34,7 +34,7 @@ import {
 import { RUN_CONFIG_PLACEMENT_KEY, type RunConfigPlacement } from "../resolve-run-config.js";
 
 const catalog: ProviderNeedCatalog = {
-  providerOf: (_harness, model) => ({ "claude-sonnet-4.6": "anthropic", "gemini-3-pro": "google" })[model],
+  providerOf: (_harness, model) => ({ "claude-sonnet-4.6": "anthropic", "gpt-5.2": "openai", "gemini-3-pro": "google" })[model],
   defaultModel: () => "claude-sonnet-4.6",
 };
 
@@ -110,6 +110,16 @@ describe("RequireModelProvider", () => {
       "This server's runners have no Anthropic key, so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`.",
     );
     expect(refused.findDetails(ErrorInfoSchema)[0]?.metadata).toEqual({ org: "org-acme", provider: "anthropic", model: "" });
+  });
+
+  it("tells a laptop to set OPENAI_API_KEY for OpenAI, which stigmer setup does not save", async () => {
+    const refused = await refusal(
+      stepAnswering({ state: "missing", scope: "runners" }),
+      turn({ engine: Harness.NATIVE, model: "gpt-5.2" }),
+    );
+    expect(refused.rawMessage).toBe(
+      "This server's runners have no OpenAI key for model 'gpt-5.2', so the run was not started. On your own machine, set OPENAI_API_KEY in the shell you start Stigmer from, then `stigmer down && stigmer up`.",
+    );
   });
 
   it("names no model in either copy when the turn names none, and the model when it does", async () => {
