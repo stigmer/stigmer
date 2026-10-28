@@ -2,15 +2,17 @@
  * The model picker's readiness marks. Pins that a model whose provider is
  * missing stays listed and selectable, marked in words with what it needs
  * ("Needs an Anthropic key", not an icon alone), and listed after the ready
- * ones in the featured list; that the trigger carries the same mark for the
- * selection, beside the model's whole name; and that a model the server
- * reports unknown, or a picker given no readiness, is never marked. The
+ * ones in the featured list; that the full list, grouped by provider, marks
+ * and selects the same way, and a hovered row is the one Enter picks; that
+ * the trigger carries the same mark for the selection, beside the model's
+ * whole name; and that a model the server reports unknown, or a picker
+ * given no readiness, is never marked. The
  * suite's title holds CON-03 on the UX bar (test/ux-bar.json).
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { ModelSelector } from "../ModelSelector";
-import { ModelRegistryContext } from "../ModelRegistryContext";
+import { ModelRegistryContext, type ModelRegistryState } from "../ModelRegistryContext";
 import type { ModelReadiness, ModelReadinessLookup, ProviderAvailability } from "../readiness";
 import { REGISTRY } from "./readiness-fixture";
 
@@ -39,9 +41,23 @@ function lookup(anthropic: ProviderAvailability, openai: ProviderAvailability): 
   };
 }
 
-function renderSelector(readinessOf: ModelReadinessLookup | undefined, value = "claude-sonnet-4.6", onValueChange = vi.fn()) {
+/** The fixture's registry with one more OpenAI model that is not featured, so the picker offers "Show all models". */
+const WITH_UNFEATURED: ModelRegistryState = {
+  ...REGISTRY,
+  models: [
+    ...REGISTRY.models,
+    { ...REGISTRY.models.find((model) => model.modelId === "gpt-5")!, modelId: "gpt-5-mini", displayName: "GPT-5 mini", featured: false },
+  ],
+};
+
+function renderSelector(
+  readinessOf: ModelReadinessLookup | undefined,
+  value = "claude-sonnet-4.6",
+  onValueChange = vi.fn(),
+  registry: ModelRegistryState = REGISTRY,
+) {
   render(
-    <ModelRegistryContext.Provider value={REGISTRY}>
+    <ModelRegistryContext.Provider value={registry}>
       <ModelSelector value={value} onValueChange={onValueChange} harness="native" readinessOf={readinessOf} />
     </ModelRegistryContext.Provider>,
   );
@@ -116,5 +132,31 @@ describe("CON-03 the model picker shows which models are ready", () => {
 
     expect(rowOf("GPT-5").textContent).toContain("Needs an OpenAI key");
     expect(rows().map((row) => row.textContent?.includes("GPT-5"))).toEqual([false, true]);
+  });
+
+  it("marks and selects a model in the full list, grouped by provider", async () => {
+    const { onValueChange } = renderSelector(lookup(MISSING, SERVED), "gpt-5", vi.fn(), WITH_UNFEATURED);
+    await openPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show all models" }));
+    expect(screen.getByText("anthropic")).toBeTruthy();
+    expect(screen.getByText("openai")).toBeTruthy();
+    expect(rowOf("Claude Sonnet 4.6").textContent).toContain("Needs an Anthropic key");
+    expect(rowOf("GPT-5 mini").textContent).not.toContain("Needs");
+
+    fireEvent.click(rowOf("Claude Sonnet 4.6"));
+
+    expect(onValueChange).toHaveBeenCalledWith("claude-sonnet-4.6");
+  });
+
+  it("picks the row under the pointer when Enter is pressed", async () => {
+    const { onValueChange } = renderSelector(lookup(MISSING, SERVED), "gpt-5");
+    await openPicker();
+
+    // The ready model is listed first; the pointer rests on the second row.
+    fireEvent.mouseEnter(rowOf("Claude Sonnet 4.6"));
+    fireEvent.keyDown(screen.getByRole("searchbox", { name: "Search models" }), { key: "Enter" });
+
+    expect(onValueChange).toHaveBeenCalledWith("claude-sonnet-4.6");
   });
 });

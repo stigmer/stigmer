@@ -2,7 +2,9 @@
  * The launcher's readiness before Send, over a fake server's readiness
  * answer. Pins the three states: nothing can run on any engine, so the
  * connect step takes the composer's place with this person's act (an
- * admin's form, a member's line, a laptop's command); only the chosen model
+ * admin's form, a member's line, a laptop's command, and the first provider
+ * the server reports missing when it judged none of this engine's models);
+ * only the chosen model
  * cannot run, so one line above the composer says why and Send is held with
  * that reason; and everything else, an unknown provider included, blocks
  * nothing. A guest is never judged. The composer is a probe that records
@@ -13,7 +15,12 @@
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import type { ResourceRef } from "@stigmer/client";
-import { ProviderAvailability } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import { create } from "@bufbuild/protobuf";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  GetModelReadinessOutputSchema,
+  ProviderAvailability,
+} from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import type { SessionComposerProps } from "../../composer";
 import {
   ANTHROPIC_CONNECTED,
@@ -147,6 +154,34 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     ).toBeTruthy();
     const card = screen.getByRole("article", { name: "Anthropic" });
     expect(within(card).getByText(/stigmer setup\s+stigmer down && stigmer up/)).toBeTruthy();
+    expect(screen.queryByTestId("composer-probe")).toBeNull();
+  });
+
+  it("offers the first provider the server reports missing when it judged none of this engine's models", async () => {
+    // Nothing runs, and only the Claude Agent engine's model was judged: the
+    // launcher's engine (Stigmer) names no provider of its own.
+    renderLauncher(
+      server({
+        readiness: create(GetModelReadinessOutputSchema, {
+          providers: [
+            { provider: "openai", availability: ProviderAvailability.missing_from_organization },
+            { provider: "anthropic", availability: ProviderAvailability.missing_from_organization },
+          ],
+          models: [
+            {
+              harness: Harness.CLAUDE,
+              model: "claude-sonnet-5",
+              provider: "anthropic",
+              availability: ProviderAvailability.missing_from_organization,
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
+    expect(screen.getByRole("article", { name: "OpenAI" })).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "Anthropic" })).toBeNull();
     expect(screen.queryByTestId("composer-probe")).toBeNull();
   });
 

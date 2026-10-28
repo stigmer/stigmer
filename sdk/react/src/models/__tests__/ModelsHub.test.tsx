@@ -2,7 +2,9 @@
  * Models & providers: one card per provider, in the server's order, each
  * with the act the person looking can take. Pins every face by role and
  * text: the admin's key form (and the save that asks the server again for
- * readiness and the key list), the member's line, a laptop's command for
+ * readiness and the key list, against an endpoint of the organization's own
+ * when one is given, and the Cancel that closes it unsaved), the member's
+ * line, a laptop's command for
  * each provider (matching the server's refusal), a server's runners, a
  * server that cannot see its runners, a provider served through the parent
  * organization, and the words for the save's check with the provider.
@@ -91,6 +93,40 @@ describe("ModelsHub", () => {
     expect(calls.listKeys.mock.calls.length).toBeGreaterThan(listsBefore);
     expect(within(anthropic).getByText(/Key ending in x7Qa · Checked with Anthropic/)).toBeTruthy();
     expect(within(anthropic).getByText("Ready to run")).toBeTruthy();
+  });
+
+  it("saves a new key against the organization's own endpoint when the admin gives one", async () => {
+    const calls = renderHub(server());
+    const openai = await card("OpenAI");
+    await waitFor(() => expect(within(openai).getByRole("button", { name: "Connect OpenAI" })).toBeTruthy());
+
+    fireEvent.click(within(openai).getByRole("button", { name: "Connect OpenAI" }));
+    fireEvent.change(within(openai).getByLabelText("OpenAI API key"), { target: { value: "sk-test" } });
+    fireEvent.change(within(openai).getByLabelText("Base URL (optional)"), {
+      target: { value: " https://gateway.acme.example/v1 " },
+    });
+    fireEvent.click(within(openai).getByRole("button", { name: "Connect OpenAI" }));
+
+    await waitFor(() => expect(calls.setKey).toHaveBeenCalledTimes(1));
+    expect(calls.setKey.mock.calls[0][0]).toMatchObject({
+      provider: "openai",
+      apiKey: "sk-test",
+      baseUrl: "https://gateway.acme.example/v1",
+    });
+  });
+
+  it("closes the key form unsaved when the admin cancels it", async () => {
+    const calls = renderHub(server());
+    const anthropic = await card("Anthropic");
+    await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Connect Anthropic" })).toBeTruthy());
+
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Connect Anthropic" }));
+    fireEvent.change(within(anthropic).getByLabelText("Anthropic API key"), { target: { value: "sk-ant-test" } });
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Cancel" }));
+
+    expect(within(anthropic).queryByLabelText("Anthropic API key")).toBeNull();
+    expect(within(anthropic).getByRole("button", { name: "Connect Anthropic" })).toBeTruthy();
+    expect(calls.setKey).not.toHaveBeenCalled();
   });
 
   it("tells a member who connects a provider, with no form", async () => {

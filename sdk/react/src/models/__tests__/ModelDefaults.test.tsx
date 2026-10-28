@@ -4,8 +4,10 @@
  * account's id and etag (so the harness choice and every other preference
  * keep their stored values), that each row says whether its model can run
  * here ("Ready" or "Needs an Anthropic key", the platform default judged
- * when none is chosen), and that a saved model the registry no longer lists
- * stays legible as an unavailable option.
+ * when none is chosen), that a saved model the registry no longer lists
+ * stays legible as an unavailable option, that a refused save says why and
+ * puts the row back to what is saved, and that nothing is saved while there
+ * is no account to save to.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -32,8 +34,9 @@ const readinessOf: ModelReadinessLookup = (harness, modelId) => {
   };
 };
 
-function renderDefaults(account: IdentityAccount = ACCOUNT) {
-  const calls = fakeClient(server({ account }));
+function renderDefaults(account: IdentityAccount | null = ACCOUNT) {
+  const calls = fakeClient(server(account === null ? {} : { account }));
+  if (account === null) calls.whoAmI.mockResolvedValue(null as unknown as IdentityAccount);
   render(<ModelDefaults readinessOf={readinessOf} />, { wrapper: readinessWrapper(calls.client) });
   return calls;
 }
@@ -78,5 +81,30 @@ describe("ModelDefaults", () => {
       expect(select.value).toBe("retired-model");
       expect(Array.from(select.options).some((option) => option.text === "retired-model (unavailable)")).toBe(true);
     });
+  });
+
+  it("says why a save was refused, and puts the row back to what is saved", async () => {
+    const calls = renderDefaults();
+    calls.update.mockRejectedValueOnce(new Error("The account service is unavailable."));
+    const stigmer = (await screen.findByRole("combobox", { name: "Stigmer" })) as HTMLSelectElement;
+    await waitFor(() => expect(stigmer.disabled).toBe(false));
+
+    fireEvent.change(stigmer, { target: { value: "gpt-5" } });
+
+    expect((await screen.findByRole("alert")).textContent).toBe("The account service is unavailable.");
+    await waitFor(() => expect(stigmer.value).toBe(""));
+    expect(screen.queryByText("Saving…")).toBeNull();
+  });
+
+  it("saves nothing while there is no account to save to", async () => {
+    const calls = renderDefaults(null);
+    const stigmer = await screen.findByRole("combobox", { name: "Stigmer" });
+    await waitFor(() => expect(calls.whoAmI).toHaveBeenCalled());
+    expect(stigmer).toHaveProperty("disabled", true);
+
+    fireEvent.change(stigmer, { target: { value: "gpt-5" } });
+
+    expect(screen.queryByText("Saving…")).toBeNull();
+    expect(calls.update).not.toHaveBeenCalled();
   });
 });
