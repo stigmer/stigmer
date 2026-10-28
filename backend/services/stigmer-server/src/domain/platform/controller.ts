@@ -111,7 +111,6 @@ import {
   type ModelProvider,
 } from "../../modelcatalog/provider-need.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
-import { OFFERED_HARNESSES } from "../session/harness.js";
 import { PROVIDER_AVAILABILITY_UNAVAILABLE_COPY } from "../run/require-model-provider.js";
 import type { EnvironmentPolicy } from "../run/environment-admission.js";
 import { isServiceAccountCaller } from "../../extensions/identity.js";
@@ -239,10 +238,8 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   });
 }
 
-/** The engines a readiness answer lists, in the proto's order. */
-const READINESS_ENGINES: readonly Harness[] = [Harness.NATIVE, Harness.CLAUDE].filter((engine) =>
-  OFFERED_HARNESSES.has(engine),
-);
+/** The engines a readiness answer lists: every engine the proto names, in its order. */
+const READINESS_ENGINES: readonly Harness[] = [Harness.NATIVE, Harness.CLAUDE];
 
 /** Each report as the wire names it. */
 function wireAvailability(report: ProviderAvailabilityReport): ProviderAvailability {
