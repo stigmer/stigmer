@@ -217,6 +217,54 @@ describe("ModelsHub", () => {
     expect(calls.deleteKey.mock.calls[0][0]).toMatchObject({ org: ORG_ID, provider: "anthropic" });
   });
 
+  it("offers an own key's endpoint on a replace, with the endpoint field's hint, and saves against it", async () => {
+    const fake = server({
+      readiness: ANTHROPIC_CONNECTED,
+      keys: [storedKey("anthropic", { baseUrl: "https://gateway.acme.example" })],
+    });
+    const calls = renderHub(fake);
+    const anthropic = await card("Anthropic");
+    await waitFor(() => expect(within(anthropic).getByText(/on gateway\.acme\.example/)).toBeTruthy());
+
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Replace key" }));
+    const baseUrl = within(anthropic).getByLabelText("Base URL (optional)");
+    expect(baseUrl).toHaveProperty("value", "https://gateway.acme.example");
+    expect(within(anthropic).getByText(/Leave the base URL empty for Anthropic's own API/)).toBeTruthy();
+    fireEvent.change(within(anthropic).getByLabelText("Anthropic API key"), { target: { value: "sk-ant-new" } });
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Replace key" }));
+
+    await waitFor(() => expect(calls.setKey).toHaveBeenCalledTimes(1));
+    expect(calls.setKey.mock.calls[0][0]).toMatchObject({ provider: "anthropic", apiKey: "sk-ant-new", baseUrl: "https://gateway.acme.example" });
+  });
+
+  it("shows a refused save in the server's words, and keeps the form open", async () => {
+    const calls = renderHub(server());
+    calls.setKey.mockRejectedValueOnce(new Error("Anthropic refused this key."));
+    const anthropic = await card("Anthropic");
+    await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Connect Anthropic" })).toBeTruthy());
+
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Connect Anthropic" }));
+    fireEvent.change(within(anthropic).getByLabelText("Anthropic API key"), { target: { value: "sk-ant-bad" } });
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Connect Anthropic" }));
+
+    expect((await within(anthropic).findByRole("alert")).textContent).toContain("Anthropic refused this key.");
+    expect(within(anthropic).getByLabelText("Anthropic API key")).toBeTruthy();
+    expect(within(anthropic).getByText("Not connected")).toBeTruthy();
+  });
+
+  it("keeps the key when the admin cancels the removal", async () => {
+    const calls = renderHub(server({ readiness: ANTHROPIC_CONNECTED, keys: [storedKey("anthropic")] }));
+    const anthropic = await card("Anthropic");
+    await waitFor(() => expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy());
+
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Remove" }));
+    fireEvent.click(within(anthropic).getByRole("button", { name: "Cancel" }));
+
+    expect(within(anthropic).getByRole("button", { name: "Remove" })).toBeTruthy();
+    expect(within(anthropic).getByText("Connected")).toBeTruthy();
+    expect(calls.deleteKey).not.toHaveBeenCalled();
+  });
+
   it("says what went wrong when readiness cannot be read, and tries again", async () => {
     const fake = server();
     const calls = fakeClient(fake);
