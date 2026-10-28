@@ -75,12 +75,12 @@ function createMockStigmer(overrides?: {
   } as never;
 }
 
-function renderPanel(client: unknown, mode: DeploymentMode = "cloud") {
+function renderPanel(client: unknown, mode: DeploymentMode = "cloud", modelsHubHref?: string) {
   return render(
     <StigmerContext.Provider value={client as never}>
       <DeploymentModeContext.Provider value={mode}>
         <ModelRegistryContext.Provider value={REGISTRY_STATE}>
-          <AccountPreferencesPanel />
+          <AccountPreferencesPanel modelsHubHref={modelsHubHref} />
         </ModelRegistryContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>,
@@ -136,13 +136,12 @@ describe("AccountPreferencesPanel", () => {
 
     expect(sent.resource.spec?.preferences?.standingContext).toBe("Prefer bullet points.");
     // The form's preferences, each by its own path: fields this form never
-    // renders (the subject, the email) are not named, so they keep their
-    // stored values.
+    // renders (the subject, the email, each engine's default model, which
+    // Models & providers saves) are not named, so they keep their stored
+    // values.
     expect(sent.paths).toEqual([
       "spec.preferences.standing_context",
       "spec.preferences.default_harness",
-      "spec.preferences.default_stigmer_model",
-      "spec.preferences.default_claude_model",
       "spec.preferences.default_auto_approve",
     ]);
     // An update names its account by id.
@@ -346,7 +345,7 @@ describe("AccountPreferencesPanel", () => {
       },
     });
 
-    it("renders the harness option rows and registry-fed model selects", async () => {
+    it("renders the harness option rows, and sends each engine's default model to Models & providers", async () => {
       renderPanel(createMockStigmer());
       await findSyncedField("Keep answers terse.");
 
@@ -354,38 +353,45 @@ describe("AccountPreferencesPanel", () => {
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Claude Agent" })).toBeTruthy();
       expect(screen.getAllByRole("radio")).toHaveLength(3);
-      expect(screen.getByLabelText("Default model — Stigmer")).toBeTruthy();
-      expect(screen.getByLabelText("Default model — Claude Agent")).toBeTruthy();
+      expect(screen.queryByRole("combobox")).toBeNull();
+      expect(
+        screen.getByRole("link", { name: "Default models are in Models & providers" }).getAttribute("href"),
+      ).toBe("/models");
     });
 
-    it("discards an unsaved engine and model back to the saved ones", async () => {
+    it("links the host's own route to Models & providers when given one", async () => {
+      renderPanel(createMockStigmer(), "cloud", "#/models");
+      await findSyncedField("Keep answers terse.");
+
+      expect(
+        screen.getByRole("link", { name: "Default models are in Models & providers" }).getAttribute("href"),
+      ).toBe("#/models");
+    });
+
+    it("discards an unsaved engine back to the saved one", async () => {
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
       await findSyncedField("Keep answers terse.");
       await waitFor(() => expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true));
 
       fireEvent.click(screen.getByRole("radio", { name: "Stigmer" }));
-      fireEvent.change(screen.getByLabelText("Default model — Claude Agent"), { target: { value: "" } });
       fireEvent.click(screen.getByRole("button", { name: "Discard" }));
 
       expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
-      expect(screen.getByLabelText("Default model — Claude Agent")).toHaveProperty("value", "claude-sonnet-5");
     });
 
-    it("saves Claude as the default engine with its own default model", async () => {
+    it("saves Claude as the default engine without naming either engine's default model", async () => {
       const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
       fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
-      fireEvent.change(screen.getByLabelText("Default model — Claude Agent"), { target: { value: "claude-sonnet-5" } });
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
-        defaultHarness: "claude",
-        defaultClaudeModel: "claude-sonnet-5",
-        defaultStigmerModel: "",
-      });
+      const sent = sentUpdate<IdentityAccount>(update);
+      expect(sent.resource.spec?.preferences?.defaultHarness).toBe("claude");
+      expect(sent.paths).not.toContain("spec.preferences.default_stigmer_model");
+      expect(sent.paths).not.toContain("spec.preferences.default_claude_model");
     });
 
     it("pairs each harness row with its description (the row IS the context)", async () => {
@@ -403,50 +409,12 @@ describe("AccountPreferencesPanel", () => {
       ).toBeTruthy();
     });
 
-    it("keeps the non-selected harness's model select editable (per-harness models are independent of the default harness)", async () => {
-      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
-      await findSyncedField("Keep answers terse.");
-
-      // Default harness is Claude, yet the Stigmer model stays settable:
-      // the launcher applies the model of the session's ACTIVE harness, so
-      // hiding or disabling it would remove a real capability.
-      await waitFor(() => {
-        expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
-      });
-      const nativeSelect = screen.getByLabelText("Default model — Stigmer") as HTMLSelectElement;
-      expect(nativeSelect.disabled).toBe(false);
-      fireEvent.change(nativeSelect, { target: { value: "claude-sonnet-4.6" } });
-      expect(nativeSelect.value).toBe("claude-sonnet-4.6");
-    });
-
-    it("reflects the saved defaults in the form", async () => {
+    it("reflects the saved default engine in the form", async () => {
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
       await findSyncedField("Keep answers terse.");
 
       await waitFor(() => {
         expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
-        expect(screen.getByLabelText("Default model — Stigmer")).toHaveProperty("value", "claude-sonnet-4.6");
-        expect(screen.getByLabelText("Default model — Claude Agent")).toHaveProperty("value", "claude-sonnet-5");
-      });
-    });
-
-    it("saves the complete preferences object — all default fields in one write", async () => {
-      const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
-      renderPanel(createMockStigmer({ update }));
-      await findSyncedField("Keep answers terse.");
-
-      fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
-      fireEvent.change(screen.getByLabelText("Default model — Stigmer"), {
-        target: { value: "claude-sonnet-4.6" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-
-      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
-        standingContext: "Keep answers terse.",
-        defaultHarness: "claude",
-        defaultStigmerModel: "claude-sonnet-4.6",
-        defaultClaudeModel: "",
       });
     });
 
@@ -461,12 +429,14 @@ describe("AccountPreferencesPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
+      const sent = sentUpdate<IdentityAccount>(update);
+      expect(sent.resource.spec?.preferences).toMatchObject({
         standingContext: "Terser still.",
         defaultHarness: "claude",
-        defaultStigmerModel: "claude-sonnet-4.6",
-        defaultClaudeModel: "claude-sonnet-5",
       });
+      // The default models are not named, so the server keeps them.
+      expect(sent.paths).not.toContain("spec.preferences.default_stigmer_model");
+      expect(sent.paths).not.toContain("spec.preferences.default_claude_model");
     });
 
     it.each(["native", "cursor"])(
@@ -490,25 +460,5 @@ describe("AccountPreferencesPanel", () => {
         expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences?.defaultHarness).toBe("");
       },
     );
-
-    it("keeps a stale saved model legible as an unavailable option", async () => {
-      const stale = create(IdentityAccountSchema, {
-        metadata: { id: "ia-1", name: "Ada", slug: "ada", org: "acme" },
-        spec: {
-          idpId: "auth0|abc",
-          preferences: { defaultStigmerModel: "retired-model" },
-        },
-      });
-      renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => stale) }));
-      await findSyncedField("");
-
-      await waitFor(() => {
-        const select = screen.getByLabelText("Default model — Stigmer") as HTMLSelectElement;
-        expect(select.value).toBe("retired-model");
-        expect(
-          Array.from(select.options).some((o) => o.text === "retired-model (unavailable)"),
-        ).toBe(true);
-      });
-    });
   });
 });

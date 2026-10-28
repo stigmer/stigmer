@@ -22,7 +22,6 @@ import {
   ServiceAccountsSection,
   TeamsSection,
   UsageSection,
-  ProviderKeysSection,
 } from "@stigmer/react-sdk";
 import { AppShell } from "./shell/AppShell";
 import { requestDesktopNotificationPermission } from "./hooks/useDesktopAttentionNotifications";
@@ -48,6 +47,7 @@ const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
 const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
 const PluginUploadPage = lazy(() => import("./pages/library/PluginUploadPage"));
 const MarketplacePage = lazy(() => import("./pages/marketplace/MarketplacePage"));
+const ModelsPage = lazy(() => import("./pages/models/ModelsPage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const ConversationsPage = lazy(() => import("./pages/conversations/ConversationsPage"));
 const RunPage = lazy(() => import("./pages/runs/RunPage"));
@@ -110,6 +110,14 @@ const routes: RouteObject[] = [
         element: (
           <LazyPage>
             <MarketplacePage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "models",
+        element: (
+          <LazyPage>
+            <ModelsPage />
           </LazyPage>
         ),
       },
@@ -317,7 +325,7 @@ const routes: RouteObject[] = [
               },
               {
                 path: "account-preferences",
-                element: <AccountPreferencesSection />,
+                element: <AccountPreferencesSection modelsHubHref="#/models" />,
               },
               {
                 path: "notifications",
@@ -331,7 +339,6 @@ const routes: RouteObject[] = [
               { path: "oauth-apps", element: <OAuthAppsSection /> },
               { path: "channel-apps", element: <ChannelAppsSection /> },
               { path: "usage", element: <UsageSection /> },
-              { path: "provider-keys", element: <ProviderKeysSection /> },
               {
                 path: "billing",
                 element: (

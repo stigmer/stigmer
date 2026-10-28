@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
+import { KeyRound } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { Switch } from "../switch/Switch.js";
@@ -10,6 +11,8 @@ import type { ModelInfo, CostTier, SpeedTier } from "./registry.js";
 import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "./service-tier.js";
 import { thinkingLocked, thinkingSelectable, type ThinkingModeOption } from "./thinking-mode.js";
+import { needsKeyLabel } from "./provider-presentation.js";
+import type { ModelReadinessLookup } from "./readiness.js";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",
@@ -148,6 +151,16 @@ export interface ModelSelectorProps {
   readonly onThinkingModeChange?: (mode: ThinkingModeOption) => void;
 
   /**
+   * Each model's readiness for the organization, from `useModelReadiness`.
+   * A model whose provider is missing stays listed and selectable, marked
+   * with what it needs ("Needs an Anthropic key"), and the featured list
+   * puts it after the ready ones; the trigger carries the same mark for
+   * the selection. A model the server reports unknown, or did not judge,
+   * is not marked. Omitted, nothing is marked.
+   */
+  readonly readinessOf?: ModelReadinessLookup;
+
+  /**
    * @deprecated Use {@link onHarnessChange} instead.
    */
   readonly onHarnessResolved?: (harness: HarnessOption) => void;
@@ -218,6 +231,7 @@ export function ModelSelector({
   onServiceTierChange,
   thinkingMode = "disabled",
   onThinkingModeChange,
+  readinessOf,
 }: ModelSelectorProps) {
   const portalContainer = useStigmerPortalContainer();
 
@@ -235,6 +249,16 @@ export function ModelSelector({
 
   const { models, featured, defaultModel, getModel, byProvider, isLoading, error, refetch } = useModelRegistry(
     { harness: activeHarness },
+  );
+
+  // What a model needs before it can run here, in words; undefined when
+  // it can (or when nobody said).
+  const needsOf = useCallback(
+    (modelId: string): string | undefined => {
+      const readiness = readinessOf?.(activeHarness, modelId);
+      return readiness?.availability.state === "missing" ? needsKeyLabel(readiness.provider) : undefined;
+    },
+    [readinessOf, activeHarness],
   );
 
   const [open, setOpen] = useState(false);
@@ -292,8 +316,13 @@ export function ModelSelector({
       );
     }
     if (showAll) return models;
-    return featuredModels.length > 0 ? featuredModels : models;
-  }, [models, featuredModels, isSearching, showAll, lowerQuery]);
+    // The featured list puts a model that can run before one that cannot,
+    // each in the registry's order (the sort is stable).
+    const list = featuredModels.length > 0 ? featuredModels : models;
+    return [...list].sort(
+      (a, b) => Number(needsOf(a.modelId) !== undefined) - Number(needsOf(b.modelId) !== undefined),
+    );
+  }, [models, featuredModels, isSearching, showAll, lowerQuery, needsOf]);
 
   const groupedModels = useMemo(() => {
     if (!showAll || groupBy === "none" || isSearching) return null;
@@ -450,6 +479,9 @@ export function ModelSelector({
     !isHarnessLocked && !usingPlaceholder
       ? HARNESS_META[activeHarness].label
       : undefined;
+  // The selection's own mark: the model the run gets (picked, inherited,
+  // or the default) when its provider is missing.
+  const selectedNeeds = usingPlaceholder || selectedModel === undefined ? undefined : needsOf(selectedModel.modelId);
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -460,7 +492,10 @@ export function ModelSelector({
           "stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
           "stg:hover:bg-accent-hover stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
           "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          "stg:transition-colors stg:max-w-[20rem] stg:max-sm:max-w-[12rem]",
+          // A marked selection gets the room to show the model's name whole
+          // beside its mark; on a phone the mark shrinks to its icon.
+          selectedNeeds === undefined ? "stg:max-w-[20rem]" : "stg:max-w-[30rem]",
+          "stg:transition-colors stg:max-sm:max-w-[12rem]",
           className,
         )}
       >
@@ -470,7 +505,13 @@ export function ModelSelector({
         {triggerHarness && (
           <span className="stg:shrink-0 stg:text-border" aria-hidden>·</span>
         )}
-        <span className="stg:truncate">{triggerLabel}</span>
+        <span className={cn("stg:truncate", selectedNeeds !== undefined && "stg:sm:shrink-0")}>{triggerLabel}</span>
+        {selectedNeeds !== undefined && (
+          <span className="stg:inline-flex stg:min-w-0 stg:items-center stg:gap-1 stg:text-2xs stg:text-muted-foreground">
+            <KeyRound aria-hidden className="stg:size-3 stg:shrink-0" />
+            <span className="stg:truncate stg:max-sm:sr-only">{selectedNeeds}</span>
+          </span>
+        )}
         {fastActive && (
           <span
             className={cn(
@@ -634,96 +675,98 @@ export function ModelSelector({
               />
             </div>
 
-            {/* Model list */}
-            <div
-              ref={listRef}
-              role="listbox"
-              aria-label="Available models"
-              className="stg:max-h-72 stg:overflow-y-auto stg:p-1"
-            >
-              {visibleModels.length === 0 && isLoading && (
-                <div className="stg:flex stg:items-center stg:justify-center stg:gap-2 stg:px-2 stg:py-3">
-                  <div className="stg:size-3 stg:animate-spin stg:rounded-full stg:border stg:border-muted stg:border-t-primary" />
-                  <span className="stg:text-xs stg:text-muted-foreground">Loading models…</span>
-                </div>
-              )}
+            {/* Model list: the options in the listbox, the "Show all models"
+                button after it in the same scroll, since a listbox holds
+                options only. */}
+            <div ref={listRef} className="stg:max-h-72 stg:overflow-y-auto stg:p-1">
+              <div role="listbox" aria-label="Available models">
+                {visibleModels.length === 0 && isLoading && (
+                  <div className="stg:flex stg:items-center stg:justify-center stg:gap-2 stg:px-2 stg:py-3">
+                    <div className="stg:size-3 stg:animate-spin stg:rounded-full stg:border stg:border-muted stg:border-t-primary" />
+                    <span className="stg:text-xs stg:text-muted-foreground">Loading models…</span>
+                  </div>
+                )}
 
-              {visibleModels.length === 0 && !isLoading && error != null && (
-                <div className="stg:flex stg:flex-col stg:items-center stg:gap-1.5 stg:px-2 stg:py-3">
-                  <span className="stg:text-xs stg:text-muted-foreground">Failed to load models</span>
+                {visibleModels.length === 0 && !isLoading && error != null && (
+                  <div className="stg:flex stg:flex-col stg:items-center stg:gap-1.5 stg:px-2 stg:py-3">
+                    <span className="stg:text-xs stg:text-muted-foreground">Failed to load models</span>
+                    <button
+                      type="button"
+                      className={cn(
+                        "stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2.5 stg:py-1 stg:text-xs stg:text-foreground",
+                        "stg:hover:bg-accent-hover stg:transition-colors stg:cursor-pointer",
+                      )}
+                      onClick={refetch}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {visibleModels.length === 0 && !isLoading && error == null && (
+                  <div className="stg:px-2 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground">
+                    No models found
+                  </div>
+                )}
+
+                {showInheritedEntry && (
                   <button
                     type="button"
+                    role="option"
+                    aria-selected={inheriting}
                     className={cn(
-                      "stg:rounded-md stg:border stg:border-border stg:bg-background stg:px-2.5 stg:py-1 stg:text-xs stg:text-foreground",
-                      "stg:hover:bg-accent-hover stg:transition-colors stg:cursor-pointer",
+                      "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:outline-none",
+                      "stg:transition-colors stg:hover:bg-accent-hover",
                     )}
-                    onClick={refetch}
+                    onClick={() => {
+                      onInheritedModelSelect();
+                      setOpen(false);
+                    }}
                   >
-                    Retry
+                    <span className="stg:flex-1 stg:truncate stg:text-left stg:font-medium">
+                      {`${inheritedModel.source}: ${inheritedDisplayName}`}
+                    </span>
+                    {inheriting && <CheckIcon className="stg:shrink-0 stg:text-primary" />}
                   </button>
-                </div>
-              )}
+                )}
 
-              {visibleModels.length === 0 && !isLoading && error == null && (
-                <div className="stg:px-2 stg:py-3 stg:text-center stg:text-xs stg:text-muted-foreground">
-                  No models found
-                </div>
-              )}
-
-              {showInheritedEntry && (
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={inheriting}
-                  className={cn(
-                    "stg:flex stg:w-full stg:cursor-pointer stg:items-center stg:gap-2 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-xs stg:outline-none",
-                    "stg:transition-colors stg:hover:bg-accent-hover",
-                  )}
-                  onClick={() => {
-                    onInheritedModelSelect();
-                    setOpen(false);
-                  }}
-                >
-                  <span className="stg:flex-1 stg:truncate stg:text-left stg:font-medium">
-                    {`${inheritedModel.source}: ${inheritedDisplayName}`}
-                  </span>
-                  {inheriting && <CheckIcon className="stg:shrink-0 stg:text-primary" />}
-                </button>
-              )}
-
-              {/* Grouped rendering */}
-              {groupedModels ? (
-                Array.from(groupedModels.entries()).map(([group, groupModels]) => (
-                  <div key={group}>
-                    <div className="stg:px-2 stg:pb-0.5 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-                      {group}
+                {/* Grouped rendering */}
+                {groupedModels ? (
+                  Array.from(groupedModels.entries()).map(([group, groupModels]) => (
+                    <div key={group}>
+                      <div className="stg:px-2 stg:pb-0.5 stg:pt-2 stg:text-2xs stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground">
+                        {group}
+                      </div>
+                      {groupModels.map((model) => (
+                        <ModelRow
+                          key={model.modelId}
+                          model={model}
+                          isSelected={rowSelected(model)}
+                          showDescription={false}
+                          showSpeedBadge={showSpeedBadge}
+                          needs={needsOf(model.modelId)}
+                          onClick={() => selectModel(model)}
+                        />
+                      ))}
                     </div>
-                    {groupModels.map((model) => (
-                      <ModelRow
-                        key={model.modelId}
-                        model={model}
-                        isSelected={rowSelected(model)}
-                        showDescription={false}
-                        showSpeedBadge={showSpeedBadge}
-                        onClick={() => selectModel(model)}
-                      />
-                    ))}
-                  </div>
-                ))
-              ) : (
-                visibleModels.map((model, idx) => (
-                  <ModelRow
-                    key={model.modelId}
-                    model={model}
-                    isSelected={rowSelected(model)}
-                    isHighlighted={idx === highlightIdx}
-                    showDescription={showDescriptions && !compact && !isSearching && !showAll}
-                    showSpeedBadge={showSpeedBadge}
-                    onClick={() => selectModel(model)}
-                    onMouseEnter={() => setHighlightIdx(idx)}
-                  />
-                ))
-              )}
+                  ))
+                ) : (
+                  visibleModels.map((model, idx) => (
+                    <ModelRow
+                      key={model.modelId}
+                      model={model}
+                      isSelected={rowSelected(model)}
+                      isHighlighted={idx === highlightIdx}
+                      showDescription={showDescriptions && !compact && !isSearching && !showAll}
+                      showSpeedBadge={showSpeedBadge}
+                      needs={needsOf(model.modelId)}
+                      onClick={() => selectModel(model)}
+                      onMouseEnter={() => setHighlightIdx(idx)}
+                    />
+                  ))
+                )}
+
+              </div>
 
               {/* Show All Models */}
               {showShowAllButton && (
@@ -753,6 +796,8 @@ interface ModelRowProps {
   isHighlighted?: boolean;
   showDescription: boolean;
   showSpeedBadge: boolean;
+  /** What the model needs before it can run here ("Needs an Anthropic key"); absent when it can. */
+  needs?: string;
   onClick: () => void;
   onMouseEnter?: () => void;
 }
@@ -763,6 +808,7 @@ function ModelRow({
   isHighlighted,
   showDescription,
   showSpeedBadge,
+  needs,
   onClick,
   onMouseEnter,
 }: ModelRowProps) {
@@ -782,7 +828,11 @@ function ModelRow({
       onMouseEnter={onMouseEnter}
     >
       <div className="stg:flex stg:w-full stg:items-center stg:gap-2">
-        <span className="stg:flex-1 stg:truncate stg:text-left stg:font-medium">{model.displayName}</span>
+        <span
+          className={cn("stg:flex-1 stg:truncate stg:text-left stg:font-medium", needs !== undefined && "stg:text-muted-foreground")}
+        >
+          {model.displayName}
+        </span>
 
         {/* Explicit vision:false only (stigmer/stigmer#386) — an unassessed
             model (absent capabilities block) shows nothing, per the
@@ -795,14 +845,25 @@ function ModelRow({
           </span>
         )}
 
-        <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
-          {showSpeedBadge
-            ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
-            : COST_TIER_LABEL[model.costTier]}
-        </span>
+        {/* A marked row says what it needs on its own line below, in the
+            badge's place, so the model's name keeps the popover's width. */}
+        {needs === undefined && (
+          <span className="stg:shrink-0 stg:text-2xs stg:text-muted-foreground">
+            {showSpeedBadge
+              ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
+              : COST_TIER_LABEL[model.costTier]}
+          </span>
+        )}
 
         {isSelected && <CheckIcon className="stg:shrink-0 stg:text-primary" />}
       </div>
+
+      {needs !== undefined && (
+        <span className="stg:mt-0.5 stg:flex stg:items-center stg:gap-1 stg:text-left stg:text-2xs stg:text-muted-foreground">
+          <KeyRound aria-hidden className="stg:size-3 stg:shrink-0" />
+          {needs}
+        </span>
+      )}
 
       {showDescription && model.shortDescription && (
         <span className="stg:mt-0.5 stg:block stg:text-left stg:text-2xs stg:text-muted-foreground">

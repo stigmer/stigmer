@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { cn } from "@stigmer/design-tokens";
 import {
   Tooltip,
@@ -14,6 +15,7 @@ import { HarnessSelector } from "../models/HarnessSelector.js";
 import type { HarnessOption } from "../models/harness.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
+import type { ModelReadinessLookup } from "../models/readiness.js";
 import { InteractionModePicker, type InteractionModeOption } from "./InteractionModePicker.js";
 import {
   PaperclipIcon,
@@ -27,6 +29,12 @@ export interface ComposerToolbarProps {
   readonly disabled: boolean;
   readonly isSubmitting: boolean;
   readonly canSend: boolean;
+  /**
+   * Why Send is held though the message could be sent (the chosen model
+   * cannot run here yet). The disabled Send button carries it as its
+   * accessible description.
+   */
+  readonly sendBlockedReason?: string;
   readonly onSend: () => void;
   /**
    * When provided, the primary button becomes a Stop control (enabled even
@@ -58,6 +66,8 @@ export interface ComposerToolbarProps {
   /** Chooses {@link inheritedModel} back; lists it in the picker as an entry. */
   readonly onInheritedModelSelect?: () => void;
   readonly onModelChange: (id: string) => void;
+  /** Each model's readiness here, for the picker's "Needs an Anthropic key" marks. */
+  readonly modelReadinessOf?: ModelReadinessLookup;
   /** Current service tier for the selected model (#357). */
   readonly serviceTier?: ServiceTierOption;
   /** Enables the fast-tier switch inside the model selector's options area. */
@@ -114,6 +124,7 @@ export function ComposerToolbar({
   disabled,
   isSubmitting,
   canSend,
+  sendBlockedReason,
   onSend,
   onStop,
   isStopping = false,
@@ -141,11 +152,13 @@ export function ComposerToolbar({
   inheritedModel,
   onInheritedModelSelect,
   onModelChange,
+  modelReadinessOf,
   serviceTier,
   onServiceTierChange,
   thinkingMode,
   onThinkingModeChange,
 }: ComposerToolbarProps) {
+  const sendBlockedId = useId();
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
 
   return (
@@ -182,6 +195,7 @@ export function ComposerToolbar({
             onServiceTierChange={onServiceTierChange}
             thinkingMode={thinkingMode}
             onThinkingModeChange={onThinkingModeChange}
+            readinessOf={modelReadinessOf}
             disabled={disabled}
           />
         )}
@@ -297,15 +311,23 @@ export function ComposerToolbar({
               <TooltipContent side="top">Stop</TooltipContent>
             </Tooltip>
           ) : (
-            <button
-              type="button"
-              disabled={!canSend}
-              onClick={onSend}
-              className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
-              aria-label="Send message"
-            >
-              {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={!canSend}
+                onClick={onSend}
+                className="stg:flex stg:h-8 stg:w-8 stg:shrink-0 stg:items-center stg:justify-center stg:rounded-lg stg:bg-primary stg:text-primary-foreground stg:transition-colors stg:hover:bg-primary-hover stg:disabled:pointer-events-none stg:disabled:opacity-40"
+                aria-label="Send message"
+                aria-describedby={sendBlockedReason === undefined ? undefined : sendBlockedId}
+              >
+                {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
+              </button>
+              {sendBlockedReason !== undefined && (
+                <span id={sendBlockedId} className="stg:sr-only">
+                  {sendBlockedReason}
+                </span>
+              )}
+            </>
           )}
         </div>
       </TooltipProvider>

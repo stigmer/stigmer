@@ -89,6 +89,29 @@ vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: () => mockFlow,
 }));
 
+// No StigmerProvider here: the launcher's readiness read answers nothing, so
+// it neither blocks Send nor shows its connect step (the readiness faces
+// have their own suites: launcher-readiness, con-02-first-run).
+vi.mock("../../models/hub/ModelsHub", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../models/hub/ModelsHub")>();
+  return {
+    ...actual,
+    useModelsHubData: () => ({
+      org: "acme",
+      orgName: "acme",
+      viewer: { canManage: false, local: false },
+      providers: null,
+      models: null,
+      keyOf: () => undefined,
+      parentOrgNameOf: () => undefined,
+      readinessOf: () => undefined,
+      isLoading: true,
+      error: null,
+      refresh: () => {},
+    }),
+  };
+});
+
 import { NewSessionViewer } from "../NewSessionViewer";
 
 beforeEach(() => {
@@ -239,12 +262,12 @@ describe("NewSessionViewer — a first message refused because the plan's agent 
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
     expect(screen.getByText(copy)).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
-    expect(screen.queryByRole("link", { name: "Open provider keys" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open Models & providers" })).toBeNull();
   });
 });
 
 describe("NewSessionViewer — a run refused for want of a provider key", () => {
-  it("says where an admin adds the key, and shows nothing for any other failure", async () => {
+  it("says where the key is added, and shows nothing for any other failure", async () => {
     const { refusal } = await import("../../billing/__tests__/fixtures");
     const copy = "This organization has no OpenAI key for model 'gpt-5', so the run was not started.";
     mockFlow = {
@@ -253,11 +276,11 @@ describe("NewSessionViewer — a run refused for want of a provider key", () => 
     };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
     expect(screen.getByText(copy)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Open provider keys" }).getAttribute("href")).toBe("/settings/provider-keys");
+    expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("/models");
 
     cleanup();
     mockFlow = { ...stubEmptyFlow, submitFailure: new Error("something else") };
     render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
-    expect(screen.queryByRole("link", { name: "Open provider keys" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open Models & providers" })).toBeNull();
   });
 });

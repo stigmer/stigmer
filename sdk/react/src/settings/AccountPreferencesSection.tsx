@@ -3,8 +3,14 @@
 import { useId } from "react";
 import { AccountPreferencesPanel } from "../identity-account/AccountPreferencesPanel.js";
 
+/** Props for {@link AccountPreferencesSection}. */
+export interface AccountPreferencesSectionProps {
+  /** Where Models & providers is, in the host's routing; the panel links it for the default models. */
+  readonly modelsHubHref?: string;
+}
+
 /** Settings section for editing the current user's declared preferences. */
-export function AccountPreferencesSection() {
+export function AccountPreferencesSection({ modelsHubHref }: AccountPreferencesSectionProps = {}) {
   const headingId = useId();
 
   return (
@@ -19,7 +25,7 @@ export function AccountPreferencesSection() {
         Personal standing context shared with agents on runs you start.
       </p>
 
-      <AccountPreferencesPanel />
+      <AccountPreferencesPanel modelsHubHref={modelsHubHref} />
     </section>
   );
 }

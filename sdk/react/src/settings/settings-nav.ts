@@ -12,7 +12,6 @@ import {
   History,
   Layers,
   KeyRound,
-  KeySquare,
   Link,
   ListChecks,
   MessageSquare,
@@ -106,11 +105,10 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   },
   {
     label: "Billing & Usage",
-    description: "Plan, payment method, usage metrics and provider keys.",
+    description: "Plan, payment method and usage metrics.",
     items: [
       { href: "/settings/billing", label: "Billing", icon: CreditCard },
       { href: "/settings/usage", label: "Usage", icon: BarChart3 },
-      { href: "/settings/provider-keys", label: "Provider keys", icon: KeySquare },
     ],
   },
   {

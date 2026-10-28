@@ -639,6 +639,21 @@ describe("useNewSessionFlow", () => {
       expect(opts.onError).toHaveBeenCalled();
     });
 
+    it("refuses to start with no organization, handing onError the message and an error", async () => {
+      const opts = { ...defaultOptions(), org: "" };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const message = "Select an organization before starting a session.";
+      expect(mockCreateExecution).not.toHaveBeenCalled();
+      expect(result.current.submitError).toBe(message);
+      expect(opts.onError).toHaveBeenCalledWith(message, expect.any(Error));
+      expect((opts.onError.mock.calls[0] as [string, Error])[1].message).toBe(message);
+    });
+
     it("resets isSubmitting after completion", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
@@ -1408,7 +1423,7 @@ describe("useNewSessionFlow", () => {
       });
 
       expect(result.current.submitError).toBe(ownerCopy);
-      expect(opts.onError).toHaveBeenCalledWith(ownerCopy);
+      expect(opts.onError).toHaveBeenCalledWith(ownerCopy, expect.any(Error));
     });
 
     it("keeps the failed submission's error itself, for a refusal read by its reason, and clears it on the next try", async () => {

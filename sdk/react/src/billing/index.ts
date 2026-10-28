@@ -1,5 +1,6 @@
 // Billing — the customer-facing surface: subscription plans, the card on
-// file and the Stripe billing portal, and provider keys. Token usage lives
+// file and the Stripe billing portal, and the provider-key hooks (their
+// faces are Models & providers, in ../models). Token usage lives
 // in ../usage; the platform-operator model catalog (registry baseline
 // authoring) lives in ../model-catalog.
 
@@ -36,8 +37,6 @@ export { planStanding, planMove } from "./plan-state.js";
 export type { PlanStanding, PlanMove } from "./plan-state.js";
 
 // Styled components
-export { ProviderKeysSection } from "./ProviderKeysSection.js";
-export type { ProviderKeysSectionProps } from "./ProviderKeysSection.js";
 export { BillingSection } from "./BillingSection.js";
 export type { BillingSectionProps } from "./BillingSection.js";
 export { PaymentMethodCard } from "./PaymentMethodCard.js";
@@ -56,7 +55,7 @@ export {
   ProviderKeyNotice,
   providerKeyRequired,
   PROVIDER_KEY_REQUIRED,
-  DEFAULT_PROVIDER_KEYS_HREF,
+  DEFAULT_MODELS_HUB_HREF,
 } from "./ProviderKeyNotice.js";
 export type { ProviderKeyNoticeProps, ProviderKeyRequired } from "./ProviderKeyNotice.js";
 export { AgentHoursNotice, agentHoursUsedUp, AGENT_HOURS_USED_UP } from "./AgentHoursNotice.js";

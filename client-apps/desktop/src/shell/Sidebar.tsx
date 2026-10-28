@@ -72,6 +72,8 @@ export function Sidebar() {
     !isSessionZone && location.pathname.startsWith("/library");
   const isMarketplaceActive =
     !isSessionZone && location.pathname.startsWith("/marketplace");
+  const isModelsActive =
+    !isSessionZone && location.pathname.startsWith("/models");
   const activeNav: WorkspaceNavId | null =
     location.pathname === "/"
       ? "new-session"
@@ -83,7 +85,9 @@ export function Sidebar() {
             ? "library"
             : isMarketplaceActive
               ? "marketplace"
-              : null;
+              : isModelsActive
+                ? "models"
+                : null;
 
   const renderLink = useCallback(
     ({

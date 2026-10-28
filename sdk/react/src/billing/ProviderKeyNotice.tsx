@@ -4,14 +4,14 @@ import { cn } from "@stigmer/design-tokens";
 import { getErrorReason, getUserMessage } from "@stigmer/client";
 
 /**
- * The reason Stigmer Cloud refuses a run that needs a provider the
- * organization holds no key for: its model's
- * (billing/providerkey/v1/api.proto).
+ * The reason a server refuses a run that needs a provider nothing serves:
+ * the organization holds no key for it, or this server's runners do not
+ * reach it (`PlatformQueryController.getModelReadiness` reports the same).
  */
 export const PROVIDER_KEY_REQUIRED = "PROVIDER_KEY_REQUIRED";
 
-/** The provider keys page the notice links to by default: the settings route every client serves. */
-export const DEFAULT_PROVIDER_KEYS_HREF = "/settings/provider-keys";
+/** Models & providers, where the notice links by default: the top-level route every client serves. */
+export const DEFAULT_MODELS_HUB_HREF = "/models";
 
 /** What a `PROVIDER_KEY_REQUIRED` refusal names. */
 export interface ProviderKeyRequired {
@@ -24,8 +24,8 @@ export interface ProviderKeyRequired {
 }
 
 /**
- * What a refusal names, when `error` is Stigmer Cloud's
- * `PROVIDER_KEY_REQUIRED`; `null` for any other error.
+ * What a refusal names, when `error` is a `PROVIDER_KEY_REQUIRED` refusal;
+ * `null` for any other error.
  */
 export function providerKeyRequired(error: unknown): ProviderKeyRequired | null {
   const reason = getErrorReason(error);
@@ -43,15 +43,16 @@ export function providerKeyRequired(error: unknown): ProviderKeyRequired | null 
 export interface ProviderKeyNoticeProps {
   /** The refusal: its message is the server's own copy, naming the provider, and the model when the run names one. */
   readonly error: Error;
-  /** Where the provider keys page is, in the host's routing. Defaults to {@link DEFAULT_PROVIDER_KEYS_HREF}. */
-  readonly providerKeysHref?: string;
+  /** Where Models & providers is, in the host's routing. Defaults to {@link DEFAULT_MODELS_HUB_HREF}. */
+  readonly modelsHubHref?: string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
 
 /**
- * Says a run was not started because the organization has no key for the
- * provider it needs, and where an admin adds one, in place of a bare
+ * Says a run was not started because nothing serves the provider it needs
+ * (the server's own words: where an admin adds a key, or how a laptop's
+ * runner gets one), and links Models & providers, in place of a bare
  * refusal.
  *
  * @example
@@ -61,7 +62,7 @@ export interface ProviderKeyNoticeProps {
  */
 export function ProviderKeyNotice({
   error,
-  providerKeysHref = DEFAULT_PROVIDER_KEYS_HREF,
+  modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
 }: ProviderKeyNoticeProps) {
   return (
@@ -74,10 +75,10 @@ export function ProviderKeyNotice({
     >
       <p className="stg:text-foreground">{getUserMessage(error)}</p>
       <a
-        href={providerKeysHref}
+        href={modelsHubHref}
         className="stg:mt-1 stg:inline-block stg:font-medium stg:text-primary stg:hover:underline"
       >
-        Open provider keys
+        Open Models &amp; providers
       </a>
     </div>
   );
