@@ -421,7 +421,7 @@ describe("the offered-engine rule over the wire", () => {
           }),
         Code.FailedPrecondition,
       );
-      expect(err.rawMessage).toBe(`the conversation's harness names harness ${harness}, which this platform does not run`);
+      expect(err.rawMessage).toBe(`the conversation names harness ${harness}, which this platform does not run`);
     },
   );
 });

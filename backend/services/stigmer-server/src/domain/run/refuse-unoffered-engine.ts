@@ -21,7 +21,7 @@ import { offeredHarnessRefusal } from "../session/harness.js";
 import { runConfigPlacementOf } from "./resolve-run-config.js";
 
 /** How the refusal names what it judged. */
-export const RUN_ENGINE_FIELD = "the conversation's harness";
+export const RUN_ENGINE_FIELD = "the conversation";
 
 export function newRefuseUnofferedEngineStep(): PipelineStep<typeof RunSchema> {
   return {

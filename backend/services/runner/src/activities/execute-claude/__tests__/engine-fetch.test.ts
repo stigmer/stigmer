@@ -103,7 +103,7 @@ describe("installClaudeEngine", () => {
 
   it("refuses bytes that do not match the pin before extracting them, leaving no home and no partial directory", async () => {
     registry.tamper(PLATFORM_PACKAGE, gzipSync(buildTar([{ name: "package/claude", content: "not Anthropic's" }])));
-    await expect(install()).rejects.toThrow(`the Claude engine (${PLATFORM_PACKAGE}) checksum mismatch — refusing to use the download`);
+    await expect(install()).rejects.toThrow(`the Claude Agent SDK (${PLATFORM_PACKAGE}) checksum mismatch — refusing to use the download`);
     expect(registry.hits(PLATFORM_PACKAGE)).toBe(1);
     expect(claudeDirEntries()).toEqual([]);
   });

@@ -112,7 +112,7 @@ export function harnessName(harness: Harness): string {
       return "native";
     default: {
       const unknown: never = harness;
-      throw new Error(`usage report: harness ${String(unknown)} names no harness`);
+      throw new Error(`usage report: harness ${String(unknown)} is not one the proto names`);
     }
   }
 }

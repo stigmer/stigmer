@@ -359,12 +359,12 @@ A case that needs something Stigmer does not run is never run without it,
 because a degraded run would be a wrong score. It is listed instead, as
 `not run: <reason>`, on the Evals tab, in the table and in `notRun[]`:
 
-| Not run                                                           | Why                                                                                 |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| A `plugins` entry other than the plugin's root, or any in an eval | Other plugins the try would load beside the ones it runs with                       |
-| More than 32 graders on one case                                  | A grade records at most 32 checks                                                   |
-| A scaffold under `--no-scaffold`                                  | `not run: scaffold skipped`, as `claude plugin eval` skips it                       |
-| `context.history_file` on Claude                                  | `not run on Claude: resumed conversations`; the case runs on Stigmer harness models |
+| Not run                                                           | Why                                                                                       |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| A `plugins` entry other than the plugin's root, or any in an eval | Other plugins the try would load beside the ones it runs with                             |
+| More than 32 graders on one case                                  | A grade records at most 32 checks                                                         |
+| A scaffold under `--no-scaffold`                                  | `not run: scaffold skipped`, as `claude plugin eval` skips it                             |
+| `context.history_file` on Claude                                  | `not run on Claude Agent: resumed conversations`; the case runs on Stigmer harness models |
 
 The Claude Agent SDK keeps a conversation's history in its own transcript, which
 no recorded history seeds yet, so it cannot resume a recorded conversation. Such
