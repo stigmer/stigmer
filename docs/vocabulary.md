@@ -439,16 +439,15 @@ An ongoing conversation with an Agent across multiple messages.
   `session/v1/spec.proto`.
 - **Key fields**: `agent_ref` (the Agent the conversation runs; empty for the
   built-in assistant), `status.agent_version_hash` (the Agent version the
-  conversation runs until someone updates it), `status.harness_state_id` (the
-  harness's own id for the conversation, kept across runs), `subject` (display
-  title), `resources` (the [Files](#file), git repositories and local folders
-  the conversation holds: `file`, `git_repository`, `local_path`),
-  `environment_ref` (the [Environment](#environment) the conversation names
-  itself), `status.environment` and `status.environment_source` (the Environment
-  it runs in and whose choice that was), `vaults` (the vaults the conversation
-  uses, in order) and `include_my_vault` (use each sender's own My vault first).
-  Sessions can add `plugins` and `skill_refs` to the Agent's; the Agent's tool
-  lists still govern every tool.
+  conversation runs until someone updates it), `subject` (display title),
+  `resources` (the [Files](#file), git repositories and local folders the
+  conversation holds: `file`, `git_repository`, `local_path`), `environment_ref`
+  (the [Environment](#environment) the conversation names itself),
+  `status.environment` and `status.environment_source` (the Environment it runs
+  in and whose choice that was), `vaults` (the vaults the conversation uses, in
+  order) and `include_my_vault` (use each sender's own My vault first). Sessions
+  can add `plugins` and `skill_refs` to the Agent's; the Agent's tool lists
+  still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. What happens in a Session is its event log
   (`session/v1/event.proto`): the person's messages, the Agent's messages and
@@ -460,19 +459,19 @@ An ongoing conversation with an Agent across multiple messages.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Each job gets its own conversation: the agent keeps its files between turns and hands back what it made."                                                                          |
-| Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                                               |
-| Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."                                |
-| Reference  | "`Session`---a multi-turn conversation container. Keeps the conversation across runs (`status.harness_state_id`). Merges Agent-level and Session-level `skill_refs` and `plugins`." |
+| Context    | Copy                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Each job gets its own conversation: the agent keeps its files between turns and hands back what it made."                                              |
+| Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                   |
+| Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."    |
+| Reference  | "`Session`---a multi-turn conversation container. Keeps the conversation across runs. Merges Agent-level and Session-level `skill_refs` and `plugins`." |
 
 **Bad examples**:
 
 | Context    | Copy                                                          | Problem                                                                       |
 | ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Sales site | "Create a Session resource to enable multi-turn interaction." | Resource-model language in a business context.                                |
-| Quickstart | "Configure the `harness_state_id` for Session persistence."   | Implementation detail. The quickstart should just say "start a conversation." |
+| Quickstart | "Configure the harness thread for Session persistence."       | Implementation detail. The quickstart should just say "start a conversation." |
 
 ---
 

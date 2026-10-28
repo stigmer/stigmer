@@ -930,8 +930,8 @@ function finalizeStreaming(transcript: Transcript): void {
  * first step). Until stigmer#1119 the row stored them raw and only the
  * preview was redacted, so a settled row's detail view showed a token the
  * waiting row had hidden. Nothing that reads a row's args back needs a
- * secret: exact-apply, the approval identity and the content digest read
- * path, content, edit and command fields, which
+ * secret: the approval identity reads path, content, edit and command
+ * fields, which
  * `shared/__tests__/args-preview.test.ts` pins disjoint from the secret keys.
  */
 function rowArgs(args: Record<string, unknown>): JsonObject {

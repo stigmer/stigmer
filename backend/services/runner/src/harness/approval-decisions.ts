@@ -21,9 +21,9 @@
  *    WAITING on a completed execution. APPROVE and APPROVE_ALL are not
  *    touched — the tool executes, and the adapter's own events settle it.
  *
- * Why after the adapter, not before: the door and the exact-apply filter on
- * WAITING, so settling first would hide the decision from the reinvocation
- * prompt and from the exact-apply. Why by decision and not by row status: the outcome
+ * Why after the adapter, not before: the door filters on WAITING, so
+ * settling first would hide the decision from the reinvocation prompt. Why
+ * by decision and not by row status: the outcome
  * of SKIP and REJECT is fully determined by the recorded decision, whatever
  * transient status an engine left (a denial ToolMessage with no tool events,
  * or a replay that never re-drove the gate), so the stamp is idempotent and

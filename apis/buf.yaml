@@ -36,7 +36,7 @@ breaking:
   # PricingBlock.cursor_token_rate_micros_per_million (5) and the permission
   # ask's content_digest (8), each number and name kept reserved. This block
   # exists for that pull request; the pull request that removes it lands
-  # straight after the merge.
+  # straight after the merge (stigmer/stigmer#2682).
   ignore_only:
     ENUM_NO_DELETE:
       - ai/stigmer/agentic/session/v1/enum.proto

@@ -37,9 +37,8 @@
  *  - the answer on every row ({@link copyAnswersOntoRows}). The seeded
  *    rows are the asks the resumed engine resumes onto (`transcript/resume-seed.ts`),
  *    and the seed copies each call's answer from the log onto its row's
- *    `approval_action`, so every later reader of that field (the
- *    exact-apply, the settle, provenance, the boundary's closed-gate rule)
- *    reads the log's answer.
+ *    `approval_action`, so every later reader of that field (the settle,
+ *    provenance, the boundary's closed-gate rule) reads the log's answer.
  *
  * Failure. The read is a control-plane read like the turn's own fetches: it
  * throws, and the activity's retry runs the turn's start again.

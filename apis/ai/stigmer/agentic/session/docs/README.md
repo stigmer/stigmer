@@ -20,7 +20,7 @@ A Session is not ephemeral. It is a resource you create explicitly (or let the p
 
 ## Key Concepts
 
-**Conversation continuity** — The Session holds `status.harness_state_id`, the harness's own id for the conversation, which carries the full conversation history across every run. The agent "remembers" everything said in previous turns because all runs within a session continue the same conversation.
+**Conversation continuity** — Every run in a Session continues the same conversation: each harness keeps it under the session's own id (native's checkpoint thread, Claude's session store), which carries the full conversation history across every run. The agent "remembers" everything said in previous turns because all runs within a session continue the same conversation.
 
 **Workspace persistence** — The Session optionally provisions a sandbox (a Kubernetes pod with a persistent workspace volume, on managed deployments) with a workspace sourced from a git repository or a local path. That workspace persists across all runs in the session. Files the agent creates in turn one are still there in turn ten.
 
@@ -63,10 +63,10 @@ All types in this package are defined in `ai/stigmer/agentic/session/v1/`:
 
 | File | Contents |
 |---|---|
-| `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`, and the runner-owned `harness_state_id` and `harness_state_id_history`) |
+| `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`) |
 | `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `metadata`, `resources`, `plugins`, `skill_refs`, `harness`, `execution_target` |
 | `resource.proto` | `SessionResource`, `FileResource`, `GitRepositoryResource`, `LocalPathResource` |
-| `command.proto` | `SessionCommandController` — apply, create, update, updateSubject, reviewFileChanges, confirmToolUse, grantPermission, interrupt, stopBackgroundCommand, delete, appendEvents, bindHarnessState |
+| `command.proto` | `SessionCommandController` — apply, create, update, updateSubject, reviewFileChanges, confirmToolUse, grantPermission, interrupt, stopBackgroundCommand, delete, appendEvents, claimInput |
 | `query.proto` | `SessionQueryController` — get, list, listByAgent, listByChannel, listEvents, streamEvents |
 | `event.proto` | `SessionEvent` (the log's envelope: `seq`, `session_id`, `run_id`, `thread_id`) and one message per Managed Agents event it carries, each named by its oneof member's `event_type` option, then Stigmer's own `stigmer.*` events; the `EventStart`, `EventDelta` and `ToolOutputDelta` previews |
 | `event_content.proto` | The shapes events share: content blocks and their sources, stop reasons and details, errors and retry status, tool evaluations |
