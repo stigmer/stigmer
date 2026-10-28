@@ -95,11 +95,11 @@ export const STATUS_PAYLOAD_SOFT_LIMIT_BYTES = 3 * 1024 * 1024;
 export const STATUS_PAYLOAD_HARD_LIMIT_BYTES = 2 * 1024 * 1024;
 
 /**
- * Marker left in place of an aggregate-elided inline field. Exported so the
- * resume-time exact-apply resolver can recognize (and refuse to write) an elided
- * body rather than corrupting a file with the marker text — the lossy elision is
- * the one case where the exact approved bytes are unrecoverable and exact-apply
- * must fall back. The two sides cannot drift because they share this constant.
+ * Marker left in place of an aggregate-elided inline field. Exported so a
+ * reader of a stored call (the Claude gate, `activities/execute-claude/gate.ts`)
+ * can recognize an elided body rather than take the marker text for the call's
+ * own: the lossy elision is the one case where the exact bytes are
+ * unrecoverable. The two sides cannot drift because they share this constant.
  */
 export const ELISION_MARKER = "[output elided to keep status under the size limit]";
 

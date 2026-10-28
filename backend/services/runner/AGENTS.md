@@ -44,9 +44,9 @@ the truth.
 - Payloads carry only what the consumer cannot already read. An interrupt, a
   signal or an IPC message carries identity, not a copy of what the record
   holds.
-- Direct identity, never fuzzy matching. Find the framework's identity
-  primitive (LangGraph, MCP, Temporal, `@anthropic-ai/claude-agent-sdk`) before
-  building a matcher or an alias map.
+- Direct identity, never fuzzy matching. Find the framework's identity primitive
+  (LangGraph, MCP, Temporal, `@anthropic-ai/claude-agent-sdk`) before building a
+  matcher or an alias map.
 - Derived state is computed on read. Approval decisions are read from the
   persisted tool-call rows on the next invocation, never kept in a second map.
 - The runtime branches on capability flags, never on harness names. A phase that

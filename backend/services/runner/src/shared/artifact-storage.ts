@@ -42,8 +42,8 @@ export interface ArtifactStorage {
   presignedDownloadUrl?(key: string): Promise<string>;
   /**
    * Read an artifact's raw bytes by key — the inverse of {@link upload} and the
-   * single read path for all runner read-back (CAS reconcile, exact-apply,
-   * claimcheck decode).
+   * single read path for all runner read-back (CAS reconcile, claimcheck
+   * decode).
    *
    * Returns the exact stored bytes, or throws a descriptive, key-scoped `Error`
    * when the object is missing or the transport fails. Per-backend semantics:

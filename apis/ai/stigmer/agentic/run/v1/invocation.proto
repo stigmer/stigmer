@@ -21,7 +21,7 @@ import "buf/validate/validate.proto";
 // @internal
 // An ALLOWLIST by
 // construction: platform-owned run fields (approval_mode,
-// execution_target, harness_state_id,
+// execution_target,
 // auto_approve_all, org/labels/subject) cannot
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding RunSpec /

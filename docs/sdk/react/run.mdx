@@ -1520,7 +1520,7 @@ Show more / Show less toggle.
 A genuine failure renders as a destructive alert with a Retry. A *recoverable
 interruption* renders as a neutral notice with a Resume — both resend the
 originating message, which the server continues from the session's persisted
-harness_state_id (the same data path; the framing differs so an interruption
+conversation (the same data path; the framing differs so an interruption
 never looks like a dead-end crash).
 
 Slot-overridable via `MessageThreadSlots.RunErrorNotice`. An override
@@ -1533,7 +1533,7 @@ an internal heuristic of this built-in, not part of the slot contract.
 <TypeTable
   type={{
     error: { type: "string", description: "The server-reported failure reason (`RunStatus.error`), raw.", required: true },
-    onRetry: { type: "(message: string) => void", description: "Resends retryMessage; the server continues from the session's persisted harness_state_id. Retry renders only when both this handler and retryMessage are present." },
+    onRetry: { type: "(message: string) => void", description: "Resends retryMessage; the server continues from the session's persisted conversation. Retry renders only when both this handler and retryMessage are present." },
     retryMessage: { type: "string", description: "The originating user message, resent verbatim on retry. Absent when the failed run has no resendable prompt — the retry affordance is hidden in that case." },
   }}
 />
