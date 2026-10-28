@@ -173,8 +173,7 @@ Two cases to know about:
 Which web tools the list governs depends on the
 [harness](/docs/concepts/harnesses). The native harness fetches web pages from
 inside the sandbox, so its `web_fetch` follows the list like any other request.
-The Cursor harness's web fetch and web search run on Cursor's side, outside the
-sandbox, so under limited networking they are hidden from the Agent.
+The Claude harness offers no web tools yet.
 
 ## The package registries and code hosts
 
@@ -284,8 +283,8 @@ haven't picked one.
   other drivers, it is whatever network the server's operator gives the sandbox.
 - **Web tools follow the harness.** Managed Agents applies `allowed_hosts` to
   its own `web_fetch` and `web_search`. Here the native harness's `web_fetch`
-  runs in the sandbox under the same list, and the Cursor harness's web tools,
-  which leave from Cursor's side, are hidden under limited networking.
+  runs in the sandbox under the same list, and the Claude harness offers no web
+  tools yet.
 - **No setup script and no variables.** Packages are the one thing an
   Environment adds; a variable belongs to the Agent's `env`, and a secret to a
   vault.

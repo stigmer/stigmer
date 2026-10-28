@@ -3475,7 +3475,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
       }
 
-      it("v28 moves a Cursor session's harness id and history to its status, keeps its stamp, and leaves the rest byte for byte", async () => {
+      it("v28 drops a session's retired harness id and history, keeps its stamp, and leaves the rest byte for byte", async () => {
         const client = await clientAt(SCHEMA_VERSION_27);
         try {
           await insertRow(
@@ -3495,10 +3495,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(await version(client)).toBe(SCHEMA_VERSION_28);
           const moved = await row(client, "session", "ses_cursor");
           expect(moved.data).toEqual(
-            currentSessionRow({
-              ...conversation("ses_cursor"),
-              status: { harnessStateId: "agent-7f3c", harnessStateIdHistory: ["agent-1a2b"] },
-            }),
+            currentSessionRow(conversation("ses_cursor")),
           );
           expect(moved.updatedAt).toEqual(seededAt);
           expect((await row(client, "session", "ses_new")).data).toEqual(untouched);
@@ -3524,9 +3521,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           await client.query(`DELETE FROM resources WHERE kind = 'session' AND id = 'ses_zz_bad'`);
           await migrateTo(db.databaseUrl, SCHEMA_VERSION_28);
           const last = `ses_${String(SESSION_HARNESS_PAGE_SIZE).padStart(4, "0")}`;
-          expect(fromBinary(SessionSchema, (await row(client, "session", last)).data).status?.harnessStateId).toBe(
-            `thread-${SESSION_HARNESS_PAGE_SIZE}`,
-          );
+          expect(fromBinary(SessionSchema, (await row(client, "session", last)).data).spec?.$unknown ?? []).toEqual([]);
         } finally {
           await client.end();
         }

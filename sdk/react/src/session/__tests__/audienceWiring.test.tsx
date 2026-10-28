@@ -279,12 +279,12 @@ describe("NewSessionViewer — audience wiring", () => {
         onSessionCreated={vi.fn()}
         includeMyVault={false}
         vaults={vaults}
-        defaultHarness="cursor"
+        defaultHarness="claude"
       />,
     );
 
     expect(mockUseNewSessionFlow).toHaveBeenCalledWith(
-      expect.objectContaining({ includeMyVault: false, vaults, defaultHarness: "cursor" }),
+      expect.objectContaining({ includeMyVault: false, vaults, defaultHarness: "claude" }),
     );
     expect(lastComposerProps()).toMatchObject({ initialIncludeMyVault: false, initialVaultRefs: vaults });
   });

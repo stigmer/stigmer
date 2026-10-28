@@ -5,8 +5,8 @@
  * cost the `max_cost_usd` cap is enforced against.
  *
  * Who owns what: the ADAPTER prices, because only it has its
- * vendor's rate table and variant semantics (`execute-cursor/usage-pricing.ts`
- * for Cursor); the RUNTIME accounts and enforces, because the cap and the
+ * vendor's rate table and variant semantics (`execute-claude/usage.ts`,
+ * `execute-deep-agent/turn-stream.ts`); the RUNTIME accounts and enforces, because the cap and the
  * summary are the platform's, the same for every engine. A delta therefore
  * arrives already priced, naming the basis it was priced against (`model`,
  * `requestedModelParams`), and this class adds — it never multiplies. The
@@ -14,10 +14,9 @@
  * preferences (`TurnInput.model`), the audit trail that the account default
  * was never left in control (#357, #772).
  *
- * Moved from `activities/execute-cursor/usage-accumulator.ts` in #1070, the
- * pricing call split out; the sums, the snapshot shape and the empty
- * snapshot are unchanged, so `streamingUsage` is byte-for-byte what the
- * Cursor orchestrator wrote.
+ * Moved into the runtime in #1070, the pricing call split out to the
+ * adapters; the sums, the snapshot shape and the empty snapshot are what
+ * `streamingUsage` has always carried.
  *
  * A model call the runtime itself makes for the turn, not the engine (a
  * eval-run try's agent mock), adds its cost alone
@@ -141,7 +140,7 @@ export class UsageAccumulator {
       outputTokens: BigInt(this.outputTokens),
       cacheReadTokens: BigInt(this.cacheReadTokens),
       cacheWriteTokens: BigInt(this.cacheWriteTokens),
-      // The Cursor SDK follows Anthropic's convention: inputTokens already
+      // Every adapter reports Anthropic's convention: inputTokens already
       // INCLUDES the cached portions (cacheReadTokens/cacheWriteTokens are
       // subsets of it, not additive). The true total throughput is therefore
       // inputTokens + outputTokens. Adding the cache buckets again would

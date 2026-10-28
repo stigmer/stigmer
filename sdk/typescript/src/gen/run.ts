@@ -14,7 +14,7 @@ import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agenti
 import { RunIdSchema, SendMessageResponseSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type SendMessageResponse, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { RunSpecSchema, ConversationCatchupSchema, type ConversationCatchup } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
-import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -216,7 +216,6 @@ export interface SessionSpecInput {
   metadata?: Record<string, string>;
   skillRefs?: ResourceRef[];
   harness?: Harness;
-  cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
   vaults?: ResourceRef[];
   includeMyVault?: boolean;
@@ -365,7 +364,6 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.metadata) Object.assign(msg.metadata, input.metadata);
   if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   if (input.harness !== undefined) msg.harness = input.harness;
-  if (input.cursorMode !== undefined) msg.cursorMode = input.cursorMode;
   if (input.executionTarget !== undefined) msg.executionTarget = input.executionTarget;
   if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   if (input.includeMyVault !== undefined) msg.includeMyVault = input.includeMyVault;
@@ -536,7 +534,6 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     metadata: Object.keys(msg.metadata ?? {}).length > 0 ? { ...msg.metadata } : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
     harness: msg.harness || undefined,
-    cursorMode: msg.cursorMode || undefined,
     executionTarget: msg.executionTarget || undefined,
     vaults: toResourceRefInputs(msg.vaults),
     includeMyVault: msg.includeMyVault || undefined,

@@ -16,7 +16,7 @@
  *     rights the agent's own `npm install` would, and never runs as root
  *     beside the runner's credentials. The prefix's `bin` (and its Python
  *     venv's) is put first on the agent host's PATH (`environment.ts`), so
- *     the agent's shell and the commands Cursor starts both find them; the
+ *     the agent's shell and the commands an engine starts both find them; the
  *     runner's own PATH is never touched.
  *
  * Each entry is argv, never a shell word; the contract's grammar keeps out

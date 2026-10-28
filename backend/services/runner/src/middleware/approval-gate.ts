@@ -18,7 +18,7 @@
  * Platform tool defaults: DeepAgents JS backend tools (read, write,
  * edit, execute, etc.) are not MCP tools. Built-in tools
  * are classified through the shared {@link toolApprovalCategory} — the single
- * source of truth, shared with the Cursor deny-oracle hook — so read-only tools
+ * source of truth, shared with the Claude harness's gate — so read-only tools
  * are auto-approved and every mutating tool (write/edit/delete/shell) is gated
  * fail-CLOSED, by category rather than by a hand-maintained name list. An
  * unrecognized mutating built-in (e.g. `bash`, `overwrite_file`) is therefore
@@ -92,8 +92,7 @@
  * discipline as the server's approval-stream cross-check. On the deep-agent
  * normal path the fingerprint match is guaranteed
  * by LangGraph checkpoint replay (the resumed action equals the approved one), so
- * the receipt is defense-in-depth here; the fingerprint earns real enforcement
- * teeth in the out-of-process Cursor substrate.
+ * the receipt is defense-in-depth here.
  */
 
 import { ToolMessage } from "@langchain/core/messages";

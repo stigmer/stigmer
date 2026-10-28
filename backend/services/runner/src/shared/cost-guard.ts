@@ -11,11 +11,10 @@
  * conversation continuing on the next message — the recursion-limit
  * precedent, `toolCallLimitArm`.
  *
- * Why a hard stop rather than a middleware: the Cursor activity was the
- * guard's only caller until the turn runtime took it over in #1070, and
- * Cursor's only control point is cancelling the in-flight run. The runtime
- * kept that shape for every engine, because it is where the running estimate
- * advances. Until #1096 the native harness also capped inside its graph
+ * Why a hard stop rather than a middleware: the turn runtime took the guard
+ * over in #1070 and keeps it for every engine, because the runtime is where
+ * the running estimate advances, and stopping the turn is the one control
+ * point every engine shares. Until #1096 the native harness also capped inside its graph
  * (`cost-cap.ts`: tools blocked at the threshold, one final tool-free round
  * to summarize); that middleware now only advises, near the cap
  * (`middleware/cost-advisory.ts`).

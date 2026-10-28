@@ -65,7 +65,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
 
   /**
    * <pre>
-   * Provider identifier (e.g., "openai", "anthropic", "cursor").
+   * Provider identifier (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -74,7 +74,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   java.lang.String getProvider();
   /**
    * <pre>
-   * Provider identifier (e.g., "openai", "anthropic", "cursor").
+   * Provider identifier (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -278,7 +278,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
 
   /**
    * <pre>
-   * Harness that originated this call ("native", "cursor" or "claude").
+   * Harness that originated this call ("native" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    * </pre>
@@ -289,7 +289,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   java.lang.String getHarness();
   /**
    * <pre>
-   * Harness that originated this call ("native", "cursor" or "claude").
+   * Harness that originated this call ("native" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    * </pre>
@@ -309,8 +309,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * verbatim by the proxy from the SSE stream — the wire truth billing
    * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
-   * none, and for cursor-harness calls, whose billed variant arrives
-   * through the cursor path's pricing-variant resolution instead.
+   * none.
    * </pre>
    *
    * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -326,8 +325,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * verbatim by the proxy from the SSE stream — the wire truth billing
    * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
-   * none, and for cursor-harness calls, whose billed variant arrives
-   * through the cursor path's pricing-variant resolution instead.
+   * none.
    * </pre>
    *
    * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>

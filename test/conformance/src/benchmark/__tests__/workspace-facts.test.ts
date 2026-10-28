@@ -2,7 +2,7 @@
 // Domain: conformance benchmark.
 //
 // Pinned: the comparison lists added, modified and deleted files, sorted by
-// code point, ignores an empty directory (what Cursor's teardown can leave),
+// code point, ignores an empty directory (what a harness's teardown can leave),
 // and counts a symbolic link as an entry of its own without following it.
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -39,7 +39,7 @@ describe("changedFiles", () => {
     await writeFile(join(after, "duration", "duration.go"), "package duration\n\nfunc X() {}\n");
     await writeFile(join(after, "NOTES.md"), "notes\n");
     await rm(join(after, "CHANGELOG.md"));
-    await mkdir(join(after, ".cursor", "rules"), { recursive: true });
+    await mkdir(join(after, ".claude", "rules"), { recursive: true });
     expect(await changedFiles(before, after)).toEqual([
       { path: "CHANGELOG.md", change: "deleted" },
       { path: "NOTES.md", change: "added" },
@@ -48,11 +48,11 @@ describe("changedFiles", () => {
   });
 
   it("lists a file left in a runner-owned directory, and a link, without following the link", async () => {
-    await mkdir(join(after, ".cursor"), { recursive: true });
-    await writeFile(join(after, ".cursor", "hooks.json"), "{}\n");
+    await mkdir(join(after, ".claude"), { recursive: true });
+    await writeFile(join(after, ".claude", "settings.json"), "{}\n");
     await symlink(join(base, "elsewhere"), join(after, ".stigmer"));
     expect(await changedFiles(before, after)).toEqual([
-      { path: ".cursor/hooks.json", change: "added" },
+      { path: ".claude/settings.json", change: "added" },
       { path: ".stigmer", change: "added" },
     ]);
   });

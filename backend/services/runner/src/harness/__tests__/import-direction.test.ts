@@ -5,8 +5,8 @@
  *
  * Why it matters (the extraction plan, section 3): the runtime is meant to
  * be written once and call harness-specific code only through the adapter
- * contract. If `harness/` could reach into `activities/execute-cursor/`, the
- * runtime would be Cursor's orchestrator in a new directory and the "SDK
+ * contract. If `harness/` could reach into `activities/execute-claude/`, the
+ * runtime would be Claude's orchestrator in a new directory and the "SDK
  * slice plus a registry row" promise for the next harness would be false.
  * The `shared/` half is what makes the `harness/` half hold: `harness/`
  * imports `shared/` freely, so a `shared/` module that imported
@@ -64,18 +64,18 @@ describe("forbiddenImports (the checker itself)", () => {
   it.each([
     [
       "a static import",
-      'import { a } from "../activities/execute-cursor/x.js";',
+      'import { a } from "../activities/execute-claude/x.js";',
     ],
     [
       "a type-only import",
-      'import type { A } from "../activities/execute-cursor/x.js";',
+      'import type { A } from "../activities/execute-claude/x.js";',
     ],
-    ["a side-effect import", 'import "../activities/execute-cursor/x.js";'],
-    ["a re-export", 'export { a } from "../activities/execute-cursor/x.js";'],
+    ["a side-effect import", 'import "../activities/execute-claude/x.js";'],
+    ["a re-export", 'export { a } from "../activities/execute-claude/x.js";'],
     ["a star re-export", 'export * from "../activities/x.js";'],
     [
       "a dynamic import",
-      'const m = await import("../activities/execute-cursor/x.js");',
+      'const m = await import("../activities/execute-claude/x.js");',
     ],
     [
       "a path that leaves and re-enters",
@@ -92,11 +92,11 @@ describe("forbiddenImports (the checker itself)", () => {
     ["a node builtin", 'import { join } from "node:path";'],
     [
       "a forbidden path quoted in a comment",
-      '// see: import { a } from "../activities/execute-cursor/x.js"\nimport { b } from "./types.js";',
+      '// see: import { a } from "../activities/execute-claude/x.js"\nimport { b } from "./types.js";',
     ],
     [
       "a forbidden path in a plain string",
-      'const hint = "../activities/execute-cursor/x.js";',
+      'const hint = "../activities/execute-claude/x.js";',
     ],
     [
       "a dynamic import whose specifier is not a literal",

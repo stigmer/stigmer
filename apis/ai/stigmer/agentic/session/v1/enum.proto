@@ -49,11 +49,11 @@ enum Harness {
   // pause/resume, and full HITL approval flow.
   HARNESS_NATIVE = 1;
 
-  // Cursor SDK execution engine.
-  //
-  // Cursor-managed conversation state, Cursor built-in tools + MCP,
-  // both local and cloud runtimes. Premium billing tier.
-  HARNESS_CURSOR = 2;
+  // 2 was HARNESS_CURSOR, the harness that ran Cursor's SDK agent on
+  // Cursor's servers. It was retired: the number and the name are
+  // reserved so neither is ever reused for a different harness.
+  reserved 2;
+  reserved "HARNESS_CURSOR";
 
   // Anthropic's Claude Agent SDK execution engine.
   //
@@ -112,46 +112,4 @@ enum ExecutionTarget {
   // The control plane triggers EnsureSessionSandbox to create an isolated
   // environment with a runner polling the session's task queue.
   EXECUTION_TARGET_CLOUD = 2;
-}
-
-// CursorMode selects the Cursor SDK agent type for sessions using
-// HARNESS_CURSOR.
-//
-// Determined once at session creation and never changed mid-session.
-// Switching would lose Cursor-side conversation state because local
-// agents (agent- prefix) and cloud agents (bc- prefix) maintain
-// separate, incompatible conversation stores.
-//
-// Ignored when harness is not HARNESS_CURSOR.
-//
-// @internal
-// Runner-owned, never user-set: determineCursorMode() in the cursor
-// runner always returns LOCAL while cloud mode is disabled platform-wide
-// (Cursor cloud agents clone via Cursor's own GitHub App and accept no
-// per-request git credential, so Stigmer provisions the workspace itself
-// and runs a local Cursor agent against it). The former workspace-based
-// selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED
-// still parses into runner config but no longer drives mode selection.
-//
-// When UNSPECIFIED on an existing session, the runner treats it as LOCAL
-// for backward compatibility with sessions created before this field existed.
-enum CursorMode {
-  // Not yet determined or not applicable (non-Cursor harness).
-  // Runner defaults to LOCAL for backward compatibility.
-  CURSOR_MODE_UNSPECIFIED = 0;
-
-  // Local Cursor agent created with a local cwd configuration.
-  //
-  // Works with any workspace source (git or local path). Conversation
-  // state is carried by the Cursor SDK's native local store, which the
-  // runner persists on the durable workspace volume so Agent.resume()
-  // survives pod restart and snapshot restore.
-  CURSOR_MODE_LOCAL = 1;
-
-  // Cloud Cursor agent created with a cloud repos configuration.
-  //
-  // Requires every resource to be a git repository (HTTPS URL).
-  // Cursor natively manages conversation state for cloud agents.
-  // Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
-  CURSOR_MODE_CLOUD = 2;
 }

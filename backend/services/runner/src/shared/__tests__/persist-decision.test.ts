@@ -7,7 +7,7 @@
  * StreamingUpdateScheduler's time cadence (rather than the old, time-blind
  * `eventCount % 20` gate that starved short turns). The signal is the one
  * transcript builder's `dirty` flag (since #1097); until then three
- * Cursor-named flags, two of them constant `false` on both loops.
+ * flags, two of them constant `false` on both loops.
  */
 
 import { describe, it, expect } from "vitest";

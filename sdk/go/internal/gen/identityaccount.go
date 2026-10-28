@@ -167,7 +167,6 @@ type IdentityAccountPreferencesInput struct {
 	StandingContext    string
 	DefaultHarness     string
 	DefaultNativeModel string
-	DefaultCursorModel string
 	MemoryEnabled      bool
 	DefaultAutoApprove bool
 	DefaultClaudeModel string
@@ -214,7 +213,6 @@ func (i *IdentityAccountPreferencesInput) toProto() (*identityaccountv1.Identity
 		StandingContext:    i.StandingContext,
 		DefaultHarness:     i.DefaultHarness,
 		DefaultNativeModel: i.DefaultNativeModel,
-		DefaultCursorModel: i.DefaultCursorModel,
 		MemoryEnabled:      i.MemoryEnabled,
 		DefaultAutoApprove: i.DefaultAutoApprove,
 		DefaultClaudeModel: i.DefaultClaudeModel,
@@ -257,7 +255,6 @@ func identityAccountPreferencesInputFromProto(p *identityaccountv1.IdentityAccou
 	input.StandingContext = p.GetStandingContext()
 	input.DefaultHarness = p.GetDefaultHarness()
 	input.DefaultNativeModel = p.GetDefaultNativeModel()
-	input.DefaultCursorModel = p.GetDefaultCursorModel()
 	input.MemoryEnabled = p.GetMemoryEnabled()
 	input.DefaultAutoApprove = p.GetDefaultAutoApprove()
 	input.DefaultClaudeModel = p.GetDefaultClaudeModel()

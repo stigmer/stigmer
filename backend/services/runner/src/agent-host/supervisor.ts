@@ -68,8 +68,6 @@ export type HostStarter = () => StartedHost | Promise<StartedHost>;
 export interface AgentProxyGate {
   /** `http://127.0.0.1:<port>`. */
   readonly endpoint: string;
-  /** The Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
-  readonly cursorEndpoint: string;
   /** Make `token` the one host token the proxy accepts. */
   authorizeHost(token: string): void;
 }
@@ -214,10 +212,8 @@ export class AgentHostSupervisor {
     };
     peer.handle("persist", async (args) => endpointFor(args.turnId).calls.persist(args));
     peer.handle("reportProgress", async (args) => endpointFor(args.turnId).calls.reportProgress(args));
-    peer.handle("bindHarnessState", async (args) => endpointFor(args.turnId).calls.bindHarnessState(args));
     peer.handle("selectRecalledMemories", async (args) => endpointFor(args.turnId).calls.selectRecalledMemories(args));
     peer.handle("verifyPlugin", async (args) => endpointFor(args.turnId).calls.verifyPlugin(args));
-    peer.handle("readRunEvents", async (args) => endpointFor(args.turnId).calls.readRunEvents(args));
     peer.handle("claimInput", async (args) => endpointFor(args.turnId).calls.claimInput(args));
     peer.handle("claimedInput", async (args) => endpointFor(args.turnId).calls.claimedInput(args));
     // A notice for a turn that already settled is late, and dropped.
@@ -269,7 +265,6 @@ export class AgentHostSupervisor {
       workspaceRootDir: config.workspaceRootDir,
       primaryModel: config.primaryModel,
       maxConcurrentActivities: config.maxConcurrentActivities,
-      cloudModeEnabled: config.cloudModeEnabled,
       checkpointerType: config.checkpointerType,
       mcpBridgeEndpoint: config.mcpBridgeEndpoint,
       mcpPublicEndpoint: config.mcpPublicEndpoint,
@@ -277,10 +272,8 @@ export class AgentHostSupervisor {
       openOperationMaxMs: config.openOperationMaxMs,
       shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
       shellBackgroundEnabled: config.shellBackgroundEnabled,
-      agentResolveTimeoutMs: config.agentResolveTimeoutMs,
       workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
       proxyEndpoint: this.options.proxy.endpoint,
-      cursorEndpoint: config.proxyEndpoint !== null || config.cursorApiKey !== "" ? this.options.proxy.cursorEndpoint : null,
       token,
       platformProxied: config.proxyEndpoint !== null,
       telemetry: telemetrySettings(),
@@ -353,8 +346,7 @@ export function spawnHostProcess(
  * The command that runs this build's entry in its agent-host mode, and what
  * its environment needs for that runtime: under Electron (a library
  * embedder's), `process.execPath` is the Electron binary, which runs a script
- * as Node only with `ELECTRON_RUN_AS_NODE` (the hook script's precedent,
- * `activities/execute-cursor/hook-script.ts`). The host drops it again at
+ * as Node only with `ELECTRON_RUN_AS_NODE`. The host drops it again at
  * start (`entry.ts`), so an Electron app an agent runs behaves as usual.
  *
  * A separating runner (`shared/agent-identity.ts`) starts it through

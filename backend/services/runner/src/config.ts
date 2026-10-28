@@ -1,14 +1,13 @@
 /**
  * Environment-based configuration for the unified runner service.
  *
- * Supports both ExecuteCursor and ExecuteDeepAgent activities from a single
+ * Serves every harness's activity (`harness-adapters.ts`) from a single
  * process. All values come from environment variables set by the CLI daemon,
  * Kubernetes pod spec, or Daytona sandbox launcher.
  *
  * Credential modes:
  *
  * 1. Direct mode (local / OSS):
- *    - CURSOR_API_KEY provided directly by the user (for Cursor harness).
  *    - STIGMER_TOKEN is optional against a trusted-local server (it verifies
  *      no credential) and is the runner's own API key against a self-hosted
  *      server with sign-in on; each run's credential arrives with its
@@ -17,8 +16,9 @@
  *
  * 2. Proxy mode (cloud / managed runners):
  *    - STIGMER_PROXY_ENDPOINT + STIGMER_TOKEN are required.
- *    - CURSOR_API_KEY is NOT required — the proxy injects it.
- *    - The fetch interceptor rewrites outbound Cursor SDK requests.
+ *    - Model calls go to the platform's proxy, which holds the provider
+ *      keys; the local agent proxy forwards them there with STIGMER_TOKEN
+ *      (`agent-proxy/lanes.ts`).
  *
  * The credential is never held by value:
  *
@@ -46,26 +46,14 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
 /**
- * Default no-progress bound for every harness's engine stream (ms); named for
- * the Cursor harness, its first user, and armed by the turn runtime for every
- * engine since #1070. It bounds a turn with nothing open and nothing
+ * Default no-progress bound for every harness's engine stream (ms), armed by
+ * the turn runtime for every engine since #1070. It bounds a turn with nothing open and nothing
  * arriving: an open operation holds the window (`harness/open-operations.ts`).
  * Single source of truth for env-loaded ({@link loadConfig}) and
  * options-mapped (runner / manager) config so the three construction sites
  * never drift.
  */
 export const DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS = 180_000;
-
-/**
- * Default bound for Cursor Agent.create/Agent.resume (ms). These SDK calls
- * have no timeout of their own; a degraded transport (dead proxy connection,
- * stale HTTP/2 session) hangs them forever — which surfaces as an opaque
- * Temporal heartbeat timeout minutes later instead of an actionable error.
- * 120s comfortably covers a slow create (token exchange + workspace
- * registration) while failing fast enough to diagnose. Single source of truth
- * for env-loaded and options-mapped config (mirrors the stall timeout above).
- */
-export const DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS = 120_000;
 
 /**
  * Default drain grace of a static runner's worker (ms), `Config.drainGraceMs`:
@@ -97,9 +85,9 @@ import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 /**
  * A shared mutable credential reference. The root that owns a credential
  * writes `current` on every rotation; every reader resolves it at the moment
- * of use, so one write reaches all of them (the per-request reads in the
- * Cursor interceptors, StigmerClient, the artifact store and the checkpoint
- * saver). `Config` hands readers a `Readonly` view: rotation has one writer.
+ * of use, so one write reaches all of them (the per-request reads in
+ * StigmerClient, the artifact store, the checkpoint saver and the agent
+ * proxy's lanes). `Config` hands readers a `Readonly` view: rotation has one writer.
  */
 export interface TokenRef {
   current: string | null;
@@ -141,28 +129,18 @@ export interface Config {
    * shared/platform-server-address.ts.
    */
   readonly mcpPublicEndpoint: string | null;
-  /**
-   * The Cursor API key for direct mode (authenticates with Cursor directly).
-   * In proxy mode this is a placeholder (`"proxy-managed"` unless the operator
-   * set CURSOR_API_KEY anyway): the credential the SDK transport presents to
-   * the proxy is the control-plane credential, read from
-   * {@link stigmerTokenRef} per turn by the Cursor adapter, never copied here.
-   * Named after the CURSOR_API_KEY env var the SDK reads.
-   */
-  readonly cursorApiKey: string;
   readonly workspaceRootDir: string;
   /**
    * Execution location: where the agent runs and whose filesystem it sees.
    * "local" allows local-path workspaces (host filesystem); "cloud" runs in a
    * server-provisioned sandbox (git-only). Independent of {@link proxyEndpoint},
    * which controls credential/artifact transport — the desktop runner executes
-   * locally yet still proxies its Cursor traffic.
+   * locally yet still proxies its model traffic.
    */
   readonly mode: "local" | "cloud";
   readonly proxyEndpoint: string | null;
   readonly maxConcurrentActivities: number;
   readonly idleTimeoutSeconds: number | null;
-  readonly cloudModeEnabled: boolean;
   readonly checkpointerType: "memory" | "http" | "sqlite";
   readonly checkpointerProxyEndpoint: string | null;
   /**
@@ -177,8 +155,8 @@ export interface Config {
   readonly artifactProxyEndpoint: string | null;
   readonly primaryModel: string;
   /**
-   * No-progress bound for every harness's engine stream (milliseconds); the
-   * name is the Cursor harness's, its first user. `loadConfig` reads
+   * No-progress bound for every harness's engine stream (milliseconds).
+   * `loadConfig` reads
    * CURSOR_STREAM_STALL_TIMEOUT_MS and both boot paths in `main.ts` forward
    * it; embedders set the `cursorStreamStallTimeoutMs` option. If the engine
    * reports no activity for this long while no operation is open, the turn
@@ -228,13 +206,6 @@ export interface Config {
    */
   readonly shellBackgroundEnabled: boolean;
   /**
-   * Bound (milliseconds) for Cursor Agent.create/Agent.resume. On expiry the
-   * execution fails fast with an explicit transport diagnosis instead of
-   * hanging into Temporal's heartbeat timeout. See
-   * {@link DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS} for why this exists.
-   */
-  readonly agentResolveTimeoutMs: number;
-  /**
    * Max wait (milliseconds) for the per-workspace turn lock before failing
    * the execution with a "workspace is in use by another session" error.
    * See shared/workspace/workspace-lock.ts for the serialization model.
@@ -259,29 +230,6 @@ export interface Config {
    * stigmer-client.ts).
    */
   readonly stigmerRunnerTokenRef?: Readonly<TokenRef>;
-  /**
-   * Shared mutable reference to the credential the Cursor proxy transport
-   * sends as `x-stigmer-auth` (the fetch and HTTP/2 interceptors read it per
-   * request). Each composition root binds its own credential here, because
-   * the two differ: the static root binds the control-plane token (its host
-   * provides the proxy credential and mints no other, so
-   * `proxyTokenRef === stigmerTokenRef`), the manager binds the minted runner
-   * token (`proxyTokenRef === stigmerRunnerTokenRef`). Reading either sibling
-   * directly would send the wrong credential from one of the two roots.
-   * Required whenever `proxyEndpoint` is set; the Cursor adapter's
-   * boot refuses a proxy without it.
-   */
-  readonly proxyTokenRef?: Readonly<TokenRef>;
-  /**
-   * Where the Cursor SDK's traffic goes, when that is not {@link proxyEndpoint}:
-   * set only in the agent host, to the local proxy's Cursor lane
-   * (`agent-proxy/cursor-lane.ts`), which holds the Cursor credentials. The
-   * Cursor harness then runs as a proxy-mode client of that lane whatever
-   * the runner's own mode, while {@link proxyEndpoint} still says whether
-   * the key is the platform's (`activities/execute-cursor/adapter.ts`).
-   * Absent everywhere else.
-   */
-  readonly cursorEndpoint?: string;
 }
 
 export function loadConfig(): Config {
@@ -320,14 +268,6 @@ export function loadConfig(): Config {
 
   const mcpBridgeEndpoint = process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null;
   const mcpPublicEndpoint = process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null;
-
-  // In proxy mode the SDK's API key is the control-plane credential, which the
-  // Cursor adapter reads from the ref per turn (execute-cursor/turn-setup.ts);
-  // the placeholder here is the two option mappers' exact value, so the three
-  // construction sites agree and no copy of the credential rides in Config.
-  const cursorApiKey = proxyActive
-    ? (getRunnerSecret("CURSOR_API_KEY") ?? "proxy-managed")
-    : (getRunnerSecret("CURSOR_API_KEY") ?? "");
 
   const workspaceRootDir = resolveWorkspaceRootDir();
 
@@ -377,10 +317,6 @@ export function loadConfig(): Config {
     ? parseInt(process.env.STIGMER_DRAIN_GRACE_MS, 10)
     : DEFAULT_DRAIN_GRACE_MS;
 
-  const agentResolveTimeoutMs = process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS
-    ? parseInt(process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS, 10)
-    : DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS;
-
   return {
     taskQueue,
     temporalAddress,
@@ -390,13 +326,11 @@ export function loadConfig(): Config {
     stigmerTokenRef,
     mcpBridgeEndpoint,
     mcpPublicEndpoint,
-    cursorApiKey,
     workspaceRootDir,
     mode,
     proxyEndpoint,
     maxConcurrentActivities,
     idleTimeoutSeconds,
-    cloudModeEnabled: process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED === "true",
     checkpointerType,
     checkpointerProxyEndpoint,
     artifactProxyEndpoint,
@@ -406,7 +340,6 @@ export function loadConfig(): Config {
     livenessIntervalMs,
     shellTimeoutMaxSeconds,
     shellBackgroundEnabled,
-    agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
     drainGraceMs,
   };

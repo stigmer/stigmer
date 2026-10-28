@@ -47,7 +47,6 @@
     "runner",
     "temporal",
     "ai-agents",
-    "cursor-sdk",
     "deepagents"
   ],
   "stigmerPublish": {
@@ -97,7 +96,6 @@
     "@bufbuild/protobuf": "2.12.0",
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-node": "^2.0.0",
-    "@cursor/sdk": "1.0.31",
     "@grpc/grpc-js": "^1.14.5",
     "@langchain/anthropic": "^1.5.5",
     "@langchain/core": "^1.2.13",

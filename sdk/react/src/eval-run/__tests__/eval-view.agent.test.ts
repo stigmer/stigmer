@@ -114,7 +114,7 @@ describe("the Run evals form on an agent", () => {
         ...evalFormForAgent(ATTACHED),
         caseSources: ["linter"],
         caseModels: false,
-        targets: [{ harness: "cursor", modelName: "gpt-5" }],
+        targets: [{ harness: "native", modelName: "gpt-5" }],
         caseGlob: " review-* ",
         caseTags: parseCaseTags("smoke, , fast"),
       },
@@ -122,7 +122,7 @@ describe("the Run evals form on an agent", () => {
     );
     expect(input).toMatchObject({
       cases: [{ plugin: { org: "org_acme", slug: "linter" } }],
-      targets: [{ harness: Harness.CURSOR, modelName: "gpt-5" }],
+      targets: [{ harness: Harness.NATIVE, modelName: "gpt-5" }],
       caseGlob: "review-*",
       caseTags: ["smoke", "fast"],
     });

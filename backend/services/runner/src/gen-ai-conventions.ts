@@ -82,8 +82,6 @@ export const PROVIDER_OPENAI = "openai";
 export const PROVIDER_GCP_VERTEX_AI = "gcp.vertex_ai";
 export const PROVIDER_AWS_BEDROCK = "aws.bedrock";
 export const PROVIDER_AZURE_AI_INFERENCE = "azure.ai.inference";
-/** Not in the conventions' table: the Cursor service runs the Cursor engine's model calls itself. */
-export const PROVIDER_CURSOR = "cursor";
 
 // ─── Stigmer's own attributes ──────────────────────────────────────────────
 
@@ -93,12 +91,10 @@ export const STIGMER_RUN_TURN = "stigmer.run.turn";
 /** What started the run, one of {@link RunKind}. */
 export const STIGMER_RUN_KIND = "stigmer.run.kind";
 export const STIGMER_ORGANIZATION = "stigmer.organization";
-/** The engine that ran the turn (`deep-agent`, `cursor`). */
+/** The engine that ran the turn (`deep-agent`, `claude`). */
 export const STIGMER_HARNESS = "stigmer.harness";
 /** The MCP server a tool belongs to, by its slug in the run. */
 export const STIGMER_MCP_SERVER_NAME = "stigmer.mcp.server_name";
-/** The Cursor engine's agent mode. */
-export const STIGMER_CURSOR_MODE = "stigmer.cursor.mode";
 
 /** `stigmer.run.kind`: what started a run, read from its labels. */
 export type RunKind = "conversation" | "routine" | "judge" | "eval-try";
@@ -117,5 +113,3 @@ export const METRIC_ATTR_LLM_PROVIDER = "stigmer.llm.provider";
 export const METRIC_ATTR_LLM_MODEL = "stigmer.llm.model";
 export const METRIC_ATTR_MCP_TOOL_NAME = "stigmer.mcp.tool_name";
 export const METRIC_ATTR_MCP_SERVER_NAME = "stigmer.mcp.server_name";
-export const METRIC_ATTR_CURSOR_MODEL = "stigmer.cursor.model";
-export const METRIC_ATTR_CURSOR_MODE = "stigmer.cursor.mode";

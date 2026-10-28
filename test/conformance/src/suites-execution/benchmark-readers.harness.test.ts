@@ -41,8 +41,7 @@
 // experiment that spends real money) would otherwise discover at the owner's
 // run. No NUMBER is asserted — a scripted model makes every timing meaningless
 // — only presence and shape, so the live half stays an experiment and this
-// stays a test. The Cursor harness is never reached: its model calls do not
-// pass through the mock, so its side is proven by the live run alone.
+// stays a test.
 //
 // Gated on the two accessors the readers need: the target's Temporal address
 // (`engineCoordinates`, absent on the cloud targets whose runner discovers
@@ -305,10 +304,8 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(m.skill_count).toBe(8);
       expect(m.workspace_entry_count).toBe(1);
       expect(m.mcp_connect_ms, "native connects its servers inside setup").not.toBeNull();
-      expect(m.cursor_send_returned_ms, "a native turn writes no Cursor first-event line").toBeNull();
       expect(m.tool_calls).toBe(2);
       expect(m.sub_agent_calls).toBe(0);
-      expect(sample.timing.turn_first_event).toBeNull();
 
       expect(await readFile(join(workspaceDir, "NOTES.md"), "utf8"), "the write is on disk").toBe("ORD-4821 shipped\n");
       expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, workspaceDir)).toEqual([

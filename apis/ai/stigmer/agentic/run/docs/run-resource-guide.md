@@ -105,16 +105,16 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 
 | Field | Type | Description |
 |---|---|---|
-| `model_name` | `string` | The model, by its Model Registry id on the engine that runs it. Example: `"claude-sonnet-4.5"` (native), `"claude-sonnet-4-6"` (Cursor). |
+| `model_name` | `string` | The model, by its Model Registry id on the engine that runs it. Example: `"claude-sonnet-4.5"`. |
 | `max_cost_usd` | `double` | Stop the message once its estimated cost reaches this many US dollars; the work done so far is kept and the turn ends `TERMINATED`. Per message: a follow-up or a resume after an approval starts a fresh count. |
 | `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Native harness only; subagent rounds are not counted. |
 | `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its engine. |
 | `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its engine. |
-| `max_tool_result_chars` | `int32` | Cut a single tool result longer than this many characters to its start and its end. The whole result is kept for the session, outside the workspace, where the agent can read it back; a tool that pages itself (reading a file, searching, listing, fetching a page) is read again a window at a time instead. Above 80,000 it raises the bound only for the file tools. 30,000 when no layer sets it; the Cursor harness does not read it. |
+| `max_tool_result_chars` | `int32` | Cut a single tool result longer than this many characters to its start and its end. The whole result is kept for the session, outside the workspace, where the agent can read it back; a tool that pages itself (reading a file, searching, listing, fetching a page) is read again a window at a time instead. Above 80,000 it raises the bound only for the file tools. 30,000 when no layer sets it. |
 
 **How a turn's settings are resolved.** Once, at create, from three layers, most specific first: the message (or the routine or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile.
 
-- **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the engine decides (native: the registry default; Cursor: Auto).
+- **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the run uses its engine's registry default.
 - **Limits** (`max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`) take the smallest value any layer sets: a message, routine or channel can lower an agent's cap, never raise it.
 - The agent's choices apply only on the engine its `harness` names; on a conversation running another engine, the agent layer gives its limits alone.
 - Saved settings are self-contained: a routine, channel or agent that sets `SERVICE_TIER_FAST` or `THINKING_MODE_ENABLED` names its model. Only a message may set them alone.
@@ -159,7 +159,7 @@ A run's status carries no transcript. The agent's messages and thinking, its too
 |---|---|---|
 | `id` | `string` | Stable id of the change set, unique per turn; the id the session's `stigmer.file_review.*` events name. |
 | `turn_id` | `string` | The turn that produced the change set. |
-| `harness_id` | `string` | The engine that made the edits: `cursor` or `deep-agent`. |
+| `harness_id` | `string` | The engine that made the edits: `deep-agent` or `claude`. |
 | `baseline_snapshot` | `SnapshotRef` | Workspace state at turn start, the "before" of the diff. |
 | `candidate_snapshot` | `SnapshotRef` | Workspace state at the turn boundary, the "after". The diff is computed between the two snapshots. |
 | `changes` | `repeated CapturedFileChange` | One entry per file: `path_before`, `path_after`, `kind`, the contents `before` and `after` (inline, or by storage key when large), their SHA-256 digests, the `unified_diff`, whether the diff is complete, and lines added and removed. |

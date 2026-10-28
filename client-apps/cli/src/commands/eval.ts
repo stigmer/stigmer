@@ -88,7 +88,7 @@ export function registerEval(program: Command): void {
     .option("--runs <n>", "tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)")
     .option(
       "--model <harness/model>",
-      "an engine and model to run on, as native/claude-sonnet-4-6, cursor/gpt-5 or claude/claude-sonnet-5 (repeatable, up to 6)",
+      "an engine and model to run on, as native/claude-sonnet-4-6 or claude/claude-sonnet-5 (repeatable, up to 6)",
       collect,
     )
     .option("--ablation <mode>", "with --plugin: with-without also runs each case without the plugin; none runs one arm")

@@ -2,8 +2,8 @@
  * GenerateSessionSubject Temporal activity — replaces the sentinel subject of
  * an auto-created session with a concise LLM-generated conversation title.
  *
- * Called fire-and-forget by the Go InvokeAgentExecutionWorkflow (Step 1.5 of
- * BOTH the deep-agent and cursor flows) on the runner task queue, with a 60 s
+ * Called fire-and-forget by the InvokeAgentExecutionWorkflow (Step 1.5 of
+ * every harness's flow) on the runner task queue, with a 60 s
  * deadline and a single attempt. Failures are non-critical by contract: the
  * session simply keeps its sentinel subject, and the workflow logs a warning.
  *

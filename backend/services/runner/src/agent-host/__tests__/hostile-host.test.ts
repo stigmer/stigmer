@@ -8,12 +8,8 @@
  *
  *  - a persist that also carries status fields or runtime rows: only the
  *    adapter-owned rows land;
- *  - a session-spec write that also sets the state id: only the fields an
- *    adapter owns carry over, and the id is still the runtime's write;
  *  - usage with negative or non-finite counts: clamped to zero;
  *  - a plugin verify for a plugin the turn does not have: refused;
- *  - a read of the run's events: only the turn's own run is read, whatever
- *    the host asks;
  *  - a notice for a turn that has settled: dropped, and the runner sends
  *    none once a turn settled (a person's stop of a background command);
  *  - tool-output refs that point outside the turn's own key prefix
@@ -30,9 +26,6 @@ import { describe, expect, it } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
-import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -40,7 +33,7 @@ import { RecordingTurnSink } from "../../__test-utils__/harness-contract/recordi
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { decodeMessage, encodeMessage } from "../codec.js";
+import { encodeMessage } from "../codec.js";
 import { confineCasSnapshot, createRemoteAdapter, isTurnArtifactKey } from "../remote-adapter.js";
 import { AgentHostSupervisor } from "../supervisor.js";
 import {
@@ -90,7 +83,6 @@ function hostileHarness(
 ): HarnessAdapter {
   const proxy = {
     endpoint: "http://127.0.0.1:9",
-    cursorEndpoint: "https://127.0.0.1:9",
     authorizeHost: () => {},
     openTurn: (turn: ProxyTurns["opened"][number]) => {
       turns.opened.push(turn);
@@ -258,23 +250,6 @@ describe("a host that does not follow the rules", () => {
     expect(sink.rows.fileReviewEventStream, "the turn's ledger is the runtime's").toBeUndefined();
   });
 
-  it("takes only the state id from a bind; a session spec sent beside it changes nothing", async () => {
-    const adapter = hostileHarness(async (host, turnId) => {
-      const spec = create(SessionSpecSchema, { cursorMode: CursorMode.CLOUD, subject: "forged subject" });
-      const forged = { turnId, harnessStateId: "bound-id", sessionSpec: encodeMessage(SessionSpecSchema, spec) };
-      await host.call("bindHarnessState", forged);
-    });
-    await adapter.boot(testConfig());
-    const input = turnInputFixture();
-    const sink = new RecordingTurnSink({ executionId: input.executionId });
-
-    await adapter.runTurn(input, sink);
-
-    expect(input.session.spec!.cursorMode, "no adapter writes the session's spec").toBe(CursorMode.UNSPECIFIED);
-    expect(input.session.spec!.subject).toBe("");
-    expect(sink.boundStateIds).toEqual(["bound-id"]);
-  });
-
   it("clamps usage counts to finite, non-negative numbers", async () => {
     const adapter = hostileHarness(async (host, turnId) => {
       host.notify("usage", { turnId, delta: { inputTokens: -1_000_000, outputTokens: Number.NaN, estimatedCostUsd: -5, cacheReadTokens: 12 } });
@@ -302,26 +277,6 @@ describe("a host that does not follow the rules", () => {
     await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
 
     expect(refusal).toBe("plugin 'not-mine' is not one of this turn's");
-  });
-
-  it("reads only the turn's own run's events for the host", async () => {
-    let answered: string[] = [];
-    const adapter = hostileHarness(async (host, turnId) => {
-      answered = (await host.call("readRunEvents", { turnId })).map((wire) => decodeMessage(SessionEventSchema, wire).runId);
-    });
-    await adapter.boot(testConfig());
-    const runs: string[] = [];
-    const input = turnInputFixture({
-      readRunEvents: async () => {
-        runs.push(input.executionId);
-        return [create(SessionEventSchema, { runId: input.executionId, event: { case: "stigmerHarnessNote", value: { id: "n", text: "note" } } })];
-      },
-    });
-
-    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
-
-    expect(runs, "the runtime's own read, bound to the turn's run").toEqual([input.executionId]);
-    expect(answered).toEqual([input.executionId]);
   });
 
   it("tells the host a turn the runtime had already stopped, with the stop's reason", async () => {
@@ -404,8 +359,7 @@ describe("a host that does not follow the rules", () => {
       { kind: "exfiltrate" },
       { kind: "failed", message: "chosen by the host", surface: "root" },
       { kind: "failed", message: 42, surface: "engine" },
-      { kind: "stream_cut" },
-      { kind: "stream_cut", message: { forged: true } },
+      { kind: "cancelled" },
     ]) {
       const adapter = hostileHarness(async () => {}, forged);
       await adapter.boot(testConfig());
@@ -414,14 +368,6 @@ describe("a host that does not follow the rules", () => {
       expect(outcome, JSON.stringify(forged)).toMatchObject({ kind: "failed", surface: "internal" });
       await adapter.shutdown();
     }
-  });
-
-  it("takes a cut connection with its message, which continues the turn", async () => {
-    const adapter = hostileHarness(async () => {}, { kind: "stream_cut", message: "the vendor ended its connection" });
-    await adapter.boot(testConfig());
-    const input = turnInputFixture();
-    expect(await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }))).toEqual({ kind: "stream_cut", message: "the vendor ended its connection" });
-    await adapter.shutdown();
   });
 
   it("drops a notice for a turn that has settled", async () => {

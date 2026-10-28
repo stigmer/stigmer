@@ -33,7 +33,6 @@ import {
 } from "../../pipeline/steps/references.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
-import { routineModelPinningRefusal } from "../../temporal/routine/model-pinning.js";
 import {
   harnessName,
   unknownModelPinRefusal,
@@ -178,26 +177,18 @@ export function validateRoutineSchedule(spec: RoutineSpec | undefined): void {
 }
 
 /**
- * Enforces the two unattended model-pinning rules at write time:
- *
- *   - PRESENCE (stigmer/stigmer#362): a Cursor-harness routine must pin a
- *     model. Stated once in routineModelPinningRefusal, which the run
- *     starter also evaluates as the launch backstop for rows written
- *     before the rule existed.
- *   - EXISTENCE (stigmer/stigmer#774): whatever model IS pinned must be in
- *     the registry for the harness the runs would use — a typo'd pin used
- *     to pass through verbatim and silently run (and bill) as Auto.
- *     Write-time only BY DESIGN (no fire-time backstop — registry drift
- *     must never break an existing routine at its 3 AM fire).
+ * Enforces the unattended model-pinning rule at write time (EXISTENCE,
+ * stigmer/stigmer#774): whatever model IS pinned must be in the registry
+ * for the harness the runs would use — a typo'd pin must never pass
+ * through verbatim to an unattended fire. Write-time only BY DESIGN (no
+ * fire-time backstop — registry drift must never break an existing routine
+ * at its 3 AM fire). Saved settings also name the model their tier or
+ * thinking is for.
  */
 export function validateRoutineModelPinning(
   modelRegistry: ModelCatalogProvider,
   spec: RoutineSpec | undefined,
 ): void {
-  const presence = routineModelPinningRefusal(spec);
-  if (presence !== "") {
-    throw invalidArgumentError(presence);
-  }
   const invocation = spec?.agent;
   // Saved settings name the model their tier or thinking is for.
   const selfContained = savedChoiceWithoutModelRefusal(

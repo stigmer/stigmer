@@ -47,7 +47,6 @@ import type { RequestContext } from "../../pipeline/request-context.js";
  */
 export const OFFERED_HARNESSES: ReadonlySet<Harness> = new Set([
   Harness.NATIVE,
-  Harness.CURSOR,
   Harness.CLAUDE,
 ]);
 
@@ -57,7 +56,6 @@ export const OFFERED_HARNESSES: ReadonlySet<Harness> = new Set([
  */
 const ENGINE_LABELS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, string>> = {
   [Harness.NATIVE]: "Stigmer's native engine",
-  [Harness.CURSOR]: "Cursor",
   [Harness.CLAUDE]: "Claude",
 };
 
@@ -71,7 +69,7 @@ export function offeredHarnessRefusal(harness: Harness, field: string): string {
   }
   const label = (ENGINE_LABELS as Partial<Record<Harness, string>>)[harness];
   if (label === undefined) {
-    return `${field} names engine ${String(harness)}, which is not one this platform runs`;
+    return `${field} names harness ${String(harness)}, which this platform does not run`;
   }
   return `${label} is not available on this platform yet (${field})`;
 }

@@ -79,14 +79,8 @@ import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_p
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { builtInJudgeSpec, isJudgeRunLabels } from "./builtin-judge.js";
-
-export interface CloudRepo {
-  url: string;
-  startingRef?: string;
-}
 
 /** The agent a turn runs: its id, the version it recorded, and that version's spec. */
 export interface RunAgent {
@@ -136,7 +130,6 @@ export interface ResolvedBlueprint {
   /** The turn's plugins, each at the version it resolved to, in merge order. */
   plugins: Plugin[];
   mergedSkillRefs: ApiResourceReference[];
-  cloudRepos: CloudRepo[];
 }
 
 /**
@@ -164,7 +157,6 @@ export async function resolveBlueprint(
       subagents: [],
       plugins: [],
       mergedSkillRefs: [],
-      cloudRepos: [],
     };
   }
 
@@ -183,8 +175,6 @@ export async function resolveBlueprint(
     sessionSpec.skillRefs,
   );
 
-  const cloudRepos = resolveCloudRepos(sessionSpec.resources);
-
   return {
     agent,
     session,
@@ -194,7 +184,6 @@ export async function resolveBlueprint(
     subagents,
     plugins,
     mergedSkillRefs,
-    cloudRepos,
   };
 }
 
@@ -359,35 +348,6 @@ export function pluginSubagents(plugin: Plugin): PluginSubagent[] {
 /** `<plugin>:<agent>`, as Claude Code names a plugin's agent. */
 export function pluginAgentName(pluginName: string, agentName: string): string {
   return `${pluginName}:${agentName}`;
-}
-
-// ---------------------------------------------------------------------------
-// Cloud repo extraction
-// ---------------------------------------------------------------------------
-
-/**
- * Extract Cursor SDK-compatible repo descriptors from the session's resources.
- *
- * Maps Stigmer's GitRepositoryResource (url + branch) to the Cursor SDK's
- * CloudAgentOptions.repos shape ({ url, startingRef? }). Only git
- * repositories produce output — folders and Files are silently skipped.
- *
- * Always computed (cheap iteration) but only consumed when mode is cloud.
- */
-export function resolveCloudRepos(resources: readonly SessionResource[]): CloudRepo[] {
-  const repos: CloudRepo[] = [];
-
-  for (const entry of resources) {
-    if (entry.resource.case === "gitRepository") {
-      const git = entry.resource.value;
-      repos.push({
-        url: git.url,
-        startingRef: git.branch || undefined,
-      });
-    }
-  }
-
-  return repos;
 }
 
 // ---------------------------------------------------------------------------

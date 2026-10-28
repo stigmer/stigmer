@@ -15,7 +15,7 @@
 #                tests carry it as `[id]` in their titles.
 #   surface      billing | proxy | public
 #   lane         rpc.<name> | gate.<name> | hook.<name> | stripe.<event> | worker
-#                | llm | cursor | cursor-bidi | claimcheck | artifact | checkpointer
+#                | llm | claimcheck | artifact | checkpointer
 #                | model-registry | health | public.<endpoint> | site
 #   behavior     one sentence: inputs -> status / typed field / side effect /
 #                exact copy where the copy is contract
@@ -332,7 +332,7 @@ rows:
     lane: >-
       rpc.upsertModelPricingBaseline
     behavior: >-
-      An operator's upsertModelPricingBaseline for a new model key is listed ACTIVE by listModelPricingBaselines with the given prices and the server's stamps (baseline_id, decided_by, effective_at; supersedes_baseline_id empty); a second upsert of the same key supersedes the first — one ACTIVE per key, the prior revision SUPERSEDED and chained through supersedes_baseline_id, both visible with include_history (ACTIVE first); a variant declaring a Cursor token rate answers INVALID_ARGUMENT "Variant '<key>' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.".
+      An operator's upsertModelPricingBaseline for a new model key is listed ACTIVE by listModelPricingBaselines with the given prices and the server's stamps (baseline_id, decided_by, effective_at; supersedes_baseline_id empty); a second upsert of the same key supersedes the first — one ACTIVE per key, the prior revision SUPERSEDED and chained through supersedes_baseline_id, both visible with include_history (ACTIVE first).
     class: behavior
     disposition: conformance
     observability: launcher
@@ -393,7 +393,7 @@ rows:
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      Debris: no run draws credit, so no create reserves and there is no balance to refuse it on. Run admission asks only whether the organization holds a key for the run's provider (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused, billing.gate.provider-key.keyless-claude-run-refused).
+      Debris: no run draws credit, so no create reserves and there is no balance to refuse it on. Run admission asks only whether the organization holds a key for the run's provider (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-claude-run-refused).
   - id: billing.gate.provider-key.keyless-run-refused
     surface: billing
     lane: >-
@@ -407,19 +407,6 @@ rows:
     needs: [keyless-org, agent-execution]
     note: >-
       Asserted by suites-execution/run-admission.conformance.test.ts. Guests and channel users get their own copy with no ErrorInfo (the visitor refusal sets); conformance cannot mint those callers, so the hosted edition's unit arms carry their wording.
-  - id: billing.gate.provider-key.keyless-cursor-run-refused
-    surface: billing
-    lane: >-
-      gate.providerKey
-    behavior: >-
-      A Cursor agent-execution create in an org holding no Cursor key (its own or its parent organization's) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org and provider "cursor", the copy "This organization has no Cursor key, so the run was not started. An admin can add one in Settings → Provider keys." for a run on Auto (the copy names the model when the run names one), and nothing reaches a model.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [keyless-org, agent-execution]
-    note: >-
-      Asserted by suites-execution/run-admission.conformance.test.ts on an org that holds no key at all: the harness names the provider, so no catalog lookup is involved. The keyed half needs a real Cursor key, because the key is checked with Cursor at save; the Cursor execution arms run on one when the run supplies CURSOR_API_KEY.
   - id: billing.gate.provider-key.keyless-claude-run-refused
     surface: billing
     lane: >-
@@ -497,7 +484,7 @@ rows:
     caller: runner-token
     needs: [funded-org, agent-execution]
     note: >-
-      Debris: there is no balance to fall low or run out, so the billing unit registers no status hook and the runner's updateStatus reply carries no billing signal; RunControlSignal stays a generic mechanism. A run whose organization holds no key is refused before it starts (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: there is no balance to fall low or run out, so the billing unit registers no status hook and the runner's updateStatus reply carries no billing signal; RunControlSignal stays a generic mechanism. A run whose organization holds no key is refused before it starts (billing.gate.provider-key.keyless-run-refused).
   - id: billing.gate.approval-signal.stop-refuses-approval
     surface: billing
     lane: >-
@@ -510,7 +497,7 @@ rows:
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Debris: no execution carries a billing STOP, so an approval asks nothing of billing; the run-scoped approval method is itself retired, and a waiting call is answered through the session's confirmToolUse and grantPermission. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: no execution carries a billing STOP, so an approval asks nothing of billing; the run-scoped approval method is itself retired, and a waiting call is answered through the session's confirmToolUse and grantPermission. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused).
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-
@@ -536,7 +523,7 @@ rows:
     caller: none
     needs: [unfunded-org]
     note: >-
-      Debris: no run draws credit, so a visitor's or a routine's run has nothing to fund. The preflight asked only about Cursor runs, the last runs that spent credit, and went when they moved to the organization's own Cursor key. A run whose organization holds no key for its provider is refused by provider-key admission instead (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: no run draws credit, so a visitor's or a routine's run has nothing to fund. A run whose organization holds no key for its provider is refused by provider-key admission instead (billing.gate.provider-key.keyless-run-refused).
   - id: billing.gate.reserve.billing-unavailable-fails-closed
     surface: billing
     lane: >-
@@ -549,7 +536,7 @@ rows:
     caller: none
     needs: [none]
     note: >-
-      Debris: run admission reserves nothing, so no billing engine is asked and none can fail mid-admission; admission asks only for the organization's provider key (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: run admission reserves nothing, so no billing engine is asked and none can fail mid-admission; admission asks only for the organization's provider key (billing.gate.provider-key.keyless-run-refused).
 
   # ===========================================================================
   # BILLING — the Stripe webhook (POST /webhook/stripe)
@@ -898,7 +885,7 @@ rows:
     caller: none
     needs: [none]
     note: >-
-      Debris: the meter never prices a call, so there is nothing to rate; it resolves each call against the model catalog for the harness, model and variant it records (billing.unit.cursor-model-resolver, billing.rpc.record-llm-call-usage.records-calls-and-unknown-models).
+      Debris: the meter never prices a call, so there is nothing to rate; it resolves each call against the model catalog for the harness, model and variant it records (billing.rpc.record-llm-call-usage.records-calls-and-unknown-models).
   - id: billing.unit.signal-thresholds
     surface: billing
     lane: >-
@@ -931,17 +918,6 @@ rows:
       unit
     behavior: >-
       The model registry document codec round-trips and the embedded registry snapshot parses exactly as Java's tables.
-    class: behavior
-    disposition: unit
-    observability: none
-    caller: none
-    needs: [none]
-  - id: billing.unit.cursor-model-resolver
-    surface: billing
-    lane: >-
-      unit
-    behavior: >-
-      Cursor model ids resolve to model catalog entries (aliases, variants, unknown → fallback) — the harness, base model and variant the meter records — exactly as Java's table.
     class: behavior
     disposition: unit
     observability: none
@@ -1140,7 +1116,7 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
     note: >-
-      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes rewrite nothing either: they serve every call on the organization's own Cursor key, so Cursor's own error is the organization's.
+      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked).
   - id: proxy.llm.upstream.platform-billing-rewritten-503
     surface: proxy
     lane: >-
@@ -1153,7 +1129,7 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
     note: >-
-      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes rewrite nothing either: they serve every call on the organization's own Cursor key, so Cursor's own error is the organization's.
+      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked).
   - id: proxy.llm.upstream.organization-key-failures-relayed-marked
     surface: proxy
     lane: >-
@@ -1211,130 +1187,6 @@ rows:
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
-
-  # ===========================================================================
-  # PROXY — cursor (HTTP) and cursor-bidi
-  # ===========================================================================
-  - id: proxy.cursor.host-allow-list-403
-    surface: proxy
-    lane: >-
-      cursor
-    behavior: >-
-      /v1/proxy/cursor/{host}/... for a host outside api2.cursor.sh, api.cursor.com, api.cursor.sh answers 403.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [none]
-  - id: proxy.cursor.scope.foreign-execution-403
-    surface: proxy
-    lane: >-
-      cursor
-    behavior: >-
-      A scoped Cursor call naming an execution the caller cannot can_edit answers 403 before the organization's Cursor key is looked up.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [agent-execution]
-  - id: proxy.cursor.provider-key-required-403
-    surface: proxy
-    lane: >-
-      cursor
-    behavior: >-
-      An authorized scoped call for an execution whose organization holds no Cursor key (its own or its parent organization's) answers 403 with a Connect-shaped JSON body {"code":"permission_denied","message":...} whose message carries the sentinel STIGMER_PROVIDER_KEY_REQUIRED and tells an admin to add one in Settings → Provider keys, and touches no upstream; no call is ever served on a Cursor key of Stigmer's own.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [keyed-org, agent-execution]
-    note: >-
-      The org holds the fixture Anthropic and OpenAI keys, so its native run is admitted, and no Cursor key. A failed key lookup answers 503 instead (retryable); the hosted edition's own unit arms carry that branch.
-  - id: proxy.cursor.relay.sse-and-connect-usage
-    surface: proxy
-    lane: >-
-      cursor
-    behavior: >-
-      A scoped Cursor call on the organization's own Cursor key relays to https://{host} with the key as Bearer and meters usage from SSE (CursorUsageExtractor) or Connect application/proto (ConnectCursorUsageExtractor, TurnEndedUpdate scan), recorded as the organization's key's usage and never charged.
-    class: behavior
-    disposition: smoke
-    observability: none
-    caller: none
-    needs: [none]
-    note: >-
-      The relay cannot be faked (hardcoded https + allow-list, and the key is checked with Cursor at save), so a live runner smoke on a real Cursor key proves it. The extractors are `unit` rows below.
-  - id: proxy.cursor.metadata-paths-scoped
-    surface: proxy
-    lane: >-
-      cursor
-    behavior: >-
-      GET /v1/proxy/cursor/api.cursor.com/v1/models and /v1/me need a scope header like every other Cursor call and are served on the execution's organization's own Cursor key; the model list is cached per organization that owns the serving key.
-    class: behavior
-    disposition: smoke
-    observability: none
-    caller: none
-    needs: [none]
-    note: >-
-      A served call reaches Cursor itself, so a live runner smoke on a real Cursor key proves it; the refusal of a call naming no execution is the shared edge's (proxy.llm.scope.missing-scope-header-403-when-required).
-  - id: proxy.cursor-bidi.missing-token-refused-stream
-    surface: proxy
-    lane: >-
-      cursor-bidi
-    behavior: >-
-      A Connect stream opened on the bidi port with no x-stigmer-auth is reset with REFUSED_STREAM, even when it carries a valid Stigmer token in authorization or x-api-key: the stream's Stigmer credential is x-stigmer-auth alone, and its authorization is the Cursor access token it forwards.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: anonymous
-    needs: [none]
-    note: >-
-      The bidi handler authenticates itself, so this arm is observable on the conformance environment.
-  - id: proxy.cursor-bidi.authn-failure-401-code-16
-    surface: proxy
-    lane: >-
-      cursor-bidi
-    behavior: >-
-      A stream carrying a token no verifier claims answers a Connect error HTTP 401, code 16, message "Authentication failed" with application/grpc headers.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: anonymous
-    needs: [none]
-  - id: proxy.cursor-bidi.fga-denied-403-code-7
-    surface: proxy
-    lane: >-
-      cursor-bidi
-    behavior: >-
-      A stream on an /agent.v1.* path whose execution scope the caller cannot can_edit answers a Connect error HTTP 403, code 7, "Access denied".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [agent-execution]
-  - id: proxy.cursor-bidi.relay-and-per-turn-usage
-    surface: proxy
-    lane: >-
-      cursor-bidi
-    behavior: >-
-      An authorized stream is relayed over TLS h2 to api2.cursor.sh with the Cursor SDK's own access token (exchanged from the organization's Cursor key on the REST lane) forwarded unchanged, per-turn usage is extracted from Connect end-stream envelopes, and Cursor's own end-stream errors reach the runner unchanged.
-    class: behavior
-    disposition: smoke
-    observability: none
-    caller: none
-    needs: [none]
-  - id: proxy.cursor-bidi.ping-keepalive
-    surface: proxy
-    lane: >-
-      cursor-bidi
-    behavior: >-
-      The upstream connection is kept alive with HTTP/2 PING frames and drained with GOAWAY on shutdown.
-    class: behavior
-    disposition: debris
-    observability: none
-    caller: none
-    needs: [none]
-    note: >-
-      Debris as a row: transport plumbing with no client-visible contract. The composition still implements h2 PING keepalive on both the inbound and the upstream session as an implementation detail (pinned by its own unit tests), not as a behavior the suite observes.
 
   # ===========================================================================
   # PROXY — claimcheck, artifact, checkpointer, model-registry, health
@@ -1498,7 +1350,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      The Anthropic, OpenAI SSE, OpenAI JSON, Cursor SSE and Connect Cursor usage extractors produce the same ParsedLlmUsage as Java's tables over the fixture streams in src/test/resources/ai/stigmer/proxy/usage/.
+      The Anthropic, OpenAI SSE and OpenAI JSON usage extractors produce the same ParsedLlmUsage as Java's tables over the fixture streams in src/test/resources/ai/stigmer/proxy/usage/.
     class: behavior
     disposition: unit
     observability: none
@@ -1509,18 +1361,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      A model call on the LLM lane is recorded under the engine of the session behind its execution (native, Cursor or Claude), read with the run and cached with the execution, so a Claude call is priced by the Claude engine's catalog rows.
-    class: behavior
-    disposition: unit
-    observability: none
-    caller: none
-    needs: [none]
-  - id: proxy.unit.connect-envelope-and-protobuf-scanner
-    surface: proxy
-    lane: >-
-      unit
-    behavior: >-
-      Connect envelopes decode and the protobuf field scanner finds TurnEndedUpdate exactly as Java's tables.
+      A model call on the LLM lane is recorded under the engine of the session behind its execution (native or Claude), read with the run and cached with the execution, so a Claude call is priced by the Claude engine's catalog rows.
     class: behavior
     disposition: unit
     observability: none
@@ -1531,31 +1372,20 @@ rows:
     lane: >-
       unit
     behavior: >-
-      PlatformProviderErrorClassifier (Anthropic billing 400 text, OpenAI 429 insufficient_quota, 401/403) and CursorPlatformErrorClassifier (end-stream trailer rewrite) classify exactly as Java's tables.
+      PlatformProviderErrorClassifier (Anthropic billing 400 text, OpenAI 429 insufficient_quota, 401/403) classifies exactly as Java's tables.
     class: behavior
     disposition: debris
     observability: none
     caller: none
     needs: [none]
     note: >-
-      Debris: both classifiers rewrote a failure on a key of the platform's own as the platform's. No lane serves a call on such a key, so every failure is the organization's key's and is relayed marked as such (proxy.llm.upstream.organization-key-failures-relayed-marked).
+      Debris: the classifier rewrote a failure on a key of the platform's own as the platform's. No lane serves a call on such a key, so every failure is the organization's key's and is relayed marked as such (proxy.llm.upstream.organization-key-failures-relayed-marked).
   - id: proxy.unit.call-sequencer-and-reporter
     surface: proxy
     lane: >-
       unit
     behavior: >-
       Per-execution call sequencing and the usage reporter's swallow-and-log posture match Java's tables.
-    class: behavior
-    disposition: unit
-    observability: none
-    caller: none
-    needs: [none]
-  - id: proxy.unit.cursor-model-normalizer-and-list-cache
-    surface: proxy
-    lane: >-
-      unit
-    behavior: >-
-      Cursor model id normalization, the Connect model extractor and the model-list cache, keyed by the organization that owns the serving Cursor key, behave as Java's tables.
     class: behavior
     disposition: unit
     observability: none
@@ -1573,20 +1403,7 @@ rows:
     caller: none
     needs: [none]
     note: >-
-      The composition-authority source retired with the Java service: in process, the proxy reads executions from its own store. Cursor key selection (dedicated account, pool, session pins, health monitor) retired when the Cursor lanes moved to the organization's own Cursor key, read like any provider key; the id keeps its old wording.
-  - id: proxy.unit.metric-names
-    surface: proxy
-    lane: >-
-      unit
-    behavior: >-
-      The proxy emits stigmer.proxy.cursor.connect.streams_metered, turns_extracted and zero_usage_streams under their Java names.
-    class: carve-out
-    disposition: unit
-    observability: none
-    caller: none
-    needs: [none]
-    note: >-
-      The `metrics` section below records these names.
+      The composition-authority source retired with the Java service: in process, the proxy reads executions from its own store. Key selection retired: every call runs on the organization's own key, read like any provider key; the id keeps its old wording.
 
   # ===========================================================================
   # PUBLIC — /api/v1/public/* and the marketing-site contract
@@ -1805,61 +1622,6 @@ rows:
 # .pricing.price_not_found) are the billing rows.
 metrics:
   # ---- proxy ---------------------------------------------------------------
-  - name: stigmer.proxy.cursor.connect.streams_metered
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.connect.turns_extracted
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.connect.zero_usage_streams
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.bidi.streams_total
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.bidi.upstream_stream_aborts_total
-    surface: proxy
-    disposition: ported
-    alerts: [cursor-bidi-upstream-stream-aborts]
-  - name: stigmer.proxy.cursor.bidi.upstream_connects_total
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.bidi.upstream_ping_timeouts_total
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.bidi.inbound_ping_timeouts_total
-    surface: proxy
-    disposition: ported
-  - name: stigmer.proxy.cursor.platform_provider_errors
-    surface: proxy
-    disposition: dropped
-    note: >-
-      The bidi lane no longer rewrites Cursor's usage-limit end-stream as the platform's: every call runs on the organization's own Cursor key, so Cursor's error is the organization's. The counter and its alert retired with the rewrite.
-  - name: stigmer.proxy.cursor.key_selection_rejected
-    surface: proxy
-    disposition: dropped
-    note: >-
-      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to select a key from or refuse a call for; the counter and its alert retired with the pool.
-  - name: stigmer.proxy.cursor.key_selection_soft_drained
-    surface: proxy
-    disposition: dropped
-    note: >-
-      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to drain; the counter and its alert retired with the pool.
-  - name: stigmer.proxy.cursor.key_selection_served_guard_tripped
-    surface: proxy
-    disposition: dropped
-    note: >-
-      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to guard; the counter and its alert retired with the pool.
-  - name: stigmer.proxy.cursor.session_repinned
-    surface: proxy
-    disposition: dropped
-    note: >-
-      An organization holds one Cursor key, so every turn of a session already runs on the same key; the session pin and its counter retired with the pool.
-  - name: stigmer.proxy.cursor.key_health_reactive_syncs
-    surface: proxy
-    disposition: dropped
-    note: >-
-      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to re-sync on an upstream refusal; the counter and its alert retired with the pool.
   - name: stigmer.proxy.llm.platform_provider_errors
     surface: proxy
     disposition: dropped
@@ -1918,11 +1680,6 @@ metrics:
     alerts: [postgres-wal-above-80-of-max-wal-size]
     note: >-
       The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
-  - name: stigmer.cursor.account_default.drift
-    surface: platform
-    disposition: dropped
-    note: >-
-      Watched the default speed variant of Stigmer's own Cursor team accounts. Cursor runs on the organization's own Cursor key, billed by Cursor to that organization, so there is no platform account to audit; the gauge, its sync and its alert retired with the pool.
   - name: stigmer.sandbox.pool.target
     surface: platform
     disposition: dropped
@@ -1933,16 +1690,6 @@ metrics:
     disposition: dropped
     note: >-
       Pool members by status (provisioning, ready, claimed). With no warm pool there are no members to count; the gauge retired with the pool, alongside the target.
-  - name: stigmer.proxy.cursor.execution_authority_lookups
-    surface: proxy
-    disposition: dropped
-    note: >-
-      Counted the Java proxy's calls to the composition for an execution it did not own. In process the proxy reads its own store, so there is no lookup to count; the mechanism retired with Java.
-  - name: stigmer.cursor_account.store_write_refused
-    surface: proxy
-    disposition: dropped
-    note: >-
-      Counted refusals of Java's second-client writes to the composition's cursor tables. The composition is now the only writer, so the gate retired with Java.
   # ---- billing -------------------------------------------------------------
   # The stigmer.billing.* names the Java service emitted. Those whose
   # mechanism the composition still runs are ported under the same names onto

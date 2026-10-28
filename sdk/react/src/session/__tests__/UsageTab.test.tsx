@@ -1,6 +1,6 @@
 /**
  * The session Usage tab: the session's tokens (never money) and working
- * time, and per run its tokens, working time and primary model (for a metered Cursor Auto run, the
+ * time, and per run its tokens, working time and primary model (the
  * after-the-fact truth of which model served) paired with the tier the
  * runner REQUESTED (the streaming summary's audit record that the account
  * default was never left in control, #362), marked "Estimated" for a run
@@ -52,8 +52,8 @@ function usageWith(overrides: Partial<UseSessionUsageReturn>): UseSessionUsageRe
     hasUsage: true,
     totalTokens: 18_400,
     llmCallCount: 1,
-    primaryModel: "composer-2.5",
-    primaryProvider: "cursor",
+    primaryModel: "claude-sonnet-4-6",
+    primaryProvider: "anthropic",
     ...overrides,
   };
 }
@@ -67,7 +67,7 @@ function executionWithTier(id: string, tier?: ServiceTier) {
         totalTokens: 100n,
         turnCount: 1,
         estimatedCostUsd: 0.01,
-        model: "default",
+        model: "claude-sonnet-4-6",
         ...(tier !== undefined ? { requestedServiceTier: tier } : {}),
       },
     },
@@ -87,7 +87,7 @@ describe("UsageTab (#362 model provenance)", () => {
     usageMock.mockReturnValue(usageWith({
       runBreakdown: [{
         runId: "exe_1",
-        resolvedModel: "cursor-grok-4.5-high-fast",
+        resolvedModel: "claude-opus-4-8-fast",
         totalTokens: 12_300,
         isEstimated: false,
         workingSeconds: 0,
@@ -98,7 +98,7 @@ describe("UsageTab (#362 model provenance)", () => {
 
     expect(screen.getByRole("region", { name: "Session usage summary" }).textContent).toContain("18.4k tokens");
     const list = screen.getByRole("list", { name: "Per-run tokens, working time, model and tier" });
-    expect(list.textContent).toContain("cursor-grok-4.5-high-fast");
+    expect(list.textContent).toContain("claude-opus-4-8-fast");
     expect(list.textContent).toContain("12.3k tokens");
     expect(container.textContent).not.toContain("$");
   });
@@ -123,7 +123,7 @@ describe("UsageTab (#362 model provenance)", () => {
   it("marks a run counted from its runner's report as estimated", () => {
     usageMock.mockReturnValue(usageWith({
       isEstimated: true,
-      runBreakdown: [{ runId: "exe_1", resolvedModel: "composer-2", totalTokens: 900, isEstimated: true, workingSeconds: 0 }],
+      runBreakdown: [{ runId: "exe_1", resolvedModel: "claude-sonnet-4-6", totalTokens: 900, isEstimated: true, workingSeconds: 0 }],
     }));
 
     render(<UsageTab runs={[executionWithTier("exe_1")]} />);
@@ -137,7 +137,7 @@ describe("UsageTab (#362 model provenance)", () => {
     usageMock.mockReturnValue(usageWith({
       runBreakdown: [{
         runId: "exe_1",
-        resolvedModel: "composer-2.5",
+        resolvedModel: "claude-opus-4-8",
         totalTokens: 100,
         isEstimated: false,
         workingSeconds: 0,

@@ -67,7 +67,6 @@ import { ROUTINE_ID_LABEL_KEY } from "../../domain/routine/labels.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { RoutineTemporalConfig } from "./config.js";
-import { routineModelPinningRefusal } from "./model-pinning.js";
 import { ensureStatus } from "./status-writes.js";
 
 /**
@@ -337,21 +336,6 @@ export class RunStarter {
         reason: resolved.missingReason,
       });
       return { kind: "targetMissing", reason: resolved.missingReason };
-    }
-
-    // Launch backstop of the unattended model-pinning rule (#362):
-    // write-time validation holds this bar on every create and update, but
-    // rows written before the rule existed must refuse here rather than
-    // run Auto at the account default's price. A deterministic refusal
-    // feeds the failure streak, so a broken config pauses the routine
-    // instead of burning silently every fire.
-    const pinningRefusal = routineModelPinningRefusal(routine.spec);
-    if (pinningRefusal !== "") {
-      logger.error("Routine fire refused by the model-pinning backstop", {
-        routine_id: routineId,
-        reason: pinningRefusal,
-      });
-      return { kind: "refused", reason: pinningRefusal };
     }
 
     // A schedule fire's own idempotency: a retried activity (or a

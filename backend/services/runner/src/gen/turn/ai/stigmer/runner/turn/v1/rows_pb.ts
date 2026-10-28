@@ -17,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/runner/turn/v1/rows.proto.
  */
 export const file_ai_stigmer_runner_turn_v1_rows: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL3J1bm5lci90dXJuL3YxL3Jvd3MucHJvdG8SGWFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEijgUKCFR1cm5Sb3dzEjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BZ2VudE1lc3NhZ2USPgoOc3ViX2FnZW50X3J1bnMYBCADKAsyJi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlN1YkFnZW50UnVuEj0KBXRvZG9zGAkgAygLMi4uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5UdXJuUm93cy5Ub2Rvc0VudHJ5EjIKEXN0cnVjdHVyZWRfb3V0cHV0GBUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJTChhyZWNhbGxlZF9tZW1vcmllc19yZXBvcnQYGiABKAsyMS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlJlY2FsbGVkTWVtb3JpZXNSZXBvcnQSTAoTYmFja2dyb3VuZF9jb21tYW5kcxgeIAMoCzIvLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQmFja2dyb3VuZENvbW1hbmRSb3cSSgoUbWNwX3Rvb2xfZGVmaW5pdGlvbnMYHyADKAsyLC5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLk1jcFRvb2xEZWZpbml0aW9uGlEKClRvZG9zRW50cnkSCwoDa2V5GAEgASgJEjIKBXZhbHVlGAIgASgLMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub2RvSXRlbToCOAEinAEKEU1jcFRvb2xEZWZpbml0aW9uEhcKD21jcF9zZXJ2ZXJfc2x1ZxgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEi0KDGlucHV0X3NjaGVtYRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSHAoUaW5wdXRfc2NoZW1hX29taXR0ZWQYBSABKAgi3AEKFEJhY2tncm91bmRDb21tYW5kUm93Eg8KB2NhbGxfaWQYASABKAkSFwoPdGltZW91dF9zZWNvbmRzGAIgASgFEg4KBmVuZGluZxgDIAEoCRIWCglleGl0X2NvZGUYBCABKAVIAIgBARISCgpzdG9wcGVkX2J5GAUgASgJEhoKEnN0b3BwZWRfYnlfY2FsbF9pZBgGIAEoCRIOCgZvdXRwdXQYByABKAkSEgoKc3RhcnRlZF9hdBgIIAEoCRIQCghlbmRlZF9hdBgJIAEoCUIMCgpfZXhpdF9jb2RlIuIBCgxBZ2VudE1lc3NhZ2USNAoEdHlwZRgBIAEoDjImLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuTWVzc2FnZVR5cGUSDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSNwoKdG9vbF9jYWxscxgEIAMoCzIjLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9vbENhbGwSKQoIbWV0YWRhdGEYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhQKDGlzX3N0cmVhbWluZxgGIAEoCCL3BgoIVG9vbENhbGwSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIlCgRhcmdzGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIOCgZyZXN1bHQYBCABKAkSOQoGc3RhdHVzGAUgASgOMikuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sQ2FsbFN0YXR1cxISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEkIKD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjIpLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQXBwcm92YWxBY3Rpb24SFAoMaXNfc3RyZWFtaW5nGBAgASgIEkwKEHN0cmVhbWluZ19zb3VyY2UYEyABKA4yMi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAkSNgoJdG9vbF9raW5kGBQgASgOMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sS2luZBJACgpvdXRwdXRfcmVmGBUgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub29sQ2FsbE91dHB1dFJlZhJPChZhcHByb3ZhbF9wb2xpY3lfc291cmNlGBcgASgOMi8uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIdChVwb2xpY3lfZW5naW5lX3ZlcnNpb24YGCABKAkSHwoXYXBwcm92YWxfY29udGVudF9kaWdlc3QYGSABKAkSGgoSZmlsZV9jaGFuZ2Vfc2V0X2lkGBogASgJEhwKFGFwcHJvdmFsX3BvbGljeV9ob29rGBsgASgJSgQIFhAXIsYDCgtTdWJBZ2VudFJ1bhIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWlucHV0GAMgASgJEg4KBm91dHB1dBgEIAEoCRI5CgZzdGF0dXMYBSABKA4yKS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlN1YkFnZW50U3RhdHVzEhIKCnN0YXJ0ZWRfYXQYBiABKAkSFAoMY29tcGxldGVkX2F0GAcgASgJEg0KBWVycm9yGAggASgJEikKCG1ldGFkYXRhGAkgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBI5CghtZXNzYWdlcxgLIAMoCzInLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQWdlbnRNZXNzYWdlEg8KB3N1YmplY3QYDSABKAkSQAoFdG9kb3MYDiADKAsyMS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlN1YkFnZW50UnVuLlRvZG9zRW50cnkaUQoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSMgoFdmFsdWUYAiABKAsyIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvZG9JdGVtOgI4ASKGAQoIVG9kb0l0ZW0SCgoCaWQYASABKAkSDwoHY29udGVudBgCIAEoCRI1CgZzdGF0dXMYAyABKA4yJS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvZG9TdGF0dXMSEgoKY3JlYXRlZF9hdBgEIAEoCRISCgp1cGRhdGVkX2F0GAUgASgJItMDCg9QZW5kaW5nQXBwcm92YWwSFAoMdG9vbF9jYWxsX2lkGAEgASgJEhEKCXRvb2xfbmFtZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEhQKDGFyZ3NfcHJldmlldxgEIAEoCRIUCgxyZXF1ZXN0ZWRfYXQYBSABKAkSFgoOZnJvbV9zdWJfYWdlbnQYBiABKAgSFgoOc3ViX2FnZW50X25hbWUYByABKAkSFwoPbWNwX3NlcnZlcl9zbHVnGAggASgJEhkKEXN1Yl9hZ2VudF9zdWJqZWN0GAkgASgJEhcKD2FnZW50X3JhdGlvbmFsZRgKIAEoCRIWCg5icmFuY2hfYXRfZGVueRgLIAEoCRIYChBoZWFkX3NoYV9hdF9kZW55GAwgASgJEjYKCXRvb2xfa2luZBgNIAEoDjIjLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9vbEtpbmQSTwoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgPIAEoDjIvLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQXBwcm92YWxQb2xpY3lTb3VyY2USHAoUYXBwcm92YWxfcG9saWN5X2hvb2sYECABKAlKBAgOEA8iaAoWUmVjYWxsZWRNZW1vcmllc1JlcG9ydBIYChBzZWxlY3Rpb25fYWN0aXZlGAEgASgIEhsKE2luamVjdGVkX21lbW9yeV9pZHMYAiADKAkSFwoPZW1iZWRkaW5nX21vZGVsGAMgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_runner_turn_v1_enum, file_ai_stigmer_runner_turn_v1_ledger, file_google_protobuf_struct]);
+  fileDesc("CiRhaS9zdGlnbWVyL3J1bm5lci90dXJuL3YxL3Jvd3MucHJvdG8SGWFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEijgUKCFR1cm5Sb3dzEjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BZ2VudE1lc3NhZ2USPgoOc3ViX2FnZW50X3J1bnMYBCADKAsyJi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlN1YkFnZW50UnVuEj0KBXRvZG9zGAkgAygLMi4uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5UdXJuUm93cy5Ub2Rvc0VudHJ5EjIKEXN0cnVjdHVyZWRfb3V0cHV0GBUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJTChhyZWNhbGxlZF9tZW1vcmllc19yZXBvcnQYGiABKAsyMS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlJlY2FsbGVkTWVtb3JpZXNSZXBvcnQSTAoTYmFja2dyb3VuZF9jb21tYW5kcxgeIAMoCzIvLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQmFja2dyb3VuZENvbW1hbmRSb3cSSgoUbWNwX3Rvb2xfZGVmaW5pdGlvbnMYHyADKAsyLC5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLk1jcFRvb2xEZWZpbml0aW9uGlEKClRvZG9zRW50cnkSCwoDa2V5GAEgASgJEjIKBXZhbHVlGAIgASgLMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub2RvSXRlbToCOAEinAEKEU1jcFRvb2xEZWZpbml0aW9uEhcKD21jcF9zZXJ2ZXJfc2x1ZxgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEi0KDGlucHV0X3NjaGVtYRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSHAoUaW5wdXRfc2NoZW1hX29taXR0ZWQYBSABKAgi3AEKFEJhY2tncm91bmRDb21tYW5kUm93Eg8KB2NhbGxfaWQYASABKAkSFwoPdGltZW91dF9zZWNvbmRzGAIgASgFEg4KBmVuZGluZxgDIAEoCRIWCglleGl0X2NvZGUYBCABKAVIAIgBARISCgpzdG9wcGVkX2J5GAUgASgJEhoKEnN0b3BwZWRfYnlfY2FsbF9pZBgGIAEoCRIOCgZvdXRwdXQYByABKAkSEgoKc3RhcnRlZF9hdBgIIAEoCRIQCghlbmRlZF9hdBgJIAEoCUIMCgpfZXhpdF9jb2RlIuIBCgxBZ2VudE1lc3NhZ2USNAoEdHlwZRgBIAEoDjImLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuTWVzc2FnZVR5cGUSDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSNwoKdG9vbF9jYWxscxgEIAMoCzIjLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9vbENhbGwSKQoIbWV0YWRhdGEYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhQKDGlzX3N0cmVhbWluZxgGIAEoCCL1BgoIVG9vbENhbGwSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIlCgRhcmdzGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIOCgZyZXN1bHQYBCABKAkSOQoGc3RhdHVzGAUgASgOMikuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sQ2FsbFN0YXR1cxISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEkIKD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjIpLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQXBwcm92YWxBY3Rpb24SFAoMaXNfc3RyZWFtaW5nGBAgASgIEkwKEHN0cmVhbWluZ19zb3VyY2UYEyABKA4yMi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAkSNgoJdG9vbF9raW5kGBQgASgOMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sS2luZBJACgpvdXRwdXRfcmVmGBUgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub29sQ2FsbE91dHB1dFJlZhJPChZhcHByb3ZhbF9wb2xpY3lfc291cmNlGBcgASgOMi8uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIdChVwb2xpY3lfZW5naW5lX3ZlcnNpb24YGCABKAkSGgoSZmlsZV9jaGFuZ2Vfc2V0X2lkGBogASgJEhwKFGFwcHJvdmFsX3BvbGljeV9ob29rGBsgASgJSgQIFhAXSgQIGRAaUhdhcHByb3ZhbF9jb250ZW50X2RpZ2VzdCLGAwoLU3ViQWdlbnRSdW4SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbnB1dBgDIAEoCRIOCgZvdXRwdXQYBCABKAkSOQoGc3RhdHVzGAUgASgOMikuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5TdWJBZ2VudFN0YXR1cxISCgpzdGFydGVkX2F0GAYgASgJEhQKDGNvbXBsZXRlZF9hdBgHIAEoCRINCgVlcnJvchgIIAEoCRIpCghtZXRhZGF0YRgJIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSOQoIbWVzc2FnZXMYCyADKAsyJy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkFnZW50TWVzc2FnZRIPCgdzdWJqZWN0GA0gASgJEkAKBXRvZG9zGA4gAygLMjEuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5TdWJBZ2VudFJ1bi5Ub2Rvc0VudHJ5GlEKClRvZG9zRW50cnkSCwoDa2V5GAEgASgJEjIKBXZhbHVlGAIgASgLMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub2RvSXRlbToCOAEihgEKCFRvZG9JdGVtEgoKAmlkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSNQoGc3RhdHVzGAMgASgOMiUuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub2RvU3RhdHVzEhIKCmNyZWF0ZWRfYXQYBCABKAkSEgoKdXBkYXRlZF9hdBgFIAEoCSLNAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRI2Cgl0b29sX2tpbmQYDSABKA4yIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xLaW5kEk8KFmFwcHJvdmFsX3BvbGljeV9zb3VyY2UYDyABKA4yLy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkFwcHJvdmFsUG9saWN5U291cmNlEhwKFGFwcHJvdmFsX3BvbGljeV9ob29rGBAgASgJSgQIChALSgQICxAMSgQIDBANSgQIDhAPUg9hZ2VudF9yYXRpb25hbGVSDmJyYW5jaF9hdF9kZW55UhBoZWFkX3NoYV9hdF9kZW55ImgKFlJlY2FsbGVkTWVtb3JpZXNSZXBvcnQSGAoQc2VsZWN0aW9uX2FjdGl2ZRgBIAEoCBIbChNpbmplY3RlZF9tZW1vcnlfaWRzGAIgAygJEhcKD2VtYmVkZGluZ19tb2RlbBgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_runner_turn_v1_enum, file_ai_stigmer_runner_turn_v1_ledger, file_google_protobuf_struct]);
 
 /**
  * TurnRows is what the runner holds for one turn beside the run's public
@@ -497,7 +497,7 @@ export type ToolCall = Message<"ai.stigmer.runner.turn.v1.ToolCall"> & {
   /**
    * Harness-agnostic category of this tool, set by the runner so clients render
    * the tool identically regardless of which engine produced it. The native and
-   * Cursor harnesses use different tool-name conventions; tool_kind erases that
+   * Claude harnesses use different tool-name conventions; tool_kind erases that
    * difference at the source.
    *
    * TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
@@ -564,33 +564,6 @@ export type ToolCall = Message<"ai.stigmer.runner.turn.v1.ToolCall"> & {
   policyEngineVersion: string;
 
   /**
-   * Stable digest of the authoritative edit content (the hook-captured tool
-   * input) for a gated file-mutating tool call, set by the runner's approval
-   * gate. It is the content discriminator the deny-only Cursor harness needs:
-   * approving one edit must not let a DIFFERENT edit to the same file ride the
-   * approval through, so the grant binds to (category, path, content) rather than
-   * (category, path) alone. A resumed re-attempt that differs from the approved
-   * content re-gates (the "what you approve is what gets applied" contract).
-   *
-   * Carried so it survives at resume immune to the size-limit elision that can
-   * drop `args`/`file_changes` for large edits — a recompute-from-args identity
-   * would be unrecoverable in that case. Empty for tools whose other identity is
-   * already content-exact (shell command, delete path), for read-only tools, and
-   * for runs that predate this field (the runner then degrades to the
-   * coarse (category, path) identity).
-   *
-   * @internal
-   * Runner-written and carried through update_status exactly like tool_kind /
-   * approval_policy_source — not owned by SubmitApproval, so no preserve logic is
-   * needed. See the runner's contentDigest() (shared/file-tools.ts).
-   *
-   * Field 25: appended after policy_engine_version (24), the prior maximum.
-   *
-   * @generated from field: string approval_content_digest = 25;
-   */
-  approvalContentDigest: string;
-
-  /**
    * Id of the FileChangeSet this flowed file-edit contributed to
    * (`{run_id}:{turn_seq}`), stamped by the runner at the turn-boundary
    * capture. PRESENTATION/AUDIT-ONLY: clients use it to badge the row with the
@@ -604,7 +577,7 @@ export type ToolCall = Message<"ai.stigmer.runner.turn.v1.ToolCall"> & {
    * edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
    * so there is no change set to reference).
    *
-   * Field 26: appended after approval_content_digest (25), the prior maximum.
+   * Field 26: appended after field 25, the prior maximum.
    *
    * @generated from field: string file_change_set_id = 26;
    */
@@ -931,49 +904,6 @@ export type PendingApproval = Message<"ai.stigmer.runner.turn.v1.PendingApproval
    * @generated from field: string sub_agent_subject = 9;
    */
   subAgentSubject: string;
-
-  /**
-   * Why the agent wanted to execute this tool.
-   *
-   * Extracted from the last assistant message before the tool call.
-   * Gives the reinvocation agent context for the original intent, enabling
-   * it to decide whether the action still makes sense.
-   *
-   * Example: "Need to install the missing dependency to fix the build"
-   * Empty when rationale extraction was not possible.
-   *
-   * @generated from field: string agent_rationale = 10;
-   */
-  agentRationale: string;
-
-  /**
-   * Git branch name at the time the tool was denied.
-   *
-   * Diagnostic metadata only — the reinvocation agent inspects the actual
-   * current workspace state rather than relying on this value. Included
-   * in the HITL continuation prompt as a reference point for the agent
-   * to detect whether workspace state has drifted.
-   *
-   * Example: "feature/add-auth"
-   * Empty when the workspace is not git-backed.
-   *
-   * @generated from field: string branch_at_deny = 11;
-   */
-  branchAtDeny: string;
-
-  /**
-   * Git HEAD SHA at the time the tool was denied.
-   *
-   * Diagnostic metadata only — same purpose as branch_at_deny. Allows
-   * the reinvocation agent to compare against current HEAD to understand
-   * whether commits have landed since the tool was proposed.
-   *
-   * Example: "a1b2c3d4e5f6..."
-   * Empty when the workspace is not git-backed.
-   *
-   * @generated from field: string head_sha_at_deny = 12;
-   */
-  headShaAtDeny: string;
 
   /**
    * Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the

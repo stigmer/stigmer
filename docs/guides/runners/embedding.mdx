@@ -36,11 +36,11 @@ supply depends on your deployment. The table below is the minimal surface for
 each audience; the full list lives in the runner README
 (`backend/services/runner/README.md`), under its configuration reference.
 
-| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | Cursor key                | LLM provider keys         |
-| ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | ------------------------- | ------------------------- |
-| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Your Organization's       | Your Organization's       |
-| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied)      | Not needed (proxied)      |
-| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required (Cursor harness) | Required (native harness) |
+| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | LLM provider keys    |
+| ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | -------------------- |
+| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Your Organization's  |
+| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied) |
+| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required             |
 
 How to read each row:
 
@@ -53,22 +53,21 @@ How to read each row:
   the runner discovers it from the control plane at boot using your token (see
   [Temporal self-discovery](#temporal-self-discovery)). Setting the token also
   activates **proxy mode**: the runner routes its model traffic and file uploads
-  through the Stigmer proxy, which injects your Organization's own Cursor key
-  and provider keys, saved by an administrator in Settings → Provider keys, so
-  you pass neither `CURSOR_API_KEY` nor a provider key.
+  through the Stigmer proxy, which injects your Organization's own provider
+  keys, saved by an administrator in Settings → Provider keys, so you pass no
+  provider key.
 - **Self-managed.** You run your own Temporal and Stigmer Server. In the default
   `MODE=local`, `TEMPORAL_SERVICE_ADDRESS` defaults to `localhost:7233` and
   `STIGMER_BACKEND_ENDPOINT` to `http://localhost:7234`. `STIGMER_TOKEN` is
   optional because a local server has no auth. Credentials are **bring your
-  own**: you pass `CURSOR_API_KEY` directly for the Cursor harness, and
-  `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` for the native harness (there is no
+  own**: you pass `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` directly (there is no
   proxy to inject them — a run that needs a missing key fails with
-  `LLM_MISSING_API_KEY`). The Rust host crate exposes all three as typed config
-  fields (`cursor_api_key`, `anthropic_api_key`, `openai_api_key`), so an
-  embedder never has to prime its own process environment. A **managed
-  self-hosted** deployment, where you run the full Stigmer stack on your own
-  infrastructure with Stigmer support, uses this same surface — point the
-  endpoints at your hosts instead of localhost.
+  `LLM_MISSING_API_KEY`). The Rust host crate exposes both as typed config
+  fields (`anthropic_api_key`, `openai_api_key`), so an embedder never has to
+  prime its own process environment. A **managed self-hosted** deployment, where
+  you run the full Stigmer stack on your own infrastructure with Stigmer
+  support, uses this same surface — point the endpoints at your hosts instead of
+  localhost.
 
 ## Temporal self-discovery
 
@@ -334,9 +333,8 @@ host.start(RunnerConfig {
     stigmer_endpoint: "https://api.stigmer.ai".into(),
     temporal_namespace: None,
     stigmer_token: Some("stigmer_token".into()),
-    // Credentials for direct (BYOK) mode. With a proxy_endpoint set, leave all
-    // three None — the proxy injects the real keys server-side.
-    cursor_api_key: None,
+    // Credentials for direct (BYOK) mode. With a proxy_endpoint set, leave both
+    // None — the proxy injects the real keys server-side.
     anthropic_api_key: None,
     openai_api_key: None,
     workspace_root_dir: None,
@@ -423,9 +421,8 @@ from the **slim embedding build**:
    bundle-friendly build of the runner, made for exactly this use case: a
    self-contained `main.js` (the entire runner, tree-shaken and bundled) plus
    only the dependencies that genuinely cannot be bundled — the Temporal native
-   bridge (pruned to your platform via `optionalDependencies`) and the Cursor
-   SDK with its native helper binaries. It installs at **~85 MB per platform**
-   instead of the full `@stigmer/runner` package's ~508 MB `node_modules`.
+   bridge (pruned to your platform via `optionalDependencies`). It installs far
+   smaller than the full `@stigmer/runner` package's `node_modules`.
 2. **Copy it into your app's resources at build time.** Stage the installed
    package and its resolved `node_modules` into a resources folder, then have
    your packager bundle that folder into the installer. In Tauri, declare it

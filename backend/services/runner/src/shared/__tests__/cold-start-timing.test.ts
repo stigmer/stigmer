@@ -157,7 +157,7 @@ describe("emitTimingLog", () => {
     emitTimingLog("execution_setup", {
       execution_id: "exe_123",
       session_id: "ses_456",
-      harness: "cursor",
+      harness: "claude",
       skipped: undefined,
       nullable: null,
     }, recorder);
@@ -204,7 +204,7 @@ describe("timing metrics mirror", () => {
       task_queue: "session:ses_secret",
     }, 6200);
     recordTimingMetric("execution_setup", {
-      harness: "cursor",
+      harness: "claude",
       execution_id: "exe_123",
       session_id: "ses_456",
     }, 3000);
@@ -218,7 +218,7 @@ describe("timing metrics mirror", () => {
     // The whitelist is the cardinality guard: ids must never become attrs.
     expect(byInstrument.runner_boot!.attrs).toEqual({ mode: "cloud" });
     expect(byInstrument.execution_setup!.value).toBe(3000);
-    expect(byInstrument.execution_setup!.attrs).toEqual({ harness: "cursor" });
+    expect(byInstrument.execution_setup!.attrs).toEqual({ harness: "claude" });
   });
 
   it("emitTimingLog drives the mirror, so call sites need no metric code", async () => {

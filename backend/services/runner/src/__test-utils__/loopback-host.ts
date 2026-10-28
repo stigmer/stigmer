@@ -38,7 +38,6 @@ const LOOPBACK_PROXY_ENDPOINT = "http://127.0.0.1:9";
 export function loopbackHostedRow(row: HarnessRow, options: { readonly proxy?: AgentProxyGate & LiveTurnRegistry } = {}): HarnessRow {
   const proxy: AgentProxyGate & LiveTurnRegistry = options.proxy ?? {
     endpoint: LOOPBACK_PROXY_ENDPOINT,
-    cursorEndpoint: "https://127.0.0.1:9",
     authorizeHost: () => {},
     openTurn: () => () => {},
   };

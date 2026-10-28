@@ -34,7 +34,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
 
   /**
    * <pre>
-   * Default harness for new sessions: "native", "cursor" or "claude".
+   * Default harness for new sessions: "native" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -44,7 +44,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
   java.lang.String getDefaultHarness();
   /**
    * <pre>
-   * Default harness for new sessions: "native", "cursor" or "claude".
+   * Default harness for new sessions: "native" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -75,28 +75,6 @@ public interface IdentityAccountPreferencesOrBuilder extends
    */
   com.google.protobuf.ByteString
       getDefaultNativeModelBytes();
-
-  /**
-   * <pre>
-   * Default model (registry model ID) for cursor-harness sessions.
-   * Empty means no preference — the platform default applies.
-   * </pre>
-   *
-   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-   * @return The defaultCursorModel.
-   */
-  java.lang.String getDefaultCursorModel();
-  /**
-   * <pre>
-   * Default model (registry model ID) for cursor-harness sessions.
-   * Empty means no preference — the platform default applies.
-   * </pre>
-   *
-   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for defaultCursorModel.
-   */
-  com.google.protobuf.ByteString
-      getDefaultCursorModelBytes();
 
   /**
    * <pre>

@@ -26,8 +26,9 @@
  * What a tool may be called at all is a separate question, the agent's tool
  * lists (`tool-lists.ts`), enforced ahead of this default on both engines.
  *
- * Used by both ExecuteCursor (hook-deny model) and ExecuteDeepAgent
- * (middleware interruptOn model) to determine which tools need approval.
+ * Used by both ExecuteDeepAgent (the approval-gate middleware) and
+ * ExecuteClaude (the engine's `PreToolUse` gate) to determine which tools
+ * need approval.
  */
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -190,9 +191,8 @@ export function deriveActiveLeases(grants: Iterable<LeaseGrant>, autoApproveAll:
  *
  * The mode changes HOW a gate resolves, never WHAT is gated: the default
  * below is identical in both modes. Both harnesses read the
- * mode through this one helper (the native gate skips instead of
- * interrupting; the Cursor hook records a non-pausing "unattended" denial),
- * so the surfaces can never diverge on what "unattended" means.
+ * mode through this one helper (each gate skips instead of pausing), so the
+ * surfaces can never diverge on what "unattended" means.
  */
 export function isUnattendedApprovalMode(execution: Run): boolean {
   return execution.status?.approvalMode === ApprovalMode.UNATTENDED;
@@ -200,8 +200,8 @@ export function isUnattendedApprovalMode(execution: Run): boolean {
 
 /**
  * The tool-result text for an unattended auto-skip — ONE definition for both
- * harnesses (the native gate returns it as the skip ToolMessage; the Cursor
- * turn boundary backfills it onto stamped SKIPPED rows), so the transcript
+ * harnesses (each gate returns it as the skipped call's result), so the
+ * transcript
  * reads identically wherever the skip happened. Deliberately instructs
  * plain-language adaptation with NO tool/approval vocabulary reaching the end
  * user (the channel/guest anti-leak posture).
@@ -290,9 +290,8 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
  * The MCP half of the default for one turn: which MCP tools ask, and which
  * servers a lease has cleared. Built by the engine that binds the tools,
  * from the marks it read live ({@link buildMcpApprovalDefault}): the native
- * engine from the tools it loads, the Cursor engine from the turn start's
- * listing. Read by the gate, the provenance stamp and the Cursor hook state
- * alike.
+ * engine from the tools it loads, the Claude engine from the tools the
+ * host's bridge loads. Read by the gate and the provenance stamp alike.
  */
 export interface McpApprovalDefault {
   /** `${serverSlug}/${toolName}` for every tool its server marks destructive. */
@@ -376,7 +375,7 @@ export function resolveApprovalProvenance(
  * - A secret-keyed field ({@link SENSITIVE_ARG_KEYS}) is replaced with
  *   "[REDACTED]" (stigmer#1119): the message is stored on the row and shown on
  *   the approval card, which must carry no more than the redacted preview.
- *   Every approval message in the runner, native and Cursor alike, resolves
+ *   Every approval message in the runner, native and Claude alike, resolves
  *   here, so this is the one place the rule applies to it.
  */
 export function resolveApprovalMessage(
@@ -402,14 +401,9 @@ export function resolveApprovalMessage(
  * table both harnesses word their approval cards from (since #1097).
  * Keyed by category (not raw tool name) so every alias of a mutation renders
  * one message. It is read only through {@link resolveBuiltInApprovalMessage},
- * which the native gate (`resolveToolApproval`), the Cursor translator's `gate`
- * and the Cursor boundary's denied-call message all call, so the three can
- * never word a card differently.
- *
- * Until then the Cursor harness carried a table of its own and the two differed
- * by a word — `shell` read "Run command" there and "Execute command" here.
- * Unified on the plainer word: a user reads "Run command" and knows
- * what is being asked.
+ * which every gate calls, so no two can word a card differently. `shell`
+ * reads "Run command", the plainer word: a user reads it and knows what is
+ * being asked.
  */
 export const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
   write: "Write file: {{args.path}}",
@@ -423,8 +417,8 @@ export const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
  *
  * The `{{args.path}}` a file card reads is filled from `extractFilePath`
  * (`file-tools.ts`), the one home of "which argument names the file" across
- * both taxonomies: deepagents' file tools and the Cursor hook send
- * `file_path`, the Cursor stream sends `path`. Resolving the raw args instead
+ * both taxonomies: deepagents' and Claude's file tools send `file_path`;
+ * `path` is read too. Resolving the raw args instead
  * rendered a gated native write as "Write file: <unknown>" (#1112). The
  * template keeps its one placeholder, so the table stays harness-neutral.
  */

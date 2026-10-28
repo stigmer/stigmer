@@ -159,7 +159,7 @@ describe("createAgentRun", () => {
       fileIds: [],
       workspaceFileRefs: [],
       resources: [],
-      model: "composer-2.5",
+      model: "claude-sonnet-5",
       mode: "",
       serviceTier: "fast",
       thinking: "",
@@ -371,13 +371,13 @@ describe("createAgentRun", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
-      harness: "cursor",
+      harness: "claude",
     });
     expect(exec.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     expect(exec.spec?.fileIds).toEqual(["file_msg"]);
   });
 
-  it("stamps cursor harness on a session_spec created just for it (oss#293)", async () => {
+  it("stamps claude harness on a session_spec created just for it (oss#293)", async () => {
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,
@@ -394,11 +394,11 @@ describe("createAgentRun", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
-      harness: "cursor",
+      harness: "claude",
     });
     // Harness alone justifies the embedded spec: the server clones it onto
     // the auto-created session (the one-call bootstrap contract).
-    expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.CLAUDE);
     expect(sessionSpecOf(exec)?.resources).toEqual([]);
   });
 
@@ -449,9 +449,9 @@ describe("createAgentRun", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
-      harness: "cursor",
+      harness: "claude",
     });
-    expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.CLAUDE);
     expect(sessionSpecOf(exec)?.resources).toEqual([entry]);
   });
 

@@ -14,8 +14,8 @@ paths:
 
 The package guide (`backend/services/runner/AGENTS.md`) carries the laws; this
 skill carries the procedure that produces code obeying them, and the history
-that explains why they are laws. LangGraph, LangChain, MCP and the Cursor SDK
-produce inherently complex data: nested messages, denormalised tool calls,
+that explains why they are laws. LangGraph, LangChain, MCP and the Claude Agent
+SDK produce inherently complex data: nested messages, denormalised tool calls,
 layered checkpoints, streaming event hierarchies. The runner's job is to
 simplify that data, not to mirror its complexity. Every design decision here
 passes one test: does this make the data flow simpler or more complex? If more
@@ -29,10 +29,10 @@ complex, the design is wrong even when it is technically correct.
    decision, so the gate must be idempotent;
    `backend/services/runner/src/middleware/approval-gate.ts` states the
    contract), how a `ToolMessage` carries its `tool_call_id`, what the MCP
-   client exposes for a tool's identity, what `@cursor/sdk` reports for a turn.
-   The frameworks have identity primitives that are routinely underused; a
-   matching layer built before this step is usually a primitive nobody looked
-   for.
+   client exposes for a tool's identity, what `@anthropic-ai/claude-agent-sdk`
+   reports for a turn. The frameworks have identity primitives that are
+   routinely underused; a matching layer built before this step is usually a
+   primitive nobody looked for.
 2. **Map the data flow.** For every datum that crosses a component boundary
    (runner to server, workflow to activity, harness to runtime, runner to MCP
    server), write down who creates it, who reads it, who mutates it and where it

@@ -1,8 +1,7 @@
 /**
  * The native deep-agent harness's setup — what the LangGraph engine needs
  * before it can run a turn, as small named steps over the runtime's resolved
- * `TurnInput`, each returning a typed slice (the Cursor adapter's
- * `turn-setup.ts` mold; never one long function).
+ * `TurnInput`, each returning a typed slice (never one long function).
  *
  * Everything harness-agnostic has already happened when these run: the
  * execution, session and blueprint are fetched, the workspace is provisioned
@@ -110,8 +109,7 @@ import { declaredServerCount } from "../../shared/mcp-resolver.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
- * The runner config this harness reads per turn, as a named slice
- * (`execute-cursor/turn-setup.ts` `CursorAdapterConfig` is the idiom): a
+ * The runner config this harness reads per turn, as a named slice: a
  * whole `Config` satisfies it, a test constructs these fields and nothing
  * else. Smaller than the orchestrator's reach — the synthesized attachments'
  * endpoints it read are the runtime's now (since #1096).
@@ -200,8 +198,7 @@ export type DeepAgentGraphInput =
  * The registry id the turn runs on: the model the turn's resolved settings
  * name, as the runtime already read it (`input.model.requested`, `"default"` when the
  * turn's resolved settings name none — the runtime is the one reader of
- * `status.runConfig.modelName`, and the Cursor adapter reads the same
- * value), or the registry's default for `"default"`.
+ * `status.runConfig.modelName`), or the registry's default for `"default"`.
  * The same reading the runtime's File phase made for the vision budget,
  * so the model that sees the images is the model that runs. (Until #1096 this
  * read the spec field beside the runtime's resolved copy.)
@@ -488,7 +485,7 @@ export async function buildEngine(
   // row. The same factory builds every sub-agent's model, so each graph
   // follows the row of the model it runs on:
   // - no temperature: current Anthropic models refuse one other than their
-  //   default, and the Cursor harness sends none (stigmer/stigmer#1341);
+  //   default (stigmer/stigmer#1341);
   // - the row's output ceiling, where LangChain's per-model default falls to
   //   4096 on models its table does not know (stigmer/stigmer#1343), and
   //   streaming on every call because the SDK refuses a non-streaming
@@ -708,7 +705,7 @@ export async function buildEngine(
   sink.setupTiming.mark("build_middleware");
 
   // web_fetch is always-on for every native run (issue #214 parity with the
-  // Cursor harness); its URL guard posture — strict on managed cloud runners,
+  // Claude engine's WebFetch); its URL guard posture — strict on managed cloud runners,
   // relaxed on user-owned machines — is derived from the runner mode.
   const webFetchPosture = resolveGuardPosture(config.mode);
   // No tool stands in for reasoning: a graph reasons before it acts through

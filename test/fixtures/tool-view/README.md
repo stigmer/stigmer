@@ -7,7 +7,7 @@ renderers. (An earlier Go CLI `toolrender` package consumed them too; it was
 retired by the CLI TypeScript migration, PR #203.)
 
 They exist because tool *result* payloads are produced by third-party engines
-(deepagents, the Cursor SDK, the Claude Agent SDK) whose formats are version-fragile. Encoding every
+(deepagents, the Claude Agent SDK) whose formats are version-fragile. Encoding every
 format assumption here means a future engine/SDK bump fails one test and is fixed
 in one place, instead of silently drifting across client implementations.
 
@@ -33,7 +33,7 @@ in one place, instead of silently drifting across client implementations.
 `classification.json` case:
 
 ```json
-{ "name": "StrReplace", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" }
+{ "name": "Edit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" }
 ```
 
 `result-views.json` case:
@@ -55,17 +55,14 @@ in one place, instead of silently drifting across client implementations.
 
 Only **deterministic facts** are asserted across languages: `type`, `path`,
 `exitCode`, `count`, `mcpServerSlug`, and `command` (the shell command echoed
-back from args onto the terminal view). Computed diff line counts depend on the
-per-language diff implementation and are **surface-local** — they are asserted in
-each surface's own unit tests, not here, except when the count is present in the
-source data (e.g. the Cursor edit envelope's `linesAdded`/`linesRemoved`), in
-which case `expected.linesAdded`/`linesRemoved` are included and asserted.
+back from args onto the terminal view). Diff line counts are computed from the
+call's old/new text by each surface's diff implementation, so they are
+**surface-local** — asserted in each surface's own unit tests, not here.
 
 The `search` view also carries `kind` (`"files"` for a glob/file-name search,
-`"content"` for a grep-style search) and `truncated` (the engine capped the
-results). These are presentation hints rather than cross-language scalar facts,
-so they are asserted in each surface's own unit tests (e.g.
-`tool-view.search.test.ts`), not in this shared fixture.
+`"content"` for a grep-style search). It is a presentation hint rather than a
+cross-language scalar fact, so it is asserted in each surface's own unit tests
+(e.g. `tool-view.search.test.ts`), not in this shared fixture.
 
 ## Consumers
 

@@ -45,9 +45,6 @@ const activities = {
     if (!behavior) throw new Error("capture script exhausted");
     return behavior();
   },
-  ExecuteCursor: async () => {
-    throw new Error("not used in capture scenarios");
-  },
   // The Claude engine shares native's deterministic-state flow and its
   // scripted turns.
   ExecuteClaude: async () => {
@@ -62,7 +59,6 @@ const activities = {
   // A history recorded before the open-gate count loaded the run instead;
   // registered so such a history's load can still be scripted.
   LoadAgentExecution: async () => ({ metadata: { id: "exec-replay" } }),
-  ReadHarnessStateId: async () => "",
   // The retired run-end cleanup (temporal/agentexecution/names.ts): a new
   // capture records its patch and never calls it; registered so the
   // committed histories that do still replay.

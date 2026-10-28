@@ -6,7 +6,7 @@
  * ----------------------------
  * Platform content — resolved skills, attached inputs, the approved plan —
  * lives in the session's platform dir, outside the workspace, and reaches the
- * agent at `.stigmer/…` (`shared/workspace/stigmer-link.ts`). The Cursor SDK
+ * agent at `.stigmer/…` (`shared/workspace/stigmer-link.ts`). The Claude engine
  * and the shell follow the workspace's `.stigmer` symlink to it. The native
  * file tools cannot: deepagents (since 1.14) resolves every path of a
  * `virtualMode` backend to its REAL location and refuses one that lands

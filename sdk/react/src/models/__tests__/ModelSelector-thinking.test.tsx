@@ -113,7 +113,7 @@ afterEach(cleanup);
 describe("thinkingSelectable and thinkingLocked", () => {
   it("read the entry's own flags, with no harness check", () => {
     expect(thinkingSelectable(NATIVE_ADAPTIVE)).toBe(true);
-    expect(thinkingSelectable({ ...NATIVE_ADAPTIVE, harness: "cursor" })).toBe(true);
+    expect(thinkingSelectable({ ...NATIVE_ADAPTIVE, harness: "claude" })).toBe(true);
     expect(thinkingSelectable(NATIVE_UNASSESSED)).toBe(false);
     expect(thinkingSelectable({ ...NATIVE_ADAPTIVE, thinkingCapable: false })).toBe(false);
     expect(thinkingLocked(NATIVE_ALWAYS_THINKS)).toBe(true);

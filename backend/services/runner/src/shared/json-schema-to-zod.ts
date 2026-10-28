@@ -1,8 +1,8 @@
 /**
  * Convert a JSON Schema object to a Zod schema.
  *
- * Used by both harness activities (ExecuteCursor extraction,
- * ExecuteDeepAgent responseFormat) to produce Zod schemas for
+ * Used by the runtime's structured-output extraction and the native
+ * harness's responseFormat to produce Zod schemas for
  * `withStructuredOutput()` / function-calling APIs.
  *
  * Handles the subset of JSON Schema used by structured output schemas:

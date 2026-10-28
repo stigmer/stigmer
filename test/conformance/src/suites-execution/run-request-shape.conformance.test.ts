@@ -74,13 +74,12 @@
 // purpose — a dependency bump moves the golden, and the hunk is the review of
 // what upstream changed.
 //
-// Deliberately out of scope: the Cursor harness (its model calls never
-// traverse the mock, so the surface it pays for is not observable here);
-// the number of model rounds a task takes (the mock's script fixes it, so
-// only a live run can measure it); the model id the provider received
-// (run-messages' model-resolution arm); the `messages` array (the
-// transcript facet's, read from status), except for the one fact status
-// cannot show: which user message a turn's payload rides.
+// Deliberately out of scope: the number of model rounds a task takes (the
+// mock's script fixes it, so only a live run can measure it); the model id
+// the provider received (run-messages' model-resolution arm); the
+// `messages` array (the transcript facet's, read from status), except for
+// the one fact status cannot show: which user message a turn's payload
+// rides.
 //
 // A golden moves only under a ruling quoted in the PR that moves it, with
 // every hunk explained; never a quiet `vitest -u`.

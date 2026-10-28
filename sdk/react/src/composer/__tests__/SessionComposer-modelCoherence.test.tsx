@@ -31,26 +31,27 @@ beforeAll(() => {
  * succeed).
  */
 
-const AUTO: ModelInfo = {
-  modelId: "default",
-  provider: "cursor",
-  displayName: "Auto",
-  shortDescription: "Automatic model selection",
+/** The harness default: the featured standard-cost model, with no fast variant. */
+const DEFAULT: ModelInfo = {
+  modelId: "claude-sonnet-4-6",
+  provider: "anthropic",
+  displayName: "Sonnet 4.6",
+  shortDescription: "Balanced default",
   speedTier: "fast",
   costTier: "standard",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: [],
 };
 
 const FAST_CAPABLE: ModelInfo = {
-  modelId: "composer-2.5",
-  provider: "cursor",
-  displayName: "Composer 2.5",
-  shortDescription: "Fast agentic model",
-  speedTier: "fastest",
-  costTier: "economy",
-  harness: "cursor",
+  modelId: "claude-opus-4-8",
+  provider: "anthropic",
+  displayName: "Opus 4.8",
+  shortDescription: "Frontier model with a fast tier",
+  speedTier: "slow",
+  costTier: "premium",
+  harness: "native",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -62,7 +63,7 @@ const NO_FAST: ModelInfo = {
   shortDescription: "No fast variant",
   speedTier: "fast",
   costTier: "standard",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: [],
 };
@@ -123,27 +124,27 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("adopts the displayed harness default when no model is selected", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="cursor" />,
-      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, AUTO, NO_FAST] }) },
+      <SessionComposer onSubmit={onSubmit} harness="native" />,
+      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
-    // The pill displays the harness default (Auto for cursor)…
-    expect(screen.getByRole("button", { name: /Auto/ })).toBeTruthy();
+    // The pill displays the harness default…
+    expect(screen.getByRole("button", { name: /Sonnet 4\.6/ })).toBeTruthy();
 
     submitMessage("hello");
 
     // …and the submission carries exactly that model, never undefined.
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][1]).toBe("default");
+    expect(onSubmit.mock.calls[0][1]).toBe("claude-sonnet-4-6");
   });
 
-  it("renders no fast-tier switch for a fresh cursor composer (Auto has no tier dimension)", async () => {
+  it("renders no fast-tier switch for a fresh composer whose default prices no fast variant", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} harness="cursor" />,
-      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, AUTO, NO_FAST] }) },
+      <SessionComposer onSubmit={vi.fn()} harness="native" />,
+      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Auto/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Sonnet 4\.6/ }));
     // Popover content mounts async; settle on the options area appearing.
     await screen.findByRole("dialog");
     expect(screen.queryByRole("switch", { name: "Fast tier" })).toBeNull();
@@ -152,19 +153,19 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("drops an armed fast tier when a prop-driven model change lands on a model without a fast variant", async () => {
     const onSubmit = vi.fn();
     const wrapper = createWrapper(createMinimalStigmerMock(), {
-      models: [FAST_CAPABLE, AUTO, NO_FAST],
+      models: [FAST_CAPABLE, DEFAULT, NO_FAST],
     });
     const { rerender } = render(
-      <SessionComposer onSubmit={onSubmit} harness="cursor" defaultModelId="composer-2.5" />,
+      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="claude-opus-4-8" />,
       { wrapper },
     );
 
     // Arm fast on the fast-capable model (user-driven), then let the host
     // re-sync `defaultModelId` onto a model with no fast variant — the
     // path that bypasses ModelSelector's user-pick reset.
-    await toggleFastTier(/Composer 2\.5/);
+    await toggleFastTier(/Opus 4\.8/);
     rerender(
-      <SessionComposer onSubmit={onSubmit} harness="cursor" defaultModelId="gpt-5.3-codex" />,
+      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="gpt-5.3-codex" />,
     );
 
     submitMessage("resynced");
@@ -179,8 +180,8 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("never adopts a default while the model selector is hidden (the hider owns the model)", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="cursor" showModelSelector={false} />,
-      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, AUTO, NO_FAST] }) },
+      <SessionComposer onSubmit={onSubmit} harness="native" showModelSelector={false} />,
+      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
     submitMessage("guest-shaped send");
@@ -194,8 +195,8 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("adopts the displayed default over a model id the registry no longer lists", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="cursor" defaultModelId="retired-model" />,
-      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, AUTO, NO_FAST] }) },
+      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="retired-model" />,
+      { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
     submitMessage("stale id");
@@ -203,13 +204,13 @@ describe("SessionComposer — effective run selection (#663)", () => {
     // The pill cannot display "retired-model" (unknown → falls back to the
     // harness default), so the payload must not carry it either.
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][1]).toBe("default");
+    expect(onSubmit.mock.calls[0][1]).toBe("claude-sonnet-4-6");
   });
 
   it("passes the raw model id through while the registry is still loading", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="cursor" defaultModelId="composer-2.5" />,
+      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="claude-opus-4-8" />,
       { wrapper: createWrapper(createMinimalStigmerMock(), { models: [], isLoading: true }) },
     );
 
@@ -217,6 +218,6 @@ describe("SessionComposer — effective run selection (#663)", () => {
 
     // Nothing can be classified mid-load: adopt nothing, rewrite nothing.
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][1]).toBe("composer-2.5");
+    expect(onSubmit.mock.calls[0][1]).toBe("claude-opus-4-8");
   });
 });

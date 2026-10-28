@@ -463,8 +463,8 @@ describe("laterPushRefusal", () => {
       code: "secrets_changed",
       reason: expect.stringMatching(/STIGMER_PAYLOAD_ENCRYPTION_KEY differs/),
     });
-    expect(laterPushRefusal({}, { CURSOR_API_KEY: "k" })?.code).toBe("secrets_changed");
-    expect(laterPushRefusal({ CURSOR_API_KEY: "k" }, {})?.code).toBe("secrets_changed");
+    expect(laterPushRefusal({}, { ANTHROPIC_API_KEY: "k" })?.code).toBe("secrets_changed");
+    expect(laterPushRefusal({ ANTHROPIC_API_KEY: "k" }, {})?.code).toBe("secrets_changed");
   });
 
   it("refuses dropping a token the first push carried, as token_mismatch", () => {

@@ -6,15 +6,13 @@
  *
  * Why it matters: the composition roots import the harness table
  * (`src/harness-adapters.ts`) BEFORE they boot it, and that table must stay
- * connect- and SDK-free (the Cursor adapter's boot patches `node:http2`
- * before anything dials the control plane; `harness-adapters.ts` states the
- * rule). An adapter that imported its SDK at the top of its module would
- * defeat it: this adapter's row is the table's second (#1096, 2026-09-13).
+ * SDK-free, so the runner's own process loads no engine
+ * (`harness-adapters.ts` states the rule). An adapter that imported its SDK
+ * at the top of its module would defeat it (#1096, 2026-09-13).
  * This fence is THE proof that the engine is not on the static graph — it
  * walks every relative module transitively and records every package the
- * graph names; the boot ORDER (native's `boot` runs after the Cursor patch)
- * is proven in a real process by `src/__tests__/harness-boot-order.test.ts`,
- * which boots both rows.
+ * graph names; `src/__tests__/harness-boot-order.test.ts` boots every row
+ * in a real process.
  *
  * Read off the syntax tree (`__test-utils__/module-specifiers.ts`): a
  * `import type` is erased and a dynamic `import()` runs only inside `boot`,

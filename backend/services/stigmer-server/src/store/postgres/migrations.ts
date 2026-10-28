@@ -2016,10 +2016,10 @@ async function migrateToV27(client: PoolClient): Promise<void> {
 }
 
 /**
- * v28: a session's harness state moves from its spec to its status
+ * v28: a session's retired harness state leaves its spec
  * (../session-harness-state-moved.ts says what each row becomes). Every
  * session row is read in keyset pages on `(kind, id)` and rewritten only
- * when its spec holds a moved field, its `updated_at` left alone. The
+ * when its spec holds a retired field, its `updated_at` left alone. The
  * chain's advisory lock keeps a second instance's boot out of the step,
  * and the transaction makes it whole or nothing.
  */

@@ -19,10 +19,7 @@ export interface HarnessSelectorProps {
  * Compact segmented control for choosing the session execution engine.
  *
  * Renders one mutually exclusive option per offered engine — "Stigmer"
- * (native), "Cursor" (premium) and "Claude" — as adjacent pill segments.
- * The Cursor segment carries a subtle premium tier indicator; Claude bills
- * at Anthropic's prices on the organization's key, as native does, so it
- * carries none.
+ * (native) and "Claude" — as adjacent pill segments.
  *
  * Built as a `radiogroup` with full arrow-key navigation and ARIA
  * semantics. All visual properties flow through `--stgm-*` tokens.
@@ -114,14 +111,6 @@ export function HarnessSelector({
             ].join(" ")}
           >
             {HARNESS_LABELS[option]}
-            {option === "cursor" && (
-              <span
-                aria-label="premium"
-                className="stg:text-2xs stg:text-muted-foreground"
-              >
-                $$$
-              </span>
-            )}
           </button>
         );
       })}

@@ -460,7 +460,7 @@ describe("the native translator through the builder", () => {
   // ── Todo extraction (write_todos → status.todos) ─────────────────
   //
   // The native harness emits write_todos; projecting it into status.todos is
-  // what lights up the client TodoCard at parity with the Cursor harness.
+  // what lights up the client TodoCard, as on every harness.
 
   describe("todo extraction", () => {
     it("projects a completed write_todos into status.todos", () => {

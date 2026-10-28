@@ -434,7 +434,7 @@ describe("the copy the suites assert", () => {
     expect(PLUGIN_NOT_SELECTED_REASON).toBe("not selected");
     expect(PLUGIN_NO_CASES_REASON).toBe("no eval cases at this version");
     expect(unsupportedFeatureReason("plugins")).toBe("not run: plugins");
-    expect(engineUnsupportedReason("Cursor", "env")).toBe("not run on Cursor: env");
+    expect(engineUnsupportedReason("Claude", "resumed conversations")).toBe("not run on Claude: resumed conversations");
     expect(NOT_STARTED_NO_MOCK).toBe("not started: no mock");
     expect(timedOutError(30)).toBe("timed out after 30s");
   });

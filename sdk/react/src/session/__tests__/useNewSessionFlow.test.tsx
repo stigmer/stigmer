@@ -24,7 +24,7 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ReactNode } from "react";
-import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
+import { DEFAULT_MODEL_ID, parseRegistryJson } from "../../models/registry";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 import { ExecutionTargetContext } from "../../execution-target-context";
@@ -75,7 +75,7 @@ import { useNewSessionFlow } from "../useNewSessionFlow";
 const TEST_MODELS = parseRegistryJson({
   models: [
     { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
-    { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
+    { id: "claude-haiku-4.5", displayName: "Claude Haiku 4.5", shortDescription: "", speedTier: "fastest", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.1 } },
   ],
 });
 
@@ -112,7 +112,8 @@ function createMockAdapter(): RunnerAdapter & {
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 const STORAGE_KEY_MODEL_NATIVE = "stigmer:session:model";
-const STORAGE_KEY_MODEL_CURSOR = "stigmer:session:model:cursor";
+const STORAGE_KEY_MODEL_CLAUDE = "stigmer:session:model:claude";
+const CLAUDE_MODEL_ID = "claude-haiku-4.5";
 
 function defaultOptions() {
   return {
@@ -142,10 +143,10 @@ describe("useNewSessionFlow", () => {
       expect(result.current.harness).toBe("native");
     });
 
-    it("restores cursor harness from localStorage", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+    it("restores claude harness from localStorage", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-      expect(result.current.harness).toBe("cursor");
+      expect(result.current.harness).toBe("claude");
     });
 
     it("falls back to native for unknown localStorage values", () => {
@@ -157,14 +158,14 @@ describe("useNewSessionFlow", () => {
     it("persists harness to localStorage on change", () => {
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
-      act(() => result.current.setHarness("cursor"));
+      act(() => result.current.setHarness("claude"));
 
-      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("cursor");
-      expect(result.current.harness).toBe("cursor");
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBe("claude");
+      expect(result.current.harness).toBe("claude");
     });
 
     it("persists native harness to localStorage", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setHarness("native"));
@@ -174,7 +175,7 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("per-harness model persistence", () => {
-    it("uses separate storage keys for native and cursor models", () => {
+    it("uses separate storage keys for native and claude models", () => {
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
@@ -182,28 +183,28 @@ describe("useNewSessionFlow", () => {
       expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBe(
         DEFAULT_MODEL_ID,
       );
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBeNull();
     });
 
-    it("persists cursor model to cursor-specific key", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+    it("persists claude model to claude-specific key", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
-      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      act(() => result.current.setModelId(CLAUDE_MODEL_ID));
 
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBe(
-        DEFAULT_CURSOR_MODEL_ID,
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBe(
+        CLAUDE_MODEL_ID,
       );
     });
 
     it("restores per-harness model when switching harness", () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, CLAUDE_MODEL_ID);
 
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
-      act(() => result.current.setHarness("cursor"));
+      act(() => result.current.setHarness("claude"));
 
-      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+      expect(result.current.modelId).toBe(CLAUDE_MODEL_ID);
     });
 
     it("clears modelId when switching to a harness with no stored model", () => {
@@ -212,14 +213,14 @@ describe("useNewSessionFlow", () => {
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
       expect(result.current.modelId).toBe(DEFAULT_MODEL_ID);
 
-      act(() => result.current.setHarness("cursor"));
+      act(() => result.current.setHarness("claude"));
 
-      // No stored cursor model → modelId should be undefined
-      // (unless the model happens to be valid in the cursor registry)
+      // No stored claude model → modelId should be undefined
+      // (unless the model happens to be valid in the claude registry)
       if (result.current.modelId !== undefined) {
-        // If it has a value, it must be valid for cursor harness
+        // If it has a value, it must be valid for claude harness
         expect(result.current.modelId).toBe(
-          localStorage.getItem(STORAGE_KEY_MODEL_CURSOR),
+          localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE),
         );
       }
     });
@@ -231,33 +232,33 @@ describe("useNewSessionFlow", () => {
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
       expect(result.current.modelId).toBe(DEFAULT_MODEL_ID);
 
-      // Switch to cursor → native model should be invalidated
-      act(() => result.current.setHarness("cursor"));
+      // Switch to claude → native model should be invalidated
+      act(() => result.current.setHarness("claude"));
 
-      // DEFAULT_MODEL_ID (anthropic) is not in cursor registry
+      // DEFAULT_MODEL_ID (anthropic) is not in the claude registry
       expect(result.current.modelId).not.toBe(DEFAULT_MODEL_ID);
     });
 
     it("strips compound keys before persisting to localStorage", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       // Simulate compound key from unified mode ModelSelector
-      act(() => result.current.setModelId("cursor/default"));
+      act(() => result.current.setModelId("claude/claude-haiku-4.5"));
 
       // Should store plain modelId, not compound key
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBe("default");
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBe(CLAUDE_MODEL_ID);
     });
 
     it("restores compound keys from localStorage as plain modelId", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       // Legacy: compound key was stored before fix
-      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, "cursor/default");
+      localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, "claude/claude-haiku-4.5");
 
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       // Should extract plain modelId and validate against registry
-      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+      expect(result.current.modelId).toBe(CLAUDE_MODEL_ID);
     });
   });
 
@@ -567,18 +568,18 @@ describe("useNewSessionFlow", () => {
       expect(result.current.autoApproveAll).toBe(false);
     });
 
-    it("passes cursor harness in the sessionSpec after switching", async () => {
+    it("passes claude harness in the sessionSpec after switching", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      act(() => result.current.setHarness("cursor"));
+      act(() => result.current.setHarness("claude"));
 
       await act(async () => {
         await result.current.submit("Hello");
       });
 
       const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.harness).toBe("cursor");
+      expect(execInput.sessionSpec.harness).toBe("claude");
     });
 
     it("forwards metadata and sessionContext verbatim in the sessionSpec", async () => {
@@ -676,11 +677,11 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("the selected agent's engine and run defaults", () => {
-    const AGENT_ON_CURSOR = {
+    const AGENT_ON_CLAUDE = {
       metadata: { id: "agt_1", org: "acme", slug: "reviewer" },
       spec: {
-        harness: Harness.CURSOR,
-        runConfig: { modelName: "default", thinkingMode: ThinkingMode.UNSPECIFIED },
+        harness: Harness.CLAUDE,
+        runConfig: { modelName: CLAUDE_MODEL_ID, thinkingMode: ThinkingMode.UNSPECIFIED },
       },
     };
 
@@ -692,20 +693,20 @@ describe("useNewSessionFlow", () => {
         hook.result.current.setResolution({ mode: "direct" });
       });
       await waitFor(() => expect(hook.result.current.harness).toBe(
-        (agent as typeof AGENT_ON_CURSOR | null)?.spec.harness === Harness.CURSOR ? "cursor" : "native",
+        (agent as typeof AGENT_ON_CLAUDE | null)?.spec.harness === Harness.CLAUDE ? "claude" : "native",
       ));
       return hook;
     }
 
     it("opens the engine picker on the agent's engine over a remembered one", async () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "native");
-      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
-      expect(result.current.harness).toBe("cursor");
-      expect(result.current.agentRunDefaults).toEqual({ modelName: "default" });
+      const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
+      expect(result.current.harness).toBe("claude");
+      expect(result.current.agentRunDefaults).toEqual({ modelName: CLAUDE_MODEL_ID });
     });
 
     it("keeps the remembered engine where the agent names none", async () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
       mockGetByReference.mockResolvedValue({
         metadata: { id: "agt_2", org: "acme", slug: "plain" },
@@ -715,20 +716,20 @@ describe("useNewSessionFlow", () => {
         result.current.setAgentRef({ org: "acme", slug: "plain" });
       });
       await waitFor(() => expect(mockGetByReference).toHaveBeenCalled());
-      expect(result.current.harness).toBe("cursor");
+      expect(result.current.harness).toBe("claude");
       expect(result.current.agentRunDefaults).toBeUndefined();
     });
 
     it("the person's engine pick wins over the agent's", async () => {
-      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
       act(() => result.current.setHarness("native"));
       expect(result.current.harness).toBe("native");
       expect(result.current.agentRunDefaults).toBeUndefined();
     });
 
     it("sends no remembered model where the agent's default applies", async () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
-      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
+      localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, CLAUDE_MODEL_ID);
+      const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
       expect(result.current.modelId).toBeUndefined();
 
       await act(async () => {
@@ -738,14 +739,14 @@ describe("useNewSessionFlow", () => {
     });
 
     it("sends a model the person picks over the agent's default", async () => {
-      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
-      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
-      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+      const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
+      act(() => result.current.setModelId(CLAUDE_MODEL_ID));
+      expect(result.current.modelId).toBe(CLAUDE_MODEL_ID);
     });
 
     it("forgets the picked model when the person chooses the agent's default back", async () => {
-      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
-      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
+      act(() => result.current.setModelId(CLAUDE_MODEL_ID));
       act(() => result.current.clearModelPick());
       expect(result.current.modelId).toBeUndefined();
 
@@ -756,13 +757,13 @@ describe("useNewSessionFlow", () => {
     });
 
     it("forgets the picked model when the person picks another agent", async () => {
-      const { result } = await renderWithAgent(AGENT_ON_CURSOR);
-      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
-      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+      const { result } = await renderWithAgent(AGENT_ON_CLAUDE);
+      act(() => result.current.setModelId(CLAUDE_MODEL_ID));
+      expect(result.current.modelId).toBe(CLAUDE_MODEL_ID);
 
       mockGetByReference.mockResolvedValue({
         metadata: { id: "agt_3", org: "acme", slug: "writer" },
-        spec: { harness: Harness.CURSOR, runConfig: { modelName: "default" } },
+        spec: { harness: Harness.CLAUDE, runConfig: { modelName: CLAUDE_MODEL_ID } },
       });
       await act(async () => {
         result.current.setAgentRef({ org: "acme", slug: "writer" });
@@ -792,13 +793,13 @@ describe("useNewSessionFlow", () => {
       expect(result.current.submitError).toMatch(/still loading/);
 
       await act(async () => {
-        resolveAgent(AGENT_ON_CURSOR);
+        resolveAgent(AGENT_ON_CLAUDE);
       });
-      await waitFor(() => expect(result.current.harness).toBe("cursor"));
+      await waitFor(() => expect(result.current.harness).toBe("claude"));
       await act(async () => {
         await result.current.submit("Hello");
       });
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("cursor");
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("claude");
     });
 
     it("drops a model picked for the other engine when the agent's engine loads after the pick", async () => {
@@ -813,24 +814,24 @@ describe("useNewSessionFlow", () => {
       act(() => result.current.setModelId("claude-sonnet-4.6"));
       expect(result.current.harness).toBe("native");
 
-      // ...then the agent names the cursor engine.
+      // ...then the agent names the claude engine.
       await act(async () => {
         resolveAgent({
           metadata: { id: "agt_4", org: "acme", slug: "reviewer" },
-          spec: { harness: Harness.CURSOR },
+          spec: { harness: Harness.CLAUDE },
         });
       });
-      await waitFor(() => expect(result.current.harness).toBe("cursor"));
+      await waitFor(() => expect(result.current.harness).toBe("claude"));
 
       expect(result.current.modelId).toBeUndefined();
-      // Never filed under the cursor engine's remembered model either.
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
+      // Never filed under the claude engine's remembered model either.
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBeNull();
       await act(async () => {
         await result.current.submit("Hello");
       });
       const execInput = mockCreateExecution.mock.calls[0][0];
       expect(execInput.modelName).toBeUndefined();
-      expect(execInput.sessionSpec.harness).toBe("cursor");
+      expect(execInput.sessionSpec.harness).toBe("claude");
     });
   });
 
@@ -1011,22 +1012,22 @@ describe("useNewSessionFlow", () => {
 
   describe("defaultHarness", () => {
     it("seeds the embedder default when no harness is stored", () => {
-      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const opts = { ...defaultOptions(), defaultHarness: "claude" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      expect(result.current.harness).toBe("cursor");
+      expect(result.current.harness).toBe("claude");
     });
 
     it("stored user choice outranks the embedder default", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "native");
-      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const opts = { ...defaultOptions(), defaultHarness: "claude" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       expect(result.current.harness).toBe("native");
     });
 
     it("does not persist the seeded default — only explicit choices", () => {
-      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const opts = { ...defaultOptions(), defaultHarness: "claude" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       // Seeding must not masquerade as a user choice, otherwise the
@@ -1038,14 +1039,14 @@ describe("useNewSessionFlow", () => {
     });
 
     it("submits sessions with the seeded default harness", async () => {
-      const opts = { ...defaultOptions(), defaultHarness: "cursor" as const };
+      const opts = { ...defaultOptions(), defaultHarness: "claude" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("cursor");
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("claude");
     });
   });
 
@@ -1056,8 +1057,6 @@ describe("useNewSessionFlow", () => {
       models: [
         { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
         { id: "gpt-5.3", displayName: "GPT 5.3", shortDescription: "", speedTier: "fast", provider: "openai", harness: "native", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 8, cacheWritePricePerMillion: 2, cacheReadPricePerMillion: 0.2 } },
-        { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
-        { id: "composer-2.5", displayName: "Composer 2.5", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: false, pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1, cacheReadPricePerMillion: 0.1 } },
         { id: "claude-sonnet-5", displayName: "Claude Sonnet 5", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 0.2 } },
       ],
     });
@@ -1074,15 +1073,15 @@ describe("useNewSessionFlow", () => {
     }
 
     it("seeds the harness when nothing is stored", () => {
-      const opts = { ...defaultOptions(), accountDefaults: { harness: "cursor" as const } };
+      const opts = { ...defaultOptions(), accountDefaults: { harness: "claude" as const } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
-      expect(result.current.harness).toBe("cursor");
+      expect(result.current.harness).toBe("claude");
     });
 
     it("a stored harness choice outranks the account default", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "native");
-      const opts = { ...defaultOptions(), accountDefaults: { harness: "cursor" as const } };
+      const opts = { ...defaultOptions(), accountDefaults: { harness: "claude" as const } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
       expect(result.current.harness).toBe("native");
@@ -1092,15 +1091,15 @@ describe("useNewSessionFlow", () => {
       const opts = {
         ...defaultOptions(),
         defaultHarness: "native" as const,
-        accountDefaults: { harness: "cursor" as const },
+        accountDefaults: { harness: "claude" as const },
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
-      expect(result.current.harness).toBe("cursor");
+      expect(result.current.harness).toBe("claude");
     });
 
     it("never persists the seeded harness — only explicit choices", () => {
-      const opts = { ...defaultOptions(), accountDefaults: { harness: "cursor" as const } };
+      const opts = { ...defaultOptions(), accountDefaults: { harness: "claude" as const } };
       renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
       expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
@@ -1114,9 +1113,9 @@ describe("useNewSessionFlow", () => {
       );
       expect(result.current.harness).toBe("native");
 
-      rerender({ ...base, accountDefaults: { harness: "cursor" as const } });
+      rerender({ ...base, accountDefaults: { harness: "claude" as const } });
 
-      expect(result.current.harness).toBe("cursor");
+      expect(result.current.harness).toBe("claude");
       expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
     });
 
@@ -1128,7 +1127,7 @@ describe("useNewSessionFlow", () => {
       );
       act(() => result.current.setHarness("native"));
 
-      rerender({ ...base, accountDefaults: { harness: "cursor" as const } });
+      rerender({ ...base, accountDefaults: { harness: "claude" as const } });
 
       expect(result.current.harness).toBe("native");
     });
@@ -1165,17 +1164,6 @@ describe("useNewSessionFlow", () => {
       expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBeNull();
     });
 
-    it("follows the active harness: cursorModel seeds cursor sessions", () => {
-      const opts = {
-        ...defaultOptions(),
-        accountDefaults: { harness: "cursor" as const, nativeModel: "gpt-5.3", cursorModel: "composer-2.5" },
-      };
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
-
-      expect(result.current.harness).toBe("cursor");
-      expect(result.current.modelId).toBe("composer-2.5");
-    });
-
     it("follows the active harness: claudeModel seeds Claude sessions, a stored Claude pick outranks the account's engine", () => {
       const opts = {
         ...defaultOptions(),
@@ -1187,7 +1175,7 @@ describe("useNewSessionFlow", () => {
       unmount();
 
       localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
-      const stored = renderHook(() => useNewSessionFlow({ ...defaultOptions(), accountDefaults: { harness: "cursor" as const } }), { wrapper: seedWrapper() });
+      const stored = renderHook(() => useNewSessionFlow({ ...defaultOptions(), accountDefaults: { harness: "native" as const } }), { wrapper: seedWrapper() });
       expect(stored.result.current.harness).toBe("claude");
     });
 
@@ -1206,7 +1194,7 @@ describe("useNewSessionFlow", () => {
       const opts = {
         ...defaultOptions(),
         audience: "guest" as const,
-        accountDefaults: { harness: "cursor" as const, nativeModel: "gpt-5.3", cursorModel: "composer-2.5" },
+        accountDefaults: { harness: "claude" as const, nativeModel: "gpt-5.3", claudeModel: "claude-sonnet-5" },
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
@@ -1301,7 +1289,7 @@ describe("useNewSessionFlow", () => {
     it("names no engine, ignoring a stored Console choice: the chat link's agent's engine applies", async () => {
       // A browser previously used in the Console must not leak its stored
       // harness into a share/embed session.
-      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -1338,7 +1326,7 @@ describe("useNewSessionFlow", () => {
       const opts = {
         ...defaultOptions(),
         audience: "guest" as const,
-        defaultHarness: "cursor" as const,
+        defaultHarness: "claude" as const,
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -1354,7 +1342,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("does not restore a stored model — modelId stays undefined", () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, CLAUDE_MODEL_ID);
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -1366,17 +1354,17 @@ describe("useNewSessionFlow", () => {
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       act(() => result.current.setHarness("native"));
-      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+      act(() => result.current.setModelId(CLAUDE_MODEL_ID));
 
       expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
       expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBeNull();
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBeNull();
     });
 
     it("submits with NO engine and NO model: the chat link's agent applies its own", async () => {
       // Stored values simulate a Console-used browser: neither may leak.
       localStorage.setItem(STORAGE_KEY_HARNESS, "native");
-      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, CLAUDE_MODEL_ID);
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 

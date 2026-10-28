@@ -17,10 +17,8 @@
  *    snapshot per request; it never rejects.
  *  - `recordActivity`, `reportUsage` and every event the builder folds are
  *    notices: the runtime's watchdog, cost cap and turn timeline read them.
- *  - `reportProgress` and `bindHarnessState` are calls, because the
- *    contract lets an adapter await them. `bindHarnessState` sends the
- *    engine-minted id alone: the runtime records it through the session's
- *    door, and nothing on the session record the adapter holds changes.
+ *  - `reportProgress` is a call, because the contract lets an adapter
+ *    await it.
  *  - `bindCasObservations` keeps the reader here and tells the runtime one
  *    exists; the runtime pulls through `readCasObservations`.
  *
@@ -130,9 +128,6 @@ export class HostTurn {
         } catch (err) {
           console.warn(`[agent-host] progress label not reported: execution=${input.executionId}, ${describe(err)}`);
         }
-      },
-      bindHarnessState: async (harnessStateId: string) => {
-        await peer.call("bindHarnessState", { turnId, harnessStateId });
       },
       bindCasObservations: (read: CasTouchedReader) => {
         this.casReader = read;

@@ -64,23 +64,22 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ce.ApiResourceReferenceB\004\340\205,\025R\023federatio" +
       "nIssuerRef\022_\n\013preferences\030\t \001(\0132=.ai.sti" +
       "gmer.iam.identityaccount.v1.IdentityAcco" +
-      "untPreferencesR\013preferences\"\246\003\n\032Identity" +
+      "untPreferencesR\013preferences\"\377\002\n\032Identity" +
       "AccountPreferences\0223\n\020standing_context\030\001" +
-      " \001(\tB\010\272H\005r\003\030\320\017R\017standingContext\022I\n\017defau" +
-      "lt_harness\030\002 \001(\tB \272H\035r\030R\006nativeR\006cursorR" +
-      "\006claude\330\001\001R\016defaultHarness\0229\n\024default_na" +
-      "tive_model\030\003 \001(\tB\007\272H\004r\002\030dR\022defaultNative" +
-      "Model\0229\n\024default_cursor_model\030\004 \001(\tB\007\272H\004" +
-      "r\002\030dR\022defaultCursorModel\022%\n\016memory_enabl" +
-      "ed\030\005 \001(\010R\rmemoryEnabled\0220\n\024default_auto_" +
-      "approve\030\006 \001(\010R\022defaultAutoApprove\0229\n\024def" +
-      "ault_claude_model\030\007 \001(\tB\007\272H\004r\002\030dR\022defaul" +
-      "tClaudeModelB\264\001B\tSpecProtoP\001\242\002\004ASII\252\002!Ai" +
-      ".Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Sti" +
-      "gmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer" +
-      "\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai" +
-      "::Stigmer::Iam::Identityaccount::V1b\006pro" +
-      "to3"
+      " \001(\tB\010\272H\005r\003\030\320\017R\017standingContext\022A\n\017defau" +
+      "lt_harness\030\002 \001(\tB\030\272H\025r\020R\006nativeR\006claude\330" +
+      "\001\001R\016defaultHarness\0229\n\024default_native_mod" +
+      "el\030\003 \001(\tB\007\272H\004r\002\030dR\022defaultNativeModel\022%\n" +
+      "\016memory_enabled\030\005 \001(\010R\rmemoryEnabled\0220\n\024" +
+      "default_auto_approve\030\006 \001(\010R\022defaultAutoA" +
+      "pprove\0229\n\024default_claude_model\030\007 \001(\tB\007\272H" +
+      "\004r\002\030dR\022defaultClaudeModelJ\004\010\004\020\005R\024default" +
+      "_cursor_modelB\264\001B\tSpecProtoP\001\242\002\004ASII\252\002!A" +
+      "i.Stigmer.Iam.Identityaccount.V1\312\002!Ai\\St" +
+      "igmer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigme" +
+      "r\\Iam\\Identityaccount\\V1\\GPBMetadata\352\002%A" +
+      "i::Stigmer::Iam::Identityaccount::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -101,7 +100,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor,
-        new java.lang.String[] { "StandingContext", "DefaultHarness", "DefaultNativeModel", "DefaultCursorModel", "MemoryEnabled", "DefaultAutoApprove", "DefaultClaudeModel", });
+        new java.lang.String[] { "StandingContext", "DefaultHarness", "DefaultNativeModel", "MemoryEnabled", "DefaultAutoApprove", "DefaultClaudeModel", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();

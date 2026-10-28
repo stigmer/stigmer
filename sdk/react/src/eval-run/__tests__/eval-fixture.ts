@@ -23,7 +23,7 @@ export const SONNET = {
   harness: Harness.NATIVE,
   modelName: "claude-sonnet-4-6",
 };
-export const GPT = { harness: Harness.CURSOR, modelName: "gpt-5" };
+export const GPT = { harness: Harness.NATIVE, modelName: "gpt-5" };
 
 /** When the fixture's eval run `id` started: 2026-10-10 05:40 UTC, plus the id's digits in seconds. */
 export function evalStartOf(id: string): Date {

@@ -4,9 +4,8 @@
  * order it lists them, plus the shape of the `turn_phases` line it writes.
  *
  * What these arms protect: the parity comparison reads this line for both
- * harnesses, so a rule that quietly favoured one (a tool span closed at the
- * fold's clock instead of the observed instant; a sub-agent's token counted
- * as the user's first visible token) would bias a published number. Every
+ * harnesses, so a rule that quietly favoured one (a sub-agent's token
+ * counted as the user's first visible token) would bias a published number. Every
  * instant here is asserted exactly, which the scripted clock makes possible;
  * the hermetic proofs under each adapter assert structure only.
  *
@@ -18,17 +17,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { TURN_PHASES_EVENT, TurnTimeline, type TurnTimelineClock } from "../turn-timeline.js";
 import type { TranscriptEvent } from "../transcript/events.js";
 
-/**
- * A clock the test advances by hand. `performance.now()` scale starts at the
- * origin 10_000; the wall clock at a fixed epoch, so an `observedAt` stamp can
- * be written as "origin + N ms" and land exactly.
- */
+/** A clock the test advances by hand. `performance.now()` scale starts at the origin 10_000. */
 const ORIGIN_MS = 10_000;
-const ORIGIN_WALL_MS = Date.UTC(2026, 8, 18, 12, 0, 0, 0);
 
 class ScriptedClock implements TurnTimelineClock {
   readonly originMs = ORIGIN_MS;
-  readonly originWallMs = ORIGIN_WALL_MS;
   private nowMs = ORIGIN_MS;
 
   readonly now = (): number => this.nowMs;
@@ -39,10 +32,6 @@ class ScriptedClock implements TurnTimelineClock {
   }
 }
 
-/** The ISO stamp a harness would put on a fact it observed `offset` ms after the origin. */
-function observedWall(offset: number): string {
-  return new Date(ORIGIN_WALL_MS + offset).toISOString();
-}
 
 interface EmittedLine {
   readonly stigmer_timing: string;
@@ -157,21 +146,7 @@ describe("TurnTimeline — one tool span per callId", () => {
     expect(segment(line, "tool:read_file").duration_ms).toBe(50);
   });
 
-  it("a fact carrying observedAt closes the span at the observed instant, not the fold's", () => {
-    // The Cursor shape: the tool finished at +300 on the delta channel, the
-    // fold applies it at +2_800, after the model narrated for 2.5 seconds.
-    const observed: TranscriptEvent = { kind: "tool_finished", callId: "c1", result: "ok", observedAt: observedWall(300) };
-    const line = run([[100, TOOL_START], [2_800, observed]], 3_000);
-    expect(segment(line, "tool:read_file")).toEqual({ name: "tool:read_file", start_ms: 100, duration_ms: 200 });
-  });
-
-  it("an unparseable observedAt falls back to the fold's clock rather than losing the close", () => {
-    const observed: TranscriptEvent = { kind: "tool_finished", callId: "c1", result: "ok", observedAt: "not a date" };
-    const line = run([[100, TOOL_START], [900, observed]], 1_000);
-    expect(segment(line, "tool:read_file").duration_ms).toBe(800);
-  });
-
-  it("a second finish for a settled span changes nothing (Cursor completes every call twice)", () => {
+  it("a second finish for a settled span changes nothing", () => {
     const line = run([[100, TOOL_START], [300, TOOL_DONE], [900, TOOL_DONE]], 1_000);
     expect(segment(line, "tool:read_file").duration_ms).toBe(200);
     expect(line.tool_calls).toBe(1);
@@ -217,11 +192,11 @@ describe("TurnTimeline — one sub_agent span per subAgentId", () => {
 });
 
 describe("TurnTimeline — background commands, waits and reminders", () => {
-  it("spans each command by its starting call, from its start to its end, an observed end at its instant", () => {
+  it("spans each command by its starting call, from its start to its first end", () => {
     const line = run([
       [100, { kind: "background_command_started", callId: "bg_1", timeoutSeconds: 3300 }],
       [150, { kind: "background_output_delta", callId: "bg_1", delta: "ok" }],
-      [900, { kind: "background_command_ended", callId: "bg_1", ending: "exited", exitCode: 0, output: "ok", observedAt: observedWall(700) }],
+      [700, { kind: "background_command_ended", callId: "bg_1", ending: "exited", exitCode: 0, output: "ok" }],
       [950, { kind: "background_command_ended", callId: "bg_1", ending: "stopped", stoppedBy: "turn", output: "" }],
       [960, { kind: "background_command_ended", callId: "unknown", ending: "exited", output: "" }],
     ], 1_000);

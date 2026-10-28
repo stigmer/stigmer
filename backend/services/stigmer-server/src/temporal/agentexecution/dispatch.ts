@@ -3,7 +3,7 @@
  * pkg/domain/agentexecution/temporal/dispatch.go.
  *
  * Decides which Temporal task queue an execution's runner activities route
- * to, and resolves the session's harness (NATIVE vs CURSOR — which
+ * to, and resolves the session's harness (NATIVE vs CLAUDE — which
  * activity type the workflow invokes) and execution target (LOCAL vs
  * CLOUD — cloud uses it for sandbox provisioning; the OSS workflow
  * ignores it).

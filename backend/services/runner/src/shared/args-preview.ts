@@ -2,10 +2,8 @@
  * Harness-agnostic sanitization of tool arguments for the `args_preview` field.
  *
  * `args_preview` is the human-readable, UI-facing projection of a tool call's
- * arguments. It is surfaced on the approval card, the CLI, and the web console,
- * and — for the Cursor harness — it is the field a resumed turn parses to rebuild
- * an approval grant's salient identity. So it must always be SMALL and VALID
- * JSON: the per-tool offload does not touch it, and the aggregate size backstop
+ * arguments. It is surfaced on the approval card, the CLI, and the web console.
+ * So it must always be SMALL and VALID JSON: the per-tool offload does not touch it, and the aggregate size backstop
  * would replace an oversized preview with an unparseable marker.
  *
  * ONE preview rule for every row (since #1097): the transcript builder
@@ -14,7 +12,7 @@
  * redacted, at creation, for inline visibility. Until then there were two
  * rules: native stamped a whole-string-truncating `sanitizeArgsPreview` on
  * gated rows only (a preview that could truncate to invalid JSON, acceptable
- * only because native's resume never re-parsed it), and Cursor's stream path
+ * only because native's resume never re-parsed it), and another stream path
  * stamped `JSON.stringify(args)` unredacted. Both are
  * gone; this module holds the one builder and the one salient list.
  *
@@ -29,8 +27,7 @@
  * typed fact on the wire (file review's `FileReviewBlockReason`), never a
  * display string, and the approval projection gaining such a fact is a
  * follow-up of its own. The cost, named: the CLI's and ink's one-line preview
- * loses the value's size, and Cursor's recovery digest reads `tool({})` for
- * an MCP tool whose only argument is oversized.
+ * loses the value's size.
  */
 
 /**
@@ -49,18 +46,13 @@ export const SENSITIVE_ARG_KEYS: ReadonlySet<string> = new Set([
 
 /**
  * Top-level tool-argument fields, in priority order, that identify the specific
- * resource a built-in tool acts on — the values a preview must carry VERBATIM,
- * however long, because an identity is parsed back out of them. The list
- * deliberately spans BOTH taxonomies' arg shapes: Cursor's hook input names a
- * file `file_path` and its stream names it `path`; deepagents' file tools send
- * `file_path`; both name a shell command `command`. Extracting the same
- * resource VALUE on both sides (the absolute path / the command string) is
- * what lets the Cursor hook-recorded denial token equal the stream-computed
- * token. Authored here once (moved from `execute-cursor/approval-policy.ts`
- * in #1097) and injected into the generated preToolUse hook script
- * so the runner and the hook never disagree on which field to match.
+ * resource a built-in tool acts on — the values a preview must carry
+ * VERBATIM, however long, because a person approves the resource they read
+ * there. The list spans both taxonomies' arg shapes: deepagents' and
+ * Claude's file tools send `file_path` (some `path`), and both name a shell
+ * command `command`.
  */
-export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "command"] as const;
+export const SALIENT_ARG_FIELDS = ["file_path", "path", "command"] as const;
 
 /**
  * Redact secret-keyed values (see {@link SENSITIVE_ARG_KEYS}), preserving every
@@ -68,8 +60,7 @@ export const SALIENT_ARG_FIELDS = ["file_path", "path", "target_notebook", "comm
  * stamped as `args` on every row: by the transcript builder on every row with
  * args (since stigmer#1119), and on a proposed row the harness recovered from
  * its engine's state (issue #754's header fix). Full enough for the UI's
- * path/primary-arg extraction and for exact-apply, never carrying a secret
- * value.
+ * path/primary-arg extraction, never carrying a secret value.
  */
 export function redactSensitiveArgs(
   args: Record<string, unknown>,
@@ -90,10 +81,9 @@ const MAX_PREVIEW_VALUE_LENGTH = 200;
  *
  * Leaves oversized string *values* out — every other key and the JSON
  * structure kept — rather than truncating the whole string. Two invariants
- * make it safe for the Cursor gate path:
- *  - It NEVER elides a salient field (the resume grant's identity — the file
- *    path or shell command — is parsed back out of this preview, so it must
- *    survive verbatim).
+ * make it safe to show at a gate:
+ *  - It NEVER elides a salient field (the file path or shell command a
+ *    person approves must survive verbatim).
  *  - It redacts secret keys.
  *
  * For short, secret-free args the output is exactly `JSON.stringify(args)`.

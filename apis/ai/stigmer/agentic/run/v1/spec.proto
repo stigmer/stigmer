@@ -161,7 +161,6 @@ message RunSpec {
   // @internal
   // The runner enforces structured output per harness:
   // - Native harness: uses deepagents responseFormat/ToolStrategy
-  // - Cursor harness: prompt instruction + extraction fallback
   google.protobuf.Struct structured_output_schema = 21;
 
   // Tools this turn may use, in the same names as an agent's tools; empty
@@ -209,10 +208,7 @@ message RunSpec {
   // chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
   // prompt is its owner's to steer. On the native engine it lands after
   // the agent's instructions and the platform's sections, for this turn
-  // only. On the Cursor engine it is sent with the turn's message, before
-  // the structured-output directive when structured_output_schema is set
-  // (the output contract closes the message), so it stays in that
-  // conversation's history and later turns still see it.
+  // only.
   //
   // @internal
   // Eval runs set it from a case's append_system_prompt.
@@ -308,7 +304,7 @@ message RunSpec {
   //
   // Display-level semantics only: the runner does NOT rewind model context.
   // Conversation history lives in an opaque session-keyed store (LangGraph
-  // checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the
+  // checkpoint thread / Claude Agent SDK session store) that is resumed as-is, so the
   // superseded turn's partial messages remain visible to the model. Do not
   // build features that assume the runner skips superseded turns.
   string supersedes_run_id = 12;

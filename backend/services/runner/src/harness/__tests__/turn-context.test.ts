@@ -2,30 +2,25 @@
  * Pins the turn context's pure decisions — the places `turn-context.ts`
  * decides something rather than fetching it:
  *
- *  - `isReinvocation`: the runtime's one reading of "does this invocation
- *    resume rather than begin", keyed on how the harness mints its state id.
- *    The engine-minted arm is `!!threadId`; the deterministic arm is
- *    whether the log holds an event the run's engine wrote
- *    (`runWroteEngineEvents`, one bounded read of the types only an
- *    engine's rows produce), whatever the thread id says (the id exists on
- *    the first turn too), and never the live engine checkpoint.
+ *  - `reconcileReinvocation`'s first question, the runtime's one reading of
+ *    "does this invocation resume rather than begin": whether the log holds
+ *    an event the run's engine wrote (`runWroteEngineEvents`, one bounded
+ *    read of the types only an engine's rows produce), whatever the thread
+ *    id says (the id exists on the first turn too), and never the live
+ *    engine checkpoint.
  *  - `fileReviewOn`: a turn's file review is on when the session asks for
  *    it or the run is a eval-run try, and off otherwise (the default).
  *  - `reconcileTurnSettlement`: a reconcile turn completes, its rows naming
  *    the files put back, or the failures when any undo failed.
- *  - `regeneratesApprovedWrites`: which pause primitives make the runner pin
- *    an approved whole-file write's bytes itself (the engine re-runs the
- *    model) and which never do (the engine applies the exact args it paused
- *    on).
  *  - `reconcileReinvocation`: a resumed invocation's seed and answers come
  *    from one read of the run's log (`transcript/resume-seed.ts`,
  *    `approval-answers.ts`); when that read fails, the turn's start fails,
  *    never a turn that runs with no asks and no answers.
  *
  * The phases that fetch and provision are exercised end to end by the
- * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
- * pin their observable behavior byte for byte; nothing here re-drives a
- * client beyond the one bounded read the reinvocation asks, on a stub.
+ * runtime's own suite (`run-turn.test.ts`) and each harness's hermetic
+ * suite; nothing here re-drives a client beyond the reinvocation's bounded
+ * reads, on a stub.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -39,46 +34,17 @@ import {
   ENGINE_EVENT_TYPES,
   REINVOCATION_EVENT_TYPES,
   fileReviewOn,
-  isReinvocation,
   reconcileReinvocation,
   reconcileTurnSettlement,
-  regeneratesApprovedWrites,
-  runEventsReader,
   runFinishedWhileWaiting,
   runWroteEngineEvents,
   stopIsExplained,
   type ResolutionDeps,
 } from "../turn-context.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
-
-describe("isReinvocation", () => {
-  it("engine-minted: an empty state id is a first turn, any id is a resume", () => {
-    expect(isReinvocation("engine-minted", INPUT, false)).toBe(false);
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, false)).toBe(true);
-  });
-
-  it("engine-minted: turnSeq is NOT the signal (a pure-reconcile turn does not advance it; the legacy wire shape yields 0)", () => {
-    expect(isReinvocation("engine-minted", { ...INPUT, turnSeq: 3 }, false)).toBe(false);
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42", turnSeq: 0 }, false)).toBe(true);
-  });
-
-  it("engine-minted: the log is NOT the signal (the bound id is; a follow-up turn with a bound id and nothing written still resumes the engine)", () => {
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, false)).toBe(true);
-    expect(isReinvocation("engine-minted", INPUT, true)).toBe(false);
-  });
-
-  it("deterministic: what the run's engine wrote to the log is the signal — nothing is a first run, any event is a continuation", () => {
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, false)).toBe(false);
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, true)).toBe(true);
-  });
-
-  it("deterministic: the thread id is NOT the signal (a deterministic harness has one on its first turn too)", () => {
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1", turnSeq: 0 }, false)).toBe(false);
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "", turnSeq: 0 }, true)).toBe(true);
-  });
-});
 
 describe("runWroteEngineEvents", () => {
   it("asks the run's log for one event of the types only the engine's rows produce", async () => {
@@ -105,29 +71,37 @@ describe("reconcileReinvocation", () => {
       input: INPUT,
       client: { hasRunSessionEvent: vi.fn(async () => true), listRunSessionEvents },
       status: create(RunStatusSchema),
+      rows: create(TurnRowsSchema),
       transcript: { seed },
       enterPhase: vi.fn(),
     };
     return { deps: stub as unknown as ResolutionDeps, seed, listRunSessionEvents };
   }
-  const args = { stateIdSource: "deterministic" as const, continuation: "checkpoint" as const, execution: create(RunSchema), sessionId: "ses_1" };
+  const args = { execution: create(RunSchema), sessionId: "ses_1" };
+
+  it("reads a run whose engine wrote nothing as a first invocation, whatever the thread id says, and reads no more of the log", async () => {
+    const { deps, seed, listRunSessionEvents } = reinvocationDeps(async () => []);
+    const client = deps.client as unknown as { hasRunSessionEvent: ReturnType<typeof vi.fn> };
+    client.hasRunSessionEvent.mockResolvedValue(false);
+    const reinvocation = await reconcileReinvocation({ ...deps, input: { ...INPUT, threadId: "thread-ses_1" } }, args);
+    expect(reinvocation.isReinvocation).toBe(false);
+    expect(reinvocation.continuation).toBeUndefined();
+    expect(listRunSessionEvents).not.toHaveBeenCalled();
+    expect(seed).not.toHaveBeenCalled();
+  });
+
+  it("reads a run whose engine wrote to the log as a continuation, even with no thread id", async () => {
+    const { deps } = reinvocationDeps(async () => []);
+    const reinvocation = await reconcileReinvocation(deps, args);
+    expect(reinvocation.isReinvocation).toBe(true);
+    expect(reinvocation.continuation).toEqual({});
+  });
 
   it("fails the turn's start when the log cannot be read, and seeds nothing", async () => {
     const { deps, seed, listRunSessionEvents } = reinvocationDeps(async () => Promise.reject(new Error("log unreachable")));
     await expect(reconcileReinvocation(deps, args)).rejects.toThrow("log unreachable");
     expect(listRunSessionEvents).toHaveBeenCalledExactlyOnceWith("ses_1", INPUT.executionId, REINVOCATION_EVENT_TYPES);
     expect(seed, "a turn whose asks could not be read never starts on an empty seed").not.toHaveBeenCalled();
-  });
-});
-
-describe("runEventsReader", () => {
-  it("reads the run's events afresh on each call, and not before", async () => {
-    const client = { listRunSessionEvents: vi.fn(async () => []) };
-    const read = runEventsReader(client, "ses_1", "run_1");
-    expect(client.listRunSessionEvents).not.toHaveBeenCalled();
-    await read();
-    await read();
-    expect(client.listRunSessionEvents.mock.calls).toEqual([["ses_1", "run_1"], ["ses_1", "run_1"]]);
   });
 });
 
@@ -170,17 +144,6 @@ describe("reconcileTurnSettlement", () => {
       ]),
     ).toEqual({ kind: "file-review-resolved", failed: true, failureDetail: "a.md changed", discardedPaths: ["b.md"] });
   });
-});
-
-describe("regeneratesApprovedWrites", () => {
-  it("a deny-and-retry engine re-prompts the model with grants, so the runner pins the approved bytes", () => {
-    expect(regeneratesApprovedWrites("deny-and-retry")).toBe(true);
-  });
-
-  it("an interrupt engine applies the exact args it paused on — a runner-side write would land twice and pre-empt the row", () => {
-    expect(regeneratesApprovedWrites("interrupt")).toBe(false);
-  });
-
 });
 
 describe("runFinishedWhileWaiting", () => {

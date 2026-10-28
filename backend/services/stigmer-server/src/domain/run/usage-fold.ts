@@ -17,15 +17,11 @@
  *   - a run with neither (no turn has ended yet) adds no tokens and is not
  *     estimated.
  *
- * The runner's buckets differ by harness, and the report's do not:
- *   - native: LangChain's usage metadata counts the cache inside
- *     input_tokens (runner src/activities/execute-deep-agent/turn-stream.ts),
- *     so the report's non-cached input is input less both cache buckets,
- *     and the runner's total (input + output) is already cache-inclusive;
- *   - Cursor: the Cursor SDK reports disjoint buckets and sums all four for
- *     its own total (`toTokenUsage` in @cursor/sdk), so input is taken as
- *     reported and the total is recomputed from the four buckets; the
- *     runner's own Cursor total leaves out the cache buckets (#2206).
+ * The runner reports native's buckets, and Claude's normalized to them:
+ * LangChain's usage metadata counts the cache inside input_tokens (runner
+ * src/activities/execute-deep-agent/turn-stream.ts), so the report's
+ * non-cached input is input less both cache buckets, and the runner's total
+ * (input + output) is already cache-inclusive.
  * A run records no harness of its own: it runs on its session's
  * (SessionSpec.harness, which dispatch reads, temporal/agentexecution/
  * dispatch.ts), so the caller resolves it and hands it in. An unknown or
@@ -101,7 +97,7 @@ export interface CountedRun {
 // ---------------------------------------------------------------------------
 
 /**
- * A harness as the report names it ("native", "cursor", "claude"). Claude
+ * A harness as the report names it ("native", "claude"). Claude
  * counts with native's arithmetic: its runner reports normalized usage,
  * as native's does. A number no engine owns is never written (every
  * `harness` field is `enum.defined_only`), so one here is a defect, named
@@ -109,8 +105,6 @@ export interface CountedRun {
  */
 export function harnessName(harness: Harness): string {
   switch (harness) {
-    case Harness.CURSOR:
-      return "cursor";
     case Harness.CLAUDE:
       return "claude";
     case Harness.NATIVE:
@@ -136,22 +130,13 @@ export function runnerReportRows(
   if (usage === undefined) {
     return [];
   }
-  const name = harnessName(harness);
-  const cursor = name === "cursor";
   const cacheRead = usage.cacheReadTokens;
   const cacheWrite = usage.cacheWriteTokens;
   const output = usage.outputTokens;
-  let input: bigint;
-  let total: bigint;
-  if (cursor) {
-    input = usage.inputTokens;
-    total = usage.inputTokens + output + cacheRead + cacheWrite;
-  } else {
-    const uncached = usage.inputTokens - cacheRead - cacheWrite;
-    input = uncached > 0n ? uncached : 0n;
-    total =
-      usage.totalTokens !== 0n ? usage.totalTokens : usage.inputTokens + output;
-  }
+  const uncached = usage.inputTokens - cacheRead - cacheWrite;
+  const input = uncached > 0n ? uncached : 0n;
+  const total =
+    usage.totalTokens !== 0n ? usage.totalTokens : usage.inputTokens + output;
   if (
     input === 0n &&
     output === 0n &&
@@ -164,8 +149,8 @@ export function runnerReportRows(
   return [
     {
       model: usage.model,
-      provider: cursor ? "cursor" : "",
-      harness: name,
+      provider: "",
+      harness: harnessName(harness),
       providerKeySource: ProviderKeySource.UNSPECIFIED,
       inputTokens: input,
       outputTokens: output,

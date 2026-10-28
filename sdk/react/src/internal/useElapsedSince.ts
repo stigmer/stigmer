@@ -7,8 +7,7 @@ import { useEffect, useMemo, useState } from "react";
  *
  * The shape behind every "how long has this been going" affordance in the
  * thread: an approval gate waiting on a human, a subagent card whose nested
- * activity cannot be streamed (the Cursor SDK returns subagent internals only
- * at completion), a long-running tool. A ticking duration is the honest signal
+ * activity cannot be streamed, a long-running tool. A ticking duration is the honest signal
  * that work is progressing when there is nothing else to show — as opposed to
  * fabricating intermediate state.
  *

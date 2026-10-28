@@ -99,7 +99,7 @@ export interface ResultCase {
 
 /** One engine and model, with its cases. */
 export interface ResultTarget {
-  /** `native`, `cursor` or `claude`. */
+  /** `native` or `claude`. */
   readonly harness: string;
   /** The catalog model id; empty for the engine's default model. */
   readonly model: string;
@@ -338,11 +338,9 @@ export function evalRunTargetLabel(target: EvalRunTarget | undefined): string {
   return `${harnessName(target?.harness ?? Harness.UNSPECIFIED)}/${target?.modelName || "default"}`;
 }
 
-/** The engine's word: `native` (also for unspecified, the platform's default), `cursor` or `claude`. */
+/** The engine's word: `native` (also for unspecified, the platform's default) or `claude`. */
 function harnessName(harness: Harness): string {
   switch (harness) {
-    case Harness.CURSOR:
-      return "cursor";
     case Harness.CLAUDE:
       return "claude";
     case Harness.NATIVE:

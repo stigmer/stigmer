@@ -83,7 +83,6 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`updateSubject`](#updatesubject) | Set the session subject. | |
 | [`delete`](#delete) | Delete a session. | |
 | [`appendEvents`](#appendevents) | Append a run's events to its session's log. | |
-| [`bindHarnessState`](#bindharnessstate) | Record the harness's conversation id for a run's session. | |
 | [`claimInput`](#claiminput) | Take the messages queued in a run's session for the run to read. | |
 | [`confirmToolUse`](#confirmtooluse) | Allow or deny a tool use that waits for an answer. | |
 | [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
@@ -387,7 +386,6 @@ const session = await stigmer.session.apply({
   metadata: {},
   skillRefs: [],
   harness: "...",
-  cursorMode: "...",
   executionTarget: "...",
   vaults: [],
   includeMyVault: false,
@@ -410,7 +408,6 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Metadata:        map[string]string{},
   SkillRefs:       []stigmer.ResourceRef{},
   Harness:         "...",
-  CursorMode:      "...",
   ExecutionTarget: "...",
   Vaults:          []stigmer.ResourceRef{},
   IncludeMyVault:  false,
@@ -433,7 +430,6 @@ session = client.sessions.apply(SessionInput(
     metadata={},
     skill_refs=[],
     harness="...",
-    cursor_mode="...",
     execution_target="...",
     vaults=[],
     include_my_vault=False,
@@ -456,7 +452,6 @@ Session session = client.sessions().apply(SessionInput.builder()
     .metadata(Map.of())
     .skillRefs(List.of())
     .harness("...")
-    .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
     .includeMyVault(false)
@@ -490,7 +485,6 @@ const session = await stigmer.session.create({
   metadata: {},
   skillRefs: [],
   harness: "...",
-  cursorMode: "...",
   executionTarget: "...",
   vaults: [],
   includeMyVault: false,
@@ -513,7 +507,6 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Metadata:        map[string]string{},
   SkillRefs:       []stigmer.ResourceRef{},
   Harness:         "...",
-  CursorMode:      "...",
   ExecutionTarget: "...",
   Vaults:          []stigmer.ResourceRef{},
   IncludeMyVault:  false,
@@ -536,7 +529,6 @@ session = client.sessions.create(SessionInput(
     metadata={},
     skill_refs=[],
     harness="...",
-    cursor_mode="...",
     execution_target="...",
     vaults=[],
     include_my_vault=False,
@@ -559,7 +551,6 @@ Session session = client.sessions().create(SessionInput.builder()
     .metadata(Map.of())
     .skillRefs(List.of())
     .harness("...")
-    .cursorMode("...")
     .executionTarget("...")
     .vaults(List.of())
     .includeMyVault(false)
@@ -759,51 +750,6 @@ AppendSessionEventsResponse appendSessionEventsResponse = client.sessions().appe
 **Parameters**: [`AppendSessionEventsInput`](#appendsessioneventsinput)
 
 **Returns**: [`AppendSessionEventsResponse`](#appendsessioneventsresponse)
-
-### bindHarnessState
-
-Record the harness's conversation id for a run's session.
-
-Only the runner acting for the run may call it, while the run is not finished. The id replaced, if any, joins the session's harness_state_id_history.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const bindHarnessStateResponse = await stigmer.session.bindHarnessState({
-  runId: "...",
-  harnessStateId: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-bindHarnessStateResponse, err := client.Session.BindHarnessState(ctx, &stigmer.BindHarnessStateInput{
-  RunId:          "...",
-  HarnessStateId: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-bind_harness_state_response = client.sessions.bind_harness_state(BindHarnessStateInput(
-    run_id="...",
-    harness_state_id="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-BindHarnessStateResponse bindHarnessStateResponse = client.sessions().bindHarnessState(BindHarnessStateInput.builder()
-    .runId("...")
-    .harnessStateId("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`BindHarnessStateInput`](#bindharnessstateinput)
-
-**Returns**: [`BindHarnessStateResponse`](#bindharnessstateresponse)
 
 ### claimInput
 
@@ -1216,7 +1162,6 @@ Input for creating or updating a Session.
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
-    cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
@@ -1493,28 +1438,6 @@ ClaimSessionInputResponse answers the messages the run took.
   }}
 />
 
-### BindHarnessStateInput
-
-BindHarnessStateInput names a run and the harness's conversation id its session continues from.
-
-<TypeTable
-  type={{
-    runId: { type: "string", description: "The run whose session the id belongs to.", required: true },
-    harnessStateId: { type: "string", description: "The harness's own conversation id.", required: true },
-  }}
-/>
-
-### BindHarnessStateResponse
-
-BindHarnessStateResponse answers the session's harness state after the write.
-
-<TypeTable
-  type={{
-    harnessStateId: { type: "string", description: "The id now recorded." },
-    harnessStateIdHistory: { type: "string[]", description: "The ids the session owned before, oldest first." },
-  }}
-/>
-
 ### ListSessionsRequest
 
 ListSessionsRequest specifies parameters for listing sessions.
@@ -1673,8 +1596,6 @@ SessionStatus contains system-managed state for a session.
     agentVersionHash: { type: "string", description: "Content hash of the agent version this conversation runs (AgentStatus.version_hash when the reference resolved; resolvable through AgentQueryController.getVersion with agent_id)." },
     vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this resource's vaults, by vault id: the account whose permission to use the vault each run checks when it has no person." },
     state: { type: "string", description: "Whether the session is working: running (a turn works) or idle (it waits for input), the newest session.status_running or session.status_idle event's word." },
-    harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
-    harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     routineId: { type: "string", description: "The routine whose fire started this conversation; empty for every other conversation." },
     environment: { type: "ApiResourceReference", description: "The Environment this conversation runs in, whichever named it; unset when none applies.", typeDescriptionLink: "#apiresourcereference" },
     environmentSource: { type: "EnvironmentSource", description: "Which choice environment came from.", typeDescriptionLink: "#environmentsource" },
@@ -1713,17 +1634,7 @@ Harness identifies the execution engine that processes agent activities for a se
 | Value | Description |
 |-------|-------------|
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
-| `HARNESS_CURSOR` | Cursor SDK execution engine. |
 | `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
-
-### CursorMode
-
-CursorMode selects the Cursor SDK agent type for sessions using HARNESS_CURSOR.
-
-| Value | Description |
-|-------|-------------|
-| `CURSOR_MODE_LOCAL` | Local Cursor agent created with a local cwd configuration. |
-| `CURSOR_MODE_CLOUD` | Cloud Cursor agent created with a cloud repos configuration. |
 
 ### ExecutionTarget
 

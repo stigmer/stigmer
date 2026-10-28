@@ -106,7 +106,7 @@ describe("EvalRunResults", () => {
       wrapper: wrap(client(evalRun)),
     });
     const table = await screen.findByRole("table");
-    for (const label of ["native/claude-sonnet-4-6", "cursor/gpt-5"]) {
+    for (const label of ["native/claude-sonnet-4-6", "native/gpt-5"]) {
       const header = within(table).getByRole("columnheader", { name: label });
       expect(header.getAttribute("colspan")).toBe("4");
     }
@@ -121,7 +121,7 @@ describe("EvalRunResults", () => {
       [SONNET, GPT],
     );
     const [skipped, sonnetOnly] = evalRun.status!.plugins[0]!.cases;
-    skipped!.targets[1]!.notRunReason = "not run: needs a Cursor key";
+    skipped!.targets[1]!.notRunReason = "not run: needs an OpenAI key";
     sonnetOnly!.targets.pop();
     render(<EvalRunResults evalRunId="evr_1" />, {
       wrapper: wrap(client(evalRun)),
@@ -131,7 +131,7 @@ describe("EvalRunResults", () => {
       name: /skipped-on-gpt/,
     });
     expect(
-      within(skippedRow).getByText("not run: needs a Cursor key"),
+      within(skippedRow).getByText("not run: needs an OpenAI key"),
     ).toBeDefined();
     const sonnetRow = within(table).getByRole("row", { name: /sonnet-only/ });
     const cells = within(sonnetRow).getAllByRole("cell");

@@ -241,7 +241,6 @@ java.lang.String defaultValue);
    *
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
-   * - CURSOR: the Cursor SDK
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -262,7 +261,6 @@ java.lang.String defaultValue);
    *
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
-   * - CURSOR: the Cursor SDK
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -277,41 +275,6 @@ java.lang.String defaultValue);
    * @return The harness.
    */
   ai.stigmer.agentic.session.v1.Harness getHarness();
-
-  /**
-   * <pre>
-   * Cursor SDK agent mode for this session.
-   *
-   * Determines whether the Cursor agent runs locally (Agent.create with
-   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation and never changed — switching mid-session would
-   * lose Cursor-side conversation state.
-   *
-   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-   * harness types.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-   * @return The enum numeric value on the wire for cursorMode.
-   */
-  int getCursorModeValue();
-  /**
-   * <pre>
-   * Cursor SDK agent mode for this session.
-   *
-   * Determines whether the Cursor agent runs locally (Agent.create with
-   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation and never changed — switching mid-session would
-   * lose Cursor-side conversation state.
-   *
-   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-   * harness types.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-   * @return The cursorMode.
-   */
-  ai.stigmer.agentic.session.v1.CursorMode getCursorMode();
 
   /**
    * <pre>

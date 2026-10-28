@@ -11,9 +11,8 @@
  *
  * THIS MODULE'S STATIC GRAPH IS SDK-FREE, ON PURPOSE. The composition roots
  * import the harness table (`src/harness-adapters.ts`) BEFORE they boot it,
- * and that table's static graph must stay connect- and SDK-free (the Cursor
- * adapter's boot patches `node:http2` before anything dials the control
- * plane). So `deepagents` and `@langchain/*` — this harness's whole engine —
+ * and that table's static graph must stay SDK-free (the runner's own process
+ * loads no engine). So `deepagents` and `@langchain/*` — this harness's whole engine —
  * are loaded with a dynamic import INSIDE `boot`, after the profiles are
  * registered; a worker that does not serve this harness never pays for
  * LangChain. `__tests__/adapter-graph-is-sdk-free.test.ts` pins it.
@@ -33,11 +32,10 @@
  * `failed` on the `internal` surface; the recursion limit is
  * `tool_call_limit`; a `CancelledFailure` never exists here), branch on why
  * `stopSignal` aborted, write a phase or a terminal copy, bind a state id
- * (the thread id is the runtime's, `deterministic`), or import
+ * (the thread id is the runtime's), or import
  * `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
- * Extracted from `index.ts` `createDeepAgentActivities` in #1096 on the
- * Cursor adapter's layout (`execute-cursor/adapter.ts`).
+ * Extracted from `index.ts` `createDeepAgentActivities` in #1096.
  */
 
 import type { Config } from "../../config.js";

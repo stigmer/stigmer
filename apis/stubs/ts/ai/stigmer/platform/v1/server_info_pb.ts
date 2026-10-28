@@ -263,9 +263,9 @@ export type GetRunnerBootstrapConfigOutput = Message<"ai.stigmer.platform.v1.Get
 
   /**
    * Stigmer-signed access token the runner uses to authenticate its
-   * Cursor-proxy traffic (the x-stigmer-auth header).
+   * model-proxy traffic (the x-stigmer-auth header).
    *
-   * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+   * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
    * server with no signing key configured. The runner keeps using its existing
    * token in that case.
    *
@@ -573,7 +573,7 @@ export const PlatformQueryController: GenService<{
    * execution) needs two things at boot, both of which are details it should
    * not have to know or hold ahead of time: the Temporal frontend coordinates
    * to poll for work, and a Stigmer-signed identity to authenticate its
-   * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+   * model-proxy traffic. This RPC lets the runner self-bootstrap through the
    * one authenticated door it already opens at startup: it presents the token
    * it already holds and the control plane returns the environment's Temporal
    * coordinates plus a freshly minted runner access token. The contract for a

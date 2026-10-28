@@ -24,12 +24,6 @@ describe("isFileModifyingTool", () => {
     }
   });
 
-  it("recognizes the Cursor taxonomy (hook + SDK names)", () => {
-    for (const name of ["Write", "StrReplace", "EditNotebook"]) {
-      expect(isFileModifyingTool(name), name).toBe(true);
-    }
-  });
-
   it("recognizes the Claude taxonomy (Claude Code's own names)", () => {
     for (const name of ["Write", "Edit", "NotebookEdit"]) {
       expect(isFileModifyingTool(name), name).toBe(true);
@@ -47,7 +41,6 @@ describe("extractFilePath", () => {
   it("spans both taxonomies' path fields, including notebook target", () => {
     expect(extractFilePath({ path: "a.ts" })).toBe("a.ts");
     expect(extractFilePath({ file_path: "b.ts" })).toBe("b.ts");
-    expect(extractFilePath({ target_notebook: "nb.ipynb" })).toBe("nb.ipynb");
     expect(extractFilePath({ notebook_path: "claude.ipynb" }), "a Claude notebook edit").toBe("claude.ipynb");
   });
 

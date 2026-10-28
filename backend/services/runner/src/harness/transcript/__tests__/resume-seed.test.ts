@@ -30,11 +30,11 @@ function use(callId: string, opts: { readonly permission?: string; readonly thre
     : event({ case: "agentMcpToolUse", value: { ...common, mcpServerName: opts.mcp } }, opts.thread ?? "");
 }
 
-function asked(callId: string, policySource = "builtin_category", contentDigest = ""): SessionEvent {
+function asked(callId: string, policySource = "builtin_category"): SessionEvent {
   const toolUseId = toolUseEventId(RUN, callId);
   return event({
     case: "stigmerPermissionAsked",
-    value: { id: permissionAskedEventId(toolUseId), toolUseId, message: `Run ${callId}?`, argsPreview: `{"command":"run ${callId}"}`, policySource, policyHook: "", contentDigest, processedAt: "2026-01-01T00:00:01Z" },
+    value: { id: permissionAskedEventId(toolUseId), toolUseId, message: `Run ${callId}?`, argsPreview: `{"command":"run ${callId}"}`, policySource, policyHook: "", processedAt: "2026-01-01T00:00:01Z" },
   });
 }
 
@@ -62,7 +62,7 @@ describe("resumeSeedOf", () => {
       asked("call-done"),
       result("call-done"),
       use("call-build", { permission: "ask" }),
-      asked("call-build", "hook", "sha256:abc"),
+      asked("call-build", "hook"),
     ]);
     expect(seed.rows.subAgentRuns).toEqual([]);
     expect(seed.rows.messages).toHaveLength(1);
@@ -76,7 +76,7 @@ describe("resumeSeedOf", () => {
     expect(row.args).toEqual({ command: "run call-build" });
     expect(row.toolKind).toBe(ToolKind.SHELL);
     expect([row.approvalMessage, row.argsPreview, row.approvalRequestedAt]).toEqual(["Run call-build?", '{"command":"run call-build"}', "2026-01-01T00:00:01Z"]);
-    expect([row.approvalPolicySource, row.approvalContentDigest]).toEqual([ApprovalPolicySource.HOOK, "sha256:abc"]);
+    expect(row.approvalPolicySource).toBe(ApprovalPolicySource.HOOK);
     expect(seed.answerText, "the run's newest root answer").toBe("Building now.");
   });
 

@@ -8,17 +8,13 @@
  *   - OpenAI: the same, OPENAI_BASE_URL over `api.openai.com`;
  *   - Bedrock: ANTHROPIC_BEDROCK_BASE_URL's host, else
  *     `bedrock-runtime.<AWS_REGION>.amazonaws.com` only beside a credential;
- *   - Cursor's three hosts when CURSOR_API_KEY is set;
  *   - an https:// public MCP address and OTLP endpoint, by host;
  *   - an http:// URL, or a base URL that is not a URL, gives no host, and a
  *     host named twice appears once.
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  CURSOR_HOSTS,
-  runnerPlatformHosts,
-} from "../runner-lanes.js";
+import { runnerPlatformHosts } from "../runner-lanes.js";
 
 function hosts(
   runnerEnv: Record<string, string> = {},
@@ -74,15 +70,6 @@ describe("runnerPlatformHosts", () => {
       hosts({ AWS_REGION: "us-west-2" }, { AWS_ACCESS_KEY_ID: "AKIA" }),
     ).toEqual(["bedrock-runtime.us-west-2.amazonaws.com"]);
     expect(hosts({ AWS_REGION: "us-west-2" })).toEqual([]);
-  });
-
-  it("Cursor's three hosts when its key is set", () => {
-    expect(hosts({}, { CURSOR_API_KEY: "c" })).toEqual([...CURSOR_HOSTS]);
-    expect([...CURSOR_HOSTS]).toEqual([
-      "api2.cursor.sh",
-      "api.cursor.com",
-      "api.cursor.sh",
-    ]);
   });
 
   it("the https:// public MCP address and OTLP endpoint, by host", () => {

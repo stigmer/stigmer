@@ -234,7 +234,6 @@ type SessionSpecInput struct {
 	Metadata        map[string]string
 	SkillRefs       []ResourceRef
 	Harness         sessionv1.Harness
-	CursorMode      sessionv1.CursorMode
 	ExecutionTarget sessionv1.ExecutionTarget
 	Vaults          []ResourceRef
 	IncludeMyVault  bool
@@ -331,7 +330,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			m.SkillRefs = append(m.SkillRefs, ref)
 		}
 		m.Harness = i.SessionSpec.Harness
-		m.CursorMode = i.SessionSpec.CursorMode
 		m.ExecutionTarget = i.SessionSpec.ExecutionTarget
 		for _, r := range i.SessionSpec.Vaults {
 			ref := r.toProto()
@@ -538,7 +536,6 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 	}
 	input.Harness = p.GetHarness()
-	input.CursorMode = p.GetCursorMode()
 	input.ExecutionTarget = p.GetExecutionTarget()
 	for _, r := range p.GetVaults() {
 		input.Vaults = append(input.Vaults, resourceRefFromProto(r))

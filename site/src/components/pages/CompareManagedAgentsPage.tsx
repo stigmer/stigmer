@@ -68,8 +68,8 @@ const ROWS: readonly {
     source: "overview",
     stigmer: (
       <>
-        Your own keys: Anthropic, or Cursor for the Cursor engine, on your servers; Anthropic,
-        OpenAI, a compatible endpoint or Cursor on Stigmer Cloud.{" "}
+        Your own keys: Anthropic on your servers; Anthropic, OpenAI or a compatible endpoint on
+        Stigmer Cloud.{" "}
         <Link href="/docs/guides/self-hosting/cloud-vs-self-hosted" className={inlineLink}>
           The editions
         </Link>
@@ -131,7 +131,7 @@ const FURTHER: readonly { text: string; cta: string; href: string; external?: bo
     href: "/docs/getting-started/one-organization-per-customer",
   },
   {
-    text: "A choice of engine for each session: Stigmer's own, or Cursor's.",
+    text: "A choice of engine for each session: Stigmer's own, or Anthropic's Claude Agent SDK.",
     cta: "Harnesses",
     href: "/docs/concepts/harnesses",
   },

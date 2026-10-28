@@ -79,7 +79,6 @@ export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
  * keepOutdatedSets). Byte-pinned.
  */
 export const CLOSE_FILE_REVIEW_ACTIVITY_NAME = "CloseFileReview";
-export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
 
 /**
  * The retired run-end delete of a run's stored copy of its values. A run

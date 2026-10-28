@@ -162,7 +162,6 @@ export interface IdentityAccountPreferencesInput {
   standingContext?: string;
   defaultHarness?: string;
   defaultNativeModel?: string;
-  defaultCursorModel?: string;
   memoryEnabled?: boolean;
   defaultAutoApprove?: boolean;
   defaultClaudeModel?: string;
@@ -173,7 +172,6 @@ function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesI
     standingContext: input.standingContext,
     defaultHarness: input.defaultHarness,
     defaultNativeModel: input.defaultNativeModel,
-    defaultCursorModel: input.defaultCursorModel,
     memoryEnabled: input.memoryEnabled,
     defaultAutoApprove: input.defaultAutoApprove,
     defaultClaudeModel: input.defaultClaudeModel,
@@ -213,7 +211,6 @@ function toIdentityAccountPreferencesInput(msg: IdentityAccountPreferences): Ide
     standingContext: msg.standingContext || undefined,
     defaultHarness: msg.defaultHarness || undefined,
     defaultNativeModel: msg.defaultNativeModel || undefined,
-    defaultCursorModel: msg.defaultCursorModel || undefined,
     memoryEnabled: msg.memoryEnabled || undefined,
     defaultAutoApprove: msg.defaultAutoApprove || undefined,
     defaultClaudeModel: msg.defaultClaudeModel || undefined,

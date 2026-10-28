@@ -20,8 +20,8 @@
  * (`shared/streaming-scheduler.ts`, 500 ms by default), so a chatty build
  * yields at most two chunks a second.
  *
- * The arguments are named as Cursor's shell names them: `command`, and
- * `timeout` in seconds (deepagents' own unit). The default is deepagents'
+ * The arguments are `command` and `timeout`, in seconds (deepagents' own
+ * unit). The default is deepagents'
  * 120 s; a larger request is honoured up to `Config.shellTimeoutMaxSeconds`
  * and clamped above it, and the result says so. Neither `timeout` nor
  * `background` changes what the approval gate asks: it asks by the tool's

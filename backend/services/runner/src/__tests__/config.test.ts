@@ -17,7 +17,6 @@ describe("loadConfig", () => {
   });
 
   it("loads defaults in local mode", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.mode).toBe("local");
@@ -29,7 +28,6 @@ describe("loadConfig", () => {
     expect(config.temporalNamespace).toBe("default");
     expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");
     expect(config.stigmerTokenRef.current).toBeNull();
-    expect(config.cursorApiKey).toBe("test-key");
     expect(config.proxyEndpoint).toBeNull();
     expect(config.maxConcurrentActivities).toBe(5);
     expect(config.cursorStreamStallTimeoutMs).toBe(180000);
@@ -37,40 +35,28 @@ describe("loadConfig", () => {
     expect(config.livenessIntervalMs).toBe(30000);
     expect(config.shellTimeoutMaxSeconds).toBe(3300);
     expect(config.shellBackgroundEnabled).toBe(true);
-    expect(config.agentResolveTimeoutMs).toBe(120000);
     expect(config.workspaceLockTimeoutMs).toBe(900000);
   });
 
-  it("respects CURSOR_AGENT_RESOLVE_TIMEOUT_MS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
-    process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS = "45000";
-    const config = loadConfig();
-    expect(config.agentResolveTimeoutMs).toBe(45000);
-  });
-
   it("respects CURSOR_STREAM_STALL_TIMEOUT_MS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     process.env.CURSOR_STREAM_STALL_TIMEOUT_MS = "90000";
     const config = loadConfig();
     expect(config.cursorStreamStallTimeoutMs).toBe(90000);
   });
 
   it("respects STIGMER_OPEN_OPERATION_MAX_MS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     process.env.STIGMER_OPEN_OPERATION_MAX_MS = "600000";
     const config = loadConfig();
     expect(config.openOperationMaxMs).toBe(600000);
   });
 
   it("respects STIGMER_LIVENESS_INTERVAL_MS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     process.env.STIGMER_LIVENESS_INTERVAL_MS = "5000";
     const config = loadConfig();
     expect(config.livenessIntervalMs).toBe(5000);
   });
 
   it("falls back to the default liveness interval, warning, for a value that is not a number or outside its bounds", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       for (const raw of ["soon", "1500.5", "999", "60000", "-1"]) {
@@ -88,21 +74,18 @@ describe("loadConfig", () => {
   });
 
   it("drains for 25 s by default and respects STIGMER_DRAIN_GRACE_MS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     expect(loadConfig().drainGraceMs).toBe(25_000);
     process.env.STIGMER_DRAIN_GRACE_MS = "540000";
     expect(loadConfig().drainGraceMs).toBe(540_000);
   });
 
   it("respects STIGMER_SHELL_TIMEOUT_MAX_SECONDS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS = "900";
     const config = loadConfig();
     expect(config.shellTimeoutMaxSeconds).toBe(900);
   });
 
   it("turns background shell commands off for STIGMER_SHELL_BACKGROUND_ENABLED=false, and on for true or unset", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     process.env.STIGMER_SHELL_BACKGROUND_ENABLED = "false";
     expect(loadConfig().shellBackgroundEnabled).toBe(false);
     process.env.STIGMER_SHELL_BACKGROUND_ENABLED = "true";
@@ -112,7 +95,6 @@ describe("loadConfig", () => {
   });
 
   it("keeps background shell commands on, warning, for any other STIGMER_SHELL_BACKGROUND_ENABLED", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       for (const raw of ["0", "off", "FALSE", "no"]) {
@@ -126,7 +108,6 @@ describe("loadConfig", () => {
   });
 
   it("respects WORKSPACE_LOCK_TIMEOUT_MS", () => {
-    process.env.CURSOR_API_KEY = "test-key";
     process.env.WORKSPACE_LOCK_TIMEOUT_MS = "60000";
     const config = loadConfig();
     expect(config.workspaceLockTimeoutMs).toBe(60000);
@@ -134,7 +115,6 @@ describe("loadConfig", () => {
 
   it("respects STIGMER_TASK_QUEUE", () => {
     process.env.STIGMER_TASK_QUEUE = "runner:abc123";
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.taskQueue).toBe("runner:abc123");
@@ -142,7 +122,6 @@ describe("loadConfig", () => {
 
   it("respects TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE as fallback", () => {
     process.env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE = "custom-queue";
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.taskQueue).toBe("custom-queue");
@@ -179,27 +158,8 @@ describe("loadConfig", () => {
     expect(config.stigmerTokenRef.current).toBe("token");
   });
 
-  it("never copies STIGMER_TOKEN into cursorApiKey in proxy mode: the placeholder the option mappers use, the credential only in the ref", () => {
-    process.env.STIGMER_PROXY_ENDPOINT = "https://api.stigmer.ai";
-    process.env.STIGMER_TOKEN = "eyJhbGciOiJSUzI1NiJ9.test-jwt-token";
-    const config = loadConfig();
-
-    expect(config.cursorApiKey).toBe("proxy-managed");
-    expect(config.stigmerTokenRef.current).toBe("eyJhbGciOiJSUzI1NiJ9.test-jwt-token");
-  });
-
-  it("keeps an explicit CURSOR_API_KEY in proxy mode", () => {
-    process.env.STIGMER_PROXY_ENDPOINT = "https://api.stigmer.ai";
-    process.env.STIGMER_TOKEN = "stigmer-jwt";
-    process.env.CURSOR_API_KEY = "explicit-cursor-key";
-    const config = loadConfig();
-
-    expect(config.cursorApiKey).toBe("explicit-cursor-key");
-  });
-
   it("normalizes bare host:port to http://", () => {
     process.env.STIGMER_BACKEND_ENDPOINT = "backend:7234";
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.stigmerBackendEndpoint).toBe("http://backend:7234");
@@ -207,7 +167,6 @@ describe("loadConfig", () => {
 
   it("normalizes :443 endpoints to https://", () => {
     process.env.STIGMER_BACKEND_ENDPOINT = "api.stigmer.ai:443";
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.stigmerBackendEndpoint).toBe("https://api.stigmer.ai:443");
@@ -215,7 +174,6 @@ describe("loadConfig", () => {
 
   it("preserves existing http:// scheme", () => {
     process.env.STIGMER_BACKEND_ENDPOINT = "http://localhost:7234";
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");
@@ -223,17 +181,8 @@ describe("loadConfig", () => {
 
   it("parses maxConcurrentActivities from env", () => {
     process.env.TEMPORAL_MAX_CONCURRENCY = "10";
-    process.env.CURSOR_API_KEY = "test-key";
     const config = loadConfig();
 
     expect(config.maxConcurrentActivities).toBe(10);
-  });
-
-  it("reads cloudModeEnabled flag", () => {
-    process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED = "true";
-    process.env.CURSOR_API_KEY = "test-key";
-    const config = loadConfig();
-
-    expect(config.cloudModeEnabled).toBe(true);
   });
 });

@@ -195,7 +195,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     q: "Whose model keys do my agents use?",
-    a: "Your own. Stigmer runs no model of its own, so add a key before your first run. An admin adds your organization's Anthropic or OpenAI key, a compatible endpoint, or a Cursor key in the console, and every model call runs on it, on every plan. Your provider bills those calls to you directly.",
+    a: "Your own. Stigmer runs no model of its own, so add a key before your first run. An admin adds your organization's Anthropic or OpenAI key, or a compatible endpoint, in the console, and every model call runs on it, on every plan. Your provider bills those calls to you directly.",
     link: {
       href: "/docs/guides/integrations/model-provider-keys",
       label: "Model provider keys",

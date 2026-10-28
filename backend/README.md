@@ -35,7 +35,8 @@ executes **agent sessions**, across both harnesses:
 
 - **deep-agent** — LangGraph.js-based agentic loop calling LLM provider
   APIs directly
-- **cursor** — delegates execution to Cursor via `@cursor/sdk`
+- **claude** — runs the turn on Anthropic's Claude Agent SDK, whose engine
+  the runner image carries or the runner downloads on first use
 
 **Location**: `services/runner/`
 **Language**: TypeScript (Node version pinned in `.nvmrc`)
@@ -88,7 +89,7 @@ identical in both editions by construction.
         │      runner (TypeScript)     │
         │  agent sessions,             │
         │  both harnesses              │
-        │  (deep-agent · cursor)       │
+        │  (deep-agent · claude)       │
         └──────────────────────────────┘
 ```
 

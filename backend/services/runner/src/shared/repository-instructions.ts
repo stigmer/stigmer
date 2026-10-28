@@ -3,8 +3,7 @@
  * are read, and the words they are shown to the model in, for every engine
  * that shows them in its own prompt (the native engine,
  * `execute-deep-agent/repository-instructions.ts`, and the Claude engine,
- * `execute-claude/prompt.ts`; Cursor reads its own through its setting
- * sources).
+ * `execute-claude/prompt.ts`).
  *
  * Many repositories keep a short file for coding agents that says how the
  * project builds, tests and is laid out. The roots' files (the workspace

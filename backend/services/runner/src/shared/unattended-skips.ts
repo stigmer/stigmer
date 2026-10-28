@@ -2,8 +2,7 @@
  * The settlement of a gated call an unattended turn skipped: the one row
  * amendment every harness whose gate skips in-process makes after its
  * stream (the native settle, `execute-deep-agent/turn-settle.ts`; the
- * Claude settle, `execute-claude/settle.ts`). Cursor's boundary stamps the
- * same shape on its own rows (`execute-cursor/boundary-rows.ts`).
+ * Claude settle, `execute-claude/settle.ts`).
  */
 
 import { POLICY_ENGINE_VERSION, unattendedSkipMessage } from "./approval-policy.js";
@@ -28,8 +27,7 @@ import { ApprovalPolicySource, ToolCallStatus } from "../gen/turn/ai/stigmer/run
  *   with `approval_policy_hook` naming the hook whose ask was skipped, or
  *   empty when the default asked;
  * - the skip message ({@link unattendedSkipMessage}) as the result and no
- *   error, the shape Cursor's boundary stamps for the same skip
- *   (`stampUnattendedSkippedToolCalls`): a skip, not a failure.
+ *   error: a skip, not a failure.
  *
  * `approval_action` / `approved_by` are deliberately NOT touched — those
  * record HUMAN decisions only (the runtime's seed copies the answer from the

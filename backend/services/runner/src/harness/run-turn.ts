@@ -35,17 +35,13 @@
  * Shape: one activity per registry row (`createHarnessActivities`), each a
  * closure over the adapter, the activity's byte-pinned name and one shared
  * `StigmerClient`; `runTurnActivity` is the body. Every `console` line here
- * names the activity (`ExecuteCursor started: …`) so the log reads as it did
- * before the extraction, and never a harness literal — the harness is a
- * registry row, not a branch.
+ * names the activity (`ExecuteDeepAgent started: …`), and never a harness
+ * literal — the harness is a registry row, not a branch.
  *
- * Extracted from `activities/execute-cursor/index.ts` `executeCursorInner`
- * in #1070, whose body carries the reasoning behind each phase. Its twelve
- * resolution phases came out first; what came out here is
- * everything between them and after the engine: the seventeen hermetic
- * goldens under `execute-cursor/__tests__/hermetic/` pin the result byte
- * for byte, and `__tests__/run-turn.test.ts` proves the table against the
- * scripted fake without any engine at all.
+ * Extracted from the harnesses' orchestrators in #1070: the resolution
+ * phases went to `turn-context.ts`, and what came out here is everything
+ * between them and after the engine. `__tests__/run-turn.test.ts` proves
+ * the table against the scripted fake without any engine at all.
  */
 
 import { setMaxListeners } from "node:events";
@@ -104,7 +100,6 @@ import {
   platformStopArm,
   stallArm,
   modelStallArm,
-  streamCutArm,
   TERMINAL_COPY,
   TURN_CONTINUES_FAILURE_TYPE,
   toolCallLimitArm,
@@ -210,17 +205,15 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   // session event emitter writes the log from. Never sent with the status.
   const rows = create(TurnRowsSchema);
 
-  // The turn's origin, read once on both clocks so the two timelines below
-  // and the harness's observed instants (`transcript/events.ts` `Observed`)
-  // all subtract against the same moment.
+  // The turn's origin, read once so the two timelines below subtract against
+  // the same moment.
   const originMs = performance.now();
-  const originWallMs = Date.now();
 
   // The turn timeline (`turn-timeline.ts`): the runtime's fold over every
   // event the adapter folds through the builder, emitted once at settle as
   // the `turn_phases` line — first visible token, model rounds, tool and
   // sub-agent spans, the longest silence — for every harness alike.
-  const timeline = new TurnTimeline({ originMs, originWallMs, now: () => performance.now() });
+  const timeline = new TurnTimeline({ originMs, now: () => performance.now() });
 
   // The session event emitter (`events/emitter.ts`): reads the rows each
   // persist carries and appends what sealed to the session's log, and
@@ -242,7 +235,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   // last open operation is activity: the window counts from there.
   let watchdog: StallWatchdog | undefined;
   const operations = new OpenOperations({
-    subAgentProgress: adapter.capabilities.subAgentProgress,
     onIdle: () => watchdog?.recordActivity(),
   });
 
@@ -623,14 +615,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         }
       },
       reportProgress: (label) => reportSetupProgress(client, executionId, label),
-      bindHarnessState: async (harnessStateId) => {
-        // The session's runner-owned door, admitted as the event append is:
-        // it writes the id into the session's status and nothing else, so it
-        // never undoes an edit made since the turn loaded the session.
-        const token = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
-        await client.bindHarnessState(executionId, harnessStateId, token);
-        console.log(`Stored ${harnessStateId} as harness_state_id on session ${turn.sessionId}`);
-      },
       bindCasObservations: (read) => {
         // Outside capture mode there is no capture to feed; the bind is a
         // no-op, as the contract promises a harness that always binds.
@@ -674,7 +658,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // message with the flag on, a spinner the console never stopped (the
     // kit's settled-transcript fact caught it on both real adapters).
     // Idempotent: an adapter that persists on the settled rows mid-settle
-    // finalizes first, as the Cursor harness does before `run.wait()`.
+    // finalizes first.
     transcript.finalize();
 
     // The engine's turn is over: write its timeline, once, on every outcome.
@@ -712,7 +696,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         globalBypass: turn.mcp.leases.global,
       });
     };
-    if (outcome.kind !== "interrupted" && outcome.kind !== "stream_cut") await captureBoundary();
+    if (outcome.kind !== "interrupted") await captureBoundary();
 
     // The rows whose decision never runs the tool (SKIP, REJECT) are settled
     // by the runtime, once, now that the adapter has had its look at them and
@@ -724,8 +708,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     switch (outcome.kind) {
       case "completed":
         return completeTurn(turn, RunPhase.RUN_COMPLETED);
-      case "cancelled":
-        return completeTurn(turn, RunPhase.RUN_CANCELLED);
       case "awaiting_approval":
         // The adapter put the WAITING rows on the transcript (and a captured
         // candidate, if any, rides the same write); the arm flips the phase,
@@ -747,9 +729,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       }
       case "interrupted":
         return settleInterrupted(maxCostUsd, accumulator, captureBoundary);
-      case "stream_cut":
-        console.warn(`${activityName} lost its engine's connection; continuing: execution=${executionId}, ${outcome.message}`);
-        return settleWith(streamCutArm(outcome.message));
       default: {
         const exhaustive: never = outcome;
         throw new Error(`${activityName}: unknown turn outcome ${JSON.stringify(exhaustive)}`);
@@ -1052,7 +1031,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     heartbeatPhase = "environment";
     await environmentInstalled();
     heartbeatPhase = "setup";
-    const resolution = await resolveTurnContext(resolutionDeps, adapter.capabilities, frame, () => chokepoint.write());
+    const resolution = await resolveTurnContext(resolutionDeps, adapter.capabilities, frame);
     if (resolution.kind === "settled") {
       settled = await settleResolution(resolution.settlement);
     } else {

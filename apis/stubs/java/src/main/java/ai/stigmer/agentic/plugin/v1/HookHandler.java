@@ -11,8 +11,8 @@ package ai.stigmer.agentic.plugin.v1;
  *
  * The command reads the call as JSON on stdin and answers as its format's
  * hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
- * deny with a reason. A Cursor-format "ask" waits for a person on both
- * engines, where Cursor itself lets the call run.
+ * deny with a reason. A Cursor-format "ask" waits for a person on every
+ * harness, where Cursor itself lets the call run.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookHandler}
@@ -465,8 +465,8 @@ private static final long serialVersionUID = 0L;
    *
    * The command reads the call as JSON on stdin and answers as its format's
    * hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
-   * deny with a reason. A Cursor-format "ask" waits for a person on both
-   * engines, where Cursor itself lets the call run.
+   * deny with a reason. A Cursor-format "ask" waits for a person on every
+   * harness, where Cursor itself lets the call run.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.plugin.v1.HookHandler}

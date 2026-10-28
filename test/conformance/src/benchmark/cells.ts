@@ -65,8 +65,8 @@
 // own-endpoint form `openai:<name>` / `anthropic:<name>` the server and the
 // runner accept on native without a catalog row (server modelcatalog/
 // pin-validation.ts). It replaces PARITY_MODEL["deep-agent"] in the native
-// parity, turn-2 and working cells and the native quality target; the Cursor
-// and Claude arms, the judge and every prompt stay as they are, so the grader
+// parity, turn-2 and working cells and the native quality target; the
+// Claude arm, the judge and every prompt stay as they are, so the grader
 // is the same in every arm.
 //
 // The Claude arm runs Anthropic's engine on the organization's Anthropic key
@@ -88,14 +88,12 @@ export { HARNESSES };
 /** The registry ids the parity cells pin, per harness: one served model, a registry row per engine. */
 export const PARITY_MODEL: Record<BenchmarkHarness, string> = {
   "deep-agent": "claude-sonnet-4.6",
-  cursor: "claude-sonnet-4-6",
   claude: "claude-sonnet-4.6",
 };
 
 /** The engine a harness's sessions are created on (`SessionSpec.harness`, an eval run's target). */
 export const SESSION_HARNESS: Record<BenchmarkHarness, Harness> = {
   "deep-agent": Harness.NATIVE,
-  cursor: Harness.CURSOR,
   claude: Harness.CLAUDE,
 };
 
@@ -292,7 +290,6 @@ export interface PlanEnvironment {
   anthropicKey: boolean;
   /** OPENAI_API_KEY, the key an OpenAI-provider native model is served with (whatever OPENAI_BASE_URL names). */
   openaiKey: boolean;
-  cursorKey: boolean;
   /** `stigmer` is on PATH (the working agent's memory spawns `stigmer mcp-server`). */
   stigmerCli: boolean;
 }
@@ -421,11 +418,10 @@ function hostOf(raw: string | undefined, variable: string, fallback: string): st
  * What the environment and the flags allow, decided before the stack boots.
  * A native cell needs the key of its model's provider (`nativeProvider`;
  * a model it cannot place is refused as the runner would refuse it); a
- * Cursor cell the Cursor key; a Claude cell the Anthropic key, whatever its
- * model, since the engine runs Claude only; a quality target needs its
- * harness's key AND the Anthropic key, because the judge runs on the native
- * path. Every
- * working-agent timing cell also needs the `stigmer` CLI. The judge cell runs
+ * Claude cell the Anthropic key, whatever its model, since the engine runs
+ * Claude only; a quality target needs its harness's key AND the Anthropic
+ * key, because the judge runs on the native path. Every working-agent
+ * timing cell also needs the `stigmer` CLI. The judge cell runs
  * only when `--cells` names it, and needs the Anthropic key. Under
  * `--native-model` the native `default` cells are refused: their point is
  * that each harness picks its own model. A thinking run refuses the cells on
@@ -447,7 +443,6 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
       if (provider === "openai") return env.openaiKey ? undefined : "missing OPENAI_API_KEY";
       return env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY";
     },
-    cursor: () => (env.cursorKey ? undefined : "missing CURSOR_API_KEY"),
     claude: () => (env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY"),
   };
   const keyReason = (harness: BenchmarkHarness, model: string | null): RefusedCell["reason"] | undefined => keyRules[harness](model);

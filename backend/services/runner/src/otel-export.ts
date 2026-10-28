@@ -300,7 +300,7 @@ export async function laneMetricExporter(settings: TelemetrySettings, lane: Tele
  * exporter, whatever instrumentation recorded them. Stigmer's own spans set
  * none with content off (`shared/telemetry-content.ts` `markFailed`); this
  * holds the switch for the spans other libraries record through the global
- * tracer, the Cursor SDK's own and Temporal's among them, whose errors can
+ * tracer, Temporal's among them, whose errors can
  * quote what a call was given. With content on, spans pass as they are.
  */
 export function contentGuardedExporter(exporter: SpanExporter, content: boolean): SpanExporter {

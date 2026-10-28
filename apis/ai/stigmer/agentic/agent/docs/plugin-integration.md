@@ -136,7 +136,7 @@ tool named in both is excluded.
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash`, `WebFetch` | One built-in tool.                                                                                                          |
 | `Bash(git push *)`                                          | A specifier in parentheses is accepted and governs the whole tool.                                                          |
-| `Agent(explore)`                                            | In the main agent's `tools`, limits which subagents it may start (native harness; the Cursor harness refuses such a turn).  |
+| `Agent(explore)`                                            | In the main agent's `tools`, limits which subagents it may start.                                                           |
 | `mcp__plugin_<plugin>_<server>`                             | Every tool of one plugin's MCP server.                                                                                      |
 | `mcp__plugin_<plugin>_<server>__<tool>`                     | One tool of that server, by the name the server reports in `tools/list`.                                                    |
 | `mcp__<server>`                                             | Every tool of one of the agent's own MCP servers (`spec.mcp_servers`).                                                      |

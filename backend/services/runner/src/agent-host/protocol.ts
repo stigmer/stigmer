@@ -90,10 +90,10 @@ export interface HostConfigWire {
   readonly workspaceRootDir: string;
   readonly primaryModel: string;
   readonly maxConcurrentActivities: number;
-  readonly cloudModeEnabled: boolean;
   readonly checkpointerType: "memory" | "http" | "sqlite";
   readonly mcpBridgeEndpoint: string | null;
   readonly mcpPublicEndpoint: string | null;
+  /** The no-progress bound for every harness's engine stream (`Config.cursorStreamStallTimeoutMs`); its name predates the harnesses that read it. */
   readonly cursorStreamStallTimeoutMs: number;
   /**
    * The runtime's backstop for one open operation: the Claude engine runs in
@@ -105,19 +105,9 @@ export interface HostConfigWire {
   readonly shellTimeoutMaxSeconds: number;
   /** Whether the native shell may run commands in the background: the shell runs in the host. */
   readonly shellBackgroundEnabled: boolean;
-  readonly agentResolveTimeoutMs: number;
   readonly workspaceLockTimeoutMs: number;
   /** The runner's local proxy, `http://127.0.0.1:<port>`. */
   readonly proxyEndpoint: string;
-  /**
-   * The local proxy's Cursor lane, `https://2130706433:<port>`, 127.0.0.1
-   * written as one number so the Cursor SDK keeps certificate checks on
-   * (`agent-proxy/cursor-lane.ts`), whose certificate the host trusts.
-   * `null` on a runner that holds no Cursor credential (no `CURSOR_API_KEY`
-   * and no platform proxy): the host's Cursor adapter then refuses a turn
-   * up front, as it did in the runner's own process.
-   */
-  readonly cursorEndpoint: string | null;
   /** The host's credential at that proxy. */
   readonly token: string;
   /**
@@ -147,11 +137,9 @@ export interface WireCasSnapshot {
 /** How a remote turn ended: the adapter's `TurnOutcome`, with a failure's cause as a {@link WireError}. */
 export type WireOutcome =
   | { readonly kind: "completed" }
-  | { readonly kind: "cancelled" }
   | { readonly kind: "awaiting_approval" }
   | { readonly kind: "tool_call_limit" }
   | { readonly kind: "interrupted" }
-  | { readonly kind: "stream_cut"; readonly message: string }
   | {
       readonly kind: "failed";
       readonly message: string;
@@ -310,11 +298,6 @@ export interface RunnerCalls {
     readonly result: { readonly runtime: RuntimeFieldsWire; readonly offloads: readonly WireOffload[] };
   };
   readonly reportProgress: { readonly args: { readonly turnId: string; readonly label: string }; readonly result: null };
-  /** `TurnSink.bindHarnessState`: the engine-minted id alone; the runtime records it through the session's door. */
-  readonly bindHarnessState: {
-    readonly args: { readonly turnId: string; readonly harnessStateId: string };
-    readonly result: null;
-  };
   /** `TurnStandingContext.selectRecalledMemories`, which the runtime memoizes per turn. */
   readonly selectRecalledMemories: {
     readonly args: { readonly turnId: string };
@@ -322,8 +305,6 @@ export interface RunnerCalls {
   };
   /** `MountedPlugin.verify` for one of the turn's plugins, by slug: the tree and its archive are the runner's. */
   readonly verifyPlugin: { readonly args: { readonly turnId: string; readonly slug: string }; readonly result: null };
-  /** `TurnInput.readRunEvents`: the turn's run's events, each a base64 `SessionEvent`; the log is the runner's to read. */
-  readonly readRunEvents: { readonly args: { readonly turnId: string }; readonly result: readonly string[] };
   /**
    * `TurnSink.input.claim`: the session's queued messages the runtime took
    * for the turn, their files mounted, and whether more still wait (a claim

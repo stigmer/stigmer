@@ -39,10 +39,10 @@ const execFileAsync = promisify(execFile);
 
 const EXEC_ID = "exec-test-1";
 
-/** The runner-owned files a harness (here, Cursor) writes into the workspace. */
+/** The runner-owned files a harness may write into the workspace (any paths the caller names). */
 const RUNNER_OWNED_PATHS: readonly string[] = [
-  ".cursor/hooks.json",
-  ".cursor/rules/stigmer-tool-approval.mdc",
+  ".runner-gate/hooks.json",
+  ".runner-gate/rules/tool-approval.mdc",
 ];
 
 let repo: string;
@@ -87,8 +87,8 @@ beforeEach(async () => {
   // .stigmer is added to .git/info/exclude in production (git.ts); replicate so
   // the test mirrors the real exclude surface.
   await write(".git/info/exclude", ".stigmer\nlost+found\n");
-  await mkdir(join(repo, ".stigmer", "cursor-sdk-state"), { recursive: true });
-  await writeFile(join(repo, ".stigmer", "cursor-sdk-state", "db.sqlite"), "STATE", "utf-8");
+  await mkdir(join(repo, ".stigmer", "engine-state"), { recursive: true });
+  await writeFile(join(repo, ".stigmer", "engine-state", "db.sqlite"), "STATE", "utf-8");
 });
 
 afterEach(async () => {
@@ -246,14 +246,14 @@ describe("hard invariants", () => {
     const baseline = await snapshotBaseline(repo, EXEC_ID);
     await write("notes.md", "planton\n");
     // Simulate the SDK writing more state mid-turn.
-    await writeFile(join(repo, ".stigmer", "cursor-sdk-state", "db.sqlite"), "STATE2", "utf-8");
+    await writeFile(join(repo, ".stigmer", "engine-state", "db.sqlite"), "STATE2", "utf-8");
 
     const { changes } = await captureChangeSet(repo, EXEC_ID, baseline);
     expect(changes.some((c) => c.path.startsWith(".stigmer"))).toBe(false);
 
     await restoreToBaseline(repo, baseline, changes);
     // The SDK state is untouched by restore (it was never in the change set).
-    expect(await read(".stigmer/cursor-sdk-state/db.sqlite")).toBe("STATE2");
+    expect(await read(".stigmer/engine-state/db.sqlite")).toBe("STATE2");
   });
 
   it("leaves the platform's .stigmer link out of every tree, in a folder with no git exclude for it", async () => {
@@ -279,14 +279,14 @@ describe("hard invariants", () => {
   it("excludes the passed runner-owned paths from the captured diff", async () => {
     const baseline = await snapshotBaseline(repo, EXEC_ID, RUNNER_OWNED_PATHS);
     // The gate writes these during the turn.
-    await write(".cursor/hooks.json", '{"version":1,"hooks":{}}\n');
-    await write(".cursor/rules/stigmer-tool-approval.mdc", "rule\n");
+    await write(".runner-gate/hooks.json", '{"version":1,"hooks":{}}\n');
+    await write(".runner-gate/rules/tool-approval.mdc", "rule\n");
     await write("notes.md", "planton\n");
 
     const { changes } = await captureChangeSet(repo, EXEC_ID, baseline, RUNNER_OWNED_PATHS);
-    expect(changes.some((c) => c.path === ".cursor/hooks.json")).toBe(false);
+    expect(changes.some((c) => c.path === ".runner-gate/hooks.json")).toBe(false);
     expect(
-      changes.some((c) => c.path === ".cursor/rules/stigmer-tool-approval.mdc"),
+      changes.some((c) => c.path === ".runner-gate/rules/tool-approval.mdc"),
     ).toBe(false);
     expect(changes.some((c) => c.path === "notes.md")).toBe(true);
   });

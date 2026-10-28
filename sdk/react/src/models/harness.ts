@@ -9,7 +9,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
  * A named engine is not necessarily an offered one: the pickers offer
  * {@link HARNESS_OPTIONS}.
  */
-export type HarnessOption = "native" | "cursor" | "claude";
+export type HarnessOption = "native" | "claude";
 
 /**
  * The proto {@link Harness} member for each option — the one table the
@@ -19,7 +19,6 @@ export type HarnessOption = "native" | "cursor" | "claude";
  */
 const HARNESS_BY_OPTION = {
   native: Harness.NATIVE,
-  cursor: Harness.CURSOR,
   claude: Harness.CLAUDE,
 } as const satisfies Record<HarnessOption, Exclude<Harness, Harness.UNSPECIFIED>>;
 
@@ -32,7 +31,6 @@ const HARNESS_BY_OPTION = {
  */
 const OPTION_BY_HARNESS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, HarnessOption>> = {
   [Harness.NATIVE]: "native",
-  [Harness.CURSOR]: "cursor",
   [Harness.CLAUDE]: "claude",
 };
 
@@ -53,7 +51,6 @@ export interface HarnessDisplayInfo {
  */
 export const HARNESS_META: Readonly<Record<HarnessOption, HarnessDisplayInfo>> = {
   native: { label: "Stigmer", description: "Stigmer's native agent runtime" },
-  cursor: { label: "Cursor", description: "Cursor IDE agent with codebase indexing" },
   claude: { label: "Claude", description: "Powered by Claude" },
 };
 
@@ -74,7 +71,7 @@ export const HARNESS_LABELS: Readonly<Record<HarnessOption, string>> = Object.fr
  * the server refuses one it does not offer. Every named engine is offered
  * today.
  */
-export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "cursor", "claude"];
+export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "claude"];
 
 /** Platform default — resolves to the native engine. */
 export const DEFAULT_HARNESS: HarnessOption = "native";

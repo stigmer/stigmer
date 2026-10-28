@@ -152,7 +152,7 @@ describe("ensureOperatorAccount", () => {
     }
     edited.metadata.name = "Renamed by the console";
     edited.spec.preferences = create(IdentityAccountPreferencesSchema, {
-      defaultHarness: "cursor",
+      defaultHarness: "claude",
     });
     expect(
       await accounts.accounts.swap(created.metadata?.id ?? "", read.bytes, edited),
@@ -163,7 +163,7 @@ describe("ensureOperatorAccount", () => {
       displayName: "A New Config Name",
     });
     expect(again.metadata?.name).toBe("Renamed by the console");
-    expect(again.spec?.preferences?.defaultHarness).toBe("cursor");
+    expect(again.spec?.preferences?.defaultHarness).toBe("claude");
     expect(
       await temp.store.listResources(ApiResourceKind.identity_account),
     ).toHaveLength(1);

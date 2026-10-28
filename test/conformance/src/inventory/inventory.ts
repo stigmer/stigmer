@@ -42,7 +42,7 @@ export const DISPOSITIONS = [
   // Pure logic (parsing, rating, arithmetic) whose home is the hosted
   // edition's own unit tables.
   "unit",
-  // Needs a live upstream or a real account (the Cursor relay, real Stripe):
+  // Needs a live upstream or a real account (real Stripe):
   // a live smoke the hosted edition owns.
   "smoke",
   // Proposed as debris, a behavior not to carry forward; awaits the decision.

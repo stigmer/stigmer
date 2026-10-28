@@ -102,13 +102,8 @@ type PricingBlock struct {
 	CacheWritePriceMicrosPerMillion int64 `protobuf:"varint,3,opt,name=cache_write_price_micros_per_million,json=cacheWritePriceMicrosPerMillion,proto3" json:"cache_write_price_micros_per_million,omitempty"`
 	// Micro-USD per million cache-read tokens.
 	CacheReadPriceMicrosPerMillion int64 `protobuf:"varint,4,opt,name=cache_read_price_micros_per_million,json=cacheReadPriceMicrosPerMillion,proto3" json:"cache_read_price_micros_per_million,omitempty"`
-	// Cursor Token Rate surcharge, micro-USD per million billable tokens.
-	// Zero for native-harness models and fee-exempt cursor models (Auto and
-	// the first-party pool). Variants inherit the base entry's rate and
-	// leave this zero.
-	CursorTokenRateMicrosPerMillion int64 `protobuf:"varint,5,opt,name=cursor_token_rate_micros_per_million,json=cursorTokenRateMicrosPerMillion,proto3" json:"cursor_token_rate_micros_per_million,omitempty"`
 	// Where these rates came from (e.g. "anthropic_api",
-	// "cursor_pricing_page", "derived_from_notes"). Provenance, not
+	// "openai_pricing_page", "derived_from_notes"). Provenance, not
 	// approval — see the update-model-registry rule for the sign-off
 	// lifecycle.
 	Source string `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
@@ -179,13 +174,6 @@ func (x *PricingBlock) GetCacheReadPriceMicrosPerMillion() int64 {
 	return 0
 }
 
-func (x *PricingBlock) GetCursorTokenRateMicrosPerMillion() int64 {
-	if x != nil {
-		return x.CursorTokenRateMicrosPerMillion
-	}
-	return 0
-}
-
 func (x *PricingBlock) GetSource() string {
 	if x != nil {
 		return x.Source
@@ -209,14 +197,14 @@ func (x *PricingBlock) GetEffectiveAt() *timestamppb.Timestamp {
 
 // PricingVariant is a speed/mode variant (e.g. "fast") of a base model.
 //
-// Variants carry a full pricing block of their own; identity, catalog
-// metadata, and the Cursor Token Rate are inherited from the base entry.
+// Variants carry a full pricing block of their own; identity and catalog
+// metadata are inherited from the base entry.
 type PricingVariant struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Pricing *PricingBlock          `protobuf:"bytes,1,opt,name=pricing,proto3" json:"pricing,omitempty"`
 	// Wire model names that resolve directly to this variant — names that
-	// do not normalize to a clean "base + suffix" form (e.g.
-	// "composer-2.5-fast"). Matched case-insensitively.
+	// do not normalize to a clean "base + suffix" form (e.g. a provider's
+	// own name for the variant). Matched case-insensitively.
 	WireIds       []string `protobuf:"bytes,2,rep,name=wire_ids,json=wireIds,proto3" json:"wire_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -349,20 +337,12 @@ type ModelCapabilities struct {
 	// Whether the model accepts tool / function-calling requests.
 	ToolUse bool `protobuf:"varint,1,opt,name=tool_use,json=toolUse,proto3" json:"tool_use,omitempty"`
 	// Whether image input delivered to this model produces genuine visual
-	// understanding.
-	//
-	// The meaning is harness-scoped. For native-harness entries this is the
-	// provider-documented capability of the model itself. For cursor-harness
-	// entries it encodes "images work through this model on the Cursor
-	// path": Cursor's serving stack hands vision off to a multimodal model
-	// server-side, so a model that is text-only by its own documentation
-	// (composer-2.5) still sees images when dispatched via Cursor.
+	// understanding: the provider-documented capability of the model itself.
 	Vision bool `protobuf:"varint,2,opt,name=vision,proto3" json:"vision,omitempty"`
 	// Whether the model streams incremental output tokens.
 	Streaming bool `protobuf:"varint,3,opt,name=streaming,proto3" json:"streaming,omitempty"`
-	// Whether the model supports extended thinking. On a cursor-harness entry
-	// it is the model's thinking variant; on a native entry it is the
-	// fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
+	// Whether the model supports extended thinking in the fixed-budget form
+	// (Anthropic `{type: "enabled", budget_tokens}`).
 	Thinking bool `protobuf:"varint,4,opt,name=thinking,proto3" json:"thinking,omitempty"`
 	// Whether thinking depth adapts to the request instead of a fixed
 	// budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
@@ -465,17 +445,16 @@ type ModelPricingBaseline struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier of this revision (UUID). Server-assigned.
 	BaselineId string `protobuf:"bytes,1,opt,name=baseline_id,json=baselineId,proto3" json:"baseline_id,omitempty"`
-	// Stigmer canonical model id (e.g. "claude-sonnet-4.6" for native,
-	// "claude-sonnet-4-6" for cursor — id schemes differ per harness).
+	// Stigmer canonical model id (e.g. "claude-sonnet-4.6").
 	ModelId string `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	// Provider API identifier the runner resolves to (e.g.
 	// "claude-sonnet-4-6"). Empty when the canonical id is already the
-	// wire name (most cursor entries).
+	// wire name.
 	ApiModelId string `protobuf:"bytes,3,opt,name=api_model_id,json=apiModelId,proto3" json:"api_model_id,omitempty"`
-	// LLM provider (e.g. "anthropic", "openai", "cursor"). Free-form:
+	// LLM provider (e.g. "anthropic", "openai"). Free-form:
 	// new providers appear without a contract change.
 	Provider string `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
-	// Execution harness ("native", "cursor", "claude").
+	// Execution harness ("native" or "claude").
 	Harness string `protobuf:"bytes,5,opt,name=harness,proto3" json:"harness,omitempty"`
 	// Human-readable name shown in model pickers.
 	DisplayName string `protobuf:"bytes,6,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
@@ -496,11 +475,9 @@ type ModelPricingBaseline struct {
 	// Wire model names that resolve directly to this base entry — the
 	// base-level twin of PricingVariant.wire_ids, for served-model names
 	// that neither match the canonical id nor normalize to a clean
-	// "base + suffix" form (e.g. "gemini-3-flash-preview" for
-	// gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
-	// kimi-k2.7-code — Cursor's serving stack reports upstream serving
-	// names the catalog never uses). Matched case-insensitively; billed
-	// at the base rates.
+	// "base + suffix" form (e.g. a dated snapshot name a provider reports
+	// for a model the catalog lists undated). Matched case-insensitively;
+	// billed at the base rates.
 	//
 	// Distinct from api_model_id, which is the single OUTBOUND identifier
 	// the runner dispatches with. Wire ids are INBOUND aliases only: they
@@ -730,17 +707,16 @@ var File_ai_stigmer_billing_v1_model_pricing_baseline_proto protoreflect.FileDes
 
 const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/billing/v1/model_pricing_baseline.proto\x12\x15ai.stigmer.billing.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbc\x04\n" +
+	"2ai/stigmer/billing/v1/model_pricing_baseline.proto\x12\x15ai.stigmer.billing.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x90\x04\n" +
 	"\fPricingBlock\x12K\n" +
 	"\x1einput_price_micros_per_million\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1ainputPriceMicrosPerMillion\x12M\n" +
 	"\x1foutput_price_micros_per_million\x18\x02 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1boutputPriceMicrosPerMillion\x12V\n" +
 	"$cache_write_price_micros_per_million\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1fcacheWritePriceMicrosPerMillion\x12T\n" +
-	"#cache_read_price_micros_per_million\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1ecacheReadPriceMicrosPerMillion\x12V\n" +
-	"$cursor_token_rate_micros_per_million\x18\x05 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1fcursorTokenRateMicrosPerMillion\x12 \n" +
+	"#cache_read_price_micros_per_million\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1ecacheReadPriceMicrosPerMillion\x12 \n" +
 	"\x06source\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x06source\x12)\n" +
 	"\vsource_note\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\n" +
 	"sourceNote\x12=\n" +
-	"\feffective_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAt\"\x81\x01\n" +
+	"\feffective_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAtJ\x04\b\x05\x10\x06R$cursor_token_rate_micros_per_million\"\x81\x01\n" +
 	"\x0ePricingVariant\x12E\n" +
 	"\apricing\x18\x01 \x01(\v2#.ai.stigmer.billing.v1.PricingBlockB\x06\xbaH\x03\xc8\x01\x01R\apricing\x12(\n" +
 	"\bwire_ids\x18\x02 \x03(\tB\r\xbaH\n" +

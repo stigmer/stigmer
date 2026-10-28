@@ -160,12 +160,8 @@ enum RunControlSignal {
 // runs.
 //
 // Enforcement:
-// - Native harness: tool-level enforcement — write tools are
+// - Every harness: tool-level enforcement — write tools are
 //   removed from the tool set in PLAN mode.
-// - Cursor harness: best-effort via system prompt injection. The Cursor SDK
-//   does not expose a mode parameter, so the agent is instructed not to
-//   make changes. When the SDK adds native mode support, the prompt-based
-//   approach will be replaced.
 enum InteractionMode {
   // Default — resolves to INTERACTION_MODE_AGENT.
   INTERACTION_MODE_UNSPECIFIED = 0;
@@ -185,8 +181,7 @@ enum InteractionMode {
   // implementation plans, and answering architectural questions without
   // side effects.
   //
-  // Native harness: enforced by removing write tools from the tool set.
-  // Cursor harness: best-effort via system prompt directive.
+  // Enforced by removing write tools from the tool set.
   INTERACTION_MODE_PLAN = 2;
 }
 
@@ -238,9 +233,9 @@ enum ApprovalMode {
 // ServiceTier selects the provider-side speed/service tier for a run's
 // model calls.
 //
-// Providers spell this differently — Cursor exposes per-model "fast" variants
-// at higher per-token rates, Anthropic and OpenAI expose service tiers — but
-// the platform semantic is uniform: the tier is a deterministic, user-selected
+// Providers spell this differently (Anthropic and OpenAI expose service
+// tiers, some providers per-model "fast" variants at higher per-token rates),
+// but the platform semantic is uniform: the tier is a deterministic, user-selected
 // attribute validated against the model registry at create time. A tier is
 // selectable for a model only when the registry prices it
 // (pricingVariants.<tier>), so a selected tier is always billable.
@@ -254,11 +249,10 @@ enum ApprovalMode {
 // Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's
 // translation layer; every upstream layer preserves the caller's raw value so
 // "user explicitly chose standard" stays distinguishable from "platform
-// default". v1 supports the Cursor harness only: FAST on a model without a
-// registry fast variant is refused at create time (INVALID_ARGUMENT), which
-// also covers native-harness models since only cursor-harness registry entries
-// carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is
-// a tracked follow-up.
+// default". FAST on a model without a registry fast variant is refused at
+// create time (INVALID_ARGUMENT). No registry entry carries a fast variant
+// today, so no harness offers FAST; native's service-tier mapping is
+// stigmer/stigmer#361.
 enum ServiceTier {
   // Default — resolves to SERVICE_TIER_STANDARD, never the provider account
   // default.
@@ -267,13 +261,6 @@ enum ServiceTier {
   // Standard tier: the model's base-priced configuration, requested
   // explicitly.
   //
-  // @internal
-  // For the Cursor harness the runner pins the speed parameter to its base
-  // value (fast=false); the thinking parameter is pinned by the separate
-  // ThinkingMode attribute (stigmer/stigmer#772), and price-neutral
-  // parameters (e.g. effort) follow the catalog default variant. Confirmed
-  // against the billing ledger 2026-08-06: explicit base params bill base
-  // wire ids on create AND resume.
   SERVICE_TIER_STANDARD = 1;
 
   // Fast tier: the model's fast variant, billed at the registry's fast
@@ -289,11 +276,8 @@ enum ServiceTier {
 // ServiceTier (stigmer/stigmer#772).
 //
 // Unlike the fast tier, thinking is NOT a separately priced dimension:
-// Cursor bills thinking variants at the model's base per-token rates
-// (verified against the live pricing page and 277 team-ledger events on
-// 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills
-// exactly the fast variant rate). Thinking costs more only by generating
-// additional reasoning tokens, billed as ordinary output. Selectability is
+// thinking costs more only by generating additional reasoning tokens,
+// billed as ordinary output. Selectability is
 // therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for
 // models whose registry entry on the run's harness declares a
 // thinking capability (capabilities.thinking or capabilities.adaptive_thinking),
@@ -314,11 +298,10 @@ enum ServiceTier {
 // Resolution of UNSPECIFIED → DISABLED happens exactly once, in the
 // runner's translation layer; every upstream layer preserves the caller's
 // raw value so "user explicitly chose disabled" stays distinguishable from
-// "platform default". The Cursor harness maps the mode to its thinking
-// variant; the native harness maps it to Anthropic's `thinking` parameter
-// in the form the model's native registry entry declares.
+// "platform default". The native harness maps it to Anthropic's `thinking`
+// parameter in the form the model's native registry entry declares.
 // Thinking combines freely with ServiceTier: the combined variant bills at
-// the fast rate (the only price-bearing dimension), ledger-verified.
+// the fast rate (the only price-bearing dimension).
 enum ThinkingMode {
   // Default — resolves to THINKING_MODE_DISABLED, never the provider
   // account default.

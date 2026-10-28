@@ -22,11 +22,11 @@
  *   - a message, once it stops streaming (an empty one writes nothing);
  *   - a tool use, once it is known to run, to ask or to be skipped: at
  *     start on a harness whose boundary never rewrites a row, and on one
- *     that does (Cursor, the `boundaryRewritesRow` capability) once the row
+ *     that does (Claude, the `boundaryRewritesRow` capability) once the row
  *     is beyond the boundary's reach or the turn's terminal write proves
  *     the boundary ran. A call an unattended turn skipped carries
  *     `evaluated_permission: "deny"` ({@link permissionOf}): native's gate
- *     opens its row already saying so, and Cursor's boundary stamps it
+ *     opens its row already saying so, and Claude's settle stamps it
  *     before the row's use is written;
  *   - a tool result, once its row settles, with the same boundary rule;
  *   - a hidden row (the collapsed shape) writes nothing.
@@ -92,7 +92,8 @@
  * does not wait for a write: the runtime's pump sends it on its own
  * cadence through {@link flushToolOutput}, an append of previews and no
  * events, because a harness may stream output while nothing else happens
- * (Cursor's shell deltas arrive outside its loop's persists) and the
+ * (Claude's shell deltas arrive from the host's shell server, outside any
+ * persist) and the
  * output would otherwise reach the session only after the result, when it
  * is dropped. What the turn has open goes the same way, alone, through
  * {@link sendLiveness}: the runtime's liveness pump (`liveness-pump.ts`).
@@ -773,7 +774,6 @@ export class SessionEventEmitter {
           argsPreview: row.argsPreview,
           policySource: POLICY_SOURCE_WORDS[row.approvalPolicySource],
           policyHook: row.approvalPolicyHook,
-          contentDigest: row.approvalContentDigest,
         },
       });
     }

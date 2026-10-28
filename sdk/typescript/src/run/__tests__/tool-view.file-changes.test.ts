@@ -1,8 +1,8 @@
 // Covers normalizeToolResult's file-edit / file-write views, reconstructed from
-// the tool args (and the Cursor result envelope). An earlier change removed the
-// ToolCall.file_changes capture (message.proto field 22), so the args are the
-// single source for the inline transcript diff; captured file review renders via
-// FileReviewCard / the FileChangeSet ledger, tested separately.
+// the tool args. An earlier change removed the ToolCall.file_changes capture
+// (message.proto field 22), so the args are the single source for the inline
+// transcript diff; captured file review renders via FileReviewCard / the
+// FileChangeSet ledger, tested separately.
 
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -45,22 +45,6 @@ describe("normalizeEdit — from args", () => {
     expect(view.path).toBe("legacy.ts");
   });
 
-  it("parses the Cursor result envelope stats when present", () => {
-    const view = normalizeToolResult(
-      editToolCall({
-        args: { path: "x.ts" },
-        result: JSON.stringify({
-          value: { linesAdded: 3, linesRemoved: 2, diffString: "@@ patch @@" },
-        }),
-      }),
-    );
-    expect(view.type).toBe("diff");
-    if (view.type !== "diff") return;
-    expect(view.linesAdded).toBe(3);
-    expect(view.linesRemoved).toBe(2);
-    expect(view.unifiedDiff).toBe("@@ patch @@");
-  });
-
   it("resolves the path from the args (path / file_path / file / filename)", () => {
     expect(
       (() => {
@@ -72,10 +56,10 @@ describe("normalizeEdit — from args", () => {
 });
 
 describe("normalizeWrite — from args", () => {
-  it("renders the proposed whole-file content from the args (contents)", () => {
+  it("renders the proposed whole-file content from the args (content)", () => {
     const CONTENT = "# Notes\n\n- first\n- second\n";
     const view = normalizeToolResult(
-      writeToolCall({ args: { path: "notes.md", contents: CONTENT } }),
+      writeToolCall({ args: { file_path: "notes.md", content: CONTENT } }),
     );
     expect(view.type).toBe("file");
     if (view.type !== "file") return;

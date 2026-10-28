@@ -19,7 +19,7 @@ export function shellWord(value: string): string {
 /**
  * The bash command a contract hook runs: log its stdin, then answer as `does`
  * says, in the hook's format (Claude Code's JSON, or Cursor's `permission`).
- * Shared with the Cursor substrate, so both engines run the very same hooks.
+ * Shared by every substrate, so both engines run the very same hooks.
  */
 export function contractHookCommand(
   does: ContractHookBehaviour,

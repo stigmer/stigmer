@@ -599,8 +599,7 @@ type LlmCallUsageRecord struct {
 	// UNSPECIFIED marks a record written before this field existed.
 	ProviderKeySource ProviderKeySource `protobuf:"varint,45,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.run.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
 	// Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-	// mirroring service_tier's convention: cursor harness derives it from the
-	// resolved wire id's variant suffix; empty when the wire carries no
+	// mirroring service_tier's convention; empty when the wire carries no
 	// evidence — never guessed. Thinking is per-token price-neutral
 	// (stigmer/stigmer#772), so this field feeds the requested-vs-billed
 	// consumption-drift reconciliation.
@@ -1092,7 +1091,7 @@ type ModelUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Model identifier as resolved by the provider.
 	Model string `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
-	// LLM provider (e.g., "openai", "anthropic", "cursor").
+	// LLM provider (e.g., "openai", "anthropic").
 	Provider string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
 	// Token counts for this model.
 	InputTokens              int64 `protobuf:"varint,3,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
@@ -1205,9 +1204,8 @@ type StreamingUsageSummary struct {
 	CacheReadTokens int64 `protobuf:"varint,3,opt,name=cache_read_tokens,json=cacheReadTokens,proto3" json:"cache_read_tokens,omitempty"`
 	// Accumulated cache-write tokens across all turns.
 	CacheWriteTokens int64 `protobuf:"varint,4,opt,name=cache_write_tokens,json=cacheWriteTokens,proto3" json:"cache_write_tokens,omitempty"`
-	// Total tokens across all turns: input_tokens + output_tokens. The Cursor
-	// SDK reports input_tokens cache-inclusive (cache_read/cache_write are
-	// subsets of it), so the cache buckets are NOT added again here.
+	// Total tokens across all turns: input_tokens + output_tokens; the cache
+	// buckets are NOT added again here.
 	TotalTokens int64 `protobuf:"varint,5,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Number of completed turns observed.
 	TurnCount int32 `protobuf:"varint,6,opt,name=turn_count,json=turnCount,proto3" json:"turn_count,omitempty"`
@@ -1226,8 +1224,8 @@ type StreamingUsageSummary struct {
 	// record that the account default was never left in control.
 	RequestedServiceTier ServiceTier `protobuf:"varint,10,opt,name=requested_service_tier,json=requestedServiceTier,proto3,enum=ai.stigmer.agentic.run.v1.ServiceTier" json:"requested_service_tier,omitempty"`
 	// JSON-encoded provider variant parameters the runner sent with the model
-	// selection (Cursor ModelSelection.params, e.g.
-	// [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+	// selection (e.g. [{"id":"fast","value":"false"}]). Empty when the
+	// harness sent none.
 	RequestedModelParams string `protobuf:"bytes,11,opt,name=requested_model_params,json=requestedModelParams,proto3" json:"requested_model_params,omitempty"`
 	// Thinking mode the runner requested for this run's model calls.
 	//

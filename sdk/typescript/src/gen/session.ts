@@ -7,9 +7,9 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
-import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { Harness, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, StopBackgroundCommandInputSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ClaimSessionInputInputSchema, ClaimSessionInputResponseSchema, BindHarnessStateInputSchema, BindHarnessStateResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, StreamAttentionRequestSchema, AttentionSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type StopBackgroundCommandInput, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ClaimSessionInputInput, type ClaimSessionInputResponse, type BindHarnessStateInput, type BindHarnessStateResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse, type StreamAttentionRequest, type Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, StopBackgroundCommandInputSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ClaimSessionInputInputSchema, ClaimSessionInputResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, StreamAttentionRequestSchema, AttentionSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type StopBackgroundCommandInput, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ClaimSessionInputInput, type ClaimSessionInputResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse, type StreamAttentionRequest, type Attention } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -96,12 +96,6 @@ export class SessionClient {
   async claimInput(input: ClaimSessionInputInput): Promise<ClaimSessionInputResponse> {
     try {
       return await this.command.claimInput(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async bindHarnessState(input: BindHarnessStateInput): Promise<BindHarnessStateResponse> {
-    try {
-      return await this.command.bindHarnessState(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -213,7 +207,6 @@ export interface SessionInput {
   metadata?: Record<string, string>;
   skillRefs?: ResourceRef[];
   harness?: Harness;
-  cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
   vaults?: ResourceRef[];
   includeMyVault?: boolean;
@@ -311,7 +304,6 @@ export function buildSessionProto(input: SessionInput): Session {
       metadata: input.metadata,
       skillRefs,
       harness: input.harness,
-      cursorMode: input.cursorMode,
       executionTarget: input.executionTarget,
       vaults,
       includeMyVault: input.includeMyVault,
@@ -383,7 +375,6 @@ export function toSessionInput(resource: Session): SessionInput {
     metadata: Object.keys(spec.metadata ?? {}).length > 0 ? { ...spec.metadata } : undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),
     harness: spec.harness || undefined,
-    cursorMode: spec.cursorMode || undefined,
     executionTarget: spec.executionTarget || undefined,
     vaults: toResourceRefInputs(spec.vaults),
     includeMyVault: spec.includeMyVault || undefined,

@@ -12,18 +12,11 @@
 //     synchronously at create, FAILED_PRECONDITION with ErrorInfo reason
 //     PROVIDER_KEY_REQUIRED naming the provider and the model, and nothing
 //     reaches a model;
-//   - a Cursor run is refused the same way when the organization holds no
-//     Cursor key: the engine names the provider, and a run on Auto names no
-//     model, so the copy names none;
 //   - a Claude run is refused the same way when the organization holds no
 //     Anthropic key: the engine runs Claude models only, so it names the
 //     provider, and the copy names the run's model or the engine's default;
 //   - the same organization, once it saves its keys, runs to completion: the
 //     provider bills the organization directly.
-//
-// The keyed half is native only: a Cursor key is checked with Cursor itself
-// at save, so no fixture can stand in for one, and a keyed Cursor run would
-// reach Cursor.
 //
 // Skipped on the local OSS targets: no provider-key gate exists there (a
 // self-hosted runner calls its providers with the operator's own keys).
@@ -105,28 +98,6 @@ describe.skipIf(!billingEnabled)(
       expect(info?.metadata["model"], "the refusal names the model the run would have used").not.toBe("");
       expect(err.rawMessage).toMatch(/^This organization has no (Anthropic|OpenAI) key for model '.+', so the run was not started\./);
       expect(err.rawMessage).toContain("An admin can add one in Settings → Provider keys.");
-      expect(mock.remaining()).toBe(0);
-    });
-
-    it("[billing.gate.provider-key.keyless-cursor-run-refused] a Cursor run of an organization with no Cursor key is refused at create with PROVIDER_KEY_REQUIRED naming Cursor, and nothing reaches a model", async () => {
-      const { org } = await provisionBare();
-      const agentRef = await provisionAgent(org);
-
-      const err = await expectGrpcCode(
-        () =>
-          clients.agentExecutionCommand.create(
-            makeAgentExecution({ org, name: uniqueName("aex-cursor"), agentRef, sessionSpec: { harness: Harness.CURSOR } }),
-          ),
-        Code.FailedPrecondition,
-        "keyless Cursor create",
-      );
-      const [info] = err.findDetails(ErrorInfoSchema);
-      expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
-      expect(info?.metadata["org"]).toBe(org);
-      expect(info?.metadata["provider"]).toBe("cursor");
-      expect(err.rawMessage).toBe(
-        "This organization has no Cursor key, so the run was not started. An admin can add one in Settings → Provider keys.",
-      );
       expect(mock.remaining()).toBe(0);
     });
 

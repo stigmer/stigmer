@@ -1,6 +1,6 @@
 /**
- * The fold (../fold.ts) over every hermetic event golden of both harnesses
- * (backend/services/runner/src/activities/execute-{deep-agent,cursor}/
+ * The fold (../fold.ts) over every hermetic event golden of the native
+ * harness (backend/services/runner/src/activities/execute-deep-agent/
  * __tests__/hermetic/goldens): each golden's fold names the same items as
  * the rows golden the same turn wrote beside it. The runner writes its
  * events from those rows (harness/events/emitter.ts), so a client folding
@@ -46,7 +46,7 @@ import type { Thread, ToolUse, TurnItem } from "../types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const RUNNER = join(here, "../../../../../services/runner/src/activities");
-const HARNESSES = ["execute-deep-agent", "execute-cursor"] as const;
+const HARNESSES = ["execute-deep-agent"] as const;
 
 /** A tool call row, as protojson. */
 interface ToolCallJson {
@@ -380,9 +380,9 @@ describe.each(ALL)("$harness $name", (golden) => {
   });
 });
 
-describe.each(HARNESSES)("%s file-review-reconcile: an undo another turn put back", (harness) => {
+describe("execute-deep-agent file-review-reconcile: an undo another turn put back", () => {
   it("reads the file undone, decided by the person, on the turn that changed it", () => {
-    const path = join(RUNNER, harness, "__tests__/hermetic/goldens/file-review-reconcile.events.json");
+    const path = join(RUNNER, "execute-deep-agent", "__tests__/hermetic/goldens/file-review-reconcile.events.json");
     const events = (JSON.parse(readFileSync(path, "utf8")) as JsonValue[]).map((json) => fromJson(SessionEventSchema, json));
     const fold = foldSession(events);
     expect(fold.turns.map((turn) => [turn.runId, turn.fileReview.length])).toEqual([
@@ -397,8 +397,8 @@ describe.each(HARNESSES)("%s file-review-reconcile: an undo another turn put bac
 });
 
 describe("the corpus", () => {
-  it("covers both harnesses", () => {
+  it("covers the native harness's goldens", () => {
     expect(new Set(ALL.map((golden) => golden.harness))).toEqual(new Set(HARNESSES));
-    expect(ALL.length).toBeGreaterThanOrEqual(50);
+    expect(ALL.length).toBeGreaterThanOrEqual(30);
   });
 });

@@ -5,7 +5,7 @@
  * and keeps one pull request open per session. The branch and PR are
  * SESSION-scoped (`stigmer/<session-id>`): a session is one workstream, so
  * every approved turn appends commits to the same branch and the same PR —
- * mirroring how Cursor cloud agents and Codex present a session's deliverable.
+ * mirroring how hosted coding agents present a session's deliverable.
  * Execution-scoped branches were a modeling bug: each turn branched off the
  * previous turn's branch, leaving a trail of superseded PRs.
  *

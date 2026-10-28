@@ -176,7 +176,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | Flag | Purpose |
 |------|---------|
 | `--model` | Override the LLM model (e.g., `claude-sonnet-4-6`) |
-| `--harness` | Choose the execution engine for the new session (`native` or `cursor`) |
+| `--harness` | Choose the execution engine for the new session (`native` or `claude`) |
 | `--auto-approve` | Approve all tool executions without prompting (bypasses approval policies) |
 | `--approve-default` | Answer every tool call that asks, in non-interactive mode: `allow`, `deny`, or `allow-all` (allow it and every waiting call of its kind for the rest of the turn); unset denies each one, and the agent carries on without it |
 | `--verbose`, `-v` | Show run IDs and phase transitions in the TUI transcript |
@@ -192,8 +192,8 @@ stigmer run my-agent --auto-approve -m "Deploy to staging"
 ### Choosing a harness
 
 The harness is the engine that executes your session: `native` (Stigmer's
-own runtime, the default) or `cursor` (the Cursor engine; on Stigmer Cloud
-it runs on your organization's own Cursor key, billed by Cursor). A session
+own runtime, the default) or `claude` (Anthropic's Claude Agent SDK; it runs
+Claude models on your organization's own Anthropic key). A session
 keeps its harness for life — `stigmer resume` always continues on the engine
 the session started with.
 
@@ -204,14 +204,14 @@ and an omitted `--model` fills from your default model for that harness.
 The flag is the per-run override:
 
 ```bash
-# Start a cursor-harness session explicitly
-stigmer run variance-reporter --harness cursor -w . -m "Report Q3's variances"
+# Start a claude-harness session explicitly
+stigmer run variance-reporter --harness claude -w . -m "Report Q3's variances"
 
-# Force one native run without changing your account's cursor default
+# Force one native run without changing your account's claude default
 stigmer run my-agent --harness native -m "Quick question"
 ```
 
-When a session starts on the cursor harness, the session header says so —
+When a session starts on the claude harness, the session header says so —
 you always see the engine before output streams.
 
 ## Examples

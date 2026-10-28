@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { CursorMode, ExecutionTarget, Harness } from "./enum_pb.js";
+import type { ExecutionTarget, Harness } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb.js";
 import type { SessionResource } from "./resource_pb.js";
 import { file_ai_stigmer_agentic_session_v1_resource } from "./resource_pb.js";
@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKfCAoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5Ek4KCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSQQoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3NCCLpIBYIBAhABEj4KC2N1cnNvcl9tb2RlGAsgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ3Vyc29yTW9kZRJIChBleGVjdXRpb25fdGFyZ2V0GAwgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXhlY3V0aW9uVGFyZ2V0ElIKBnZhdWx0cxgPIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIMukgFkgECEBTghSw7EhgKEGluY2x1ZGVfbXlfdmF1bHQYEiABKAgSSwoHcGx1Z2lucxgTIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsOhITCgtmaWxlX3JldmlldxgUIAEoCBJTCg9lbnZpcm9ubWVudF9yZWYYFSABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLEMSTAoJcmVzb3VyY2VzGBYgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblJlc291cmNlQgm6SAaSAQMQ6AcaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIARACSgQIAxAESgQIDRAOSgQIBhAHSgQIBxAISgQIEBARSgQIERASUhFhZ2VudF9pbnN0YW5jZV9pZFIQaGFybmVzc19zdGF0ZV9pZFIYaGFybmVzc19zdGF0ZV9pZF9oaXN0b3J5UhF3b3Jrc3BhY2VfZW50cmllc1IRbWNwX3NlcnZlcl91c2FnZXNSB3NlY3JldHNSC2Nvbm5lY3Rpb25zYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLyBwoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5Ek4KCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSQQoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3NCCLpIBYIBAhABEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQSUgoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLDsSGAoQaW5jbHVkZV9teV92YXVsdBgSIAEoCBJLCgdwbHVnaW5zGBMgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSw6EhMKC2ZpbGVfcmV2aWV3GBQgASgIElMKD2Vudmlyb25tZW50X3JlZhgVIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsQxJMCglyZXNvdXJjZXMYFiADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uUmVzb3VyY2VCCbpIBpIBAxDoBxovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgBEAJKBAgDEARKBAgNEA5KBAgGEAdKBAgHEAhKBAgLEAxKBAgQEBFKBAgREBJSEWFnZW50X2luc3RhbmNlX2lkUhBoYXJuZXNzX3N0YXRlX2lkUhhoYXJuZXNzX3N0YXRlX2lkX2hpc3RvcnlSEXdvcmtzcGFjZV9lbnRyaWVzUhFtY3Bfc2VydmVyX3VzYWdlc1ILY3Vyc29yX21vZGVSB3NlY3JldHNSC2Nvbm5lY3Rpb25zYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -83,7 +83,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
-   * - CURSOR: the Cursor SDK
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -96,21 +95,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 10;
    */
   harness: Harness;
-
-  /**
-   * Cursor SDK agent mode for this session.
-   *
-   * Determines whether the Cursor agent runs locally (Agent.create with
-   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation and never changed — switching mid-session would
-   * lose Cursor-side conversation state.
-   *
-   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-   * harness types.
-   *
-   * @generated from field: ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11;
-   */
-  cursorMode: CursorMode;
 
   /**
    * Where session activities are executed — local client or cloud sandbox.

@@ -1,4 +1,4 @@
-export { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, DISABLED_PROVIDERS, modelKey, parseModelKey, resolveDefaultModelId, fetchModelRegistry, fetchModelRegistryDocument, parseRegistryJson, parseRegistryDocument } from "./registry.js";
+export { DEFAULT_MODEL_ID, DISABLED_PROVIDERS, modelKey, parseModelKey, resolveDefaultModelId, fetchModelRegistry, fetchModelRegistryDocument, parseRegistryJson, parseRegistryDocument } from "./registry.js";
 export type { ParsedModelKey, DefaultModelResolution, DefaultModelSource } from "./registry.js";
 export type { ModelInfo, ModelRegistryDocument, Provider, CostTier, SpeedTier, VisionLimits } from "./registry.js";
 export { useModelRegistry } from "./useModelRegistry.js";

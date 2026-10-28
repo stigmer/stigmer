@@ -13,7 +13,7 @@
  * sentence; the `context` checks (paths, the resumable history); mocks
  * (suite and case merged file by file, `_server.md`, `_tools.json`, the
  * refusals, a server the plugin does not declare); the `unsupported` order
- * and the Cursor engine's own verdict; and that the plugin read no longer
+ * and each engine's own verdict; and that the plugin read no longer
  * reports `evals/` as an ignored component.
  */
 
@@ -909,23 +909,13 @@ describe("unsupported", () => {
 
   it.each([
     ["resumed conversations", { ...yamlCase("context:\n  history_file: h.jsonl\n"), "evals/c/h.jsonl": HISTORY, "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
-    ["env", { "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
-    [undefined, { "evals/c/prompt.md": "Hi." }],
-  ])("is not run on Cursor for %s, and runs on native", (feature, files) => {
+    [undefined, { "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
+  ])("is not run on Claude for %s, and runs there with env, and on native with both", (feature, files) => {
     const evalCase = oneCase(files).cases[0];
     if (evalCase === undefined) throw new Error("expected the case to load");
     expect(evalCase.unsupported).toBeUndefined();
-    expect(evalCaseUnsupportedOn("cursor", evalCase)).toBe(feature);
-    expect(evalCaseUnsupportedOn("native", evalCase)).toBeUndefined();
-  });
-
-  it.each([
-    ["resumed conversations", { ...yamlCase("context:\n  history_file: h.jsonl\n"), "evals/c/h.jsonl": HISTORY, "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
-    [undefined, { "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
-  ])("is not run on Claude for %s, and runs there with env", (feature, files) => {
-    const evalCase = oneCase(files).cases[0];
-    if (evalCase === undefined) throw new Error("expected the case to load");
     expect(evalCaseUnsupportedOn("claude", evalCase)).toBe(feature);
+    expect(evalCaseUnsupportedOn("native", evalCase)).toBeUndefined();
   });
 
   it("runs a case whose plugins names only the plugin under test, and keeps the list as written", () => {

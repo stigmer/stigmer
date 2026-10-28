@@ -25,8 +25,7 @@
  *     them: the sealed values it merges onto are the stored ones, never
  *     refused as forged ciphertext (an OAuth app, a channel app);
  *   - an apply of an existing resource is an update naming every path
- *     (an OAuth app, a session);
- *   - the runner's harness door is served, and refuses a person.
+ *     (an OAuth app, a session).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -398,13 +397,5 @@ describe("the update contract, through a composed server", () => {
     });
     expect(again.metadata?.id).toBe(session.metadata?.id);
     expect(again.spec?.subject).toBe("Second words");
-  });
-
-  it("serves the runner's harness door, which refuses a person", async () => {
-    const refused = await grpcError(() =>
-      sessions().bindHarnessState({ runId: "run_01notarunner", harnessStateId: "thread-forged" }),
-    );
-    expect(refused.code).toBe(Code.PermissionDenied);
-    expect(refused.rawMessage).toBe("only the runner acting for this run may record its session's harness state");
   });
 });

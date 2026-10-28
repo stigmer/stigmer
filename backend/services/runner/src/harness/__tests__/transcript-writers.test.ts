@@ -18,7 +18,7 @@
  * the two copies drift (the memo counted three such copies before this
  * entry). The rule is about CREATION. Amending a row a builder created —
  * flipping a WAITING row SKIPPED, stamping a change-set id, marking a
- * sub-agent CANCELLED, the Cursor boundary's identity-based collapses — is
+ * sub-agent CANCELLED, the native settle's unattended skips — is
  * legitimate, and the modules that do it are named in `TurnSink`'s header;
  * a fence over them would be a list, not a rule.
  *
@@ -163,9 +163,9 @@ describe("only the transcript builder and the terminal table create transcript r
       expect.arrayContaining([
         join("harness", "run-turn.ts"),
         join("harness", "transcript", "builder.ts"),
-        join("activities", "execute-cursor", "boundary-rows.ts"),
+        join("activities", "execute-claude", "gate.ts"),
         join("activities", "execute-deep-agent", "hitl.ts"),
-        join("shared", "exact-apply.ts"),
+        join("shared", "subagent-rows.ts"),
       ]),
     );
     expect(

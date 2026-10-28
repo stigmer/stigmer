@@ -4,8 +4,7 @@
  * message when a hook asks without a reason, the refusal of an ask that
  * also rewrote the call, the sentence a person's earlier refusal answers a
  * retried call with, and the section a hook's feedback is appended to a
- * tool result under. The native gate (`middleware/approval-gate.ts`), the
- * Cursor engine's hook server (`execute-cursor/hook-server.ts`) and the
+ * tool result under. The native gate (`middleware/approval-gate.ts`) and the
  * Claude engine's gate (`execute-claude/gate.ts`) read them from here.
  */
 
@@ -34,7 +33,7 @@ export function hookAskMessage(hook: string, toolName: string): string {
 
 /**
  * Why a hook's ask with a rewrite is refused, on an engine whose approval
- * card shows the model's own call (Cursor, Claude): the agent reads it.
+ * card shows the model's own call (Claude): the agent reads it.
  */
 export function askWithRewriteMessage(hook: string): string {
   return `${hookLabel(hook)} asked for approval of this call and rewrote it too. An approval here would show the call as written, not as rewritten, so the call was refused.`;

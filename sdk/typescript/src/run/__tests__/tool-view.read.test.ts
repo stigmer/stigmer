@@ -5,8 +5,8 @@
 // kept. The Claude engine answers a read as numbered lines (`1\t# Notes`), each
 // number the next; the view drops the numbers. The cross-language fixture
 // (result-views.json) asserts the happy path; these cover the frames' variants
-// and the results that carry no frame (Cursor, and native rows recorded before
-// the frame existed).
+// and the results that carry no frame (native rows recorded before the frame
+// existed).
 
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";

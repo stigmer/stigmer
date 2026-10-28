@@ -27,10 +27,9 @@
  *
  * HARNESS-AGNOSTIC
  * ----------------
- * This is pure git plumbing keyed by `executionId`. It carries no Cursor- or
- * deep-agent-specific knowledge: the runner-owned files a harness writes into the
- * workspace (e.g. the Cursor gate's `.cursor/hooks.json`) are passed in as
- * `excludePaths` so they never pollute the captured diff, rather than being
+ * This is pure git plumbing keyed by `executionId`. It carries no
+ * harness-specific knowledge: the runner-owned files a harness writes into the
+ * workspace are passed in as `excludePaths` so they never pollute the captured diff, rather than being
  * hard-coded here. The one name left out of every capture here is the
  * platform's own, the workspace `.stigmer` link (`workspace/stigmer-link.ts`):
  * the runtime makes it on every turn, for every harness, and removes it at
@@ -46,7 +45,7 @@
  * blocked until the user decides; a reject snaps the file back byte-for-byte from
  * the baseline ref. Shell/MCP and gitignored writes/deletes are NOT reversible by
  * this substrate, so they stay on the approve-before-run gate (see each harness's
- * gate: the Cursor hook and the deep-agent approval-gate middleware).
+ * gate: the deep-agent approval-gate middleware and the Claude engine's gate).
  *
  * WHY GIT, NO COMMITS
  * -------------------
@@ -188,10 +187,9 @@ export async function isGitWorkTree(dir: string): Promise<boolean> {
  * Whether a repo-relative path is capturable by this substrate — i.e. it would
  * appear in the `git add -A` snapshot. A gitignored path is NOT capturable: the
  * snapshot cannot see it, so it can be neither reviewed nor reverted, and a
- * capture-mode gate must keep gating it. Mirrors the Cursor hook's
- * `__stigmer_is_gitignored` check: `git check-ignore -q` exits 0 when the path IS
- * ignored, non-zero otherwise; a non-git context / error is treated as
- * not-ignored (capturable), matching the hook's allow-on-error behavior.
+ * capture-mode gate must keep gating it. `git check-ignore -q` exits 0 when the
+ * path IS ignored, non-zero otherwise; a non-git context / error is treated as
+ * not-ignored (capturable).
  */
 export async function isPathCapturable(gitRoot: string, path: string): Promise<boolean> {
   if (!path) return false;

@@ -15,7 +15,6 @@ import type {
 import { cn } from "@stigmer/design-tokens";
 import { computeDiff } from "../version-history/computeDiff.js";
 import { DiffViewer } from "../version-history/DiffViewer.js";
-import { UnifiedDiffView } from "../version-history/UnifiedDiffView.js";
 import type { DiffHunk } from "../version-history/types.js";
 import { CollapsibleCode, CollapsiblePre, formatJson } from "./tool-rendering-primitives.js";
 import { FilePathLink } from "./FilePathLink.js";
@@ -145,13 +144,9 @@ function countHunks(hunks: readonly DiffHunk[]): DiffStats {
   return { added, removed };
 }
 
-// Used by the collapsed-row summary, where no precomputed hunks are available.
-// Prefers the engine-provided counts (Cursor envelope) and only runs the diff
-// algorithm for the native harness, which provides none.
+// Used by the collapsed-row summary, where no precomputed hunks are available:
+// the counts come from diffing the call's own old/new text.
 function diffStats(view: DiffView): DiffStats | null {
-  if (view.linesAdded !== undefined || view.linesRemoved !== undefined) {
-    return { added: view.linesAdded ?? 0, removed: view.linesRemoved ?? 0 };
-  }
   if (view.oldText !== undefined && view.newText !== undefined) {
     return countHunks(computeDiff(view.oldText, view.newText));
   }
@@ -169,8 +164,7 @@ function DiffResultView({
   showStats?: boolean;
   className?: string;
 }) {
-  // The native engine returns no diff, so we compute hunks from args (old/new).
-  // The Cursor envelope provides a ready unified-diff string we render directly.
+  // The engines return no diff, so we compute hunks from args (old/new).
   const hunks = useMemo<readonly DiffHunk[]>(() => {
     if (view.oldText !== undefined && view.newText !== undefined) {
       return computeDiff(view.oldText, view.newText);
@@ -179,22 +173,18 @@ function DiffResultView({
   }, [view.oldText, view.newText]);
 
   // Derive stats from the already-computed hunks instead of re-running the diff.
-  const stats = useMemo<DiffStats | null>(() => {
-    if (view.linesAdded !== undefined || view.linesRemoved !== undefined) {
-      return { added: view.linesAdded ?? 0, removed: view.linesRemoved ?? 0 };
-    }
-    return hunks.length > 0 ? countHunks(hunks) : null;
-  }, [view.linesAdded, view.linesRemoved, hunks]);
+  const stats = useMemo<DiffStats | null>(
+    () => (hunks.length > 0 ? countHunks(hunks) : null),
+    [hunks],
+  );
 
   const showPath = showFileName && Boolean(view.path);
   const showStatsRow = showStats && stats != null;
 
   // One diff family across every surface: computed hunks render through the
-  // canonical, accessible DiffViewer (line numbers + --stgm-diff-* tokens); a
-  // ready hunk-only patch (Cursor envelope) is parsed into the same DiffViewer
-  // table by UnifiedDiffView (raw fallback only if unparseable). The header
-  // (path + ± stats) is this view's own, so the DiffViewer is used without its
-  // filePath header to avoid a duplicate path.
+  // canonical, accessible DiffViewer (line numbers + --stgm-diff-* tokens). The
+  // header (path + ± stats) is this view's own, so the DiffViewer is used
+  // without its filePath header to avoid a duplicate path.
   return (
     <div className={cn("stg:space-y-1", className)} data-cursor-target="file-diff">
       {(showPath || showStatsRow) && (
@@ -213,8 +203,6 @@ function DiffResultView({
 
       {hunks.length > 0 ? (
         <DiffViewer hunks={hunks} />
-      ) : view.unifiedDiff ? (
-        <UnifiedDiffView patch={view.unifiedDiff} />
       ) : (
         <EmptyChangeNotice kind="no-preview" />
       )}

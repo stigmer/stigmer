@@ -6,8 +6,8 @@
  * Platform-injected content (skills, the conversation's Files, eval inputs)
  * physically lives in the platform dir, outside the workspace, so a real repo
  * is never polluted with Stigmer files (issue #173). But the agent reads from
- * the workspace: the Cursor SDK resolves paths against the workspace CWD, and
- * shell commands on both harnesses run there. The symlink is what makes the
+ * the workspace: the Claude engine resolves paths against the workspace CWD,
+ * and shell commands on both harnesses run there. The symlink is what makes the
  * `.stigmer/…` paths those agents are prompted with (skill locations,
  * `.stigmer/uploads/…` Files) actually resolve. The native harness's
  * FILE tools are the exception: their virtual-rooted backend refuses a path
@@ -32,7 +32,7 @@
  * OWNERSHIP: the platform owns the `.stigmer` name inside a workspace, but
  * never deletes what it did not make. A real (non-symlink) `.stigmer` entry
  * found where the link goes — left by an older runner, or written by a shell
- * command or a Cursor edit on a turn with no link, where nothing sits between
+ * command or an engine's edit on a turn with no link, where nothing sits between
  * those tools and the disk (#1123) — is MOVED out of the workspace to the
  * session's `displaced/` dir (platform-dir.ts `getDisplacedDir`) and named in
  * a warning; an empty directory is simply removed. Out of the workspace
@@ -209,9 +209,8 @@ export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: 
  * ({@link stigmerSymlinkPointsAt}), else "". A turn that mounted no skill and
  * no File made no link and has no platform content, so a `.stigmer` there is
  * the repository's own and admits nothing. Read once per turn by the engines
- * that read real paths (Cursor's hook, `execute-cursor/hook-scope.ts`
- * `readRoot`; Claude's gate, `execute-claude/gate.ts`); the native engine
- * admits the platform's content by its own route instead
+ * that read real paths (Claude's gate, `execute-claude/gate.ts`); the native
+ * engine admits the platform's content by its own route instead
  * (`execute-deep-agent/platform-route.ts` `admitsRoutedRead`).
  */
 export async function platformReadRoot(workspaceDir: string, platformDir: string): Promise<string> {
@@ -225,8 +224,6 @@ export async function platformReadRoot(workspaceDir: string, platformDir: string
  * prefix: a repository's own `.stigmer` on an unlinked turn, or a link inside
  * platform content pointing out, would otherwise stretch the confinement to
  * any target. A missing file, or a turn with no root, admits nothing.
- * Cursor's hook runs the same test inline, in a process that cannot load
- * this module (`execute-cursor/hook-script.ts`).
  */
 export async function readsPlatformContent(readRoot: string, absolutePath: string): Promise<boolean> {
   if (readRoot === "") return false;

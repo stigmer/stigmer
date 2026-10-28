@@ -26,8 +26,7 @@
  * - The lock artifact lives under `~/.stigmer/workspace-locks/{key}.lock`,
  *   NEVER inside the user's workspace (issue #173: attaching a real repo must
  *   leave no Stigmer droppings). The key is sha256(realpath(workspaceRoot)),
- *   so symlink aliases of one directory converge on one lock — the same
- *   keying pattern as getHitlGateDir in platform-dir.ts.
+ *   so symlink aliases of one directory converge on one lock.
  * - While held, proper-lockfile refreshes the artifact's mtime on an interval;
  *   if the holder process dies, refreshing stops and the artifact goes stale,
  *   so the next waiter simply takes over. A crashed runner can never deadlock

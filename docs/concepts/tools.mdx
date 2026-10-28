@@ -36,13 +36,13 @@ customer's real numbers instead of guessing.
 
 ## Built-in web fetch
 
-Not every capability needs an MCP server. Every Agent can fetch a public URL out
-of the box — the native harness ships a built-in `web_fetch` tool, and the
-[Cursor harness](/docs/concepts/harnesses) has its own `WebFetch`. Fetched HTML
-is converted to Markdown, large pages are paginated, and the tool is read-only
-and asks for no approval unless the Agent's hooks ask about it, so it works in
-unattended contexts like shared and embedded Agents. On managed cloud runners,
-fetches to private and internal addresses are refused.
+Not every capability needs an MCP server. An Agent on the native harness can
+fetch a public URL out of the box with the built-in `web_fetch` tool; the
+[Claude harness](/docs/concepts/harnesses#claude-harness) does not offer web
+fetch yet. Fetched HTML is converted to Markdown, large pages are paginated, and
+the tool is read-only and asks for no approval unless the Agent's hooks ask
+about it, so it works in unattended contexts like shared and embedded Agents. On
+managed cloud runners, fetches to private and internal addresses are refused.
 
 Reach for an MCP server when you need more than retrieval of a public page —
 authenticated APIs, site-specific extraction, or write operations.

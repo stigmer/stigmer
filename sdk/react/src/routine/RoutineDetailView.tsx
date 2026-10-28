@@ -1214,7 +1214,7 @@ function EngineModelInlineEditor({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [modelName, setModelName] = useState("");
-  const [harness, setHarness] = useState<HarnessOption>("cursor");
+  const [harness, setHarness] = useState<HarnessOption>("native");
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>("standard");
   const [thinkingMode, setThinkingMode] = useState<ThinkingModeOption>("disabled");
 
@@ -1223,7 +1223,7 @@ function EngineModelInlineEditor({
     setHarness(
       invocation.harness !== Harness.UNSPECIFIED
         ? fromProtoHarness(invocation.harness)
-        : "cursor",
+        : "native",
     );
     setServiceTier(
       fromProtoServiceTier(invocation.runConfig?.serviceTier) ?? "standard",
@@ -1643,7 +1643,7 @@ function FailureStreak({ count }: { readonly count: number }) {
 // The invocation's run shape — engine+model, budget, workspace summaries
 // ---------------------------------------------------------------------------
 
-/** "Cursor · composer-2.5", either half falling back to the platform default. */
+/** "Claude · claude-sonnet-4.6", either half falling back to the platform default. */
 function EngineModelSummary({
   invocation,
 }: {

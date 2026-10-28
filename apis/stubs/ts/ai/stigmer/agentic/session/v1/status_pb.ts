@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIo4ECg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRINCgVzdGF0ZRgEIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAUgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgGIAMoCRISCgpyb3V0aW5lX2lkGAcgASgJEk8KC2Vudmlyb25tZW50GAggASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDEkwKEmVudmlyb25tZW50X3NvdXJjZRgJIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkVudmlyb25tZW50U291cmNlGjUKE1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIooECg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRINCgVzdGF0ZRgEIAEoCRISCgpyb3V0aW5lX2lkGAcgASgJEk8KC2Vudmlyb25tZW50GAggASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDEkwKEmVudmlyb25tZW50X3NvdXJjZRgJIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkVudmlyb25tZW50U291cmNlGjUKE1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAUQBkoECAYQB1IQaGFybmVzc19zdGF0ZV9pZFIYaGFybmVzc19zdGF0ZV9pZF9oaXN0b3J5YgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * SessionStatus contains system-managed state for a session.
@@ -72,33 +72,6 @@ export type SessionStatus = Message<"ai.stigmer.agentic.session.v1.SessionStatus
    * @generated from field: string state = 4;
    */
   state: string;
-
-  /**
-   * Harness-specific state identifier for conversation continuity.
-   *
-   * Populated after the first run completes; empty until then. It is the
-   * harness's own conversation id:
-   *
-   * - NATIVE: the native harness's thread id, "thread-{session_id}".
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   *   returned by Agent.create(). Used for Agent.resume() on
-   *   subsequent runs.
-   *
-   * @generated from field: string harness_state_id = 5;
-   */
-  harnessStateId: string;
-
-  /**
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   *
-   * @generated from field: repeated string harness_state_id_history = 6;
-   */
-  harnessStateIdHistory: string[];
 
   /**
    * The routine whose fire started this conversation; empty for every other

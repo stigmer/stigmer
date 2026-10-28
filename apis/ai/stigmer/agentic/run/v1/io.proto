@@ -818,7 +818,7 @@ message GetOrgUsageReportOutput {
   // run, ordered chronologically.
   repeated DailyUsage daily_usage = 11;
 
-  // Usage split by execution harness (e.g., "native" vs "cursor").
+  // Usage split by execution harness (e.g., "native" vs "claude").
   repeated HarnessUsage harness_usage = 12;
 
   // Aggregated usage across the organization in the time range.
@@ -960,11 +960,11 @@ message DailyUsage {
 
 // Usage split by execution harness within an org report.
 //
-// Each entry represents one harness (e.g., "native", "cursor" or "claude") and
+// Each entry represents one harness (e.g., "native" or "claude") and
 // aggregates tokens, call count, and run count for that harness
 // within the report's time range.
 message HarnessUsage {
-  // Harness identifier (e.g., "native", "cursor", "claude").
+  // Harness identifier (e.g., "native", "claude").
   string harness = 1;
 
   // Total tokens through this harness (cache-inclusive, as the aggregate's).

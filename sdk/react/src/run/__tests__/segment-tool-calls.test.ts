@@ -40,9 +40,9 @@ describe("segmentToolCalls", () => {
 
   it("never folds high-signal categories (shell, edit)", () => {
     const calls = [
-      tc("Shell", "s1", { command: "echo a" }),
-      tc("Shell", "s2", { command: "echo b" }),
-      tc("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
+      tc("Bash", "s1", { command: "echo a" }),
+      tc("Bash", "s2", { command: "echo b" }),
+      tc("Edit", "e1", { file_path: "/a.ts", old_string: "a", new_string: "b" }),
     ];
     const segments = segmentToolCalls(calls);
 
@@ -77,10 +77,10 @@ describe("segmentToolCalls", () => {
 
   it("folds a run that is bounded by high-signal rows on both sides", () => {
     const calls = [
-      tc("Shell", "s1", { command: "echo a" }),
+      tc("Bash", "s1", { command: "echo a" }),
       tc("Read", "r1"),
       tc("Read", "r2"),
-      tc("Shell", "s2", { command: "echo b" }),
+      tc("Bash", "s2", { command: "echo b" }),
     ];
     const segments = segmentToolCalls(calls);
 
@@ -88,7 +88,7 @@ describe("segmentToolCalls", () => {
   });
 
   it("emits stable, distinct keys per segment", () => {
-    const calls = [tc("Read", "r1"), tc("Read", "r2"), tc("Shell", "s1")];
+    const calls = [tc("Read", "r1"), tc("Read", "r2"), tc("Bash", "s1")];
     const segments = segmentToolCalls(calls);
     const keys = segments.map((s) => s.key);
 
@@ -108,8 +108,8 @@ describe("segmentToolCalls", () => {
     });
     try {
       const calls = [
-        tc("Shell", "s1", { command: "echo a" }),
-        tc("Shell", "s2", { command: "echo b" }),
+        tc("Bash", "s1", { command: "echo a" }),
+        tc("Bash", "s2", { command: "echo b" }),
       ];
       const segments = segmentToolCalls(calls);
       expect(segments).toHaveLength(1);

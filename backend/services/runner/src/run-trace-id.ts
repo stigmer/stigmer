@@ -14,7 +14,7 @@
  * random id, never all zero in practice, and predictable from the run id,
  * which is no secret from anyone who can see the trace; nothing authorizes
  * by a trace id. W3C Trace Context prefers random ids; the runner already
- * derives fixed ids from a run the same way (the Cursor change-set id,
+ * derives fixed ids from a run the same way (the change-set id,
  * `executionId:turnSeq`). Outside a run's context, and for every span id,
  * the ids stay random.
  *

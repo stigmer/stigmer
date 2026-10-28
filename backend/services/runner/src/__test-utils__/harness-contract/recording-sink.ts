@@ -8,11 +8,7 @@
  * runner as the runtime would), and it keeps ONE ordered log of every call the adapter
  * made. Counts and lists are derived from the log on read rather than kept
  * as parallel counters, because the invariants care about ORDER as much as
- * about counts ("bind before the first persist" is an ordering claim).
- *
- * `bindHarnessState` can be made to reject, standing in for a failed session
- * write, so the kit can prove an adapter surfaces a runtime-side failure as
- * `failed` instead of letting it escape `runTurn`.
+ * about counts.
  *
  * One sink per turn, like the runtime. A reinvocation gets a NEW sink whose
  * rows are seeded with the asks the driver's log holds, as the runtime seeds
@@ -37,7 +33,6 @@ export type SinkEvent =
   | { readonly kind: "activity"; readonly detail: string | undefined }
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "progress"; readonly label: string }
-  | { readonly kind: "bind"; readonly harnessStateId: string }
   | { readonly kind: "cas-observations" };
 
 export interface RecordingTurnSinkOptions {
@@ -47,8 +42,6 @@ export interface RecordingTurnSinkOptions {
   readonly rows?: TurnRows;
   /** The execution the builder names in its log lines; the kit's driver passes its own. */
   readonly executionId?: string;
-  /** When set, `bindHarnessState` rejects with this error (a failed session write). */
-  readonly bindRejectsWith?: Error;
   /** The turn's input channel (`message-queue.ts`); one that never has input when omitted. */
   readonly input?: TurnInputChannel;
 }
@@ -73,7 +66,6 @@ export class RecordingTurnSink implements TurnSink {
   private readonly controller = new AbortController();
   private readonly yieldController = new AbortController();
   private readonly log: SinkEvent[] = [];
-  private readonly bindRejectsWith: Error | undefined;
 
   constructor(options: RecordingTurnSinkOptions = {}) {
     this.status = options.status ?? emptyStatus();
@@ -81,7 +73,6 @@ export class RecordingTurnSink implements TurnSink {
     this.transcript = new TranscriptBuilder(options.executionId ?? "kit-exec", this.rows, this.status);
     this.stopSignal = this.controller.signal;
     this.yieldSignal = this.yieldController.signal;
-    this.bindRejectsWith = options.bindRejectsWith;
     this.input = options.input ?? NO_TURN_INPUT;
   }
 
@@ -124,11 +115,6 @@ export class RecordingTurnSink implements TurnSink {
     this.log.push({ kind: "progress", label });
   }
 
-  async bindHarnessState(harnessStateId: string): Promise<void> {
-    if (this.bindRejectsWith) throw this.bindRejectsWith;
-    this.log.push({ kind: "bind", harnessStateId });
-  }
-
   bindCasObservations(read: CasTouchedReader): void {
     this.casObservations = read;
     this.log.push({ kind: "cas-observations" });
@@ -152,10 +138,6 @@ export class RecordingTurnSink implements TurnSink {
 
   get usageDeltas(): readonly UsageDelta[] {
     return this.log.flatMap((e) => (e.kind === "usage" ? [e.delta] : []));
-  }
-
-  get boundStateIds(): readonly string[] {
-    return this.log.flatMap((e) => (e.kind === "bind" ? [e.harnessStateId] : []));
   }
 
   get progressLabels(): readonly string[] {

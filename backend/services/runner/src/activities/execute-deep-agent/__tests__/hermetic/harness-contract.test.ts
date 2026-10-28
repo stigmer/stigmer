@@ -4,9 +4,9 @@
  *
  * The adapter-side half (`__test-utils__/harness-contract/contract.ts`) is the
  * single statement of what every `HarnessAdapter` owes the runtime;
- * `src/__tests__/harness-contract.test.ts` runs it against the scripted fake
- * under both pause primitives, `execute-cursor/__tests__/hermetic/
- * harness-contract.test.ts` against the real Cursor adapter. The runtime-side
+ * `src/__tests__/harness-contract.test.ts` runs it against the scripted fake,
+ * `execute-claude/__tests__/hermetic/harness-contract.test.ts` against the
+ * real Claude adapter. The runtime-side
  * half (`runtime-contract.ts`) is what the turn runtime owes every harness,
  * through the real activity under `MockActivityEnvironment`. This file runs
  * BOTH against `createDeepAgentAdapter()` through the native subject
@@ -25,8 +25,7 @@
  * What this subject declares it cannot produce, so the kit reports the arm
  * SKIPPED and never silently passes: the `engine` and `actionable` failure
  * surfaces (`turn.ts` classifies every escaped error `internal` — the
- * adapter has one surface), and an engine-side cancel (no native path ends a
- * turn `cancelled`).
+ * adapter has one surface).
  *
  * The long-turn arms that are known gaps on this harness are marked by their
  * open issue (`knownGaps`): a silent `execute`, a streaming one (deepagents'
@@ -121,8 +120,6 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
   describeHarnessContract(subject);
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["internal"],
-    engineCancel: false,
-    streamCut: false,
     stopOrphans: isNativeStopOrphan,
   });
 

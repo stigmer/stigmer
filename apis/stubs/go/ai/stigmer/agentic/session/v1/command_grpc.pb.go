@@ -31,7 +31,6 @@ const (
 	SessionCommandController_Delete_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
 	SessionCommandController_AppendEvents_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
 	SessionCommandController_ClaimInput_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput"
-	SessionCommandController_BindHarnessState_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -198,12 +197,6 @@ type SessionCommandControllerClient interface {
 	// of the log as this run's, with its processed_at, and is answered in
 	// the order sent; none when nothing waits.
 	ClaimInput(ctx context.Context, in *ClaimSessionInputInput, opts ...grpc.CallOption) (*ClaimSessionInputResponse, error)
-	// Record the harness's conversation id for a run's session.
-	//
-	// Only the runner acting for the run may call it, while the run is not
-	// finished. The id replaced, if any, joins the session's
-	// harness_state_id_history.
-	BindHarnessState(ctx context.Context, in *BindHarnessStateInput, opts ...grpc.CallOption) (*BindHarnessStateResponse, error)
 }
 
 type sessionCommandControllerClient struct {
@@ -328,16 +321,6 @@ func (c *sessionCommandControllerClient) ClaimInput(ctx context.Context, in *Cla
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ClaimSessionInputResponse)
 	err := c.cc.Invoke(ctx, SessionCommandController_ClaimInput_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *sessionCommandControllerClient) BindHarnessState(ctx context.Context, in *BindHarnessStateInput, opts ...grpc.CallOption) (*BindHarnessStateResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BindHarnessStateResponse)
-	err := c.cc.Invoke(ctx, SessionCommandController_BindHarnessState_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -508,12 +491,6 @@ type SessionCommandControllerServer interface {
 	// of the log as this run's, with its processed_at, and is answered in
 	// the order sent; none when nothing waits.
 	ClaimInput(context.Context, *ClaimSessionInputInput) (*ClaimSessionInputResponse, error)
-	// Record the harness's conversation id for a run's session.
-	//
-	// Only the runner acting for the run may call it, while the run is not
-	// finished. The id replaced, if any, joins the session's
-	// harness_state_id_history.
-	BindHarnessState(context.Context, *BindHarnessStateInput) (*BindHarnessStateResponse, error)
 }
 
 // UnimplementedSessionCommandControllerServer should be embedded to have
@@ -558,9 +535,6 @@ func (UnimplementedSessionCommandControllerServer) AppendEvents(context.Context,
 }
 func (UnimplementedSessionCommandControllerServer) ClaimInput(context.Context, *ClaimSessionInputInput) (*ClaimSessionInputResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClaimInput not implemented")
-}
-func (UnimplementedSessionCommandControllerServer) BindHarnessState(context.Context, *BindHarnessStateInput) (*BindHarnessStateResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BindHarnessState not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -798,24 +772,6 @@ func _SessionCommandController_ClaimInput_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SessionCommandController_BindHarnessState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BindHarnessStateInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SessionCommandControllerServer).BindHarnessState(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: SessionCommandController_BindHarnessState_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SessionCommandControllerServer).BindHarnessState(ctx, req.(*BindHarnessStateInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // SessionCommandController_ServiceDesc is the grpc.ServiceDesc for SessionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -870,10 +826,6 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "claimInput",
 			Handler:    _SessionCommandController_ClaimInput_Handler,
-		},
-		{
-			MethodName: "bindHarnessState",
-			Handler:    _SessionCommandController_BindHarnessState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

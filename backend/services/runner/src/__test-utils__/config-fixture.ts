@@ -1,7 +1,7 @@
 /**
  * A complete, inert runner `Config` for tests.
  *
- * `Config` has twenty required fields (the credential ref among them, plus two optional refs), so
+ * `Config` has many required fields (the credential ref among them, plus an optional ref), so
  * every test that needs one has had to spell all of them out; eight test
  * files carry their own literal today. This is the one place a test-only `Config` is
  * built from now on: {@link testConfig} returns the whole record with values
@@ -25,7 +25,6 @@ import { join } from "node:path";
 
 import type { Config } from "../config.js";
 import {
-  DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   DEFAULT_LIVENESS_INTERVAL_MS,
   DEFAULT_OPEN_OPERATION_MAX_MS,
@@ -49,13 +48,11 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     stigmerTokenRef: { current: null },
     mcpBridgeEndpoint: null,
     mcpPublicEndpoint: null,
-    cursorApiKey: "",
     workspaceRootDir: join(tmpdir(), "stigmer-runner-test-workspaces"),
     mode: "local",
     proxyEndpoint: null,
     maxConcurrentActivities: 1,
     idleTimeoutSeconds: null,
-    cloudModeEnabled: false,
     checkpointerType: "memory",
     checkpointerProxyEndpoint: null,
     artifactProxyEndpoint: null,
@@ -65,7 +62,6 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     livenessIntervalMs: DEFAULT_LIVENESS_INTERVAL_MS,
     shellTimeoutMaxSeconds: DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
     shellBackgroundEnabled: true,
-    agentResolveTimeoutMs: DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     drainGraceMs: 0,
     ...overrides,

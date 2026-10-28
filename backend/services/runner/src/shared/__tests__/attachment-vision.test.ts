@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
-  CURSOR_VISION_PROFILE,
   DEEP_AGENT_VISION_PROFILE,
   MAX_VISION_IMAGES,
   MAX_VISION_IMAGE_BYTES,
   MAX_VISION_TOTAL_BYTES,
   VisionBudget,
   sniffImageMime,
-  toCursorImages,
   toLangChainImageBlocks,
   visionDisclosureLines,
   type VisionImage,
+  type VisionMimeType,
+  type VisionProfile,
 } from "../attachment-vision.js";
+
+/** A transport that reads only PNG and JPEG: the narrower profile a harness may declare. */
+const PNG_JPEG_PROFILE: VisionProfile = { allowedTypes: new Set<VisionMimeType>(["image/png", "image/jpeg"]) };
 
 /** A buffer that sniffs as the given type, padded to `size` bytes. */
 function imageBytes(type: "png" | "jpeg" | "gif87" | "gif89" | "webp", size = 64): Buffer {
@@ -106,9 +109,9 @@ describe("VisionBudget.offer — eligibility", () => {
     expect(budget.offer("empty.txt", "", Buffer.alloc(0))).toEqual({ kind: "skipped" });
   });
 
-  it("degrades WebP as unsupported_format on the Cursor profile but accepts it on deep-agent", () => {
-    const cursor = new VisionBudget(CURSOR_VISION_PROFILE);
-    expect(cursor.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
+  it("degrades WebP as unsupported_format on a PNG/JPEG profile but accepts it on deep-agent", () => {
+    const narrow = new VisionBudget(PNG_JPEG_PROFILE);
+    expect(narrow.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
       kind: "degraded",
       reason: "unsupported_format",
     });
@@ -119,9 +122,9 @@ describe("VisionBudget.offer — eligibility", () => {
     );
   });
 
-  it("degrades GIF as unsupported_format on the Cursor profile", () => {
-    const cursor = new VisionBudget(CURSOR_VISION_PROFILE);
-    expect(cursor.offer("anim.gif", "image/gif", imageBytes("gif89"))).toEqual({
+  it("degrades GIF as unsupported_format on a PNG/JPEG profile", () => {
+    const narrow = new VisionBudget(PNG_JPEG_PROFILE);
+    expect(narrow.offer("anim.gif", "image/gif", imageBytes("gif89"))).toEqual({
       kind: "degraded",
       reason: "unsupported_format",
     });
@@ -154,17 +157,17 @@ describe("VisionBudget — model vision capability gate", () => {
   });
 
   it("gates before format and size rules so their resend advice never leaks", () => {
-    const cursorBlind = new VisionBudget(CURSOR_VISION_PROFILE, {
+    const narrowBlind = new VisionBudget(PNG_JPEG_PROFILE, {
       maxImageBytes: 100,
       modelVision: false,
     });
-    // WebP on the Cursor profile would be unsupported_format; oversized would
+    // WebP on a PNG/JPEG profile would be unsupported_format; oversized would
     // be too_large. Blindness pre-empts both.
-    expect(cursorBlind.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
+    expect(narrowBlind.offer("sticker.webp", "image/webp", imageBytes("webp"))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
-    expect(cursorBlind.offer("big.png", "image/png", imageBytes("png", 101))).toEqual({
+    expect(narrowBlind.offer("big.png", "image/png", imageBytes("png", 101))).toEqual({
       kind: "degraded",
       reason: "model_no_vision",
     });
@@ -239,7 +242,7 @@ describe("VisionBudget — size and count budgets", () => {
   });
 
   it("degraded and skipped attachments consume no budget", () => {
-    const budget = new VisionBudget(CURSOR_VISION_PROFILE, {
+    const budget = new VisionBudget(PNG_JPEG_PROFILE, {
       maxImageBytes: 100,
       maxTotalBytes: 100,
     });
@@ -269,7 +272,7 @@ describe("VisionBudget — size and count budgets", () => {
   });
 
   it("exceedsImageCap + offerOversized settle an oversized file without reading bytes", () => {
-    const budget = new VisionBudget(CURSOR_VISION_PROFILE, { maxImageBytes: 100 });
+    const budget = new VisionBudget(PNG_JPEG_PROFILE, { maxImageBytes: 100 });
     expect(budget.exceedsImageCap(100)).toBe(false);
     expect(budget.exceedsImageCap(101)).toBe(true);
     expect(budget.offerOversized()).toEqual({ kind: "degraded", reason: "too_large" });
@@ -283,21 +286,6 @@ describe("VisionBudget — size and count budgets", () => {
     expect(MAX_VISION_IMAGE_BYTES).toBe(3 * 1024 * 1024);
     expect(MAX_VISION_TOTAL_BYTES).toBe(4 * 1024 * 1024);
     expect(MAX_VISION_IMAGES).toBe(10);
-  });
-});
-
-describe("toCursorImages", () => {
-  it("emits RAW base64 with no data-URL prefix", () => {
-    const budget = new VisionBudget(CURSOR_VISION_PROFILE);
-    const bytes = imageBytes("png");
-    const image = acceptedImage(budget, "a.png", bytes);
-    const [payload] = toCursorImages([image]);
-
-    expect(payload.data.startsWith("data:")).toBe(false);
-    expect(payload.mimeType).toBe("image/png");
-    // Round-trips to the exact original bytes — the property the Cursor local
-    // executor depends on (`Buffer.from(data, "base64")`).
-    expect(Buffer.from(payload.data, "base64").equals(bytes)).toBe(true);
   });
 });
 

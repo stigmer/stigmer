@@ -1,8 +1,8 @@
 /**
  * The shared prompt glue (`shared/prompt-sections.ts`): the standing order
  * and the input-files lines, grouped and in order. What each harness renders AROUND these is pinned whole by
- * the two builders' prompt goldens (`execute-deep-agent/__tests__/
- * prompt-goldens.test.ts`, `execute-cursor/__tests__/prompt-goldens.test.ts`);
+ * the builders' own tests (`execute-deep-agent/__tests__/
+ * prompt-goldens.test.ts`, `execute-claude/__tests__/prompt.test.ts`);
  * this file pins the glue's own contract, harness-free, and the outputs
  * folder's instruction, whose wording decides where an agent saves a file
  * the person asked for (stigmer#2661).

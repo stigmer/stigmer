@@ -54,9 +54,9 @@ describe("useAccountExecutionDefaults", () => {
   it("shapes declared defaults for the launcher's accountDefaults prop", async () => {
     const whoAmI = vi.fn(async () =>
       accountWithPreferences({
-        defaultHarness: "cursor",
+        defaultHarness: "claude",
         defaultNativeModel: "claude-sonnet-4.6",
-        defaultCursorModel: "composer-2.5",
+        defaultClaudeModel: "claude-sonnet-5",
       }),
     );
     const { result } = renderHook(() => useAccountExecutionDefaults(), {
@@ -65,9 +65,9 @@ describe("useAccountExecutionDefaults", () => {
 
     await waitFor(() =>
       expect(result.current).toEqual({
-        harness: "cursor",
+        harness: "claude",
         nativeModel: "claude-sonnet-4.6",
-        cursorModel: "composer-2.5",
+        claudeModel: "claude-sonnet-5",
       }),
     );
   });
@@ -108,7 +108,6 @@ describe("useAccountExecutionDefaults", () => {
       expect(result.current).toEqual({
         harness: undefined,
         nativeModel: "claude-sonnet-4.6",
-        cursorModel: undefined,
       }),
     );
   });
@@ -125,7 +124,6 @@ describe("useAccountExecutionDefaults", () => {
       expect(result.current).toEqual({
         harness: undefined,
         nativeModel: undefined,
-        cursorModel: undefined,
         autoApprove: true,
       }),
     );

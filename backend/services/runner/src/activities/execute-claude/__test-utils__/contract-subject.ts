@@ -68,9 +68,9 @@
  *                       taken for a step; a step before a
  *                       compaction the engine already did is done, since
  *                       the conversation that held it is now the summary.
- *  - `limit`, `cancelled` and `cut` are refused at `arrange` as test bugs:
- *    the runtime arms that need them are declared off for this subject,
- *    each with its reason in the kit file.
+ *  - `limit` is refused at `arrange` as a test bug: the runtime arm that
+ *    needs it is declared off for this subject, with its reason in the kit
+ *    file.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -273,8 +273,6 @@ class ClaudeSubject implements ClaudeContractSubject {
       case "open":
         return;
       case "limit":
-      case "cancelled":
-      case "cut":
         throw new Error(`${this.name}: ${step.kind}() is not producible by this subject (its runtime arm is declared off); test bug`);
       case "compact":
       case "say":
@@ -419,8 +417,6 @@ class ClaudeSubject implements ClaudeContractSubject {
           this.sendAfter(plan, index - 1);
           return answer();
         case "limit":
-        case "cancelled":
-        case "cut":
           throw new Error(`${this.name}: ${step.kind}() reached the model (arrange should have refused it)`);
         default: {
           const exhaustive: never = step;

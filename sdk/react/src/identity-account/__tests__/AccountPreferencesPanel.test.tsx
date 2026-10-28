@@ -52,7 +52,6 @@ const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
 const TEST_MODELS = parseRegistryJson({
   models: [
     { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
-    { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
     { id: "claude-sonnet-5", displayName: "Claude Sonnet 5", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "claude", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 2, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 0.2 } },
   ],
 });
@@ -143,7 +142,6 @@ describe("AccountPreferencesPanel", () => {
       "spec.preferences.standing_context",
       "spec.preferences.default_harness",
       "spec.preferences.default_native_model",
-      "spec.preferences.default_cursor_model",
       "spec.preferences.default_claude_model",
       "spec.preferences.default_auto_approve",
     ]);
@@ -341,9 +339,9 @@ describe("AccountPreferencesPanel", () => {
         email: "ada@acme.example",
         preferences: {
           standingContext: "Keep answers terse.",
-          defaultHarness: "cursor",
+          defaultHarness: "claude",
           defaultNativeModel: "claude-sonnet-4.6",
-          defaultCursorModel: "default",
+          defaultClaudeModel: "claude-sonnet-5",
         },
       },
     });
@@ -354,24 +352,23 @@ describe("AccountPreferencesPanel", () => {
 
       expect(screen.getByRole("radio", { name: "Platform default" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Cursor" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Claude" })).toBeTruthy();
+      expect(screen.getAllByRole("radio")).toHaveLength(3);
       expect(screen.getByLabelText("Default model — Stigmer")).toBeTruthy();
-      expect(screen.getByLabelText("Default model — Cursor")).toBeTruthy();
       expect(screen.getByLabelText("Default model — Claude")).toBeTruthy();
     });
 
     it("discards an unsaved engine and model back to the saved ones", async () => {
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
       await findSyncedField("Keep answers terse.");
-      await waitFor(() => expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true));
+      await waitFor(() => expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true));
 
-      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
-      fireEvent.change(screen.getByLabelText("Default model — Claude"), { target: { value: "claude-sonnet-5" } });
+      fireEvent.click(screen.getByRole("radio", { name: "Stigmer" }));
+      fireEvent.change(screen.getByLabelText("Default model — Claude"), { target: { value: "" } });
       fireEvent.click(screen.getByRole("button", { name: "Discard" }));
 
-      expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true);
-      expect(screen.getByLabelText("Default model — Claude")).toHaveProperty("value", "");
+      expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true);
+      expect(screen.getByLabelText("Default model — Claude")).toHaveProperty("value", "claude-sonnet-5");
     });
 
     it("saves Claude as the default engine with its own default model", async () => {
@@ -399,7 +396,7 @@ describe("AccountPreferencesPanel", () => {
       // display copy — plus the platform-default explainer.
       expect(screen.getByText("Stigmer picks the harness for new sessions.")).toBeTruthy();
       expect(screen.getByText("Stigmer's native agent runtime")).toBeTruthy();
-      expect(screen.getByText("Cursor IDE agent with codebase indexing")).toBeTruthy();
+      expect(screen.getByText("Powered by Claude")).toBeTruthy();
       // The radios' accessible descriptions are wired via aria-describedby.
       expect(
         screen.getByRole("radio", { name: "Stigmer" }).getAttribute("aria-describedby"),
@@ -410,11 +407,11 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
       await findSyncedField("Keep answers terse.");
 
-      // Default harness is cursor, yet the Stigmer model stays settable:
+      // Default harness is Claude, yet the Stigmer model stays settable:
       // the launcher applies the model of the session's ACTIVE harness, so
       // hiding or disabling it would remove a real capability.
       await waitFor(() => {
-        expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true);
+        expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true);
       });
       const nativeSelect = screen.getByLabelText("Default model — Stigmer") as HTMLSelectElement;
       expect(nativeSelect.disabled).toBe(false);
@@ -427,9 +424,9 @@ describe("AccountPreferencesPanel", () => {
       await findSyncedField("Keep answers terse.");
 
       await waitFor(() => {
-        expect(screen.getByRole("radio", { name: "Cursor" })).toHaveProperty("checked", true);
+        expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true);
         expect(screen.getByLabelText("Default model — Stigmer")).toHaveProperty("value", "claude-sonnet-4.6");
-        expect(screen.getByLabelText("Default model — Cursor")).toHaveProperty("value", "default");
+        expect(screen.getByLabelText("Default model — Claude")).toHaveProperty("value", "claude-sonnet-5");
       });
     });
 
@@ -438,7 +435,7 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
-      fireEvent.click(screen.getByRole("radio", { name: "Cursor" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
       fireEvent.change(screen.getByLabelText("Default model — Stigmer"), {
         target: { value: "claude-sonnet-4.6" },
       });
@@ -447,9 +444,9 @@ describe("AccountPreferencesPanel", () => {
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         standingContext: "Keep answers terse.",
-        defaultHarness: "cursor",
+        defaultHarness: "claude",
         defaultNativeModel: "claude-sonnet-4.6",
-        defaultCursorModel: "",
+        defaultClaudeModel: "",
       });
     });
 
@@ -466,9 +463,9 @@ describe("AccountPreferencesPanel", () => {
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         standingContext: "Terser still.",
-        defaultHarness: "cursor",
+        defaultHarness: "claude",
         defaultNativeModel: "claude-sonnet-4.6",
-        defaultCursorModel: "default",
+        defaultClaudeModel: "claude-sonnet-5",
       });
     });
 

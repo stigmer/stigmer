@@ -94,13 +94,13 @@ describe("requireNativeRow", () => {
   it("returns the native row of an id that has one on each harness, and names a missing one", () => {
     const document = {
       models: [
-        row("claude-sonnet-5", { harness: "cursor" }),
+        row("claude-sonnet-5", { harness: "claude" }),
         row("claude-sonnet-5", { harness: "native", maxOutputTokens: 128000 }),
-        row("composer-2.5", { harness: "cursor" }),
+        row("claude-only-5", { harness: "claude" }),
       ],
     };
     expect(requireNativeRow(document, "claude-sonnet-5").maxOutputTokens).toBe(128000);
-    expect(() => requireNativeRow(document, "composer-2.5")).toThrow(/no native row with id "composer-2.5"/);
+    expect(() => requireNativeRow(document, "claude-only-5")).toThrow(/no native row with id "claude-only-5"/);
   });
 });
 
@@ -109,7 +109,7 @@ describe("economyRowFor", () => {
     models: [
       row("claude-sonnet-4.6", { provider: "anthropic", costTier: "standard", harness: "native" }),
       row("gpt-4o-mini", { provider: "openai", costTier: "economy", harness: "native", apiModelId: "gpt-4o-mini" }),
-      row("claude-haiku-cursor", { provider: "anthropic", costTier: "economy", harness: "cursor" }),
+      row("claude-haiku-engine", { provider: "anthropic", costTier: "economy", harness: "claude" }),
       row("claude-haiku-4.5", { provider: "anthropic", costTier: "economy", harness: "native", apiModelId: "claude-haiku-4-5-20251001" }),
     ],
   };

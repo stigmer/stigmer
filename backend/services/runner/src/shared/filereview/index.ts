@@ -1,7 +1,7 @@
 /**
  * The runner's file-review producer: harness-agnostic digest + event authoring
- * for the apply-then-review HITL subsystem. Consumed by both the Cursor and
- * deep-agent harnesses to author identical ledger entries.
+ * for the apply-then-review HITL subsystem. Consumed by every harness to
+ * author identical ledger entries.
  */
 
 export {

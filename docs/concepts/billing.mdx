@@ -130,9 +130,9 @@ Billing**, or contacts support for more than any plan includes.
 
 Every model call a native Agent run makes runs on your Organization's own
 Anthropic or OpenAI key, or on your own compatible endpoint, on every plan. An
-admin adds the keys in **Settings → Provider keys**. Cursor-harness runs work
-the same way, on your Organization's own Cursor key, and Cursor bills them to
-that key's plan. Stigmer never runs a model call on a key of its own.
+admin adds the keys in **Settings → Provider keys**. Claude-harness runs work
+the same way, on your Organization's own Anthropic key. Stigmer never runs a
+model call on a key of its own.
 
 A run whose model needs a provider your Organization has no key for is refused
 before it starts. This holds for every run, including evals, AI grading, shared
@@ -193,10 +193,10 @@ upgrades. Air-gapped installs keep the bundled copy; set
 ## Optimizing your costs
 
 What your Agents spend on models is provider token cost, on your own provider
-bill: your model provider's for native runs, Cursor's for Cursor runs,
-Anthropic's for Claude runs. The biggest savings come from sending fewer tokens,
-reusing cached ones, and matching the model and harness to the job. The levers
-below are ordered by impact.
+bill: your model provider's for native runs, Anthropic's for Claude runs. The
+biggest savings come from sending fewer tokens, reusing cached ones, and
+matching the model and harness to the job. The levers below are ordered by
+impact.
 
 ### Reuse the prompt with caching
 
@@ -208,8 +208,8 @@ advantage compounds as a Session grows.
 
 - **Native** gives you explicit control: the harness sets cache breakpoints on
   the stable prefix, and every follow-up turn re-reads it.
-- **Cursor** caches automatically and opaquely — you benefit without configuring
-  anything, but with less control over what is cached.
+- **Claude** leaves caching to Anthropic's engine — you benefit without
+  configuring anything, but with less control over what is cached.
 
 Keep the stable part of your prompt (instructions, Skills) first and the
 variable part (the user's message) last, so the cacheable prefix stays constant
@@ -218,19 +218,15 @@ across turns.
 ### Pick the harness for the job
 
 Neither harness carries a Stigmer charge, so harness choice is about
-**capability and cost**. On Cursor Teams plans, Cursor adds a small per-token
-fee, the **Cursor Token Rate**, to non-Auto requests, billed to the plan of the
-key the run uses; Auto and the Composer pool are exempt.
+**capability and cost**.
 
-| If you need…                                | Prefer | Why                                                            |
-| ------------------------------------------- | ------ | -------------------------------------------------------------- |
-| The lowest cost on a given model            | Native | Your provider's own rate, with no Cursor token rate            |
-| The widest model catalog or a cheaper model | Native | All supported providers; downgrade the model for simple tasks  |
-| Built-in coding tools (edit, shell, search) | Cursor | The tooling is worth the added per-call context and token rate |
+| If you need…                                | Prefer | Why                                                                |
+| ------------------------------------------- | ------ | ------------------------------------------------------------------ |
+| The widest model catalog or a cheaper model | Native | Every catalog provider; downgrade the model for simple tasks       |
+| Control over what is cached                 | Native | Explicit cache breakpoints on the stable prefix                    |
+| Anthropic's own engine on Claude models     | Claude | Anthropic's Claude Agent SDK, on your Organization's Anthropic key |
 
-Reach for Cursor when you want its coding tooling — not as a default, since a
-Cursor model that carries the token rate is cheaper to run on native. See
-[Harnesses](/docs/concepts/harnesses) for the full capability comparison.
+See [Harnesses](/docs/concepts/harnesses) for the full capability comparison.
 
 ### Match the model to the task
 
@@ -256,12 +252,12 @@ conversation length:
 
 ### Set a cost cap
 
-Every run spends on your own provider accounts (Anthropic, OpenAI or Cursor), so
-set budgets there too. Within Stigmer, a cost cap on each run (`max_cost_usd` in
-an Agent's [run settings](/docs/concepts/agents#run-settings)) stops a message
-once its estimated cost, at the catalog's list prices, reaches the cap. A
-channel can lower that cap for the conversations it carries, never raise it, and
-an eval takes a spending limit of its own (`max_cost_usd` on the eval).
+Every run spends on your own provider accounts (Anthropic or OpenAI), so set
+budgets there too. Within Stigmer, a cost cap on each run (`max_cost_usd` in an
+Agent's [run settings](/docs/concepts/agents#run-settings)) stops a message once
+its estimated cost, at the catalog's list prices, reaches the cap. A channel can
+lower that cap for the conversations it carries, never raise it, and an eval
+takes a spending limit of its own (`max_cost_usd` on the eval).
 
 ## Self-hosting
 

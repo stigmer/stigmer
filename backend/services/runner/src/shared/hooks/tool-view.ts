@@ -6,8 +6,7 @@
  * format never shows a hook).
  *
  * This module holds the shared shapes and the NATIVE engine's views. The
- * Cursor engine's are its adapter's (`execute-cursor/hook-views.ts`), built
- * from the hook payload Cursor sent.
+ * Claude engine's are its adapter's (`execute-claude/hook-views.ts`).
  *
  * One rule shapes every native row: a native argument keeps its value, a
  * field is renamed only where the format's name differs, a path becomes real
@@ -40,7 +39,7 @@
  * `task` and `write_todos` have no Cursor row: Cursor shows a hook no
  * delegation and has no todo tool in 1.0.31. Web fetch reaches no hook on
  * Cursor's own engine either, which hides the tool from an agent whose
- * hooks would take it (`execute-cursor/hook-tool-hiding.ts`); this engine
+ * hooks would take it; this engine
  * binds it always, so a Cursor-format hook sees it here under the name that
  * hiding matches, and its policy holds. `delete` is never bound
  * (`deepagents-profiles.ts`), so it has no row in either format.

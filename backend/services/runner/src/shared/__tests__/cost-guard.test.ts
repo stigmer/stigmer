@@ -1,7 +1,7 @@
 /**
  * Unit tests for the max_cost_usd hard-stop guard (cost-guard.ts), the one
  * enforcement of the cap for every harness since the turn runtime took it
- * over in #1070 (the Cursor activity called it before).
+ * over in #1070.
  *
  * They pin the proto's semantics (0/unset = no cap, a negative value too),
  * the inclusive boundary (`>=`: reaching the cap exactly stops the run), and

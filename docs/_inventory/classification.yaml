@@ -318,9 +318,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Add your Organization's own Anthropic, OpenAI or Cursor key on Stigmer
-      Cloud, an LLM key optionally on your own compatible endpoint, and the
-      rules a key and its base URL follow.
+      Add your Organization's own Anthropic or OpenAI key on Stigmer Cloud, an
+      LLM key optionally on your own compatible endpoint, and the rules a key
+      and its base URL follow.
     medium: none
 
   guides/integrations/caller-identity-for-mcp-servers:
@@ -679,14 +679,6 @@ pages:
       sub-guide to open.
     medium: none
 
-  guides/runners/cursor-harness:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Make the Cursor engine available to a runner in direct mode, or on Stigmer
-      Cloud through the Organization's own Cursor key, and pin a Session to it.
-    medium: none
-
   guides/runners/claude-harness:
     fate: keep
     diataxis: how-to
@@ -737,7 +729,7 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Choose among the Native, Cursor and Claude execution engines on models,
+      Choose between the Native and Claude execution engines on models,
       tooling, checkpointing, and cost; the choice locks per Session.
     medium: diagram
     why:
@@ -854,7 +846,7 @@ pages:
     diataxis: how-to
     teaches:
       Send every run to a tracing tool over OpenTelemetry — what one trace holds
-      (a span per turn, model call, tool call, subagent, Cursor run), the
+      (a span per turn, model call, tool call, subagent), the
       standard variables per runner shape (the login on the server's secrets
       list for sandboxed runners), the gRPC default that changed, the content
       switch and what it never shows, Langfuse and a generic collector as

@@ -3,8 +3,8 @@
  * and what a harness owns.
  *
  * Stigmer runs an agent turn through one of several engines ("harnesses"):
- * the native LangGraph deep-agent, the Cursor SDK, and in future the Claude
- * Agent SDK and the Codex SDK. Everything about a turn that does NOT touch a
+ * the native LangGraph deep-agent and the Claude Agent SDK, and in future
+ * the Codex SDK. Everything about a turn that does NOT touch a
  * vendor SDK — fetching the execution, resolving the blueprint, fetching the
  * run's values, provisioning and locking the workspace, mounting skills,
  * resolving MCP servers, the approval default and the tool scope, seeding the transcript, the
@@ -17,8 +17,7 @@
  * harness author has to implement; `__test-utils__/harness-contract/` is the
  * kit every implementation has to pass.
  *
- * Every member here is a rename of a function the Cursor loop already injects
- * (`execute-cursor/turn-stream.ts` `CursorTurnStreamDeps`) or a fact the
+ * Every member here is a function an engine's loop needs or a fact the
  * runtime cannot read anywhere else. Nothing here is speculative: where the
  * program's original sketch and the code disagreed, the code won, and the
  * disagreement was ruled before the code landed (#1064; the growth below in
@@ -29,7 +28,7 @@
  *  - No `dispose()`. One adapter object serves many concurrent turns
  *    (`maxConcurrentActivities`), so a per-turn teardown method on the
  *    adapter is a race. The adapter owns its per-turn teardown in its own
- *    `finally` inside `runTurn` (the Cursor harness parks its agent there).
+ *    `finally` inside `runTurn`.
  *  - No `isCancelled()`, no `heartbeat(details)`, and the sink does not
  *    EXTEND a status-writer interface. Each would be a second way of saying
  *    something `stopSignal`, `recordActivity()` or `requestPersist()` already
@@ -73,7 +72,6 @@ import type { TurnInputChannel } from "./turn-input.js";
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Config } from "../config.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
@@ -89,7 +87,6 @@ import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { MountedPlugin } from "../shared/plugin-mount.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { HookServerName } from "../shared/hooks/tool-view.js";
-import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { HookGroup } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ListedFile, MessageFile, MountedFile } from "../shared/file-mount.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
@@ -111,9 +108,9 @@ import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js"
  * process; it serves every concurrent turn of its harness and holds no
  * per-turn state (per-turn state lives in the `runTurn` frame). Three
  * lifetimes meet here — worker (`boot`/`shutdown`), session
- * (`releaseSession`) and turn (`runTurn`) — because the Cursor harness parks
- * an engine per SESSION between turns, longer than a turn and shorter than
- * the worker.
+ * (`releaseSession`) and turn (`runTurn`) — because a harness may park an
+ * engine per SESSION between turns, longer than a turn and shorter than the
+ * worker.
  *
  * `name` is a diagnostic identity (log lines, kit messages, the registry's
  * duplicate check). It is NOT the activity the harness is bound to: the wire
@@ -128,9 +125,8 @@ export interface HarnessAdapter {
   /**
    * Worker lifetime, once per process, run by the registry in declaration
    * order in BOTH composition roots (`runner.ts`, `runner-manager.ts`). Runs
-   * BEFORE bootstrap resolution — the Cursor interceptors must patch
-   * `node:http2` before the control plane is dialled — so `config` carries
-   * no Temporal coordinates yet. Vendor SDKs are imported lazily inside, so a
+   * BEFORE bootstrap resolution, so `config` carries no Temporal coordinates
+   * yet. Vendor SDKs are imported lazily inside, so a
    * harness that is not selected costs nothing at boot. A rejection here
    * fails the worker's boot; a worker that cannot boot a harness must not
    * start.
@@ -139,15 +135,14 @@ export interface HarnessAdapter {
 
   /**
    * Worker lifetime, once per process, after the Temporal worker has drained.
-   * Releases everything the adapter still holds (the Cursor harness closes
-   * every parked agent). Must resolve even when nothing is held.
+   * Releases everything the adapter still holds. Must resolve even when
+   * nothing is held.
    */
   shutdown(): Promise<void>;
 
   /**
    * Session lifetime: the session is done on this host, release anything
-   * parked for it (the Cursor harness: the parked agent, its executor and the
-   * MCP subprocesses the lease pins, #215). Called by the registry from the
+   * parked for it (#215). Called by the registry from the
    * manager's `removeSession`. A harness that parks nothing per session
    * resolves as a no-op and says so in its header. Unknown session ids are a
    * no-op, never an error: the runtime does not track which host parked what.
@@ -187,7 +182,7 @@ export interface HarnessAdapter {
    *  - Owns its own per-turn teardown in a `finally` inside this method.
    *  - Imports nothing from `@temporalio/*`: the kit runs an adapter outside
    *    any activity context, and every Temporal fact it needs arrives through
-   *    the sink (`execute-cursor/__tests__/adapter-is-temporal-free.test.ts`).
+   *    the sink (`execute-deep-agent/__tests__/adapter-is-temporal-free.test.ts`).
    */
   runTurn(input: TurnInput, sink: TurnSink): Promise<TurnOutcome>;
 }
@@ -240,13 +235,10 @@ export interface TurnMcp {
   readonly leases: ActiveLeases;
   /**
    * Which MCP tools ask (their server marks them destructive) and which
-   * servers a lease cleared. For an engine that reads its tools' marks
-   * itself (`capabilities.readsToolMarks`) it carries only the leases, and
-   * the engine completes it from the tools it loads.
+   * servers a lease cleared. It carries only the leases: the engine loads
+   * its tools itself and completes it from their marks.
    */
   readonly mcpDefault: McpApprovalDefault;
-  /** What the turn start listed of each server's tools but the platform's; absent for an engine that reads its tools itself. */
-  readonly listing: McpToolListing | undefined;
   /**
    * The slugs of the platform's own servers among `servers` (the
    * synthesized attachments, outside every tool list), derived from their
@@ -399,34 +391,27 @@ export interface TurnStandingContext {
  * the lock release and the write-back coordinator are the finally's
  * resources (`run-turn.ts` `TurnFrame`), not facts about the turn.
  *
- * `threadId` is the engine's state id as the runtime knows it: empty on an
- * `engine-minted` harness's first turn (nothing minted yet) and the id the
- * adapter bound through {@link TurnSink.bindHarnessState} on every later
- * invocation; the runtime-minted id on every turn of a `deterministic`
- * harness. An adapter derives create-vs-resume for its ENGINE from it and its
- * own state; the runtime derives its own reinvocation fact (the seed, the
- * reconcile) in `turn-context.ts`'s `isReinvocation`, one arm per
- * `stateIdSource`. The contract carries no flag because the two readings
+ * `threadId` is the engine's state id as the runtime knows it: the id the
+ * runtime derived from the session before the first turn (`EnsureThread`),
+ * the same on every turn. An adapter derives create-vs-resume for its
+ * ENGINE from it and its own state; the runtime derives its own
+ * reinvocation fact (the seed, the reconcile) in `turn-context.ts`'s
+ * `isReinvocation`. The contract carries no flag because the two readings
  * answer different questions ("does the engine hold state for this session"
  * vs "does this execution have a transcript") and one name over two meanings
  * would be the divergence a contract exists to prevent.
  *
  * {@link continuation} is a third fact, and it is the runtime's to hand over:
- * "this invocation continues a turn its engine began". An `engine-minted`
- * harness's id is shared by every turn of its session, and a
- * `deterministic` harness's thread holds every earlier turn, so the engine
- * alone cannot tell a continued run from a new message's; the log can
- * (`turn-context.ts` `runWroteEngineEvents`).
+ * "this invocation continues a turn its engine began". The engine's thread
+ * holds every earlier turn of its session, so the engine alone cannot tell
+ * a continued run from a new message's; the log can (`turn-context.ts`
+ * `runWroteEngineEvents`).
  *
- * Adapter-only facts (the Cursor mode, the service-tier params, the seeded
- * sub-agent rows) are read by the adapter from these records, never resolved
+ * Adapter-only facts (the service-tier params, the seeded sub-agent rows) are read by the adapter from these records, never resolved
  * by the runtime.
  */
-/** What a continued invocation is handed ({@link TurnInput.continuation}). */
-export interface TurnContinuation {
-  /** The platform's record of the turn so far; only for a `"digest"` harness, and absent when nothing is renderable. */
-  readonly digest?: string;
-}
+/** What a continued invocation is handed ({@link TurnInput.continuation}): the fact alone. */
+export type TurnContinuation = Readonly<Record<string, never>>;
 
 export interface TurnInput extends NormalizedActivityInput {
   /**
@@ -464,19 +449,15 @@ export interface TurnInput extends NormalizedActivityInput {
    * it again (after a drain, a lost runner, a resumed pause, or an approval).
    * Absent on a turn's first invocation, which is every new message's run,
    * and on a run whose runner was lost before anything of it reached the
-   * log, which the runtime cannot tell from one; a `"checkpoint"` engine
-   * reads its own save instead (`HarnessCapabilities.continuation`).
-   * The rule it carries: the engine is never handed the user's task again
-   * (stigmer#2417). A matching approval resume keeps its own shape; any
-   * other continuation resumes the engine where it was
-   * (`HarnessCapabilities.continuation`). `digest` is the platform's record
-   * of the turn, rendered only for a `"digest"` harness
-   * (`continuation-digest.ts`); absent when the turn has no renderable
-   * transcript.
+   * log, which the runtime cannot tell from one; the engine reads its own
+   * save instead. The rule it carries: the engine is never handed the
+   * user's task again (stigmer#2417). A matching approval resume keeps its
+   * own shape; any other continuation resumes the engine where it was, from
+   * its own saved steps.
    */
   readonly continuation?: TurnContinuation;
   readonly execution: Run;
-  /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
+  /** The same object as `blueprint.session`. */
   readonly session: Session;
   readonly blueprint: ResolvedBlueprint;
   /** The run's values (phase 2b), per declarer (`shared/run-values.ts`). */
@@ -488,8 +469,6 @@ export interface TurnInput extends NormalizedActivityInput {
   /** The saved agents the turn's agent lists, each resolved as an agent of its own, in its order. */
   readonly subagents: readonly TurnSubagent[];
   readonly files: TurnFiles;
-  /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
-  readonly appliedToolCallIds: ReadonlySet<string>;
   readonly model: TurnModelPreferences;
   /** `spec.structuredOutputSchema`, when this message asks for structured output. */
   readonly structuredOutputSchema: Record<string, unknown> | undefined;
@@ -497,21 +476,12 @@ export interface TurnInput extends NormalizedActivityInput {
    * `spec.appendSystemPrompt`: text this message appends to the system
    * prompt, after the agent's instructions and the platform's sections, for
    * this turn only; "" for none. Each harness places it at the end of what
-   * it sends as the system prompt; on Cursor, which sends it with the
-   * turn's message, a structured-output directive still follows it.
+   * it sends as the system prompt.
    */
   readonly appendSystemPrompt: string;
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
-  /**
-   * Every event of this run in the session's log as it stands when called,
-   * oldest first: what an adapter reads to tell the turn's story so far (a
-   * replacement agent's recovery digest). Read on call, never cached, so an
-   * adapter that needs none costs no read; it throws when the log cannot be
-   * read.
-   */
-  readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
   /**
    * A eval-run try's recorded conversation, which the native engine
    * resumes ahead of this turn's message on a thread that holds none
@@ -555,11 +525,8 @@ export interface BackgroundStopChannel {
  *    a fact the builder cannot know, and this is the whole list: the runtime's
  *    `harness/approval-decisions.ts` (a SKIP or REJECT settles its row),
  *    `harness/capture.ts` (the change-set stamp on a flowed edit row),
- *    `shared/exact-apply.ts` (an approved whole-file write applied by the
- *    runtime completes its row), `shared/subagent-rows.ts` (a stopped turn's
- *    sub-agents CANCELLED); the Cursor boundary (`execute-cursor/
- *    boundary-rows.ts`: the identity-token collapses, #205, #965, the
- *    unattended stamp); the native settle (`execute-deep-agent/hitl.ts`: the
+ *    `shared/subagent-rows.ts` (a stopped turn's
+ *    sub-agents CANCELLED); the native settle (`execute-deep-agent/hitl.ts`: the
  *    gate's unattended skips). A harness that amends says so in its settle's
  *    header.
  *  - The runtime alone writes the phase, `startedAt`, `completedAt`,
@@ -611,8 +578,7 @@ export interface TurnSink {
    * and maps the outcome; the adapter's only job is to settle promptly as
    * `interrupted`. `stopSignal.reason` is the runtime's own evidence — an
    * adapter never branches on it. Check `aborted` at every step boundary and
-   * listen for `abort` inside anything long-running (the Cursor adapter
-   * cancels its SDK run from that listener). May already be aborted when
+   * listen for `abort` inside anything long-running. May already be aborted when
    * `runTurn` is entered; then return `interrupted` before doing any work.
    */
   readonly stopSignal: AbortSignal;
@@ -626,8 +592,7 @@ export interface TurnSink {
    * far is saved where its next invocation resumes from, and never cut a
    * running tool to get there; the native engine yields at its next model
    * call, refused inside the graph (its steps are saved synchronously,
-   * `middleware/turn-boundary.ts`), the Cursor engine once no tool call is
-   * open. Abort before `runTurn` is entered means no work.
+   * `middleware/turn-boundary.ts`). Abort before `runTurn` is entered means no work.
    * If the grace runs out first, `stopSignal` aborts too, and stopping is
    * then the only rule. The runtime records why it asked; the adapter never
    * branches on it.
@@ -674,10 +639,9 @@ export interface TurnSink {
    * chokepoint (tool-output offload, size cap, secret withholding,
    * `streamingUsage`). Single-flight: a request while a write is in flight
    * coalesces into the next write. Resolves when the state as of the request
-   * has been written, so an adapter that needs ordering MAY await it (the
-   * Cursor loop awaits before pulling the next event, so a platform STOP
-   * answered by that write stops the turn before the next event, as it
-   * always has); an adapter never MUST await it, because the runtime
+   * has been written, so an adapter that needs ordering MAY await it (so a
+   * platform STOP answered by that write stops the turn before the next
+   * event); an adapter never MUST await it, because the runtime
    * persists unconditionally when the turn settles. Never rejects.
    */
   requestPersist(): Promise<void>;
@@ -688,8 +652,8 @@ export interface TurnSink {
    * token delta, and every step boundary of the adapter's own setup (engine
    * resolved, send returned, boundary done) — a long generation emits deltas
    * but few discrete events, and resetting only on events false-positives a
-   * stall. `detail` names what progressed (the Cursor loop passes the tool
-   * name of a `tool_call` event); the runtime quotes the last detail in the
+   * stall. `detail` names what progressed (the tool name of a call); the
+   * runtime quotes the last detail in the
    * stall diagnostic (`last tool: shell`). Never throws.
    */
   recordActivity(detail?: string): void;
@@ -704,7 +668,7 @@ export interface TurnSink {
 
   /**
    * The user-visible setup label (`status.setupProgress.currentPhase`) for a
-   * step only the adapter knows ("Initializing Cursor agent"). The runtime
+   * step only the adapter knows ("Starting the engine"). The runtime
    * reports its own resolution labels itself; the adapter reports the labels
    * of its setup steps exactly as the orchestrator did, so the UI's spinner
    * copy is unchanged by the extraction. Resolves once the label is
@@ -713,32 +677,18 @@ export interface TurnSink {
   reportProgress(label: string): Promise<void>;
 
   /**
-   * The engine-minted state id, the moment it exists and BEFORE the turn
-   * proceeds, so a crash mid-turn still resumes on the next invocation. The
-   * runtime records it in the session's status through the session's
-   * `bindHarnessState` door, the one writer of that field. Called only by
-   * adapters whose `capabilities.stateIdSource` is `"engine-minted"`, and
-   * before their first
-   * `requestPersist`; a `deterministic` harness never calls it. Rejects when
-   * the session write fails; the adapter then ends the turn `failed` with
-   * that error and executes nothing further.
-   */
-  bindHarnessState(harnessStateId: string): Promise<void>;
-
-  /**
    * What the engine observed touching CAS-owned paths this turn — gitignored
    * paths in a git tree, every path in a non-git one: the pre-turn bytes of
    * each first-touched path and the paths the gate blocked as secrets
    * (`shared/filereview/cas-touched.ts`). The one fact about a turn's file
    * changes the runtime cannot read from the tree: the pre-edit bytes exist
    * only at mutation time, in whatever sits between the engine and the disk
-   * (the deep-agent's filesystem backend and gate, the Cursor hook's
-   * sidecar). The runtime reads the AFTER bytes itself and owns everything
+   * (the deep-agent's filesystem backend and gate, the Claude engine's
+   * gate). The runtime reads the AFTER bytes itself and owns everything
    * else of the capture (`harness/capture.ts`): the baseline, the progress,
    * the candidate, the stamp, the review decision.
    *
-   * Bound once, before the first persist, as `bindHarnessState` is; the
-   * runtime pulls it at each progress refresh and at the turn boundary, so
+   * Bound once, before the first persist; the runtime pulls it at each progress refresh and at the turn boundary, so
    * it must return an atomic snapshot (copy live state before any await). A
    * harness that observes nothing binds nothing and gets git-only capture.
    * Never throws.
@@ -747,8 +697,8 @@ export interface TurnSink {
 }
 
 /**
- * Token counts for one engine turn, priced. The four counts are what the
- * Cursor loop reads from the SDK's `turn-ended` delta; `estimatedCostUsd` is
+ * Token counts for one engine turn, priced. The four counts are what an
+ * engine reports per model call; `estimatedCostUsd` is
  * the adapter's price for them at its vendor's rates (the runtime cannot
  * price without the vendor's table and must not import it), and
  * `model` / `requestedModelParams` name the basis it priced against, which
@@ -774,8 +724,7 @@ export interface UsageDelta {
  * (`terminal-table.ts`), the adapter says what kind of thing failed.
  *
  *  - `engine`: the engine reported its run as failed. The transcript already
- *    tells the story, so the runtime writes `status.error` and no system row
- *    (the Cursor `run.wait()` error arm).
+ *    tells the story, so the runtime writes `status.error` and no system row.
  *  - `actionable`: the user can fix it (a foreign hook blocked a tool). One
  *    `Execution failed: …` row, the same shape the runtime's own settlements
  *    use.
@@ -791,12 +740,6 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *
  *  - `completed`: the engine finished. The final text and any structured
  *    output are already folded onto the rows; nothing rides here.
- *  - `cancelled`: the engine ended its own run cancelled and there is nothing
- *    to wait for — an SDK-side cancel, or a deny-and-retry adapter that
- *    stopped its run to gate a call and then found nothing to pause for
- *    (an unattended denial settled as skipped). Not `interrupted`: the
- *    runtime's `stopSignal` never fired. The runtime writes
- *    `RUN_CANCELLED` with no copy and completes the turn.
  *  - `awaiting_approval`: the engine proposed at least one gated side effect
  *    and stopped. The WAITING_APPROVAL rows are already on the rows; the
  *    runtime persists them and returns to the workflow, which reinvokes with
@@ -819,18 +762,10 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    aborted is the runtime's evidence (its watchdog, its accounting, its
  *    chokepoint, the cancellation it was delivered), so no reason rides here;
  *    the runtime classifies and applies the throw-vs-return table.
- *  - `stream_cut`: the engine's vendor ended its connection mid-turn, with
- *    neither signal aborted, and kept the conversation (Cursor's backend
- *    ends a long run's stream, stigmer#2436). Only the adapter can tell
- *    this from a failure, so it rides here. The runtime writes no ending and
- *    continues the turn on the next invocation, which picks it up from where
- *    it was; `message` is the run's error if the workflow gives up.
  */
 export type TurnOutcome =
   | { readonly kind: "completed" }
-  | { readonly kind: "cancelled" }
   | { readonly kind: "awaiting_approval" }
   | { readonly kind: "tool_call_limit" }
   | { readonly kind: "failed"; readonly message: string; readonly surface: FailureSurface; readonly cause?: unknown }
-  | { readonly kind: "interrupted" }
-  | { readonly kind: "stream_cut"; readonly message: string };
+  | { readonly kind: "interrupted" };

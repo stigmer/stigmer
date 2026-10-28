@@ -1,5 +1,5 @@
 /**
- * Typed Temporal activity input shared by ExecuteCursor and ExecuteDeepAgent.
+ * Typed Temporal activity input shared by every harness's activity.
  *
  * The Go and Java control planes now invoke these activities with a single
  * object carrying snake_case keys (mirroring the polyglot workflow-input
@@ -25,8 +25,8 @@ export interface ExecuteActivityInput {
   readonly invoker_identity_account_id?: string;
   /**
    * Monotonic HITL-cycle index within this execution: 0 on the first invocation,
-   * then the workflow's approvalCycle on each reinvocation. The Cursor producer
-   * mints its deterministic file-review change-set id ({@code executionId:turnSeq})
+   * then the workflow's approvalCycle on each reinvocation. The runtime mints
+   * its deterministic file-review change-set id ({@code executionId:turnSeq})
    * from it. Absent on the legacy positional wire shape (defaults to 0).
    */
   readonly turn_seq?: number;

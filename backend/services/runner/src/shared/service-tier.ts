@@ -10,8 +10,6 @@
  *
  * Each harness owns its translation of the EFFECTIVE tier into provider
  * wire terms:
- *   - Cursor: explicit `ModelSelection.params` pinning the price-bearing
- *     variant booleans (`execute-cursor/service-tier.ts`).
  *   - Native: the provider's own request parameter, mapped in
  *     `model-client.ts` (`toOpenAiServiceTier` / `toAnthropicServiceTier`
  *     below) so no construction site can invent a third mapping.
@@ -51,8 +49,7 @@ export function serviceTierLabel(tier: ServiceTier): string {
  *
  * STANDARD maps to "default", NOT "auto": "auto" lets the ACCOUNT's
  * project settings pick the processing tier — the exact
- * account-default-decides-the-price hole #357 closed on the Cursor
- * harness. FAST maps to "priority" (pay-as-you-go priority processing);
+ * account-default-decides-the-price hole #357 closed. FAST maps to "priority" (pay-as-you-go priority processing);
  * create-time validation makes FAST unreachable until a registry entry
  * prices it, so today's traffic always sends "default". "flex" (cheaper,
  * slower) is a possible future tier, deliberately unmapped.

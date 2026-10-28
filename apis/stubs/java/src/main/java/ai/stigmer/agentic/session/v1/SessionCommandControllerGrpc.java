@@ -387,37 +387,6 @@ public final class SessionCommandControllerGrpc {
     return getClaimInputMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput,
-      ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "bindHarnessState",
-      requestType = ai.stigmer.agentic.session.v1.BindHarnessStateInput.class,
-      responseType = ai.stigmer.agentic.session.v1.BindHarnessStateResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput,
-      ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput, ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod;
-    if ((getBindHarnessStateMethod = SessionCommandControllerGrpc.getBindHarnessStateMethod) == null) {
-      synchronized (SessionCommandControllerGrpc.class) {
-        if ((getBindHarnessStateMethod = SessionCommandControllerGrpc.getBindHarnessStateMethod) == null) {
-          SessionCommandControllerGrpc.getBindHarnessStateMethod = getBindHarnessStateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.BindHarnessStateInput, ai.stigmer.agentic.session.v1.BindHarnessStateResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "bindHarnessState"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.session.v1.BindHarnessStateInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.session.v1.BindHarnessStateResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("bindHarnessState"))
-              .build();
-        }
-      }
-    }
-    return getBindHarnessStateMethod;
-  }
-
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -704,19 +673,6 @@ public final class SessionCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getClaimInputMethod(), responseObserver);
     }
-
-    /**
-     * <pre>
-     * Record the harness's conversation id for a run's session.
-     * Only the runner acting for the run may call it, while the run is not
-     * finished. The id replaced, if any, joins the session's
-     * harness_state_id_history.
-     * </pre>
-     */
-    default void bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.BindHarnessStateResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBindHarnessStateMethod(), responseObserver);
-    }
   }
 
   /**
@@ -984,20 +940,6 @@ public final class SessionCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getClaimInputMethod(), getCallOptions()), request, responseObserver);
     }
-
-    /**
-     * <pre>
-     * Record the harness's conversation id for a run's session.
-     * Only the runner acting for the run may call it, while the run is not
-     * finished. The id replaced, if any, joins the session's
-     * harness_state_id_history.
-     * </pre>
-     */
-    public void bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.BindHarnessStateResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getBindHarnessStateMethod(), getCallOptions()), request, responseObserver);
-    }
   }
 
   /**
@@ -1239,19 +1181,6 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getClaimInputMethod(), getCallOptions(), request);
     }
-
-    /**
-     * <pre>
-     * Record the harness's conversation id for a run's session.
-     * Only the runner acting for the run may call it, while the run is not
-     * finished. The id replaced, if any, joins the session's
-     * harness_state_id_history.
-     * </pre>
-     */
-    public ai.stigmer.agentic.session.v1.BindHarnessStateResponse bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getBindHarnessStateMethod(), getCallOptions(), request);
-    }
   }
 
   /**
@@ -1492,19 +1421,6 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.ClaimSessionInputResponse claimInput(ai.stigmer.agentic.session.v1.ClaimSessionInputInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getClaimInputMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Record the harness's conversation id for a run's session.
-     * Only the runner acting for the run may call it, while the run is not
-     * finished. The id replaced, if any, joins the session's
-     * harness_state_id_history.
-     * </pre>
-     */
-    public ai.stigmer.agentic.session.v1.BindHarnessStateResponse bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getBindHarnessStateMethod(), getCallOptions(), request);
     }
   }
 
@@ -1759,20 +1675,6 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getClaimInputMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Record the harness's conversation id for a run's session.
-     * Only the runner acting for the run may call it, while the run is not
-     * finished. The id replaced, if any, joins the session's
-     * harness_state_id_history.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.BindHarnessStateResponse> bindHarnessState(
-        ai.stigmer.agentic.session.v1.BindHarnessStateInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getBindHarnessStateMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -1787,7 +1689,6 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_DELETE = 9;
   private static final int METHODID_APPEND_EVENTS = 10;
   private static final int METHODID_CLAIM_INPUT = 11;
-  private static final int METHODID_BIND_HARNESS_STATE = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1853,10 +1754,6 @@ public final class SessionCommandControllerGrpc {
         case METHODID_CLAIM_INPUT:
           serviceImpl.claimInput((ai.stigmer.agentic.session.v1.ClaimSessionInputInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ClaimSessionInputResponse>) responseObserver);
-          break;
-        case METHODID_BIND_HARNESS_STATE:
-          serviceImpl.bindHarnessState((ai.stigmer.agentic.session.v1.BindHarnessStateInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.BindHarnessStateResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1960,13 +1857,6 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.ClaimSessionInputInput,
               ai.stigmer.agentic.session.v1.ClaimSessionInputResponse>(
                 service, METHODID_CLAIM_INPUT)))
-        .addMethod(
-          getBindHarnessStateMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.session.v1.BindHarnessStateInput,
-              ai.stigmer.agentic.session.v1.BindHarnessStateResponse>(
-                service, METHODID_BIND_HARNESS_STATE)))
         .build();
   }
 
@@ -2027,7 +1917,6 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getDeleteMethod())
               .addMethod(getAppendEventsMethod())
               .addMethod(getClaimInputMethod())
-              .addMethod(getBindHarnessStateMethod())
               .build();
         }
       }

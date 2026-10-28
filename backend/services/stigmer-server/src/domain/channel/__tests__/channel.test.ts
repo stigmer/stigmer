@@ -365,20 +365,20 @@ describe("model-pin existence (oss#774)", () => {
     const agent = await createTestAgent(uniqueName("pin-agent"));
     const ch = channelFor(agent, uniqueName("typod-pin"), true);
     (ch.spec as Record<string, unknown>).runConfig = {
-      modelName: "composr-2.5",
+      modelName: "claude-sonet-4.6",
     };
 
     const err = await grpcError(() => channels.create(ch));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("not in the model registry (any harness)");
-    expect(err.rawMessage).toContain("'composer-2.5'");
+    expect(err.rawMessage).toContain("'claude-sonnet-4.6'");
   });
 
   it("create accepts a pin valid under some harness", async () => {
     const agent = await createTestAgent(uniqueName("pin-agent"));
     const ch = channelFor(agent, uniqueName("valid-pin"), true);
     (ch.spec as Record<string, unknown>).runConfig = {
-      modelName: "composer-2.5",
+      modelName: "claude-sonnet-4.6",
     };
     await channels.create(ch);
   });
@@ -393,7 +393,7 @@ describe("model-pin existence (oss#774)", () => {
     (update.metadata as Record<string, string>).id = created.metadata!.id;
     (update.metadata as Record<string, string>).slug = created.metadata!.slug;
     (update.spec as Record<string, unknown>).runConfig = {
-      modelName: "composr-2.5",
+      modelName: "claude-sonet-4.6",
     };
 
     const err = await grpcError(() => channels.update({ resource: update, updateMask: { paths: ["*"] } }));

@@ -18,8 +18,8 @@ export const file_ai_stigmer_agentic_plugin_v1_hooks: GenFile = /*@__PURE__*/
  * agent's tool calls and can refuse a call, ask a person first, or let it run.
  *
  * A plugin's hooks are recorded here at install; an agent can also carry a
- * block of its own (AgentSpec.hooks). Every engine, native, Cursor and
- * Claude, runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
+ * block of its own (AgentSpec.hooks). Every harness, native and Claude,
+ * runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
  * (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
  * afterMCPExecution).
  *
@@ -102,8 +102,8 @@ export const HookGroupSchema: GenMessage<HookGroup> = /*@__PURE__*/
  *
  * The command reads the call as JSON on stdin and answers as its format's
  * hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
- * deny with a reason. A Cursor-format "ask" waits for a person on both
- * engines, where Cursor itself lets the call run.
+ * deny with a reason. A Cursor-format "ask" waits for a person on every
+ * harness, where Cursor itself lets the call run.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.HookHandler
  */

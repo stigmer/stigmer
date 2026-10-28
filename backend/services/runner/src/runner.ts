@@ -1,9 +1,8 @@
 /**
  * Public factory for the unified Stigmer runner.
  *
- * Encapsulates the full boot sequence: harness boot (the Cursor adapter
- * installs its proxy interceptors there), bootstrap resolution, dynamic
- * activity imports, Temporal worker creation. Consumers call
+ * Encapsulates the full boot sequence: harness boot, bootstrap resolution,
+ * dynamic activity imports, Temporal worker creation. Consumers call
  * {@link createStigmerRunner} with typed options and get back a handle
  * to start/shutdown the worker.
  *
@@ -20,7 +19,6 @@ import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js
 import type { Config, TokenRef } from "./config.js";
 import type { HarnessRow } from "./harness/registry.js";
 import {
-  DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   DEFAULT_DRAIN_GRACE_MS,
   DEFAULT_LIVENESS_INTERVAL_MS,
@@ -77,9 +75,6 @@ export interface StigmerRunnerOptions {
   /** Auth token for authenticating with the Stigmer server. */
   readonly stigmerToken?: string;
 
-  /** Cursor API key for direct mode (not needed in proxy mode). */
-  readonly cursorApiKey?: string;
-
   /** Root directory for agent workspaces. Defaults to ~/.stigmer/workspaces/runner. */
   readonly workspaceRootDir?: string;
 
@@ -87,16 +82,15 @@ export interface StigmerRunnerOptions {
   readonly maxConcurrentActivities?: number;
 
   /**
-   * Stigmer proxy endpoint. When set, activates proxy mode: the fetch
-   * interceptor rewrites outbound Cursor SDK requests through the proxy,
-   * and cloud-specific behaviors (HTTP checkpointer, required auth) activate.
+   * Stigmer proxy endpoint. When set, activates proxy mode: model calls go
+   * through the proxy, and cloud-specific behaviors (HTTP checkpointer, required auth) activate.
    */
   readonly proxyEndpoint?: string;
 
   /** Default LLM model identifier. @default "gpt-4.1" */
   readonly primaryModel?: string;
 
-  /** No-progress bound for every harness's engine stream (ms); named for Cursor, its first user. An open operation holds it. @default 180000 */
+  /** No-progress bound for every harness's engine stream (ms). An open operation holds it. @default 180000 */
   readonly cursorStreamStallTimeoutMs?: number;
 
   /** The backstop for one open operation (ms): an operation open this long is stopped and the turn fails. @default 3600000 */
@@ -110,9 +104,6 @@ export interface StigmerRunnerOptions {
 
   /** Whether the native shell's model may start a command in the background. @default true */
   readonly shellBackgroundEnabled?: boolean;
-
-  /** Bound for Cursor Agent.create/resume (ms). @default 120000 */
-  readonly agentResolveTimeoutMs?: number;
 
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */
   readonly workspaceLockTimeoutMs?: number;
@@ -133,9 +124,6 @@ export interface StigmerRunnerOptions {
   /** Artifact presign endpoint (stigmer#803). Falls back to proxyEndpoint. */
   readonly artifactProxyEndpoint?: string;
 
-  /** Enable Cursor cloud mode for workspace-less execution. @default false */
-  readonly cloudModeEnabled?: boolean;
-
   /**
    * Workspace/filesystem execution location — where the agent actually runs.
    *
@@ -145,7 +133,7 @@ export interface StigmerRunnerOptions {
    *
    * This is intentionally distinct from {@link proxyEndpoint}, which controls
    * credential/artifact *transport*. The desktop runner is the canonical case
-   * where the two diverge: it executes locally while routing Cursor traffic and
+   * where the two diverge: it executes locally while routing model traffic and
    * artifacts through the proxy.
    *
    * When unset, the location is derived from {@link proxyEndpoint} for backward
@@ -178,10 +166,9 @@ export interface StigmerRunner {
  * read it per request, the per-turn model clients read it at build, per-call
  * sites (the registry-endpoint headers) resolve it through the runner
  * credential store (which replaced the process.env.STIGMER_TOKEN channel,
- * #508), and the two Cursor SDK interceptors read the same ref per request
- * as {@code Config.proxyTokenRef} — a static runner has no
- * {@code RunnerTokenCoordinator} minting a separate proxy credential, so its
- * x-stigmer-auth IS this token and one write here rotates it everywhere.
+ * #508), and the agent proxy's lanes read the same ref per request — a
+ * static runner has no {@code RunnerTokenCoordinator} minting a separate
+ * proxy credential, so one write here rotates it everywhere.
  * Nothing holds the value: `Config` carries the ref alone (config.ts header).
  */
 async function startStaticSandboxTokenRenewal(
@@ -260,8 +247,8 @@ async function buildStigmerRunner(
   // mode) so the sandbox-token renewal below can rotate it in-process:
   // activity clients read the ref per request instead of pinning the boot
   // token for the pod's whole life. This root owns the writable object; the
-  // config carries it read-only (mapOptionsToConfig binds it as both the
-  // control-plane and the proxy credential — see there).
+  // config carries it read-only (mapOptionsToConfig binds it as the
+  // control-plane credential — see there).
   const tokenRef: TokenRef = { current: options.stigmerToken ?? null };
   // The runner-class credential the bootstrap below may mint (see there); the
   // ref exists from here so the boot config can carry it.
@@ -270,14 +257,9 @@ async function buildStigmerRunner(
 
   assertLlmBackendsPreflight(bootConfig.proxyEndpoint);
 
-  // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
-  // discovery dials the control plane through connect-node, which snapshots
-  // the node:http2 ESM facade on first import; the Cursor adapter's boot
-  // installs the proxy interceptors (the HTTP/2 one patches http2.connect,
-  // which only reaches that facade if it runs first), proves the patch landed,
-  // and only then loads its SDK. Nothing a boot reads depends on the
-  // coordinates, so `bootConfig` carries none yet. The modules imported
-  // here are connect-free by construction (`harness-adapters.ts`,
+  // Boot the harnesses BEFORE resolving Temporal coordinates: nothing a boot
+  // reads depends on the coordinates, so `bootConfig` carries none yet. The
+  // modules imported here load no engine's SDK (`harness-adapters.ts`,
   // `harness/registry.ts`, `agent-host/hosting.ts`;
   // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
   // run in the agent host, behind their remote adapters (`agent-host/`).
@@ -469,9 +451,8 @@ export interface DrainedWorkerResources {
  * manager's order (runner-manager.ts `shutdown`): harnesses, then the
  * Temporal connection.
  *
- * - Harnesses first: they release what they still hold (the Cursor harness:
- *   its parked session agents, whose executor leases dispose with the
- *   process, #215) over their own channels, never the Temporal one.
+ * - Harnesses first: they release what they still hold (the agent host and
+ *   its engines) over their own channels, never the Temporal one.
  * - The connection last, and only after the drain: the SDK refuses to close
  *   a connection a worker still holds, and `run()` releases it on its way
  *   out.
@@ -508,9 +489,9 @@ function errorText(err: unknown): string {
  * The runtime `Config` for the static root. The refs are the root's: it
  * creates them before mapping and writes them on every rotation (the
  * sandbox-token renewal), so a `Config` never carries a credential by value
- * (config.ts header). `tokenRef` is bound as BOTH the control-plane and the
- * proxy credential — a static host provides the proxy token itself and mints
- * no separate one, so the interceptors read this same ref per request.
+ * (config.ts header). `tokenRef` is the control-plane credential — a static
+ * host provides the proxy token itself and mints no separate one, so the
+ * agent proxy's lanes read this same ref per request.
  */
 export function mapOptionsToConfig(
   options: StigmerRunnerOptions,
@@ -522,7 +503,7 @@ export function mapOptionsToConfig(
   // Execution location is independent of proxy transport. An explicit
   // `executionMode` always wins; otherwise fall back to the proxy-derived
   // default for backward compatibility. Setting `executionMode: "local"` with a
-  // proxy is the desktop case (local-path workspaces + proxied Cursor traffic).
+  // proxy is the desktop case (local-path workspaces + proxied model traffic).
   const mode = options.executionMode ?? (proxyActive ? "cloud" : "local");
 
   return {
@@ -536,20 +517,15 @@ export function mapOptionsToConfig(
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
-    proxyTokenRef: tokenRef,
     // Env-only like the env-loaded path (loadConfig): the bridge and public
     // endpoints are deployment topology, not per-session state.
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
     mcpPublicEndpoint: process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null,
-    cursorApiKey: proxyActive
-      ? (options.cursorApiKey ?? "proxy-managed")
-      : (options.cursorApiKey ?? ""),
     workspaceRootDir: options.workspaceRootDir ?? resolveDefaultWorkspaceDir(),
     mode,
     proxyEndpoint: options.proxyEndpoint ?? null,
     maxConcurrentActivities: options.maxConcurrentActivities ?? 5,
     idleTimeoutSeconds: null,
-    cloudModeEnabled: options.cloudModeEnabled ?? false,
     checkpointerType: options.checkpointerType
       ?? (proxyActive ? "http" : "sqlite"),
     checkpointerProxyEndpoint: options.checkpointerProxyEndpoint
@@ -565,8 +541,6 @@ export function mapOptionsToConfig(
     livenessIntervalMs: options.livenessIntervalMs ?? DEFAULT_LIVENESS_INTERVAL_MS,
     shellTimeoutMaxSeconds: options.shellTimeoutMaxSeconds ?? DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
     shellBackgroundEnabled: options.shellBackgroundEnabled ?? true,
-    agentResolveTimeoutMs:
-      options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     drainGraceMs: options.drainGraceMs ?? DEFAULT_DRAIN_GRACE_MS,
@@ -577,9 +551,8 @@ export function mapOptionsToConfig(
  * Dynamically import all activity factories and merge into a single map.
  *
  * Dynamic imports, after the harnesses have booted: several of these modules
- * transitively load `@connectrpc/connect-node` and LangChain, and the Cursor
- * adapter's boot must have patched `node:http2` before connect-node is first
- * imported (see createStigmerRunner). The harness rows and the registry were
+ * transitively load `@connectrpc/connect-node` and LangChain, which the
+ * runner's boot path does not need. The harness rows and the registry were
  * imported by the factory for the boot, which hands this function the rows it
  * booted (the hosted harnesses' remote adapters among them); the imports here
  * hit the module cache.

@@ -16,11 +16,9 @@ import { useFetch } from "../internal/useFetch.js";
 /**
  * The providers an organization holds a key for, by their wire names.
  * `anthropic` is Anthropic's API or any endpoint that speaks it, `openai` is
- * OpenAI's or any endpoint that speaks it; `cursor` is a Cursor user API key
- * or team service-account key, served from Cursor's own hosts and saved
- * without a base URL.
+ * OpenAI's or any endpoint that speaks it.
  */
-export type ProviderKeyProvider = "anthropic" | "openai" | "cursor";
+export type ProviderKeyProvider = "anthropic" | "openai";
 
 /** Options for {@link useProviderKeys}. */
 export interface UseProviderKeysOptions {
@@ -87,8 +85,7 @@ export interface UseProviderKeyActionsReturn {
   /**
    * Save the organization's key for a provider, replacing any it holds,
    * optionally against an own endpoint (`baseUrl`: an `https` URL as the
-   * provider's SDK takes it; omitted or empty for the provider's own API,
-   * and always omitted for `cursor`, which the contract refuses one for).
+   * provider's SDK takes it; omitted or empty for the provider's own API).
    * The provider (or the endpoint) is asked about the key once first, and a
    * key it rejects is refused, as is an endpoint that is not `https` or not
    * on a public address. Resolves with the saved key, without its secret.

@@ -9,8 +9,8 @@
  * bounded by a budget, delivered as vision payload alongside the user's turn
  * message. The runtime's File phase offers each image the message carried to
  * {@link VisionBudget.offer} (`file-mount.ts` `offerMountedImage`), and the
- * harnesses adapt the accepted images to their transport shape via
- * {@link toCursorImages} / {@link toLangChainImageBlocks}. No eligibility or
+ * harnesses adapt the accepted images to their transport shape (the native
+ * harness via {@link toLangChainImageBlocks}). No eligibility or
  * budget rule lives anywhere else.
  *
  * Trust model: a File's `mime_type` is the uploader's declaration, never
@@ -46,10 +46,8 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Per-image cap on RAW decoded bytes. Grounded in two hard bounds: the Cursor
- * local transport passed a 3.47 MB image and failed a 4.85 MB one (probe
- * evidence), and Anthropic caps images at 5 MB *base64* (~3.75 MB raw).
- * 3.0 MiB sits under both with headroom.
+ * Per-image cap on RAW decoded bytes. Anthropic caps images at 5 MB
+ * *base64* (~3.75 MB raw); 3.0 MiB sits under it with headroom.
  */
 export const MAX_VISION_IMAGE_BYTES = 3 * 1024 * 1024;
 
@@ -99,7 +97,7 @@ export type VisionDegradedReason =
   | "too_large"
   /** Image is fine but the turn's total/count budget is already spent. */
   | "budget_exhausted"
-  /** A real image type the current harness cannot display (e.g. WebP on Cursor). */
+  /** A real image type the current harness cannot display (outside its {@link VisionProfile}). */
   | "unsupported_format"
   /** Declared as an image but the bytes are not a recognizable image (HEIC named .jpg, corrupt file). */
   | "type_mismatch"
@@ -118,19 +116,14 @@ export type VisionOutcome =
   | { readonly kind: "skipped" };
 
 /**
- * What a harness can actually display inline. The split exists because the
- * Cursor local transport re-sniffs magic bytes and recognizes ONLY PNG and
- * JPEG (verified against the @cursor/sdk dist at 1.0.13 and again at 1.0.31:
- * the attachment sniff map is exactly JPEG and PNG; the declared mimeType is
- * discarded), while the LangChain providers accept all four types.
+ * What a harness can actually display inline: a transport that recognizes
+ * fewer image types than the sniff does declares the ones it reads, and the
+ * rest degrade as `unsupported_format`. The native and Claude harnesses both
+ * reach the Messages API, which reads all four types.
  */
 export interface VisionProfile {
   readonly allowedTypes: ReadonlySet<VisionMimeType>;
 }
-
-export const CURSOR_VISION_PROFILE: VisionProfile = {
-  allowedTypes: new Set<VisionMimeType>(["image/png", "image/jpeg"]),
-};
 
 export const DEEP_AGENT_VISION_PROFILE: VisionProfile = {
   allowedTypes: new Set<VisionMimeType>([
@@ -202,7 +195,7 @@ export class VisionBudget {
    * Tri-state model capability from the registry (model-registry.ts,
    * `getModelVisionCapability`). Only an explicit `false` gates: `undefined`
    * means the capability was never assessed (or the registry was
-   * unreachable, or the model is the Cursor "default" Auto pool), and the
+   * unreachable, or no concrete model was named), and the
    * policy fails OPEN on unknown — degrading every image because a flag is
    * missing would regress behavior that works today.
    */
@@ -314,22 +307,6 @@ export class VisionBudget {
 // ---------------------------------------------------------------------------
 // Transport adapters
 // ---------------------------------------------------------------------------
-
-/**
- * Cursor SDK image payloads for `agent.send({ text, images })`.
- *
- * `data` must be RAW base64 with no `data:` URL prefix: the SDK's local
- * executor feeds it straight to `Buffer.from(data, "base64")`, and Node's
- * base64 decoder skips non-alphabet characters — a data-URL prefix would be
- * silently decoded into garbage bytes prepended to the image, corrupting it
- * without an error. The `mimeType` field is required by the SDK's types but
- * ignored by the local transport, which re-sniffs magic bytes itself.
- */
-export function toCursorImages(
-  images: readonly VisionImage[],
-): { data: string; mimeType: string }[] {
-  return images.map((img) => ({ data: img.base64, mimeType: img.mimeType }));
-}
 
 /**
  * A LangChain content block — only the shapes this module emits.

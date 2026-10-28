@@ -26,8 +26,7 @@
  *     "sonnet" names nothing Stigmer runs;
  *   - a target on an engine that cannot run one of the case's features is
  *     that target's `not run on <engine>: <feature>`, and the case runs on
- *     the others: the Cursor engine resumes no recorded conversation and
- *     passes no `env`, the Claude engine resumes no recorded conversation
+ *     the others: the Claude engine resumes no recorded conversation
  *     (`@stigmer/plugin-package` `evalCaseUnsupportedOn`);
  *   - tries per arm are the spec's `runs`, else the case's, else 3;
  *   - ablation `none` plans the with arm only, as does a spec with no
@@ -254,7 +253,6 @@ function targetsOf(
 export const EVAL_ENGINES: Readonly<Record<Harness, { readonly word: EvalEngine; readonly label: string }>> = {
   [Harness.UNSPECIFIED]: { word: "native", label: "native" },
   [Harness.NATIVE]: { word: "native", label: "native" },
-  [Harness.CURSOR]: { word: "cursor", label: "Cursor" },
   [Harness.CLAUDE]: { word: "claude", label: "Claude" },
 };
 

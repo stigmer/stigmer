@@ -2,11 +2,11 @@
  * Pins validate-service-tier.ts against Go's validate_service_tier_test.go
  * case-for-case: fail-closed create-time validation of the service tier a
  * turn resolved (#357; each case runs ResolveRunConfig first, as the chain
- * does, over a new conversation with no agent, on Cursor unless a case
- * names native) against the BUNDLED registry, on the engine the
- * conversation runs
- * (composer-2.5 prices a fast variant; claude-sonnet-4.6 is native with
- * none). Both editions must refuse the same request with the same
+ * does, over a new conversation with no agent, on Claude unless a case
+ * names native) against the bundled registry plus one test-local fast
+ * price, on the engine the conversation runs (claude-opus-4.8 prices a
+ * fast variant on the claude harness only; claude-sonnet-4.6 prices none
+ * anywhere). Both editions must refuse the same request with the same
  * message — the conformance tier suite asserts the codes on every target;
  * these tests additionally pin the message fragments.
  */
@@ -36,8 +36,36 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
+/** The fast-priced model: its fast variant is listed under the claude harness only. */
+const FAST_MODEL = "claude-opus-4.8";
+
+/**
+ * The bundled registry with a fast variant added to FAST_MODEL's claude
+ * row: the bundle prices no fast tier, so the rule's passing and
+ * other-engine cases need one of their own.
+ */
+function documentWithFastVariant(): string {
+  const document = JSON.parse(bundledModelRegistryDocument()) as {
+    models: Array<Record<string, unknown>>;
+  };
+  const row = document.models.find((model) => model["id"] === FAST_MODEL && model["harness"] === "claude");
+  if (row === undefined) {
+    throw new Error(`the bundled registry has no claude row for ${FAST_MODEL}`);
+  }
+  row["pricingVariants"] = {
+    fast: {
+      inputPricePerMillion: 30,
+      outputPricePerMillion: 150,
+      cacheWritePricePerMillion: 37.5,
+      cacheReadPricePerMillion: 3,
+      source: "test",
+    },
+  };
+  return JSON.stringify(document);
+}
+
 const registry = new ModelRegistryStore({
-  bundledDocument: bundledModelRegistryDocument(),
+  bundledDocument: documentWithFastVariant(),
   upstreamOrigin: "http://unused.test",
   refreshEnabled: false,
   logger: silentLogger,
@@ -64,12 +92,12 @@ function contextFor(
 }
 
 /**
- * Resolves and judges a new conversation's turn on `harness` (Cursor by
- * default: the bundled registry prices fast variants under Cursor).
+ * Resolves and judges a new conversation's turn on `harness` (Claude by
+ * default: the registry above prices its fast variant under Claude).
  */
 async function run(
   config: MessageInitShape<typeof RunConfigSchema> | undefined,
-  harness: Harness = Harness.CURSOR,
+  harness: Harness = Harness.CLAUDE,
 ): Promise<void> {
   const ctx = contextFor(config, harness);
   await newResolveRunConfigStep({
@@ -82,7 +110,7 @@ async function run(
 
 async function refusal(
   config: MessageInitShape<typeof RunConfigSchema>,
-  harness: Harness = Harness.CURSOR,
+  harness: Harness = Harness.CLAUDE,
 ): Promise<ConnectError> {
   try {
     await run(config, harness);
@@ -104,7 +132,7 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
 
   it("FAST with a fast-priced model passes", async () => {
     await expect(run({
-          modelName: "composer-2.5",
+          modelName: FAST_MODEL,
           serviceTier: ServiceTier.FAST,
         })).resolves.toBeUndefined();
   });
@@ -114,10 +142,10 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("requires a model_name");
     // Fast-capable suggestions ride along.
-    expect(err.rawMessage).toContain("composer-2.5");
+    expect(err.rawMessage).toContain(`models with a fast tier: ${FAST_MODEL}`);
   });
 
-  it("FAST on a native model with no fast variant fails closed", async () => {
+  it("FAST on a model with no fast variant fails closed", async () => {
     const err = await refusal({
       modelName: "claude-sonnet-4.6",
       serviceTier: ServiceTier.FAST,
@@ -136,10 +164,10 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
   });
 
   it("FAST on a model priced fast only on the other engine fails closed, naming the engine", async () => {
-    // composer-2.5's fast price is listed under Cursor only: on a native
+    // FAST_MODEL's fast price is listed under Claude only: on a native
     // conversation the tier would select a variant the turn never applies.
     const err = await refusal(
-      { modelName: "composer-2.5", serviceTier: ServiceTier.FAST },
+      { modelName: FAST_MODEL, serviceTier: ServiceTier.FAST },
       Harness.NATIVE,
     );
     expect(err.code).toBe(Code.InvalidArgument);

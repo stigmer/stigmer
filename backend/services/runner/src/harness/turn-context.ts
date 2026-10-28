@@ -7,11 +7,9 @@
  * agent blueprint, the run's values, the workspace and its lock, the undos
  * still owed to earlier turns, what the previous turn left waiting for
  * approval, the MCP servers with the
- * approval default and the agent's tool scope, the conversation's Files, the standing context. Until #1070
- * that sequence lived inline in the Cursor orchestrator
- * (`activities/execute-cursor/index.ts` `executeCursorInner`, phases 1 to
- * 9c); the native orchestrator carried a second copy in its `performSetup`.
- * This module is the one copy. Each phase is a function that reads its
+ * approval default and the agent's tool scope, the conversation's Files, the
+ * standing context. Until #1070 each harness's orchestrator carried its own
+ * copy of that sequence. This module is the one copy. Each phase is a function that reads its
  * inputs, reports its progress label, heartbeats once on entry, and returns
  * a typed slice of the contract's `TurnInput`; {@link resolveTurnContext}
  * sequences them, and the adapter runs its own harness-specific steps after
@@ -46,15 +44,11 @@
  *
  * What is deliberately NOT here, and where it is instead:
  *
- *  - Cursor's catalog validation of the requested model (`resolveModelId`),
- *    the pricing preload and the MCP env pre-flight warning stay in the
- *    Cursor adapter: each reads a module that is the adapter's own, and the
- *    runtime carries the REQUESTED model name so every harness validates
- *    against its own catalog. The skill mount was in that list until #1070
- *    found it reads the control plane, which only the runtime holds; it is
- *    {@link mountSkills}.
- *  - The approval grants, the HITL gate, the capture baseline pin and the
- *    Cursor agent itself (phases 5c, 7, 8a, 9) are the adapter's.
+ *  - The catalog validation of the requested model stays in each adapter:
+ *    the runtime carries the REQUESTED model name so every harness validates
+ *    against its own catalog. The skill mount reads the control plane,
+ *    which only the runtime holds, so it is here ({@link mountSkills}).
+ *  - The HITL gate and the engine itself are the adapter's.
  *  - The memory selection is a memoized thunk, not a value: whether a prompt
  *    carries standing context depends on how the ENGINE resolved (a resumed
  *    agent already holds it), which the runtime learns only after the
@@ -67,7 +61,6 @@ import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -79,9 +72,7 @@ import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { APPROVAL_ANSWER_EVENT_TYPES, approvalAnswersOf, copyAnswersOntoRows, type ApprovalAsk } from "./approval-answers.js";
 import { RESUME_SEED_EVENT_TYPES, resumeSeedOf } from "./transcript/resume-seed.js";
-import { composeTurnRecoveryDigest } from "./continuation-digest.js";
 import { isContinuationNote } from "./terminal-table.js";
-import type { ContinuationKind } from "./capabilities.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -103,7 +94,6 @@ import {
   WorkspaceLockTimeoutError,
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
-import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
 import {
   describeServerHome,
   DuplicateServerNameError,
@@ -118,7 +108,6 @@ import { readChannelConversationId, synthesizeConversationAttachment } from "../
 import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
-import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles, type MessageFile } from "../shared/file-mount.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
@@ -142,7 +131,6 @@ import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionImage } from "../shared/attachment-vision.js";
 import { getDefaultModel, getModelVisionCapability, registrySectionOf } from "../shared/model-registry.js";
 import { pluginSubagentScope, savedSubagentScope, subagentModel } from "../shared/subagents.js";
-import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
 import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
 import { resolveEffectiveThinkingMode } from "../shared/thinking-mode.js";
 import { readContextBridge } from "../shared/context-bridge.js";
@@ -153,7 +141,7 @@ import { sessionIdOf } from "../shared/execution-target.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
-import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
+import type { HarnessCapabilities } from "./capabilities.js";
 import { reconcileOwedUndos, type ReconciledUndo } from "./owed-undos.js";
 import type { RunFacts } from "./run-span.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
@@ -180,10 +168,8 @@ import type { RecalledMemoriesReport, TurnRows } from "../gen/turn/ai/stigmer/ru
 /**
  * What every phase reads from its caller. The activity's identity and the
  * runtime's own seams; nothing harness-specific. The four function members
- * are the caller's, injected so the phase bodies are the same code under
- * the Cursor orchestrator it left and under `run-turn.ts` (only the
- * binding changes), and so a test can drive a phase without a Temporal
- * activity context.
+ * are the caller's, injected so a test can drive a phase without a
+ * Temporal activity context.
  */
 export interface ResolutionDeps {
   /** The activity's own identity: execution id, engine state id, HITL cycle index. */
@@ -253,15 +239,16 @@ export interface ResolutionDeps {
 
 /**
  * What the previous invocation left for this one (phase 3). Not part of
- * `TurnInput`: `isReinvocation` is the adapter's own derivation from
- * `threadId` (the contract carries no flag by design, `types.ts` header) and
- * the runtime reads it only inside {@link resolveTurnContext}; the decisions
+ * `TurnInput`: whether the engine resumes is the adapter's own derivation
+ * from `threadId` and its engine's state (the contract carries no flag by
+ * design, `types.ts` header), and the runtime reads `isReinvocation` only
+ * inside {@link resolveTurnContext}; the decisions
  * and the asks ARE on the input. The seeded asks are on `sink.rows`
  * (`transcript/resume-seed.ts`), each carrying the log's answer to its call; an
  * adapter wraps them by reference.
  */
 export interface TurnReinvocation {
-  /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
+  /** The engine already holds state for this execution: the log holds what it wrote ({@link runWroteEngineEvents}). */
   readonly isReinvocation: boolean;
   /**
    * The log holds what an earlier invocation of this run's engine did
@@ -374,53 +361,6 @@ export type WorkspaceLockOutcome =
 // ---------------------------------------------------------------------------
 
 /**
- * Whether the engine already holds state for this execution, so this
- * invocation resumes rather than begins. One function keyed on how the
- * harness mints its state id:
- *
- *  - `engine-minted` (Cursor: the agent id): the runtime knows nothing until
- *    the adapter binds an id, so a non-empty `threadId` IS the evidence.
- *    Correct today because a pure-reconcile turn does not advance `turnSeq`
- *    and the legacy positional wire shape yields 0, so `turnSeq` cannot be
- *    the signal.
- *  - `deterministic` (native: the runtime-minted thread id): the id exists
- *    on the FIRST turn too, so the evidence is the session's log: whether it
- *    holds an event the runner wrote from this run's engine
- *    ({@link runWroteEngineEvents}). Whether the execution already has
- *    committed history is the ONE signal that behaves identically across
- *    the engine's checkpointer backends: a durable saver (sqlite locally,
- *    http in cloud) keeps the checkpoint and resumes from it, while the
- *    test-only memory saver recreates it empty and replays from scratch —
- *    so the live checkpoint cannot be the signal (native's
- *    `shouldSeedFromPersistedTranscript`, retired with its orchestrator).
- *    Any event of the run cannot be it either: the server writes the run's
- *    `user.message` when it creates the run. A first run's engine has
- *    written nothing and starts from empty, as it always did.
- *
- * This is the runtime's own reading, for its phases (the seed, the
- * exact-apply). An adapter that needs create-vs-resume for its ENGINE
- * reads `input.threadId` itself — for an engine-minted harness that is the
- * same bit, for a deterministic one the engine's checkpoint is the adapter's
- * to consult — so the contract carries no flag with two meanings.
- */
-export function isReinvocation(
-  stateIdSource: StateIdSource,
-  input: NormalizedActivityInput,
-  runWroteEvents: boolean,
-): boolean {
-  switch (stateIdSource) {
-    case "engine-minted":
-      return input.threadId !== "";
-    case "deterministic":
-      return runWroteEvents;
-    default: {
-      const exhaustive: never = stateIdSource;
-      throw new Error(`isReinvocation: unknown state id source ${String(exhaustive)}`);
-    }
-  }
-}
-
-/**
  * The event types the runner writes from the rows its engine produced
  * (`events/emitter.ts` `writeMessage`, `writeToolUse`): a message, a
  * thinking, a tool use, a harness note. The other types a runner may write
@@ -443,6 +383,21 @@ export const ENGINE_EVENT_TYPES = [
  * run wrote from its engine ({@link ENGINE_EVENT_TYPES}): one read of at
  * most one event. Throws when the log cannot be read, as the turn's other
  * control-plane reads do.
+ *
+ * This is the runtime's one reading of "this invocation resumes rather
+ * than begins", for its phases (the seed, the reconcile). The engine's
+ * state id exists on the FIRST turn too (the runtime derives it before
+ * any engine runs), so the id cannot be the evidence; whether the
+ * execution already has committed history is the ONE signal that behaves
+ * identically across the engines' checkpointer backends: a durable saver
+ * (sqlite locally, http in cloud) keeps the checkpoint and resumes from
+ * it, while the test-only memory saver recreates it empty and replays from
+ * scratch, so the live checkpoint cannot be the signal. Any event of the
+ * run cannot be it either: the server writes the run's `user.message` when
+ * it creates the run. A first run's engine has written nothing and starts
+ * from empty. An adapter that needs create-vs-resume for its ENGINE
+ * consults its engine's own state, so the contract carries no flag with
+ * two meanings.
  */
 export async function runWroteEngineEvents(
   client: Pick<StigmerClient, "hasRunSessionEvent">,
@@ -450,18 +405,6 @@ export async function runWroteEngineEvents(
   runId: string,
 ): Promise<boolean> {
   return client.hasRunSessionEvent(sessionId, runId, ENGINE_EVENT_TYPES);
-}
-
-/**
- * The run's events, read from the session's log each time it is called
- * (`TurnInput.readRunEvents`): what an adapter tells the turn's story from.
- */
-export function runEventsReader(
-  client: Pick<StigmerClient, "listRunSessionEvents">,
-  sessionId: string,
-  runId: string,
-): () => Promise<readonly SessionEvent[]> {
-  return () => client.listRunSessionEvents(sessionId, runId);
 }
 
 /**
@@ -486,7 +429,7 @@ export function seedStatusOutputs(status: RunStatus, execution: Run): void {
 /**
  * The log types a reinvocation reads, once: the seed's and the answers', and
  * the notes and phase changes that say why the turn was last stopped
- * ({@link stopIsExplained}); the continuation digest folds the same events.
+ * ({@link stopIsExplained}).
  */
 export const REINVOCATION_EVENT_TYPES: readonly string[] = [
   ...new Set<string>([...RESUME_SEED_EVENT_TYPES, ...APPROVAL_ANSWER_EVENT_TYPES, "stigmer.harness.note", "stigmer.run.status"]),
@@ -854,36 +797,17 @@ export async function startEvalMocks(
   const standIns = callableServers(endpoint.servers, args.mcp.toolScope, args.mcp.platformServerSlugs);
   const replaced = new Set(endpoint.servers.map((server) => server.slug));
   const kept = new Set(standIns.map((server) => server.slug));
-  // An engine that does not read its tools' marks scopes a server's tools
-  // by the listing: a stand-in lists its mocked tools, none destructive,
-  // and offers each as its endpoint does.
-  const { listing } = args.mcp;
   return {
     ...args.mcp,
     servers: [...args.mcp.servers.filter((server) => !replaced.has(server.slug)), ...standIns],
-    listing:
-      listing === undefined
-        ? undefined
-        : {
-            listed: [
-              ...listing.listed.filter(({ server }) => !replaced.has(server)),
-              ...endpoint.listed.filter(({ server }) => kept.has(server)),
-            ],
-            destructive: listing.destructive.filter(({ server }) => !replaced.has(server)),
-            unlisted: listing.unlisted.filter((server) => !replaced.has(server)),
-            offered: [
-              ...listing.offered.filter(({ server }) => !replaced.has(server)),
-              ...endpoint.offered.filter(({ server }) => kept.has(server)),
-            ],
-          },
   };
 }
 
 /**
  * Phase 3: what the previous invocation left.
  *
- * Whether this invocation resumes is read first ({@link isReinvocation},
- * with the log's {@link runWroteEngineEvents}). On a reinvocation the run's
+ * Whether this invocation resumes is read first, from the log
+ * ({@link runWroteEngineEvents}). On a reinvocation the run's
  * events are read once ({@link REINVOCATION_EVENT_TYPES}) and the asks the
  * engine resumes onto are seeded through the builder (`transcript/resume-seed.ts`),
  * before any harness runs; the status's own outputs are carried over
@@ -898,7 +822,7 @@ export async function startEvalMocks(
  * allowed call proceeds; a denied one is refused with the reason given, and
  * the run continues without it (the row is settled SKIPPED after the turn,
  * `approval-decisions.ts`). Until #1096 a REJECT failed the turn here with
- * its own FAILED arm, Cursor's legacy; the proto (`APPROVAL_ACTION_REJECT`:
+ * its own FAILED arm; the proto (`APPROVAL_ACTION_REJECT`:
  * "does NOT fail the run"), the conformance suite and the native harness
  * said otherwise since stigmer#197, and the runtime agrees.
  *
@@ -909,8 +833,6 @@ export async function startEvalMocks(
 export async function reconcileReinvocation(
   deps: ResolutionDeps,
   args: {
-    readonly stateIdSource: StateIdSource;
-    readonly continuation: ContinuationKind;
     readonly execution: Run;
     readonly sessionId: string;
   },
@@ -918,8 +840,7 @@ export async function reconcileReinvocation(
   deps.enterPhase("reconcile_reinvocation");
   const runId = deps.input.executionId;
   const runWroteEvents = await runWroteEngineEvents(deps.client, args.sessionId, runId);
-  const reinvoked = isReinvocation(args.stateIdSource, deps.input, runWroteEvents);
-  if (!reinvoked) {
+  if (!runWroteEvents) {
     return {
       isReinvocation: false,
       runWroteEvents,
@@ -939,12 +860,9 @@ export async function reconcileReinvocation(
   deps.transcript.seed(seed.rows);
   const answers = approvalAnswersOf(runId, deps.rows, events);
   copyAnswersOntoRows(runId, deps.rows, answers);
-  // A continuation is an invocation whose engine already wrote to the log;
-  // a reinvocation of a deterministic harness is exactly that, and an
-  // engine-minted one is too once it bound its id before its first write.
-  const continuation: TurnContinuation | undefined = runWroteEvents
-    ? continuationFor(args.continuation, events, runId)
-    : undefined;
+  // A continuation is an invocation whose engine already wrote to the log,
+  // which every reinvocation is.
+  const continuation: TurnContinuation = {};
   return {
     isReinvocation: true,
     runWroteEvents,
@@ -955,30 +873,8 @@ export async function reconcileReinvocation(
     answerText: seed.answerText,
     recalledMemoriesReport: seed.recalledMemoriesReport,
     continuation,
-    lostRunner: continuation !== undefined && answers.decisions.size === 0 && !stopIsExplained(events),
+    lostRunner: answers.decisions.size === 0 && !stopIsExplained(events),
   };
-}
-
-/**
- * What a continued invocation is handed: the fact, and for a harness that
- * continues by prompt, the turn's digest folded from the events already
- * read (`continuation-digest.ts`).
- */
-function continuationFor(kind: ContinuationKind, events: readonly SessionEvent[], runId: string): TurnContinuation {
-  switch (kind) {
-    case "checkpoint":
-      return {};
-    case "digest": {
-      const digest = composeTurnRecoveryDigest(events, runId);
-      return digest === undefined ? {} : { digest };
-    }
-    /* v8 ignore start -- @preserve: the never arm; the compiler proves no continuation kind reaches it */
-    default: {
-      const exhaustive: never = kind;
-      throw new Error(`continuationFor: unknown continuation ${String(exhaustive)}`);
-    }
-    /* v8 ignore stop */
-  }
 }
 
 /**
@@ -1057,12 +953,9 @@ export const PLATFORM_TOOLS_OFF_NOTICE =
  * spec.auto_approve_all is the one whole-run global bypass; an interactive
  * APPROVE_ALL grants a run-lifetime lease scoped to that action's class,
  * read from the run's `stigmer.permission.grant` events (`grants`, the
- * reinvocation phase's read; none on a fresh turn). An
- * engine that loads the tools itself reads their marks from what it loaded
- * (`capabilities.readsToolMarks`), so the default carries only the leases
- * here and the engine completes it; for any other engine each plugin server
- * is listed now, in parallel (shared/mcp-tool-listing.ts), and a server
- * whose listing fails asks before every one of its tools. The
+ * reinvocation phase's read; none on a fresh turn). The engine loads the
+ * tools itself and reads their marks from what it loaded, so the default
+ * carries only the leases here and the engine completes it. The
  * agent's tool scope is resolved here too, from its two lists, so both
  * harnesses enforce one reading of them. The harness projects its SDK config
  * from `servers` after this returns, exactly once, so every mutation is
@@ -1076,7 +969,6 @@ export async function resolveMcpServersAndPolicies(
     readonly sessionId: string;
     readonly blueprint: ResolvedBlueprint;
     readonly values: RunValues;
-    readonly readsToolMarks: boolean;
     /** The run's grants, from the reinvocation phase: the interactive leases. */
     readonly grants: ReadonlyMap<string, LeaseGrant>;
   },
@@ -1103,7 +995,7 @@ export async function resolveMcpServersAndPolicies(
 
   // The turn's tool scope (the agent's lists, then this turn's over them,
   // which can only narrow), and the servers it leaves standing, before
-  // anything connects, the tool listing included: a server the lists
+  // anything connects: a server the lists
   // exclude whole is never started or dialled, since no tool of it could be
   // called (#2106). A eval-run try's mocked servers are left out too:
   // their stand-ins take their names (`startEvalMocks`), and the real ones
@@ -1116,15 +1008,6 @@ export async function resolveMcpServersAndPolicies(
   if (servers.length < resolved.length) {
     const left = resolved.filter((server) => !servers.includes(server)).map((server) => server.slug);
     console.log(`[turn-context] execution=${executionId}: not connecting ${left.join(", ")}: excluded whole by the turn's tool lists, or answered by a stand-in`);
-  }
-
-  // Phase 4a: the plugin servers' tools, listed now for an engine that does
-  // not load them itself.
-  let listing: McpToolListing | undefined;
-  if (!args.readsToolMarks && servers.length > 0) {
-    await deps.reportProgress("Listing MCP tools");
-    listing = await listTurnTools(servers);
-    deps.timing.mark("list_mcp_tools");
   }
 
   let exchangedRunnerToken: string | undefined;
@@ -1196,18 +1079,17 @@ export async function resolveMcpServersAndPolicies(
     servers = injectSynthesizedAttachment(servers, memoryAttachment, "memory capture");
   }
 
-  // Phase 4b: the approval default's MCP half, over the servers the turn
-  // connects.
+  // Phase 4b: the approval default's MCP half: the leases alone, which the
+  // engine completes from the tools it loads.
   const leases = deriveActiveLeases(args.grants.values(), execution.spec?.autoApproveAll ?? false);
-  const mcpDefault = buildMcpApprovalDefault(listing ?? NOTHING_LISTED, leases);
-
+  const mcpDefault = buildMcpApprovalDefault(NOTHING_LISTED, leases);
 
   // The platform's own servers, read from the homes the attachments carry
   // once every one is injected: one truth for hiding them from hooks,
   // keeping them outside the tool lists and marking their tools.
   const platformServerSlugs = platformServerSlugsOf(servers);
 
-  return { servers, channelMessaging, leases, mcpDefault, listing, platformServerSlugs, toolScope };
+  return { servers, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
 }
 
 /** The caller-identity keys every plugin server of the turn may template (the main agent's and each subagent's). */
@@ -1712,11 +1594,8 @@ export async function holdPlatformToTurnPhase(
  * settings name (`status.run_config`, which the control plane resolved once
  * at create), or the engine's own registry default when they name none —
  * the model the native and Claude engines build in that case, so the budget
- * asks about the model that will actually see the image. The Cursor harness
- * with no model named runs Auto, which has no row, and builds its own
- * catalog default instead (`resolveModelId("default")`), so for it the
- * native default stands in: today both answers read as sighted. The
- * registry is asked only when the message carries an image. The vision
+ * asks about the model that will actually see the image. The registry is
+ * asked only when the message carries an image. The vision
  * profile and the engine are the harness's (each engine accepts different
  * image shapes), so they arrive as arguments.
  */
@@ -1779,8 +1658,7 @@ async function viewMessageImages(
   const images = message.filter((file) => file.kind === "image");
   if (images.length > 0) {
     const { harness, visionProfile } = args.capabilities;
-    // Cursor's empty model is Auto, which has no row: native's default stands in (the header).
-    const modelName = args.execution.status?.runConfig?.modelName || (await getDefaultModel(harness === Harness.CURSOR ? "native" : registrySectionOf(harness)));
+    const modelName = args.execution.status?.runConfig?.modelName || (await getDefaultModel(registrySectionOf(harness)));
     const budget = new VisionBudget(visionProfile, { modelVision: await getModelVisionCapability(modelName) });
     for (const image of images) {
       const outcome = await offerMountedImage(image, args.sessionId, budget);
@@ -1797,77 +1675,6 @@ async function viewMessageImages(
 }
 
 /**
- * Whether a harness performs an approved call by RE-RUNNING the model, so
- * the bytes an approved whole-file write lands can differ from the bytes the
- * user approved unless the runner pins them itself
- * ({@link applyApprovedWrites}). Keyed on the pause primitive
- * (`capabilities.ts`): `deny-and-retry` denies the call and re-prompts the
- * model with grants, so it regenerates. An `interrupt` engine stops AT the
- * call and runs its exact args on `approve`, so a runner-side write would
- * land the same bytes twice and pre-empt a row the engine is about to
- * execute. Until #1096 the phase ran for
- * every harness — a deny-and-retry mechanism the native harness would have
- * met on its first deny-gated file approval.
- */
-export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boolean {
-  switch (pausePrimitive) {
-    case "deny-and-retry":
-      return true;
-    case "interrupt":
-      return false;
-    default: {
-      const exhaustive: never = pausePrimitive;
-      throw new Error(`regeneratesApprovedWrites: unknown pause primitive ${String(exhaustive)}`);
-    }
-  }
-}
-
-/**
- * Phase 5b3: exact-apply approved whole-file writes
- * (HITL "what you approve is what gets applied"). A deny-only harness
- * reinvokes the model, which regenerates content, so a resource grant alone
- * cannot guarantee the bytes that land match the bytes the user approved.
- * The runner therefore writes the EXACT approved whole-file content itself
- * and marks those tool calls COMPLETED; the harness then issues NO grant for
- * them, so any FURTHER change the model makes to those files is re-gated.
- * Hunk edits / shell / MCP stay on the grant + reinvocation path, and every
- * uncertain case degrades to that path, so this can never corrupt a file
- * (see `shared/exact-apply.ts`).
- *
- * Scoped to the harnesses that regenerate ({@link regeneratesApprovedWrites})
- * and OUT of capture mode, where a file edit flows and is never asked for.
- *
- * The caller persists when the returned set is non-empty (the applied state
- * must be durable before the continuation runs, and the UI reflects it at
- * once); this phase, like every phase, never persists.
- */
-export async function applyApprovedWrites(
-  deps: ResolutionDeps,
-  args: {
-    readonly pausePrimitive: PausePrimitive;
-    readonly workspace: TurnWorkspace;
-    readonly reinvocation: TurnReinvocation;
-  },
-): Promise<ReadonlySet<string>> {
-  const { pausePrimitive, workspace, reinvocation } = args;
-  if (
-    !regeneratesApprovedWrites(pausePrimitive) ||
-    workspace.captureMode ||
-    !reinvocation.isReinvocation ||
-    reinvocation.approvalDecisions.size === 0
-  ) {
-    return new Set();
-  }
-  deps.enterPhase("apply_approved_writes");
-  return applyApprovedWholeFileWrites({
-    messages: deps.rows.messages,
-    workspaceBackend: new LocalWorkspaceBackend(workspace.primaryDir),
-    workspaceDirs: workspace.dirs,
-    executionId: deps.input.executionId,
-  });
-}
-
-/**
  * Phase 6, the harness-agnostic half: the model name the turn runs with, and
  * the effective service tier and thinking mode. All three come from
  * `execution.status.run_config`, the settings the control plane resolved
@@ -1877,7 +1684,7 @@ export async function applyApprovedWrites(
  * a default the resolution applied. UNSPECIFIED → STANDARD (#357) and
  * UNSPECIFIED → DISABLED (#772) resolve here and nowhere else: the resolved
  * settings keep "no layer set it" as UNSPECIFIED. Validating the NAME against
- * a catalog is the harness's (Cursor's `resolveModelId`), so it is not here.
+ * a catalog is the harness's, so it is not here.
  */
 export function resolveModelPreferences(runConfig: RunConfig | undefined): TurnModelPreferences {
   return {
@@ -2000,18 +1807,12 @@ export type TurnResolution =
  *
  * The order is the orchestrator's, with its harness-specific steps gone
  * (they run inside `adapter.runTurn`, after this returns): the tool surface,
- * the skills, the Files, the exact-apply, then the reads that need no
- * network.
- *
- * The one persist a phase requires — the applied writes must be durable
- * before the continuation runs — goes through the caller's chokepoint
- * (`persist`), so the rule that phases never persist holds here too.
+ * the skills, the Files, then the reads that need no network.
  */
 export async function resolveTurnContext(
   deps: ResolutionDeps,
   capabilities: HarnessCapabilities,
   frame: TurnFrame,
-  persist: () => Promise<void>,
 ): Promise<TurnResolution> {
   const { execution, spec, sessionId } = await fetchExecution(deps);
   if (spec.reconcileFileReview) return resolveReconcileTurn(deps, frame, sessionId);
@@ -2053,8 +1854,6 @@ export async function resolveTurnContext(
   await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
 
   const reinvocation = await reconcileReinvocation(deps, {
-    stateIdSource: capabilities.stateIdSource,
-    continuation: capabilities.continuation,
     execution,
     sessionId,
   });
@@ -2068,7 +1867,6 @@ export async function resolveTurnContext(
     sessionId,
     blueprint,
     values,
-    readsToolMarks: capabilities.readsToolMarks,
     grants: reinvocation.grants,
   });
   const mcp =
@@ -2102,18 +1900,6 @@ export async function resolveTurnContext(
     capabilities,
   });
   const files: TurnFiles = prepared === undefined ? mountedFiles : { ...mountedFiles, references: prepared.case.referenceInputs };
-  const appliedToolCallIds = await applyApprovedWrites(deps, {
-    pausePrimitive: capabilities.pausePrimitive,
-    workspace,
-    reinvocation,
-  });
-  if (appliedToolCallIds.size > 0) {
-    // Persist the applied writes (tool calls now COMPLETED with the approved
-    // diff) before reinvocation, so the applied state is durable even if the
-    // continuation fails, and the UI reflects it immediately.
-    await persist();
-  }
-
   // What this turn loaded, recorded once it is ready to run; the
   // adapter's first persist carries it.
   const loadedVersions = loadedVersionsOf(
@@ -2144,13 +1930,11 @@ export async function resolveTurnContext(
       hooks: hookResolution.hooks,
       subagents: subagentResolution.subagents,
       files,
-      appliedToolCallIds,
       model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
       appendSystemPrompt: spec.appendSystemPrompt,
       standing: resolveStandingContext(deps, { execution, spec, blueprint, priorReport: reinvocation.recalledMemoriesReport }),
       artifactStorage: deps.artifactStorage,
-      readRunEvents: runEventsReader(deps.client, sessionId, deps.input.executionId),
       ...(prepared?.case.history !== undefined && { resumedHistory: prepared.case.history }),
     },
   };

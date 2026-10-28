@@ -2150,11 +2150,7 @@ type StigmerPermissionAskedEvent struct {
 	PolicySource string `protobuf:"bytes,6,opt,name=policy_source,json=policySource,proto3" json:"policy_source,omitempty"`
 	// The plugin whose hook asked; empty for the agent's own hooks, or when no
 	// hook asked.
-	PolicyHook string `protobuf:"bytes,7,opt,name=policy_hook,json=policyHook,proto3" json:"policy_hook,omitempty"`
-	// A digest of the content the call would write, when its harness
-	// identifies an edit by its content: an approval allows that exact edit
-	// and no other proposed under the same call. Empty otherwise.
-	ContentDigest string `protobuf:"bytes,8,opt,name=content_digest,json=contentDigest,proto3" json:"content_digest,omitempty"`
+	PolicyHook    string `protobuf:"bytes,7,opt,name=policy_hook,json=policyHook,proto3" json:"policy_hook,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2234,13 +2230,6 @@ func (x *StigmerPermissionAskedEvent) GetPolicySource() string {
 func (x *StigmerPermissionAskedEvent) GetPolicyHook() string {
 	if x != nil {
 		return x.PolicyHook
-	}
-	return ""
-}
-
-func (x *StigmerPermissionAskedEvent) GetContentDigest() string {
-	if x != nil {
-		return x.ContentDigest
 	}
 	return ""
 }
@@ -4209,7 +4198,7 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12(\n" +
 	"\vthinking_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"thinkingId\x12\x12\n" +
-	"\x04text\x18\x04 \x01(\tR\x04text\"\xc5\x03\n" +
+	"\x04text\x18\x04 \x01(\tR\x04text\"\xb4\x03\n" +
 	"\x1bStigmerPermissionAskedEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12'\n" +
@@ -4218,8 +4207,7 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\fargs_preview\x18\x05 \x01(\tR\vargsPreview\x12\x98\x01\n" +
 	"\rpolicy_source\x18\x06 \x01(\tBs\xbaHp\xd8\x01\x01rkR\x10builtin_categoryR\x1eannotation_destructive_tightenR\x04hookR\x0eapproval_leaseR\x10auto_approve_allR\x0funattended_skipR\fpolicySource\x12\x1f\n" +
 	"\vpolicy_hook\x18\a \x01(\tR\n" +
-	"policyHook\x12%\n" +
-	"\x0econtent_digest\x18\b \x01(\tR\rcontentDigest\"\x8c\x01\n" +
+	"policyHookJ\x04\b\b\x10\tR\x0econtent_digest\"\x8c\x01\n" +
 	"\x17StigmerHarnessNoteEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12\x12\n" +

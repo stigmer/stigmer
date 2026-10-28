@@ -20,8 +20,8 @@
  * transcript builder (`transcript/builder.ts`) is the one view the runtime
  * has of every harness's turn — model rounds, text, tools, sub-agents all
  * reach it as a translator's output on one union — so a fold over it is
- * written once and holds for the Cursor adapter, the native adapter and the
- * next one. `UsageAccumulator` (`usage-accumulator.ts`) is the same shape
+ * written once and holds for the native adapter, the Claude adapter and
+ * the next one. `UsageAccumulator` (`usage-accumulator.ts`) is the same shape
  * for the usage deltas; this is that shape for the events.
  *
  * The fold's rules, each with an arm in `__tests__/turn-timeline.test.ts`:
@@ -34,20 +34,18 @@
  *     extended thinking on, the visible instant moves earlier and the text
  *     instant later, and a comparison needs both. `first_event_ms` is
  *     harness-relative — on native the first event is `message_start`, the
- *     model stream opening; on Cursor it is whatever the SDK delivered first —
- *     and is kept as a forensic (engine-ready to first model event), never as
+ *     model stream opening; on Claude it is whatever the engine's process
+ *     delivered first — and is kept as a forensic (engine-ready to first model event), never as
  *     an axis. An instant that never happened is `null`.
  *   - One `model_round` span per `runId`, `message_start` to `message_finish`.
  *     What a `runId` is belongs to the translator: LangGraph's LLM-call run on
- *     native, one model round; a minted segment `<run>:<n>` on Cursor, a
- *     stretch of assistant output between tool calls, which the SDK does not
- *     let us tell apart from a provider round. The line's `rounds` reads the
- *     same way.
+ *     native, one model round; the API message on Claude, one model call.
+ *     The line's `rounds` reads the same way.
  *   - One `tool:<name>` span per `callId` (`tool:<slug>/<name>` for an MCP
  *     tool, so the MCP phase the runner skill's law asks for is legible),
  *     `tool_started` to the FIRST `tool_finished` or `tool_error`; a later
- *     fact for a settled span changes nothing, the builder's own upsert rule
- *     (Cursor completes every call twice). `approval_proposed` opens nothing:
+ *     fact for a settled span changes nothing, the builder's own upsert rule.
+ *     `approval_proposed` opens nothing:
  *     a call the engine held before it ran is not a tool phase.
  *   - One `sub_agent:<name>` span per `subAgentId`, opened by
  *     `sub_agent_started`, closed by `finished` or `failed`.
@@ -62,15 +60,6 @@
  *     sent back with a reminder that its commands still ran
  *     (`background_reminded`), which no span or round reveals: a round the
  *     runtime causes can as well be a wake after a wait or a notice owed.
- *   - A fact that carries `observedAt` is placed at that instant, everything
- *     else at the fold's clock — the builder's rule for `completedAt`
- *     (`transcript/events.ts`, `Observed`), restated here because the
- *     alternative repeats the error #1097 fixed, for tool phases and on Cursor
- *     alone: a completion the SDK's delta channel reported is folded one
- *     stream event later, seconds while the model narrates, and a comparison
- *     that read the fold's clock would charge those seconds to Cursor's tools.
- *     Placing an observed instant needs a wall-clock origin beside the
- *     `performance.now()` one; the runtime captures both together.
  *   - `max_gap_ms`, the longest wait between two consecutive events, whatever
  *     their kind: the turn's longest silence as the user experienced it.
  *     `null` under two events.
@@ -98,16 +87,12 @@ import type { TranscriptEvent } from "./transcript/events.js";
 export const TURN_PHASES_EVENT = "turn_phases";
 
 /**
- * The two clocks the timeline places facts on, captured together at the
- * turn's origin. `now` is `performance.now` in production; tests inject a
- * scripted one. `originWallMs` is the `Date.now()` of the same instant, the
- * scale `observedAt` stamps are on.
+ * The clock the timeline places facts on, from the turn's origin. `now` is
+ * `performance.now` in production; tests inject a scripted one.
  */
 export interface TurnTimelineClock {
   /** `performance.now()`-scale origin, the one `execution_setup` shares. */
   readonly originMs: number;
-  /** `Date.now()`-scale reading of the same instant. */
-  readonly originWallMs: number;
   readonly now: () => number;
 }
 
@@ -166,7 +151,7 @@ export class TurnTimeline {
         return;
       case "tool_finished":
       case "tool_error":
-        this.close(this.tools, event.callId, this.placeObserved(event.observedAt, at));
+        this.close(this.tools, event.callId, at);
         return;
       case "sub_agent_started":
         this.open(this.subAgents, event.subAgentId, `sub_agent:${event.name}`, at);
@@ -176,10 +161,10 @@ export class TurnTimeline {
         this.close(this.subAgents, event.subAgentId, at);
         return;
       case "background_command_started":
-        this.open(this.backgroundCommands, event.callId, `background_command:${event.callId}`, this.placeObserved(event.observedAt, at));
+        this.open(this.backgroundCommands, event.callId, `background_command:${event.callId}`, at);
         return;
       case "background_command_ended":
-        this.close(this.backgroundCommands, event.callId, this.placeObserved(event.observedAt, at));
+        this.close(this.backgroundCommands, event.callId, at);
         return;
       case "background_wait_started": {
         const scope = event.subAgentId ?? "";
@@ -269,19 +254,6 @@ export class TurnTimeline {
     const span = spans.get(id);
     if (!span || span.endMs !== undefined) return;
     span.endMs = at;
-  }
-
-  /**
-   * Where a fact goes on the `performance.now()` scale: its observed instant
-   * translated through the paired origins when it carries one, else the fold's
-   * clock. An unparseable stamp falls back to the fold's clock rather than
-   * losing the fact.
-   */
-  private placeObserved(observedAt: string | undefined, foldAt: number): number {
-    if (observedAt === undefined) return foldAt;
-    const wallMs = Date.parse(observedAt);
-    if (Number.isNaN(wallMs)) return foldAt;
-    return this.clock.originMs + (wallMs - this.clock.originWallMs);
   }
 
   private offset(absoluteMs: number | undefined): number | null {

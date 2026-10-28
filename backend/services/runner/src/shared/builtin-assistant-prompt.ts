@@ -6,12 +6,12 @@
  * substitute these words on that arm and frame them their own way (the
  * `prompt-sections.ts` doctrine: the framing is house style, the words are
  * shared), so a person who picks no agent meets the same assistant on the
- * native and the Cursor harness, and a maintainer changes the assistant in
+ * native and the Claude harness, and a maintainer changes the assistant in
  * one place.
  *
  * A prompt is code: versioned here, pinned by the prompt goldens of both
- * harnesses (`execute-deep-agent/__tests__/goldens/system-prompt.minimal.prompt.md`,
- * `execute-cursor/__tests__/goldens/*no-instructions*`). There is no stored
+ * harnesses (`execute-deep-agent/__tests__/goldens/system-prompt.minimal.prompt.md`
+ * and the Claude harness's prompt tests). There is no stored
  * "default agent" row anywhere whose instructions could drift from these.
  *
  * What the words leave to the builders on purpose: the response rules, the

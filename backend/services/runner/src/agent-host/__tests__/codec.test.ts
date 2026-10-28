@@ -8,9 +8,8 @@
  *    Sets intact, and the aliases the runtime builds rebuilt (`session` IS
  *    `blueprint.session`, the spec IS `blueprint.sessionSpec`, the leased
  *    servers ARE one Set), the turn's plugins, its plugin subagents and
- *    saved subagents, each plugin's hook values, each subagent's own values,
- *    the servers whose tools could not be listed and the turn start's
- *    listing included;
+ *    saved subagents, each plugin's hook values, each subagent's own values
+ *    and the servers whose tools could not be listed included;
  *  - each saved subagent's context crosses whole: its tool scope rebuilt
  *    with the same answers, its hook sources with a verify that calls back;
  *  - the behaviour members are the host's stand-ins: the memory selection
@@ -37,7 +36,6 @@ import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/apis/ai/
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { TurnSubagent } from "../../harness/types.js";
@@ -46,7 +44,6 @@ import { savedSubagentScope } from "../../shared/subagents.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { toolValuesKey } from "../../shared/run-values.js";
-import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";
 import {
@@ -56,11 +53,9 @@ import {
   applyAdapterProjection,
   applyRuntimeFields,
   decodeCasSnapshot,
-  decodeRunEvents,
   decodeTurnInput,
   encodeAdapterProjection,
   encodeCasSnapshot,
-  encodeRunEvents,
   encodeTurnInput,
   type HostTurnServices,
 } from "../codec.js";
@@ -77,18 +72,8 @@ function noServices(calls: string[] = []): HostTurnServices {
     verifyPlugin: async (slug) => {
       calls.push(`verify ${slug}`);
     },
-    readRunEvents: async () => {
-      calls.push("events");
-      return decodeRunEvents(encodeRunEvents([RUN_EVENT]));
-    },
   };
 }
-
-/** One event of the turn's run, as the log holds it. */
-const RUN_EVENT = create(SessionEventSchema, {
-  runId: "run_1",
-  event: { case: "stigmerPermissionAsked", value: { id: "run_1.c1.ask", toolUseId: "run_1.c1", policySource: "hook", contentDigest: "args:abc" } },
-});
 
 /** The wire is JSON: encode, stringify, parse, decode, as the pipe does. */
 function crossed(input: ReturnType<typeof turnInputFixture>, services = noServices()) {
@@ -109,25 +94,10 @@ const NOTES = {
 describe("the turn input across the pipe", () => {
   it("keeps every protobuf message, Map and Set, and rebuilds the runtime's aliases", () => {
     const leased = new Set(["github"]);
-    const listing: McpToolListing = {
-      listed: [{ server: "plugin_linear_api", tools: ["search", "delete_issue"] }],
-      destructive: [{ server: "plugin_linear_api", tool: "delete_issue" }],
-      unlisted: ["plugin_jira_api"],
-      offered: [
-        {
-          server: "plugin_linear_api",
-          name: "search",
-          description: "Search issues.",
-          inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
-          schemaOmitted: false,
-        },
-        { server: "plugin_linear_api", name: "delete_issue", description: "", inputSchema: undefined, schemaOmitted: true },
-      ],
-    };
     const input = turnInputFixture({
       approvalDecisions: new Map([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]),
       approvalDenyMessages: new Map([["call-2", "use make clean instead"]]),
-      approvalAsks: new Map([["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }]]),
+      approvalAsks: new Map([["run_1.call-2", { policySource: "hook", policyHook: "safety" }]]),
       values: {
         agent: { API_TOKEN: "value" },
         tools: new Map([[toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
@@ -135,33 +105,31 @@ describe("the turn input across the pipe", () => {
         subagents: new Map([["release-notes", { NOTES_TOKEN: "notes" }]]),
         repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_runner_only" }],
       },
-      appliedToolCallIds: new Set(["call-2"]),
       mcp: {
         servers: [],
         channelMessaging: [],
         leases: { global: false, categories: new Set(["write"]), servers: leased, hooks: new Set(["hook-key"]) },
         mcpDefault: { destructive: new Set(["github/delete_repo"]), unlisted: new Set(["plugin_jira_api"]), leasedServers: leased },
-        listing,
         platformServerSlugs: new Set(["memory"]),
         toolScope: ToolScope.of("The agent", { tools: ["Read", "Agent(explore)"], disallowedTools: ["mcp__github__delete_repo"] }),
       },
       skills: { root: [{ name: "s", description: "d", path: "/p" }], bySubAgent: new Map([["kit:helper", [{ name: "h", description: "d", path: "/h" }]]]) },
     });
-    input.session.status = create(SessionStatusSchema, { harnessStateId: "state-1" });
+    input.session.status = create(SessionStatusSchema, { state: "active" });
 
     const decoded = crossed(input);
 
     expect(toBinary(RunStatusSchema, decoded.execution.status ?? create(RunStatusSchema))).toEqual(
       toBinary(RunStatusSchema, input.execution.status ?? create(RunStatusSchema)),
     );
-    expect(decoded.session.status!.harnessStateId).toBe("state-1");
+    expect(decoded.session.status!.state).toBe("active");
     expect(decoded.blueprint.session, "session IS blueprint.session").toBe(decoded.session);
     expect(decoded.blueprint.sessionSpec, "the spec IS blueprint.sessionSpec").toBe(decoded.session.spec);
     expect(decoded.mcp.mcpDefault.leasedServers, "one Set of leased servers").toBe(decoded.mcp.leases.servers);
     expect([...decoded.approvalDecisions]).toEqual([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]);
     expect([...decoded.approvalDenyMessages], "a deny's reason crosses to the host's engine").toEqual([["call-2", "use make clean instead"]]);
     expect([...decoded.approvalAsks], "what each call was asked under crosses with it").toEqual([
-      ["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }],
+      ["run_1.call-2", { policySource: "hook", policyHook: "safety" }],
     ]);
     expect(decoded.continuation, "a first invocation carries no continuation").toBeUndefined();
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
@@ -171,18 +139,15 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.values.plugins]).toEqual([["plg_safety", { HOOK_TOKEN: "hook" }]]);
     expect([...decoded.values.subagents]).toEqual([["release-notes", { NOTES_TOKEN: "notes" }]]);
     expect([...decoded.mcp.mcpDefault.unlisted]).toEqual(["plugin_jira_api"]);
-    expect(decoded.mcp.listing).toEqual(listing);
     // A repository's token is the runner's alone: it never crosses the pipe.
     expect(decoded.values.repositories).toEqual([]);
     expect(JSON.stringify(encodeTurnInput(input))).not.toContain("ghp_runner_only");
-    expect([...decoded.appliedToolCallIds]).toEqual(["call-2"]);
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);
     expect([...decoded.mcp.mcpDefault.destructive]).toEqual(["github/delete_repo"]);
     expect([...decoded.skills.bySubAgent.keys()]).toEqual(["kit:helper"]);
   });
 
-  it("carries a continuation, with its digest or without one", () => {
-    expect(crossed(turnInputFixture({ continuation: { digest: "Assistant: built it" } })).continuation).toEqual({ digest: "Assistant: built it" });
+  it("carries a continuation", () => {
     expect(crossed(turnInputFixture({ continuation: {} })).continuation).toEqual({});
   });
 
@@ -206,10 +171,6 @@ describe("the turn input across the pipe", () => {
       ["zendesk", { name: "zendesk", source: "agent" }],
       ["plugin_linear_api", { name: "plugin:linear:api", source: "plugin" }],
     ]);
-  });
-
-  it("carries no listing for an engine that reads its tools' marks itself", () => {
-    expect(crossed(turnInputFixture()).mcp.listing).toBeUndefined();
   });
 
   it("carries every list the runtime resolved: plugins, skill references, channels and their templates, plugin subagents and saved subagents, the conversation's Files", () => {
@@ -320,7 +281,7 @@ describe("the turn input across the pipe", () => {
     expect(calls, "the host's verify calls back, never the runner's closure").toEqual(["verify guard"]);
   });
 
-  it("calls back to the runner for the memory selection, a plugin's verify and the run's events, and serves no artifact store", async () => {
+  it("calls back to the runner for the memory selection and a plugin's verify, and serves no artifact store", async () => {
     const calls: string[] = [];
     const runnerStorage: ArtifactStorage = {
       upload: async (key) => {
@@ -342,9 +303,7 @@ describe("the turn input across the pipe", () => {
     await expect(decoded.artifactStorage!.download("artifacts/x/a.txt")).rejects.toThrow(/the runner's/);
     expect(decoded.hooks.sources[0]!.plugin!.id, "the id a plugin's hook values are grouped by").toBe("plg_lint");
     await decoded.hooks.sources[0]!.plugin!.verify();
-    const events = await decoded.readRunEvents();
-    expect(events.map((event) => toBinary(SessionEventSchema, event)), "each event crosses whole").toEqual([toBinary(SessionEventSchema, RUN_EVENT)]);
-    expect(calls).toEqual(["recall", "verify lint", "events"]);
+    expect(calls).toEqual(["recall", "verify lint"]);
   });
 
   it("carries the turn's appended system prompt and a turn layer that hides skills", () => {

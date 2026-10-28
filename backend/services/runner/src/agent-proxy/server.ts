@@ -37,8 +37,6 @@
  *    to visitors.
  *  - No lane reaches the Stigmer API beyond the registry: execution reads,
  *    status writes, credential exchanges stay the runner's own calls.
- *  - The Cursor SDK's traffic has a listener of its own, TLS on loopback,
- *    under the same token and live-turn rules (`cursor-lane.ts`).
  *  - The telemetry lane (`otlp/v1/traces`, `otlp/v1/metrics`) forwards the
  *    host's OTLP exports to the operator's collector with the collector's
  *    login (`otlp-forward.ts`). Like the registry it needs no live turn: a
@@ -64,7 +62,6 @@ import type { Config } from "../config.js";
 import { TURN_KEY_HEADER } from "../shared/execution-context.js";
 import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
-import { CursorLane } from "./cursor-lane.js";
 import { LaneRefusal, checkpointUpstream, engineSessionUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
 import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
 import { OTLP_LANE_PREFIX } from "../otel-export.js";
@@ -88,7 +85,6 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   /** Live turns: each one's execution, the thread it checkpoints under, and its key. */
   private readonly live = new Set<LiveTurn>();
 
-  private cursor!: CursorLane;
   private readonly otlp = new OtlpForward();
 
   private constructor(
@@ -97,7 +93,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     private readonly config: Config,
   ) {}
 
-  /** Listen on ephemeral loopback ports and forward with `config`'s credentials, read per request. */
+  /** Listen on an ephemeral loopback port and forward with `config`'s credentials, read per request. */
   static async start(config: Config): Promise<AgentProxy> {
     let proxy: AgentProxy | undefined;
     const server = createServer((req, res) => {
@@ -110,27 +106,11 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     server.unref();
     const { port } = server.address() as AddressInfo;
     proxy = new AgentProxy(server, `http://127.0.0.1:${port}`, config);
-    const self = proxy;
-    proxy.cursor = await CursorLane.start(config, {
-      isHostToken: (presented) => self.isHostToken(presented),
-      requireLiveExecution: (req) => self.requireLiveExecution(req),
-    });
     return proxy;
-  }
-
-  /** The Cursor lane, `https://2130706433:<port>`, 127.0.0.1 written as one number so the Cursor SDK keeps certificate checks on (`agent-proxy/cursor-lane.ts`). */
-  get cursorEndpoint(): string {
-    return this.cursor.endpoint;
-  }
-
-  /** The certificate the Cursor lane serves, which the host trusts (PEM). */
-  get cursorCertificate(): string {
-    return this.cursor.certPem;
   }
 
   authorizeHost(token: string): void {
     this.hostToken = Buffer.from(token);
-    this.cursor.resetCustody();
   }
 
   openTurn(turn: { readonly executionId: string; readonly threadId: string; readonly turnKey: string }): () => void {
@@ -143,7 +123,6 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
 
   async close(): Promise<void> {
     await Promise.all([
-      this.cursor.close(),
       this.otlp.close(),
       new Promise<void>((resolve) => {
         this.server.closeAllConnections();

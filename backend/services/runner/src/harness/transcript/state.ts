@@ -53,8 +53,7 @@ export class Transcript {
    * The AI message a tool row attaches to — the latest message with text in
    * this scope. Over a seeded transcript it starts as the seed's
    * last AI message: the message that proposed a call is still the
-   * one that proposed it across a turn boundary, which is also Cursor's
-   * shape (`findOrCreateLastAiMessage`).
+   * one that proposed it across a turn boundary.
    */
   currentAiMessage: AgentMessage | undefined;
 

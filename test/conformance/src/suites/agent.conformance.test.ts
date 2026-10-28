@@ -395,7 +395,7 @@ describe("Agent conformance — run defaults", () => {
   it("[rpc:AgentCommandController.create] accepts an engine with no model, and bounds with no engine", async () => {
     const { org } = await target.provisionTenancy();
     const engineOnly = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("defaults-ok"), harness: Harness.CURSOR }),
+      makeAgent({ org, name: uniqueName("defaults-ok"), harness: Harness.CLAUDE }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: engineOnly.metadata!.id }));
     const boundsOnly = await clients.agentCommand.create(
@@ -405,7 +405,7 @@ describe("Agent conformance — run defaults", () => {
 
     // Stored as written, read back.
     const engine = await clients.agentQuery.get({ value: engineOnly.metadata!.id });
-    expect(engine.spec?.harness).toBe(Harness.CURSOR);
+    expect(engine.spec?.harness).toBe(Harness.CLAUDE);
     expect(engine.spec?.runConfig?.modelName ?? "").toBe("");
     const bounds = await clients.agentQuery.get({ value: boundsOnly.metadata!.id });
     expect(bounds.spec?.harness).toBe(Harness.UNSPECIFIED);
@@ -415,13 +415,13 @@ describe("Agent conformance — run defaults", () => {
 
   it.each<[string, Parameters<typeof makeAgent>[0]["runConfig"], Harness | undefined, string]>([
     ["a model with no engine", { modelName: "claude-sonnet-5" }, undefined, "requires spec.harness"],
-    ["a model the engine does not list", { modelName: "claude-sonnet-4.6" }, Harness.CURSOR, "cursor harness"],
-    ["fast with no model", { serviceTier: ServiceTier.FAST }, Harness.CURSOR, "requires spec.run_config.model_name"],
+    ["a model the engine does not list", { modelName: "gpt-5.5" }, Harness.CLAUDE, "claude harness"],
+    ["fast with no model", { serviceTier: ServiceTier.FAST }, Harness.CLAUDE, "requires spec.run_config.model_name"],
     [
-      "thinking on a model that cannot think on the engine",
-      { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
-      Harness.CURSOR,
-      "no thinking capability",
+      "fast on a model the engine prices no fast variant for",
+      { modelName: "claude-sonnet-5", serviceTier: ServiceTier.FAST },
+      Harness.CLAUDE,
+      "service_tier 'fast' is not available",
     ],
   ])("[rpc:AgentCommandController.create] refuses %s (InvalidArgument)", async (what, runConfig, harness, says) => {
     const { org } = await target.provisionTenancy();

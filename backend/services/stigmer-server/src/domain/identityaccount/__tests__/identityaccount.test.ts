@@ -210,16 +210,16 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
       const updated = await command.update(
         { resource: withSpec(me, (spec) => {
           spec.preferences = create(IdentityAccountPreferencesSchema, {
-            defaultHarness: "cursor",
-            defaultCursorModel: "gpt-5",
+            defaultHarness: "claude",
+            defaultClaudeModel: "claude-sonnet-4.6",
           });
         }), updateMask: { paths: ["*"] } },
       );
-      expect(updated.spec?.preferences?.defaultHarness).toBe("cursor");
+      expect(updated.spec?.preferences?.defaultHarness).toBe("claude");
       const again = await query.whoAmI({});
       expect(again.spec?.preferences).toMatchObject({
-        defaultHarness: "cursor",
-        defaultCursorModel: "gpt-5",
+        defaultHarness: "claude",
+        defaultClaudeModel: "claude-sonnet-4.6",
       });
       expect(again.metadata?.id).toBe(me.metadata?.id);
     });

@@ -10,9 +10,9 @@ package ai.stigmer.agentic.run.v1;
  * ServiceTier selects the provider-side speed/service tier for a run's
  * model calls.
  *
- * Providers spell this differently — Cursor exposes per-model "fast" variants
- * at higher per-token rates, Anthropic and OpenAI expose service tiers — but
- * the platform semantic is uniform: the tier is a deterministic, user-selected
+ * Providers spell this differently (Anthropic and OpenAI expose service
+ * tiers, some providers per-model "fast" variants at higher per-token rates),
+ * but the platform semantic is uniform: the tier is a deterministic, user-selected
  * attribute validated against the model registry at create time. A tier is
  * selectable for a model only when the registry prices it
  * (pricingVariants.&lt;tier&gt;), so a selected tier is always billable.

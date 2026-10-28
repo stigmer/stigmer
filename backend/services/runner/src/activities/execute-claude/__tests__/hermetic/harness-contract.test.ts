@@ -15,11 +15,8 @@
  *  - the `actionable` and `internal` failure surfaces: no model answer
  *    provokes them (a refused turn is actionable, a broken engine internal;
  *    each has its own golden);
- *  - the tool-call limit: the runtime's operation limit bounds a Claude turn,
- *    as it does a Cursor one; the engine has no round budget of Stigmer's;
- *  - an engine-side cancel: the engine never ends a run cancelled;
- *  - a cut vendor connection: every model call is its own request through
- *    the runner's proxy, so no connection outlives a call.
+ *  - the tool-call limit: the runtime's operation limit bounds a Claude
+ *    turn; the engine has no round budget of Stigmer's.
  */
 
 import { afterAll, beforeAll, describe, vi } from "vitest";
@@ -57,7 +54,5 @@ describe("ExecuteClaude hermetic — the harness contract kit against the real a
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["engine"],
     toolCallLimit: false,
-    engineCancel: false,
-    streamCut: false,
   });
 });

@@ -6,10 +6,10 @@
  * (harness/turn-context.ts, serving both adapters) and a tools listing
  * (shared/mcp-tool-listing.ts, through entryToResolved) consume it. Each
  * harness maps the result into its SDK format at the last hop:
- * toMcpClientConfig (shared/mcp-manager.ts) for LangChain,
- * toCursorMcpConfig (execute-cursor/cursor-mcp-config.ts) for the Cursor
- * SDK — so a behavioral change here (like the transport guard) lands in
- * both execution paths by construction.
+ * toMcpClientConfig (shared/mcp-manager.ts) for LangChain, the host's
+ * bridge (execute-claude/mcp-bridge.ts) for the Claude engine — so a
+ * behavioral change here (like the transport guard) lands in both
+ * execution paths by construction.
  *
  * A plugin's server is named as Claude Code names it, `plugin_<plugin>_<server>`
  * (plugin-servers.ts), so a tool list written for Claude Code scopes the
@@ -59,8 +59,8 @@ import { toolValuesKey, type ToolValueGroup } from "./run-values.js";
 
 /**
  * Harness-agnostic intermediate representation of a resolved MCP server.
- * Each harness maps this into its SDK-specific format (e.g., Cursor
- * McpServerConfig, LangGraph MultiServerMCPClient config).
+ * Each harness maps this into its SDK-specific format (e.g., LangGraph
+ * MultiServerMCPClient config).
  */
 export interface ResolvedMcpServer {
   slug: string;

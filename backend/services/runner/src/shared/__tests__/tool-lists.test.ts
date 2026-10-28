@@ -10,7 +10,6 @@
  *    extras hidden only by an allow-list;
  *  - the run-time check: an entry naming nothing is logged, a list resolving
  *    to nothing (or fully denied by its own deny-list) throws;
- *  - the Cursor SDK options keep `read` and `mcp`;
  *  - a turn's lists over the agent's (`ToolScope.ofMain`): a layer that only
  *    narrows, type lists that intersect, and a check that judges each layer
  *    against the ones before it;
@@ -20,12 +19,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  CURSOR_SDK_EXTRA_TOOLS,
-  CURSOR_SDK_TOOL_COVERS,
-  NATIVE_TOOL_COVERS,
-  type ClaudeTool,
-} from "@stigmer/tool-vocabulary";
+import { NATIVE_TOOL_COVERS, type ClaudeTool } from "@stigmer/tool-vocabulary";
 import {
   ToolListResolutionError,
   ToolScope,
@@ -33,7 +27,6 @@ import {
   checkMainToolListResolution,
   checkToolListResolution,
   claudeToolsOf,
-  cursorSdkToolOptions,
   outOfScopeMessage,
   parseToolListEntry,
   type ToolLists,
@@ -254,8 +247,7 @@ describe("Agent(type, …)", () => {
 
 describe("engine tools", () => {
   it("an engine tool covering several Claude tools is available when any is allowed and none denied", () => {
-    const edit = CURSOR_SDK_TOOL_COVERS.get("edit")!;
-    expect(edit).toEqual(["Write", "Edit"]);
+    const edit: readonly ClaudeTool[] = ["Write", "Edit"];
     expect(scopeOf(["Edit"]).allowsCovering(edit), "one covered tool allowed").toBe(true);
     expect(scopeOf(["Edit"], ["Write"]).allowsCovering(edit), "one covered tool denied closes it").toBe(false);
     expect(scopeOf([], ["Write"]).allowsCovering(edit)).toBe(false);
@@ -272,8 +264,8 @@ describe("engine tools", () => {
   });
 
   it("an engine extra is hidden only by an allow-list", () => {
-    expect(scopeOf(["Read"]).allowsEngineTool("readLints", CURSOR_SDK_TOOL_COVERS)).toBe(false);
-    expect(scopeOf([], ["Bash"]).allowsEngineTool("readLints", CURSOR_SDK_TOOL_COVERS)).toBe(true);
+    expect(scopeOf(["Read"]).allowsEngineTool("readLints", NATIVE_TOOL_COVERS)).toBe(false);
+    expect(scopeOf([], ["Bash"]).allowsEngineTool("readLints", NATIVE_TOOL_COVERS)).toBe(true);
     expect(scopeOf(["Read"]).allowsCovering([])).toBe(false);
   });
 
@@ -343,31 +335,6 @@ describe("checkToolListResolution", () => {
       ToolListResolutionError,
     );
     expect(() => checkToolListResolution(scopeOf(["mcp__*"]), inv, () => undefined)).not.toThrow();
-  });
-});
-
-describe("cursorSdkToolOptions", () => {
-  it("passes nothing for an unrestricted scope", () => {
-    expect(cursorSdkToolOptions(ToolScope.unrestricted(), true)).toEqual({});
-  });
-
-  it("an allow-list keeps read and mcp, and leaves the engine extras out", () => {
-    const { tools, disallowedTools } = cursorSdkToolOptions(scopeOf(["Grep", "mcp__github"]), true);
-    expect(disallowedTools).toBeUndefined();
-    expect(tools).toContain("read");
-    expect(tools).toContain("mcp");
-    expect(tools).toContain("grep");
-    expect(tools).toContain("semSearch");
-    expect(tools).not.toContain("shell");
-    for (const extra of CURSOR_SDK_EXTRA_TOOLS) expect(tools, extra).not.toContain(extra);
-  });
-
-  it("keeps read even when the lists exclude Read, and mcp only when a server is attached", () => {
-    expect(cursorSdkToolOptions(scopeOf(["Grep"]), false).tools).toEqual(["read", "grep", "semSearch"]);
-    const deny = cursorSdkToolOptions(scopeOf([], ["Read", "Write"]), true);
-    expect(deny.disallowedTools).not.toContain("read");
-    expect(deny.disallowedTools).toEqual(expect.arrayContaining(["edit", "delete"]));
-    expect(deny.tools).toBeUndefined();
   });
 });
 

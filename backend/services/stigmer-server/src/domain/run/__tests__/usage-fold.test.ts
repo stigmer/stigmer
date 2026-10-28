@@ -6,12 +6,11 @@
  * per-harness rows, and each row's working time.
  *
  * The runner-report fixtures are shaped like the two harnesses' real
- * reports. Native: LangChain's usage metadata counts the cache inside
- * input_tokens (runner src/activities/execute-deep-agent/turn-stream.ts),
- * and the runner's total is input + output. Cursor: the Cursor SDK reports
- * disjoint buckets and sums all four for its own total (`toTokenUsage` in
- * @cursor/sdk), while the runner's stored Cursor total is input + output
- * and so leaves out the cache (#2206); the fold recomputes it.
+ * reports, which share one shape: LangChain's usage metadata counts the
+ * cache inside input_tokens (runner
+ * src/activities/execute-deep-agent/turn-stream.ts), Claude's report is
+ * normalized to it, and the runner's total is input + output. Every
+ * harness's report is counted with that one arithmetic.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -53,15 +52,15 @@ const NATIVE_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
   model: "claude-sonnet-4-5",
 };
 
-/** A Cursor run's report: disjoint buckets, and the runner's input + output total. */
-const CURSOR_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
-  inputTokens: 3_120n,
+/** A Claude run's report: input 44,920 of which 41,800 cache read, and the runner's input + output total. */
+const CLAUDE_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
+  inputTokens: 44_920n,
   outputTokens: 2_045n,
   cacheReadTokens: 41_800n,
   cacheWriteTokens: 0n,
-  totalTokens: 5_165n,
+  totalTokens: 46_965n,
   turnCount: 2,
-  model: "composer-1",
+  model: "claude-opus-4-8",
 };
 
 function makeRun(
@@ -134,15 +133,23 @@ describe("a run counted from its runner's report", () => {
     expect(row?.inputTokens).toBe(1_432n);
   });
 
-  it("Cursor: input as reported, total recomputed from all four buckets, provider cursor", () => {
-    const [row] = runnerReportRows(makeRun("r1", { usage: CURSOR_USAGE }), Harness.CURSOR);
-    expect(row?.inputTokens).toBe(3_120n);
+  it("Claude: native's arithmetic under its own harness name, no provider", () => {
+    const [row] = runnerReportRows(makeRun("r1", { usage: CLAUDE_USAGE }), Harness.CLAUDE);
+    expect(row?.inputTokens, "input less the cache").toBe(3_120n);
     expect(row?.cacheReadInputTokens).toBe(41_800n);
     expect(row?.cacheCreationInputTokens).toBe(0n);
     expect(row?.outputTokens).toBe(2_045n);
-    expect(row?.totalTokens, "not the runner's 5,165").toBe(46_965n);
-    expect(row?.provider).toBe("cursor");
-    expect(row?.harness).toBe("cursor");
+    expect(row?.totalTokens, "the runner's total").toBe(46_965n);
+    expect(row?.provider).toBe("");
+    expect(row?.harness).toBe("claude");
+  });
+
+  it("a report with no total counts input + output, the cache already inside input", () => {
+    const [row] = runnerReportRows(
+      makeRun("r1", { usage: { ...CLAUDE_USAGE, totalTokens: 0n } }),
+      Harness.CLAUDE,
+    );
+    expect(row?.totalTokens).toBe(46_965n);
   });
 
   it("native input never goes below zero", () => {
@@ -182,14 +189,14 @@ describe("a run counted from its runner's report", () => {
 describe("a run counted from the meter", () => {
   it("takes the meter's rows over the runner's report, not estimated, a nameless row taking the run's harness", () => {
     const counted = countRun(
-      makeRun("r1", { usage: CURSOR_USAGE }),
+      makeRun("r1", { usage: CLAUDE_USAGE }),
       { rows: [meterRow({ harness: "", totalTokens: 100n, callCount: 1 })] },
-      Harness.CURSOR,
+      Harness.CLAUDE,
       0,
     );
     expect(counted.estimated).toBe(false);
     expect(counted.rows).toHaveLength(1);
-    expect(counted.rows[0]?.harness).toBe("cursor");
+    expect(counted.rows[0]?.harness).toBe("claude");
     expect(totalTokensOf(counted)).toBe(100n);
   });
 
@@ -198,7 +205,7 @@ describe("a run counted from the meter", () => {
       makeRun("r1"),
       {
         rows: [
-          meterRow({ model: "gpt-5", provider: "openai", inputTokens: 100n, outputTokens: 50n, totalTokens: 150n, callCount: 2 }),
+          meterRow({ model: "claude-haiku-4-5", inputTokens: 100n, outputTokens: 50n, totalTokens: 150n, callCount: 2 }),
           meterRow({
             inputTokens: 400n,
             outputTokens: 200n,
@@ -215,7 +222,7 @@ describe("a run counted from the meter", () => {
     const models = modelBreakdownOf([counted]);
     expect(models.map((m) => [m.model, m.provider, m.totalTokens, m.callCount])).toEqual([
       ["claude-sonnet-4-5", "anthropic", 1_700n, 3],
-      ["gpt-5", "openai", 150n, 2],
+      ["claude-haiku-4-5", "anthropic", 150n, 2],
     ]);
     const aggregate = aggregateOf([counted]);
     expect(aggregate.totalTokens).toBe(1_850n);
@@ -236,9 +243,9 @@ describe("folding several runs", () => {
     1_500,
   );
   const estimated = countRun(
-    makeRun("e1", { sessionId: "ses_a", agentId: "agt_big", usage: CURSOR_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9), startedAt: "2026-10-13T09:00:01Z" }),
+    makeRun("e1", { sessionId: "ses_a", agentId: "agt_big", usage: CLAUDE_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9), startedAt: "2026-10-13T09:00:01Z" }),
     undefined,
-    Harness.CURSOR,
+    Harness.CLAUDE,
     2_700,
   );
   const empty = countRun(
@@ -272,15 +279,15 @@ describe("folding several runs", () => {
     expect(served.reduce((sum, s) => sum + s.totalTokens, 0n)).toBe(aggregate.totalTokens);
     expect(served.reduce((sum, s) => sum + s.llmCallCount, 0)).toBe(aggregate.llmCallCount);
     expect(served.map((s) => s.providerKeySource)).toEqual([ProviderKeySource.UNSPECIFIED, ProviderKeySource.ORGANIZATION]);
-    expect(aggregate.primaryModel, "the model with the most tokens").toBe("composer-1");
-    expect(aggregate.primaryProvider).toBe("cursor");
+    expect(aggregate.primaryModel, "the model with the most tokens").toBe("claude-opus-4-8");
+    expect(aggregate.primaryProvider).toBe("");
   });
 
   it("per-run rows carry total tokens and whether they are estimated", () => {
     const rows = all.map((counted, index) => runSummaryOf(counted, index));
     expect(rows.map((r) => [r.runId, r.totalTokens, r.isEstimated, r.primaryModel, r.subAgentCount])).toEqual([
       ["m1", 500n, false, "claude-sonnet-4-5", 0],
-      ["e1", 46_965n, true, "composer-1", 1],
+      ["e1", 46_965n, true, "claude-opus-4-8", 1],
       ["z1", 0n, false, "", 2],
       ["n1", 19_642n, true, "claude-sonnet-4-5", 3],
     ]);
@@ -310,23 +317,19 @@ describe("folding several runs", () => {
 
   it("harness rows order by tokens and count the distinct runs that contributed", () => {
     expect(harnessUsageOf(all).map((h) => [h.harness, h.totalTokens, h.callCount, h.runCount])).toEqual([
-      ["cursor", 46_965n, 0, 1],
+      ["claude", 46_965n, 0, 1],
       ["native", 20_142n, 4, 2],
     ]);
   });
 
-  it("names harnesses as the rest of the server does", () => {
-    expect(harnessName(Harness.CURSOR)).toBe("cursor");
+  it("names harnesses as the rest of the server does, Claude as its own", () => {
+    expect(harnessName(Harness.CLAUDE)).toBe("claude");
     expect(harnessName(Harness.NATIVE)).toBe("native");
     expect(harnessName(Harness.UNSPECIFIED)).toBe("native");
   });
 
-  it("names Claude as its own engine", () => {
-    expect(harnessName(Harness.CLAUDE)).toBe("claude");
-  });
-
-  it("a harness value no engine owns is a defect, named rather than counted as native", () => {
-    expect(() => harnessName(99 as Harness)).toThrow(/harness 99 names no engine/);
+  it.each([2, 99])("harness %i, a value no engine owns, is a defect, named rather than counted as native", (harness) => {
+    expect(() => harnessName(harness as Harness)).toThrow(new RegExp(`harness ${harness} names no engine`));
   });
 
   it("an empty fold is zero everywhere", () => {

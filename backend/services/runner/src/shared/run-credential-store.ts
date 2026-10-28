@@ -12,7 +12,8 @@
  * activity made the request, and a client cached across runs stays correct.
  * `shared/execution-context.ts` is the same shape for the execution id, with
  * a different owner (the turn runtime enters it INSIDE the turn) and a
- * different reader (the Cursor proxy interceptors) — two facts, two stores.
+ * different reader (the host's model clients and the local proxy) — two
+ * facts, two stores.
  *
  * Exactly one writer — `interceptors/run-credential-activity.ts`, the
  * activity inbound interceptor both worker roots register — and exactly one

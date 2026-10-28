@@ -29,11 +29,9 @@ import {
 } from "./vision-fit.js";
 
 /**
- * Formats the harnesses can display inline everywhere: the Cursor harness
- * re-sniffs magic bytes and recognizes ONLY PNG and JPEG (the deep-agent
- * harness also takes WebP/GIF). Anything else that must ride as pixels is
- * re-encoded to PNG so a Safari TIFF or Chrome WebP paste is not invisible
- * on one harness.
+ * Formats every vision model the harnesses serve displays inline: PNG and
+ * JPEG. Anything else that must ride as pixels is re-encoded to PNG so a
+ * Safari TIFF or Chrome WebP paste is never invisible to one model.
  */
 const UNIVERSAL_VISION_TYPES = new Set(["image/png", "image/jpeg"]);
 
@@ -87,6 +85,10 @@ function encodeCanvas(
  * - Output format: JPEG stays JPEG; everything else prefers PNG (crisp UI
  *   text), switching to JPEG only for photographic content — detected by
  *   PNG byte density, where PNG can exceed the runner's inline byte cap.
+ * - A same-format resize that grew the file returns the original: the
+ *   runner caps bytes, not pixels, so the smaller original is the better
+ *   payload. A cross-format re-encode is kept even when larger, the price
+ *   of being visible to every model.
  *
  * Never throws; every failure path returns the original file (see module
  * doc). Non-image files are returned unchanged.
@@ -159,10 +161,6 @@ export async function prepareImageForVision(file: File): Promise<File> {
 
     if (!blob) return file;
 
-    // A pure resize that somehow grew the file is a regression, not a win:
-    // the runner caps bytes, not pixels, so the smaller original is the
-    // better payload. (Cross-format re-encodes are exempt — growing a WebP
-    // into a PNG is the price of being visible on the Cursor harness.)
     if (outType === sourceType && blob.size >= file.size) return file;
 
     const extension = outType === "image/jpeg" ? "jpg" : "png";

@@ -67,10 +67,7 @@ import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineDispatchError } from "./engine.js";
 import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
 import { stampRunAgent } from "./resolve-run-agent.js";
-import {
-  reResolveRunConfig,
-  unattendedPinRefusal,
-} from "./resolve-run-config.js";
+import { reResolveRunConfig } from "./resolve-run-config.js";
 import { serviceTierRefusal } from "./validate-service-tier.js";
 import { thinkingModeRefusal } from "./validate-thinking-mode.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
@@ -263,10 +260,6 @@ export function newCreateSessionIfNeededStep(deps: {
         ].find((text) => text !== "");
         if (refusal !== undefined) {
           throw invalidArgumentError(refusal);
-        }
-        const pinRefusal = unattendedPinRefusal(placement);
-        if (pinRefusal !== "") {
-          throw failedPreconditionError(pinRefusal);
         }
       }
 

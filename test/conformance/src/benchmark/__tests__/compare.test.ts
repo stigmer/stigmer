@@ -209,7 +209,6 @@ describe("compareReports: arms and pooling", () => {
     ]);
     expect(comparison.reference).toBe(`native/${REF}@api.anthropic.com${C}`);
     expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}`, `native/openai:gemini-3-pro@generativelanguage.googleapis.com${C}`]);
-    expect(armLabel(report(), "cursor")).toBe(`cursor/${PARITY_MODEL.cursor}${C}`);
     expect(armLabel(report(), "claude"), "Claude's label names its model and code, no endpoint").toBe(`claude/${PARITY_MODEL.claude}${C}`);
     expect(armLabel(report({ codeSha: `${"d".repeat(40)}-dirty` }), "deep-agent")).toBe(`native/${REF}@api.anthropic.com#${"d".repeat(10)}-dirty`);
   });
@@ -246,8 +245,7 @@ describe("compareReports: arms and pooling", () => {
     const off = report({ shellBackground: "off", timestamp: "2026-10-23T09:00:00Z", cells: { "working-read-edit": samples(3, ["failed"]) } });
     const reports = [at("off.json", off), at("on.json", report())];
     expect(armLabel(off, "deep-agent")).toBe(`native/${REF}@api.anthropic.com${C}+background-off`);
-    expect(armLabel(off, "cursor"), "the setting is native's alone").toBe(`cursor/${PARITY_MODEL.cursor}${C}`);
-    expect(armLabel(off, "claude"), "native's alone, on Claude too").toBe(`claude/${PARITY_MODEL.claude}${C}`);
+    expect(armLabel(off, "claude"), "the setting is native's alone").toBe(`claude/${PARITY_MODEL.claude}${C}`);
     const comparison = compareReports(reports, `native/${REF}@api.anthropic.com${C}+background-off`);
     expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}+background-off`, `native/${REF}@api.anthropic.com${C}`]);
     expect(comparison.readings[0]!.arm).toBe(`native/${REF}@api.anthropic.com${C}`);
@@ -346,7 +344,7 @@ describe("the timing-cell clauses", () => {
       refused: [
         { cell: "report-simple/deep-agent", reason: "the native model is pinned by --native-model" },
         { cell: "working-read-edit/deep-agent", reason: "missing OPENAI_API_KEY" },
-        { cell: "working-cross-turn/cursor", reason: "excluded by --only" },
+        { cell: "working-cross-turn/claude", reason: "excluded by --only" },
       ],
     });
     expect(reading.cells.map((cell) => [cell.scenario, cell.status, cell.why])).toEqual([

@@ -30,10 +30,10 @@
 // The pause machinery keeps its coverage at the tick level and the pause
 // copy stays byte-pinned in the server's unit tests.
 //
-// Every no-LLM fire here is the model-pin refusal: an agent whose engine
-// is Cursor and which names no model, under a routine naming neither,
-// would run Auto unattended, so the run create refuses it before any run
-// exists (#362). Gated on the routineFiring capability.
+// Every no-LLM fire here is the thinking refusal: a routine that turns
+// thinking off, on an agent whose native model always thinks, asks for a
+// turn its provider would refuse, so the run create refuses it before any
+// run exists. Gated on the routineFiring capability.
 //
 // A routine's agent reference may name a version (a tag or a content
 // hash): the fire starts a conversation pinned to that version, so an
@@ -43,7 +43,7 @@
 // with a model but no engine picks its engine.
 import { create } from "@bufbuild/protobuf";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { ApprovalMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalMode, RunPhase, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -63,7 +63,8 @@ import { uniqueName } from "../support/naming";
 import {
   FIRE_CALL_RUN_NAME,
   FIRE_CONTEXT_LINE,
-  MODEL_PIN_REFUSAL_FRAGMENTS,
+  ALWAYS_THINKING_MODEL,
+  THINKING_OFF_REFUSAL_FRAGMENTS,
   ROUTINE_ID_LABEL,
   fireCallMessage,
   fireCallRunNamePrefix,
@@ -101,16 +102,24 @@ describe.skipIf(!firingEnabled)("Routine fire contract (routineFiring targets)",
   });
 
   // A routine every fire of which the run create refuses deterministically
-  // (the module header): its agent's engine is Cursor and nothing names a
-  // model.
+  // (the module header): it turns thinking off, and its agent's native
+  // model always thinks. Each is valid alone, so both save.
   async function createRefusedRoutine(org: string) {
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("routine-refused-target"), harness: Harness.CURSOR }),
+      makeAgent({
+        org,
+        name: uniqueName("routine-refused-target"),
+        harness: Harness.NATIVE,
+        runConfig: { modelName: ALWAYS_THINKING_MODEL },
+      }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const routine = await clients.routineCommand.create(
-      makeRoutine(org, uniqueName("routine-refused"), agent.metadata!.slug),
-    );
+    const input = create(RoutineSchema, makeRoutine(org, uniqueName("routine-refused"), agent.metadata!.slug));
+    if (input.spec?.agent === undefined) {
+      throw new Error("makeRoutine builds an agent invocation");
+    }
+    input.spec.agent.runConfig = create(RunConfigSchema, { thinkingMode: ThinkingMode.DISABLED });
+    const routine = await clients.routineCommand.create(input);
     fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
     return routine;
   }
@@ -124,7 +133,7 @@ describe.skipIf(!firingEnabled)("Routine fire contract (routineFiring targets)",
     // The two-level contract: the fire SUCCEEDED — the run's deterministic
     // refusal is honestly reported in the result, never thrown.
     expect(result.outcome).toBe(RoutineFireOutcome.REFUSED);
-    for (const fragment of MODEL_PIN_REFUSAL_FRAGMENTS) {
+    for (const fragment of THINKING_OFF_REFUSAL_FRAGMENTS) {
       expect(result.refusalReason).toContain(fragment);
     }
     expect(result.runId).toBe("");
@@ -405,13 +414,13 @@ describe.skipIf(!realRunProvable)("Routine real-run contract (routineFiring + mo
     await awaitCompleted(result.runId);
   });
 
-  it("[rpc:RoutineCommandController.fire] a routine naming a model but no engine fires on native, even on an agent whose engine is Cursor", async () => {
+  it("[rpc:RoutineCommandController.fire] a routine naming a model but no engine fires on native, even on an agent whose engine is Claude", async () => {
     const { org } = await target.provisionTenancy();
     // The routine's model was checked against native at save; the agent's
-    // author has since moved the agent to Cursor. The fire must not carry a
-    // native model name onto Cursor, where it would run as Auto.
+    // author has since moved the agent to Claude. The fire runs on the
+    // engine the routine's model was judged on, not the agent's.
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("routine-native-model-target"), harness: Harness.CURSOR }),
+      makeAgent({ org, name: uniqueName("routine-native-model-target"), harness: Harness.CLAUDE }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     const input = create(RoutineSchema, makeRoutine(org, uniqueName("routine-native-model"), agent.metadata!.slug));
@@ -431,26 +440,5 @@ describe.skipIf(!realRunProvable)("Routine real-run contract (routineFiring + mo
     expect(run.status?.runConfig?.modelName).toBe("claude-haiku-4.5");
 
     await awaitCompleted(result.runId);
-  });
-
-  it("[rpc:RoutineCommandController.fire] a routine naming no engine, on an agent whose engine is Cursor with no model, is refused at fire with the pin-presence copy", async () => {
-    const { org } = await target.provisionTenancy();
-    // The agent starts its conversations on Cursor and names no model; the
-    // routine names neither, so its unattended fire would run Auto.
-    const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("routine-cursor-target"), harness: Harness.CURSOR }),
-    );
-    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const routine = await clients.routineCommand.create(
-      makeRoutine(org, uniqueName("routine-cursor"), agent.metadata!.slug),
-    );
-    fixtures.defer(() => clients.routineCommand.delete({ value: routine.metadata!.id }));
-
-    const result = await clients.routineCommand.fire({ id: routine.metadata!.id });
-
-    expect(result.outcome).toBe(RoutineFireOutcome.REFUSED);
-    expect(result.refusalReason).toContain("must name a model");
-    expect(result.refusalReason).toContain("stigmer/stigmer#362");
-    expect(result.runId).toBe("");
   });
 });

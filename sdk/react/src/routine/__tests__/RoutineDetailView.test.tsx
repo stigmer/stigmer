@@ -798,8 +798,8 @@ describe("RoutineDetailView", () => {
   it("saves an edited budget, preserving the model and the API-only tool bounds", async () => {
     const client = makeClient(
       makeRoutine({
-        harness: Harness.CURSOR,
-        runConfig: { modelName: "composer-2", maxToolRounds: 15, maxToolResultChars: 12000 },
+        harness: Harness.CLAUDE,
+        runConfig: { modelName: "claude-sonnet-4-6", maxToolRounds: 15, maxToolResultChars: 12000 },
       }),
     );
     renderView(client, { editable: true });
@@ -818,18 +818,18 @@ describe("RoutineDetailView", () => {
     expect(target?.runConfig?.maxCostUsd).toBe(2.5);
     // The budget editor owns exactly one field — everything else the
     // run config stores survives the save.
-    expect(target?.runConfig?.modelName).toBe("composer-2");
+    expect(target?.runConfig?.modelName).toBe("claude-sonnet-4-6");
     expect(target?.runConfig?.maxToolRounds).toBe(15);
     expect(target?.runConfig?.maxToolResultChars).toBe(12000);
-    expect(target?.harness).toBe(Harness.CURSOR);
+    expect(target?.harness).toBe(Harness.CLAUDE);
   });
 
   it("a budget-only edit keeps a stored explicit standard tier and disabled thinking", async () => {
     const client = makeClient(
       makeRoutine({
-        harness: Harness.CURSOR,
+        harness: Harness.CLAUDE,
         runConfig: {
-          modelName: "composer-2",
+          modelName: "claude-sonnet-4-6",
           serviceTier: ServiceTier.STANDARD,
           thinkingMode: ThinkingMode.DISABLED,
         },
@@ -856,9 +856,9 @@ describe("RoutineDetailView", () => {
   it("an engine save that changes nothing writes nothing, so the stored tier and thinking stay", async () => {
     const client = makeClient(
       makeRoutine({
-        harness: Harness.CURSOR,
+        harness: Harness.CLAUDE,
         runConfig: {
-          modelName: "composer-2",
+          modelName: "claude-sonnet-4-6",
           serviceTier: ServiceTier.STANDARD,
           thinkingMode: ThinkingMode.DISABLED,
         },
@@ -881,9 +881,9 @@ describe("RoutineDetailView", () => {
   it("resetting engine & model drops the stored tier and thinking with the model", async () => {
     const client = makeClient(
       makeRoutine({
-        harness: Harness.CURSOR,
+        harness: Harness.CLAUDE,
         runConfig: {
-          modelName: "composer-2",
+          modelName: "claude-sonnet-4-6",
           maxCostUsd: 1,
           serviceTier: ServiceTier.FAST,
           thinkingMode: ThinkingMode.ENABLED,
@@ -913,15 +913,15 @@ describe("RoutineDetailView", () => {
   it("resetting engine & model unpins both, preserving the budget", async () => {
     const client = makeClient(
       makeRoutine({
-        harness: Harness.CURSOR,
-        runConfig: { modelName: "composer-2", maxCostUsd: 2.5 },
+        harness: Harness.CLAUDE,
+        runConfig: { modelName: "claude-sonnet-4-6", maxCostUsd: 2.5 },
       }),
     );
     renderView(client, { editable: true });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     // The read view names the pinned engine and model.
-    expect(screen.getByText("Cursor · composer-2")).toBeTruthy();
+    expect(screen.getByText("Claude · claude-sonnet-4-6")).toBeTruthy();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Edit engine and model" }),

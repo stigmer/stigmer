@@ -77,7 +77,7 @@ describe("stigmer eval run", () => {
       "--model",
       "native/claude-sonnet-4-6",
       "--model",
-      "cursor/gpt-5",
+      "claude/claude-sonnet-5",
       "--runs",
       "2",
       "--json",
@@ -96,7 +96,7 @@ describe("stigmer eval run", () => {
       },
       caseTags: ["smoke", "fast"],
       runs: 2,
-      targets: [{ modelName: "claude-sonnet-4-6" }, { modelName: "gpt-5" }],
+      targets: [{ modelName: "claude-sonnet-4-6" }, { modelName: "claude-sonnet-5" }],
       json: { kind: "stdout" },
       wait: true,
     });

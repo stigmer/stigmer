@@ -169,7 +169,7 @@ describe("withholdSecretContentFromMessages", () => {
   it("covers edit-family rows (category write) too", () => {
     const editRow = create(ToolCallSchema, {
       id: "tc-edit",
-      name: "StrReplace",
+      name: "Edit",
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
       args: { path: ".ssh/id_rsa", old_string: "a", new_string: "b" },
     });
@@ -379,7 +379,7 @@ describe("collectSettledToolCallIds", () => {
     // A FAILED-then-recovered execution seeds INTERRUPTED rows from the prior
     // invocation. For turn-boundary provenance those are PRIOR-turn history —
     // scoping them as this-turn would mis-attribute a dead call to the
-    // resuming turn's change set. (The Cursor monotonic guard makes the
+    // resuming turn's change set. (The builder's monotonic guard makes the
     // opposite call for the same status so a replayed event can still advance
     // the row; see isSettled in harness/transcript/builder.ts.)
     const ids = collectSettledToolCallIds([

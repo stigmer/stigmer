@@ -37,7 +37,7 @@ const ACTIVE_POLL_INTERVAL_MS = 2500;
 export interface ModelUsageEntry {
   /** Model identifier (e.g. "claude-sonnet-4-6"). */
   readonly model: string;
-  /** Provider name (e.g. "anthropic", "cursor"); empty when not known. */
+  /** Provider name (e.g. "anthropic", "openai"); empty when not known. */
   readonly provider: string;
   /** Total tokens for this model (cache-inclusive). */
   readonly totalTokens: number;
@@ -59,8 +59,7 @@ export interface RunUsageEntry {
   readonly runId: string;
   /**
    * The run's primary model — the model with the most tokens. For a
-   * metered run it is what the provider actually served, which for a
-   * Cursor Auto run answers "which model did Auto pick"; for an estimated
+   * metered run it is what the provider actually served; for an estimated
    * run it is the model the runner reported.
    */
   readonly resolvedModel: string;

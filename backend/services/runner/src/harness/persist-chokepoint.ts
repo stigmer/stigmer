@@ -48,8 +48,8 @@
  * prevent); it schedules ONE follow-up write after the current one lands,
  * and resolves when that follow-up has. The promise it returns therefore
  * always means "the state as of my request is on the control plane", which
- * is what lets the Cursor loop await it and see a STOP before it pulls the
- * next event, exactly as its own inline persist did.
+ * is what lets an adapter await it and see a STOP before it pulls the next
+ * event.
  *
  * The runtime's terminal writes use the same path (`write()`), so the
  * secret backstop and the usage summary ride the final status too, as they

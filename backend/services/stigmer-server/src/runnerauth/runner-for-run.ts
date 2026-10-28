@@ -1,8 +1,7 @@
 /**
  * "Is this bearer the runner acting for run R?" — the one decision the
  * runner's per-run doors share: the session event log's append
- * (domain/session/events/append.ts), the harness state binding
- * (domain/session/bind-harness.ts) and the File mount
+ * (domain/session/events/append.ts), the input claim and the File mount
  * (domain/file/mount.ts).
  *
  * A permission cannot answer it: a runner acts as the person who owns the

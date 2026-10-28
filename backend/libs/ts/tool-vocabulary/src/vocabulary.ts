@@ -19,8 +19,8 @@
  *  - A table lists engine names in a fixed order and each name's covered
  *    Claude tools in a fixed order. The reverse reading takes the first
  *    covered tool, so the order is part of the contract, pinned by tests.
- *  - `Skill` is a Claude name no engine tool covers: native and Cursor
- *    activate a skill by reading its `SKILL.md`, which is a read, and the
+ *  - `Skill` is a Claude name no engine tool covers: native activates a
+ *    skill by reading its `SKILL.md`, which is a read, and the
  *    Claude engine's own `Skill` tool is itself. The runner gives `Skill` its
  *    own meaning (a deny hides skills); the tables never list it.
  *  - Names Claude Code has that Stigmer runs nothing for (`AskUserQuestion`,
@@ -91,60 +91,6 @@ export const NATIVE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = ne
 ]);
 
 /**
- * The names the Cursor `preToolUse` hook reports, and the Claude tools each
- * covers. The hook reports every file mutation, create or edit, as `Write`,
- * so `Write` covers both.
- */
-export const CURSOR_HOOK_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["Shell", ["Bash"]],
-  ["Read", ["Read"]],
-  ["Write", ["Write", "Edit"]],
-  ["StrReplace", ["Edit"]],
-  ["Delete", ["Write"]],
-  ["Glob", ["Glob"]],
-  ["Grep", ["Grep"]],
-  ["SemanticSearch", ["Grep"]],
-  ["Task", ["Agent"]],
-  ["WebFetch", ["WebFetch"]],
-  ["WebSearch", ["WebSearch"]],
-  ["updateTodos", ["TodoWrite"]],
-  ["TodoWrite", ["TodoWrite"]],
-  ["EditNotebook", ["NotebookEdit"]],
-]);
-
-/**
- * The `@cursor/sdk` `AgentOptions.tools` / `disallowedTools` vocabulary (its
- * `ToolName` literals, 1.0.31) and the Claude tools each covers. These are
- * also the names a recorded Cursor transcript carries. `mcp` is absent on
- * purpose: it is the whole MCP family, all-or-nothing, so MCP narrowing is
- * the hook's. A name with no Claude tool is an engine extra.
- */
-export const CURSOR_SDK_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["shell", ["Bash"]],
-  ["read", ["Read"]],
-  ["edit", ["Write", "Edit"]],
-  ["delete", ["Write"]],
-  ["glob", ["Glob"]],
-  ["ls", ["Glob"]],
-  ["grep", ["Grep"]],
-  ["semSearch", ["Grep"]],
-  ["task", ["Agent"]],
-  ["webFetch", ["WebFetch"]],
-  ["webSearch", ["WebSearch"]],
-  ["updateTodos", ["TodoWrite"]],
-  ["readTodos", ["TodoWrite"]],
-]);
-
-/** The SDK's built-in names with no Claude tool: hidden by an allow-list, left alone by a deny-list. */
-export const CURSOR_SDK_EXTRA_TOOLS: readonly string[] = [
-  "readLints",
-  "askQuestion",
-  "await",
-  "generateImage",
-  "applyAgentDiff",
-];
-
-/**
  * The names a recorded Claude-engine transcript carries, and the Claude tool
  * each is: the engine is Claude Code's own, so each name is itself (the
  * host's shell is recorded as `Bash`). `Skill` is not listed, as in every
@@ -156,16 +102,13 @@ export const CLAUDE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = ne
 );
 
 /** The engines whose recorded tool calls {@link claudeNameOf} reads. */
-export type ToolEngine = "native" | "cursor" | "claude";
+export type ToolEngine = "native" | "claude";
 
 /** The table a recorded call of each engine is named in. */
 function recordedTable(engine: ToolEngine): ReadonlyMap<string, readonly ClaudeTool[]> {
   switch (engine) {
     case "native":
       return NATIVE_TOOL_COVERS;
-    case "cursor":
-      // A Cursor transcript records the SDK's names, not the hook's.
-      return CURSOR_SDK_TOOL_COVERS;
     case "claude":
       return CLAUDE_TOOL_COVERS;
     /* v8 ignore start -- @preserve: the never arm; the compiler proves no engine reaches it */
@@ -180,19 +123,11 @@ function recordedTable(engine: ToolEngine): ReadonlyMap<string, readonly ClaudeT
 /**
  * The Claude Code name a recorded engine tool call reads as, for graders and
  * judges. An engine name reads as the first Claude tool its table entry
- * lists; a tool that covers both `Write` and `Edit` reads as `Write` when
- * its file change is an add and as `Edit` otherwise; an engine tool with no
- * Claude name keeps its own. Built-in calls only: an MCP call is named from
+ * lists; an engine tool with no Claude name keeps its own. Built-in calls only: an MCP call is named from
  * its server, which a bare tool name cannot carry.
  */
-export function claudeNameOf(engine: ToolEngine, engineToolName: string, fileChange?: "add" | "modify"): string {
-  const covers = recordedTable(engine).get(engineToolName);
-  const first = covers?.[0];
-  if (first === undefined) return engineToolName;
-  if (covers?.includes("Write") === true && covers.includes("Edit")) {
-    return fileChange === "add" ? "Write" : "Edit";
-  }
-  return first;
+export function claudeNameOf(engine: ToolEngine, engineToolName: string): string {
+  return recordedTable(engine).get(engineToolName)?.[0] ?? engineToolName;
 }
 
 /**

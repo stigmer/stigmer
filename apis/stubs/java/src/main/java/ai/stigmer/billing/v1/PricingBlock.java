@@ -120,31 +120,13 @@ private static final long serialVersionUID = 0L;
     return cacheReadPriceMicrosPerMillion_;
   }
 
-  public static final int CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER = 5;
-  private long cursorTokenRateMicrosPerMillion_ = 0L;
-  /**
-   * <pre>
-   * Cursor Token Rate surcharge, micro-USD per million billable tokens.
-   * Zero for native-harness models and fee-exempt cursor models (Auto and
-   * the first-party pool). Variants inherit the base entry's rate and
-   * leave this zero.
-   * </pre>
-   *
-   * <code>int64 cursor_token_rate_micros_per_million = 5 [json_name = "cursorTokenRateMicrosPerMillion", (.buf.validate.field) = { ... }</code>
-   * @return The cursorTokenRateMicrosPerMillion.
-   */
-  @java.lang.Override
-  public long getCursorTokenRateMicrosPerMillion() {
-    return cursorTokenRateMicrosPerMillion_;
-  }
-
   public static final int SOURCE_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private volatile java.lang.Object source_ = "";
   /**
    * <pre>
    * Where these rates came from (e.g. "anthropic_api",
-   * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+   * "openai_pricing_page", "derived_from_notes"). Provenance, not
    * approval — see the update-model-registry rule for the sign-off
    * lifecycle.
    * </pre>
@@ -168,7 +150,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Where these rates came from (e.g. "anthropic_api",
-   * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+   * "openai_pricing_page", "derived_from_notes"). Provenance, not
    * approval — see the update-model-registry rule for the sign-off
    * lifecycle.
    * </pre>
@@ -304,9 +286,6 @@ private static final long serialVersionUID = 0L;
     if (cacheReadPriceMicrosPerMillion_ != 0L) {
       output.writeInt64(4, cacheReadPriceMicrosPerMillion_);
     }
-    if (cursorTokenRateMicrosPerMillion_ != 0L) {
-      output.writeInt64(5, cursorTokenRateMicrosPerMillion_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(source_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, source_);
     }
@@ -341,10 +320,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(4, cacheReadPriceMicrosPerMillion_);
     }
-    if (cursorTokenRateMicrosPerMillion_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(5, cursorTokenRateMicrosPerMillion_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(source_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, source_);
     }
@@ -378,8 +353,6 @@ private static final long serialVersionUID = 0L;
         != other.getCacheWritePriceMicrosPerMillion()) return false;
     if (getCacheReadPriceMicrosPerMillion()
         != other.getCacheReadPriceMicrosPerMillion()) return false;
-    if (getCursorTokenRateMicrosPerMillion()
-        != other.getCursorTokenRateMicrosPerMillion()) return false;
     if (!getSource()
         .equals(other.getSource())) return false;
     if (!getSourceNote()
@@ -412,9 +385,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + CACHE_READ_PRICE_MICROS_PER_MILLION_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getCacheReadPriceMicrosPerMillion());
-    hash = (37 * hash) + CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getCursorTokenRateMicrosPerMillion());
     hash = (37 * hash) + SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + getSource().hashCode();
     hash = (37 * hash) + SOURCE_NOTE_FIELD_NUMBER;
@@ -573,7 +543,6 @@ private static final long serialVersionUID = 0L;
       outputPriceMicrosPerMillion_ = 0L;
       cacheWritePriceMicrosPerMillion_ = 0L;
       cacheReadPriceMicrosPerMillion_ = 0L;
-      cursorTokenRateMicrosPerMillion_ = 0L;
       source_ = "";
       sourceNote_ = "";
       effectiveAt_ = null;
@@ -627,16 +596,13 @@ private static final long serialVersionUID = 0L;
         result.cacheReadPriceMicrosPerMillion_ = cacheReadPriceMicrosPerMillion_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.cursorTokenRateMicrosPerMillion_ = cursorTokenRateMicrosPerMillion_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.source_ = source_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.sourceNote_ = sourceNote_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.effectiveAt_ = effectiveAtBuilder_ == null
             ? effectiveAt_
             : effectiveAtBuilder_.build();
@@ -669,17 +635,14 @@ private static final long serialVersionUID = 0L;
       if (other.getCacheReadPriceMicrosPerMillion() != 0L) {
         setCacheReadPriceMicrosPerMillion(other.getCacheReadPriceMicrosPerMillion());
       }
-      if (other.getCursorTokenRateMicrosPerMillion() != 0L) {
-        setCursorTokenRateMicrosPerMillion(other.getCursorTokenRateMicrosPerMillion());
-      }
       if (!other.getSource().isEmpty()) {
         source_ = other.source_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       if (!other.getSourceNote().isEmpty()) {
         sourceNote_ = other.sourceNote_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (other.hasEffectiveAt()) {
@@ -731,26 +694,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
-            case 40: {
-              cursorTokenRateMicrosPerMillion_ = input.readInt64();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             case 50: {
               source_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
             case 58: {
               sourceNote_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             case 66: {
               input.readMessage(
                   internalGetEffectiveAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             default: {
@@ -946,64 +904,11 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long cursorTokenRateMicrosPerMillion_ ;
-    /**
-     * <pre>
-     * Cursor Token Rate surcharge, micro-USD per million billable tokens.
-     * Zero for native-harness models and fee-exempt cursor models (Auto and
-     * the first-party pool). Variants inherit the base entry's rate and
-     * leave this zero.
-     * </pre>
-     *
-     * <code>int64 cursor_token_rate_micros_per_million = 5 [json_name = "cursorTokenRateMicrosPerMillion", (.buf.validate.field) = { ... }</code>
-     * @return The cursorTokenRateMicrosPerMillion.
-     */
-    @java.lang.Override
-    public long getCursorTokenRateMicrosPerMillion() {
-      return cursorTokenRateMicrosPerMillion_;
-    }
-    /**
-     * <pre>
-     * Cursor Token Rate surcharge, micro-USD per million billable tokens.
-     * Zero for native-harness models and fee-exempt cursor models (Auto and
-     * the first-party pool). Variants inherit the base entry's rate and
-     * leave this zero.
-     * </pre>
-     *
-     * <code>int64 cursor_token_rate_micros_per_million = 5 [json_name = "cursorTokenRateMicrosPerMillion", (.buf.validate.field) = { ... }</code>
-     * @param value The cursorTokenRateMicrosPerMillion to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorTokenRateMicrosPerMillion(long value) {
-
-      cursorTokenRateMicrosPerMillion_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cursor Token Rate surcharge, micro-USD per million billable tokens.
-     * Zero for native-harness models and fee-exempt cursor models (Auto and
-     * the first-party pool). Variants inherit the base entry's rate and
-     * leave this zero.
-     * </pre>
-     *
-     * <code>int64 cursor_token_rate_micros_per_million = 5 [json_name = "cursorTokenRateMicrosPerMillion", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorTokenRateMicrosPerMillion() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      cursorTokenRateMicrosPerMillion_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object source_ = "";
     /**
      * <pre>
      * Where these rates came from (e.g. "anthropic_api",
-     * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+     * "openai_pricing_page", "derived_from_notes"). Provenance, not
      * approval — see the update-model-registry rule for the sign-off
      * lifecycle.
      * </pre>
@@ -1026,7 +931,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where these rates came from (e.g. "anthropic_api",
-     * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+     * "openai_pricing_page", "derived_from_notes"). Provenance, not
      * approval — see the update-model-registry rule for the sign-off
      * lifecycle.
      * </pre>
@@ -1050,7 +955,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where these rates came from (e.g. "anthropic_api",
-     * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+     * "openai_pricing_page", "derived_from_notes"). Provenance, not
      * approval — see the update-model-registry rule for the sign-off
      * lifecycle.
      * </pre>
@@ -1063,14 +968,14 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       source_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Where these rates came from (e.g. "anthropic_api",
-     * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+     * "openai_pricing_page", "derived_from_notes"). Provenance, not
      * approval — see the update-model-registry rule for the sign-off
      * lifecycle.
      * </pre>
@@ -1080,14 +985,14 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearSource() {
       source_ = getDefaultInstance().getSource();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Where these rates came from (e.g. "anthropic_api",
-     * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+     * "openai_pricing_page", "derived_from_notes"). Provenance, not
      * approval — see the update-model-registry rule for the sign-off
      * lifecycle.
      * </pre>
@@ -1101,7 +1006,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       source_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1164,7 +1069,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       sourceNote_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1179,7 +1084,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearSourceNote() {
       sourceNote_ = getDefaultInstance().getSourceNote();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -1198,7 +1103,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       sourceNote_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1215,7 +1120,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the effectiveAt field is set.
      */
     public boolean hasEffectiveAt() {
-      return ((bitField0_ & 0x00000080) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <pre>
@@ -1248,7 +1153,7 @@ private static final long serialVersionUID = 0L;
       } else {
         effectiveAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1266,7 +1171,7 @@ private static final long serialVersionUID = 0L;
       } else {
         effectiveAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1279,7 +1184,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeEffectiveAt(com.google.protobuf.Timestamp value) {
       if (effectiveAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0) &&
+        if (((bitField0_ & 0x00000040) != 0) &&
           effectiveAt_ != null &&
           effectiveAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getEffectiveAtBuilder().mergeFrom(value);
@@ -1290,7 +1195,7 @@ private static final long serialVersionUID = 0L;
         effectiveAtBuilder_.mergeFrom(value);
       }
       if (effectiveAt_ != null) {
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       return this;
@@ -1303,7 +1208,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
      */
     public Builder clearEffectiveAt() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       effectiveAt_ = null;
       if (effectiveAtBuilder_ != null) {
         effectiveAtBuilder_.dispose();
@@ -1320,7 +1225,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getEffectiveAtBuilder() {
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return internalGetEffectiveAtFieldBuilder().getBuilder();
     }

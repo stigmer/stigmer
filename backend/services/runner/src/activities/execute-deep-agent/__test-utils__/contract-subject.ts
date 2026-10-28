@@ -4,9 +4,8 @@
  * the kit's engine-neutral scenario vocabulary translated onto the
  * `ScriptedModel` double that every native hermetic golden already runs on.
  *
- * The sibling of `execute-cursor/__test-utils__/contract-subject.ts` (the
- * mold) and of `gateway-substrate.ts` (the native side of the approval
- * contract kit): the kit owns the invariants and the runtime stand-in, this
+ * The sibling of `execute-claude/__test-utils__/contract-subject.ts` and of
+ * `gateway-substrate.ts` (the native side of the approval contract kit): the kit owns the invariants and the runtime stand-in, this
  * module owns the ENGINE — what the model will do on its next call — and
  * reports what really happened. The adapter under test is the production
  * one, untouched; the model client is the one module doubled
@@ -29,8 +28,8 @@
  * checkpoint IS the engine's memory, which is why the same plan is right on
  * a `Command(resume)` (the tool result is in the transcript before the model
  * is asked) and on a later turn of the same thread (an approved-and-run call
- * is not proposed again — Cursor's subject's "obedient model", derived
- * instead of stored).
+ * is not proposed again — an "obedient model", derived instead of
+ * stored).
  *
  * ── The translation, one rule per word ──────────────────────────────────────
  *  - `say(text)`      → the turn's text. A second `say` before any tool step
@@ -77,8 +76,6 @@
  *  - `limit`          → the neutral step under a fresh id on every model
  *                       call, the same arguments each time, until the
  *                       graph's recursion limit stops the run.
- *  - `cancelled`      → refused: this harness has no engine-side cancel (the
- *                       runtime arm is declared off for it).
  *  - `open(id)`       → a REAL `execute` of a shell that reads a control
  *                       FIFO the subject opened: the subject's open of the
  *                       FIFO's write end completes when the shell opens its
@@ -96,7 +93,7 @@
  *                       kit's `whenOpen` and `release` drive it as they
  *                       drive the root's, then answers. A helper's work on
  *                       this harness is its own calls, streamed into the
- *                       parent (`subAgentProgress: "streamed"`): a silent
+ *                       parent: a silent
  *                       shell in the helper is the silent build of a
  *                       delegated task. Told apart from the root by its
  *                       instructions in its prompt.
@@ -369,10 +366,6 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           throw new Error(`${this.name}: fail(..., "actionable") is not producible by this subject (the native adapter has one failure surface, internal); test bug`);
         }
         return;
-      case "cancelled":
-        throw new Error(`${this.name}: cancelled() is not producible by this subject (this harness has no engine-side cancel; the runtime arm is declared off for it); test bug`);
-      case "cut":
-        throw new Error(`${this.name}: cut() is not producible by this subject (its model calls hold no vendor connection across the turn; the runtime arm is declared off for it); test bug`);
       case "open":
         if (step.as === "subagent" && step.streams) {
           throw new Error(`${this.name}: open(…, { as: "subagent", streams: true }) is not translated by this subject (a helper's turn prints nothing); test bug`);
@@ -505,10 +498,6 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           // Sent as the answer before it is written: the round's end reads it.
           this.sendAfter(plan, index - 1);
           return close({});
-        case "cancelled":
-        case "cut":
-          // Refused at `arrange`; unreachable in a plan that got this far.
-          throw new Error(`${this.name}: ${step.kind}() reached the engine (arrange should have refused it)`);
         default: {
           const exhaustive: never = step;
           throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

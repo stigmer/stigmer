@@ -117,10 +117,9 @@ describe("detectImagePayload", () => {
     expect(img?.base64).toBe(BIG_BASE64_IMAGE);
   });
 
-  it("extracts the Cursor SDK MCP block shape ({ image: { data, mimeType } })", () => {
-    // The shape @cursor/sdk uses for MCP image content. When the result reaches
-    // the offloader as a pre-serialized string it bypasses canonicalizeImageResult,
-    // so detection must recognize this shape directly.
+  it("extracts the nested image block shape ({ image: { data, mimeType } })", () => {
+    // When the result reaches the offloader as a pre-serialized string no
+    // normalizer saw it, so detection must recognize this shape directly.
     const result = JSON.stringify([
       { text: { text: "Screen captured. App state: ready." } },
       { image: { data: BIG_BASE64_IMAGE, mimeType: "image/png" } },
@@ -131,7 +130,7 @@ describe("detectImagePayload", () => {
   });
 
   it("extracts an image nested under a status/value/content envelope", () => {
-    // The full Cursor MCP result envelope, serialized to a string. The image is
+    // A full MCP result envelope, serialized to a string. The image is
     // two levels deep — the recursive walk must still find it.
     const result = JSON.stringify({
       status: "success",
@@ -175,9 +174,9 @@ describe("detectImagePayload", () => {
     expect(detectImagePayload(result)).toBeNull();
   });
 
-  it("extracts the REAL cursor-harness get_app_state shape (value.content + Buffer-JSON, no mimeType)", () => {
-    // Captured verbatim from a production cursor-harness get_app_state result:
-    // the multimodal envelope arrives as a serialized string, blocks live under
+  it("extracts a get_app_state shape (value.content + Buffer-JSON, no mimeType)", () => {
+    // Captured verbatim from a production get_app_state result: the
+    // multimodal envelope arrives as a serialized string, blocks live under
     // value.content, the image data is Node Buffer-JSON, and there is NO
     // mimeType. The old top-level-only detector missed this (offloaded as text);
     // this is the exact regression that made screenshots render as raw JSON.
@@ -225,10 +224,10 @@ describe("offloadOversizedToolOutputs", () => {
     expect(uploads[0].contentType).toBe("image/png");
   });
 
-  it("offloads a Cursor-SDK-shape multimodal result as a renderable image (not text)", async () => {
+  it("offloads a nested-image multimodal result as a renderable image (not text)", async () => {
     // Reproduces the production symptom class: a get_app_state-style result
     // (status line text + screenshot) delivered as a pre-serialized string in
-    // the @cursor/sdk MCP block shape. Before the recursive detector this fell
+    // the nested image block shape. Before the recursive detector this fell
     // through to a text offload (is_image=false → "view full output" instead of
     // the picture); it must now offload as an image.
     const { storage, uploads } = makeFakeStorage();

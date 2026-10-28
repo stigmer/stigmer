@@ -10,8 +10,8 @@ describe("withTimeout", () => {
   it("rejects with the timeout message when the function hangs", async () => {
     const hang = () => new Promise<never>(() => {});
     await expect(
-      withTimeout(20, "Cursor agent create timed out after 20ms", hang),
-    ).rejects.toThrow("Cursor agent create timed out after 20ms");
+      withTimeout(20, "agent turn finalize timed out after 20ms", hang),
+    ).rejects.toThrow("agent turn finalize timed out after 20ms");
   });
 
   it("rejects with a TimeoutError so callers can react to expiry by type", async () => {

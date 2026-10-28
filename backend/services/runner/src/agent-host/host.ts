@@ -13,8 +13,8 @@
  *
  * The adapters boot with a `Config` built from the runner's (`HostConfigWire`):
  * the runner's non-secret settings, every endpoint the adapters dial
- * pointed at the runner's local proxy (the Cursor SDK's at its Cursor
- * lane), and the host's own token in every credential slot. The Temporal and control-plane coordinates are inert:
+ * pointed at the runner's local proxy, and the host's own token in every
+ * credential slot. The Temporal and control-plane coordinates are inert:
  * the host dials neither, and an accidental dial reaches the proxy, which
  * serves no such lane.
  *
@@ -37,7 +37,7 @@ import { runWithExecutionContext } from "../shared/execution-context.js";
 import { withTraceparent } from "../shared/trace-context.js";
 import { Peer, type LineChannel } from "./channel.js";
 import { serveExec, serveFs } from "./fs-service.js";
-import { decodeRunEvents, decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
+import { decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
 import { HostTurn, type HostPeer } from "./host-sink.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
@@ -123,7 +123,6 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
       verifyPlugin: async (slug) => {
         await peer.call("verifyPlugin", { turnId, slug });
       },
-      readRunEvents: async () => decodeRunEvents(await peer.call("readRunEvents", { turnId })),
     });
     const turn = new HostTurn(peer, turnId, input, args.status, args.rows, args.timing);
     turns.set(turnId, turn);
@@ -178,17 +177,13 @@ function hostConfig(wire: HostConfigWire): Config {
     stigmerBackendEndpoint: wire.proxyEndpoint,
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: tokenRef,
-    proxyTokenRef: tokenRef,
     mcpBridgeEndpoint: wire.mcpBridgeEndpoint,
     mcpPublicEndpoint: wire.mcpPublicEndpoint,
-    cursorApiKey: "",
     workspaceRootDir: wire.workspaceRootDir,
     mode: wire.mode,
     proxyEndpoint: wire.platformProxied ? wire.proxyEndpoint : null,
-    ...(wire.cursorEndpoint !== null ? { cursorEndpoint: wire.cursorEndpoint } : {}),
     maxConcurrentActivities: wire.maxConcurrentActivities,
     idleTimeoutSeconds: null,
-    cloudModeEnabled: wire.cloudModeEnabled,
     checkpointerType: wire.checkpointerType,
     checkpointerProxyEndpoint: wire.checkpointerType === "http" ? wire.proxyEndpoint : null,
     artifactProxyEndpoint: null,
@@ -201,13 +196,11 @@ function hostConfig(wire: HostConfigWire): Config {
     drainGraceMs: 0,
     shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,
     shellBackgroundEnabled: wire.shellBackgroundEnabled,
-    agentResolveTimeoutMs: wire.agentResolveTimeoutMs,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,
   };
 }
 
 function toWireOutcome(outcome: TurnOutcome): WireOutcome {
-  if (outcome.kind === "stream_cut") return { kind: "stream_cut", message: outcome.message };
   if (outcome.kind !== "failed") return { kind: outcome.kind };
   return {
     kind: "failed",

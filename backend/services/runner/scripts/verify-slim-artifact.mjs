@@ -15,12 +15,11 @@
  *      stays under SLIM_SIZE_BUDGET_MB (default 120). The whole point of
  *      this artifact is being small (stigmer/stigmer#170); a dependency
  *      creeping past the budget should fail the release, not ship silently.
- *   2. Authed boot guard — boots the AUTHENTICATED path (token + proxy), the
- *      only path that arms the fetch/http2 interceptors and runs
- *      assertHttp2ConnectPatched(). This is the regression lock for #170's
- *      second failure: a bundle that flattened the dynamic-import load order
- *      (e.g. an ESM esbuild bundle hoisting node:http2) aborts here. Needs no
- *      Temporal — the guard runs before any network I/O.
+ *   2. Authenticated boot — boots manager mode on the AUTHENTICATED path
+ *      (token + proxy), which every embedder runs and which regressed in
+ *      #170, through the harnesses' boot and the agent host to the
+ *      proxy-token reconciliation. Needs no Temporal: it stops before any
+ *      network I/O.
  *   3. Cloud mode (not on Windows, see 5) — boots static mode as a cloud
  *      sandbox starts it (MODE=cloud, a token, a backend endpoint), so the
  *      cloud-only paths (the http checkpointer, the strict URL guard, the
@@ -28,9 +27,7 @@
  *      Temporal dial (an unroutable sentinel address, refused) as success,
  *      the signal verify-dist-boot.mjs uses. A served turn is the cluster's
  *      proof.
- *   4. Cursor SDK — @cursor/sdk imports, and its platform package (the
- *      helper binaries) resolves, from the artifact as the runner resolves it.
- *   4b. The Claude engine's pin, not the engine — no package of Anthropic's
+ *   4. The Claude engine's pin, not the engine — no package of Anthropic's
  *      engine is staged and the manifest names none (`bundle-slim.mjs`
  *      `NEVER_STAGED`: the npm package and the desktop app never carry it),
  *      and `claude-engine.json` sits beside the entry, naming the SDK and a
@@ -39,7 +36,7 @@
  *      pin must equal what it records (`claude-engine-pin.mjs`). The image
  *      smoke mounts only this directory, so there the pin's shape is checked
  *      and the lockfile comparison is the build lane's.
- *   4c. The Claude engine an image carries (with --claude-engines <dir>, the
+ *   4b. The Claude engine an image carries (with --claude-engines <dir>, the
  *      runner layer's /runner/engines): the home for the pinned version holds
  *      exactly the SDK and this machine's glibc platform package, each at
  *      the pin; its `claude --version` exits 0 run as the agent user
@@ -60,7 +57,7 @@
  *      down gracefully on SIGINT.
  *   7. Manager mode — full IPC lifecycle: ready → addSession → sessionAdded
  *      → shutdown → shutdownComplete, exit 0 — run both tokenless and on the
- *      authenticated path (so the lifecycle is proven with the interceptors armed).
+ *      authenticated path (so the lifecycle is proven on the proxy path too).
  *      The authenticated run also sets an OTLP endpoint, as a deployment that
  *      exports telemetry does: with one set the manager builds its OTel
  *      interceptors, and this is the path that once died resolving the OTel
@@ -83,7 +80,7 @@
  *   --artifact <dir>     the staged artifact directory (default: dist-slim/)
  *   --entry <relative>   the entry inside it (default: main.js)
  *   --in-place           boot the artifact where it lives instead of a copy
- *   --claude-engines <dir>  the engines the image carries (check 4c)
+ *   --claude-engines <dir>  the engines the image carries (check 4b)
  *
  * The desktop app runs exactly that after staging its bundle
  * (client-apps/desktop/scripts/verify-staged-runtime.mjs): its pinned Node
@@ -96,15 +93,14 @@
  * the start script runs its agent host as that user, and a copy in a private
  * temporary directory is one it cannot read). Everything the checks write
  * goes to a scratch directory of their own, standing in for the workspace
- * and HOME a driver gives a sandbox; the Cursor SDK probe alone is written
- * beside the entry, inside a throwaway container.
+ * and HOME a driver gives a sandbox.
  * The script imports only Node built-ins and its siblings
  * verify-attach-boot.mjs, verify-agent-host-boot.mjs and
  * claude-engine-pin.mjs, so it runs from a mounted checkout.
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -137,16 +133,15 @@ const sizeBudgetMb = Number(process.env.SLIM_SIZE_BUDGET_MB ?? 120);
 // When set, run only the checks that need no Temporal server (1–5 above).
 // This is the slice a build with no Temporal server at hand runs (the
 // desktop's staged-runtime check), so a slim build is never staged without
-// at least proving its interceptor load order survived bundling.
+// at least proving its authenticated boot survived bundling.
 const skipTemporalBoots = options["no-temporal"] || process.env.SLIM_VERIFY_SKIP_TEMPORAL === "1";
 
 const BOOT_TIMEOUT_MS = 90_000;
 
 // Dummy credentials for the authenticated-path checks. They never authenticate
-// anything: their sole job is to make installHttp2Interceptor()/installFetch
-// arm (both require a token + proxy), so the node:http2 ESM-facade boot guard
-// actually runs. The proxy host is deliberately unroutable — boot completes
-// long before any proxy traffic, so it is never dialed.
+// anything: their sole job is to put the runner on its proxy path (a token +
+// a proxy). The proxy host is deliberately unroutable — boot completes long
+// before any proxy traffic, so it is never dialed.
 const DUMMY_TOKEN = "verify-slim-dummy-token";
 const DUMMY_PROXY_ENDPOINT = "https://proxy.invalid";
 
@@ -212,25 +207,19 @@ function bootRunner(extraEnv) {
   });
 }
 
-// ─── Authenticated boot guard (no Temporal required) ────────────────────────
+// ─── Authenticated boot (no Temporal required) ──────────────────────────────
 
 /**
- * The regression lock for stigmer/stigmer#170's second failure.
- *
- * Boots manager mode on the authenticated path — token + proxy set — which is
- * the ONLY path that arms the fetch/http2 interceptors and therefore the only
- * path that runs assertHttp2ConnectPatched(). A bundle that flattened the
- * dynamic-import load order (e.g. an ESM esbuild bundle that hoists the
- * node:http2 import) aborts here with "ESM facade is unpatched"; a bundle that
- * preserved it sails past the guard.
+ * Boots manager mode on the authenticated path — token + proxy set — the path
+ * every embedder runs and the one stigmer/stigmer#170 broke in the bundle.
  *
  * This needs no Temporal server: an explicit (unroutable) TEMPORAL_SERVICE_ADDRESS
- * makes bootstrap skip control-plane discovery, and the guard runs before any
- * network I/O. Success is the deterministic post-guard log line emitted when a
- * proxy is configured but no runner token was minted (runner-manager.ts); we
- * detect it and stop, never reaching the Temporal connection attempt.
+ * makes bootstrap skip control-plane discovery. Success is the deterministic
+ * log line emitted, once the harnesses booted, when a proxy is configured but
+ * no runner token was minted (runner-manager.ts); we detect it and stop,
+ * never reaching the Temporal connection attempt.
  */
-async function verifyAuthedGuard() {
+async function verifyAuthedBoot() {
   return new Promise((resolve, reject) => {
     const proc = bootRunner({
       STIGMER_RUNNER_MODE: "manager",
@@ -253,26 +242,14 @@ async function verifyAuthedGuard() {
     };
 
     const timer = setTimeout(
-      () => done(reject, new Error(`authed guard did not pass within ${BOOT_TIMEOUT_MS}ms.\n${output.slice(-2000)}`)),
+      () => done(reject, new Error(`authenticated boot did not reach the token reconciliation within ${BOOT_TIMEOUT_MS}ms.\n${output.slice(-2000)}`)),
       BOOT_TIMEOUT_MS,
     );
 
     const onData = (chunk) => {
       output += chunk;
-      if (/ESM facade is unpatched/.test(output)) {
-        done(
-          reject,
-          new Error(
-            "authed boot guard FAILED: the bundle defeated the http2 interceptor load order " +
-              "(node:http2 ESM facade unpatched before install). This is stigmer/stigmer#170 — " +
-              "the slim bundle must preserve the dynamic-import load order (CJS output).\n" +
-              output.slice(-2000),
-          ),
-        );
-        return;
-      }
-      // Post-guard signal: bootstrap resolved and we reached the proxy-token
-      // reconciliation, which only runs after assertHttp2ConnectPatched passed.
+      // Bootstrap resolved and we reached the proxy-token reconciliation,
+      // which runs only after the harnesses booted.
       if (/no runner token was minted|Adopted minted proxy token/.test(output)) {
         done(resolve);
       }
@@ -281,9 +258,9 @@ async function verifyAuthedGuard() {
     proc.stderr.on("data", onData);
 
     proc.on("exit", (code) => {
-      // Exit before either signal means it died at init (likely the guard, or a
-      // missing dependency) — surface the tail so the cause is visible.
-      done(reject, new Error(`authed guard process exited (code ${code}) before passing the guard.\n${output.slice(-2000)}`));
+      // Exit before the signal means it died at init (a missing dependency,
+      // a broken boot) — surface the tail so the cause is visible.
+      done(reject, new Error(`authenticated boot exited (code ${code}) before the token reconciliation.\n${output.slice(-2000)}`));
     });
   });
 }
@@ -321,31 +298,6 @@ async function verifyCloudMode() {
       else reject(new Error(`cloud mode exited (code ${code}) before the Temporal dial.\n${output.slice(-2000)}`));
     });
   });
-}
-
-// ─── Cursor SDK (no Temporal required) ──────────────────────────────────────
-
-/**
- * Imports @cursor/sdk and resolves its platform package from beside the
- * entry, where the runner's own dynamic import resolves them. The probe is
- * written beside the entry it boots, so nothing resolves from this checkout.
- */
-function verifyCursorSdk() {
-  const probe = join(dirname(join(runDir, entry)), "verify-cursor-sdk.mjs");
-  writeFileSync(
-    probe,
-    `import { createRequire } from "node:module";
-await import("@cursor/sdk");
-const sdk = createRequire(import.meta.resolve("@cursor/sdk"));
-console.log(sdk.resolve(\`@cursor/sdk-\${process.platform}-\${process.arch}/package.json\`));
-`,
-  );
-  const result = spawnSync(nodeBinary, [probe], { cwd: runDir, encoding: "utf8", timeout: BOOT_TIMEOUT_MS });
-  rmSync(probe);
-  if (result.status !== 0) {
-    throw new Error(`@cursor/sdk did not load from the artifact (exit ${result.status}).\n${(result.stderr ?? "").slice(-2000)}`);
-  }
-  return result.stdout.trim();
 }
 
 // ─── No Claude engine (no Temporal required) ────────────────────────────────
@@ -577,8 +529,8 @@ try {
   // Runs everywhere (no Temporal needed): proves the authenticated boot path —
   // the one every embedder runs and the one that regressed in #170 — survives
   // bundling. This is the check the dev-publish fast path relies on.
-  await verifyAuthedGuard();
-  console.log("[guard]  OK: authenticated boot passed assertHttp2ConnectPatched (interceptor load order intact)");
+  await verifyAuthedBoot();
+  console.log("[guard]  OK: the authenticated boot reached the proxy-token reconciliation");
   // Cloud mode and the attach waiter run only in Linux sandboxes; Windows
   // (the desktop's release leg runs this script there) has neither, and its
   // Node cannot deliver SIGTERM as a signal, so both are skipped there.
@@ -589,8 +541,6 @@ try {
     await verifyCloudMode();
     console.log("[cloud]  OK: MODE=cloud loaded its configuration and reached the Temporal dial");
   }
-  const cursorPlatform = verifyCursorSdk();
-  console.log(`[cursor] OK: @cursor/sdk imported; its platform package resolved at ${cursorPlatform}`);
   verifyNoClaudeEngine();
   console.log("[claude] OK: no package of the Claude engine is staged and the manifest names none");
   console.log(`[claude] OK: ${verifyClaudeEnginePin()}`);
@@ -612,8 +562,7 @@ try {
     console.log(`[static] OK: worker reached RUNNING and shut down gracefully${engineHome === undefined ? "" : ", its boot logging the Claude engine ready"}`);
     await verifyManagerMode();
     console.log("[mgr]    OK: ready → addSession → shutdown lifecycle, exit 0");
-    // Same lifecycle, but on the authenticated path (token + proxy). The
-    // interceptors arm and the http2 boot guard runs, yet the full
+    // Same lifecycle, but on the authenticated path (token + proxy): the full
     // ready→addSession→shutdown lifecycle still completes against Temporal —
     // proving the auth path the verify gate previously never exercised (#170).
     // The OTLP endpoint makes the manager build its OTel interceptors, the

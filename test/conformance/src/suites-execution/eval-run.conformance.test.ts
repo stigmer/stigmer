@@ -44,7 +44,7 @@
 //     variable reaches the shell; a failed scaffold scores the try 0 with
 //     its error and starts no turn;
 //   - a resumed case's first model request carries the recorded turns, and
-//     a Cursor target lists the case as not run;
+//     a Claude target lists the case as not run;
 //   - a mocked server answers under the plugin server's name: a fixed mock
 //     and an agent mock (answered by the scripted model) are graded through
 //     `mock_calls`, and the case lists its servers; an `expect:` violation
@@ -60,9 +60,7 @@
 //     resolver's eval-run branch is pinned by its unit tests
 //     (backend/services/stigmer-server/src/domain/vault/__tests__/resolve.test.ts), since a
 //     hook that prints a secret into the transcript would need a vault, a
-//     hook and a shell grant just to read one value back;
-//   - a case that withholds `Skill` on the Cursor engine: the scripted model
-//     speaks only Anthropic, so the Cursor half is the runner's goldens.
+//     hook and a shell grant just to read one value back.
 //
 // Every eval run here runs one try at a time (concurrency 1), so the scripted
 // turns are consumed in the matrix's order (case, target, arm, try), each
@@ -695,7 +693,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
     ]);
   }, 300_000);
 
-  it("[rpc:EvalRunQueryController.get] a resumed case's first request carries the recorded turns, and a Cursor target lists it as not run", async () => {
+  it("[rpc:EvalRunQueryController.get] a resumed case's first request carries the recorded turns, and a Claude target lists it as not run", async () => {
     const history = [
       JSON.stringify({ type: "user", message: { role: "user", content: "Draft a release note for the rename." } }),
       JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Draft: renamed getUser to fetchUser." }] } }),
@@ -712,7 +710,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
     mock.enqueue(anthropicText("Short: getUser is fetchUser."));
 
     const { ended, attempt } = await onlyTry(installation, {
-      targets: [{ harness: Harness.NATIVE }, { harness: Harness.CURSOR }],
+      targets: [{ harness: Harness.NATIVE }, { harness: Harness.CLAUDE }],
     });
     expect(attempt.score).toBe(1);
     const [request] = mock.scriptedRequests();
@@ -721,7 +719,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
     expect(readLastUserText(request!.body)).toContain("Now shorten it.");
     const resumed = casesOf(ended)[0]!;
     expect(resumed.notes).toContain("resumed from history.jsonl");
-    expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Cursor", "resumed conversations")]);
+    expect(resumed.targets.map((t) => t.notRunReason)).toEqual(["", engineUnsupportedReason("Claude", "resumed conversations")]);
   }, 300_000);
 
   it("[rpc:EvalRunQueryController.get] [rpc:ScoreQueryController.listByRun] both arms of a with-and-without eval get the case's scaffold and EVAL_* variables", async () => {

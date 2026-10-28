@@ -5,9 +5,8 @@
  *
  * Harness-agnostic: the runtime's capture reads a git tree the same way for
  * every engine, so the fixture lives beside `hermetic-activity.ts` and is
- * imported by each harness's driver (`execute-cursor/__test-utils__/
- * hermetic-cursor.ts`, `execute-deep-agent/__test-utils__/hermetic-deep-
- * agent.ts`). Author, committer and both dates are pinned so the commit AND
+ * imported by each harness's tests (`execute-deep-agent/__test-utils__/
+ * hermetic-deep-agent.ts`, `execute-claude/__tests__/hermetic/`). Author, committer and both dates are pinned so the commit AND
  * tree object ids are byte-stable — a file-review golden may carry them.
  */
 

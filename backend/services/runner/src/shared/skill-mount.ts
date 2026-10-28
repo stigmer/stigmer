@@ -3,10 +3,10 @@
  *
  * A skill "mount" is the on-disk materialization of a skill inside the
  * session's platform directory: `{platformDir}/skills/{name}/` holding
- * SKILL.md plus the artifact's supporting files. Both harnesses write to
- * that same physical location — the Cursor harness directly, the native
- * (deep-agent) harness through the `.stigmer/` virtual namespace that
- * LocalWorkspaceBackend routes there — so they MUST share one cache shape
+ * SKILL.md plus the artifact's supporting files. Every harness reads from
+ * that same physical location — the native (deep-agent) harness through the
+ * `.stigmer/` virtual namespace that LocalWorkspaceBackend routes there —
+ * so they MUST share one cache shape
  * (issues #337/#672). This module owns that shape:
  *
  * - The mount is cached by the skill's content-addressed
@@ -20,8 +20,8 @@
  *   of the mount landed — a crash mid-write leaves no marker, so the next
  *   execution remounts instead of trusting a partial tree.
  *
- * Extracted from execute-cursor/skill-resolver.ts (PR #682) when the
- * deep-agent path adopted the same cache (issue #337). Orchestration —
+ * Shared since the deep-agent path adopted the same cache (PR #682, issue
+ * #337). Orchestration —
  * which skills to mount, prompt metadata, degradation logging — stays
  * with each harness; only the per-skill-directory mechanics live here.
  * The archive's transport, the rebuild and the file modes are the shared
@@ -30,8 +30,7 @@
  * Also the one statement of where a skill's files live under the platform
  * dir ({@link SKILL_CONTENT_PATTERN}), which both harnesses' confined reads
  * consult when a turn's tool lists deny `Skill`, each by the real path the
- * read would open ({@link skillContentReadCheck}, the Cursor hook's
- * `realpathSync`).
+ * read would open ({@link skillContentReadCheck}).
  */
 
 import { agentFs } from "./agent-fs.js";
@@ -54,8 +53,7 @@ export const SKILLS_SUBDIR = "skills";
  * the package and a root skill is the package itself; the tree is there
  * for the plugin's hooks, which run it as processes, never for the agent
  * to read. A turn whose tool lists deny `Skill` is refused a read of any of
- * them, on both engines; the Cursor hook embeds this pattern's source and
- * flags. Matched without regard to case: on a case-insensitive filesystem
+ * them, on both engines. Matched without regard to case: on a case-insensitive filesystem
  * `Skills/a/SKILL.md` is the same file, and on any other the platform dir
  * holds no such name to over-refuse.
  */
@@ -77,7 +75,7 @@ export function isSkillContentPath(virtualPath: string): boolean {
  * dir. The native route follows a link that stays inside the platform dir
  * (`execute-deep-agent/platform-route.ts`), so a link a plugin's hook leaves
  * under `plugin-data/` pointing into `skills/` reads the skill unless its
- * real path is judged; the Cursor hook judges every read the same way.
+ * real path is judged.
  * Compared without regard to case, as the pattern is. A path that does not
  * resolve (nothing there, a dangling link) opens nothing and is not
  * refused here. Costs two `realpath` calls, and only on a turn that denies

@@ -4,8 +4,8 @@ import { computeDiff } from "../computeDiff";
 
 describe("parseUnifiedDiff", () => {
   it("parses a /dev/null create, discarding the ---/+++ preamble", () => {
-    // The exact shape the Cursor harness emits for a new file (the screenshot
-    // case): the file headers must not survive into the rendered hunks.
+    // A new file's patch: the file headers must not survive into the rendered
+    // hunks.
     const patch =
       "--- /dev/null\n+++ b/Users/x/notes.md\n@@ -0,0 +1,3 @@\n+# Project Notes\n+\n+Minimal service\n";
 

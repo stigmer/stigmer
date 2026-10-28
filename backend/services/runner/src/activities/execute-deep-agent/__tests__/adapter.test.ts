@@ -11,6 +11,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../../config.js";
 import { createDeepAgentAdapter, resolveDeepAgentConfig } from "../adapter.js";
@@ -28,13 +29,11 @@ const CONFIG: Config = {
   mcpBridgeEndpoint: null,
   mcpPublicEndpoint: null,
   stigmerTokenRef: { current: "tok" },
-  cursorApiKey: "",
   workspaceRootDir: "/tmp/adapter-test",
   mode: "local",
   proxyEndpoint: null,
   maxConcurrentActivities: 1,
   idleTimeoutSeconds: null,
-  cloudModeEnabled: false,
   checkpointerType: "memory",
   checkpointerProxyEndpoint: null,
   artifactProxyEndpoint: null,
@@ -44,7 +43,6 @@ const CONFIG: Config = {
   livenessIntervalMs: 30_000,
   shellTimeoutMaxSeconds: 3_300,
   shellBackgroundEnabled: true,
-  agentResolveTimeoutMs: 120_000,
   workspaceLockTimeoutMs: 900_000,
   drainGraceMs: 0,
 };
@@ -54,8 +52,7 @@ describe("createDeepAgentAdapter", () => {
     const adapter = createDeepAgentAdapter();
     expect(adapter.name).toBe("deep-agent");
     expect(adapter.capabilities).toBe(DEEP_AGENT_CAPABILITIES);
-    expect(adapter.capabilities.pausePrimitive).toBe("interrupt");
-    expect(adapter.capabilities.stateIdSource).toBe("deterministic");
+    expect(adapter.capabilities.harness).toBe(Harness.NATIVE);
   });
 
   it("refuses a turn before boot, loudly", async () => {

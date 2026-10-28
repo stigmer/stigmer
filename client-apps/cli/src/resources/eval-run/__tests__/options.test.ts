@@ -67,7 +67,7 @@ describe("readEvalRunOptions", () => {
       case: "review-*",
       tag: ["smoke", " fast "],
       runs: "5",
-      model: ["native/claude-sonnet-4-6", "cursor/gpt-5"],
+      model: ["native/claude-sonnet-4-6", "claude/claude-sonnet-5"],
       ablation: "none",
       threshold: "0.8",
       maxCostUsd: "20",
@@ -84,7 +84,7 @@ describe("readEvalRunOptions", () => {
       runs: 5,
       targets: [
         { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" },
-        { harness: Harness.CURSOR, modelName: "gpt-5" },
+        { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" },
       ],
       ablation: EvalRunAblation.none,
       threshold: 0.8,
@@ -228,12 +228,12 @@ describe("parseAgentTarget", () => {
 describe("parseTarget", () => {
   it("reads a bare model as the native engine's, and default as the engine's default model", () => {
     expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" });
-    expect(parseTarget("cursor/default")).toEqual({ harness: Harness.CURSOR, modelName: "" });
+    expect(parseTarget("claude/default")).toEqual({ harness: Harness.CLAUDE, modelName: "" });
     expect(parseTarget("claude/claude-sonnet-5")).toEqual({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" });
   });
 
   it("refuses an engine with no model", () => {
-    expect(refusal(() => parseTarget("cursor/")).message).toContain("names no model");
+    expect(refusal(() => parseTarget("claude/")).message).toContain("names no model");
   });
 });
 

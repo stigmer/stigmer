@@ -1,6 +1,6 @@
 /**
- * Session workspace-root resolution — shared by both executors (Cursor and
- * deep-agent) so their placement rules can never drift.
+ * Session workspace-root resolution — shared by every harness so their
+ * placement rules can never drift.
  *
  * A session with no repository or folder among its resources works in an
  * empty workspace directory of its own. Handing every such session the shared

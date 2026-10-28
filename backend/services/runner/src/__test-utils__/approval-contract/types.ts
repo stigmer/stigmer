@@ -1,12 +1,12 @@
 /**
  * The substrate-agnostic seam for the HITL gateway Contract Test Kit.
  *
- * Stigmer enforces tool approval through two real substrates with very different
+ * Stigmer enforces tool approval through two real substrates with different
  * mechanics:
  * - the in-process deep-agent gate (a LangGraph middleware that IS the side
  *   effect), and
- * - the out-of-process Cursor deny-oracle (a bash preToolUse hook that allows or
- *   denies a tool the agent runs inside cursor-agent).
+ * - the Claude gate (the engine's `PreToolUse` callback, which defers a call
+ *   and runs exactly that call once it is approved).
  *
  * The safety invariants they must uphold are identical, so the contract describes
  * them once and runs them against anything that implements {@link GatewaySubstrate}.
@@ -14,8 +14,8 @@
  * implementing this one interface — it does not get to redefine the invariants.
  *
  * This seam intentionally does NOT carry raw, harness-specific tool names. The
- * two substrates name the same operation differently (the Cursor hook says
- * `Write`/`Shell`/`Delete`; the deep-agent stream says `edit`/`shell`/`delete`),
+ * two substrates name the same operation differently (the Claude engine says
+ * `Write`/`Bash`; the deep-agent stream says `edit`/`shell`),
  * so the contract speaks in the abstract {@link ProposedAction} and each adapter
  * translates it into its own taxonomy. Keeping the contract taxonomy-free is what
  * makes "both substrates agree on the same logical action" a meaningful assertion.
@@ -110,9 +110,9 @@ export interface GatewayOutcome {
   readonly executed: boolean;
   /**
    * Whether the substrate withheld the action pending approval. Note the precise
-   * meaning is substrate-specific (the in-process gate "paused at an interrupt";
-   * the deny-oracle "denied this call"), so it is only compared across substrates
-   * for `none`-decision probes, where both mean "withheld".
+   * meaning is substrate-specific (the deep-agent gate "paused at an interrupt";
+   * the Claude gate "deferred this call"), so it is only compared across
+   * substrates for `none`-decision probes, where both mean "withheld".
    */
   readonly gated: boolean;
   /**
@@ -138,15 +138,15 @@ export interface GatewayOutcome {
 export interface SubstrateCapabilities {
   /**
    * True when the runner executes the tool in-process and can therefore observe
-   * (and count) the side effect directly. The deep-agent gate is in-process
-   * (`true`); the Cursor hook authorizes a tool that runs in another process
-   * (`false`, receipts are best-effort).
+   * (and count) the side effect directly. Both substrates do (`true`); a
+   * substrate that only authorizes a tool running in another process could
+   * not (`false`).
    */
   readonly observesExecution: boolean;
   /**
    * True when an approval is bound to the exact resource it was granted for, so
-   * approving one resource never authorizes another. The Cursor grant token binds
-   * the resource (`true`); the deep-agent gate re-checks every distinct call and
+   * approving one resource never authorizes another. The Claude gate answers
+   * one call by its id (`true`); the deep-agent gate re-checks every distinct call and
    * relies on checkpoint replay for sameness, so per-resource lease isolation is
    * not a property of that gate (`false`).
    */
@@ -154,7 +154,7 @@ export interface SubstrateCapabilities {
   /**
    * True when an approval is bound to the exact CONTENT of the action, not just
    * its resource — so approving one edit to a file never authorizes a DIFFERENT
-   * edit to the SAME file. The Cursor grant binds (category, path, contentDigest)
+   * edit to the SAME file. The Claude gate runs only the call the person saw
    * (`true`); the deep-agent gate relies on checkpoint replay for sameness, so
    * content isolation is not a property of that gate (`false`).
    */
@@ -163,41 +163,32 @@ export interface SubstrateCapabilities {
    * True when the substrate honors a run-lifetime CLASS lease: an APPROVE_ALL on
    * one action auto-approves later actions of the SAME class (built-in category)
    * for the rest of the run, while a DIFFERENT class stays gated. Both production
-   * substrates enforce this (the deep-agent gate clears leased categories; the
-   * Cursor hook reads `leasedCategories` from its state file), so both set `true`
-   * and implement {@link GatewaySubstrate.authorizeUnderClassLease}.
+   * substrates enforce this (each gate clears the leased categories), so both
+   * set `true` and implement {@link GatewaySubstrate.authorizeUnderClassLease}.
    */
   readonly appliesRunLifetimeLease: boolean;
   /**
    * True when the substrate attaches authorization provenance
    * (approval_policy_source) at the gate, so a withheld action's
-   * {@link GatewayOutcome.policySource} is populated. The deep-agent gate decides
-   * and stamps the source at interrupt time (`true`); the Cursor substrate's
-   * provenance is a reconstruction-time projection over the persisted tool call,
-   * not a property of the hook's deny decision, so it is `false` here and is
-   * covered instead by the translator, boundary-rows and corpus suites.
+   * {@link GatewayOutcome.policySource} is populated. Both gates decide and
+   * stamp the source when they withhold a call (`true`).
    */
   readonly surfacesGatePolicySource: boolean;
   /**
    * True when the substrate runs an agent's hooks, in either format, at its
-   * gate; the contract's hooks section runs only there. Both engines do: the
-   * native gate in process, the Cursor gate through the runner's hook server.
+   * gate; the contract's hooks section runs only there. Both engines do, each
+   * in its own gate.
    */
   readonly runsHooks: boolean;
   /**
    * True when a hook can tell a sub-agent's call from the main agent's (its
-   * stdin carries `agent_id` and `agent_type`). The native gate knows which
-   * sub-agent graph made a call (`true`); Cursor's hook payload carries no
-   * sub-agent identity (live probe, 2026-10-05), so the Cursor engine's
-   * hooks run on a sub-agent's calls without it (`false`).
+   * stdin carries `agent_id` and `agent_type`). Both gates know which
+   * sub-agent made a call (`true`).
    */
   readonly hookSeesSubAgent: boolean;
   /**
    * True when a sub-agent's own tool lists are enforced inside the sub-agent.
-   * The native engine narrows each sub-agent graph (`true`); the Cursor hook
-   * cannot tell which sub-agent is calling, so the Cursor engine refuses a
-   * turn whose sub-agent carries lists at setup instead (`false`, pinned by
-   * that harness's own tests).
+   * Both engines narrow each sub-agent's tools (`true`).
    */
   readonly enforcesSubAgentLists: boolean;
 }
@@ -213,8 +204,9 @@ export interface GatewaySubstrate {
   /** Honest per-substrate capability flags. */
   readonly capabilities: SubstrateCapabilities;
   /**
-   * Whether this substrate can run in the current environment (e.g. the Cursor
-   * deny-oracle needs `bash`). The contract skips its suite when `false`.
+   * Whether this substrate can run in the current environment (a substrate
+   * that needs a tool the host lacks says so). The contract skips its suite
+   * when `false`.
    */
   readonly available: boolean;
   /**

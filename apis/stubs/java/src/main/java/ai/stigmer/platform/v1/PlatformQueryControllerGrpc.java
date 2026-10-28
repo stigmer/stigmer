@@ -264,7 +264,7 @@ public final class PlatformQueryControllerGrpc {
      * execution) needs two things at boot, both of which are details it should
      * not have to know or hold ahead of time: the Temporal frontend coordinates
      * to poll for work, and a Stigmer-signed identity to authenticate its
-     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * model-proxy traffic. This RPC lets the runner self-bootstrap through the
      * one authenticated door it already opens at startup: it presents the token
      * it already holds and the control plane returns the environment's Temporal
      * coordinates plus a freshly minted runner access token. The contract for a
@@ -398,7 +398,7 @@ public final class PlatformQueryControllerGrpc {
      * execution) needs two things at boot, both of which are details it should
      * not have to know or hold ahead of time: the Temporal frontend coordinates
      * to poll for work, and a Stigmer-signed identity to authenticate its
-     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * model-proxy traffic. This RPC lets the runner self-bootstrap through the
      * one authenticated door it already opens at startup: it presents the token
      * it already holds and the control plane returns the environment's Temporal
      * coordinates plus a freshly minted runner access token. The contract for a
@@ -509,7 +509,7 @@ public final class PlatformQueryControllerGrpc {
      * execution) needs two things at boot, both of which are details it should
      * not have to know or hold ahead of time: the Temporal frontend coordinates
      * to poll for work, and a Stigmer-signed identity to authenticate its
-     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * model-proxy traffic. This RPC lets the runner self-bootstrap through the
      * one authenticated door it already opens at startup: it presents the token
      * it already holds and the control plane returns the environment's Temporal
      * coordinates plus a freshly minted runner access token. The contract for a
@@ -618,7 +618,7 @@ public final class PlatformQueryControllerGrpc {
      * execution) needs two things at boot, both of which are details it should
      * not have to know or hold ahead of time: the Temporal frontend coordinates
      * to poll for work, and a Stigmer-signed identity to authenticate its
-     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * model-proxy traffic. This RPC lets the runner self-bootstrap through the
      * one authenticated door it already opens at startup: it presents the token
      * it already holds and the control plane returns the environment's Temporal
      * coordinates plus a freshly minted runner access token. The contract for a
@@ -729,7 +729,7 @@ public final class PlatformQueryControllerGrpc {
      * execution) needs two things at boot, both of which are details it should
      * not have to know or hold ahead of time: the Temporal frontend coordinates
      * to poll for work, and a Stigmer-signed identity to authenticate its
-     * Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+     * model-proxy traffic. This RPC lets the runner self-bootstrap through the
      * one authenticated door it already opens at startup: it presents the token
      * it already holds and the control plane returns the environment's Temporal
      * coordinates plus a freshly minted runner access token. The contract for a

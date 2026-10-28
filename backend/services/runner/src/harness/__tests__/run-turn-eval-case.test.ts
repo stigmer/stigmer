@@ -89,8 +89,6 @@ import { RuntimeExecutionDriver, type RuntimeContractHarness } from "../../__tes
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
 const subject = scriptedSubject({
-  pausePrimitive: "interrupt",
-  stateIdSource: "engine-minted",
   config: { workspaceRootDir: env.workspaceRootDir, taskQueue: "runtime-eval-case-queue" },
 });
 const harness: RuntimeContractHarness = { subject, env, clock };

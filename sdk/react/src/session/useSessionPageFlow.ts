@@ -334,8 +334,8 @@ export function useSessionPageFlow(
     conv.session?.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED,
   );
   // Guests never read or write the Console's persisted model preference —
-  // their follow-ups carry no modelName, and the session's harness (cursor
-  // for share surfaces) resolves the model server-side.
+  // their follow-ups carry no modelName, and the session's harness
+  // resolves the model server-side.
   const [persistedModelId, setPersistedModelId] = usePersistedModel({
     harness,
     enabled: !isGuest,

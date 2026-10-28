@@ -93,8 +93,8 @@ describe("getSummarizationModel", () => {
 
   it("only selects native harness models for extraction", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4", provider: "anthropic", costTier: "standard", harness: "cursor" },
-      { id: "claude-haiku-4-5", provider: "anthropic", costTier: "economy", harness: "cursor" },
+      { id: "claude-sonnet-4", provider: "anthropic", costTier: "standard", harness: "claude" },
+      { id: "claude-haiku-4-5", provider: "anthropic", costTier: "economy", harness: "claude" },
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
     ]);
 
@@ -158,9 +158,9 @@ describe("getDefaultModel", () => {
     expect(result).toBe("claude-sonnet-4-6");
   });
 
-  it("skips cursor-harness models", async () => {
+  it("skips another harness's models", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "cursor", featured: true },
+      { id: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "claude", featured: true },
       { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
     ]);
 
@@ -312,13 +312,13 @@ describe("getModelVisionCapability", () => {
   });
 
   it("returns undefined when the capabilities block is absent (never assessed ≠ blind)", async () => {
-    // The cursor-harness convention today: pricing + UI fields, no
-    // capabilities block. Must stay undefined, never coerce to false.
+    // A row with pricing and UI fields and no capabilities block must stay
+    // undefined, never coerce to false.
     mockRegistryResponse([
-      { id: "composer-2.5", provider: "cursor", costTier: "economy", harness: "cursor" },
+      { id: "claude-unassessed", provider: "anthropic", costTier: "economy", harness: "native" },
     ]);
 
-    expect(await getModelVisionCapability("composer-2.5")).toBeUndefined();
+    expect(await getModelVisionCapability("claude-unassessed")).toBeUndefined();
   });
 
   it("matches by apiModelId as well as registry id", async () => {
@@ -368,9 +368,9 @@ describe("getRequestProfile", () => {
 
   const NO_THINKING = { shape: "none", required: undefined } as const;
 
-  it("reads the native row, never the same id's cursor row", async () => {
+  it("reads the native row, never the same id's claude row", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "cursor", maxOutputTokens: 64000, capabilities: { thinking: true, adaptiveThinking: false } },
+      { id: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "claude", maxOutputTokens: 64000, capabilities: { thinking: true, adaptiveThinking: false } },
       { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: false } },
     ]);
 
@@ -456,14 +456,14 @@ describe("getRequestProfile", () => {
     expect((await getRequestProfile("malformed", "native"))?.contextWindowTokens).toBeUndefined();
   });
 
-  it("returns undefined for Auto, an unknown model, a cursor-only model, and an unreachable registry", async () => {
+  it("returns undefined for no concrete model, an unknown model, another harness's model, and an unreachable registry", async () => {
     mockRegistryResponse([
-      { id: "composer-2.5", provider: "cursor", costTier: "economy", harness: "cursor", maxOutputTokens: 64000 },
+      { id: "claude-only", provider: "anthropic", costTier: "economy", harness: "claude", maxOutputTokens: 64000 },
     ]);
 
     expect(await getRequestProfile("default", "native")).toBeUndefined();
     expect(await getRequestProfile("", "native")).toBeUndefined();
-    expect(await getRequestProfile("composer-2.5", "native")).toBeUndefined();
+    expect(await getRequestProfile("claude-only", "native")).toBeUndefined();
     expect(await getRequestProfile("no-such-model", "native")).toBeUndefined();
 
     _resetRegistryCache();

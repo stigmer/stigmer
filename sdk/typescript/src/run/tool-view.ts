@@ -76,17 +76,12 @@ export type ToolResultView =
   // File edit. oldText/newText are the two sides of the change: the
   // old_string/new_string fragments from the tool's input. The
   // presentation layer computes the visual diff (and its line counts) from
-  // oldText/newText; linesAdded/linesRemoved/unifiedDiff are populated only when
-  // the source provides them directly (e.g. the Cursor hunk-only envelope).
-
+  // oldText/newText.
   | {
       readonly type: "diff";
       readonly path: string;
       readonly oldText?: string;
       readonly newText?: string;
-      readonly linesAdded?: number;
-      readonly linesRemoved?: number;
-      readonly unifiedDiff?: string;
     }
   // File read or full-file write. `content` is the file body (from result for
   // read, from args for write).
@@ -180,15 +175,12 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["edit", "file_edit"],
   ["edit_file", "file_edit"],
   ["str_replace_editor", "file_edit"],
-  ["StrReplace", "file_edit"],
-  ["EditNotebook", "file_edit"],
   ["Edit", "file_edit"],
   ["NotebookEdit", "file_edit"],
 
   ["delete", "file_delete"],
   ["delete_file", "file_delete"],
   ["remove_file", "file_delete"],
-  ["Delete", "file_delete"],
 
   ["shell", "shell"],
   ["bash", "shell"],
@@ -196,7 +188,6 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["execute_command", "shell"],
   ["run_command", "shell"],
   ["terminal", "shell"],
-  ["Shell", "shell"],
   ["Bash", "shell"],
 
   ["grep", "search"],
@@ -206,7 +197,6 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["find_files", "search"],
   ["Grep", "search"],
   ["Glob", "search"],
-  ["SemanticSearch", "search"],
 
   ["ls", "list"],
   ["list_directory", "list"],
@@ -218,7 +208,6 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["think", "think"],
 
   ["write_todos", "todo"],
-  ["updateTodos", "todo"],
   ["TodoWrite", "todo"],
 
   ["task", "subagent"],
@@ -277,7 +266,7 @@ export function resolveToolKindByName(name: string, mcpServerSlug?: string): Too
  * Two writers populate it, converged on one wire key by design: the native
  * harness's tool-intent middleware (`backend/services/runner/src/middleware/
  * tool-intent.ts`, `INTENT_ARG`) extends the shell tool's bind-time schema
- * with it, and the Cursor harness's built-in Shell tool carries it natively.
+ * with it, and the Claude harness's built-in Bash tool carries it natively.
  * The shared, machine-checked contract is
  * `test/fixtures/tool-view/intent-title.json` — keep the writers and this
  * reader in lockstep.
@@ -369,7 +358,7 @@ type Args = Record<string, unknown> | undefined;
 const PATH_FIELDS = ["path", "file_path", "file", "filename"] as const;
 const OLD_TEXT_FIELDS = ["old_string", "old_text", "oldText"] as const;
 const NEW_TEXT_FIELDS = ["new_string", "new_text", "newText", "replacement"] as const;
-const WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
+const WRITE_CONTENT_FIELDS = ["content", "file_content"] as const;
 
 /** What {@link normalizeToolResult} reads of a tool use. */
 export type ToolViewInput = Pick<ToolUse, "name" | "mcpServerName" | "input" | "result" | "fullOutput"> &
@@ -438,7 +427,7 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
 
   switch (kind) {
     case "file_edit":
-      return normalizeEdit(args, result);
+      return normalizeEdit(args);
     case "file_write":
       return normalizeWrite(args);
     case "file_read":
@@ -462,31 +451,16 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
   }
 }
 
-function normalizeEdit(args: Args, result: string): ToolResultView {
+function normalizeEdit(args: Args): ToolResultView {
   // The inline transcript diff for a file edit is reconstructed from the tool
   // args (there is no captured `file_changes` mirror — apply-then-review renders
   // captured diffs via FileReviewCard/FileChangeDiff, not here). The native
-  // engine returns prose with no diff, so the presentation layer computes the
-  // visual diff from the args fragments; the Cursor SDK returns a stringified
-  // envelope with precomputed diff stats.
+  // and Claude engines return prose with no diff, so the presentation layer
+  // computes the visual diff from the args fragments.
   const path = firstString(args, PATH_FIELDS) ?? "";
   const oldText = firstString(args, OLD_TEXT_FIELDS);
   const newText = firstString(args, NEW_TEXT_FIELDS);
-
-  const value = cursorEnvelopeValue(tryParseJson(result));
-  const linesAdded = value ? asNumber(value.linesAdded) : undefined;
-  const linesRemoved = value ? asNumber(value.linesRemoved) : undefined;
-  const unifiedDiff = value ? asString(value.diffString) : undefined;
-
-  return {
-    type: "diff",
-    path,
-    oldText,
-    newText,
-    linesAdded,
-    linesRemoved,
-    unifiedDiff,
-  };
+  return { type: "diff", path, oldText, newText };
 }
 
 function normalizeWrite(args: Args): ToolResultView {
@@ -583,17 +557,15 @@ function normalizeBackground(background: BackgroundCommandView, args: Args): Too
 function normalizeShell(result: string, args: Args): ToolResultView {
   // The command is the session's prompt line. "command" matches the shell
   // primaryField shared with the runner/Go classifier and both native and
-  // Cursor args, so no fallback fields are needed.
+  // Claude args, so no fallback fields are needed.
   const command = firstString(args, ["command"]);
 
-  // Two shapes carry structured shell output: native subagent steps emit the
-  // {stdout,stderr,exitCode} record directly; the Cursor SDK nests it under a
-  // {status, value} envelope (the same envelope the edit tool uses). Read
-  // whichever is present so the real output surfaces instead of the raw JSON
-  // string. A failed shell never reaches here — normalizeToolResult routes
-  // TOOL_CALL_FAILED to the error view first — so only success is handled.
-  const parsed = tryParseJson(result);
-  const shell = hasShellFields(parsed) ? parsed : cursorEnvelopeValue(parsed);
+  // Native subagent steps emit structured shell output, a
+  // {stdout,stderr,exitCode} record; read it so the real output surfaces
+  // instead of the raw JSON string. A failed shell never reaches here —
+  // normalizeToolResult routes TOOL_CALL_FAILED to the error view first — so
+  // only success is handled.
+  const shell = tryParseJson(result);
   if (hasShellFields(shell)) {
     return {
       type: "terminal",
@@ -621,160 +593,16 @@ function normalizeShell(result: string, args: Args): ToolResultView {
 // A grep-style match line, e.g. "  12: // TODO: fix".
 const GREP_MATCH_LINE = /^\s*\d+[:\t]/;
 
-// The Cursor SDK returns search results as a stringified JSON envelope, not the
-// plain text the native harness emits. Two shapes are observed, both fixture-
-// backed in test/fixtures/tool-view/result-views.json:
-//   - file-name search (Glob/file_search): the {status,value} envelope with
-//     value.files (paths), value.totalFiles, and the truncation flags.
-//   - grep / codebase search: {workspaceResults: {<path>: {type, output}}},
-//     where each workspace's output carries files and/or line-bearing matches.
-// Anything we don't recognise degrades to the json view (readable) rather than
-// being wrapped as a single fake match by the plain-text path below.
+// A search answers in plain text (see searchFromPlainText). A JSON answer is
+// not a shape any engine is known to give, so it degrades to the json view
+// (readable) rather than being wrapped as a single fake match by the
+// plain-text path.
 function normalizeSearch(result: string): ToolResultView {
   const parsed = tryParseJson(result);
-  if (parsed !== undefined) {
-    const fromEnvelope = searchFromEnvelope(parsed);
-    if (fromEnvelope) {
-      return fromEnvelope;
-    }
-    // Recognised JSON shape but nothing searchable in it (or an unknown shape):
-    // a clean json/object view beats wrapping the raw string as one "match".
-    if (isRecord(parsed) || Array.isArray(parsed)) {
-      return { type: "json", value: parsed };
-    }
+  if (parsed !== undefined && (isRecord(parsed) || Array.isArray(parsed))) {
+    return { type: "json", value: parsed };
   }
-
   return searchFromPlainText(result);
-}
-
-// Projects a parsed Cursor search envelope into a search view, or null when the
-// parsed JSON is not one of the recognised search shapes.
-//
-// Both shapes are wrapped in the Cursor {status,value} envelope (shared with
-// edit/shell), so the payload lives under `value`: file-name search puts `files`
-// there, grep/codebase search puts `workspaceResults` there. We read the inner
-// value when present and fall back to the parsed object itself, so a future
-// un-enveloped shape still resolves rather than dropping to the json fallback.
-function searchFromEnvelope(parsed: unknown): ToolResultView | null {
-  const inner = cursorEnvelopeValue(parsed) ?? (isRecord(parsed) ? parsed : undefined);
-  if (!inner) return null;
-
-  const truncated =
-    Boolean(inner.clientTruncated) || Boolean(inner.ripgrepTruncated);
-
-  // file-name search (Glob/file_search): inner.files is an array of path strings.
-  if (Array.isArray(inner.files)) {
-    const matches = pathsToFileMatches(inner.files);
-    const count = asNumber(inner.totalFiles) ?? matches.length;
-    // Safety net: the engine reports results but we extracted none — the shape
-    // drifted (e.g. files are objects, not strings). Surface the raw JSON rather
-    // than a misleading "No files found" that hides real data. (Truncation always
-    // returns a non-empty page, so this never fires on a legitimately capped result.)
-    if (count > 0 && matches.length === 0) return null;
-    return { type: "search", matches, count, kind: "files", truncated };
-  }
-
-  // grep / codebase search: inner.workspaceResults maps a workspace path to its
-  // { type, output }. Flatten every workspace's output into one match list so a
-  // multi-root search reads as a single result. Truncation can be reported at the
-  // envelope level (passed in) or per-workspace (read inside).
-  if (isRecord(inner.workspaceResults)) {
-    return searchFromWorkspaceResults(inner.workspaceResults, truncated);
-  }
-
-  return null;
-}
-
-// Flattens the per-workspace results of a grep/codebase search. Each workspace's
-// `output` carries `files` (path matches) and/or `matches` (line-bearing content
-// matches); both are collected, and `truncated` is OR-ed across workspaces.
-//
-// Returns null when the engine reports results (count > 0) but none could be
-// extracted — a shape drift — so the caller degrades to the raw JSON view rather
-// than silently rendering "No files found" over data that is actually there.
-function searchFromWorkspaceResults(
-  workspaceResults: Record<string, unknown>,
-  envelopeTruncated: boolean,
-): ToolResultView | null {
-  const fileMatches: ToolSearchMatch[] = [];
-  const contentMatches: ToolSearchMatch[] = [];
-  let reportedCount = 0;
-  let hasReportedCount = false;
-  let truncated = envelopeTruncated;
-
-  for (const ws of Object.values(workspaceResults)) {
-    const output = isRecord(ws) ? ws.output : undefined;
-    if (!isRecord(output)) continue;
-
-    if (Array.isArray(output.files)) {
-      fileMatches.push(...pathsToFileMatches(output.files));
-    }
-    if (Array.isArray(output.matches)) {
-      contentMatches.push(...toContentMatches(output.matches));
-    }
-
-    const count = asNumber(output.count);
-    if (count !== undefined) {
-      reportedCount += count;
-      hasReportedCount = true;
-    }
-    if (Boolean(output.clientTruncated) || Boolean(output.ripgrepTruncated)) {
-      truncated = true;
-    }
-  }
-
-  // Content matches are the richer signal, so when present they drive the view;
-  // otherwise the result is a file-name list.
-  const isContent = contentMatches.length > 0;
-  const matches = isContent ? contentMatches : fileMatches;
-
-  // Safety net: results were reported but none extracted — the per-workspace
-  // output shape drifted. Bail to the raw JSON view (see the caller) instead of
-  // hiding the data behind a "No matches".
-  if (hasReportedCount && reportedCount > 0 && matches.length === 0) {
-    return null;
-  }
-
-  return {
-    type: "search",
-    matches,
-    count: hasReportedCount ? reportedCount : matches.length,
-    kind: isContent ? "content" : "files",
-    truncated,
-  };
-}
-
-// Maps an engine-provided array of file paths into file-name matches. Both
-// `file` and `text` are set to the path so a kind-unaware consumer (e.g. the Ink
-// summary) still shows something useful. Non-string entries are skipped.
-function pathsToFileMatches(files: readonly unknown[]): ToolSearchMatch[] {
-  const matches: ToolSearchMatch[] = [];
-  for (const f of files) {
-    if (typeof f === "string" && f.length > 0) {
-      matches.push({ file: f, text: f });
-    }
-  }
-  return matches;
-}
-
-// Maps an engine-provided array of grep matches into content matches. Each entry
-// is read defensively (the exact shape is engine-fragile): a `file`/`path` and a
-// 1-based `line` are carried when present, and the line text is taken from the
-// first available text field, falling back to the stringified entry.
-function toContentMatches(rawMatches: readonly unknown[]): ToolSearchMatch[] {
-  const matches: ToolSearchMatch[] = [];
-  for (const m of rawMatches) {
-    if (typeof m === "string") {
-      if (m.length > 0) matches.push({ text: m });
-      continue;
-    }
-    if (!isRecord(m)) continue;
-    const file = asString(m.file) ?? asString(m.path);
-    const line = asNumber(m.line) ?? asNumber(m.lineNumber);
-    const text = asString(m.text) ?? asString(m.line_text) ?? asString(m.content) ?? "";
-    matches.push({ file, line, text });
-  }
-  return matches;
 }
 
 // The plain-text path for the native harness: grep emits "  12: match" lines;
@@ -898,16 +726,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-// The Cursor SDK wraps tool payloads in a {status, value} envelope. Returns the
-// inner `value` record when present, so edit and shell read the envelope through
-// one definition instead of each re-deriving its shape.
-function cursorEnvelopeValue(parsed: unknown): Record<string, unknown> | undefined {
-  return isRecord(parsed) && isRecord(parsed.value) ? parsed.value : undefined;
-}
-
-// True when a record carries structured shell output (stdout/exitCode). Used to
-// pick between the un-enveloped native shape and the Cursor envelope's inner
-// value in normalizeShell.
+// True when a record carries structured shell output (stdout/exitCode), the
+// shape native subagent steps emit (normalizeShell).
 function hasShellFields(v: unknown): v is Record<string, unknown> {
   return isRecord(v) && ("stdout" in v || "exitCode" in v);
 }

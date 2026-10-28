@@ -24,12 +24,11 @@
       "type": {
         "kind": "string"
       },
-      "description": "Default harness for new sessions: \"native\", \"cursor\" or \"claude\".\n Empty means no preference — the platform default applies.",
+      "description": "Default harness for new sessions: \"native\" or \"claude\".\n Empty means no preference — the platform default applies.",
       "required": false,
       "validation": {
         "enum": [
           "native",
-          "cursor",
           "claude"
         ]
       }
@@ -42,19 +41,6 @@
         "kind": "string"
       },
       "description": "Default model (registry model ID) for native-harness sessions.\n Empty means no preference — the platform default applies.",
-      "required": false,
-      "validation": {
-        "maxLength": 100
-      }
-    },
-    {
-      "name": "DefaultCursorModel",
-      "jsonName": "defaultCursorModel",
-      "protoField": "default_cursor_model",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Default model (registry model ID) for cursor-harness sessions.\n Empty means no preference — the platform default applies.",
       "required": false,
       "validation": {
         "maxLength": 100

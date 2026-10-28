@@ -75,8 +75,8 @@ export interface BuildChatModelOptions {
    * provider's default applies: the native execution turn passes it,
    * because current Anthropic models refuse a temperature other than their
    * default (claude-opus-4.7 and later, claude-sonnet-5, claude-fable-5;
-   * @langchain/anthropic throws before the request for some of them) and
-   * the Cursor harness sends none either (stigmer/stigmer#1341). Utility
+   * @langchain/anthropic throws before the request for some of them)
+   * (stigmer/stigmer#1341). Utility
    * calls keep their deterministic 0.
    */
   readonly temperature?: number | null;

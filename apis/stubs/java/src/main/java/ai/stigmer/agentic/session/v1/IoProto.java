@@ -167,16 +167,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -338,24 +328,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ce.metadata.id is required: an update na" +
       "mes the session by its id\032Thas(this.reso" +
       "urce) && has(this.resource.metadata) && " +
-      "this.resource.metadata.id != \'\'\"h\n\025BindH" +
-      "arnessStateInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\005runId\0220\n\020harness_state_id\030\002 \001(\tB\006\272H\003\310\001" +
-      "\001R\016harnessStateId\"}\n\030BindHarnessStateRes" +
-      "ponse\022(\n\020harness_state_id\030\001 \001(\tR\016harness" +
-      "StateId\0227\n\030harness_state_id_history\030\002 \003(" +
-      "\tR\025harnessStateIdHistory\"`\n\026StreamAttent" +
-      "ionRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022+\n" +
-      "\014after_cursor\030\002 \001(\tB\010\272H\005r\003\030\200\002R\013afterCurs" +
-      "or\"\247\001\n\tAttention\022\016\n\002id\030\001 \001(\tR\002id\022\035\n\nsess" +
-      "ion_id\030\002 \001(\tR\tsessionId\022\024\n\005title\030\003 \001(\tR\005" +
-      "title\022\025\n\006run_id\030\004 \001(\tR\005runId\022\026\n\006reason\030\005" +
-      " \001(\tR\006reason\022\016\n\002at\030\006 \001(\tR\002at\022\026\n\006cursor\030\007" +
-      " \001(\tR\006cursorB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.S" +
-      "tigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\A" +
-      "gentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\S" +
-      "ession\\V1\\GPBMetadata\352\002!Ai::Stigmer::Age" +
-      "ntic::Session::V1b\006proto3"
+      "this.resource.metadata.id != \'\'\"`\n\026Strea" +
+      "mAttentionRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R" +
+      "\003org\022+\n\014after_cursor\030\002 \001(\tB\010\272H\005r\003\030\200\002R\013af" +
+      "terCursor\"\247\001\n\tAttention\022\016\n\002id\030\001 \001(\tR\002id\022" +
+      "\035\n\nsession_id\030\002 \001(\tR\tsessionId\022\024\n\005title\030" +
+      "\003 \001(\tR\005title\022\025\n\006run_id\030\004 \001(\tR\005runId\022\026\n\006r" +
+      "eason\030\005 \001(\tR\006reason\022\016\n\002at\030\006 \001(\tR\002at\022\026\n\006c" +
+      "ursor\030\007 \001(\tR\006cursorB\242\001B\007IoProtoP\001\242\002\004ASAS" +
+      "\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\St" +
+      "igmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Ag" +
+      "entic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigm" +
+      "er::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -534,26 +518,14 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor,
         new java.lang.String[] { "Resource", "UpdateMask", });
-    internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor =
-      getDescriptor().getMessageType(25);
-    internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor,
-        new java.lang.String[] { "RunId", "HarnessStateId", });
-    internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor =
-      getDescriptor().getMessageType(26);
-    internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor,
-        new java.lang.String[] { "HarnessStateId", "HarnessStateIdHistory", });
     internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor =
-      getDescriptor().getMessageType(27);
+      getDescriptor().getMessageType(25);
     internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor,
         new java.lang.String[] { "Org", "AfterCursor", });
     internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor =
-      getDescriptor().getMessageType(28);
+      getDescriptor().getMessageType(26);
     internal_static_ai_stigmer_agentic_session_v1_Attention_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor,

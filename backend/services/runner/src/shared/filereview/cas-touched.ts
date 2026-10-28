@@ -8,8 +8,8 @@
  * workspace EVERY change is. For those paths the only record of the
  * pre-turn bytes is the one taken at mutation time, by whatever sits between
  * the engine and the disk: the deep-agent's `CasCaptureObserver` (fed by its
- * filesystem backend and its approval gate) or the Cursor hook's on-disk
- * sidecar. Both produce this one snapshot shape, and both consumers read it:
+ * filesystem backend and its approval gate) or the Claude engine's gate. Both
+ * produce this one snapshot shape, and both consumers read it:
  * the mid-run progress slice (`cas-progress.ts`) and the turn-boundary
  * capture ({@link buildCasTurnCaptures}), which composes it into the
  * {@link CasPathCapture}s the CAS substrate stores.

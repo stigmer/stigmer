@@ -9,7 +9,7 @@ import { cn } from "@stigmer/design-tokens";
  * with a stable signature ("[StallTimeoutError]", "Execution interrupted",
  * "Retry or resume."), and the workflow auto-resumes them while recovery cycles
  * remain; by the time one reaches the UI as terminal it is resumable from the
- * session's persisted harness_state_id rather than a dead end.
+ * session's persisted conversation rather than a dead end.
  */
 function isInterruptedError(error: string): boolean {
   return /\[StallTimeoutError\]|execution interrupted|retry or resume/i.test(error);
@@ -27,7 +27,7 @@ export interface RunErrorNoticeProps {
   readonly retryMessage?: string;
   /**
    * Resends {@link retryMessage}; the server continues from the session's
-   * persisted harness_state_id. Retry renders only when both this handler
+   * persisted conversation. Retry renders only when both this handler
    * and {@link retryMessage} are present.
    */
   readonly onRetry?: (message: string) => void;
@@ -42,7 +42,7 @@ export interface RunErrorNoticeProps {
  * A genuine failure renders as a destructive alert with a Retry. A *recoverable
  * interruption* renders as a neutral notice with a Resume — both resend the
  * originating message, which the server continues from the session's persisted
- * harness_state_id (the same data path; the framing differs so an interruption
+ * conversation (the same data path; the framing differs so an interruption
  * never looks like a dead-end crash).
  *
  * Slot-overridable via `MessageThreadSlots.RunErrorNotice`. An override

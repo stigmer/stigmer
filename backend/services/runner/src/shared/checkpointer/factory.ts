@@ -10,9 +10,8 @@
  * - http: HttpCheckpointSaver (proxy-backed) — for cloud / managed runners.
  * - memory: MemorySaver (ephemeral, zero-config) — explicit opt-in for tests.
  *
- * The returned saver is used by the deep agent activity.
- * Cursor executions do not use LangGraph checkpointers — they rely on
- * the Cursor SDK's native agent state persistence.
+ * The returned saver is used by the deep agent activity; the Claude engine
+ * keeps its conversation in its own session store.
  */
 
 import { MemorySaver } from "@langchain/langgraph-checkpoint";

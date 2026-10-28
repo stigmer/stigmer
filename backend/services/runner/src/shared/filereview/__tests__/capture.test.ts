@@ -8,9 +8,8 @@
  *
  * Tests the harness-agnostic capture orchestration directly, under one
  * harness id (since #1096 the runtime is the ONE caller for every harness,
- * `harness/capture.ts`; until then each adapter called this seam and the
- * Cursor side had its own test, `execute-cursor/capture-flow.test.ts`, whose
- * three reconcile arms no other file carried moved here). Confirms that the
+ * `harness/capture.ts`; until then each adapter called this seam, and the
+ * three reconcile arms one adapter's own test carried moved here). Confirms that the
  * ledger entries depend on nothing but `harness_id` and that with no
  * excludePaths every changed file is captured. Runs against a REAL temp git repo.
  */
@@ -66,8 +65,7 @@ const HARNESS = "deep-agent";
 // Capture needs both facts: the turn's review is on, and the workspace has a
 // substrate. A non-git workspace with NO artifact storage (or no workspace) has
 // no capture substrate, so a turn with review on falls back to the deny-gate —
-// the branch this pins for BOTH the Cursor (exact-apply) and deep-agent
-// (LangGraph-replay) harnesses. With review off nothing is captured whatever
+// the branch this pins for every harness. With review off nothing is captured whatever
 // the workspace can do.
 describe("deriveCaptureMode", () => {
   // primary dir, git, storage → substrate; then review on / off → capture.
@@ -242,8 +240,8 @@ describe("capture orchestration — deep-agent harness", () => {
     // artifact mode. `ProxyArtifactStorage.exists()` reports true for ANY key
     // (the presign endpoint mints a URL regardless of object existence), so the
     // old reconcile "found" a CAS manifest that a git-only turn never wrote,
-    // downloaded it, and died on the R2 `NoSuchKey` 404 (the ExecuteCursor
-    // crash `proxy-reconcile.test.ts` reproduces). The undo decides "is this a CAS turn?"
+    // downloaded it, and died on the R2 `NoSuchKey` 404 (the crash
+    // `proxy-reconcile.test.ts` reproduces). The undo decides "is this a CAS turn?"
     // from the change set's CANDIDATE snapshot — a git-only turn carries no cas
     // ref — so a lying `exists()` can never turn a git undo into a doomed
     // download.

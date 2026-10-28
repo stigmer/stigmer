@@ -11,8 +11,6 @@
  *  - the host's artifact store uploads through the runner and refuses
  *    reads: the engines only upload, and a read would be a path into the
  *    runner's whole store;
- *  - an adapter reads its run's events through the runner, each crossing
- *    whole;
  *  - the turn's input channel crosses: the hint as the turn began and each
  *    time it rises, a claim the runner answers with whether more wait (and
  *    none made while nothing waits), and what the run took.
@@ -21,7 +19,6 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
@@ -30,7 +27,7 @@ import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { TURN_KEY_HEADER, turnKeyHeader } from "../../shared/execution-context.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { decodeMessage, encodeMessage, encodeRunEvents, encodeTurnInput } from "../codec.js";
+import { decodeMessage, encodeMessage, encodeTurnInput } from "../codec.js";
 import { serveAgentHost } from "../host.js";
 import type { HostCalls, HostNotices, RunnerCalls, RunnerNotices } from "../protocol.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -207,26 +204,5 @@ describe("the agent host's server", () => {
       "agent host: the artifact store is the runner's (artifacts/other/secret)",
       "agent host: the artifact store is the runner's (artifacts/other/secret)",
     ]);
-  });
-
-  it("reads the run's events through the runner, each event whole", async () => {
-    const event = create(SessionEventSchema, {
-      runId: "aex_fixture_0001",
-      event: { case: "agentMessage", value: { id: "aex_fixture_0001.root.m0", content: [{ type: "text", text: "so far" }] } },
-    });
-    let read: string[] = [];
-    const { runner, call } = served(async (input) => {
-      read = (await input.readRunEvents()).map((e) => (e.event.case === "agentMessage" ? e.event.value.id : ""));
-      return { kind: "completed" };
-    });
-    const asked: string[] = [];
-    runner.handle("readRunEvents", async ({ turnId }) => {
-      asked.push(turnId);
-      return encodeRunEvents([event]);
-    });
-
-    await call();
-    expect(asked).toEqual(["t1"]);
-    expect(read).toEqual(["aex_fixture_0001.root.m0"]);
   });
 });

@@ -268,7 +268,7 @@ export function failedAtCreate(modelRequested: string | null, message: string): 
     },
     cost_source: "runner-rate-card-estimate",
     server: { created_at: "", started_at: "", completed_at: "" },
-    timing: { turn_phases: null, execution_setup: null, turn_first_event: null },
+    timing: { turn_phases: null, execution_setup: null },
     tool_calls: [],
     todos: { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
     background: null,

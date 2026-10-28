@@ -328,7 +328,7 @@ class StigmerAgentThinkingEvent(_message.Message):
     def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., thinking_id: _Optional[str] = ..., text: _Optional[str] = ...) -> None: ...
 
 class StigmerPermissionAskedEvent(_message.Message):
-    __slots__ = ("id", "processed_at", "tool_use_id", "message", "args_preview", "policy_source", "policy_hook", "content_digest")
+    __slots__ = ("id", "processed_at", "tool_use_id", "message", "args_preview", "policy_source", "policy_hook")
     ID_FIELD_NUMBER: _ClassVar[int]
     PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
     TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -336,7 +336,6 @@ class StigmerPermissionAskedEvent(_message.Message):
     ARGS_PREVIEW_FIELD_NUMBER: _ClassVar[int]
     POLICY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     POLICY_HOOK_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_DIGEST_FIELD_NUMBER: _ClassVar[int]
     id: str
     processed_at: str
     tool_use_id: str
@@ -344,8 +343,7 @@ class StigmerPermissionAskedEvent(_message.Message):
     args_preview: str
     policy_source: str
     policy_hook: str
-    content_digest: str
-    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., policy_source: _Optional[str] = ..., policy_hook: _Optional[str] = ..., content_digest: _Optional[str] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., policy_source: _Optional[str] = ..., policy_hook: _Optional[str] = ...) -> None: ...
 
 class StigmerHarnessNoteEvent(_message.Message):
     __slots__ = ("id", "processed_at", "text")

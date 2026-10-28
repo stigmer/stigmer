@@ -20,7 +20,6 @@ import type { ModelCatalogProvider } from "./model-catalog-provider.js";
  * every consumer (schedule/channel pin validation and the rest)
  * shares one vocabulary instead of re-declaring string literals.
  */
-export const HARNESS_NAME_CURSOR = "cursor";
 export const HARNESS_NAME_NATIVE = "native";
 export const HARNESS_NAME_CLAUDE = "claude";
 
@@ -42,8 +41,6 @@ const MAX_MODEL_EDIT_DISTANCE = 5;
  */
 export function harnessName(h: Harness): string {
   switch (h) {
-    case Harness.CURSOR:
-      return HARNESS_NAME_CURSOR;
     case Harness.CLAUDE:
       return HARNESS_NAME_CLAUDE;
     case Harness.NATIVE:
@@ -61,8 +58,7 @@ export function harnessName(h: Harness): string {
  * (oss#774): a pinned model_name that is not in the model registry is
  * refused at apply/update, with a did-you-mean. Before this rule,
  * model_name was the one profile knob that failed OPEN — a typo'd pin
- * passed every write boundary and the cursor runner silently fell back to
- * "default" (Auto), billing at Auto rates.
+ * passed every write boundary and silently ran on a model nobody chose.
  *
  * `harness` names the registry section the pin's runs would use
  * (harnessName of the surface's effective harness). Pass "" for surfaces
@@ -79,7 +75,7 @@ export function harnessName(h: Harness): string {
  * An explicit `openai:<name>` or `anthropic:<name>` reference passes on the
  * native harness (and on "", any harness) without a registry entry: it names
  * a model the organization serves on its own endpoint, which the runner
- * routes by the prefix and no catalog lists. The Cursor harness runs only
+ * routes by the prefix and no catalog lists. The Claude harness runs only
  * catalog models, so the form is judged like any other name there.
  *
  * Degrades to a no-op ("") when the registry is empty or lacks the harness

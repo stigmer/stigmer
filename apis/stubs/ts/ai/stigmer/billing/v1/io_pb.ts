@@ -80,7 +80,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
   callId: string;
 
   /**
-   * Provider identifier (e.g., "openai", "anthropic", "cursor").
+   * Provider identifier (e.g., "openai", "anthropic").
    *
    * @generated from field: string provider = 3;
    */
@@ -157,7 +157,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
   providerUsageJson: string;
 
   /**
-   * Harness that originated this call ("native", "cursor" or "claude").
+   * Harness that originated this call ("native" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    *
@@ -173,8 +173,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
    * verbatim by the proxy from the SSE stream — the wire truth billing
    * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
-   * none, and for cursor-harness calls, whose billed variant arrives
-   * through the cursor path's pricing-variant resolution instead.
+   * none.
    *
    * @generated from field: string served_service_tier = 18;
    */

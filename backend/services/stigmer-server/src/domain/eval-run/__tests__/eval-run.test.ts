@@ -290,13 +290,13 @@ describe("eval run create", () => {
         evalOf(plugin, {
           targets: [
             { harness: Harness.NATIVE, modelName: "" },
-            { harness: Harness.CLAUDE, modelName: "composer-2.5" },
+            { harness: Harness.CLAUDE, modelName: "claude-sonnet-9" },
           ],
         }),
       ),
     );
     expect(unlisted.code).toBe(Code.InvalidArgument);
-    expect(unlisted.rawMessage).toContain("spec.targets[1].model_name: model 'composer-2.5' is not in the model registry (claude harness)");
+    expect(unlisted.rawMessage).toContain("spec.targets[1].model_name: model 'claude-sonnet-9' is not in the model registry (claude harness)");
 
     expect((await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).entries).toHaveLength(before);
   });

@@ -63,8 +63,6 @@ describe("result-view fixtures", () => {
       command?: string;
       count?: number;
       mcpServerSlug?: string;
-      linesAdded?: number;
-      linesRemoved?: number;
       memoryId?: string;
       fact?: string;
     };
@@ -114,12 +112,6 @@ describe("result-view fixtures", () => {
       }
       if (c.expected.mcpServerSlug !== undefined && view.type === "contentBlocks") {
         expect(view.mcpServerSlug).toBe(c.expected.mcpServerSlug);
-      }
-      if (c.expected.linesAdded !== undefined && view.type === "diff") {
-        expect(view.linesAdded).toBe(c.expected.linesAdded);
-      }
-      if (c.expected.linesRemoved !== undefined && view.type === "diff") {
-        expect(view.linesRemoved).toBe(c.expected.linesRemoved);
       }
       if (c.expected.memoryId !== undefined && view.type === "memoryProposal") {
         expect(view.memoryId).toBe(c.expected.memoryId);
@@ -194,7 +186,7 @@ describe("secret-args fixtures", () => {
 describe("resolveToolKind reads the name", () => {
   it("classifies a tool use by its name: the same output reads as a terminal under a shell name only", () => {
     const output = "done\n[Command succeeded]";
-    expect(normalizeToolResult(toolUseOf({ name: "Shell", result: output, status: "completed" })).type).toBe("terminal");
+    expect(normalizeToolResult(toolUseOf({ name: "Bash", result: output, status: "completed" })).type).toBe("terminal");
     expect(normalizeToolResult(toolUseOf({ name: "some_unknown_name", result: output, status: "completed" })).type).toBe("text");
   });
 

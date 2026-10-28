@@ -1,9 +1,9 @@
 /**
  * Native `web_fetch` tool — built-in URL retrieval for the deep-agent harness.
  *
- * Closes the harness parity gap of stigmer/stigmer#214: the Cursor harness
- * ships WebFetch as a CLI built-in, while native runs previously needed an
- * MCP server (seedpack `fetch`) for the same capability. Both tool names
+ * Closes the harness parity gap of stigmer/stigmer#214: the Claude engine
+ * ships WebFetch as a built-in, while native runs previously needed an MCP
+ * server (seedpack `fetch`) for the same capability. Both tool names
  * classify to TOOL_KIND_FETCH, so rendering is identical across harnesses.
  *
  * Design constraints, in order:
