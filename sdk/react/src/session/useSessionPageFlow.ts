@@ -113,7 +113,7 @@ export interface UseSessionPageFlowReturn {
    * last message asked for (`spec.run_config`, what the person picked,
    * never what the server resolved), so a follow-up keeps the person's
    * pick and never copies an agent default into the next message. Where
-   * the agent names no model for this conversation's engine, a model
+   * the agent names no model for this conversation's harness, a model
    * remembered on this device comes first. The setter remembers the pick.
    */
   readonly model: UsePersistedModelReturn;
@@ -121,10 +121,10 @@ export interface UseSessionPageFlowReturn {
   /**
    * The agent's run defaults that apply to the next message: the model,
    * tier and thinking of the agent version the conversation runs, when it
-   * names a model for the engine this conversation runs. Pass it to the
+   * names a model for the harness this conversation runs. Pass it to the
    * composer's `agentRunDefaults` so an untouched send asks for nothing
    * and the server applies them. `undefined` for the built-in assistant,
-   * an agent that names none for this engine, a guest, and while the
+   * an agent that names none for this harness, a guest, and while the
    * agent loads.
    */
   readonly agentRunDefaults: AgentRunDefaults | undefined;

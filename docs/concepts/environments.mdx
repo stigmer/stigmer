@@ -171,7 +171,7 @@ Two cases to know about:
   the console's form starts a new Environment with that switch on.
 
 Which web tools the list governs depends on the
-[harness](/docs/concepts/harnesses). The native harness fetches web pages from
+[harness](/docs/concepts/harnesses). The Stigmer harness fetches web pages from
 inside the sandbox, so its `web_fetch` follows the list like any other request.
 The Claude harness offers no web tools yet.
 
@@ -282,7 +282,7 @@ haven't picked one.
   any name, plus the plain-HTTP lanes named above, on Agent Substrate; on the
   other drivers, it is whatever network the server's operator gives the sandbox.
 - **Web tools follow the harness.** Managed Agents applies `allowed_hosts` to
-  its own `web_fetch` and `web_search`. Here the native harness's `web_fetch`
+  its own `web_fetch` and `web_search`. Here the Stigmer harness's `web_fetch`
   runs in the sandbox under the same list, and the Claude harness offers no web
   tools yet.
 - **No setup script and no variables.** Packages are the one thing an

@@ -122,7 +122,7 @@ definitions, API names, and examples follow below.
 | **Session event**      | ---                        | ---                                    | event               | `SessionEvent`, `agent.message`, `stigmer.*`        | event              |
 | **File**               | file                       | file                                   | File                | File, `kind: File`, `file_ids`                      | File               |
 | **Runner**             | compute                    | runner ("where your Agent runs")       | Runner              | Runner                                              | runner             |
-| **Harness**            | execution engine           | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`                      | harness            |
+| **Harness**            | harness                    | harness ("Stigmer or Claude Agent")    | Harness             | Harness, `SessionSpec.harness`                      | harness            |
 | **Approval flow**      | approval flow              | approval flow                          | approval flow, HITL | `destructiveHint`, `confirmToolUse`                 | HITL, approval     |
 | **Organization**       | Organization               | Organization                           | Organization        | Organization, `kind: organization`                  | Organization       |
 | **Agent hour**         | agent hours                | ---                                    | agent hours         | `included_agent_hours`, `per_agent_hour_micros`     | agent hours        |
@@ -180,7 +180,7 @@ A reusable definition of what an AI assistant knows and can do.
   add one or change its address or headers), `spec.skill_refs`, `spec.tools`,
   `spec.subagents` (saved Agents it may hand work to, each pinned to a version
   when this Agent is saved, one level deep), and `spec.run_config` with
-  `spec.harness`: the model and engine a conversation on the Agent starts on, a
+  `spec.harness`: the model and harness a conversation on the Agent starts on, a
   default that a message, a channel or a routine may override (see
   [Run settings](/docs/concepts/agents#run-settings)), and
   `spec.environment_ref`: the [Environment](#environment) its conversations run
@@ -774,42 +774,53 @@ A process that connects to Stigmer and executes your Agents.
 
 #### Harness
 
-The execution engine that processes agent activities for a Session.
+The agent loop that runs a Session's turns: Stigmer's own, or Anthropic's Claude
+Agent SDK. A person picks it beside the model, and the model list follows it.
 
-- **User-facing alternative**: "execution engine" on the sales site and in
-  introductory copy. Once the reader knows what a Harness is, use the canonical
-  name.
+- **User-facing name**: "harness", in every string a person reads: the console,
+  CLI help and errors, server and runner messages, docs, and the sales site.
+  Never "engine" or "execution engine" for this concept. Internal identifiers
+  and paths that say "engine" stay as they are; people do not read them as the
+  concept.
 - **Capitalize**: Yes, when referring to the Stigmer concept.
+- **Labels**: each value has one label, the same on every surface.
+  - `native` is **Stigmer**: "Stigmer's own harness: runs any catalog model,
+    open source end to end." It is built on LangChain's open source deepagents;
+    the docs say so once, the label does not.
+  - `claude` is **Claude Agent**: "Anthropic's Claude Agent SDK: Claude models
+    on your Anthropic key." Anthropic's naming terms prefer "Claude Agent" in a
+    picker. Never "Claude Code"; "Powered by Claude" may follow a Stigmer name.
+- **The vendor runtime**: the Claude harness downloads "the Claude Agent SDK".
+  Its paths and environment names (`/runner/engines`, `~/.stigmer/engines`,
+  `STIGMER_ENGINES_DIR`) are wire and stay.
+- **Words and labels**: the CLI, the account default and the model registry take
+  the words `native` and `claude`. Where a word and its label differ, help shows
+  both: `"native" (Stigmer)`, `"claude" (Claude Agent)`.
 - **API surface**: `SessionSpec.harness`, enum `Harness` (values: `NATIVE`,
   `CLAUDE`). proto: `session/v1/spec.proto`.
-- **Two values**:
-  1. **Native** --- Stigmer's built-in engine. Default for all Sessions. Full
-     control over model selection from all supported providers. Deep integration
-     with Stigmer's checkpoint, pause/resume, and sandbox features.
-  2. **Claude** --- Uses Anthropic's Claude Agent SDK as the execution engine,
-     on Claude models and the Organization's own Anthropic key. Approvals stop
-     at the exact call.
-- **Immutability**: A Session's Harness cannot change after the first run
-  starts. It determines which models are available and which runtime processes
-  the agent's turns.
+- **Immutability**: A Session's Harness cannot change after its first run. It
+  determines which models are available and which runtime processes the agent's
+  turns.
 - **Related terms**: Sessions bind to a Harness via `SessionSpec.harness`.
   Runners host workers for each Harness type on separate task queues.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                        |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Pick the engine each agent runs on; changing it is a setting, not a change to your product."                                                               |
-| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                                   |
-| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Claude."                                                 |
-| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CLAUDE` for the Claude Agent SDK engine. Immutable after first run." |
+| Context    | Copy                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Pick the harness each agent runs on, Stigmer or Claude Agent; changing it is a setting, not a change to your product."     |
+| Quickstart | "Pick a harness: Stigmer runs any catalog model, Claude Agent runs Claude models on your Anthropic key."                    |
+| Concepts   | "A Harness determines which agent loop runs your Agent's turns. Stigmer offers two: Stigmer and Claude Agent."              |
+| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for Stigmer's own harness, `HARNESS_CLAUDE` for the Claude Agent SDK." |
 
 **Bad examples**:
 
-| Context    | Copy                                                    | Problem                                                            |
-| ---------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
-| Sales site | "Configure the SessionSpec.harness field."              | API-level detail in a business context.                            |
-| Quickstart | "The Claude harness uses a TypeScript Temporal worker." | Internal architecture. The quickstart should say "pick a harness." |
+| Context    | Copy                                                    | Problem                                                                                             |
+| ---------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Sales site | "Configure the SessionSpec.harness field."              | API-level detail in a business context.                                                             |
+| Quickstart | "The Claude harness uses a TypeScript Temporal worker." | Internal architecture. The quickstart should say "pick a harness."                                  |
+| Console    | "Execution engine: Native"                              | "Engine" is not the concept's word, and "Native" says nothing; the picker reads "Harness: Stigmer". |
+| Docs       | "Runs on Claude Code"                                   | Anthropic's terms do not permit it; say "Claude Agent".                                             |
 
 ---
 
@@ -1646,12 +1657,12 @@ Claude models and the Organization's own Anthropic key.
 
 - **Capitalize**: No special capitalization beyond "Claude" (the product name).
   Write "Claude harness" in lowercase "h" in prose.
-- **Product name**: The product says "Claude" or "Powered by Claude", never
-  "Claude Code". Claude Code names a format only: its tool names and its hooks
-  format.
-- **Context rule**: Concepts and reference only. In sales copy say "Claude" or
-  "Powered by Claude"; in quickstart, refer to it as "the Claude harness" after
-  the Harness concept has been introduced.
+- **Product name**: The product's label is "Claude Agent", and "Powered by
+  Claude" may follow it; never "Claude Code". Claude Code names a format only:
+  its tool names and its hooks format.
+- **Context rule**: Concepts and reference only. In sales copy say "Claude
+  Agent" or "Powered by Claude"; in quickstart, refer to it as "the Claude
+  harness" after the Harness concept has been introduced.
 - **Related terms**: Harness (the parent concept).
 
 ---
@@ -2155,8 +2166,8 @@ that define Stigmer's API contracts.
 <!-- vale Stigmer.terms = NO -->
 
 The Agent framework of the retired Python agent runner. The name survives only
-in historical references; today's runner executes the native harness with
-LangGraph.js deep-agent.
+in historical references; today's runner executes Stigmer's own harness with
+LangChain's deepagents on LangGraph.js.
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -2180,8 +2191,8 @@ The gRPC API server that powers the local development experience.
 #### Agent Runner
 
 The TypeScript Temporal worker (`stigmer-runner`, `backend/services/runner`)
-that executes agent sessions, driving every harness it carries: the native
-deep-agent (LangGraph.js) and Claude.
+that executes agent sessions, driving every harness it carries: Stigmer's own
+(deepagents on LangGraph.js) and Claude Agent (the Claude Agent SDK).
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure

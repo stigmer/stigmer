@@ -107,7 +107,7 @@ export interface UseNewSessionFlowOptions {
    * subsequent visits.
    *
    * Ignored for the `"guest"` audience: a guest session runs the chat
-   * link's agent on its own engine and defaults (the guest policy note on
+   * link's agent on its own harness and defaults (the guest policy note on
    * `GUEST_LOCAL_HARNESS`), never an embedder preference or a stored Console
    * choice.
    *
@@ -121,13 +121,13 @@ export interface UseNewSessionFlowOptions {
    * explicit device-local choices always outrank it:
    *
    * - harness: the person's pick on this surface > the selected agent's
-   *   engine (`AgentSpec.harness`) > stored choice >
+   *   harness (`AgentSpec.harness`) > stored choice >
    *   `accountDefaults.harness` > {@link defaultHarness} > platform
    *   default. May arrive after mount (whoAmI resolves async); a late
    *   value still seeds unless the user has already picked a harness
    *   this mount.
    * - model: where the selected agent names a model for the active
-   *   engine, nothing unless the person picks one on this surface (the
+   *   harness, nothing unless the person picks one on this surface (the
    *   agent's default applies server-side); elsewhere the stored
    *   per-harness choice > the account's model for the active harness
    *   (validated against the registry; a stale model silently falls
@@ -214,8 +214,8 @@ export interface UseNewSessionFlowOptions {
 /** Return value of {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowReturn {
   /**
-   * The engine the conversation will run: the person's pick on this
-   * surface, else the selected agent's engine when it names one, else the
+   * The harness the conversation will run: the person's pick on this
+   * surface, else the selected agent's harness when it names one, else the
    * remembered and seeded choices (see `accountDefaults`). A pick is
    * remembered in localStorage.
    */
@@ -225,7 +225,7 @@ export interface UseNewSessionFlowReturn {
 
   /**
    * The model an untouched send asks for. Where the selected agent names a
-   * model for the active engine, only a pick made on this surface (the
+   * model for the active harness, only a pick made on this surface (the
    * agent's default applies otherwise, and this is `undefined`). Elsewhere
    * the explicit device pick when one exists (persisted per-harness to
    * localStorage), else the account default for the active harness;
@@ -234,9 +234,9 @@ export interface UseNewSessionFlowReturn {
   readonly modelId: string | undefined;
 
   /**
-   * The selected agent's run defaults that apply on the active engine:
+   * The selected agent's run defaults that apply on the active harness:
    * pass it to the composer's `agentRunDefaults`. `undefined` with no
-   * agent, an agent that names no model for this engine, a guest, and
+   * agent, an agent that names no model for this harness, a guest, and
    * while the agent loads.
    */
   readonly agentRunDefaults: AgentRunDefaults | undefined;
@@ -262,7 +262,7 @@ export interface UseNewSessionFlowReturn {
    * Forget the model the person picked on this surface, so the selected
    * agent's default model applies again: pass it to the composer's
    * `onModelPickCleared`. Picks are also forgotten when the agent
-   * changes, and a pick the engine does not list when the engine changes.
+   * changes, and a pick the harness does not list when the harness changes.
    */
   readonly clearModelPick: () => void;
 

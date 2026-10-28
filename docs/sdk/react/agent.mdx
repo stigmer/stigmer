@@ -812,7 +812,7 @@ Describes a single environment variable that the form should collect.
 
 ### agentHarnessOf
 
-The engine the agent names, or `undefined` when it names none: a new
+The harness the agent names, or `undefined` when it names none: a new
 conversation on the agent starts on it unless the person picks another.
 
 ```tsx
@@ -838,11 +838,11 @@ Every mode starts the conversation on the agent itself (the session's
 
 ### AgentRunDefaults
 
-The choices an agent's run defaults make for a conversation on its engine.
+The choices an agent's run defaults make for a conversation on its harness.
 
 <TypeTable
   type={{
-    modelName: { type: "string", description: "The model the author chose, as the registry lists it on the agent's engine.", required: true },
+    modelName: { type: "string", description: "The model the author chose, as the registry lists it on the agent's harness.", required: true },
     serviceTier: { type: "ServiceTierOption", description: "The speed tier the author chose, when they chose one." },
     thinkingMode: { type: "ThinkingModeOption", description: "The thinking mode the author chose, when they chose one." },
   }}
@@ -853,7 +853,7 @@ The choices an agent's run defaults make for a conversation on its engine.
 
 The agent's model choices that apply to a conversation running
 `harness`, or `undefined` when none do: the agent names no model, or
-names an engine other than the one the conversation runs.
+names a harness other than the one the conversation runs.
 
 ```tsx
 function agentRunDefaultsFor(spec: AgentSpec | undefined, harness: HarnessOption): AgentRunDefaults | undefined

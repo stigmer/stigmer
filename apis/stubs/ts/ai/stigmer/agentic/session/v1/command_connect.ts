@@ -216,7 +216,7 @@ export const SessionCommandController = {
      *
      * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
      *   be stopped)
-     * - FAILED_PRECONDITION: the execution engine is not connected
+     * - FAILED_PRECONDITION: the workflow engine is not connected
      *
      * ## Idempotency
      *

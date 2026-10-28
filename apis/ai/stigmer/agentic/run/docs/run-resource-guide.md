@@ -105,18 +105,18 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 
 | Field | Type | Description |
 |---|---|---|
-| `model_name` | `string` | The model, by its Model Registry id on the engine that runs it. Example: `"claude-sonnet-4.5"`. |
+| `model_name` | `string` | The model, by its Model Registry id on the harness that runs it. Example: `"claude-sonnet-4.5"`. |
 | `max_cost_usd` | `double` | Stop the message once its estimated cost reaches this many US dollars; the work done so far is kept and the turn ends `TERMINATED`. Per message: a follow-up or a resume after an approval starts a fresh count. |
-| `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Native harness only; subagent rounds are not counted. |
-| `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its engine. |
-| `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its engine. |
+| `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Stigmer harness only; subagent rounds are not counted. |
+| `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its harness. |
+| `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its harness. |
 | `max_tool_result_chars` | `int32` | Cut a single tool result longer than this many characters to its start and its end. The whole result is kept for the session, outside the workspace, where the agent can read it back; a tool that pages itself (reading a file, searching, listing, fetching a page) is read again a window at a time instead. Above 80,000 it raises the bound only for the file tools. 30,000 when no layer sets it. |
 
 **How a turn's settings are resolved.** Once, at create, from three layers, most specific first: the message (or the routine or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile.
 
-- **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the run uses its engine's registry default.
+- **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the run uses its harness's registry default.
 - **Limits** (`max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`) take the smallest value any layer sets: a message, routine or channel can lower an agent's cap, never raise it.
-- The agent's choices apply only on the engine its `harness` names; on a conversation running another engine, the agent layer gives its limits alone.
+- The agent's choices apply only on the harness its `harness` names; on a conversation running another harness, the agent layer gives its limits alone.
 - Saved settings are self-contained: a routine, channel or agent that sets `SERVICE_TIER_FAST` or `THINKING_MODE_ENABLED` names its model. Only a message may set them alone.
 
 The proto comment on `RunConfig` is the normative rule. The user-facing explanation, with an agent example, is [Agents: Run settings](https://stigmer.ai/docs/concepts/agents#run-settings).
@@ -139,7 +139,7 @@ Defined in `ai/stigmer/agentic/run/v1/api.proto`. All fields are system-managed.
 | `agent_version_hash` | `string` | The agent version this turn ran, from its session. |
 | `declared_preferences` | `DeclaredPreferences` | The organization's and the person's standing context, snapshotted when the turn was created. |
 | `recalled_memories` | `RecalledMemories` | The confirmed memories recalled into this turn, snapshotted when it was created. |
-| `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the routine's or channel's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the engine chose. Server-only. |
+| `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the routine's or channel's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the harness chose. Server-only. |
 | `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: routine fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn is interactive. Server-only. |
 | `stop_cause` | `string` | Why the turn stopped, as one word (`budget_reached`, `timeout`, `infrastructure`, `platform_stop`, `user`, `model_error`, `failed`, `eval_stopped`, `review_resolved`). Empty while the turn works and when it ended on its own. See [run-lifecycle.md](run-lifecycle.md). |
 
@@ -159,7 +159,7 @@ A run's status carries no transcript. The agent's messages and thinking, its too
 |---|---|---|
 | `id` | `string` | Stable id of the change set, unique per turn; the id the session's `stigmer.file_review.*` events name. |
 | `turn_id` | `string` | The turn that produced the change set. |
-| `harness_id` | `string` | The engine that made the edits: `deep-agent` or `claude`. |
+| `harness_id` | `string` | The harness that made the edits: `deep-agent` (Stigmer) or `claude` (Claude Agent). |
 | `baseline_snapshot` | `SnapshotRef` | Workspace state at turn start, the "before" of the diff. |
 | `candidate_snapshot` | `SnapshotRef` | Workspace state at the turn boundary, the "after". The diff is computed between the two snapshots. |
 | `changes` | `repeated CapturedFileChange` | One entry per file: `path_before`, `path_after`, `kind`, the contents `before` and `after` (inline, or by storage key when large), their SHA-256 digests, the `unified_diff`, whether the diff is complete, and lines added and removed. |

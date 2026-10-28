@@ -352,23 +352,23 @@ describe("AccountPreferencesPanel", () => {
 
       expect(screen.getByRole("radio", { name: "Platform default" })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Claude" })).toBeTruthy();
+      expect(screen.getByRole("radio", { name: "Claude Agent" })).toBeTruthy();
       expect(screen.getAllByRole("radio")).toHaveLength(3);
       expect(screen.getByLabelText("Default model — Stigmer")).toBeTruthy();
-      expect(screen.getByLabelText("Default model — Claude")).toBeTruthy();
+      expect(screen.getByLabelText("Default model — Claude Agent")).toBeTruthy();
     });
 
     it("discards an unsaved engine and model back to the saved ones", async () => {
       renderPanel(createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS) }));
       await findSyncedField("Keep answers terse.");
-      await waitFor(() => expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true));
+      await waitFor(() => expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true));
 
       fireEvent.click(screen.getByRole("radio", { name: "Stigmer" }));
-      fireEvent.change(screen.getByLabelText("Default model — Claude"), { target: { value: "" } });
+      fireEvent.change(screen.getByLabelText("Default model — Claude Agent"), { target: { value: "" } });
       fireEvent.click(screen.getByRole("button", { name: "Discard" }));
 
-      expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true);
-      expect(screen.getByLabelText("Default model — Claude")).toHaveProperty("value", "claude-sonnet-5");
+      expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
+      expect(screen.getByLabelText("Default model — Claude Agent")).toHaveProperty("value", "claude-sonnet-5");
     });
 
     it("saves Claude as the default engine with its own default model", async () => {
@@ -376,8 +376,8 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
-      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
-      fireEvent.change(screen.getByLabelText("Default model — Claude"), { target: { value: "claude-sonnet-5" } });
+      fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
+      fireEvent.change(screen.getByLabelText("Default model — Claude Agent"), { target: { value: "claude-sonnet-5" } });
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
@@ -395,8 +395,8 @@ describe("AccountPreferencesPanel", () => {
       // Row subtitles come from HARNESS_META — the single source of harness
       // display copy — plus the platform-default explainer.
       expect(screen.getByText("Stigmer picks the harness for new sessions.")).toBeTruthy();
-      expect(screen.getByText("Stigmer's native agent runtime")).toBeTruthy();
-      expect(screen.getByText("Powered by Claude")).toBeTruthy();
+      expect(screen.getByText("Stigmer's own harness: runs any catalog model, open source end to end")).toBeTruthy();
+      expect(screen.getByText("Anthropic's Claude Agent SDK: Claude models on your Anthropic key")).toBeTruthy();
       // The radios' accessible descriptions are wired via aria-describedby.
       expect(
         screen.getByRole("radio", { name: "Stigmer" }).getAttribute("aria-describedby"),
@@ -411,7 +411,7 @@ describe("AccountPreferencesPanel", () => {
       // the launcher applies the model of the session's ACTIVE harness, so
       // hiding or disabling it would remove a real capability.
       await waitFor(() => {
-        expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true);
+        expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
       });
       const nativeSelect = screen.getByLabelText("Default model — Stigmer") as HTMLSelectElement;
       expect(nativeSelect.disabled).toBe(false);
@@ -424,9 +424,9 @@ describe("AccountPreferencesPanel", () => {
       await findSyncedField("Keep answers terse.");
 
       await waitFor(() => {
-        expect(screen.getByRole("radio", { name: "Claude" })).toHaveProperty("checked", true);
+        expect(screen.getByRole("radio", { name: "Claude Agent" })).toHaveProperty("checked", true);
         expect(screen.getByLabelText("Default model — Stigmer")).toHaveProperty("value", "claude-sonnet-4.6");
-        expect(screen.getByLabelText("Default model — Claude")).toHaveProperty("value", "claude-sonnet-5");
+        expect(screen.getByLabelText("Default model — Claude Agent")).toHaveProperty("value", "claude-sonnet-5");
       });
     });
 
@@ -435,7 +435,7 @@ describe("AccountPreferencesPanel", () => {
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
-      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Claude Agent" }));
       fireEvent.change(screen.getByLabelText("Default model — Stigmer"), {
         target: { value: "claude-sonnet-4.6" },
       });

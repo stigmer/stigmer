@@ -39,7 +39,7 @@ function engineOf(harness: string): { readonly label: string; readonly color: st
  * Displays the token split between run harnesses as a segmented bar.
  *
  * Renders a horizontal bar with labels showing tokens, calls and share per
- * harness, for an at-a-glance read of each engine's usage.
+ * harness, for an at-a-glance read of each harness's usage.
  */
 export function HarnessSplitCard({
   breakdown,

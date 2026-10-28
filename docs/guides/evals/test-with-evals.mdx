@@ -117,7 +117,7 @@ case out with the case filters (`--case`, `--tag`).
 ### The model, and the tools a try may use
 
 With no model named, each try runs the Agent as it runs in a conversation: on
-its own engine, model, speed tier and thinking setting. A model named in the
+its own harness, model, speed tier and thinking setting. A model named in the
 case's own files is not used, and the case notes so. When you name models, each
 case runs on each of them instead, without the Agent's tier and thinking
 choices, as any conversation that names a model does.
@@ -181,10 +181,10 @@ stigmer eval run --plugin thermos
 stigmer eval run --plugin thermos@<digest>
 ```
 
-A model is named with its engine, as `<harness>/<model>`:
-`native/claude-sonnet-4-6` runs on Stigmer's native engine,
-`claude/claude-sonnet-5` on the Claude engine. So a suite can score differently
-here than under `claude plugin eval`, because the score measures the plugin on
+A model is named with its harness, as `<harness>/<model>`:
+`native/claude-sonnet-4-6` runs on Stigmer's own harness,
+`claude/claude-sonnet-5` on Claude Agent. So a suite can score differently here
+than under `claude plugin eval`, because the score measures the plugin on
 Stigmer.
 
 On the plugin's page in the console, the **Evals** tab lists the cases the
@@ -359,16 +359,17 @@ A case that needs something Stigmer does not run is never run without it,
 because a degraded run would be a wrong score. It is listed instead, as
 `not run: <reason>`, on the Evals tab, in the table and in `notRun[]`:
 
-| Not run                                                           | Why                                                                        |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| A `plugins` entry other than the plugin's root, or any in an eval | Other plugins the try would load beside the ones it runs with              |
-| More than 32 graders on one case                                  | A grade records at most 32 checks                                          |
-| A scaffold under `--no-scaffold`                                  | `not run: scaffold skipped`, as `claude plugin eval` skips it              |
-| `context.history_file` on Claude                                  | `not run on Claude: resumed conversations`; the case runs on native models |
+| Not run                                                           | Why                                                                                 |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| A `plugins` entry other than the plugin's root, or any in an eval | Other plugins the try would load beside the ones it runs with                       |
+| More than 32 graders on one case                                  | A grade records at most 32 checks                                                   |
+| A scaffold under `--no-scaffold`                                  | `not run: scaffold skipped`, as `claude plugin eval` skips it                       |
+| `context.history_file` on Claude                                  | `not run on Claude: resumed conversations`; the case runs on Stigmer harness models |
 
-The Claude engine keeps a conversation's history in its own transcript, which no
-recorded history seeds yet, so it cannot resume a recorded conversation. Such a
-case runs on every native model and is listed as not run on each Claude model.
+The Claude Agent SDK keeps a conversation's history in its own transcript, which
+no recorded history seeds yet, so it cannot resume a recorded conversation. Such
+a case runs on every Stigmer harness model and is listed as not run on each
+Claude model.
 
 ### Fixtures, recorded conversations and variables
 
@@ -484,8 +485,8 @@ reading the cases and not loaded, and the rest still runs.
   nothing; `--no-scaffold` skips it.
 - **Reference folders are read-only to file tools only.** The Agent's file tools
   cannot write under `.stigmer/inputs/`, but its shell can.
-- **Resumed conversations and `env` run on native models only**, as the support
-  table says.
+- **Resumed conversations and `env` run on Stigmer harness models only**, as the
+  support table says.
 - **`expect:` patterns check the whole value.** Claude Code checks a value only
   up to a length its patterns set; Stigmer's matcher has no such bound.
 - **A `tool_used` with only `max` lowers `min` to it.** Without `min`, the
@@ -591,24 +592,24 @@ Tries are kept out of the conversation lists, the Agent's own included, so an
 eval run of 200 tries does not bury your conversations. You reach them from the
 eval run's page, or by ID.
 
-The Organization pays for every try and every vote of an AI-graded check: native
-tries run on its own provider keys, billed by its provider, and a Claude try on
-its own Anthropic key, billed by Anthropic. A try on an Agent is a run of the
-Agent, so it counts in the Agent's usage. The vaults an eval run names for its
-tries' logins and secrets are shared vaults; an eval run refuses a person's own
-vault, its creator's included, because in Stigmer Cloud every viewer reads each
-try, and a hook's or MCP server's output can show what a key unlocked. A shared
-vault is accepted whoever else may use it, so whoever attaches a vault chooses
-that audience. The cost limit is an estimate, checked before each try starts
-against what the tries already spent plus the share each running try may still
-spend. Each try may spend at most an equal share of what is left for the tries
-that run at once; a try that needs more than its share is stopped at it and
-shown as not graded. Tries already running when the limit is reached finish, and
-so do their AI-graded checks, each vote capped at $0.25, so the spend can pass
-the limit by those. So can a try whose start failed or whose stop failed: it is
-recorded as not graded, and its run may still spend a little after that. So can
-a second run created by a start that raced its own retry: the try keeps the
-first run and stops the other when it finds it.
+The Organization pays for every try and every vote of an AI-graded check: tries
+on the Stigmer harness run on its own provider keys, billed by its provider, and
+a Claude try on its own Anthropic key, billed by Anthropic. A try on an Agent is
+a run of the Agent, so it counts in the Agent's usage. The vaults an eval run
+names for its tries' logins and secrets are shared vaults; an eval run refuses a
+person's own vault, its creator's included, because in Stigmer Cloud every
+viewer reads each try, and a hook's or MCP server's output can show what a key
+unlocked. A shared vault is accepted whoever else may use it, so whoever
+attaches a vault chooses that audience. The cost limit is an estimate, checked
+before each try starts against what the tries already spent plus the share each
+running try may still spend. Each try may spend at most an equal share of what
+is left for the tries that run at once; a try that needs more than its share is
+stopped at it and shown as not graded. Tries already running when the limit is
+reached finish, and so do their AI-graded checks, each vote capped at $0.25, so
+the spend can pass the limit by those. So can a try whose start failed or whose
+stop failed: it is recorded as not graded, and its run may still spend a little
+after that. So can a second run created by a start that raced its own retry: the
+try keeps the first run and stops the other when it finds it.
 
 ## Next steps
 

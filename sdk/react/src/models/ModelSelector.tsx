@@ -78,7 +78,7 @@ export interface ModelSelectorProps {
    * pinned — the platform default applies" from an actual selection
    * (the routine form's contract: an unset model inherits the
    * surface's platform default). The harness prefix is hidden while
-   * the placeholder shows, since no engine is pinned either.
+   * the placeholder shows, since no harness is pinned either.
    */
   readonly placeholderLabel?: string;
   /**

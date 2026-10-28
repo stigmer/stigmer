@@ -16,10 +16,10 @@ export interface HarnessSelectorProps {
 }
 
 /**
- * Compact segmented control for choosing the session execution engine.
+ * Compact segmented control for choosing the session harness.
  *
- * Renders one mutually exclusive option per offered engine — "Stigmer"
- * (native) and "Claude" — as adjacent pill segments.
+ * Renders one mutually exclusive option per offered harness — "Stigmer"
+ * (`native`) and "Claude Agent" (`claude`) — as adjacent pill segments.
  *
  * Built as a `radiogroup` with full arrow-key navigation and ARIA
  * semantics. All visual properties flow through `--stgm-*` tokens.
@@ -28,7 +28,7 @@ export interface HarnessSelectorProps {
  * {@link HarnessOption} and {@link HARNESS_LABELS} directly.
  *
  * @deprecated Use {@link ModelSelector} in unified mode (without the
- * `harness` prop) instead. The unified model picker embeds an engine
+ * `harness` prop) instead. The unified model picker embeds a harness
  * tag on each model row, eliminating the need for a separate harness
  * control. This component is kept for backward compatibility.
  *
@@ -76,7 +76,7 @@ export function HarnessSelector({
     <div
       ref={groupRef}
       role="radiogroup"
-      aria-label="Execution engine"
+      aria-label="Harness"
       onKeyDown={handleKeyDown}
       className={[
         "stg:inline-flex stg:items-center stg:rounded-md stg:border stg:border-border stg:bg-background stg:p-0.5",

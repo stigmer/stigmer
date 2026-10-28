@@ -129,7 +129,7 @@ describe("settleClaudeTurn", () => {
     expect(settleClaudeTurn(new RecordingTurnSink(), end({ result: undefined }))).toEqual({
       kind: "failed",
       surface: "internal",
-      message: "The Claude engine ended without a result.",
+      message: "The Claude Agent SDK ended without a result.",
     });
   });
 
@@ -137,7 +137,7 @@ describe("settleClaudeTurn", () => {
     expect(settleClaudeTurn(new RecordingTurnSink(), end({ result: failure("error_during_execution", ["first", "second"]) }))).toEqual({
       kind: "failed",
       surface: "engine",
-      message: "Claude failed: first; second",
+      message: "The Claude Agent SDK failed: first; second",
     });
   });
 
@@ -145,7 +145,7 @@ describe("settleClaudeTurn", () => {
     expect(settleClaudeTurn(new RecordingTurnSink(), end({ result: failure("error_max_turns", []) }))).toEqual({
       kind: "failed",
       surface: "engine",
-      message: "Claude failed: error_max_turns",
+      message: "The Claude Agent SDK failed: error_max_turns",
     });
   });
 
@@ -161,7 +161,7 @@ describe("settleClaudeTurn", () => {
     expect(settleClaudeTurn(new RecordingTurnSink(), end({ result: success({ is_error: true, result: "" }) }))).toEqual({
       kind: "failed",
       surface: "engine",
-      message: "Claude failed.",
+      message: "The Claude Agent SDK failed.",
     });
   });
 

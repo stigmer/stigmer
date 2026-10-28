@@ -87,8 +87,8 @@ export type EvalRunSpec = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunSpec"> &
   cases: EvalRunCaseSource[];
 
   /**
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    *
@@ -271,21 +271,21 @@ export const EvalRunCaseSourceSchema: GenMessage<EvalRunCaseSource> = /*@__PURE_
   messageDesc(file_ai_stigmer_agentic_evalrun_v1_spec, 1);
 
 /**
- * EvalRunTarget is one engine and model a case runs on.
+ * EvalRunTarget is one harness and model a case runs on.
  *
  * @generated from message ai.stigmer.agentic.evalrun.v1.EvalRunTarget
  */
 export type EvalRunTarget = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunTarget"> & {
   /**
-   * The engine. Unspecified is the native engine.
+   * The harness. Unspecified is native (Stigmer's own harness).
    *
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 1;
    */
   harness: Harness;
 
   /**
-   * A model id from the model catalog for that engine, as in
-   * "claude-sonnet-4-6". Empty uses the engine's default model.
+   * A model id from the model catalog for that harness, as in
+   * "claude-sonnet-4-6". Empty uses the harness's default model.
    *
    * @generated from field: string model_name = 2;
    */

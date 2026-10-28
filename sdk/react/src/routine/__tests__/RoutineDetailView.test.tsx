@@ -868,7 +868,7 @@ describe("RoutineDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(
-      screen.getByRole("button", { name: "Edit engine and model" }),
+      screen.getByRole("button", { name: "Edit harness and model" }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -894,7 +894,7 @@ describe("RoutineDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(
-      screen.getByRole("button", { name: "Edit engine and model" }),
+      screen.getByRole("button", { name: "Edit harness and model" }),
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Reset to platform default" }),
@@ -921,10 +921,10 @@ describe("RoutineDetailView", () => {
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     // The read view names the pinned engine and model.
-    expect(screen.getByText("Claude · claude-sonnet-4-6")).toBeTruthy();
+    expect(screen.getByText("Claude Agent · claude-sonnet-4-6")).toBeTruthy();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Edit engine and model" }),
+      screen.getByRole("button", { name: "Edit harness and model" }),
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Reset to platform default" }),

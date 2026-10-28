@@ -11,7 +11,7 @@ of that experience: the agent, its skill, and its public web channel.
 The agent answers in two tiers. Common conceptual questions are answered
 directly from the `stigmer-docs` skill, which carries a **stable map of the
 documentation** and the answering methodology — zero tool calls. Everything
-specific is read **live** from the published docs via the native harness's
+specific is read **live** from the published docs via the Stigmer harness's
 built-in web fetch tool (`web_fetch`):
 `https://stigmer.ai/llms.txt` to locate the page, then the page's `.md`
 export (or the page itself — fetched HTML is converted to Markdown) to answer

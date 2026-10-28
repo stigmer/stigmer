@@ -54,7 +54,7 @@ service EvalRunCommandController {
   //   plugin, or spec.plugin_digest on one of an agent; spec.case_glob is
   //   not a valid glob; a case source is a plugin the agent neither
   //   attaches nor compares; an allow_tools entry names MCP tools no try
-  //   loads; a target names a model the catalog does not run on its engine
+  //   loads; a target names a model the catalog does not run on its harness
   // - FAILED_PRECONDITION: the organization is not the subject's; there
   //   are no cases to run (an agent attaching no plugin with none
   //   compared, a plugin version with no evals/ cases, no case matching

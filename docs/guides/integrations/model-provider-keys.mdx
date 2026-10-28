@@ -5,13 +5,13 @@ description:
   OpenAI keys, on the provider's API or on your own compatible endpoint.
 ---
 
-On Stigmer Cloud every model call a native Agent run makes runs on a key your
-Organization owns, on every plan. An admin adds an Anthropic key, an OpenAI key,
-or both, and your Agents run on them: the provider bills your Organization
-directly, and Stigmer meters the calls and charges nothing for them. Stigmer
-never runs a model call on a key of its own. Claude-harness runs work the same
-way, on your Organization's Anthropic key: a Claude run runs Claude models only,
-so it always needs that key, whatever its model.
+On Stigmer Cloud every model call an Agent run on the Stigmer harness makes runs
+on a key your Organization owns, on every plan. An admin adds an Anthropic key,
+an OpenAI key, or both, and your Agents run on them: the provider bills your
+Organization directly, and Stigmer meters the calls and charges nothing for
+them. Stigmer never runs a model call on a key of its own. Claude-harness runs
+work the same way, on your Organization's Anthropic key: a Claude run runs
+Claude models only, so it always needs that key, whatever its model.
 
 A run whose model needs a provider your Organization has no key for is refused
 before it starts:
@@ -80,10 +80,10 @@ spec:
     model_name: openai:llama-3.3-70b
 ```
 
-Stigmer accepts the form wherever a native model is named, subagents included.
-Settings that depend on what Stigmer knows about a model, the fast service tier
-and explicit thinking, stay limited to the catalog's models, and a model the
-catalog does not list has no catalog price.
+Stigmer accepts the form wherever a model on the Stigmer harness is named,
+subagents included. Settings that depend on what Stigmer knows about a model,
+the fast service tier and explicit thinking, stay limited to the catalog's
+models, and a model the catalog does not list has no catalog price.
 
 This is how you reach a model family the catalog does not list, such as Gemini,
 Kimi, GLM or Grok: point the OpenAI slot at an OpenAI-compatible endpoint that

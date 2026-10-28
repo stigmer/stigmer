@@ -1,37 +1,38 @@
 ---
 title: Harnesses
 description:
-  A Harness is the execution engine that powers an Agent Session. Stigmer
-  supports two harnesses — Native and Claude — each with different model
-  availability, tool capabilities, and runtime behavior.
+  A Harness is the loop that runs an Agent Session's turns. Stigmer supports two
+  harnesses — Stigmer and Claude Agent — each with different model availability,
+  tool capabilities, and runtime behavior.
 ---
 
-Every [Session](/docs/concepts/sessions) needs an execution engine — the runtime
-that processes the Agent's turns, calls models, runs tools, and streams results.
-In Stigmer, that engine is called a **Harness**.
+Every [Session](/docs/concepts/sessions) needs a runtime that processes the
+Agent's turns, calls models, runs tools, and streams results. In Stigmer, that
+runtime is called a **Harness**.
 
 Stigmer supports two harnesses:
 
-- **Native** — Stigmer's built-in engine: the deepagents engine on LangGraph.js,
-  running in TypeScript inside the Stigmer runner.
-- **Claude** — Anthropic's Claude Agent SDK, Powered by Claude, running Claude
-  models on your Organization's own Anthropic key.
+- **Stigmer** (`native`) — Stigmer's own harness: runs any catalog model, open
+  source end to end, in TypeScript inside the Stigmer runner.
+- **Claude Agent** (`claude`) — Anthropic's Claude Agent SDK, Powered by Claude,
+  running Claude models on your Organization's own Anthropic key.
 
 The Harness is a Session-level choice. You pick it when you create a Session,
 and it stays fixed for the life of that conversation.
 
-## Native harness
+## Stigmer harness
 
-The native Harness is Stigmer's default. When you create a Session without
+Stigmer's own Harness is the default. When you create a Session without
 specifying a Harness, it uses the Agent's own `harness` (part of its
-[run settings](/docs/concepts/agents#run-settings)), and native when the Agent
-names none.
+[run settings](/docs/concepts/agents#run-settings)), and Stigmer's when the
+Agent names none. It is built on LangChain's open source
+[deepagents](https://github.com/langchain-ai/deepagentsjs), on LangGraph.js.
 
 **What you get:**
 
-- Full control over model selection: every model the catalog lists for native,
-  and any model your own OpenAI- or Anthropic-compatible endpoint serves, named
-  `openai:<name>` or `anthropic:<name>`
+- Full control over model selection: every model the catalog lists for the
+  Stigmer harness, and any model your own OpenAI- or Anthropic-compatible
+  endpoint serves, named `openai:<name>` or `anthropic:<name>`
   ([Model Provider Keys](/docs/guides/integrations/model-provider-keys#run-a-model-your-endpoint-serves)).
 - Deep integration with Stigmer's checkpoint, pause/resume, and sandbox
   features.
@@ -49,23 +50,25 @@ names none.
   shows the command's output as it arrives and how it ended, and offers Stop,
   which ends that command alone. A background command stops when its turn ends
   or pauses for approval.
-- Built-in web retrieval through the `web_fetch` tool — every native Session can
-  fetch a public URL and read it as Markdown, with no MCP server to configure.
-  The tool is read-only and asks for no approval unless an Agent's hooks ask
-  about it; on managed cloud runners it refuses private and internal addresses.
+- Built-in web retrieval through the `web_fetch` tool — every Session on the
+  Stigmer harness can fetch a public URL and read it as Markdown, with no MCP
+  server to configure. The tool is read-only and asks for no approval unless an
+  Agent's hooks ask about it; on managed cloud runners it refuses private and
+  internal addresses.
 
-The native Harness is the right choice for most workloads. It gives you the
+The Stigmer harness is the right choice for most workloads. It gives you the
 widest model catalog and the deepest platform integration.
 
 ## Claude harness
 
 The Claude harness runs the Agent's turns on Anthropic's Claude Agent SDK. The
-console and the CLI name it **Claude**, Powered by Claude.
+console and the CLI name it **Claude Agent**, Powered by Claude; its CLI and API
+word is `claude`.
 
 **What you get:**
 
 - Claude models from the model catalog: the same models, ids and prices as the
-  native Harness's Anthropic models, with thinking in the form each model
+  Stigmer harness's Anthropic models, with thinking in the form each model
   supports and its reasoning readable.
 - Model calls on your Organization's own Anthropic key. In the hosted cloud, a
   Claude run with no Anthropic key is refused when it is created, naming
@@ -75,8 +78,8 @@ console and the CLI name it **Claude**, Powered by Claude.
   approved.
 - The Agent's tool lists, Skills, sub-agents, MCP servers and hooks in either
   format, file review, the cost cap, stop, and the Session's event log, as on
-  the native Harness.
-- Nothing to install: the runner images carry Anthropic's engine, and the
+  the Stigmer harness.
+- Nothing to install: the runner images carry the Claude Agent SDK, and the
   desktop app and `stigmer up` download it on the first Claude turn.
   [Set up the Claude harness](/docs/guides/runners/claude-harness) says where it
   comes from in each edition.
@@ -86,33 +89,33 @@ console and the CLI name it **Claude**, Powered by Claude.
 - Background commands: a long command runs in the foreground, and the turn waits
   for it to end.
 - Web fetch and web search: give the Agent an MCP server for the web.
-- The native Harness's built-in helpers: a Claude turn delegates only to the
+- The Stigmer harness's built-in helpers: a Claude turn delegates only to the
   Agent's own sub-agents and its plugins' agents.
 - The fast tier: a Claude run takes the standard tier.
 - Resuming a recorded conversation in an eval case: such a case is listed as
-  `not run on Claude: resumed conversations` and runs on native.
+  `not run on Claude: resumed conversations` and runs on the Stigmer harness.
 
 ## Choosing a Harness
 
 The Harness you choose depends on what your Agent needs to do.
 
-|                             | Native                                                                                     | Claude                                                                  |
-| --------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| **Default**                 | Yes                                                                                        | No — must be explicitly selected                                        |
-| **Model availability**      | The catalog's native models, and your own endpoint's (`openai:<name>`, `anthropic:<name>`) | Claude models only                                                      |
-| **Tool capabilities**       | MCP servers from your plugins and your Agent + built-in web fetch                          | MCP servers + the engine's file tools, with the shell run by the runner |
-| **Checkpoints**             | Full Stigmer pause/resume                                                                  | The engine's conversation, kept by Stigmer                              |
-| **Repository instructions** | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's                                | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's             |
-| **Who bills model calls**   | Your provider, on your Organization's key                                                  | Anthropic, on your Organization's Anthropic key                         |
-| **Engine context per call** | Stigmer's system prompt and tool schemas, cached after the first call                      | The engine's own system prompt, with Stigmer's additions                |
-| **Prompt caching**          | Full control (explicit breakpoints)                                                        | Managed by the engine                                                   |
-| **Latency**                 | No engine start-up per turn                                                                | The engine starts its own process for each turn                         |
-| **Best for**                | General-purpose agents, custom model selection, production workloads                       | Agents that want Anthropic's own agent loop on Claude models            |
+|                              | Stigmer (`native`)                                                                          | Claude Agent (`claude`)                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Default**                  | Yes                                                                                         | No — must be explicitly selected                                     |
+| **Model availability**       | The catalog's Stigmer models, and your own endpoint's (`openai:<name>`, `anthropic:<name>`) | Claude models only                                                   |
+| **Tool capabilities**        | MCP servers from your plugins and your Agent + built-in web fetch                           | MCP servers + the SDK's file tools, with the shell run by the runner |
+| **Checkpoints**              | Full Stigmer pause/resume                                                                   | The SDK's conversation, kept by Stigmer                              |
+| **Repository instructions**  | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's                                 | `AGENTS.md`, else `CLAUDE.md`: the root's and each folder's          |
+| **Who bills model calls**    | Your provider, on your Organization's key                                                   | Anthropic, on your Organization's Anthropic key                      |
+| **Harness context per call** | Stigmer's system prompt and tool schemas, cached after the first call                       | The Claude Agent SDK's own system prompt, with Stigmer's additions   |
+| **Prompt caching**           | Full control (explicit breakpoints)                                                         | Managed by the Claude Agent SDK                                      |
+| **Latency**                  | No process start-up per turn                                                                | The Claude Agent SDK starts its own process for each turn            |
+| **Best for**                 | General-purpose agents, custom model selection, production workloads                        | Agents that want Anthropic's own loop on Claude models               |
 
 Stigmer also ran a Cursor harness, which was retired; the models only it served
 (Gemini, Kimi, GLM, Grok, Composer, Auto, and GPT in the open-source catalog)
-are reached on native through your Organization's own OpenAI-compatible
-endpoint, named `openai:<name>`.
+are reached on the Stigmer harness through your Organization's own
+OpenAI-compatible endpoint, named `openai:<name>`.
 
 <Callout type="info">
   A Session's Harness is immutable after the first run starts. Choose the right
@@ -129,8 +132,8 @@ approval flows, usage tracking, cost caps) works the same regardless of Harness.
 flowchart LR
   S["Session"] --> R["run"]
   R --> D{Harness?}
-  D -->|Native| EG["Native Runtime"]
-  D -->|Claude| EA["Claude Runtime"]
+  D -->|native| EG["Stigmer harness"]
+  D -->|claude| EA["Claude Agent SDK"]
   EG --> P["Streaming / HITL / Usage"]
   EA --> P
 ```
@@ -143,7 +146,7 @@ need separate runner processes, or separate queues, for each Harness.
 ## Creating a Session with a Harness
 
 You set the Harness when creating a Session. If you omit it, the Session starts
-on the Agent's `harness`, and on native when the Agent names none.
+on the Agent's `harness`, and on the Stigmer harness when the Agent names none.
 
 <Tabs items={["TypeScript", "Go"]}>
   <Tab value="TypeScript">
@@ -177,23 +180,24 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
 </Tabs>
 
 In the web console, the model picker names the Harness beside the model: choose
-Claude there and the picker lists Claude's models. On the CLI,
-`--harness claude` starts a Session on Claude.
+Claude Agent there and the picker lists its Claude models. On the CLI,
+`--harness claude` starts a Session on Claude Agent, and `--harness native` on
+Stigmer's own harness.
 
 ## Cost considerations
 
 Stigmer charges nothing per call on any harness: each runs on your own keys.
-Cost differences come from two places: engine context per call, and prompt
+Cost differences come from two places: harness context per call, and prompt
 caching.
 
-- **Engine context per call** — every harness sends an engine preamble with
-  every call, and none is your prompt alone. Native sends Stigmer's system
-  prompt and tool schemas; Claude sends the engine's own system prompt, with
-  Stigmer's additions.
-- **Prompt caching** — native exposes explicit cache breakpoints, so a Session's
-  stable prefix is re-read at about one-tenth the input rate (about 90% off
-  those tokens) and the advantage compounds across turns. On Claude the engine
-  manages caching itself.
+- **Harness context per call** — every harness sends a preamble of its own with
+  every call, and none is your prompt alone. The Stigmer harness sends Stigmer's
+  system prompt and tool schemas; Claude Agent sends the Claude Agent SDK's own
+  system prompt, with Stigmer's additions.
+- **Prompt caching** — the Stigmer harness exposes explicit cache breakpoints,
+  so a Session's stable prefix is re-read at about one-tenth the input rate
+  (about 90% off those tokens) and the advantage compounds across turns. On
+  Claude Agent the Claude Agent SDK manages caching itself.
 
 For a full rundown of cost levers, see
 [Optimizing your costs](/docs/concepts/billing#optimizing-your-costs).
@@ -202,7 +206,7 @@ For a full rundown of cost levers, see
 
 Ready to run the Claude harness?
 [Set up the Claude harness](/docs/guides/runners/claude-harness) says where each
-edition gets Anthropic's engine and how a local runner installs it.
+edition gets the Claude Agent SDK and how a local runner installs it.
 
 To understand how Sessions work in more detail — including session-level Skills
 and plugins — see [Sessions](/docs/concepts/sessions).

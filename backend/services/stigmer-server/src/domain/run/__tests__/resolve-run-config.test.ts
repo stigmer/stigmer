@@ -652,7 +652,7 @@ describe("ResolveRunConfig over a real store", () => {
       expect(err).toBeInstanceOf(ConnectError);
       expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
       expect((err as ConnectError).rawMessage).toBe(
-        `the conversation's engine names harness ${harness}, which this platform does not run`,
+        `the conversation's harness names harness ${harness}, which this platform does not run`,
       );
     });
   });

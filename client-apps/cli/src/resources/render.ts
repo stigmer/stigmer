@@ -151,7 +151,7 @@ function renderResourceFields(json: JsonValue, options: RenderFieldsOptions): st
 // settings it ran with on status.run_config, resolved from its message, its
 // agent and its lane, so those are shown in place of what the message asked.
 function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject, status: JsonObject): void {
-  pushField(fields, "Engine", enumWord(spec.harness, "HARNESS_"));
+  pushField(fields, "Harness", enumWord(spec.harness, "HARNESS_"));
   const runConfig = asObject(status.run_config ?? spec.run_config);
   pushField(fields, "Model", runConfig.model_name);
   pushField(fields, "Speed tier", enumWord(runConfig.service_tier, "SERVICE_TIER_"));

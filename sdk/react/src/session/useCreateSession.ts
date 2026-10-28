@@ -73,7 +73,7 @@ export interface SharedSessionFields {
   /**
    * Run harness for this session.
    *
-   * Determines which execution engine processes agent activities.
+   * Determines which harness processes agent activities.
    * Immutable after the first run runs. Defaults to `"native"`.
    */
   readonly harness?: HarnessOption;

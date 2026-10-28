@@ -131,7 +131,7 @@ export interface MessageThreadSlots {
   /**
    * The terminal turn-failure notice. Receives the raw server-reported
    * reason and the retry wiring, so a host can turn the failure into its own
-   * recovery moment (classify the reason, offer an alternate engine, link
+   * recovery moment (classify the reason, offer another harness, link
    * support) instead of the built-in Show more / Retry treatment.
    */
   readonly RunErrorNotice?: ComponentType<RunErrorNoticeProps>;

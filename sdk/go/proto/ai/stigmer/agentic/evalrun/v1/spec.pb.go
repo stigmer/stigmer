@@ -101,8 +101,8 @@ type EvalRunSpec struct {
 	// plugin the agent attaches. Only with agent_id; an eval run of a plugin
 	// runs that plugin's own cases.
 	Cases []*EvalRunCaseSource `protobuf:"bytes,6,rep,name=cases,proto3" json:"cases,omitempty"`
-	// The engines and models each case runs on, at most six. Empty runs each
-	// case on the agent as it runs (its own engine, model and settings), or,
+	// The harnesses and models each case runs on, at most six. Empty runs each
+	// case on the agent as it runs (its own harness, model and settings), or,
 	// on the built-in assistant, on the model the case names or the
 	// platform's default model.
 	Targets []*EvalRunTarget `protobuf:"bytes,7,rep,name=targets,proto3" json:"targets,omitempty"`
@@ -461,13 +461,13 @@ func (*EvalRunCaseSource_Plugin) isEvalRunCaseSource_Source() {}
 
 func (*EvalRunCaseSource_Eval) isEvalRunCaseSource_Source() {}
 
-// EvalRunTarget is one engine and model a case runs on.
+// EvalRunTarget is one harness and model a case runs on.
 type EvalRunTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The engine. Unspecified is the native engine.
+	// The harness. Unspecified is native (Stigmer's own harness).
 	Harness v1.Harness `protobuf:"varint,1,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
-	// A model id from the model catalog for that engine, as in
-	// "claude-sonnet-4-6". Empty uses the engine's default model.
+	// A model id from the model catalog for that harness, as in
+	// "claude-sonnet-4-6". Empty uses the harness's default model.
 	ModelName     string `protobuf:"bytes,2,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

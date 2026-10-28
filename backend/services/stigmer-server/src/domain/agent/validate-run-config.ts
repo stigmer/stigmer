@@ -57,9 +57,9 @@ export function newValidateAgentRunConfigStep(
       const model = defaults.modelName.trim();
       if (model !== "" && engine === Harness.UNSPECIFIED) {
         throw invalidArgumentError(
-          "spec.run_config.model_name requires spec.harness: a model name belongs to an " +
-            "engine (native or claude), and each lists its own models. Name the engine " +
-            "the model was chosen for.",
+          "spec.run_config.model_name requires spec.harness: a model name belongs to a " +
+            'harness ("native" for Stigmer or "claude" for Claude Agent), and each lists its own models. ' +
+            "Name the harness the model was chosen for.",
         );
       }
       const harness = harnessName(engine);

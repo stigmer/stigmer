@@ -77,8 +77,8 @@ export interface UseModelRegistryReturn {
  * `isLoading` is `true` and `models` is empty.
  *
  * **Modes:**
- * - `options.harness` set — that engine's own models, excluding disabled providers
- * - `options.harness` omitted — unified: every engine's, excluding disabled providers
+ * - `options.harness` set — that harness's own models, excluding disabled providers
+ * - `options.harness` omitted — unified: every harness's, excluding disabled providers
  *
  * @example
  * ```tsx

@@ -80,7 +80,7 @@ export interface ModelInfo {
   readonly speedTier: SpeedTier;
   /** Pricing bracket used for cost-tier indicators in the UI. */
   readonly costTier: CostTier;
-  /** Which execution engine serves this model. */
+  /** Which harness serves this model. */
   readonly harness: HarnessOption;
   /**
    * When `true`, appears in the curated default list (the short view

@@ -244,7 +244,7 @@ type PluginAgent struct {
 	// The model the agent's file names, as written; empty when it names none.
 	//
 	// A turn runs the agent on it when it is a model id the conversation's
-	// engine lists. inherit, an alias such as sonnet, or any other value runs
+	// harness lists. inherit, an alias such as sonnet, or any other value runs
 	// the turn's model; install records an alias or an unknown value in
 	// PluginStatus.warnings.
 	Model         string `protobuf:"bytes,7,opt,name=model,proto3" json:"model,omitempty"`

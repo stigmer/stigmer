@@ -89,8 +89,8 @@ message EvalRunSpec {
   // runs that plugin's own cases.
   repeated EvalRunCaseSource cases = 6 [(buf.validate.field).repeated.max_items = 64];
 
-  // The engines and models each case runs on, at most six. Empty runs each
-  // case on the agent as it runs (its own engine, model and settings), or,
+  // The harnesses and models each case runs on, at most six. Empty runs each
+  // case on the agent as it runs (its own harness, model and settings), or,
   // on the built-in assistant, on the model the case names or the
   // platform's default model.
   repeated EvalRunTarget targets = 7 [(buf.validate.field).repeated.max_items = 6];
@@ -242,13 +242,13 @@ message EvalRunCaseSource {
   }
 }
 
-// EvalRunTarget is one engine and model a case runs on.
+// EvalRunTarget is one harness and model a case runs on.
 message EvalRunTarget {
-  // The engine. Unspecified is the native engine.
+  // The harness. Unspecified is native (Stigmer's own harness).
   ai.stigmer.agentic.session.v1.Harness harness = 1 [(buf.validate.field).enum.defined_only = true];
 
-  // A model id from the model catalog for that engine, as in
-  // "claude-sonnet-4-6". Empty uses the engine's default model.
+  // A model id from the model catalog for that harness, as in
+  // "claude-sonnet-4-6". Empty uses the harness's default model.
   string model_name = 2 [(buf.validate.field).string.max_len = 128];
 }
 

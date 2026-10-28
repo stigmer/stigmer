@@ -234,7 +234,7 @@ function ChannelRunConfigDialogBody({
           </div>
           <p className={hintClasses}>
             Every conversation turn on this channel runs the pinned model.
-            Unpinned, the platform&rsquo;s default engine and model apply.
+            Unpinned, the platform&rsquo;s default harness and model apply.
           </p>
         </div>
 

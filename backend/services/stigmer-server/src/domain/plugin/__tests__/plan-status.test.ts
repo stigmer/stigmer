@@ -366,7 +366,7 @@ describe("planPluginStatus — the agents' judgements", () => {
     ]);
     expect(plan.warnings[0]?.message).toBe(
       "agent 'a' names model 'sonnet', an alias; Stigmer runs a plugin agent on the model its file names " +
-        "only when it is a model id the conversation's engine lists, so it runs on the conversation's model",
+        "only when it is a model id the conversation's harness lists, so it runs on the conversation's model",
     );
     expect(plan.warnings[1]?.message).toContain("agent 'e' names model 'Fast', an alias");
   });

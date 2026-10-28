@@ -99,7 +99,7 @@
           "messageType": "EvalRunTarget"
         }
       },
-      "description": "The engines and models each case runs on, at most six. Empty runs each\n case on the agent as it runs (its own engine, model and settings), or,\n on the built-in assistant, on the model the case names or the\n platform's default model.",
+      "description": "The harnesses and models each case runs on, at most six. Empty runs each\n case on the agent as it runs (its own harness, model and settings), or,\n on the built-in assistant, on the model the case names or the\n platform's default model.",
       "required": false,
       "validation": {
         "maxItems": 6

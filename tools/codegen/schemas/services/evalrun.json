@@ -274,18 +274,18 @@
     },
     {
       "name": "Harness",
-      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "description": "Harness identifies the harness, the agent loop that processes a session's\n turns. Each value has one label, the same on every surface: HARNESS_NATIVE\n is \"Stigmer\" and HARNESS_CLAUDE is \"Claude Agent\".\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs the harness's own)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
       "protoType": "ai.stigmer.agentic.session.v1.Harness",
       "values": [
         {
           "name": "HARNESS_NATIVE",
           "number": 1,
-          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+          "description": "Stigmer: Stigmer's own harness. Runs any catalog model, open source end\n to end.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
         {
           "name": "HARNESS_CLAUDE",
           "number": 3,
-          "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
+          "description": "Claude Agent: Anthropic's Claude Agent SDK. Claude models on the\n organization's own Anthropic key.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the Claude Agent SDK refuses its turns plainly."
         }
       ]
     },
@@ -1096,7 +1096,7 @@
             "kind": "message",
             "messageType": "EvalRunTarget"
           },
-          "description": "The engine and model.",
+          "description": "The harness and model.",
           "required": false
         },
         {
@@ -1373,7 +1373,7 @@
     },
     {
       "name": "EvalRunTarget",
-      "description": "EvalRunTarget is one engine and model a case runs on.",
+      "description": "EvalRunTarget is one harness and model a case runs on.",
       "protoType": "ai.stigmer.agentic.evalrun.v1.EvalRunTarget",
       "protoFile": "apis/ai/stigmer/agentic/evalrun/v1/spec.proto",
       "fields": [
@@ -1389,7 +1389,7 @@
               "HARNESS_CLAUDE"
             ]
           },
-          "description": "The engine. Unspecified is the native engine.",
+          "description": "The harness. Unspecified is native (Stigmer's own harness).",
           "required": false
         },
         {
@@ -1399,7 +1399,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "A model id from the model catalog for that engine, as in\n \"claude-sonnet-4-6\". Empty uses the engine's default model.",
+          "description": "A model id from the model catalog for that harness, as in\n \"claude-sonnet-4-6\". Empty uses the harness's default model.",
           "required": false,
           "validation": {
             "maxLength": 128

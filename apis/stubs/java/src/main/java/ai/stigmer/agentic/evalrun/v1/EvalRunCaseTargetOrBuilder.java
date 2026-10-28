@@ -12,7 +12,7 @@ public interface EvalRunCaseTargetOrBuilder extends
 
   /**
    * <pre>
-   * The engine and model.
+   * The harness and model.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -21,7 +21,7 @@ public interface EvalRunCaseTargetOrBuilder extends
   boolean hasTarget();
   /**
    * <pre>
-   * The engine and model.
+   * The harness and model.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -30,7 +30,7 @@ public interface EvalRunCaseTargetOrBuilder extends
   ai.stigmer.agentic.evalrun.v1.EvalRunTarget getTarget();
   /**
    * <pre>
-   * The engine and model.
+   * The harness and model.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>

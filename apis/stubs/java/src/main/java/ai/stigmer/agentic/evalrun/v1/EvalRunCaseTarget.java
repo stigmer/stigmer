@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.evalrun.v1.EvalRunTarget target_;
   /**
    * <pre>
-   * The engine and model.
+   * The harness and model.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -70,7 +70,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engine and model.
+   * The harness and model.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -82,7 +82,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engine and model.
+   * The harness and model.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -785,7 +785,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.evalrun.v1.EvalRunTarget, ai.stigmer.agentic.evalrun.v1.EvalRunTarget.Builder, ai.stigmer.agentic.evalrun.v1.EvalRunTargetOrBuilder> targetBuilder_;
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -796,7 +796,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -811,7 +811,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -831,7 +831,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -849,7 +849,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -874,7 +874,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -891,7 +891,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -903,7 +903,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>
@@ -918,7 +918,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine and model.
+     * The harness and model.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.evalrun.v1.EvalRunTarget target = 1 [json_name = "target"];</code>

@@ -78,7 +78,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.InterruptSessionInput",
           "outputType": "InterruptSessionResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.InterruptSessionResponse",
-          "description": "Stop the session's unfinished work.\n\n Appends a user.interrupt and stops every unfinished turn of the\n conversation: pending, working, waiting for an answer or paused. Each\n ends cancelled and the session goes idle with end_turn. The messages\n still queued for a turn (RunCommandController.sendMessage) are dropped\n first: they stay listed with no processed_at, never read. Files undone\n in a turn that waited are put back at once.\n\n ## Error Conditions\n\n - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot\n   be stopped)\n - FAILED_PRECONDITION: the execution engine is not connected\n\n ## Idempotency\n\n An interrupt with nothing unfinished records the event and stops\n nothing."
+          "description": "Stop the session's unfinished work.\n\n Appends a user.interrupt and stops every unfinished turn of the\n conversation: pending, working, waiting for an answer or paused. Each\n ends cancelled and the session goes idle with end_turn. The messages\n still queued for a turn (RunCommandController.sendMessage) are dropped\n first: they stay listed with no processed_at, never read. Files undone\n in a turn that waited are put back at once.\n\n ## Error Conditions\n\n - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot\n   be stopped)\n - FAILED_PRECONDITION: the workflow engine is not connected\n\n ## Idempotency\n\n An interrupt with nothing unfinished records the event and stops\n nothing."
         },
         {
           "name": "Delete",
@@ -1954,18 +1954,18 @@
     },
     {
       "name": "Harness",
-      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "description": "Harness identifies the harness, the agent loop that processes a session's\n turns. Each value has one label, the same on every surface: HARNESS_NATIVE\n is \"Stigmer\" and HARNESS_CLAUDE is \"Claude Agent\".\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs the harness's own)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
       "protoType": "ai.stigmer.agentic.session.v1.Harness",
       "values": [
         {
           "name": "HARNESS_NATIVE",
           "number": 1,
-          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+          "description": "Stigmer: Stigmer's own harness. Runs any catalog model, open source end\n to end.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
         {
           "name": "HARNESS_CLAUDE",
           "number": 3,
-          "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
+          "description": "Claude Agent: Anthropic's Claude Agent SDK. Claude models on the\n organization's own Anthropic key.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the Claude Agent SDK refuses its turns plainly."
         }
       ]
     },

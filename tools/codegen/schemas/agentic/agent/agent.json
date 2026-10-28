@@ -117,7 +117,7 @@
         "kind": "message",
         "messageType": "RunConfig"
       },
-      "description": "The author's run defaults: the model, speed tier, thinking and run\n bounds a turn on this agent uses unless the message, or the routine or\n channel it came through, sets its own (RunConfig has the rule). Versioned with the\n agent, so a conversation pinned to a version keeps that version's\n defaults.\n\n A choice here (model_name, service_tier, thinking_mode) applies only on\n the engine named in harness; on a conversation running another engine\n only the bounds apply. A bound here is a cap: a message, a routine or a\n channel can lower it, never raise it. A model must be named together with harness,\n and must be one that engine lists; service_tier FAST and thinking_mode\n ENABLED need a model that engine prices or marks capable. Checked when\n the agent is saved.",
+      "description": "The author's run defaults: the model, speed tier, thinking and run\n bounds a turn on this agent uses unless the message, or the routine or\n channel it came through, sets its own (RunConfig has the rule). Versioned with the\n agent, so a conversation pinned to a version keeps that version's\n defaults.\n\n A choice here (model_name, service_tier, thinking_mode) applies only on\n the harness named in harness; on a conversation running another harness\n only the bounds apply. A bound here is a cap: a message, a routine or a\n channel can lower it, never raise it. A model must be named together with harness,\n and must be one that harness lists; service_tier FAST and thinking_mode\n ENABLED need a model that harness prices or marks capable. Checked when\n the agent is saved.",
       "required": false
     },
     {
@@ -132,7 +132,7 @@
           "HARNESS_CLAUDE"
         ]
       },
-      "description": "The engine this agent's run defaults were chosen for, and the engine a\n new conversation on this agent starts on when the person, routine or\n channel starting it names neither an engine nor a model (a turn that names a\n model but no engine starts on native, the engine its name was checked\n against). Unspecified: the platform's default engine (native).\n\n Model names belong to an engine (each lists its own), so run_config's\n model, tier and thinking count only on this engine. A conversation keeps\n the engine it started on; a later version naming another engine changes\n only new conversations.",
+      "description": "The harness this agent's run defaults were chosen for, and the harness a\n new conversation on this agent starts on when the person, routine or\n channel starting it names neither a harness nor a model (a turn that names\n a model but no harness starts on native, the harness its name was checked\n against). Unspecified: the platform's default harness (native, Stigmer).\n\n Model names belong to a harness (each lists its own), so run_config's\n model, tier and thinking count only on this harness. A conversation keeps\n the harness it started on; a later version naming another harness changes\n only new conversations.",
       "required": false
     },
     {

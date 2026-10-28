@@ -28,7 +28,7 @@ describe("the option set is the proto's harness set", () => {
   it("names every engine Harness names, offered or not", () => {
     expect(fromProtoHarness(Harness.CLAUDE)).toBe("claude");
     expect(toProtoHarness("claude")).toBe(Harness.CLAUDE);
-    expect(HARNESS_META.claude.label).toBe("Claude");
+    expect(HARNESS_META.claude.label).toBe("Claude Agent");
     expect(isNamedHarness("claude")).toBe(true);
   });
 
@@ -76,7 +76,15 @@ describe("harness constants", () => {
 
   it("provides user-facing labels for both options", () => {
     expect(HARNESS_LABELS.native).toBe("Stigmer");
-    expect(HARNESS_LABELS.claude).toBe("Claude");
+    expect(HARNESS_LABELS.claude).toBe("Claude Agent");
+  });
+
+  // docs/vocabulary.md "Harness": one label and one description per value, the same on every surface.
+  it("names each harness with the vocabulary's label and description", () => {
+    expect(HARNESS_META).toEqual({
+      native: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
+      claude: { label: "Claude Agent", description: "Anthropic's Claude Agent SDK: Claude models on your Anthropic key" },
+    });
   });
 
   it("covers every HarnessOption in HARNESS_LABELS", () => {

@@ -24,7 +24,7 @@ describe("HarnessSplitCard", () => {
     );
     expect(screen.getByRole("img", { name: "Token distribution by harness" })).toBeTruthy();
     expect(screen.getByText("Stigmer").parentElement?.textContent).toBe("Stigmer12.0k tokens40 calls (60%)");
-    expect(screen.getByText("Claude").parentElement?.textContent).toBe("Claude8.0k tokens0 calls (40%)");
+    expect(screen.getByText("Claude Agent").parentElement?.textContent).toBe("Claude Agent8.0k tokens0 calls (40%)");
     expect(screen.getByText("later-engine"), "a word this build does not name keeps its own").toBeTruthy();
     expect(container.textContent).not.toContain("$");
   });

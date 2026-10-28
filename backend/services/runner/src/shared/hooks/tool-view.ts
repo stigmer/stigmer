@@ -367,12 +367,12 @@ export class NativeToolViews implements HookToolViews {
     // Cursor's Write is both a create and an edit; this engine's are two
     // tools, and each ignores the other's fields.
     const foreign = format === "cursor" ? Object.keys(rewrite).filter((key) => WRITE_FIELDS_NOT_TAKEN.get(call.name)?.has(key)) : [];
-    if (foreign.length > 0) return `the hook rewrote ${foreign.join(", ")}, which this engine's ${call.name} does not take`;
+    if (foreign.length > 0) return `the hook rewrote ${foreign.join(", ")}, which this harness's ${call.name} does not take`;
     const input = format === "cursor" ? { ...this.cursorViewOf(call)?.cursor.toolInput, ...rewrite } : rewrite;
     if (format === "cursor" && call.name === "execute") {
       const cwd = input["cwd"];
       if (cwd !== undefined && cwd !== "" && cwd !== this.ctx.workspaceRoot) {
-        return "the hook moved the command to another directory, which this engine's shell cannot take";
+        return "the hook moved the command to another directory, which this harness's shell cannot take";
       }
       const { cwd: _cwd, ...rest } = input;
       return rest;

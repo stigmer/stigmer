@@ -66,13 +66,13 @@ export function settleClaudeTurn(sink: TurnSink, end: InvocationEnd): TurnOutcom
     return { kind: "interrupted" };
   }
   const result = end.result;
-  if (result === undefined) return { kind: "failed", surface: "internal", message: "The Claude engine ended without a result." };
+  if (result === undefined) return { kind: "failed", surface: "internal", message: "The Claude Agent SDK ended without a result." };
   if (result.subtype !== "success") {
     const detail = result.errors.length > 0 ? result.errors.join("; ") : result.subtype;
-    return { kind: "failed", surface: "engine", message: `Claude failed: ${detail}` };
+    return { kind: "failed", surface: "engine", message: `The Claude Agent SDK failed: ${detail}` };
   }
   if (result.terminal_reason === "tool_deferred_unavailable") return { kind: "failed", surface: "internal", message: DEFERRED_UNAVAILABLE_MESSAGE };
-  if (result.is_error) return { kind: "failed", surface: "engine", message: result.result || "Claude failed." };
+  if (result.is_error) return { kind: "failed", surface: "engine", message: result.result || "The Claude Agent SDK failed." };
   if (end.awaitingApproval) return { kind: "awaiting_approval" };
   if (end.structuredOutput) foldStructuredOutput(sink, result);
   return { kind: "completed" };

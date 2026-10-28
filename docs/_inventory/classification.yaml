@@ -683,8 +683,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Where each edition gets Anthropic's Claude engine, the one-time download a
-      local runner makes, and how to install the engine on a machine that cannot
+      Where each edition gets the Claude Agent SDK, the one-time download a
+      local runner makes, and how to install the SDK on a machine that cannot
       download it.
     medium: none
 
@@ -729,11 +729,11 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Choose between the Native and Claude execution engines on models,
+      Choose between the Stigmer and Claude Agent harnesses on models,
       tooling, checkpointing, and cost; the choice locks per Session.
     medium: diagram
     why:
-      The engine-selection fork is structure; the existing mermaid carries it.
+      The harness-selection fork is structure; the existing mermaid carries it.
 
   guides/self-hosting/overview:
     fate: keep

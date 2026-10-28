@@ -68,7 +68,7 @@ describe("turnSkillsOf", () => {
 
   it("refuses two skills that load under one id from different places", () => {
     expect(() => turnSkillsOf([of(own("notes.style")), of(own("notes-style"))])).toThrow(SkillNameClash);
-    expect(() => turnSkillsOf([of(own("notes.style"), own("notes-style"))])).toThrow("The skills 'agent:notes.style' and 'agent:notes-style' both load on Claude as 'agent:notes-style'.");
+    expect(() => turnSkillsOf([of(own("notes.style"), own("notes-style"))])).toThrow("The skills 'agent:notes.style' and 'agent:notes-style' both load on the Claude Agent harness as 'agent:notes-style'. Rename one, or run this agent on another harness.");
   });
 
   it("refuses two plugins of one name, even when their skills differ", () => {

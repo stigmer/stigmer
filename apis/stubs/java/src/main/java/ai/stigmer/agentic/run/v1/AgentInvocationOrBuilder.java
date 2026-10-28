@@ -71,9 +71,9 @@ public interface AgentInvocationOrBuilder extends
 
   /**
    * <pre>
-   * Execution engine for the run's session. Unspecified: native when
-   * run_config names a model (the engine the model was checked against at
-   * save), else the agent's own engine (AgentSpec.harness), else the
+   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * run_config names a model (the harness the model was checked against at
+   * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.
    * </pre>
    *
@@ -83,9 +83,9 @@ public interface AgentInvocationOrBuilder extends
   int getHarnessValue();
   /**
    * <pre>
-   * Execution engine for the run's session. Unspecified: native when
-   * run_config names a model (the engine the model was checked against at
-   * save), else the agent's own engine (AgentSpec.harness), else the
+   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * run_config names a model (the harness the model was checked against at
+   * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.
    * </pre>
    *
