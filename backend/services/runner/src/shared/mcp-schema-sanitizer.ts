@@ -34,8 +34,9 @@
  * therefore relaxed too.
  *
  * Scope: this sanitizer serves the EXECUTION path only. A tools listing
- * (shared/mcp-tool-listing.ts) reads names, descriptions and marks, never
- * schemas, and never invokes a tool, so it cannot hit the crash.
+ * (shared/mcp-tool-listing.ts) reads names, descriptions and marks, and
+ * copies schemas only to record them, never to validate against them, and
+ * never invokes a tool, so it cannot hit the crash.
  */
 
 /** One dropped regex constraint, for the caller's log line. */

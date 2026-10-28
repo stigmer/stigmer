@@ -97,6 +97,7 @@ private static final long serialVersionUID = 0L;
     STIGMER_TOOL_RESULT_FULL_OUTPUT(110),
     STIGMER_BACKGROUND_COMMAND_STATUS(111),
     STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED(112),
+    STIGMER_MCP_TOOL_DEFINITION(113),
     EVENT_NOT_SET(0);
     private final int value;
     private EventCase(int value) {
@@ -145,6 +146,7 @@ private static final long serialVersionUID = 0L;
         case 110: return STIGMER_TOOL_RESULT_FULL_OUTPUT;
         case 111: return STIGMER_BACKGROUND_COMMAND_STATUS;
         case 112: return STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED;
+        case 113: return STIGMER_MCP_TOOL_DEFINITION;
         case 0: return EVENT_NOT_SET;
         default: return null;
       }
@@ -1666,6 +1668,52 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
   }
 
+  public static final int STIGMER_MCP_TOOL_DEFINITION_FIELD_NUMBER = 113;
+  /**
+   * <pre>
+   * An MCP tool the turn called, as the model was offered it: its
+   * description and input schema.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+   * @return Whether the stigmerMcpToolDefinition field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerMcpToolDefinition() {
+    return eventCase_ == 113;
+  }
+  /**
+   * <pre>
+   * An MCP tool the turn called, as the model was offered it: its
+   * description and input schema.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+   * @return The stigmerMcpToolDefinition.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent getStigmerMcpToolDefinition() {
+    if (eventCase_ == 113) {
+       return (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * An MCP tool the turn called, as the model was offered it: its
+   * description and input schema.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEventOrBuilder getStigmerMcpToolDefinitionOrBuilder() {
+    if (eventCase_ == 113) {
+       return (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1784,6 +1832,9 @@ private static final long serialVersionUID = 0L;
     }
     if (eventCase_ == 112) {
       output.writeMessage(112, (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_);
+    }
+    if (eventCase_ == 113) {
+      output.writeMessage(113, (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1930,6 +1981,10 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 112) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(112, (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_);
+    }
+    if (eventCase_ == 113) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(113, (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -2080,6 +2135,10 @@ private static final long serialVersionUID = 0L;
         if (!getStigmerBackgroundCommandStopRequested()
             .equals(other.getStigmerBackgroundCommandStopRequested())) return false;
         break;
+      case 113:
+        if (!getStigmerMcpToolDefinition()
+            .equals(other.getStigmerMcpToolDefinition())) return false;
+        break;
       case 0:
       default:
     }
@@ -2227,6 +2286,10 @@ private static final long serialVersionUID = 0L;
       case 112:
         hash = (37 * hash) + STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerBackgroundCommandStopRequested().hashCode();
+        break;
+      case 113:
+        hash = (37 * hash) + STIGMER_MCP_TOOL_DEFINITION_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerMcpToolDefinition().hashCode();
         break;
       case 0:
       default:
@@ -2469,6 +2532,9 @@ private static final long serialVersionUID = 0L;
       if (stigmerBackgroundCommandStopRequestedBuilder_ != null) {
         stigmerBackgroundCommandStopRequestedBuilder_.clear();
       }
+      if (stigmerMcpToolDefinitionBuilder_ != null) {
+        stigmerMcpToolDefinitionBuilder_.clear();
+      }
       eventCase_ = 0;
       event_ = null;
       return this;
@@ -2651,6 +2717,10 @@ private static final long serialVersionUID = 0L;
           stigmerBackgroundCommandStopRequestedBuilder_ != null) {
         result.event_ = stigmerBackgroundCommandStopRequestedBuilder_.build();
       }
+      if (eventCase_ == 113 &&
+          stigmerMcpToolDefinitionBuilder_ != null) {
+        result.event_ = stigmerMcpToolDefinitionBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -2806,6 +2876,10 @@ private static final long serialVersionUID = 0L;
         }
         case STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED: {
           mergeStigmerBackgroundCommandStopRequested(other.getStigmerBackgroundCommandStopRequested());
+          break;
+        }
+        case STIGMER_MCP_TOOL_DEFINITION: {
+          mergeStigmerMcpToolDefinition(other.getStigmerMcpToolDefinition());
           break;
         }
         case EVENT_NOT_SET: {
@@ -3075,6 +3149,13 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 112;
               break;
             } // case 898
+            case 906: {
+              input.readMessage(
+                  internalGetStigmerMcpToolDefinitionFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 113;
+              break;
+            } // case 906
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -8994,6 +9075,193 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 112;
       onChanged();
       return stigmerBackgroundCommandStopRequestedBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent, ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.Builder, ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEventOrBuilder> stigmerMcpToolDefinitionBuilder_;
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     * @return Whether the stigmerMcpToolDefinition field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerMcpToolDefinition() {
+      return eventCase_ == 113;
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     * @return The stigmerMcpToolDefinition.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent getStigmerMcpToolDefinition() {
+      if (stigmerMcpToolDefinitionBuilder_ == null) {
+        if (eventCase_ == 113) {
+          return (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 113) {
+          return stigmerMcpToolDefinitionBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    public Builder setStigmerMcpToolDefinition(ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent value) {
+      if (stigmerMcpToolDefinitionBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerMcpToolDefinitionBuilder_.setMessage(value);
+      }
+      eventCase_ = 113;
+      return this;
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    public Builder setStigmerMcpToolDefinition(
+        ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.Builder builderForValue) {
+      if (stigmerMcpToolDefinitionBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerMcpToolDefinitionBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 113;
+      return this;
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    public Builder mergeStigmerMcpToolDefinition(ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent value) {
+      if (stigmerMcpToolDefinitionBuilder_ == null) {
+        if (eventCase_ == 113 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 113) {
+          stigmerMcpToolDefinitionBuilder_.mergeFrom(value);
+        } else {
+          stigmerMcpToolDefinitionBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 113;
+      return this;
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    public Builder clearStigmerMcpToolDefinition() {
+      if (stigmerMcpToolDefinitionBuilder_ == null) {
+        if (eventCase_ == 113) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 113) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerMcpToolDefinitionBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.Builder getStigmerMcpToolDefinitionBuilder() {
+      return internalGetStigmerMcpToolDefinitionFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEventOrBuilder getStigmerMcpToolDefinitionOrBuilder() {
+      if ((eventCase_ == 113) && (stigmerMcpToolDefinitionBuilder_ != null)) {
+        return stigmerMcpToolDefinitionBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 113) {
+          return (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * An MCP tool the turn called, as the model was offered it: its
+     * description and input schema.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [json_name = "stigmerMcpToolDefinition", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent, ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.Builder, ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEventOrBuilder> 
+        internalGetStigmerMcpToolDefinitionFieldBuilder() {
+      if (stigmerMcpToolDefinitionBuilder_ == null) {
+        if (!(eventCase_ == 113)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.getDefaultInstance();
+        }
+        stigmerMcpToolDefinitionBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent, ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent.Builder, ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerMcpToolDefinitionEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 113;
+      onChanged();
+      return stigmerMcpToolDefinitionBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEvent)

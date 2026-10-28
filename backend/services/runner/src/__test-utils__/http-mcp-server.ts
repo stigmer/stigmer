@@ -1,7 +1,8 @@
 /**
  * An MCP server over streamable HTTP, in the test process, for a hermetic
- * Claude turn to reach through the host's bridge (`mcp-bridge.ts`): an
- * agent's own server, or the platform's memory server at its bridge route.
+ * turn to reach as it reaches any HTTP server: an agent's own server on any
+ * engine, or, on Claude, the platform's memory server at its bridge route
+ * (`execute-claude/mcp-bridge.ts`).
  *
  * It lists the tools it is given and answers each call with what `call`
  * returns, which may wait: a call is held for as long as `call` takes, so a

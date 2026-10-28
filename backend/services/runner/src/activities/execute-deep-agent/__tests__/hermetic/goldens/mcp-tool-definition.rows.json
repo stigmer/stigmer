@@ -1,0 +1,70 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Looking up the first.",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-mcp-def-0001",
+          "name": "lookup",
+          "args": {
+            "q": "alpha"
+          },
+          "result": "Found alpha.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "mcpServerSlug": "docs",
+          "argsPreview": "{\"q\":\"alpha\"}",
+          "toolKind": "TOOL_KIND_MCP"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Now the second.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-mcp-def-0002",
+          "name": "lookup",
+          "args": {
+            "q": "beta"
+          },
+          "result": "Found beta.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "mcpServerSlug": "docs",
+          "argsPreview": "{\"q\":\"beta\"}",
+          "toolKind": "TOOL_KIND_MCP"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Both found.",
+      "timestamp": "2026-01-01T00:00:03.000Z"
+    }
+  ],
+  "mcpToolDefinitions": [
+    {
+      "mcpServerSlug": "docs",
+      "name": "lookup",
+      "description": "Look a thing up in the docs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "What to look up."
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    }
+  ]
+}

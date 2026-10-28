@@ -528,6 +528,9 @@ The case holds:
 - `mocks/<server>/<tool>.md`: each answer an MCP tool gave the run, as a fixed
   stand-in under the name the conversation gave the server, so the case runs
   without calling the real server;
+- `mocks/<server>/_tools.json`: each mocked tool's description and input schema
+  as the run offered them to the model, so the case offers the model the same
+  tool and it calls the tool as it did in the run;
 - `graders/criteria.md`: an `llm` grader whose FAIL line names what went wrong,
   from the AI judge's failing reason, else an eval run's failing check, else the
   comment you left with a thumbs-down; you write the PASS line, since only you
@@ -549,7 +552,12 @@ The case is never a verdict of its own: it records what happened and what went
 wrong, and you decide what passes. What it leaves out is listed beside it, such
 as a tool that answered differently on a later call (its mock keeps the first
 answer), the platform's own tools (the case calls them for real), or the files
-sent with the message. A run that has not ended cannot become a case yet.
+sent with the message. A run from before Stigmer recorded what each tool offered
+the model has no `_tools.json`, and the case says so: its mocks offer a generic
+description and an input schema that accepts anything, so the model may call
+them differently than it did. A tool whose input schema was over 64 KB keeps its
+description and gets a schema that accepts anything, and the case says that too.
+A run that has not ended cannot become a case yet.
 
 The CLI refuses to overwrite a case folder that already exists, and an eval
 refuses a case name it already holds. Adding a case to an eval shows the

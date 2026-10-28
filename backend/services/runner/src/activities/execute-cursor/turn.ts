@@ -98,6 +98,10 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     const streamState = newTurnStreamState();
     const mode = resolveCursorMode(input, config);
     checkToolScope(input, mode);
+    // What the model is offered of each MCP tool, as the turn's start
+    // listed it (Cursor's SDK loads the tools itself), for the turn's
+    // record of each one it calls.
+    sink.transcript.offerTools(input.mcp.listing?.offered ?? []);
     await checkWorkspaceHookFiles(input);
     const hooks = await prepareHooks(input, sink, config, mode);
     const rows = readAdjudicatedRows(input, sink.rows);

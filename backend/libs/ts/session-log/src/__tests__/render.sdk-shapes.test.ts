@@ -609,6 +609,37 @@ describe("Stigmer's own events render by the same three rules, under their stigm
       proto: { case: "stigmerBackgroundCommandStopRequested", value: { id: "s15", processedAt: AT, toolUseId: "u1" } },
       json: { id: "s15", type: "stigmer.background_command.stop_requested", processed_at: AT, tool_use_id: "u1" },
     },
+    {
+      proto: {
+        case: "stigmerMcpToolDefinition",
+        value: {
+          id: "s16",
+          processedAt: AT,
+          toolUseId: "u2",
+          mcpServerName: "deepwiki",
+          name: "ask_question",
+          description: "Ask about a repository.",
+          inputSchema: { type: "object", required: ["repoName", "question"] },
+        },
+      },
+      json: {
+        id: "s16",
+        type: "stigmer.mcp.tool_definition",
+        processed_at: AT,
+        tool_use_id: "u2",
+        mcp_server_name: "deepwiki",
+        name: "ask_question",
+        description: "Ask about a repository.",
+        input_schema: { type: "object", required: ["repoName", "question"] },
+      },
+    },
+    {
+      proto: {
+        case: "stigmerMcpToolDefinition",
+        value: { id: "s17", processedAt: AT, toolUseId: "u3", mcpServerName: "huge", name: "query", inputSchemaOmitted: true },
+      },
+      json: { id: "s17", type: "stigmer.mcp.tool_definition", processed_at: AT, tool_use_id: "u3", mcp_server_name: "huge", name: "query", input_schema_omitted: true },
+    },
   ];
 
   it.each(own)("$json.type", ({ proto, json }) => {

@@ -5,7 +5,8 @@
  * tool's `metadata`, marking a tool destructive only for an explicit
  * `destructiveHint: true`, lists every plugin server's tool names, never
  * reads the platform's own servers, and leaves nothing unlisted (a server
- * that did not connect has no tools to call); `readGateState` builds the
+ * that did not connect has no tools to call); it offers the turn's record each
+ * plugin tool's description and the JSON schema the loader made of it; `readGateState` builds the
  * gate's default from that listing and the turn's leases, so a leased
  * server's destructive tool is cleared and the runtime's lease-only default
  * is not what the gate reads.
@@ -13,18 +14,20 @@
 
 import { describe, expect, it } from "vitest";
 import { DynamicStructuredTool } from "@langchain/core/tools";
-import { z } from "zod";
 
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import { resolveToolApproval } from "../../../shared/approval-policy.js";
 import { listingOfLoadedTools, readGateState, type DeepAgentTools } from "../turn-setup.js";
 
-/** A loaded MCP tool carrying `annotations` on its metadata, as the adapter loads one. */
+/** The JSON schema the adapter loads every test tool with. */
+const SCHEMA = { type: "object" as const, properties: { id: { type: "string" } }, required: ["id"] };
+
+/** A loaded MCP tool carrying `annotations` on its metadata, as the adapter loads one (a JSON schema, never a zod one). */
 function loaded(name: string, annotations?: Record<string, unknown>): DynamicStructuredTool {
   return new DynamicStructuredTool({
     name,
-    description: name,
-    schema: z.object({}),
+    description: `${name} it`,
+    schema: SCHEMA,
     func: async () => "",
     ...(annotations === undefined ? {} : { metadata: { annotations } }),
   });
@@ -59,6 +62,15 @@ describe("listingOfLoadedTools", () => {
       { server: "plugin_github_api", tool: "merge_pr" },
     ]);
     expect(listing.unlisted, "a server that did not connect has no tools to call").toEqual([]);
+    expect(listing.offered.map((tool) => `${tool.server}/${tool.name}`)).toEqual([
+      "plugin_linear_api/delete_issue",
+      "plugin_linear_api/spoofed",
+      "plugin_linear_api/search",
+      "plugin_linear_api/truthy_string",
+      "plugin_linear_api/unannotated",
+      "plugin_github_api/merge_pr",
+    ]);
+    expect(listing.offered[0]).toEqual({ server: "plugin_linear_api", name: "delete_issue", description: "delete_issue it", inputSchema: SCHEMA, schemaOmitted: false });
   });
 });
 
@@ -79,7 +91,7 @@ describe("readGateState", () => {
       toolServerMap: new Map(),
     };
 
-    const { mcpDefault } = readGateState(input, tools);
+    const { mcpDefault } = readGateState(input, tools, listingOfLoadedTools(serverToolMap, input.mcp.platformServerSlugs));
 
     expect([...mcpDefault.destructive].sort()).toEqual(
       ["plugin_github_api/merge_pr", "plugin_linear_api/delete_issue", "plugin_linear_api/spoofed"].sort(),

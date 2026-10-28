@@ -292,6 +292,7 @@ describe("resolveMcpServersAndPolicies — the plugins' servers", () => {
       listed: [{ server: "plugin_linear_api", tools: ["search", "delete_issue"] }],
       destructive: [{ server: "plugin_linear_api", tool: "delete_issue" }],
       unlisted: ["plugin_github_api"],
+      offered: [],
     };
     listTurnTools.mockResolvedValue(listing);
     const mcp = await resolveMcpServersAndPolicies(
@@ -371,7 +372,7 @@ describe("callableServers — a server no tool of which can be called is never c
 
   it("filters before the tool listing, and leaves a eval-run try's mocked server to its stand-in", async () => {
     listTurnTools.mockReset();
-    listTurnTools.mockResolvedValue({ listed: [], destructive: [], unlisted: [] });
+    listTurnTools.mockResolvedValue({ listed: [], destructive: [], unlisted: [], offered: [] });
     vi.spyOn(console, "log").mockImplementation(() => undefined);
     const turn = args({
       attachments: false,
@@ -432,6 +433,7 @@ describe("startEvalMocks — a eval-run try's stand-ins take their servers' plac
         { server: "plugin_wiki_api", tool: "delete_page" },
       ],
       unlisted: ["plugin_linear_api", "plugin_ghost_api"],
+      offered: [],
     });
     endpoint.served = served;
     try {
@@ -543,6 +545,7 @@ describe("resolveMcpServersAndPolicies — the servers the agent writes itself",
       listed: [{ server: "zendesk", tools: ["echo", "echo_destructive"] }],
       destructive: [{ server: "zendesk", tool: "echo_destructive" }],
       unlisted: [],
+      offered: [],
     };
     listTurnTools.mockResolvedValue(listing);
     const mcp = await resolveMcpServersAndPolicies(

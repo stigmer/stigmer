@@ -2,7 +2,8 @@
  * Test support: one turn's session events, written in the order and with
  * the ids the runner writes them (runner harness/events/emitter.ts and
  * ids.ts): per message, the message (none for an empty one), then its tool
- * uses, then their results, an offloaded result's location after it, and
+ * uses (an MCP tool's definition before the use that carries one), then
+ * their results, an offloaded result's location after it, and
  * the structured answer last. The server's user message opens the turn.
  * Each event takes the next seq, so a fixture reads as a stored log.
  *
@@ -39,6 +40,8 @@ export interface FixtureCall {
   readonly denied?: boolean;
   /** The thread that made it; "" for the primary thread. */
   readonly threadId?: string;
+  /** The MCP tool as the model was offered it: a `stigmer.mcp.tool_definition` written just before this use. */
+  readonly definition?: { readonly description: string; readonly inputSchema?: JsonObject; readonly omitted?: boolean };
 }
 
 /** Builds one turn's events in log order. */
@@ -92,6 +95,20 @@ export class RunEventsBuilder {
           },
         });
       } else {
+        if (call.definition !== undefined) {
+          this.push(thread, {
+            case: "stigmerMcpToolDefinition",
+            value: {
+              id: `${this.runId}.def.${call.mcpServer}.${call.name}`,
+              toolUseId: id,
+              mcpServerName: call.mcpServer,
+              name: call.name,
+              description: call.definition.description,
+              ...(call.definition.inputSchema === undefined ? {} : { inputSchema: call.definition.inputSchema }),
+              inputSchemaOmitted: call.definition.omitted === true,
+            },
+          });
+        }
         this.push(thread, {
           case: "agentMcpToolUse",
           value: {

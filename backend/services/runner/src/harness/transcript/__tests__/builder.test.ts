@@ -22,7 +22,9 @@
  * handlers, silent on seed) joined with the turn timeline. The
  * one-observation arms (`applyObservation`: one clock read for every stamp a
  * raw event's facts make) joined with stigmer#1390, whose Cursor flake they
- * make deterministic by moving the clock between folds.
+ * make deterministic by moving the clock between folds. The offered-tool
+ * arms (`offerTools`: a called MCP tool's definition, once per server and
+ * tool) joined with stigmer#2366.
  */
 
 import { afterEach, beforeEach, describe, it, expect, onTestFinished, vi } from "vitest";
@@ -30,6 +32,7 @@ import { create } from "@bufbuild/protobuf";
 import { WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../builder.js";
 import type { TranscriptEvent } from "../events.js";
+import type { OfferedTool } from "../../../shared/mcp-tool-listing.js";
 import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalAction,
@@ -557,6 +560,74 @@ describe("TranscriptBuilder — a background command is projected into rows.back
     feed(fold, [{ kind: "background_command_ended", callId: "bg-1", ending: "stopped", stoppedBy: "turn", output: "" }]);
     expect(fold.status.backgroundCommands[0]).toMatchObject({ ending: "exited", exitCode: 2, stoppedBy: "" });
     expect(fold.sb.dirty, "a second end changes nothing").toBe(false);
+  });
+});
+
+describe("TranscriptBuilder — an offered MCP tool's definition is projected into rows.mcp_tool_definitions once it is called", () => {
+  const offered: OfferedTool[] = [
+    { server: "deepwiki", name: "ask_question", description: "Ask about a repository.", inputSchema: { type: "object", required: ["repoName", "question"] }, schemaOmitted: false },
+    { server: "deepwiki", name: "read_wiki", description: "Read a wiki.", inputSchema: { type: "object" }, schemaOmitted: false },
+    { server: "huge", name: "query", description: "Query.", inputSchema: undefined, schemaOmitted: true },
+  ];
+  const mcpCall = (callId: string, mcpServerSlug: string, name: string, subAgentId?: string): TranscriptEvent => ({
+    kind: "tool_started",
+    callId,
+    name,
+    input: { q: callId },
+    mcpServerSlug,
+    ...(subAgentId === undefined ? {} : { subAgentId }),
+  });
+
+  it("records nothing when offered, then each called tool once, in the order first called, in any scope", () => {
+    const fold = builder();
+    fold.sb.offerTools(offered);
+    expect(fold.status.mcpToolDefinitions, "offering writes nothing").toEqual([]);
+    expect(fold.sb.dirty).toBe(false);
+
+    feed(fold, [
+      { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
+      mcpCall("c-1", "huge", "query", "task-1"),
+      mcpCall("c-2", "deepwiki", "ask_question"),
+      mcpCall("c-3", "deepwiki", "ask_question"),
+      mcpCall("c-4", "huge", "query"),
+    ]);
+    expect(fold.status.mcpToolDefinitions.map((d) => [d.mcpServerSlug, d.name, d.description, d.inputSchema, d.inputSchemaOmitted])).toEqual([
+      ["huge", "query", "Query.", undefined, true],
+      ["deepwiki", "ask_question", "Ask about a repository.", { type: "object", required: ["repoName", "question"] }, false],
+    ]);
+  });
+
+  it("records a proposal's tool as it records a start's", () => {
+    const fold = builder();
+    fold.sb.offerTools(offered);
+    feed(fold, [{ kind: "approval_proposed", callId: "c-1", name: "read_wiki", mcpServerSlug: "deepwiki", message: "Read it?" }]);
+    expect(fold.status.mcpToolDefinitions.map((d) => d.name)).toEqual(["read_wiki"]);
+  });
+
+  it("records nothing for a tool the engine did not offer, a built-in tool, or a turn whose engine offered nothing", () => {
+    const fold = builder();
+    fold.sb.offerTools(offered);
+    feed(fold, [mcpCall("c-1", "stigmer-memory", "remember"), mcpCall("c-2", "deepwiki", "unlisted"), ...proposedCall("c-3", "read_file")]);
+    expect(fold.status.mcpToolDefinitions).toEqual([]);
+
+    const bare = feed(builder(), [mcpCall("c-1", "deepwiki", "ask_question")]);
+    expect(bare.status.mcpToolDefinitions).toEqual([]);
+  });
+
+  it("keeps the rows' own definitions: a re-emitted start of a known row records nothing new", () => {
+    const fold = builder();
+    fold.sb.offerTools(offered);
+    feed(fold, [mcpCall("c-1", "deepwiki", "ask_question"), mcpCall("c-1", "deepwiki", "ask_question")]);
+    expect(fold.status.mcpToolDefinitions).toHaveLength(1);
+  });
+
+  it("never tells the observer: the catalog stays in the builder's process", () => {
+    const fold = builder();
+    const observed: string[] = [];
+    const watched = { ...fold, sb: new TranscriptBuilder("exec-test", fold.status, fold.run, (event) => observed.push(event.kind)) };
+    watched.sb.offerTools(offered);
+    feed(watched, [mcpCall("c-1", "deepwiki", "ask_question")]);
+    expect(observed).toEqual(["tool_started"]);
   });
 });
 

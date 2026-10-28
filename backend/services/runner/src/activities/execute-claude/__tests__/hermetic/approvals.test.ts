@@ -42,7 +42,7 @@ import { personDecisionSentence } from "../../../../shared/hooks/messages.js";
 import { getClaudeEngineDir } from "../../../../shared/workspace/platform-dir.js";
 import { anthropicText, anthropicToolUses, type WireConversation, type WireScript } from "../../__test-utils__/claude-wire.js";
 import { FIXTURE, claudeExecutionRecord, claudeScenarioFile, sessionWorkspaceDir, type ClaudeScenarioFile } from "../../__test-utils__/hermetic-claude.js";
-import { HttpMcpServer } from "../../__test-utils__/http-mcp-server.js";
+import { HttpMcpServer } from "../../../../__test-utils__/http-mcp-server.js";
 import { ASK_ALONE_MESSAGE, STALE_CALL_MESSAGE } from "../../gate.js";
 
 /** One model step: the calls of one message. */

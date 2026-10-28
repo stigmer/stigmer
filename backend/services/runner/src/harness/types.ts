@@ -596,7 +596,10 @@ export interface TurnSink {
    * `awaitingApproval` to learn a proposal was parked. The runtime calls
    * `finalize()` once `runTurn` returns, on every path, so no streaming flag
    * outlives a turn; a harness may call it earlier when it persists on the
-   * settled rows itself. A source-walking fence
+   * settled rows itself. Before its engine's first event, a harness hands it
+   * what the engine offers the model of each MCP tool (`offerTools`, from
+   * its `McpToolListing.offered`), once, so the turn records the definition
+   * of each tool it calls. A source-walking fence
    * (`harness/__tests__/transcript-writers.test.ts`) refuses any other
    * creator of a row.
    */

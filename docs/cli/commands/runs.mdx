@@ -91,8 +91,9 @@ stigmer runs to-eval-case run_01abc123 --eval variance-reporter-evals
 
 Stigmer builds the case from the run: the request as `prompt.md`, the
 conversation before it as `history.jsonl` when there was one, each MCP tool's
-answer as a mock, and `graders/criteria.md`, whose FAIL line names what went
-wrong (the AI judge's reason, else an eval run's failing check, else your
+answer as a mock beside the tool's description and input schema as the run
+offered them to the model, and `graders/criteria.md`, whose FAIL line names what
+went wrong (the AI judge's reason, else an eval run's failing check, else your
 thumbs-down comment); write its PASS line yourself. What the case leaves out is
 printed beside it. An existing case directory is never overwritten, and an eval
 refuses a case name it already holds. See

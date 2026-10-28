@@ -144,6 +144,10 @@ message SessionEvent {
 
     // A person asked to stop a command running in the background.
     StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];
+
+    // An MCP tool the turn called, as the model was offered it: its
+    // description and input schema.
+    StigmerMcpToolDefinitionEvent stigmer_mcp_tool_definition = 113 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.mcp.tool_definition"];
   }
 }
 
@@ -1076,4 +1080,39 @@ message StigmerBackgroundCommandStopRequestedEvent {
 
   // The thread that started it; empty for the primary thread.
   string session_thread_id = 4;
+}
+
+// StigmerMcpToolDefinitionEvent records one MCP tool a turn called, as the
+// model was offered it: stigmer.mcp.tool_definition. Written once per
+// server and tool a turn calls, just before the first agent.mcp_tool_use of
+// that tool in the turn and in that use's thread; later calls of the same
+// tool in the turn add none. The platform's own servers get none. An eval
+// case built from the turn offers the model the same tool from it.
+message StigmerMcpToolDefinitionEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The tool's first agent.mcp_tool_use in the turn, which this event comes
+  // just before.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The MCP server the tool belongs to, as the tool use names it.
+  string mcp_server_name = 4 [(buf.validate.field).string.min_len = 1];
+
+  // The tool's name, as the tool use names it.
+  string name = 5 [(buf.validate.field).string.min_len = 1];
+
+  // The tool's description, as the model was offered it.
+  string description = 6;
+
+  // The tool's input schema (JSON Schema), as the model was offered it;
+  // unset when input_schema_omitted.
+  google.protobuf.Struct input_schema = 7;
+
+  // Whether the input schema was too large to record (over 64 KB as JSON),
+  // so only the name and description are kept.
+  bool input_schema_omitted = 8;
 }

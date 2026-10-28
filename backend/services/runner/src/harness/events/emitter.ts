@@ -32,7 +32,13 @@
  *   - a hidden row (the collapsed shape) writes nothing.
  * A result whose output the chokepoint offloaded carries the output's
  * head, and `stigmer.tool_result.full_output` after it says where the
- * whole output is stored.
+ * whole output is stored. An MCP tool's first use the log has not shown is
+ * preceded, in its thread, by `stigmer.mcp.tool_definition`: the tool as
+ * the model was offered it, from `rows.mcp_tool_definitions` (the builder's
+ * projection of what the engine offered). Its id derives from the run, the
+ * server and the tool, so a later call of the tool, in this invocation or
+ * a resumed one, writes none; a tool use already in the log is never given
+ * one after it.
  * So narration a boundary later blanks sits behind an unsealed row and
  * reaches neither the log nor a preview.
  *
@@ -147,11 +153,12 @@ import {
   thinkingTextEventId,
   threadEventId,
   threadId,
+  toolDefinitionEventId,
   toolResultEventId,
   toolResultFullOutputEventId,
   toolUseEventId,
 } from "./ids.js";
-import type { AgentMessage, ToolCall, SubAgentRun, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { AgentMessage, McpToolDefinition, ToolCall, SubAgentRun, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
   MessageType,
@@ -324,6 +331,8 @@ export class SessionEventEmitter {
   private readonly frontiers = new Map<string, Frontier>();
   /** The sub-agent threads of the write being read, by sub-agent id. */
   private threads = new Map<string, Thread>();
+  /** The definitions of the MCP tools the turn called, of the write being read, by `<server>/<tool>`. */
+  private definitions = new Map<string, McpToolDefinition>();
   /** The credential in hand, and when to renew it (`undefined`: never, it has no expiry). */
   private held: { readonly token: string | undefined; readonly renewAtMs: number | undefined } | undefined;
   private acquiring: Promise<string | undefined> | undefined;
@@ -530,6 +539,7 @@ export class SessionEventEmitter {
     }
 
     const subAgents = new Map(rows.subAgentRuns.map((row) => [row.id, row]));
+    this.definitions = new Map(rows.mcpToolDefinitions.map((d) => [`${d.mcpServerSlug}/${d.name}`, d]));
     this.threads = new Map(
       rows.subAgentRuns.map((row) => [
         row.id,
@@ -741,6 +751,7 @@ export class SessionEventEmitter {
     const permission = permissionOf(row);
     const sessionThreadId = thread.threadId;
     if (row.mcpServerSlug !== "") {
+      if (!this.known(id)) this.writeToolDefinition(thread.threadId, row, id);
       this.push(thread.threadId, id, {
         case: "agentMcpToolUse",
         value: { id, input, mcpServerName: row.mcpServerSlug, name: row.name, evaluatedPermission: permission, sessionThreadId },
@@ -773,6 +784,25 @@ export class SessionEventEmitter {
       this.walk(subThread, subAgents, final);
     }
     return true;
+  }
+
+  /** The `stigmer.mcp.tool_definition` before an MCP row's tool use, once per server and tool in the run (the module header). */
+  private writeToolDefinition(thread: string, row: ToolCall, toolUseId: string): void {
+    const definition = this.definitions.get(`${row.mcpServerSlug}/${row.name}`);
+    if (definition === undefined) return;
+    const id = toolDefinitionEventId(this.deps.runId, row.mcpServerSlug, row.name);
+    this.push(thread, id, {
+      case: "stigmerMcpToolDefinition",
+      value: {
+        id,
+        toolUseId,
+        mcpServerName: row.mcpServerSlug,
+        name: row.name,
+        description: definition.description,
+        ...(definition.inputSchema === undefined ? {} : { inputSchema: definition.inputSchema }),
+        inputSchemaOmitted: definition.inputSchemaOmitted,
+      },
+    });
   }
 
   /** The row's result (after a sub-agent's thread end), or false when it has not settled beyond the boundary's reach. */

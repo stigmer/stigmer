@@ -1,0 +1,101 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Asking the wiki."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_mcp_tool_definition": {
+      "id": "aex_hermetic_0001.def.h092a62bc4c3788bcd479d5455b8517c8",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-mcp-def-0001",
+      "mcp_server_name": "deepwiki",
+      "name": "ask_question",
+      "description": "Ask a question about a GitHub repository.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repoName": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repoName",
+          "question"
+        ]
+      }
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0001",
+      "input": {
+        "repoName": "stigmer/fixture",
+        "question": "What is the fixture?"
+      },
+      "mcp_server_name": "deepwiki",
+      "name": "ask_question"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0001.r",
+      "mcp_tool_use_id": "aex_hermetic_0001.call-hermetic-mcp-def-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "It is a readme."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0002",
+      "input": {
+        "repoName": "stigmer/fixture",
+        "question": "Is it still a readme?"
+      },
+      "mcp_server_name": "deepwiki",
+      "name": "ask_question"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_mcp_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-mcp-def-0002.r",
+      "mcp_tool_use_id": "aex_hermetic_0001.call-hermetic-mcp-def-0002",
+      "content": [
+        {
+          "type": "text",
+          "text": "It is a readme."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "The wiki says the fixture is a readme."
+        }
+      ]
+    }
+  }
+]

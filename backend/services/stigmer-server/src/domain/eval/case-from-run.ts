@@ -27,6 +27,14 @@
  *     differently on later calls keeps its first answer. The platform's
  *     own servers (named `stigmer…`, a name no agent may take) get no mock:
  *     they are not the agent's to stand in for;
+ *   - `mocks/<server>/_tools.json`, the server's tools as the model was
+ *     offered them in the turn (a `tools/list` result holding each mocked
+ *     tool's description and input schema), read from the turn's
+ *     `stigmer.mcp.tool_definition` events, one per server and tool a run
+ *     called. An eval run's stand-in offers the model those definitions, so
+ *     the replay is shown the tool the run was shown; a mocked tool with no
+ *     definition is offered a generic description and an input schema that
+ *     accepts anything, as before definitions were recorded;
  *   - `graders/criteria.md`: an `llm` rubric whose PASS line the author
  *     writes and whose FAIL line names what went wrong: the first failing
  *     reason of the run's AI judge, else of its eval run, else the caller's
@@ -38,7 +46,9 @@
  * Every way the case differs from the run is a note: an answer kept from
  * the first of several, an answer longer than the session keeps inline,
  * a platform tool, a name no mock file can hold, a call that never
- * returned, a request's attachments, a history the conversation's own
+ * returned, a mocked tool the turn recorded no definition of (a turn
+ * recorded before definitions were) or whose input schema was too large
+ * to record, a request's attachments, a history the conversation's own
  * engine cannot resume (`@stigmer/plugin-package`
  * `EVAL_ENGINE_UNSUPPORTED_FEATURES`).
  *
@@ -48,7 +58,7 @@
  */
 import { createHash } from "node:crypto";
 
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -59,7 +69,7 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import type { SessionEvent, StigmerMcpToolDefinitionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { Score } from "@stigmer/apis/ai/stigmer/agentic/score/v1/api_pb";
 import { CriterionResult, ScoreSource } from "@stigmer/apis/ai/stigmer/agentic/score/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -171,7 +181,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     }
   }
 
-  files.push(...mockFilesOf(toolUsesOf(turn), notes));
+  files.push(...mockFilesOf(toolUsesOf(turn), definitionsOf(own?.events ?? []), notes));
   files.push({ path: "graders/criteria.md", content: criteriaFile(failureOf(await listRunScores(store, logger, runId), input.callerId)) });
   if (input.skill !== "") {
     files.push({ path: "graders/skill-fired.md", content: skillFiredFile(input.skill) });
@@ -325,8 +335,24 @@ async function runOrStub(store: Store, runId: string): Promise<Run> {
   }
 }
 
-/** The fixed mocks for the turn's MCP calls (the module header), each difference noted. */
-function mockFilesOf(uses: ReadonlyArray<ToolUse>, notes: string[]): Array<{ path: string; content: string }> {
+/** What the turn recorded of each MCP tool it called, by `<server>.<tool>`; the first of a tool's records is kept. */
+function definitionsOf(events: ReadonlyArray<SessionEvent>): Map<string, StigmerMcpToolDefinitionEvent> {
+  const definitions = new Map<string, StigmerMcpToolDefinitionEvent>();
+  for (const event of events) {
+    if (event.event.case !== "stigmerMcpToolDefinition") continue;
+    const definition = event.event.value;
+    const call = `${definition.mcpServerName}.${definition.name}`;
+    if (!definitions.has(call)) definitions.set(call, definition);
+  }
+  return definitions;
+}
+
+/** The fixed mocks for the turn's MCP calls and each mocked server's `_tools.json` (the module header), each difference noted. */
+function mockFilesOf(
+  uses: ReadonlyArray<ToolUse>,
+  definitions: ReadonlyMap<string, StigmerMcpToolDefinitionEvent>,
+  notes: string[],
+): Array<{ path: string; content: string }> {
   const kept = new Map<string, { readonly use: ToolUse; differing: number }>();
   const platform = new Set<string>();
   const unnamed = new Set<string>();
@@ -378,9 +404,66 @@ function mockFilesOf(uses: ReadonlyArray<ToolUse>, notes: string[]): Array<{ pat
   for (const call of unnamed) {
     notes.push(`${call} has a name no mock file can carry, so it has no mock`);
   }
-  return [...kept.values()].map(({ use }) => ({
+  const mocks = [...kept.values()].map(({ use }) => ({
     path: `mocks/${use.mcpServerName}/${use.name}.md`,
     content: `---\ntype: fixed\n${use.result?.isError === true ? "error: true\n" : ""}---\n${use.result?.text ?? ""}`,
+  }));
+  return [...mocks, ...toolsFilesOf([...kept.values()].map(({ use }) => use), definitions, notes)];
+}
+
+/** One tool of a `_tools.json`, in MCP's `tools/list` shape. */
+interface ListedTool {
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema?: JsonObject;
+}
+
+/**
+ * Each mocked server's `_tools.json`: its mocked tools as the turn offered
+ * them, a tool with no definition left out (its stand-in offers the generic
+ * one) and noted, as is one whose schema was too large to record (its
+ * stand-in offers the recorded description with a schema that accepts
+ * anything). A server none of whose tools has a definition gets no file.
+ */
+function toolsFilesOf(
+  mocked: ReadonlyArray<ToolUse>,
+  definitions: ReadonlyMap<string, StigmerMcpToolDefinitionEvent>,
+  notes: string[],
+): Array<{ path: string; content: string }> {
+  const byServer = new Map<string, ListedTool[]>();
+  const undefinedCalls: string[] = [];
+  const omitted: string[] = [];
+  for (const use of mocked) {
+    const call = `${use.mcpServerName}.${use.name}`;
+    const definition = definitions.get(call);
+    if (definition === undefined) {
+      undefinedCalls.push(call);
+      continue;
+    }
+    if (definition.inputSchemaOmitted) omitted.push(call);
+    const tools = byServer.get(use.mcpServerName) ?? [];
+    tools.push({
+      name: use.name,
+      description: definition.description,
+      ...(definition.inputSchema === undefined ? {} : { inputSchema: definition.inputSchema }),
+    });
+    byServer.set(use.mcpServerName, tools);
+  }
+  if (undefinedCalls.length > 0) {
+    notes.push(
+      `the turn recorded no definition of ${undefinedCalls.join(", ")} (it ran before tools' definitions were recorded): ` +
+        `${undefinedCalls.length === 1 ? "its mock offers" : "their mocks offer"} a generic description and an input schema that accepts anything`,
+    );
+  }
+  if (omitted.length > 0) {
+    notes.push(
+      `${omitted.join(", ")} had an input schema too large to record: ` +
+        `${omitted.length === 1 ? "its mock offers its" : "their mocks offer their"} description with an input schema that accepts anything`,
+    );
+  }
+  return [...byServer].map(([server, tools]) => ({
+    path: `mocks/${server}/_tools.json`,
+    content: `${JSON.stringify({ tools }, null, 2)}\n`,
   }));
 }
 

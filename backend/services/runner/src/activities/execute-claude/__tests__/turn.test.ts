@@ -41,7 +41,7 @@ import { createHermeticEnvironment } from "../../../__test-utils__/hermetic-acti
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import { FIXTURE_CLAUDE_MODEL, stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
-import { HttpMcpServer } from "../__test-utils__/http-mcp-server.js";
+import { HttpMcpServer } from "../../../__test-utils__/http-mcp-server.js";
 import { runMessageIdOf, sentMessageIdOf } from "../engine-session-id.js";
 import { ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { ROOT_CALLER, type GateVerdict } from "../gate.js";

@@ -113,6 +113,16 @@ describe("the turn input across the pipe", () => {
       listed: [{ server: "plugin_linear_api", tools: ["search", "delete_issue"] }],
       destructive: [{ server: "plugin_linear_api", tool: "delete_issue" }],
       unlisted: ["plugin_jira_api"],
+      offered: [
+        {
+          server: "plugin_linear_api",
+          name: "search",
+          description: "Search issues.",
+          inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+          schemaOmitted: false,
+        },
+        { server: "plugin_linear_api", name: "delete_issue", description: "", inputSchema: undefined, schemaOmitted: true },
+      ],
     };
     const input = turnInputFixture({
       approvalDecisions: new Map([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]),
@@ -410,13 +420,19 @@ describe("the turn's fields, split by owner", () => {
         structuredOutput: { answer: 42 },
         recalledMemoriesReport: { selectionActive: false },
         backgroundCommands: [{ callId: "bg-1", timeoutSeconds: 60, ending: "exited", exitCode: 0 }],
+        mcpToolDefinitions: [{ mcpServerSlug: "plugin_linear_api", name: "search", description: "Search issues.", inputSchema: { type: "object" } }],
       }),
     };
     const backgroundCommands = target.rows.backgroundCommands;
+    const definitions = target.rows.mcpToolDefinitions;
 
     applyAdapterProjection(target, encodeAdapterProjection(host));
     expect(target.rows.backgroundCommands, "replaced in place, like every adapter row").toBe(backgroundCommands);
     expect(target.rows.backgroundCommands.map((c) => [c.callId, c.ending, c.exitCode])).toEqual([["bg-1", "exited", 0]]);
+    expect(target.rows.mcpToolDefinitions, "replaced in place, like every adapter row").toBe(definitions);
+    expect(target.rows.mcpToolDefinitions.map((d) => [d.mcpServerSlug, d.name, d.description, d.inputSchema])).toEqual([
+      ["plugin_linear_api", "search", "Search issues.", { type: "object" }],
+    ]);
 
     expect(target.rows.messages, "the same array, which the runtime's builder holds").toBe(messages);
     expect(target.rows.messages.map((m) => m.content)).toEqual(["from the host"]);
