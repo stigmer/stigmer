@@ -16,9 +16,34 @@
  * function"). Until #1070 this handle carried two flags for a throw that
  * cannot happen; a turn reads its interruption from the signal's reason
  * instead (`worker-shutdown.ts` `classifyTurnInterruption`).
+ *
+ * So two knobs bound how soon a pause, cancel or interrupt reaches a running
+ * turn, and both take {@link CANCELLATION_PULSE_MS}: how often a quiet turn
+ * heartbeats (`harness/run-turn.ts`, the only heartbeat a turn waiting on a
+ * silent model call or a long tool sends), and how long the worker may hold
+ * a heartbeat back before sending it ({@link heartbeatWorkerOptions}; the
+ * SDK's default holds one for up to a minute, the stop stigmer#1378 measured).
  */
 
 import { Context, CancelledFailure } from "@temporalio/activity";
+import type { WorkerOptions } from "@temporalio/worker";
+
+/**
+ * How long a pause, cancel or interrupt takes, at most, to reach a running
+ * turn: the turn's heartbeat interval and the worker's heartbeat throttle.
+ * A heartbeat is a local enqueue; the worker sends at most one per activity
+ * in this window.
+ */
+export const CANCELLATION_PULSE_MS = 3_000;
+
+/**
+ * The heartbeat options every runner worker is created with (`worker.ts`,
+ * `runner-manager.ts`), so a turn on the static worker and one on a session's
+ * worker hear a cancellation alike.
+ */
+export const heartbeatWorkerOptions = {
+  maxHeartbeatThrottleInterval: CANCELLATION_PULSE_MS,
+} as const satisfies Pick<WorkerOptions, "maxHeartbeatThrottleInterval">;
 
 export interface HeartbeatHandle {
   stop(): void;

@@ -43,7 +43,9 @@
 // a controllable window — the lever for cancel/terminate/pause/resume on a
 // genuinely running execution. A held response must tolerate the client aborting the call
 // (cancel/terminate close the socket mid-delay), so the handler no-ops cleanly
-// once the connection is gone rather than throwing.
+// once the connection is gone rather than throwing, and stamps the captured
+// request's hungUpAt: how a suite sees that a stopped turn let go of its model
+// call, and when.
 //
 // One OPT-IN carve-out from the provider fence: embeddings (the
 // memory-selection arms). The runner's memory retriever
@@ -166,6 +168,10 @@ export interface CapturedLlmRequest {
   // When the request arrived (epoch milliseconds), for lining a run's model
   // calls up with the runner's and the server's logs.
   receivedAt: number;
+  // When the caller hung up while this request's answer was held (epoch
+  // milliseconds): the model call a stopped turn abandoned. Unset for an
+  // answer that was served, or whose hold releaseHolds() ended.
+  hungUpAt?: number;
 }
 
 export interface MockLlmProxyOptions {
@@ -459,11 +465,11 @@ export class MockLlmProxy {
   // Unblock every in-flight held response immediately and put the mock into
   // drain mode so any subsequent held turn responds at once. This is the lever a
   // lifecycle test pulls to quiesce the runner before the test ends: a paused or
-  // cancelled agent turn is NOT preempted mid-LLM-call by the runner (it only
-  // checks for cancellation between coarse graph events, of which a single held
-  // turn produces none until it resolves), so without this the held turn — and
-  // any resume re-invocation queued behind the session workspace lock — would
-  // keep an activity alive for the full hold window and leak into the next test.
+  // cancelled turn hangs up its model call only once the cancellation reaches
+  // the runner (on a heartbeat, seconds later), and a turn the test never
+  // stopped, or a resume re-invocation queued behind the session workspace
+  // lock, would keep an activity alive for the full hold window and leak into
+  // the next test.
   releaseHolds(): void {
     this.draining = true;
     for (const abort of [...this.activeHolds]) {
@@ -512,16 +518,17 @@ export class MockLlmProxy {
   }
 
   // Holds the response for `ms`, resolving early (returning true) if the client
-  // disconnects or releaseHolds() fires. In drain mode the hold is skipped
-  // entirely so the response is sent immediately.
-  private async hold(req: IncomingMessage, ms: number): Promise<boolean> {
+  // disconnects, which it stamps on `request` as hungUpAt, or releaseHolds()
+  // fires. In drain mode the hold is skipped entirely so the response is sent
+  // immediately. The disconnect is heard on the response: the request stream
+  // has already closed once its body was read, so its own "close" never fires.
+  private async hold(res: ServerResponse, request: CapturedLlmRequest, ms: number): Promise<boolean> {
     if (this.draining) {
       return false;
     }
     const controller = new AbortController();
-    let aborted = false;
     const onClose = (): void => {
-      aborted = true;
+      request.hungUpAt = Date.now();
       controller.abort();
     };
     const release = (): void => {
@@ -529,17 +536,17 @@ export class MockLlmProxy {
       // client disconnect, where the socket is gone).
       controller.abort();
     };
-    req.once("close", onClose);
+    res.once("close", onClose);
     this.activeHolds.add(release);
     try {
       await delay(ms, undefined, { signal: controller.signal });
     } catch {
       // delay rejects with an AbortError on disconnect or release — expected.
     } finally {
-      req.removeListener("close", onClose);
+      res.removeListener("close", onClose);
       this.activeHolds.delete(release);
     }
-    return aborted;
+    return request.hungUpAt !== undefined;
   }
 
   // Turns still waiting to be served. `0` after a run means every queued turn was
@@ -573,14 +580,15 @@ export class MockLlmProxy {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 
-  private capture(request: CapturedLlmRequest): void {
+  private capture(request: CapturedLlmRequest): CapturedLlmRequest {
     this.captured.push(request);
     this.onCapture?.(request);
+    return request;
   }
 
   // A router's answer: an error or a JSON document as is, a message body
   // streamed or whole as the request asked, after its hold.
-  private async answerRouted(req: IncomingMessage, res: ServerResponse, routed: RoutedResponse, streaming: boolean): Promise<void> {
+  private async answerRouted(res: ServerResponse, request: CapturedLlmRequest, routed: RoutedResponse, streaming: boolean): Promise<void> {
     if ("error" in routed) {
       writeJson(res, routed.error.status, routed.error.body, routed.error.headers ?? {});
       return;
@@ -589,7 +597,7 @@ export class MockLlmProxy {
       writeJson(res, routed.status ?? 200, routed.json);
       return;
     }
-    if (routed.delayMs !== undefined && routed.delayMs > 0 && (await this.hold(req, routed.delayMs))) return;
+    if (routed.delayMs !== undefined && routed.delayMs > 0 && (await this.hold(res, request, routed.delayMs))) return;
     if (streaming) writeAnthropicSse(res, routed.body);
     else writeJson(res, 200, routed.body);
   }
@@ -668,8 +676,8 @@ export class MockLlmProxy {
 
     const routed = (this.testRoute ?? this.route)?.({ path, body: parsedBody, headers });
     if (routed !== undefined) {
-      this.capture({ path, body: parsedBody, disposition: routed.outOfBand === true ? "out-of-band" : "routed", headers, receivedAt });
-      await this.answerRouted(req, res, routed, streaming);
+      const request = this.capture({ path, body: parsedBody, disposition: routed.outOfBand === true ? "out-of-band" : "routed", headers, receivedAt });
+      await this.answerRouted(res, request, routed, streaming);
       return;
     }
 
@@ -690,7 +698,7 @@ export class MockLlmProxy {
     // 500 — unless a persistent error turn was served, in which case the fault
     // it models is what every retry keeps hitting.
     const next = this.queue.shift();
-    this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", headers, receivedAt });
+    const request = this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", headers, receivedAt });
     if (next === undefined) {
       if (this.persistentError !== undefined) {
         writeJson(res, this.persistentError.status, this.persistentError.body, this.persistentError.headers);
@@ -702,7 +710,7 @@ export class MockLlmProxy {
     this.consumedCount += 1;
 
     if (next.delayMs !== undefined && next.delayMs > 0) {
-      const aborted = await this.hold(req, next.delayMs);
+      const aborted = await this.hold(res, request, next.delayMs);
       if (aborted) {
         // Client disconnected, or releaseHolds() was called to quiesce the mock:
         // the response is abandoned. The turn stays counted as consumed.

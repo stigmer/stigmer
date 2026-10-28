@@ -40,6 +40,10 @@
  * does the plan a Plan-mode turn returns: its final message saved into the
  * folder and returned as one File of the turn, with no artifact store.
  *
+ * So is the interval of the turn's whole-activity heartbeat: the cancellation
+ * pulse (`shared/heartbeat.ts`), half the bound on how soon a pause reaches a
+ * turn; the module's `startHeartbeat` is spied on, calling through.
+ *
  * The hermetic environment is created at module level because the subject's
  * `config` is read at collection time; the forks pool keeps it private to
  * this file.
@@ -56,10 +60,15 @@ import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/
 import { isPlanFileName, PLAN_STAGING_FILE, planFileName } from "../../shared/plan-file.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
+import { CANCELLATION_PULSE_MS, startHeartbeat } from "../../shared/heartbeat.js";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
+vi.mock("../../shared/heartbeat.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../shared/heartbeat.js")>();
+  return { ...actual, startHeartbeat: vi.fn(actual.startHeartbeat) };
+});
 
 import {
   ScriptedClock,
@@ -604,6 +613,22 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         await assertWorkspaceLockTimeoutFails(harness, "fake-timeline-no-engine");
       });
       expect(lines).toEqual([]);
+    });
+  });
+
+  describe("the runtime's cancellation pulse", () => {
+    // A pause reaches a turn only on a heartbeat, and a turn waiting on a
+    // silent model call or a long tool sends none but this pulse, so its
+    // interval bounds how soon such a turn stops (stigmer#1378); the worker's
+    // throttle is the other bound (`__tests__/worker.test.ts`).
+    it("pulses the activity's heartbeat every CANCELLATION_PULSE_MS for the whole turn", async () => {
+      clock.reset();
+      vi.mocked(startHeartbeat).mockClear();
+      const driver = new RuntimeExecutionDriver(harness, "fake-cancellation-pulse");
+      const invocation = await driver.turn([scenario.say("Done.")]);
+
+      expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+      expect(vi.mocked(startHeartbeat).mock.calls.map(([intervalMs]) => intervalMs)).toEqual([CANCELLATION_PULSE_MS]);
     });
   });
 
