@@ -17,12 +17,16 @@
  * Go logs err.Error() — the REAL error — while the wire carries the
  * sanitized status message (server.go:314-323). Mirrored here: the `error`
  * field is the thrown error's own message, whatever the handler chose to
- * put on the wire.
+ * put on the wire. For an internalError that message is the wire copy, so
+ * the `cause` field carries the chain under the thrown error, which never
+ * crosses the wire, and the deepest cause's stack goes to a debug line
+ * (../error-cause.ts, stigmer/stigmer#1383).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";
 
 import type { Logger } from "../../boot/logger.js";
+import { causeFields, causeStack } from "../error-cause.js";
 
 /** Health successes are polled chatter, logged at debug (Go grpc lib server.go:30). */
 const HEALTH_SERVICE_TYPE_NAME = "grpc.health.v1.Health";
@@ -48,6 +52,7 @@ export function createLoggingInterceptor(logger: Logger): Interceptor {
         durationMs: elapsed(startedAt),
         // The real error, not the sanitized wire message (Go parity).
         error: error instanceof Error ? error.message : String(error),
+        ...causeFields(error),
       };
       switch (connectError.code) {
         case Code.NotFound:
@@ -60,6 +65,10 @@ export function createLoggingInterceptor(logger: Logger): Interceptor {
           break;
         default:
           logger.error("rpc failed", fields);
+      }
+      const stack = causeStack(error);
+      if (stack !== undefined) {
+        logger.debug("rpc failure stack", { procedure, stack });
       }
       throw error;
     }

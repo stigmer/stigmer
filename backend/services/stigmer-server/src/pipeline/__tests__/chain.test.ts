@@ -12,7 +12,10 @@
  *   - the logging tiers (grpc lib server.go:295-345): success info,
  *     health success debug, NotFound debug, InvalidArgument warn, other
  *     errors error — and the REAL error message is logged while the wire
- *     carries whatever the handler threw.
+ *     carries whatever the handler threw;
+ *   - an internalError's cause chain is logged on its line, and its
+ *     deepest stack at debug, while the wire carries only the copy
+ *     (stigmer/stigmer#1383).
  */
 import {
   Code,
@@ -33,6 +36,7 @@ import { describe, expect, it } from "vitest";
 import { createLogger } from "../../boot/logger.js";
 import type { LogFields } from "../../boot/logger.js";
 import { buildInterceptorChain } from "../chain.js";
+import { internalError } from "../errors.js";
 import { createVerifierChainInterceptor } from "../interceptors/auth.js";
 import { apiResourceKindKey } from "../interceptors/apiresource.js";
 
@@ -195,5 +199,39 @@ describe("interceptor chain over the in-process transport", () => {
     const logged = rpcLines(lines);
     expect(logged[0]).toMatchObject({ level: "error", message: "rpc failed" });
     expect(String(logged[0]?.["error"])).toContain("sqlite exploded");
+    expect(logged[0]).not.toHaveProperty("cause");
+  });
+
+  it("logs an internalError's cause chain at error tier while the wire carries only the copy", async () => {
+    const { transport, lines } = testHarness({
+      create: () => {
+        throw internalError(
+          new Error("load failed", {
+            cause: new Error("database is locked"),
+          }),
+          "failed to create agent",
+        );
+      },
+    });
+
+    const failure = await createClient(AgentCommandController, transport)
+      .create(VALID_AGENT)
+      .then(() => null)
+      .catch((error: unknown) => ConnectError.from(error));
+
+    expect(failure?.code).toBe(Code.Internal);
+    expect(failure?.rawMessage).toBe("failed to create agent");
+    expect(failure?.message).not.toContain("database is locked");
+    const logged = rpcLines(lines);
+    expect(logged[0]).toMatchObject({
+      level: "error",
+      message: "rpc failed",
+      cause: "Error: load failed <- Error: database is locked",
+    });
+    expect(logged[1]).toMatchObject({
+      level: "debug",
+      message: "rpc failure stack",
+    });
+    expect(String(logged[1]?.["stack"])).toContain("database is locked");
   });
 });
