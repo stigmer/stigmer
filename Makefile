@@ -856,7 +856,7 @@ tidy: ## Run go mod tidy on all Go modules
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links web-build tsdoc-check \
        check-docs-inventory check-conformance-inventory \
-       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-a11y check \
+       test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-e2e-no-providers test-a11y check \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
@@ -1082,6 +1082,15 @@ test-e2e-single-org: ## Run the console E2E against the shipped server entry, wh
 	npm ci
 	cd test/e2e && npx playwright install --with-deps chromium && \
 		STIGMER_E2E_SINGLE_ORG=1 npx playwright test --project=single-org
+
+test-e2e-no-providers: ## Run the console E2E against a laptop whose runner reaches no model provider (readiness faces, refusal at create)
+	# One stack shape of its own: the shipped entry, nothing seeded, its server
+	# booted with STIGMER_RUNNER_PROVIDERS set and empty
+	# (test/e2e/fixtures/no-providers.ts). Root install for the same reason as
+	# test-e2e-approval; needs the built server and runner.
+	npm ci
+	cd test/e2e && npx playwright install --with-deps chromium && \
+		STIGMER_E2E_NO_PROVIDERS=1 npx playwright test --project=no-providers
 
 # Parallel CI gate.
 #

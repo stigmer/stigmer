@@ -215,17 +215,11 @@
     },
     {
       "id": "CON-02",
-      "promise": "A new person is led from sign-in to a provider key and a first answer.",
-      "pending": [
-        "stigmer#2630"
-      ]
+      "promise": "A new person is led from sign-in to a provider key and a first answer."
     },
     {
       "id": "CON-03",
-      "promise": "The launcher says a provider is missing before a run fails; the model picker shows which models are ready.",
-      "pending": [
-        "stigmer#2630"
-      ]
+      "promise": "The launcher says a provider is missing before a run fails; the model picker shows which models are ready."
     },
     {
       "id": "CON-04",

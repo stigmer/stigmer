@@ -33,7 +33,7 @@
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
       "hooks": 12,
-      "components": 11
+      "components": 10
     },
     {
       "slug": "button",
@@ -200,8 +200,8 @@
       "slug": "models",
       "title": "Models",
       "description": "Hooks and components for model registry data and selector.",
-      "hooks": 1,
-      "components": 2
+      "hooks": 3,
+      "components": 9
     },
     {
       "slug": "oauth-app",

@@ -205,8 +205,9 @@ await update(
 
 Self-contained editor for the current user's declared preferences
 (`IdentityAccountSpec.preferences`): standing context plus the
-execution defaults (default harness, per-harness default models, and
-the auto-approve default).
+execution defaults (default harness and the auto-approve default). Each
+engine's default model lives in Models & providers (`ModelDefaults`),
+which the panel links.
 
 The declared text is snapshotted into the user's own eligible agent
 runs and delivered to the agent as background context.
@@ -237,6 +238,7 @@ builders can embed it directly:
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing: each engine's default model is set there, beside the providers that make it run. Defaults to DEFAULT_MODELS_HUB_HREF." },
     onUpdated: { type: "(account: IdentityAccount) => void", description: "Fired with the updated resource after a successful save." },
   }}
 />

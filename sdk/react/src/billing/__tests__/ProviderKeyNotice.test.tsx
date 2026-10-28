@@ -1,6 +1,6 @@
 // The provider-key refusal: read off the refusal's reason, never its copy,
 // with what it names; rendered with
-// the server's copy and a link to the provider keys page, the host's or the
+// the server's copy and a link to Models & providers, the host's or the
 // default.
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,7 +12,7 @@ import { refusal } from "./fixtures";
 afterEach(cleanup);
 
 const COPY =
-  "This organization has no Anthropic key for model 'claude-sonnet-4-6', so the run was not started. An admin can add one in Settings → Provider keys.";
+  "This organization has no Anthropic key for model 'claude-sonnet-4-6', so the run was not started. An admin can add one in Models & providers.";
 const REFUSAL = refusal(COPY, "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "anthropic", model: "claude-sonnet-4-6" });
 
 describe("providerKeyRequired", () => {
@@ -29,14 +29,14 @@ describe("providerKeyRequired", () => {
 });
 
 describe("ProviderKeyNotice", () => {
-  it("shows the server's copy and links to the provider keys page", () => {
+  it("shows the server's copy and links to Models & providers", () => {
     render(<ProviderKeyNotice error={REFUSAL} />);
     expect(screen.getByRole("alert").textContent).toContain(COPY);
-    expect(screen.getByRole("link", { name: "Open provider keys" }).getAttribute("href")).toBe("/settings/provider-keys");
+    expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("/models");
   });
 
   it("links to the host's own route when given one", () => {
-    render(<ProviderKeyNotice error={REFUSAL} providerKeysHref="/org/acme/keys" />);
-    expect(screen.getByRole("link", { name: "Open provider keys" }).getAttribute("href")).toBe("/org/acme/keys");
+    render(<ProviderKeyNotice error={REFUSAL} modelsHubHref="#/models" />);
+    expect(screen.getByRole("link", { name: "Open Models & providers" }).getAttribute("href")).toBe("#/models");
   });
 });

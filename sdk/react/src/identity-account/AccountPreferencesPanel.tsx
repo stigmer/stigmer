@@ -2,7 +2,6 @@
 
 import {
   type FormEvent,
-  type ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -13,13 +12,11 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
-import { ACCOUNT_DEFAULT_MODELS } from "./useAccountExecutionDefaults.js";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
-import { useModelRegistry } from "../models/index.js";
+import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
 import { useServerInfo } from "../server-info.js";
-import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "../models/harness.js";
+import { HARNESS_META, HARNESS_OPTIONS } from "../models/harness.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -30,46 +27,33 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 export interface AccountPreferencesPanelProps {
   /** Fired with the updated resource after a successful save. */
   readonly onUpdated?: (account: IdentityAccount) => void;
+  /**
+   * Where Models & providers is, in the host's routing: each engine's
+   * default model is set there, beside the providers that make it run.
+   * Defaults to {@link DEFAULT_MODELS_HUB_HREF}.
+   */
+  readonly modelsHubHref?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
-
-/** The preferences the form saves, each by its own path. */
+/**
+ * The preferences the form saves, each by its own path. Each engine's
+ * default model is not among them: Models & providers saves those, by
+ * their own paths, so a save here never overwrites one.
+ */
 const PREFERENCES_FORM_PATHS = [
   "spec.preferences.standing_context",
   "spec.preferences.default_harness",
-  ...Object.values(ACCOUNT_DEFAULT_MODELS).map(({ path }) => path),
   "spec.preferences.default_auto_approve",
 ];
 
-/** Each engine's default model, by engine. */
-type DefaultModels = Readonly<Record<HarnessOption, string>>;
-
-/** The default models `prefs` declares, "" for none. */
-function defaultModelsOf(prefs: IdentityAccountPreferences | undefined): DefaultModels {
-  const entries = Object.entries(ACCOUNT_DEFAULT_MODELS) as [HarnessOption, (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]][];
-  return Object.fromEntries(entries.map(([harness, { preference }]) => [harness, prefs?.[preference] ?? ""])) as DefaultModels;
-}
-
-/** The default models as the account's preferences carry them. */
-function preferencesOf(models: DefaultModels): Pick<IdentityAccountPreferences, (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]["preference"]> {
-  const entries = Object.entries(ACCOUNT_DEFAULT_MODELS) as [HarnessOption, (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]][];
-  return Object.fromEntries(entries.map(([harness, { preference }]) => [preference, models[harness]])) as Pick<
-    IdentityAccountPreferences,
-    (typeof ACCOUNT_DEFAULT_MODELS)[HarnessOption]["preference"]
-  >;
-}
-
-/** Whether two engines' default models differ anywhere. */
-function modelsDiffer(a: DefaultModels, b: DefaultModels): boolean {
-  return HARNESS_OPTIONS.some((harness) => a[harness] !== b[harness]);
-}
 /**
  * Self-contained editor for the current user's declared preferences
  * (`IdentityAccountSpec.preferences`): standing context plus the
- * execution defaults (default harness, per-harness default models, and
- * the auto-approve default).
+ * execution defaults (default harness and the auto-approve default). Each
+ * engine's default model lives in Models & providers (`ModelDefaults`),
+ * which the panel links.
  *
  * The declared text is snapshotted into the user's own eligible agent
  * runs and delivered to the agent as background context.
@@ -102,6 +86,7 @@ function modelsDiffer(a: DefaultModels, b: DefaultModels): boolean {
  */
 export function AccountPreferencesPanel({
   onUpdated,
+  modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
 }: AccountPreferencesPanelProps) {
   const baseId = useId();
@@ -132,13 +117,11 @@ export function AccountPreferencesPanel({
 
   const [standingContext, setStandingContext] = useState("");
   const [defaultHarness, setDefaultHarness] = useState("");
-  const [defaultModels, setDefaultModels] = useState<DefaultModels>(() => defaultModelsOf(undefined));
   const [defaultAutoApprove, setDefaultAutoApprove] = useState(false);
 
   const serverPreferences = account?.spec?.preferences;
   const serverStandingContext = serverPreferences?.standingContext ?? "";
   const serverDefaultHarness = serverPreferences?.defaultHarness ?? "";
-  const serverDefaultModels = useMemo(() => defaultModelsOf(serverPreferences), [serverPreferences]);
   const serverDefaultAutoApprove = serverPreferences?.defaultAutoApprove ?? false;
 
   // Sync the form fields when server data changes.
@@ -147,7 +130,6 @@ export function AccountPreferencesPanel({
     const prefs = account.spec?.preferences;
     setStandingContext(prefs?.standingContext ?? "");
     setDefaultHarness(prefs?.defaultHarness ?? "");
-    setDefaultModels(defaultModelsOf(prefs));
     setDefaultAutoApprove(prefs?.defaultAutoApprove ?? false);
   }, [account]);
 
@@ -155,16 +137,13 @@ export function AccountPreferencesPanel({
     () =>
       standingContext.trim() !== serverStandingContext ||
       defaultHarness !== serverDefaultHarness ||
-      modelsDiffer(defaultModels, serverDefaultModels) ||
       defaultAutoApprove !== serverDefaultAutoApprove,
     [
       standingContext,
       defaultHarness,
-      defaultModels,
       defaultAutoApprove,
       serverStandingContext,
       serverDefaultHarness,
-      serverDefaultModels,
       serverDefaultAutoApprove,
     ],
   );
@@ -174,13 +153,11 @@ export function AccountPreferencesPanel({
   const handleDiscard = useCallback(() => {
     setStandingContext(serverStandingContext);
     setDefaultHarness(serverDefaultHarness);
-    setDefaultModels(serverDefaultModels);
     setDefaultAutoApprove(serverDefaultAutoApprove);
     clearError();
   }, [
     serverStandingContext,
     serverDefaultHarness,
-    serverDefaultModels,
     serverDefaultAutoApprove,
     clearError,
   ]);
@@ -202,7 +179,6 @@ export function AccountPreferencesPanel({
               preferences: {
                 standingContext: standingContext.trim(),
                 defaultHarness,
-                ...preferencesOf(defaultModels),
                 defaultAutoApprove,
               },
             },
@@ -220,7 +196,6 @@ export function AccountPreferencesPanel({
       account,
       standingContext,
       defaultHarness,
-      defaultModels,
       defaultAutoApprove,
       update,
       clearError,
@@ -345,20 +320,16 @@ export function AccountPreferencesPanel({
               checked={defaultHarness === harness}
               onSelect={setDefaultHarness}
               disabled={isUpdating}
-            >
-              <DefaultModelSelect
-                id={`${baseId}-default-${harness}-model`}
-                harness={harness}
-                label="Default model"
-                value={defaultModels[harness]}
-                onChange={(model) => setDefaultModels((models) => ({ ...models, [harness]: model }))}
-                disabled={isUpdating}
-              />
-            </HarnessOptionRow>
+            />
           ))}
           <p className="stg:text-2xs stg:text-muted-foreground">
-            Each harness&apos;s default model applies whenever a session runs
-            on that harness — even when it isn&apos;t your default.
+            <a
+              href={modelsHubHref}
+              className="stg:font-medium stg:text-foreground stg:underline stg:underline-offset-2 stg:hover:text-foreground-hover"
+            >
+              Default models are in Models &amp; providers
+            </a>
+            , beside the providers that run them.
           </p>
         </fieldset>
 
@@ -449,24 +420,11 @@ export function AccountPreferencesPanel({
 /**
  * One selectable default-harness choice, presented as a bordered row
  * (the `VisibilityOptionRow` presentation shape): radio + label +
- * one-line description, with the harness's own controls nested below.
+ * one-line description.
  *
- * The rows for shipped harnesses embed that harness's default-model
- * select as `children` — the pairing IS the information architecture:
- * a harness and its model default belong to each other, and each model
- * default applies whenever a session runs on that harness, independent
- * of which harness is the default. The non-selected harness's select
- * therefore stays interactive (visually secondary, never disabled).
- *
- * The nested controls live OUTSIDE the radio's `<label>` on purpose:
- * a `<select>` inside the label would toggle the radio on every
- * interaction with it.
- *
- * The rows are the offered engines (`HARNESS_OPTIONS`), each bound to its
- * own proto model field through `ACCOUNT_DEFAULT_MODELS`, and must stay in
+ * The rows are the offered engines (`HARNESS_OPTIONS`), and must stay in
  * lockstep with the proto's `default_harness` in-list validation
- * (`["native", "claude"]`): a new engine adds a field, a table
- * entry and a validation entry together.
+ * (`["native", "claude"]`).
  */
 function HarnessOptionRow({
   radioName,
@@ -476,7 +434,6 @@ function HarnessOptionRow({
   checked,
   onSelect,
   disabled,
-  children,
 }: {
   readonly radioName: string;
   readonly value: string;
@@ -485,7 +442,6 @@ function HarnessOptionRow({
   readonly checked: boolean;
   readonly onSelect: (value: string) => void;
   readonly disabled: boolean;
-  readonly children?: ReactNode;
 }) {
   // The radio's accessible name is the title alone (aria-labelledby), with
   // the description attached as aria-describedby — the wrapping label keeps
@@ -535,76 +491,6 @@ function HarnessOptionRow({
           </span>
         </span>
       </label>
-      {children && (
-        <div
-          className={cn(
-            "stg:mt-2 stg:pl-6 stg:transition-opacity",
-            !checked && "stg:opacity-70",
-          )}
-        >
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Per-harness default model select, fed by the harness-filtered registry.
- *
- * A saved model that the registry no longer lists is rendered as its own
- * "(unavailable)" option so the select never lies about the stored value;
- * composers self-heal such a preference to the platform default on read.
- */
-function DefaultModelSelect({
-  id,
-  harness,
-  label,
-  value,
-  onChange,
-  disabled,
-}: {
-  readonly id: string;
-  readonly harness: HarnessOption;
-  readonly label: string;
-  readonly value: string;
-  readonly onChange: (value: string) => void;
-  readonly disabled: boolean;
-}) {
-  const { models, isLoading } = useModelRegistry({ harness });
-  const isStale = value !== "" && !isLoading && !models.some((m) => m.modelId === value);
-
-  return (
-    <div className="stg:space-y-1">
-      <label
-        htmlFor={id}
-        className="stg:text-xs stg:font-medium stg:text-foreground"
-      >
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        // Both harness rows show the same visible label; the accessible
-        // name stays unique per control by qualifying it with the harness
-        // (WCAG label-in-name: the visible text remains a prefix).
-        aria-label={`${label} — ${HARNESS_META[harness].label}`}
-        disabled={disabled || isLoading}
-        className={cn(
-          "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-          "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-          "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-        )}
-      >
-        <option value="">Platform default</option>
-        {isStale && <option value={value}>{value} (unavailable)</option>}
-        {models.map((model) => (
-          <option key={model.modelId} value={model.modelId}>
-            {model.displayName || model.modelId}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

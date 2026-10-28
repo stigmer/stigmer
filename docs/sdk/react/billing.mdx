@@ -656,8 +656,9 @@ an edition that serves no subscriptions.
 
 ### ProviderKeyNotice
 
-Says a run was not started because the organization has no key for the
-provider it needs, and where an admin adds one, in place of a bare
+Says a run was not started because nothing serves the provider it needs
+(the server's own words: where an admin adds a key, or how a laptop's
+runner gets one), and links Models & providers, in place of a bare
 refusal.
 
 **Props** — `ProviderKeyNoticeProps`
@@ -666,44 +667,12 @@ refusal.
   type={{
     className: { type: "string", description: "Additional CSS class names." },
     error: { type: "Error", description: "The refusal: its message is the server's own copy, naming the provider, and the model when the run names one.", required: true },
-    providerKeysHref: { type: "string", description: "Where the provider keys page is, in the host's routing. Defaults to DEFAULT_PROVIDER_KEYS_HREF." },
+    modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing. Defaults to DEFAULT_MODELS_HUB_HREF." },
   }}
 />
 
 ```tsx
 if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error} />;
-```
-
-
-### ProviderKeysSection
-
-Settings section for an organization's own provider keys.
-
-On Stigmer Cloud every model call runs on a key the organization owns, on
-every plan: an admin saves an Anthropic or OpenAI key, optionally against
-the organization's own Anthropic- or OpenAI-compatible endpoint (a company
-gateway, a model server it runs); its agents run on them. The provider bills the
-organization directly. A run that needs a provider with no key is refused
-until one is added. A saved key is never shown again,
-only its last four characters. A child organization is served by its
-parent's key for a provider it holds none of, shown read-only.
-
-Every member sees the list; admins (`can_manage_billing`) save, replace
-and remove.
-
-Cloud-only: in local mode the runner already uses the developer's own
-keys directly.
-
-**Props** — `ProviderKeysSectionProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-  }}
-/>
-
-```tsx
-<ProviderKeysSection />
 ```
 
 
@@ -783,9 +752,9 @@ The host's seam for leaving the app to a Stripe-hosted page.
 The billing page the notice links to by default: the settings route every client serves.
 
 
-### DEFAULT_PROVIDER_KEYS_HREF
+### DEFAULT_MODELS_HUB_HREF
 
-The provider keys page the notice links to by default: the settings route every client serves.
+Models & providers, where the notice links by default: the top-level route every client serves.
 
 
 ### ENTERPRISE_CLOUD_PLAN
@@ -898,9 +867,9 @@ function planUpgradeFeature(error: unknown): Feature | null
 
 ### PROVIDER_KEY_REQUIRED
 
-The reason Stigmer Cloud refuses a run that needs a provider the
-organization holds no key for: its model's
-(billing/providerkey/v1/api.proto).
+The reason a server refuses a run that needs a provider nothing serves:
+the organization holds no key for it, or this server's runners do not
+reach it (`PlatformQueryController.getModelReadiness` reports the same).
 
 
 ### ProviderKeyProvider
@@ -912,8 +881,8 @@ OpenAI's or any endpoint that speaks it.
 
 ### providerKeyRequired
 
-What a refusal names, when `error` is Stigmer Cloud's
-`PROVIDER_KEY_REQUIRED`; `null` for any other error.
+What a refusal names, when `error` is a `PROVIDER_KEY_REQUIRED` refusal;
+`null` for any other error.
 
 ```tsx
 function providerKeyRequired(error: unknown): ProviderKeyRequired | null

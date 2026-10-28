@@ -7,6 +7,49 @@ description: Hooks and components for model registry data and selector.
 
 ## Hooks
 
+### useModelReadiness
+
+Data hook: which models can run for `org`, as the server judges it
+(`PlatformQueryController.getModelReadiness`). Each provider's standing,
+and per model on each engine the provider it needs and that provider's.
+
+The answer is read from the same rule the server refuses a run by, so a
+model reported missing is one whose run would be refused, and one
+reported served or unknown is not refused for its provider. Every member
+of the organization may ask. `org` null or empty skips the read (a guest,
+who cannot ask, passes null).
+
+**Signature**
+
+```tsx
+function useModelReadiness(org: string | null): UseModelReadinessReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseModelReadinessReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed read, or `null`. A server too old to answer reads as an error, and nothing is marked." },
+    isLoading: { type: "boolean", description: "`true` while the first answer is in flight." },
+    models: { type: "readonly ModelReadiness[] | null", description: "Every catalog model on every engine this build knows, with whether it can run; `null` until the server answers." },
+    providers: { type: "readonly ProviderReadiness[] | null", description: "Each provider's report, in the server's order; `null` until the server answers." },
+    readinessOf: { type: "ModelReadinessLookup", description: "The readiness of one model on one engine; `undefined` while loading or for a model the server did not judge.", typeDescriptionLink: "#modelreadinesslookup" },
+    refetch: { type: "() => void", description: "Asks the server again, after a key is saved or removed: every face mounted on this organization's answer (under a `FetchCacheProvider`) asks again with it." },
+  }}
+/>
+
+```tsx
+const { readinessOf } = useModelReadiness(org);
+const needsKey = readinessOf("native", "claude-sonnet-4-6")?.availability.state === "missing";
+```
+
+
 ### useModelRegistry
 
 Data hook that exposes the platform model registry with grouping
@@ -63,7 +106,51 @@ const { models, defaultModel } = useModelRegistry({ harness: "native" });
 ```
 
 
+### useModelsHubData
+
+Data hook for Models & providers and the launcher's connect step:
+readiness from the server, model names from the registry, each key's
+details on Stigmer Cloud, and who is looking. `org` null skips every read.
+
+**Signature**
+
+```tsx
+function useModelsHubData(org: string | null): ModelsHubData
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+```tsx
+const hub = useModelsHubData(org);
+if (hub.providers === null) return null;
+```
+
+
 ## Components
+
+### ConnectProviderPanel
+
+The launcher's first screen while nothing can run: the provider the
+chosen model needs, with the act this person can take, in the composer's
+place. Once a key lands, the launcher asks the server again and the
+composer comes back with Send enabled.
+
+**Props** — `ConnectProviderPanelProps`
+
+<TypeTable
+  type={{
+    harness: { type: "HarnessOption", description: "The engine the launcher has chosen.", required: true, typeDescriptionLink: "#harnessoption" },
+    hub: { type: "ModelsHubData", description: "The hub's data for the launcher's organization, from `useModelsHubData`.", required: true, typeDescriptionLink: "#modelshubdata" },
+    modelName: { type: "string", description: "The chosen model's name, as the picker shows it.", required: true },
+    modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing. Defaults to DEFAULT_MODELS_HUB_HREF." },
+    provider: { type: "string", description: "The provider to connect: the one the chosen model needs.", required: true },
+  }}
+/>
+
 
 ### HarnessSelector
 
@@ -96,6 +183,47 @@ function LauncherToolbar() {
   return <HarnessSelector value={harness} onValueChange={setHarness} />;
 }
 ```
+
+
+### ModelDefaults
+
+The person's default model on each engine, saved to their account
+(`default_native_model`, `default_claude_model`) the moment a row
+changes, with whether each model can run here. A new conversation starts
+on the default of the engine it runs; a pick in the composer wins for
+that conversation.
+
+**Props** — `ModelDefaultsProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the section." },
+    readinessOf: { type: "ModelReadinessLookup", description: "Each model's readiness, from `useModelReadiness`; a row says nothing while it is `undefined`.", required: true, typeDescriptionLink: "#modelreadinesslookup" },
+  }}
+/>
+
+```tsx
+const { readinessOf } = useModelReadiness(org);
+<ModelDefaults readinessOf={readinessOf} />
+```
+
+
+### ModelNeedsProvider
+
+One line above the composer while the chosen model cannot run here but
+another could: what the model needs, the act this person can take, and a
+link to Models & providers. Send is held while it shows.
+
+**Props** — `ModelNeedsProviderProps`
+
+<TypeTable
+  type={{
+    hub: { type: "ModelsHubData", description: "The hub's data for the launcher's organization, from `useModelsHubData`.", required: true, typeDescriptionLink: "#modelshubdata" },
+    modelName: { type: "string", description: "The chosen model's name, as the picker shows it.", required: true },
+    modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing. Defaults to DEFAULT_MODELS_HUB_HREF." },
+    provider: { type: "string", description: "The provider the chosen model needs.", required: true },
+  }}
+/>
 
 
 ### ModelSelector
@@ -152,6 +280,7 @@ base per-token rates and costs more only through extra reasoning
     onThinkingModeChange: { type: "(mode: ThinkingModeOption) => void", description: "Called when the user toggles extended reasoning. Providing this enables the \"Thinking\" switch as a sibling of the fast-tier switch in the popover's options area, which renders ONLY while the selected model declares a thinking form (ModelInfo.thinkingCapable), on either harness — no dead controls. For a model that always thinks (ModelInfo.thinkingRequired) the switch shows on and disabled, whatever `thinkingMode` holds; the callback is not called for it.  The same persistence rule as the fast tier: an active thinking mode survives switches between thinking-capable models (trigger badge + options switch keep it visible) and resets to \"disabled\" only when the new model lacks the capability — an unsupported combination can never be submitted (#772, refused at create time). Unlike fast, thinking bills at base per-token rates; enabled turns consume more output (reasoning) tokens." },
     onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the `modelId`.", required: true },
     placeholderLabel: { type: "string", description: "Trigger label shown while `value` is empty, instead of falling back to the registry's default model. Lets a form distinguish \"nothing pinned — the platform default applies\" from an actual selection (the routine form's contract: an unset model inherits the surface's platform default). The harness prefix is hidden while the placeholder shows, since no harness is pinned either." },
+    readinessOf: { type: "ModelReadinessLookup", description: "Each model's readiness for the organization, from `useModelReadiness`. A model whose provider is missing stays listed and selectable, marked with what it needs (\"Needs an Anthropic key\"), and the featured list puts it after the ready ones; the trigger carries the same mark for the selection. A model the server reports unknown, or did not judge, is not marked. Omitted, nothing is marked.", typeDescriptionLink: "#modelreadinesslookup" },
     serviceTier: { type: "ServiceTierOption", description: "Current service tier for the selected model (stigmer/stigmer#357). Defaults to \"standard\". Only meaningful together with onServiceTierChange." },
     showDescriptions: { type: "boolean", description: "Show short descriptions in curated view. Default: true." },
     showSpeedBadge: { type: "boolean", description: "Show speed tier badge. Default: true." },
@@ -168,6 +297,86 @@ base per-token rates and costs more only through extra reasoning
   onHarnessChange={setHarness}
 />
 ```
+
+
+### ModelsHub
+
+Models & providers: which models this organization's agents can run, a
+card per provider with the models it unlocks on each engine and the act
+the person looking can take, and their default model per engine.
+
+**Props** — `ModelsHubProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    org: { type: "string", description: "The organization (id or slug) whose providers the hub shows.", required: true },
+  }}
+/>
+
+```tsx
+<ModelsHub org={useActiveOrgId()} />
+```
+
+
+### ProviderCard
+
+One model provider: whether it serves this organization, by what, where
+to get a key, the models it unlocks on each engine, and the act the
+person looking can take.
+
+**Props** — `ProviderCardProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    initiallyEditing: { type: "boolean", description: "Open with the key form showing, with no Cancel (the launcher's first step)." },
+    models: { type: "readonly NamedModelReadiness[]", description: "The models this provider serves, every engine, with their names.", required: true },
+    onChanged: { type: "() => void", description: "Called after a key is saved or removed; the caller asks the server again." },
+    org: { type: "string", description: "", required: true },
+    orgName: { type: "string", description: "The organization's name, for the member's line and the removal's warning.", required: true },
+    parentOrgName: { type: "string", description: "The parent organization's name when its key serves; the report's own id otherwise." },
+    prominent: { type: "boolean", description: "Drawn as the launcher's first step: more room, its name as a second-level heading, fewer models named." },
+    report: { type: "ProviderReadiness", description: "", required: true, typeDescriptionLink: "#providerreadiness" },
+    storedKey: { type: "ProviderKey", description: "The key that serves it, own or inherited, when the key list is readable (Stigmer Cloud)." },
+    viewer: { type: "ProviderViewer", description: "", required: true, typeDescriptionLink: "#providerviewer" },
+  }}
+/>
+
+```tsx
+<ProviderCard org={org} orgName="Acme" report={report} viewer={{ canManage: true, local: false }} models={models} />
+```
+
+
+### ProviderKeyForm
+
+Saves an organization's key for one provider, optionally against its own endpoint. The caller needs `can_manage_billing`.
+
+**Props** — `ProviderKeyFormProps`
+
+<TypeTable
+  type={{
+    initialBaseUrl: { type: "string", description: "The endpoint the saved key uses, when replacing one." },
+    onCancel: { type: "() => void", description: "" },
+    onSaved: { type: "() => void", description: "", required: true },
+    org: { type: "string", description: "", required: true },
+    provider: { type: "ProviderKeyProvider", description: "The provider the key is for.", required: true, typeDescriptionLink: "/docs/sdk/react/billing#providerkeyprovider" },
+    submitLabel: { type: "string", description: "The submit button's words; \"Save key\" by default." },
+  }}
+/>
+
+
+### SetupCommand
+
+How a person gives their own machine's runner a provider's key: the commands, with a Copy button.
+
+**Props** — `SetupCommandProps`
+
+<TypeTable
+  type={{
+    provider: { type: "string", description: "The server's name for the provider the runner needs a key for.", required: true },
+  }}
+/>
 
 
 ## Types
@@ -304,6 +513,34 @@ function modelKey(harness: HarnessOption, modelId: string): string
 ```
 
 
+### ModelReadiness
+
+One model on one engine, and whether it can run.
+
+<TypeTable
+  type={{
+    availability: { type: "ProviderAvailability", description: "", required: true, typeDescriptionLink: "#provideravailability" },
+    harness: { type: "HarnessOption", description: "", required: true, typeDescriptionLink: "#harnessoption" },
+    modelId: { type: "string", description: "", required: true },
+    provider: { type: "string", description: "The provider the model needs on this engine; empty when the server judges none.", required: true },
+  }}
+/>
+
+
+### modelReadinessCacheKey
+
+The cache key the answer for `org` is held under, so every face of one organization shares one read.
+
+```tsx
+function modelReadinessCacheKey(org: string): string
+```
+
+
+### ModelReadinessLookup
+
+Looks up one model's readiness on one engine; `undefined` while loading or for a model the server did not judge.
+
+
 ### ModelRegistryContext
 
 React context that holds the model registry fetched from the public API.
@@ -341,6 +578,32 @@ Internal state held by the model registry context provider.
     visionLimits: { type: "VisionLimits", description: "Document-level vision byte budget (stigmer/stigmer#365). `undefined` while loading or when the served document predates the `limits` block — consumers stay silent rather than assume a budget.", typeDescriptionLink: "#visionlimits" },
   }}
 />
+
+
+### ModelsHubData
+
+What the hub and the launcher's connect step draw from.
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "The readiness read's error, or `null`.", required: true },
+    isLoading: { type: "boolean", description: "`true` until the readiness answer and, where it matters, the permission check have settled.", required: true },
+    keyOf: { type: "(provider: string) => ProviderKey | undefined", description: "The key that serves a provider, own or inherited, when the key list is readable (Stigmer Cloud).", required: true },
+    models: { type: "readonly NamedModelReadiness[] | null", description: "Every model on every engine, named by the registry; `null` until the server answers.", required: true },
+    org: { type: "string", description: "", required: true },
+    orgName: { type: "string", description: "The organization's name as people read it.", required: true },
+    parentOrgNameOf: { type: "(provider: string) => string | undefined", description: "The parent organization's name, for a provider its key serves.", required: true },
+    providers: { type: "readonly ProviderReadiness[] | null", description: "Each provider's report, in the server's order; `null` until the server answers.", required: true },
+    readinessOf: { type: "ModelReadinessLookup", description: "", required: true, typeDescriptionLink: "#modelreadinesslookup" },
+    refresh: { type: "() => void", description: "Asks the server again for readiness and the key list, after a key is saved or removed.", required: true },
+    viewer: { type: "ProviderViewer", description: "Who is looking: whether they may manage keys, and whether the server runs on this machine.", required: true, typeDescriptionLink: "#providerviewer" },
+  }}
+/>
+
+
+### NamedModelReadiness
+
+A model's readiness with the name the registry gives it.
 
 
 ### ParsedModelKey
@@ -397,6 +660,72 @@ function parseRegistryJson(data: unknown): ModelInfo[]
 LLM provider identifier. Each provider maps to a distinct inference
 backend. The model registry uses this for grouping in the
 "Show All" expanded view.
+
+
+### ProviderAvailability
+
+Where a provider stands for an organization.
+
+- `served`: a run that needs it is started. `source` says by what: the
+  organization's own key, its parent organization's key (`parentOrg`
+  names it), or the runners this server hands its runs to (a laptop's
+  `stigmer setup` key, a cloud backend, a gateway).
+- `missing`: a run that needs it is refused at create. `scope` says what
+  is missing it: the organization (an admin adds a key) or the runners
+  (whoever runs them configures one).
+- `unknown`: the server cannot see its runners' settings; nothing is
+  refused for it, and the runner's own error is the backstop.
+
+
+### providerFace
+
+The act a card offers for a provider in `availability`, for `viewer`.
+
+```tsx
+function providerFace(availability: ProviderAvailability, viewer: ProviderViewer): ProviderFace
+```
+
+
+### ProviderFace
+
+What a card offers for its provider, from the server's report and who is
+looking:
+
+- `served`: nothing to fix (an admin may still replace or remove an own key).
+- `admin-form`: missing from the organization, and the person may manage
+  its keys: the key form.
+- `member-line`: missing from the organization, and the person may not:
+  who connects it.
+- `local-command`: missing from the runners of a server on this machine:
+  the command that gives the runner its key.
+- `runners-line`: missing from the runners of a server elsewhere: whoever
+  runs them gives them one.
+- `unknown`: the server cannot see its runners; the key is configured
+  where the runner runs, and nothing is refused here.
+
+
+### ProviderReadiness
+
+One provider's report, in the server's order.
+
+<TypeTable
+  type={{
+    availability: { type: "ProviderAvailability", description: "", required: true, typeDescriptionLink: "#provideravailability" },
+    provider: { type: "string", description: "The server's name for the provider: `anthropic`, `openai`.", required: true },
+  }}
+/>
+
+
+### ProviderViewer
+
+Who is looking, for [`providerFace`](#providerface).
+
+<TypeTable
+  type={{
+    canManage: { type: "boolean", description: "Whether the person may save and remove the organization's keys (`can_manage_billing`).", required: true },
+    local: { type: "boolean", description: "Whether the server runs on this machine (the open-source edition's local mode).", required: true },
+  }}
+/>
 
 
 ### thinkingLocked

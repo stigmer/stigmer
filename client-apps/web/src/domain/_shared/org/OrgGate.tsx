@@ -162,6 +162,10 @@ function OnboardingState({
             resources. To join an existing one instead, ask one of its
             admins to invite you.
           </p>
+          <p className="text-muted-foreground text-sm">
+            Next, you connect a model provider, such as Anthropic or OpenAI,
+            so your agents can answer.
+          </p>
         </div>
 
         <CreateOrganizationForm onCreated={handleCreated} />

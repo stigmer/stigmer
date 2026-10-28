@@ -64,11 +64,13 @@ export interface UseNewSessionFlowOptions {
    */
   readonly onSessionCreated: (sessionId: string) => void;
   /**
-   * Called when an error occurs during session creation.
-   * The consumer can use this for toast notifications or other UI feedback.
-   * If not provided, errors are still available via {@link UseNewSessionFlowReturn.submitError}.
+   * Called when an error occurs during session creation, with its message
+   * and the error itself (so a host can skip a refusal it renders in place,
+   * such as `PROVIDER_KEY_REQUIRED`). The consumer can use this for toast
+   * notifications or other UI feedback. If not provided, errors are still
+   * available via {@link UseNewSessionFlowReturn.submitError}.
    */
-  readonly onError?: (message: string) => void;
+  readonly onError?: (message: string, error: Error) => void;
   /**
    * Where session activities should execute.
    *
@@ -646,7 +648,7 @@ export function useNewSessionFlow(
       if (!org) {
         const msg = "Select an organization before starting a session.";
         setSubmitError(msg);
-        onError?.(msg);
+        onError?.(msg, new Error(msg));
         return;
       }
 
@@ -767,9 +769,10 @@ export function useNewSessionFlow(
         // leaves no File of the person's behind either.
         void context?.releaseFiles?.();
         const detail = getUserMessage(err, "Failed to start session");
+        const failure = toError(err);
         setSubmitError(detail);
-        setSubmitFailure(toError(err));
-        onError?.(detail);
+        setSubmitFailure(failure);
+        onError?.(detail, failure);
       } finally {
         setIsSubmitting(false);
       }
