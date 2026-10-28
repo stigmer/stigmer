@@ -3,9 +3,11 @@
  * test pins it there: a plugin page's "Start a chat" link
  * (`/?plugin=org/slug`) starts a chat with no agent that lists the plugin,
  * an `?agent=org/slug` link preselects the agent, a link that arrives after
- * the launcher is open is read too and the address cleaned once read, and
- * the person's plugin picks are remembered for the next conversation. The viewer is pinned in
- * @stigmer/react-sdk.
+ * the launcher is open is read too and the address cleaned once read, the
+ * person's plugin picks are remembered for the next conversation, and a
+ * refusal for want of a provider key raises no toast (the launcher's own
+ * notice says it) while any other refusal does. The viewer, and how a
+ * refusal is read, are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
@@ -14,6 +16,8 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate, type NavigateFun
 const page = vi.hoisted(() => ({
   viewer: [] as Array<Record<string, unknown>>,
   navigate: undefined as NavigateFunction | undefined,
+  toasts: [] as string[],
+  keyRefusal: new Error("This organization has no Anthropic key, so the run was not started."),
 }));
 
 vi.mock("@stigmer/react-sdk", () => ({
@@ -24,9 +28,19 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
   useAccountExecutionDefaults: () => undefined,
   useWorkspaceSources: () => ({ enableGitHub: false, enableLocal: true }),
+  // The SDK reads the refusal's reason; here one error stands for a
+  // provider-key refusal and every other is not one.
+  providerKeyRequired: (error: unknown) =>
+    error === page.keyRefusal ? { org: "acme", provider: "anthropic", model: "" } : null,
 }));
 
-vi.mock("sonner", () => ({ toast: { error: () => undefined } }));
+vi.mock("sonner", () => ({
+  toast: {
+    error: (message: string) => {
+      page.toasts.push(message);
+    },
+  },
+}));
 vi.mock("../../hooks/useNativeFolderPicker", () => ({ useNativeFolderPicker: () => undefined }));
 vi.mock("../../hooks/useNativeWorkspaceFiles", () => ({ useNativeWorkspaceFiles: () => undefined }));
 vi.mock("../../hooks/useNativeWorkspaceFileReader", () => ({ useNativeWorkspaceFileReader: () => undefined }));
@@ -57,7 +71,13 @@ function RouterProbe() {
 beforeEach(() => {
   page.viewer.length = 0;
   page.navigate = undefined;
+  page.toasts.length = 0;
 });
+
+/** The viewer's error callback, as the launcher hands it. */
+function onError(): (message: string, error: Error) => void {
+  return page.viewer.at(-1)?.onError as (message: string, error: Error) => void;
+}
 
 describe("desktop SessionLauncher", () => {
   it("starts a chat with no agent that lists the plugin a plugin page's link names", () => {
@@ -101,5 +121,21 @@ describe("desktop SessionLauncher", () => {
     renderAt("/");
 
     expect(page.viewer.at(-1)).toMatchObject({ rememberPluginPicks: true, initialPluginRefs: undefined });
+  });
+
+  it("raises no toast for a refusal for want of a provider key, which the launcher's notice says", () => {
+    renderAt("/");
+
+    onError()(page.keyRefusal.message, page.keyRefusal);
+
+    expect(page.toasts).toEqual([]);
+  });
+
+  it("raises a toast for any other refusal", () => {
+    renderAt("/");
+
+    onError()("The server is unreachable.", new Error("The server is unreachable."));
+
+    expect(page.toasts).toEqual(["The server is unreachable."]);
   });
 });
