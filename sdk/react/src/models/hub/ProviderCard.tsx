@@ -9,7 +9,7 @@
 // command that gives it a key, a server's runners the person who runs them,
 // and a server that cannot see its runners nothing to do here.
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { ProviderKeyCheck, type ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
@@ -129,10 +129,9 @@ export function ProviderCard({
   const canReplace = viewer.canManage && ownKey && keyProvider !== null;
   const Heading = prominent ? "h2" : "h3";
 
-  const remove = async () => {
-    if (keyProvider === null) return;
+  const remove = async (provider: ProviderKeyProvider) => {
     try {
-      await actions.removeKey(org, keyProvider);
+      await actions.removeKey(org, provider);
       setConfirming(false);
       onChanged?.();
     } catch {
@@ -196,13 +195,13 @@ export function ProviderCard({
             prominent ? "stg:px-5 stg:py-4" : "stg:px-4 stg:py-3",
           )}
         >
-          {confirming ? (
+          {confirming && keyProvider !== null ? (
             <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2">
               <p className="stg:min-w-0 stg:flex-1 stg:text-xs stg:text-foreground">
                 {`Remove the ${presentation.name} key? Runs that need ${presentation.name} are refused until a key serves ${orgName} again.`}
               </p>
               <div className="stg:flex stg:gap-2">
-                <Button size="sm" variant="destructive" onClick={() => void remove()} disabled={actions.isSubmitting}>
+                <Button size="sm" variant="destructive" onClick={() => void remove(keyProvider)} disabled={actions.isSubmitting}>
                   {actions.isSubmitting ? "Removing…" : "Remove key"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={actions.isSubmitting}>
@@ -283,58 +282,61 @@ function StateLabel({
   );
 }
 
+/** What serves a provider, in the server's report. */
+type ServedSource = Extract<ProviderAvailability, { readonly state: "served" }>["source"];
+
+/** A served provider's state label, by what serves it; keyed by every source, so a new one cannot be left without words. */
+const SERVED_WORDS: Readonly<Record<ServedSource, (served: { readonly local: boolean; readonly parentName: string }) => string>> = {
+  organization: () => "Connected",
+  parent: ({ parentName }) => `Connected through ${parentName || "the parent organization"}`,
+  runners: ({ local }) => (local ? "Set on this machine" : "Set on this server's runners"),
+};
+
 /** The state label's words. */
 export function stateWords(availability: ProviderAvailability, local: boolean, parentOrgName?: string): string {
   if (availability.state === "missing") return "Not connected";
   if (availability.state === "unknown") return "Configured where the runner runs";
-  switch (availability.source) {
-    case "organization":
-      return "Connected";
-    case "parent":
-      return `Connected through ${parentOrgName || availability.parentOrg || "the parent organization"}`;
-    case "runners":
-      return local ? "Set on this machine" : "Set on this server's runners";
-    default: {
-      const exhaustive: never = availability.source;
-      return String(exhaustive);
-    }
-  }
+  return SERVED_WORDS[availability.source]({ local, parentName: parentOrgName || availability.parentOrg });
 }
+
+/** What {@link ProviderAct} draws an act for. */
+interface ActSubject {
+  readonly name: string;
+  readonly provider: string;
+  readonly orgName: string;
+}
+
+/**
+ * The act for a provider that does not serve, by who is looking; a provider
+ * that serves, or one the server cannot see, offers none. Keyed by every
+ * face, so a new one cannot be left without its act.
+ */
+const PROVIDER_ACTS: Readonly<Record<ProviderFace, ((subject: ActSubject) => ReactNode) | null>> = {
+  "admin-form": ({ name, orgName }) => (
+    <p className="stg:text-xs stg:text-foreground">
+      Paste {/^[AEIOU]/.test(name) ? "an" : "a"} {name} API key, and every member of {orgName} can run these
+      models. {name} bills {orgName} directly.
+    </p>
+  ),
+  "member-line": ({ name, orgName }) => (
+    <p className="stg:text-xs stg:text-foreground">
+      An admin of {orgName} connects {name}. Ask one to add its key in Models &amp; providers, and these models
+      are ready for everyone in {orgName}.
+    </p>
+  ),
+  "local-command": ({ provider }) => <SetupCommand provider={provider} />,
+  "runners-line": ({ name }) => (
+    <p className="stg:text-xs stg:text-foreground">
+      This server&apos;s runners have no {name} key; whoever runs them gives them one.
+    </p>
+  ),
+  unknown: null,
+  served: null,
+};
 
 /** The act for a provider that does not serve, by who is looking. */
 function ProviderAct({ face, provider, orgName }: { readonly face: ProviderFace; readonly provider: string; readonly orgName: string }) {
-  const name = presentationOf(provider).name;
-  switch (face) {
-    case "admin-form":
-      return (
-        <p className="stg:text-xs stg:text-foreground">
-          Paste {/^[AEIOU]/.test(name) ? "an" : "a"} {name} API key, and every member of {orgName} can run these
-          models. {name} bills {orgName} directly.
-        </p>
-      );
-    case "member-line":
-      return (
-        <p className="stg:text-xs stg:text-foreground">
-          An admin of {orgName} connects {name}. Ask one to add its key in Models &amp; providers, and these models
-          are ready for everyone in {orgName}.
-        </p>
-      );
-    case "local-command":
-      return <SetupCommand provider={provider} />;
-    case "runners-line":
-      return (
-        <p className="stg:text-xs stg:text-foreground">
-          This server&apos;s runners have no {name} key; whoever runs them gives them one.
-        </p>
-      );
-    case "unknown":
-    case "served":
-      return null;
-    default: {
-      const exhaustive: never = face;
-      return String(exhaustive);
-    }
-  }
+  return PROVIDER_ACTS[face]?.({ name: presentationOf(provider).name, provider, orgName }) ?? null;
 }
 
 /** Props for {@link SetupCommand}. */
@@ -432,22 +434,17 @@ function Unlocks({
   );
 }
 
+/** The check's words by its value; keyed by every value the contract names, so a new one in this build cannot be left without words. */
+const CHECK_WORDS: Readonly<Record<ProviderKeyCheck, ((name: string) => string) | null>> = {
+  [ProviderKeyCheck.checked]: (name) => `Checked with ${name}`,
+  [ProviderKeyCheck.unchecked]: (name) => `Saved, not checked: ${name} did not answer`,
+  [ProviderKeyCheck.provider_key_check_unspecified]: null,
+};
+
 /** The words for the save's check with the provider; nothing when the server says nothing. */
 export function checkWords(check: ProviderKeyCheck, name: string): string | null {
-  switch (check) {
-    case ProviderKeyCheck.checked:
-      return `Checked with ${name}`;
-    case ProviderKeyCheck.unchecked:
-      return `Saved, not checked: ${name} did not answer`;
-    case ProviderKeyCheck.provider_key_check_unspecified:
-      return null;
-    default: {
-      // A value newer than this build says nothing either.
-      const exhaustive: never = check;
-      void exhaustive;
-      return null;
-    }
-  }
+  // A value newer than this build has no entry, and says nothing either.
+  return CHECK_WORDS[check]?.(name) ?? null;
 }
 
 /** One line about how the provider serves, or does not serve, this organization. */

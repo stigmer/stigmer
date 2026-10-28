@@ -9,11 +9,11 @@
 // cannot, one line above the composer says why Send is held and what fixes
 // it. Both read the hub's data, so the launcher and the hub never disagree.
 
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
 import { HARNESS_META, type HarnessOption } from "./harness.js";
-import { ProviderCard, providerFace } from "./hub/ProviderCard.js";
+import { ProviderCard, providerFace, type ProviderFace } from "./hub/ProviderCard.js";
 import type { ModelsHubData } from "./hub/ModelsHub.js";
 import { keyPhrase, presentationOf, type SentencePart } from "./provider-presentation.js";
 
@@ -143,40 +143,46 @@ export function ModelNeedsProvider({
   );
 }
 
+/** What {@link ActSentence} says a sentence about. */
+interface ActSubject {
+  readonly name: string;
+  readonly provider: string;
+  readonly orgName: string;
+}
+
+/**
+ * What this person can do about the missing provider, in one sentence, by
+ * the act the card offers; a provider that serves, or one the server cannot
+ * see, needs no sentence. Keyed by every face, so a new one cannot be left
+ * without its words.
+ */
+const ACT_SENTENCES: Readonly<Record<ProviderFace, ((subject: ActSubject) => ReactNode) | null>> = {
+  "admin-form": ({ name }) => <>Send waits until {name} is connected, or pick a model marked ready.</>,
+  "member-line": ({ orgName }) => <>An admin of {orgName} connects it; until then, pick a model marked ready.</>,
+  "local-command": ({ name, provider }) => {
+    const setup = presentationOf(provider).runnerSetup;
+    return setup === null ? (
+      <>This machine&apos;s runner has no {name} key; pick a model marked ready.</>
+    ) : (
+      <Sentence parts={setup.inline} />
+    );
+  },
+  "runners-line": ({ name }) => <>This server&apos;s runners have no {name} key; whoever runs them gives them one.</>,
+  served: null,
+  unknown: null,
+};
+
 /** What this person can do about the missing provider, in one sentence. */
 function ActSentence({
   face,
   provider,
   orgName,
 }: {
-  readonly face: ReturnType<typeof providerFace>;
+  readonly face: ProviderFace;
   readonly provider: string;
   readonly orgName: string;
 }) {
-  const name = presentationOf(provider).name;
-  switch (face) {
-    case "admin-form":
-      return <>Send waits until {name} is connected, or pick a model marked ready.</>;
-    case "member-line":
-      return <>An admin of {orgName} connects it; until then, pick a model marked ready.</>;
-    case "local-command": {
-      const setup = presentationOf(provider).runnerSetup;
-      return setup === null ? (
-        <>This machine&apos;s runner has no {name} key; pick a model marked ready.</>
-      ) : (
-        <Sentence parts={setup.inline} />
-      );
-    }
-    case "runners-line":
-      return <>This server&apos;s runners have no {name} key; whoever runs them gives them one.</>;
-    case "served":
-    case "unknown":
-      return null;
-    default: {
-      const exhaustive: never = face;
-      return <>{String(exhaustive)}</>;
-    }
-  }
+  return ACT_SENTENCES[face]?.({ name: presentationOf(provider).name, provider, orgName }) ?? null;
 }
 
 function Sentence({ parts }: { readonly parts: readonly SentencePart[] }) {
