@@ -17,7 +17,9 @@
 // count as it says, and falls through to the queue when it answers nothing;
 // every captured request keeps the headers it arrived with; a router one test
 // installs (routeWith) lasts until reset(), its background answers are
-// out of band, and loopRequests() is the loop's calls however answered.
+// out of band, and loopRequests() is the loop's calls however answered; a
+// held call its caller hangs up is stamped hungUpAt at the hang-up, and one
+// releaseHolds() ends is served and never stamped.
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -320,6 +322,53 @@ describe("MockLlmProxy's capture observer", () => {
     }
   });
 });
+
+describe("MockLlmProxy held turns", () => {
+  const HELD_MS = 30_000;
+
+  it("stamps hungUpAt on a held call its caller hangs up, the moment it hangs up", async () => {
+    mock.enqueue(anthropicText("never sent"), { delayMs: HELD_MS });
+    const caller = new AbortController();
+    const pending = fetch(`${mock.url()}${ANTHROPIC_PATH}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: "m", messages: [] }),
+      signal: caller.signal,
+    }).catch(() => undefined);
+    await pollFor(() => mock.scriptedRequests().length === 1);
+    const hungUp = Date.now();
+    caller.abort();
+    await pending;
+
+    await pollFor(() => mock.scriptedRequests()[0]!.hungUpAt !== undefined);
+    const held = mock.scriptedRequests()[0]!;
+    expect(held.hungUpAt!, "stamped when the caller hung up, not when the hold would have ended").toBeLessThan(hungUp + 5_000);
+    expect(held.hungUpAt!).toBeGreaterThanOrEqual(hungUp);
+    expect(mock.consumed(), "the abandoned turn stays consumed").toBe(1);
+  });
+
+  it("serves a held call releaseHolds() ends, and leaves hungUpAt unset", async () => {
+    mock.enqueue(anthropicText("released"), { delayMs: HELD_MS });
+    const answer = post(ANTHROPIC_PATH, { model: "m", messages: [] });
+    await pollFor(() => mock.scriptedRequests().length === 1);
+    mock.releaseHolds();
+
+    const response = await answer;
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { content: { text: string }[] }).content[0]!.text).toBe("released");
+    expect(mock.scriptedRequests()[0]!.hungUpAt, "a release is not a hang-up").toBeUndefined();
+  });
+});
+
+// Polls `done` every 10ms for up to 5s; the held-turn arms wait on the mock's
+// own record rather than a fixed sleep.
+async function pollFor(done: () => boolean): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (!done()) {
+    if (Date.now() > deadline) throw new Error("condition not met within 5s");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
 
 describe("MockLlmProxy bind host", () => {
   it("listens where it is bound, and urlAt() names the port under the host a runner reaches it by", async () => {

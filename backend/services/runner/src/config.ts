@@ -189,7 +189,8 @@ export interface Config {
    * build is not a stall.
    *
    * This bounds no-progress time only; it is orthogonal to Temporal's
-   * heartbeatTimeout (process liveness) and the 30s keep-alive heartbeat.
+   * heartbeatTimeout (process liveness) and the turn's keep-alive heartbeat
+   * (`shared/heartbeat.ts` CANCELLATION_PULSE_MS).
    */
   readonly cursorStreamStallTimeoutMs: number;
   /**

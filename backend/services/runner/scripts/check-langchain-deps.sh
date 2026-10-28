@@ -85,7 +85,14 @@ fi
 # @langchain/anthropic's @anthropic-ai/sdk range again shares a version
 # with the backend SDKs' range — natural resolution then dedupes on its
 # own and this check keeps guarding the result.
-# Any dependent other than these four, or a SECOND distinct version, is
+#
+# Two more dependents share that one copy, each within its own range:
+#   - the runner itself, which imports the SDK at runtime
+#     (src/activities/execute-deep-agent/turn-setup.ts, transformJSONSchema)
+#     and declares the override's exact version;
+#   - @anthropic-ai/claude-agent-sdk, the Claude engine, whose peer range
+#     (>=0.93.0) the pinned version satisfies.
+# Any dependent other than these six, or a SECOND distinct version, is
 # drift and fails the check.
 
 echo ""
@@ -93,7 +100,7 @@ ANTHROPIC_SDK_REPORT=$(npm ls @anthropic-ai/sdk --all --json 2>/dev/null \
   | node -e "
     const json = require('fs').readFileSync('/dev/stdin', 'utf8');
     const tree = JSON.parse(json);
-    const ALLOWED_PARENTS = new Set(['@langchain/anthropic', '@anthropic-ai/vertex-sdk', '@anthropic-ai/bedrock-sdk', '@anthropic-ai/foundry-sdk']);
+    const ALLOWED_PARENTS = new Set(['@langchain/anthropic', '@anthropic-ai/vertex-sdk', '@anthropic-ai/bedrock-sdk', '@anthropic-ai/foundry-sdk', '@stigmer/runner', '@anthropic-ai/claude-agent-sdk']);
     const found = new Map(); // parent -> Set<version>
     function walk(node, parentName) {
       if (!node || !node.dependencies) return;
@@ -129,15 +136,16 @@ if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^FAIL:'; then
   echo ""
   echo "FAIL: @anthropic-ai/sdk copy check: $(echo "$ANTHROPIC_SDK_REPORT" | grep '^FAIL:' | sed 's/^FAIL://')"
   echo "The tree must hold a SINGLE @anthropic-ai/sdk copy (package.json"
-  echo "overrides pins it), and only @langchain/anthropic plus the backend"
+  echo "overrides pins it), and only @langchain/anthropic, the backend"
   echo "SDKs (@anthropic-ai/vertex-sdk, @anthropic-ai/bedrock-sdk,"
-  echo "@anthropic-ai/foundry-sdk) may depend on it. See the comment above"
-  echo "this check for the override rationale and its removal condition."
+  echo "@anthropic-ai/foundry-sdk), the runner itself and the Claude engine"
+  echo "(@anthropic-ai/claude-agent-sdk) may depend on it. See the comment"
+  echo "above this check for the override rationale and its removal condition."
   exit 1
 fi
 
 if echo "$ANTHROPIC_SDK_REPORT" | grep -q '^PASS$'; then
-  echo "OK: single @anthropic-ai/sdk copy serving langchain + the backend SDKs"
+  echo "OK: single @anthropic-ai/sdk copy serving langchain, the backend SDKs, the runner and the Claude engine"
 else
   echo "WARN: Could not determine @anthropic-ai/sdk copies (is npm ci done?)"
 fi
