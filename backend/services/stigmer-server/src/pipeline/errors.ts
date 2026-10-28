@@ -8,7 +8,9 @@
  * wire-visible description is ONLY the static message — the cause's raw
  * text can carry storage-engine detail or filesystem paths, and on an
  * anonymous surface that is information disclosure. The cause rides
- * ConnectError.cause for server-side logs; it never crosses the wire.
+ * ConnectError.cause for server-side logs; it never crosses the wire. Its
+ * readers are the pipeline executor's failure line and the logging
+ * interceptor's, both through error-cause.ts.
  *
  * A refusal a client should branch on, rather than parse its copy, also
  * carries a google.rpc.ErrorInfo detail (domain "stigmer.ai"), the

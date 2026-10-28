@@ -13,7 +13,9 @@
  *     must never see. The original error rides `cause`.
  * The step name and real error are logged HERE (Go's pipeline logs them via
  * log.Printf; the transport logging interceptor separately records the
- * wire-level outcome). Nothing diverges silently.
+ * wire-level outcome). Nothing diverges silently. The thrown error's cause
+ * chain rides the same line, and its deepest stack a debug line
+ * (error-cause.ts, stigmer/stigmer#1383).
  *
  * Tracing spans are not ported: the TS server has no telemetry seam yet and
  * Go's default is a no-op tracer — the span plumbing would be machinery
@@ -23,6 +25,7 @@ import { ConnectError } from "@connectrpc/connect";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { Logger } from "../boot/logger.js";
+import { causeFields, causeStack } from "./error-cause.js";
 import { internalError } from "./errors.js";
 import type { RequestContext } from "./request-context.js";
 
@@ -69,7 +72,16 @@ export class Pipeline<Desc extends DescMessage> {
           step: step.name,
           durationMs: Math.round(performance.now() - startedAt),
           error: error instanceof Error ? error.message : String(error),
+          ...causeFields(error),
         });
+        const stack = causeStack(error);
+        if (stack !== undefined) {
+          this.logger.debug("pipeline step failure stack", {
+            pipeline: this.pipelineName,
+            step: step.name,
+            stack,
+          });
+        }
         if (error instanceof ConnectError) {
           throw error;
         }

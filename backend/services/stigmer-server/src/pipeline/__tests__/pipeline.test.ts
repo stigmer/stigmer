@@ -3,7 +3,9 @@
  * ordered execution, halt-on-first-error, and the #478 wire sanitization —
  * a ConnectError passes through with its clean domain message; a plain
  * error reaches the wire as Internal/"internal server error" with the real
- * cause kept server-side. Also pins RequestContext's input immutability.
+ * cause kept server-side, and the failure line carrying that cause chain
+ * with its deepest stack at debug (stigmer/stigmer#1383). Also pins
+ * RequestContext's input immutability.
  */
 import { testCallerIdentity } from "./support.js";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -12,7 +14,8 @@ import { describe, expect, it } from "vitest";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 
-import type { Logger } from "../../boot/logger.js";
+import type { LogFields, Logger } from "../../boot/logger.js";
+import { internalError } from "../errors.js";
 import { INTERNAL_FALLBACK_MESSAGE, newPipeline } from "../pipeline.js";
 import type { PipelineStep } from "../pipeline.js";
 import { LOADED_EXECUTION_KEY, RequestContext } from "../request-context.js";
@@ -23,6 +26,30 @@ const silentLogger: Logger = {
   warn() {},
   error() {},
 };
+
+interface RecordedLine {
+  level: string;
+  message: string;
+  fields: LogFields | undefined;
+}
+
+function recordingLogger(): { logger: Logger; lines: RecordedLine[] } {
+  const lines: RecordedLine[] = [];
+  const record =
+    (level: string) =>
+    (message: string, fields?: LogFields): void => {
+      lines.push({ level, message, fields });
+    };
+  return {
+    lines,
+    logger: {
+      debug: record("debug"),
+      info: record("info"),
+      warn: record("warn"),
+      error: record("error"),
+    },
+  };
+}
 
 function orgContext(): RequestContext<typeof OrganizationSchema> {
   return new RequestContext(
@@ -117,6 +144,41 @@ describe("pipeline execution", () => {
     expect((error as ConnectError).rawMessage).toBe(INTERNAL_FALLBACK_MESSAGE);
     expect((error as ConnectError).rawMessage).not.toContain("stigmer.db");
     expect((error as ConnectError).cause).toBe(raw);
+  });
+
+  it("logs an internalError's cause and its stack while the wire keeps the copy (#1383)", async () => {
+    const driver = new Error("database is locked");
+    const { logger, lines } = recordingLogger();
+    const pipeline = newPipeline<typeof OrganizationSchema>("test", logger)
+      .addStep({
+        name: "LoadPlugin",
+        execute() {
+          throw internalError(driver, "failed to load plugin");
+        },
+      })
+      .build();
+
+    const error = await pipeline.execute(orgContext()).catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+    expect((error as ConnectError).rawMessage).toBe("failed to load plugin");
+
+    const failed = lines.find((l) => l.message === "pipeline step failed");
+    expect(failed?.level).toBe("warn");
+    expect(failed?.fields).toMatchObject({
+      pipeline: "test",
+      step: "LoadPlugin",
+      error: "[internal] failed to load plugin",
+      cause: "Error: database is locked",
+    });
+    const stackLine = lines.find(
+      (l) => l.message === "pipeline step failure stack",
+    );
+    expect(stackLine?.level).toBe("debug");
+    expect(stackLine?.fields).toEqual({
+      pipeline: "test",
+      step: "LoadPlugin",
+      stack: driver.stack,
+    });
   });
 });
 
