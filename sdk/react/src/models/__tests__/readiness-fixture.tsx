@@ -111,6 +111,24 @@ export const NOTHING_CONNECTED = readiness({
   openai: ProviderAvailability.missing_from_organization,
 });
 
+/**
+ * Nothing connected, beside a model the server judges no provider for (a
+ * catalog's Ollama row on the cloud): it says nothing either way, so
+ * nothing can run still.
+ */
+export const NOTHING_CONNECTED_BESIDE_UNJUDGED = create(GetModelReadinessOutputSchema, {
+  providers: NOTHING_CONNECTED.providers,
+  models: [
+    ...NOTHING_CONNECTED.models,
+    create(ModelReadinessSchema, {
+      harness: Harness.NATIVE,
+      model: "qwen2.5-coder:7b",
+      provider: "",
+      availability: ProviderAvailability.availability_unknown,
+    }),
+  ],
+});
+
 export const ANTHROPIC_CONNECTED = readiness({
   anthropic: ProviderAvailability.served_by_organization,
   openai: ProviderAvailability.missing_from_organization,

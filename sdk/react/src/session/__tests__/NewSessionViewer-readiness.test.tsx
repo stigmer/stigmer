@@ -26,6 +26,7 @@ import {
   ANTHROPIC_CONNECTED,
   LAPTOP_WITHOUT_KEYS,
   NOTHING_CONNECTED,
+  NOTHING_CONNECTED_BESIDE_UNJUDGED,
   OPENAI_ONLY,
   ORG_ID,
   fakeClient,
@@ -133,6 +134,13 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     expect(screen.getByText(/Or connect OpenAI/)).toBeTruthy();
     expect(screen.queryByTestId("composer-probe")).toBeNull();
     expect(screen.queryByText("Press Enter to send, Shift+Enter for a new line")).toBeNull();
+  });
+
+  it("puts the connect step there too beside a model the server judges no provider for", async () => {
+    renderLauncher(server({ readiness: NOTHING_CONNECTED_BESIDE_UNJUDGED }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
+    expect(screen.queryByTestId("composer-probe")).toBeNull();
   });
 
   it("tells a member who connects the provider, in the same place", async () => {
