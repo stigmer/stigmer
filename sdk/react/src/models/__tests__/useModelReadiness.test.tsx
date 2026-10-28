@@ -63,6 +63,7 @@ const EVERY_AVAILABILITY = create(GetModelReadinessOutputSchema, {
     create(ModelReadinessSchema, { harness: Harness.NATIVE, model: "m1", provider: "d", availability: ProviderAvailability.missing_from_organization }),
     create(ModelReadinessSchema, { harness: Harness.CLAUDE, model: "m2", provider: "a", availability: ProviderAvailability.served_by_organization }),
     create(ModelReadinessSchema, { harness: 42 as Harness, model: "m3", provider: "a", availability: ProviderAvailability.served_by_organization }),
+    create(ModelReadinessSchema, { harness: Harness.NATIVE, model: "m4", provider: "b", availability: ProviderAvailability.served_by_parent_organization }),
   ],
 });
 
@@ -93,6 +94,8 @@ describe("useModelReadiness", () => {
     expect(result.current.models).toEqual([
       { harness: "native", modelId: "m1", provider: "d", availability: { state: "missing", scope: "organization" } },
       { harness: "claude", modelId: "m2", provider: "a", availability: { state: "served", source: "organization", parentOrg: "" } },
+      // A model names no parent: the provider's report does.
+      { harness: "native", modelId: "m4", provider: "b", availability: { state: "served", source: "parent", parentOrg: "" } },
     ]);
     expect(result.current.readinessOf("native", "m1")?.provider).toBe("d");
     expect(result.current.readinessOf("claude", "m1")).toBeUndefined();
