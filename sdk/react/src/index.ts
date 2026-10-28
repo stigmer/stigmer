@@ -63,6 +63,17 @@ export {
   fromProtoHarness,
   thinkingSelectable,
   thinkingLocked,
+  useModelReadiness,
+  modelReadinessCacheKey,
+  ModelsHub,
+  useModelsHubData,
+  ProviderCard,
+  providerFace,
+  ProviderKeyForm,
+  ModelDefaults,
+  ConnectProviderPanel,
+  ModelNeedsProvider,
+  SetupCommand,
 } from "./models/index.js";
 export type {
   ModelInfo,
@@ -78,6 +89,22 @@ export type {
   HarnessSelectorProps,
   HarnessOption,
   VisionLimits,
+  UseModelReadinessReturn,
+  ModelReadiness,
+  ModelReadinessLookup,
+  ProviderAvailability,
+  ProviderReadiness,
+  ModelsHubData,
+  ModelsHubProps,
+  NamedModelReadiness,
+  ProviderCardProps,
+  ProviderFace,
+  ProviderViewer,
+  SetupCommandProps,
+  ProviderKeyFormProps,
+  ModelDefaultsProps,
+  ConnectProviderPanelProps,
+  ModelNeedsProviderProps,
 } from "./models/index.js";
 
 // Workspace — behavior hooks and styled components
@@ -1432,7 +1459,6 @@ export {
   useAgentHours,
   useProviderKeys,
   useProviderKeyActions,
-  ProviderKeysSection,
   useChangePlan,
   useCancelSubscription,
   useCreatePaymentMethodSetupSession,
@@ -1451,7 +1477,7 @@ export {
   ProviderKeyNotice,
   providerKeyRequired,
   PROVIDER_KEY_REQUIRED,
-  DEFAULT_PROVIDER_KEYS_HREF,
+  DEFAULT_MODELS_HUB_HREF,
   AgentHoursNotice,
   agentHoursUsedUp,
   AGENT_HOURS_USED_UP,
@@ -1476,7 +1502,6 @@ export type {
   UseProviderKeysOptions,
   UseProviderKeysReturn,
   UseProviderKeyActionsReturn,
-  ProviderKeysSectionProps,
   UseChangePlanReturn,
   UseCancelSubscriptionReturn,
   UseCreatePaymentMethodSetupSessionReturn,
@@ -1578,6 +1603,7 @@ export type { OrgProfileSectionProps } from "./settings/index.js";
 export { OrgPreferencesSection, OrgPoliciesSection, OrgEmbeddingSection } from "./settings/index.js";
 export type { OrgEmbeddingSectionProps } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
+export type { AccountPreferencesSectionProps } from "./settings/index.js";
 export { NotificationsSection } from "./settings/index.js";
 export type { NotificationsSectionProps } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";

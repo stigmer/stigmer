@@ -1408,7 +1408,7 @@ describe("useNewSessionFlow", () => {
       });
 
       expect(result.current.submitError).toBe(ownerCopy);
-      expect(opts.onError).toHaveBeenCalledWith(ownerCopy);
+      expect(opts.onError).toHaveBeenCalledWith(ownerCopy, expect.any(Error));
     });
 
     it("keeps the failed submission's error itself, for a refusal read by its reason, and clears it on the next try", async () => {

@@ -8,6 +8,7 @@ import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";
 import { type ConfigureMenuItem } from "./ConfigureMenu.js";
 import type { HarnessOption } from "../models/harness.js";
+import type { ModelReadinessLookup } from "../models/readiness.js";
 import { FAST_SERVICE_TIER, type ServiceTierOption } from "../models/service-tier.js";
 import { thinkingLocked, thinkingSelectable, type ThinkingModeOption } from "../models/thinking-mode.js";
 import type { InteractionModeOption } from "./InteractionModePicker.js";
@@ -261,6 +262,20 @@ export interface SessionComposerProps {
    * leaves the composer open).
    */
   readonly disabled?: boolean;
+  /**
+   * Why Send is held while the message can still be written, in words (the
+   * chosen model cannot run here yet: "Connect Anthropic to run Claude
+   * Sonnet 4.6."). Send stays disabled while it is set, and carries it as
+   * its accessible description.
+   */
+  readonly sendBlockedReason?: string;
+  /**
+   * Each model's readiness for this organization, from `useModelReadiness`:
+   * the model picker marks a model that cannot run here ("Needs an
+   * Anthropic key") and lists it after the ready ones. Omitted, nothing is
+   * marked.
+   */
+  readonly modelReadinessOf?: ModelReadinessLookup;
 
   /**
    * When provided, the Send button becomes a Stop control while a run
@@ -716,6 +731,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onSubmit,
   isSubmitting = false,
   disabled = false,
+  sendBlockedReason,
+  modelReadinessOf,
   onStop,
   isStopping = false,
   isEditing = false,
@@ -1603,7 +1620,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // retry/remove); isUploading covers both the preparing and uploading
   // phases (see its doc — same drop class).
   const uploadsBlocked = enableFiles && uploads.isUploading;
-  const canSend = composer.canSubmit && !uploadsBlocked;
+  const canSend = composer.canSubmit && !uploadsBlocked && sendBlockedReason === undefined;
 
   // True when the upload gate is the OPERATIVE blocker — the message would
   // send right now if uploads were done. Drives the attempt-triggered wait
@@ -2070,6 +2087,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           disabled={isDisabled}
           isSubmitting={isSubmitting}
           canSend={canSend}
+          sendBlockedReason={sendBlockedReason}
           onSend={composer.submit}
           onStop={onStop}
           isStopping={isStopping}
@@ -2108,6 +2126,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           // The pill renders the effective selection — the same value the
           // submit payload carries (#663), never a fallback of its own.
           modelId={effective.modelId}
+          modelReadinessOf={modelReadinessOf}
           inheritedModel={
             agentRunDefaults
               ? { modelId: agentRunDefaults.modelName, source: "Agent default" }

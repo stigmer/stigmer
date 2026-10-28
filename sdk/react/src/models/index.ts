@@ -6,6 +6,30 @@ export type { UseModelRegistryReturn, UseModelRegistryOptions } from "./useModel
 export { ModelRegistryContext, useModelRegistryContext } from "./ModelRegistryContext.js";
 export type { ModelRegistryState } from "./ModelRegistryContext.js";
 export { ModelSelector } from "./ModelSelector.js";
+export { useModelReadiness, modelReadinessCacheKey } from "./useModelReadiness.js";
+export type { UseModelReadinessReturn } from "./useModelReadiness.js";
+export type {
+  ModelReadiness,
+  ModelReadinessLookup,
+  ProviderAvailability,
+  ProviderReadiness,
+} from "./readiness.js";
+export { ModelsHub, useModelsHubData } from "./hub/ModelsHub.js";
+export type { ModelsHubData, ModelsHubProps } from "./hub/ModelsHub.js";
+export { ProviderCard, providerFace, SetupCommand } from "./hub/ProviderCard.js";
+export type {
+  NamedModelReadiness,
+  ProviderCardProps,
+  ProviderFace,
+  ProviderViewer,
+  SetupCommandProps,
+} from "./hub/ProviderCard.js";
+export { ProviderKeyForm } from "./hub/ProviderKeyForm.js";
+export type { ProviderKeyFormProps } from "./hub/ProviderKeyForm.js";
+export { ModelDefaults } from "./hub/ModelDefaults.js";
+export type { ModelDefaultsProps } from "./hub/ModelDefaults.js";
+export { ConnectProviderPanel, ModelNeedsProvider } from "./ConnectProvider.js";
+export type { ConnectProviderPanelProps, ModelNeedsProviderProps } from "./ConnectProvider.js";
 export type { InheritedModel, ModelSelectorProps } from "./ModelSelector.js";
 export { HarnessSelector } from "./HarnessSelector.js";
 export type { HarnessSelectorProps } from "./HarnessSelector.js";

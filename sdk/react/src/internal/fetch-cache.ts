@@ -46,6 +46,7 @@ export interface FetchCacheOptions {
 
 export class FetchCache {
   private readonly _entries = new Map<string, CacheEntry>();
+  private readonly _invalidationListeners = new Map<string, Set<() => void>>();
   private readonly _maxEntries: number;
   private readonly _ttl: number;
 
@@ -82,9 +83,33 @@ export class FetchCache {
     this._evict();
   }
 
-  /** Remove a single entry. */
+  /**
+   * Remove a single entry, and tell every listener of `key`
+   * ({@link onInvalidate}) that its data changed on the server, so a hook
+   * still mounted on it can fetch again.
+   */
   invalidate(key: string): void {
     this._entries.delete(key);
+    for (const listener of [...(this._invalidationListeners.get(key) ?? [])]) {
+      listener();
+    }
+  }
+
+  /**
+   * Calls `listener` each time `key` is invalidated, until the returned
+   * function is called. The one way a write made by one face (a key saved
+   * in a form) reaches another face still showing the old answer; the bulk
+   * removals (`invalidatePrefix`, `clear`) tell nobody, since they drop
+   * data that no longer applies rather than data that changed.
+   */
+  onInvalidate(key: string, listener: () => void): () => void {
+    const listeners = this._invalidationListeners.get(key) ?? new Set<() => void>();
+    listeners.add(listener);
+    this._invalidationListeners.set(key, listeners);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this._invalidationListeners.delete(key);
+    };
   }
 
   /**

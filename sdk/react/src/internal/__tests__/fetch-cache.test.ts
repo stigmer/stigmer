@@ -227,4 +227,39 @@ describe("FetchCache", () => {
     expect(cache.has("k0")).toBe(false);
     expect(cache.has("k10")).toBe(true);
   });
+
+  // -------------------------------------------------------------------
+  // invalidation listeners
+  // -------------------------------------------------------------------
+
+  it("tells a key's listeners when that key is invalidated, and only that key's", () => {
+    const cache = new FetchCache();
+    const readiness = vi.fn();
+    const other = vi.fn();
+    cache.onInvalidate("model-readiness:acme", readiness);
+    cache.onInvalidate("model-readiness:globex", other);
+    cache.set("model-readiness:acme", "old");
+
+    cache.invalidate("model-readiness:acme");
+
+    expect(readiness).toHaveBeenCalledTimes(1);
+    expect(other).not.toHaveBeenCalled();
+    expect(cache.has("model-readiness:acme")).toBe(false);
+  });
+
+  it("stops telling a listener once it unsubscribes, and tells nobody on a bulk removal", () => {
+    const cache = new FetchCache();
+    const first = vi.fn();
+    const second = vi.fn();
+    const stop = cache.onInvalidate("k", first);
+    cache.onInvalidate("k", second);
+
+    stop();
+    cache.invalidate("k");
+    cache.invalidatePrefix("k");
+    cache.clear();
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
 });

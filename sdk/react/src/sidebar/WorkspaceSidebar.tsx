@@ -8,6 +8,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Store,
+  Cpu,
   type LucideIcon,
 } from "lucide-react";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -41,7 +42,8 @@ export type WorkspaceNavId =
   | "dashboard"
   | "conversations"
   | "library"
-  | "marketplace";
+  | "marketplace"
+  | "models";
 
 /**
  * Recent-activity data for the sidebar's Recents section — the return
@@ -207,6 +209,16 @@ export function WorkspaceSidebar({
           label="Marketplace"
           icon={Store}
           active={activeNav === "marketplace"}
+          renderLink={renderLink}
+        />
+        {/* Which models the organization's agents can run, and the
+            providers behind them: a new person's way to a first answer. */}
+        <PrimaryNavRow
+          id="models"
+          href="/models"
+          label="Models & providers"
+          icon={Cpu}
+          active={activeNav === "models"}
           renderLink={renderLink}
         />
       </div>

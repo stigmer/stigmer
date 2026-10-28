@@ -11,6 +11,7 @@ import {
   useGitHubFileReader,
   useWorkspaceSources,
   useActiveOrgId,
+  providerKeyRequired,
 } from "@stigmer/react-sdk";
 import type { ResourceRef } from "@stigmer/client";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
@@ -65,7 +66,11 @@ export function SessionLauncher() {
     <NewSessionViewer
       org={org}
       onSessionCreated={navigateToSession}
-      onError={(msg) => toast.error(msg)}
+      // A refusal for want of a provider shows once, as the launcher's own
+      // notice linking Models & providers, never also as a toast.
+      onError={(msg, error) => {
+        if (providerKeyRequired(error) === null) toast.error(msg);
+      }}
       accountDefaults={accountDefaults}
       gitHubConnection={enableGitHub ? gitHubConnection : undefined}
       enableGitHub={enableGitHub}

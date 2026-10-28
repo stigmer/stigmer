@@ -23,7 +23,11 @@ import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { includesMyVaultByDefault, type SessionAudience, type SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
-import { ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
+import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
+import { ConnectProviderPanel, connectReason, ModelNeedsProvider } from "../models/ConnectProvider.js";
+import { useModelsHubData } from "../models/hub/ModelsHub.js";
+import { nothingRuns } from "../models/readiness.js";
+import { useModelRegistry } from "../models/useModelRegistry.js";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
@@ -31,8 +35,13 @@ export interface NewSessionViewerProps {
   readonly org: string;
   /** Called after the session and first run are created. */
   readonly onSessionCreated: (sessionId: string) => void;
-  /** Called on error (for toast notifications or other UI feedback). */
-  readonly onError?: (message: string) => void;
+  /**
+   * Called on error (for toast notifications or other UI feedback), with
+   * the message and the error itself. A refusal the launcher already shows
+   * in place (a `PROVIDER_KEY_REQUIRED` one, through `providerKeyRequired`)
+   * is the host's to skip, so it shows once.
+   */
+  readonly onError?: (message: string, error: Error) => void;
 
   /**
    * GitHub connection state for the workspace repo picker.
@@ -225,6 +234,13 @@ export interface NewSessionViewerProps {
    */
   readonly footerContent?: ReactNode;
 
+  /**
+   * Where Models & providers is, in the host's routing: the launcher's
+   * connect step and its notices link there. Defaults to
+   * {@link DEFAULT_MODELS_HUB_HREF}.
+   */
+  readonly modelsHubHref?: string;
+
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -296,6 +312,7 @@ export function NewSessionViewer({
   initialRows = 3,
   autoFocus = true,
   footerContent,
+  modelsHubHref = DEFAULT_MODELS_HUB_HREF,
   className,
 }: NewSessionViewerProps) {
   const includesMyVault = includeMyVault ?? includesMyVaultByDefault(audience);
@@ -314,6 +331,32 @@ export function NewSessionViewer({
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isGuest = audience === "guest";
+  // A reference may name its org by slug (one a host or URL supplied) or by
+  // id (a stored or picked one), so both sides are compared by id.
+  const orgIdFor = useOrgIdForRef();
+
+  // Readiness before Send. The launcher judges the (engine, model) its
+  // picker shows: the person's pick, else the agent's run default, else the
+  // engine's default. Nothing runs anywhere: the connect step takes the
+  // composer's place. Only the shown model is missing: one line above the
+  // composer, and Send held with its reason. Unknown never blocks, and a
+  // guest (who cannot ask) is never judged; the server's refusal at create
+  // stays the backstop, rendered once as the notice below.
+  const hub = useModelsHubData(isGuest ? null : orgIdFor(org));
+  const engineRegistry = useModelRegistry({ harness: flow.harness });
+  const engineDefaultId = engineRegistry.defaultModel?.modelId ?? "";
+  const shownModelId = runConfig?.modelName ?? (flow.modelId || flow.agentRunDefaults?.modelName || engineDefaultId);
+  const shownModelName = engineRegistry.getModel(shownModelId)?.displayName || shownModelId;
+  const shownReadiness = shownModelId === "" ? undefined : hub.readinessOf(flow.harness, shownModelId);
+  const shownMissing = shownReadiness !== undefined && shownReadiness.availability.state === "missing";
+  const connectProvider =
+    (shownMissing ? shownReadiness.provider : undefined) ??
+    hub.readinessOf(flow.harness, engineDefaultId)?.provider ??
+    hub.providers?.find((report) => report.availability.state === "missing")?.provider;
+  const showConnectPanel =
+    !isGuest && !hub.isLoading && nothingRuns(hub.models) && connectProvider !== undefined && connectProvider !== "";
+  const sendBlockedReason =
+    !showConnectPanel && shownMissing ? connectReason(shownReadiness.provider, shownModelName) : undefined;
   // A pinned model makes the picker a dead control (the pin wins over any
   // choice it could offer), so the pin forces it hidden; the guest strip
   // and the host's explicit opt-out compose with it (the same rule as
@@ -369,10 +412,6 @@ export function NewSessionViewer({
     flow.setAgentRef(null);
     flow.setResolution(null);
   }, [flow.setAgentRef, flow.setResolution]);
-
-  // A reference may name its org by slug (one a host or URL supplied) or by
-  // id (a stored or picked one), so both sides are compared by id.
-  const orgIdFor = useOrgIdForRef();
 
   const handleRemovePlugin = useCallback(
     (ref: ResourceRef) => {
@@ -458,66 +497,88 @@ export function NewSessionViewer({
     // that shifts with attached context reads as instability).
     <div className="stg:flex stg:h-full stg:flex-col stg:items-center stg:overflow-y-auto stg:px-4 stg:py-6">
       <div className="stg:my-auto stg:w-full stg:max-w-2xl stg:space-y-6">
-        <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
-          {heading}
-        </h1>
+        {showConnectPanel ? (
+          <ConnectProviderPanel
+            hub={hub}
+            harness={flow.harness}
+            provider={connectProvider}
+            modelName={shownModelName}
+            modelsHubHref={modelsHubHref}
+          />
+        ) : (
+          <>
+          <h1 className="stg:text-center stg:text-lg stg:font-medium stg:text-foreground">
+            {heading}
+          </h1>
+          {shownMissing && !hub.isLoading && (
+            <ModelNeedsProvider
+              hub={hub}
+              provider={shownReadiness.provider}
+              modelName={shownModelName}
+              modelsHubHref={modelsHubHref}
+            />
+          )}
 
-        <SessionComposer
-          onSubmit={flow.submit}
-          isSubmitting={flow.isSubmitting}
-          org={org}
-          workspace={isGuest ? undefined : flow.workspace}
-          gitHubConnection={enableGitHub && !isGuest ? gitHubConnection : undefined}
-          enableGitHub={enableGitHub && !isGuest}
-          enableLocal={enableLocal && !isGuest}
-          onBrowseLocalFolder={onBrowseLocalFolder}
-          agentRef={flow.agentRef}
-          // Guests get no agent machinery at all — the binding is applied
-          // by the launcher's pin effect above, not by picker resolution.
-          onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
-          onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
-          initialAgentRef={isGuest ? undefined : initialAgentRef}
-          // Every message here starts a conversation, so the keys the
-          // selected agent will read from the person's My vault are named
-          // first. A guest has no vault, and brings none.
-          disclosePersonalKeys={!isGuest}
-          enableVaultPicker={!isGuest && !isCurated}
-          initialIncludeMyVault={includesMyVault}
-          initialVaultRefs={vaults}
-          // The Environment is the new conversation's to pick, beside its
-          // vaults; the flow says where it applies at all.
-          enableEnvironmentPicker={flow.offersEnvironment && !isCurated}
-          environmentDefaults={flow.environmentDefaults}
-          initialFiles={isGuest ? undefined : initialFiles}
-          lockAgent={isCurated && initialAgentRef != null}
-          pluginRefs={isCurated ? undefined : flow.pluginRefs}
-          onPluginRefsChange={isCurated ? undefined : flow.setPluginRefs}
-          skillRefs={isCurated ? undefined : flow.skillRefs}
-          onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
-          showHarnessSelector={!isGuest}
-          harness={flow.harness}
-          onHarnessChange={flow.setHarness}
-          interactionMode={interactionMode}
-          onInteractionModeChange={setInteractionMode}
-          showInteractionModePicker={!isGuest}
-          showModelSelector={modelSelectorVisible}
-          enableFiles={!isGuest}
-          defaultModelId={flow.modelId}
-          agentRunDefaults={flow.agentRunDefaults}
-          onModelChange={flow.setModelId}
-          onModelPickCleared={flow.clearModelPick}
-          placeholder={placeholder}
-          initialRows={initialRows}
-          autoFocus={autoFocus}
-          ariaLabel="Start a new session"
-        />
+          <SessionComposer
+            sendBlockedReason={sendBlockedReason}
+            modelReadinessOf={isGuest ? undefined : hub.readinessOf}
+            onSubmit={flow.submit}
+            isSubmitting={flow.isSubmitting}
+            org={org}
+            workspace={isGuest ? undefined : flow.workspace}
+            gitHubConnection={enableGitHub && !isGuest ? gitHubConnection : undefined}
+            enableGitHub={enableGitHub && !isGuest}
+            enableLocal={enableLocal && !isGuest}
+            onBrowseLocalFolder={onBrowseLocalFolder}
+            agentRef={flow.agentRef}
+            // Guests get no agent machinery at all — the binding is applied
+            // by the launcher's pin effect above, not by picker resolution.
+            onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
+            onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
+            initialAgentRef={isGuest ? undefined : initialAgentRef}
+            // Every message here starts a conversation, so the keys the
+            // selected agent will read from the person's My vault are named
+            // first. A guest has no vault, and brings none.
+            disclosePersonalKeys={!isGuest}
+            enableVaultPicker={!isGuest && !isCurated}
+            initialIncludeMyVault={includesMyVault}
+            initialVaultRefs={vaults}
+            // The Environment is the new conversation's to pick, beside its
+            // vaults; the flow says where it applies at all.
+            enableEnvironmentPicker={flow.offersEnvironment && !isCurated}
+            environmentDefaults={flow.environmentDefaults}
+            initialFiles={isGuest ? undefined : initialFiles}
+            lockAgent={isCurated && initialAgentRef != null}
+            pluginRefs={isCurated ? undefined : flow.pluginRefs}
+            onPluginRefsChange={isCurated ? undefined : flow.setPluginRefs}
+            skillRefs={isCurated ? undefined : flow.skillRefs}
+            onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
+            showHarnessSelector={!isGuest}
+            harness={flow.harness}
+            onHarnessChange={flow.setHarness}
+            interactionMode={interactionMode}
+            onInteractionModeChange={setInteractionMode}
+            showInteractionModePicker={!isGuest}
+            showModelSelector={modelSelectorVisible}
+            enableFiles={!isGuest}
+            defaultModelId={flow.modelId}
+            agentRunDefaults={flow.agentRunDefaults}
+            onModelChange={flow.setModelId}
+            onModelPickCleared={flow.clearModelPick}
+            placeholder={placeholder}
+            initialRows={initialRows}
+            autoFocus={autoFocus}
+            ariaLabel="Start a new session"
+          />
+          </>
+        )}
 
         {/* A run refused for want of a provider key says where an admin
             adds one, and one refused because the plan's agent hours are
             used says when they reset and where the plans are; every other
             refusal reaches the host's onError. */}
         {flow.submitFailure !== null && providerKeyRequired(flow.submitFailure) !== null && (
-          <ProviderKeyNotice error={flow.submitFailure} />
+          <ProviderKeyNotice error={flow.submitFailure} modelsHubHref={modelsHubHref} />
         )}
         {flow.submitFailure !== null && agentHoursUsedUp(flow.submitFailure) !== null && (
           <AgentHoursNotice error={flow.submitFailure} />
@@ -533,9 +594,11 @@ export function NewSessionViewer({
 
         {footerContent}
 
-        <p className="stg:text-center stg:text-2xs stg:text-muted-foreground">
-          Press Enter to send, Shift+Enter for a new line
-        </p>
+        {!showConnectPanel && (
+          <p className="stg:text-center stg:text-2xs stg:text-muted-foreground">
+            Press Enter to send, Shift+Enter for a new line
+          </p>
+        )}
       </div>
     </div>
   );

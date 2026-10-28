@@ -6,6 +6,7 @@ import {
   useAccountExecutionDefaults,
   useWorkspaceSources,
   useActiveOrgId,
+  providerKeyRequired,
 } from "@stigmer/react-sdk";
 import type { ResourceRef } from "@stigmer/client";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
@@ -76,7 +77,12 @@ export function SessionLauncher() {
     <NewSessionViewer
       org={org}
       onSessionCreated={(id) => navigate(`/sessions/${id}`)}
-      onError={(msg) => toast.error(msg)}
+      // A refusal for want of a provider shows once, as the launcher's own
+      // notice linking Models & providers, never also as a toast.
+      onError={(msg, error) => {
+        if (providerKeyRequired(error) === null) toast.error(msg);
+      }}
+      modelsHubHref="#/models"
       accountDefaults={accountDefaults}
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}
