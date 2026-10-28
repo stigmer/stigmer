@@ -157,7 +157,7 @@ function AppContent({
  * can read from useAuth and write via useRunner.
  *
  * This updates the runner's CONTROL-PLANE credential only. The runner's
- * Cursor-proxy credential is a separate, server-minted token the runner owns
+ * LLM proxy credential is a separate, server-minted token the runner owns
  * and refreshes itself (see runner-manager.ts); pushing the Auth0 token here
  * must not — and does not — overwrite it. Keeping the Auth0 token fresh is what
  * lets the runner re-mint its proxy token indefinitely.

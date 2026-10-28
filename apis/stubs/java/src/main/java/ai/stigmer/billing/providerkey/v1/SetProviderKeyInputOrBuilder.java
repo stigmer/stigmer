@@ -36,9 +36,7 @@ public interface SetProviderKeyInputOrBuilder extends
 
   /**
    * <pre>
-   * The provider API key. Write-only: no read returns it. For "cursor", a
-   * Cursor user API key or a team service-account API key (Cursor's SDK
-   * refuses Team Admin keys).
+   * The provider API key. Write-only: no read returns it.
    * </pre>
    *
    * <code>string api_key = 3 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
@@ -47,9 +45,7 @@ public interface SetProviderKeyInputOrBuilder extends
   java.lang.String getApiKey();
   /**
    * <pre>
-   * The provider API key. Write-only: no read returns it. For "cursor", a
-   * Cursor user API key or a team service-account API key (Cursor's SDK
-   * refuses Team Admin keys).
+   * The provider API key. Write-only: no read returns it.
    * </pre>
    *
    * <code>string api_key = 3 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
@@ -66,8 +62,7 @@ public interface SetProviderKeyInputOrBuilder extends
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1". A Cursor key takes
-   * none: Cursor serves from its own hosts.
+   * "https://my-resource.openai.azure.com/openai/v1".
    * </pre>
    *
    * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
@@ -82,8 +77,7 @@ public interface SetProviderKeyInputOrBuilder extends
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1". A Cursor key takes
-   * none: Cursor serves from its own hosts.
+   * "https://my-resource.openai.azure.com/openai/v1".
    * </pre>
    *
    * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>

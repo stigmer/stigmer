@@ -12,9 +12,8 @@
  * spawned — it must hold even if a stdio usage reaches a cloud runner
  * through a path the control plane did not see.
  *
- * The posture derives from Config.mode ("cloud" → forbid stdio), NOT from
- * cloudModeEnabled — that is the Cursor cloud-agent feature flag and says
- * nothing about where this process runs. STIGMER_MCP_ALLOW_STDIO exists as
+ * The posture derives from Config.mode ("cloud" → forbid stdio).
+ * STIGMER_MCP_ALLOW_STDIO exists as
  * an explicit override so operators can roll the policy back without a
  * redeploy (the runner-side counterpart of the control plane's
  * stigmer.mcp.stdio-cloud-block kill-switch). Managed cloud deployments

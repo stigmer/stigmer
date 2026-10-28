@@ -14,15 +14,12 @@
     { "name": "edit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
     { "name": "edit_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
     { "name": "str_replace_editor", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
-    { "name": "StrReplace", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
-    { "name": "EditNotebook", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
     { "name": "Edit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
     { "name": "NotebookEdit", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_EDIT" },
 
     { "name": "delete", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
     { "name": "delete_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
     { "name": "remove_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
-    { "name": "Delete", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_DELETE" },
 
     { "name": "shell", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
     { "name": "bash", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
@@ -30,7 +27,6 @@
     { "name": "execute_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
     { "name": "run_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
     { "name": "terminal", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
-    { "name": "Shell", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
     { "name": "Bash", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SHELL" },
 
     { "name": "grep", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
@@ -40,7 +36,6 @@
     { "name": "find_files", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
     { "name": "Grep", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
     { "name": "Glob", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
-    { "name": "SemanticSearch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SEARCH" },
 
     { "name": "ls", "mcpServerSlug": "", "toolKind": "TOOL_KIND_LIST" },
     { "name": "list_directory", "mcpServerSlug": "", "toolKind": "TOOL_KIND_LIST" },
@@ -52,7 +47,6 @@
     { "name": "think", "mcpServerSlug": "", "toolKind": "TOOL_KIND_THINK" },
 
     { "name": "write_todos", "mcpServerSlug": "", "toolKind": "TOOL_KIND_TODO" },
-    { "name": "updateTodos", "mcpServerSlug": "", "toolKind": "TOOL_KIND_TODO" },
     { "name": "TodoWrite", "mcpServerSlug": "", "toolKind": "TOOL_KIND_TODO" },
 
     { "name": "task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
@@ -61,7 +55,7 @@
 
     { "name": "stop_background_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_BACKGROUND_STOP" },
 
-    { "name": "Skill", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SKILL", "note": "the Claude engine loads a skill by name; native and Cursor read its file" },
+    { "name": "Skill", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SKILL", "note": "the Claude engine loads a skill by name; native reads its file" },
     { "name": "ToolSearch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED", "note": "the Claude engine's way to its deferred tools stays a generic row" },
     { "name": "lookup", "mcpServerSlug": "docs", "toolKind": "TOOL_KIND_MCP", "note": "a Claude MCP row is its bare tool beside its server, as on every engine" },
 
@@ -75,7 +69,6 @@
 
     { "name": "read", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_FILE_READ", "note": "built-in name wins over a non-empty slug, matching the legacy resolver" },
 
-    { "name": "ReadLints", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" },
     { "name": "some_unknown_tool", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" }
   ]
 }

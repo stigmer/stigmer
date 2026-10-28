@@ -1,7 +1,7 @@
 /**
  * Unit tests for the shared approved-command qualification rule
- * ({@link qualifyTurnCommandProvenance}) — the harness-agnostic core both the
- * Cursor and deep-agent adapters delegate to.
+ * ({@link qualifyTurnCommandProvenance}) — the harness-agnostic core every
+ * adapter delegates to.
  *
  * These exercise the rule in isolation over synthetic `turnToolCalls` (the
  * harness supplies the scoping + consent resolvers); each harness's own mapping

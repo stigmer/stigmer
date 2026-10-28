@@ -99,8 +99,8 @@ const ORG = "channel-runtime-test-org";
 let ORG_ID: string;
 
 /** The refusal the fake's write-constraint arm throws when armed. */
-const FAKE_PIN_REQUIRED_MESSAGE =
-  "spec.run_config.model_name must name a pinned model when the run would use the Cursor harness";
+const FAKE_CONSTRAINT_MESSAGE =
+  "spec.run_config.model_name must name a model this deployment serves on Slack";
 const FAKE_TEARDOWN_FAILURE_MESSAGE =
   "fake teardown failure — cascade unavailable";
 
@@ -246,7 +246,7 @@ const fakeRuntime: ChannelRuntime = {
       inputMarker: channel.spec?.agentRef?.org,
     });
     if (refuseWrites) {
-      return Promise.reject(invalidArgumentError(FAKE_PIN_REQUIRED_MESSAGE));
+      return Promise.reject(invalidArgumentError(FAKE_CONSTRAINT_MESSAGE));
     }
     return Promise.resolve();
   },
@@ -574,7 +574,7 @@ describe("enforceWriteConstraints — the edition-split CRUD hook", () => {
         }),
       Code.InvalidArgument,
     );
-    expect(err.rawMessage).toBe(FAKE_PIN_REQUIRED_MESSAGE);
+    expect(err.rawMessage).toBe(FAKE_CONSTRAINT_MESSAGE);
   });
 
   it("is never asked for a web channel, on create or on update", async () => {

@@ -911,8 +911,8 @@ describe("ApprovalGateMiddleware", () => {
   describe("degraded deny-gate (no capture substrate — non-git + no storage)", () => {
     // When deriveCaptureMode returns false (a non-git workspace with no artifact
     // storage), setup builds the gate with fileCaptureMode/captureIgnored OFF, so
-    // file writes fall back to the classic deny-gate. This is the native harness's
-    // parity with Cursor: the agent still runs; file writes gate.
+    // file writes fall back to the classic deny-gate: the agent still runs;
+    // file writes gate.
 
     it("gates a built-in write when capture mode is off — the deny-gate fallback", async () => {
       const mw = createApprovalGateMiddleware(makeConfig({

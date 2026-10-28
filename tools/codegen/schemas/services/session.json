@@ -103,14 +103,6 @@
           "outputType": "ClaimSessionInputResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.ClaimSessionInputResponse",
           "description": "Take the messages queued in a run's session for the run to read.\n\n Only the runner acting for the run may call it, while the run works\n (pending or in progress). Every message still queued moves to the head\n of the log as this run's, with its processed_at, and is answered in\n the order sent; none when nothing waits."
-        },
-        {
-          "name": "BindHarnessState",
-          "inputType": "BindHarnessStateInput",
-          "inputFullType": "ai.stigmer.agentic.session.v1.BindHarnessStateInput",
-          "outputType": "BindHarnessStateResponse",
-          "outputFullType": "ai.stigmer.agentic.session.v1.BindHarnessStateResponse",
-          "description": "Record the harness's conversation id for a run's session.\n\n Only the runner acting for the run may call it, while the run is not\n finished. The id replaced, if any, joins the session's\n harness_state_id_history."
         }
       ]
     },
@@ -1158,71 +1150,6 @@
       ]
     },
     {
-      "name": "BindHarnessStateInput",
-      "description": "BindHarnessStateInput names a run and the harness's conversation id its\n session continues from.",
-      "protoType": "ai.stigmer.agentic.session.v1.BindHarnessStateInput",
-      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
-      "fields": [
-        {
-          "name": "RunId",
-          "jsonName": "runId",
-          "protoField": "run_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The run whose session the id belongs to.",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "HarnessStateId",
-          "jsonName": "harnessStateId",
-          "protoField": "harness_state_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The harness's own conversation id.",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        }
-      ]
-    },
-    {
-      "name": "BindHarnessStateResponse",
-      "description": "BindHarnessStateResponse answers the session's harness state after the\n write.",
-      "protoType": "ai.stigmer.agentic.session.v1.BindHarnessStateResponse",
-      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
-      "fields": [
-        {
-          "name": "HarnessStateId",
-          "jsonName": "harnessStateId",
-          "protoField": "harness_state_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The id now recorded.",
-          "required": false
-        },
-        {
-          "name": "HarnessStateIdHistory",
-          "jsonName": "harnessStateIdHistory",
-          "protoField": "harness_state_id_history",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "The ids the session owned before, oldest first.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "ListSessionsRequest",
       "description": "ListSessionsRequest specifies parameters for listing sessions.",
       "protoType": "ai.stigmer.agentic.session.v1.ListSessionsRequest",
@@ -2036,31 +1963,9 @@
           "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
         {
-          "name": "HARNESS_CURSOR",
-          "number": 2,
-          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
-        },
-        {
           "name": "HARNESS_CLAUDE",
           "number": 3,
           "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
-        }
-      ]
-    },
-    {
-      "name": "CursorMode",
-      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation and never changed mid-session.\n Switching would lose Cursor-side conversation state because local\n agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.",
-      "protoType": "ai.stigmer.agentic.session.v1.CursorMode",
-      "values": [
-        {
-          "name": "CURSOR_MODE_LOCAL",
-          "number": 1,
-          "description": "Local Cursor agent created with a local cwd configuration.\n\n Works with any workspace source (git or local path). Conversation\n state is carried by the Cursor SDK's native local store, which the\n runner persists on the durable workspace volume so Agent.resume()\n survives pod restart and snapshot restore."
-        },
-        {
-          "name": "CURSOR_MODE_CLOUD",
-          "number": 2,
-          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires every resource to be a git repository (HTTPS URL).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
         }
       ]
     },
@@ -2156,29 +2061,6 @@
           "kind": "string"
         },
         "description": "Whether the session is working: running (a turn works) or idle (it\n waits for input), the newest session.status_running or\n session.status_idle event's word. A session none of whose turns ever\n worked reads idle.",
-        "required": false
-      },
-      {
-        "name": "HarnessStateId",
-        "jsonName": "harnessStateId",
-        "protoField": "harness_state_id",
-        "type": {
-          "kind": "string"
-        },
-        "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first run completes; empty until then. It is the\n harness's own conversation id:\n\n - NATIVE: the native harness's thread id, \"thread-{session_id}\".\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
-        "required": false
-      },
-      {
-        "name": "HarnessStateIdHistory",
-        "jsonName": "harnessStateIdHistory",
-        "protoField": "harness_state_id_history",
-        "type": {
-          "kind": "array",
-          "elementType": {
-            "kind": "string"
-          }
-        },
-        "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.",
         "required": false
       },
       {

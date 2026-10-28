@@ -291,7 +291,7 @@ export interface StepHelper {
   readonly saved: boolean;
 }
 
-/** Native's (and Cursor's) built-in helper: `task` to `general-purpose`, the wording every live run before Claude's read. */
+/** Native's built-in helper: `task` to `general-purpose`, the wording every live run before Claude's read. */
 export const GENERAL_PURPOSE_HELPER: StepHelper = { tool: "task", name: "general-purpose", saved: false };
 
 /**
@@ -318,7 +318,7 @@ export interface LongTurnFlags {
   readonly minutes: number | undefined;
   readonly steps: readonly string[];
   readonly out: string | undefined;
-  /** The run's harness: `deep-agent` or `cursor` live, `deep-agent` or `claude` on the real clock. */
+  /** The run's harness: `deep-agent` or `claude`, live and on the real clock. */
   readonly harness: string;
   /** The live run's model, a registry id; absent, the harness's parity model. The real-clock run plays the profile's on the mock. */
   readonly model: string | undefined;

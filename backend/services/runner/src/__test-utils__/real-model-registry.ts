@@ -36,9 +36,6 @@ export const REAL_REGISTRY_PATH = new URL(
   import.meta.url,
 );
 
-/** The registry id of the Cursor harness's Auto pool: a routing choice, not a model the catalog lists. */
-const CURSOR_AUTO_POOL = "default";
-
 function isRow(value: unknown): value is RealRegistryRow {
   if (typeof value !== "object" || value === null) return false;
   const row = value as Record<string, unknown>;
@@ -77,9 +74,4 @@ export function providerModelId(row: RealRegistryRow): string {
 /** The native harness's rows: every model a native turn may be sent to Anthropic as. */
 export function nativeRows(document: RealRegistryDocument): readonly RealRegistryRow[] {
   return document.models.filter((m) => m.harness === "native");
-}
-
-/** The Cursor harness's catalog rows, without the Auto pool. */
-export function cursorCatalogRows(document: RealRegistryDocument): readonly RealRegistryRow[] {
-  return document.models.filter((m) => m.harness === "cursor" && m.id !== CURSOR_AUTO_POOL);
 }

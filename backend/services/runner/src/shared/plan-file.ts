@@ -110,7 +110,7 @@ function extractPlanTitle(planText: string): string | undefined {
  * (`extractLeadingH1` is general-purpose and render-time-only), so the clean
  * title is fixed at the source — the plan-mode prompt tells the model not to
  * prefix titles with "Plan:". This strip is the saved file's safety net for
- * when the model (or the enforcement-less Cursor harness) drifts.
+ * when the model drifts.
  */
 function stripPlanLabel(title: string): string {
   return title.replace(/^plan\s*[:\u2013\u2014-]\s*/i, "");

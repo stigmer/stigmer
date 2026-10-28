@@ -2,7 +2,7 @@
 
 /**
  * Harness split: the organization's tokens and calls per run harness
- * (native, Cursor, Claude) as a segmented bar with labelled shares, each
+ * (native, Claude) as a segmented bar with labelled shares, each
  * engine named as the pickers name it (`HARNESS_META`).
  *
  * Segments are sized by tokens, the one measure every run has (a run
@@ -27,7 +27,6 @@ export interface HarnessSplitCardProps {
 
 const HARNESS_COLORS: Readonly<Record<HarnessOption, string>> = {
   native: "stg:bg-chart-1",
-  cursor: "stg:bg-chart-3",
   claude: "stg:bg-chart-2",
 };
 

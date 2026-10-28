@@ -4,12 +4,11 @@
  * Exists because a hang is strictly worse than a failure: an unbounded await
  * inside a Temporal activity emits no heartbeats and no diagnostics, so it
  * surfaces minutes later as an opaque "Activity task timed out" instead of an
- * actionable error. Born from the Cursor BiDi proxy incident where a
- * silently-dead upstream connection left `Agent.create()` waiting forever
- * (see activities/execute-cursor/index.ts, agent-resolution phase).
+ * actionable error: a silently-dead upstream connection can leave a call
+ * waiting forever.
  *
  * Scope: this bounds the WAIT, not the work — `fn`'s promise is not cancelled
- * on expiry (the Cursor SDK and most clients expose no abort for these calls).
+ * on expiry (most clients expose no abort for such calls).
  * The orphaned promise settles into the void; activity teardown and process
  * lifecycle own any residual cleanup. Callers that can abort should prefer
  * `AbortSignal.timeout` and pass the signal to the callee instead.

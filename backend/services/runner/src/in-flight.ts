@@ -2,7 +2,7 @@
  * Per-task-queue in-flight activity tracking.
  *
  * A session worker must NOT be torn down while one of its activities
- * (notably the long-running ExecuteCursor) is still running: doing so abandons
+ * (notably a long-running turn) is still running: doing so abandons
  * the activity and removes the only poller on its queue, turning a harmless UI
  * navigation into an "Activity task timed out" dead-end. The activity inbound
  * interceptor increments on every activity start and decrements on finish;

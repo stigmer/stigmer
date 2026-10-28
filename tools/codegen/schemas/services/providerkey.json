@@ -74,8 +74,7 @@
           "validation": {
             "enum": [
               "anthropic",
-              "openai",
-              "cursor"
+              "openai"
             ]
           }
         },
@@ -86,7 +85,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The provider API key. Write-only: no read returns it. For \"cursor\", a\n Cursor user API key or a team service-account API key (Cursor's SDK\n refuses Team Admin keys).",
+          "description": "The provider API key. Write-only: no read returns it.",
           "required": false,
           "validation": {
             "minLength": 8,
@@ -100,7 +99,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The endpoint to use the key against, as the provider's own SDK takes it\n as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.\n Empty means the provider's own API. Otherwise an absolute https URL\n with no credentials, query or fragment, that resolves to a public\n address; the proxy appends the provider's request path to it, without\n repeating a trailing /v1. For example\n \"https://my-resource.openai.azure.com/openai/v1\". A Cursor key takes\n none: Cursor serves from its own hosts.",
+          "description": "The endpoint to use the key against, as the provider's own SDK takes it\n as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.\n Empty means the provider's own API. Otherwise an absolute https URL\n with no credentials, query or fragment, that resolves to a public\n address; the proxy appends the provider's request path to it, without\n repeating a trailing /v1. For example\n \"https://my-resource.openai.azure.com/openai/v1\".",
           "required": false,
           "validation": {
             "maxLength": 2048
@@ -139,8 +138,7 @@
           "validation": {
             "enum": [
               "anthropic",
-              "openai",
-              "cursor"
+              "openai"
             ]
           }
         }
@@ -223,5 +221,5 @@
       ]
     }
   ],
-  "resourceDescription": "An organization's own model provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider, where the provider\n names the wire protocol: \"anthropic\" is Anthropic's API or any endpoint\n that speaks it, \"openai\" is OpenAI's API or any endpoint that speaks it,\n and \"cursor\" is Cursor, which serves the cursor harness. A Cursor key is\n a Cursor user API key or a team service-account API key (Cursor's SDK\n refuses Team Admin keys); Cursor bills it to that user's plan or to the\n team, and it takes no base URL.\n\n The Stigmer Cloud proxy serves every one of the organization's calls to\n that provider on this key, on every plan, and on no other: a run that\n needs a provider the organization holds no key for (by its model, or a\n cursor-harness run needing \"cursor\") is refused with FAILED_PRECONDITION,\n reason PROVIDER_KEY_REQUIRED. The provider bills the organization\n directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
+  "resourceDescription": "An organization's own model provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider, where the provider\n names the wire protocol: \"anthropic\" is Anthropic's API or any endpoint\n that speaks it, and \"openai\" is OpenAI's API or any endpoint that speaks\n it.\n\n The Stigmer Cloud proxy serves every one of the organization's calls to\n that provider on this key, on every plan, and on no other: a run that\n needs a provider the organization holds no key for (by its model) is\n refused with FAILED_PRECONDITION,\n reason PROVIDER_KEY_REQUIRED. The provider bills the organization\n directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
 }

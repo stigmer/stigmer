@@ -42,7 +42,7 @@ describe("applyTodoUpdate", () => {
       expect(m["todo-0"].status).toBe(TodoStatus.TODO_COMPLETED);
     });
 
-    it("maps cancelled (Cursor superset)", () => {
+    it("maps cancelled (the rule's superset)", () => {
       const m = emptyMap();
       applyTodoUpdate(m, [{ content: "A", status: "cancelled" }], { merge: false });
       expect(m["todo-0"].status).toBe(TodoStatus.TODO_CANCELLED);

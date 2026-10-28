@@ -6,21 +6,19 @@
  * and resume, a transient retry) each build their own rows: the run's
  * status carries no rows, and what earlier invocations did is already in
  * the log. A resumed engine resumes onto only one thing the runtime must
- * hold as rows: the calls that asked and are not finished. Cursor re-issues
- * them under new ids and its translator matches the seeded WAITING rows by
- * identity token (`execute-cursor/translator.ts`); native re-emits each under
- * its own id and the builder flips the seeded row (`transcript/builder.ts`).
- * The runtime's own readers of a seeded row (the answers' copy onto it,
- * the settle of a denied call, provenance, the exact-apply) read the same
- * rows.
+ * hold as rows: the calls that asked and are not finished. Each engine
+ * re-emits each under its own id and the builder flips the seeded row
+ * (`transcript/builder.ts`). The runtime's own readers of a seeded row (the
+ * answers' copy onto it, the settle of a denied call, provenance) read the
+ * same rows.
  *
  * So the seed is, per thread (the root, or a sub-agent's), one message with
  * no text holding:
  *  - every asked call with no result in the log: an `agent.tool_use` or
  *    `agent.mcp_tool_use` whose `evaluated_permission` is `ask`, as a
  *    WAITING_APPROVAL row carrying what its `stigmer.permission.asked` says
- *    (the message, the preview, the rule and hook that asked, the content
- *    digest Cursor's identity token reads); the answers and grants are
+ *    (the message, the preview, the rule and hook that asked); the answers
+ *    and grants are
  *    copied on afterwards (`approval-answers.ts` `copyAnswersOntoRows`);
  *  - in the root, the `task` call of every sub-agent thread that holds such
  *    an ask, RUNNING, so the thread's end and the call's result are written
@@ -243,7 +241,7 @@ function holder(calls: ToolCall[]): AgentMessage {
 function askedRow(
   runId: string,
   use: LoggedUse,
-  ask: { readonly message: string; readonly argsPreview: string; readonly policySource: string; readonly policyHook: string; readonly contentDigest: string; readonly processedAt: string } | undefined,
+  ask: { readonly message: string; readonly argsPreview: string; readonly policySource: string; readonly policyHook: string; readonly processedAt: string } | undefined,
 ): ToolCall {
   const row = create(ToolCallSchema, {
     id: rowIdOf(runId, use.id),
@@ -259,7 +257,6 @@ function askedRow(
     row.argsPreview = ask.argsPreview;
     row.approvalPolicySource = POLICY_SOURCE_BY_WORD.get(ask.policySource) ?? ApprovalPolicySource.UNSPECIFIED;
     row.approvalPolicyHook = ask.policyHook;
-    row.approvalContentDigest = ask.contentDigest;
     row.approvalRequestedAt = ask.processedAt;
   }
   return row;

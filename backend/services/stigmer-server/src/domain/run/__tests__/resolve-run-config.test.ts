@@ -20,12 +20,12 @@
  * request's settings; the schedule label with its profile and UNATTENDED;
  * everything else INTERACTIVE); stamps
  * status.run_config and status.approval_mode, overwriting anything there;
- * and refuses an unattended Cursor turn that would run with no model, while
- * passing an attended one. reResolveRunConfig resolves again over another
+ * and leaves an unattended turn that names no model at any layer to the
+ * engine's own default. reResolveRunConfig resolves again over another
  * pinned version and leaves an unchanged pin alone; CreateSessionIfNeeded
- * refuses a created session on an engine the platform does not offer, and
- * judges the re-resolved settings by the same checks (a fast tier the new
- * version cannot price, an unattended Cursor turn left with no model).
+ * refuses a created session on an engine the platform does not offer (the
+ * retired number 2 included), and judges the re-resolved settings by the
+ * same checks (a fast tier the new version cannot price).
  * Refusals name the layer that chose each value, the profile and "no
  * layer" included. A surface's saved settings that set a tier or thinking
  * with no model of their own are refused; a live message may set either
@@ -228,9 +228,9 @@ describe("resolveRunConfig: bounds are the tightest any layer sets", () => {
 
 describe("agentLayerFor: an agent's choices count only on its engine", () => {
   const spec = create(AgentSpecSchema, {
-    harness: Harness.CURSOR,
+    harness: Harness.CLAUDE,
     runConfig: {
-      modelName: "claude-opus-4-6",
+      modelName: "claude-opus-4.6",
       serviceTier: ServiceTier.FAST,
       thinkingMode: ThinkingMode.ENABLED,
       maxCostUsd: 2,
@@ -240,7 +240,7 @@ describe("agentLayerFor: an agent's choices count only on its engine", () => {
   });
 
   it("the whole defaults on the engine they name", () => {
-    expect(agentLayerFor(spec, "cursor")).toEqual(spec.runConfig);
+    expect(agentLayerFor(spec, "claude")).toEqual(spec.runConfig);
   });
 
   it("only the bounds on the other engine", () => {
@@ -258,7 +258,7 @@ describe("agentLayerFor: an agent's choices count only on its engine", () => {
 });
 
 describe("conversationEngine", () => {
-  const cursorAgent = create(AgentSpecSchema, { harness: Harness.CURSOR });
+  const claudeAgent = create(AgentSpecSchema, { harness: Harness.CLAUDE });
 
   function turn(target: TargetInit): Run {
     return create(RunSchema, { spec: { message: "hi", target } });
@@ -267,7 +267,7 @@ describe("conversationEngine", () => {
   it("a turn in a stored session runs the session's engine, whatever the agent names", () => {
     const stored = create(SessionSchema, { spec: { harness: Harness.NATIVE } });
     expect(
-      conversationEngine(turn({ case: "sessionId", value: "ses_1" }), stored, cursorAgent),
+      conversationEngine(turn({ case: "sessionId", value: "ses_1" }), stored, claudeAgent),
     ).toBe(Harness.NATIVE);
   });
 
@@ -276,23 +276,18 @@ describe("conversationEngine", () => {
       conversationEngine(
         turn({ case: "sessionSpec", value: {} }),
         undefined,
-        cursorAgent,
+        claudeAgent,
       ),
-    ).toBe(Harness.CURSOR);
+    ).toBe(Harness.CLAUDE);
     expect(
       conversationEngine(
         turn({ case: "sessionSpec", value: { harness: Harness.NATIVE } }),
         undefined,
-        cursorAgent,
+        claudeAgent,
       ),
     ).toBe(Harness.NATIVE);
-    expect(conversationEngine(turn({ case: undefined }), undefined, cursorAgent)).toBe(Harness.CURSOR);
-    expect(conversationEngine(turn({ case: undefined }), undefined, undefined)).toBe(Harness.UNSPECIFIED);
-  });
-
-  it("names Claude as its own engine, never as native", () => {
-    const claudeAgent = create(AgentSpecSchema, { harness: Harness.CLAUDE });
     expect(conversationEngine(turn({ case: undefined }), undefined, claudeAgent)).toBe(Harness.CLAUDE);
+    expect(conversationEngine(turn({ case: undefined }), undefined, undefined)).toBe(Harness.UNSPECIFIED);
   });
 });
 
@@ -385,14 +380,14 @@ describe("ResolveRunConfig over a real store", () => {
   it("overwrites a client-sent status run_config and approval mode", async () => {
     const ctx = await resolve(
       execution({
-        spec: { message: "hi", runConfig: { modelName: "gpt-x" } },
+        spec: { message: "hi", runConfig: { modelName: "turn-model" } },
         status: {
           runConfig: { modelName: "forged", maxCostUsd: 999 },
           approvalMode: ApprovalMode.UNATTENDED,
         },
       }),
     );
-    expect(ctx.newState.status?.runConfig).toEqual(rc({ modelName: "gpt-x" }));
+    expect(ctx.newState.status?.runConfig).toEqual(rc({ modelName: "turn-model" }));
     expect(ctx.newState.status?.approvalMode).toBe(ApprovalMode.INTERACTIVE);
   });
 
@@ -454,25 +449,6 @@ describe("ResolveRunConfig over a real store", () => {
     expect(ctx.newState.status?.runConfig).toEqual(rc({}));
   });
 
-  it("refuses an unattended Cursor turn that would run with no model, naming where to set one", async () => {
-    const err = await resolve(
-      execution({
-        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
-        spec: {
-          message: "hi",
-          target: { case: "sessionSpec", value: { harness: Harness.CURSOR } },
-        },
-      }),
-    ).then(
-      () => undefined,
-      (error: unknown) => error,
-    );
-    expect(err).toBeInstanceOf(ConnectError);
-    expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
-    expect((err as ConnectError).rawMessage).toContain("the routine's run_config");
-    expect((err as ConnectError).rawMessage).toContain("stigmer/stigmer#362");
-  });
-
   it("refuses a routine's saved fast tier with no model of its own, naming the routine's settings", async () => {
     const err = await resolve(
       execution({
@@ -503,11 +479,11 @@ describe("ResolveRunConfig over a real store", () => {
   it("a new conversation naming a model but no engine starts on native, never the agent's engine", async () => {
     await store.saveResource(
       ApiResourceKind.agent,
-      "agt_cursor",
+      "agt_claude",
       AgentSchema,
       create(AgentSchema, {
-        metadata: { id: "agt_cursor", org: "acme", slug: "cursor-agent" },
-        spec: { harness: Harness.CURSOR, runConfig: { modelName: "composer-2.5", maxCostUsd: 3 } },
+        metadata: { id: "agt_claude", org: "acme", slug: "claude-agent" },
+        spec: { harness: Harness.CLAUDE, runConfig: { modelName: "claude-opus-4.8", maxCostUsd: 3 } },
         status: { versionHash: HEAD },
       }),
     );
@@ -518,39 +494,45 @@ describe("ResolveRunConfig over a real store", () => {
           target: { case: "sessionSpec", value: {} },
           runConfig: { modelName: "claude-haiku-4.5" },
         },
-        status: { agentId: "agt_cursor", agentVersionHash: HEAD },
+        status: { agentId: "agt_claude", agentVersionHash: HEAD },
       }),
     );
     const target = ctx.newState.spec?.target;
     expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.NATIVE);
     expect(runConfigPlacementOf(ctx)?.harness).toBe("native");
     expect(runConfigPlacementOf(ctx)?.engine).toBe(Harness.NATIVE);
-    // On native the Cursor agent gives its cap alone.
+    // On native the Claude agent gives its cap alone.
     expect(ctx.newState.status?.runConfig).toEqual(rc({ modelName: "claude-haiku-4.5", maxCostUsd: 3 }));
 
     const neither = await resolve(
       execution({
         spec: { message: "hi", target: { case: "sessionSpec", value: {} } },
-        status: { agentId: "agt_cursor", agentVersionHash: HEAD },
+        status: { agentId: "agt_claude", agentVersionHash: HEAD },
       }),
     );
     const untouched = neither.newState.spec?.target;
     expect(untouched?.case === "sessionSpec" ? untouched.value.harness : undefined).toBe(Harness.UNSPECIFIED);
-    expect(runConfigPlacementOf(neither)?.harness).toBe("cursor");
-    expect(runConfigPlacementOf(neither)?.engine).toBe(Harness.CURSOR);
+    expect(runConfigPlacementOf(neither)?.harness).toBe("claude");
+    expect(runConfigPlacementOf(neither)?.engine).toBe(Harness.CLAUDE);
   });
 
-  it("an attended Cursor turn with no model runs Auto, as a person chose", async () => {
-    const ctx = await resolve(
-      execution({
-        spec: {
-          message: "hi",
-          target: { case: "sessionSpec", value: { harness: Harness.CURSOR } },
-        },
-      }),
-    );
-    expect(ctx.newState.status?.runConfig?.modelName).toBe("");
-  });
+  it.each([Harness.NATIVE, Harness.CLAUDE])(
+    "an unattended turn on harness %i that names no model at any layer leaves the model to the engine",
+    async (harness) => {
+      const ctx = await resolve(
+        execution({
+          metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
+          spec: {
+            message: "hi",
+            target: { case: "sessionSpec", value: { harness } },
+          },
+        }),
+      );
+      expect(ctx.newState.status?.approvalMode).toBe(ApprovalMode.UNATTENDED);
+      expect(ctx.newState.status?.runConfig?.modelName).toBe("");
+      expect(runConfigPlacementOf(ctx)?.engine).toBe(harness);
+    },
+  );
 
   it("reResolveRunConfig resolves again over the version the created session pinned", async () => {
     const exec = execution({
@@ -662,28 +644,15 @@ describe("ResolveRunConfig over a real store", () => {
       expect((err as ConnectError).rawMessage).toContain("from the agent's run defaults");
     });
 
-    it("refuses an unattended turn the created session leaves on Cursor with no model", async () => {
-      const ctx = await resolve(
-        execution({
-          metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
-          spec: { message: "hi" },
-          status: { agentId: AGENT, agentVersionHash: PINNED },
-        }),
-      );
-      const err = await createSessionPinning(ctx, { harness: Harness.CURSOR, versionHash: PINNED });
-      expect(err).toBeInstanceOf(ConnectError);
-      expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
-    });
-
-    it("refuses a created session on a number no engine owns", async () => {
+    it.each([2, 7])("refuses a created session on harness %i, a number no engine owns", async (harness) => {
       const ctx = await resolve(
         execution({ spec: { message: "hi" }, status: { agentId: AGENT, agentVersionHash: PINNED } }),
       );
-      const err = await createSessionPinning(ctx, { harness: 7 as Harness, versionHash: PINNED });
+      const err = await createSessionPinning(ctx, { harness: harness as Harness, versionHash: PINNED });
       expect(err).toBeInstanceOf(ConnectError);
       expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
       expect((err as ConnectError).rawMessage).toBe(
-        "the conversation's engine names engine 7, which is not one this platform runs",
+        `the conversation's engine names harness ${harness}, which this platform does not run`,
       );
     });
   });

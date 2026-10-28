@@ -196,8 +196,8 @@ type RunStatus struct {
 	// of the routine or channel it came through), the defaults of the agent version the
 	// turn runs, and the lane's operator profile, resolved by RunConfig's rule.
 	//
-	// An empty model_name means no layer named one and the engine chose (the
-	// native engine's registry default; Cursor's Auto).
+	// An empty model_name means no layer named one and the harness chose its
+	// registry default.
 	RunConfig *RunConfig `protobuf:"bytes,31,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never
 	// UNSPECIFIED.

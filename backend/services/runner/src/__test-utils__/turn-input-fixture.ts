@@ -12,9 +12,9 @@
  * `overrides` deep-merges one level (a test states the fields it is about
  * and nothing else), the way `testConfig()` does for `Config`.
  *
- * Nothing here is Cursor's or native's: the vision profile, the file-review
- * identity and the state id source are the ADAPTER's capabilities, not
- * input facts, so they do not appear.
+ * Nothing here is any one harness's: the vision profile and the file-review
+ * identity are the ADAPTER's capabilities, not input facts, so they do not
+ * appear.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -75,7 +75,7 @@ export interface TurnInputFixtureOverrides extends Partial<Omit<TurnInput, "exec
 /**
  * The neutral record, with `overrides` laid over it one level deep. The
  * `session` and `blueprint.session` are the SAME object, as the runtime
- * guarantees (`bindHarnessState` writes it).
+ * guarantees.
  */
 export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): TurnInput {
   const executionId = overrides.executionId ?? TURN_INPUT_FIXTURE_IDS.executionId;
@@ -108,7 +108,6 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     subagents: [],
     plugins: [],
     mergedSkillRefs: [],
-    cloudRepos: [],
     ...overrides.blueprint,
   };
   return {
@@ -120,7 +119,6 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     approvalDenyMessages: overrides.approvalDenyMessages ?? new Map(),
     approvalAsks: overrides.approvalAsks ?? new Map(),
     ...(overrides.continuation !== undefined ? { continuation: overrides.continuation } : {}),
-    readRunEvents: overrides.readRunEvents ?? (async () => []),
     execution,
     session,
     blueprint,
@@ -142,7 +140,6 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
       channelMessaging: [],
       leases: { global: false, categories: new Set(), servers: new Set(), hooks: new Set() },
       mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
-      listing: undefined,
       platformServerSlugs: new Set(),
       toolScope: ToolScope.unrestricted(),
     },
@@ -150,7 +147,6 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     hooks: overrides.hooks ?? { sources: [], serverNames: new Map() },
     subagents: overrides.subagents ?? [],
     files: overrides.files ?? { message: [], conversation: [], references: [], visionImages: [], visionNotViewable: [] },
-    appliedToolCallIds: overrides.appliedToolCallIds ?? new Set(),
     model: overrides.model ?? { requested: "default", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED },
     structuredOutputSchema: overrides.structuredOutputSchema,
     appendSystemPrompt: overrides.appendSystemPrompt ?? "",

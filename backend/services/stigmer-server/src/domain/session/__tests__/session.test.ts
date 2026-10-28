@@ -27,22 +27,22 @@
  *     eval's tries left out), and
  *     refuses an empty agent_id, at the filter step as well as at proto
  *     validation;
- *   - every engine the proto names is offered at create and at update
- *     (Claude included); a number no engine owns is refused by proto
- *     validation;
+ *   - every harness the proto names is offered at create and at update
+ *     (Claude included); a number no harness owns, the retired 2 included,
+ *     is refused by proto validation;
  *   - harness immutability locks once the session has a run row
- *     (stigmer/stigmer#2566), or a bound harness_state_id when its runs are
- *     gone, with a stored UNSPECIFIED read as NATIVE and the exact
- *     FAILED_PRECONDITION copy; an update that names no harness keeps the
- *     stored one, used or not (a caller re-applying a session it created
- *     never resets the engine);
- *   - execution-target immutability resolves UNSPECIFIED through the
+ *     (stigmer/stigmer#2566), with a stored UNSPECIFIED read as NATIVE and
+ *     the exact FAILED_PRECONDITION copy; an update that names no harness
+ *     keeps the stored one, run or not (a caller re-applying a session it
+ *     created never resets the harness);
+ *   - execution-target immutability locks by the same run rows, on every
+ *     harness (stigmer/stigmer#2598), and resolves UNSPECIFIED through the
  *     deployment default on BOTH sides (oss#397) — a no-op round-trip
  *     passes on a local-default config, a real change is refused with the
- *     exact copy (Go enum value names + the config string), and a
- *     cloud-default config flips which transitions count as changes;
- *   - harness_state_id_history is server-owned: appended on replace, never
- *     duplicated, client-sent values discarded;
+ *     exact copy (Go enum value names + the config string), a session that
+ *     has not run still moves, and a cloud-default config flips which
+ *     transitions count as changes;
+ *   - the locks of one update read the session's run rows at most once;
  *   - a session a routine's fire creates, over the in-process transport with
  *     the fire's routine on the propagated identity, records that routine in
  *     status.routine_id; a wire create records none;
@@ -78,7 +78,6 @@ import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/sessi
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   ExecutionTarget,
@@ -118,6 +117,7 @@ import {
   type OrganizationIds,
 } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import { agentExecutionListIndex } from "../../run/list-index.js";
 import {
   RunEventsBuilder,
   appendRunEvents,
@@ -231,25 +231,6 @@ function updateInput(
     },
     spec,
   };
-}
-
-/** Simulates a Cursor session's bound agent: sets the harness_state_id sentinel. */
-async function markSessionUsed(
-  sessionId: string,
-  harnessStateId: string,
-): Promise<void> {
-  const stored = await server.store.getResource(
-    ApiResourceKind.session,
-    sessionId,
-    SessionSchema,
-  );
-  (stored.status ??= create(SessionStatusSchema)).harnessStateId = harnessStateId;
-  await namingSaves(server.store).saveResource(
-    ApiResourceKind.session,
-    sessionId,
-    SessionSchema,
-    stored,
-  );
 }
 
 let executionCounter = 0;
@@ -717,34 +698,28 @@ describe("session — the offered-engine rule", () => {
     expect([toNative.code, toNative.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
   });
 
-  it("refuses a number no engine owns by validation", async () => {
-    const error = await grpcError(() => createSession({ harness: 7 as Harness }));
-    expect(error.code).toBe(Code.InvalidArgument);
-    expect(error.rawMessage).toMatch(/harness/);
+  it("refuses a number no harness owns by validation, the retired 2 included", async () => {
+    for (const retired of [2, 7]) {
+      const error = await grpcError(() => createSession({ harness: retired as Harness }));
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toMatch(/harness/);
+    }
   });
 });
 
 describe("session update — harness immutability", () => {
   it("allows a harness change while the session has no run", async () => {
-    const session = await createSession({
-      harness: Harness.NATIVE,
-    });
-
-    const updated = await command.update(
-      { resource: updateInput(session, {
-        harness: Harness.CURSOR,
-      }), updateMask: { paths: ["*"] } },
-    );
-    expect(updated.spec?.harness).toBe(Harness.CURSOR);
+    const session = await createSession({ harness: Harness.NATIVE });
+    const updated = await command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } });
+    expect(updated.spec?.harness).toBe(Harness.CLAUDE);
   });
 
-  it("rejects a native session's move once it has a run, with no state id bound (stigmer/stigmer#2566)", async () => {
+  it("rejects a native session's move once it has a run (stigmer/stigmer#2566)", async () => {
     const session = await createSession({ harness: Harness.NATIVE });
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
-    expect(session.status?.harnessStateId ?? "").toBe("");
 
     const error = await grpcError(() =>
-      command.update({ resource: updateInput(session, { harness: Harness.CURSOR }), updateMask: { paths: ["*"] } }),
+      command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(HARNESS_IMMUTABILITY_REFUSAL);
@@ -757,7 +732,7 @@ describe("session update — harness immutability", () => {
     const read = vi.spyOn(server.store, "queryResources").mockRejectedValueOnce(new Error("store down"));
     try {
       const error = await grpcError(() =>
-        command.update({ resource: updateInput(session, { harness: Harness.CURSOR }), updateMask: { paths: ["*"] } }),
+        command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
       );
       expect(error.code).toBe(Code.Internal);
     } finally {
@@ -765,86 +740,51 @@ describe("session update — harness immutability", () => {
     }
   });
 
-  it("a session with a run still accepts an update naming its own engine", async () => {
-    const session = await createSession({ harness: Harness.CURSOR });
+  it("a session with a run still accepts an update naming its own harness", async () => {
+    const session = await createSession({ harness: Harness.CLAUDE });
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
-    const updated = await command.update({ resource: updateInput(session, { harness: Harness.CURSOR, subject: "same engine" }), updateMask: { paths: ["*"] } });
-    expect(updated.spec?.harness).toBe(Harness.CURSOR);
-    expect(updated.spec?.subject).toBe("same engine");
+    const updated = await command.update({ resource: updateInput(session, { harness: Harness.CLAUDE, subject: "same harness" }), updateMask: { paths: ["*"] } });
+    expect(updated.spec?.harness).toBe(Harness.CLAUDE);
+    expect(updated.spec?.subject).toBe("same harness");
   });
 
-  it("rejects a harness change once a state id is bound, with no run row left, with the exact copy", async () => {
-    const session = await createSession({
-      harness: Harness.NATIVE,
-    });
-    await markSessionUsed(session.metadata!.id, "thread-1");
-
-    const error = await grpcError(() =>
-      command.update(
-        { resource: updateInput(session, {
-          harness: Harness.CURSOR,
-        }), updateMask: { paths: ["*"] } },
-      ),
-    );
-    expect(error.code).toBe(Code.FailedPrecondition);
-    expect(error.rawMessage).toBe(HARNESS_IMMUTABILITY_REFUSAL);
-  });
-
-  it("treats UNSPECIFIED as NATIVE: existing NATIVE + input UNSPECIFIED passes", async () => {
-    const session = await createSession({
-      harness: Harness.NATIVE,
-    });
-    await markSessionUsed(session.metadata!.id, "thread-3");
-
-    const updated = await command.update(
-      { resource: updateInput(session, {
-        subject: "still native",
-      }), updateMask: { paths: ["*"] } },
-    );
-    expect(updated.spec?.subject).toBe("still native");
-  });
-
-  it("an update naming no harness keeps a stored Cursor engine, before and after the first execution", async () => {
-    const session = await createSession({ harness: Harness.CURSOR });
+  it("an update naming no harness keeps a stored Claude harness, before and after the first run", async () => {
+    const session = await createSession({ harness: Harness.CLAUDE });
 
     const unused = await command.update({ resource: updateInput(session, { subject: "re-applied" }), updateMask: { paths: ["*"] } });
-    expect(unused.spec?.harness).toBe(Harness.CURSOR);
+    expect(unused.spec?.harness).toBe(Harness.CLAUDE);
 
-    await markSessionUsed(session.metadata!.id, "thread-cursor");
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
     const used = await command.update({ resource: updateInput(session, { subject: "re-applied again" }), updateMask: { paths: ["*"] } });
-    expect(used.spec?.harness).toBe(Harness.CURSOR);
+    expect(used.spec?.harness).toBe(Harness.CLAUDE);
   });
 
-  it("treats UNSPECIFIED as NATIVE: existing UNSPECIFIED + input NATIVE passes; CURSOR is refused", async () => {
+  it("treats UNSPECIFIED as NATIVE once run: input NATIVE passes; CLAUDE is refused", async () => {
     const session = await createSession({});
-    await markSessionUsed(session.metadata!.id, "thread-4");
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
-    const updated = await command.update(
-      { resource: updateInput(session, {
-        harness: Harness.NATIVE,
-      }), updateMask: { paths: ["*"] } },
-    );
+    const updated = await command.update({ resource: updateInput(session, { harness: Harness.NATIVE }), updateMask: { paths: ["*"] } });
     expect(updated.spec?.harness).toBe(Harness.NATIVE);
 
-    // Re-arm the sentinel (the passing update replaced the spec).
-    await markSessionUsed(session.metadata!.id, "thread-4");
     const error = await grpcError(() =>
-      command.update(
-        { resource: updateInput(session, {
-          harness: Harness.CURSOR,
-        }), updateMask: { paths: ["*"] } },
-      ),
+      command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(HARNESS_IMMUTABILITY_REFUSAL);
   });
 });
 
-describe("session update — execution-target immutability (oss#397)", () => {
+const TARGET_LOCAL_TO_CLOUD_REFUSAL =
+  "session execution_target cannot be changed after the first execution " +
+  "(EXECUTION_TARGET_LOCAL → EXECUTION_TARGET_CLOUD; unset resolves to the " +
+  "deployment default, local) — workspace state may not be portable " +
+  "between local and cloud environments";
+
+describe("session update — execution-target immutability (oss#397, stigmer/stigmer#2598)", () => {
   it("passes an unset→unset round-trip on the local-default deployment (both resolve LOCAL)", async () => {
     const session = await createSession({});
-    await markSessionUsed(session.metadata!.id, "thread-t1");
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
     const updated = await command.update(
       { resource: updateInput(session, { subject: "no move" }), updateMask: { paths: ["*"] } },
@@ -854,48 +794,72 @@ describe("session update — execution-target immutability (oss#397)", () => {
 
   it("passes unset→LOCAL on the local-default deployment (no dispatch change)", async () => {
     const session = await createSession({});
-    await markSessionUsed(session.metadata!.id, "thread-t2");
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
     const updated = await command.update(
-      { resource: updateInput(session, {
-        executionTarget: ExecutionTarget.LOCAL,
-      }), updateMask: { paths: ["*"] } },
+      { resource: updateInput(session, { executionTarget: ExecutionTarget.LOCAL }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
   });
 
-  it("refuses unset→CLOUD with the exact copy (Go enum names + the config default string)", async () => {
-    const session = await createSession({});
-    await markSessionUsed(session.metadata!.id, "thread-t3");
-
-    const error = await grpcError(() =>
-      command.update(
-        { resource: updateInput(session, {
-          executionTarget: ExecutionTarget.CLOUD,
-        }), updateMask: { paths: ["*"] } },
-      ),
-    );
-    expect(error.code).toBe(Code.FailedPrecondition);
-    expect(error.rawMessage).toBe(
-      "session execution_target cannot be changed after the first execution " +
-        "(EXECUTION_TARGET_LOCAL → EXECUTION_TARGET_CLOUD; unset resolves to the " +
-        "deployment default, local) — workspace state may not be portable " +
-        "between local and cloud environments",
-    );
+  it("moves a session that has not run, on any harness", async () => {
+    for (const harness of [Harness.NATIVE, Harness.CLAUDE]) {
+      const session = await createSession({ harness });
+      const updated = await command.update(
+        { resource: updateInput(session, { harness, executionTarget: ExecutionTarget.CLOUD }), updateMask: { paths: ["*"] } },
+      );
+      expect(updated.spec?.executionTarget).toBe(ExecutionTarget.CLOUD);
+    }
   });
 
-  it("resolves through a cloud-default config: unset==CLOUD passes, LOCAL is refused (step-level)", () => {
+  it("refuses unset→CLOUD once a native or Claude session has run, with the exact copy", async () => {
+    for (const harness of [Harness.NATIVE, Harness.CLAUDE]) {
+      const session = await createSession({ harness });
+      await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
+
+      const error = await grpcError(() =>
+        command.update(
+          { resource: updateInput(session, { harness, executionTarget: ExecutionTarget.CLOUD }), updateMask: { paths: ["*"] } },
+        ),
+      );
+      expect([error.code, error.rawMessage]).toEqual([Code.FailedPrecondition, TARGET_LOCAL_TO_CLOUD_REFUSAL]);
+      const stored = await server.store.getResource(ApiResourceKind.session, session.metadata!.id, SessionSchema);
+      expect(stored.spec?.executionTarget).toBe(ExecutionTarget.UNSPECIFIED);
+    }
+  });
+
+  it("reads the session's runs once for both locks of one update", async () => {
+    const session = await createSession({ harness: Harness.NATIVE });
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
+    const read = vi.spyOn(server.store, "queryResources");
+    try {
+      const error = await grpcError(() =>
+        command.update(
+          { resource: updateInput(session, { harness: Harness.NATIVE, executionTarget: ExecutionTarget.CLOUD }), updateMask: { paths: ["*"] } },
+        ),
+      );
+      expect(error.code).toBe(Code.FailedPrecondition);
+      const runReads = read.mock.calls.filter(([index]) => index === agentExecutionListIndex);
+      expect(runReads).toHaveLength(1);
+    } finally {
+      read.mockRestore();
+    }
+  });
+
+  it("resolves through a cloud-default config: unset==CLOUD passes, LOCAL is refused (step-level)", async () => {
     const cloudConfig = new AgentExecutionTemporalConfig(
       "agent_execution_stigmer",
       "stigmer_runner",
       ROUTING_GLOBAL,
       DEFAULT_EXECUTION_TARGET_CLOUD,
     );
-    const step = newValidateExecutionTargetImmutabilityStep(cloudConfig);
+    const step = newValidateExecutionTargetImmutabilityStep(cloudConfig, server.store);
 
+    const session = await createSession({});
+    await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
     const existing = create(SessionSchema, {
+      metadata: { id: session.metadata!.id },
       spec: { executionTarget: ExecutionTarget.UNSPECIFIED },
-      status: { harnessStateId: "thread-x" },
     });
 
     // unset existing + explicit CLOUD input: both resolve CLOUD — passes.
@@ -908,7 +872,7 @@ describe("session update — execution-target immutability (oss#397)", () => {
       ApiResourceKind.session,
     );
     passCtx.set(EXISTING_RESOURCE_KEY, existing);
-    expect(() => step.execute(passCtx)).not.toThrow();
+    await expect(step.execute(passCtx)).resolves.toBeUndefined();
 
     // unset existing + LOCAL input: CLOUD → LOCAL is a real move — refused,
     // with the cloud default string in the copy.
@@ -923,7 +887,7 @@ describe("session update — execution-target immutability (oss#397)", () => {
     failCtx.set(EXISTING_RESOURCE_KEY, existing);
     let thrown: unknown;
     try {
-      step.execute(failCtx);
+      await step.execute(failCtx);
     } catch (error) {
       thrown = error;
     }

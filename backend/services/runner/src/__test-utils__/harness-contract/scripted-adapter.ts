@@ -3,34 +3,26 @@
  * `HarnessAdapter`, driven by a `TurnScenario` per turn instead of a vendor
  * SDK.
  *
- * Two jobs. It is the fake the contract kit runs against under every
- * capability combination, so the kit is proven before any real adapter
- * implements the contract. And it is the TEMPLATE a future harness author
+ * Two jobs. It is the fake the contract kit runs against, so the kit is
+ * proven before any real adapter implements the contract. And it is the TEMPLATE a future harness author
  * reads first: every rule of the contract appears here as the smallest code
  * that honours it, with the reason beside it. Its measured line count is the
  * program's "lines a new harness must write" data point.
  *
- * The insight this fake makes visible: above the contract line, the two real
- * pause primitives are indistinguishable. Whether the engine checkpoints at
- * the gate (`interrupt`) or a hook denies the tool and the run is cancelled
- * (`deny-and-retry`), the turn ends `awaiting_approval` with a WAITING row on
- * the rows, and the next invocation carries the decision. How the engine
- * RESUMES is the adapter's business, below the line, and the runtime never
- * sees it. So this fake takes `pausePrimitive` as an option and does not
- * branch on it — and the kit runs it under both to prove the kit does not
- * branch on it either.
+ * The insight this fake makes visible: above the contract line, a pause is
+ * a turn that ends `awaiting_approval` with a WAITING row on the rows, and
+ * the next invocation carries the decision. How the engine RESUMES is the
+ * adapter's business, below the line, and the runtime never sees it.
  *
  * What is deliberately simple here and would be real work in an adapter:
- * "executing" a side effect is incrementing a counter; the engine state id is
- * a counter too; there is no engine event to translate, so each step emits
+ * "executing" a side effect is incrementing a counter; there is no engine event to translate, so each step emits
  * the canonical `TranscriptEvent`s a translator would (a run for a `say`, a
  * start and a finish for a tool, a proposal for a gate) straight into
  * `sink.transcript` — the one way any harness creates a transcript row, and
  * the whole of what a real adapter's translator adds on top of this file.
  * What is NOT simplified is the contract behaviour itself —
  * settling with an outcome and never rejecting, stopping at every step
- * boundary and inside a hang, binding before the first persist, executing an
- * approval exactly once, refusing to resume a state it never minted — because
+ * boundary and inside a hang, executing an approval exactly once — because
  * those are what the kit measures.
  *
  * What this fake deliberately does NOT do, because it is not an adapter's
@@ -62,12 +54,9 @@
  * fake records what each invocation was handed, the task or a continuation,
  * so the kit can count it. Either kind remembers which runs' input it
  * took, so a run it already took is never handed again, even when nothing
- * of it reached the session's log. Declared a `checkpoint` engine, that
- * memory alone decides, as a saved state stamped with its run does, and it
- * also remembers which runs it finished, so a run it finished runs nothing.
- * Declared a `digest` engine, the continuation is the runtime's
- * (`input.continuation`) or that memory, as an engine-minted conversation
- * the adapter keeps its own record of sending the run to (stigmer#2487).
+ * of it reached the session's log. That memory alone decides, as a saved
+ * state stamped with its run does, and it also remembers which runs it
+ * finished, so a run it finished runs nothing (stigmer#2487).
  *
  * A yield (`sink.yieldSignal`) is taken at the next step boundary: every
  * step here is durable the moment it ends (the engine's memory is this
@@ -80,8 +69,7 @@
  * Scenarios are arranged PER SESSION (the engine is per session in every real
  * harness; a subject arranges that session's engine), and arranging replaces
  * what that session had not yet played. A `runTurn` with no scenario arranged
- * for its session is a test bug and throws (the same rule as the scripted
- * `@cursor/sdk` agent's `send()` with no script left); every other exit is a
+ * for its session is a test bug and throws; every other exit is a
  * `TurnOutcome`.
  */
 
@@ -90,7 +78,7 @@ import { dirname, join } from "node:path";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../config.js";
-import type { ContinuationKind, HarnessCapabilities, PausePrimitive, StateIdSource } from "../../harness/capabilities.js";
+import type { HarnessCapabilities } from "../../harness/capabilities.js";
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
@@ -99,16 +87,9 @@ import { messageAfter } from "./types.js";
 import type { EngineView, HarnessContractSubject, LongTurnControls, ScenarioStep, TurnScenario } from "./types.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
-/** What this fake's vendor says when it ends the connection (`scenario.cut()`): the turn's message if the workflow gives up continuing it. */
-export const SCRIPTED_STREAM_CUT_MESSAGE = "the scripted vendor ended its connection";
-
 export interface ScriptedHarnessOptions {
-  /** Diagnostic name; defaults to a name that says which primitives this instance runs under. */
+  /** Diagnostic name; defaults to `scripted`. */
   readonly name?: string;
-  readonly pausePrimitive: PausePrimitive;
-  readonly stateIdSource: StateIdSource;
-  /** How the fake declares it continues a turn (the header). Defaults to `checkpoint`. */
-  readonly continuation?: ContinuationKind;
   /**
    * The subject's `Config` over `testConfig()`'s inert defaults. The fake reads
    * none of it; the RUNTIME does when the subject runs through the real
@@ -135,7 +116,6 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
 
   /** The next turn each session plays; arranging a session replaces its entry. */
   private readonly arranged = new Map<string, TurnScenario>();
-  private readonly mintedStateIds = new Set<string>();
   private readonly executions = new Map<string, number>();
   /**
    * The engine's memory, per session: the calls it has carried out or moved
@@ -152,9 +132,9 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly released = new Set<string>();
   /** How many times each operation began. */
   private readonly opens = new Map<string, number>();
-  /** The executions whose input this engine took: a `checkpoint` engine's saved run stamp, a `digest` adapter's record of its sends. */
+  /** The executions whose input this engine took: the engine's saved run stamp. */
   private readonly tookRuns = new Set<string>();
-  /** The executions whose turn this engine finished: a `checkpoint` engine's saved "done". */
+  /** The executions whose turn this engine finished: the engine's saved "done". */
   private readonly finishedRuns = new Set<string>();
   /** Per session, every message the engine was handed as a new request. */
   private readonly handed = new Map<string, string[]>();
@@ -164,24 +144,17 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly sentMessages = new Map<string, Set<string>>();
   /** Per session, every message a person sent that the engine read, by id, in the order read. */
   private readonly readMessages = new Map<string, Map<string, string>>();
-  private mintCounter = 0;
   /** One `runId` per `say`, as an engine mints one per model run; the builder keys a message on it. */
   private runCounter = 0;
 
   constructor(options: ScriptedHarnessOptions) {
-    this.name = options.name ?? `scripted(${options.pausePrimitive}, ${options.stateIdSource})`;
+    this.name = options.name ?? "scripted";
     this.capabilities = {
       harness: Harness.NATIVE,
-      pausePrimitive: options.pausePrimitive,
-      stateIdSource: options.stateIdSource,
       subAgents: false,
       runsHooks: true,
-      readsToolMarks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
       fileReview: { harnessId: "scripted", excludePaths: [] },
-      subAgentProgress: "streamed",
-      continuation: options.continuation ?? "checkpoint",
-      midTurnInput: "next-step",
       contextCompaction: "none",
     };
   }
@@ -282,25 +255,21 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     // The signals may be aborted before the turn is entered; do no work then.
     if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
 
-    const resumed = await this.resolveEngineState(input, sink);
-    if (resumed.kind !== "ok") return resumed.outcome;
     // A first invocation hands the engine the execution's message as a new
     // request; a continued one never does (the header).
-    const checkpoint = this.capabilities.continuation === "checkpoint";
-    const tookIt = this.tookRuns.has(input.executionId);
-    const continued = checkpoint ? tookIt : input.continuation !== undefined || tookIt;
+    const continued = this.tookRuns.has(input.executionId);
     if (!continued) {
       this.handed.set(input.sessionId, [...(this.handed.get(input.sessionId) ?? []), input.execution.spec?.message ?? ""]);
     }
     this.tookRuns.add(input.executionId);
 
-    // A checkpoint engine that already finished this run has nothing left to run.
-    if (checkpoint && this.finishedRuns.has(input.executionId)) {
+    // An engine that already finished this run has nothing left to run.
+    if (this.finishedRuns.has(input.executionId)) {
       return { kind: "completed" };
     }
 
     for (const [index, step] of turn.entries()) {
-      // Stop, or yield, at every step boundary — the Cursor loop's per-event isCancelled().
+      // Stop, or yield, at every step boundary.
       if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
       this.sendDuring(turn, index, input.sessionId);
       const ended = await this.play(step, input, sink);
@@ -310,42 +279,6 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     await this.readMessagesOf(input.sessionId, sink);
     this.finishedRuns.add(input.executionId);
     return { kind: "completed" };
-  }
-
-  /**
-   * Create or resume the engine, per `stateIdSource`. An engine-minted id is
-   * bound BEFORE the turn proceeds so a crash mid-turn still resumes; a
-   * resume of an id this engine never minted fails the way `Agent.resume` of
-   * an unknown id fails, so a runtime that threads the wrong id is caught. A
-   * deterministic engine's id is the runtime's; nothing to bind.
-   */
-  private async resolveEngineState(
-    input: TurnInput,
-    sink: TurnSink,
-  ): Promise<{ kind: "ok" } | { kind: "ended"; outcome: TurnOutcome }> {
-    if (this.capabilities.stateIdSource === "deterministic") return { kind: "ok" };
-
-    if (input.threadId === "") {
-      const minted = `${this.name}#state-${++this.mintCounter}`;
-      this.mintedStateIds.add(minted);
-      try {
-        await sink.bindHarnessState(minted);
-      } catch (err) {
-        return {
-          kind: "ended",
-          outcome: { kind: "failed", surface: "internal", message: `${this.name}: could not bind engine state`, cause: err },
-        };
-      }
-      return { kind: "ok" };
-    }
-
-    if (!this.mintedStateIds.has(input.threadId)) {
-      return {
-        kind: "ended",
-        outcome: { kind: "failed", surface: "internal", message: `${this.name}: no engine state '${input.threadId}' to resume` },
-      };
-    }
-    return { kind: "ok" };
   }
 
   /** Play one step; returns the outcome that ends the turn, or undefined to continue. */
@@ -359,8 +292,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         sink.transcript.apply({ kind: "text_delta", runId, text: step.text });
         sink.transcript.apply({ kind: "message_finish", runId });
         sink.recordActivity();
-        // Awaited, as the Cursor loop awaits its own: a platform STOP the
-        // runtime reads from this write aborts the signal before the next
+        // Awaited: a platform STOP the runtime reads from this write aborts the signal before the next
         // step boundary sees it (the contract's "MAY await for ordering").
         await sink.requestPersist();
         return undefined;
@@ -392,8 +324,6 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       }
       case "fail":
         return { kind: "failed", surface: step.surface, message: step.message };
-      case "cancelled":
-        return { kind: "cancelled" };
       case "limit":
         return { kind: "tool_call_limit" };
       case "open":
@@ -402,8 +332,6 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return this.openOperation(step.toolCallId, input.sessionId, sink);
       case "compact":
         throw new Error(`${this.name}: compact() is not producible by this fake (it keeps no context); test bug`);
-      case "cut":
-        return { kind: "stream_cut", message: SCRIPTED_STREAM_CUT_MESSAGE };
       case "message":
         await this.readMessagesOf(input.sessionId, sink);
         return undefined;

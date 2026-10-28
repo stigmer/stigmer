@@ -13,9 +13,9 @@ import {
 
 describe("extractWriteContentFromArgs", () => {
   it("returns the first content field holding a non-empty string, in list order", () => {
-    expect(extractWriteContentFromArgs({ contents: "a", content: "b" })).toBe("a");
+    expect(extractWriteContentFromArgs({ content: "a", new_string: "b" })).toBe("a");
     expect(extractWriteContentFromArgs({ content: "", new_string: "b" })).toBe("b");
-    expect(extractWriteContentFromArgs({ new_text: "cursor", replacement: "x" })).toBe("cursor");
+    expect(extractWriteContentFromArgs({ file_content: "c", replacement: "x" })).toBe("c");
   });
 
   it("returns null when no content field holds a string", () => {

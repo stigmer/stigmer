@@ -37,8 +37,8 @@
 // Deliberately out of scope, each pinned beside its code in the runner:
 // an agent's own sub-agent narrowing, `Agent(type, …)`, a `tools` list that
 // resolves to nothing, the `.stigmer/` read that survives a list without
-// Read, and the Cursor engine (the gateway contract,
-// approval-gateway-contract.test.ts, runs the lists on both engines).
+// Read, and the lists on the Claude engine (the gateway contract,
+// approval-gateway-contract.test.ts, runs them on both engines).
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";

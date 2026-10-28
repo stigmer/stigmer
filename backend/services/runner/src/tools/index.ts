@@ -10,7 +10,7 @@
  * Contract for adding a native tool (what keeps the two harnesses at parity):
  *
  * 1. Name it in snake_case (`web_fetch`, not `WebFetch` — PascalCase names
- *    belong to the Cursor harness).
+ *    are Claude Code's).
  * 2. Register the name in shared/tool-kind.ts `TOOL_NAME_TO_KIND` and its
  *    lockstep mirrors (test/fixtures/tool-view/classification.json, the SDK
  *    fallback resolver), and extend the ToolKind enum comment in

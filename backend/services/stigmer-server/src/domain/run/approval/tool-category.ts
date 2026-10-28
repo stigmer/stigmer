@@ -3,11 +3,11 @@
  * ports approval/tool_category.go (itself the Go edition of
  * toolApprovalCategory in backend/services/runner/src/shared/tool-kind.ts).
  *
- * FILE_WRITE and FILE_EDIT both collapse to "write" on purpose: the
- * Cursor preToolUse hook reports every file mutation (create or edit) as
- * `Write`, while the SDK stream names them `edit`/`write`. The category
- * is therefore the only tool identity stable across the hook and stream
- * taxonomies. This table must stay in lockstep with the runner's
+ * FILE_WRITE and FILE_EDIT both collapse to "write" on purpose: hook
+ * formats and engines name a file mutation differently (a hook may report
+ * every create or edit as `Write`, while a stream names them `edit` or
+ * `write`). The category is therefore the only tool identity stable across
+ * the hook and stream taxonomies. This table must stay in lockstep with the runner's
  * TOOL_NAME_TO_KIND map (the machine-checked contract for the full
  * classification lives in the runner's classification.json fixture; the
  * subset reproduced here is only the gated, mutating names the category
@@ -29,8 +29,6 @@ const TOOL_NAME_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
   ["edit", "write"],
   ["edit_file", "write"],
   ["str_replace_editor", "write"],
-  ["StrReplace", "write"],
-  ["EditNotebook", "write"],
   ["Edit", "write"],
   ["NotebookEdit", "write"],
 
@@ -38,7 +36,6 @@ const TOOL_NAME_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
   ["delete", "delete"],
   ["delete_file", "delete"],
   ["remove_file", "delete"],
-  ["Delete", "delete"],
 
   // SHELL.
   ["shell", "shell"],
@@ -47,7 +44,6 @@ const TOOL_NAME_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
   ["execute_command", "shell"],
   ["run_command", "shell"],
   ["terminal", "shell"],
-  ["Shell", "shell"],
   ["Bash", "shell"],
 ]);
 

@@ -8,17 +8,13 @@
  * layer preserves the caller's raw enum so "user chose disabled" stays
  * distinguishable from "platform default" all the way to the ledger.
  *
- * Unlike the fast tier, thinking is NOT separately priced: Cursor bills
- * thinking variants at base per-token rates (ledger-verified 2026-08-15 —
- * 277 events at exactly base; thinking+fast at exactly the fast rate).
- * The cost of ENABLED is the extra reasoning tokens, billed as output.
+ * Unlike the fast tier, thinking is NOT separately priced: the cost of ENABLED is the extra reasoning tokens, billed as output.
  * Selection is therefore capability-gated (registry capabilities.thinking)
  * rather than pricing-gated, and the estimate/billing paths need no
  * thinking-specific rates.
  *
- * Each harness translates the mode in its own dialect: the Cursor harness
- * as the explicit `thinking` variant parameter
- * (`execute-cursor/service-tier.ts`), the native harness as Anthropic's
+ * Each harness translates the mode in its own dialect: the native harness
+ * as Anthropic's
  * `thinking` request parameter in the form the model's native registry row
  * declares ({@link toAnthropicThinking}). ENABLED means "the model reasons
  * before it answers", whichever form the row takes.

@@ -8,8 +8,12 @@
  * single persist chokepoint, the whole-activity heartbeat, the stop
  * controller's four producers, the reinvocation seam, the byte-pinned copy —
  * is the kit's and is registered here through `describeHarnessRuntimeContract`
- * exactly as `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`
- * registers it against the real Cursor adapter. An arm that differs between
+ * exactly as each real adapter's hermetic `harness-contract.test.ts`
+ * registers it (`activities/execute-deep-agent/`, `activities/execute-claude/`).
+ * The state id is the runtime's (`thread-{sessionId}`), present on the FIRST
+ * turn, so the runtime's reinvocation fact — the seed, the reconcile — comes
+ * from the persisted log and from nothing else, and every arm that resumes
+ * exercises it end to end. An arm that differs between
  * the fake and the real engine is an adapter defect, not a runtime one.
  * The long-turn arms the fake fails today (a silent operation, streamed
  * output, a continued turn) are the runtime's gaps, marked by their issue;
@@ -83,7 +87,6 @@ import {
   assertCostCapTerminates,
   assertFailedSurfaceWritesItsCopy,
   assertNonExecutingDecisionSettlesSkipped,
-  assertRejectedBindFails,
   assertWorkspaceLockTimeoutFails,
   describeHarnessRuntimeContract,
   RuntimeExecutionDriver,
@@ -103,9 +106,6 @@ const TASK_QUEUE = "runtime-test-queue";
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
 const subject = scriptedSubject({
-  pausePrimitive: "interrupt",
-  stateIdSource: "engine-minted",
-  continuation: "digest",
   config: { workspaceRootDir: env.workspaceRootDir, taskQueue: TASK_QUEUE },
 });
 const harness: RuntimeContractHarness = { subject, env, clock };
@@ -170,7 +170,6 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_COMPLETED,
       ]);
-      expect(driver.record.harnessBinds, "an engine-minted adapter binds once across the round trip").toHaveLength(1);
     });
 
     it("the cost cap: the fake's stated price reads exactly in the copy", async () => {
@@ -192,17 +191,10 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(systemMessages(driver.record.rowsOf(final))).toEqual(rows);
     });
 
-    it("a rejected bind: the fake names the failure and nothing of the scenario was folded in", async () => {
-      clock.reset();
-      const { driver, final } = await assertRejectedBindFails(harness, "fake-bind-rejects");
-      expect(final.error).toContain("could not bind engine state");
-      expect(aiMessages(driver.record.rowsOf(final))).toEqual([]);
-    });
 
     it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197)", async () => {
       // Until #1096 this arm pinned the opposite: the runtime FAILED a
-      // reinvocation carrying any REJECT (`rejectedByUserArm`, Cursor's
-      // legacy), against the proto's `APPROVAL_ACTION_REJECT` doc, the
+      // reinvocation carrying any REJECT (`rejectedByUserArm`), against the proto's `APPROVAL_ACTION_REJECT` doc, the
       // conformance suite and the native harness.
       // The kit's runtime half now carries the contract for every subject;
       // what is the fake's own here is the persist cadence around it.
@@ -538,7 +530,6 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const final = driver.record.lastFullStatus!;
       expect(final.error).toContain("the environment's npm packages did not install: `npm install` exited 1");
       expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_RUN);
-      expect(driver.record.harnessBinds, "the engine was never reached").toHaveLength(0);
     });
 
     it("a clean install lets the turn run", async () => {

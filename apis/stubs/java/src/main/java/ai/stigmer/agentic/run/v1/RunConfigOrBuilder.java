@@ -39,8 +39,7 @@ public interface RunConfigOrBuilder extends
    * done so far is kept. The limit is checked each time the engine reports
    * its spend, so a run can end somewhat above it. The native harness
    * reports after every model call, counts a subagent's spend toward the
-   * limit, and advises the agent to wrap up at about 80% of the budget; the
-   * Cursor harness gives no warning.
+   * limit, and advises the agent to wrap up at about 80% of the budget.
    *
    * 0 = not set at this layer. The budget is per message: a follow-up
    * message, or a run resuming after an approval, starts a fresh count; a
@@ -71,7 +70,7 @@ public interface RunConfigOrBuilder extends
    * set, the valid range is 10–1000; values outside it are clamped to the
    * nearest bound. The budget is per message: a follow-up message, or a run
    * resuming after an approval, starts a fresh count. Subagent rounds are
-   * not counted, and the Cursor harness does not enforce this field.
+   * not counted.
    * </pre>
    *
    * <code>int32 max_tool_rounds = 3 [json_name = "maxToolRounds", (.buf.validate.field) = { ... }</code>
@@ -160,7 +159,7 @@ public interface RunConfigOrBuilder extends
    *
    * 0 = not set at this layer; with no layer setting it the platform default
    * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
-   * a subagent's included; the Cursor harness does not read this field.
+   * a subagent's included.
    * </pre>
    *
    * <code>int32 max_tool_result_chars = 6 [json_name = "maxToolResultChars", (.buf.validate.field) = { ... }</code>

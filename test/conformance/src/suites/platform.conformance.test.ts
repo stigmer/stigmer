@@ -13,8 +13,8 @@
 //     present on every edition).
 //   - getRunnerBootstrapConfig always carries reachable Temporal coordinates,
 //     and its token/key fields follow the PRESENCE-BASED contract: an empty
-//     token means "not minted" (OSS has no Cursor proxy; a cloud server may
-//     lack a signing key), and the companion fields (token_type,
+//     token means "not minted" (OSS serves no side-channel proxy; a cloud
+//     server may lack a signing key), and the companion fields (token_type,
 //     expires_in_seconds, key ids) are present exactly when their principal
 //     is — never half-populated. Clients branch on presence, so a
 //     half-populated response is a broken contract even when every field is

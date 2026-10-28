@@ -41,10 +41,9 @@
 //
 // Session has NO Temporal involvement — it only persists conversation
 // configuration that later drives agent-execution dispatch. The lifecycle-bound
-// behaviors it gates (harness_state_id, and the harness / execution_target
-// immutability sentinels that fire only once harness_state_id is set by a real
-// execution) are therefore out of scope here and belong to the execution-lifecycle
-// suites, as is the runtime merge of the session's plugins / skill_refs with
+// behaviors it gates (the harness / execution_target immutability locks that
+// hold only once the session has run) are therefore out of scope here and
+// belong to the execution-lifecycle suites (session-immutability), as is the runtime merge of the session's plugins / skill_refs with
 // the agent's.
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { type Session, SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -311,16 +310,30 @@ describe("Session conformance — configuration fields", () => {
     const agentRef = await provisionAgentRef(org);
 
     const created = await createSession(org, uniqueName("session"), agentRef, {
-      harness: Harness.CURSOR,
+      harness: Harness.CLAUDE,
       executionTarget: ExecutionTarget.LOCAL,
     });
 
-    expect(created.spec?.harness).toBe(Harness.CURSOR);
+    expect(created.spec?.harness).toBe(Harness.CLAUDE);
     expect(created.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
 
     const fetched = await clients.sessionQuery.get({ value: created.metadata!.id });
-    expect(fetched.spec?.harness).toBe(Harness.CURSOR);
+    expect(fetched.spec?.harness).toBe(Harness.CLAUDE);
     expect(fetched.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
+  });
+
+  it("[rpc:SessionCommandController.create] refuses a harness number the platform does not name (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionAgentRef(org);
+
+    // 2 is a number the Harness enum reserves: no harness answers to it.
+    const refused = await expectGrpcCode(
+      () => createSession(org, uniqueName("session"), agentRef, { harness: 2 as Harness }),
+      Code.InvalidArgument,
+      "create naming harness 2",
+    );
+    expect(refused.rawMessage).toContain("spec.harness");
+    expect(refused.rawMessage).toContain("enum.defined_only");
   });
 });
 
@@ -841,9 +854,9 @@ describe("Session conformance — a new conversation's engine", () => {
   // An agent's run defaults name the engine they were chosen for
   // (AgentSpec.harness); a new conversation that names no engine starts on
   // it, and one that names an engine keeps its own.
-  async function cursorAgent(org: string): Promise<Agent> {
+  async function claudeAgent(org: string): Promise<Agent> {
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("cursor-agent"), harness: Harness.CURSOR }),
+      makeAgent({ org, name: uniqueName("claude-agent"), harness: Harness.CLAUDE }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     return agent;
@@ -851,16 +864,16 @@ describe("Session conformance — a new conversation's engine", () => {
 
   it("[rpc:SessionCommandController.create] a session naming no engine starts on the agent's engine", async () => {
     const { org } = await target.provisionTenancy();
-    const agent = await cursorAgent(org);
+    const agent = await claudeAgent(org);
 
     const created = await createSession(org, uniqueName("session"), agentRefOf(agent));
 
-    expect(created.spec?.harness).toBe(Harness.CURSOR);
+    expect(created.spec?.harness).toBe(Harness.CLAUDE);
   });
 
   it("[rpc:SessionCommandController.create] a session naming an engine keeps it", async () => {
     const { org } = await target.provisionTenancy();
-    const agent = await cursorAgent(org);
+    const agent = await claudeAgent(org);
 
     const created = await createSession(org, uniqueName("session"), agentRefOf(agent), { harness: Harness.NATIVE });
 

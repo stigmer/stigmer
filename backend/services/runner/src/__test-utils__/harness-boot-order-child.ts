@@ -10,25 +10,17 @@
  * Arms (argv[2]):
  *  - `boot`: host the table and boot it. Success means every harness was
  *    booted in a real agent host started from this build's entry, which
- *    announced itself, installed the Cursor interceptors, proved the
- *    `node:http2` facade patched (`assertHttp2ConnectPatched`, in the host's
- *    own fresh process), and loaded every engine there; and that this
- *    process, the runner, loaded no engine's SDK.
- *  - `import-engine`: import `@cursor/sdk` here. Must fail naming it: proves
+ *    announced itself and loaded every engine there; and that this process,
+ *    the runner, loaded no engine's SDK.
+ *  - `import-engine`: import `deepagents` here. Must fail naming it: proves
  *    the refusal is live, so the first arm's silence means something.
  *  - `import-claude`: the same for `@anthropic-ai/claude-agent-sdk`, the
  *    engine whose SDK is a dependency the runner never loads.
- *  - `host-http2-first`: the same boot, with a host that imports
- *    `node:http2` before anything else (`import-http2-first.ts`). Must fail
- *    with the facade sentence: proves the Cursor adapter's guard is live in
- *    the host, so a host whose graph imported connect-node first is loud.
  *
  * Output: one line, `harness-boot-order: ok` or `harness-boot-order: <message>`,
  * then exit 0 on success and 1 on a rejection. The proxy endpoint is an inert
  * loopback nothing listens on; boot dials nothing.
  */
-
-import { fileURLToPath } from "node:url";
 
 import { testConfig } from "./config-fixture.js";
 
@@ -36,11 +28,11 @@ const arm = process.argv[2];
 
 async function main(): Promise<void> {
   if (arm === "import-engine") {
-    await import("@cursor/sdk");
+    await import("deepagents");
   } else if (arm === "import-claude") {
     await import("@anthropic-ai/claude-agent-sdk");
-  } else if (arm !== "boot" && arm !== "host-http2-first") {
-    throw new Error(`harness-boot-order-child: unknown arm '${String(arm)}' (expected 'boot', 'import-engine', 'import-claude' or 'host-http2-first')`);
+  } else if (arm !== "boot") {
+    throw new Error(`harness-boot-order-child: unknown arm '${String(arm)}' (expected 'boot', 'import-engine' or 'import-claude')`);
   }
 
   const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }, { hostHarnesses }] = await Promise.all([
@@ -48,20 +40,8 @@ async function main(): Promise<void> {
     import("../harness/registry.js"),
     import("../agent-host/hosting.js"),
   ]);
-  const config = testConfig({
-    proxyEndpoint: "http://127.0.0.1:1",
-    proxyTokenRef: { current: "boot-order-test-token" },
-  });
-  const start =
-    arm === "host-http2-first"
-      ? async () => {
-          const { agentHostCommand, spawnHostProcess } = await import("../agent-host/supervisor.js");
-          const { command, args, env } = agentHostCommand();
-          const preload = fileURLToPath(new URL("./import-http2-first.ts", import.meta.url));
-          return spawnHostProcess(command, [...args.slice(0, -2), "--import", preload, ...args.slice(-2)], { ...process.env, ...env }).started;
-        }
-      : undefined;
-  const hosted = await hostHarnesses(HARNESS_ADAPTERS, config, start ? { start } : {});
+  const config = testConfig({ proxyEndpoint: "http://127.0.0.1:1" });
+  const hosted = await hostHarnesses(HARNESS_ADAPTERS, config);
   try {
     await bootHarnesses(adaptersOf(hosted.rows), config);
   } finally {

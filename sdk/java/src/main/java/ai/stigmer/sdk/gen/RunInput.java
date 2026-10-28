@@ -15,7 +15,6 @@ import ai.stigmer.agentic.run.v1.RunConfig;
 import ai.stigmer.agentic.run.v1.RunSpec;
 import ai.stigmer.agentic.run.v1.ServiceTier;
 import ai.stigmer.agentic.run.v1.ThinkingMode;
-import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
 import ai.stigmer.agentic.session.v1.FileResource;
 import ai.stigmer.agentic.session.v1.GitRepositoryResource;
@@ -236,7 +235,6 @@ public final class RunInput {
         private final java.util.Map<String, String> metadata;
         private final java.util.List<ResourceRef> skillRefs;
         private final Harness harness;
-        private final CursorMode cursorMode;
         private final ExecutionTarget executionTarget;
         private final java.util.List<ResourceRef> vaults;
         private final boolean includeMyVault;
@@ -251,7 +249,6 @@ public final class RunInput {
             this.metadata = builder.metadata;
             this.skillRefs = builder.skillRefs;
             this.harness = builder.harness;
-            this.cursorMode = builder.cursorMode;
             this.executionTarget = builder.executionTarget;
             this.vaults = builder.vaults;
             this.includeMyVault = builder.includeMyVault;
@@ -281,9 +278,6 @@ public final class RunInput {
             }
             if (this.harness != null) {
                 builder.setHarness(this.harness);
-            }
-            if (this.cursorMode != null) {
-                builder.setCursorMode(this.cursorMode);
             }
             if (this.executionTarget != null) {
                 builder.setExecutionTarget(this.executionTarget);
@@ -322,7 +316,6 @@ public final class RunInput {
             private java.util.Map<String, String> metadata;
             private java.util.List<ResourceRef> skillRefs;
             private Harness harness;
-            private CursorMode cursorMode;
             private ExecutionTarget executionTarget;
             private java.util.List<ResourceRef> vaults;
             private boolean includeMyVault;
@@ -338,7 +331,6 @@ public final class RunInput {
             public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
             public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
             public Builder harness(Harness harness) { this.harness = harness; return this; }
-            public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
             public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
             public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
             public Builder includeMyVault(boolean includeMyVault) { this.includeMyVault = includeMyVault; return this; }

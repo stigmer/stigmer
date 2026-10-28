@@ -155,10 +155,9 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "StrReplace",
-          input: { path: "/x.ts" },
-          result:
-            '{"status":"success","value":{"linesAdded":1,"linesRemoved":1,"diffString":"@@ -1 +1 @@\\n-a\\n+b"}}',
+          name: "Edit",
+          input: { file_path: "/x.ts", old_string: "a", new_string: "b" },
+          result: "The file /x.ts has been updated successfully.",
         })}
       />,
     );
@@ -175,7 +174,7 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "Shell",
+          name: "Bash",
           input: { command: "echo hello" },
           result: "hello",
         })}
@@ -215,7 +214,7 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "Shell",
+          name: "Bash",
           input: { command: "ls /secret/abs/path" },
           result: "denied\n[Command failed with exit code 2]",
         })}
@@ -237,7 +236,7 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "Shell",
+          name: "Bash",
           input: { command: "echo hi" },
           result: "hi",
           state: "running",
@@ -256,7 +255,7 @@ describe("ToolCallItem disclosure", () => {
   it("collapses a running shell to the dimmed tail the moment it succeeds", () => {
     const running = toolUse({
       id: "tc-sh",
-      name: "Shell",
+      name: "Bash",
       input: { command: "make build" },
       result: "compiling…",
       state: "running",
@@ -268,7 +267,7 @@ describe("ToolCallItem disclosure", () => {
       <ToolCallItem
         toolUse={toolUse({
           id: "tc-sh",
-          name: "Shell",
+          name: "Bash",
           input: { command: "make build" },
           result: "compiling…\nBUILD OK",
         })}
@@ -288,7 +287,7 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "Shell",
+          name: "Bash",
           input: { command: "make build" },
           result: "error: no rule\n[Command failed with exit code 2]",
         })}
@@ -307,7 +306,7 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "Shell",
+          name: "Bash",
           input: { command: "seq 5" },
           result: output,
         })}
@@ -323,7 +322,7 @@ describe("ToolCallItem disclosure", () => {
   it("expands a collapsed tail to the full session on click, and the choice sticks", () => {
     const settled = toolUse({
       id: "tc-sh2",
-      name: "Shell",
+      name: "Bash",
       input: { command: "echo hi" },
       result: "hi",
     });
@@ -361,10 +360,9 @@ describe("ToolCallItem disclosure", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "StrReplace",
-          input: { path: "/x.ts" },
-          result:
-            '{"status":"success","value":{"linesAdded":3,"linesRemoved":0,"diffString":"@@ -0,0 +1,3 @@\\n+a\\n+b\\n+c"}}',
+          name: "Edit",
+          input: { file_path: "/x.ts", old_string: "x\n", new_string: "x\na\nb\nc\n" },
+          result: "The file /x.ts has been updated successfully.",
         })}
       />,
     );
@@ -407,7 +405,7 @@ describe("ToolCallItem disclosure", () => {
     // always-visible body — no header chevron, since there is nothing to reveal.
     const tu = toolUse({
       id: "tc-shell-gated",
-      name: "Shell",
+      name: "Bash",
       input: { command: "rm -rf /tmp/x" },
       ask: { argsPreview: '{"command":"rm -rf /tmp/x"}' },
     });
@@ -561,7 +559,7 @@ describe("ToolCallItem disclosure", () => {
   // --- Card chrome -----------------------------------------------------------
 
   it("renders as its own bordered card by default, with a divider-row fallback when nested", () => {
-    const tc = toolUse({ name: "Shell", input: { command: "echo hi" }, result: "hi" });
+    const tc = toolUse({ name: "Bash", input: { command: "echo hi" }, result: "hi" });
 
     const { container, rerender } = render(<ToolCallItem toolUse={tc} />);
     let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
@@ -604,10 +602,10 @@ describe("ToolCallItem density tier", () => {
 
   it("keeps content-bearing rows as cards (shell / edit)", () => {
     const cases: ToolUse[] = [
-      toolUse({ name: "Shell", input: { command: "echo hi" }, result: "hi" }),
+      toolUse({ name: "Bash", input: { command: "echo hi" }, result: "hi" }),
       toolUse({
-        name: "StrReplace",
-        input: { path: "/a.ts", old_string: "a", new_string: "b" },
+        name: "Edit",
+        input: { file_path: "/a.ts", old_string: "a", new_string: "b" },
       }),
     ];
     for (const tc of cases) {
@@ -660,7 +658,7 @@ describe("ToolCallItem density tier", () => {
 
   it("sweeps the running label with the ambient-liveness shimmer, settled labels stay static", () => {
     const running = toolUse({
-      name: "Shell",
+      name: "Bash",
       input: { command: "sleep 5" },
       state: "running",
     });
@@ -668,7 +666,7 @@ describe("ToolCallItem density tier", () => {
     expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Shell");
 
     const settled = toolUse({
-      name: "Shell",
+      name: "Bash",
       input: { command: "sleep 5" },
       result: "done",
     });
@@ -699,7 +697,7 @@ describe("ToolCallItem status vocabulary", () => {
   it("renders no status icon on a completed row — success is the silent default", () => {
     const { container } = render(
       <ToolCallItem
-        toolUse={toolUse({ name: "Shell", input: { command: "echo hi" }, result: "hi" })}
+        toolUse={toolUse({ name: "Bash", input: { command: "echo hi" }, result: "hi" })}
       />,
     );
     expect(container.querySelector(".stg\\:text-success")).toBeNull();
@@ -709,7 +707,7 @@ describe("ToolCallItem status vocabulary", () => {
     const { container } = render(
       <ToolCallItem
         toolUse={toolUse({
-          name: "Shell",
+          name: "Bash",
           input: { command: "false" },
           isError: true,
         })}
@@ -737,7 +735,7 @@ describe("ToolCallItem duration chip", () => {
 
   it("shows a duration of a second or more — it carries information", () => {
     const tc = toolUse({
-      name: "Shell",
+      name: "Bash",
       input: { command: "sleep 2" },
       result: "",
       durationMs: 2_500,

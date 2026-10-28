@@ -439,7 +439,7 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  * Resolve a *usable* artifact store for the file-review capture / status-offload
  * path, degrading to `undefined` instead of crashing when there is no working
  * substrate. This is the single construct-or-degrade seam shared by both
- * harnesses (the deep-agent and Cursor activities) so they degrade identically.
+ * harnesses (the deep-agent and Claude activities) so they degrade identically.
  *
  * Two degrade paths:
  *  - **Proxy misconfig** — {@link createArtifactStorage} throws for a missing

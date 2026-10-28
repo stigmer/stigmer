@@ -12,9 +12,8 @@
  * What belongs to one turn — its input files, the workspace paths it
  * references, the conversation catchup — rides that turn's user message
  * (`composeUserMessage`), which enters the checkpointer with the turn and
- * stays in history. That is the Cursor harness's resumed-turn placement
- * (`execute-cursor/prompt-builder.ts` `buildPrompt`) and the runner's rule
- * that user content goes in user messages, never the system prompt.
+ * stays in history. That is the runner's rule that user content goes in
+ * user messages, never the system prompt.
  *
  * One section follows the workspace's files rather than the session's
  * record: the workspace's own `AGENTS.md` (else `CLAUDE.md`) at its roots,
@@ -33,9 +32,8 @@
  *    render and in WHAT order (`standingContextSections`) and the
  *    input-files bullet and disclosure lines (`inputFileLines`). Their WORDS
  *    come from each fact's own module; this builder only frames them. Every
- *    mounted skill is described on every turn, as the Cursor harness does:
- *    choosing skills by the message made the system prompt follow the
- *    message.
+ *    mounted skill is described on every turn: choosing skills by the
+ *    message made the system prompt follow the message.
  *  - This harness's: the framing — `## Heading` markdown sections, the house
  *    style for a system prompt — and every text that quotes this engine's
  *    tools: the `## Skills` activation protocol, the response rules, the
@@ -301,9 +299,8 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   // the build turn is always an Agent-mode execution.)
   if (input.interactionMode === InteractionMode.PLAN) {
     // The read-boundary sentence is native-harness-only, appended OUTSIDE the
-    // shared directive: PLAN_MODE_DIRECTIVE also serves the Cursor harness,
-    // which has no tool-level read boundary — there the sentence would be
-    // false. Here it is enforced fact (shared/plan-mode-permissions.ts,
+    // shared directive: PLAN_MODE_DIRECTIVE also serves the Claude harness,
+    // whose plan-mode boundary is its own. Here it is enforced fact (shared/plan-mode-permissions.ts,
     // issue #528), stated so the model doesn't burn rounds probing paths the
     // rules will refuse.
     prompt +=
@@ -348,8 +345,8 @@ export interface TurnMessageInput {
  * Compose the turn's USER MESSAGE for the graph invocation: this turn's
  * payload (its input files, then the workspace paths it references), then the
  * framed conversation catchup, then what the user typed, each
- * set off by a horizontal rule. Payload first and context closest to the task
- * is the Cursor harness's resumed-turn order.
+ * set off by a horizontal rule: payload first, and context closest to the
+ * task.
  *
  * In the user message and never the system prompt (see the module
  * header): the system prompt is rebuilt per invocation, so a turn's content

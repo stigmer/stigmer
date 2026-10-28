@@ -7,9 +7,8 @@
  * (`turn-setup.ts` `buildEngine`), every sub-agent's `modelFactory` (the same
  * `buildModelFor`), and the runtime's tier-2 structured-output extractor
  * (`shared/extract-structured-output.ts`). None of them takes a model as an
- * argument, so the one seam a hermetic run has is this module — the native analog of the Cursor
- * driver's `vi.mock("@cursor/sdk")`: the vendor engine doubled where the
- * runner imports it, and nothing else.
+ * argument, so the one seam a hermetic run has is this module: the vendor
+ * engine doubled where the runner imports it, and nothing else.
  *
  * `vi.mock` is hoisted and must live in the test file; the factory can
  * `await import()` this module:

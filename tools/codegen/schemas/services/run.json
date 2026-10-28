@@ -1219,7 +1219,7 @@
               "messageType": "HarnessUsage"
             }
           },
-          "description": "Usage split by execution harness (e.g., \"native\" vs \"cursor\").",
+          "description": "Usage split by execution harness (e.g., \"native\" vs \"claude\").",
           "required": false
         },
         {
@@ -1699,7 +1699,7 @@
     },
     {
       "name": "ServiceTier",
-      "description": "ServiceTier selects the provider-side speed/service tier for a run's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what a run pays (stigmer/stigmer#357).",
+      "description": "ServiceTier selects the provider-side speed/service tier for a run's\n model calls.\n\n Providers spell this differently (Anthropic and OpenAI expose service\n tiers, some providers per-model \"fast\" variants at higher per-token rates),\n but the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what a run pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.run.v1.ServiceTier",
       "values": [
         {
@@ -1716,7 +1716,7 @@
     },
     {
       "name": "ThinkingMode",
-      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for a run's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n Cursor bills thinking variants at the model's base per-token rates\n (verified against the live pricing page and 277 team-ledger events on\n 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills\n exactly the fast variant rate). Thinking costs more only by generating\n additional reasoning tokens, billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the run's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
+      "description": "ThinkingMode selects the model's extended-reasoning (\"thinking\") variant\n for a run's model calls — the second variant dimension alongside\n ServiceTier (stigmer/stigmer#772).\n\n Unlike the fast tier, thinking is NOT a separately priced dimension:\n thinking costs more only by generating additional reasoning tokens,\n billed as ordinary output. Selectability is\n therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for\n models whose registry entry on the run's harness declares a\n thinking capability (capabilities.thinking or capabilities.adaptive_thinking),\n refused at create time otherwise. ENABLED means \"the model reasons before\n it answers\", in the form its entry declares: a fixed budget or adaptive\n depth.\n\n The load-bearing rule mirrors ServiceTier: UNSPECIFIED resolves to\n THINKING_MODE_DISABLED — never the provider account default. Several\n catalog default variants are thinking=true (claude-haiku-4-5), so an\n unpinned selection would silently follow an out-of-band account setting;\n the runner always sends an explicit thinking pin where the model declares\n the parameter. The one exception is a model whose entry declares\n capabilities.thinking_required: it always thinks, so an explicit DISABLED\n is refused at create and UNSPECIFIED runs with thinking on.",
       "protoType": "ai.stigmer.agentic.run.v1.ThinkingMode",
       "values": [
         {
@@ -1873,7 +1873,7 @@
     },
     {
       "name": "InteractionMode",
-      "description": "InteractionMode controls the agent's behavioral posture for a run.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per message\n (RunSpec.interaction_mode) and does not carry over between\n runs.\n\n Enforcement:\n - Native harness: tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.\n - Cursor harness: best-effort via system prompt injection. The Cursor SDK\n   does not expose a mode parameter, so the agent is instructed not to\n   make changes. When the SDK adds native mode support, the prompt-based\n   approach will be replaced.",
+      "description": "InteractionMode controls the agent's behavioral posture for a run.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per message\n (RunSpec.interaction_mode) and does not carry over between\n runs.\n\n Enforcement:\n - Every harness: tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.",
       "protoType": "ai.stigmer.agentic.run.v1.InteractionMode",
       "values": [
         {
@@ -1884,7 +1884,7 @@
         {
           "name": "INTERACTION_MODE_PLAN",
           "number": 2,
-          "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Native harness: enforced by removing write tools from the tool set.\n Cursor harness: best-effort via system prompt directive."
+          "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Enforced by removing write tools from the tool set."
         }
       ]
     },
@@ -1899,31 +1899,9 @@
           "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
         {
-          "name": "HARNESS_CURSOR",
-          "number": 2,
-          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
-        },
-        {
           "name": "HARNESS_CLAUDE",
           "number": 3,
           "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
-        }
-      ]
-    },
-    {
-      "name": "CursorMode",
-      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation and never changed mid-session.\n Switching would lose Cursor-side conversation state because local\n agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.",
-      "protoType": "ai.stigmer.agentic.session.v1.CursorMode",
-      "values": [
-        {
-          "name": "CURSOR_MODE_LOCAL",
-          "number": 1,
-          "description": "Local Cursor agent created with a local cwd configuration.\n\n Works with any workspace source (git or local path). Conversation\n state is carried by the Cursor SDK's native local store, which the\n runner persists on the durable workspace volume so Agent.resume()\n survives pod restart and snapshot restore."
-        },
-        {
-          "name": "CURSOR_MODE_CLOUD",
-          "number": 2,
-          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires every resource to be a git repository (HTTPS URL).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
         }
       ]
     },
@@ -2182,7 +2160,7 @@
           "kind": "message",
           "messageType": "RunConfig"
         },
-        "description": "The settings this turn runs with: spec.run_config (or the saved settings\n of the routine or channel it came through), the defaults of the agent version the\n turn runs, and the lane's operator profile, resolved by RunConfig's rule.\n\n An empty model_name means no layer named one and the engine chose (the\n native engine's registry default; Cursor's Auto).",
+        "description": "The settings this turn runs with: spec.run_config (or the saved settings\n of the routine or channel it came through), the defaults of the agent version the\n turn runs, and the lane's operator profile, resolved by RunConfig's rule.\n\n An empty model_name means no layer named one and the harness chose its\n registry default.",
         "required": false
       },
       {
@@ -3147,7 +3125,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Harness that produced the edits: \"cursor\" | \"deep-agent\" | \"claude\".\n Carried for audit and so the reconcile adapter knows which harness\n lifecycle authored the set.",
+          "description": "Harness that produced the edits: \"deep-agent\" | \"claude\".\n Carried for audit and so the reconcile adapter knows which harness\n lifecycle authored the set.",
           "required": false
         },
         {
@@ -3394,7 +3372,7 @@
     },
     {
       "name": "RunConfig",
-      "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (RunSpec.run_config),\n the saved settings of a routine (its invocation) or a channel,\n an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (RunStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the routine or channel it came\n through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the engine (the native engine's\n   registry default; Cursor's Auto). service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the routine or channel, and the agent can lower\n   but never raise.\n - The agent's choices apply only on the engine its defaults name\n   (AgentSpec.harness). On a conversation running another engine the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a routine, channel or agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
+      "description": "RunConfig is the settings message for every run: a model, a speed tier,\n thinking, and run bounds.\n\n The same message is a message's request (RunSpec.run_config),\n the saved settings of a routine (its invocation) or a channel,\n an agent author's defaults (AgentSpec.run_config,\n versioned with the agent), and the settings a turn ran with\n (RunStatus.run_config). Zero or empty means \"not set at this\n layer\".\n\n The server resolves a turn's settings once, at create, from three layers,\n most specific first: the message (or the routine or channel it came\n through), the\n agent's defaults, and the lane's operator profile.\n\n - Choices. model_name comes from the first layer that names one. When no\n   layer names one, the model is left to the harness's registry default.\n   service_tier and thinking_mode each\n   come from the first layer, at or above the model's layer, that sets\n   them: a less specific layer's tier or thinking was chosen for another\n   model, so it never lands on this one. Without a model, tier and thinking\n   come only from the message.\n - Bounds. max_cost_usd, max_tool_rounds and max_tool_result_chars each take\n   the smallest positive value any layer sets. An operator profile is a\n   ceiling the message, the routine or channel, and the agent can lower\n   but never raise.\n - The agent's choices apply only on the engine its defaults name\n   (AgentSpec.harness). On a conversation running another engine the\n   agent layer gives its bounds alone.\n\n Saved settings are self-contained: a routine, channel or agent that sets\n service_tier FAST or thinking_mode ENABLED names the model it is for. Only a\n message may set them alone, to adjust the model it is given.",
       "protoType": "ai.stigmer.agentic.run.v1.RunConfig",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/invocation.proto",
       "fields": [
@@ -3415,7 +3393,7 @@
           "type": {
             "kind": "double"
           },
-          "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count; a\n run continuing after a restart, a lost runner or a stall keeps its\n count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
+          "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count; a\n run continuing after a restart, a lost runner or a stall keeps its\n count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
           "required": false
         },
         {
@@ -3425,7 +3403,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum model-to-tools reasoning cycles per message.\n\n A round is one model response that proposes one or more tool calls,\n followed by their execution; parallel tool calls in one response are one\n round. When the limit is reached the run stops with a \"send another\n message to continue\" prompt, and the work done so far is kept. The agent\n is advised to wrap up at about 80% of the budget.\n\n 0 = not set at this layer; with no layer setting it the agent runs until\n the task completes or loop detection stops a repetitive pattern. When\n set, the valid range is 10–1000; values outside it are clamped to the\n nearest bound. The budget is per message: a follow-up message, or a run\n resuming after an approval, starts a fresh count. Subagent rounds are\n not counted, and the Cursor harness does not enforce this field.",
+          "description": "Maximum model-to-tools reasoning cycles per message.\n\n A round is one model response that proposes one or more tool calls,\n followed by their execution; parallel tool calls in one response are one\n round. When the limit is reached the run stops with a \"send another\n message to continue\" prompt, and the work done so far is kept. The agent\n is advised to wrap up at about 80% of the budget.\n\n 0 = not set at this layer; with no layer setting it the agent runs until\n the task completes or loop detection stops a repetitive pattern. When\n set, the valid range is 10–1000; values outside it are clamped to the\n nearest bound. The budget is per message: a follow-up message, or a run\n resuming after an approval, starts a fresh count. Subagent rounds are\n not counted.",
           "required": false
         },
         {
@@ -3465,7 +3443,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Maximum number of characters for a single tool result before truncation.\n A longer result reaches the agent as its start and its end, with a line\n between them saying how much was left out. The whole result is kept for\n the session, outside the workspace, and the line says where, so the\n agent reads the rest back instead of running the tool again; a tool that\n pages itself (reading a file, searching, listing, fetching a page) keeps\n no copy, and the line says how to narrow the call instead. A value above\n 80,000 raises the bound only for the file tools (reading, searching,\n listing and editing files); every other tool's result is cut at 80,000\n at most.\n\n 0 = not set at this layer; with no layer setting it the platform default\n applies (30,000 chars, about 7,500 tokens). Applies to every tool result,\n a subagent's included; the Cursor harness does not read this field.",
+          "description": "Maximum number of characters for a single tool result before truncation.\n A longer result reaches the agent as its start and its end, with a line\n between them saying how much was left out. The whole result is kept for\n the session, outside the workspace, and the line says where, so the\n agent reads the rest back instead of running the tool again; a tool that\n pages itself (reading a file, searching, listing, fetching a page) keeps\n no copy, and the line says how to narrow the call instead. A value above\n 80,000 raises the bound only for the file tools (reading, searching,\n listing and editing files); every other tool's result is cut at 80,000\n at most.\n\n 0 = not set at this layer; with no layer setting it the platform default\n applies (30,000 chars, about 7,500 tokens). Applies to every tool result,\n a subagent's included.",
           "required": false
         }
       ]
@@ -3803,7 +3781,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "Total tokens across all turns: input_tokens + output_tokens. The Cursor\n SDK reports input_tokens cache-inclusive (cache_read/cache_write are\n subsets of it), so the cache buckets are NOT added again here.",
+          "description": "Total tokens across all turns: input_tokens + output_tokens; the cache\n buckets are NOT added again here.",
           "required": false
         },
         {
@@ -3868,7 +3846,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "JSON-encoded provider variant parameters the runner sent with the model\n selection (Cursor ModelSelection.params, e.g.\n [{\"id\":\"fast\",\"value\":\"false\"}]). Empty when the harness sent none.",
+          "description": "JSON-encoded provider variant parameters the runner sent with the model\n selection (e.g. [{\"id\":\"fast\",\"value\":\"false\"}]). Empty when the\n harness sent none.",
           "required": false
         },
         {

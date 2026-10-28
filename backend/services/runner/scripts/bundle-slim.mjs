@@ -34,23 +34,17 @@
  *      node_modules/
  *        @stigmer/runner-slim-<platform>  ← Temporal's native bridge, pruned
  *                                           to ONE platform (~22 of ~127 MB)
- *        @cursor/sdk (+platform, +deps)   ← Cursor's own JS + native helper
- *                                           binaries; theirs to distribute,
- *                                           never repackaged
  *        @temporalio/common, @grpc/...    ← runtime deps of the native bridge
  *
  * 2. npm packages (`--emit-packages`) — `dist-slim-pkgs/` with publishable
- *    package directories following the esbuild/Cursor-SDK platform pattern:
+ *    package directories following esbuild's platform-package pattern:
  *    `@stigmer/runner-slim` (bundle + real npm dependencies) plus five
  *    `@stigmer/runner-slim-<platform>` packages carrying the pruned native
  *    bridge, installed selectively via optionalDependencies + os/cpu.
  *
  * The JS bundles are platform-independent; only the native staging varies.
- * Cross-platform staging of @cursor/sdk requires the target platform's
- * packages in node_modules, so the self-contained shape builds on a matching
- * host (same model as Tauri's per-platform desktop builds). The npm platform
- * packages carry only core-bridge — whose releases for all five platforms
- * ship in the npm tarball — so `--emit-packages` works from any host.
+ * The platform packages carry only core-bridge, whose releases for all five
+ * platforms ship in its npm tarball, so either shape builds from any host.
  *
  * Build with `npm run build` first; this consumes the compiled dist/.
  *
@@ -95,9 +89,6 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  * runtime. Everything else — LangChain, OTel, Temporal's JS, openai,
  * deepagents, @stigmer/apis, the lot — is compiled into main.js.
  *
- * - @cursor/sdk: resolves its per-platform helper binaries (cursorsandbox,
- *   rg) from sibling packages at runtime. (Its SQLite is `node:sqlite` since
- *   1.0.31; the native `sqlite3` module it once pulled in is gone.)
  * - @anthropic-ai/claude-agent-sdk: the Claude engine, a native executable
  *   in a per-platform package. External, and never staged
  *   ({@link NEVER_STAGED}); the artifact carries its pin instead.
@@ -109,7 +100,7 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  * Temporal's error classes use Symbol.for-based instanceof precisely so
  * multiple copies interoperate.
  */
-const RUNTIME_EXTERNALS = ["@cursor/sdk", "@anthropic-ai/claude-agent-sdk"];
+const RUNTIME_EXTERNALS = ["@anthropic-ai/claude-agent-sdk"];
 
 /**
  * Externals the artifact never carries. Anthropic's engine is 120 to 140 MB
@@ -315,15 +306,12 @@ async function buildMainBundle() {
     outfile: join(outDir, "main.js"),
     bundle: true,
     platform: "node",
-    // CJS, NOT ESM — this is load-bearing (stigmer/stigmer#170). The runner
-    // installs its fetch + http2 interceptors and only THEN lazily loads
-    // @cursor/sdk and @connectrpc/connect-node (via dynamic import) so the
-    // interceptors are in place first. ESM bundling defeats this: esbuild
-    // hoists every external import (incl. node:http2, pulled in by connect-node)
-    // to the top of the file, where ESM evaluates them before any code runs —
-    // freezing the node:http2 namespace and capturing the original fetch before
-    // install. CJS preserves the source's lazy module-evaluation order, so the
-    // dynamic-import boundary keeps both interceptors correct. Keep main.js as
+    // CJS, NOT ESM (stigmer/stigmer#170). The runner loads its heavy modules
+    // (@connectrpc/connect-node, LangChain) with dynamic imports after boot.
+    // ESM bundling defeats that: esbuild hoists every external import to the
+    // top of the file, where ESM evaluates them before any code runs. CJS
+    // preserves the source's lazy module-evaluation order, so a dynamic
+    // import still loads its module when it runs. Keep main.js as
     // the filename (the meta manifest drops "type":"module", so .js is CJS) to
     // avoid rippling an entry-path rename through the desktop staging, docs, and
     // the verify gate. The worker-thread bundle below is already CJS, so the
@@ -506,8 +494,6 @@ function metaPackageJson() {
     engines: runnerPkg.engines,
     bin: { "stigmer-runner": "./main.js" },
     dependencies: {
-      // Exact: ships native helper binaries that must match what was tested.
-      "@cursor/sdk": installedVersion("@cursor/sdk"),
       // Exact: must not skew from the platform packages' native bridge.
       "@temporalio/common": installedVersion("@temporalio/common"),
       "@grpc/grpc-js": `^${installedVersion("@grpc/grpc-js")}`,
@@ -523,7 +509,7 @@ function metaPackageJson() {
 /**
  * Copies the runtime externals plus their transitive production dependencies
  * into dist-slim/node_modules, mirroring npm's layout. Nested node_modules
- * (npm's version-conflict copies, e.g. @cursor/sdk's pinned @connectrpc v1)
+ * (npm's version-conflict copies of a package another one pins)
  * ride along with their parent package, so resolution inside the staged tree
  * behaves exactly as it does in the full install.
  */
@@ -565,15 +551,6 @@ function stageSelfContained(platform, isCrossBuild) {
     const pkg = readPackageJson(srcDir);
     for (const dep of Object.keys(pkg.dependencies ?? {})) {
       stage(dep, srcDir);
-    }
-    if (name === "@cursor/sdk") {
-      // Platform helper binaries are optionalDependencies; only the target
-      // platform's package ships.
-      const platformPkg = `@cursor/sdk-${platform}`;
-      if (!(platformPkg in (pkg.optionalDependencies ?? {}))) {
-        fail(`@cursor/sdk has no platform package for ${platform}`);
-      }
-      stage(platformPkg, srcDir);
     }
   }
 
@@ -669,8 +646,8 @@ function emitNpmPackages() {
     `# @stigmer/runner-slim\n\n` +
       `The bundle-friendly build of [@stigmer/runner](https://www.npmjs.com/package/@stigmer/runner) ` +
       `for embedding in desktop apps: a self-contained \`main.js\` plus only the dependencies that ` +
-      `genuinely cannot be bundled (native Temporal bridge, Cursor SDK binaries). ` +
-      `~85 MB installed per platform instead of ~508 MB.\n\n` +
+      `genuinely cannot be bundled (the native Temporal bridge), ` +
+      `a fraction of the full package's ~508 MB installed per platform.\n\n` +
       `Spawn \`node node_modules/@stigmer/runner-slim/main.js\` (or the \`stigmer-runner\` bin) ` +
       `exactly as you would the full package's \`dist/main.js\` — same modes, same IPC protocol, ` +
       `same environment variables. See the embedding guide: ` +

@@ -92,7 +92,7 @@ type RecordLlmCallUsageInput struct {
 	// guard keyed on `sequence` alone survives neither a proxy restart nor a
 	// second proxy replica. Stamped verbatim onto the usage record's `call_id`.
 	CallId string `protobuf:"bytes,20,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	// Provider identifier (e.g., "openai", "anthropic", "cursor").
+	// Provider identifier (e.g., "openai", "anthropic").
 	Provider string `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
 	// Model as reported by the provider in the response.
 	ResolvedModel string `protobuf:"bytes,4,opt,name=resolved_model,json=resolvedModel,proto3" json:"resolved_model,omitempty"`
@@ -114,7 +114,7 @@ type RecordLlmCallUsageInput struct {
 	ProxyTiming *v1.ProxyTiming `protobuf:"bytes,12,opt,name=proxy_timing,json=proxyTiming,proto3" json:"proxy_timing,omitempty"`
 	// Raw provider usage JSON for audit/debug.
 	ProviderUsageJson string `protobuf:"bytes,13,opt,name=provider_usage_json,json=providerUsageJson,proto3" json:"provider_usage_json,omitempty"`
-	// Harness that originated this call ("native", "cursor" or "claude").
+	// Harness that originated this call ("native" or "claude").
 	// Set by the proxy controller based on which proxy path handled the request.
 	// When empty, the billing handler falls back to the model catalog.
 	Harness string `protobuf:"bytes,14,opt,name=harness,proto3" json:"harness,omitempty"`
@@ -125,8 +125,7 @@ type RecordLlmCallUsageInput struct {
 	// verbatim by the proxy from the SSE stream — the wire truth billing
 	// reconciles against the run's REQUESTED tier (the
 	// service_tier.mismatch counter). Empty when the provider reported
-	// none, and for cursor-harness calls, whose billed variant arrives
-	// through the cursor path's pricing-variant resolution instead.
+	// none.
 	ServedServiceTier string `protobuf:"bytes,18,opt,name=served_service_tier,json=servedServiceTier,proto3" json:"served_service_tier,omitempty"`
 	// The run this call is metered under, as the proxy resolved
 	// it from the run's system of record — on the caller's own

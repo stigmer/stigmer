@@ -465,7 +465,7 @@ export function AccountPreferencesPanel({
  * The rows are the offered engines (`HARNESS_OPTIONS`), each bound to its
  * own proto model field through `ACCOUNT_DEFAULT_MODELS`, and must stay in
  * lockstep with the proto's `default_harness` in-list validation
- * (`["native", "cursor", "claude"]`): a new engine adds a field, a table
+ * (`["native", "claude"]`): a new engine adds a field, a table
  * entry and a validation entry together.
  */
 function HarnessOptionRow({

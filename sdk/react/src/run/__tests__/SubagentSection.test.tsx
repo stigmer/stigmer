@@ -120,7 +120,7 @@ describe("SubagentSection flat layout and items", () => {
     const items: TurnItem[] = [
       message("m1", "Looking around."),
       thinking,
-      toolUse({ id: "r1", name: "Shell", input: { command: "ls" }, result: "a.ts" }),
+      toolUse({ id: "r1", name: "Bash", input: { command: "ls" }, result: "a.ts" }),
       toolUse({ id: "todo", name: "write_todos", input: { todos: [] }, result: "ok" }),
       { kind: "compacted", id: "c1", processedAt: "" },
       note,
@@ -146,10 +146,10 @@ describe("SubagentSection flat layout and items", () => {
 
   it("groups consecutive tool calls into one group and splits them at a message", () => {
     const items: TurnItem[] = [
-      toolUse({ id: "s1", name: "Shell", input: { command: "ls" }, result: "x" }),
-      toolUse({ id: "s2", name: "Shell", input: { command: "pwd" }, result: "y" }),
+      toolUse({ id: "s1", name: "Bash", input: { command: "ls" }, result: "x" }),
+      toolUse({ id: "s2", name: "Bash", input: { command: "pwd" }, result: "y" }),
       message("m1", "Between."),
-      toolUse({ id: "s3", name: "Shell", input: { command: "date" }, result: "z" }),
+      toolUse({ id: "s3", name: "Bash", input: { command: "date" }, result: "z" }),
     ];
     const { container } = renderFlat(thread({ state: "completed", items }));
     const groups = container.querySelectorAll('[data-cursor-target="tool-call-group"]');

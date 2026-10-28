@@ -70,10 +70,7 @@ const { models, defaultModel } = useModelRegistry({ harness: "native" });
 Compact segmented control for choosing the session execution engine.
 
 Renders one mutually exclusive option per offered engine — "Stigmer"
-(native), "Cursor" (premium) and "Claude" — as adjacent pill segments.
-The Cursor segment carries a subtle premium tier indicator; Claude bills
-at Anthropic's prices on the organization's key, as native does, so it
-carries none.
+(native) and "Claude" — as adjacent pill segments.
 
 Built as a `radiogroup` with full arrow-key navigation and ARIA
 semantics. All visual properties flow through `--stgm-*` tokens.
@@ -182,11 +179,6 @@ Pricing bracket for a model.
 - `economy` — lowest-cost models suitable for high-volume or latency-sensitive tasks
 - `standard` — balanced cost-to-capability, the default choice for most workloads
 - `premium` — highest-capability models for complex reasoning or critical tasks
-
-
-### DEFAULT_CURSOR_MODEL_ID
-
-Model ID used when the Cursor harness is selected and no user preference is set.
 
 
 ### DEFAULT_HARNESS
@@ -403,8 +395,7 @@ function parseRegistryJson(data: unknown): ModelInfo[]
 ### Provider
 
 LLM provider identifier. Each provider maps to a distinct inference
-backend (or intermediary, in the case of Cursor-served third-party
-models). The model registry uses this for grouping in the
+backend. The model registry uses this for grouping in the
 "Show All" expanded view.
 
 
@@ -449,7 +440,7 @@ Options for [`useModelRegistry`](#usemodelregistry).
 
 <TypeTable
   type={{
-    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"cursor\"` — only Cursor-harness models, default → DEFAULT_CURSOR_MODEL_ID - `\"native\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
+    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"native\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
   }}
 />
 

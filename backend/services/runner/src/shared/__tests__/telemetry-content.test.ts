@@ -62,7 +62,7 @@ describe("exportedArguments", () => {
     expect(String(args.body)).toMatch(/\[cut 12000 characters\]/);
   });
 
-  it.each(["write_file", "edit_file", "Write", "StrReplace"])("reduces a %s to a secret-like path to the path, withheld", (name) => {
+  it.each(["write_file", "edit_file", "Write", "Edit"])("reduces a %s to a secret-like path to the path, withheld", (name) => {
     expect(exportedArguments(name, { file_path: "/x/.env", content: "API_KEY=sk-live" })).toEqual({
       arguments: { path: "/x/.env" },
       withheld: true,

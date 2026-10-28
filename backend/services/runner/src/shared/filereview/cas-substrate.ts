@@ -13,8 +13,8 @@
  * paths, and a plain directory has no history to recover a pre-edit byte from.
  * So the CAS substrate is fed the exact before/after bytes of each touched path
  * (captured by the harness at mutation time — the deep-agent's
- * CasCaptureFilesystemBackend, or the Cursor hook staging the file before it
- * allows the write) and:
+ * CasCaptureFilesystemBackend, or a gate staging the file before it allows
+ * the write) and:
  *
  *  1. Stores each distinct before/after body as a CONTENT-ADDRESSED blob under
  *     `artifacts/{executionId}/filereview/cas/blobs/{sha256}` (deduped by hash,

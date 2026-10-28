@@ -40,10 +40,6 @@
 //     hand-off's result; a helper's call that would wait for a person is
 //     refused at once with the sentence that sends it back, and the turn
 //     never waits (CapabilityFlags.claudeTurnsRun);
-//   - on the Cursor engine, a subagent that brings its own tool lists is
-//     refused at turn start with one sentence, before any model call
-//     (CapabilityFlags.cursorRunsAdmitted: on the cloud target the run needs
-//     a real Cursor key, though the refusal spends nothing on it);
 //   - a hosted conversation whose subagent uses a local program (a stdio MCP
 //     server) is refused at run create, naming the plugin and the server,
 //     gated on CapabilityFlags.cloudTargetRefusesLocalPrograms (no target
@@ -96,7 +92,6 @@ import { threadsOf, toolUseByCallId, toolUsesOf, turnOfRun } from "../support/tu
 import { readConversation } from "@stigmer/test-support/claude-engine-wire";
 import { CLAUDE_ARM, type ArmStep, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
-import { CURSOR_KEY_SKIP_REASON } from "../targets/cloud";
 
 // The built-in delegation tool the native engine binds when a turn has
 // subagents.
@@ -597,35 +592,6 @@ describe("Run — the parent pinned its subagent at save", () => {
     const subagentRequest = wireAt(1);
     expect(subagentRequest, "the subagent runs the version the parent pinned").toContain("PINNED-VERSION");
     expect(subagentRequest).not.toContain("LATER-VERSION");
-  });
-});
-
-describe("Run — the Cursor engine and a subagent's own configuration", () => {
-  it("a Cursor turn whose subagent brings its own tool lists is refused at turn start with one sentence", async (ctx) => {
-    if (!collectionTarget.capabilities.cursorRunsAdmitted) return ctx.skip(CURSOR_KEY_SKIP_REASON);
-    const { org } = await target.provisionTenancy();
-    const { agent, subagents } = await parentWith(org, [{ name: uniqueName("listed"), disallowedTools: ["Bash"] }]);
-    const name = subagents[0]!.metadata!.slug;
-
-    const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({
-        org,
-        name: uniqueName("aex-cursor-subagent"),
-        agentRef: agentRefOf(agent),
-        sessionSpec: { harness: Harness.CURSOR },
-      }),
-    );
-    const executionId = execution.metadata!.id;
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
-
-    const final = await awaitTerminal(clients, executionId);
-    expect(RunPhase[final.status?.phase ?? 0], `execution ${executionId} is refused`).toBe(RunPhase[RunPhase.RUN_FAILED]);
-    expect(final.status?.error ?? "").toContain(
-      `Subagent '${name}' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: ` +
-        "it cannot tell a subagent's tool call from the main agent's. " +
-        `Run this agent on the native engine, or remove them from '${name}'.`,
-    );
-    expect(mock.consumed(), "the refusal comes before any model request").toBe(0);
   });
 });
 

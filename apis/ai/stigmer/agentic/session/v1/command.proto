@@ -277,19 +277,4 @@ service SessionCommandController {
   rpc claimInput(ClaimSessionInputInput) returns (ClaimSessionInputResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
-
-  // Record the harness's conversation id for a run's session.
-  //
-  // Only the runner acting for the run may call it, while the run is not
-  // finished. The id replaced, if any, joins the session's
-  // harness_state_id_history.
-  //
-  // @internal
-  // Skip-authorization: a permission cannot tell a runner from the person
-  // it acts for. The handler admits only a runner credential for this run,
-  // as appendEvents admits one, and writes the run's own session, never
-  // one the request names.
-  rpc bindHarnessState(BindHarnessStateInput) returns (BindHarnessStateResponse) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
-  }
 }

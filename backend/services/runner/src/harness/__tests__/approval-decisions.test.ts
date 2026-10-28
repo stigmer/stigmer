@@ -5,9 +5,8 @@
  * SKIP and REJECT settle to SKIPPED (REJECT with the pinned reason),
  * APPROVE and APPROVE_ALL are left to the engine's own events, sub-agent
  * transcripts are settled alike, and an undecided row is untouched. The
- * reader half (`approvalDecisionsOf`) is pinned against the Cursor adapter's
- * own reader in `execute-cursor/__tests__/approval-decisions-agree.test.ts`
- * and exercised through `turn-context.test.ts`.
+ * reader half (`approvalAnswersOf`) is exercised through
+ * `turn-context.test.ts`.
  */
 
 import { describe, it, expect } from "vitest";

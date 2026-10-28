@@ -10,9 +10,8 @@
  *     becomes a cross-process bearer token; optional today.
  *  2. A per-process random secret generated once at first use — sufficient
  *     today because the fingerprint is recompute-and-compare WITHIN one runner
- *     process for a given execution: the deep-agent gateway runs in-process, and
- *     the Cursor key is written to and read from the per-session state file by the
- *     same process. A process restart re-keys, which can only *re-ask* a pending
+ *     process for a given execution: each harness's gate computes and compares
+ *     it in the one process that runs the turn. A process restart re-keys, which can only *re-ask* a pending
  *     approval (fail-safe), never silently mis-authorize.
  *
  * The secret is never logged. The value is memoized so the per-process fallback

@@ -9,8 +9,8 @@
  * ({@link stampFileEditRow}). The ledger remains the single DECISION surface;
  * the row is never one (the research report's "transcript row references
  * change_set_id" / "tool-call rows are observational/audit-only for file
- * tools"). Both harnesses (Cursor deny-gate + deep-agent middleware) stamp rows
- * the same way, so the operation lives here.
+ * tools"). Every harness stamps rows the same way, so the operation lives
+ * here.
  *
  * {@link hideToolCallRow} / {@link isToolCallRowHidden} remain for the OTHER
  * collapse consumer — a superseded same-turn denial twin — and as the render
@@ -41,9 +41,9 @@ import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/tu
  * mis-attribution).
  *
  * Defensive secret clear (belt-and-braces): flowed rows are never
- * secret in practice — the Cursor hook hard-denies secret-like writes before
- * they flow — but a write to a TRACKED secret-like path (e.g. a committed
- * credentials file) is outside the hook's gitignored scope. Such a row keeps
+ * secret in practice — each gate hard-denies secret-like writes before they
+ * flow — but a write to a TRACKED secret-like path (e.g. a committed
+ * credentials file) is outside the gate's gitignored scope. Such a row keeps
  * its path (a filename is not itself the secret) and is stripped of content
  * (`args` body, `result` diff, `args_preview`). Fail-closed: a file row whose
  * path cannot be determined is stripped rather than trusted.
@@ -76,7 +76,7 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
  *    ({@link collectSubAgentToolCallIds}), since sub-agent rows have neither
  *    of the two shields above; top-level callers omit it;
  *  - rows `flowed` refuses — the caller's evidence that a row did NOT flow
- *    (the Cursor deny-gate's ledger tokens; a status rule). Omit to stamp
+ *    (a status rule). Omit to stamp
  *    every write/delete row, the deep-agent posture where every such row flowed.
  *
  * One pass for every harness (since #1096; until then each adapter carried a copy
@@ -196,10 +196,9 @@ export function withholdSecretContentFromMessages(
  * anywhere: for a file-mutating tool `args` holds the full write body, which for
  * a secret-like path would otherwise persist into the transcript / Temporal
  * history in violation of the never-persist-secret-contents contract.
- * Dropping it is safe at resume — identity is carried by
- * `approval_content_digest`, deliberately immune to `args` being absent (the
- * size-limit elision already drops `args`); no consumer reads a hidden row's
- * `args`.
+ * Dropping it is safe at resume — a gate answers a call by its id, never by
+ * `args` (the size-limit elision already drops `args`); no consumer reads a
+ * hidden row's `args`.
  */
 export function hideToolCallRow(tc: ToolCall): void {
   tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
@@ -245,8 +244,8 @@ export function isToolCallRowHidden(tc: ToolCall): boolean {
  * also correct for a sub-agent that spans invocations (an internal tool gate):
  * its id pre-exists on resume, but its continuation edit rows carry fresh ids
  * and stamp with the completing turn's set. It is likewise independent of how
- * each harness seeds prior sub-agents (deep-agent replaces per-turn and holds
- * none; Cursor clones them in) — the snapshot reflects whatever is present.
+ * each harness seeds prior sub-agents — the snapshot reflects whatever is
+ * present.
  */
 export function collectSubAgentToolCallIds(
   subAgents: readonly SubAgentRun[],
@@ -266,12 +265,9 @@ export function collectSubAgentToolCallIds(
  * Includes TOOL_CALL_INTERRUPTED (server-authored when an execution
  * terminalized with the call in flight): for the provenance scoping below, a
  * settled row from a prior (failed, then recovered) invocation is PRIOR-turn
- * history and must not be attributed to the resuming turn. This is the
- * opposite call from the Cursor translator's isTerminalToolStatus, which
- * EXCLUDES interrupted so a recovery-replayed event can advance the row in
- * place (the enum's recovery supersede rule) — that guard asks "may this row
- * still move?", this set asks "had this row finished before the turn?", and an
- * interrupted row answers yes to both.
+ * history and must not be attributed to the resuming turn: this set asks
+ * "had this row finished before the turn?", and an interrupted row answers
+ * yes.
  */
 const TERMINAL_TOOL_CALL_STATUSES: ReadonlySet<ToolCallStatus> = new Set([
   ToolCallStatus.TOOL_CALL_COMPLETED,
@@ -289,8 +285,8 @@ const TERMINAL_TOOL_CALL_STATUSES: ReadonlySet<ToolCallStatus> = new Set([
  * whose id is absent from the snapshot is this-turn's — either freshly streamed,
  * or a prior gate that was WAITING_APPROVAL before the stream and executes now on
  * resume (StatusBuilder updates the seeded row in place, so it keeps its id).
- * Unlike the Cursor harness, the deep-agent cannot scope positionally — an
- * approved command executes at its SEEDED position — so identity is the only
+ * A harness cannot scope positionally — an approved command executes at its
+ * SEEDED position — so identity is the only
  * correct scope, mirroring {@link collectSubAgentToolCallIds}. Terminal (not just
  * completed) so a PRIOR turn's failed/skipped non-shell call is excluded and
  * cannot spuriously disqualify this turn.

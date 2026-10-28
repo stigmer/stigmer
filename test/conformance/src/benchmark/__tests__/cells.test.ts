@@ -4,12 +4,11 @@
 //
 // Pinned: the matrix is twelve scenarios (seven on the bare agent, five on the
 // working agent, two of them the single-turn background cells over their
-// overlay, with checks of their work) by three harnesses (native, Cursor and
-// Claude), and the quality arm is one target per harness on its parity model,
+// overlay, with checks of their work) by two harnesses (native and Claude),
+// and the quality arm is one target per harness on its parity model,
 // Claude's the native arm's served model under the Claude engine's row; a
 // missing Anthropic key refuses every native and Claude cell and every
-// quality target; a missing Cursor key refuses Cursor cells
-// and the Cursor target alone; a missing `stigmer` CLI refuses the
+// quality target; a missing `stigmer` CLI refuses the
 // working-agent timing cells and nothing else (an eval run's try loads no
 // memory); --only and --cells refuse with their own reasons; parity and
 // working cells carry their harness's registry id and default cells none.
@@ -37,27 +36,25 @@ import {
   qualityTargets,
 } from "../cells";
 
-const ALL = { anthropicKey: true, openaiKey: true, cursorKey: true, stigmerCli: true };
+const ALL = { anthropicKey: true, openaiKey: true, stigmerCli: true };
 
 /** Every scenario's cell id on `harnesses`, in the planner's order: scenario by scenario, each harness in turn. */
 const idsOn = (harnesses: readonly string[], scenarios = SCENARIOS.map((scenario) => scenario.name)): string[] =>
   scenarios.flatMap((scenario) => harnesses.map((harness) => `${scenario}/${harness}`));
 
 describe("benchmarkCells", () => {
-  it("is twelve scenarios on three harnesses, parity and working cells pinned per harness", () => {
+  it("is twelve scenarios on two harnesses, parity and working cells pinned per harness", () => {
     const cells = benchmarkCells();
-    expect(cells).toHaveLength(36);
+    expect(cells).toHaveLength(24);
     expect(cells.find((cell) => cell.id === "report-parity-simple/claude")?.modelRequested, "the native arm's model under the Claude engine's row").toBe("claude-sonnet-4.6");
     expect(cells.find((cell) => cell.id === "report-simple/claude")?.modelRequested, "Claude's default cells run its catalog default").toBeNull();
     expect(cells.find((cell) => cell.id === "working-read-edit/claude")?.modelRequested).toBe(PARITY_MODEL.claude);
     expect(cells.find((cell) => cell.id === "report-parity-simple/deep-agent")?.modelRequested).toBe("claude-sonnet-4.6");
-    expect(cells.find((cell) => cell.id === "report-parity-simple/cursor")?.modelRequested).toBe("claude-sonnet-4-6");
-    expect(cells.find((cell) => cell.id === "report-simple/cursor")?.modelRequested).toBeNull();
     expect(cells.find((cell) => cell.id === "report-parity-turn-2/deep-agent")?.scenario.prompts).toHaveLength(3);
-    const working = cells.find((cell) => cell.id === "working-read-edit/cursor");
+    const working = cells.find((cell) => cell.id === "working-read-edit/claude");
     expect(working?.scenario.agent).toBe("working");
     expect(working?.scenario.prompts).toHaveLength(3);
-    expect(working?.modelRequested).toBe("claude-sonnet-4-6");
+    expect(working?.modelRequested).toBe("claude-sonnet-4.6");
     const crossTurn = cells.find((cell) => cell.id === "working-cross-turn/deep-agent");
     expect(crossTurn?.scenario.agent).toBe("working");
     expect(crossTurn?.scenario.sessionShape).toBe("one-session-three-turns");
@@ -83,8 +80,6 @@ describe("benchmarkCells", () => {
     expect(benchmarkCells().filter((cell) => cell.scenario.overlay !== undefined).map((cell) => cell.scenario.name)).toEqual([
       "background-slow-suite",
       "background-slow-suite",
-      "background-slow-suite",
-      "background-dev-server",
       "background-dev-server",
       "background-dev-server",
     ]);
@@ -118,17 +113,16 @@ describe("doneChecksHold", () => {
 describe("planCells", () => {
   it("with every key runs every benchmark cell and every quality target on its parity model", () => {
     const plan = planCells(ALL, {});
-    expect(plan.cells).toHaveLength(36);
+    expect(plan.cells).toHaveLength(24);
     expect(plan.quality).toEqual([
       { id: "quality/deep-agent", harness: "deep-agent", modelRequested: "claude-sonnet-4.6" },
-      { id: "quality/cursor", harness: "cursor", modelRequested: "claude-sonnet-4-6" },
       { id: "quality/claude", harness: "claude", modelRequested: "claude-sonnet-4.6" },
     ]);
     expect(plan.judge).toBe(false);
     expect(plan.refused).toEqual([{ cell: JUDGE_CALIBRATION_CELL, reason: "runs only when --cells names it" }]);
   });
 
-  it("runs the judge cell alone when --cells names it, and refuses it without the Anthropic key or under --only cursor", () => {
+  it("runs the judge cell alone when --cells names it, and refuses it without the Anthropic key or under --only claude", () => {
     const plan = planCells(ALL, { cells: "judge/*" });
     expect(plan.judge).toBe(true);
     expect(plan.cells).toEqual([]);
@@ -137,7 +131,7 @@ describe("planCells", () => {
       cell: JUDGE_CALIBRATION_CELL,
       reason: "missing ANTHROPIC_API_KEY",
     });
-    expect(planCells(ALL, { cells: "judge/*", only: "cursor" }).refused).toContainEqual({
+    expect(planCells(ALL, { cells: "judge/*", only: "claude" }).refused).toContainEqual({
       cell: JUDGE_CALIBRATION_CELL,
       reason: "excluded by --only",
     });
@@ -149,24 +143,22 @@ describe("planCells", () => {
 
   it("without the Anthropic key refuses every native and Claude cell and every quality cell by name", () => {
     const plan = planCells({ ...ALL, anthropicKey: false }, {});
-    expect(plan.cells.every((cell) => cell.harness === "cursor")).toBe(true);
+    expect(plan.cells).toEqual([]);
     expect(plan.quality).toEqual([]);
     expect(plan.refused.filter((r) => r.reason === "missing ANTHROPIC_API_KEY").map((r) => r.cell)).toEqual([
       ...idsOn(["deep-agent", "claude"]),
       "quality/deep-agent",
-      "quality/cursor",
       "quality/claude",
     ]);
   });
 
   it("--only claude plans the Claude cells and target alone, each needing the Anthropic key whatever its model", () => {
-    const plan = planCells({ ...ALL, cursorKey: false, openaiKey: false }, { only: "claude" });
+    const plan = planCells({ ...ALL, openaiKey: false }, { only: "claude" });
     expect(plan.cells.map((cell) => cell.id)).toEqual(idsOn(["claude"]));
     expect(plan.quality).toEqual([{ id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude }]);
     expect(plan.refused.filter((r) => r.reason === "excluded by --only").map((r) => r.cell)).toEqual([
-      ...idsOn(["deep-agent", "cursor"]),
+      ...idsOn(["deep-agent"]),
       "quality/deep-agent",
-      "quality/cursor",
       JUDGE_CALIBRATION_CELL,
     ]);
   });
@@ -174,29 +166,20 @@ describe("planCells", () => {
   it("a thinking run refuses the cells on a harness's default model and keeps every pinned cell", () => {
     const plan = planCells(ALL, { thinking: "enabled" });
     expect(plan.cells.every((cell) => cell.modelRequested !== null)).toBe(true);
-    expect(plan.cells).toHaveLength(27);
+    expect(plan.cells).toHaveLength(18);
     expect(plan.refused.filter((r) => r.reason === "thinking needs a pinned model").map((r) => r.cell)).toEqual(
-      idsOn(["deep-agent", "cursor", "claude"], ["report-simple", "report-medium", "report-codegen"]),
+      idsOn(["deep-agent", "claude"], ["report-simple", "report-medium", "report-codegen"]),
     );
-    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/cursor", "quality/claude"]);
-  });
-
-  it("without the Cursor key refuses the Cursor cells alone", () => {
-    const plan = planCells({ ...ALL, cursorKey: false }, {});
-    expect(plan.cells.every((cell) => cell.harness !== "cursor")).toBe(true);
     expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/claude"]);
-    const keyed = plan.refused.filter((r) => r.cell !== JUDGE_CALIBRATION_CELL);
-    expect(keyed.every((r) => r.reason === "missing CURSOR_API_KEY")).toBe(true);
-    expect(keyed).toHaveLength(13);
   });
 
   it("without the stigmer CLI refuses the working-agent timing cells alone, and keeps the quality targets", () => {
     const plan = planCells({ ...ALL, stigmerCli: false }, {});
-    expect(plan.cells).toHaveLength(21);
+    expect(plan.cells).toHaveLength(14);
     expect(plan.cells.every((cell) => cell.scenario.agent === "bare")).toBe(true);
-    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/cursor", "quality/claude"]);
+    expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/claude"]);
     expect(plan.refused.filter((r) => r.cell !== JUDGE_CALIBRATION_CELL)).toEqual(
-      idsOn(["deep-agent", "cursor", "claude"], ["working-read-edit", "working-cross-turn", "working-long-log", "background-slow-suite", "background-dev-server"]).map((cell) => ({
+      idsOn(["deep-agent", "claude"], ["working-read-edit", "working-cross-turn", "working-long-log", "background-slow-suite", "background-dev-server"]).map((cell) => ({
         cell,
         reason: "missing stigmer CLI",
       })),
@@ -204,30 +187,31 @@ describe("planCells", () => {
   });
 
   it("--only and --cells refuse with their own reasons, flags before keys", () => {
-    const plan = planCells({ ...ALL, anthropicKey: false }, { only: "cursor", cells: "report-parity-*" });
+    const plan = planCells({ ...ALL, openaiKey: false }, { only: "claude", cells: "report-parity-*" });
     expect(plan.cells.map((cell) => cell.id)).toEqual([
-      "report-parity-simple/cursor",
-      "report-parity-medium/cursor",
-      "report-parity-codegen/cursor",
-      "report-parity-turn-2/cursor",
+      "report-parity-simple/claude",
+      "report-parity-medium/claude",
+      "report-parity-codegen/claude",
+      "report-parity-turn-2/claude",
     ]);
     expect(plan.refused.find((r) => r.cell === "report-simple/deep-agent")?.reason).toBe("excluded by --only");
-    expect(plan.refused.find((r) => r.cell === "report-simple/cursor")?.reason).toBe("excluded by --cells");
+    expect(plan.refused.find((r) => r.cell === "report-simple/claude")?.reason).toBe("excluded by --cells");
+    const keyless = planCells({ ...ALL, anthropicKey: false }, { only: "claude", cells: "report-parity-*" });
+    expect(keyless.refused.find((r) => r.cell === "report-simple/deep-agent")?.reason, "a flag, not the missing key").toBe("excluded by --only");
+    expect(keyless.refused.find((r) => r.cell === "report-parity-simple/claude")?.reason).toBe("missing ANTHROPIC_API_KEY");
   });
 });
 
 describe("--native-model", () => {
-  it("moves every native pinned cell and the native quality target to its model, and leaves Cursor, Claude and the default cells as they are", () => {
+  it("moves every native pinned cell and the native quality target to its model, and leaves Claude and the default cells as they are", () => {
     const cells = benchmarkCells("openai:gpt-5.5");
     expect(cells.filter((cell) => cell.harness === "deep-agent" && cell.scenario.mode !== "default").map((cell) => cell.modelRequested)).toEqual(
       Array(9).fill("openai:gpt-5.5"),
     );
     expect(cells.filter((cell) => cell.scenario.mode === "default").every((cell) => cell.modelRequested === null)).toBe(true);
-    expect(cells.find((cell) => cell.id === "working-read-edit/cursor")?.modelRequested).toBe(PARITY_MODEL.cursor);
     expect(cells.find((cell) => cell.id === "working-read-edit/claude")?.modelRequested).toBe(PARITY_MODEL.claude);
     expect(qualityTargets("openai:gpt-5.5")).toEqual([
       { id: "quality/deep-agent", harness: "deep-agent", modelRequested: "openai:gpt-5.5" },
-      { id: "quality/cursor", harness: "cursor", modelRequested: PARITY_MODEL.cursor },
       { id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude },
     ]);
     expect(benchmarkCells()).toEqual(benchmarkCells(PARITY_MODEL["deep-agent"]));
@@ -371,9 +355,9 @@ describe("nativeEndpoint", () => {
 
 describe("globMatches", () => {
   it("treats * as any run of characters and everything else literally", () => {
-    expect(globMatches("report-parity-*", "report-parity-simple/cursor")).toBe(true);
-    expect(globMatches("*/cursor", "report-simple/cursor")).toBe(true);
-    expect(globMatches("report-simple/cursor", "report-simple/deep-agent")).toBe(false);
-    expect(globMatches("report.simple/cursor", "reportXsimple/cursor")).toBe(false);
+    expect(globMatches("report-parity-*", "report-parity-simple/claude")).toBe(true);
+    expect(globMatches("*/claude", "report-simple/claude")).toBe(true);
+    expect(globMatches("report-simple/claude", "report-simple/deep-agent")).toBe(false);
+    expect(globMatches("report.simple/claude", "reportXsimple/claude")).toBe(false);
   });
 });

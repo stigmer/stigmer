@@ -37,7 +37,7 @@ import {
   assertEveryExitIsAnOutcome,
   assertLifetimesResolve,
   assertProposalIsWaitingAndUnexecuted,
-  assertStateIdCapabilityAgrees,
+  assertStateIdIsTheRuntimes,
   assertStopSignalInterrupts,
   assertUsageReachesSinkAsDeltas,
 } from "../harness-contract/contract.js";
@@ -89,7 +89,6 @@ function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
     recordActivity: (detail) => inner.recordActivity(detail),
     reportUsage: (delta) => inner.reportUsage(delta),
     reportProgress: (label) => inner.reportProgress(label),
-    bindHarnessState: (id) => inner.bindHarnessState(id),
     bindCasObservations: (read) => inner.bindCasObservations(read),
     ...patch,
   };
@@ -109,7 +108,7 @@ function subjectOver(inner: ScriptedSubject, adapter: HarnessAdapter): HarnessCo
 }
 
 function honest(): ScriptedSubject {
-  return scriptedSubject({ pausePrimitive: "interrupt", stateIdSource: "engine-minted" });
+  return scriptedSubject({});
 }
 
 // ── The broken adapters, one violation each ─────────────────────────────────
@@ -182,11 +181,18 @@ function reportsCumulativeUsage(): HarnessContractSubject {
   }));
 }
 
-/** Declares an engine-minted id and never binds one. */
-function claimsEngineMintedNeverBinds(): HarnessContractSubject {
-  const inner = scriptedSubject({ pausePrimitive: "interrupt", stateIdSource: "deterministic" });
-  return subjectOver(inner, adapterOver(inner.adapter, "broken:claims-engine-minted", {
-    capabilities: { ...inner.adapter.capabilities, stateIdSource: "engine-minted" },
+/** Keeps no engine state between turns, so it cannot resume by the runtime's id. */
+function refusesResume(): HarnessContractSubject {
+  const inner = honest();
+  const begun = new Set<string>();
+  return subjectOver(inner, adapterOver(inner.adapter, "broken:refuses-resume", {
+    runTurn: async (input, sink) => {
+      if (begun.has(input.sessionId)) {
+        return { kind: "failed", surface: "internal", message: `no engine state '${input.threadId}' to resume` };
+      }
+      begun.add(input.sessionId);
+      return inner.adapter.runTurn(input, sink);
+    },
   }));
 }
 
@@ -242,8 +248,8 @@ describe("harness contract kit self-check — every invariant can fail", () => {
     await expect(assertUsageReachesSinkAsDeltas(await booted(reportsCumulativeUsage()))).rejects.toThrow(/broken:cumulative-usage: .*must sum to what the engine emitted/);
   });
 
-  it("invariant 6 fires when an adapter claims engine-minted and never binds", async () => {
-    await expect(assertStateIdCapabilityAgrees(await booted(claimsEngineMintedNeverBinds()))).rejects.toThrow(/broken:claims-engine-minted: .*must bind its state id/);
+  it("invariant 6 fires when an adapter cannot resume by the runtime's id", async () => {
+    await expect(assertStateIdIsTheRuntimes(await booted(refusesResume()))).rejects.toThrow(/broken:refuses-resume: resuming by the runtime's id must complete/);
   });
 
   it("invariant 7 fires when releaseSession rejects an unknown session", async () => {

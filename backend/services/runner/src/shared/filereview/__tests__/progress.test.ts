@@ -48,7 +48,7 @@ import { FileChangeType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-progress-1";
 const CHANGE_SET_ID = "exec-progress-1:0";
-const RUNNER_OWNED_PATHS: readonly string[] = [".cursor/hooks.json"];
+const RUNNER_OWNED_PATHS: readonly string[] = [".runner-gate/hooks.json"];
 
 let repo: string;
 
@@ -164,11 +164,11 @@ describe("captureProgressDelta (real git repo)", () => {
 
   it("excludes runner-owned gate files from the delta", async () => {
     const baseline = await snapshotBaseline(repo, EXEC_ID, RUNNER_OWNED_PATHS);
-    await write(".cursor/hooks.json", "{}\n");
+    await write(".runner-gate/hooks.json", "{}\n");
     await write("real.ts", "x\n");
 
     const delta = await captureProgressDelta(repo, EXEC_ID, baseline, RUNNER_OWNED_PATHS);
-    expect(entryFor(delta!, ".cursor/hooks.json")).toBeUndefined();
+    expect(entryFor(delta!, ".runner-gate/hooks.json")).toBeUndefined();
     expect(entryFor(delta!, "real.ts")).toBeDefined();
   });
 });

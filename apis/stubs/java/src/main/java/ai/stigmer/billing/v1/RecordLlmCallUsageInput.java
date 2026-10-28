@@ -190,7 +190,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object provider_ = "";
   /**
    * <pre>
-   * Provider identifier (e.g., "openai", "anthropic", "cursor").
+   * Provider identifier (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -211,7 +211,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Provider identifier (e.g., "openai", "anthropic", "cursor").
+   * Provider identifier (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -604,7 +604,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object harness_ = "";
   /**
    * <pre>
-   * Harness that originated this call ("native", "cursor" or "claude").
+   * Harness that originated this call ("native" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    * </pre>
@@ -627,7 +627,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Harness that originated this call ("native", "cursor" or "claude").
+   * Harness that originated this call ("native" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    * </pre>
@@ -662,8 +662,7 @@ private static final long serialVersionUID = 0L;
    * verbatim by the proxy from the SSE stream — the wire truth billing
    * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
-   * none, and for cursor-harness calls, whose billed variant arrives
-   * through the cursor path's pricing-variant resolution instead.
+   * none.
    * </pre>
    *
    * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -691,8 +690,7 @@ private static final long serialVersionUID = 0L;
    * verbatim by the proxy from the SSE stream — the wire truth billing
    * reconciles against the run's REQUESTED tier (the
    * service_tier.mismatch counter). Empty when the provider reported
-   * none, and for cursor-harness calls, whose billed variant arrives
-   * through the cursor path's pricing-variant resolution instead.
+   * none.
    * </pre>
    *
    * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -1808,7 +1806,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object provider_ = "";
     /**
      * <pre>
-     * Provider identifier (e.g., "openai", "anthropic", "cursor").
+     * Provider identifier (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -1828,7 +1826,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider identifier (e.g., "openai", "anthropic", "cursor").
+     * Provider identifier (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -1849,7 +1847,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider identifier (e.g., "openai", "anthropic", "cursor").
+     * Provider identifier (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -1866,7 +1864,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider identifier (e.g., "openai", "anthropic", "cursor").
+     * Provider identifier (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -1880,7 +1878,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Provider identifier (e.g., "openai", "anthropic", "cursor").
+     * Provider identifier (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 3 [json_name = "provider", (.buf.validate.field) = { ... }</code>
@@ -2834,7 +2832,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object harness_ = "";
     /**
      * <pre>
-     * Harness that originated this call ("native", "cursor" or "claude").
+     * Harness that originated this call ("native" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2856,7 +2854,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native", "cursor" or "claude").
+     * Harness that originated this call ("native" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2879,7 +2877,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native", "cursor" or "claude").
+     * Harness that originated this call ("native" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2898,7 +2896,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native", "cursor" or "claude").
+     * Harness that originated this call ("native" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2914,7 +2912,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that originated this call ("native", "cursor" or "claude").
+     * Harness that originated this call ("native" or "claude").
      * Set by the proxy controller based on which proxy path handled the request.
      * When empty, the billing handler falls back to the model catalog.
      * </pre>
@@ -2943,8 +2941,7 @@ private static final long serialVersionUID = 0L;
      * verbatim by the proxy from the SSE stream — the wire truth billing
      * reconciles against the run's REQUESTED tier (the
      * service_tier.mismatch counter). Empty when the provider reported
-     * none, and for cursor-harness calls, whose billed variant arrives
-     * through the cursor path's pricing-variant resolution instead.
+     * none.
      * </pre>
      *
      * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -2971,8 +2968,7 @@ private static final long serialVersionUID = 0L;
      * verbatim by the proxy from the SSE stream — the wire truth billing
      * reconciles against the run's REQUESTED tier (the
      * service_tier.mismatch counter). Empty when the provider reported
-     * none, and for cursor-harness calls, whose billed variant arrives
-     * through the cursor path's pricing-variant resolution instead.
+     * none.
      * </pre>
      *
      * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -3000,8 +2996,7 @@ private static final long serialVersionUID = 0L;
      * verbatim by the proxy from the SSE stream — the wire truth billing
      * reconciles against the run's REQUESTED tier (the
      * service_tier.mismatch counter). Empty when the provider reported
-     * none, and for cursor-harness calls, whose billed variant arrives
-     * through the cursor path's pricing-variant resolution instead.
+     * none.
      * </pre>
      *
      * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -3025,8 +3020,7 @@ private static final long serialVersionUID = 0L;
      * verbatim by the proxy from the SSE stream — the wire truth billing
      * reconciles against the run's REQUESTED tier (the
      * service_tier.mismatch counter). Empty when the provider reported
-     * none, and for cursor-harness calls, whose billed variant arrives
-     * through the cursor path's pricing-variant resolution instead.
+     * none.
      * </pre>
      *
      * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>
@@ -3047,8 +3041,7 @@ private static final long serialVersionUID = 0L;
      * verbatim by the proxy from the SSE stream — the wire truth billing
      * reconciles against the run's REQUESTED tier (the
      * service_tier.mismatch counter). Empty when the provider reported
-     * none, and for cursor-harness calls, whose billed variant arrives
-     * through the cursor path's pricing-variant resolution instead.
+     * none.
      * </pre>
      *
      * <code>string served_service_tier = 18 [json_name = "servedServiceTier"];</code>

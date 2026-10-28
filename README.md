@@ -156,7 +156,7 @@ Every component is themeable with design tokens, and the hooks underneath are ex
 | **Start with** | `stigmer up`, Docker Compose or the Helm chart | The Helm chart with a license key Secret | `stigmer config backend set cloud` |
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) or your Postgres | Your Postgres | Managed |
 | **Users** | One organization, with sign-in, roles and service accounts | Many organizations, teams, invitations and federation | The same, hosted |
-| **LLM** | Your key, held by the runner (Anthropic, or Cursor) | Your key, held by the runner (Anthropic, or Cursor) | Your organization's keys (Anthropic, OpenAI, compatible endpoints, Cursor) |
+| **LLM** | Your key, held by the runner (Anthropic) | Your key, held by the runner (Anthropic) | Your organization's keys (Anthropic, OpenAI, compatible endpoints) |
 | **Best for** | Development, personal projects, one team, full data ownership | Companies that must keep many teams on their own infrastructure | Teams that want a managed platform |
 
 Stigmer runs no model of its own: every edition runs your agents on your own provider key. Stigmer Enterprise is licensed annually; [compare the editions](https://stigmer.ai/docs/guides/self-hosting/cloud-vs-self-hosted) or see [pricing](https://stigmer.ai/pricing).

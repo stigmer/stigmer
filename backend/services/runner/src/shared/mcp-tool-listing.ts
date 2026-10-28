@@ -3,13 +3,10 @@
  * default reads: whether the tool's own MCP annotation says
  * `destructiveHint: true`. Nothing is stored; every listing asks the server.
  *
- * Two readers: a tools listing a person asks for from a plugin's page
- * (activities/list-plugin-tools.ts, the connect workflow's one step), and
- * the start of a turn on an engine that does not bind the tools itself (the
- * Cursor engine's tools are loaded by its SDK, not by this runner), whose
- * approval default needs the marks before the turn runs
- * ({@link listTurnTools}). The native engine reads the same marks from the
- * tools it loads, so it never lists twice.
+ * Its reader: a tools listing a person asks for from a plugin's page
+ * (activities/list-plugin-tools.ts, the connect workflow's one step). The
+ * engines read the same marks from the tools they load (native from its own
+ * MCP client, Claude from the host's bridge), so a turn never lists twice.
  *
  * Annotations are untrusted (the MCP spec says so), so they are read only in
  * the direction that adds a question: `readOnlyHint` is never read, and a
@@ -29,9 +26,8 @@
  * A turn's listing also carries what the model is offered of each listed
  * tool (`McpToolListing.offered`): its description and input schema, as
  * {@link definitionOf} caps them. Each engine builds it from its own source
- * (native from the tools it loaded, Claude from its bridge's listing,
- * Cursor from this module's listing at turn start, which is the best
- * reading there: Cursor's SDK loads the tools itself) and hands it to the
+ * (native from the tools it loaded, Claude from its bridge's listing) and
+ * hands it to the
  * turn's transcript builder, which records the definition of each tool
  * the turn calls (`harness/transcript/builder.ts` `offerTools`), so an
  * eval case built from the turn offers the model the same tool. A schema
@@ -221,43 +217,3 @@ export async function listServerTools(server: ResolvedMcpServer): Promise<Listed
   return tools;
 }
 
-/**
- * Lists every server of a turn in parallel, the agent's own and its
- * plugins', for an engine that does not bind the tools itself, so a tool
- * either marks destructive asks first whichever kind of server holds it.
- * The platform's own servers are never listed:
- * none of their tools asks. A server whose listing fails is named in
- * `unlisted`, with the reason logged.
- */
-export async function listTurnTools(
-  servers: readonly ResolvedMcpServer[],
-  list: (server: ResolvedMcpServer) => Promise<readonly ListedTool[]> = listServerTools,
-): Promise<McpToolListing> {
-  const listed = await Promise.all(
-    servers
-      .filter((server) => server.home.kind !== "platform")
-      .map(async (server) => {
-        try {
-          return { server: server.slug, tools: await list(server) };
-        } catch (err) {
-          console.warn(
-            `[mcp-tool-listing] The tools of MCP server '${server.slug}' could not be listed, so every one of them asks first this turn: ` +
-              `${err instanceof Error ? err.message : String(err)}`,
-          );
-          return { server: server.slug, tools: undefined };
-        }
-      }),
-  );
-  return {
-    listed: listed.flatMap(({ server, tools }) =>
-      tools === undefined ? [] : [{ server, tools: tools.map((tool) => tool.name) }],
-    ),
-    destructive: listed.flatMap(({ server, tools }) =>
-      (tools ?? []).filter((tool) => tool.destructive).map((tool) => ({ server, tool: tool.name })),
-    ),
-    unlisted: listed.filter(({ tools }) => tools === undefined).map(({ server }) => server),
-    offered: listed.flatMap(({ server, tools }) =>
-      (tools ?? []).map((tool) => definitionOf(server, tool.name, tool.description, tool.inputSchema)),
-    ),
-  };
-}

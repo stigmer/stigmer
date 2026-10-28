@@ -72,7 +72,7 @@ stubs.session = {
   workingSeconds: 3_725,
   modelBreakdown: [
     { model: "claude-sonnet", provider: "anthropic", totalTokens: 16_000, inputTokens: 3_000, outputTokens: 1_000, cacheCreationTokens: 0, cacheReadTokens: 12_000, callCount: 10 },
-    { model: "composer-2", provider: "cursor", totalTokens: 2_400, inputTokens: 1_000, outputTokens: 400, cacheCreationTokens: 0, cacheReadTokens: 1_000, callCount: 0 },
+    { model: "gpt-5.3", provider: "openai", totalTokens: 2_400, inputTokens: 1_000, outputTokens: 400, cacheCreationTokens: 0, cacheReadTokens: 1_000, callCount: 0 },
   ],
   runBreakdown: [{ runId: "run_1", resolvedModel: "claude-sonnet", totalTokens: 18_400, isEstimated: true, workingSeconds: 3_725 }],
   servedBy: servedBy.map((s) => ({ ...s, totalTokens: Number(s.totalTokens) })),

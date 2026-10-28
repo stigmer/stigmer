@@ -1,27 +1,22 @@
-/**
- * The certificate the local proxy's Cursor lane serves TLS with
- * (`cursor-lane.ts`): one self-signed certificate for `127.0.0.1`, made at
- * each runner start, whose private key never leaves the runner's memory.
- *
- * Why TLS on loopback at all: the Cursor SDK opens its agent run as an
- * HTTP/2 bidirectional stream only for an `https:` backend; for an `http:`
- * one it falls back to HTTP/1.1 and an emulation of the stream that the
- * Stigmer platform's proxy does not serve. So the host's SDK is pointed at
- * an `https://127.0.0.1` lane, and the host trusts exactly this certificate
- * (`NODE_EXTRA_CA_CERTS`, `agent-host/hosting.ts`).
- *
- * Node can generate the key but not the certificate, so the certificate is
- * encoded here, in the few DER structures X.509 needs: an EC P-256 key, a
- * subject alternative name of IP 127.0.0.1, a ten-year validity (the
- * certificate lives as long as one runner process, and its key with it),
- * signed with ECDSA over SHA-256. The tests prove it the way the host uses
- * it: Node's own X.509 parser reads it, and a TLS handshake that trusts it
- * succeeds against `127.0.0.1`.
- */
+// A self-signed TLS certificate for `127.0.0.1`, minted in memory.
+// Domain: test support (identity fixtures).
+//
+// A hermetic provider that a server must read over HTTPS (the local OIDC
+// issuer under its `tls` option, the enterprise conformance target's
+// issuer) serves TLS with one of these: a fresh key per mint, never written
+// to disk, and a certificate the reading process is told to trust
+// (`NODE_EXTRA_CA_CERTS` or a client's `ca`).
+//
+// Node can generate the key but not the certificate, so the certificate is
+// encoded here, in the few DER structures X.509 needs: an EC P-256 key, a
+// subject alternative name of IP 127.0.0.1, a ten-year validity, signed
+// with ECDSA over SHA-256. The tests prove it the way a reader uses it:
+// Node's own X.509 parser reads it, and a TLS handshake that trusts it
+// succeeds against `127.0.0.1`.
 
 import { generateKeyPairSync, randomBytes, sign } from "node:crypto";
 
-/** A certificate and its key, both PEM; the key is the runner's alone. */
+/** A certificate and its key, both PEM; the key never leaves the minting process. */
 export interface LoopbackCertificate {
   readonly certPem: string;
   readonly keyPem: string;
@@ -37,7 +32,7 @@ const VALIDITY_YEARS = 10;
 /** Make a fresh key and a self-signed certificate for `127.0.0.1`; `serial` is random but for a test's. */
 export function mintLoopbackCertificate(now: Date = new Date(), serial: Buffer = randomBytes(16)): LoopbackCertificate {
   const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
-  const name = sequence(set(sequence(oid(OID_COMMON_NAME), utf8("stigmer agent proxy"))));
+  const name = sequence(set(sequence(oid(OID_COMMON_NAME), utf8("stigmer loopback"))));
   const notBefore = new Date(now.getTime() - 60 * 60 * 1000);
   const notAfter = new Date(now.getTime());
   notAfter.setUTCFullYear(notAfter.getUTCFullYear() + VALIDITY_YEARS);

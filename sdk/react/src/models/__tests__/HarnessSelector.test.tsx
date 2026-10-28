@@ -30,14 +30,13 @@ describe("HarnessSelector", () => {
     it("renders one radio button per offered engine", () => {
       renderSelector();
       const radios = screen.getAllByRole("radio");
-      expect(radios).toHaveLength(3);
+      expect(radios).toHaveLength(2);
     });
 
     it("labels radio buttons with user-facing harness names", () => {
       renderSelector();
       expect(screen.getByRole("radio", { name: "Stigmer" })).toBeDefined();
-      expect(screen.getByRole("radio", { name: "Cursor" })).toBeDefined();
-      expect(screen.getByRole("radio", { name: "Claude" }), "Claude carries no premium mark: it bills at Anthropic's prices, as native does").toBeDefined();
+      expect(screen.getByRole("radio", { name: "Claude" })).toBeDefined();
     });
   });
 
@@ -45,17 +44,17 @@ describe("HarnessSelector", () => {
     it("marks native as checked when value is native", () => {
       renderSelector({ value: "native" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const cursor = screen.getByRole("radio", { name: "Cursor" });
+      const claude = screen.getByRole("radio", { name: "Claude" });
       expect(native.getAttribute("aria-checked")).toBe("true");
-      expect(cursor.getAttribute("aria-checked")).toBe("false");
+      expect(claude.getAttribute("aria-checked")).toBe("false");
     });
 
-    it("marks cursor as checked when value is cursor", () => {
-      renderSelector({ value: "cursor" });
+    it("marks claude as checked when value is claude", () => {
+      renderSelector({ value: "claude" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const cursor = screen.getByRole("radio", { name: "Cursor" });
+      const claude = screen.getByRole("radio", { name: "Claude" });
       expect(native.getAttribute("aria-checked")).toBe("false");
-      expect(cursor.getAttribute("aria-checked")).toBe("true");
+      expect(claude.getAttribute("aria-checked")).toBe("true");
     });
   });
 
@@ -63,25 +62,25 @@ describe("HarnessSelector", () => {
     it("sets tabIndex 0 on the active option and -1 on inactive", () => {
       renderSelector({ value: "native" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const cursor = screen.getByRole("radio", { name: "Cursor" });
+      const claude = screen.getByRole("radio", { name: "Claude" });
       expect(native.tabIndex).toBe(0);
-      expect(cursor.tabIndex).toBe(-1);
+      expect(claude.tabIndex).toBe(-1);
     });
 
-    it("reverses tabIndex when cursor is active", () => {
-      renderSelector({ value: "cursor" });
+    it("reverses tabIndex when claude is active", () => {
+      renderSelector({ value: "claude" });
       const native = screen.getByRole("radio", { name: "Stigmer" });
-      const cursor = screen.getByRole("radio", { name: "Cursor" });
+      const claude = screen.getByRole("radio", { name: "Claude" });
       expect(native.tabIndex).toBe(-1);
-      expect(cursor.tabIndex).toBe(0);
+      expect(claude.tabIndex).toBe(0);
     });
   });
 
   describe("click interaction", () => {
     it("fires onValueChange when clicking an inactive option", () => {
       const { onValueChange } = renderSelector({ value: "native" });
-      fireEvent.click(screen.getByRole("radio", { name: "Cursor" }));
-      expect(onValueChange).toHaveBeenCalledWith("cursor");
+      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
+      expect(onValueChange).toHaveBeenCalledWith("claude");
     });
 
     it("does not fire onValueChange when clicking the active option", () => {
@@ -92,11 +91,11 @@ describe("HarnessSelector", () => {
   });
 
   describe("keyboard navigation", () => {
-    it("ArrowRight from native selects cursor", () => {
+    it("ArrowRight from native selects claude", () => {
       const { onValueChange } = renderSelector({ value: "native" });
       const group = screen.getByRole("radiogroup");
       fireEvent.keyDown(group, { key: "ArrowRight" });
-      expect(onValueChange).toHaveBeenCalledWith("cursor");
+      expect(onValueChange).toHaveBeenCalledWith("claude");
     });
 
     it("ArrowLeft from native wraps to the last engine", () => {
@@ -117,11 +116,11 @@ describe("HarnessSelector", () => {
       const { onValueChange } = renderSelector({ value: "native" });
       const group = screen.getByRole("radiogroup");
       fireEvent.keyDown(group, { key: "ArrowDown" });
-      expect(onValueChange).toHaveBeenCalledWith("cursor");
+      expect(onValueChange).toHaveBeenCalledWith("claude");
     });
 
     it("ArrowUp behaves the same as ArrowLeft", () => {
-      const { onValueChange } = renderSelector({ value: "cursor" });
+      const { onValueChange } = renderSelector({ value: "claude" });
       const group = screen.getByRole("radiogroup");
       fireEvent.keyDown(group, { key: "ArrowUp" });
       expect(onValueChange).toHaveBeenCalledWith("native");
@@ -143,7 +142,7 @@ describe("HarnessSelector", () => {
         value: "native",
         disabled: true,
       });
-      fireEvent.click(screen.getByRole("radio", { name: "Cursor" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
       expect(onValueChange).not.toHaveBeenCalled();
     });
 
@@ -166,18 +165,11 @@ describe("HarnessSelector", () => {
     });
   });
 
-  describe("premium indicator", () => {
-    it("shows premium indicator on the cursor option", () => {
+  describe("price marks", () => {
+    it("marks no option with a price tier", () => {
       renderSelector({ value: "native" });
-      const premiumBadge = screen.getByLabelText("premium");
-      expect(premiumBadge).toBeDefined();
-      expect(premiumBadge.textContent).toBe("$$$");
-    });
-
-    it("does not show premium indicator on the native option", () => {
-      renderSelector({ value: "native" });
-      const premiumBadges = screen.getAllByLabelText("premium");
-      expect(premiumBadges).toHaveLength(1);
+      expect(screen.queryByLabelText("premium")).toBeNull();
+      expect(screen.getByRole("radiogroup").textContent).toBe("StigmerClaude");
     });
   });
 

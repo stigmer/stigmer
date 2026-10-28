@@ -77,9 +77,9 @@ function fullIdentityAccount(): IdentityAccount {
       federationIssuerRef: { org: "acme", slug: "acme-okta", kind: ApiResourceKind.federation_issuer },
       preferences: {
         standingContext: "Keep answers terse.",
-        defaultHarness: "cursor",
+        defaultHarness: "claude",
         defaultNativeModel: "claude-sonnet-4.6",
-        defaultCursorModel: "composer-2.5",
+        defaultClaudeModel: "claude-sonnet-5",
       },
     },
   });
@@ -222,9 +222,9 @@ describe("toIdentityAccountInput", () => {
     });
 
     expect(built.spec?.preferences?.standingContext).toBe("Terser still.");
-    expect(built.spec?.preferences?.defaultHarness).toBe("cursor");
+    expect(built.spec?.preferences?.defaultHarness).toBe("claude");
     expect(built.spec?.preferences?.defaultNativeModel).toBe("claude-sonnet-4.6");
-    expect(built.spec?.preferences?.defaultCursorModel).toBe("composer-2.5");
+    expect(built.spec?.preferences?.defaultClaudeModel).toBe("claude-sonnet-5");
   });
 
   it("clears standing context to wire-absent when the text is emptied", () => {
@@ -240,6 +240,6 @@ describe("toIdentityAccountInput", () => {
     // which the server compose steps treat as "no preference declared".
     expect(built.spec?.preferences?.standingContext ?? "").toBe("");
     // Clearing one field never disturbs its siblings.
-    expect(built.spec?.preferences?.defaultHarness).toBe("cursor");
+    expect(built.spec?.preferences?.defaultHarness).toBe("claude");
   });
 });

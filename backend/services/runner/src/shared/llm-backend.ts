@@ -395,8 +395,8 @@ export function checkFoundryPrerequisites(
  *
  * This is the single copy of the "do we have a credential?" question. The
  * reaction stays with each caller, because the right one differs per site:
- * tool classification fails closed (every tool gated), and Cursor tier-2
- * extraction skips to "no structured output". Callers consult it only when
+ * tool classification fails closed (every tool gated), and tier-2
+ * structured-output extraction skips to "no structured output". Callers consult it only when
  * no proxy is configured — a proxied deployment authenticates with
  * STIGMER_TOKEN and holds no provider credentials at all.
  */

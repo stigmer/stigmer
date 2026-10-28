@@ -2,7 +2,7 @@
  * Workspace provisioning domain types.
  *
  * These types represent the result of workspace provisioning — they are
- * harness-agnostic and used by both ExecuteCursor and ExecuteDeepAgent.
+ * harness-agnostic and used by every harness's activity.
  */
 
 /** Where a provisioned workspace came from; the same strings the error prefix and the prompt builder read. */

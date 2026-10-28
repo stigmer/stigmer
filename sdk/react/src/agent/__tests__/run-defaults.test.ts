@@ -39,7 +39,7 @@ describe("agentRunDefaultsFor", () => {
   it("returns nothing on another engine", () => {
     expect(
       agentRunDefaultsFor(
-        spec({ harness: Harness.CURSOR, runConfig: { modelName: "default" } }),
+        spec({ harness: Harness.CLAUDE, runConfig: { modelName: "claude-sonnet-4-6" } }),
         "native",
       ),
     ).toBeUndefined();
@@ -59,7 +59,7 @@ describe("agentRunDefaultsFor", () => {
 
 describe("agentHarnessOf", () => {
   it("names the agent's engine, and nothing when it names none", () => {
-    expect(agentHarnessOf(spec({ harness: Harness.CURSOR }))).toBe("cursor");
+    expect(agentHarnessOf(spec({ harness: Harness.CLAUDE }))).toBe("claude");
     expect(agentHarnessOf(spec({}))).toBeUndefined();
   });
 });

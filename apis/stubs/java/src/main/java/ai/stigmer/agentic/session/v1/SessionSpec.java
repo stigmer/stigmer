@@ -35,7 +35,6 @@ private static final long serialVersionUID = 0L;
     subject_ = "";
     skillRefs_ = java.util.Collections.emptyList();
     harness_ = 0;
-    cursorMode_ = 0;
     executionTarget_ = 0;
     vaults_ = java.util.Collections.emptyList();
     plugins_ = java.util.Collections.emptyList();
@@ -402,7 +401,6 @@ java.lang.String defaultValue) {
    *
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
-   * - CURSOR: the Cursor SDK
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -425,7 +423,6 @@ java.lang.String defaultValue) {
    *
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
-   * - CURSOR: the Cursor SDK
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -442,48 +439,6 @@ java.lang.String defaultValue) {
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
     ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
     return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
-  }
-
-  public static final int CURSOR_MODE_FIELD_NUMBER = 11;
-  private int cursorMode_ = 0;
-  /**
-   * <pre>
-   * Cursor SDK agent mode for this session.
-   *
-   * Determines whether the Cursor agent runs locally (Agent.create with
-   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation and never changed — switching mid-session would
-   * lose Cursor-side conversation state.
-   *
-   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-   * harness types.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-   * @return The enum numeric value on the wire for cursorMode.
-   */
-  @java.lang.Override public int getCursorModeValue() {
-    return cursorMode_;
-  }
-  /**
-   * <pre>
-   * Cursor SDK agent mode for this session.
-   *
-   * Determines whether the Cursor agent runs locally (Agent.create with
-   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation and never changed — switching mid-session would
-   * lose Cursor-side conversation state.
-   *
-   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-   * harness types.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-   * @return The cursorMode.
-   */
-  @java.lang.Override public ai.stigmer.agentic.session.v1.CursorMode getCursorMode() {
-    ai.stigmer.agentic.session.v1.CursorMode result = ai.stigmer.agentic.session.v1.CursorMode.forNumber(cursorMode_);
-    return result == null ? ai.stigmer.agentic.session.v1.CursorMode.UNRECOGNIZED : result;
   }
 
   public static final int EXECUTION_TARGET_FIELD_NUMBER = 12;
@@ -995,9 +950,6 @@ java.lang.String defaultValue) {
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, harness_);
     }
-    if (cursorMode_ != ai.stigmer.agentic.session.v1.CursorMode.CURSOR_MODE_UNSPECIFIED.getNumber()) {
-      output.writeEnum(11, cursorMode_);
-    }
     if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
       output.writeEnum(12, executionTarget_);
     }
@@ -1056,10 +1008,6 @@ java.lang.String defaultValue) {
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, harness_);
-    }
-    if (cursorMode_ != ai.stigmer.agentic.session.v1.CursorMode.CURSOR_MODE_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(11, cursorMode_);
     }
     if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
@@ -1135,7 +1083,6 @@ java.lang.String defaultValue) {
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (harness_ != other.harness_) return false;
-    if (cursorMode_ != other.cursorMode_) return false;
     if (executionTarget_ != other.executionTarget_) return false;
     if (!getVaultsList()
         .equals(other.getVaultsList())) return false;
@@ -1179,8 +1126,6 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + harness_;
-    hash = (37 * hash) + CURSOR_MODE_FIELD_NUMBER;
-    hash = (53 * hash) + cursorMode_;
     hash = (37 * hash) + EXECUTION_TARGET_FIELD_NUMBER;
     hash = (53 * hash) + executionTarget_;
     if (getVaultsCount() > 0) {
@@ -1388,7 +1333,6 @@ java.lang.String defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000008);
       harness_ = 0;
-      cursorMode_ = 0;
       executionTarget_ = 0;
       if (vaultsBuilder_ == null) {
         vaults_ = java.util.Collections.emptyList();
@@ -1396,7 +1340,7 @@ java.lang.String defaultValue) {
         vaults_ = null;
         vaultsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       includeMyVault_ = false;
       if (pluginsBuilder_ == null) {
         plugins_ = java.util.Collections.emptyList();
@@ -1404,7 +1348,7 @@ java.lang.String defaultValue) {
         plugins_ = null;
         pluginsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       fileReview_ = false;
       environmentRef_ = null;
       if (environmentRefBuilder_ != null) {
@@ -1417,7 +1361,7 @@ java.lang.String defaultValue) {
         resources_ = null;
         resourcesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       return this;
     }
 
@@ -1461,27 +1405,27 @@ java.lang.String defaultValue) {
         result.skillRefs_ = skillRefsBuilder_.build();
       }
       if (vaultsBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           vaults_ = java.util.Collections.unmodifiableList(vaults_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.vaults_ = vaults_;
       } else {
         result.vaults_ = vaultsBuilder_.build();
       }
       if (pluginsBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0)) {
+        if (((bitField0_ & 0x00000100) != 0)) {
           plugins_ = java.util.Collections.unmodifiableList(plugins_);
-          bitField0_ = (bitField0_ & ~0x00000200);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
         result.plugins_ = plugins_;
       } else {
         result.plugins_ = pluginsBuilder_.build();
       }
       if (resourcesBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0)) {
+        if (((bitField0_ & 0x00000800) != 0)) {
           resources_ = java.util.Collections.unmodifiableList(resources_);
-          bitField0_ = (bitField0_ & ~0x00001000);
+          bitField0_ = (bitField0_ & ~0x00000800);
         }
         result.resources_ = resources_;
       } else {
@@ -1509,18 +1453,15 @@ java.lang.String defaultValue) {
         result.harness_ = harness_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.cursorMode_ = cursorMode_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.includeMyVault_ = includeMyVault_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.fileReview_ = fileReview_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.environmentRef_ = environmentRefBuilder_ == null
             ? environmentRef_
             : environmentRefBuilder_.build();
@@ -1581,9 +1522,6 @@ java.lang.String defaultValue) {
       if (other.harness_ != 0) {
         setHarnessValue(other.getHarnessValue());
       }
-      if (other.cursorMode_ != 0) {
-        setCursorModeValue(other.getCursorModeValue());
-      }
       if (other.executionTarget_ != 0) {
         setExecutionTargetValue(other.getExecutionTargetValue());
       }
@@ -1591,7 +1529,7 @@ java.lang.String defaultValue) {
         if (!other.vaults_.isEmpty()) {
           if (vaults_.isEmpty()) {
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureVaultsIsMutable();
             vaults_.addAll(other.vaults_);
@@ -1604,7 +1542,7 @@ java.lang.String defaultValue) {
             vaultsBuilder_.dispose();
             vaultsBuilder_ = null;
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000040);
             vaultsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetVaultsFieldBuilder() : null;
@@ -1620,7 +1558,7 @@ java.lang.String defaultValue) {
         if (!other.plugins_.isEmpty()) {
           if (plugins_.isEmpty()) {
             plugins_ = other.plugins_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
             ensurePluginsIsMutable();
             plugins_.addAll(other.plugins_);
@@ -1633,7 +1571,7 @@ java.lang.String defaultValue) {
             pluginsBuilder_.dispose();
             pluginsBuilder_ = null;
             plugins_ = other.plugins_;
-            bitField0_ = (bitField0_ & ~0x00000200);
+            bitField0_ = (bitField0_ & ~0x00000100);
             pluginsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetPluginsFieldBuilder() : null;
@@ -1652,7 +1590,7 @@ java.lang.String defaultValue) {
         if (!other.resources_.isEmpty()) {
           if (resources_.isEmpty()) {
             resources_ = other.resources_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000800);
           } else {
             ensureResourcesIsMutable();
             resources_.addAll(other.resources_);
@@ -1665,7 +1603,7 @@ java.lang.String defaultValue) {
             resourcesBuilder_.dispose();
             resourcesBuilder_ = null;
             resources_ = other.resources_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000800);
             resourcesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetResourcesFieldBuilder() : null;
@@ -1732,14 +1670,9 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000010;
               break;
             } // case 80
-            case 88: {
-              cursorMode_ = input.readEnum();
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 88
             case 96: {
               executionTarget_ = input.readEnum();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 96
             case 114: {
@@ -1764,7 +1697,7 @@ java.lang.String defaultValue) {
             } // case 122
             case 144: {
               includeMyVault_ = input.readBool();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 144
             case 154: {
@@ -1782,14 +1715,14 @@ java.lang.String defaultValue) {
             } // case 154
             case 160: {
               fileReview_ = input.readBool();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 160
             case 170: {
               input.readMessage(
                   internalGetEnvironmentRefFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 170
             case 178: {
@@ -2797,7 +2730,6 @@ java.lang.String defaultValue) {
      *
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
-     * - CURSOR: the Cursor SDK
      * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
@@ -2820,7 +2752,6 @@ java.lang.String defaultValue) {
      *
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
-     * - CURSOR: the Cursor SDK
      * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
@@ -2848,7 +2779,6 @@ java.lang.String defaultValue) {
      *
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
-     * - CURSOR: the Cursor SDK
      * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
@@ -2873,7 +2803,6 @@ java.lang.String defaultValue) {
      *
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
-     * - CURSOR: the Cursor SDK
      * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
@@ -2901,7 +2830,6 @@ java.lang.String defaultValue) {
      *
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
-     * - CURSOR: the Cursor SDK
      * - CLAUDE: Anthropic's Claude Agent SDK
      *
      * The harness affects which tools the agent has, how conversation state
@@ -2918,118 +2846,6 @@ java.lang.String defaultValue) {
     public Builder clearHarness() {
       bitField0_ = (bitField0_ & ~0x00000010);
       harness_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private int cursorMode_ = 0;
-    /**
-     * <pre>
-     * Cursor SDK agent mode for this session.
-     *
-     * Determines whether the Cursor agent runs locally (Agent.create with
-     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation and never changed — switching mid-session would
-     * lose Cursor-side conversation state.
-     *
-     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-     * harness types.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-     * @return The enum numeric value on the wire for cursorMode.
-     */
-    @java.lang.Override public int getCursorModeValue() {
-      return cursorMode_;
-    }
-    /**
-     * <pre>
-     * Cursor SDK agent mode for this session.
-     *
-     * Determines whether the Cursor agent runs locally (Agent.create with
-     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation and never changed — switching mid-session would
-     * lose Cursor-side conversation state.
-     *
-     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-     * harness types.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-     * @param value The enum numeric value on the wire for cursorMode to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorModeValue(int value) {
-      cursorMode_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cursor SDK agent mode for this session.
-     *
-     * Determines whether the Cursor agent runs locally (Agent.create with
-     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation and never changed — switching mid-session would
-     * lose Cursor-side conversation state.
-     *
-     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-     * harness types.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-     * @return The cursorMode.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.session.v1.CursorMode getCursorMode() {
-      ai.stigmer.agentic.session.v1.CursorMode result = ai.stigmer.agentic.session.v1.CursorMode.forNumber(cursorMode_);
-      return result == null ? ai.stigmer.agentic.session.v1.CursorMode.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * Cursor SDK agent mode for this session.
-     *
-     * Determines whether the Cursor agent runs locally (Agent.create with
-     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation and never changed — switching mid-session would
-     * lose Cursor-side conversation state.
-     *
-     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-     * harness types.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-     * @param value The cursorMode to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000020;
-      cursorMode_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cursor SDK agent mode for this session.
-     *
-     * Determines whether the Cursor agent runs locally (Agent.create with
-     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation and never changed — switching mid-session would
-     * lose Cursor-side conversation state.
-     *
-     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-     * harness types.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorMode() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      cursorMode_ = 0;
       onChanged();
       return this;
     }
@@ -3082,7 +2898,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTargetValue(int value) {
       executionTarget_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3134,7 +2950,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       executionTarget_ = value.getNumber();
       onChanged();
       return this;
@@ -3160,7 +2976,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearExecutionTarget() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       executionTarget_ = 0;
       onChanged();
       return this;
@@ -3169,9 +2985,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
       java.util.Collections.emptyList();
     private void ensureVaultsIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -3475,7 +3291,7 @@ java.lang.String defaultValue) {
     public Builder clearVaults() {
       if (vaultsBuilder_ == null) {
         vaults_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         vaultsBuilder_.clear();
@@ -3650,7 +3466,7 @@ java.lang.String defaultValue) {
         vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 vaults_,
-                ((bitField0_ & 0x00000080) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         vaults_ = null;
@@ -3693,7 +3509,7 @@ java.lang.String defaultValue) {
     public Builder setIncludeMyVault(boolean value) {
 
       includeMyVault_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -3711,7 +3527,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearIncludeMyVault() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       includeMyVault_ = false;
       onChanged();
       return this;
@@ -3720,9 +3536,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_ =
       java.util.Collections.emptyList();
     private void ensurePluginsIsMutable() {
-      if (!((bitField0_ & 0x00000200) != 0)) {
+      if (!((bitField0_ & 0x00000100) != 0)) {
         plugins_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(plugins_);
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
        }
     }
 
@@ -3971,7 +3787,7 @@ java.lang.String defaultValue) {
     public Builder clearPlugins() {
       if (pluginsBuilder_ == null) {
         plugins_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000200);
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
         pluginsBuilder_.clear();
@@ -4111,7 +3927,7 @@ java.lang.String defaultValue) {
         pluginsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 plugins_,
-                ((bitField0_ & 0x00000200) != 0),
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
         plugins_ = null;
@@ -4154,7 +3970,7 @@ java.lang.String defaultValue) {
     public Builder setFileReview(boolean value) {
 
       fileReview_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4172,7 +3988,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearFileReview() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       fileReview_ = false;
       onChanged();
       return this;
@@ -4198,7 +4014,7 @@ java.lang.String defaultValue) {
      * @return Whether the environmentRef field is set.
      */
     public boolean hasEnvironmentRef() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <pre>
@@ -4247,7 +4063,7 @@ java.lang.String defaultValue) {
       } else {
         environmentRefBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4273,7 +4089,7 @@ java.lang.String defaultValue) {
       } else {
         environmentRefBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4294,7 +4110,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (environmentRefBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0) &&
+        if (((bitField0_ & 0x00000400) != 0) &&
           environmentRef_ != null &&
           environmentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
           getEnvironmentRefBuilder().mergeFrom(value);
@@ -4305,7 +4121,7 @@ java.lang.String defaultValue) {
         environmentRefBuilder_.mergeFrom(value);
       }
       if (environmentRef_ != null) {
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       return this;
@@ -4326,7 +4142,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public Builder clearEnvironmentRef() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       environmentRef_ = null;
       if (environmentRefBuilder_ != null) {
         environmentRefBuilder_.dispose();
@@ -4351,7 +4167,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefBuilder() {
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return internalGetEnvironmentRefFieldBuilder().getBuilder();
     }
@@ -4410,9 +4226,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.agentic.session.v1.SessionResource> resources_ =
       java.util.Collections.emptyList();
     private void ensureResourcesIsMutable() {
-      if (!((bitField0_ & 0x00001000) != 0)) {
+      if (!((bitField0_ & 0x00000800) != 0)) {
         resources_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.SessionResource>(resources_);
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
        }
     }
 
@@ -4760,7 +4576,7 @@ java.lang.String defaultValue) {
     public Builder clearResources() {
       if (resourcesBuilder_ == null) {
         resources_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00001000);
+        bitField0_ = (bitField0_ & ~0x00000800);
         onChanged();
       } else {
         resourcesBuilder_.clear();
@@ -4963,7 +4779,7 @@ java.lang.String defaultValue) {
         resourcesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder>(
                 resources_,
-                ((bitField0_ & 0x00001000) != 0),
+                ((bitField0_ & 0x00000800) != 0),
                 getParentForChildren(),
                 isClean());
         resources_ = null;

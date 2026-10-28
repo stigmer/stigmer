@@ -61,8 +61,7 @@
  *
  * An agent's hooks in Cursor's format, on either engine (capability: runsHooks):
  * 33. a deny refuses the call with its message, an allow runs it, and an ask
- *     shows the card naming the hook (where Cursor's own engine would let
- *     the call through).
+ *     shows the card naming the hook.
  * 34. exit code 2 refuses the call with what the hook printed.
  * 35. a hook marked fail_closed refuses the call when it crashes; one that
  *     is not decides nothing, and the default decides.
@@ -177,9 +176,7 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
     // Invariant 1 (provenance corollary): every side effect the gate withholds
     // carries a non-UNSPECIFIED authorization provenance — so an authorized side
     // effect is always auditable to the policy layer that governed it. Gated to
-    // substrates that decide the source at the gate (the deep-agent gate); the
-    // Cursor substrate projects provenance at reconstruction time and is covered
-    // by the translator + boundary-rows + corpus suites.
+    // substrates that decide the source at the gate.
     if (substrate.capabilities.surfacesGatePolicySource) {
       it("tags every gated side effect with a non-UNSPECIFIED policy source", async () => {
         for (const action of [WRITE_A, SHELL, DELETE]) {
@@ -536,14 +533,12 @@ function describeHooksContract(
 /**
  * Prove the substrates AGREE: the same logical action under the same decision
  * yields the same execution outcome on every available substrate. This is the
- * real consolidation win — one place that says "the in-process gate and the
- * out-of-process deny-oracle enforce the same policy," including the cross-taxonomy
- * collapse (a grant minted from the stream-side identity is honored by the
- * hook-side for the same action).
+ * real consolidation win — one place that says "the deep-agent gate and the
+ * Claude gate enforce the same policy," across their two tool taxonomies.
  *
  * Only `executed` is compared: it is the safety-critical observable and is
  * substrate-comparable, whereas `gated` carries a substrate-specific meaning on
- * an approve (the in-process gate still "paused"; the deny-oracle did not "deny").
+ * an approve.
  */
 export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]): void {
   const available = substrates.filter((s) => s.available);

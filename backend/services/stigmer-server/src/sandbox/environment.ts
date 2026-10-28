@@ -4,7 +4,7 @@
  * (SANDBOX_ENVIRONMENT_ENV on docker and agent-sandbox, the attach push's
  * `environment` field on Substrate). The runner installs the packages and,
  * under `limited`, hides the engine tools whose traffic leaves outside the
- * sandbox (Cursor's web fetch and search). It never gets the host list:
+ * sandbox. It never gets the host list:
  * enforcing that is the driver's, and a runner that held it could only
  * repeat what the gateway already decides.
  *

@@ -99,11 +99,6 @@ func (s *SessionClient) ClaimInput(ctx context.Context, input *sessionv1.ClaimSe
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) BindHarnessState(ctx context.Context, input *sessionv1.BindHarnessStateInput) (*sessionv1.BindHarnessStateResponse, error) {
-	resp, err := s.command.BindHarnessState(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (s *SessionClient) Get(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.query.Get(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)
@@ -281,7 +276,6 @@ type SessionInput struct {
 	Metadata        map[string]string
 	SkillRefs       []ResourceRef
 	Harness         sessionv1.Harness
-	CursorMode      sessionv1.CursorMode
 	ExecutionTarget sessionv1.ExecutionTarget
 	Vaults          []ResourceRef
 	IncludeMyVault  bool
@@ -318,7 +312,6 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
 	resource.Spec.Harness = i.Harness
-	resource.Spec.CursorMode = i.CursorMode
 	resource.Spec.ExecutionTarget = i.ExecutionTarget
 	for _, r := range i.Vaults {
 		ref := r.toProto()
@@ -369,7 +362,6 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
 		input.Harness = s.GetHarness()
-		input.CursorMode = s.GetCursorMode()
 		input.ExecutionTarget = s.GetExecutionTarget()
 		for _, r := range s.GetVaults() {
 			input.Vaults = append(input.Vaults, resourceRefFromProto(r))

@@ -43,7 +43,7 @@ const config = {
 } as unknown as Config;
 
 const activities: WorkerActivities = {
-  ExecuteCursor: async () => ({}),
+  ExecuteClaude: async () => ({}),
   ExecuteDeepAgent: async () => ({}),
 };
 

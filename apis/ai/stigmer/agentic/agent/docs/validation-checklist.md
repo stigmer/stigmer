@@ -54,7 +54,6 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 - [ ] You can run every agent you list, and none is more private than this agent
 - [ ] Each listed agent carries what its work needs — its own plugins, tool lists, skills and `env` — since it gets none of this agent's
 - [ ] No `sub_agents` block remains: apply refuses it; write each one as an Agent of its own and list it
-- [ ] On the Cursor engine, a listed agent brings no plugins, hooks or tool lists of its own, or the turn is refused
 
 ### YAML Syntax
 

@@ -182,7 +182,7 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
 }
 
 /** A registry section: the engine a model row is listed for. */
-export type RegistryHarness = "native" | "cursor" | "claude";
+export type RegistryHarness = "native" | "claude";
 
 /** The registry section an engine's models are listed in: each engine lists its own. */
 export function registrySectionOf(engine: Exclude<Harness, Harness.UNSPECIFIED>): RegistryHarness {
@@ -193,7 +193,6 @@ export function registrySectionOf(engine: Exclude<Harness, Harness.UNSPECIFIED>)
 
 const REGISTRY_SECTIONS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, RegistryHarness>> = {
   [Harness.NATIVE]: "native",
-  [Harness.CURSOR]: "cursor",
   [Harness.CLAUDE]: "claude",
 };
 
@@ -334,8 +333,7 @@ export async function resolveToApiModelId(registryId: string): Promise<string> {
  * (attachment-vision.ts): `false` only when the registry explicitly says the
  * model cannot see images; `undefined` whenever the answer is unknown —
  * capability never assessed, model not in the registry, registry
- * unreachable, or no concrete model name (the Cursor harness's ""/"default"
- * Auto pool). Callers gate on the explicit `false` only, so every unknown
+ * unreachable, or no concrete model name (`""` or `"default"`). Callers gate on the explicit `false` only, so every unknown
  * degrades to today's behavior instead of blocking images.
  *
  * Matches by registry `id` OR `apiModelId`: getDefaultModel() hands the

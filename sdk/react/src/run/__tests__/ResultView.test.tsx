@@ -18,15 +18,15 @@ function withStigmer(children: ReactNode, stigmer: Stigmer) {
 }
 
 describe("ResultView", () => {
-  it("renders an edit diff with add/remove counts from the envelope", () => {
+  it("renders an edit diff with add/remove counts computed from old/new text", () => {
     const view: ToolResultView = {
       type: "diff",
       path: "/workspace/x.md",
-      linesAdded: 40,
-      linesRemoved: 0,
+      oldText: "a\n",
+      newText: "a\nb\n",
     };
     const { container } = render(<ResultView view={view} />);
-    expect(container.textContent).toContain("+40");
+    expect(container.textContent).toContain("+1");
     expect(container.textContent).toContain("-0");
   });
 
@@ -40,23 +40,6 @@ describe("ResultView", () => {
     const { container } = render(<ResultView view={view} />);
     // The new line is rendered as an addition.
     expect(container.textContent).toContain("hello world");
-  });
-
-  it("renders a Cursor unifiedDiff through the DiffViewer table, not a raw patch dump", () => {
-    const view: ToolResultView = {
-      type: "diff",
-      path: "/workspace/notes.md",
-      unifiedDiff: "--- /dev/null\n+++ b/notes.md\n@@ -0,0 +1,2 @@\n+# Title\n+body\n",
-      linesAdded: 2,
-      linesRemoved: 0,
-    };
-    const { container } = render(<ResultView view={view} />);
-    // The accessible table renders the content...
-    expect(container.querySelector("table")).not.toBeNull();
-    expect(container.textContent).toContain("# Title");
-    // ...and the raw patch preamble never reaches the screen.
-    expect(container.textContent).not.toContain("/dev/null");
-    expect(container.textContent).not.toContain("@@");
   });
 
   it("suppresses the +N -M stats when showStats is false (owning row shows them)", () => {
@@ -254,7 +237,7 @@ describe("ResultView", () => {
     const write = toolUse({
       id: "tool_create",
       name: "write_file",
-      input: { path: "notes.md", contents: CONTENT },
+      input: { file_path: "notes.md", content: CONTENT },
     });
 
     const { container } = render(<ResultView view={normalizeToolResult(write)} />);
@@ -340,8 +323,8 @@ describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
 describe("summarizeResultView", () => {
   it("summarizes a diff", () => {
     expect(
-      summarizeResultView({ type: "diff", path: "x", linesAdded: 3, linesRemoved: 1 }),
-    ).toBe("+3 -1");
+      summarizeResultView({ type: "diff", path: "x", oldText: "a\n", newText: "b\nc\n" }),
+    ).toBe("+2 -1");
   });
 
   it("summarizes a failed terminal but not a successful one", () => {

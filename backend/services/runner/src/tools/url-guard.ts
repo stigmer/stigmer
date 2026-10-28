@@ -28,10 +28,8 @@
  *   metadata endpoint 169.254.169.254) stays blocked, as costless
  *   defense-in-depth.
  *
- * The default posture derives from Config.mode ("cloud" → strict), NOT from
- * cloudModeEnabled — that is the Cursor cloud-agent feature flag and says
- * nothing about where this process runs. Config.mode tracks credential
- * transport rather than physical locality (a desktop runner proxies traffic
+ * The default posture derives from Config.mode ("cloud" → strict).
+ * Config.mode tracks credential transport rather than physical locality (a desktop runner proxies traffic
  * while executing on the user's machine), so STIGMER_WEB_FETCH_ALLOW_PRIVATE
  * exists as an explicit override for embedders that know better. Managed
  * cloud deployments never set it.

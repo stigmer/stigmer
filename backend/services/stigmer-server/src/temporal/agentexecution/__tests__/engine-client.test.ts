@@ -285,7 +285,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         kind: "Session",
         metadata: { id: "ses_1", name: "s", org: "o" },
         spec: {
-          harness: Harness.CURSOR,
+          harness: Harness.CLAUDE,
           executionTarget: ExecutionTarget.CLOUD,
         },
       }),
@@ -295,7 +295,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     await engine.startInvokeWorkflow(startInput({ sessionId: "ses_1" }));
 
     const input = dispatchedInput(startCalls);
-    expect(input["harness"]).toBe(Harness.CURSOR);
+    expect(input["harness"]).toBe(Harness.CLAUDE);
     expect(input["execution_target"]).toBe(ExecutionTarget.CLOUD);
     // Omitempty shape: a false auto_approve_all carries NO key.
     expect("auto_approve_all" in input).toBe(false);

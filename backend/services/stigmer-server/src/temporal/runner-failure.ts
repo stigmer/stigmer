@@ -8,7 +8,7 @@
  *
  *   1. the activity's OWN classification, thrown as a cancelled failure
  *      ("Activity cancelled (worker shutdown, not user pause)" — the
- *      runner's execute-cursor/execute-deep-agent shutdown branches); and
+ *      runner's execute-deep-agent shutdown branch); and
  *   2. the Temporal TS worker's drain failing an activity that could not
  *      finish inside the shutdown grace window ("Worker is shutting down
  *      and this activity did not complete in time") — the shape observed
@@ -55,12 +55,11 @@ export const WORKER_SHUTDOWN_STATUS_ERROR =
 export const TURN_CONTINUES_FAILURE_TYPE = "StigmerTurnContinues";
 
 /**
- * Why a runner's turn stopped to continue: its runner drained, its model
+ * Why a runner's turn stopped to continue: its runner drained, or its model
  * stopped answering (a stall the provider owed, which the runner continues
- * instead of failing), or its engine's vendor ended the connection (Cursor's
- * backend ends a long run's stream, stigmer#2436).
+ * instead of failing).
  */
-export type TurnContinuationCause = "drain" | "model-stall" | "stream-cut";
+export type TurnContinuationCause = "drain" | "model-stall";
 
 const CANCELED_MARKERS = ["worker shutdown", "shutting down"];
 
@@ -122,15 +121,6 @@ export function turnContinuationCauseOf(err: unknown): TurnContinuationCause | s
  */
 export function modelStallCopyOf(err: unknown): string | undefined {
   return continuationCopyOf(err, "model-stall");
-}
-
-/**
- * The copy a cut connection's continuation carries, which is the run's
- * error when the workflow gives up continuing it: the runner's words for
- * the cut, the typed failure's message. `undefined` for any other failure.
- */
-export function streamCutCopyOf(err: unknown): string | undefined {
-  return continuationCopyOf(err, "stream-cut");
 }
 
 function continuationCopyOf(err: unknown, cause: TurnContinuationCause): string | undefined {

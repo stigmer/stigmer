@@ -21,7 +21,7 @@
 //   per attachment: runner activities/execute-deep-agent/turn-setup.ts and
 //   middleware/folder-instructions.ts.
 // - `[hooks] a PostToolUse hook failed: <error>`: runner
-//   middleware/approval-gate.ts and execute-cursor/hook-server.ts. Other
+//   middleware/approval-gate.ts and activities/execute-claude/hooks.ts. Other
 //   `[hooks]` lines are not failures.
 //
 // The lines carry no execution id, so the counts are per run, over every

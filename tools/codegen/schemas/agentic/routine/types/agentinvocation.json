@@ -42,7 +42,6 @@
         "enumType": "ai.stigmer.agentic.session.v1.Harness",
         "enumValues": [
           "HARNESS_NATIVE",
-          "HARNESS_CURSOR",
           "HARNESS_CLAUDE"
         ]
       },

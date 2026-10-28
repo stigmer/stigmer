@@ -132,15 +132,15 @@ const NATIVE_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
   model: "claude-sonnet-4-5",
 };
 
-/** A Cursor run's report: disjoint buckets; the runner's total leaves out the cache (#2206). */
-const CURSOR_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
-  inputTokens: 3_120n,
+/** A Claude run's report: input 44,920 including 41,800 cache read, the runner's input + output total. */
+const CLAUDE_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
+  inputTokens: 44_920n,
   outputTokens: 2_045n,
   cacheReadTokens: 41_800n,
   cacheWriteTokens: 0n,
-  totalTokens: 5_165n,
+  totalTokens: 46_965n,
   turnCount: 2,
-  model: "composer-1",
+  model: "claude-opus-4-8",
 };
 
 async function seedRun(
@@ -247,19 +247,19 @@ describe("a run counted from its runner's report", () => {
     expect(report.modelBreakdown.map((m) => [m.model, m.totalTokens])).toEqual([["claude-sonnet-4-5", 19_642n]]);
   });
 
-  it("a Cursor session's run is mapped by the Cursor rule: input as reported, the four buckets summed", async () => {
-    await seedSession("ses_cursor_1", "org_runner", Harness.CURSOR);
-    await seedRun("run_cursor_1", { org: "org_runner", sessionId: "ses_cursor_1", usage: CURSOR_USAGE });
+  it("a Claude session's run is counted by native's rule: input less the cache, the runner's total", async () => {
+    await seedSession("ses_claude_1", "org_runner", Harness.CLAUDE);
+    await seedRun("run_claude_1", { org: "org_runner", sessionId: "ses_claude_1", usage: CLAUDE_USAGE });
     const report = await getSessionUsageReport(
       deps(),
-      create(GetSessionUsageReportInputSchema, { sessionId: "ses_cursor_1" }),
+      create(GetSessionUsageReportInputSchema, { sessionId: "ses_claude_1" }),
       testCallerIdentity(),
     );
     expect(report.isEstimated).toBe(true);
     expect(report.totalUsage?.inputTokens).toBe(3_120n);
     expect(report.totalUsage?.totalTokens).toBe(46_965n);
-    expect(report.totalUsage?.primaryProvider).toBe("cursor");
-    expect(report.runs.map((r) => [r.runId, r.totalTokens, r.isEstimated])).toEqual([["run_cursor_1", 46_965n, true]]);
+    expect(report.totalUsage?.primaryProvider).toBe("");
+    expect(report.runs.map((r) => [r.runId, r.totalTokens, r.isEstimated])).toEqual([["run_claude_1", 46_965n, true]]);
   });
 });
 
@@ -377,7 +377,7 @@ describe("a run counted from the meter", () => {
           {
             rows: [
               meterRow({ inputTokens: 400n, outputTokens: 200n, cacheReadInputTokens: 1_000n, totalTokens: 1_600n, callCount: 3 }),
-              meterRow({ model: "gpt-5", provider: "openai", inputTokens: 100n, outputTokens: 50n, totalTokens: 150n, callCount: 2 }),
+              meterRow({ model: "claude-haiku-4-5", inputTokens: 100n, outputTokens: 50n, totalTokens: 150n, callCount: 2 }),
               meterRow({ inputTokens: 10n, outputTokens: 90n, totalTokens: 100n, callCount: 1 }),
             ],
           },
@@ -398,7 +398,7 @@ describe("a run counted from the meter", () => {
     expect(report.modelBreakdown.map((m) => [m.model, m.provider, m.totalTokens, m.callCount])).toEqual([
       ["claude-sonnet-4-5", "", 19_642n, 0],
       ["claude-sonnet-4-5", "anthropic", 1_700n, 4],
-      ["gpt-5", "openai", 150n, 2],
+      ["claude-haiku-4-5", "anthropic", 150n, 2],
     ]);
     expect(report.totalUsage?.servedBy.map((s) => [s.providerKeySource, s.totalTokens, s.llmCallCount])).toEqual([
       [ProviderKeySource.UNSPECIFIED, 19_642n, 0],
@@ -438,10 +438,10 @@ describe("the organization report", () => {
       create(AgentSchema, { metadata: { id: "agt_big", name: "Big Agent", org } }),
     );
     const day = Date.UTC(2026, 9, 13);
-    await seedSession("ses_big", org, Harness.CURSOR);
+    await seedSession("ses_big", org, Harness.CLAUDE);
     await seedRun("org_small_1", { org, agentId: "agt_small", usage: NATIVE_USAGE, createdAtMs: day - DAY + 3_600_000 });
     await seedRun("org_small_2", { org, agentId: "agt_small", createdAtMs: day + 3_600_000, phase: RunPhase.RUN_PENDING });
-    await seedRun("org_big_1", { org, agentId: "agt_big", sessionId: "ses_big", usage: CURSOR_USAGE, createdAtMs: day + 9 * 3_600_000, startedAt: "2026-10-13T09:00:01Z" });
+    await seedRun("org_big_1", { org, agentId: "agt_big", sessionId: "ses_big", usage: CLAUDE_USAGE, createdAtMs: day + 9 * 3_600_000, startedAt: "2026-10-13T09:00:01Z" });
     // Created before the window, started inside it: out.
     await seedRun("org_early", { org, agentId: "agt_small", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 1) - 3_600_000, startedAt: "2026-10-01T01:00:00Z" });
     // Another organization's run.
@@ -467,7 +467,7 @@ describe("the organization report", () => {
       ["2026-10-13", 2, 46_965n],
     ]);
     expect(report.harnessUsage.map((h) => [h.harness, h.totalTokens, h.runCount])).toEqual([
-      ["cursor", 46_965n, 1],
+      ["claude", 46_965n, 1],
       ["native", 19_642n, 1],
     ]);
   });
@@ -565,7 +565,7 @@ describe("the organization report", () => {
   it("with a read scope composed, neither counts nor names a run the caller cannot read", async () => {
     const scopedOrg = "org_scoped";
     await seedRun("scoped_visible", { org: scopedOrg, agentId: "agt_visible", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
-    await seedRun("scoped_hidden", { org: scopedOrg, agentId: "agt_secret", usage: CURSOR_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
+    await seedRun("scoped_hidden", { org: scopedOrg, agentId: "agt_secret", usage: CLAUDE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
     const visible = new Set(["scoped_visible"]);
     const scope: ListReadScope = {
       authorizedResourceIds: () => Promise.resolve(visible),

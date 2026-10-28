@@ -18,7 +18,6 @@ export const DaemonEnvVar = {
   RunnerNodeBin: "STIGMER_RUNNER_NODE_BIN",
   RunnerEntry: "STIGMER_RUNNER_ENTRY",
   RunnerAppDir: "STIGMER_RUNNER_APP_DIR",
-  CursorApiKey: "CURSOR_API_KEY",
   AnthropicApiKey: "ANTHROPIC_API_KEY",
   ActivityRouting: "STIGMER_ACTIVITY_ROUTING",
   OperatorEmail: "STIGMER_OPERATOR_EMAIL",
@@ -54,7 +53,6 @@ export interface DaemonConfig {
   noWeb: boolean;
   server: ServerLaunch;
   runner?: RunnerLaunch;
-  cursorApiKey?: string;
   anthropicApiKey?: string;
   activityRouting?: string;
   operatorEmail?: string;
@@ -75,8 +73,8 @@ export interface DaemonEnvInputs {
   // written into the daemon env explicitly: unlike a shell-exported key, a key
   // persisted by `stigmer setup` exists only in the config file and would
   // otherwise never reach the runner. Anthropic is the only provider with a
-  // persisted delivery path — other keys (OPENAI_API_KEY, CURSOR_API_KEY)
-  // reach the runner solely via shell-env inheritance.
+  // persisted delivery path — other keys (e.g. OPENAI_API_KEY) reach the
+  // runner solely via shell-env inheritance.
   anthropicApiKey?: string;
   // Operator identity resolved by the launcher (env > config file), the same
   // persisted-delivery reasoning as the Anthropic key (oss#796). Consumed by
@@ -130,7 +128,6 @@ export function readDaemonConfig(env: NodeJS.ProcessEnv = process.env): DaemonCo
     noWeb: env[DaemonEnvVar.NoWeb] === "1",
     server: readServer(env),
     runner: serverOnly ? undefined : runner,
-    cursorApiKey: nonEmpty(env[DaemonEnvVar.CursorApiKey]),
     anthropicApiKey: nonEmpty(env[DaemonEnvVar.AnthropicApiKey]),
     activityRouting: nonEmpty(env[DaemonEnvVar.ActivityRouting]),
     operatorEmail: nonEmpty(env[DaemonEnvVar.OperatorEmail]),

@@ -185,8 +185,8 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // it resumes the run, which then calls command B and pauses again. This is
     // the resume-to-next-gate chain — the exact shape the runner's transcript
     // guard + workflow watchdog coordinate on. Scope note: this drives the
-    // NATIVE deep-agent harness, not the Cursor SDK; it is a cross-stack
-    // runner->guard->watchdog->UI contract backstop, not a Cursor reproduction.
+    // NATIVE deep-agent harness; it is a cross-stack runner->guard->watchdog->UI
+    // contract backstop.
     //
     // A plain APPROVE (not approve-all) is deliberate: it must NOT flip the
     // session auto-approve, so gate B re-gates rather than sailing through.

@@ -9,9 +9,9 @@
  * The load-bearing pins the conformance suite does NOT own:
  *   - the create refusals an unattended run needs: a resource that is a
  *     local folder, a File that does not exist (domain/file/routine-files.ts
- *     owns the File checks), a Cursor routine with no pinned model, and
- *     and a pin the model registry does not know, on that engine's own
- *     rows (a Claude routine's pin is judged on Claude's); a Claude routine
+ *     owns the File checks), and a pin the model registry does not know,
+ *     on that engine's own rows (a Claude routine's pin is judged on
+ *     Claude's); a Claude routine
  *     with no pinned model is accepted, since Claude's default is a
  *     catalog row;
  *   - status preservation across apply-as-update (the auto-pause can never
@@ -268,15 +268,15 @@ describe("create — the defaults resolver through the real chain", () => {
     });
     expect(created.spec?.agent?.harness).toBe(Harness.CLAUDE);
 
-    const cursorOnly = routineInput({ name: "Claude on a Cursor model" });
+    const unknown = routineInput({ name: "Claude on an unknown model" });
     const err = await refusal(() =>
       command.create({
-        ...cursorOnly,
-        spec: { ...cursorOnly.spec, agent: { ...cursorOnly.spec.agent, harness: Harness.CLAUDE, runConfig: { modelName: "composer-2.5" } } },
+        ...unknown,
+        spec: { ...unknown.spec, agent: { ...unknown.spec.agent, harness: Harness.CLAUDE, runConfig: { modelName: "claude-sonnet-9" } } },
       }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toContain("model 'composer-2.5' is not in the model registry (claude harness)");
+    expect(err.rawMessage).toContain("model 'claude-sonnet-9' is not in the model registry (claude harness)");
   });
 
   it("refuses a resource that is a local folder", async () => {
@@ -317,20 +317,6 @@ describe("create — the defaults resolver through the real chain", () => {
       }),
     );
     expect(err.code).toBe(Code.NotFound);
-  });
-
-  it("refuses a Cursor routine that pins no model", async () => {
-    const input = routineInput({ name: "Cursor unpinned" });
-    const err = await refusal(() =>
-      command.create({
-        ...input,
-        spec: { ...input.spec, agent: { ...input.spec.agent, harness: Harness.CURSOR } },
-      }),
-    );
-    expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toMatch(
-      /^spec\.agent\.run_config\.model_name must name a pinned model when the run would use the Cursor harness/,
-    );
   });
 
   it("refuses a pinned model the registry does not know", async () => {

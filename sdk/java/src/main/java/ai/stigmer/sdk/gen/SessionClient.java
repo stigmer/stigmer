@@ -5,8 +5,6 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
 import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
 import ai.stigmer.agentic.session.v1.Attention;
-import ai.stigmer.agentic.session.v1.BindHarnessStateInput;
-import ai.stigmer.agentic.session.v1.BindHarnessStateResponse;
 import ai.stigmer.agentic.session.v1.ClaimSessionInputInput;
 import ai.stigmer.agentic.session.v1.ClaimSessionInputResponse;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
@@ -119,12 +117,6 @@ public final class SessionClient {
     public ClaimSessionInputResponse claimInput(ClaimSessionInputInput input) {
         try {
             return command.claimInput(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public BindHarnessStateResponse bindHarnessState(BindHarnessStateInput input) {
-        try {
-            return command.bindHarnessState(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -20,9 +20,6 @@ export const ENSURE_THREAD_ACTIVITY_NAME = "EnsureThread";
 /** One turn on Stigmer's native engine. */
 export const EXECUTE_DEEP_AGENT_ACTIVITY_NAME = "ExecuteDeepAgent";
 
-/** One turn on the Cursor SDK engine. */
-export const EXECUTE_CURSOR_ACTIVITY_NAME = "ExecuteCursor";
-
 /** One turn on Anthropic's Claude Agent SDK engine. */
 export const EXECUTE_CLAUDE_ACTIVITY_NAME = "ExecuteClaude";
 

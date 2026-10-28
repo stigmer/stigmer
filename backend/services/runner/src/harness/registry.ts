@@ -4,11 +4,10 @@
  *
  * Plain functions over an `adapters` argument, no module state and no DI
  * (the composition roots are staged plain functions; a missing adapter is a
- * compile error or a loud boot throw, never a silent no-op). ORDER IS
- * LOAD-BEARING: `bootHarnesses` runs adapters in declaration order because
- * the Cursor harness's interceptors must patch `node:http2` before anything
- * dials the control plane, and `shutdownHarnesses` runs them in reverse so
- * what was set up last is torn down first.
+ * compile error or a loud boot throw, never a silent no-op).
+ * `bootHarnesses` runs adapters in declaration order, and
+ * `shutdownHarnesses` runs them in reverse so what was set up last is torn
+ * down first.
  *
  * Error posture (fixed in #1064):
  *  - Boot validates the whole table BEFORE booting anything (a duplicate name
@@ -31,21 +30,16 @@
  * activity it is bound to (its `name` is a diagnostic identity); the registry
  * row does.
  *
- * THIS MODULE'S STATIC GRAPH MUST STAY CONNECT-FREE. Both composition roots
- * import it BEFORE they boot the harnesses, and the Cursor adapter's boot
- * patches `node:http2` (its HTTP/2 auth interceptor); a static import of
- * anything that loads `@connectrpc/connect-node` here would snapshot the
- * `node:http2` ESM facade to the unpatched `connect` before that boot ran,
- * and every BiDi stream would silently 401. So `StigmerClient` is loaded
- * with a dynamic import inside `createHarnessActivities`, the runner's
- * dynamic-import-for-order convention (`bootstrap.ts` documents the same
- * omission for the same reason). `__tests__/harness-boot-order.test.ts`
- * boots a fresh process through this module and fails if the facade froze.
+ * Both composition roots import this module BEFORE they boot the
+ * harnesses, so its static graph stays small: `StigmerClient` (and with it
+ * `@connectrpc/connect-node`) is loaded with a dynamic import inside
+ * `createHarnessActivities`, which the roots call once the harnesses have
+ * booted. `__tests__/harness-boot-order.test.ts` boots a fresh process
+ * through this module.
  */
 
 import {
   EXECUTE_CLAUDE_ACTIVITY_NAME,
-  EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } from "@stigmer/temporal-codecs/activity-names";
 
@@ -57,7 +51,7 @@ import { runTurnActivity } from "./run-turn.js";
 import type { HarnessAdapter } from "./types.js";
 
 /** The harnesses the control plane can dispatch to, as the registry knows them. */
-export type HarnessName = "cursor" | "deep-agent" | "claude";
+export type HarnessName = "deep-agent" | "claude";
 
 /**
  * The Temporal activity name each harness answers to. The names are
@@ -67,7 +61,6 @@ export type HarnessName = "cursor" | "deep-agent" | "claude";
  * with its adapter row, since only a row is ever looked up.
  */
 export const HARNESS_ACTIVITY_NAMES = {
-  cursor: EXECUTE_CURSOR_ACTIVITY_NAME,
   "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
   claude: EXECUTE_CLAUDE_ACTIVITY_NAME,
 } as const satisfies Record<HarnessName, string>;
@@ -108,8 +101,7 @@ export function adaptersOf(rows: readonly HarnessRow[]): HarnessAdapter[] {
  * does not own.
  *
  * Async because the client is loaded here, not at the top of the module (see
- * the header): the roots call this after the harnesses have booted, when
- * connect-node may load.
+ * the header): the roots call this after the harnesses have booted.
  */
 export async function createHarnessActivities(
   rows: readonly HarnessRow[],

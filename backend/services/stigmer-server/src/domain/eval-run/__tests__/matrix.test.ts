@@ -2,8 +2,9 @@
  * Pins the eval's matrix (matrix.ts): the fixed cell order (case, target,
  * arm, try), the case filter by glob and tags, the runs ladder (spec, then
  * case, then 3), ablation `none`, an unsupported case planned with no
- * cells, a scaffolded case not run when the eval skips scaffolds, a Cursor
- * target not run for a resumed conversation or `env` while native runs, the target rules when the spec names none (the case's catalog
+ * cells, a scaffolded case not run when the eval skips scaffolds, a Claude
+ * target not run for a resumed conversation while native runs and a case's
+ * `env` run on both, the target rules when the spec names none (the case's catalog
  * model, never an alias; the native default with no model), and a
  * case_glob that is not a glob keeping no case (the grammar itself is
  * glob.test.ts's); and sizeOfMatrix counting what planMatrix plans, with
@@ -72,7 +73,7 @@ function specOf(
 const catalog: EvalModelCatalog = {
   isCatalogModel: (harness, model) =>
     harness === Harness.NATIVE && model === "claude-sonnet-4.6",
-  defaultModel: (harness) => (harness === Harness.CURSOR ? "auto" : "native-default"),
+  defaultModel: (harness) => (harness === Harness.CLAUDE ? "claude-default" : "native-default"),
 };
 
 describe("planMatrix", () => {
@@ -82,7 +83,7 @@ describe("planMatrix", () => {
       specOf({
         targets: [
           create(EvalRunTargetSchema, { harness: Harness.NATIVE, modelName: "m1" }),
-          create(EvalRunTargetSchema, { harness: Harness.CURSOR }),
+          create(EvalRunTargetSchema, { harness: Harness.CLAUDE }),
         ],
       }),
       catalog,
@@ -90,7 +91,7 @@ describe("planMatrix", () => {
     expect(matrix.cases.map((c) => c.evalCase.name)).toEqual(["a", "b"]);
     expect(matrix.cases[0]?.targets.map((t) => t.target)).toEqual([
       { harness: Harness.NATIVE, modelName: "m1" },
-      { harness: Harness.CURSOR, modelName: "auto" },
+      { harness: Harness.CLAUDE, modelName: "claude-default" },
     ]);
     expect(
       matrix.cells.map((c) => `${c.caseIndex}/${c.targetIndex}/${c.arm}/${c.tryIndex}`),
@@ -189,28 +190,6 @@ describe("planMatrix", () => {
     expect(planMatrix(suiteOf(scaffolded), specOf(), catalog).cells).toHaveLength(2);
   });
 
-  it("lists a resumed conversation or env as not run on a Cursor target, and runs it on native", () => {
-    const targets = [create(EvalRunTargetSchema, { harness: Harness.NATIVE }), create(EvalRunTargetSchema, { harness: Harness.CURSOR })];
-    const matrix = planMatrix(
-      suiteOf(
-        evalCase("resumed", { runs: 1, context: { addDirs: [], historyFile: "h.jsonl" } }),
-        evalCase("vars", { runs: 1, env: { EVAL_X: "1" } }),
-      ),
-      specOf({ targets }),
-      catalog,
-    );
-    expect(matrix.cases.map((c) => c.targets.map((t) => t.notRunReason))).toEqual([
-      [undefined, engineUnsupportedReason("Cursor", "resumed conversations")],
-      [undefined, "not run on Cursor: env"],
-    ]);
-    expect(matrix.cells.map((c) => [c.caseIndex, c.targetIndex])).toEqual([
-      [0, 0],
-      [0, 0],
-      [1, 0],
-      [1, 0],
-    ]);
-  });
-
   it("lists a resumed conversation as not run on a Claude target, and runs a case's env there", () => {
     const targets = [create(EvalRunTargetSchema, { harness: Harness.NATIVE }), create(EvalRunTargetSchema, { harness: Harness.CLAUDE })];
     const matrix = planMatrix(
@@ -222,8 +201,17 @@ describe("planMatrix", () => {
       catalog,
     );
     expect(matrix.cases.map((c) => c.targets.map((t) => t.notRunReason))).toEqual([
-      [undefined, "not run on Claude: resumed conversations"],
+      [undefined, engineUnsupportedReason("Claude", "resumed conversations")],
       [undefined, undefined],
+    ]);
+    expect(engineUnsupportedReason("Claude", "resumed conversations")).toBe("not run on Claude: resumed conversations");
+    expect(matrix.cells.map((c) => [c.caseIndex, c.targetIndex])).toEqual([
+      [0, 0],
+      [0, 0],
+      [1, 0],
+      [1, 0],
+      [1, 1],
+      [1, 1],
     ]);
   });
 
@@ -273,15 +261,15 @@ describe("evalModelCatalogOf", () => {
       JSON.stringify({
         models: [
           { id: "native-model", harness: "native" },
-          { id: "cursor-model", harness: "cursor" },
+          { id: "claude-model", harness: "claude" },
         ],
       }),
     );
     const evalCatalog = evalModelCatalogOf(provider);
     expect(evalCatalog.isCatalogModel(Harness.NATIVE, "native-model")).toBe(true);
     expect(evalCatalog.isCatalogModel(Harness.UNSPECIFIED, "native-model")).toBe(true);
-    expect(evalCatalog.isCatalogModel(Harness.NATIVE, "cursor-model")).toBe(false);
-    expect(evalCatalog.isCatalogModel(Harness.CURSOR, "cursor-model")).toBe(true);
+    expect(evalCatalog.isCatalogModel(Harness.NATIVE, "claude-model")).toBe(false);
+    expect(evalCatalog.isCatalogModel(Harness.CLAUDE, "claude-model")).toBe(true);
     expect(evalCatalog.defaultModel(Harness.NATIVE)).toBe("");
   });
 });
@@ -312,7 +300,7 @@ describe("sizeOfMatrix", () => {
     for (const spec of [
       specOf(),
       specOf({ ablation: EvalRunAblation.none }),
-      specOf({ runs: 4, targets: [create(EvalRunTargetSchema, { harness: Harness.CURSOR })] }),
+      specOf({ runs: 4, targets: [create(EvalRunTargetSchema, { harness: Harness.CLAUDE })] }),
       specOf({ caseGlob: "a" }),
     ]) {
       const planned = planMatrix(suite, spec, catalog);

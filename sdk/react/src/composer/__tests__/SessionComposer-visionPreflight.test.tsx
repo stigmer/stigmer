@@ -23,8 +23,8 @@ const LIMITS: VisionLimits = {
 
 /**
  * Registry fixture routed through the REAL document parser so this test
- * also breaks if the parse contract drifts. kimi-k3 mirrors the live
- * registry's explicitly-blind cursor model.
+ * also breaks if the parse contract drifts. kimi-k3 stands for an
+ * explicitly-blind model.
  */
 const REGISTRY_DOCUMENT = parseRegistryDocument({
   limits: { vision: { ...LIMITS } },
@@ -43,7 +43,7 @@ const REGISTRY_DOCUMENT = parseRegistryDocument({
       id: "kimi-k3",
       displayName: "Kimi K3",
       provider: "moonshot",
-      harness: "cursor",
+      harness: "native",
       costTier: "economy",
       featured: false,
       capabilities: { toolUse: true, vision: false, streaming: true, thinking: false, adaptiveThinking: false },
@@ -171,7 +171,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("leads with the model when the selected model is explicitly blind", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} defaultModelId="cursor/kimi-k3" />,
+      <SessionComposer onSubmit={vi.fn()} defaultModelId="native/kimi-k3" />,
       { wrapper: createWrapper() },
     );
     const textarea = screen.getByRole("textbox");
@@ -189,7 +189,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("never warns about non-image files on a blind model", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} defaultModelId="cursor/kimi-k3" />,
+      <SessionComposer onSubmit={vi.fn()} defaultModelId="native/kimi-k3" />,
       { wrapper: createWrapper() },
     );
     const textarea = screen.getByRole("textbox");

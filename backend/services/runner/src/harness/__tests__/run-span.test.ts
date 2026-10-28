@@ -75,7 +75,6 @@ function blueprint(s: Session, agent?: { id: string; versionHash: string }): Res
     subagents: [],
     plugins: [],
     mergedSkillRefs: [],
-    cloudRepos: [],
   };
 }
 

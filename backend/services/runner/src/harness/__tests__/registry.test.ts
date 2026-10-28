@@ -2,8 +2,7 @@
  * Pins the harness registry's two load-bearing properties — ORDER and ERROR
  * POSTURE — and the byte-pinned activity names.
  *
- * Order: boot in declaration order, one at a time (the Cursor interceptors
- * must precede anything that dials the control plane); shutdown in reverse.
+ * Order: boot in declaration order, one at a time; shutdown in reverse.
  * Posture: boot validates the table before touching any adapter and fails
  * fast at the first rejection; shutdown and release continue past a failing
  * adapter and surface every failure in one AggregateError. Names: the map
@@ -16,7 +15,6 @@ import { describe, it, expect } from "vitest";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   EXECUTE_CLAUDE_ACTIVITY_NAME,
-  EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } from "@stigmer/temporal-codecs/activity-names";
 
@@ -37,16 +35,10 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
     name,
     capabilities: {
       harness: Harness.NATIVE,
-      pausePrimitive: "interrupt",
-      stateIdSource: "deterministic",
       subAgents: false,
       runsHooks: true,
-      readsToolMarks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
       fileReview: { harnessId: "stub", excludePaths: [] },
-      subAgentProgress: "streamed",
-      continuation: "checkpoint",
-    midTurnInput: "next-step",
       contextCompaction: "none",
     },
     async boot() {
@@ -69,10 +61,9 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
 
 describe("HARNESS_ACTIVITY_NAMES", () => {
   it("reads the activity names the server's workflow schedules (@stigmer/temporal-codecs/activity-names)", () => {
-    expect(HARNESS_ACTIVITY_NAMES.cursor).toBe(EXECUTE_CURSOR_ACTIVITY_NAME);
     expect(HARNESS_ACTIVITY_NAMES["deep-agent"]).toBe(EXECUTE_DEEP_AGENT_ACTIVITY_NAME);
     expect(HARNESS_ACTIVITY_NAMES.claude).toBe(EXECUTE_CLAUDE_ACTIVITY_NAME);
-    expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["claude", "cursor", "deep-agent"]);
+    expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["claude", "deep-agent"]);
   });
 });
 
@@ -98,8 +89,8 @@ describe("bootHarnesses", () => {
 
   it("refuses duplicate adapter names before booting anything", async () => {
     const log: string[] = [];
-    const adapters = [stubAdapter("cursor", log), stubAdapter("other", log), stubAdapter("cursor", log)];
-    await expect(bootHarnesses(adapters, testConfig())).rejects.toThrow(/duplicate adapter name 'cursor'/);
+    const adapters = [stubAdapter("claude", log), stubAdapter("other", log), stubAdapter("claude", log)];
+    await expect(bootHarnesses(adapters, testConfig())).rejects.toThrow(/duplicate adapter name 'claude'/);
     expect(log, "a table with a duplicate must not boot even its first adapter").toEqual([]);
   });
 
@@ -181,6 +172,6 @@ describe("releaseHarnessSession", () => {
 
 describe("harnessRowFor", () => {
   it("names a harness the table does not serve as a wiring defect", () => {
-    expect(() => harnessRowFor([], "cursor")).toThrow("harness registry: no adapter serves 'cursor'");
+    expect(() => harnessRowFor([], "claude")).toThrow("harness registry: no adapter serves 'claude'");
   });
 });

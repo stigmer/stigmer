@@ -12,10 +12,9 @@
 //
 // Negatives (duplicate, missing name, wrong const fields) are written inline in the
 // suite, matching support/agents.ts and support/vaults.ts: this module is
-// validity-by-construction. harness_state_id is normally populated by the engine
-// after the first execution and gates the harness / execution_target immutability
-// validators; the Class B immutability suite sets it directly (it is a plain
-// client-settable spec field) to exercise those validators hermetically.
+// validity-by-construction. The harness / execution_target immutability
+// validators hold once the session has run; the Class B immutability suite
+// drives a real turn to reach them.
 import type { InitShape } from "./init-shape";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { Harness, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";

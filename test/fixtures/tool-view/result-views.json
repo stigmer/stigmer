@@ -1,5 +1,5 @@
 {
-  "comment": "ToolCall projection -> expected ToolResultView. Only deterministic facts are asserted across languages (type, path, exitCode, count, mcpServerSlug, and linesAdded/linesRemoved when present in source data). See test/fixtures/tool-view/README.md.",
+  "comment": "ToolCall projection -> expected ToolResultView. Only deterministic facts are asserted across languages (type, path, exitCode, count, mcpServerSlug). See test/fixtures/tool-view/README.md.",
   "cases": [
     {
       "name": "native_edit_success",
@@ -9,15 +9,6 @@
       "args": { "file_path": "/workspace/x.md", "old_string": "Hello", "new_string": "Hello world\nNew line" },
       "result": "Successfully replaced 1 occurrence in '/workspace/x.md'",
       "expected": { "type": "diff", "path": "/workspace/x.md" }
-    },
-    {
-      "name": "cursor_edit_envelope",
-      "harness": "cursor",
-      "toolName": "StrReplace",
-      "mcpServerSlug": "",
-      "args": { "path": "/workspace/mahatma-gandhi.md", "old_string": "", "new_string": "line\n" },
-      "result": "{\"status\":\"success\",\"value\":{\"linesAdded\":40,\"linesRemoved\":0,\"diffString\":\"@@ -1 +1,40 @@\\n+...\"}}",
-      "expected": { "type": "diff", "path": "/workspace/mahatma-gandhi.md", "linesAdded": 40, "linesRemoved": 0 }
     },
     {
       "name": "native_write_confirmation",
@@ -65,24 +56,6 @@
       "expected": { "type": "terminal", "exitCode": 1, "command": "false" }
     },
     {
-      "name": "cursor_shell_string",
-      "harness": "cursor",
-      "toolName": "Shell",
-      "mcpServerSlug": "",
-      "args": { "command": "echo hi" },
-      "result": "hi\n",
-      "expected": { "type": "terminal", "command": "echo hi" }
-    },
-    {
-      "name": "cursor_shell_envelope",
-      "harness": "cursor",
-      "toolName": "Shell",
-      "mcpServerSlug": "",
-      "args": { "command": "ls -la" },
-      "result": "{\"status\":\"success\",\"value\":{\"exitCode\":0,\"signal\":\"\",\"stdout\":\"total 8\\n\",\"stderr\":\"\",\"executionTime\":1176}}",
-      "expected": { "type": "terminal", "exitCode": 0, "command": "ls -la" }
-    },
-    {
       "name": "native_grep_matches",
       "harness": "native",
       "toolName": "grep",
@@ -90,33 +63,6 @@
       "args": { "pattern": "TODO" },
       "result": "\n/workspace/a.go:\n  12: // TODO: fix\n/workspace/b.go:\n  7: // TODO: later",
       "expected": { "type": "search", "count": 2 }
-    },
-    {
-      "name": "cursor_file_search_empty",
-      "harness": "cursor",
-      "toolName": "Glob",
-      "mcpServerSlug": "",
-      "args": { "pattern": "**/*.nope" },
-      "result": "{\"status\":\"success\",\"value\":{\"files\":[],\"totalFiles\":0,\"clientTruncated\":false,\"ripgrepTruncated\":false}}",
-      "expected": { "type": "search", "count": 0 }
-    },
-    {
-      "name": "cursor_file_search_one",
-      "harness": "cursor",
-      "toolName": "Glob",
-      "mcpServerSlug": "",
-      "args": { "pattern": "Dockerfile" },
-      "result": "{\"status\":\"success\",\"value\":{\"files\":[\"Dockerfile\"],\"totalFiles\":1,\"clientTruncated\":false,\"ripgrepTruncated\":false}}",
-      "expected": { "type": "search", "count": 1 }
-    },
-    {
-      "name": "cursor_grep_workspace_results_empty",
-      "harness": "cursor",
-      "toolName": "Grep",
-      "mcpServerSlug": "",
-      "args": { "pattern": "pipeline" },
-      "result": "{\"status\":\"success\",\"value\":{\"workspaceResults\":{\"/work/demo\":{\"type\":\"files\",\"output\":{\"files\":[],\"count\":0}}}}}",
-      "expected": { "type": "search", "count": 0 }
     },
     {
       "name": "native_ls_entries",
@@ -147,8 +93,8 @@
     },
     {
       "name": "unknown_json_object",
-      "harness": "cursor",
-      "toolName": "ReadLints",
+      "harness": "native",
+      "toolName": "some_json_tool",
       "mcpServerSlug": "",
       "args": {},
       "result": "{\"diagnostics\":[],\"count\":0}",
@@ -185,7 +131,7 @@
     },
     {
       "name": "remember_proposal_content_blocks",
-      "harness": "cursor",
+      "harness": "native",
       "toolName": "remember",
       "mcpServerSlug": "stigmer-memory",
       "args": { "fact": "Works primarily in Go." },

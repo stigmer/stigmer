@@ -126,24 +126,14 @@ describe("getRunnerConfig: the session and the proxy", () => {
     expect(config.proxyEndpoint).toBeUndefined();
   });
 
-  it("prefers VITE_STIGMER_RUNNER_PROXY_URL when set", async () => {
-    vi.stubEnv("VITE_STIGMER_RUNNER_PROXY_URL", "https://localhost:9093");
-    vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
-    runnerHost();
-    signIn("cloud-token");
-
-    const config = await getRunnerConfig();
-    expect(config.proxyEndpoint).toBe("https://localhost:9093");
-    expect(config.stigmerToken).toBe("cloud-token");
-  });
-
-  it("falls back to VITE_STIGMER_API_URL when the runner proxy URL is not set", async () => {
+  it("points the proxy at VITE_STIGMER_API_URL when set", async () => {
     vi.stubEnv("VITE_STIGMER_API_URL", "http://localhost:9090");
     runnerHost();
     signIn("cloud-token");
 
     const config = await getRunnerConfig();
     expect(config.proxyEndpoint).toBe("http://localhost:9090");
+    expect(config.stigmerToken).toBe("cloud-token");
   });
 
   it.each([

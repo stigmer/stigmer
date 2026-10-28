@@ -28,8 +28,7 @@
 //   5. The staged runner boots on this engine: the runner's own slim-artifact
 //      gate (backend/services/runner/scripts/verify-slim-artifact.mjs) runs
 //      with --node set to this process: its size budget, the authenticated
-//      boot guard, @cursor/sdk and its platform package loading from the
-//      staged runner, and (not on Windows, where neither runs) a cloud-mode
+//      boot guard, and (not on Windows, where neither runs) a cloud-mode
 //      boot and the attach waiter's boot. With --temporal it boots static
 //      mode and runs the full ready → sessionAdded → shutdownComplete
 //      lifecycle too, its authenticated run with an OTLP endpoint set, which

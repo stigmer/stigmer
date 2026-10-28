@@ -184,26 +184,16 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
     );
   });
 
-  it("[rpc:RunCommandController.create] rejects enabled on a cursor model without the thinking capability (InvalidArgument)", async () => {
-    // composer-2.5's cursor-harness registry entry declares no thinking form —
-    // ENABLED there would silently serve the base variant, so it is refused
-    // (selection and the served variant stay coupled).
-    await expectRefused(
-      "aex-thinking-incapable",
-      { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
-      Harness.CURSOR,
-      "create with thinking_mode enabled on a model without the capability",
-    );
-  });
-
   it("[rpc:RunCommandController.create] rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
-    // The harness decides which entry is read: composer-2.5 has no native
-    // entry, so a native session cannot ask it to think.
+    // The harness decides which entry is read: native runs a model named
+    // with its provider (`openai/…`) with no registry entry, and so with no
+    // thinking capability declared, so a native session cannot ask it to
+    // think.
     await expectRefused(
       "aex-thinking-no-native-entry",
-      { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+      { modelName: "openai/gpt-5.5", thinkingMode: ThinkingMode.ENABLED },
       Harness.NATIVE,
-      "create with thinking_mode enabled on a native session for a cursor-only model",
+      "create with thinking_mode enabled on a native session for a model with no native entry",
     );
   });
 

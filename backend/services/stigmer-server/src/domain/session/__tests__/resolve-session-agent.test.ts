@@ -391,8 +391,8 @@ describe("ResolveSessionAgent", () => {
 });
 
 describe("ResolveSessionAgent: a new conversation's engine", () => {
-  /** reviewer's head names cursor; its tagged older version names none. */
-  async function seedCursorAgent(): Promise<void> {
+  /** reviewer's head names claude; its tagged older version names none. */
+  async function seedClaudeAgent(): Promise<void> {
     await seedAgent("agt_1", "reviewer");
     await store.saveResource(
       ApiResourceKind.agent,
@@ -400,34 +400,34 @@ describe("ResolveSessionAgent: a new conversation's engine", () => {
       AgentSchema,
       create(AgentSchema, {
         metadata: { id: "agt_1", org: ORG, slug: "reviewer" },
-        spec: { harness: Harness.CURSOR },
+        spec: { harness: Harness.CLAUDE },
         status: { versionHash: HEAD },
       }),
     );
   }
 
   it("starts on the engine the pinned version names when the request names none", async () => {
-    await seedCursorAgent();
+    await seedClaudeAgent();
     const session = await pin(sessionNaming("agt_1"));
-    expect(session.spec?.harness).toBe(Harness.CURSOR);
+    expect(session.spec?.harness).toBe(Harness.CLAUDE);
   });
 
   it("keeps the engine the request names", async () => {
-    await seedCursorAgent();
+    await seedClaudeAgent();
     const request = sessionNaming("agt_1");
     request.spec!.harness = Harness.NATIVE;
     expect((await pin(request)).spec?.harness).toBe(Harness.NATIVE);
   });
 
   it("reads the engine of the version pinned, not the head", async () => {
-    await seedCursorAgent();
+    await seedClaudeAgent();
     expect((await pin(sessionNaming("agt_1", "v1"))).spec?.harness).toBe(
       Harness.UNSPECIFIED,
     );
   });
 
   it("never gives a stored conversation an engine", async () => {
-    await seedCursorAgent();
+    await seedClaudeAgent();
     const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: OLDER,

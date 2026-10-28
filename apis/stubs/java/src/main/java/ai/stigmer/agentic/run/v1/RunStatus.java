@@ -867,8 +867,8 @@ private static final long serialVersionUID = 0L;
    * of the routine or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
-   * An empty model_name means no layer named one and the engine chose (the
-   * native engine's registry default; Cursor's Auto).
+   * An empty model_name means no layer named one and the harness chose its
+   * registry default.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -884,8 +884,8 @@ private static final long serialVersionUID = 0L;
    * of the routine or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
-   * An empty model_name means no layer named one and the engine chose (the
-   * native engine's registry default; Cursor's Auto).
+   * An empty model_name means no layer named one and the harness chose its
+   * registry default.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -901,8 +901,8 @@ private static final long serialVersionUID = 0L;
    * of the routine or channel it came through), the defaults of the agent version the
    * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
    *
-   * An empty model_name means no layer named one and the engine chose (the
-   * native engine's registry default; Cursor's Auto).
+   * An empty model_name means no layer named one and the harness chose its
+   * registry default.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -4968,8 +4968,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -4984,8 +4984,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5004,8 +5004,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5029,8 +5029,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5052,8 +5052,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5082,8 +5082,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5104,8 +5104,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5121,8 +5121,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
@@ -5141,8 +5141,8 @@ private static final long serialVersionUID = 0L;
      * of the routine or channel it came through), the defaults of the agent version the
      * turn runs, and the lane's operator profile, resolved by RunConfig's rule.
      *
-     * An empty model_name means no layer named one and the engine chose (the
-     * native engine's registry default; Cursor's Auto).
+     * An empty model_name means no layer named one and the harness chose its
+     * registry default.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>

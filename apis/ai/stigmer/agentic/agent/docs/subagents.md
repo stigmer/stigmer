@@ -183,26 +183,6 @@ subagent the `Agent` tool is gone, whatever its lists say.
 
 The native engine runs everything on this page.
 
-The Cursor engine runs a subagent with its instructions, model and skills. It
-cannot tell a subagent's tool call from the main agent's, so it refuses a turn
-whose saved subagent brings its own plugins, hooks, MCP servers or tool lists:
-
-```text
-Subagent 'bank-reconciler' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'bank-reconciler'.
-```
-
-For the same reason it refuses a turn whose plugin subagent carries tool lists
-of its own, a hook on the Cursor engine is not told which subagent made a call,
-and the Cursor engine refuses a turn whose main agent limits `Agent` to types,
-since it cannot hold back its own built-in subagents. A bare `Agent`, or `Agent`
-excluded, runs there.
-
-A subagent the Cursor engine runs works inside the main agent's session: it has
-the main agent's tools, the platform's channel, conversation and memory tools
-included, under the main agent's tool lists and hooks, and its own `env` values
-do not reach it. Run an agent whose subagents need their own values, or must not
-reach the platform's tools, on the native engine.
-
 ## Writing Descriptions
 
 The main agent decides when to hand work over from each subagent's name and

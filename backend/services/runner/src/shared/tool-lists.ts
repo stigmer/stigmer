@@ -16,8 +16,8 @@
  *    accepted and governs the whole tool, in either list.
  *  - `Agent(type, …)` in the main agent's `tools` limits which sub-agents it
  *    may start; inside a sub-agent the type list is ignored. Types compare in
- *    one normalized form ({@link normalizeSubAgentType}), so Claude's
- *    `general-purpose` and Cursor's `generalPurpose` are one type.
+ *    one normalized form ({@link normalizeSubAgentType}), so
+ *    `general-purpose`, `generalPurpose` and `general_purpose` are one type.
  *  - A sub-agent starts from its parent's resolved set and can only narrow
  *    it: a scope is the conjunction of its layers. A turn's lists are one
  *    more layer over the agent's ({@link ToolScope.ofMain}), so a turn can
@@ -26,14 +26,13 @@
  *    non-empty `tools` in which nothing resolves refuses the turn.
  *
  * Three Stigmer readings, each a trade-off stated once:
- *  - One engine tool can do the work of several Claude tools (Cursor's
- *    `edit` writes and edits; its `Delete` removes a file, which Claude does
- *    through Bash or Write). Such a tool is available when any Claude tool it
- *    covers is in scope and none is denied, so "never Write" also means "never
- *    delete" on Cursor.
- *  - An engine tool with no Claude name (Cursor's `readLints`, `askQuestion`,
- *    …) is the engine's, not the platform's: an allow-list hides it, because
- *    "only these" is exact; a deny-list leaves it alone.
+ *  - An engine tool covers the Claude tools whose work it does (native's
+ *    `glob` and `ls` both cover Glob; a tool that removed a file would cover
+ *    Write). Such a tool is available when any Claude tool it covers is in
+ *    scope and none is denied, so "never Write" also means "never delete".
+ *  - An engine tool with no Claude name is the engine's, not the platform's:
+ *    an allow-list hides it, because "only these" is exact; a deny-list
+ *    leaves it alone.
  *  - `Skill` names no engine tool: both engines activate a skill by reading
  *    its `SKILL.md`. Denied by any layer, it hides skills: the turn's prompt
  *    lists none and a read of a skill's files is refused
@@ -49,7 +48,7 @@
  * without them cannot answer its channel.
  */
 
-import { CLAUDE_TOOL_ALIASES, CURSOR_SDK_TOOL_COVERS, isClaudeTool, type ClaudeTool } from "@stigmer/tool-vocabulary";
+import { CLAUDE_TOOL_ALIASES, isClaudeTool, type ClaudeTool } from "@stigmer/tool-vocabulary";
 
 /** One parsed list entry. */
 export type ToolListEntry =
@@ -88,12 +87,9 @@ export function parseToolListEntry(raw: string): ToolListEntry {
 
 /**
  * A sub-agent type in the one form both sides of an `Agent(type, …)`
- * comparison take: lower-cased, with `-` and `_` dropped. The engines spell
- * one built-in type differently (Claude Code and the native engine
- * `general-purpose`, Cursor's `subagent_type` `generalPurpose`), and a list
- * must mean the same on both. Self-contained on purpose: the Cursor hook
- * embeds this function's own source (`hook-script.ts`), so it references
- * nothing outside itself.
+ * comparison take: lower-cased, with `-` and `_` dropped, so a list that
+ * spells a built-in type `generalPurpose` or `general_purpose` means the
+ * same as Claude Code's and the native engine's `general-purpose`.
  */
 export function normalizeSubAgentType(type: string): string {
   return type.toLowerCase().replace(/[-_]/g, "");
@@ -105,43 +101,10 @@ export interface ToolLists {
   readonly disallowedTools: readonly string[];
 }
 
-/**
- * A name no list entry can carry. Asking about it answers for every server,
- * tool or sub-agent type no entry names, which all resolve alike: that is
- * what lets {@link ToolScope.mcpTable} and {@link ToolScope.subAgentTypeTable}
- * hand a whole scope to an evaluator as a finite table.
- */
-const UNNAMED: unique symbol = Symbol("unnamed");
-type Unnamed = typeof UNNAMED;
-
 /** What a list entry is asked about. */
 type Subject =
   | { readonly kind: "builtin"; readonly tool: ClaudeTool }
-  | { readonly kind: "mcp"; readonly server: string | Unnamed; readonly tool: string | null | Unnamed };
-
-/** One MCP server's answers in a {@link McpScopeTable}. */
-export interface McpServerScope {
-  /** In scope, per tool the turn knows of or an entry names. */
-  readonly tools: Readonly<Record<string, boolean>>;
-  /** The answer every other tool of this server shares. */
-  readonly otherTools: boolean;
-}
-
-/** A scope's MCP answers as data ({@link ToolScope.mcpTable}). */
-export interface McpScopeTable {
-  /** Per server the turn has or an entry names. */
-  readonly servers: Readonly<Record<string, McpServerScope>>;
-  /** The answer every tool of any other server shares. */
-  readonly otherServers: boolean;
-}
-
-/** A scope's `Agent(type, …)` answers as data ({@link ToolScope.subAgentTypeTable}). */
-export interface SubAgentTypeTable {
-  /** May the main agent start this type, per normalized type known or named ({@link normalizeSubAgentType}). */
-  readonly types: Readonly<Record<string, boolean>>;
-  /** The answer every other type shares. */
-  readonly otherTypes: boolean;
-}
+  | { readonly kind: "mcp"; readonly server: string; readonly tool: string | null };
 
 function entryMatches(entry: ToolListEntry, subject: Subject): boolean {
   switch (entry.kind) {
@@ -322,66 +285,8 @@ export class ToolScope {
    * agent's `Agent(…)` type list counts: inside a sub-agent it is ignored.
    */
   allowsSubAgentType(type: string): boolean {
-    return this.allowsType(normalizeSubAgentType(type));
-  }
-
-  private allowsType(type: string | Unnamed): boolean {
     if (!this.allowsClaudeTool("Agent")) return false;
-    return this.agentTypes === null || (type !== UNNAMED && this.agentTypes.has(type));
-  }
-
-  /**
-   * This scope's MCP answers as data, for an evaluator that cannot load this
-   * module (the Cursor hook runs in a process of its own). `known` maps each
-   * server the turn has to the tools it knows of. The table answers those and
-   * every server and tool an entry names, plus the one answer every other
-   * tool of a listed server shares and the one every tool of an unlisted
-   * server shares, so a lookup in it equals {@link allowsMcpTool} for any
-   * server and tool.
-   */
-  mcpTable(known: ReadonlyMap<string, readonly string[]>): McpScopeTable {
-    const named = new Map<string, Set<string>>();
-    const name = (server: string): Set<string> => {
-      const tools = named.get(server) ?? new Set<string>();
-      named.set(server, tools);
-      return tools;
-    };
-    for (const [server, tools] of known) {
-      const names = name(server);
-      for (const tool of tools) names.add(tool);
-    }
-    for (const layer of this.layers) {
-      for (const e of [...layer.tools, ...layer.disallowed]) {
-        if (e.kind !== "mcp" || e.server === null) continue;
-        const tools = name(e.server);
-        if (e.tool !== null) tools.add(e.tool);
-      }
-    }
-    const servers = Object.fromEntries(
-      [...named].map(([server, tools]): [string, McpServerScope] => [
-        server,
-        {
-          tools: Object.fromEntries([...tools].map((tool) => [tool, this.allowsMcpTool(server, tool)])),
-          otherTools: this.allows({ kind: "mcp", server, tool: UNNAMED }),
-        },
-      ]),
-    );
-    return { servers, otherServers: this.allows({ kind: "mcp", server: UNNAMED, tool: UNNAMED }) };
-  }
-
-  /**
-   * This scope's `Agent(type, …)` answers as data, for the same kind of
-   * evaluator: every type in `known` and every type the main agent names,
-   * plus the answer every other type shares. A lookup in it equals
-   * {@link allowsSubAgentType}.
-   */
-  subAgentTypeTable(known: readonly string[]): SubAgentTypeTable {
-    const types = new Set(known.map(normalizeSubAgentType));
-    for (const t of this.agentTypes ?? []) types.add(t);
-    return {
-      types: Object.fromEntries([...types].map((t) => [t, this.allowsType(t)])),
-      otherTypes: this.allowsType(UNNAMED),
-    };
+    return this.agentTypes === null || this.agentTypes.has(normalizeSubAgentType(type));
   }
 
   /** The lists in force, for the refusal a model reads: owner by owner. */
@@ -588,30 +493,4 @@ export function claudeToolsOf(
   const out = new Set<ClaudeTool>();
   for (const name of boundNames) for (const t of table.get(name) ?? []) out.add(t);
   return out;
-}
-
-/**
- * The Cursor main loop's built-in restriction, in the SDK's names, or
- * `undefined` for a field the SDK should not receive. `read` is never
- * hidden: the agent reads the platform's `.stigmer/` content through it, and
- * the hook confines it there when `Read` is excluded. `mcp` is never
- * removed: it is all-or-nothing, so MCP narrowing is the hook's.
- */
-export function cursorSdkToolOptions(
-  scope: ToolScope,
-  anyMcp: boolean,
-): { readonly tools?: string[]; readonly disallowedTools?: string[] } {
-  if (!scope.restricted) return {};
-  const denied: string[] = [];
-  for (const [name, covers] of CURSOR_SDK_TOOL_COVERS) {
-    if (name === "read") continue;
-    if (!scope.allowsCovering(covers)) denied.push(name);
-  }
-  if (!scope.hasAllowList) return denied.length > 0 ? { disallowedTools: denied } : {};
-  const allowed = ["read"];
-  for (const [name, covers] of CURSOR_SDK_TOOL_COVERS) {
-    if (name !== "read" && scope.allowsCovering(covers)) allowed.push(name);
-  }
-  if (anyMcp) allowed.push("mcp");
-  return { tools: allowed };
 }

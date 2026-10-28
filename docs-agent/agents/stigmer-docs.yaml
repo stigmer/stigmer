@@ -64,11 +64,11 @@ spec:
     # `stigmer push skill ../skills/stigmer-docs` publishes it first.
     - kind: skill
       slug: stigmer-docs
-  # No mcp_server_usages, deliberately. Web retrieval is a harness built-in
-  # on both harnesses — `web_fetch` natively, `WebFetch` on Cursor — so this
-  # agent needs ZERO tool wiring: no MCP server to resolve, no subprocess to
-  # spawn, no credentials to bind on the channel, nothing to rotate. The
-  # built-in is auto-approved by design (see stigmer#214), which is exactly
-  # what anonymous guest conversations require: they run in unattended
-  # approval mode, where a tool that requires approval is silently SKIPPED —
-  # a gated fetch would turn every long-tail answer into a guess.
+  # No mcp_server_usages, deliberately. Web retrieval is the native harness's
+  # built-in `web_fetch`, so this agent needs ZERO tool wiring: no MCP server
+  # to resolve, no subprocess to spawn, no credentials to bind on the channel,
+  # nothing to rotate. The built-in is auto-approved by design (see
+  # stigmer#214), which is exactly what anonymous guest conversations require:
+  # they run in unattended approval mode, where a tool that requires approval
+  # is silently SKIPPED — a gated fetch would turn every long-tail answer into
+  # a guess.

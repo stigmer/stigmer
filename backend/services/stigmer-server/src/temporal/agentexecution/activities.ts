@@ -1,7 +1,7 @@
 /**
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution, read_harness_state_id), counts a waiting turn's open
+ * load_execution), counts a waiting turn's open
  * gates (CountOpenGates), closes the previous turn's file review
  * (CloseFileReview), and
  * registers the retired DeleteExecutionContext name with a body that does
@@ -33,8 +33,7 @@
  * enforcing Authorizer has no grant for — every runner failure on the
  * cloud composition left a hung, never-FAILED execution (stigmer#979).
  *
- * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
- * pure reads with Java `findById` parity — no chain to bypass.
+ * The read (LoadAgentExecution) stays store-direct: a pure read with Java `findById` parity — no chain to bypass.
  *
  * CountOpenGates is the workflow's HITL wait condition: the number of the
  * turn's tool uses that wait in its session's log (an ask no answer and
@@ -87,7 +86,6 @@ import type {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -109,7 +107,6 @@ import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
-  READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
@@ -224,37 +221,6 @@ export function createAgentExecutionActivities(
         return 0;
       }
       return (await store.sessionEvents.openGates(session, executionId)).length;
-    },
-
-    /**
-     * Reads the session's harness_state_id (the Cursor agentId stored by
-     * ExecuteCursor on first run; Agent.resume needs it on HITL
-     * re-invocations). Empty sessionId answers "" without error.
-     */
-    [READ_HARNESS_STATE_ID_ACTIVITY_NAME]: async (
-      sessionId: string,
-    ): Promise<string> => {
-      if (sessionId === "") {
-        return "";
-      }
-      let session;
-      try {
-        session = await store.getResource(
-          ApiResourceKind.session,
-          sessionId,
-          SessionSchema,
-        );
-      } catch (error) {
-        logger.error("Failed to load session for harness_state_id", {
-          session_id: sessionId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw new Error(
-          `load session ${sessionId} for harness_state_id: ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error },
-        );
-      }
-      return session.status?.harnessStateId ?? "";
     },
 
     /**

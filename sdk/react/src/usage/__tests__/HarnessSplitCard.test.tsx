@@ -17,16 +17,14 @@ describe("HarnessSplitCard", () => {
       <HarnessSplitCard
         breakdown={[
           create(HarnessUsageSchema, { harness: "native", totalTokens: 12_000n, callCount: 40, runCount: 5 }),
-          create(HarnessUsageSchema, { harness: "cursor", totalTokens: 4_000n, callCount: 0, runCount: 2 }),
-          create(HarnessUsageSchema, { harness: "claude", totalTokens: 4_000n, callCount: 9, runCount: 1 }),
+          create(HarnessUsageSchema, { harness: "claude", totalTokens: 8_000n, callCount: 0, runCount: 1 }),
           create(HarnessUsageSchema, { harness: "later-engine", totalTokens: 0n, callCount: 0, runCount: 0 }),
         ]}
       />,
     );
     expect(screen.getByRole("img", { name: "Token distribution by harness" })).toBeTruthy();
     expect(screen.getByText("Stigmer").parentElement?.textContent).toBe("Stigmer12.0k tokens40 calls (60%)");
-    expect(screen.getByText("Cursor").parentElement?.textContent).toBe("Cursor4.0k tokens0 calls (20%)");
-    expect(screen.getByText("Claude").parentElement?.textContent).toBe("Claude4.0k tokens9 calls (20%)");
+    expect(screen.getByText("Claude").parentElement?.textContent).toBe("Claude8.0k tokens0 calls (40%)");
     expect(screen.getByText("later-engine"), "a word this build does not name keeps its own").toBeTruthy();
     expect(container.textContent).not.toContain("$");
   });

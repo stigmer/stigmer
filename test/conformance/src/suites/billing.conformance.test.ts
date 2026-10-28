@@ -88,9 +88,6 @@ const COPY = {
 // names the service method the string was first read from, in the retired
 // Java service; the composition carries the same copy.
 const DOMAIN_COPY = {
-  // UpsertModelPricingBaselineHandler: variants inherit the base entry's Cursor rate
-  variantDeclaresCursorRate: (variant: string) =>
-    `Variant '${variant}' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.`,
   // RetireModelPricingBaselineHandler
   noActiveBaseline: (modelId: string, provider: string, harness: string) =>
     `No ACTIVE baseline found for ${modelId}/${provider}/${harness} — it may already be retired, or the key is misspelled.`,
@@ -521,7 +518,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     return all;
   }
 
-  it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] an operator's upsert is listed ACTIVE with the server's stamps, a second upsert of the same key supersedes the first, and a variant carrying a Cursor rate is refused", async () => {
+  it("[billing.rpc.upsert-model-pricing-baseline.round-trips-through-list] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] an operator's upsert is listed ACTIVE with the server's stamps, and a second upsert of the same key supersedes the first", async () => {
     const op = await operator();
     const modelId = uniqueName("conf-model");
 
@@ -550,20 +547,6 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
       [second.baselineId, ModelPricingBaselineStatus.pricing_baseline_active],
       [first.baselineId, ModelPricingBaselineStatus.pricing_baseline_superseded],
     ]);
-
-    // Variants inherit the base entry's Cursor rate; declaring one on a variant is the handler's own INVALID_ARGUMENT.
-    const refused = await expectGrpcCode(
-      () =>
-        op.clients.billingCommand.upsertModelPricingBaseline({
-          baseline: {
-            ...conformanceBaseline(modelId),
-            pricingVariants: { thinking: { pricing: { inputPriceMicrosPerMillion: 1n, outputPriceMicrosPerMillion: 1n, cursorTokenRateMicrosPerMillion: 7n } } },
-          },
-        }),
-      Code.InvalidArgument,
-      "variant with a Cursor token rate",
-    );
-    expect(refused.rawMessage).toBe(DOMAIN_COPY.variantDeclaresCursorRate("thinking"));
   });
 
   it("[billing.rpc.retire-model-pricing-baseline.unknown-not-found] [rpc:BillingCommandController.retireModelPricingBaseline] retiring an unknown key is NOT_FOUND with the handler's copy; retiring a known one removes it from the ACTIVE list, and retiring it again is NOT_FOUND", async () => {

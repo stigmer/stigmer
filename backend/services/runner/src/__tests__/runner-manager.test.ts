@@ -7,7 +7,7 @@ import type { TokenRef } from "../config.js";
  * The manager maps its options into a runner {@link Config}. The critical
  * invariant these tests lock is that execution location (`mode`) is decoupled
  * from credential transport (`proxyEndpoint`): the desktop runner executes
- * LOCALLY while still routing Cursor traffic through the proxy. Re-coupling the
+ * LOCALLY while still routing model traffic through the proxy. Re-coupling the
  * two previously broke local-path workspace sessions. The second invariant:
  * the config carries the root's credential REFS and no credential by value,
  * so a rotation the root writes is what every reader sees (config.ts header).
@@ -33,11 +33,10 @@ describe("mapManagerOptionsToConfig", () => {
     expect(config.mode).toBe("local");
     expect(config.proxyEndpoint).toBe("https://localhost:9090");
     // Proxy transport still engages independently of execution location.
-    expect(config.cursorApiKey).toBe("proxy-managed");
     expect(config.checkpointerType).toBe("http");
   });
 
-  it("binds the proxy credential to the runner-token ref, never the control-plane ref", () => {
+  it("binds the runner credential to the runner-token ref, never the control-plane ref", () => {
     const tokenRef = { current: "control-plane-token" };
     const runnerTokenRef = { current: "control-plane-token" };
     const config = mapManagerOptionsToConfig(
@@ -45,13 +44,12 @@ describe("mapManagerOptionsToConfig", () => {
       tokenRef,
       runnerTokenRef,
     );
-    expect(config.proxyTokenRef).toBe(runnerTokenRef);
     expect(config.stigmerRunnerTokenRef).toBe(runnerTokenRef);
     expect(config.stigmerTokenRef).toBe(tokenRef);
 
-    // After the mint the two refs diverge; the proxy credential follows the mint.
+    // After the mint the two refs diverge; the runner credential follows the mint.
     runnerTokenRef.current = "minted-runner-token";
-    expect(config.proxyTokenRef?.current).toBe("minted-runner-token");
+    expect(config.stigmerRunnerTokenRef?.current).toBe("minted-runner-token");
     expect(config.stigmerTokenRef.current).toBe("control-plane-token");
   });
 
@@ -64,7 +62,6 @@ describe("mapManagerOptionsToConfig", () => {
       runnerTokenRef,
     );
     expect(config.stigmerTokenRef).toBe(tokenRef);
-    expect(config.cursorApiKey).toBe("proxy-managed");
 
     // The pre-mint lockstep the coordinator keeps: one rotation writes both refs.
     tokenRef.current = "session-credential";

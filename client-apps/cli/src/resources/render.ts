@@ -167,7 +167,7 @@ function pushRunSettings(fields: Array<[string, string]>, spec: JsonObject, stat
   }
 }
 
-// A protojson enum name as the word a person reads ("HARNESS_CURSOR" -> "cursor").
+// A protojson enum name as the word a person reads ("HARNESS_CLAUDE" -> "claude").
 function enumWord(value: JsonValue | undefined, prefix: string): string | undefined {
   if (typeof value !== "string") return undefined;
   return (value.startsWith(prefix) ? value.slice(prefix.length) : value).toLowerCase();

@@ -10,8 +10,7 @@
  * call a person allowed "for the rest of the turn". Beside them the reader
  * lists the runner's own `stigmer.permission.asked`, one per ask, for what
  * the call was asked under: the rule that asked (its policy source word,
- * and the hook) and the content digest of an edit identified by its
- * content. Every answer, grant and ask is keyed by the tool use id it names
+ * and the hook). Every answer, grant and ask is keyed by the tool use id it names
  * (`events/ids.ts` `toolUseEventId`, the id the emitter wrote the ask
  * under).
  *
@@ -73,8 +72,6 @@ export interface ApprovalAsk {
   readonly policySource: string;
   /** The plugin whose hook asked; "" for the agent's own hooks or none. */
   readonly policyHook: string;
-  /** The digest of the content the call would write, when its harness identifies an edit by its content; "" otherwise. */
-  readonly contentDigest: string;
 }
 
 /** What the door hands the turn. */
@@ -128,8 +125,8 @@ export function approvalAnswersOf(
         break;
       }
       case "stigmerPermissionAsked": {
-        const { toolUseId, policySource, policyHook, contentDigest } = event.event.value;
-        if (!asks.has(toolUseId)) asks.set(toolUseId, { policySource, policyHook, contentDigest });
+        const { toolUseId, policySource, policyHook } = event.event.value;
+        if (!asks.has(toolUseId)) asks.set(toolUseId, { policySource, policyHook });
         break;
       }
       default:

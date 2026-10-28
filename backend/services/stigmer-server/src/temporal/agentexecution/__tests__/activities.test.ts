@@ -13,8 +13,6 @@
  *   - LoadAgentExecution returns proto-JSON that survives the payload
  *     boundary INCLUDING int64 fields (the bigint rule: a Message
  *     instance would crash the default converter);
- *   - ReadHarnessStateId's empty-input and not-found contracts (Go
- *     read_harness_state_id.go);
  *   - CountOpenGates counts the turn's asks its session's log holds open
  *     (not one an answer or a result closed, not another run's, never a
  *     change set awaiting review), reads the run's own session when the
@@ -45,7 +43,6 @@ import {
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunUpdateStatusInput } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
-import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -65,7 +62,6 @@ import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
-  READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
@@ -381,52 +377,6 @@ describe("CountOpenGates activity", () => {
     vi.spyOn(store.sessionEvents, "openGates").mockRejectedValueOnce(new Error("disk"));
     await expect(count("run_a", SESSION)).rejects.toThrow("disk");
     await expect(count("run_absent", "")).rejects.toThrow();
-  });
-});
-
-describe("ReadHarnessStateId activity", () => {
-  it("returns empty for an empty session id without error", async () => {
-    const { activities } = newFixture();
-    await expect(
-      (
-        activities[READ_HARNESS_STATE_ID_ACTIVITY_NAME] as (
-          sessionId: string,
-        ) => Promise<string>
-      )(""),
-    ).resolves.toBe("");
-  });
-
-  it("returns the stored harness_state_id", async () => {
-    const { store, activities } = newFixture();
-    await store.saveResource(
-      ApiResourceKind.session,
-      "ses_h1",
-      SessionSchema,
-      create(SessionSchema, {
-        apiVersion: "agentic.stigmer.ai/v1",
-        kind: "Session",
-        metadata: { id: "ses_h1", name: "s", org: "o" },
-        status: { harnessStateId: "cursor-agent-42" },
-      }),
-    );
-    await expect(
-      (
-        activities[READ_HARNESS_STATE_ID_ACTIVITY_NAME] as (
-          sessionId: string,
-        ) => Promise<string>
-      )("ses_h1"),
-    ).resolves.toBe("cursor-agent-42");
-  });
-
-  it("fails on a missing session with the pinned message shape", async () => {
-    const { activities } = newFixture();
-    await expect(
-      (
-        activities[READ_HARNESS_STATE_ID_ACTIVITY_NAME] as (
-          sessionId: string,
-        ) => Promise<string>
-      )("ses_missing"),
-    ).rejects.toThrow(/load session ses_missing for harness_state_id/);
   });
 });
 

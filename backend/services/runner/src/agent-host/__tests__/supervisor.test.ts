@@ -12,9 +12,6 @@
  *    whose start was under way when the last harness shut down is ended,
  *    not adopted, and nothing restarts it;
  *  - a call from the host for a turn the runner is not running is refused;
- *  - the host's Cursor SDK is pointed at the Cursor lane only on a runner
- *    that holds a Cursor credential (its own key, or the platform's proxy),
- *    so a runner without one still refuses a Cursor turn up front;
  *  - harnesses booted at the same moment, while the host is still starting,
  *    are each booted in it once;
  *  - a separating runner starts setpriv by its absolute path on its own
@@ -28,10 +25,7 @@
  *    draining its turns keeps its host; a host that has not exited a grace
  *    after it was told to end is killed;
  *  - hosting replaces every harness's adapter with a remote one that keeps
- *    its name and capabilities, and starts no host before a harness boots;
- *  - the host's trust file holds the Cursor lane's certificate, after the
- *    operator's own extra certificates when they named a readable file, is
- *    readable by another user, and is removed with the proxy.
+ *    its name and capabilities, and starts no host before a harness boots.
  */
 
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -47,11 +41,11 @@ import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
 import { serveAgentHost } from "../host.js";
-import { handOver, hostHarnesses, writeTrustedCertificates } from "../hosting.js";
+import { handOver, hostHarnesses } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
 import { AgentHostSupervisor, agentHostCommand, processHostStarter, spawnHostProcess, type HostStarter } from "../supervisor.js";
 
-const PROXY = { endpoint: "http://127.0.0.1:9", cursorEndpoint: "https://127.0.0.1:9", authorizeHost: () => {} };
+const PROXY = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {} };
 
 type HostSide = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 
@@ -169,35 +163,10 @@ describe("the supervisor's edges", () => {
     expect(log).toEqual(["[agent-host] the agent host exited (crashed); restarting in 5ms"]);
   });
 
-  it("points the host's Cursor SDK at the lane only on a runner that holds a Cursor credential", async () => {
-    const endpoints: (string | null)[] = [];
-    const start: HostStarter = () => {
-      const [runnerEnd, hostEnd] = loopbackChannels();
-      const host: HostSide = new Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>(hostEnd, "host");
-      host.handle("boot", async ({ config }) => {
-        endpoints.push(config.cursorEndpoint);
-        return null;
-      });
-      host.handle("shutdown", async () => null);
-      host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
-      return { channel: runnerEnd, kill: () => hostEnd.close() };
-    };
-    for (const config of [
-      testConfig({ proxyEndpoint: null, cursorApiKey: "" }),
-      testConfig({ proxyEndpoint: null, cursorApiKey: "operator-key" }),
-      testConfig({ proxyEndpoint: "https://platform.example/proxy", cursorApiKey: "proxy-managed" }),
-    ]) {
-      const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
-      await supervisor.boot("cursor", config);
-      await supervisor.shutdown("cursor");
-    }
-    expect(endpoints).toEqual([null, PROXY.cursorEndpoint, PROXY.cursorEndpoint]);
-  });
-
   it("touches nothing when a harness that was never booted shuts down", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
-    await supervisor.shutdown("cursor");
+    await supervisor.shutdown("claude");
     expect(hosts.hosts).toEqual([]);
   });
 
@@ -216,11 +185,11 @@ describe("the supervisor's edges", () => {
     };
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
 
-    await Promise.all([supervisor.boot("cursor", testConfig()), supervisor.boot("deep-agent", testConfig())]);
+    await Promise.all([supervisor.boot("claude", testConfig()), supervisor.boot("deep-agent", testConfig())]);
 
-    expect(booted.sort()).toEqual(["cursor", "deep-agent"]);
+    expect(booted.sort()).toEqual(["claude", "deep-agent"]);
     expect(hosts.hosts).toHaveLength(1);
-    await supervisor.shutdown("cursor");
+    await supervisor.shutdown("claude");
     await supervisor.shutdown("deep-agent");
   });
 
@@ -442,46 +411,21 @@ describe("hosting the table", () => {
       runTurn: async () => ({ kind: "completed" }),
     });
     const native = adapter("native");
-    const cursor = adapter("cursor");
+    const claude = adapter("claude");
     const hosted = await hostHarnesses(
       [
-        { harness: "cursor", adapter: cursor },
+        { harness: "claude", adapter: claude },
         { harness: "deep-agent", adapter: native },
       ],
       testConfig(),
       { start: hosts.start },
     );
 
-    expect(hosted.rows[0]!.adapter, "the Cursor harness is hosted").not.toBe(cursor);
+    expect(hosted.rows[0]!.adapter, "the Claude harness is hosted").not.toBe(claude);
     expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
-    expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["cursor", "native"]);
+    expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["claude", "native"]);
     expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
     expect(hosts.hosts, "nothing booted, so no host is started").toEqual([]);
     await hosted.close();
-  });
-
-  it("writes the host's trust file: the lane's certificate after the operator's, readable by another user, removed with the proxy", () => {
-    const operatorDir = mkdtempSync(join(tmpdir(), "operator-ca-"));
-    const operatorFile = join(operatorDir, "corporate.pem");
-    writeFileSync(operatorFile, "-----BEGIN CERTIFICATE-----\ncorporate\n-----END CERTIFICATE-----");
-    const lane = "-----BEGIN CERTIFICATE-----\nlane\n-----END CERTIFICATE-----\n";
-
-    const combined = writeTrustedCertificates(lane, operatorFile);
-    expect(readFileSync(combined.file, "utf8")).toBe("-----BEGIN CERTIFICATE-----\ncorporate\n-----END CERTIFICATE-----\n" + lane);
-    expect(statSync(combined.file).mode & 0o777).toBe(0o644);
-    expect(statSync(dirname(combined.file)).mode & 0o777).toBe(0o755);
-    combined.remove();
-    expect(existsSync(dirname(combined.file))).toBe(false);
-
-    const alone = writeTrustedCertificates(lane, undefined);
-    expect(readFileSync(alone.file, "utf8")).toBe(lane);
-    alone.remove();
-
-    const warned: string[] = [];
-    vi.spyOn(console, "warn").mockImplementation((message: string) => void warned.push(message));
-    const unreadable = writeTrustedCertificates(lane, join(operatorDir, "missing.pem"));
-    expect(readFileSync(unreadable.file, "utf8")).toBe(lane);
-    expect(warned[0]).toMatch(/^\[agent-host\] NODE_EXTRA_CA_CERTS=.*missing\.pem could not be read/);
-    unreadable.remove();
   });
 });

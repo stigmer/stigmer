@@ -31,13 +31,13 @@ beforeAll(() => {
  */
 
 const FAST_CAPABLE: ModelInfo = {
-  modelId: "composer-2.5",
-  provider: "cursor",
-  displayName: "Composer 2.5",
-  shortDescription: "Fast agentic model",
-  speedTier: "fastest",
-  costTier: "economy",
-  harness: "cursor",
+  modelId: "claude-opus-4-8",
+  provider: "anthropic",
+  displayName: "Opus 4.8",
+  shortDescription: "Frontier model with a fast tier",
+  speedTier: "slow",
+  costTier: "premium",
+  harness: "native",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -81,8 +81,8 @@ function renderComposer() {
   const result = render(
     <SessionComposer
       onSubmit={onSubmit}
-      harness="cursor"
-      defaultModelId="composer-2.5"
+      harness="native"
+      defaultModelId="claude-opus-4-8"
     />,
     { wrapper: createWrapper(client) },
   );
@@ -102,7 +102,7 @@ function submitMessage(message: string) {
  * options area, then close the popover (toggling keeps it open).
  */
 async function toggleFastTier() {
-  fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Opus 4\.8/ }));
   const toggle = await screen.findByRole("switch", { name: "Fast tier" });
   fireEvent.click(toggle);
   fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
@@ -114,7 +114,7 @@ describe("SessionComposer — service tier submit contract", () => {
   it("renders the tier switch through the toolbar for a fast-capable model", async () => {
     renderComposer();
 
-    fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Opus 4\.8/ }));
     expect(await screen.findByRole("switch", { name: "Fast tier" })).toBeTruthy();
   });
 

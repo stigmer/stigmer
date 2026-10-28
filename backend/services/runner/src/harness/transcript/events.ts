@@ -12,9 +12,9 @@
  *
  *   - Every member the builder never folded left — `usage`, `lifecycle`,
  *     `provider`, and the `seq`/`node`/`messageId`/`reason` fields no handler
- *     read. Usage is a LOOP concern: the native loop reads it off the wire
- *     (`usageOf`) and prices it into `TurnSink.reportUsage`; the Cursor loop
- *     reads its own from the SDK's `turn-ended` delta. A transcript fact is
+ *     read. Usage is a LOOP concern: each adapter's loop reads it off its
+ *     engine's stream and prices it into `TurnSink.reportUsage`. A
+ *     transcript fact is
  *     what a row or a message carries; usage is neither.
  *   - `tool_finished` carries `result: string`; the engine's output
  *     envelope is the translator's to render.
@@ -22,18 +22,16 @@
  *     provenance, which the translator resolves from the harness's policy
  *     state. It never says whether the call is held: a started call is
  *     running, and a held one reaches the transcript as `approval_proposed`
- *     on both harnesses, the one writer of a row's approval fields (#1117).
+ *     on every harness, the one writer of a row's approval fields (#1117).
  *     The builder writes what it is told and decides nothing about approval.
- *   - Scope is `subAgentId?` — the only scope either harness has is
+ *   - Scope is `subAgentId?` — the only scope any harness has is
  *     "the root, or one sub-agent by the id its row carries" — and the
  *     translator says when a sub-agent opens and closes
  *     (`sub_agent_started/finished/failed`). LangGraph's namespace grammar
  *     (`tools:<uuid>|model_request:<uuid>`), the `task` tool's name and its
  *     depth rule are the native translator's alone now.
- *   - `approval_proposed`, the one post-stream fact both harnesses
- *     produce, and `system_note`, a harness's line in its own voice. The
- *     union is complete: a Cursor translator emits it and writes
- *     nothing else.
+ *   - `approval_proposed`, the one post-stream fact every harness
+ *     produces, and `system_note`, a line in the runtime's own voice.
  *   - `context_compacted`, a marker where the engine summarized the
  *     conversation, so the person is told and the summary never reads as
  *     the agent's words.
@@ -53,11 +51,11 @@
  *
  * ID conventions:
  *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
- *     LLM-call run id on native; a translator-minted segment id on Cursor);
+ *     LLM-call run id on native; the API message id on Claude);
  *     shared across that message's events
  *   - `callId` — provider tool call ID (e.g. `toolu_...`); keys ToolCall records
- *   - `subAgentId` — the sub-agent row's id, which on both harnesses is the
- *     `task` tool call's id
+ *   - `subAgentId` — the sub-agent row's id, which on every harness is the
+ *     delegating call's id (native's `task`, Claude's `Agent`)
  */
 
 import type { PolicySource } from "../../shared/approval-policy.js";
@@ -68,8 +66,8 @@ import type { PolicySource } from "../../shared/approval-policy.js";
  * Which transcript a fact belongs to: the root's, or a sub-agent's by the id
  * its row carries. Absent = root. The builder keeps one set of handlers and
  * looks the scope's transcript up by this id; how a harness knows which
- * sub-agent an event belongs to (LangGraph's namespace prefix, Cursor's
- * `conversationSteps`) is the translator's knowledge.
+ * sub-agent an event belongs to (LangGraph's namespace prefix, Claude's
+ * `parent_tool_use_id`) is the translator's knowledge.
  */
 interface Scoped {
   readonly subAgentId?: string;
@@ -102,17 +100,17 @@ export interface MessageFinishEvent extends Scoped {
 // ── Tool Events ───────────────────────────────────────────────────
 
 /**
- * A tool call has started. It carries no approval fact, on either harness
+ * A tool call has started. It carries no approval fact, on any harness
  * (#1117): whether a call is HELD for a person's decision is known only after
  * the engine's own gate has run, and it reaches the transcript as
  * `approval_proposed` — native's post-stream seed after LangGraph's
  * `interrupt()` (which fires before the tool handler, so a held call never
- * starts), Cursor's deny-and-retry boundary after the preToolUse hook denied
- * it. A call that runs under a lease, a bypass or capture mode is therefore
- * never marked as requiring approval. A `gate` member carried the policy's
- * category verdict here until #1117; it had one producer (Cursor), which made
- * the field mean different things per harness, and it was dropped, as a
- * `parked: true` arm with no producer was before it.
+ * starts), Claude's gate when its `PreToolUse` callback defers the call. A
+ * call that runs under a lease, a bypass or capture mode is therefore never
+ * marked as requiring approval. A `gate` member carried the policy's
+ * category verdict here until #1117; it meant different things per
+ * harness, and it was dropped, as a `parked: true` arm with no producer was
+ * before it.
  */
 export interface ToolStartedEvent extends Scoped {
   readonly kind: "tool_started";
@@ -167,38 +165,19 @@ export interface ToolOutputDeltaEvent extends Scoped {
   readonly delta: string;
 }
 
-/**
- * A fact the harness observed at one instant and delivers at another. The
- * builder is the transcript's one clock — every row stamp is `utcTimestamp()`
- * at apply, read once per observation when the loop folds a raw event's
- * facts together (`TranscriptBuilder.applyObservation`) — except here: a
- * Cursor completion arrives first on the SDK's
- * delta channel, and the translator must QUEUE it for the loop to apply after
- * the current stream event (a delta applied mid-persist would land on a row
- * the offload is replacing). Without the observed
- * instant the row's `completedAt` would be the fold's moment, one stream
- * event late — seconds late while the model narrates — and the tool's
- * duration in the console would lie (fixed 2026-09-15, #1097). Absent
- * means the fold's instant: native, and every fact a translator emits as it
- * sees it, never set it.
- */
-interface Observed {
-  readonly observedAt?: string;
-}
-
-export interface ToolFinishedEvent extends Scoped, Observed {
+export interface ToolFinishedEvent extends Scoped {
   readonly kind: "tool_finished";
   readonly callId: string;
   /**
    * The result as the row carries it — already a string. Rendering the
-   * engine's output (LangChain's ToolMessage envelope, Cursor's result
-   * object) is the translator's; the builder stores what it is handed and
+   * engine's output (LangChain's ToolMessage envelope, the Claude engine's
+   * tool result blocks) is the translator's; the builder stores what it is handed and
    * the persist chokepoint bounds it.
    */
   readonly result: string;
 }
 
-export interface ToolErrorEvent extends Scoped, Observed {
+export interface ToolErrorEvent extends Scoped {
   readonly kind: "tool_error";
   readonly callId: string;
   readonly message: string;
@@ -217,7 +196,7 @@ export interface ToolErrorEvent extends Scoped, Observed {
 export interface SubAgentStartedEvent {
   readonly kind: "sub_agent_started";
   readonly subAgentId: string;
-  /** The sub-agent's declared name (deepagents' `subagent_type`; Cursor's `task` name). */
+  /** The sub-agent's declared name (its `subagent_type`, on native and Claude). */
   readonly name: string;
   /** What it was asked to do, as the card's title and as its input. */
   readonly subject: string;
@@ -240,12 +219,11 @@ export interface SubAgentFailedEvent {
 // ── Post-Stream Facts ─────────────────────────────────────────────
 
 /**
- * A call the harness's boundary parked for approval AFTER the stream — the
- * one post-stream fact both harnesses produce: native's
- * `seedPendingInterrupts` reads the graph checkpoint's un-resumed interrupts
- * (a held call never streamed a `tool_started`, so no row exists yet);
- * Cursor's denial overlay re-proposes a call the hook denied (a row exists,
- * `error`ed). An UPSERT: a known `callId` REOPENS its row — WAITING, the
+ * A call the harness's gate parked for approval — the one post-stream fact
+ * every harness produces: native's `seedPendingInterrupts` reads the graph
+ * checkpoint's un-resumed interrupts (a held call never streamed a
+ * `tool_started`, so no row exists yet); Claude's gate parks a call its
+ * stream already showed (a row exists, PENDING). An UPSERT: a known `callId` REOPENS its row — WAITING, the
  * outcome fields cleared, `approvalRequestedAt` stamped once; an unknown one
  * gets a WAITING row on the scope's current AI message, the text that
  * proposed it (the message-boundary rule). Either way the builder reports
@@ -263,16 +241,14 @@ export interface ApprovalProposedEvent extends Scoped {
   readonly provenance?: PolicySource;
   /** The plugin whose hook asked (`""` for the agent's own hooks block); absent when no hook asked. */
   readonly policyHook?: string;
-  /** Cursor's content identity for a same-identity re-proposal (`approvalContentDigest`); native has none. */
-  readonly contentDigest?: string;
 }
 
 /**
  * The engine compacted the scope's conversation at this point: the summarizer
  * ran, and the model reads a summary of what came before from now on. Native
  * deepagents' summarizer says so through the compaction middleware's
- * custom-stream event, Cursor's server through its `summary-completed`
- * delta. A marker, never a message: the summary's text is the engine's and
+ * custom-stream event, the Claude engine through its `compact_boundary`
+ * message. A marker, never a message: the summary's text is the engine's and
  * never the agent's words. The builder appends a COMPACTED row in the scope,
  * which hosts no rows and moves no boundary.
  */
@@ -281,9 +257,8 @@ export interface ContextCompactedEvent extends Scoped {
 }
 
 /**
- * A line the harness adds to the transcript in its own voice — Cursor's
- * `task` SDK event (a status line about the run), the boundary's
- * unresolved-disclosure row. A SYSTEM message in the scope, never
+ * A line the runtime adds to the transcript in its own voice — a continued
+ * turn's lost-runner note, the platform-tools-off notice. A SYSTEM message in the scope, never
  * an AI one, so it neither hosts tool rows nor moves the message boundary.
  */
 export interface SystemNoteEvent extends Scoped {
@@ -341,7 +316,7 @@ export type BackgroundStopper = "agent" | "person" | "approval" | "turn";
  * needs no row to exist first. Unscoped for the same reason: the event
  * emitter reads the thread from the starting call's row.
  */
-export interface BackgroundCommandStartedEvent extends Observed {
+export interface BackgroundCommandStartedEvent {
   readonly kind: "background_command_started";
   /** The starting call's id: the command's identity. */
   readonly callId: string;
@@ -360,7 +335,7 @@ export interface BackgroundOutputDeltaEvent {
 }
 
 /** A background command ended, however it ended (see {@link BackgroundCommandStartedEvent}). */
-export interface BackgroundCommandEndedEvent extends Observed {
+export interface BackgroundCommandEndedEvent {
   readonly kind: "background_command_ended";
   readonly callId: string;
   readonly ending: BackgroundEnding;

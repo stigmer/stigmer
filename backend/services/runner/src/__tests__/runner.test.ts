@@ -62,14 +62,12 @@ describe("StigmerRunnerOptions type contract", () => {
       stigmerEndpoint: "https://api.stigmer.ai",
       temporalNamespace: "prod",
       stigmerToken: "tok_123",
-      cursorApiKey: "key_abc",
       workspaceRootDir: "/workspace",
       maxConcurrentActivities: 10,
       proxyEndpoint: "https://proxy.stigmer.ai",
       primaryModel: "claude-4",
       checkpointerType: "http",
       checkpointerProxyEndpoint: "https://cp.stigmer.ai",
-      cloudModeEnabled: true,
       executionMode: "local",
     };
 
@@ -77,7 +75,6 @@ describe("StigmerRunnerOptions type contract", () => {
     expect(options.maxConcurrentActivities).toBe(10);
     expect(options.proxyEndpoint).toBe("https://proxy.stigmer.ai");
     expect(options.checkpointerType).toBe("http");
-    expect(options.cloudModeEnabled).toBe(true);
     expect(options.executionMode).toBe("local");
   });
 
@@ -90,14 +87,12 @@ describe("StigmerRunnerOptions type contract", () => {
 
     expect(options.temporalNamespace).toBeUndefined();
     expect(options.stigmerToken).toBeUndefined();
-    expect(options.cursorApiKey).toBeUndefined();
     expect(options.workspaceRootDir).toBeUndefined();
     expect(options.maxConcurrentActivities).toBeUndefined();
     expect(options.proxyEndpoint).toBeUndefined();
     expect(options.primaryModel).toBeUndefined();
     expect(options.checkpointerType).toBeUndefined();
     expect(options.checkpointerProxyEndpoint).toBeUndefined();
-    expect(options.cloudModeEnabled).toBeUndefined();
     expect(options.executionMode).toBeUndefined();
   });
 });
@@ -108,9 +103,9 @@ describe("StigmerRunnerOptions type contract", () => {
  * credential transport (`proxyEndpoint`): an explicit `executionMode` always
  * wins, and only when it is unset does `mode` fall back to the proxy-derived
  * default for backward compatibility. This mirrors `mapManagerOptionsToConfig`.
- * The static root binds ONE ref as both the control-plane and the proxy
- * credential (it mints no separate proxy token), and the config carries no
- * credential by value (config.ts header).
+ * The static root binds ONE ref as the control-plane credential (it mints
+ * no separate proxy token), and the config carries no credential by value
+ * (config.ts header).
  */
 describe("mapOptionsToConfig — Temporal connection security", () => {
   const base: StigmerRunnerOptions = {
@@ -154,7 +149,6 @@ describe("mapOptionsToConfig — execution mode", () => {
     expect(config.mode).toBe("cloud");
     // Proxy transport still engages independently of execution location.
     expect(config.proxyEndpoint).toBe("https://proxy.example.com");
-    expect(config.cursorApiKey).toBe("proxy-managed");
     expect(config.checkpointerType).toBe("http");
   });
 
@@ -168,7 +162,6 @@ describe("mapOptionsToConfig — execution mode", () => {
     expect(config.mode).toBe("local");
     // Transport still routes through the proxy despite local execution.
     expect(config.proxyEndpoint).toBe("https://proxy.example.com");
-    expect(config.cursorApiKey).toBe("proxy-managed");
   });
 
   it("honors explicit cloud executionMode without a proxy", () => {
@@ -176,7 +169,7 @@ describe("mapOptionsToConfig — execution mode", () => {
     expect(config.mode).toBe("cloud");
   });
 
-  it("binds the one ref as both the control-plane and the proxy credential, and carries no credential by value", () => {
+  it("binds the one ref as the control-plane credential, and carries no credential by value", () => {
     const tokenRef: TokenRef = { current: "boot-credential" };
     const runnerTokenRef: TokenRef = { current: null };
     const config = mapOptionsToConfig(
@@ -185,13 +178,10 @@ describe("mapOptionsToConfig — execution mode", () => {
       runnerTokenRef,
     );
     expect(config.stigmerTokenRef).toBe(tokenRef);
-    expect(config.proxyTokenRef).toBe(tokenRef);
     expect(config.stigmerRunnerTokenRef).toBe(runnerTokenRef);
-    expect(config.cursorApiKey).toBe("proxy-managed");
 
     tokenRef.current = "renewed-credential";
     expect(config.stigmerTokenRef.current).toBe("renewed-credential");
-    expect(config.proxyTokenRef?.current).toBe("renewed-credential");
     expect(JSON.stringify(config)).not.toContain("boot-credential");
   });
 });

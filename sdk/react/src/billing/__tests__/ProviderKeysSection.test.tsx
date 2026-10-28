@@ -1,8 +1,7 @@
 // The provider keys section over a mock client: an admin on any plan saves a
 // key (never shown back), optionally on an own endpoint shown by its host,
-// and removes one after confirming, or cancels and keeps it; Cursor is listed
-// after Anthropic and OpenAI, says which keys it takes, offers no endpoint
-// and saves none; a refused save shows the server's copy; a viewer sees the
+// and removes one after confirming, or cancels and keeps it; Anthropic and
+// OpenAI are listed in that order; a refused save shows the server's copy; a viewer sees the
 // list with no actions; a managed organization's inherited key is
 // read-only; local mode says the setting is Stigmer Cloud's. Nothing reads
 // the plan.
@@ -134,42 +133,17 @@ describe("ProviderKeysSection", () => {
     ).toBe("https://llm.acme.example/openai/v1");
   });
 
-  it("lists Cursor after Anthropic and OpenAI", async () => {
+  it("lists Anthropic, then OpenAI", async () => {
     renderSection(mockClient());
     const list = await screen.findByRole("list", { name: "Provider keys" });
     expect(
       within(list)
         .getAllByRole("listitem")
         .map((li) => li.querySelector("p")?.textContent),
-    ).toEqual(["Anthropic", "OpenAI", "Cursor"]);
-    expect(within(await row("Cursor")).getByText("Not set: runs that need Cursor are refused until a key is added.")).toBeTruthy();
+    ).toEqual(["Anthropic", "OpenAI"]);
   });
 
-  it("saves a Cursor key with no base URL, offering no endpoint and naming the keys Cursor takes", async () => {
-    const client = mockClient();
-    renderSection(client);
-    await userEvent.click(within(await row("Cursor")).getByRole("button", { name: "Add key" }));
-    const cursor = await row("Cursor");
-    expect(within(cursor).queryByLabelText("Base URL (optional)")).toBeNull();
-    expect(cursor.querySelector('input[type="url"]')).toBeNull();
-    const input = within(cursor).getByLabelText("Cursor API key");
-    expect(input.getAttribute("placeholder")).toBe("key_…");
-    expect(input.getAttribute("aria-describedby")).not.toBeNull();
-    expect(document.getElementById(input.getAttribute("aria-describedby") ?? "")?.textContent).toBe(
-      "A Cursor user API key (Cursor dashboard → API Keys) or a team service-account key. Cursor bills usage to that user's plan or that team.",
-    );
-    await userEvent.type(input, "key_cursor-4321");
-    await userEvent.click(within(await row("Cursor")).getByRole("button", { name: "Save key" }));
-    await waitFor(() =>
-      expect(client.providerkey.set).toHaveBeenCalledWith(
-        expect.objectContaining({ org: "acme", provider: "cursor", apiKey: "key_cursor-4321", baseUrl: "" }),
-      ),
-    );
-    const saved = await within(await row("Cursor")).findByText(/Key ending in 4321/);
-    expect(saved.textContent).not.toContain(" on ");
-  });
-
-  it("keeps the endpoint field and its hint on the providers that take one", async () => {
+  it("offers the endpoint field and its hint", async () => {
     renderSection(mockClient());
     await userEvent.click(within(await row("Anthropic")).getByRole("button", { name: "Add key" }));
     const anthropic = await row("Anthropic");

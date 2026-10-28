@@ -1,6 +1,6 @@
 /**
- * The loopback certificate (`agent-proxy/loopback-certificate.ts`), proved
- * the way the agent host uses it.
+ * The loopback certificate (`loopback-certificate.ts`), proved the way a
+ * hermetic HTTPS provider and its reader use it.
  *
  * Pinned:
  *  - Node's X.509 parser reads it: self-signed, for IP 127.0.0.1, valid now
@@ -21,7 +21,7 @@ import { connect, createSecureServer, type Http2SecureServer } from "node:http2"
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { mintLoopbackCertificate } from "../loopback-certificate.js";
+import { mintLoopbackCertificate } from "../loopback-certificate.ts";
 
 let server: Http2SecureServer | undefined;
 
@@ -62,7 +62,7 @@ describe("the loopback certificate", () => {
     const { certPem, keyPem } = mintLoopbackCertificate(now);
     const cert = new X509Certificate(certPem);
 
-    expect(cert.subject).toBe("CN=stigmer agent proxy");
+    expect(cert.subject).toBe("CN=stigmer loopback");
     expect(cert.issuer).toBe(cert.subject);
     expect(cert.checkIP("127.0.0.1")).toBe("127.0.0.1");
     expect(cert.checkHost("example.com")).toBeUndefined();

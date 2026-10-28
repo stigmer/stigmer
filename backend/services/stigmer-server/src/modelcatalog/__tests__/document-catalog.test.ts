@@ -25,9 +25,9 @@ const DOCUMENT = JSON.stringify({
       capabilities: { thinking: true },
     },
     { id: "openai/gpt", harness: "native" },
-    { id: "anthropic/claude", harness: "cursor" },
+    { id: "anthropic/claude", harness: "claude" },
     // A section divider: no id/harness, indexes nothing.
-    { $comment: "---- cursor models ----" },
+    { $comment: "---- claude models ----" },
     // Tri-state rule: false and non-boolean values declare nothing.
     {
       id: "meta/llama",
@@ -61,7 +61,7 @@ describe("newModelCatalogProviderFromDocument", () => {
     const catalog = newModelCatalogProviderFromDocument(DOCUMENT);
     expect(catalog.isValidModel("native", "anthropic/claude")).toBe(true);
     expect(catalog.isValidModel("native", "claude-x")).toBe(true);
-    expect(catalog.isValidModel("cursor", "claude-x")).toBe(false);
+    expect(catalog.isValidModel("claude", "claude-x")).toBe(false);
     expect(catalog.isValidModelOnAnyHarness("anthropic/claude")).toBe(true);
     expect(catalog.isValidModelOnAnyHarness("unknown/model")).toBe(false);
     expect(catalog.hasHarness("native")).toBe(true);
@@ -91,7 +91,7 @@ describe("newModelCatalogProviderFromDocument", () => {
       catalog.hasPricingVariantForHarness("native", "claude-x", "fast"),
     ).toBe(true);
     expect(
-      catalog.hasPricingVariantForHarness("cursor", "anthropic/claude", "fast"),
+      catalog.hasPricingVariantForHarness("claude", "anthropic/claude", "fast"),
     ).toBe(false);
     expect(catalog.canonicalModelsWithVariant("fast")).toEqual([
       "anthropic/claude",
@@ -125,7 +125,7 @@ describe("providerOf", () => {
         { id: "claude-a", apiModelId: "claude-a-1", provider: "anthropic", harness: "native" },
         { id: "gpt-a", provider: "openai", harness: "native" },
         { id: "qwen-a", provider: "ollama", harness: "native" },
-        { id: "claude-a", provider: "cursor", harness: "cursor" },
+        { id: "claude-a", provider: "bedrock", harness: "claude" },
       ],
     }),
   );
@@ -135,7 +135,7 @@ describe("providerOf", () => {
     expect(catalog.providerOf("native", "claude-a-1")).toBe("anthropic");
     expect(catalog.providerOf("native", "gpt-a")).toBe("openai");
     expect(catalog.providerOf("native", "qwen-a")).toBe("ollama");
-    expect(catalog.providerOf("cursor", "claude-a")).toBe("cursor");
+    expect(catalog.providerOf("claude", "claude-a")).toBe("bedrock");
   });
 
   it("answers an explicit provider prefix for a model the catalog does not list", () => {
@@ -194,6 +194,6 @@ describe("defaultModel", () => {
       }),
     );
     expect(catalog.defaultModel("native")).toBeUndefined();
-    expect(catalog.defaultModel("cursor")).toBeUndefined();
+    expect(catalog.defaultModel("claude")).toBeUndefined();
   });
 });

@@ -246,7 +246,7 @@ describe("runEpilogue", () => {
       folded([
         user("aex_1", "go"),
         said("aex_1", 0, "Fetching."),
-        use("aex_1", "c1", "Shell"),
+        use("aex_1", "c1", "Bash"),
         result("aex_1", "c1", "ok"),
         use("aex_1", "c2", "Fetch"),
         result("aex_1", "c2", "", true),

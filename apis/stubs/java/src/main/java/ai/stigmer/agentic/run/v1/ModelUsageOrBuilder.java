@@ -32,7 +32,7 @@ public interface ModelUsageOrBuilder extends
 
   /**
    * <pre>
-   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * LLM provider (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -41,7 +41,7 @@ public interface ModelUsageOrBuilder extends
   java.lang.String getProvider();
   /**
    * <pre>
-   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * LLM provider (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>

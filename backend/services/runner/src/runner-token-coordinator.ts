@@ -5,7 +5,8 @@
  *
  *   - the control-plane token (the host's durable credential, e.g. the desktop's
  *     Auth0 token), used for Authorization on control-plane gRPC; and
- *   - the proxy token (x-stigmer-auth), used for Cursor-proxy traffic.
+ *   - the proxy token, the runner-class credential StigmerClient's value
+ *     fetches present (Config.stigmerRunnerTokenRef).
  *
  * On most hosts these are the same token. When a manager boots WITHOUT a
  * pinned Temporal address (the desktop runner), bootstrap discovery dials the
@@ -42,7 +43,7 @@ const FALLBACK_TTL_SECONDS = 3_600;
 const RETRY_DELAY_MS = 60_000;
 
 export interface RunnerTokenCoordinatorOptions {
-  /** Writes the proxy credential to the x-stigmer-auth interceptors. */
+  /** Writes the proxy credential to its one sink (the manager's `runnerTokenRef`). */
   readonly applyProxyToken: (token: string) => void;
   /**
    * Re-mints the proxy token using the current (always-fresh) control-plane

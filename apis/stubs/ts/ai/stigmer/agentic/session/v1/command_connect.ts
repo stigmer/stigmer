@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, BindHarnessStateInput, BindHarnessStateResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, StopBackgroundCommandInput, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, StopBackgroundCommandInput, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
 import { SessionEvent } from "./event_pbjs";
 
 /**
@@ -280,21 +280,6 @@ export const SessionCommandController = {
       name: "claimInput",
       I: ClaimSessionInputInput,
       O: ClaimSessionInputResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Record the harness's conversation id for a run's session.
-     *
-     * Only the runner acting for the run may call it, while the run is not
-     * finished. The id replaced, if any, joins the session's
-     * harness_state_id_history.
-     *
-     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.bindHarnessState
-     */
-    bindHarnessState: {
-      name: "bindHarnessState",
-      I: BindHarnessStateInput,
-      O: BindHarnessStateResponse,
       kind: MethodKind.Unary,
     },
   }

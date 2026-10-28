@@ -7,7 +7,7 @@
  * preview for every `tool_output_delta` the transcript builder folds
  * (`events/emitter.ts`), and until now those previews left only with a
  * persist. A harness that streams output outside its loop's persist
- * decision (Cursor's shell deltas arrive on the SDK's delta channel), or a
+ * decision (Claude's shell deltas arrive from the host's shell server), or a
  * tool that prints for minutes with nothing else happening, left them
  * queued until the result landed, when they are dropped (stigmer#2415).
  * The builder's observer sees every delta in both process modes (a hosted

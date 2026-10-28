@@ -4,8 +4,7 @@
  * commit a repository names when it names one; local folders are mounted; and a
  * session with no repository or folder (Files alone are none) gets its own
  * empty per-session root.
- * Harness-agnostic; the Cursor activity was its only caller until the turn
- * runtime took it over in #1070.
+ * Harness-agnostic: the turn runtime's phase since #1070.
  *
  * Uses a real, hermetic local git repository (no network, no harness API) so
  * the clone is deterministic.
@@ -28,7 +27,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { provisionSessionWorkspace, type SessionProvisionConfig } from "../session-provision.js";
 
 const MARKER_FILE = "MARKER.txt";
-const MARKER_CONTENT = "stigmer-cursor-clone-proof-7e3a1c";
+const MARKER_CONTENT = "stigmer-clone-proof-7e3a1c";
 
 let tmpRoot: string;
 let originalHome: string | undefined;
@@ -112,7 +111,7 @@ const GIT_TEST_TIMEOUT_MS = 30_000;
 
 describe("provisionSessionWorkspace", () => {
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), "cursor-ws-"));
+    tmpRoot = mkdtempSync(join(tmpdir(), "provision-ws-"));
     // Redirect the platform dir (~/.stigmer/...) into the temp tree so the
     // test does not pollute the developer's home directory.
     originalHome = process.env.HOME;

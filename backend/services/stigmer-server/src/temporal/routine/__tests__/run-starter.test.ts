@@ -719,20 +719,6 @@ describe("RunStarter.startRun — against a real store", () => {
     );
   });
 
-  it("refuses via the model-pinning launch backstop for a pre-rule cursor row", async () => {
-    const runStarter = starter(async () => {
-      throw new Error("unreachable");
-    });
-    const outcome = await runStarter.startRun(
-      routineWith({ harness: Harness.CURSOR, modelName: "" }),
-      scheduleFire(ROUTINE_ID, NOMINAL),
-    );
-    expect(outcome.kind).toBe("refused");
-    if (outcome.kind === "refused") {
-      expect(outcome.reason).toContain("stigmer/stigmer#362");
-    }
-  });
-
   it.each([
     Code.FailedPrecondition,
     Code.PermissionDenied,

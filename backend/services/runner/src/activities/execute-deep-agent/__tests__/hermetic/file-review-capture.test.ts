@@ -13,7 +13,7 @@
  * session's log, and the activity persists COMPLETED and RETURNS: review
  * never holds a turn (stigmer#1471). The change-set id is the deterministic
  * `executionId:turnSeq`. The ledger shape is what the runtime's capture must
- * reproduce, beside Cursor's `file-review-capture.status.json`.
+ * reproduce.
  *
  * Why this arm has a golden file since #1096: the orchestrator created the
  * workspace's `.stigmer` symlink
@@ -21,12 +21,12 @@
  * platform dir under `HOME`, so the baseline and candidate tree OIDs the
  * ledger carries were per-host — and per-run here, where `HOME` is a temp
  * directory. The runtime creates the link only when a skill or attachment
- * needs it (the same rule that makes Cursor's golden byte-stable); this
+ * needs it; this
  * scenario mounts neither, so no link enters either tree and both OIDs are
  * content-derived. Every content-derived byte is still asserted in code
  * (the lock-timeout arm's rule, #1070, is the shape for
  * a status the host could reach), and `goldens/file-review-capture.status.json`
- * pins the whole ledger beside Cursor's.
+ * pins the whole ledger.
  *
  * Parent phase rows exercised beyond the plain arms: a `local_path` workspace
  * entry (mounted as-is in local mode, the agent rooted at the entry per

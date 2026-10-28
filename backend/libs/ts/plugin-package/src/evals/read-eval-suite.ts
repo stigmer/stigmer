@@ -125,30 +125,25 @@ export const EVAL_UNSUPPORTED_FEATURES = ["plugins", "more than 32 graders"] as 
 export type EvalUnsupportedFeature = (typeof EVAL_UNSUPPORTED_FEATURES)[number];
 
 /** An engine a case may run on, by the word the model catalog files its rows under. */
-export type EvalEngine = "native" | "cursor" | "claude";
+export type EvalEngine = "native" | "claude";
 
-/** A feature some engine cannot run: a recorded conversation to resume, or `env` for the case's commands. */
-export type EvalEngineUnsupportedFeature = "resumed conversations" | "env";
+/** A feature some engine cannot run: a recorded conversation to resume. */
+export type EvalEngineUnsupportedFeature = "resumed conversations";
 
 /**
  * The features each engine cannot run, in the order a case is checked for
- * them. The native engine runs every one. The Cursor engine's SDK keeps a
- * conversation's history in a store it owns, so a recorded conversation
- * cannot be resumed there, and its shell runs in the runner's process with
- * no per-run environment, so `env` cannot reach it. The Claude engine's
- * conversation lives in its own transcript, which no recorded history seeds
- * yet; its shell is the runner's, so `env` reaches it as on native.
+ * them. The native engine runs every one. The Claude engine's conversation
+ * lives in its own transcript, which no recorded history seeds yet; its
+ * shell is the runner's, so `env` reaches it as on native.
  */
 export const EVAL_ENGINE_UNSUPPORTED_FEATURES: Readonly<Record<EvalEngine, readonly EvalEngineUnsupportedFeature[]>> = {
   native: [],
-  cursor: ["resumed conversations", "env"],
   claude: ["resumed conversations"],
 };
 
 /** Whether `evalCase` uses `feature`. */
 const USES: Readonly<Record<EvalEngineUnsupportedFeature, (evalCase: EvalCase) => boolean>> = {
   "resumed conversations": (evalCase) => evalCase.context.historyFile !== undefined,
-  env: (evalCase) => Object.keys(evalCase.env).length > 0,
 };
 
 /** The first feature of `evalCase` that `engine` cannot run, or `undefined`. */

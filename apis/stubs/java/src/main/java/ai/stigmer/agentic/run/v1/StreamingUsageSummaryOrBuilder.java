@@ -52,9 +52,8 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens across all turns: input_tokens + output_tokens. The Cursor
-   * SDK reports input_tokens cache-inclusive (cache_read/cache_write are
-   * subsets of it), so the cache buckets are NOT added again here.
+   * Total tokens across all turns: input_tokens + output_tokens; the cache
+   * buckets are NOT added again here.
    * </pre>
    *
    * <code>int64 total_tokens = 5 [json_name = "totalTokens"];</code>
@@ -154,8 +153,8 @@ public interface StreamingUsageSummaryOrBuilder extends
   /**
    * <pre>
    * JSON-encoded provider variant parameters the runner sent with the model
-   * selection (Cursor ModelSelection.params, e.g.
-   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   * selection (e.g. [{"id":"fast","value":"false"}]). Empty when the
+   * harness sent none.
    * </pre>
    *
    * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>
@@ -165,8 +164,8 @@ public interface StreamingUsageSummaryOrBuilder extends
   /**
    * <pre>
    * JSON-encoded provider variant parameters the runner sent with the model
-   * selection (Cursor ModelSelection.params, e.g.
-   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   * selection (e.g. [{"id":"fast","value":"false"}]). Empty when the
+   * harness sent none.
    * </pre>
    *
    * <code>string requested_model_params = 11 [json_name = "requestedModelParams"];</code>

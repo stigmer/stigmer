@@ -56,7 +56,7 @@ export const AGENT_GETS: Readonly<Record<AgentGetId, AgentGet>> = {
     icon: "network",
     title: AGENT_GET_TITLES.keys,
     description:
-      "Runs on your own model keys: Anthropic or Cursor anywhere, OpenAI too on Stigmer Cloud. On your servers or ours.",
+      "Runs on your own model keys: Anthropic anywhere, OpenAI too on Stigmer Cloud. On your servers or ours.",
     cta: "Open source, Enterprise and Cloud",
     href: "/docs/guides/self-hosting/cloud-vs-self-hosted",
   },

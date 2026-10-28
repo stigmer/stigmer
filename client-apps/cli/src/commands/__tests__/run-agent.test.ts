@@ -1,6 +1,6 @@
 // Command-level contract for `stigmer run <agent>`: the spec of the agent
 // the command resolved reaches the prelude, so the agent's run defaults seed
-// the run. An agent naming the cursor engine runs on cursor with no flag, and
+// the run. An agent naming the claude engine runs on claude with no flag, and
 // its model is left to the server (the run carries none), ahead of any
 // account preference. The built-in assistant names no agent and so seeds
 // nothing. The layering itself is pinned in
@@ -49,7 +49,7 @@ vi.mock("../../resources/run/resolve.js", async (importOriginal) => {
     resolveAgentRef: async () =>
       create(AgentSchema, {
         metadata: { id: "agt_reviewer" },
-        spec: { harness: Harness.CURSOR, runConfig: { modelName: "composer-2.5" } },
+        spec: { harness: Harness.CLAUDE, runConfig: { modelName: "claude-sonnet-5" } },
       }),
   };
 });
@@ -79,7 +79,7 @@ describe("stigmer run seeds the run from the resolved agent's run defaults", () 
 
   it("runs on the engine the agent names and leaves its model to the server", async () => {
     const started = await run("reviewer", "-m", "review this");
-    expect(started?.harness).toBe("cursor");
+    expect(started?.harness).toBe("claude");
     expect(started?.model).toBe("");
   });
 

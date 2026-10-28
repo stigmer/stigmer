@@ -96,10 +96,7 @@ export interface Upstream {
   readonly body: Buffer;
 }
 
-/**
- * A response a lane answers on: HTTP/1.1's, or the HTTP/2 compatibility
- * API's (`cursor-lane.ts`) — what both have that the lanes use.
- */
+/** A response a lane answers on: what of HTTP/1.1's the lanes use. */
 export interface RelayResponse extends NodeJS.WritableStream {
   readonly headersSent: boolean;
   readonly writableFinished: boolean;
@@ -137,22 +134,6 @@ export function relay(res: RelayResponse, upstream: Upstream): Promise<void> {
       replyError(res, 502, `the upstream could not be reached: ${err.message}`);
       resolve();
     });
-    outgoing.end(upstream.body);
-  });
-}
-
-/** Send `upstream` and read its whole answer: for a lane that rewrites the answer (`cursor-lane.ts`'s exchange). */
-export function requestWhole(upstream: Upstream): Promise<{ readonly status: number; readonly headers: Record<string, string | string[]>; readonly body: Buffer }> {
-  return new Promise((resolve, reject) => {
-    const outgoing = send(upstream);
-    outgoing.on("response", (answer) => {
-      const headers: Record<string, string | string[]> = {};
-      for (const [name, value] of Object.entries(answer.headers)) {
-        if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
-      }
-      readBody(answer).then((body) => resolve({ status: answer.statusCode ?? 502, headers, body }), reject);
-    });
-    outgoing.on("error", (err) => reject(new Error(`the upstream could not be reached: ${err.message}`)));
     outgoing.end(upstream.body);
   });
 }

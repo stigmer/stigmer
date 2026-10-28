@@ -56,7 +56,7 @@ export interface ChannelRunConfigDialogProps {
  * preserved verbatim on save, never rendered.
  *
  * The harness dropdown is a browsing scope for the picker, initialized to
- * cursor (the platform's channel-serving default): channels carry no
+ * native (the platform's default harness): channels carry no
  * per-channel harness — the serving harness is a platform property — and
  * the write-time model-pin validation judges the pin against any harness
  * section, so pinning under either scope is legitimate.
@@ -130,7 +130,7 @@ function ChannelRunConfigDialogBody({
   const { update, isPending, error, clearError } = useSaveChannel();
 
   const [modelName, setModelName] = useState(stored?.modelName ?? "");
-  const [harness, setHarness] = useState<HarnessOption>("cursor");
+  const [harness, setHarness] = useState<HarnessOption>("native");
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>(
     fromProtoServiceTier(stored?.serviceTier) ?? "standard",
   );

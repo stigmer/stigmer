@@ -1,7 +1,7 @@
 /**
  * How an agent's hooks see a call on the Claude engine, in both hook
  * formats (`shared/hooks/tool-view.ts` has the shared shapes and the native
- * engine's views; `execute-cursor/hook-views.ts` the Cursor engine's).
+ * engine's views).
  *
  * To a Claude Code hook a call is itself: this engine is Claude Code's, so
  * a built-in keeps its name and its input as the model wrote it, the host's

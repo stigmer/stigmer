@@ -21,8 +21,8 @@ describe("ToolCallGroup timeline", () => {
     render(
       <ToolCallGroup
         toolUses={[
-          call("Shell", "s1", { command: "echo hi" }, "hi"),
-          call("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
+          call("Bash", "s1", { command: "echo hi" }, "hi"),
+          call("Edit", "e1", { file_path: "/a.ts", old_string: "a", new_string: "b" }),
         ]}
       />,
     );
@@ -40,7 +40,7 @@ describe("ToolCallGroup timeline", () => {
     render(
       <ToolCallGroup
         toolUses={[
-          call("Shell", "s1", { command: "echo hi" }, "hi"),
+          call("Bash", "s1", { command: "echo hi" }, "hi"),
           call("Read", "r1", { path: "/a.ts" }),
           call("Read", "r2", { path: "/b.ts" }),
           call("Read", "r3", { path: "/c.ts" }),
@@ -81,8 +81,8 @@ describe("ToolCallGroup timeline", () => {
     const { container } = render(
       <ToolCallGroup
         toolUses={[
-          call("Shell", "s1", { command: "echo hi" }, "hi"),
-          call("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
+          call("Bash", "s1", { command: "echo hi" }, "hi"),
+          call("Edit", "e1", { file_path: "/a.ts", old_string: "a", new_string: "b" }),
         ]}
       />,
     );
@@ -116,7 +116,7 @@ describe("ToolCallGroup subagent rows", () => {
             thread: thread({ agentName: "researcher", state: "completed" }),
             result: "done",
           }),
-          call("Shell", "s1", { command: "echo hi" }, "hi"),
+          call("Bash", "s1", { command: "echo hi" }, "hi"),
         ]}
       />,
     );

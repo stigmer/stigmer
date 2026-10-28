@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Pins the session calls the client composes: the harness bind names the run
- * and the id, with the scoped credential when one is given; the append names the run
+ * Pins the session calls the client composes: the append names the run
  * and carries its events and previews, with the scoped credential as the
  * Bearer header when one is given; the run's read pages to the end, a
  * thousand at a time, filtered by run; whether a run holds an event of some
@@ -12,7 +11,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const appendEvents = vi.fn();
-const bindHarnessState = vi.fn();
 const listEvents = vi.fn();
 
 vi.mock("@connectrpc/connect-node", () => ({
@@ -26,7 +24,7 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
     createClient: (service: { typeName: string }) => {
       switch (service.typeName) {
         case "ai.stigmer.agentic.session.v1.SessionCommandController":
-          return { appendEvents, bindHarnessState };
+          return { appendEvents };
         case "ai.stigmer.agentic.session.v1.SessionQueryController":
           return { listEvents };
         default:
@@ -51,22 +49,7 @@ function event(id: string) {
 
 beforeEach(() => {
   appendEvents.mockReset();
-  bindHarnessState.mockReset();
   listEvents.mockReset();
-});
-
-describe("StigmerClient.bindHarnessState", () => {
-  it("names the run and the id, and presents the scoped credential, or leaves it to the interceptor", async () => {
-    bindHarnessState.mockResolvedValue({ harnessStateId: "thread-1", harnessStateIdHistory: [] });
-    const client = newClient();
-    const bound = await client.bindHarnessState("run_1", "thread-1", "scoped-token");
-    await client.bindHarnessState("run_1", "thread-2");
-    expect(bound.harnessStateId).toBe("thread-1");
-    expect(bindHarnessState.mock.calls).toEqual([
-      [{ runId: "run_1", harnessStateId: "thread-1" }, { headers: { authorization: "Bearer scoped-token" } }],
-      [{ runId: "run_1", harnessStateId: "thread-2" }, undefined],
-    ]);
-  });
 });
 
 describe("StigmerClient.appendSessionEvents", () => {

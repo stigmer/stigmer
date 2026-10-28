@@ -110,7 +110,7 @@ export interface PreparedRun {
    * else the engine the agent names, else the account preference (when the
    * caller opted in), else "" — which stays off the wire so the server
    * default (native) applies. Also drives the header's
-   * visibility row: a cursor session is never entered silently.
+   * visibility row: a Claude session is never entered silently.
    */
   readonly harness: HarnessFlag;
 }
@@ -246,7 +246,7 @@ interface AccountExecutionDefaults {
 
 const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = {
   harness: "",
-  models: { native: "", cursor: "", claude: "" },
+  models: { native: "", claude: "" },
 };
 
 /**

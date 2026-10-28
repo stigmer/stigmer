@@ -218,7 +218,7 @@ spec:
   enabled: true
   slack: {}
   run_config:
-    model_name: composer-2.5
+    model_name: claude-sonnet-4.6
 ```
 
 The channel's settings come before the Agent's own
@@ -231,7 +231,7 @@ model named anywhere, the Harness picks one at that moment.
 The pinned name is validated against the platform's model registry when you
 apply the manifest: a name the registry does not know is refused with a
 did-you-mean
-(`model 'composr-2.5' is not in the model registry … did you mean 'composer-2.5'?`)
+(`model 'claude-sonet-4.6' is not in the model registry … did you mean 'claude-sonnet-4.6'?`)
 instead of silently falling back to default-model pricing at serve time. Any
 model shown in the console's model picker is valid here.
 

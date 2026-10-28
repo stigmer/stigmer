@@ -100,7 +100,7 @@ export interface UseNewSessionFlowOptions {
   /**
    * Harness pre-selected for new sessions when the user has not made an
    * explicit choice yet (e.g. an embedder whose agents primarily run
-   * coding tasks defaults to `"cursor"`).
+   * coding tasks defaults to `"claude"`).
    *
    * Read once on mount. The user's own selection — persisted to
    * localStorage on explicit change — always takes precedence on
@@ -626,7 +626,7 @@ export function useNewSessionFlow(
   }, [getModel, harness, isGuest, isModelsLoading]);
 
   // Persist model on change (using current harness key).
-  // Strip compound keys (e.g. "cursor/default") to plain modelId before storing.
+  // Strip compound keys (e.g. "claude/claude-sonnet-4.6") to plain modelId before storing.
   // Guests never persist — the symmetric half of the isolation above.
   useEffect(() => {
     if (isGuest) return;

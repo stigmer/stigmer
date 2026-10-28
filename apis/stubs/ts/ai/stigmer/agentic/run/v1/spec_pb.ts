@@ -200,10 +200,7 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
    * chat-link guest, a Slack or WhatsApp sender) may not, as the agent's system
    * prompt is its owner's to steer. On the native engine it lands after
    * the agent's instructions and the platform's sections, for this turn
-   * only. On the Cursor engine it is sent with the turn's message, before
-   * the structured-output directive when structured_output_schema is set
-   * (the output contract closes the message), so it stays in that
-   * conversation's history and later turns still see it.
+   * only.
    *
    * @generated from field: string append_system_prompt = 24;
    */

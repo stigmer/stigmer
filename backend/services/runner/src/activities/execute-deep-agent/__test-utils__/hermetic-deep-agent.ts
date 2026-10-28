@@ -30,8 +30,7 @@
  *  - `thread_id` is `thread-{sessionId}` on EVERY invocation, the first
  *    included (`invoke-agent-execution.ts` runs `EnsureThread` once and passes
  *    the same id to `firstInvoke` and every `reinvoke`; `ensure-thread.ts`
- *    derives it from the session). Cursor's driver sends `""` on a first turn
- *    because Cursor's engine mints its own id; copying that here would key the
+ *    derives it from the session). An empty id on a first turn would key the
  *    sqlite checkpoint on `""` in turn 1 and look it up under `thread-…` in
  *    turn 2. A scenario overrides the default only to stage the empty-id edge.
  *  - The `memory` checkpointer is recreated empty per invocation
@@ -45,7 +44,7 @@
  * is the harness registry's: the native adapter booted and bound to its
  * byte-pinned activity name through `createHarnessActivities`, exactly the
  * way the composition roots bind it since #1096 through `harness-adapters.ts`
- * (and the way the Cursor driver binds its own, `hermetic-cursor.ts`). The
+ * (and the way the Claude driver binds its own, `hermetic-claude.ts`). The
  * orchestrator this adapter replaced (`index.ts`, `setup.ts`) was deleted in
  * #1096; the goldens moved once, with the flip onto the runtime, each hunk
  * quoted with its reason in its test's header, and the switch of the roots
@@ -56,7 +55,7 @@
  * auto-injected its ungated `general-purpose` sub-agent into every earlier
  * scenario; the scripted model never delegated to it).
  *
- * Determinism beyond the Cursor driver's (#1048): the clock ticks once per model turn (the scripted
+ * Determinism (#1048): the clock ticks once per model turn (the scripted
  * model's `onTurn`), so status timestamps and the persist cadence land on the
  * same instants every run; a scenario's interruption (pause, worker shutdown)
  * is scheduled on a model turn through the same hook, never on a timer. And
@@ -66,7 +65,7 @@
  * gives for free, without which the producer runs ahead of a consumer that is
  * awaiting a slow persist and the stamps of one turn straddle the next tick.
  *
- * Two postures, one turn runner, as in the Cursor driver.
+ * Two postures, one turn runner.
  * `beginDeepAgentScenario` is the hermetic posture described above.
  * `beginLiveDeepAgentScenario` is the live posture the live class
  * (`*.live.test.ts`) runs: the real model client against a real provider, the
@@ -166,13 +165,11 @@ export function hermeticDeepAgentConfig(env: HermeticEnvironment, checkpointerTy
     mcpBridgeEndpoint: null,
     mcpPublicEndpoint: null,
     stigmerTokenRef: { current: null },
-    cursorApiKey: "",
     workspaceRootDir: env.workspaceRootDir,
     mode: "local",
     proxyEndpoint: null,
     maxConcurrentActivities: 1,
     idleTimeoutSeconds: null,
-    cloudModeEnabled: false,
     checkpointerType,
     checkpointerProxyEndpoint: null,
     artifactProxyEndpoint: null,
@@ -182,7 +179,6 @@ export function hermeticDeepAgentConfig(env: HermeticEnvironment, checkpointerTy
     livenessIntervalMs: 30_000,
     shellTimeoutMaxSeconds: 3_300,
     shellBackgroundEnabled: true,
-    agentResolveTimeoutMs: 120_000,
     workspaceLockTimeoutMs: 900_000,
     drainGraceMs: 0,
   };
@@ -350,7 +346,7 @@ export function beginDeepAgentScenario(options: DeepAgentScenarioOptions): DeepA
 export type LiveDeepAgentScenarioOptions = Pick<DeepAgentScenarioOptions, "env" | "record" | "clientOverrides" | "config">;
 
 /**
- * Bind the record for a LIVE scenario (the `beginLiveCursorScenario` twin);
+ * Bind the record for a LIVE scenario;
  * resets the harness's module and session state first. No scripted model is
  * bound, and the scenario file must NOT mock `shared/model-client.ts`: the
  * real model client builds the real provider's chat model, in the OSS direct

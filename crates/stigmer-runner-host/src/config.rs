@@ -25,7 +25,6 @@ pub struct RunnerConfig {
     pub stigmer_endpoint: String,
     pub temporal_namespace: Option<String>,
     pub stigmer_token: Option<String>,
-    pub cursor_api_key: Option<String>,
     /// Anthropic API key for BYOK direct mode (no `proxy_endpoint`), where the runner's
     /// native harness calls the provider itself. Unused in proxy mode — the proxy
     /// injects provider keys server-side.

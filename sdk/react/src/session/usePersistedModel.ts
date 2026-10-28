@@ -10,9 +10,9 @@ export interface UsePersistedModelOptions {
   /**
    * Filter the model registry by harness before validating the stored model.
    *
-   * When `"cursor"`, the persisted model is read from a cursor-specific
-   * localStorage key and validated against cursor-provider models.
-   * When `"native"` or omitted, the default key and registry apply.
+   * The persisted model is read from that harness's own localStorage key
+   * and validated against its models. When omitted, the native key and the
+   * unified registry apply.
    */
   readonly harness?: HarnessOption;
   /**
@@ -36,13 +36,11 @@ export type UsePersistedModelReturn = readonly [
 
 /**
  * Where each engine's last model pick is kept on this device: one key per
- * engine, so a pick on one engine never replaces another's. The native and
- * Cursor keys predate the table and keep their strings, so no stored pick
- * is lost.
+ * engine, so a pick on one engine never replaces another's. The native key
+ * predates the table and keeps its string, so no stored pick is lost.
  */
 const MODEL_STORAGE_KEYS: Readonly<Record<HarnessOption, string>> = {
   native: "stigmer:session:model",
-  cursor: "stigmer:session:model:cursor",
   claude: "stigmer:session:model:claude",
 };
 
@@ -53,7 +51,7 @@ export function modelStorageKey(harness: HarnessOption = DEFAULT_HARNESS): strin
 
 /**
  * Extract the plain modelId from a value that might be a compound key
- * (e.g. `"cursor/default"` → `"default"`). Returns the value unchanged
+ * (e.g. `"claude/claude-sonnet-4.6"` → `"claude-sonnet-4.6"`). Returns the value unchanged
  * if it's already a plain ID.
  */
 function extractPlainModelId(value: string): string {
@@ -72,7 +70,7 @@ function extractPlainModelId(value: string): string {
  * When `options.harness` is provided, the stored model is read from a
  * harness-specific key and validated against the harness-filtered registry.
  *
- * Handles legacy compound keys (`"cursor/default"`) gracefully by
+ * Handles legacy compound keys (`"claude/claude-sonnet-4.6"`) gracefully by
  * extracting the plain modelId portion before validation.
  *
  * Used by both the session launcher (new session) and session page

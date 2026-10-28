@@ -2,9 +2,8 @@
  * Harness-agnostic tool classification for the runner.
  *
  * Every harness emits engine-specific tool names — the native (deepagents)
- * harness uses snake_case (edit_file, execute, grep), the Cursor harness uses
- * PascalCase (StrReplace, Shell, Grep), and the Claude harness Claude Code's
- * own (Edit, Bash, Agent). This module is the single place that
+ * harness uses snake_case (edit_file, execute, grep) and the Claude harness
+ * Claude Code's own (Edit, Bash, Agent). This module is the single place that
  * maps a tool name to the wire-level ToolKind, so every client renders a tool
  * the same way regardless of which harness produced it.
  *
@@ -18,7 +17,7 @@
 import { MEMORY_ATTACHMENT_SLUG } from "./memory-attachment.js";
 import { ToolKind } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
-// Bare tool name -> ToolKind, covering both harness naming conventions. A name
+// Bare tool name -> ToolKind, covering every naming convention above. A name
 // found here is a built-in and wins over a non-empty mcp_server_slug (an MCP
 // server is not expected to shadow a built-in name; matching the legacy resolver).
 const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
@@ -35,15 +34,12 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["edit", ToolKind.FILE_EDIT],
   ["edit_file", ToolKind.FILE_EDIT],
   ["str_replace_editor", ToolKind.FILE_EDIT],
-  ["StrReplace", ToolKind.FILE_EDIT],
-  ["EditNotebook", ToolKind.FILE_EDIT],
   ["Edit", ToolKind.FILE_EDIT],
   ["NotebookEdit", ToolKind.FILE_EDIT],
 
   ["delete", ToolKind.FILE_DELETE],
   ["delete_file", ToolKind.FILE_DELETE],
   ["remove_file", ToolKind.FILE_DELETE],
-  ["Delete", ToolKind.FILE_DELETE],
 
   ["shell", ToolKind.SHELL],
   ["bash", ToolKind.SHELL],
@@ -51,7 +47,6 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["execute_command", ToolKind.SHELL],
   ["run_command", ToolKind.SHELL],
   ["terminal", ToolKind.SHELL],
-  ["Shell", ToolKind.SHELL],
   ["Bash", ToolKind.SHELL],
 
   ["grep", ToolKind.SEARCH],
@@ -61,7 +56,6 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["find_files", ToolKind.SEARCH],
   ["Grep", ToolKind.SEARCH],
   ["Glob", ToolKind.SEARCH],
-  ["SemanticSearch", ToolKind.SEARCH],
 
   ["ls", ToolKind.LIST],
   ["list_directory", ToolKind.LIST],
@@ -73,7 +67,6 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["think", ToolKind.THINK],
 
   ["write_todos", ToolKind.TODO],
-  ["updateTodos", ToolKind.TODO],
   ["TodoWrite", ToolKind.TODO],
 
   ["task", ToolKind.SUBAGENT],
@@ -116,17 +109,16 @@ export function classifyTool(name: string, mcpServerSlug?: string): ToolKind {
  * undefined for tools that are not gated by category (read-only built-ins, MCP
  * tools, and unknown names).
  *
- * FILE_WRITE and FILE_EDIT both collapse to "write" on purpose: the Cursor
- * preToolUse hook reports every file mutation — create or edit — as `Write`,
- * while the SDK stream names them `edit`/`write`. The category is therefore the
- * only tool identity that is stable across the hook and stream taxonomies, which
- * is exactly what the Cursor approval grant (and the coarse approval
- * fingerprint) must match on. Built on {@link classifyTool} so this collapse is
- * defined once.
+ * FILE_WRITE and FILE_EDIT both collapse to "write" on purpose: an
+ * approve-all lease is granted per class, and a class that allowed creating a
+ * file but asked again before editing one would split what a person sees as
+ * one choice. The server's twin
+ * (`stigmer-server/src/domain/run/approval/tool-category.ts`) and the approval
+ * cards name the same classes. Built on {@link classifyTool} so this collapse
+ * is defined once.
  *
- * This is the single source of truth for the approval category;
- * execute-cursor/approval-policy.ts re-exports it so the two harnesses cannot
- * drift.
+ * This is the single source of truth for the approval category; both
+ * harnesses' gates classify through it, so they cannot drift.
  */
 export type ToolApprovalCategory = "write" | "delete" | "shell";
 
@@ -139,9 +131,8 @@ export function toolApprovalCategory(name: string): ToolApprovalCategory | undef
       return "delete";
     case ToolKind.SHELL:
       return "shell";
-    // FETCH is deliberately uncategorized — i.e. auto-approved. This mirrors
-    // the Cursor harness (WebFetch is never gated) and is what makes the
-    // native web_fetch usable in unattended runs, where a gated tool is
+    // FETCH is deliberately uncategorized — i.e. auto-approved. This is what
+    // makes the native web_fetch usable in unattended runs, where a gated tool is
     // silently skipped. The safety boundary for web_fetch is its URL guard
     // (tools/url-guard.ts), not the approval gate.
     default:

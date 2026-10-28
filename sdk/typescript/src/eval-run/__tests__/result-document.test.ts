@@ -23,7 +23,7 @@ import { evalRunTargetLabel, toResultDocument } from "../result-document.js";
 import type { ResultDocumentOptions } from "../result-document.js";
 
 const SONNET = { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" };
-const GPT = { harness: Harness.CURSOR, modelName: "gpt-5" };
+const CLAUDE = { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" };
 
 function graded(index: number, score: number, runId: string, error = "") {
   return { index, state: EvalRunTryState.graded, score, runId, error };
@@ -160,10 +160,10 @@ describe("toResultDocument", () => {
   });
 
   it("puts the first target's cases at the top level and every target's in targets", () => {
-    const doc = block(evalOf({ targets: [SONNET, GPT] }));
+    const doc = block(evalOf({ targets: [SONNET, CLAUDE] }));
     expect(doc.targets.map((target) => [target.harness, target.model])).toEqual([
       ["native", "claude-sonnet-4-6"],
-      ["cursor", "gpt-5"],
+      ["claude", "claude-sonnet-5"],
     ]);
     expect(doc.cases[0]!.aggregates.score).toBe(1);
     expect(doc.targets[1]!.cases[0]!.aggregates.score).toBe(0.5);
@@ -209,14 +209,14 @@ describe("toResultDocument", () => {
   });
 
   it("lists a case that did not run on one target under notRun with that target, and leaves it out of that target's cases", () => {
-    const evalRun = evalOf({ targets: [SONNET, GPT] });
-    evalRun.status!.plugins[0]!.cases[0]!.targets[1]!.notRunReason = "not run: model 'gpt-5' needs a Cursor key";
+    const evalRun = evalOf({ targets: [SONNET, CLAUDE] });
+    evalRun.status!.plugins[0]!.cases[0]!.targets[1]!.notRunReason = "not run: model 'claude-sonnet-5' needs an Anthropic key";
     const doc = block(evalRun);
     expect(doc.targets[1]!.cases).toEqual([]);
     expect(doc.notRun).toContainEqual({
       name: "first-case",
-      target: "cursor/gpt-5",
-      reason: "not run: model 'gpt-5' needs a Cursor key",
+      target: "claude/claude-sonnet-5",
+      reason: "not run: model 'claude-sonnet-5' needs an Anthropic key",
     });
   });
 
@@ -243,7 +243,7 @@ describe("toResultDocument", () => {
 
 describe("evalRunTargetLabel", () => {
   it("writes harness/model, the native engine for an unspecified one, default for no model", () => {
-    expect(evalRunTargetLabel({ harness: Harness.CURSOR, modelName: "gpt-5" } as never)).toBe("cursor/gpt-5");
+    expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" } as never)).toBe("claude/claude-sonnet-5");
     expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "" } as never)).toBe("claude/default");
     expect(evalRunTargetLabel(undefined)).toBe("native/default");
   });

@@ -781,15 +781,12 @@ The execution engine that processes agent activities for a Session.
   name.
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: `SessionSpec.harness`, enum `Harness` (values: `NATIVE`,
-  `CURSOR`, `CLAUDE`). proto: `session/v1/spec.proto`.
-- **Three values**:
+  `CLAUDE`). proto: `session/v1/spec.proto`.
+- **Two values**:
   1. **Native** --- Stigmer's built-in engine. Default for all Sessions. Full
      control over model selection from all supported providers. Deep integration
      with Stigmer's checkpoint, pause/resume, and sandbox features.
-  2. **Cursor** --- Uses the Cursor SDK as the execution engine. Access to
-     Cursor-specific models and tooling. Ideal for developer-facing agents that
-     need code-level capabilities.
-  3. **Claude** --- Uses Anthropic's Claude Agent SDK as the execution engine,
+  2. **Claude** --- Uses Anthropic's Claude Agent SDK as the execution engine,
      on Claude models and the Organization's own Anthropic key. Approvals stop
      at the exact call.
 - **Immutability**: A Session's Harness cannot change after the first run
@@ -800,19 +797,19 @@ The execution engine that processes agent activities for a Session.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Pick the engine each agent runs on; changing it is a setting, not a change to your product."                                                                                                           |
-| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                                                                               |
-| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports three: Native, Cursor and Claude."                                                                                   |
-| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine, `HARNESS_CLAUDE` for the Claude Agent SDK engine. Immutable after first run." |
+| Context    | Copy                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Pick the engine each agent runs on; changing it is a setting, not a change to your product."                                                               |
+| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                                   |
+| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Claude."                                                 |
+| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CLAUDE` for the Claude Agent SDK engine. Immutable after first run." |
 
 **Bad examples**:
 
 | Context    | Copy                                                    | Problem                                                            |
 | ---------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
 | Sales site | "Configure the SessionSpec.harness field."              | API-level detail in a business context.                            |
-| Quickstart | "The Cursor harness uses a TypeScript Temporal worker." | Internal architecture. The quickstart should say "pick a harness." |
+| Quickstart | "The Claude harness uses a TypeScript Temporal worker." | Internal architecture. The quickstart should say "pick a harness." |
 
 ---
 
@@ -1642,22 +1639,6 @@ someone with their own Stigmer sign-in.
 
 ---
 
-#### Cursor harness
-
-The Cursor SDK-backed Harness that uses Cursor's agent runtime as the execution
-engine.
-
-- **Capitalize**: No special capitalization beyond "Cursor" (the product name).
-  Write "Cursor harness" in lowercase "h" in prose.
-- **Context rule**: Concepts and reference only. Do not use "Cursor harness" in
-  sales copy---say "Cursor-powered execution" or "Cursor execution engine." In
-  quickstart, refer to it as "the Cursor harness" after the Harness concept has
-  been introduced.
-- **Related terms**: Harness (the parent concept), cursor-runner (the Temporal
-  worker that implements it, architecture only).
-
----
-
 #### Claude harness
 
 The Harness that runs an Agent's turns on Anthropic's Claude Agent SDK, on
@@ -1671,7 +1652,7 @@ Claude models and the Organization's own Anthropic key.
 - **Context rule**: Concepts and reference only. In sales copy say "Claude" or
   "Powered by Claude"; in quickstart, refer to it as "the Claude harness" after
   the Harness concept has been introduced.
-- **Related terms**: Harness (the parent concept), Cursor harness (its sibling).
+- **Related terms**: Harness (the parent concept).
 
 ---
 
@@ -2200,7 +2181,7 @@ The gRPC API server that powers the local development experience.
 
 The TypeScript Temporal worker (`stigmer-runner`, `backend/services/runner`)
 that executes agent sessions, driving every harness it carries: the native
-deep-agent (LangGraph.js), Cursor, and Claude.
+deep-agent (LangGraph.js) and Claude.
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure
@@ -2209,22 +2190,6 @@ deep-agent (LangGraph.js), Cursor, and Claude.
 - **Not Python**: The original Agent Runner was a Python Temporal worker; it was
   replaced by the TypeScript runner. Any doc describing a "Python Temporal
   worker" is describing the retired service.
-
----
-
-#### cursor-runner
-
-The TypeScript Temporal worker that executes agent activities for the Cursor
-harness via the `@cursor/sdk`.
-
-- **Capitalize**: No. Use lowercase hyphenated form `cursor-runner` in all
-  contexts.
-- **Context rule**: Architecture docs and contributor guides only. Never in
-  customer-facing documentation. Customers interact with the Cursor harness
-  through the Session's `harness` field, not by configuring `cursor-runner`
-  directly.
-- **Related terms**: Harness (user-facing concept), Cursor harness (Tier 2),
-  Agent Runner (the native equivalent).
 
 ---
 

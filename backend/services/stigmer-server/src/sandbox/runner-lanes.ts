@@ -13,14 +13,13 @@
  *     `OPENAI_API_KEY` is set), and Bedrock
  *     (`ANTHROPIC_BEDROCK_BASE_URL`'s host, else
  *     `bedrock-runtime.<AWS_REGION>.amazonaws.com`);
- *   - Cursor's hosts when `CURSOR_API_KEY` is set;
  *   - the https:// public MCP address and OTLP endpoint.
  *
  * What cannot be derived (a Vertex or Foundry endpoint, a corporate proxy)
  * is the operator's list, STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM.
  *
- * The defaults are copies of the runner's own (`agent-proxy/lanes.ts`,
- * `activities/execute-cursor/fetch-interceptor.ts`); a test in the runner
+ * The defaults are copies of the runner's own (`agent-proxy/lanes.ts`); a
+ * test in the runner
  * package (`environment/__tests__/platform-lanes.test.ts`) holds them
  * equal. The module imports nothing at run time, so that test can load it.
  */
@@ -28,7 +27,6 @@ import type { SandboxDriverConfig } from "./provisioner.js";
 
 export const ANTHROPIC_DEFAULT_ROOT = "https://api.anthropic.com";
 export const OPENAI_DEFAULT_ROOT = "https://api.openai.com/v1";
-export const CURSOR_HOSTS: readonly string[] = ["api2.cursor.sh", "api.cursor.com", "api.cursor.sh"];
 
 /** The host of an https:// URL, or `undefined` for anything else. */
 function httpsHost(raw: string | undefined): string | undefined {
@@ -65,9 +63,6 @@ export function runnerPlatformHosts(config: Pick<SandboxDriverConfig, "runnerEnv
     hosts.push(httpsHost(value("ANTHROPIC_BEDROCK_BASE_URL")));
   } else if (has("AWS_REGION") && (has("AWS_BEARER_TOKEN_BEDROCK") || has("AWS_ACCESS_KEY_ID"))) {
     hosts.push(`bedrock-runtime.${value("AWS_REGION").trim()}.amazonaws.com`);
-  }
-  if (has("CURSOR_API_KEY")) {
-    hosts.push(...CURSOR_HOSTS);
   }
   hosts.push(httpsHost(config.mcpPublicEndpoint));
   hosts.push(httpsHost(env["OTEL_EXPORTER_OTLP_ENDPOINT"]));

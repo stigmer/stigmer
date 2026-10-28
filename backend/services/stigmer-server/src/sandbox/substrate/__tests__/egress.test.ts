@@ -329,14 +329,14 @@ describe("a session's Environment", () => {
     expect(
       shape(
         buildEgressRules(
-          { ...config, runnerSecretEnv: { CURSOR_API_KEY: "c" } },
+          { ...config, runnerSecretEnv: { OPENAI_API_KEY: "sk" } },
           open,
           limited([]),
         ),
       ),
     ).toEqual([
       ...lanes,
-      "https api2.cursor.sh,api.cursor.com,api.cursor.sh:443",
+      "https api.openai.com:443",
     ]);
   });
 

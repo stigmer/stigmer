@@ -71,11 +71,10 @@ describe("buildRunnerEnv", () => {
     expect(env.LOG_LEVEL).toBe("info");
   });
 
-  it("forwards CURSOR_API_KEY and activity routing only when set", () => {
-    expect(buildRunnerEnv(config, {}).CURSOR_API_KEY).toBeUndefined();
-    const withKey = buildRunnerEnv({ ...config, cursorApiKey: "ck", activityRouting: "session" }, {});
-    expect(withKey.CURSOR_API_KEY).toBe("ck");
-    expect(withKey.STIGMER_ACTIVITY_ROUTING).toBe("session");
+  it("forwards activity routing only when set", () => {
+    expect(buildRunnerEnv(config, {}).STIGMER_ACTIVITY_ROUTING).toBeUndefined();
+    const routed = buildRunnerEnv({ ...config, activityRouting: "session" }, {});
+    expect(routed.STIGMER_ACTIVITY_ROUTING).toBe("session");
   });
 
   it("forwards the Anthropic key only when set, resolved value winning over the base env", () => {

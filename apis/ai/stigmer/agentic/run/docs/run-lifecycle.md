@@ -80,11 +80,11 @@ The session's `interrupt` also stops a turn that is pending, waiting for an answ
 
 ### A turn outlives its runner
 
-A turn is not ended by what happens to the machine running it. When its runner drains (a deploy, the platform moving it), dies, loses its model provider mid-reply, or has its connection ended by the agent's vendor (Cursor ends a long run's connection after 40 to 60 minutes), the turn stays `RUN_IN_PROGRESS` and continues on the next runner from where it was:
+A turn is not ended by what happens to the machine running it. When its runner drains (a deploy, the platform moving it), dies, loses its model provider mid-reply, or has its connection ended by the agent's vendor, the turn stays `RUN_IN_PROGRESS` and continues on the next runner from where it was:
 
 - **The step that was running finishes, when the runner can wait for it.** A draining runner lets its running tool finish within its grace and stops at the next step boundary. A runner killed outright loses the step it was in, and the next runner runs that step again.
 - **The agent is never handed the task again.** It resumes its own saved work, or gets a summary of what the run already did, never the original request a second time.
-- **The conversation says once why the turn paused.** Examples: "The runner is restarting; this turn continues on the next one.", "The model stopped answering; this turn continues from where it was." or "Cursor ended its connection; this turn continues from where it was."
+- **The conversation says once why the turn paused.** Examples: "The runner is restarting; this turn continues on the next one." or "The model stopped answering; this turn continues from where it was."
 - **The spending limit covers the whole task.** A run continuing after a restart, a lost runner or a stall keeps its cost count; see `RunConfig.max_cost_usd`.
 - **The turn's file changes stay one change set,** to keep or undo as a whole.
 
@@ -95,7 +95,7 @@ The platform keeps continuing a turn while it recovers fewer than ten times with
 A session runs one turn at a time. `RunCommandController.sendMessage` sends a person's message to a session:
 
 - **Nothing holds the session:** the message starts a turn at once, as `create` does.
-- **A turn works (`RUN_PENDING` or `RUN_IN_PROGRESS`):** the message waits in the session's queue, its `user.message` stored with no run and no `processed_at`. The working turn reads it at its next step, where its engine can (the native engine before its next model call; Cursor steered into its running run), or as one more round before it completes. A message left once the turn ends starts the next turn. It is never a second run beside the first.
+- **A turn works (`RUN_PENDING` or `RUN_IN_PROGRESS`):** the message waits in the session's queue, its `user.message` stored with no run and no `processed_at`. The working turn reads it at its next step, where its engine can (the native engine before its next model call; the Claude engine with the result of the tool call it is running), or as one more round before it completes. A message left once the turn ends starts the next turn. It is never a second run beside the first.
 - **A turn waits for an answer, or is paused:** the message is refused (`FAILED_PRECONDITION`): answer the call, or resume, first.
 
 A message is read by a turn sent with the same authority (the same sender, recording the same person); another sender's waits for a turn of its own. `create` on a session with an unfinished turn is refused (`SESSION_TURN_UNFINISHED`); so are `resume` and `recover` while another turn of the session is unfinished. A stop (`interrupt`, `terminate`) drops the messages still waiting: they stay listed, never read.

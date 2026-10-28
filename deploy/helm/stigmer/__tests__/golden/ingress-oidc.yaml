@@ -444,18 +444,12 @@ spec:
               value: local
             - name: LOCAL_ARTIFACT_PATH
               value: /artifacts
-            # Optional LLM keys, by explicit reference: agents need one.
+            # The optional LLM key, by explicit reference: agents need it.
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: "stigmer-llm-keys"
                   key: ANTHROPIC_API_KEY
-                  optional: true
-            - name: CURSOR_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: "stigmer-llm-keys"
-                  key: CURSOR_API_KEY
                   optional: true
             # The runner's API key under authentication, created after
             # signing in (the chart README, "Authentication").

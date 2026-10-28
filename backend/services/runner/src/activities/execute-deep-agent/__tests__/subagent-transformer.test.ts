@@ -101,7 +101,7 @@ function savedGraph(subagent: TurnSubagent, mcpTools: StructuredTool[] = [], app
   return { subagent, mcpTools, approvalGate, shellEnv: undefined };
 }
 
-/** A registry with one native model and one Cursor model. */
+/** A registry with two native models and one Claude model. */
 function mockRegistry(): void {
   vi.spyOn(global, "fetch").mockResolvedValue({
     ok: true,
@@ -109,7 +109,7 @@ function mockRegistry(): void {
       models: [
         { id: "claude-sonnet-4-6", provider: "anthropic", harness: "native" },
         { id: "claude-haiku-4.5", provider: "anthropic", harness: "native" },
-        { id: "composer-2.5", provider: "cursor", harness: "cursor" },
+        { id: "claude-opus-5", provider: "anthropic", harness: "claude" },
       ],
     }),
   } as Response);
@@ -260,7 +260,7 @@ describe("transformPluginSubagent", () => {
     expect((await transformPluginSubagent(pluginAgent({ model: "claude-haiku-4.5" }), opts)).model).toBe("claude-haiku-4.5");
   });
 
-  it.each(["", "inherit", "sonnet", "composer-2.5", "nonexistent-model-xyz"])("runs on the turn's model when its file names %j", async (model) => {
+  it.each(["", "inherit", "sonnet", "claude-opus-5", "nonexistent-model-xyz"])("runs on the turn's model when its file names %j", async (model) => {
     expect((await transformPluginSubagent(pluginAgent({ model }), opts)).model).toBeUndefined();
   });
 

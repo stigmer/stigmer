@@ -4,10 +4,7 @@
 // Domain: conformance benchmark (the working agent's end-state facts).
 //
 // The comparison is over FILES only, byte for byte. Directories are never
-// compared: the Cursor harness restores or deletes the two files it writes
-// into a workspace for its own approval hook (runner execute-cursor/
-// cursor-capabilities.ts, workspace-setup.ts), but it can leave their empty
-// directories behind, and an empty directory is not an edit. Nothing is
+// compared: an empty directory a harness leaves behind is not an edit. Nothing is
 // filtered by name. A runner-owned file or link that survives teardown is
 // listed like any other (a symbolic link counts as an entry of its own and is
 // never followed), because hiding it would hide a teardown regression.

@@ -157,13 +157,13 @@ describe("ModelRegistryStore catalog indexes", () => {
       },
       {
         id: "anthropic/claude-4",
-        apiModelId: "claude-4-cursor",
-        harness: "cursor",
+        apiModelId: "claude-4-sdk",
+        harness: "claude",
         capabilities: { thinking: true },
       },
       {
-        id: "openai/gpt-6",
-        harness: "cursor",
+        id: "anthropic/claude-5",
+        harness: "claude",
         // false and non-boolean shapes index nothing (tri-state rule).
         capabilities: { thinking: false, vision: "yes" },
       },
@@ -184,9 +184,9 @@ describe("ModelRegistryStore catalog indexes", () => {
     const s = catalogStore();
     expect(s.isValidModel("native", "anthropic/claude-4")).toBe(true);
     expect(s.isValidModel("native", "claude-4-20260101")).toBe(true);
-    expect(s.isValidModel("native", "claude-4-cursor")).toBe(false);
-    expect(s.isValidModel("cursor", "claude-4-cursor")).toBe(true);
-    expect(s.isValidModel("native", "openai/gpt-6")).toBe(false);
+    expect(s.isValidModel("native", "claude-4-sdk")).toBe(false);
+    expect(s.isValidModel("claude", "claude-4-sdk")).toBe(true);
+    expect(s.isValidModel("native", "anthropic/claude-5")).toBe(false);
     expect(s.hasHarness("native")).toBe(true);
     expect(s.hasHarness("cli")).toBe(false);
     expect(s.hasAnyModels()).toBe(true);
@@ -194,12 +194,12 @@ describe("ModelRegistryStore catalog indexes", () => {
 
   it("answers the any-harness existence check and its merged suggestion pool", () => {
     const s = catalogStore();
-    expect(s.isValidModelOnAnyHarness("openai/gpt-6")).toBe(true);
+    expect(s.isValidModelOnAnyHarness("anthropic/claude-5")).toBe(true);
     expect(s.isValidModelOnAnyHarness("nope/never")).toBe(false);
     // Sorted, deduplicated canonical ids (claude-4 appears in two sections).
     expect(s.canonicalModelsAcrossHarnesses()).toEqual([
       "anthropic/claude-4",
-      "openai/gpt-6",
+      "anthropic/claude-5",
       "zeta/z-1",
     ]);
     expect(s.canonicalModels("native")).toEqual([
@@ -213,10 +213,10 @@ describe("ModelRegistryStore catalog indexes", () => {
     expect(
       s.hasPricingVariantForHarness("native", "anthropic/claude-4", FAST_VARIANT_KEY),
     ).toBe(true);
-    // Priced under native only — the cursor section must not validate it
+    // Priced under native only — the claude section must not validate it
     // (the #357 silent-no-op class).
     expect(
-      s.hasPricingVariantForHarness("cursor", "anthropic/claude-4", FAST_VARIANT_KEY),
+      s.hasPricingVariantForHarness("claude", "anthropic/claude-4", FAST_VARIANT_KEY),
     ).toBe(false);
     expect(s.hasPricingVariant("anthropic/claude-4", FAST_VARIANT_KEY)).toBe(true);
     expect(s.hasPricingVariant("zeta/z-1", FAST_VARIANT_KEY)).toBe(false);
@@ -227,29 +227,29 @@ describe("ModelRegistryStore catalog indexes", () => {
       s.canonicalModelsWithVariantForHarness("native", FAST_VARIANT_KEY),
     ).toEqual(["anthropic/claude-4"]);
     expect(
-      s.canonicalModelsWithVariantForHarness("cursor", FAST_VARIANT_KEY),
+      s.canonicalModelsWithVariantForHarness("claude", FAST_VARIANT_KEY),
     ).toEqual([]);
   });
 
   it("indexes only literal-true capabilities, harness-scoped (oss#772)", () => {
     const s = catalogStore();
     expect(
-      s.hasCapabilityForHarness("cursor", "anthropic/claude-4", THINKING_CAPABILITY_KEY),
+      s.hasCapabilityForHarness("claude", "anthropic/claude-4", THINKING_CAPABILITY_KEY),
     ).toBe(true);
     expect(
-      s.hasCapabilityForHarness("cursor", "claude-4-cursor", THINKING_CAPABILITY_KEY),
+      s.hasCapabilityForHarness("claude", "claude-4-sdk", THINKING_CAPABILITY_KEY),
     ).toBe(true);
-    // Declared under cursor only.
+    // Declared under claude only.
     expect(
       s.hasCapabilityForHarness("native", "anthropic/claude-4", THINKING_CAPABILITY_KEY),
     ).toBe(false);
     // false / non-boolean shapes never index (tri-state).
     expect(
-      s.hasCapabilityForHarness("cursor", "openai/gpt-6", THINKING_CAPABILITY_KEY),
+      s.hasCapabilityForHarness("claude", "anthropic/claude-5", THINKING_CAPABILITY_KEY),
     ).toBe(false);
-    expect(s.hasCapabilityForHarness("cursor", "openai/gpt-6", "vision")).toBe(false);
+    expect(s.hasCapabilityForHarness("claude", "anthropic/claude-5", "vision")).toBe(false);
     expect(
-      s.canonicalModelsWithCapabilityForHarness("cursor", THINKING_CAPABILITY_KEY),
+      s.canonicalModelsWithCapabilityForHarness("claude", THINKING_CAPABILITY_KEY),
     ).toEqual(["anthropic/claude-4"]);
   });
 

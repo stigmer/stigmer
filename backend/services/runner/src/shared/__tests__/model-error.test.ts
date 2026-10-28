@@ -198,8 +198,8 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
     const wrapped = MiddlewareError.wrap(domTimeout, "promptCaching") as Error;
     expect(wrapped.name, "LangChain's wrapper copies the name").toBe("TimeoutError");
     expect(classifyModelCallError(wrapped, { proxyMode: false })).toBeUndefined();
-    const cursorCreate = new WithTimeoutError("Cursor agent create timed out after 30000ms");
-    expect(describeExecutionError(middlewareWrap(cursorCreate), { proxyMode: false }).errorType, "the runner's own timeout keeps its identity")
+    const ownBound = new WithTimeoutError("agent turn finalize timed out after 30000ms");
+    expect(describeExecutionError(middlewareWrap(ownBound), { proxyMode: false }).errorType, "the runner's own timeout keeps its identity")
       .toBe("TimeoutError");
   });
 

@@ -14,8 +14,6 @@ export interface AccountExecutionDefaults {
   readonly harness?: HarnessOption;
   /** Preferred model for native-harness sessions, when declared. */
   readonly nativeModel?: string;
-  /** Preferred model for cursor-harness sessions, when declared. */
-  readonly cursorModel?: string;
   /** Preferred model for claude-harness sessions, when declared. */
   readonly claudeModel?: string;
   /**
@@ -36,7 +34,6 @@ export interface AccountExecutionDefaults {
  */
 export const ACCOUNT_DEFAULT_MODELS = {
   native: { defaults: "nativeModel", preference: "defaultNativeModel", path: "spec.preferences.default_native_model" },
-  cursor: { defaults: "cursorModel", preference: "defaultCursorModel", path: "spec.preferences.default_cursor_model" },
   claude: { defaults: "claudeModel", preference: "defaultClaudeModel", path: "spec.preferences.default_claude_model" },
 } as const satisfies Record<
   HarnessOption,
@@ -84,7 +81,7 @@ export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefi
     const harness = isHarnessOption(prefs.defaultHarness) ? prefs.defaultHarness : undefined;
     const models = Object.fromEntries(
       Object.values(ACCOUNT_DEFAULT_MODELS).flatMap(({ defaults, preference }) => (prefs[preference] ? [[defaults, prefs[preference]]] : [])),
-    ) as Pick<AccountExecutionDefaults, "nativeModel" | "cursorModel" | "claudeModel">;
+    ) as Pick<AccountExecutionDefaults, "nativeModel" | "claudeModel">;
     // Only a declared `true` travels — an unset bool is "no preference",
     // matching the empty-string convention of the fields above.
     const autoApprove = prefs.defaultAutoApprove || undefined;

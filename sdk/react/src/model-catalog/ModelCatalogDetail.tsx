@@ -13,14 +13,13 @@ import { ZERO, formatRate } from "./pricing-format.js";
 // in the header). Internal to the model-catalog module.
 // ---------------------------------------------------------------------------
 
-/** The five rate fields of a pricing block, in canonical display order. */
+/** The four rate fields of a pricing block, in canonical display order. */
 function blockRates(pricing: PricingBlock | undefined): readonly (readonly [string, bigint])[] {
   return [
     ["Input", pricing?.inputPriceMicrosPerMillion ?? ZERO],
     ["Output", pricing?.outputPriceMicrosPerMillion ?? ZERO],
     ["Cache write", pricing?.cacheWritePriceMicrosPerMillion ?? ZERO],
     ["Cache read", pricing?.cacheReadPriceMicrosPerMillion ?? ZERO],
-    ["Cursor token rate", pricing?.cursorTokenRateMicrosPerMillion ?? ZERO],
   ];
 }
 

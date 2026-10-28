@@ -223,7 +223,7 @@ describe("the content switch at the exporter", () => {
     const sink = new InMemorySpanExporter();
     const provider = new BasicTracerProvider({ spanProcessors: [new SimpleSpanProcessor(contentGuardedExporter(sink, content))] });
     // Another library's span, recorded through its own tracer: a failure whose text quotes the call.
-    const span = provider.getTracer("@cursor/sdk").startSpan("McpSdkClient.callTool", { attributes: { kept: "yes" } });
+    const span = provider.getTracer("@anthropic-ai/claude-agent-sdk").startSpan("McpSdkClient.callTool", { attributes: { kept: "yes" } });
     span.recordException(new Error("refused kwargs {\"token\":\"canary-arg\"}"));
     span.addEvent("progress");
     span.setStatus({ code: SpanStatusCode.ERROR, message: "refused kwargs {\"token\":\"canary-arg\"}" });
@@ -247,7 +247,7 @@ describe("the content switch at the exporter", () => {
   it("hands a span with no failure text on as the same span", async () => {
     const sink = new InMemorySpanExporter();
     const provider = new BasicTracerProvider({ spanProcessors: [new SimpleSpanProcessor(contentGuardedExporter(sink, false))] });
-    const span = provider.getTracer("@cursor/sdk").startSpan("clean");
+    const span = provider.getTracer("@anthropic-ai/claude-agent-sdk").startSpan("clean");
     span.addEvent("progress");
     span.end();
     await provider.forceFlush();

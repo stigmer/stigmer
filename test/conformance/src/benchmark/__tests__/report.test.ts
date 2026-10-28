@@ -13,7 +13,8 @@
 // each side's warm median over native's, for every side but native; a v11
 // report is keyed by engine, and the reader refuses a v10 report, a
 // comparison without its sides or its ratios, and an arm with no parity
-// model, by name.
+// model, by name, and reads past an engine it does not know (one retired
+// since the report was written).
 import { describe, expect, it } from "vitest";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -26,6 +27,7 @@ import {
   readBenchmarkReport,
   spread,
   summarize,
+  type BenchmarkHarness,
   type BenchmarkReport,
 } from "../report";
 import { emptyMarkers } from "../log-markers";
@@ -94,7 +96,7 @@ describe("summarize", () => {
   });
 
   it("a cell whose every attempt failed has n 0 and a null median", () => {
-    const stat = summarize("cursor", makeSample(), [makeSample({ outcome: "timeout" })], null);
+    const stat = summarize("claude", makeSample(), [makeSample({ outcome: "timeout" })], null);
     expect(stat.n).toBe(0);
     expect(stat.median).toBeNull();
     expect(costRatio(stat, stat)).toBeUndefined();
@@ -102,11 +104,11 @@ describe("summarize", () => {
 });
 
 describe("costRatios", () => {
-  const priced = (harness: "deep-agent" | "cursor" | "claude", micros: number) =>
+  const priced = (harness: BenchmarkHarness, micros: number) =>
     summarize(harness, makeSample(), [makeSample({ measures: { ...makeSample().measures, estimated_cost_micros: micros } })], null);
 
   it("is each side's warm median cost over native's, never native's own, and leaves out a side it cannot divide", () => {
-    expect(costRatios({ "deep-agent": priced("deep-agent", 200), cursor: priced("cursor", 100), claude: priced("claude", 500) })).toEqual({ cursor: 0.5, claude: 2.5 });
+    expect(costRatios({ "deep-agent": priced("deep-agent", 200), claude: priced("claude", 500) })).toEqual({ claude: 2.5 });
     expect(costRatios({ claude: priced("claude", 500) }), "no native side, nothing to divide by").toEqual({});
     expect(costRatios({ "deep-agent": priced("deep-agent", 0), claude: priced("claude", 500) }), "a native cost of 0").toEqual({});
   });
@@ -137,7 +139,7 @@ describe("readBenchmarkReport", () => {
         shell_background: "on",
       },
       models: {
-        parity: { "deep-agent": "claude-sonnet-4.6", cursor: "claude-sonnet-4-6", claude: "claude-sonnet-4.6" },
+        parity: { "deep-agent": "claude-sonnet-4.6", claude: "claude-sonnet-4.6" },
         judge_requested: "claude-sonnet-4.6",
         native_endpoint: "api.anthropic.com",
         native_api: "messages",
@@ -170,6 +172,14 @@ describe("readBenchmarkReport", () => {
   it("accepts a report the producer wrote", () => {
     const report = validReport();
     expect(readBenchmarkReport(JSON.parse(JSON.stringify(report)))).toEqual(report);
+  });
+
+  it("reads a report that carries an engine it does not know, as one written before an engine retired", () => {
+    const report = validReport() as unknown as { models: { parity: Record<string, string> }; comparisons: { sides: Record<string, unknown>; cost_ratio: Record<string, number> }[] };
+    report.models.parity["retired-engine"] = "some-model";
+    report.comparisons[0]!.sides["retired-engine"] = { n: "not checked" };
+    report.comparisons[0]!.cost_ratio["retired-engine"] = 1;
+    expect(readBenchmarkReport(report).models.parity["deep-agent"]).toBe("claude-sonnet-4.6");
   });
 
   it("refuses a wrong schema version by value, the v2 reports before the working agent included", () => {

@@ -306,13 +306,13 @@ describe("loadConfig", () => {
     it("take each listed name's value from the server's environment", () => {
       const config = loadConfig({
         STIGMER_SANDBOX_RUNNER_ENV: "ANTHROPIC_BASE_URL",
-        STIGMER_SANDBOX_RUNNER_SECRETS: " ANTHROPIC_API_KEY , CURSOR_API_KEY ,",
+        STIGMER_SANDBOX_RUNNER_SECRETS: " ANTHROPIC_API_KEY , OPENAI_API_KEY ,",
         ANTHROPIC_BASE_URL: "http://gateway.example:8080",
         ANTHROPIC_API_KEY: "sk-a",
-        CURSOR_API_KEY: "cur-b",
+        OPENAI_API_KEY: "sk-b",
       });
       expect(config.sandboxRunnerEnv).toEqual({ ANTHROPIC_BASE_URL: "http://gateway.example:8080" });
-      expect(config.sandboxRunnerSecretEnv).toEqual({ ANTHROPIC_API_KEY: "sk-a", CURSOR_API_KEY: "cur-b" });
+      expect(config.sandboxRunnerSecretEnv).toEqual({ ANTHROPIC_API_KEY: "sk-a", OPENAI_API_KEY: "sk-b" });
     });
 
     it("fail the boot on a listed name the server does not set", () => {

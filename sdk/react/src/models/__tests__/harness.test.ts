@@ -22,7 +22,7 @@ void unsupported;
 
 describe("the option set is the proto's harness set", () => {
   it("offers every engine the platform runs, in proto order", () => {
-    expect(HARNESS_OPTIONS).toEqual(["native", "cursor", "claude"]);
+    expect(HARNESS_OPTIONS).toEqual(["native", "claude"]);
   });
 
   it("names every engine Harness names, offered or not", () => {
@@ -42,17 +42,16 @@ describe("the option set is the proto's harness set", () => {
   });
 
   it("gives every named engine display metadata and nothing else any", () => {
-    expect(Object.keys(HARNESS_META).sort()).toEqual(["claude", "cursor", "native"]);
+    expect(Object.keys(HARNESS_META).sort()).toEqual(["claude", "native"]);
   });
 
   it("recognises a stored string only when it names an offered engine", () => {
     expect(isHarnessOption("native")).toBe(true);
-    expect(isHarnessOption("cursor")).toBe(true);
     expect(isHarnessOption("claude")).toBe(true);
-    for (const stored of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isHarnessOption(stored)).toBe(false);
     }
-    for (const word of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isNamedHarness(word)).toBe(false);
     }
   });
@@ -77,11 +76,11 @@ describe("harness constants", () => {
 
   it("provides user-facing labels for both options", () => {
     expect(HARNESS_LABELS.native).toBe("Stigmer");
-    expect(HARNESS_LABELS.cursor).toBe("Cursor");
+    expect(HARNESS_LABELS.claude).toBe("Claude");
   });
 
   it("covers every HarnessOption in HARNESS_LABELS", () => {
-    const options: HarnessOption[] = ["native", "cursor"];
+    const options: HarnessOption[] = ["native", "claude"];
     for (const opt of options) {
       expect(HARNESS_LABELS[opt]).toBeDefined();
       expect(typeof HARNESS_LABELS[opt]).toBe("string");
@@ -94,8 +93,8 @@ describe("toProtoHarness", () => {
     expect(toProtoHarness("native")).toBe(Harness.NATIVE);
   });
 
-  it("maps cursor to Harness.CURSOR", () => {
-    expect(toProtoHarness("cursor")).toBe(Harness.CURSOR);
+  it("maps claude to Harness.CLAUDE", () => {
+    expect(toProtoHarness("claude")).toBe(Harness.CLAUDE);
   });
 });
 
@@ -104,8 +103,8 @@ describe("fromProtoHarness", () => {
     expect(fromProtoHarness(Harness.NATIVE)).toBe("native");
   });
 
-  it("maps Harness.CURSOR to cursor", () => {
-    expect(fromProtoHarness(Harness.CURSOR)).toBe("cursor");
+  it("maps Harness.CLAUDE to claude", () => {
+    expect(fromProtoHarness(Harness.CLAUDE)).toBe("claude");
   });
 
   it("maps Harness.UNSPECIFIED to native (safe default)", () => {
@@ -122,7 +121,7 @@ describe("round-trip conversion", () => {
     expect(fromProtoHarness(toProtoHarness("native"))).toBe("native");
   });
 
-  it("cursor survives toProto -> fromProto", () => {
-    expect(fromProtoHarness(toProtoHarness("cursor"))).toBe("cursor");
+  it("claude survives toProto -> fromProto", () => {
+    expect(fromProtoHarness(toProtoHarness("claude"))).toBe("claude");
   });
 });

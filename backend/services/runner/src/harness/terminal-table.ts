@@ -5,11 +5,10 @@
  * a `CancelledFailure` — with one function that applies an arm to a status.
  *
  * Why data and not one function per arm: the copy is the user-facing
- * contract of the runner (the hermetic goldens pin every string below byte
- * for byte, `activities/execute-cursor/__tests__/hermetic/`), and a table a
- * reader can scan is how that contract stays reviewable. The native
- * harness once kept one function per arm (`streaming-terminal.ts`, retired
- * in #1096); since #1096 both harnesses' turns end through this one table.
+ * contract of the runner (`__tests__/terminal-table.test.ts` and the
+ * harnesses' hermetic suites pin the strings below), and a table a reader
+ * can scan is how that contract stays reviewable. Since #1096 every
+ * harness's turns end through this one table.
  *
  * The `error` of a FAILED arm is the failure itself, never framed: the
  * `Execution failed:` wording belongs to the rows and to each consumer's
@@ -103,7 +102,7 @@ export type StopCause =
  * Why a turn stops so that the workflow continues it on the next
  * invocation. Crosses to the workflow as the typed failure's one detail.
  */
-export type ContinuationCause = "drain" | "model-stall" | "stream-cut";
+export type ContinuationCause = "drain" | "model-stall";
 
 /**
  * The `ApplicationFailure` type a continuing turn throws, which the invoke
@@ -171,7 +170,6 @@ export const TERMINAL_COPY = {
     notes: {
       drain: "The runner is restarting; this turn continues on the next one.",
       "model-stall": "The model stopped answering; this turn continues from where it was.",
-      "stream-cut": "Cursor ended its connection; this turn continues from where it was.",
     } satisfies Record<ContinuationCause, string>,
     /** The note a continued turn writes itself when its log does not say why it stopped (`turn-context.ts` `stopIsExplained`). */
     lostRunnerNote: "This turn continues after its runner stopped unexpectedly.",
@@ -319,9 +317,8 @@ export function workerShutdownArm(): TerminalArm {
 /**
  * The turn stopped so the workflow continues it on the next invocation: the
  * engine yielded at a durable step boundary (a drain, `TurnSink.yieldSignal`),
- * its model stopped answering ({@link modelStallArm}) or its vendor ended its
- * connection ({@link streamCutArm}). Nothing terminal is
- * written; the note says why the turn moved; the typed failure tells the
+ * or its model stopped answering ({@link modelStallArm}). Nothing terminal
+ * is written; the note says why the turn moved; the typed failure tells the
  * workflow to continue it (the module header).
  */
 export function continueArm(cause: ContinuationCause, message?: string): TerminalArm {
@@ -344,16 +341,6 @@ export function continueArm(cause: ContinuationCause, message?: string): Termina
  */
 export function modelStallArm(error: StallTimeoutError): TerminalArm {
   return continueArm("model-stall", formatStallFailure(error));
-}
-
-/**
- * The engine's vendor ended its connection mid-turn (the adapter's
- * `stream_cut`, stigmer#2436): the vendor kept the conversation, so the turn
- * continues from where it was. The typed failure carries the adapter's
- * message, which is the run's error if the workflow gives up.
- */
-export function streamCutArm(message: string): TerminalArm {
-  return continueArm("stream-cut", message);
 }
 
 /**
@@ -449,8 +436,8 @@ export function fileReviewResolvedArm(settlement: {
 }
 
 /**
- * The adapter settled `failed`. The surface picks the copy (the three shapes
- * the Cursor orchestrator wrote, `types.ts` `FailureSurface`); `message` is
+ * The adapter settled `failed`. The surface picks the copy (the three
+ * shapes of `types.ts` `FailureSurface`); `message` is
  * the adapter's user-facing sentence and becomes `status.error` whole.
  */
 export function failedArm(message: string, surface: FailureSurface): TerminalArm {

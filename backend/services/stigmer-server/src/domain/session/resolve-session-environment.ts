@@ -22,7 +22,7 @@
  * person's own choice, so the record says whether a default supplied it.
  * The reference holds the Environment's id; responses name it by its
  * current slug, as any stored reference. Re-resolved on every write until
- * the conversation's first turn (status.harness_state_id empty), then kept:
+ * the conversation has run (has-run.ts), then kept:
  * a conversation keeps the Environment it started with, and
  * ValidateEnvironmentImmutability refuses a change to its own choice. The
  * Environment's contents are read again at every sandbox start, so an edit
@@ -50,6 +50,7 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { sessionHasRun } from "./has-run.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
 import { LOCAL_ENVIRONMENT_MESSAGE } from "../run/environment-admission.js";
 import type { EnvironmentPolicy } from "../run/environment-admission.js";
@@ -125,7 +126,7 @@ export function newResolveSessionEnvironmentStep(
       const session = ctx.newState;
       const status = (session.status ??= create(SessionStatusSchema));
       const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-      if (stored !== undefined && (stored.status?.harnessStateId ?? "") !== "") {
+      if (stored !== undefined && (await sessionHasRun(store, ctx, stored))) {
         status.environment = stored.status?.environment;
         status.environmentSource = stored.status?.environmentSource ?? EnvironmentSource.UNSPECIFIED;
         return;
@@ -139,19 +140,22 @@ export function newResolveSessionEnvironmentStep(
 
 /**
  * ValidateEnvironmentImmutability — the harness rule for the conversation's
- * own choice: once a turn has run (status.harness_state_id set), an update
- * may not name another Environment, or drop the one it named. Runs after
+ * own choice: once the conversation has run (has-run.ts), an update may not
+ * name another Environment, or drop the one it named. Runs after
  * NormalizeReferences, so both sides are held by id.
  */
-export function newValidateEnvironmentImmutabilityStep(): PipelineStep<SessionDesc> {
+export function newValidateEnvironmentImmutabilityStep(store: Store): PipelineStep<SessionDesc> {
   return {
     name: "ValidateEnvironmentImmutability",
-    execute(ctx: RequestContext<SessionDesc>): void {
+    async execute(ctx: RequestContext<SessionDesc>): Promise<void> {
       const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-      if (stored === undefined || (stored.status?.harnessStateId ?? "") === "") {
+      if (stored === undefined) {
         return;
       }
-      if ((stored.spec?.environmentRef?.id ?? "") !== (ctx.newState.spec?.environmentRef?.id ?? "")) {
+      if ((stored.spec?.environmentRef?.id ?? "") === (ctx.newState.spec?.environmentRef?.id ?? "")) {
+        return;
+      }
+      if (await sessionHasRun(store, ctx, stored)) {
         throw failedPreconditionError(
           "a conversation's environment cannot be changed after its first turn: start a new conversation to use another",
         );

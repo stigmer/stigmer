@@ -1166,7 +1166,6 @@ SessionSpec defines the configurable properties of a session.
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
-    cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
@@ -1618,7 +1617,7 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
     topAgents: { type: "AgentUsageSummaryInput[]", description: "The ten agents with the most tokens, ordered by total_tokens descending." },
     dailyUsage: { type: "DailyUsageInput[]", description: "Daily token trend within the time range, one row per UTC day that has a run, ordered chronologically." },
-    harnessUsage: { type: "HarnessUsageInput[]", description: "Usage split by execution harness (e.g., \"native\" vs \"cursor\")." },
+    harnessUsage: { type: "HarnessUsageInput[]", description: "Usage split by execution harness (e.g., \"native\" vs \"claude\")." },
     totalUsage: { type: "UsageReportAggregateInput", description: "Aggregated usage across the organization in the time range." },
   }}
 />
@@ -1840,7 +1839,7 @@ The set of file deltas produced by one agent turn, reviewed and reconciled as a 
   type={{
     id: { type: "string", description: "Stable id of this change set, unique per turn." },
     turnId: { type: "string", description: "Id of the turn that produced this change set." },
-    harnessId: { type: "string", description: "Harness that produced the edits: \"cursor\" | \"deep-agent\" | \"claude\"." },
+    harnessId: { type: "string", description: "Harness that produced the edits: \"deep-agent\" | \"claude\"." },
     baselineSnapshot: { type: "SnapshotRef", description: "Workspace state captured at turn start — the \"before\" the authoritative diff is computed against.", typeDescriptionLink: "#snapshotref" },
     candidateSnapshot: { type: "SnapshotRef", description: "Workspace state captured at the turn boundary — the \"after\".", typeDescriptionLink: "#snapshotref" },
     changes: { type: "CapturedFileChange[]", description: "The per-file deltas in this change set (the rendered review surface).", typeDescriptionLink: "#capturedfilechange" },
@@ -1997,13 +1996,13 @@ Accumulated token usage from execution worker turn-ended events.
     outputTokens: { type: "number", description: "Accumulated output tokens across all turns." },
     cacheReadTokens: { type: "number", description: "Accumulated cache-read tokens across all turns." },
     cacheWriteTokens: { type: "number", description: "Accumulated cache-write tokens across all turns." },
-    totalTokens: { type: "number", description: "Total tokens across all turns: input_tokens + output_tokens." },
+    totalTokens: { type: "number", description: "Total tokens across all turns: input_tokens + output_tokens; the cache buckets are NOT added again here." },
     turnCount: { type: "number", description: "Number of completed turns observed." },
     estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from the runner-side rate card (the providers' list prices): the working number of the run's cost cap (RunConfig.max_cost_usd)." },
     model: { type: "string", description: "Model identifier the runner requested for this run's turns." },
     observedAt: { type: "string", description: "ISO 8601 timestamp of the last turn-ended event observed." },
     requestedServiceTier: { type: "ServiceTier", description: "Service tier the runner requested for this run's model calls.", typeDescriptionLink: "#servicetier" },
-    requestedModelParams: { type: "string", description: "JSON-encoded provider variant parameters the runner sent with the model selection (Cursor ModelSelection.params, e.g. [{\"id\":\"fast\",\"value\":\"false\"}])." },
+    requestedModelParams: { type: "string", description: "JSON-encoded provider variant parameters the runner sent with the model selection (e.g. [{\"id\":\"fast\",\"value\":\"false\"}])." },
     requestedThinkingMode: { type: "ThinkingMode", description: "Thinking mode the runner requested for this run's model calls.", typeDescriptionLink: "#thinkingmode" },
   }}
 />
@@ -2218,17 +2217,7 @@ Harness identifies the execution engine that processes agent activities for a se
 | Value | Description |
 |-------|-------------|
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
-| `HARNESS_CURSOR` | Cursor SDK execution engine. |
 | `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
-
-### CursorMode
-
-CursorMode selects the Cursor SDK agent type for sessions using HARNESS_CURSOR.
-
-| Value | Description |
-|-------|-------------|
-| `CURSOR_MODE_LOCAL` | Local Cursor agent created with a local cwd configuration. |
-| `CURSOR_MODE_CLOUD` | Cloud Cursor agent created with a cloud repos configuration. |
 
 ### ExecutionTarget
 

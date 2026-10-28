@@ -27,10 +27,8 @@ export interface UsageTabProps {
  * Usage facet for the session panel (a `useSessionRailViews` rail view).
  *
  * Renders the session totals ({@link UsageWidget}) plus the #362 model
- * provenance list: per run, its primary model with its tokens — for a
- * metered Cursor Auto run, the only honest answer to "which model actually
- * ran", since the requested model is empty by definition there — paired
- * with the tier the runner REQUESTED (the streaming summary's audit record
+ * provenance list: per run, its primary model with its tokens — what the
+ * provider actually served — paired with the tier the runner REQUESTED (the streaming summary's audit record
  * that the account default was never left in control). Requested-vs-served
  * divergence is a platform alarm (`stigmer.billing.service_tier.mismatch`),
  * not a per-row UI concern.

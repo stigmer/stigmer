@@ -21,7 +21,8 @@
 //     account (#1074);
 //   - getByIdpId (and getByEmail, where the caller has an email) find the
 //     caller's own account;
-//   - update round-trips preferences — the console's one write; an update
+//   - update round-trips preferences — the console's one write; a default
+//     harness the platform does not name is INVALID_ARGUMENT; an update
 //     that changes spec.idp_id is FAILED_PRECONDITION (the subject IS the
 //     identity);
 //   - getActorInfo names the account as audit stamps do;
@@ -226,8 +227,8 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     try {
       const updated = await clients.identityAccountCommand.update(
         { resource: withPreferences(me, {
-          defaultHarness: "cursor",
-          defaultCursorModel: "gpt-5",
+          defaultHarness: "claude",
+          defaultClaudeModel: "claude-sonnet-5",
           defaultAutoApprove: true,
         }), updateMask: { paths: ["*"] } },
       );
@@ -237,8 +238,8 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
         value: me.metadata?.id ?? "",
       });
       expect(fetched.spec?.preferences).toMatchObject({
-        defaultHarness: "cursor",
-        defaultCursorModel: "gpt-5",
+        defaultHarness: "claude",
+        defaultClaudeModel: "claude-sonnet-5",
         defaultAutoApprove: true,
       });
     } finally {
@@ -247,6 +248,25 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
         { resource: withPreferences(await whoAmI(), me.spec?.preferences), updateMask: { paths: ["*"] } },
       );
     }
+  });
+
+  it("[rpc:IdentityAccountCommandController.update] update refuses a default harness the platform does not name (InvalidArgument), and the stored preferences stay", async () => {
+    const me = await whoAmI();
+    const error = await expectGrpcCode(
+      () =>
+        clients.identityAccountCommand.update({
+          resource: withPreferences(me, { defaultHarness: "codex" }),
+          updateMask: { paths: ["*"] },
+        }),
+      Code.InvalidArgument,
+      "update naming default_harness 'codex'",
+    );
+    expect(error.rawMessage).toContain("default_harness");
+
+    const fetched = await clients.identityAccountQuery.get({ value: me.metadata?.id ?? "" });
+    expect(fetched.spec?.preferences?.defaultHarness ?? "", "the refused write changed nothing").toBe(
+      me.spec?.preferences?.defaultHarness ?? "",
+    );
   });
 
   it("[rpc:IdentityAccountCommandController.update] update refuses a changed subject with FAILED_PRECONDITION — the subject IS the identity", async () => {

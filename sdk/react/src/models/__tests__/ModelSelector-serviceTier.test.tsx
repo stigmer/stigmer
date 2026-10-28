@@ -31,13 +31,13 @@ beforeAll(() => {
  */
 
 const FAST_CAPABLE: ModelInfo = {
-  modelId: "composer-2.5",
-  provider: "cursor",
-  displayName: "Composer 2.5",
+  modelId: "claude-sonnet-4-6",
+  provider: "anthropic",
+  displayName: "Sonnet 4.6",
   shortDescription: "Fast agentic model",
   speedTier: "fastest",
   costTier: "economy",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -46,10 +46,10 @@ const ALSO_FAST_CAPABLE: ModelInfo = {
   modelId: "claude-opus-4-8",
   provider: "anthropic",
   displayName: "Claude 4.8 Opus",
-  shortDescription: "Frontier Opus via Cursor",
+  shortDescription: "Frontier Opus",
   speedTier: "slow",
   costTier: "premium",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -61,7 +61,7 @@ const NO_FAST_TIER: ModelInfo = {
   shortDescription: "Small fast model",
   speedTier: "fastest",
   costTier: "economy",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: [],
 };
@@ -82,9 +82,9 @@ function renderSelector(
       }}
     >
       <ModelSelector
-        value="composer-2.5"
+        value="claude-sonnet-4-6"
         onValueChange={onValueChange}
-        harness="cursor"
+        harness="native"
         serviceTier="standard"
         onServiceTierChange={onServiceTierChange}
         {...props}
@@ -120,7 +120,7 @@ afterEach(cleanup);
 describe("ModelSelector — fast tier switch in the options area", () => {
   it("renders the switch for a fast-capable selected model", async () => {
     renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     const toggle = screen.getByRole("switch", { name: "Fast tier" });
     expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -128,7 +128,7 @@ describe("ModelSelector — fast tier switch in the options area", () => {
 
   it("places the switch in the options area above the model list", async () => {
     renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     const toggle = screen.getByRole("switch", { name: "Fast tier" });
     const search = screen.getByRole("searchbox", { name: "Search models" });
@@ -149,14 +149,14 @@ describe("ModelSelector — fast tier switch in the options area", () => {
 
   it("does not render the switch when the consumer did not opt in", async () => {
     renderSelector({ onServiceTierChange: undefined });
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     expect(screen.queryByRole("switch", { name: "Fast tier" })).toBeNull();
   });
 
   it("toggling fires onServiceTierChange with the flipped tier", async () => {
     const { onServiceTierChange } = renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
     expect(onServiceTierChange).toHaveBeenCalledOnce();
@@ -165,7 +165,7 @@ describe("ModelSelector — fast tier switch in the options area", () => {
 
   it("toggling off an active fast tier fires 'standard'", async () => {
     const { onServiceTierChange } = renderSelector({ serviceTier: "fast" });
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
     expect(onServiceTierChange).toHaveBeenCalledOnce();
@@ -174,7 +174,7 @@ describe("ModelSelector — fast tier switch in the options area", () => {
 
   it("keeps the popover open across a toggle", async () => {
     renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
     expect(screen.getByPlaceholderText("Search models…")).toBeTruthy();
@@ -198,11 +198,11 @@ describe("ModelSelector — trigger badge", () => {
 describe("ModelSelector — fast tier persistence across model switches", () => {
   it("selecting a model while standard emits no tier change", async () => {
     const { onValueChange, onServiceTierChange } = renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
-    fireEvent.click(modelOption("Composer 2.5"));
+    fireEvent.click(modelOption("Sonnet 4.6"));
 
-    expect(onValueChange).toHaveBeenCalledWith("composer-2.5");
+    expect(onValueChange).toHaveBeenCalledWith("claude-sonnet-4-6");
     expect(onServiceTierChange).not.toHaveBeenCalled();
   });
 
@@ -213,7 +213,7 @@ describe("ModelSelector — fast tier persistence across model switches", () => 
     const { onValueChange, onServiceTierChange } = renderSelector({
       serviceTier: "fast",
     });
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     fireEvent.click(modelOption("Claude 4.8 Opus"));
 
@@ -225,7 +225,7 @@ describe("ModelSelector — fast tier persistence across model switches", () => 
     // Flip the switch first (popover stays open), then pick a fast-capable
     // model: the toggle survives the selection.
     const { onValueChange, onServiceTierChange } = renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     fireEvent.click(screen.getByRole("switch", { name: "Fast tier" }));
     fireEvent.click(modelOption("Claude 4.8 Opus"));
@@ -239,7 +239,7 @@ describe("ModelSelector — fast tier persistence across model switches", () => 
     const { onValueChange, onServiceTierChange } = renderSelector({
       serviceTier: "fast",
     });
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     fireEvent.click(modelOption("Haiku 4.5"));
 

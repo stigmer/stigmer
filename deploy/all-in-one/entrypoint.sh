@@ -50,7 +50,7 @@ EOF
 # Agents run only with an LLM credential. The stack starts without one so the
 # console can be explored, but say so up front — a laptop's `stigmer up` is
 # silent here and the first run fails instead. The words are `stigmer status`'s.
-if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CURSOR_API_KEY:-}" ] \
+if [ -z "${ANTHROPIC_API_KEY:-}" ] \
    && [ -z "${STIGMER_ANTHROPIC_BACKEND:-}" ] && [ -z "${STIGMER_OPENAI_BACKEND:-}" ]; then
   cat <<EOF
   WARNING: no LLM credential in the environment. Agents will not execute.

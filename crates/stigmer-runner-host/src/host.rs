@@ -392,7 +392,6 @@ const RESERVED_ENV_KEYS: &[&str] = &[
     "TEMPORAL_SERVICE_ADDRESS",
     "TEMPORAL_NAMESPACE",
     "STIGMER_TOKEN",
-    "CURSOR_API_KEY",
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "WORKSPACE_ROOT_DIR",
@@ -438,9 +437,6 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     if let Some(token) = &config.stigmer_token {
         env.push(("STIGMER_TOKEN".to_string(), token.clone()));
     }
-    if let Some(key) = &config.cursor_api_key {
-        env.push(("CURSOR_API_KEY".to_string(), key.clone()));
-    }
     if let Some(key) = &config.anthropic_api_key {
         env.push(("ANTHROPIC_API_KEY".to_string(), key.clone()));
     }
@@ -458,8 +454,8 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     }
     if let Some(proxy) = &config.proxy_endpoint {
         env.push(("STIGMER_PROXY_ENDPOINT".to_string(), proxy.clone()));
-        // The runner's Cursor SDK negotiates HTTP/2 over TLS; a self-signed local
-        // proxy would otherwise fail the TLS handshake.
+        // The runner talks to the proxy over TLS; a self-signed local proxy would
+        // otherwise fail the TLS handshake.
         if proxy.starts_with("https://") {
             env.push(("NODE_TLS_REJECT_UNAUTHORIZED".to_string(), "0".to_string()));
         }
@@ -674,7 +670,6 @@ mod tests {
             stigmer_endpoint: "https://api.stigmer.ai".to_string(),
             temporal_namespace: None,
             stigmer_token: Some("tok".to_string()),
-            cursor_api_key: None,
             anthropic_api_key: None,
             openai_api_key: None,
             workspace_root_dir: None,
@@ -806,7 +801,6 @@ mod tests {
             stigmer_endpoint: "https://api.stigmer.ai".to_string(),
             temporal_namespace: Some("ns".to_string()),
             stigmer_token: Some("tok".to_string()),
-            cursor_api_key: Some("ck".to_string()),
             anthropic_api_key: Some("ak".to_string()),
             openai_api_key: Some("ok".to_string()),
             workspace_root_dir: Some("/tmp/ws".to_string()),
@@ -828,7 +822,7 @@ mod tests {
     #[test]
     fn build_env_relaxes_tls_only_for_https_proxy() {
         let mut config = minimal_config();
-        config.proxy_endpoint = Some("https://localhost:9093".to_string());
+        config.proxy_endpoint = Some("https://proxy.example".to_string());
         let env = build_env(&config);
         assert_eq!(env_value(&env, "NODE_TLS_REJECT_UNAUTHORIZED"), Some("0"));
 

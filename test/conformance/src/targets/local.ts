@@ -84,8 +84,6 @@ export class LocalTarget implements TargetProfile {
     guestMinting: false,
     // No sandbox lane in cloud mode: every conversation keeps its local programs.
     cloudTargetRefusesLocalPrograms: false,
-    // No provider keys in this edition: a Cursor run is admitted at create.
-    cursorRunsAdmitted: true,
     // No engine on this target: no turn runs.
     claudeTurnsRun: false,
     // No meter in this edition: every run's usage is counted from its

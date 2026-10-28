@@ -24,7 +24,6 @@ import { promisify } from "node:util";
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CLAUDE_ACTIVITY_NAME,
-  EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } from "../../../../backend/libs/ts/temporal-codecs/src/activity-names/names";
 import { invokeWorkflowIdFor } from "../../../../backend/services/stigmer-server/src/temporal/agentexecution/names";
@@ -37,7 +36,6 @@ export { invokeWorkflowIdFor };
 /** The runner activity each harness's turn runs as, by the runtime's harness label. */
 const EXECUTE_ACTIVITY_NAME: Record<BenchmarkHarness, string> = {
   "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
-  cursor: EXECUTE_CURSOR_ACTIVITY_NAME,
   claude: EXECUTE_CLAUDE_ACTIVITY_NAME,
 };
 

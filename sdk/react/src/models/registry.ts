@@ -32,8 +32,7 @@ export type SpeedTier = "fastest" | "fast" | "balanced" | "slow";
 
 /**
  * LLM provider identifier. Each provider maps to a distinct inference
- * backend (or intermediary, in the case of Cursor-served third-party
- * models). The model registry uses this for grouping in the
+ * backend. The model registry uses this for grouping in the
  * "Show All" expanded view.
  */
 export type Provider =
@@ -41,7 +40,6 @@ export type Provider =
   | "openai"
   | "google"
   | "xai"
-  | "cursor"
   | "moonshot"
   | "ollama";
 
@@ -430,9 +428,6 @@ export async function fetchModelRegistry(
  */
 export const DEFAULT_MODEL_ID = "claude-sonnet-4.6";
 
-/** Model ID used when the Cursor harness is selected and no user preference is set. */
-export const DEFAULT_CURSOR_MODEL_ID = "default";
-
 /**
  * Resolution source for the default model selection.
  *
@@ -452,10 +447,9 @@ export interface DefaultModelResolution {
   readonly source: DefaultModelSource;
 }
 
-/** Each engine's last-resort model, for a registry with no usable row: the native and Claude engines run the same Claude model, Cursor its Auto pool. */
+/** Each engine's last-resort model, for a registry with no usable row: the native and Claude engines run the same Claude model. */
 const PLATFORM_FALLBACK_MODEL_IDS: Readonly<Record<HarnessOption, string>> = {
   native: DEFAULT_MODEL_ID,
-  cursor: DEFAULT_CURSOR_MODEL_ID,
   claude: DEFAULT_MODEL_ID,
 };
 
@@ -475,18 +469,11 @@ const PLATFORM_FALLBACK_MODEL_IDS: Readonly<Record<HarnessOption, string>> = {
  * and the submission adopts what the pill displays — so the default MUST
  * be the model the platform would run for an unpinned run, or the
  * pill promises one model while a different one serves the request.
- * Concretely:
- *
- * - `cursor` — the registry's Auto entry ({@link DEFAULT_CURSOR_MODEL_ID}):
- *   the runner coerces an empty `model_name` to `"default"` (Auto), so
- *   suggesting Auto and sending it explicitly are byte-identical to the
- *   pre-#663 empty send. Auto prices no fast variant, so the fast-tier
- *   switch correctly never renders for a fresh composer.
- * - `native` and `claude` — the runner's own `getDefaultModel()` rule, in
- *   the engine's own rows: featured AND standard cost, then any
- *   standard-cost model. A first-featured pick
- *   with no cost filter (the pre-#663 behavior) could suggest — and now
- *   would run — a premium model for users who never opened the picker.
+ * Concretely, it is the runner's own `getDefaultModel()` rule, in the
+ * engine's own rows: featured AND standard cost, then any standard-cost
+ * model. A first-featured pick with no cost filter (the pre-#663
+ * behavior) could suggest — and now would run — a premium model for users
+ * who never opened the picker.
  */
 export function resolveDefaultModelId(
   harness: HarnessOption,
@@ -518,26 +505,19 @@ export function resolveDefaultModelId(
     if (model) return { modelId: model.modelId, source: "agent_default" };
   }
 
-  if (harness === "cursor") {
-    const auto = models.find(
-      (m) => m.harness === harness && m.modelId === DEFAULT_CURSOR_MODEL_ID,
-    );
-    if (auto) return { modelId: auto.modelId, source: "harness_default" };
-  } else {
-    // Mirrors the runner's unpinned resolution (featured+standard, then
-    // any standard). Deliberately NOT extracted to share with the runner:
-    // the runner reads its own registry snapshot on another process.
-    const standardDefault =
-      models.find(
-        (m) => m.harness === harness && m.featured && m.costTier === "standard",
-      )
-      ?? models.find((m) => m.harness === harness && m.costTier === "standard");
-    if (standardDefault) {
-      return { modelId: standardDefault.modelId, source: "harness_default" };
-    }
+  // Mirrors the runner's unpinned resolution (featured+standard, then
+  // any standard). Deliberately NOT extracted to share with the runner:
+  // the runner reads its own registry snapshot on another process.
+  const standardDefault =
+    models.find(
+      (m) => m.harness === harness && m.featured && m.costTier === "standard",
+    )
+    ?? models.find((m) => m.harness === harness && m.costTier === "standard");
+  if (standardDefault) {
+    return { modelId: standardDefault.modelId, source: "harness_default" };
   }
 
-  // Degenerate registries only (no Auto entry / no standard-cost model):
+  // Degenerate registries only (no standard-cost model):
   // fall back to the old first-featured pick before the hardcoded id, so
   // the suggestion at least names a model that exists.
   const featured = models.find(

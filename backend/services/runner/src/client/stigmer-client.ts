@@ -39,7 +39,6 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type {
   AppendSessionEventsResponse,
-  BindHarnessStateResponse,
   SessionEventPreview,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -83,7 +82,7 @@ export interface BootstrapPayloadEncryptionKeys {
  * its own minted access token.
  *
  * The Temporal coordinates are always present. The access token is optional: the
- * server only mints one when it has a Cursor proxy to authenticate against
+ * server only mints one when it has a model proxy to authenticate against
  * (cloud) and a signing key configured — OSS and misconfigured servers omit it,
  * and the runner keeps using its existing token in that case. Payload-encryption
  * keys follow the same presence contract: absent when the server does not manage
@@ -582,23 +581,6 @@ export class StigmerClient {
 
   async getSession(sessionId: string): Promise<Session> {
     return this.sessionQuery.get({ value: sessionId });
-  }
-
-  /**
-   * Record the harness's conversation id on the run's session. The server
-   * admits only the runner acting for that run, as it admits an append, so
-   * the caller passes the same scoped token
-   * ({@link acquireScopedRunnerToken}).
-   */
-  async bindHarnessState(
-    runId: string,
-    harnessStateId: string,
-    scopedToken?: string,
-  ): Promise<BindHarnessStateResponse> {
-    return this.sessionCommand.bindHarnessState(
-      { runId, harnessStateId },
-      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
-    );
   }
 
   /**

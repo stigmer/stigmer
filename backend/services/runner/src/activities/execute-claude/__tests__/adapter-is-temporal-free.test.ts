@@ -10,7 +10,7 @@
  * (`__test-utils__/harness-contract/`), and the agent host runs it in a
  * process with no worker at all (`agent-host/host.ts`), so a
  * `Context.current()` anywhere in the adapter would throw there. Native's
- * and Cursor's fences are the precedent; this is their Claude twin.
+ * fence is the precedent; this is its Claude twin.
  */
 
 import { describe, it, expect } from "vitest";

@@ -33,7 +33,7 @@
  *
  * The recorded conversation is parsed here and handed to the native
  * engine, which resumes it (`execute-deep-agent/turn-setup.ts`); the server
- * never plans such a case on Cursor or Claude. The variables overlay the
+ * never plans such a case on Claude. The variables overlay the
  * run's agent values, so the native and Claude shells and the plugin's
  * hooks receive them through the one path every run value takes
  * (`shell-env.ts`).

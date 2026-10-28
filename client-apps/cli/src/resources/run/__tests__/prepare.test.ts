@@ -54,21 +54,20 @@ describe("validateThinking", () => {
 });
 
 describe("validateHarness", () => {
-  it("accepts empty, native, cursor and claude", () => {
+  it("accepts empty, native and claude", () => {
     expect(() => validateHarness("")).not.toThrow();
     expect(() => validateHarness("native")).not.toThrow();
-    expect(() => validateHarness("cursor")).not.toThrow();
     expect(() => validateHarness("claude")).not.toThrow();
   });
 
   it("rejects anything else before a network round trip", () => {
-    expect(() => validateHarness("turbo")).toThrow(/must be "native", "cursor" or "claude"/);
+    expect(() => validateHarness("turbo")).toThrow(/must be "native" or "claude"/);
   });
 
   it("rejects UI-only harness names that have no proto mapping", () => {
     // copilot/codex/etc. exist in display metadata but not on the wire —
     // accepting them here would stamp UNSPECIFIED and silently run native.
-    expect(() => validateHarness("copilot")).toThrow(/must be "native", "cursor" or "claude"/);
+    expect(() => validateHarness("copilot")).toThrow(/must be "native" or "claude"/);
   });
 });
 
@@ -102,7 +101,6 @@ const STUB_CLIENT = {} as unknown as Stigmer;
 interface StubPreferences {
   readonly defaultHarness?: string;
   readonly defaultNativeModel?: string;
-  readonly defaultCursorModel?: string;
   readonly defaultClaudeModel?: string;
 }
 
@@ -302,19 +300,19 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
   it("fills an omitted --harness from the account preference on cloud when the caller opts in (run)", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
-      clientWithPreferences({ defaultHarness: "cursor" }),
+      clientWithPreferences({ defaultHarness: "claude" }),
       undefined,
       SERVED_RUN_OPTIONS,
     );
-    expect(prepared.harness).toBe("cursor");
+    expect(prepared.harness).toBe("claude");
   });
 
   it("an explicit --harness always outranks the account preference", async () => {
-    // The per-run escape hatch: a cursor-preference user can still force a
+    // The per-run escape hatch: a claude-preference user can still force a
     // native run without touching their settings.
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "native" },
-      clientWithPreferences({ defaultHarness: "cursor" }),
+      clientWithPreferences({ defaultHarness: "claude" }),
       undefined,
       SERVED_RUN_OPTIONS,
     );
@@ -323,12 +321,12 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
 
   it("an explicit --harness resolves as given when the server serves no account preferences", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, harness: "cursor" },
+      { ...BASE_FLAGS, harness: "claude" },
       STUB_CLIENT,
       undefined,
       { accountPreferencesAvailable: false },
     );
-    expect(prepared.harness).toBe("cursor");
+    expect(prepared.harness).toBe("claude");
   });
 
   it("treats a malformed persisted harness as undeclared", async () => {
@@ -377,20 +375,20 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
 });
 
 describe("prepareAgentExec — the agent's run defaults come before the account's", () => {
-  const AGENT_ON_CURSOR = create(AgentSpecSchema, {
-    harness: Harness.CURSOR,
-    runConfig: { modelName: "composer-2.5" },
+  const AGENT_ON_CLAUDE = create(AgentSpecSchema, {
+    harness: Harness.CLAUDE,
+    runConfig: { modelName: "claude-opus-4-7" },
   });
-  const ACCOUNT = { defaultHarness: "native", defaultNativeModel: "claude-sonnet-4-6", defaultCursorModel: "gpt-5" };
+  const ACCOUNT = { defaultHarness: "native", defaultNativeModel: "claude-sonnet-4-6", defaultClaudeModel: "claude-sonnet-5" };
 
   it("resolves an omitted --harness to the agent's engine and leaves the model to the agent", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences(ACCOUNT),
       undefined,
-      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CLAUDE },
     );
-    expect(prepared.harness).toBe("cursor");
+    expect(prepared.harness).toBe("claude");
     expect(prepared.model).toBe("");
   });
 
@@ -399,7 +397,7 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
       { ...BASE_FLAGS, harness: "native" },
       clientWithPreferences(ACCOUNT),
       undefined,
-      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CLAUDE },
     );
     expect(prepared.harness).toBe("native");
     expect(prepared.model).toBe("claude-sonnet-4-6");
@@ -418,18 +416,18 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
       BASE_FLAGS,
       clientWithPreferences(ACCOUNT),
       undefined,
-      { ...SERVED_RUN_OPTIONS, agentSpec: create(AgentSpecSchema, { harness: Harness.CURSOR }) },
+      { ...SERVED_RUN_OPTIONS, agentSpec: create(AgentSpecSchema, { harness: Harness.CLAUDE }) },
     );
-    expect(prepared.harness).toBe("cursor");
-    expect(prepared.model).toBe("gpt-5");
+    expect(prepared.harness).toBe("claude");
+    expect(prepared.model).toBe("claude-sonnet-5");
   });
 
   it("an explicit --model always wins, and alone it names no engine, neither the agent's nor the account's", async () => {
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, model: "default" },
-      clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
+      clientWithPreferences({ ...ACCOUNT, defaultHarness: "claude" }),
       undefined,
-      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CLAUDE },
     );
     expect(prepared.model).toBe("default");
     // The server reads a model named alone on native.
@@ -438,19 +436,19 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
 
   it("--model with --harness keeps the engine named", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, model: "composer-2.5", harness: "cursor" },
+      { ...BASE_FLAGS, model: "claude-opus-4-7", harness: "claude" },
       clientWithPreferences(ACCOUNT),
       undefined,
-      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CURSOR },
+      { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CLAUDE },
     );
-    expect(prepared.harness).toBe("cursor");
-    expect(prepared.model).toBe("composer-2.5");
+    expect(prepared.harness).toBe("claude");
+    expect(prepared.model).toBe("claude-opus-4-7");
   });
 
-  it("an agent naming the native engine outranks an account that prefers cursor", async () => {
+  it("an agent naming the native engine outranks an account that prefers claude", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
-      clientWithPreferences({ ...ACCOUNT, defaultHarness: "cursor" }),
+      clientWithPreferences({ ...ACCOUNT, defaultHarness: "claude" }),
       undefined,
       {
         ...SERVED_RUN_OPTIONS,
@@ -468,28 +466,28 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
 describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
   const BOTH_MODELS: StubPreferences = {
     defaultNativeModel: "claude-sonnet-4.6",
-    defaultCursorModel: "composer-2.5",
+    defaultClaudeModel: "claude-opus-4-7",
   };
 
-  it("fills the cursor model when the explicit harness is cursor", async () => {
+  it("fills the Claude model when the explicit harness is claude", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, harness: "cursor" },
+      { ...BASE_FLAGS, harness: "claude" },
       clientWithPreferences(BOTH_MODELS),
       undefined,
       SERVED_RUN_OPTIONS,
     );
-    expect(prepared.model).toBe("composer-2.5");
+    expect(prepared.model).toBe("claude-opus-4-7");
   });
 
-  it("fills the cursor model when the preference resolves the harness to cursor", async () => {
+  it("fills the Claude model when the preference resolves the harness to claude", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
-      clientWithPreferences({ ...BOTH_MODELS, defaultHarness: "cursor" }),
+      clientWithPreferences({ ...BOTH_MODELS, defaultHarness: "claude" }),
       undefined,
       SERVED_RUN_OPTIONS,
     );
-    expect(prepared.harness).toBe("cursor");
-    expect(prepared.model).toBe("composer-2.5");
+    expect(prepared.harness).toBe("claude");
+    expect(prepared.model).toBe("claude-opus-4-7");
   });
 
   it("fills the native model when the harness resolves native or empty", async () => {
@@ -512,7 +510,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
 
   it("an explicit --model outranks the harness-matched preference", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, harness: "cursor", model: "gpt-5.3" },
+      { ...BASE_FLAGS, harness: "claude", model: "gpt-5.3" },
       clientWithPreferences(BOTH_MODELS),
       undefined,
       SERVED_RUN_OPTIONS,
@@ -520,24 +518,24 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     expect(prepared.model).toBe("gpt-5.3");
   });
 
-  it("draft with an explicit --harness cursor fills the cursor model despite no harness opt-in", async () => {
+  it("draft with an explicit --harness claude fills the Claude model despite no harness opt-in", async () => {
     // The opt-in scopes only the silent preference fill; the model fill follows
     // whatever harness the user explicitly chose.
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, harness: "cursor" },
+      { ...BASE_FLAGS, harness: "claude" },
       clientWithPreferences(BOTH_MODELS),
       undefined,
       { accountPreferencesAvailable: true },
     );
-    expect(prepared.harness).toBe("cursor");
-    expect(prepared.model).toBe("composer-2.5");
+    expect(prepared.harness).toBe("claude");
+    expect(prepared.model).toBe("claude-opus-4-7");
   });
 
   it("serves both fills from one whoAmI round trip, and none when both flags are explicit", async () => {
-    const single = countingClient({ ...BOTH_MODELS, defaultHarness: "cursor" });
+    const single = countingClient({ ...BOTH_MODELS, defaultHarness: "claude" });
     const filled = await prepareAgentExec(BASE_FLAGS, single.client, undefined, SERVED_RUN_OPTIONS);
-    expect(filled.harness).toBe("cursor");
-    expect(filled.model).toBe("composer-2.5");
+    expect(filled.harness).toBe("claude");
+    expect(filled.model).toBe("claude-opus-4-7");
     expect(single.calls(), "harness + model fills share one whoAmI").toBe(1);
 
     const skipped = countingClient(BOTH_MODELS);

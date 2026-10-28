@@ -18,19 +18,14 @@
  *
  * What stays with each harness, on purpose:
  *  - Framing and placement. The native harness renders `## Heading` sections
- *    into a system prompt rebuilt on every turn; the Cursor harness renders
- *    `<xml_tag>` sections into the FIRST user message of a session
- *    (the system-prompt row of `harness/capabilities.ts`'s matrix is the
- *    reason). Each builder maps a
+ *    into a system prompt rebuilt on every turn; the Claude harness appends
+ *    its sections to the engine's own system prompt. Each builder maps a
  *    section `kind` to its own label (`Record<StandingSectionKind, string>`,
  *    exhaustive by the compiler) and wraps the body itself. This module never
  *    learns a heading or a tag.
  *  - Words that quote an engine's tools: the native `## Skills` activation
- *    protocol (`read`, `execute(...)`) and Cursor's `<available_skills>` line
- *    (`the Read tool`); the response rules; the sub-agent rules; the
- *    structured-output directives (two mechanisms, two texts); Cursor's
- *    tool-approval protocol, which exists because of Cursor's gate model and
- *    would be false on a harness that interrupts before a tool runs.
+ *    protocol (`read`, `execute(...)`); the response rules; the sub-agent
+ *    rules; the structured-output directives.
  *
  * Fences: nothing under `shared/` imports `harness/` (and
  * `harness/__tests__/import-direction.test.ts` forbids `shared/` reaching
@@ -102,8 +97,7 @@ export interface StandingPromptContext {
  *     conversation (bridge): the bridge may refer back to them.
  *
  * Where the block sits in a prompt, and on which turns, is the builder's
- * (native: every turn, the system prompt is rebuilt; Cursor: the session's
- * first message, the agent's own store carries it after).
+ * (native: every turn, the system prompt is rebuilt).
  */
 export function standingContextSections(standing: StandingPromptContext): readonly StandingSection[] {
   const sections: StandingSection[] = [];

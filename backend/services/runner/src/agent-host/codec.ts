@@ -43,9 +43,8 @@
  *    reads them.
  *
  *  - The status fields, all the runtime's, runner to host, field by field and
- *    only what changed, so an adapter that reads one (the Cursor harness
- *    reads `startedAt` and `streamingUsage`) sees the runtime's current
- *    value.
+ *    only what changed, so an adapter that reads one sees the runtime's
+ *    current value.
  *
  * What crosses back from a persist besides those: the runtime's offloads of
  * large tool outputs (`shared/status-offload.ts`), which the host's copy
@@ -70,7 +69,6 @@ import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb"
 import { HookGroupSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunSchema, RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
@@ -78,12 +76,11 @@ import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1
 import type { ApprovalAsk } from "../harness/approval-answers.js";
 import type { TurnFiles, TurnInput, TurnHookSource, TurnSubagent } from "../harness/types.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
-import type { CloudRepo, PluginSubagent } from "../shared/blueprint-resolver.js";
+import type { PluginSubagent } from "../shared/blueprint-resolver.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { HookServerName } from "../shared/hooks/tool-view.js";
 import { platformServerSlugsOf, type ResolvedMcpServer } from "../shared/mcp-resolver.js";
-import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { DeclaredPreferencesContent } from "../shared/declared-preferences.js";
 import type { SenderIdentity } from "../shared/sender-identity.js";
@@ -107,15 +104,6 @@ export function encodeMessage<D extends DescMessage>(schema: D, message: Message
 
 export function decodeMessage<D extends DescMessage>(schema: D, base64: string): MessageShape<D> {
   return fromBinary(schema, Buffer.from(base64, "base64"));
-}
-
-/** A run's events as `readRunEvents` carries them across: each its own base64 `SessionEvent`. */
-export function encodeRunEvents(events: readonly SessionEvent[]): string[] {
-  return events.map((event) => encodeMessage(SessionEventSchema, event));
-}
-
-export function decodeRunEvents(wire: readonly string[]): SessionEvent[] {
-  return wire.map((event) => decodeMessage(SessionEventSchema, event));
 }
 
 // ─── The turn input ────────────────────────────────────────────────────────
@@ -154,8 +142,8 @@ export interface WireTurnInput {
   readonly approvalDecisions: readonly (readonly [string, ApprovalAction])[];
   readonly approvalDenyMessages: readonly (readonly [string, string])[];
   readonly approvalAsks: readonly (readonly [string, ApprovalAsk])[];
-  /** `TurnInput.continuation`: null on a turn's first invocation; the digest null when none was rendered. */
-  readonly continuation: { readonly digest: string | null } | null;
+  /** `TurnInput.continuation`: whether this invocation continues a turn its engine began. */
+  readonly continuation: boolean;
   readonly execution: string;
   readonly session: string;
   readonly blueprint: {
@@ -171,7 +159,6 @@ export interface WireTurnInput {
     }[];
     readonly plugins: readonly string[];
     readonly mergedSkillRefs: readonly string[];
-    readonly cloudRepos: readonly CloudRepo[];
   };
   /** The agent's own values, each tool's by plugin and server, each plugin's for its hooks, each subagent's own; never a repository's token. */
   readonly values: {
@@ -205,7 +192,6 @@ export interface WireTurnInput {
     };
     readonly destructive: readonly string[];
     readonly unlisted: readonly string[];
-    readonly listing: McpToolListing | null;
     readonly toolScope: ToolScopeWire;
   };
   readonly skills: { readonly root: readonly SkillMetadata[]; readonly bySubAgent: readonly (readonly [string, readonly SkillMetadata[]])[] };
@@ -219,7 +205,6 @@ export interface WireTurnInput {
   })[];
   /** Plain data already: each image's bytes cross once, in `visionImages`. */
   readonly files: TurnFiles;
-  readonly appliedToolCallIds: readonly string[];
   readonly model: {
     readonly requested: string;
     readonly serviceTier: EffectiveServiceTier;
@@ -251,7 +236,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     approvalDecisions: [...input.approvalDecisions],
     approvalDenyMessages: [...input.approvalDenyMessages],
     approvalAsks: [...input.approvalAsks],
-    continuation: input.continuation === undefined ? null : { digest: input.continuation.digest ?? null },
+    continuation: input.continuation !== undefined,
     execution: encodeMessage(RunSchema, input.execution),
     session: encodeMessage(SessionSchema, input.session),
     blueprint: {
@@ -269,7 +254,6 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       })),
       plugins: blueprint.plugins.map((p) => encodeMessage(PluginSchema, p)),
       mergedSkillRefs: blueprint.mergedSkillRefs.map((r) => encodeMessage(ApiResourceReferenceSchema, r)),
-      cloudRepos: blueprint.cloudRepos,
     },
     values: {
       agent: input.values.agent,
@@ -308,7 +292,6 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       },
       destructive: [...mcp.mcpDefault.destructive],
       unlisted: [...mcp.mcpDefault.unlisted],
-      listing: mcp.listing ?? null,
       toolScope: mcp.toolScope.toWire(),
     },
     skills: { root: input.skills.root, bySubAgent: [...input.skills.bySubAgent] },
@@ -322,7 +305,6 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       hooks: subagent.hooks.map(encodeHookSource),
     })),
     files: input.files,
-    appliedToolCallIds: [...input.appliedToolCallIds],
     model: { requested: input.model.requested, serviceTier: input.model.serviceTier, thinkingMode: input.model.thinkingMode },
     structuredOutputSchema: input.structuredOutputSchema ?? null,
     appendSystemPrompt: input.appendSystemPrompt,
@@ -342,7 +324,6 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
 export interface HostTurnServices {
   readonly selectRecalledMemories: () => Promise<RecalledMemoriesContent | undefined>;
   readonly verifyPlugin: (slug: string) => Promise<void>;
-  readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
 }
 
 /**
@@ -372,9 +353,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     approvalDecisions: new Map(wire.approvalDecisions),
     approvalDenyMessages: new Map(wire.approvalDenyMessages),
     approvalAsks: new Map(wire.approvalAsks),
-    ...(wire.continuation === null
-      ? {}
-      : { continuation: wire.continuation.digest === null ? {} : { digest: wire.continuation.digest } }),
+    ...(wire.continuation ? { continuation: {} } : {}),
     execution: decodeMessage(RunSchema, wire.execution),
     session,
     blueprint: {
@@ -394,7 +373,6 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       })),
       plugins: wire.blueprint.plugins.map((p) => decodeMessage(PluginSchema, p)),
       mergedSkillRefs: wire.blueprint.mergedSkillRefs.map((r) => decodeMessage(ApiResourceReferenceSchema, r)),
-      cloudRepos: [...wire.blueprint.cloudRepos],
     },
     values: {
       agent: wire.values.agent,
@@ -433,7 +411,6 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
         hooks: new Set(wire.mcp.leases.hooks),
       },
       mcpDefault: { destructive: new Set(wire.mcp.destructive), unlisted: new Set(wire.mcp.unlisted), leasedServers },
-      listing: wire.mcp.listing ?? undefined,
       // One truth with the runner's: the platform's servers are the ones
       // whose home says so, so the set is derived here, never carried.
       platformServerSlugs: platformServerSlugsOf(wire.mcp.servers),
@@ -450,7 +427,6 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       hooks: subagent.hooks.map((source) => decodeHookSource(source, services)),
     })),
     files: wire.files,
-    appliedToolCallIds: new Set(wire.appliedToolCallIds),
     model: wire.model,
     structuredOutputSchema: wire.structuredOutputSchema ?? undefined,
     appendSystemPrompt: wire.appendSystemPrompt,
@@ -463,7 +439,6 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       selectRecalledMemories: services.selectRecalledMemories,
     },
     artifactStorage: wire.artifactStorage ? RUNNER_HELD_ARTIFACT_STORAGE : undefined,
-    readRunEvents: services.readRunEvents,
     ...(wire.resumedHistory === null ? {} : { resumedHistory: wire.resumedHistory }),
   };
 }

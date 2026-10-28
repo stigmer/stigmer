@@ -37,20 +37,20 @@ const THINKING_CAPABLE: ModelInfo = {
   shortDescription: "Fast Claude with optional thinking",
   speedTier: "fast",
   costTier: "economy",
-  harness: "cursor",
+  harness: "claude",
   featured: true,
   serviceTiers: [],
   thinkingCapable: true,
 };
 
 const NOT_CAPABLE: ModelInfo = {
-  modelId: "composer-2.5",
-  provider: "cursor",
-  displayName: "Composer 2.5",
-  shortDescription: "Fast agentic model",
-  speedTier: "fastest",
-  costTier: "economy",
-  harness: "cursor",
+  modelId: "claude-opus-4-8",
+  provider: "anthropic",
+  displayName: "Opus 4.8",
+  shortDescription: "No thinking control, with a fast tier",
+  speedTier: "slow",
+  costTier: "premium",
+  harness: "claude",
   featured: true,
   serviceTiers: ["fast"],
   thinkingCapable: false,
@@ -116,7 +116,7 @@ function createWrapper(client: Stigmer) {
   };
 }
 
-function renderComposer(defaultModelId = "claude-haiku-4-5", harness: "cursor" | "native" = "cursor") {
+function renderComposer(defaultModelId = "claude-haiku-4-5", harness: "claude" | "native" = "claude") {
   const client = createMinimalStigmerMock();
   const onSubmit = vi.fn();
 
@@ -161,9 +161,9 @@ describe("SessionComposer — thinking mode submit contract", () => {
   });
 
   it("renders no thinking switch for a model without the capability", async () => {
-    renderComposer("composer-2.5");
+    renderComposer("claude-opus-4-8");
 
-    fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Opus 4\.8/ }));
     // The fast switch proves the options area itself rendered — only the
     // thinking row must be absent (no dead controls).
     await screen.findByRole("switch", { name: "Fast tier" });

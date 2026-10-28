@@ -30,9 +30,7 @@
  * undeclared env are deliberately equivalent — both yield the SDK base
  * environment.
  *
- * The Cursor execution path does NOT use this manager — it passes MCP
- * configs directly to the Cursor SDK via toCursorMcpConfig(). This
- * manager serves LangGraph-based deep agent executions, and a tools listing
+ * This manager serves LangGraph-based deep agent executions, and a tools listing
  * (shared/mcp-tool-listing.ts) builds its spawn config through
  * toMcpClientConfig too.
  */

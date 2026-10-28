@@ -55,7 +55,7 @@ stigmer eval run --agent variance-reporter --plugin payroll
 stigmer eval run --agent variance-reporter@v3 --cases-from ledger --runs 5
 
 # Compare two models, with a CI-friendly threshold and spending limit
-stigmer eval run --plugin thermos --model native/claude-sonnet-4-6 --model cursor/gpt-5 \
+stigmer eval run --plugin thermos --model native/claude-sonnet-4-6 --model claude/claude-sonnet-5 \
   --threshold 0.8 --max-cost-usd 20
 
 # Iterate on one case: one try, no comparison
@@ -95,13 +95,13 @@ run is listed under its heading with the reason.
 | 130  | Interrupted: the eval run was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer eval cancel`); the results of the tries that finished are printed. If Ctrl+C's cancel cannot reach the server, the command says the eval run may still be running and how to cancel it                                                                  |
 
 A case Stigmer does not run (one that runs with another plugin, a case whose
-scaffold `--no-scaffold` skips, or a resumed conversation or `env` on a Cursor
-model) is listed under "Not run" with the reason, and does not change the exit
+scaffold `--no-scaffold` skips, or a resumed conversation on a Claude model) is
+listed under "Not run" with the reason, and does not change the exit
 code.
 
 ### How it differs from `claude plugin eval`
 
-`--model` names an engine and a model (`native/<model>` or `cursor/<model>`),
+`--model` names an engine and a model (`native/<model>` or `claude/<model>`),
 because Stigmer runs a model on one of its engines; a bare model ID is the
 native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
 platform could not grade, such as one refused for a missing provider key, is

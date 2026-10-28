@@ -5,11 +5,6 @@
  * `~/.stigmer/sessions/{sessionId}/`:
  * - `platform/` — skills, the conversation's Files, and other platform-managed files the
  *   agent sees via the `.stigmer/` virtual namespace (WorkspaceBackend routing).
- * - `hitl/` — the HITL approval gate's runtime artifacts (hook script, approval
- *   state, denial ledger). These live OUTSIDE the user's workspace so attaching
- *   a real repo never leaves Stigmer files behind in it (see issue #173); only
- *   a minimal, transient `.cursor/hooks.json` referencing the absolute script
- *   path is written into the workspace itself.
  * - `displaced/` — a real `.stigmer` entry found in the workspace when the
  *   platform link takes the name, kept rather than deleted (stigmer-link.ts).
  * - `offload/` — what the native engine offloads from its own context: the
@@ -32,7 +27,6 @@
 import { dirname, join } from "node:path";
 import { agentFs } from "../agent-fs.js";
 import { agentStateHome } from "../agent-identity.js";
-import { createHash } from "node:crypto";
 
 /**
  * The home `~/.stigmer` hangs from: the agent's (`shared/agent-identity.ts`),
@@ -46,45 +40,6 @@ function getStigmerHome(): string {
 /** Root of a session's runner-owned directory tree (outside the workspace). */
 function getSessionDir(sessionId: string): string {
   return join(getStigmerHome(), ".stigmer", "sessions", sessionId);
-}
-
-/**
- * Compute the WORKSPACE-scoped HITL gate directory — the home for the STABLE
- * hook script and the per-turn "active turn" pointer.
- *
- * Why workspace-scoped, not session-scoped: the Cursor SDK loads the workspace's
- * `.cursor/hooks.json` (the hook script PATH) ONCE per runner process and caches
- * it; later per-execution rewrites are ignored. A per-session hook script (with
- * per-session baked state/ledger paths) therefore gets cached at the FIRST
- * execution and reused for every later one — so later executions' denials are
- * recorded to the FIRST session's ledger and the current runner reads its own
- * empty ledger, silently completing instead of pausing for approval.
- *
- * The fix is a single STABLE script per workspace (so the SDK's cached path is
- * always correct) that resolves the CURRENT turn's state/ledger/runner from an
- * atomically-updated pointer the script re-reads on every invocation. This dir
- * holds both. It is keyed by a hash of the absolute workspace path so distinct
- * workspaces never collide, and lives under `~/.stigmer` (never the repo, per
- * issue #173). Pure function — performs no I/O.
- */
-export function getHitlGateDir(workspaceRoot: string): string {
-  const key = createHash("sha256").update(workspaceRoot).digest("hex").slice(0, 16);
-  return join(getHitlGatesRoot(), key);
-}
-
-/** The directory every workspace's HITL gate directory lives in. Pure function. */
-export function getHitlGatesRoot(): string {
-  return join(getStigmerHome(), ".stigmer", "hitl-gate");
-}
-
-/**
- * Ensure the workspace-scoped HITL gate directory exists and return its path.
- * Idempotent — safe across executions, HITL reinvocations, and activity retries.
- */
-export async function ensureHitlGateDir(workspaceRoot: string): Promise<string> {
-  const dir = getHitlGateDir(workspaceRoot);
-  await agentFs().mkdir(dir, { recursive: true });
-  return dir;
 }
 
 /**
@@ -172,29 +127,4 @@ export async function ensurePlatformDir(sessionId: string): Promise<string> {
  */
 export function getDisplacedDir(platformDir: string, stamp: string): string {
   return join(dirname(platformDir), "displaced", stamp);
-}
-
-/**
- * Compute the HITL directory path for a session — the runner-owned home for the
- * approval gate's hook script, approval-state file, and denial ledger.
- *
- * Kept separate from the workspace so the gate's machinery never pollutes the
- * user's repo: the workspace only ever holds a transient `.cursor/hooks.json`
- * that points here by absolute path. Pure function — performs no I/O.
- */
-export function getHitlDir(sessionId: string): string {
-  return join(getSessionDir(sessionId), "hitl");
-}
-
-/**
- * Ensure the HITL directory exists and return its path.
- *
- * Creates the full directory tree if it does not exist. Idempotent —
- * safe to call multiple times for the same session (including across HITL
- * reinvocations and Temporal activity retries).
- */
-export async function ensureHitlDir(sessionId: string): Promise<string> {
-  const dir = getHitlDir(sessionId);
-  await agentFs().mkdir(dir, { recursive: true });
-  return dir;
 }

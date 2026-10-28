@@ -85,7 +85,6 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     // out the workflow's heartbeat timeout before it continues.
     STIGMER_DRAIN_GRACE_MS: String(GRACEFUL_STOP_TIMEOUT_MS - RUNNER_EXIT_MARGIN_MS),
   };
-  if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
   // Explicit set (after the base spread) so the launcher-resolved key wins over any
   // stale inherited value — the delivery path for a `stigmer setup`-persisted key.
   // Anthropic only: it is the sole provider local execution supports. Other keys

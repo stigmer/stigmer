@@ -164,18 +164,12 @@ because a values file's number reaches a template as a float.
 - name: LOCAL_ARTIFACT_PATH
   value: /artifacts
 {{- with .Values.runner.llm.existingSecret }}
-# Optional LLM keys, by explicit reference: agents need one.
+# The optional LLM key, by explicit reference: agents need it.
 - name: ANTHROPIC_API_KEY
   valueFrom:
     secretKeyRef:
       name: {{ . | quote }}
       key: ANTHROPIC_API_KEY
-      optional: true
-- name: CURSOR_API_KEY
-  valueFrom:
-    secretKeyRef:
-      name: {{ . | quote }}
-      key: CURSOR_API_KEY
       optional: true
 {{- end }}
 {{- with .Values.runner.stigmerToken.existingSecret }}

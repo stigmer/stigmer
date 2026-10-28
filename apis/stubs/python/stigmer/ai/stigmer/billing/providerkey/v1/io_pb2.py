@@ -26,7 +26,7 @@ from ai.stigmer.billing.providerkey.v1 import api_pb2 as ai_dot_stigmer_dot_bill
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"\xe4\x02\n\x13SetProviderKeyInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12<\n\x08provider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\tanthropicR\x06openaiR\x06\x63ursorR\x08provider\x12#\n\x07\x61pi_key\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x08\x18\x80\x04R\x06\x61piKey\x12\x33\n\x08\x62\x61se_url\x18\x04 \x01(\tB\x18\xbaH\x15r\x10\x18\x80\x10:\x08https://\x88\x01\x01\xd8\x01\x01R\x07\x62\x61seUrl:\x99\x01\xbaH\x95\x01\x1a\x92\x01\n\x1cprovider_key.cursor_base_url\x12@a Cursor key takes no base URL; Cursor serves from its own hosts\x1a\x30this.provider != \'cursor\' || this.base_url == \'\'\"q\n\x16\x44\x65leteProviderKeyInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12<\n\x08provider\x18\x02 \x01(\tB \xbaH\x1dr\x1bR\tanthropicR\x06openaiR\x06\x63ursorR\x08provider\"\x81\x01\n\x15ListProviderKeysInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x8a\x01\n\x16ListProviderKeysOutput\x12H\n\x07\x65ntries\x18\x01 \x03(\x0b\x32..ai.stigmer.billing.providerkey.v1.ProviderKeyR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xd9\x01\n%com.ai.stigmer.billing.providerkey.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/billing/providerkey/v1/io.proto\x12!ai.stigmer.billing.providerkey.v1\x1a+ai/stigmer/billing/providerkey/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc0\x01\n\x13SetProviderKeyInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x34\n\x08provider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\x08provider\x12#\n\x07\x61pi_key\x18\x03 \x01(\tB\n\xbaH\x07r\x05\x10\x08\x18\x80\x04R\x06\x61piKey\x12\x33\n\x08\x62\x61se_url\x18\x04 \x01(\tB\x18\xbaH\x15r\x10\x18\x80\x10:\x08https://\x88\x01\x01\xd8\x01\x01R\x07\x62\x61seUrl\"i\n\x16\x44\x65leteProviderKeyInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\x34\n\x08provider\x18\x02 \x01(\tB\x18\xbaH\x15r\x13R\tanthropicR\x06openaiR\x08provider\"\x81\x01\n\x15ListProviderKeysInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x8a\x01\n\x16ListProviderKeysOutput\x12H\n\x07\x65ntries\x18\x01 \x03(\x0b\x32..ai.stigmer.billing.providerkey.v1.ProviderKeyR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenB\xd9\x01\n%com.ai.stigmer.billing.providerkey.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,17 +37,15 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['provider']._loaded_options = None
-  _globals['_SETPROVIDERKEYINPUT'].fields_by_name['provider']._serialized_options = b'\272H\035r\033R\tanthropicR\006openaiR\006cursor'
+  _globals['_SETPROVIDERKEYINPUT'].fields_by_name['provider']._serialized_options = b'\272H\025r\023R\tanthropicR\006openai'
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['api_key']._loaded_options = None
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['api_key']._serialized_options = b'\272H\007r\005\020\010\030\200\004'
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['base_url']._loaded_options = None
   _globals['_SETPROVIDERKEYINPUT'].fields_by_name['base_url']._serialized_options = b'\272H\025r\020\030\200\020:\010https://\210\001\001\330\001\001'
-  _globals['_SETPROVIDERKEYINPUT']._loaded_options = None
-  _globals['_SETPROVIDERKEYINPUT']._serialized_options = b'\272H\225\001\032\222\001\n\034provider_key.cursor_base_url\022@a Cursor key takes no base URL; Cursor serves from its own hosts\0320this.provider != \'cursor\' || this.base_url == \'\''
   _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['provider']._loaded_options = None
-  _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['provider']._serialized_options = b'\272H\035r\033R\tanthropicR\006openaiR\006cursor'
+  _globals['_DELETEPROVIDERKEYINPUT'].fields_by_name['provider']._serialized_options = b'\272H\025r\023R\tanthropicR\006openai'
   _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['page_size']._loaded_options = None
@@ -55,11 +53,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['page_token']._loaded_options = None
   _globals['_LISTPROVIDERKEYSINPUT'].fields_by_name['page_token']._serialized_options = b'\272H\005r\003\030\200\010'
   _globals['_SETPROVIDERKEYINPUT']._serialized_start=156
-  _globals['_SETPROVIDERKEYINPUT']._serialized_end=512
-  _globals['_DELETEPROVIDERKEYINPUT']._serialized_start=514
-  _globals['_DELETEPROVIDERKEYINPUT']._serialized_end=627
-  _globals['_LISTPROVIDERKEYSINPUT']._serialized_start=630
-  _globals['_LISTPROVIDERKEYSINPUT']._serialized_end=759
-  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_start=762
-  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_end=900
+  _globals['_SETPROVIDERKEYINPUT']._serialized_end=348
+  _globals['_DELETEPROVIDERKEYINPUT']._serialized_start=350
+  _globals['_DELETEPROVIDERKEYINPUT']._serialized_end=455
+  _globals['_LISTPROVIDERKEYSINPUT']._serialized_start=458
+  _globals['_LISTPROVIDERKEYSINPUT']._serialized_end=587
+  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_start=590
+  _globals['_LISTPROVIDERKEYSOUTPUT']._serialized_end=728
 # @@protoc_insertion_point(module_scope)

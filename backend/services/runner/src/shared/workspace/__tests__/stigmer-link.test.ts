@@ -24,7 +24,7 @@ import { LocalWorkspaceBackend } from "../local-backend.js";
 /**
  * The `.stigmer` symlink is the bridge that makes platform-mounted content
  * (approved plan, skills, the conversation's Files) readable at `.stigmer/…` by
- * whatever reads from the workspace: the Cursor SDK and shell commands on
+ * whatever reads from the workspace: the Claude engine and shell commands on
  * both harnesses. The lifecycle tests pin the ownership contract (ensure
  * moves a real entry out of the workspace and never deletes one, refuses a
  * `.stigmer` that holds the platform dir, and remove is symlink-only), and
@@ -300,7 +300,7 @@ describe("stigmer-link", () => {
   // ── Write/read convergence (the link, pinned) ─────────
 
   describe("platform write / agent read convergence", () => {
-    /** Read the way a process in the workspace does (the shell, the Cursor SDK): a path relative to its CWD. */
+    /** Read the way a process in the workspace does (the shell, the Claude engine): a path relative to its CWD. */
     async function agentRead(path: string): Promise<{ content?: string; error?: string }> {
       try {
         return { content: await readFile(join(workspaceDir, path), "utf8") };

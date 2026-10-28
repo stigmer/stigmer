@@ -36,9 +36,9 @@ import type { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/
 export interface MeteredUsageRow {
   /** The model the provider served (the resolved model, else the requested one). */
   readonly model: string;
-  /** The provider (e.g. "anthropic", "openai", "cursor"). */
+  /** The provider (e.g. "anthropic", "openai"). */
   readonly provider: string;
-  /** The execution harness (e.g. "native", "cursor"); empty when the record names none. */
+  /** The execution harness (e.g. "native", "claude"); empty when the record names none. */
   readonly harness: string;
   /** Whose credential served the calls; UNSPECIFIED for a record that does not say. */
   readonly providerKeySource: ProviderKeySource;

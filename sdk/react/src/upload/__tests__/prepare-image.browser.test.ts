@@ -122,7 +122,7 @@ describe("prepareImageForVision — real pixel pipeline", () => {
     await expect(decodedSize(prepared)).resolves.toEqual(expected);
   });
 
-  it("re-encodes a within-limits WebP to PNG so the Cursor harness can display it", async () => {
+  it("re-encodes a within-limits WebP to PNG so every model can display it", async () => {
     const input = await imageFile(800, 600, "clip.webp", "image/webp");
 
     const prepared = await prepareImageForVision(input);

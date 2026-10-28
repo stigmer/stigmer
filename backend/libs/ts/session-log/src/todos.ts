@@ -1,16 +1,17 @@
 /**
  * The to-do rule: how one to-do tool call changes a to-do list. Every
- * engine exposes a to-do tool (the Cursor SDK's `TodoWrite` and
- * `updateTodos`, the native harness's `write_todos`; each reads as Claude
- * Code's `TodoWrite`, `@stigmer/tool-vocabulary`), and the runner's
+ * engine exposes a to-do tool (the native harness's `write_todos`, the
+ * Claude engine's `TodoWrite`; each reads as Claude Code's `TodoWrite`,
+ * `@stigmer/tool-vocabulary`), and the runner's
  * transcript builder and every client that folds a session's events apply
  * this one rule, so the list a run records and the list a client shows
  * cannot drift.
  *
- * The mapping is a superset of what any one engine sends: the Cursor SDK
- * sends per-item `id` and `created_at`, can send a `merge` flag and
- * camelCase statuses; the native harness sends only `{ content, status }`
- * (three statuses, no id, no merge).
+ * The mapping is a superset of what any one engine sends: it reads a
+ * per-item `id` and `created_at`, a `merge` flag and camelCase statuses
+ * when a call carries them; the native harness sends only
+ * `{ content, status }` (three statuses, no id, no merge), and the Claude
+ * engine adds an `activeForm` the list does not keep.
  *
  *   - Empty or non-array `rawTodos`: a full replace (`!merge`) clears the
  *     list and is a change; a merge is a no-op and is not.
@@ -23,7 +24,7 @@
  *
  * Proven by __tests__/todos.test.ts.
  */
-import { CURSOR_SDK_TOOL_COVERS, NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import type { Todo } from "./types.js";
 
@@ -46,7 +47,7 @@ const STATUS_WORDS: Readonly<Record<string, Todo["status"]>> = {
 
 /** Whether a built-in tool call of this name writes the to-do list (it reads as `TodoWrite`). */
 export function isTodoTool(name: string): boolean {
-  const covers = NATIVE_TOOL_COVERS.get(name) ?? CURSOR_SDK_TOOL_COVERS.get(name);
+  const covers = NATIVE_TOOL_COVERS.get(name);
   return covers?.includes("TodoWrite") ?? name === "TodoWrite";
 }
 

@@ -10,8 +10,8 @@
  * unchanged and then cut engine-neutral one rule per commit:
  * it reads no engine envelope, decides nothing about approval,
  * and knows no engine's tool names or namespace grammar — every engine
- * fact reaches it as a translator's output, on one union. The Cursor
- * harness feeds it through a translator; the runtime constructs it once
+ * fact reaches it as a translator's output, on one union. The runtime
+ * constructs it once
  * per turn and hands it to every adapter as `TurnSink.transcript`, so
  * a transcript row has exactly one way into the rows — a source-walking
  * fence, `harness/__tests__/transcript-writers.test.ts`, refuses a second.
@@ -45,15 +45,9 @@
  *     fields verbatim. A finish or an error is an upsert: status
  *     monotonic, `completedAt` once, a non-empty result or message
  *     overwrites, an empty one never clears; a re-emit that
- *     changes nothing forces no persist; a fact the harness
- *     observed earlier and delivers later stamps its own instant
- *     (`observedAt`); an output chunk for a settled row is stale
- *     and dropped — the completion's result is the whole output.
- *   - One observation, one instant: the facts a translator made of one
- *     raw engine event, folded through {@link applyObservation}, share
- *     one clock read for every stamp they make (a Cursor completion with
- *     no running before it starts and finishes at the same instant,
- *     stigmer#1390); {@link apply} alone reads the clock per fact.
+ *     changes nothing forces no persist; an output chunk for a
+ *     settled row is stale and dropped — the completion's result is
+ *     the whole output. Every stamp is the fold's instant.
  *   - The AI-message boundary (native's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
@@ -70,8 +64,8 @@
  *   - `approval_proposed` is the one place a row is ever WAITING: a known
  *     row REOPENS — WAITING, the outcome fields cleared,
  *     `approvalRequestedAt` stamped once, the proposal's args and preview
- *     taken when carried (Cursor's `markWaitingApproval` + `applyGateInput`);
- *     an unknown call gets a WAITING row on the scope's current AI message,
+ *     taken when carried (Claude's gate parks a call its stream already
+ *     showed); an unknown call gets a WAITING row on the scope's current AI message,
  *     the text that proposed it (native's post-stream seed, before #1097 a new
  *     empty message of its own). Either way {@link awaitingApproval} is set.
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
@@ -126,8 +120,8 @@
  * caller decides what that means for the turn — a fact only
  * `approval_proposed` produces, because a call that has
  * STARTED is never parked at creation. Usage never passes
- * through here: the native loop reads it off the wire (`usageOf`) and
- * prices it into the sink, the Cursor loop reads its own from the SDK.
+ * through here: each adapter reads it off its engine's stream and prices
+ * it into the sink.
  */
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
@@ -190,8 +184,6 @@ export class TranscriptBuilder {
   private readonly observer: TranscriptObserver | undefined;
   private _dirty = false;
   private _awaitingApproval = false;
-  /** The one instant of the observation being folded, while {@link applyObservation} runs; absent otherwise. */
-  private observationInstant: string | undefined;
   /** Hook provenance that arrived before its call's row, by call id; stamped when the row opens. */
   private readonly pendingPolicies = new Map<string, ToolPolicyEvent>();
   /** What the engine offers the model of each MCP tool, by `mcpToolKey` ({@link offerTools}). */
@@ -242,8 +234,7 @@ export class TranscriptBuilder {
    * written for it, and the observer is not told: the first row of a tool
    * projects that tool's definition (the header), so a tool the turn never
    * calls never reaches the rows, and never rides a persist across the agent
-   * host's pipe. (Cursor's catalog is the runtime's own listing, which
-   * crosses once, with the turn's input.)
+   * host's pipe.
    */
   offerTools(tools: readonly OfferedTool[]): void {
     this.offered = new Map(tools.map((tool) => [mcpToolKey(tool.server, tool.name), tool]));
@@ -316,27 +307,6 @@ export class TranscriptBuilder {
     }
   }
 
-  /**
-   * Fold the facts ONE harness observation yields — the events a translator
-   * made of one raw engine event — at one instant: the clock is read once,
-   * and every stamp the facts make (a row's start and finish, a sub-agent's
-   * open and close, a message's timestamp) is that instant. A Cursor
-   * completion the stream reports with no running before it is a start and a
-   * finish in one event, and it must carry one instant, not two reads a
-   * millisecond apart (stigmer#1390). A fact that carries its own
-   * `observedAt` keeps it. Each fact is applied exactly as {@link apply}
-   * applies it, observer included.
-   */
-  applyObservation(facts: readonly TranscriptEvent[]): void {
-    const outer = this.observationInstant;
-    this.observationInstant = outer ?? utcTimestamp();
-    try {
-      for (const fact of facts) this.apply(fact);
-    } finally {
-      this.observationInstant = outer;
-    }
-  }
-
   /** Where the fold left a text or reasoning delta's row; absent for every other fact. */
   private placeOf(event: TranscriptEvent): FoldPlace | undefined {
     if (event.kind !== "text_delta" && event.kind !== "reasoning_delta") return undefined;
@@ -347,9 +317,9 @@ export class TranscriptBuilder {
     return messageIndex < 0 ? undefined : { messageIndex };
   }
 
-  /** The instant a stamp records: the observation's, while one is being folded, else now. */
+  /** The instant a stamp records: now. */
   private instant(): string {
-    return this.observationInstant ?? utcTimestamp();
+    return utcTimestamp();
   }
 
   private fold(event: TranscriptEvent): void {
@@ -408,10 +378,10 @@ export class TranscriptBuilder {
           this.handleToolOutputDelta(scope, event.callId, event.delta);
           break;
         case "tool_finished":
-          this.handleToolFinished(scope, event.callId, event.result, event.observedAt);
+          this.handleToolFinished(scope, event.callId, event.result);
           break;
         case "tool_error":
-          this.handleToolError(scope, event.callId, event.message, event.observedAt);
+          this.handleToolError(scope, event.callId, event.message);
           break;
         case "approval_proposed":
           this.handleApprovalProposed(scope, event);
@@ -481,14 +451,14 @@ export class TranscriptBuilder {
   private startBackgroundCommand(event: BackgroundCommandStartedEvent): void {
     const row = this.backgroundCommand(event.callId);
     row.timeoutSeconds = event.timeoutSeconds;
-    if (row.startedAt === "") row.startedAt = event.observedAt ?? this.instant();
+    if (row.startedAt === "") row.startedAt = this.instant();
     this._dirty = true;
   }
 
   private endBackgroundCommand(event: BackgroundCommandEndedEvent): void {
     const row = this.backgroundCommand(event.callId);
     if (row.ending !== "") return;
-    const endedAt = event.observedAt ?? this.instant();
+    const endedAt = this.instant();
     if (row.startedAt === "") row.startedAt = endedAt;
     row.ending = event.ending;
     if (event.exitCode !== undefined) row.exitCode = event.exitCode;
@@ -552,10 +522,9 @@ export class TranscriptBuilder {
   }
 
   private handleMessageFinish(scope: Transcript, runId: string): void {
-    // A finished run's text AND its thinking are finished (Cursor closes
-    // both when a tool call ends the segment). Before #1097 only the
-    // text closed here and the THINKING row spun until `finalize()` — a live
-    // spinner on a block the model had left, on both harnesses.
+    // A finished run's text AND its thinking are finished. Before #1097
+    // only the text closed here and the THINKING row spun until
+    // `finalize()` — a live spinner on a block the model had left.
     const msg = scope.messagesByRun.get(runId);
     if (msg) {
       msg.isStreaming = false;
@@ -603,8 +572,8 @@ export class TranscriptBuilder {
     // checkpoint re-emitting a seeded WAITING call now that approval is granted
     // (native's resume; the runtime's seed from the log, `transcript/resume-seed.ts`), and a
     // recovery replaying a call the server had marked INTERRUPTED when the
-    // execution terminalized with it in flight (the enum's supersede rule; the
-    // Cursor accumulator's merge). Either way an UNSETTLED row becomes RUNNING
+    // execution terminalized with it in flight (the enum's supersede rule).
+    // Either way an UNSETTLED row becomes RUNNING
     // (before #1097 only WAITING flipped); a settled one keeps
     // its outcome. Args it lacked are filled and previewed, once.
     // An undecided start (ToolStartedEvent.undecided) re-announces a call
@@ -630,8 +599,9 @@ export class TranscriptBuilder {
     // A started call is RUNNING (PENDING while its gate is undecided) and
     // carries no approval fact: whether it is held is known only after the
     // engine's gate has run, and a held call reaches the transcript as
-    // `approval_proposed` (Cursor's boundary after the hook denied it;
-    // native's post-stream seed, where a held call never starts at all).
+    // `approval_proposed` (Claude's gate, on a call its stream already
+    // showed; native's post-stream seed, where a held call never starts at
+    // all).
     // The builder decides nothing about approval.
     const tc = create(ToolCallSchema, {
       id: callId,
@@ -714,17 +684,15 @@ export class TranscriptBuilder {
     this._dirty = true;
   }
 
-  private handleToolFinished(scope: Transcript, callId: string, result: string, observedAt?: string): void {
+  private handleToolFinished(scope: Transcript, callId: string, result: string): void {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    // An UPSERT, not an overwrite (Cursor's `mergeToolCallEvent`):
-    // the status advances monotonically — a settled row never regresses;
-    // `completedAt` is stamped once; only a non-empty result overwrites, so a
-    // completion that carries none never wipes the output an earlier one
-    // did. Two completions per call is the Cursor shape after stigmer#1053
-    // (the SDK's timing delta precedes the stream's completion); on native
-    // there is one, and the rules read as the plain write they replace.
+    // An UPSERT, not an overwrite: the status advances monotonically — a
+    // settled row never regresses; `completedAt` is stamped once; only a
+    // non-empty result overwrites, so a completion that carries none never
+    // wipes the output an earlier one did. With one completion per call the
+    // rules read as the plain write they replace.
     //
     // Store the faithful result; bounding the gRPC payload is owned solely by
     // the persist chokepoint (offload + enforce in status.ts/status-offload.ts).
@@ -732,16 +700,12 @@ export class TranscriptBuilder {
     // before offload can lift it into a renderable ToolCallOutputRef.
     //
     // A completion that changes nothing — a settled row re-completed with no
-    // new result — forces no persist (Cursor's "a redundant
-    // terminal re-emit is noise, not a state change"). On Cursor every call
-    // completes twice (the delta, then the stream), and the second carries the
-    // result, so the flush the UI needs still happens exactly once.
+    // new result — forces no persist: a redundant terminal re-emit is noise,
+    // not a state change.
     const wasSettled = isSettled(tc.status);
     const resultChanged = !!result && result !== tc.result;
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    // The instant the harness OBSERVED the completion when it delivers it
-    // later (Cursor's queued delta); otherwise the fold's instant.
-    if (!tc.completedAt) tc.completedAt = observedAt ?? this.instant();
+    if (!tc.completedAt) tc.completedAt = this.instant();
     if (resultChanged) tc.result = result;
     stopStreaming(tc);
     scope.argBuffers.delete(callId);
@@ -752,8 +716,8 @@ export class TranscriptBuilder {
     // it here (not at tool-start) — a call cancelled before finishing correctly
     // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
     // tool-start) and fed by the same shared mapper every harness uses; the
-    // call's own `merge` flag decides replace-or-merge (Cursor's `updateTodos`
-    // sets it; deepagents never does, so native stays a full replace);
+    // call's own `merge` flag decides replace-or-merge (deepagents never
+    // sets it, so native stays a full replace);
     // a sub-agent's list is its own, never the execution's. The tool
     // call itself stays in messages (the client filters ToolKind.TODO from the
     // thread).
@@ -764,16 +728,16 @@ export class TranscriptBuilder {
     this._dirty = true;
   }
 
-  private handleToolError(scope: Transcript, callId: string, message: string, observedAt?: string): void {
+  private handleToolError(scope: Transcript, callId: string, message: string): void {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
 
-    // The same upsert as a finish. A call the Cursor hook denied also reports
-    // `error` here; it is an ordinary failure until the boundary parks it
-    // through `approval_proposed`, which stamps the approval fields.
+    // The same upsert as a finish. A failure is an ordinary failure until a
+    // boundary parks its call through `approval_proposed`, which stamps the
+    // approval fields.
     const wasSettled = isSettled(tc.status);
     const messageChanged = !!message && message !== tc.error;
-    const at = observedAt ?? this.instant();
+    const at = this.instant();
     if (!wasSettled) tc.status = ToolCallStatus.TOOL_CALL_FAILED;
     if (!tc.completedAt) tc.completedAt = at;
     if (messageChanged) tc.error = message;
@@ -809,12 +773,11 @@ export class TranscriptBuilder {
     const tc = scope.toolCalls.get(callId);
     if (!tc) return;
     // A chunk for a row that has already settled is stale: the completion's
-    // result IS the whole output, and appending would double it (Cursor's
-    // delta channel and stream can deliver the output's
-    // chunks and the completion in one loop window, completion first).
+    // result IS the whole output, and appending would double it (a harness
+    // whose output and completion arrive on different channels can deliver
+    // the completion first).
     if (isSettled(tc.status)) return;
-    // Output arriving live: the row streams its OUTPUT (Cursor's
-    // enricher), so the client can show the partial result as it grows;
+    // Output arriving live: the row streams its OUTPUT, so the client can show the partial result as it grows;
     // the finish, or `finalize()`, closes it.
     tc.result = (tc.result ?? "") + delta;
     tc.isStreaming = true;
@@ -827,9 +790,9 @@ export class TranscriptBuilder {
     const now = this.instant();
     const existing = scope.toolCalls.get(event.callId);
     if (existing) {
-      // Reopen (Cursor's `markWaitingApproval`): the boundary is re-proposing
-      // a call the stream already showed — an errored built-in the hook
-      // denied — so the outcome the stream wrote is not the outcome.
+      // Reopen: the gate is proposing a call the stream already showed
+      // (Claude's, whose row opens PENDING before its gate decides), so any
+      // outcome the stream wrote is not the outcome.
       existing.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
       existing.requiresApproval = true;
       existing.approvalMessage = event.message;
@@ -838,15 +801,12 @@ export class TranscriptBuilder {
       existing.error = "";
       existing.result = "";
       // The proposal's args are the authoritative proposed change when the
-      // harness carries them (Cursor's `applyGateInput`: the hook's captured
-      // input outranks what the stream carried before the first-denial cancel),
-      // and they re-derive the preview. Absent, the row
-      // keeps what it had.
+      // harness carries them, and they re-derive the preview. Absent, the
+      // row keeps what it had.
       if (event.args && Object.keys(event.args).length > 0) {
         existing.args = rowArgs(event.args);
         stampArgsPreview(existing, event.args);
       }
-      if (event.contentDigest) existing.approvalContentDigest = event.contentDigest;
       stopStreaming(existing);
       this._awaitingApproval = true;
       this._dirty = true;
@@ -875,7 +835,6 @@ export class TranscriptBuilder {
       tc.args = rowArgs(event.args);
       stampArgsPreview(tc, event.args);
     }
-    if (event.contentDigest) tc.approvalContentDigest = event.contentDigest;
 
     parentMsg.toolCalls.push(tc);
     scope.toolCalls.set(event.callId, tc);
@@ -994,9 +953,8 @@ function stampProvenance(tc: ToolCall, source: PolicySource, policyHook: string 
  * The row's `args_preview`, on EVERY row with args (since #1097):
  * `message.proto` promises it sanitized, redacted, at creation, for inline
  * visibility, and the one builder that keeps it small and always valid JSON
- * is `buildElidedArgsPreview` over the platform's salient fields. Until then
- * native stamped a whole-string-truncating preview on gated rows only and
- * Cursor stamped `JSON.stringify(args)` unredacted. An empty preview (a
+ * is `buildElidedArgsPreview` over the platform's salient fields. An empty
+ * preview (a
  * cycle in the args) leaves the field unset rather than failing the row.
  */
 function stampArgsPreview(tc: ToolCall, args: Record<string, unknown>): void {
@@ -1013,7 +971,7 @@ function stopStreaming(tc: ToolCall): void {
 
 /**
  * A row that has finished, however it finished — the statuses a later event
- * must not move backwards (Cursor's `isTerminalToolStatus`). INTERRUPTED is
+ * must not move backwards. INTERRUPTED is
  * deliberately NOT here: it is server-authored when an execution
  * terminalized with the call in flight, and a recovery-replayed event must
  * be able to advance the row to its true outcome (the enum's recovery

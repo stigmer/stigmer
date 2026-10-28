@@ -13,7 +13,6 @@ class Harness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     HARNESS_UNSPECIFIED: _ClassVar[Harness]
     HARNESS_NATIVE: _ClassVar[Harness]
-    HARNESS_CURSOR: _ClassVar[Harness]
     HARNESS_CLAUDE: _ClassVar[Harness]
 
 class EnvironmentSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -29,17 +28,10 @@ class ExecutionTarget(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXECUTION_TARGET_UNSPECIFIED: _ClassVar[ExecutionTarget]
     EXECUTION_TARGET_LOCAL: _ClassVar[ExecutionTarget]
     EXECUTION_TARGET_CLOUD: _ClassVar[ExecutionTarget]
-
-class CursorMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    CURSOR_MODE_UNSPECIFIED: _ClassVar[CursorMode]
-    CURSOR_MODE_LOCAL: _ClassVar[CursorMode]
-    CURSOR_MODE_CLOUD: _ClassVar[CursorMode]
 GIT_WRITE_BACK_MODE_UNSPECIFIED: GitWriteBackMode
 GIT_WRITE_BACK_BRANCH_AND_PR: GitWriteBackMode
 HARNESS_UNSPECIFIED: Harness
 HARNESS_NATIVE: Harness
-HARNESS_CURSOR: Harness
 HARNESS_CLAUDE: Harness
 ENVIRONMENT_SOURCE_UNSPECIFIED: EnvironmentSource
 ENVIRONMENT_SOURCE_SESSION: EnvironmentSource
@@ -49,6 +41,3 @@ ENVIRONMENT_SOURCE_ORGANIZATION: EnvironmentSource
 EXECUTION_TARGET_UNSPECIFIED: ExecutionTarget
 EXECUTION_TARGET_LOCAL: ExecutionTarget
 EXECUTION_TARGET_CLOUD: ExecutionTarget
-CURSOR_MODE_UNSPECIFIED: CursorMode
-CURSOR_MODE_LOCAL: CursorMode
-CURSOR_MODE_CLOUD: CursorMode

@@ -1,1 +1,0 @@
-Deploy the payments service to kubernetes and draft the release notes.

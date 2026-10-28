@@ -1,5 +1,5 @@
 // The provider-key refusal: read off the refusal's reason, never its copy,
-// with what it names (a Cursor run on Auto names no model); rendered with
+// with what it names; rendered with
 // the server's copy and a link to the provider keys page, the host's or the
 // default.
 
@@ -19,14 +19,6 @@ describe("providerKeyRequired", () => {
   it("reads the org, provider and model from the refusal's reason", () => {
     expect(providerKeyRequired(REFUSAL)).toEqual({ org: "acme", provider: "anthropic", model: "claude-sonnet-4-6" });
     expect(providerKeyRequired(refusal("x", "PROVIDER_KEY_REQUIRED", {}))).toEqual({ org: "", provider: "", model: "" });
-  });
-
-  it("reads a Cursor run's refusal, which names no model when the run is on Auto", () => {
-    const copy =
-      "This organization has no Cursor key, so the run was not started. An admin can add one in Settings → Provider keys.";
-    expect(
-      providerKeyRequired(refusal(copy, "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "cursor", model: "" })),
-    ).toEqual({ org: "acme", provider: "cursor", model: "" });
   });
 
   it("is null for any other error, whatever its copy", () => {

@@ -133,7 +133,7 @@ describe("resolveActivityTaskQueue — global routing", () => {
 
   it("valid session — returns default queue even with session present", async () => {
     const store = newStore();
-    await saveSession(store, "ses_global_test", Harness.CURSOR);
+    await saveSession(store, "ses_global_test", Harness.CLAUDE);
     const result = await resolveActivityTaskQueue(
       store,
       "ses_global_test",
@@ -143,7 +143,7 @@ describe("resolveActivityTaskQueue — global routing", () => {
     expect(result.taskQueue, "global routing must always return default queue").toBe(
       DEFAULT_ACTIVITY_TASK_QUEUE,
     );
-    expect(result.harness).toBe(Harness.CURSOR);
+    expect(result.harness).toBe(Harness.CLAUDE);
   });
 });
 
@@ -182,10 +182,10 @@ describe("resolveActivityTaskQueue — session routing", () => {
     expect(result.harness, "NATIVE default when session not found").toBe(Harness.NATIVE);
   });
 
-  it("CURSOR harness — returns per-session queue with correct harness", async () => {
+  it("CLAUDE harness — returns per-session queue with correct harness", async () => {
     const store = newStore();
-    const sessionId = "ses_cursor_session";
-    await saveSession(store, sessionId, Harness.CURSOR);
+    const sessionId = "ses_claude_session";
+    await saveSession(store, sessionId, Harness.CLAUDE);
     const result = await resolveActivityTaskQueue(
       store,
       sessionId,
@@ -193,7 +193,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
-    expect(result.harness).toBe(Harness.CURSOR);
+    expect(result.harness).toBe(Harness.CLAUDE);
   });
 
   it("custom runner queue used as the empty-session fallback", async () => {

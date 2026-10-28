@@ -1,8 +1,8 @@
 /**
- * The offered-engine rule (harness.ts), pure: every engine the proto names
- * is offered (native, Cursor, Claude, and unspecified, the platform
- * default), and a number no engine owns is refused naming the number and
- * the field that named it, never read as native. The
+ * The offered-engine rule (harness.ts), pure: every harness the proto names
+ * is offered (native, Claude, and unspecified, the platform default), and a
+ * number no harness owns, the retired 2 included, is refused naming the
+ * number and the field that named it, never read as native. The
  * step refuses with FailedPrecondition at the first unoffered engine a
  * request names, in field order, and passes a request naming none.
  *
@@ -27,19 +27,21 @@ import {
 
 describe("offeredHarnessRefusal", () => {
   it("passes the engines this platform runs, and the platform default", () => {
-    for (const harness of [Harness.UNSPECIFIED, Harness.NATIVE, Harness.CURSOR, Harness.CLAUDE]) {
+    for (const harness of [Harness.UNSPECIFIED, Harness.NATIVE, Harness.CLAUDE]) {
       expect(offeredHarnessRefusal(harness, "spec.harness")).toBe("");
     }
   });
 
-  it("refuses a number no engine owns, naming it", () => {
-    expect(offeredHarnessRefusal(7 as Harness, "spec.agent.harness")).toBe(
-      "spec.agent.harness names engine 7, which is not one this platform runs",
-    );
+  it("refuses a number no harness owns, the retired 2 included, naming it", () => {
+    for (const retired of [2, 7]) {
+      expect(offeredHarnessRefusal(retired as Harness, "spec.agent.harness")).toBe(
+        `spec.agent.harness names harness ${retired}, which this platform does not run`,
+      );
+    }
   });
 
-  it("offers exactly native, Cursor and Claude", () => {
-    expect([...OFFERED_HARNESSES].sort()).toEqual([Harness.NATIVE, Harness.CURSOR, Harness.CLAUDE].sort());
+  it("offers exactly native and Claude", () => {
+    expect([...OFFERED_HARNESSES].sort()).toEqual([Harness.NATIVE, Harness.CLAUDE].sort());
   });
 });
 
@@ -63,20 +65,20 @@ describe("RefuseUnofferedHarness", () => {
   }
 
   it("passes a request naming only offered engines", () => {
-    expect(() => step.execute(contextFor([Harness.NATIVE, Harness.CURSOR, Harness.CLAUDE]))).not.toThrow();
+    expect(() => step.execute(contextFor([Harness.NATIVE, Harness.CLAUDE]))).not.toThrow();
   });
 
   it("refuses the first unoffered engine with FailedPrecondition", () => {
     let thrown: unknown;
     try {
-      step.execute(contextFor([Harness.NATIVE, 7 as Harness]));
+      step.execute(contextFor([Harness.NATIVE, 2 as Harness]));
     } catch (error) {
       thrown = error;
     }
     expect(thrown).toBeInstanceOf(ConnectError);
     expect((thrown as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((thrown as ConnectError).rawMessage).toBe(
-      "spec.targets[1].harness names engine 7, which is not one this platform runs",
+      "spec.targets[1].harness names harness 2, which this platform does not run",
     );
   });
 });

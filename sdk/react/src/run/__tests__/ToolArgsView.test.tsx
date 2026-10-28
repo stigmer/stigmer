@@ -12,7 +12,7 @@ describe("ToolArgsView file tools", () => {
     render(
       <ToolArgsView
         toolName="write_file"
-        args={{ path: "src/a.ts", contents: "hi" }}
+        args={{ file_path: "src/a.ts", content: "hi" }}
       />,
     );
     expect(screen.getByText("a.ts")).toBeTruthy();
@@ -23,7 +23,7 @@ describe("ToolArgsView file tools", () => {
     render(
       <ToolArgsView
         toolName="write_file"
-        args={{ path: "src/a.ts", contents: "hi" }}
+        args={{ file_path: "src/a.ts", content: "hi" }}
         showFileName={false}
       />,
     );

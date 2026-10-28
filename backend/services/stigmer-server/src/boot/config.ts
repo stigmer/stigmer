@@ -323,8 +323,7 @@ export interface ServerConfig {
   /**
    * The runner's secrets every provisioned sandbox receives
    * (STIGMER_SANDBOX_RUNNER_SECRETS, the same list form), such as the
-   * direct-mode model and Cursor keys an open-source runner authenticates
-   * with: a runner outside the cloud has no proxy to hold them for it
+   * direct-mode model keys an open-source runner authenticates with: a runner outside the cloud has no proxy to hold them for it
    * (the runner's config.ts, "Direct mode"). Every driver delivers them
    * through the channel it uses for the runner's token, never a plain
    * manifest value or argv.

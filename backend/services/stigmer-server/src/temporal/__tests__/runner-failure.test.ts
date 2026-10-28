@@ -13,7 +13,6 @@ import { describe, expect, it } from "vitest";
 import {
   endsAsWorkerShutdown,
   modelStallCopyOf,
-  streamCutCopyOf,
   isTurnContinuation,
   isWorkerShutdown,
   turnContinuationCauseOf,
@@ -126,22 +125,5 @@ describe("modelStallCopyOf", () => {
 
   it("is not a worker shutdown's ending", () => {
     expect(endsAsWorkerShutdown(continues("model-stall", STALL))).toBe(false);
-  });
-});
-
-describe("streamCutCopyOf", () => {
-  const CUT = "[unknown] [canceled] http/2 stream closed with error code CANCEL (0x8) [category=stream-cut, source=sdk, retryable=true]";
-
-  it("reads the runner's words for the cut off a cut connection's continuation, however wrapped", () => {
-    expect(turnContinuationCauseOf(continues("stream-cut", CUT))).toBe("stream-cut");
-    expect(streamCutCopyOf(continues("stream-cut", CUT))).toBe(CUT);
-    expect(streamCutCopyOf(new Error("activity 'ExecuteCursor' failed", { cause: continues("stream-cut", CUT) }))).toBe(CUT);
-  });
-
-  it("is undefined for any other continuation or failure, and is no worker shutdown's ending", () => {
-    expect(streamCutCopyOf(continues("model-stall", CUT))).toBeUndefined();
-    expect(streamCutCopyOf(new Error("agent blew up"))).toBeUndefined();
-    expect(modelStallCopyOf(continues("stream-cut", CUT))).toBeUndefined();
-    expect(endsAsWorkerShutdown(continues("stream-cut", CUT))).toBe(false);
   });
 });

@@ -178,7 +178,7 @@ beforeEach(() => {
       JSON.stringify({
         models: [
           { id: "claude-sonnet-4-5", provider: "anthropic", harness: "native" },
-          { id: "composer-2", provider: "cursor", harness: "cursor" },
+          { id: "claude-opus-4-5", provider: "anthropic", harness: "claude" },
         ],
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
@@ -203,7 +203,7 @@ async function run(
     readonly conversationPlugins?: Plugin[];
     readonly values?: RunValues;
     readonly runSpec?: { tools?: string[]; disallowedTools?: string[] };
-    readonly capabilities?: { harness: Harness.NATIVE | Harness.CURSOR; subAgents: boolean };
+    readonly capabilities?: { harness: Harness.NATIVE | Harness.CLAUDE; subAgents: boolean };
     /** Servers the main agent writes itself. */
     readonly mainAgentServers?: { name: string; url: string }[];
   } = {},
@@ -460,13 +460,13 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const { result } = await run([
       saved("native-pick", { harness: Harness.NATIVE, runConfig: { modelName: "claude-sonnet-4-5" } }),
       saved("unset-pick", { runConfig: { modelName: "claude-sonnet-4-5" } }),
-      saved("cursor-pick", { harness: Harness.CURSOR, runConfig: { modelName: "composer-2" } }),
+      saved("claude-pick", { harness: Harness.CLAUDE, runConfig: { modelName: "claude-opus-4-5" } }),
       saved("unlisted", { harness: Harness.NATIVE, runConfig: { modelName: "gpt-9" } }),
     ]);
     expect(ready(result).map((s) => [s.name, s.model])).toEqual([
       ["native-pick", "claude-sonnet-4-5"],
       ["unset-pick", "claude-sonnet-4-5"],
-      ["cursor-pick", undefined],
+      ["claude-pick", undefined],
       ["unlisted", undefined],
     ]);
   });

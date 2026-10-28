@@ -94,7 +94,7 @@ const conversation = {
     agentRef: { kind: ApiResourceKind.agent, org: ORG, slug: "helper" },
     subject: "Fix the build",
   },
-  status: { harnessStateId: "thread-1" },
+  status: { agentId: "agt_1" },
 };
 
 /** The bytes the current release writes for `init`, its etag stamped. */

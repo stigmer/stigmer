@@ -18,9 +18,7 @@
 // - eight skills, the count at which the native harness once began choosing
 //   skills by the message (it now describes every one on every turn);
 // - one subagent, a saved agent of its own the agent lists, with no skills
-//   of its own. The Cursor harness mounts but never reads a subagent's
-//   skills (stigmer#1288), so giving it some would measure that defect
-//   instead of the harness;
+//   of its own;
 // - a seeded non-git workspace, a small Go module; the benchmark's
 //   background cells lay a slow test suite and a server over it.
 //

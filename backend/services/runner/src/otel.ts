@@ -22,15 +22,6 @@
  * report under one resource would read as one counter going backwards.
  */
 
-import {
-  METRIC_ATTR_CURSOR_MODE,
-  METRIC_ATTR_CURSOR_MODEL,
-  METRIC_LLM_CALL_COUNT,
-  METRIC_LLM_CALL_DURATION,
-  METRIC_LLM_TOKENS_INPUT,
-  METRIC_LLM_TOKENS_OUTPUT,
-  TRACER_NAME,
-} from "./gen-ai-conventions.js";
 import type { TelemetryLane } from "./otel-export.js";
 
 /** The resource attribute that names which of a runner's processes exported a span or a series. */
@@ -135,39 +126,3 @@ export async function startRunnerTelemetry(serviceName: string): Promise<(() => 
   };
 }
 
-/**
- * Record cursor turn metrics. No-op when metrics are not initialized.
- */
-export async function recordTurnMetrics(opts: {
-  durationMs: number;
-  inputTokens: number;
-  outputTokens: number;
-  model: string;
-  mode: string;
-}): Promise<void> {
-  try {
-    const otelApi = await import("@opentelemetry/api");
-    const meter = otelApi.metrics.getMeter(TRACER_NAME);
-
-    const attrs = {
-      [METRIC_ATTR_CURSOR_MODEL]: opts.model,
-      [METRIC_ATTR_CURSOR_MODE]: opts.mode,
-    };
-
-    meter.createHistogram(METRIC_LLM_CALL_DURATION, { unit: "ms" })
-      .record(opts.durationMs, attrs);
-    meter.createCounter(METRIC_LLM_CALL_COUNT)
-      .add(1, attrs);
-
-    if (opts.inputTokens) {
-      meter.createCounter(METRIC_LLM_TOKENS_INPUT, { unit: "{token}" })
-        .add(opts.inputTokens, attrs);
-    }
-    if (opts.outputTokens) {
-      meter.createCounter(METRIC_LLM_TOKENS_OUTPUT, { unit: "{token}" })
-        .add(opts.outputTokens, attrs);
-    }
-  } catch {
-    // Metrics not initialized — silently skip.
-  }
-}

@@ -129,12 +129,12 @@ describe("AgentRunDefaultsSection", () => {
       { wrapper: Wrapper },
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Cursor" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Claude" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     expect(onSave.mock.calls[0][0]).toEqual({
-      harness: Harness.CURSOR,
+      harness: Harness.CLAUDE,
       runConfig: { maxCostUsd: 2, maxToolRounds: 12, maxToolResultChars: 20000 },
     });
   });
@@ -228,12 +228,12 @@ describe("AgentRunDefaultsSection", () => {
         spec={SPEC}
         editable
         isSaving={false}
-        error="model claude-sonnet-4-6 is not listed for the cursor engine"
+        error="model gpt-5.3 is not listed for the claude engine"
         onSave={vi.fn().mockResolvedValue(false)}
       />,
       { wrapper: Wrapper },
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit run defaults" }));
-    expect(screen.getByRole("alert").textContent).toMatch(/not listed for the cursor engine/);
+    expect(screen.getByRole("alert").textContent).toMatch(/not listed for the claude engine/);
   });
 });

@@ -235,16 +235,16 @@ describe("buildThreadItems key generation", () => {
   });
 
   describe("internal tool filtering", () => {
-    it.each(["updateTodos", "TodoWrite", "write_todos"])("never renders a %s call as a row", (name) => {
+    it.each(["TodoWrite", "write_todos"])("never renders a %s call as a row", (name) => {
       const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "Planning..."), call(R, "c1", name), status(R, "completed")), []);
       expect(items.filter((i) => i.kind === "tool-group")).toHaveLength(0);
     });
 
     it("keeps other calls of the same run", () => {
-      const items = buildThreadItems(turnsOf(user(R, "go"), call(R, "c1", "Shell"), call(R, "c2", "updateTodos"), status(R, "completed")), []);
+      const items = buildThreadItems(turnsOf(user(R, "go"), call(R, "c1", "Bash"), call(R, "c2", "TodoWrite"), status(R, "completed")), []);
       const groups = items.filter((i): i is Extract<ThreadItem, { kind: "tool-group" }> => i.kind === "tool-group");
 
-      expect(groups.map((g) => g.toolUses.map((tu) => tu.name))).toEqual([["Shell"]]);
+      expect(groups.map((g) => g.toolUses.map((tu) => tu.name))).toEqual([["Bash"]]);
     });
   });
 });
@@ -268,7 +268,7 @@ describe("buildThreadItems todos card", () => {
   });
 
   it("anchors before the first work when it precedes any narration (anchor 2)", () => {
-    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), call(R, "c1", "Shell"), status(R, "completed")), []);
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), call(R, "c1", "Bash"), status(R, "completed")), []);
     expect(keys(items).slice(1)).toEqual([`${R}-todos`, `${toolId(R, "c1")}-tc`]);
   });
 

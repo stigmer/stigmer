@@ -4,8 +4,7 @@
  * audit-trail fields, and the rule that the accumulator adds and never
  * prices; and a runtime call's auxiliary cost (a eval-run try's agent
  * mock), which the estimate and the cap see while the tokens, the model and
- * the turn count stay the engine's. The pricing half is
- * `execute-cursor/__tests__/usage-pricing.test.ts`.
+ * the turn count stay the engine's. Pricing is each adapter's own.
  */
 
 import { describe, it, expect } from "vitest";

@@ -15,12 +15,8 @@ package ai.stigmer.agentic.run.v1;
  * runs.
  *
  * Enforcement:
- * - Native harness: tool-level enforcement — write tools are
+ * - Every harness: tool-level enforcement — write tools are
  * removed from the tool set in PLAN mode.
- * - Cursor harness: best-effort via system prompt injection. The Cursor SDK
- * does not expose a mode parameter, so the agent is instructed not to
- * make changes. When the SDK adds native mode support, the prompt-based
- * approach will be replaced.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.run.v1.InteractionMode}
@@ -58,8 +54,7 @@ public enum InteractionMode
    * implementation plans, and answering architectural questions without
    * side effects.
    *
-   * Native harness: enforced by removing write tools from the tool set.
-   * Cursor harness: best-effort via system prompt directive.
+   * Enforced by removing write tools from the tool set.
    * </pre>
    *
    * <code>INTERACTION_MODE_PLAN = 2;</code>
@@ -107,8 +102,7 @@ public enum InteractionMode
    * implementation plans, and answering architectural questions without
    * side effects.
    *
-   * Native harness: enforced by removing write tools from the tool set.
-   * Cursor harness: best-effort via system prompt directive.
+   * Enforced by removing write tools from the tool set.
    * </pre>
    *
    * <code>INTERACTION_MODE_PLAN = 2;</code>

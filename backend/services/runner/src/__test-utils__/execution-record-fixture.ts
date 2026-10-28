@@ -14,9 +14,9 @@
  *
  * Harness-agnostic: the record is the control plane's, and the runtime's
  * phases read it the same way whatever engine runs the turn. A harness's
- * driver supplies its own fixture ids and model (`execute-cursor/__test-
- * utils__/hermetic-cursor.ts` `cursorExecutionRecord`); the runtime's own
- * tests use the defaults. Ids are fixed so goldens are readable and
+ * driver supplies its own fixture ids and model
+ * (`execute-claude/__test-utils__/hermetic-claude.ts`); the runtime's own
+ * tests use the defaults, the native harness's model. Ids are fixed so goldens are readable and
  * byte-stable. `savedAgentFixture` builds a saved agent the record's agent
  * can list as a subagent, at a version hash of its own.
  */
@@ -42,7 +42,7 @@ import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/api
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { ExecutionRecord, type ExecutionRecordInput } from "./hermetic-activity.js";
-import { FIXTURE_MODEL } from "./model-registry-fixture.js";
+import { FIXTURE_NATIVE_MODEL } from "./model-registry-fixture.js";
 
 /** The ids a record's three resources carry. */
 export interface ExecutionRecordIds {
@@ -157,7 +157,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       agentId: builtIn ? "" : ids.agentId,
       agentVersionHash: builtIn ? "" : ids.agentVersionHash,
       runConfig: create(RunConfigSchema, {
-        modelName: options.modelName ?? FIXTURE_MODEL,
+        modelName: options.modelName ?? FIXTURE_NATIVE_MODEL,
         maxCostUsd: options.maxCostUsd ?? 0,
         maxToolRounds: options.maxToolRounds ?? 0,
         maxToolResultChars: options.maxToolResultChars ?? 0,

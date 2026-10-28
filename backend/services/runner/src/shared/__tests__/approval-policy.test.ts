@@ -379,10 +379,10 @@ describe("resolveBuiltInApprovalMessage — the one card wording for a gated bui
     expect(resolveBuiltInApprovalMessage("edit_file", { file_path: "/workspace/README.md", old_string: "a", new_string: "b" })).toBe("Write file: /workspace/README.md");
   });
 
-  it("names the file from path in the Cursor stream's taxonomy, and from file_path in its hook's", () => {
+  it("names the file from path or file_path, in either taxonomy", () => {
     expect(resolveBuiltInApprovalMessage("edit", { path: "src/app.ts" })).toBe("Write file: src/app.ts");
     expect(resolveBuiltInApprovalMessage("Write", { file_path: "src/app.ts" })).toBe("Write file: src/app.ts");
-    expect(resolveBuiltInApprovalMessage("Delete", { file_path: "old.txt" })).toBe("Delete: old.txt");
+    expect(resolveBuiltInApprovalMessage("delete_file", { file_path: "old.txt" })).toBe("Delete: old.txt");
     expect(resolveBuiltInApprovalMessage("delete", { path: "old.txt" })).toBe("Delete: old.txt");
   });
 
@@ -396,7 +396,7 @@ describe("resolveBuiltInApprovalMessage — the one card wording for a gated bui
 
   it("words a shell card from the command, in either taxonomy", () => {
     expect(resolveBuiltInApprovalMessage("execute", { command: "rm -rf build" })).toBe("Run command: rm -rf build");
-    expect(resolveBuiltInApprovalMessage("Shell", { command: "ls" })).toBe("Run command: ls");
+    expect(resolveBuiltInApprovalMessage("Bash", { command: "ls" })).toBe("Run command: ls");
   });
 
   it("answers undefined for a built-in that is not gated", () => {

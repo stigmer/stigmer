@@ -4,9 +4,9 @@
 //
 // An arm is a harness on one model at one endpoint, on one version of the
 // code: native on the report's `models.parity["deep-agent"]` at its
-// `models.native_endpoint`, or Cursor or Claude on its own entry of
-// `models.parity`, each on the report's `git.code_sha` (the server and runner it booted; the script's
-// `--stack`). One run measures one native model on one version of the code
+// `models.native_endpoint`, or Claude on its own entry of `models.parity`,
+// each on the report's `git.code_sha` (the server and runner it booted; the
+// script's `--stack`). One run measures one native model on one version of the code
 // (cells.ts, run.ts), so another model or another version is another report,
 // and the comparison is across reports. Reports are compared only when one
 // instrument measured them on the same ground: one clean `git.head_sha` (the
@@ -169,10 +169,9 @@ interface QualityCase {
 
 /**
  * `native/<model>@<endpoint>#<code>`, with `+background-off` when the
- * runner's background commands were off, or `cursor/<model>#<code>` or
- * `claude/<model>#<code>`; the code as the first ten characters of
- * `git.code_sha`. The endpoint and the background setting are native's
- * alone.
+ * runner's background commands were off, or `claude/<model>#<code>`; the
+ * code as the first ten characters of `git.code_sha`. The endpoint and the
+ * background setting are native's alone.
  */
 export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): string {
   const code = `#${shortSha(report.git.code_sha)}`;
@@ -182,7 +181,6 @@ export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): st
       const off = report.methodology.shell_background === "off" ? "+background-off" : "";
       return `${ARM_WORD[harness]}/${model}@${report.models.native_endpoint}${code}${off}`;
     }
-    case "cursor":
     case "claude":
       return `${ARM_WORD[harness]}/${model}${code}`;
   }

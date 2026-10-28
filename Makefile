@@ -393,7 +393,7 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 # fails. The live workflow (ci.live.yaml) runs the same suites after each
 # release.
 .PHONY: test-live
-test-live: $(RUNNER_DIR)/node_modules ## Run the runner's live suites against real providers (needs the provider keys the suites read, e.g. CURSOR_API_KEY; spends money)
+test-live: $(RUNNER_DIR)/node_modules ## Run the runner's live suites against real providers (needs the provider keys the suites read, e.g. ANTHROPIC_API_KEY; spends money)
 	@echo "testing  $(RUNNER_DIR) (live)"
 	@cd $(RUNNER_DIR) && npm run test:live
 
@@ -491,13 +491,13 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 # the same way. Flags pass through BENCHMARK_ARGS
 # (e.g. BENCHMARK_ARGS="--reps 3 --only native").
 .PHONY: benchmark-harnesses
-benchmark-harnesses: build-runner ## Measure the native and Cursor harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs, ANTHROPIC_API_KEY, CURSOR_API_KEY; spends money)
+benchmark-harnesses: build-runner ## Measure the native and Claude harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs and ANTHROPIC_API_KEY; spends money)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the benchmark stack"; \
 		echo "  install: make install-temporal-cli   (writes ~/bin/temporal, the version stigmer up runs)"; \
 		exit 1; \
 	}
-	@echo "=== benchmark: native vs cursor on real providers (an experiment, not a test) ==="
+	@echo "=== benchmark: native vs claude on real providers (an experiment, not a test) ==="
 	npm run benchmark:harnesses -w @stigmer/conformance -- $(BENCHMARK_ARGS)
 
 .PHONY: postgres-dev
@@ -934,9 +934,8 @@ launch-desktop: kill-desktop ## Start desktop app in dev mode (Tauri + Vite hot-
 	npm install -w desktop
 	$(MAKE) build-runner
 	client-apps/desktop/scripts/setup-runner-dev.sh
-	client-apps/desktop/scripts/gen-dev-certs.sh
 	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
-		echo "Starting local dev proxy (:9090 HTTP + :9093 HTTPS/H2)..."; \
+		echo "Starting local dev proxy (:9090 HTTP)..."; \
 		grpcwebproxy --backend_addr=localhost:8080 --run_tls_server=false --allow_all_origins --server_http_debug_port=9091 --server_http_max_read_timeout=120s --server_http_max_write_timeout=120s & \
 		sleep 1; \
 		caddy start --config client-apps/desktop/scripts/Caddyfile.dev; \

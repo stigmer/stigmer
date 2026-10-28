@@ -6,7 +6,7 @@
  * co-located TestWorkflowEnvironment tests).
  *
  * Orchestration only — the TS unified runner owns the agent activities
- * (EnsureThread/ExecuteDeepAgent/ExecuteCursor/ExecuteClaude) on the memo-pinned
+ * (EnsureThread/ExecuteDeepAgent/ExecuteClaude) on the memo-pinned
  * activity queue; this workflow's own activities run on the stigmer
  * queue or in-process (local activities).
  *
@@ -14,9 +14,8 @@
  *   - Harness dispatch, one exhaustive switch: NATIVE/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
- *     the thread id), each with its own Execute* activity; CURSOR → cursor
- *     flow (harness_state_id re-read before every re-invocation). A number
- *     no engine owns fails the run, naming it, never runs as native.
+ *     the thread id), each with its own Execute* activity. A number no
+ *     harness owns fails the run, naming it, never runs as native.
  *   - Pause/resume: each attempt runs in a cancellable scope with a
  *     monitor that consumes ONE pause signal and cancels the scope; a
  *     pause queued while no attempt is running pauses the next attempt
@@ -105,7 +104,6 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CLAUDE_ACTIVITY_NAME,
-  EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
   GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
 } from "@stigmer/temporal-codecs/activity-names";
@@ -114,7 +112,6 @@ import { unresolvedGateCountOfJson } from "../../../domain/run/filereview/gate.j
 import {
   endsAsWorkerShutdown,
   modelStallCopyOf,
-  streamCutCopyOf,
   isTurnContinuation,
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
@@ -128,7 +125,6 @@ import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   OPEN_GATES_FROM_LOG_PATCH_ID,
-  READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RECOVERY_WINDOW_PATCH_ID,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
@@ -209,7 +205,7 @@ const approvalGateResolvedSignal = defineSignal(SIGNAL_APPROVAL_GATE_RESOLVED);
 // ─── Activity proxies (options are contract; see the census table) ──────
 
 /**
- * The typed input of ExecuteDeepAgent and ExecuteCursor — the runner's
+ * The typed input of ExecuteDeepAgent and ExecuteClaude — the runner's
  * ExecuteActivityInput (shared/activity-input.ts), snake_case keys, a
  * cross-component wire contract. `execution_context_token` is the run
  * credential the workflow input carries (workflow-input.ts), handed on
@@ -250,9 +246,6 @@ interface RunnerActivities {
   [EXECUTE_DEEP_AGENT_ACTIVITY_NAME]: (
     input: ExecuteActivityInput,
   ) => Promise<RunnerActivityResult | null>;
-  [EXECUTE_CURSOR_ACTIVITY_NAME]: (
-    input: ExecuteActivityInput,
-  ) => Promise<RunnerActivityResult | null>;
   [EXECUTE_CLAUDE_ACTIVITY_NAME]: (
     input: ExecuteActivityInput,
   ) => Promise<RunnerActivityResult | null>;
@@ -262,7 +255,7 @@ interface RunnerActivities {
 }
 
 /**
- * The ONE builder of an Execute* input for both harness flows and both
+ * The ONE builder of an Execute* input for every harness and both
  * invocations (first turn and every HITL re-invocation): the run's
  * coordinates from the workflow input, the harness thread and the turn
  * from the caller.
@@ -307,7 +300,6 @@ function newExecuteAgentProxy(taskQueue: string) {
     Pick<
       RunnerActivities,
       | typeof EXECUTE_DEEP_AGENT_ACTIVITY_NAME
-      | typeof EXECUTE_CURSOR_ACTIVITY_NAME
       | typeof EXECUTE_CLAUDE_ACTIVITY_NAME
     >
   >({
@@ -386,7 +378,6 @@ interface LocalActivities {
     executionId: string,
     sessionId: string,
   ) => Promise<number>;
-  [READ_HARNESS_STATE_ID_ACTIVITY_NAME]: (sessionId: string) => Promise<string>;
   [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: (
     executionId: string,
   ) => Promise<void>;
@@ -442,20 +433,12 @@ export async function invokeAgentExecution(
           () => workflowCancelled,
         );
         break;
-      case Harness.CURSOR:
-        await executeCursorFlow(
-          input,
-          activityTaskQueue,
-          signals,
-          () => workflowCancelled,
-        );
-        break;
       default: {
-        // Admission refuses a number no engine owns; one that still
+        // Admission refuses a number no harness owns; one that still
         // arrives fails the run here rather than running as native.
         const unknown: never = harness;
         throw ApplicationFailure.nonRetryable(
-          `harness ${String(unknown)} names no engine this workflow runs`,
+          `harness ${String(unknown)} names no harness this workflow runs`,
         );
       }
     }
@@ -645,80 +628,6 @@ async function executeDeterministicStateFlow(
 }
 
 /**
- * Cursor flow: structurally the deterministic-state flow with two variation points
- * (invoke_workflow_impl.go executeCursorFlow) — harness_state_id comes
- * from ReadHarnessStateId instead of EnsureThread (non-fatal on the first
- * read, FATAL before each HITL re-invocation: by then the id must exist,
- * Cursor's Agent.resume needs it), and ExecuteCursor instead of
- * ExecuteDeepAgent.
- */
-async function executeCursorFlow(
-  input: InvokeAgentExecutionWorkflowInput,
-  activityTaskQueue: string,
-  signals: SignalBuffers,
-  isWorkflowCancelled: () => boolean,
-): Promise<RunnerActivityResult> {
-  const executionId = input.execution_id;
-  const sessionId = input.session_id;
-
-  fireGenerateSessionSubject(activityTaskQueue, input);
-
-  log.info("Executing Cursor agent", { executionId, sessionId });
-  const agentProxy = newExecuteAgentProxy(activityTaskQueue);
-
-  return runWithPauseAndRecovery({
-    executionId,
-    activityLabel: EXECUTE_CURSOR_ACTIVITY_NAME,
-    signals,
-    isWorkflowCancelled,
-    executeWithHitl: () =>
-      executeWithHitlLoop({
-        executionId,
-        sessionId,
-        signals,
-        firstInvoke: async () => {
-          let harnessStateId: string;
-          try {
-            harnessStateId = await readHarnessStateId(sessionId);
-          } catch (error) {
-            log.warn(
-              "Failed to read session harness_state_id (non-fatal, using empty)",
-              { sessionId, error: errorMessage(error) },
-            );
-            harnessStateId = "";
-          }
-          return agentProxy[EXECUTE_CURSOR_ACTIVITY_NAME](
-            executeActivityInput(input, harnessStateId, 0),
-          );
-        },
-        reinvoke: async (turnSeq) => {
-          let harnessStateId: string;
-          try {
-            harnessStateId = await readHarnessStateId(sessionId);
-          } catch (error) {
-            throw new Error(
-              `failed to read session harness_state_id for reinvocation: ${errorMessage(error)}`,
-              { cause: error },
-            );
-          }
-          log.info("Re-invoking Cursor after approval", {
-            executionId,
-            cycle: turnSeq,
-            harnessStateId,
-          });
-          return agentProxy[EXECUTE_CURSOR_ACTIVITY_NAME](
-            executeActivityInput(input, harnessStateId, turnSeq),
-          );
-        },
-        nullResultMessage:
-          "cursor activity returned null status - this should never happen",
-        nullResultAfterApprovalMessage:
-          "cursor activity returned null status after approval - this should never happen",
-      }),
-  });
-}
-
-/**
  * GenerateSessionSubject: fire-and-forget, non-blocking (issue #665). The
  * argument shape follows the run credential's presence — see
  * GenerateSessionSubjectInput for why the credential-less dispatch keeps
@@ -788,17 +697,15 @@ async function closePreviousFileReview(
 
 interface PauseRecoveryOptions {
   readonly executionId: string;
-  readonly activityLabel:
-    | DeterministicStateActivityName
-    | typeof EXECUTE_CURSOR_ACTIVITY_NAME;
+  readonly activityLabel: DeterministicStateActivityName;
   readonly signals: SignalBuffers;
   readonly isWorkflowCancelled: () => boolean;
   readonly executeWithHitl: () => Promise<RunnerActivityResult>;
 }
 
 /**
- * The outer loop both flows share (byte-identical in Go, parameterized
- * here): each attempt runs the HITL loop in a cancellable scope with a
+ * The outer loop of every harness's turn (Go's, parameterized here): each
+ * attempt runs the HITL loop in a cancellable scope with a
  * pause monitor; pause → persist PAUSED, wait for resume, re-invoke;
  * recoverable interruption → persist IN_PROGRESS, linear backoff,
  * re-invoke; anything else → wrapped failure. On completion, an
@@ -1131,12 +1038,11 @@ async function updateStatusOnFailure(
 
   const shutdown = endsAsWorkerShutdown(originalError);
   // A stall the model owed, given up: the runner's own stall copy and the
-  // stall's cause, as a stall the runner ended itself would read. A cut
-  // connection, given up: the runner's words for the cut.
+  // stall's cause, as a stall the runner ended itself would read.
   const modelStall = modelStallCopyOf(originalError);
   const statusError = shutdown
     ? WORKER_SHUTDOWN_STATUS_ERROR
-    : modelStall ?? streamCutCopyOf(originalError) ?? errorMessage(originalError);
+    : modelStall ?? errorMessage(originalError);
 
   // The runner's own failure already carries its cause (its terminal
   // table's stop_cause); every other failure is the workflow's to name.
@@ -1300,17 +1206,6 @@ async function readGateCount(executionId: string, sessionId: string): Promise<nu
   }
 }
 
-async function readHarnessStateId(sessionId: string): Promise<string> {
-  try {
-    return await localActivities[READ_HARNESS_STATE_ID_ACTIVITY_NAME](sessionId);
-  } catch (error) {
-    throw new Error(
-      `read session harness_state_id for ${sessionId}: ${errorMessage(error)}`,
-      { cause: error },
-    );
-  }
-}
-
 /**
  * The retired run-end cleanup (names.ts
  * RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME): a run started before
@@ -1339,8 +1234,8 @@ async function retiredContextCleanup(executionId: string): Promise<void> {
 
 /**
  * Whether an activity error is a transient interruption the execution can
- * resume from (re-invoking re-reads the harness_state_id / LangGraph
- * checkpoint), as opposed to a genuine failure.
+ * resume from (re-invoking resumes the harness's own state, keyed by the
+ * thread), as opposed to a genuine failure.
  *
  * Recoverable: a HEARTBEAT timeout (the worker stopped heartbeating
  * because it crashed, slept, or was reaped mid-run), an infrastructure

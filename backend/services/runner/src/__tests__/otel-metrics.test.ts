@@ -29,7 +29,7 @@ describe("OTel Metrics Registry", () => {
     const instruments = await getInstruments();
     expect(() => instruments.activityDuration.record(150)).not.toThrow();
     expect(() => instruments.runnerBootDuration.record(6200, { mode: "cloud" })).not.toThrow();
-    expect(() => instruments.executionSetupDuration.record(3000, { harness: "cursor" })).not.toThrow();
+    expect(() => instruments.executionSetupDuration.record(3000, { harness: "claude" })).not.toThrow();
   });
 
   it("reset allows re-creation", async () => {

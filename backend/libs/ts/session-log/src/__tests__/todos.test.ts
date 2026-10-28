@@ -11,8 +11,8 @@ import type { Todo } from "../types.js";
 
 describe("isTodoTool", () => {
   it("names each engine's to-do tool, and nothing else", () => {
-    expect(["write_todos", "updateTodos", "TodoWrite"].map(isTodoTool)).toEqual([true, true, true]);
-    expect(["read_file", "Shell", "anything"].map(isTodoTool)).toEqual([false, false, false]);
+    expect(["write_todos", "TodoWrite"].map(isTodoTool)).toEqual([true, true]);
+    expect(["read_file", "Bash", "anything"].map(isTodoTool)).toEqual([false, false, false]);
   });
 });
 
