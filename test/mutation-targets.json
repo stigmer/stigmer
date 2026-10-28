@@ -123,6 +123,15 @@
       ],
       "concurrency": 4
     },
+    "react-model-readiness": {
+      "title": "the React kit's reading of which models can run",
+      "package": "sdk/react",
+      "mutate": [
+        "src/models/useModelReadiness.ts",
+        "src/models/readiness.ts"
+      ],
+      "concurrency": 4
+    },
     "ink-logic": {
       "title": "the terminal kit's file review and markdown",
       "package": "sdk/ink",
