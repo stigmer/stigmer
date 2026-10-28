@@ -149,10 +149,7 @@ export function newValidateEnvironmentImmutabilityStep(store: Store): PipelineSt
     name: "ValidateEnvironmentImmutability",
     async execute(ctx: RequestContext<SessionDesc>): Promise<void> {
       const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-      if (stored === undefined) {
-        return;
-      }
-      if ((stored.spec?.environmentRef?.id ?? "") === (ctx.newState.spec?.environmentRef?.id ?? "")) {
+      if (stored === undefined || (stored.spec?.environmentRef?.id ?? "") === (ctx.newState.spec?.environmentRef?.id ?? "")) {
         return;
       }
       if (await sessionHasRun(store, ctx, stored)) {

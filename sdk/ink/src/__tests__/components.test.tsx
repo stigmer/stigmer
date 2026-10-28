@@ -94,6 +94,12 @@ describe("ToolCallItem", () => {
     expect(output).toContain("running");
   });
 
+  it("names an edit's file when expanded", () => {
+    const tool = samples.toolUse("edit_file", "ok", { input: { file_path: "src/app.ts", old_string: "a", new_string: "b" } });
+    const output = render(<ToolCallItem toolUse={tool} expanded />).lastFrame() ?? "";
+    expect(output).toContain("src/app.ts");
+  });
+
   it("shows error for failed tools when expanded", () => {
     const tool = samples.toolUse("execute_command", "Permission denied", { isError: true });
     const output = render(<ToolCallItem toolUse={tool} expanded />).lastFrame() ?? "";

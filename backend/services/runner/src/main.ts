@@ -43,9 +43,11 @@ import { armExitBackstop } from "./exit-backstop.js";
 // Temporal heartbeats and kills the in-flight execution (issue #177).
 const { writeStdout, writeStderr } = installProcessPipeGuards();
 
+/* v8 ignore start -- @preserve: the process boundary; an unhandled rejection is logged and never ends the runner */
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled rejection in runner:", reason);
 });
+/* v8 ignore stop */
 
 process.on("uncaughtException", (err) => {
   reportFatal(writeStderr, "Uncaught exception in runner:", err);
