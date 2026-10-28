@@ -32,6 +32,11 @@ import {
  *   `--workers=1`). Specs skip gracefully when the mock control URL is absent.
  *   Run via `make test-e2e-approval`.
  *
+ * - **no-providers**: a laptop whose runner reaches no model provider: the
+ *   console's Models & providers and the launcher's connect step, and the
+ *   server's refusal at create (opt-in via STIGMER_E2E_NO_PROVIDERS, its own
+ *   stack). Run via `make test-e2e-no-providers`.
+ *
  * - **console-login**: the served console signing in to an authenticated
  *   self-hosted server (stigmer#924), against test/support's hermetic OIDC
  *   issuer run as a process (opt-in via
@@ -125,6 +130,15 @@ export default defineConfig({
       // seeded; the console as a laptop runs it.
       name: "single-org",
       testDir: "./tests/single-org",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      // The no-provider stack shape: the single-organization laptop with its
+      // server told its runners reach no model provider
+      // (fixtures/no-providers.ts), so the console's readiness faces show
+      // before any run, and the server refuses one.
+      name: "no-providers",
+      testDir: "./tests/no-providers",
       use: { ...devices["Desktop Chrome"] },
     },
   ],

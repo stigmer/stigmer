@@ -16,6 +16,7 @@ import {
 } from "./fixtures/oidc";
 import { OAUTH_MCP_STACK, startOAuthMcpFixture } from "./fixtures/oauth-mcp";
 import { SINGLE_ORG_STACK } from "./fixtures/single-org";
+import { NO_PROVIDERS_STACK } from "./fixtures/no-providers";
 import { writeStackState } from "./fixtures/stack-state";
 
 const API_PORT = Number(process.env.STIGMER_E2E_API_PORT ?? "7234");
@@ -112,6 +113,30 @@ async function globalSetup() {
     writeStackState(state);
     console.log(
       "[e2e] Backend stack ready on the shipped entry (one organization, made by the server)",
+    );
+    return;
+  }
+
+  // The no-provider shape: the single-organization laptop again, with its
+  // server told its runners reach no provider (STIGMER_RUNNER_PROVIDERS set
+  // and empty). A running stack cannot be reused: the setting is read at
+  // boot, and one without it reports every provider unknown.
+  if (NO_PROVIDERS_STACK) {
+    if (alreadyRunning) {
+      throw new Error(
+        `[e2e] STIGMER_E2E_NO_PROVIDERS is set but a backend is already running on :${API_PORT}.\n` +
+          `  The no-provider suite needs a fresh stack whose server declares no provider.\n` +
+          `  Stop the running stack (or set STIGMER_E2E_API_PORT to a free port) and retry.`,
+      );
+    }
+    const state = await startBackendStack({
+      apiPort: API_PORT,
+      singleOrg: true,
+      extraServerEnv: { STIGMER_RUNNER_PROVIDERS: "" },
+    });
+    writeStackState(state);
+    console.log(
+      "[e2e] Backend stack ready on the shipped entry, its runners declared to reach no model provider",
     );
     return;
   }
