@@ -41,10 +41,16 @@ export type SceneId =
   | "composer-idle"
   | "composer-submitting"
   | "composer-disabled"
-  | "provider-keys-none"
-  | "provider-keys-two"
-  | "provider-keys-local"
+  | "models-hub-none"
+  | "models-hub-connected"
+  | "models-hub-local"
+  | "models-hub-member"
+  | "launcher-ready"
+  | "launcher-connect-admin"
+  | "launcher-connect-member"
+  | "launcher-connect-local"
   | "model-selector-open"
+  | "model-selector-not-ready"
   | "dashboard-kpis"
   | `preset-${Preset}`;
 
@@ -116,10 +122,29 @@ export const SCENES: readonly Scene[] = [
   { id: "composer-idle", title: "Composer: idle", widths: ["desktop"] },
   { id: "composer-submitting", title: "Composer: sending a message", widths: ["desktop"] },
   { id: "composer-disabled", title: "Composer: disabled while a decision waits", widths: ["desktop"] },
-  { id: "provider-keys-none", title: "Provider keys: none saved yet", widths: ["desktop"] },
-  { id: "provider-keys-two", title: "Provider keys: two saved, one from the parent organization", widths: ["desktop"] },
-  { id: "provider-keys-local", title: "Provider keys: in local mode", widths: ["desktop"] },
+  { id: "models-hub-none", title: "Models & providers: an admin, nothing connected yet", widths: ["desktop", "narrow"] },
+  {
+    id: "models-hub-connected",
+    title: "Models & providers: Anthropic on the organization's key, OpenAI on its parent's",
+    widths: ["desktop"],
+  },
+  { id: "models-hub-local", title: "Models & providers: a laptop whose runner has no key", widths: ["desktop"] },
+  { id: "models-hub-member", title: "Models & providers: a member, nothing connected yet", widths: ["desktop"] },
+  { id: "launcher-ready", title: "Launcher: a model provider connected, ready to send", widths: ["desktop"] },
+  {
+    id: "launcher-connect-admin",
+    title: "Launcher: nothing can run, an admin connects a provider in place",
+    widths: ["desktop", "narrow"],
+  },
+  { id: "launcher-connect-member", title: "Launcher: nothing can run, a member is told who connects it", widths: ["desktop"] },
+  { id: "launcher-connect-local", title: "Launcher: nothing can run on a laptop, with the command", widths: ["desktop"] },
   { id: "model-selector-open", title: "Model picker: open", widths: ["desktop"], opens: "Claude Sonnet 4.6" },
+  {
+    id: "model-selector-not-ready",
+    title: "Model picker: open, with the models that need an Anthropic key marked and listed last",
+    widths: ["desktop"],
+    opens: "Claude Sonnet 4.6",
+  },
   { id: "dashboard-kpis", title: "Dashboard figures", widths: ["desktop"] },
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,

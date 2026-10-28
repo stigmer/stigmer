@@ -2,11 +2,19 @@
 // `SceneId`, so a scene the catalogue lists without a drawing here, or a
 // drawing for an id it does not list, fails the typecheck.
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
-import { inheritedOpenAiKey, ownAnthropicKey } from "../fixtures.ts";
+import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
 import { composerScene, fileReviewDockScene } from "./conversation.tsx";
 import { dashboardScene } from "./dashboard.tsx";
 import type { Drawing } from "./drawing.ts";
-import { modelSelectorScene, providerKeysLocalScene, providerKeysScene } from "./settings.tsx";
+import {
+  ANTHROPIC_ONLY,
+  CONNECTED,
+  launcherScene,
+  modelSelectorNotReadyScene,
+  modelsHubLocalScene,
+  modelsHubScene,
+} from "./models.tsx";
+import { modelSelectorScene } from "./settings.tsx";
 import { threadScene } from "./thread.tsx";
 
 const threads = Object.fromEntries(THREAD_STATES.map((state) => [`thread-${state}`, () => threadScene(state)])) as Record<
@@ -26,10 +34,16 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "composer-idle": () => composerScene("idle"),
   "composer-submitting": () => composerScene("submitting"),
   "composer-disabled": () => composerScene("disabled"),
-  "provider-keys-none": () => providerKeysScene([]),
-  "provider-keys-two": () => providerKeysScene([ownAnthropicKey(), inheritedOpenAiKey()]),
-  "provider-keys-local": providerKeysLocalScene,
+  "models-hub-none": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
+  "models-hub-connected": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
+  "models-hub-local": modelsHubLocalScene,
+  "models-hub-member": () => modelsHubScene(NOTHING_CONNECTED, [], "member"),
+  "launcher-ready": () => launcherScene(ANTHROPIC_ONLY, "admin"),
+  "launcher-connect-admin": () => launcherScene(NOTHING_CONNECTED, "admin"),
+  "launcher-connect-member": () => launcherScene(NOTHING_CONNECTED, "member"),
+  "launcher-connect-local": () => launcherScene(NOTHING_ON_THE_RUNNER, "admin", true),
   "model-selector-open": modelSelectorScene,
+  "model-selector-not-ready": modelSelectorNotReadyScene,
   "dashboard-kpis": dashboardScene,
   ...presets,
 };
