@@ -230,7 +230,7 @@ describe("readBenchmarkReport", () => {
   });
 
   it("refuses the v8 reports before the measured code and the runner log, and either field missing, by name", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v11 benchmark report: schema_version is 8");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v12 benchmark report: schema_version is 8");
     const withoutCode = validReport() as unknown as { git: Record<string, unknown> };
     delete withoutCode.git["code_sha"];
     expect(() => readBenchmarkReport(withoutCode)).toThrow("report.git.code_sha is missing");
@@ -248,7 +248,7 @@ describe("readBenchmarkReport", () => {
   });
 
   it("refuses a v9 report, and one whose arm names no background setting or another word", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 9 })).toThrow("not a v11 benchmark report: schema_version is 9");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 9 })).toThrow("not a v12 benchmark report: schema_version is 9");
     const unnamed = validReport();
     delete (unnamed.methodology as unknown as Record<string, unknown>)["shell_background"];
     expect(() => readBenchmarkReport(unnamed)).toThrow("report.methodology.shell_background is missing, expected one of on, off");
@@ -272,8 +272,12 @@ describe("readBenchmarkReport", () => {
     expect(() => readBenchmarkReport(report)).toThrow("comparisons[0].sides.claude.median is a number");
   });
 
+  it("refuses a v11 report, which keyed the Stigmer arm deep-agent and its fields native_", () => {
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 11 })).toThrow("not a v12 benchmark report: schema_version is 11");
+  });
+
   it("refuses a v10 report, keyed by named sides, and a comparison or an arm a v11 report keys by engine without it", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 10 })).toThrow("not a v11 benchmark report: schema_version is 10");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 10 })).toThrow("not a v12 benchmark report: schema_version is 10");
     const noSides = validReport() as unknown as { comparisons: Record<string, unknown>[] };
     delete noSides.comparisons[0]!["sides"];
     expect(() => readBenchmarkReport(noSides)).toThrow("report.comparisons[0].sides is missing");

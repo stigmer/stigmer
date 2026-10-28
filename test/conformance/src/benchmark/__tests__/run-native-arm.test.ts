@@ -154,7 +154,7 @@ describe("resolveStackRoot", () => {
 describe("renderSummary's native arm", () => {
   function report(basis: "catalog" | "default-rate"): BenchmarkReport {
     return {
-      schema_version: 11,
+      schema_version: 12,
       timestamp: "2026-10-23T00:00:00Z",
       git: { head_sha: "abc", main_sha: "abc", code_sha: "abc" },
       host: { platform: "darwin/arm64", node: "v22.22.1" },

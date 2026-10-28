@@ -195,7 +195,7 @@ describe("runEvalRun about a plugin", () => {
     });
     expect(fake.err()).toContain("Spending limit $5.00, the default; set --max-cost-usd to change it.");
     // Each finished try once, though two reads carried it.
-    expect(fake.err().match(/first-case · native\/claude-sonnet-4-6 · with · try 1\/2/g)).toHaveLength(1);
+    expect(fake.err().match(/first-case · stigmer\/claude-sonnet-4-6 · with · try 1\/2/g)).toHaveLength(1);
     expect(fake.out()).toContain("CASE");
     expect(fake.out()).toContain("1 case(s) · mean Δ +0.67 · 74s · $0.41");
     expect(fake.out()).toContain("needs-fixture: not run: plugins");

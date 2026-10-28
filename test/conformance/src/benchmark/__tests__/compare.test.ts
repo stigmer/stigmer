@@ -93,7 +93,7 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
   const target = `${harness}/${parity[harness]}`;
   const cells = spec.cells ?? { "working-read-edit": samples(3) };
   return {
-    schema_version: 11,
+    schema_version: 12,
     timestamp: spec.timestamp ?? "2026-10-23T10:00:00Z",
     git: { head_sha: spec.headSha ?? "h".repeat(40), main_sha: "m".repeat(40), code_sha: spec.codeSha ?? "c".repeat(40) },
     host: { platform: "darwin/arm64", node: "v22.22.1" },

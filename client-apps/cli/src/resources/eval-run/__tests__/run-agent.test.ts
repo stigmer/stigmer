@@ -197,7 +197,7 @@ describe("runEvalRun about an agent", () => {
     expect(fake.err()).toContain("Spending limit $5.00, the default; set --max-cost-usd to change it.");
     expect(fake.err()).toContain("Started evr_2 on support-desk@v3. Ctrl+C cancels it.");
     // Each finished try once, though two reads carried it.
-    expect(fake.err().match(/tracker\/refund-window · native\/claude-sonnet-4-6 · with · try 1\/1 · 1\.00/g)).toHaveLength(1);
+    expect(fake.err().match(/tracker\/refund-window · stigmer\/claude-sonnet-4-6 · with · try 1\/1 · 1\.00/g)).toHaveLength(1);
     expect(fake.out()).toContain("support-desk@0123456789ab · refund-policy@c0ffee111111 · stigmer/claude-sonnet-4-6");
     expect(fake.out()).toContain("support-desk@0123456789ab · notes@abcdef333333\n  not run: not selected");
     expect(fake.out()).toContain("2 case(s) · 42s · $0.50");

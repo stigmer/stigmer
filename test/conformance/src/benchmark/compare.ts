@@ -176,7 +176,7 @@ export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): st
   const code = `#${shortSha(report.git.code_sha)}`;
   const model = report.models.parity[harness];
   switch (harness) {
-    case stigmer: {
+    case "stigmer": {
       const off = report.methodology.shell_background === "off" ? "+background-off" : "";
       return `${harness}/${model}@${report.models.stigmer_endpoint}${code}${off}`;
     }
