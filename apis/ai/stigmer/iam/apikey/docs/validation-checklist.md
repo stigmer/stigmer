@@ -32,10 +32,10 @@ Pre-create checklist and known pitfalls when creating API keys.
 
 ### Setting Both `never_expires` and `expires_at`
 
-Do not set both. The contract says `never_expires` wins, but the server currently expires such a key at `expires_at` ([#1434](https://github.com/stigmer/stigmer/issues/1434)).
+`never_expires: true` wins: the key never expires and `expires_at` is ignored. Leave `expires_at` unset on a never-expiring key, so a reader does not take the date for a deadline.
 
 ```yaml
-# Ambiguous — the contract and the server disagree on which field wins
+# Never expires — the date is ignored, but reads like a deadline
 spec:
   expires_at: "2027-01-01T00:00:00Z"
   never_expires: true
