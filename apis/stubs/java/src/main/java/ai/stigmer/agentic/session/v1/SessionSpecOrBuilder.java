@@ -240,7 +240,7 @@ java.lang.String defaultValue);
    * Execution harness for this session.
    *
    * Determines which harness runs every turn in this session:
-   * - NATIVE (default): Stigmer's own runner
+   * - STIGMER (default): Stigmer's own harness
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -248,7 +248,7 @@ java.lang.String defaultValue);
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
-   * When unspecified, defaults to HARNESS_NATIVE.
+   * When unspecified, defaults to HARNESS_STIGMER.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -260,7 +260,7 @@ java.lang.String defaultValue);
    * Execution harness for this session.
    *
    * Determines which harness runs every turn in this session:
-   * - NATIVE (default): Stigmer's own runner
+   * - STIGMER (default): Stigmer's own harness
    * - CLAUDE: Anthropic's Claude Agent SDK
    *
    * The harness affects which tools the agent has, how conversation state
@@ -268,7 +268,7 @@ java.lang.String defaultValue);
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
-   * When unspecified, defaults to HARNESS_NATIVE.
+   * When unspecified, defaults to HARNESS_STIGMER.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>

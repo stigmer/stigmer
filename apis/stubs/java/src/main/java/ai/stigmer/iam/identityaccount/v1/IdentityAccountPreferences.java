@@ -35,7 +35,7 @@ private static final long serialVersionUID = 0L;
   private IdentityAccountPreferences() {
     standingContext_ = "";
     defaultHarness_ = "";
-    defaultNativeModel_ = "";
+    defaultStigmerModel_ = "";
     defaultClaudeModel_ = "";
   }
 
@@ -111,7 +111,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object defaultHarness_ = "";
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "claude".
+   * Default harness for new sessions: "stigmer" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -133,7 +133,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "claude".
+   * Default harness for new sessions: "stigmer" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -155,49 +155,49 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int DEFAULT_NATIVE_MODEL_FIELD_NUMBER = 3;
+  public static final int DEFAULT_STIGMER_MODEL_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object defaultNativeModel_ = "";
+  private volatile java.lang.Object defaultStigmerModel_ = "";
   /**
    * <pre>
-   * Default model (registry model ID) for native-harness sessions.
+   * Default model (registry model ID) for Stigmer-harness sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
-   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-   * @return The defaultNativeModel.
+   * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultStigmerModel.
    */
   @java.lang.Override
-  public java.lang.String getDefaultNativeModel() {
-    java.lang.Object ref = defaultNativeModel_;
+  public java.lang.String getDefaultStigmerModel() {
+    java.lang.Object ref = defaultStigmerModel_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      defaultNativeModel_ = s;
+      defaultStigmerModel_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Default model (registry model ID) for native-harness sessions.
+   * Default model (registry model ID) for Stigmer-harness sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
-   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for defaultNativeModel.
+   * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultStigmerModel.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getDefaultNativeModelBytes() {
-    java.lang.Object ref = defaultNativeModel_;
+      getDefaultStigmerModelBytes() {
+    java.lang.Object ref = defaultStigmerModel_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      defaultNativeModel_ = b;
+      defaultStigmerModel_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -242,7 +242,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object defaultClaudeModel_ = "";
   /**
    * <pre>
-   * Default model (registry model ID) for claude-harness sessions.
+   * Default model (registry model ID) for Claude Agent sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -264,7 +264,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Default model (registry model ID) for claude-harness sessions.
+   * Default model (registry model ID) for Claude Agent sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -306,8 +306,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultHarness_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, defaultHarness_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultNativeModel_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, defaultNativeModel_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultStigmerModel_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, defaultStigmerModel_);
     }
     if (memoryEnabled_ != false) {
       output.writeBool(5, memoryEnabled_);
@@ -333,8 +333,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultHarness_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, defaultHarness_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultNativeModel_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, defaultNativeModel_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultStigmerModel_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, defaultStigmerModel_);
     }
     if (memoryEnabled_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -366,8 +366,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStandingContext())) return false;
     if (!getDefaultHarness()
         .equals(other.getDefaultHarness())) return false;
-    if (!getDefaultNativeModel()
-        .equals(other.getDefaultNativeModel())) return false;
+    if (!getDefaultStigmerModel()
+        .equals(other.getDefaultStigmerModel())) return false;
     if (getMemoryEnabled()
         != other.getMemoryEnabled()) return false;
     if (getDefaultAutoApprove()
@@ -389,8 +389,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getStandingContext().hashCode();
     hash = (37 * hash) + DEFAULT_HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + getDefaultHarness().hashCode();
-    hash = (37 * hash) + DEFAULT_NATIVE_MODEL_FIELD_NUMBER;
-    hash = (53 * hash) + getDefaultNativeModel().hashCode();
+    hash = (37 * hash) + DEFAULT_STIGMER_MODEL_FIELD_NUMBER;
+    hash = (53 * hash) + getDefaultStigmerModel().hashCode();
     hash = (37 * hash) + MEMORY_ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getMemoryEnabled());
@@ -537,7 +537,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       standingContext_ = "";
       defaultHarness_ = "";
-      defaultNativeModel_ = "";
+      defaultStigmerModel_ = "";
       memoryEnabled_ = false;
       defaultAutoApprove_ = false;
       defaultClaudeModel_ = "";
@@ -581,7 +581,7 @@ private static final long serialVersionUID = 0L;
         result.defaultHarness_ = defaultHarness_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.defaultNativeModel_ = defaultNativeModel_;
+        result.defaultStigmerModel_ = defaultStigmerModel_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.memoryEnabled_ = memoryEnabled_;
@@ -616,8 +616,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getDefaultNativeModel().isEmpty()) {
-        defaultNativeModel_ = other.defaultNativeModel_;
+      if (!other.getDefaultStigmerModel().isEmpty()) {
+        defaultStigmerModel_ = other.defaultStigmerModel_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
@@ -669,7 +669,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 26: {
-              defaultNativeModel_ = input.readStringRequireUtf8();
+              defaultStigmerModel_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
@@ -805,7 +805,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object defaultHarness_ = "";
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "claude".
+     * Default harness for new sessions: "stigmer" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -826,7 +826,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "claude".
+     * Default harness for new sessions: "stigmer" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -848,7 +848,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "claude".
+     * Default harness for new sessions: "stigmer" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -866,7 +866,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "claude".
+     * Default harness for new sessions: "stigmer" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -881,7 +881,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native" or "claude".
+     * Default harness for new sessions: "stigmer" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -899,23 +899,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object defaultNativeModel_ = "";
+    private java.lang.Object defaultStigmerModel_ = "";
     /**
      * <pre>
-     * Default model (registry model ID) for native-harness sessions.
+     * Default model (registry model ID) for Stigmer-harness sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
-     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-     * @return The defaultNativeModel.
+     * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+     * @return The defaultStigmerModel.
      */
-    public java.lang.String getDefaultNativeModel() {
-      java.lang.Object ref = defaultNativeModel_;
+    public java.lang.String getDefaultStigmerModel() {
+      java.lang.Object ref = defaultStigmerModel_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        defaultNativeModel_ = s;
+        defaultStigmerModel_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -923,21 +923,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for native-harness sessions.
+     * Default model (registry model ID) for Stigmer-harness sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
-     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for defaultNativeModel.
+     * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for defaultStigmerModel.
      */
     public com.google.protobuf.ByteString
-        getDefaultNativeModelBytes() {
-      java.lang.Object ref = defaultNativeModel_;
+        getDefaultStigmerModelBytes() {
+      java.lang.Object ref = defaultStigmerModel_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        defaultNativeModel_ = b;
+        defaultStigmerModel_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -945,52 +945,52 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for native-harness sessions.
+     * Default model (registry model ID) for Stigmer-harness sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
-     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-     * @param value The defaultNativeModel to set.
+     * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+     * @param value The defaultStigmerModel to set.
      * @return This builder for chaining.
      */
-    public Builder setDefaultNativeModel(
+    public Builder setDefaultStigmerModel(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      defaultNativeModel_ = value;
+      defaultStigmerModel_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for native-harness sessions.
+     * Default model (registry model ID) for Stigmer-harness sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
-     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
+     * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearDefaultNativeModel() {
-      defaultNativeModel_ = getDefaultInstance().getDefaultNativeModel();
+    public Builder clearDefaultStigmerModel() {
+      defaultStigmerModel_ = getDefaultInstance().getDefaultStigmerModel();
       bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for native-harness sessions.
+     * Default model (registry model ID) for Stigmer-harness sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
-     * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for defaultNativeModel to set.
+     * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for defaultStigmerModel to set.
      * @return This builder for chaining.
      */
-    public Builder setDefaultNativeModelBytes(
+    public Builder setDefaultStigmerModelBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      defaultNativeModel_ = value;
+      defaultStigmerModel_ = value;
       bitField0_ |= 0x00000004;
       onChanged();
       return this;
@@ -1096,7 +1096,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object defaultClaudeModel_ = "";
     /**
      * <pre>
-     * Default model (registry model ID) for claude-harness sessions.
+     * Default model (registry model ID) for Claude Agent sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -1117,7 +1117,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for claude-harness sessions.
+     * Default model (registry model ID) for Claude Agent sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -1139,7 +1139,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for claude-harness sessions.
+     * Default model (registry model ID) for Claude Agent sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -1157,7 +1157,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for claude-harness sessions.
+     * Default model (registry model ID) for Claude Agent sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -1172,7 +1172,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default model (registry model ID) for claude-harness sessions.
+     * Default model (registry model ID) for Claude Agent sessions.
      * Empty means no preference — the platform default applies.
      * </pre>
      *

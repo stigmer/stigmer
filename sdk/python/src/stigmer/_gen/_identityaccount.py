@@ -194,7 +194,7 @@ class IdentityAccountPreferencesInput:
 
     standing_context: str = ""
     default_harness: str = ""
-    default_native_model: str = ""
+    default_stigmer_model: str = ""
     memory_enabled: bool = False
     default_auto_approve: bool = False
     default_claude_model: str = ""
@@ -203,7 +203,7 @@ class IdentityAccountPreferencesInput:
         msg = spec_pb2.IdentityAccountPreferences(
             standing_context=self.standing_context,
             default_harness=self.default_harness,
-            default_native_model=self.default_native_model,
+            default_stigmer_model=self.default_stigmer_model,
             memory_enabled=self.memory_enabled,
             default_auto_approve=self.default_auto_approve,
             default_claude_model=self.default_claude_model,

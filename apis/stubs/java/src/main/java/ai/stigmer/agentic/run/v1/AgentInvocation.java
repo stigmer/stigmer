@@ -165,7 +165,7 @@ private static final long serialVersionUID = 0L;
   private int harness_ = 0;
   /**
    * <pre>
-   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * Harness for the run's session. Unspecified: Stigmer when
    * run_config names a model (the harness the model was checked against at
    * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.
@@ -179,7 +179,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * Harness for the run's session. Unspecified: Stigmer when
    * run_config names a model (the harness the model was checked against at
    * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.
@@ -1326,7 +1326,7 @@ private static final long serialVersionUID = 0L;
     private int harness_ = 0;
     /**
      * <pre>
-     * Harness for the run's session. Unspecified: native (Stigmer) when
+     * Harness for the run's session. Unspecified: Stigmer when
      * run_config names a model (the harness the model was checked against at
      * save), else the agent's own harness (AgentSpec.harness), else the
      * embedding surface's platform default.
@@ -1340,7 +1340,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness for the run's session. Unspecified: native (Stigmer) when
+     * Harness for the run's session. Unspecified: Stigmer when
      * run_config names a model (the harness the model was checked against at
      * save), else the agent's own harness (AgentSpec.harness), else the
      * embedding surface's platform default.
@@ -1359,7 +1359,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness for the run's session. Unspecified: native (Stigmer) when
+     * Harness for the run's session. Unspecified: Stigmer when
      * run_config names a model (the harness the model was checked against at
      * save), else the agent's own harness (AgentSpec.harness), else the
      * embedding surface's platform default.
@@ -1375,7 +1375,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness for the run's session. Unspecified: native (Stigmer) when
+     * Harness for the run's session. Unspecified: Stigmer when
      * run_config names a model (the harness the model was checked against at
      * save), else the agent's own harness (AgentSpec.harness), else the
      * embedding surface's platform default.
@@ -1394,7 +1394,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness for the run's session. Unspecified: native (Stigmer) when
+     * Harness for the run's session. Unspecified: Stigmer when
      * run_config names a model (the harness the model was checked against at
      * save), else the agent's own harness (AgentSpec.harness), else the
      * embedding surface's platform default.

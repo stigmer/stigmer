@@ -12,7 +12,7 @@ class GitWriteBackMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 class Harness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     HARNESS_UNSPECIFIED: _ClassVar[Harness]
-    HARNESS_NATIVE: _ClassVar[Harness]
+    HARNESS_STIGMER: _ClassVar[Harness]
     HARNESS_CLAUDE: _ClassVar[Harness]
 
 class EnvironmentSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -31,7 +31,7 @@ class ExecutionTarget(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 GIT_WRITE_BACK_MODE_UNSPECIFIED: GitWriteBackMode
 GIT_WRITE_BACK_BRANCH_AND_PR: GitWriteBackMode
 HARNESS_UNSPECIFIED: Harness
-HARNESS_NATIVE: Harness
+HARNESS_STIGMER: Harness
 HARNESS_CLAUDE: Harness
 ENVIRONMENT_SOURCE_UNSPECIFIED: EnvironmentSource
 ENVIRONMENT_SOURCE_SESSION: EnvironmentSource

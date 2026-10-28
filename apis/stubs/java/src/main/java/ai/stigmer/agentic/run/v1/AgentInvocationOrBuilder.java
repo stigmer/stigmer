@@ -71,7 +71,7 @@ public interface AgentInvocationOrBuilder extends
 
   /**
    * <pre>
-   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * Harness for the run's session. Unspecified: Stigmer when
    * run_config names a model (the harness the model was checked against at
    * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.
@@ -83,7 +83,7 @@ public interface AgentInvocationOrBuilder extends
   int getHarnessValue();
   /**
    * <pre>
-   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * Harness for the run's session. Unspecified: Stigmer when
    * run_config names a model (the harness the model was checked against at
    * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.

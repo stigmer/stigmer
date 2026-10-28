@@ -193,7 +193,7 @@ message SendMessageResponse {
 // - Agent activity does NOT receive any signal (cannot clean up)
 // - Run transitions to RUN_TERMINATED phase immediately
 // - All in-progress tool calls are stopped abruptly
-// - The native harness's LangGraph checkpoint may be incomplete
+// - The Stigmer harness's LangGraph checkpoint may be incomplete
 message TerminateRunInput {
   // Run ID to terminate.
   //
@@ -253,7 +253,7 @@ message TerminateRunInput {
 // ## Behavior
 //
 // - Terminates the previous Temporal workflow and starts a fresh one
-// - On the native harness, the LangGraph checkpoint is loaded using the
+// - On the Stigmer harness, the LangGraph checkpoint is loaded using the
 //   preserved thread_id, so completed work carries over from the session's
 //   harness state
 // - Completed tool calls are NOT re-executed
@@ -304,7 +304,7 @@ message RecoverRunInput {
 // When an agent is paused:
 // 1. A "pause" signal is sent to the Temporal workflow
 // 2. Running activity is gracefully cancelled (checkpoint saved)
-// 3. On the native harness, LangGraph auto-saves its checkpoint on cancellation
+// 3. On the Stigmer harness, LangGraph auto-saves its checkpoint on cancellation
 // 4. Run transitions to RUN_PAUSED phase
 // 5. Workflow waits for resume signal (no resources consumed)
 //
@@ -313,7 +313,7 @@ message RecoverRunInput {
 // The paused agent can be resumed via the resume RPC:
 // 1. Resume signal unblocks the workflow
 // 2. Activity is re-invoked with same thread_id
-// 3. On the native harness, LangGraph loads from checkpoint automatically
+// 3. On the Stigmer harness, LangGraph loads from checkpoint automatically
 // 4. Agent continues from exact pause point
 message PauseRunInput {
   // Run ID to pause.
@@ -373,7 +373,7 @@ message PauseRunInput {
 // 1. A "resume" signal is sent to the paused Temporal workflow
 // 2. Workflow unblocks from its wait state
 // 3. Activity is re-invoked with the same input
-// 4. On the native harness, LangGraph loads its checkpoint using thread_id
+// 4. On the Stigmer harness, LangGraph loads its checkpoint using thread_id
 // 5. Agent continues from exact pause point
 message ResumeRunInput {
   // Run ID to resume.
@@ -818,7 +818,7 @@ message GetOrgUsageReportOutput {
   // run, ordered chronologically.
   repeated DailyUsage daily_usage = 11;
 
-  // Usage split by execution harness (e.g., "native" vs "claude").
+  // Usage split by execution harness (e.g., "stigmer" vs "claude").
   repeated HarnessUsage harness_usage = 12;
 
   // Aggregated usage across the organization in the time range.
@@ -960,11 +960,11 @@ message DailyUsage {
 
 // Usage split by execution harness within an org report.
 //
-// Each entry represents one harness (e.g., "native" or "claude") and
+// Each entry represents one harness (e.g., "stigmer" or "claude") and
 // aggregates tokens, call count, and run count for that harness
 // within the report's time range.
 message HarnessUsage {
-  // Harness identifier (e.g., "native", "claude").
+  // Harness identifier (e.g., "stigmer", "claude").
   string harness = 1;
 
   // Total tokens through this harness (cache-inclusive, as the aggregate's).

@@ -44,7 +44,7 @@ public interface ModelReadinessOrBuilder extends
   /**
    * <pre>
    * The provider a run of this model on this engine needs. Empty when the
-   * server judges none (a native model whose provider no key serves, which
+   * server judges none (a Stigmer-harness model whose provider no key serves, which
    * the runner reaches on its own); availability is then
    * availability_unknown.
    * </pre>
@@ -56,7 +56,7 @@ public interface ModelReadinessOrBuilder extends
   /**
    * <pre>
    * The provider a run of this model on this engine needs. Empty when the
-   * server judges none (a native model whose provider no key serves, which
+   * server judges none (a Stigmer-harness model whose provider no key serves, which
    * the runner reaches on its own); availability is then
    * availability_unknown.
    * </pre>

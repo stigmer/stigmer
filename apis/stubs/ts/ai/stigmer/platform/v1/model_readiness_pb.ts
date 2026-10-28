@@ -51,7 +51,7 @@ export const GetModelReadinessInputSchema: GenMessage<GetModelReadinessInput> = 
  */
 export type ModelOnEngine = Message<"ai.stigmer.platform.v1.ModelOnEngine"> & {
   /**
-   * The engine; unspecified is the platform default, native.
+   * The engine; unspecified is the platform default, Stigmer.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 1;
    */
@@ -127,7 +127,7 @@ export type ModelReadiness = Message<"ai.stigmer.platform.v1.ModelReadiness"> & 
 
   /**
    * The provider a run of this model on this engine needs. Empty when the
-   * server judges none (a native model whose provider no key serves, which
+   * server judges none (a Stigmer-harness model whose provider no key serves, which
    * the runner reaches on its own); availability is then
    * availability_unknown.
    *

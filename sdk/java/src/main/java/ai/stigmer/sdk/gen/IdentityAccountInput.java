@@ -148,7 +148,7 @@ public final class IdentityAccountInput {
     public static final class IdentityAccountPreferencesInput {
         private final String standingContext;
         private final String defaultHarness;
-        private final String defaultNativeModel;
+        private final String defaultStigmerModel;
         private final boolean memoryEnabled;
         private final boolean defaultAutoApprove;
         private final String defaultClaudeModel;
@@ -156,7 +156,7 @@ public final class IdentityAccountInput {
         private IdentityAccountPreferencesInput(Builder builder) {
             this.standingContext = builder.standingContext;
             this.defaultHarness = builder.defaultHarness;
-            this.defaultNativeModel = builder.defaultNativeModel;
+            this.defaultStigmerModel = builder.defaultStigmerModel;
             this.memoryEnabled = builder.memoryEnabled;
             this.defaultAutoApprove = builder.defaultAutoApprove;
             this.defaultClaudeModel = builder.defaultClaudeModel;
@@ -170,8 +170,8 @@ public final class IdentityAccountInput {
             if (this.defaultHarness != null) {
                 builder.setDefaultHarness(this.defaultHarness);
             }
-            if (this.defaultNativeModel != null) {
-                builder.setDefaultNativeModel(this.defaultNativeModel);
+            if (this.defaultStigmerModel != null) {
+                builder.setDefaultStigmerModel(this.defaultStigmerModel);
             }
             builder.setMemoryEnabled(this.memoryEnabled);
             builder.setDefaultAutoApprove(this.defaultAutoApprove);
@@ -186,7 +186,7 @@ public final class IdentityAccountInput {
         public static final class Builder {
             private String standingContext;
             private String defaultHarness;
-            private String defaultNativeModel;
+            private String defaultStigmerModel;
             private boolean memoryEnabled;
             private boolean defaultAutoApprove;
             private String defaultClaudeModel;
@@ -195,7 +195,7 @@ public final class IdentityAccountInput {
 
             public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
             public Builder defaultHarness(String defaultHarness) { this.defaultHarness = defaultHarness; return this; }
-            public Builder defaultNativeModel(String defaultNativeModel) { this.defaultNativeModel = defaultNativeModel; return this; }
+            public Builder defaultStigmerModel(String defaultStigmerModel) { this.defaultStigmerModel = defaultStigmerModel; return this; }
             public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
             public Builder defaultAutoApprove(boolean defaultAutoApprove) { this.defaultAutoApprove = defaultAutoApprove; return this; }
             public Builder defaultClaudeModel(String defaultClaudeModel) { this.defaultClaudeModel = defaultClaudeModel; return this; }

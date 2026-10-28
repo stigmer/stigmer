@@ -11,7 +11,7 @@ package ai.stigmer.agentic.plugin.v1;
  * agent's tool calls and can refuse a call, ask a person first, or let it run.
  *
  * A plugin's hooks are recorded here at install; an agent can also carry a
- * block of its own (AgentSpec.hooks). Every harness, native and Claude,
+ * block of its own (AgentSpec.hooks). Every harness, Stigmer and Claude Agent,
  * runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
  * (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
  * afterMCPExecution).
@@ -332,7 +332,7 @@ private static final long serialVersionUID = 0L;
    * agent's tool calls and can refuse a call, ask a person first, or let it run.
    *
    * A plugin's hooks are recorded here at install; an agent can also carry a
-   * block of its own (AgentSpec.hooks). Every harness, native and Claude,
+   * block of its own (AgentSpec.hooks). Every harness, Stigmer and Claude Agent,
    * runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
    * (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
    * afterMCPExecution).

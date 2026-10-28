@@ -157,7 +157,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
   providerUsageJson: string;
 
   /**
-   * Harness that originated this call ("native" or "claude").
+   * Harness that originated this call ("stigmer" or "claude").
    * Set by the proxy controller based on which proxy path handled the request.
    * When empty, the billing handler falls back to the model catalog.
    *
@@ -167,7 +167,7 @@ export type RecordLlmCallUsageInput = Message<"ai.stigmer.billing.v1.RecordLlmCa
 
   /**
    * Provider-reported service tier that actually served this call
-   * (native harness, stigmer/stigmer#361): Anthropic reports it in the
+   * (Stigmer harness, stigmer/stigmer#361): Anthropic reports it in the
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
    * response top level ("default" | "flex" | "priority"). Reported
    * verbatim by the proxy from the SSE stream — the wire truth billing

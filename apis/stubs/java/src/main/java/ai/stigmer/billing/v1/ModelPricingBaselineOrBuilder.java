@@ -98,7 +98,7 @@ public interface ModelPricingBaselineOrBuilder extends
 
   /**
    * <pre>
-   * Execution harness ("native" or "claude").
+   * Execution harness ("stigmer" or "claude").
    * </pre>
    *
    * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -107,7 +107,7 @@ public interface ModelPricingBaselineOrBuilder extends
   java.lang.String getHarness();
   /**
    * <pre>
-   * Execution harness ("native" or "claude").
+   * Execution harness ("stigmer" or "claude").
    * </pre>
    *
    * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>

@@ -160,7 +160,7 @@ message RunSpec {
   //
   // @internal
   // The runner enforces structured output per harness:
-  // - Native harness: uses deepagents responseFormat/ToolStrategy
+  // - Stigmer harness: uses deepagents responseFormat/ToolStrategy
   google.protobuf.Struct structured_output_schema = 21;
 
   // Tools this turn may use, in the same names as an agent's tools; empty

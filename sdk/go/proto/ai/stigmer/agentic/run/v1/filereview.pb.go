@@ -37,7 +37,7 @@ type FileChangeSet struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Id of the turn that produced this change set.
 	TurnId string `protobuf:"bytes,2,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
-	// Harness that produced the edits: "deep-agent" | "claude".
+	// Harness that produced the edits: "stigmer" | "claude".
 	// Carried for audit and so the reconcile adapter knows which harness
 	// lifecycle authored the set.
 	HarnessId string `protobuf:"bytes,3,opt,name=harness_id,json=harnessId,proto3" json:"harness_id,omitempty"`

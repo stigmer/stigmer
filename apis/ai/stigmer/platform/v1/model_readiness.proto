@@ -55,7 +55,7 @@ message GetModelReadinessInput {
 
 // A model on the engine that runs it.
 message ModelOnEngine {
-  // The engine; unspecified is the platform default, native.
+  // The engine; unspecified is the platform default, Stigmer.
   ai.stigmer.agentic.session.v1.Harness harness = 1;
 
   // The model reference as a run names it.
@@ -83,7 +83,7 @@ message ModelReadiness {
   string model = 2;
 
   // The provider a run of this model on this engine needs. Empty when the
-  // server judges none (a native model whose provider no key serves, which
+  // server judges none (a Stigmer-harness model whose provider no key serves, which
   // the runner reaches on its own); availability is then
   // availability_unknown.
   string provider = 3;

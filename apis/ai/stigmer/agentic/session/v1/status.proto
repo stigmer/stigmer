@@ -55,7 +55,7 @@ message SessionStatus {
   string state = 4;
 
   // Fields 5 and 6 held the harness's own conversation id and the ids it
-  // replaced. Only the retired Cursor harness wrote them; native and Claude
+  // replaced. Only the retired Cursor harness wrote them; Stigmer and Claude Agent
   // derive their conversation from the session itself. The numbers and the
   // names are reserved so neither is ever reused for a different field.
   reserved 5, 6;

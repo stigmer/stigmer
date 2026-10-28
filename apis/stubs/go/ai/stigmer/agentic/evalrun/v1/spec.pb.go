@@ -464,7 +464,7 @@ func (*EvalRunCaseSource_Eval) isEvalRunCaseSource_Source() {}
 // EvalRunTarget is one harness and model a case runs on.
 type EvalRunTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The harness. Unspecified is native (Stigmer's own harness).
+	// The harness. Unspecified is the Stigmer harness.
 	Harness v1.Harness `protobuf:"varint,1,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// A model id from the model catalog for that harness, as in
 	// "claude-sonnet-4-6". Empty uses the harness's default model.

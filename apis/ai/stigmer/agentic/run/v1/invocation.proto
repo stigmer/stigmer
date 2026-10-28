@@ -65,7 +65,7 @@ message AgentInvocation {
     max_len: 8192
   }];
 
-  // Harness for the run's session. Unspecified: native (Stigmer) when
+  // Harness for the run's session. Unspecified: Stigmer when
   // run_config names a model (the harness the model was checked against at
   // save), else the agent's own harness (AgentSpec.harness), else the
   // embedding surface's platform default.
@@ -216,7 +216,7 @@ message RunConfig {
   // the limit (backend/services/runner/src/harness/run-turn.ts over
   // backend/services/runner/src/shared/cost-guard.ts). A continuation's
   // estimate starts from the run's persisted streaming_usage
-  // (backend/services/runner/src/harness/cost-cap-watch.ts). The native cost
+  // (backend/services/runner/src/harness/cost-cap-watch.ts). The Stigmer harness's cost
   // advisory middleware only warns
   // (backend/services/runner/src/middleware/cost-advisory.ts).
   double max_cost_usd = 2 [(buf.validate.field).double.gte = 0];
@@ -238,7 +238,7 @@ message RunConfig {
   //
   // @internal
   // An implementation knob, not a user concept: API-reachable for
-  // operators, deliberately absent from creation forms. The native runner
+  // operators, deliberately absent from creation forms. The Stigmer harness
   // counts rounds in its execution budget middleware and stops in place of
   // the next model call (backend/services/runner/src/shared/tool-rounds.ts).
   int32 max_tool_rounds = 3 [(buf.validate.field).int32.gte = 0];

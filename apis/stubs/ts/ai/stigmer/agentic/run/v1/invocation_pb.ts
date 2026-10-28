@@ -54,7 +54,7 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.run.v1.AgentInvocation
   message: string;
 
   /**
-   * Harness for the run's session. Unspecified: native (Stigmer) when
+   * Harness for the run's session. Unspecified: Stigmer when
    * run_config names a model (the harness the model was checked against at
    * save), else the agent's own harness (AgentSpec.harness), else the
    * embedding surface's platform default.

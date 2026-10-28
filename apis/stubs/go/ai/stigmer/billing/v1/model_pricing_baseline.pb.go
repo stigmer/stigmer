@@ -254,7 +254,7 @@ func (x *PricingVariant) GetWireIds() []string {
 	return nil
 }
 
-// SummarizationConfig is the context-summarization tuning for a native
+// SummarizationConfig is the context-summarization tuning for a Stigmer-harness
 // model. Catalog metadata: carried for documentation and future runtime
 // use; no consumer currently reads it from the registry at runtime.
 type SummarizationConfig struct {
@@ -346,12 +346,12 @@ type ModelCapabilities struct {
 	Thinking bool `protobuf:"varint,4,opt,name=thinking,proto3" json:"thinking,omitempty"`
 	// Whether thinking depth adapts to the request instead of a fixed
 	// budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
-	// native runner asks for the adaptive form.
+	// Stigmer harness asks for the adaptive form.
 	AdaptiveThinking bool `protobuf:"varint,5,opt,name=adaptive_thinking,json=adaptiveThinking,proto3" json:"adaptive_thinking,omitempty"`
 	// Whether the model always thinks and refuses a request to turn thinking
 	// off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
-	// explicit THINKING_MODE_DISABLED is refused at create and the native
-	// runner always sends the model's thinking form; when false, a disabled
+	// explicit THINKING_MODE_DISABLED is refused at create and the Stigmer
+	// harness always sends the model's thinking form; when false, a disabled
 	// run on a model with a thinking form sends `{type: "disabled"}`
 	// explicitly; when absent (a row never assessed for it), the runner sends
 	// no thinking parameter for a disabled run and the model's own
@@ -454,7 +454,7 @@ type ModelPricingBaseline struct {
 	// LLM provider (e.g. "anthropic", "openai"). Free-form:
 	// new providers appear without a contract change.
 	Provider string `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
-	// Execution harness ("native" or "claude").
+	// Execution harness ("stigmer" or "claude").
 	Harness string `protobuf:"bytes,5,opt,name=harness,proto3" json:"harness,omitempty"`
 	// Human-readable name shown in model pickers.
 	DisplayName string `protobuf:"bytes,6,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`

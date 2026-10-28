@@ -141,8 +141,8 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * The harness this agent's run defaults were chosen for, and the harness a
    * new conversation on this agent starts on when the person, routine or
    * channel starting it names neither a harness nor a model (a turn that names
-   * a model but no harness starts on native, the harness its name was checked
-   * against). Unspecified: the platform's default harness (native, Stigmer).
+   * a model but no harness starts on Stigmer, the harness its name was checked
+   * against). Unspecified: the platform's default harness, Stigmer.
    *
    * Model names belong to a harness (each lists its own), so run_config's
    * model, tier and thinking count only on this harness. A conversation keeps

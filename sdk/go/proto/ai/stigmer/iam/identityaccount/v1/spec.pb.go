@@ -185,12 +185,12 @@ type IdentityAccountPreferences struct {
 	// Free-text standing context injected into this user's eligible agent
 	// runs. Example: "Keep answers terse."
 	StandingContext string `protobuf:"bytes,1,opt,name=standing_context,json=standingContext,proto3" json:"standing_context,omitempty"`
-	// Default harness for new sessions: "native" or "claude".
+	// Default harness for new sessions: "stigmer" or "claude".
 	// Empty means no preference — the platform default applies.
 	DefaultHarness string `protobuf:"bytes,2,opt,name=default_harness,json=defaultHarness,proto3" json:"default_harness,omitempty"`
-	// Default model (registry model ID) for native-harness sessions.
+	// Default model (registry model ID) for Stigmer-harness sessions.
 	// Empty means no preference — the platform default applies.
-	DefaultNativeModel string `protobuf:"bytes,3,opt,name=default_native_model,json=defaultNativeModel,proto3" json:"default_native_model,omitempty"`
+	DefaultStigmerModel string `protobuf:"bytes,3,opt,name=default_stigmer_model,json=defaultStigmerModel,proto3" json:"default_stigmer_model,omitempty"`
 	// Whether the platform may remember confirmed facts about this
 	// account. Off by default; operative only where the organization has
 	// also enabled memory.
@@ -198,7 +198,7 @@ type IdentityAccountPreferences struct {
 	// Whether new interactive sessions start with "auto-approve tool calls"
 	// armed. Off by default — sessions prompt at each approval gate.
 	DefaultAutoApprove bool `protobuf:"varint,6,opt,name=default_auto_approve,json=defaultAutoApprove,proto3" json:"default_auto_approve,omitempty"`
-	// Default model (registry model ID) for claude-harness sessions.
+	// Default model (registry model ID) for Claude Agent sessions.
 	// Empty means no preference — the platform default applies.
 	DefaultClaudeModel string `protobuf:"bytes,7,opt,name=default_claude_model,json=defaultClaudeModel,proto3" json:"default_claude_model,omitempty"`
 	unknownFields      protoimpl.UnknownFields
@@ -249,9 +249,9 @@ func (x *IdentityAccountPreferences) GetDefaultHarness() string {
 	return ""
 }
 
-func (x *IdentityAccountPreferences) GetDefaultNativeModel() string {
+func (x *IdentityAccountPreferences) GetDefaultStigmerModel() string {
 	if x != nil {
-		return x.DefaultNativeModel
+		return x.DefaultStigmerModel
 	}
 	return ""
 }
@@ -293,14 +293,14 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
 	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12n\n" +
 	"\x15federation_issuer_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12_\n" +
-	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\xff\x02\n" +
+	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\x98\x03\n" +
 	"\x1aIdentityAccountPreferences\x123\n" +
-	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12A\n" +
-	"\x0fdefault_harness\x18\x02 \x01(\tB\x18\xbaH\x15\xd8\x01\x01r\x10R\x06nativeR\x06claudeR\x0edefaultHarness\x129\n" +
-	"\x14default_native_model\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultNativeModel\x12%\n" +
+	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12B\n" +
+	"\x0fdefault_harness\x18\x02 \x01(\tB\x19\xbaH\x16\xd8\x01\x01r\x11R\astigmerR\x06claudeR\x0edefaultHarness\x12;\n" +
+	"\x15default_stigmer_model\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x18dR\x13defaultStigmerModel\x12%\n" +
 	"\x0ememory_enabled\x18\x05 \x01(\bR\rmemoryEnabled\x120\n" +
 	"\x14default_auto_approve\x18\x06 \x01(\bR\x12defaultAutoApprove\x129\n" +
-	"\x14default_claude_model\x18\a \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultClaudeModelJ\x04\b\x04\x10\x05R\x14default_cursor_modelB\xa8\x02\n" +
+	"\x14default_claude_model\x18\a \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultClaudeModelJ\x04\b\x04\x10\x05R\x14default_native_modelR\x14default_cursor_modelB\xa8\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01ZKgo.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (

@@ -1256,7 +1256,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.run.v1.GetOrgU
   dailyUsage: DailyUsage[];
 
   /**
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    *
    * @generated from field: repeated ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12;
    */
@@ -1540,7 +1540,7 @@ export const DailyUsageSchema: GenMessage<DailyUsage> = /*@__PURE__*/
 /**
  * Usage split by execution harness within an org report.
  *
- * Each entry represents one harness (e.g., "native" or "claude") and
+ * Each entry represents one harness (e.g., "stigmer" or "claude") and
  * aggregates tokens, call count, and run count for that harness
  * within the report's time range.
  *
@@ -1548,7 +1548,7 @@ export const DailyUsageSchema: GenMessage<DailyUsage> = /*@__PURE__*/
  */
 export type HarnessUsage = Message<"ai.stigmer.agentic.run.v1.HarnessUsage"> & {
   /**
-   * Harness identifier (e.g., "native", "claude").
+   * Harness identifier (e.g., "stigmer", "claude").
    *
    * @generated from field: string harness = 1;
    */

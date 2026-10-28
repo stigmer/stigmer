@@ -164,12 +164,12 @@ type IdentityAccountInput struct {
 
 // IdentityAccountPreferencesInput is the SDK input type for IdentityAccountPreferences.
 type IdentityAccountPreferencesInput struct {
-	StandingContext    string
-	DefaultHarness     string
-	DefaultNativeModel string
-	MemoryEnabled      bool
-	DefaultAutoApprove bool
-	DefaultClaudeModel string
+	StandingContext     string
+	DefaultHarness      string
+	DefaultStigmerModel string
+	MemoryEnabled       bool
+	DefaultAutoApprove  bool
+	DefaultClaudeModel  string
 }
 
 func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, error) {
@@ -210,12 +210,12 @@ func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, er
 
 func (i *IdentityAccountPreferencesInput) toProto() (*identityaccountv1.IdentityAccountPreferences, error) {
 	return &identityaccountv1.IdentityAccountPreferences{
-		StandingContext:    i.StandingContext,
-		DefaultHarness:     i.DefaultHarness,
-		DefaultNativeModel: i.DefaultNativeModel,
-		MemoryEnabled:      i.MemoryEnabled,
-		DefaultAutoApprove: i.DefaultAutoApprove,
-		DefaultClaudeModel: i.DefaultClaudeModel,
+		StandingContext:     i.StandingContext,
+		DefaultHarness:      i.DefaultHarness,
+		DefaultStigmerModel: i.DefaultStigmerModel,
+		MemoryEnabled:       i.MemoryEnabled,
+		DefaultAutoApprove:  i.DefaultAutoApprove,
+		DefaultClaudeModel:  i.DefaultClaudeModel,
 	}, nil
 }
 
@@ -254,7 +254,7 @@ func identityAccountPreferencesInputFromProto(p *identityaccountv1.IdentityAccou
 	input := &IdentityAccountPreferencesInput{}
 	input.StandingContext = p.GetStandingContext()
 	input.DefaultHarness = p.GetDefaultHarness()
-	input.DefaultNativeModel = p.GetDefaultNativeModel()
+	input.DefaultStigmerModel = p.GetDefaultStigmerModel()
 	input.MemoryEnabled = p.GetMemoryEnabled()
 	input.DefaultAutoApprove = p.GetDefaultAutoApprove()
 	input.DefaultClaudeModel = p.GetDefaultClaudeModel()

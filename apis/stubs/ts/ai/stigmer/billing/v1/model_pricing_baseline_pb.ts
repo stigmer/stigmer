@@ -119,7 +119,7 @@ export const PricingVariantSchema: GenMessage<PricingVariant> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_model_pricing_baseline, 1);
 
 /**
- * SummarizationConfig is the context-summarization tuning for a native
+ * SummarizationConfig is the context-summarization tuning for a Stigmer-harness
  * model. Catalog metadata: carried for documentation and future runtime
  * use; no consumer currently reads it from the registry at runtime.
  *
@@ -205,7 +205,7 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
   /**
    * Whether thinking depth adapts to the request instead of a fixed
    * budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
-   * native runner asks for the adaptive form.
+   * Stigmer harness asks for the adaptive form.
    *
    * @generated from field: bool adaptive_thinking = 5;
    */
@@ -214,8 +214,8 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
   /**
    * Whether the model always thinks and refuses a request to turn thinking
    * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
-   * explicit THINKING_MODE_DISABLED is refused at create and the native
-   * runner always sends the model's thinking form; when false, a disabled
+   * explicit THINKING_MODE_DISABLED is refused at create and the Stigmer
+   * harness always sends the model's thinking form; when false, a disabled
    * run on a model with a thinking form sends `{type: "disabled"}`
    * explicitly; when absent (a row never assessed for it), the runner sends
    * no thinking parameter for a disabled run and the model's own
@@ -278,7 +278,7 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
   provider: string;
 
   /**
-   * Execution harness ("native" or "claude").
+   * Execution harness ("stigmer" or "claude").
    *
    * @generated from field: string harness = 5;
    */

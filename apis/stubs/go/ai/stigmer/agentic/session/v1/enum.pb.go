@@ -71,8 +71,10 @@ func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
 }
 
 // Harness identifies the harness, the agent loop that processes a session's
-// turns. Each value has one label, the same on every surface: HARNESS_NATIVE
-// is "Stigmer" and HARNESS_CLAUDE is "Claude Agent".
+// turns. Each value has one label, the same on every surface: HARNESS_STIGMER
+// is "Stigmer" and HARNESS_CLAUDE is "Claude Agent". Every string that names a
+// harness (the CLI flag, the account default, the model registry, usage) uses
+// its label in lower case: "stigmer", "claude".
 //
 // Each harness corresponds to a different Temporal activity type registered
 // by the runner daemon. The harness determines:
@@ -81,18 +83,18 @@ func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
 // - Which LLM models are available
 // - Billing tier and cost structure
 //
-// HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
+// HARNESS_UNSPECIFIED defaults to HARNESS_STIGMER.
 type Harness int32
 
 const (
-	// Platform default — resolves to HARNESS_NATIVE.
+	// Platform default — resolves to HARNESS_STIGMER.
 	Harness_HARNESS_UNSPECIFIED Harness = 0
 	// Stigmer: Stigmer's own harness. Runs any catalog model, open source end
 	// to end.
 	//
 	// Stigmer-managed checkpoints, custom tools, sandbox isolation,
 	// pause/resume, and full HITL approval flow.
-	Harness_HARNESS_NATIVE Harness = 1
+	Harness_HARNESS_STIGMER Harness = 1
 	// Claude Agent: Anthropic's Claude Agent SDK. Claude models on the
 	// organization's own Anthropic key.
 	//
@@ -106,12 +108,12 @@ const (
 var (
 	Harness_name = map[int32]string{
 		0: "HARNESS_UNSPECIFIED",
-		1: "HARNESS_NATIVE",
+		1: "HARNESS_STIGMER",
 		3: "HARNESS_CLAUDE",
 	}
 	Harness_value = map[string]int32{
 		"HARNESS_UNSPECIFIED": 0,
-		"HARNESS_NATIVE":      1,
+		"HARNESS_STIGMER":     1,
 		"HARNESS_CLAUDE":      3,
 	}
 )
@@ -275,11 +277,11 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/session/v1/enum.proto\x12\x1dai.stigmer.agentic.session.v1*Y\n" +
 	"\x10GitWriteBackMode\x12#\n" +
 	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*`\n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*q\n" +
 	"\aHarness\x12\x17\n" +
-	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x12\n" +
-	"\x0eHARNESS_NATIVE\x10\x01\x12\x12\n" +
-	"\x0eHARNESS_CLAUDE\x10\x03\"\x04\b\x02\x10\x02*\x0eHARNESS_CURSOR*\xba\x01\n" +
+	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fHARNESS_STIGMER\x10\x01\x12\x12\n" +
+	"\x0eHARNESS_CLAUDE\x10\x03\"\x04\b\x02\x10\x02*\x0eHARNESS_NATIVE*\x0eHARNESS_CURSOR*\xba\x01\n" +
 	"\x11EnvironmentSource\x12\"\n" +
 	"\x1eENVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aENVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n" +

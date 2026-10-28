@@ -1280,7 +1280,7 @@
     },
     {
       "name": "HookConfig",
-      "description": "HookConfig is a set of tool-call hooks: commands that run before or after an\n agent's tool calls and can refuse a call, ask a person first, or let it run.\n\n A plugin's hooks are recorded here at install; an agent can also carry a\n block of its own (AgentSpec.hooks). Every harness, native and Claude,\n runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's\n (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and\n afterMCPExecution).",
+      "description": "HookConfig is a set of tool-call hooks: commands that run before or after an\n agent's tool calls and can refuse a call, ask a person first, or let it run.\n\n A plugin's hooks are recorded here at install; an agent can also carry a\n block of its own (AgentSpec.hooks). Every harness, Stigmer and Claude Agent,\n runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's\n (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and\n afterMCPExecution).",
       "protoType": "ai.stigmer.agentic.plugin.v1.HookConfig",
       "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
       "fields": [

@@ -167,7 +167,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object harnessId_ = "";
   /**
    * <pre>
-   * Harness that produced the edits: "deep-agent" | "claude".
+   * Harness that produced the edits: "stigmer" | "claude".
    * Carried for audit and so the reconcile adapter knows which harness
    * lifecycle authored the set.
    * </pre>
@@ -190,7 +190,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Harness that produced the edits: "deep-agent" | "claude".
+   * Harness that produced the edits: "stigmer" | "claude".
    * Carried for audit and so the reconcile adapter knows which harness
    * lifecycle authored the set.
    * </pre>
@@ -1277,7 +1277,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object harnessId_ = "";
     /**
      * <pre>
-     * Harness that produced the edits: "deep-agent" | "claude".
+     * Harness that produced the edits: "stigmer" | "claude".
      * Carried for audit and so the reconcile adapter knows which harness
      * lifecycle authored the set.
      * </pre>
@@ -1299,7 +1299,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that produced the edits: "deep-agent" | "claude".
+     * Harness that produced the edits: "stigmer" | "claude".
      * Carried for audit and so the reconcile adapter knows which harness
      * lifecycle authored the set.
      * </pre>
@@ -1322,7 +1322,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that produced the edits: "deep-agent" | "claude".
+     * Harness that produced the edits: "stigmer" | "claude".
      * Carried for audit and so the reconcile adapter knows which harness
      * lifecycle authored the set.
      * </pre>
@@ -1341,7 +1341,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that produced the edits: "deep-agent" | "claude".
+     * Harness that produced the edits: "stigmer" | "claude".
      * Carried for audit and so the reconcile adapter knows which harness
      * lifecycle authored the set.
      * </pre>
@@ -1357,7 +1357,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Harness that produced the edits: "deep-agent" | "claude".
+     * Harness that produced the edits: "stigmer" | "claude".
      * Carried for audit and so the reconcile adapter knows which harness
      * lifecycle authored the set.
      * </pre>

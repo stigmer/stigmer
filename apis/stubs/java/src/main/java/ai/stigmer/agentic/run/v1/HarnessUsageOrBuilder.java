@@ -12,7 +12,7 @@ public interface HarnessUsageOrBuilder extends
 
   /**
    * <pre>
-   * Harness identifier (e.g., "native", "claude").
+   * Harness identifier (e.g., "stigmer", "claude").
    * </pre>
    *
    * <code>string harness = 1 [json_name = "harness"];</code>
@@ -21,7 +21,7 @@ public interface HarnessUsageOrBuilder extends
   java.lang.String getHarness();
   /**
    * <pre>
-   * Harness identifier (e.g., "native", "claude").
+   * Harness identifier (e.g., "stigmer", "claude").
    * </pre>
    *
    * <code>string harness = 1 [json_name = "harness"];</code>

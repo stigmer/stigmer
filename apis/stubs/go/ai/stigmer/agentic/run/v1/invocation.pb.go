@@ -42,7 +42,7 @@ type AgentInvocation struct {
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Prompt the run starts from.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// Harness for the run's session. Unspecified: native (Stigmer) when
+	// Harness for the run's session. Unspecified: Stigmer when
 	// run_config names a model (the harness the model was checked against at
 	// save), else the agent's own harness (AgentSpec.harness), else the
 	// embedding surface's platform default.

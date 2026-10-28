@@ -56,7 +56,7 @@ public interface ModelCapabilitiesOrBuilder extends
    * <pre>
    * Whether thinking depth adapts to the request instead of a fixed
    * budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
-   * native runner asks for the adaptive form.
+   * Stigmer harness asks for the adaptive form.
    * </pre>
    *
    * <code>bool adaptive_thinking = 5 [json_name = "adaptiveThinking"];</code>
@@ -68,8 +68,8 @@ public interface ModelCapabilitiesOrBuilder extends
    * <pre>
    * Whether the model always thinks and refuses a request to turn thinking
    * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
-   * explicit THINKING_MODE_DISABLED is refused at create and the native
-   * runner always sends the model's thinking form; when false, a disabled
+   * explicit THINKING_MODE_DISABLED is refused at create and the Stigmer
+   * harness always sends the model's thinking form; when false, a disabled
    * run on a model with a thinking form sends `{type: "disabled"}`
    * explicitly; when absent (a row never assessed for it), the runner sends
    * no thinking parameter for a disabled run and the model's own
@@ -84,8 +84,8 @@ public interface ModelCapabilitiesOrBuilder extends
    * <pre>
    * Whether the model always thinks and refuses a request to turn thinking
    * off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
-   * explicit THINKING_MODE_DISABLED is refused at create and the native
-   * runner always sends the model's thinking form; when false, a disabled
+   * explicit THINKING_MODE_DISABLED is refused at create and the Stigmer
+   * harness always sends the model's thinking form; when false, a disabled
    * run on a model with a thinking form sends `{type: "disabled"}`
    * explicitly; when absent (a row never assessed for it), the runner sends
    * no thinking parameter for a disabled run and the model's own
