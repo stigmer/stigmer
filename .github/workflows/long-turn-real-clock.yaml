@@ -34,11 +34,11 @@ on:
         required: false
         default: "180"
       harness:
-        description: "the engine the turn runs on: deep-agent (native) or claude"
+        description: "the harness the turn runs on: stigmer or claude"
         required: true
-        default: deep-agent
+        default: stigmer
         type: choice
-        options: [deep-agent, claude]
+        options: [stigmer, claude]
   pull_request:
     paths:
       - '.github/workflows/long-turn-real-clock.yaml'

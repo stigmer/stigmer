@@ -182,7 +182,7 @@ stigmer eval run --plugin thermos@<digest>
 ```
 
 A model is named with its harness, as `<harness>/<model>`:
-`native/claude-sonnet-4-6` runs on Stigmer's own harness,
+`stigmer/claude-sonnet-4-6` runs on Stigmer's own harness,
 `claude/claude-sonnet-5` on Claude Agent. So a suite can score differently here
 than under `claude plugin eval`, because the score measures the plugin on
 Stigmer.
@@ -232,7 +232,7 @@ as each try finishes, then the table and a summary line.
 | `--case <glob>`                 | Runs only the cases whose name matches, as in `review-*`                                                                    |
 | `--tag <tags>`                  | Runs only the cases carrying any of the tags; name several (`--tag smoke fast`) or repeat it                                |
 | `--runs <n>`                    | Tries per case and arm, 1 to 50; each case's own `runs`, else 3                                                             |
-| `--model <harness>/<model>`     | A model to run on, as `native/claude-sonnet-4-6` or `claude/claude-sonnet-5`; repeat it for up to six                       |
+| `--model <harness>/<model>`     | A model to run on, as `stigmer/claude-sonnet-4-6` or `claude/claude-sonnet-5`; repeat it for up to six                      |
 | `--ablation with-without\|none` | With a plugin, `with-without`, the default, runs both arms; `none` runs the with-arm only                                   |
 | `--threshold <0..1>`            | The score a case needs to pass; 1.0 by default                                                                              |
 | `--max-cost-usd <usd>`          | The eval run's cost limit; Stigmer requires one, so the CLI uses 5 when you give none and says so                           |
@@ -270,7 +270,7 @@ The table is Claude Code's, with a `PASS^k` column, one block per plugin or eval
 and model, headed by its version:
 
 ```text
-thermos@c0ffee123456 · native/claude-sonnet-4-6
+thermos@c0ffee123456 · stigmer/claude-sonnet-4-6
 CASE           WITH   W/OUT   Δ       PASS^k   RUNS   COST    NOTES
 ------------   ----   -----   -----   ------   ----   -----   -----
 review-fires   1.00   0.33    +0.67   yes      6      $0.41

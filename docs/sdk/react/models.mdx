@@ -59,7 +59,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
 const { featured, models, getByKey, isLoading } = useModelRegistry();
 
 // Legacy single-harness mode
-const { models, defaultModel } = useModelRegistry({ harness: "native" });
+const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
 ```
 
 
@@ -70,7 +70,7 @@ const { models, defaultModel } = useModelRegistry({ harness: "native" });
 Compact segmented control for choosing the session harness.
 
 Renders one mutually exclusive option per offered harness — "Stigmer"
-(`native`) and "Claude Agent" (`claude`) — as adjacent pill segments.
+(`stigmer`) and "Claude Agent" (`claude`) — as adjacent pill segments.
 
 Built as a `radiogroup` with full arrow-key navigation and ARIA
 semantics. All visual properties flow through `--stgm-*` tokens.
@@ -91,7 +91,7 @@ Platform builders who need different rendering use
 
 ```tsx
 function LauncherToolbar() {
-  const [harness, setHarness] = useState<HarnessOption>("native");
+  const [harness, setHarness] = useState<HarnessOption>("stigmer");
 
   return <HarnessSelector value={harness} onValueChange={setHarness} />;
 }
@@ -183,7 +183,7 @@ Pricing bracket for a model.
 
 ### DEFAULT_HARNESS
 
-Platform default — resolves to the Stigmer harness (`"native"`).
+Platform default — resolves to the Stigmer harness (`"stigmer"`).
 
 
 ### DEFAULT_MODEL_ID
@@ -228,7 +228,7 @@ function fetchModelRegistryDocument(apiUrl: string, token: string | null, custom
 
 Convert a proto `Harness` enum to a [`HarnessOption`](#harnessoption) string.
 
-`UNSPECIFIED` and any unknown values map to `"native"`.
+`UNSPECIFIED` and any unknown values map to `"stigmer"`.
 
 ```tsx
 function fromProtoHarness(h: Harness): HarnessOption
@@ -440,7 +440,7 @@ Options for [`useModelRegistry`](#usemodelregistry).
 
 <TypeTable
   type={{
-    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"native\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
+    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"stigmer\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
   }}
 />
 

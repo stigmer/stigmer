@@ -41,7 +41,7 @@ in one place, instead of silently drifting across client implementations.
 ```json
 {
   "name": "native_edit_success",
-  "harness": "native",
+  "harness": "stigmer",
   "toolName": "edit_file",
   "mcpServerSlug": "",
   "args": { "file_path": "/workspace/x.md", "old_string": "a", "new_string": "b" },

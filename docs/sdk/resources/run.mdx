@@ -1617,7 +1617,7 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
     topAgents: { type: "AgentUsageSummaryInput[]", description: "The ten agents with the most tokens, ordered by total_tokens descending." },
     dailyUsage: { type: "DailyUsageInput[]", description: "Daily token trend within the time range, one row per UTC day that has a run, ordered chronologically." },
-    harnessUsage: { type: "HarnessUsageInput[]", description: "Usage split by execution harness (e.g., \"native\" vs \"claude\")." },
+    harnessUsage: { type: "HarnessUsageInput[]", description: "Usage split by execution harness (e.g., \"stigmer\" vs \"claude\")." },
     totalUsage: { type: "UsageReportAggregateInput", description: "Aggregated usage across the organization in the time range." },
   }}
 />
@@ -1839,7 +1839,7 @@ The set of file deltas produced by one agent turn, reviewed and reconciled as a 
   type={{
     id: { type: "string", description: "Stable id of this change set, unique per turn." },
     turnId: { type: "string", description: "Id of the turn that produced this change set." },
-    harnessId: { type: "string", description: "Harness that produced the edits: \"deep-agent\" | \"claude\"." },
+    harnessId: { type: "string", description: "Harness that produced the edits: \"stigmer\" | \"claude\"." },
     baselineSnapshot: { type: "SnapshotRef", description: "Workspace state captured at turn start — the \"before\" the authoritative diff is computed against.", typeDescriptionLink: "#snapshotref" },
     candidateSnapshot: { type: "SnapshotRef", description: "Workspace state captured at the turn boundary — the \"after\".", typeDescriptionLink: "#snapshotref" },
     changes: { type: "CapturedFileChange[]", description: "The per-file deltas in this change set (the rendered review surface).", typeDescriptionLink: "#capturedfilechange" },
@@ -2216,7 +2216,7 @@ Harness identifies the harness, the agent loop that processes a session's turns.
 
 | Value | Description |
 |-------|-------------|
-| `HARNESS_NATIVE` | Stigmer: Stigmer's own harness. |
+| `HARNESS_STIGMER` | Stigmer: Stigmer's own harness. |
 | `HARNESS_CLAUDE` | Claude Agent: Anthropic's Claude Agent SDK. |
 
 ### ExecutionTarget

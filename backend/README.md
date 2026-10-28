@@ -33,7 +33,7 @@ TypeScript gRPC control plane for local Stigmer deployment.
 TypeScript Temporal worker (`@stigmer/runner`, "stigmer-runner") that
 executes **agent sessions**, across both harnesses:
 
-- **deep-agent** (`native`, labelled Stigmer) — Stigmer's own harness, a
+- **stigmer** (labelled Stigmer) — Stigmer's own harness, a
   LangGraph.js agentic loop built on LangChain's deepagents, calling LLM
   provider APIs directly
 - **claude** (labelled Claude Agent) — runs the turn on Anthropic's Claude
@@ -90,7 +90,7 @@ identical in both editions by construction.
         │      runner (TypeScript)     │
         │  agent sessions,             │
         │  both harnesses              │
-        │  (deep-agent · claude)       │
+        │  (stigmer · claude)          │
         └──────────────────────────────┘
 ```
 

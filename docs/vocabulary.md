@@ -783,7 +783,7 @@ Agent SDK. A person picks it beside the model, and the model list follows it.
   concept.
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **Labels**: each value has one label, the same on every surface.
-  - `native` is **Stigmer**: "Stigmer's own harness: runs any catalog model,
+  - `stigmer` is **Stigmer**: "Stigmer's own harness: runs any catalog model,
     open source end to end." It is built on LangChain's open source deepagents;
     the docs say so once, the label does not.
   - `claude` is **Claude Agent**: "Anthropic's Claude Agent SDK: Claude models
@@ -792,10 +792,15 @@ Agent SDK. A person picks it beside the model, and the model list follows it.
 - **The vendor runtime**: the Claude harness downloads "the Claude Agent SDK".
   Its paths and environment names (`/runner/engines`, `~/.stigmer/engines`,
   `STIGMER_ENGINES_DIR`) are wire and stay.
-- **Words and labels**: the CLI, the account default and the model registry take
-  the words `native` and `claude`. Where a word and its label differ, help shows
-  both: `"native" (Stigmer)`, `"claude" (Claude Agent)`.
-- **API surface**: `SessionSpec.harness`, enum `Harness` (values: `NATIVE`,
+- **One word**: a harness has one word, its label in lower case: `stigmer`,
+  `claude`. Every value of it that is stored, sent, typed or printed is that
+  word (the CLI, an eval run's `<word>/<model>`, the account default, the model
+  registry, usage reports, a file review's harness id), and its enum value is
+  `HARNESS_<WORD>`. Where a word and its label differ, help shows both:
+  `"stigmer"`, `"claude" (Claude Agent)`. Names that say what a harness is built
+  on (the `deepagents` package, the runner's `execute-deep-agent` adapter and
+  its `ExecuteDeepAgent` activity) are implementation names, not the harness's.
+- **API surface**: `SessionSpec.harness`, enum `Harness` (values: `STIGMER`,
   `CLAUDE`). proto: `session/v1/spec.proto`.
 - **Immutability**: A Session's Harness cannot change after its first run. It
   determines which models are available and which runtime processes the agent's

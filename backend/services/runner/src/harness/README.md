@@ -11,20 +11,25 @@ This file is an index for someone adding a harness. To add one: read the modules
 below in order, write the adapter files, touch the sites, prove it with the kit.
 The rules this file follows are at the end.
 
-## One harness, six spellings
+## One harness, one word
 
-The harness identity is spelled differently in each layer, and every spelling is
-pinned somewhere. Read a row across before searching for anything.
+A harness has one name, its word: its label in lower case (`docs/vocabulary.md`,
+"Harness"), and the enum value built on it. What the harness is built on has
+names of its own, which are not the harness's. Read a row across before
+searching for anything.
 
-| Spelling | Native | Claude |
+| Spelling | Stigmer | Claude |
 | --- | --- | --- |
-| The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-claude/` |
-| `HarnessName` in `harness/registry.ts` | `deep-agent` | `claude` |
-| The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteClaude` |
+| The harness's word: `HarnessName` in `harness/registry.ts`, the model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json`, and the file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `stigmer` | `claude` |
 | The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_STIGMER` | `HARNESS_CLAUDE` |
-| The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `claude` |
-| The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `claude` |
+| The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-claude/` |
+| The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteClaude` |
 | The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@anthropic-ai/claude-agent-sdk` |
+
+The last three rows name what each harness is built on: the Stigmer harness runs
+on LangChain's deepagents, so its adapter, its activity and its package say so,
+as the Claude harness's name the Claude Agent SDK. The activity name is pinned
+bytes on the Temporal wire.
 
 The runner runs a Claude turn, the agent's skills, sub-agents and hooks
 included (`activities/execute-claude/agents.ts`, `activities/execute-claude/hooks.ts`),
@@ -256,7 +261,7 @@ and nothing per harness; there is nothing to touch there.
 
 ### Outside the runner: the method
 
-The identity has six spellings (the table above); the folder is not searched
+The identity has the spellings in the table above; the folder is not searched
 for, and each of the five probes below finds one of the others. Run all five
 from the repository root and read every hit; the lists below came from doing
 exactly that. They search hidden directories and take an explicit path, so they
@@ -268,10 +273,10 @@ reads stdin when it is not a terminal).
 X=(--hidden -g '!.git' -g '!node_modules' -g '!**/gen/**' -g '!*_pb.*' -g '!*.pb.go' -g '!apis/stubs/**'
    -g '!**/dist/**' -g '!**/dist-slim/**' -g '!**/.turbo/**' -g '!**/.yarn/**' -g '!**/.next/**'
    -g '!**/__tests__/**' -g '!*.test.*' -g '!**/goldens/**' -g '!*lock*')
-rg -l "${X[@]}" 'HARNESS_(NATIVE|CLAUDE)|Harness\.(NATIVE|CLAUDE)|\bHarnessOption\b' . < /dev/null  # the proto enum
+rg -l "${X[@]}" 'HARNESS_(STIGMER|CLAUDE)|Harness\.(STIGMER|CLAUDE)|\bHarnessOption\b' . < /dev/null  # the proto enum
 rg -l "${X[@]}" 'ExecuteDeepAgent|ExecuteClaude|HARNESS_ACTIVITY_NAMES' . < /dev/null                # the activity name
-rg -l "${X[@]}" '\bHarnessName\b|["'"'"'](deep-agent|claude)["'"'"']' . < /dev/null                          # the registry name and file-review id
-rg -l "${X[@]}" '"harness"\s*:\s*"(native|claude)"' . < /dev/null                                          # the model registry's key
+rg -l "${X[@]}" '\bHarnessName\b|["'"'"'](stigmer|claude)["'"'"']' . < /dev/null                             # the harness's word
+rg -l "${X[@]}" '"harness"\s*:\s*"(stigmer|claude)"' . < /dev/null                                         # the model registry's key
 rg -l "${X[@]}" '\bdeepagents\b|@anthropic-ai/claude-agent-sdk' . < /dev/null                               # the vendor SDK package
 ```
 
