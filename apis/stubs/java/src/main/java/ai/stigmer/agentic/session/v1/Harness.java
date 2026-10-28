@@ -46,17 +46,6 @@ public enum Harness
   HARNESS_NATIVE(1),
   /**
    * <pre>
-   * Cursor SDK execution engine.
-   *
-   * Cursor-managed conversation state, Cursor built-in tools + MCP,
-   * both local and cloud runtimes. Premium billing tier.
-   * </pre>
-   *
-   * <code>HARNESS_CURSOR = 2;</code>
-   */
-  HARNESS_CURSOR(2),
-  /**
-   * <pre>
    * Anthropic's Claude Agent SDK execution engine.
    *
    * Approvals that stop at the exact call, conversation state mirrored to
@@ -100,17 +89,6 @@ public enum Harness
   public static final int HARNESS_NATIVE_VALUE = 1;
   /**
    * <pre>
-   * Cursor SDK execution engine.
-   *
-   * Cursor-managed conversation state, Cursor built-in tools + MCP,
-   * both local and cloud runtimes. Premium billing tier.
-   * </pre>
-   *
-   * <code>HARNESS_CURSOR = 2;</code>
-   */
-  public static final int HARNESS_CURSOR_VALUE = 2;
-  /**
-   * <pre>
    * Anthropic's Claude Agent SDK execution engine.
    *
    * Approvals that stop at the exact call, conversation state mirrored to
@@ -149,7 +127,6 @@ public enum Harness
     switch (value) {
       case 0: return HARNESS_UNSPECIFIED;
       case 1: return HARNESS_NATIVE;
-      case 2: return HARNESS_CURSOR;
       case 3: return HARNESS_CLAUDE;
       default: return null;
     }

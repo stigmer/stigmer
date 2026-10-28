@@ -44,8 +44,8 @@ const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; color?: strin
 
 // Harness-agnostic labels per kind. Classification is shared with the runner,
 // React, and the CLI's headless renderers via @stigmer/client's resolveToolKind,
-// so Cursor's PascalCase tools render with the same labels as native tools
-// here.
+// so the Claude harness's PascalCase tools render with the same labels as
+// native tools here.
 const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   file_read: "Read",
   file_write: "Write",
@@ -156,13 +156,8 @@ function toolLabel(toolUse: ToolUse, kind: ToolKind): string {
 // Renders a concise, terminal-friendly description of a normalized result view.
 function describeResultView(view: ToolResultView): string | null {
   switch (view.type) {
-    case "diff": {
-      const stats =
-        view.linesAdded !== undefined || view.linesRemoved !== undefined
-          ? ` (+${view.linesAdded ?? 0} -${view.linesRemoved ?? 0})`
-          : "";
-      return `${view.path}${stats}`;
-    }
+    case "diff":
+      return view.path;
     case "terminal": {
       // Lead with the command prompt line so the CLI reads as one terminal
       // session, matching the web console.

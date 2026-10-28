@@ -37,13 +37,11 @@ import {
 function RateField({
   label,
   value,
-  placeholder,
   disabled,
   onChange,
 }: {
   readonly label: string;
   readonly value: string;
-  readonly placeholder?: string;
   readonly disabled: boolean;
   readonly onChange: (value: string) => void;
 }) {
@@ -54,7 +52,7 @@ function RateField({
         inputMode="decimal"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? "0.00"}
+        placeholder="0.00"
         disabled={disabled}
       />
     </Field>
@@ -93,7 +91,6 @@ interface CatalogForm {
   readonly output: string;
   readonly cacheWrite: string;
   readonly cacheRead: string;
-  readonly cursorRate: string;
   readonly variants: readonly VariantForm[];
   readonly revisionNote: string;
 }
@@ -113,7 +110,6 @@ const EMPTY_FORM: CatalogForm = {
   output: "",
   cacheWrite: "0",
   cacheRead: "0",
-  cursorRate: "",
   variants: [],
   revisionNote: "",
 };
@@ -135,10 +131,6 @@ function formFromBaseline(baseline: ModelPricingBaseline): CatalogForm {
     output: microsToDollarString(pricing?.outputPriceMicrosPerMillion ?? ZERO),
     cacheWrite: microsToDollarString(pricing?.cacheWritePriceMicrosPerMillion ?? ZERO),
     cacheRead: microsToDollarString(pricing?.cacheReadPriceMicrosPerMillion ?? ZERO),
-    cursorRate:
-      (pricing?.cursorTokenRateMicrosPerMillion ?? ZERO) > ZERO
-        ? microsToDollarString(pricing!.cursorTokenRateMicrosPerMillion)
-        : "",
     variants: Object.entries(baseline.pricingVariants).map(([key, variant]) => ({
       key,
       input: microsToDollarString(variant.pricing?.inputPriceMicrosPerMillion ?? ZERO),
@@ -186,7 +178,6 @@ function buildBaseline(
   const output = requireRate(form.output, "Output rate");
   const cacheWrite = requireRate(form.cacheWrite, "Cache-write rate");
   const cacheRead = requireRate(form.cacheRead, "Cache-read rate");
-  const cursorRate = form.cursorRate.trim() === "" ? ZERO : requireRate(form.cursorRate, "Cursor token rate");
 
   const seenKeys = new Set<string>();
   const variants: Record<string, ReturnType<typeof buildVariant>> = {};
@@ -226,7 +217,6 @@ function buildBaseline(
       outputPriceMicrosPerMillion: output,
       cacheWritePriceMicrosPerMillion: cacheWrite,
       cacheReadPriceMicrosPerMillion: cacheRead,
-      cursorTokenRateMicrosPerMillion: cursorRate,
       // Provenance of an operator edit is the revision itself; keep the
       // previous source string so "where did this rate come from" is
       // never blanked by a UI edit. effective_at is server-stamped.
@@ -307,7 +297,6 @@ function diffRates(
   compare("Output", previous?.pricing?.outputPriceMicrosPerMillion, next.pricing?.outputPriceMicrosPerMillion);
   compare("Cache write", previous?.pricing?.cacheWritePriceMicrosPerMillion, next.pricing?.cacheWritePriceMicrosPerMillion);
   compare("Cache read", previous?.pricing?.cacheReadPriceMicrosPerMillion, next.pricing?.cacheReadPriceMicrosPerMillion);
-  compare("Cursor token rate", previous?.pricing?.cursorTokenRateMicrosPerMillion, next.pricing?.cursorTokenRateMicrosPerMillion);
 
   const variantKeys = new Set([
     ...Object.keys(previous?.pricingVariants ?? {}),
@@ -554,18 +543,11 @@ export function BaselineEditor({
         <legend className="stg:text-xs stg:font-medium stg:text-foreground">
           Rates ($ per million tokens)
         </legend>
-        <div className="stg:grid stg:grid-cols-2 stg:gap-2 stg:sm:grid-cols-5">
+        <div className="stg:grid stg:grid-cols-2 stg:gap-2 stg:sm:grid-cols-4">
           <RateField label="Input" value={form.input} disabled={isSubmitting} onChange={(v) => set("input", v)} />
           <RateField label="Output" value={form.output} disabled={isSubmitting} onChange={(v) => set("output", v)} />
           <RateField label="Cache write" value={form.cacheWrite} disabled={isSubmitting} onChange={(v) => set("cacheWrite", v)} />
           <RateField label="Cache read" value={form.cacheRead} disabled={isSubmitting} onChange={(v) => set("cacheRead", v)} />
-          <RateField
-            label="Cursor token rate"
-            value={form.cursorRate}
-            placeholder="cursor only"
-            disabled={isSubmitting}
-            onChange={(v) => set("cursorRate", v)}
-          />
         </div>
       </fieldset>
 
@@ -588,7 +570,7 @@ export function BaselineEditor({
                   className={INPUT_CLASSES}
                   value={variant.wireIds}
                   onChange={(e) => updateVariant(setForm, index, { wireIds: e.target.value })}
-                  placeholder="e.g. composer-2.5-fast"
+                  placeholder="e.g. claude-opus-4-8-fast"
                   disabled={isSubmitting}
                 />
               </Field>

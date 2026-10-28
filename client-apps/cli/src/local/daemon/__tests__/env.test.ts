@@ -33,7 +33,6 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
         appDir: "/repo/server",
       },
       runner: { nodeBin: "/usr/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
-      cursorApiKey: undefined,
       anthropicApiKey: undefined,
       activityRouting: undefined,
       operatorEmail: undefined,
@@ -48,10 +47,9 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
     expect(config.runner).toBeUndefined();
   });
 
-  it("passes CURSOR_API_KEY and activity routing through from the base env", () => {
-    const env = buildDaemonEnv(baseInputs, { CURSOR_API_KEY: "ck", STIGMER_ACTIVITY_ROUTING: "session" });
+  it("passes activity routing through from the base env", () => {
+    const env = buildDaemonEnv(baseInputs, { STIGMER_ACTIVITY_ROUTING: "session" });
     const config = readDaemonConfig(env);
-    expect(config.cursorApiKey).toBe("ck");
     expect(config.activityRouting).toBe("session");
   });
 

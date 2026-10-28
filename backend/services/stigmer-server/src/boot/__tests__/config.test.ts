@@ -306,13 +306,13 @@ describe("loadConfig", () => {
     it("take each listed name's value from the server's environment", () => {
       const config = loadConfig({
         STIGMER_SANDBOX_RUNNER_ENV: "ANTHROPIC_BASE_URL",
-        STIGMER_SANDBOX_RUNNER_SECRETS: " ANTHROPIC_API_KEY , CURSOR_API_KEY ,",
+        STIGMER_SANDBOX_RUNNER_SECRETS: " ANTHROPIC_API_KEY , OPENAI_API_KEY ,",
         ANTHROPIC_BASE_URL: "http://gateway.example:8080",
         ANTHROPIC_API_KEY: "sk-a",
-        CURSOR_API_KEY: "cur-b",
+        OPENAI_API_KEY: "sk-b",
       });
       expect(config.sandboxRunnerEnv).toEqual({ ANTHROPIC_BASE_URL: "http://gateway.example:8080" });
-      expect(config.sandboxRunnerSecretEnv).toEqual({ ANTHROPIC_API_KEY: "sk-a", CURSOR_API_KEY: "cur-b" });
+      expect(config.sandboxRunnerSecretEnv).toEqual({ ANTHROPIC_API_KEY: "sk-a", OPENAI_API_KEY: "sk-b" });
     });
 
     it("fail the boot on a listed name the server does not set", () => {
@@ -384,14 +384,14 @@ describe("loadConfig", () => {
     });
 
     it("holds the listed providers, spaces trimmed", () => {
-      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic, cursor" }).runnerProviders).toEqual(
-        new Set(["anthropic", "cursor"]),
+      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic, openai" }).runnerProviders).toEqual(
+        new Set(["anthropic", "openai"]),
       );
     });
 
     it("refuses a name that is not a provider, so a typo never reads as a missing one", () => {
       expect(() => loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic,gemini" })).toThrow(
-        'STIGMER_RUNNER_PROVIDERS lists "gemini", which is not a model provider — list any of anthropic, openai, cursor',
+        'STIGMER_RUNNER_PROVIDERS lists "gemini", which is not a model provider — list any of anthropic, openai',
       );
     });
   });

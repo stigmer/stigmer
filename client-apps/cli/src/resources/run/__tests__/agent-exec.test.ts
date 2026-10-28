@@ -199,7 +199,7 @@ describe("executeResolvedAgent", () => {
 
     await executeResolvedAgent({
       agent: makeAgent(),
-      prepared: makePrepared({ harness: "cursor" }),
+      prepared: makePrepared({ harness: "claude" }),
       org: "acme",
       downloadDir: "",
       outputMode: "inline",
@@ -209,11 +209,11 @@ describe("executeResolvedAgent", () => {
     const sent = creates();
     expect(sent).toHaveLength(1);
     const target = sent[0]?.spec?.target;
-    expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.CURSOR);
-    // Harness visibility: a cursor session must announce itself before streaming —
+    expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.CLAUDE);
+    // Harness visibility: a Claude session must announce itself before streaming —
     // whether the flag or the account preference selected it.
     expect(stderrLines.join("")).toContain("Harness:");
-    expect(stderrLines.join("")).toContain("Cursor");
+    expect(stderrLines.join("")).toContain("Claude");
   });
 });
 

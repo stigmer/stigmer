@@ -5,11 +5,8 @@
  *
  * Pinned:
  *  - at the first boot the host routes the model registry through the
- *    runner's proxy, points the Cursor SDK at the Cursor lane, and on a
- *    runner that calls providers directly installs the provider lanes;
- *  - on a runner that holds no Cursor credential the host leaves the Cursor
- *    SDK unpointed, and the Cursor adapter on its own (absent) key, so its
- *    turn is refused up front as before;
+ *    runner's proxy, and on a runner that calls providers directly installs
+ *    the provider lanes;
  *  - a running turn signs its approval receipts with the key the runner
  *    handed, not one of the host's own;
  *  - when the channel closes, every booted adapter is shut down in reverse
@@ -19,12 +16,10 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
-import { resolveCursorConfig } from "../../activities/execute-cursor/adapter.js";
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
-import type { Config } from "../../config.js";
 import { TELEMETRY_OFF } from "../../otel-export.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessRow } from "../../harness/registry.js";
@@ -44,7 +39,6 @@ const CONFIG: HostConfigWire = {
   workspaceRootDir: "/tmp/ws",
   primaryModel: "m",
   maxConcurrentActivities: 1,
-  cloudModeEnabled: false,
   checkpointerType: "sqlite",
   mcpBridgeEndpoint: null,
   mcpPublicEndpoint: null,
@@ -52,10 +46,8 @@ const CONFIG: HostConfigWire = {
   openOperationMaxMs: 1,
   shellTimeoutMaxSeconds: 1,
   shellBackgroundEnabled: true,
-  agentResolveTimeoutMs: 1,
   workspaceLockTimeoutMs: 1,
   proxyEndpoint: "http://127.0.0.1:4321",
-  cursorEndpoint: "https://127.0.0.1:4322",
   token: "host-token",
   platformProxied: false,
   telemetry: TELEMETRY_OFF,
@@ -92,14 +84,8 @@ function hostProcess(rows: readonly HarnessRow[], shutdownGraceMs?: number) {
   return { runner, runnerEnd, log, exits, done, flushed: () => flushed };
 }
 
-const cursorBackend = process.env.CURSOR_BACKEND_URL;
-afterEach(() => {
-  if (cursorBackend === undefined) delete process.env.CURSOR_BACKEND_URL;
-  else process.env.CURSOR_BACKEND_URL = cursorBackend;
-});
-
 describe("the agent host process", () => {
-  it("routes the registry and the Cursor SDK, and installs the provider lanes, at the first boot", async () => {
+  it("routes the registry, and installs the provider lanes, at the first boot", async () => {
     resetRegistryRouteForTests();
     resetModelLanesForTests();
     const events: string[] = [];
@@ -109,7 +95,6 @@ describe("the agent host process", () => {
     await runner.call("boot", { harness: "deep-agent", config: CONFIG });
 
     expect(resolveRegistryBaseUrl()).toBe(CONFIG.proxyEndpoint);
-    expect(process.env.CURSOR_BACKEND_URL).toBe(CONFIG.cursorEndpoint);
     expect(modelLanes()).toEqual({ endpoint: CONFIG.proxyEndpoint, token: CONFIG.token });
     runnerEnd.close();
     await done;
@@ -127,26 +112,6 @@ describe("the agent host process", () => {
     runnerEnd.close();
     await done;
     resetRegistryRouteForTests();
-  });
-
-  it("leaves the Cursor SDK unpointed on a runner that holds no Cursor credential", async () => {
-    delete process.env.CURSOR_BACKEND_URL;
-    let booted: Config | undefined;
-    const adapter = probe("cursor", [], {
-      boot: async (config) => {
-        booted = config;
-      },
-    });
-    const { runner, runnerEnd, done } = hostProcess([{ harness: "cursor", adapter }]);
-    await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "cursor", config: { ...CONFIG, cursorEndpoint: null } });
-
-    expect(process.env.CURSOR_BACKEND_URL).toBeUndefined();
-    expect(resolveCursorConfig(booted!).transport).toBeNull();
-    runnerEnd.close();
-    await done;
-    resetRegistryRouteForTests();
-    resetModelLanesForTests();
   });
 
   it("signs a running turn's receipts with the key the runner handed", async () => {
@@ -185,27 +150,27 @@ describe("the agent host process", () => {
 
   it("shuts every booted adapter down in reverse order when the channel closes, flushes telemetry and exits 0", async () => {
     const events: string[] = [];
-    const failing = probe("cursor-probe", events, {
+    const failing = probe("claude-probe", events, {
       shutdown: async () => {
-        events.push("shutdown cursor-probe");
+        events.push("shutdown claude-probe");
         throw new Error("would not let go");
       },
     });
     const { runner, runnerEnd, log, exits, done, flushed } = hostProcess([
       { harness: "deep-agent", adapter: probe("native", events) },
-      { harness: "cursor", adapter: failing },
+      { harness: "claude", adapter: failing },
     ]);
     await runner.receivedHello(1_000);
     await runner.call("boot", { harness: "deep-agent", config: CONFIG });
-    await runner.call("boot", { harness: "cursor", config: CONFIG });
+    await runner.call("boot", { harness: "claude", config: CONFIG });
 
     runnerEnd.close(new Error("the runner is gone"));
     await done;
 
-    expect(events).toEqual(["boot native", "boot cursor-probe", "shutdown cursor-probe", "shutdown native"]);
+    expect(events).toEqual(["boot native", "boot claude-probe", "shutdown claude-probe", "shutdown native"]);
     expect(log).toEqual([
       "[agent-host] channel closed (the runner is gone); shutting down",
-      "[agent-host] cursor-probe shutdown failed: would not let go",
+      "[agent-host] claude-probe shutdown failed: would not let go",
     ]);
     expect(flushed()).toBe(1);
     expect(exits).toEqual([0]);

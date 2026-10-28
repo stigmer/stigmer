@@ -40,8 +40,7 @@ public interface EvalRunCaseTargetOrBuilder extends
   /**
    * <pre>
    * Why this case did not run on this target, as in "not run: model
-   * 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
-   * resumed conversations"; empty when it ran.
+   * 'sonnet' is not in Stigmer's catalog"; empty when it ran.
    * </pre>
    *
    * <code>string not_run_reason = 2 [json_name = "notRunReason"];</code>
@@ -51,8 +50,7 @@ public interface EvalRunCaseTargetOrBuilder extends
   /**
    * <pre>
    * Why this case did not run on this target, as in "not run: model
-   * 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
-   * resumed conversations"; empty when it ran.
+   * 'sonnet' is not in Stigmer's catalog"; empty when it ran.
    * </pre>
    *
    * <code>string not_run_reason = 2 [json_name = "notRunReason"];</code>

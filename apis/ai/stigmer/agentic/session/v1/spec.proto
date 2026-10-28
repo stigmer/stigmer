@@ -54,9 +54,8 @@ message SessionSpec {
   // Conversation title for UI display.
   string subject = 2;
 
-  // Fields 3 and 13 held the harness's conversation id and its history;
-  // they are runner-owned state and live in status (harness_state_id,
-  // harness_state_id_history).
+  // Fields 3 and 13 held the harness's conversation id and its history,
+  // which moved to status and were later retired there.
   reserved 3, 13;
   reserved "harness_state_id", "harness_state_id_history";
 
@@ -89,7 +88,6 @@ message SessionSpec {
   //
   // Determines which harness runs every turn in this session:
   // - NATIVE (default): Stigmer's own runner
-  // - CURSOR: the Cursor SDK
   // - CLAUDE: Anthropic's Claude Agent SDK
   //
   // The harness affects which tools the agent has, how conversation state
@@ -103,26 +101,13 @@ message SessionSpec {
   // The harness picks the Temporal activity type dispatched when a Run is
   // created in this session:
   // - NATIVE: ExecuteDeepAgent activity -> Stigmer unified runner
-  // - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
   // - CLAUDE: ExecuteClaude activity -> Stigmer unified runner
   Harness harness = 10 [(buf.validate.field).enum.defined_only = true];
 
-  // Cursor SDK agent mode for this session.
-  //
-  // Determines whether the Cursor agent runs locally (Agent.create with
-  // local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-  // at session creation and never changed — switching mid-session would
-  // lose Cursor-side conversation state.
-  //
-  // Only meaningful when harness == HARNESS_CURSOR. Ignored for other
-  // harness types.
-  //
-  // @internal
-  // Never user-set (see the CursorMode enum docs). While cloud mode is
-  // disabled platform-wide every Cursor session runs LOCAL and the runner
-  // neither reads nor writes this field; a value stored by an earlier
-  // runner stays and is ignored. UNSPECIFIED means LOCAL.
-  CursorMode cursor_mode = 11;
+  // Field 11 held cursor_mode, the retired Cursor harness's agent type.
+  // The number and the name are reserved so neither is ever reused.
+  reserved 11;
+  reserved "cursor_mode";
 
   // Where session activities are executed — local client or cloud sandbox.
   //

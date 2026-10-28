@@ -1,8 +1,8 @@
 /**
  * The open-operation fold (`../open-operations.ts`), one arm per rule: a
  * start opens, a finish, an error or a proposal closes, a recovery's replayed
- * start of a settled call stays closed, a delegating call counts only where
- * sub-agents report at completion (in either order of its two facts), the
+ * start of a settled call stays closed, a delegating call never counts (in
+ * either order of its two facts), the
  * close of the last counted call is the idle instant, the oldest open
  * call is the backstop's, aged on the fold's clock, and the turn awaits its
  * model while a round is open or while a tool's result is unanswered. A
@@ -15,7 +15,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { OpenOperations } from "../open-operations.js";
-import type { SubAgentProgress } from "../capabilities.js";
 import type { TranscriptEvent } from "../transcript/events.js";
 
 function started(callId: string, name = "execute", subAgentId?: string): TranscriptEvent {
@@ -26,10 +25,10 @@ function delegated(subAgentId: string): TranscriptEvent {
   return { kind: "sub_agent_started", subAgentId, name: "helper", subject: "work", input: "work" };
 }
 
-function fold(progress: SubAgentProgress = "streamed") {
+function fold() {
   let now = 1_000;
   const onIdle = vi.fn();
-  const operations = new OpenOperations({ subAgentProgress: progress, onIdle, now: () => now });
+  const operations = new OpenOperations({ onIdle, now: () => now });
   return { operations, onIdle, advance: (ms: number) => (now += ms) };
 }
 
@@ -83,8 +82,8 @@ describe("OpenOperations", () => {
   });
 
   describe("a delegating call", () => {
-    it("does not count where sub-agents stream (native announces the sub-agent first); the sub-agent's own call does", () => {
-      const { operations } = fold("streamed");
+    it("does not count (native announces the sub-agent first); the sub-agent's own call does", () => {
+      const { operations } = fold();
       operations.observe(delegated("task-1"));
       operations.observe(started("task-1", "task"));
       expect(operations.held(), "the delegating call alone holds nothing").toBe(false);
@@ -95,7 +94,7 @@ describe("OpenOperations", () => {
     });
 
     it("stops counting when its sub-agent is announced after it starts, and that is the idle instant", () => {
-      const { operations, onIdle } = fold("streamed");
+      const { operations, onIdle } = fold();
       operations.observe(started("task-1", "task"));
       expect(operations.held()).toBe(true);
       operations.observe(delegated("task-1"));
@@ -103,22 +102,10 @@ describe("OpenOperations", () => {
       expect(onIdle).toHaveBeenCalledTimes(1);
     });
 
-    it("counts where sub-agents report at completion, in either order", () => {
-      const before = fold("at-completion");
-      before.operations.observe(delegated("task-1"));
-      before.operations.observe(started("task-1", "task"));
-      expect(before.operations.held()).toBe(true);
-
-      const after = fold("at-completion");
-      after.operations.observe(started("task-1", "task"));
-      after.operations.observe(delegated("task-1"));
-      expect(after.operations.held()).toBe(true);
-      expect(after.onIdle).not.toHaveBeenCalled();
-    });
   });
 
   it("names the oldest counted call with its age on the fold's clock", () => {
-    const { operations, advance } = fold("streamed");
+    const { operations, advance } = fold();
     expect(operations.oldest()).toBeUndefined();
     operations.observe(started("c1", "execute"));
     advance(5_000);
@@ -143,7 +130,7 @@ describe("OpenOperations", () => {
 
   describe("the snapshot a liveness names", () => {
     it("lists every counted call oldest first, each aged at the read, and waits on nothing while one runs", () => {
-      const { operations, advance } = fold("streamed");
+      const { operations, advance } = fold();
       expect(operations.snapshot()).toEqual({ operations: [], awaitingModelMs: undefined });
       operations.observe(started("c2", "web_fetch"));
       advance(2_000);

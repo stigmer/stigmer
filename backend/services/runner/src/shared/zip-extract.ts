@@ -25,9 +25,8 @@
  * parsed entries as path + content pairs — consumers bring their own
  * write mechanism (WorkspaceBackend, node:fs, etc.).
  *
- * Extracted from skill-writer.ts so both the deep-agent and Cursor
- * harnesses can share the same ZIP parsing logic without coupling to
- * a specific workspace abstraction.
+ * Kept apart from any one caller so every harness shares the same ZIP
+ * parsing logic without coupling to a specific workspace abstraction.
  */
 
 import { createInflateRaw } from "node:zlib";

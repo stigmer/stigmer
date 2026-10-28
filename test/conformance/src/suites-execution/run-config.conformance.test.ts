@@ -159,8 +159,8 @@ describe("Run — the settings a turn runs with", () => {
   it("[rpc:RunCommandController.create] on the other engine the agent's model is left out and its cap applies", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
-      harness: Harness.CURSOR,
-      runConfig: { modelName: "composer-2.5", maxCostUsd: 1 },
+      harness: Harness.CLAUDE,
+      runConfig: { modelName: "claude-sonnet-5", maxCostUsd: 1 },
     });
 
     const final = await turn({ org, agentRef: agentRefOf(agent), sessionSpec: { harness: Harness.NATIVE } });

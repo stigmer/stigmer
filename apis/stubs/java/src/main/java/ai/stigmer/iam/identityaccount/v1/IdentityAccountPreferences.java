@@ -36,7 +36,6 @@ private static final long serialVersionUID = 0L;
     standingContext_ = "";
     defaultHarness_ = "";
     defaultNativeModel_ = "";
-    defaultCursorModel_ = "";
     defaultClaudeModel_ = "";
   }
 
@@ -112,7 +111,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object defaultHarness_ = "";
   /**
    * <pre>
-   * Default harness for new sessions: "native", "cursor" or "claude".
+   * Default harness for new sessions: "native" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -134,7 +133,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Default harness for new sessions: "native", "cursor" or "claude".
+   * Default harness for new sessions: "native" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -199,55 +198,6 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       defaultNativeModel_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int DEFAULT_CURSOR_MODEL_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object defaultCursorModel_ = "";
-  /**
-   * <pre>
-   * Default model (registry model ID) for cursor-harness sessions.
-   * Empty means no preference — the platform default applies.
-   * </pre>
-   *
-   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-   * @return The defaultCursorModel.
-   */
-  @java.lang.Override
-  public java.lang.String getDefaultCursorModel() {
-    java.lang.Object ref = defaultCursorModel_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      defaultCursorModel_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Default model (registry model ID) for cursor-harness sessions.
-   * Empty means no preference — the platform default applies.
-   * </pre>
-   *
-   * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for defaultCursorModel.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getDefaultCursorModelBytes() {
-    java.lang.Object ref = defaultCursorModel_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      defaultCursorModel_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -359,9 +309,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultNativeModel_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, defaultNativeModel_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultCursorModel_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, defaultCursorModel_);
-    }
     if (memoryEnabled_ != false) {
       output.writeBool(5, memoryEnabled_);
     }
@@ -388,9 +335,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultNativeModel_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, defaultNativeModel_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultCursorModel_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, defaultCursorModel_);
     }
     if (memoryEnabled_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -424,8 +368,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDefaultHarness())) return false;
     if (!getDefaultNativeModel()
         .equals(other.getDefaultNativeModel())) return false;
-    if (!getDefaultCursorModel()
-        .equals(other.getDefaultCursorModel())) return false;
     if (getMemoryEnabled()
         != other.getMemoryEnabled()) return false;
     if (getDefaultAutoApprove()
@@ -449,8 +391,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDefaultHarness().hashCode();
     hash = (37 * hash) + DEFAULT_NATIVE_MODEL_FIELD_NUMBER;
     hash = (53 * hash) + getDefaultNativeModel().hashCode();
-    hash = (37 * hash) + DEFAULT_CURSOR_MODEL_FIELD_NUMBER;
-    hash = (53 * hash) + getDefaultCursorModel().hashCode();
     hash = (37 * hash) + MEMORY_ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getMemoryEnabled());
@@ -598,7 +538,6 @@ private static final long serialVersionUID = 0L;
       standingContext_ = "";
       defaultHarness_ = "";
       defaultNativeModel_ = "";
-      defaultCursorModel_ = "";
       memoryEnabled_ = false;
       defaultAutoApprove_ = false;
       defaultClaudeModel_ = "";
@@ -645,15 +584,12 @@ private static final long serialVersionUID = 0L;
         result.defaultNativeModel_ = defaultNativeModel_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.defaultCursorModel_ = defaultCursorModel_;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.memoryEnabled_ = memoryEnabled_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.defaultAutoApprove_ = defaultAutoApprove_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.defaultClaudeModel_ = defaultClaudeModel_;
       }
     }
@@ -685,11 +621,6 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (!other.getDefaultCursorModel().isEmpty()) {
-        defaultCursorModel_ = other.defaultCursorModel_;
-        bitField0_ |= 0x00000008;
-        onChanged();
-      }
       if (other.getMemoryEnabled() != false) {
         setMemoryEnabled(other.getMemoryEnabled());
       }
@@ -698,7 +629,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getDefaultClaudeModel().isEmpty()) {
         defaultClaudeModel_ = other.defaultClaudeModel_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -742,24 +673,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              defaultCursorModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             case 40: {
               memoryEnabled_ = input.readBool();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 40
             case 48: {
               defaultAutoApprove_ = input.readBool();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 48
             case 58: {
               defaultClaudeModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             default: {
@@ -879,7 +805,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object defaultHarness_ = "";
     /**
      * <pre>
-     * Default harness for new sessions: "native", "cursor" or "claude".
+     * Default harness for new sessions: "native" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -900,7 +826,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native", "cursor" or "claude".
+     * Default harness for new sessions: "native" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -922,7 +848,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native", "cursor" or "claude".
+     * Default harness for new sessions: "native" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -940,7 +866,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native", "cursor" or "claude".
+     * Default harness for new sessions: "native" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -955,7 +881,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Default harness for new sessions: "native", "cursor" or "claude".
+     * Default harness for new sessions: "native" or "claude".
      * Empty means no preference — the platform default applies.
      * </pre>
      *
@@ -1070,103 +996,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object defaultCursorModel_ = "";
-    /**
-     * <pre>
-     * Default model (registry model ID) for cursor-harness sessions.
-     * Empty means no preference — the platform default applies.
-     * </pre>
-     *
-     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-     * @return The defaultCursorModel.
-     */
-    public java.lang.String getDefaultCursorModel() {
-      java.lang.Object ref = defaultCursorModel_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        defaultCursorModel_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Default model (registry model ID) for cursor-harness sessions.
-     * Empty means no preference — the platform default applies.
-     * </pre>
-     *
-     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for defaultCursorModel.
-     */
-    public com.google.protobuf.ByteString
-        getDefaultCursorModelBytes() {
-      java.lang.Object ref = defaultCursorModel_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        defaultCursorModel_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Default model (registry model ID) for cursor-harness sessions.
-     * Empty means no preference — the platform default applies.
-     * </pre>
-     *
-     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-     * @param value The defaultCursorModel to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultCursorModel(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      defaultCursorModel_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Default model (registry model ID) for cursor-harness sessions.
-     * Empty means no preference — the platform default applies.
-     * </pre>
-     *
-     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearDefaultCursorModel() {
-      defaultCursorModel_ = getDefaultInstance().getDefaultCursorModel();
-      bitField0_ = (bitField0_ & ~0x00000008);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Default model (registry model ID) for cursor-harness sessions.
-     * Empty means no preference — the platform default applies.
-     * </pre>
-     *
-     * <code>string default_cursor_model = 4 [json_name = "defaultCursorModel", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for defaultCursorModel to set.
-     * @return This builder for chaining.
-     */
-    public Builder setDefaultCursorModelBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      defaultCursorModel_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-
     private boolean memoryEnabled_ ;
     /**
      * <pre>
@@ -1196,7 +1025,7 @@ private static final long serialVersionUID = 0L;
     public Builder setMemoryEnabled(boolean value) {
 
       memoryEnabled_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1211,7 +1040,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearMemoryEnabled() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       memoryEnabled_ = false;
       onChanged();
       return this;
@@ -1244,7 +1073,7 @@ private static final long serialVersionUID = 0L;
     public Builder setDefaultAutoApprove(boolean value) {
 
       defaultAutoApprove_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1258,7 +1087,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearDefaultAutoApprove() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       defaultAutoApprove_ = false;
       onChanged();
       return this;
@@ -1322,7 +1151,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       defaultClaudeModel_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1337,7 +1166,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearDefaultClaudeModel() {
       defaultClaudeModel_ = getDefaultInstance().getDefaultClaudeModel();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -1356,7 +1185,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       defaultClaudeModel_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

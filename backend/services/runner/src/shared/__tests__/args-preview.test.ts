@@ -2,11 +2,11 @@
  * Unit tests for the shared args-preview builder — the ONE preview rule every
  * tool row carries since #1097.
  *
- * The Cursor gate path depends on {@link buildElidedArgsPreview} producing a
- * SMALL, ALWAYS-VALID, salient-preserving preview: the resumed turn re-parses it
- * to rebuild an approval grant's identity, and the persist-time size backstop
- * would replace an oversized preview with an unparseable marker. These pin those
- * invariants so a large write can never silently break the resume round-trip.
+ * Every gate depends on {@link buildElidedArgsPreview} producing a SMALL,
+ * ALWAYS-VALID, salient-preserving preview: a person approves the resource
+ * they read there, and the persist-time size backstop would replace an
+ * oversized preview with an unparseable marker. These pin those invariants
+ * so a large write can never silently lose its path.
  * (The native harness's whole-string-truncating `sanitizeArgsPreview` and its
  * two arms went with it: a preview that could truncate to invalid JSON has no
  * caller left.)
@@ -34,7 +34,7 @@ const secretArgs = JSON.parse(
 
 describe("SALIENT_ARG_FIELDS", () => {
   it("spans both harnesses' shapes for a file and a shell command, in priority order", () => {
-    expect([...SALIENT_ARG_FIELDS]).toEqual(["file_path", "path", "target_notebook", "command"]);
+    expect([...SALIENT_ARG_FIELDS]).toEqual(["file_path", "path", "command"]);
   });
 });
 
@@ -56,11 +56,10 @@ describe("the secret-args wire contract (test/fixtures/tool-view/secret-args.jso
   }
 });
 
-// A row's args are redacted at creation (stigmer#1119), and three readers act
-// on them afterwards: exact-apply writes an approved file from the path and
-// content, the Cursor approval identity keys on the salient field, and the
-// content digest hashes the write or edit content. Widening the secret set into
-// one of those fields would make an approved write land as the marker on disk.
+// A row's args are redacted at creation (stigmer#1119), and readers act on
+// them afterwards: the gate capture reads the path and the write or edit
+// content, and the preview keeps the salient field whole. Widening the secret
+// set into one of those fields would show or capture the marker instead.
 describe("secret keys never overlap the fields a row's args are acted on by", () => {
   const actedOn = [...SALIENT_ARG_FIELDS, ...WRITE_CONTENT_FIELDS, ...EDIT_OLD_FIELDS, ...EDIT_NEW_FIELDS];
 

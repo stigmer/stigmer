@@ -1,17 +1,21 @@
 /**
  * Pins ValidateAgentRunConfig (validate-run-config.ts) against the BUNDLED
- * registry: an agent's run defaults are judged on the engine they name.
+ * registry, and against a small local one where the bundle has no example
+ * (it prices no model fast, lists the same models on both engines, and
+ * every model in it can think): an agent's run defaults are judged on the
+ * engine they name.
  *
  *   - no defaults, bounds alone, and an engine with no model pass;
  *   - a model with no engine is refused, naming spec.harness;
  *   - a model the engine does not list is refused with a did-you-mean, even
- *     when the other engine lists it (claude-sonnet-4.6 is native-only);
- *   - FAST needs a model the engine prices fast (composer-2.5 on cursor),
- *     and is refused without a model or on one the engine prices no fast
- *     variant for;
+ *     when the other engine lists it (the local claude-sonnet-4.6 is
+ *     native-only);
+ *   - FAST needs a model the engine prices fast (the local claude-opus-4.8
+ *     on claude), and is refused without a model or on one the engine
+ *     prices no fast variant for;
  *   - ENABLED needs a model the engine marks able to think, in either form
  *     (claude-sonnet-5's native entry is adaptive), and is refused without
- *     a model or on one that cannot think there (composer-2.5);
+ *     a model or on one that cannot think there (the local claude-plain);
  *   - DISABLED is refused on a model whose entry always thinks
  *     (claude-fable-5 on native), since every turn would be refused.
  */
@@ -36,18 +40,39 @@ import { bundledModelRegistryDocument } from "../../../modelcatalog/bundled.js";
 import { ModelRegistryStore } from "../../../modelcatalog/model-registry-store.js";
 import { newValidateAgentRunConfigStep } from "../validate-run-config.js";
 
-const registry = new ModelRegistryStore({
-  bundledDocument: bundledModelRegistryDocument(),
-  upstreamOrigin: "http://unused.test",
-  refreshEnabled: false,
-  logger: createLogger({ level: "error", pretty: false, write: () => {} }),
-});
+function registryOf(bundledDocument: string): ModelRegistryStore {
+  return new ModelRegistryStore({
+    bundledDocument,
+    upstreamOrigin: "http://unused.test",
+    refreshEnabled: false,
+    logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+  });
+}
 
-const step = newValidateAgentRunConfigStep(registry);
+const bundled = newValidateAgentRunConfigStep(registryOf(bundledModelRegistryDocument()));
+
+/** What the bundle has no example of: a fast price, a one-engine model, a model that cannot think. */
+const local = newValidateAgentRunConfigStep(
+  registryOf(
+    JSON.stringify({
+      models: [
+        { id: "claude-sonnet-4.6", harness: "native", capabilities: { adaptiveThinking: true } },
+        {
+          id: "claude-opus-4.8",
+          harness: "claude",
+          pricingVariants: { fast: { inputPricePerMillion: 30 } },
+          capabilities: { adaptiveThinking: true },
+        },
+        { id: "claude-plain", harness: "claude" },
+        { id: "claude-sonnet-4.5", harness: "claude", capabilities: { thinking: true } },
+      ],
+    }),
+  ),
+);
 
 type SpecInit = MessageInitShape<typeof AgentSpecSchema>;
 
-function run(spec: SpecInit): void {
+function run(spec: SpecInit, step = bundled): void {
   step.execute(
     new RequestContext(
       AgentSchema,
@@ -60,9 +85,9 @@ function run(spec: SpecInit): void {
   );
 }
 
-function refusal(spec: SpecInit): ConnectError {
+function refusal(spec: SpecInit, step = bundled): ConnectError {
   try {
-    run(spec);
+    run(spec, step);
   } catch (error) {
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
@@ -75,7 +100,7 @@ describe("ValidateAgentRunConfig: what passes", () => {
   it.each<[string, SpecInit]>([
     ["no run defaults", {}],
     ["bounds alone, no engine", { runConfig: { maxCostUsd: 2, maxToolRounds: 30 } }],
-    ["an engine with no model", { harness: Harness.CURSOR }],
+    ["an engine with no model", { harness: Harness.CLAUDE }],
     [
       "a native model, thinking on in the adaptive form",
       {
@@ -84,15 +109,17 @@ describe("ValidateAgentRunConfig: what passes", () => {
       },
     ],
     [
-      "a cursor model priced fast",
-      { harness: Harness.CURSOR, runConfig: { modelName: "composer-2.5", serviceTier: ServiceTier.FAST } },
-    ],
-    [
       "explicit standard and disabled with no model",
       { runConfig: { serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED } },
     ],
   ])("%s", (_, spec) => {
     expect(() => run(spec)).not.toThrow();
+  });
+
+  it("a claude model priced fast", () => {
+    expect(() =>
+      run({ harness: Harness.CLAUDE, runConfig: { modelName: "claude-opus-4.8", serviceTier: ServiceTier.FAST } }, local),
+    ).not.toThrow();
   });
 });
 
@@ -103,18 +130,22 @@ describe("ValidateAgentRunConfig: what is refused", () => {
     );
   });
 
-  it("a model the named engine does not list, with a did-you-mean", () => {
-    const err = refusal({
-      harness: Harness.CURSOR,
-      runConfig: { modelName: "claude-sonnet-4.6" },
-    });
+  it("a model the named engine does not list, with a did-you-mean, though the other engine lists it", () => {
+    const err = refusal(
+      {
+        harness: Harness.CLAUDE,
+        runConfig: { modelName: "claude-sonnet-4.6" },
+      },
+      local,
+    );
     expect(err.rawMessage).toContain("spec.run_config.model_name");
-    expect(err.rawMessage).toContain("cursor harness");
+    expect(err.rawMessage).toContain("claude harness");
+    expect(err.rawMessage).toContain("did you mean 'claude-sonnet-4.5'");
   });
 
   it("FAST with no model", () => {
     expect(
-      refusal({ harness: Harness.CURSOR, runConfig: { serviceTier: ServiceTier.FAST } }).rawMessage,
+      refusal({ harness: Harness.CLAUDE, runConfig: { serviceTier: ServiceTier.FAST } }).rawMessage,
     ).toContain("spec.run_config.service_tier 'fast' requires spec.run_config.model_name");
   });
 
@@ -135,10 +166,13 @@ describe("ValidateAgentRunConfig: what is refused", () => {
 
   it("ENABLED on a model that cannot think on the engine", () => {
     expect(
-      refusal({
-        harness: Harness.CURSOR,
-        runConfig: { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
-      }).rawMessage,
+      refusal(
+        {
+          harness: Harness.CLAUDE,
+          runConfig: { modelName: "claude-plain", thinkingMode: ThinkingMode.ENABLED },
+        },
+        local,
+      ).rawMessage,
     ).toContain("no thinking capability");
   });
 

@@ -6,7 +6,7 @@ Endpoints:
   console    http://localhost:7234
 
 Agents:
-  ready    anthropic (key), cursor (key)
+  ready    anthropic (key), openai (key)
 
   Check status with: stigmer status
   Stop it with:    stigmer down

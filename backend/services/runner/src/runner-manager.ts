@@ -26,7 +26,6 @@ import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js
 import type { Config, TokenRef } from "./config.js";
 import type { HarnessRow } from "./harness/registry.js";
 import {
-  DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   DEFAULT_LIVENESS_INTERVAL_MS,
   DEFAULT_OPEN_OPERATION_MAX_MS,
@@ -40,6 +39,7 @@ import {
   type WorkflowSource,
 } from "./workflow-source.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
+import { heartbeatWorkerOptions } from "./shared/heartbeat.js";
 import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
@@ -53,7 +53,7 @@ import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 // Per-task-queue in-flight activity tracking lives in ./in-flight.ts so the
 // activity interceptor (no manager-closure handle) and unit tests can reach it.
-// This is what keeps a session worker alive while ExecuteCursor is running, so a
+// This is what keeps a session worker alive while a turn's activity is running, so a
 // view close can no longer reap the worker mid-run.
 import {
   activityStartedOnQueue,
@@ -101,9 +101,6 @@ export interface RunnerManagerOptions {
   /** Auth token for authenticating with the Stigmer server. */
   readonly stigmerToken?: string;
 
-  /** Cursor API key for direct mode (not needed in proxy mode). */
-  readonly cursorApiKey?: string;
-
   /** Root directory for agent workspaces. Defaults to ~/.stigmer/workspaces/runner. */
   readonly workspaceRootDir?: string;
 
@@ -116,7 +113,7 @@ export interface RunnerManagerOptions {
   /** Default LLM model identifier. @default "gpt-4.1" */
   readonly primaryModel?: string;
 
-  /** No-progress bound for every harness's engine stream (ms); named for Cursor, its first user. An open operation holds it. @default 180000 */
+  /** No-progress bound for every harness's engine stream (ms). An open operation holds it. @default 180000 */
   readonly cursorStreamStallTimeoutMs?: number;
 
   /** The backstop for one open operation (ms): an operation open this long is stopped and the turn fails. @default 3600000 */
@@ -131,9 +128,6 @@ export interface RunnerManagerOptions {
   /** Whether the native shell's model may start a command in the background. @default true */
   readonly shellBackgroundEnabled?: boolean;
 
-  /** Bound for Cursor Agent.create/resume (ms). @default 120000 */
-  readonly agentResolveTimeoutMs?: number;
-
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */
   readonly workspaceLockTimeoutMs?: number;
 
@@ -146,9 +140,6 @@ export interface RunnerManagerOptions {
   /** Artifact presign endpoint (stigmer#803). Falls back to proxyEndpoint. */
   readonly artifactProxyEndpoint?: string;
 
-  /** Enable Cursor cloud mode. @default false */
-  readonly cloudModeEnabled?: boolean;
-
   /**
    * Workspace/filesystem execution location — where the agent actually runs.
    *
@@ -158,7 +149,7 @@ export interface RunnerManagerOptions {
    *
    * This is intentionally distinct from {@link proxyEndpoint}, which controls
    * credential/artifact *transport*. The desktop runner is the canonical case
-   * where the two diverge: it executes locally while routing Cursor traffic and
+   * where the two diverge: it executes locally while routing model traffic and
    * artifacts through the proxy. Defaults to "local".
    *
    * @default "local"
@@ -181,7 +172,7 @@ export interface StigmerRunnerManager {
    * e.g. the desktop's Auth0 token) to all activity clients.
    *
    * This updates the control-plane credential only. The proxy credential
-   * (x-stigmer-auth) follows it in lockstep UNLESS the runner minted its own
+   * follows it in lockstep UNLESS the runner minted its own
    * proxy token during bootstrap, in which case the runner owns and refreshes
    * that token itself and this push must not clobber it. See the two-writer note
    * on the implementation.
@@ -248,7 +239,7 @@ async function buildStigmerRunnerManager(
 
   // `tokenRef` holds the control-plane token (the host's durable credential,
   // e.g. the desktop's Auth0 token) and is shared with activity clients via
-  // config.stigmerTokenRef. The proxy credential (x-stigmer-auth) is managed
+  // config.stigmerTokenRef. The proxy credential is managed
   // separately by a RunnerTokenCoordinator (created after the harnesses boot)
   // — see that module for the two-writer rationale and the staleness history
   // it guards.
@@ -263,20 +254,11 @@ async function buildStigmerRunnerManager(
   const runnerTokenRef: TokenRef = { current: options.stigmerToken ?? null };
   const baseConfig = mapManagerOptionsToConfig(options, tokenRef, runnerTokenRef);
 
-  assertLlmBackendsPreflight(baseConfig.proxyEndpoint, baseConfig.cursorApiKey);
+  assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
-  // Boot the harnesses BEFORE resolving Temporal coordinates. Coordinate
-  // discovery dials the control plane through connect-node, which snapshots
-  // the node:http2 ESM facade on first import; the Cursor adapter's boot
-  // installs the proxy interceptors (the HTTP/2 one patches http2.connect,
-  // which only reaches that facade if it runs first), proves the patch landed,
-  // and only then loads its SDK. The interceptors read the proxy credential
-  // per request from `runnerTokenRef` (Config.proxyTokenRef, bound by
-  // mapManagerOptionsToConfig): the control-plane token until a runner token
-  // is minted, the minted token after, exactly the lockstep the coordinator
-  // below maintains in that ref. Nothing a boot reads depends on the
-  // coordinates, so `baseConfig` carries none yet. The modules imported
-  // here are connect-free by construction (`harness-adapters.ts`,
+  // Boot the harnesses BEFORE resolving Temporal coordinates: nothing a boot
+  // reads depends on the coordinates, so `baseConfig` carries none yet. The
+  // modules imported here load no engine's SDK (`harness-adapters.ts`,
   // `harness/registry.ts`, `agent-host/hosting.ts`;
   // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
   // run in the agent host, one for every session worker of this manager,
@@ -293,11 +275,10 @@ async function buildStigmerRunnerManager(
   };
   await bootHarnesses(adaptersOf(hosted.rows), baseConfig);
 
-  // The token coordinator owns the proxy credential (x-stigmer-auth) and its
-  // refresh lifecycle. It writes ONE sink, `runnerTokenRef`, which is read per
-  // request by both the interceptors (as Config.proxyTokenRef) and the gRPC
-  // client (as Config.stigmerRunnerTokenRef), so mint and refresh reach every
-  // reader in one write. It re-mints using the always-fresh control-plane
+  // The token coordinator owns the proxy credential and its
+  // refresh lifecycle. It writes ONE sink, `runnerTokenRef`, which the gRPC
+  // client reads per request (as Config.stigmerRunnerTokenRef), so mint and
+  // refresh reach it in one write. It re-mints using the always-fresh control-plane
   // token in `tokenRef` — never the (possibly expired) minted token itself, so
   // a slept-past-TTL runner recovers without a restart.
   const tokenCoordinator = createRunnerTokenCoordinator({
@@ -424,6 +405,8 @@ async function buildStigmerRunnerManager(
       activities,
       workflowBundle,
       maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
+      // A pause reaches a turn on its next heartbeat; sent within seconds.
+      ...heartbeatWorkerOptions,
       dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
       sinks: interceptorConfig.sinks,
       interceptors: interceptorConfig.interceptors,
@@ -537,9 +520,7 @@ async function buildStigmerRunnerManager(
         sessions, sessionId, SESSION_QUEUE_PREFIX + sessionId, "session",
       );
       // The session is done on this host — every harness releases what it
-      // parked for it (the Cursor harness: the agent, and the executor + MCP
-      // subprocesses its lease pins) now rather than after the idle TTL
-      // (#215). Logged, never thrown: the session's worker is already gone,
+      // parked for it now rather than after an idle TTL (#215). Logged, never thrown: the session's worker is already gone,
       // and failing this IPC command would tell the desktop a removal that
       // did happen did not.
       try {
@@ -603,8 +584,7 @@ async function buildStigmerRunnerManager(
         }),
       );
       // Workers are drained — every harness releases what it still holds
-      // (the Cursor harness: its parked session agents, whose executor leases
-      // dispose and whose stdio MCP subprocesses die with them, #215). Logged,
+      // (the agent host and its engines, #215). Logged,
       // never thrown: the drain has already happened, and a teardown failure
       // must not mask a clean stop.
       try {
@@ -648,7 +628,7 @@ export function mapManagerOptionsToConfig(
 
   // Execution location is independent of proxy transport. Do NOT derive `mode`
   // from `proxyActive`: the desktop runner executes LOCALLY (local-path
-  // workspaces must work) while still routing Cursor traffic through the proxy.
+  // workspaces must work) while still routing model traffic through the proxy.
   // Coupling the two here is exactly what previously broke local-path sessions.
   const mode = options.executionMode ?? ("local" as const);
 
@@ -667,20 +647,11 @@ export function mapManagerOptionsToConfig(
     mcpPublicEndpoint: process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null,
     stigmerTokenRef: tokenRef,
     stigmerRunnerTokenRef: runnerTokenRef,
-    // The manager's proxy credential is the minted runner token once adopted
-    // (the control-plane token in lockstep before that), so it is this ref and
-    // not `tokenRef`: binding `tokenRef` would keep sending the desktop's own
-    // Auth0 token as x-stigmer-auth after the mint.
-    proxyTokenRef: runnerTokenRef,
-    cursorApiKey: proxyActive
-      ? (options.cursorApiKey ?? "proxy-managed")
-      : (options.cursorApiKey ?? ""),
     workspaceRootDir: options.workspaceRootDir ?? resolveDefaultWorkspaceDir(),
     mode,
     proxyEndpoint: options.proxyEndpoint ?? null,
     maxConcurrentActivities: options.maxConcurrentActivitiesPerSession ?? 5,
     idleTimeoutSeconds: null,
-    cloudModeEnabled: options.cloudModeEnabled ?? false,
     checkpointerType:
       options.checkpointerType ?? (proxyActive ? "http" : "sqlite"),
     checkpointerProxyEndpoint:
@@ -694,8 +665,6 @@ export function mapManagerOptionsToConfig(
     livenessIntervalMs: options.livenessIntervalMs ?? DEFAULT_LIVENESS_INTERVAL_MS,
     shellTimeoutMaxSeconds: options.shellTimeoutMaxSeconds ?? DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
     shellBackgroundEnabled: options.shellBackgroundEnabled ?? true,
-    agentResolveTimeoutMs:
-      options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     // None: the manager's workers exit at once on its host's quit (issue
@@ -707,9 +676,8 @@ export function mapManagerOptionsToConfig(
 /**
  * Dynamically import all activity factories and merge into a single map,
  * after the harnesses have booted: several of these modules transitively load
- * `@connectrpc/connect-node` and LangChain, and the Cursor adapter's boot must
- * have patched `node:http2` before connect-node is first imported (see
- * createStigmerRunnerManager). The harness rows and the registry were imported
+ * `@connectrpc/connect-node` and LangChain, which the manager's boot path does
+ * not need. The harness rows and the registry were imported
  * by the factory for the boot; the imports here hit the module cache.
  */
 async function createAllActivities(config: Config, harnessRows: readonly HarnessRow[]): Promise<WorkerActivities> {
@@ -767,7 +735,7 @@ export async function buildInterceptorConfig(
   const workflowInterceptorModules: string[] = [];
 
   // In-flight activity counter: keeps a session worker alive while one of
-  // its activities (notably the long ExecuteCursor) is running, so a view close
+  // its activities (notably a long turn) is running, so a view close
   // can no longer reap the worker mid-run. Always installed; cheap and global.
   activityInterceptors.push((ctx) => ({
     inbound: {

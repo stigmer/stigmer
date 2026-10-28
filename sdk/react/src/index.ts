@@ -46,7 +46,6 @@ export {
 // Models — data hook, styled components, and registry data
 export {
   DEFAULT_MODEL_ID,
-  DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
   modelKey,
   parseModelKey,

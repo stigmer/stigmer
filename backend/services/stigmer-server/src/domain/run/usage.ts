@@ -286,7 +286,7 @@ function scopeRuns(
  * (temporal/agentexecution/dispatch.ts). One read per distinct session; a
  * session that is gone, or a run in none, is the native harness, as
  * dispatch defaults it. Any other store fault fails the report: a guessed
- * harness would count a Cursor run's tokens by the wrong rule.
+ * harness would put a run's tokens under the wrong harness.
  */
 async function sessionHarnesses(
   deps: UsageReportDeps,

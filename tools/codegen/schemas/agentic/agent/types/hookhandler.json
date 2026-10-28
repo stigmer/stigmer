@@ -1,6 +1,6 @@
 {
   "name": "HookHandler",
-  "description": "HookHandler is one command a hook runs.\n\n The command reads the call as JSON on stdin and answers as its format's\n hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or\n deny with a reason. A Cursor-format \"ask\" waits for a person on both\n engines, where Cursor itself lets the call run.",
+  "description": "HookHandler is one command a hook runs.\n\n The command reads the call as JSON on stdin and answers as its format's\n hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or\n deny with a reason. A Cursor-format \"ask\" waits for a person on every\n harness, where Cursor itself lets the call run.",
   "protoType": "ai.stigmer.agentic.plugin.v1.HookHandler",
   "protoFile": "apis/ai/stigmer/agentic/plugin/v1/hooks.proto",
   "fields": [

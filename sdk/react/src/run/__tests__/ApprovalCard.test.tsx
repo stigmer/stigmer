@@ -93,7 +93,7 @@ describe("ApprovalCard chrome", () => {
 
   it("never shows the auto-keep note on a non-shell gate", () => {
     render(
-      <ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"src/x.ts","contents":"x"}' })} onAnswer={noop} />,
+      <ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"src/x.ts","content":"x"}' })} onAnswer={noop} />,
     );
     expect(screen.queryByText(/kept automatically/)).toBeNull();
   });
@@ -116,7 +116,7 @@ describe("ApprovalCard chrome", () => {
 describe("ApprovalCard quiet decision buttons", () => {
   function renderGate() {
     return render(
-      <ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"src/x.ts","contents":"x"}' })} onAnswer={noop} />,
+      <ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"src/x.ts","content":"x"}' })} onAnswer={noop} />,
     );
   }
 
@@ -173,7 +173,7 @@ describe("ApprovalCard message redundancy", () => {
   it("suppresses a file tool's message that only restates the header", () => {
     render(
       <ApprovalCard
-        toolUse={waiting("write_file", { message: "Write file: src/x.ts", argsPreview: '{"path":"src/x.ts","contents":"x"}' })}
+        toolUse={waiting("write_file", { message: "Write file: src/x.ts", argsPreview: '{"path":"src/x.ts","content":"x"}' })}
         onAnswer={noop}
       />,
     );
@@ -278,7 +278,7 @@ describe("ApprovalCard proposed change", () => {
   it("shows the proposed content (filename only in the header)", () => {
     render(
       <ApprovalCard
-        toolUse={waiting("write_file", { argsPreview: '{"path":"src/fallback.ts","contents":"x"}' })}
+        toolUse={waiting("write_file", { argsPreview: '{"path":"src/fallback.ts","content":"x"}' })}
         onAnswer={noop}
       />,
     );

@@ -115,8 +115,8 @@ export interface CapabilityFlags {
   //
   // Deliberately a capability flag and not a heavier target: firing needs
   // the engine but NOT a runner or LLM (the suite fires routines the run
-  // create refuses deterministically, an unattended Cursor turn naming no
-  // model, so no run is created) — which is what lets this be the first
+  // create refuses deterministically, thinking turned off for a model that
+  // always thinks, so no run is created) — which is what lets this be the first
   // execution-class behavior asserted cross-edition.
   routineFiring: boolean;
   // The target's runner serves every person's runs AS THE PERSON WHOSE RUN
@@ -427,10 +427,9 @@ export interface CapabilityFlags {
   // RPC.
   billingPlans: boolean;
   // The side-channel proxy is served here: the HTTP lanes runners use so they
-  // carry zero provider secrets — llm (/v1/proxy/llm/{provider}/**), cursor
-  // (/v1/proxy/cursor/{host}/**), cursor-bidi (Connect streams on its own
-  // port), artifact and checkpointer presign/storage lanes (claimcheck is
-  // ruled debris — no caller, stigmer#992), the authenticated
+  // carry zero provider secrets — llm (/v1/proxy/llm/{provider}/**), the
+  // artifact and checkpointer presign/storage lanes (claimcheck is ruled
+  // debris — no caller, stigmer#992), the authenticated
   // /v1/proxy/model-registry, and the /health probe — with
   // scope-header authorization against FGA and usage extracted from the wire
   // onto the usage meter.
@@ -482,19 +481,6 @@ export interface CapabilityFlags {
   // (domain/run/__tests__/local-programs.test.ts); where a target composes
   // the cloud-mode lane, the arm gated on this flag runs.
   cloudTargetRefusesLocalPrograms: boolean;
-  // A Cursor run is admitted at create: the arms that create one run here.
-  //
-  // True for the local OSS targets BY THE EDITION: open source asks no
-  // provider key, so a Cursor run is created and the runner decides at turn
-  // start (no arm here lets a Cursor turn reach Cursor). On the cloud targets
-  // only when the run supplies a real Cursor key in CURSOR_API_KEY, which
-  // keyTenancy saves on every tenancy it keys: Stigmer Cloud runs Cursor on
-  // the organization's own Cursor key and refuses a Cursor run of an
-  // organization holding none at create (PROVIDER_KEY_REQUIRED), and the
-  // cloud checks a Cursor key with Cursor itself at save, so no fixture key
-  // can stand in for one. A Cursor arm reads this and skips with
-  // CURSOR_KEY_SKIP_REASON (targets/cloud.ts) where it is false.
-  cursorRunsAdmitted: boolean;
   // A Claude turn runs here on the wire mock: the engine the runner carries
   // in its own install plays the turn against the suite's mock LLM through
   // the runner's proxy, so the execution arms that prove a case on Claude
@@ -530,7 +516,7 @@ export interface CapabilityFlags {
   // whose runners are DECLARED to reach some model providers and not others
   // (STIGMER_RUNNER_PROVIDERS): its sibling, declared to reach Anthropic
   // alone, so getModelReadiness reports anthropic served by the runners and
-  // openai and cursor missing from them, and a run create reaches the
+  // openai missing from them, and a run create reaches the
   // provider check. The run-admission facet holds that answer to the
   // refusal there: a run on a model reported missing is refused
   // PROVIDER_KEY_REQUIRED naming its provider, and every other model is
@@ -846,8 +832,7 @@ export interface TargetProfile {
   provisionTeamsTenancy?(): Promise<TenancyContext>;
 
   // Save an Anthropic and an OpenAI key on the org, as an admin pastes them
-  // in the console, and a Cursor key when the run supplies one
-  // (cursorRunsAdmitted): on the hosted edition every run needs a key for its
+  // in the console: on the hosted edition every run needs a key for its
   // provider, and a run in an org with none is refused at create. The
   // Anthropic and OpenAI keys are this target's fixtures
   // (CONFORMANCE_PROVIDER_KEYS), so the proxy suite can read them back off
@@ -996,7 +981,6 @@ export interface TargetProfile {
   // arms — the red is real, never a skip.
   // Valid only after setup().
   proxyBaseUrl?(): string;
-  cursorBidiBaseUrl?(): string;
   publicBaseUrl?(): string;
   stripeWebhook?(): StripeWebhookLane;
 

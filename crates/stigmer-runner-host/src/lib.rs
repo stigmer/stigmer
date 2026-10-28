@@ -29,7 +29,6 @@
 //!     stigmer_endpoint: "https://api.stigmer.ai".into(),
 //!     temporal_namespace: None,
 //!     stigmer_token: Some("stigmer_token".into()),
-//!     cursor_api_key: None,
 //!     // BYOK direct mode (self-managed, no proxy): pass the provider keys here
 //!     // instead of priming your own process env before start().
 //!     anthropic_api_key: None,

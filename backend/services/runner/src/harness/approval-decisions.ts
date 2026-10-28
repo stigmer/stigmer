@@ -5,9 +5,8 @@
  * (`approval-answers.ts`, the door), onto the root rows still
  * WAITING_APPROVAL: the WAITING filter is what keeps a decided row from
  * being re-gated on the NEXT reinvocation (its row is COMPLETED or SKIPPED
- * by then) and what lets the adapter still describe the decision to its
- * engine on THIS one (Cursor's reinvocation prompt names the refused actions
- * in human terms). The rows are the runtime's working memory: the seed
+ * by then) and what lets the adapter still answer the call its engine
+ * resumes onto on THIS one. The rows are the runtime's working memory: the seed
  * copies each call's answer from the log onto its row
  * (`ToolCall.approval_action`, `approval-answers.ts` `copyAnswersOntoRows`),
  * so the field this module settles by is the log's answer, never a server
@@ -22,9 +21,9 @@
  *    WAITING on a completed execution. APPROVE and APPROVE_ALL are not
  *    touched — the tool executes, and the adapter's own events settle it.
  *
- * Why after the adapter, not before: the door and the exact-apply filter on
- * WAITING, so settling first would hide the decision from the reinvocation
- * prompt and from the exact-apply. Why by decision and not by row status: the outcome
+ * Why after the adapter, not before: the door filters on WAITING, so
+ * settling first would hide the decision from the reinvocation prompt. Why
+ * by decision and not by row status: the outcome
  * of SKIP and REJECT is fully determined by the recorded decision, whatever
  * transient status an engine left (a denial ToolMessage with no tool events,
  * or a replay that never re-drove the gate), so the stamp is idempotent and

@@ -144,11 +144,11 @@ describe("stigmer up — the agents line", () => {
     launched.report = {
       runnerReach: [
         { provider: "anthropic", via: "vertex" },
-        { provider: "cursor", via: "key" },
+        { provider: "openai", via: "key" },
       ],
     };
 
-    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (vertex), cursor (key)" });
+    expect(fields(await upCard(), "Agents")).toEqual({ ready: "anthropic (vertex), openai (key)" });
   });
 
   it("sends a person with no provider to stigmer setup and a restart", async () => {
@@ -181,7 +181,7 @@ describe("CLI-14 stigmer up says where the console is and whether agents can run
     launched.report = {
       runnerReach: [
         { provider: "anthropic", via: "key" },
-        { provider: "cursor", via: "key" },
+        { provider: "openai", via: "key" },
       ],
     };
 

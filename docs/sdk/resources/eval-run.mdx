@@ -666,7 +666,7 @@ EvalRunCaseTarget is one case's results on one target.
 <TypeTable
   type={{
     target: { type: "EvalRunTarget", description: "The engine and model.", typeDescriptionLink: "#evalruntarget" },
-    notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\" or \"not run on Cursor: resumed conversations\"; empty when it ran." },
+    notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\"; empty when it ran." },
     withPlugin: { type: "EvalRunArm", description: "The tries with the compared plugin; when no plugin is compared, the only tries, run with what the agent attaches.", typeDescriptionLink: "#evalrunarm" },
     withoutPlugin: { type: "EvalRunArm", description: "The tries without the compared plugin; unset when the eval run makes no comparison.", typeDescriptionLink: "#evalrunarm" },
     delta: { type: "number", description: "The with_plugin score minus the without_plugin score; unset when either is missing." },
@@ -777,7 +777,6 @@ Harness identifies the execution engine that processes agent activities for a se
 | Value | Description |
 |-------|-------------|
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
-| `HARNESS_CURSOR` | Cursor SDK execution engine. |
 | `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
 
 ### EvalRunTryState

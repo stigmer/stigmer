@@ -109,7 +109,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object provider_ = "";
   /**
    * <pre>
-   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * LLM provider (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -130,7 +130,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * LLM provider (e.g., "openai", "anthropic").
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -792,7 +792,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object provider_ = "";
     /**
      * <pre>
-     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * LLM provider (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -812,7 +812,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * LLM provider (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -833,7 +833,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * LLM provider (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -850,7 +850,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * LLM provider (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -864,7 +864,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * LLM provider (e.g., "openai", "anthropic").
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>

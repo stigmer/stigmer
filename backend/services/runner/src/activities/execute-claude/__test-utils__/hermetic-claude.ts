@@ -95,13 +95,11 @@ export function hermeticClaudeConfig(env: HermeticEnvironment, overrides: Partia
     // with its own (`claude-wire.ts`), and a held one would turn the platform's
     // own tools off for want of a run-scoped exchange the double never answers.
     stigmerTokenRef: { current: null },
-    cursorApiKey: "",
     workspaceRootDir: env.workspaceRootDir,
     mode: "local",
     proxyEndpoint: "http://platform.invalid",
     maxConcurrentActivities: 1,
     idleTimeoutSeconds: null,
-    cloudModeEnabled: false,
     checkpointerType: "sqlite",
     checkpointerProxyEndpoint: null,
     artifactProxyEndpoint: null,
@@ -111,7 +109,6 @@ export function hermeticClaudeConfig(env: HermeticEnvironment, overrides: Partia
     livenessIntervalMs: 30_000,
     shellTimeoutMaxSeconds: 3_300,
     shellBackgroundEnabled: true,
-    agentResolveTimeoutMs: 120_000,
     workspaceLockTimeoutMs: 900_000,
     drainGraceMs: 0,
     ...overrides,

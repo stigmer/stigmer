@@ -41,10 +41,8 @@
 // An organization's federation issuer is an outside provider the server
 // reads over HTTPS, so the target can start one (startOutsideIssuer): the
 // harness's local issuer serving TLS with a certificate for 127.0.0.1 that
-// setup mints once (the runner's loopback certificate, imported by path as
-// the harness imports the runner's IPC protocol) and the primary trusts
-// through NODE_EXTRA_CA_CERTS, the hand-off the runner gives its own
-// child. That variable is the target's own for this server, which dials
+// setup mints once (test-support's loopback certificate) and the primary
+// trusts through NODE_EXTRA_CA_CERTS. That variable is the target's own for this server, which dials
 // nothing else over TLS, so a developer's value is not passed on.
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -56,15 +54,15 @@ import {
   type LocalOidcIssuer,
 } from "@stigmer/test-support/local-oidc-issuer";
 import {
+  mintLoopbackCertificate,
+  type LoopbackCertificate,
+} from "@stigmer/test-support/loopback-certificate";
+import {
   spawnServer,
   type ProvisionedStorage,
   type RunningServer,
 } from "@stigmer/test-support/server-process";
 import { ensureEnterpriseServerEntry, tsxLoaderUrl } from "@stigmer/test-support/ts-build";
-import {
-  mintLoopbackCertificate,
-  type LoopbackCertificate,
-} from "../../../../backend/services/runner/src/agent-proxy/loopback-certificate";
 import {
   createTransport,
   makeClients,
@@ -155,8 +153,6 @@ export class EnterpriseTarget implements TargetProfile {
     // A newcomer holds nothing: above open source a person joins by
     // invitation or by a grant, never by signing in.
     membershipOnArrival: false,
-    // Cursor runs need no provider key here: no admission gates.
-    cursorRunsAdmitted: true,
     // No engine on this target: no turn runs.
     claudeTurnsRun: false,
     // The primary runs on the license this target's entry signed.

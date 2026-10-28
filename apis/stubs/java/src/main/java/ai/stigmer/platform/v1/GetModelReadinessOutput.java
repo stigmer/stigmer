@@ -60,7 +60,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.platform.v1.ProviderReadiness> providers_;
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -71,7 +71,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -83,7 +83,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -94,7 +94,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -105,7 +105,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -705,7 +705,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -719,7 +719,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -733,7 +733,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -747,7 +747,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -768,7 +768,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -786,7 +786,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -806,7 +806,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -827,7 +827,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -845,7 +845,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -863,7 +863,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -882,7 +882,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -899,7 +899,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -916,7 +916,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -927,7 +927,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -941,7 +941,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -956,7 +956,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -967,7 +967,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -979,7 +979,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Every provider, in the server's order (anthropic, openai, cursor).
+     * Every provider, in the server's order (anthropic, openai).
      * </pre>
      *
      * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>

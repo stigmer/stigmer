@@ -478,7 +478,7 @@ describe("MessageThread liveness status line", () => {
   });
 
   it("yields to a running tool call, and to a working subagent", () => {
-    const tool = renderThread(conversation({ id: "l", phase: "running", reply: "Running.", extra: [use("l", "c1", "Shell", { command: "sleep 5" })] }));
+    const tool = renderThread(conversation({ id: "l", phase: "running", reply: "Running.", extra: [use("l", "c1", "Bash", { command: "sleep 5" })] }));
     expect(tool.container.querySelector(LINE)).toBeNull();
     cleanup();
 

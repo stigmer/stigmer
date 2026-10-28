@@ -28,8 +28,8 @@ public interface PricingVariantOrBuilder extends
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -40,8 +40,8 @@ public interface PricingVariantOrBuilder extends
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -51,8 +51,8 @@ public interface PricingVariantOrBuilder extends
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -63,8 +63,8 @@ public interface PricingVariantOrBuilder extends
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>

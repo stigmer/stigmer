@@ -79,8 +79,8 @@ export const ModelOnEngineSchema: GenMessage<ModelOnEngine> = /*@__PURE__*/
  */
 export type ProviderReadiness = Message<"ai.stigmer.platform.v1.ProviderReadiness"> & {
   /**
-   * The provider's name: "anthropic", "openai" or "cursor", the names
-   * provider keys are saved under.
+   * The provider's name: "anthropic" or "openai", the names provider keys
+   * are saved under.
    *
    * @generated from field: string provider = 1;
    */
@@ -157,7 +157,7 @@ export const ModelReadinessSchema: GenMessage<ModelReadiness> = /*@__PURE__*/
  */
 export type GetModelReadinessOutput = Message<"ai.stigmer.platform.v1.GetModelReadinessOutput"> & {
   /**
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    *
    * @generated from field: repeated ai.stigmer.platform.v1.ProviderReadiness providers = 1;
    */

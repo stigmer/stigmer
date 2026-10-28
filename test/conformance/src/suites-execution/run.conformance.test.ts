@@ -106,9 +106,15 @@ const fixtures = new FixtureTracker();
 // Collection-time capability read (the routine-firing/forwarder pattern):
 // Long enough to keep a held execution IN_PROGRESS across the poll-and-act window
 // (tests act within ~1s), well under the runner activity's 2-minute heartbeat and
-// 24-hour start-to-close. A held turn aborts the instant the client disconnects
-// (interrupt/terminate/pause), so the wall-clock cost is tiny.
+// 24-hour start-to-close. A held turn ends the instant the runner hangs up,
+// seconds after an interrupt, terminate or pause, so the wall-clock cost is small.
 const HOLD_MS = 30_000;
+
+// How soon after a pause the running turn must have hung up its model call:
+// the runner's cancellation pulse (a few seconds) with room for the pause RPC,
+// the workflow's activation and a loaded machine. Far under HOLD_MS, so a
+// cancellation that arrives only at a minute-long heartbeat fails it.
+const PAUSE_STOP_BOUND_MS = 10_000;
 
 // Collection-time capability read: whether this target's runner reaches a
 // meter decides which of the two usage arms below runs.
@@ -137,7 +143,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   // Unblock any still-held turn first so a lifecycle test's runner activity (a
-  // paused/cancelled turn the runner can't preempt mid-call) finishes and frees
+  // stopped turn the cancellation has not reached yet) finishes and frees
   // its session lock, instead of lingering into the next test and claiming its
   // queued turns. reset() also drains, but releasing before fixture teardown
   // gives the freed activity time to wind down.
@@ -512,9 +518,9 @@ describe("Run conformance — lifecycle (running execution)", () => {
     await clients.agentExecutionCommand.pause({ id, reason: "conformance" });
     await awaitPhase(clients, id, RunPhase.RUN_PAUSED);
 
-    // Resume WHILE the first turn is still held. The paused activity is
-    // NOT promptly cancelled (cancellation reaches the runner lazily,
-    // between coarse graph events), so once its held turn is released it
+    // Resume WHILE the first turn is still held. The paused activity
+    // learns of its cancellation only on its next heartbeat, seconds after
+    // the pause (the case below), so a held turn released before then
     // completes and persists a terminal COMPLETED that races everything
     // after it (stigmer#869 family; verified identical on the Go target).
     // While the turn is still HELD, that rogue writer cannot write, and
@@ -544,11 +550,12 @@ describe("Run conformance — lifecycle (running execution)", () => {
     // the run then finishes with the original text and never re-invokes,
     // which is exactly the ~1-in-5 full-suite flake this fences, observed
     // as the result and the pause landing in ONE activation ~50ms apart).
-    // A time fence is the only option: every clean observable of the
-    // workflow's progress is value-identical to an RPC write, and the
-    // cancelled-but-parked activity neither heartbeats nor touches the mock.
-    // 2s is ~40x the worst observed activation lag; a lost race still fails
-    // loudly downstream, it just cannot silently pass.
+    // A time fence: every observable of the workflow's progress here is
+    // value-identical to an RPC write, except the held call's hang-up once
+    // the pause's cancellation reaches the runner, and waiting on that would
+    // decide this case's ending instead of fencing it. 2s is ~40x the worst
+    // observed activation lag; a lost race still fails loudly downstream, it
+    // just cannot silently pass.
     await new Promise((resolve) => setTimeout(resolve, 2_000));
 
     // Releasing the held turn ends the run one of two ways, both right. The
@@ -577,6 +584,45 @@ describe("Run conformance — lifecycle (running execution)", () => {
         "Working RESUMED...",
       );
     }
+  });
+
+  // A pause stops the turn's model call within seconds, not a minute
+  // (stigmer#1378): the cancellation reaches the runner on the turn's next
+  // heartbeat, and the turn hangs up the call it waits on. Read on the mock,
+  // with the hold never released: the held call is hung up within the bound,
+  // and nothing of the run but out-of-band titling reaches the model after it
+  // (a retry would arrive unscripted, the queue holding only the held turn).
+  // The second half is a window, not a poll: a call that never comes has no
+  // observable, and every target, the cloud's included, runs this case.
+  it("[rpc:RunCommandController.pause] pause hangs up the running turn's model call within seconds, and the turn calls the model no more", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org);
+    const created = await createHeldExecution(org, agent);
+    const id = created.metadata!.id;
+    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
+    const [held] = await pollUntil(
+      async () => mock.scriptedRequests(),
+      (requests) => requests.length === 1,
+      () => `run ${id}: the turn never reached its held model call`,
+    );
+
+    const pausedAt = Date.now();
+    await clients.agentExecutionCommand.pause({ id, reason: "conformance" });
+    const hungUpAt = await pollUntil(
+      async () => held!.hungUpAt,
+      (at) => at !== undefined,
+      () => `run ${id}: the held model call was still open ${PAUSE_STOP_BOUND_MS}ms after the pause`,
+      { timeoutMs: PAUSE_STOP_BOUND_MS, pollMs: 50 },
+    );
+    expect(hungUpAt! - pausedAt, "the pause reached the model call within the bound").toBeLessThan(PAUSE_STOP_BOUND_MS);
+
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    const after = mock.requests().filter((request) => request.receivedAt > hungUpAt! && request.disposition !== "out-of-band");
+    expect(
+      after.map((request) => request.disposition),
+      `run ${id}: the stopped turn called the model again after hanging up`,
+    ).toEqual([]);
+    expect((await clients.agentExecutionQuery.get({ value: id })).status?.phase).toBe(RunPhase.RUN_PAUSED);
   });
 });
 
@@ -889,8 +935,8 @@ describe("Run conformance — a turn's outputs", () => {
     expect(stopped.status?.stopCause).toBe("user");
 
     // The runner learns of the stop when Temporal delivers the cancel on a
-    // heartbeat, which its throttle can hold for up to a minute; the server
-    // admits the stopped run's outputs for two minutes after the stop.
+    // heartbeat, seconds after it; the server admits the stopped run's
+    // outputs for two minutes after the stop.
     const listed = await pollUntil(
       () => clients.fileQuery.list({ org, runId }),
       (list) => list.entries.length > 0,

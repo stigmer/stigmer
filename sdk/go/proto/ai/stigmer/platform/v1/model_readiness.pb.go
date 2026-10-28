@@ -218,8 +218,8 @@ func (x *ModelOnEngine) GetModel() string {
 // One provider's standing for the organization.
 type ProviderReadiness struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The provider's name: "anthropic", "openai" or "cursor", the names
-	// provider keys are saved under.
+	// The provider's name: "anthropic" or "openai", the names provider keys
+	// are saved under.
 	Provider     string               `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
 	Availability ProviderAvailability `protobuf:"varint,2,opt,name=availability,proto3,enum=ai.stigmer.platform.v1.ProviderAvailability" json:"availability,omitempty"`
 	// The parent organization whose key serves this one; set only with
@@ -358,7 +358,7 @@ func (x *ModelReadiness) GetAvailability() ProviderAvailability {
 // Which providers serve the organization, and which models can run.
 type GetModelReadinessOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Every provider, in the server's order (anthropic, openai, cursor).
+	// Every provider, in the server's order (anthropic, openai).
 	Providers []*ProviderReadiness `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
 	// Every model the catalog lists on every engine this platform offers, in
 	// engine order, then in the catalog's sorted order within an engine.

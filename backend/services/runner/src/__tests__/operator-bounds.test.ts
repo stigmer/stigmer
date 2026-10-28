@@ -28,7 +28,6 @@ const SET = {
   STIGMER_SHELL_TIMEOUT_MAX_SECONDS: "900",
   STIGMER_SHELL_BACKGROUND_ENABLED: "false",
   WORKSPACE_LOCK_TIMEOUT_MS: "60000",
-  CURSOR_AGENT_RESOLVE_TIMEOUT_MS: "45000",
 };
 
 const EXPECTED = {
@@ -38,7 +37,6 @@ const EXPECTED = {
   shellTimeoutMaxSeconds: 900,
   shellBackgroundEnabled: false,
   workspaceLockTimeoutMs: 60_000,
-  agentResolveTimeoutMs: 45_000,
 };
 
 const refs = (): [TokenRef, TokenRef] => [{ current: null }, { current: null }];
@@ -55,7 +53,7 @@ describe("the operator's bounds on both boot paths", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    process.env = { HOME: originalEnv.HOME, PATH: originalEnv.PATH, WORKSPACE_ROOT_DIR: "/tmp/test-workspace", CURSOR_API_KEY: "test-key", ...SET };
+    process.env = { HOME: originalEnv.HOME, PATH: originalEnv.PATH, WORKSPACE_ROOT_DIR: "/tmp/test-workspace", ...SET };
   });
 
   afterEach(() => {

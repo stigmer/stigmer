@@ -37,7 +37,7 @@ describe("historyAxes", () => {
   });
 
   it("yields null, never zero, when the asked-for activity never started", () => {
-    const axes = historyAxes(fixture, executeActivityNameFor("cursor"));
+    const axes = historyAxes(fixture, executeActivityNameFor("claude"));
     expect(axes.before_activity_ms).toBeNull();
     expect(axes.ensure_thread_ms).toBe(300);
   });
@@ -50,7 +50,6 @@ describe("the wire names", () => {
 
   it("maps each harness label to its runner activity", () => {
     expect(executeActivityNameFor("deep-agent")).toBe("ExecuteDeepAgent");
-    expect(executeActivityNameFor("cursor")).toBe("ExecuteCursor");
     expect(executeActivityNameFor("claude")).toBe("ExecuteClaude");
   });
 });

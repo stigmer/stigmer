@@ -2,7 +2,7 @@
  * Streaming persist decision for a harness turn.
  *
  * Harness-agnostic, and both adapters' stream loops read it
- * (`execute-cursor/turn-stream.ts`, `execute-deep-agent/turn-stream.ts`; the
+ * (`execute-deep-agent/turn-stream.ts`, `execute-claude/turn.ts`; the
  * native orchestrator's own copy of the rule retired with it in #1096):
  * `shouldPersist = transcriptDirty || scheduler.shouldSendUpdate(eventCount)`.
  * Both harnesses thus share one cadence model — a discrete state change
@@ -10,9 +10,8 @@
  * cadence.
  *
  * One flag, the transcript builder's `dirty` (since #1097). Until then the
- * decision took three Cursor-named flags — the delta enricher's, the todo
- * tracker's and the accumulator's — of which two were constant `false` on
- * both loops once the one builder folded every discrete change; a shape
+ * decision took three flags — the delta enricher's, the todo tracker's and
+ * the accumulator's — of which two were constant `false` on both loops once the one builder folded every discrete change; a shape
  * that named writers which no longer existed.
  *
  * Extracted as a single pure function so the stream loop and its unit tests

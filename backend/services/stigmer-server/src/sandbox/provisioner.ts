@@ -299,8 +299,8 @@ export interface SandboxDriverConfig {
   readonly runnerEnv: Readonly<Record<string, string>>;
   /**
    * The operator's runner secrets for every sandbox (ServerConfig
-   * sandboxRunnerSecretEnv), such as an open-source runner's model and
-   * Cursor keys: delivered through the channel the driver uses for the
+   * sandboxRunnerSecretEnv), such as an open-source runner's model keys:
+   * delivered through the channel the driver uses for the
    * token, never argv or a plain manifest value.
    */
   readonly runnerSecretEnv: Readonly<Record<string, string>>;

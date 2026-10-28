@@ -50,7 +50,7 @@ sequenceDiagram
 ```
 
 Two things ride along with the run. The first is the Session's Harness (native
-or Cursor); one runner serves both from the same queue. The second is a
+or Claude); one runner serves both from the same queue. The second is a
 credential the server mints for that run alone. Everything the runner does for
 the run, including the status it reports and the resources it creates, is
 recorded as the person who started it, whoever's key the runner process holds.
@@ -89,7 +89,7 @@ You never edit the compose file or the chart.
 | What                                         | Docker Compose (`.env`)                                                  | Kubernetes (values file)                       | Who sets it                                                                 |
 | -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- |
 | Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed in the chart                             | The release. Two things named once can't drift.                             |
-| Your LLM key                                 | `ANTHROPIC_API_KEY`, `CURSOR_API_KEY`                                    | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                            |
+| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                            |
 | File storage                                 | The `artifacts` volume                                                   | The `stigmer-artifacts` claim                  | The release. One disk the server writes and the runner reads.               |
 | The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                | The release. Checkpoints and Agents' working directories, not backup state. |
 | The runner's own API key                     | `STIGMER_TOKEN`                                                          | `runner.stigmerToken.existingSecret`           | You, once [authentication is on](./authentication#give-the-runner-its-key). |
@@ -99,25 +99,25 @@ You never edit the compose file or the chart.
 Five of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
-setting for it. Agents on the native Harness need `ANTHROPIC_API_KEY`; Agents on
-the Cursor Harness need `CURSOR_API_KEY`. At start the runner moves its keys out
-of the variables it started with into a store only it reads, so the commands an
-Agent runs and the processes the runner starts don't inherit them. In the
-compose stack, the chart and the sandbox drivers, the Agent's side of a turn
-runs as a user of its own, and the runner makes each model call for it, so
-nothing an Agent runs can read the key by any path (**Root, `HOME` and Node
-settings**, below). The [all-in-one container](./all-in-one) is the exception:
-it runs `stigmer up` as one user, as on your own machine.
+setting for it. Agents on the native and Claude Harnesses need
+`ANTHROPIC_API_KEY`. At start the runner moves its keys out of the variables it
+started with into a store only it reads, so the commands an Agent runs and the
+processes the runner starts don't inherit them. In the compose stack, the chart
+and the sandbox drivers, the Agent's side of a turn runs as a user of its own,
+and the runner makes each model call for it, so nothing an Agent runs can read
+the key by any path (**Root, `HOME` and Node settings**, below). The
+[all-in-one container](./all-in-one) is the exception: it runs `stigmer up` as
+one user, as on your own machine.
 
 **The server is told which providers the runners reach, never their keys.**
-`STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from
-`anthropic`, `openai` and `cursor` (`anthropic,cursor`), matching the keys you
-gave the runners. The console's **Models & providers** page and model picker
-read it, and a run on a provider left off the list is refused before it starts,
-with copy that says so. Left unset, the server cannot tell, so every provider
-shows as configured where the runner runs and nothing is refused: the runner's
-own error names a missing key. A name that is not a provider stops the server at
-boot. On your own machine `stigmer up` sets it for you.
+`STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from `anthropic`
+and `openai` (`anthropic,openai`), matching the keys you gave the runners. The
+console's **Models & providers** page and model picker read it, and a run on a
+provider left off the list is refused before it starts, with copy that says so.
+Left unset, the server cannot tell, so every provider shows as configured where
+the runner runs and nothing is refused: the runner's own error names a missing
+key. A name that is not a provider stops the server at boot. On your own machine
+`stigmer up` sets it for you.
 
 **File storage is shared by disk, not by HTTP.** The server writes a stored file
 to a path and the runner reads the same path, so the two must see one disk. That
@@ -258,22 +258,21 @@ A runner outside Stigmer Cloud calls its model with its own key, so a sandboxed
 runner needs the keys the shared runner would have. Name them in two lists on
 the server, each a comma-separated list of variables whose values the server
 reads from its own process at boot: `STIGMER_SANDBOX_RUNNER_SECRETS` for secrets
-(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CURSOR_API_KEY`), which every driver
-delivers the way it delivers the runner's token, and
-`STIGMER_SANDBOX_RUNNER_ENV` for plain settings (`ANTHROPIC_BASE_URL`). The
-server refuses to boot when a listed variable is unset, when one name is on both
-lists, when the plain list names one of the runner's own secrets, when a list
-names a variable the driver sets itself, such as `STIGMER_TOKEN`, or, with any
-driver but `local-process`, when it names `HOME` or `STIGMER_SERVER_RELEASE`,
-which those drivers set, or `NODE_OPTIONS` or `NODE_PATH`, which the runner
-image clears at start.
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`), which every driver delivers the way it
+delivers the runner's token, and `STIGMER_SANDBOX_RUNNER_ENV` for plain settings
+(`ANTHROPIC_BASE_URL`). The server refuses to boot when a listed variable is
+unset, when one name is on both lists, when the plain list names one of the
+runner's own secrets, when a list names a variable the driver sets itself, such
+as `STIGMER_TOKEN`, or, with any driver but `local-process`, when it names
+`HOME` or `STIGMER_SERVER_RELEASE`, which those drivers set, or `NODE_OPTIONS`
+or `NODE_PATH`, which the runner image clears at start.
 
-The runner keeps its own secrets (the model and Cursor keys, and its Temporal
-and payload-encryption keys) out of every process an Agent starts. Any other
-name on the secrets list, `GITHUB_TOKEN` say, is delivered as a secret but
-reaches the runner as an ordinary variable, without that protection. On the
-`substrate` driver the server refuses such a name at boot, because a Substrate
-sandbox's runner takes only its own secrets.
+The runner keeps its own secrets (the model keys, and its Temporal and
+payload-encryption keys) out of every process an Agent starts. Any other name on
+the secrets list, `GITHUB_TOKEN` say, is delivered as a secret but reaches the
+runner as an ordinary variable, without that protection. On the `substrate`
+driver the server refuses such a name at boot, because a Substrate sandbox's
+runner takes only its own secrets.
 
 To send every run to your tracing tool, give a sandboxed runner the
 OpenTelemetry settings through the same two lists, the login on the secrets
@@ -371,7 +370,7 @@ can't run it, and says why. The requirements:
 | `/bin/sh`                                                                   | the runner can't start, and only the kernel's "no such file or directory" says so: the check itself is a shell script |
 | `bash`, `git`, and `/proc`                                                  | refused                                                                                                               |
 | `setpriv` (util-linux)                                                      | refused: the runner starts the agent's side as the agent user with it                                                 |
-| `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused: the Cursor harness's approval hook runs them                                                                 |
+| `cat`, `sed`, `grep`, `head`, `cut`, `awk`, `tr`, `base64`, `dirname`       | refused                                                                                                               |
 | CA certificates for `git` and `curl`                                        | cloning a repository over HTTPS fails                                                                                 |
 | `git` 2.31 or newer                                                         | cloning a private repository fails, naming the version it needs (Debian 11 ships 2.30); a public one still clones     |
 | `rg` (ripgrep)                                                              | a warning; the native harness's grep falls back to a plain search                                                     |
@@ -662,9 +661,9 @@ is pointed at that CA. SSH, database protocols, HTTP/3 and TLS that isn't HTTP
 don't pass.
 
 A conversation whose Environment limits networking reaches, over HTTPS, only its
-listed hosts and the runner's own: the model provider and Cursor hosts the
-runner's settings name, and the `https://` public MCP endpoint. List any other
-host the runner needs (a Vertex or Foundry endpoint, a proxy) in
+listed hosts and the runner's own: the model provider hosts the runner's
+settings name, and the `https://` public MCP endpoint. List any other host the
+runner needs (a Vertex or Foundry endpoint, a proxy) in
 `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM`, comma-separated. With
 `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS=none`, an Environment that limits
 networking is refused, since an Environment narrows your egress and never widens

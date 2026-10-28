@@ -2,8 +2,8 @@
  * A turn's hooks, turned into the evaluator (`evaluate.ts`): the half of the
  * setup no engine owns. Each engine's adapter passes the runtime's resolved
  * sources (every plugin mounted and verified) with its own views of its
- * calls (`tool-view.ts` for the native engine, `execute-cursor/
- * hook-views.ts` for Cursor), and gets the evaluator back, or `null` when
+ * calls (`tool-view.ts` for the native engine, `execute-claude/
+ * hook-views.ts` for Claude), and gets the evaluator back, or `null` when
  * the agent has no hook either engine runs.
  *
  * What a hook runs WITH is the agent shell's, on both engines: the runner's
@@ -21,7 +21,7 @@
  * subagent's hook never holds the agent's keys and the agent's never holds
  * the subagent's. One the run
  * does not have refuses the turn, naming the variable and the plugin, and
- * so does a shell-form handler (every Cursor handler is one) when no `bash`
+ * so does a shell-form handler (every Cursor-format handler is one) when no `bash`
  * is on the hook's `PATH`. A hook that cannot run as
  * written is a policy that vanished, and Stigmer has no enable-time prompt
  * to ask for the value instead; what a single run does with a missing

@@ -440,7 +440,6 @@ describe("platform domain (model readiness, declared runners)", () => {
     expect(out.providers.map((p) => [p.provider, p.availability])).toEqual([
       ["anthropic", ProviderAvailability.served_by_runners],
       ["openai", ProviderAvailability.missing_from_runners],
-      ["cursor", ProviderAvailability.missing_from_runners],
     ]);
   });
 
@@ -451,9 +450,15 @@ describe("platform domain (model readiness, declared runners)", () => {
     const claude = out.models.filter((m) => m.harness === Harness.CLAUDE);
     expect(claude.length).toBeGreaterThan(0);
     expect(claude.every((m) => m.provider === "anthropic")).toBe(true);
-    const cursor = out.models.filter((m) => m.harness === Harness.CURSOR);
-    expect(cursor.length).toBeGreaterThan(0);
-    expect(cursor.every((m) => m.availability === ProviderAvailability.missing_from_runners)).toBe(true);
+    expect(claude.every((m) => m.availability === ProviderAvailability.served_by_runners)).toBe(true);
+    expect(
+      out.models.every((m) =>
+        m.provider === "anthropic"
+          ? m.availability === ProviderAvailability.served_by_runners
+          : m.availability === ProviderAvailability.missing_from_runners,
+      ),
+    ).toBe(true);
+    expect(new Set(out.models.map((m) => m.harness))).toEqual(new Set([Harness.NATIVE, Harness.CLAUDE]));
     expect(out.judged).toBeUndefined();
   });
 
@@ -487,6 +492,7 @@ describe("platform domain (model readiness, composed availability)", () => {
   let dir: string;
   let org: string;
   let broken: string;
+  let undeclared: string;
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "platform-domain-readiness-unit-test-"));
@@ -494,12 +500,11 @@ describe("platform domain (model readiness, composed availability)", () => {
     const availability: ProviderAvailabilityProvider = {
       availability: (asked, provider) => {
         if (asked === broken) return Promise.reject(new Error("store down"));
+        if (asked === undeclared) return Promise.resolve({ state: "unknown" });
         return Promise.resolve(
           provider === "anthropic"
             ? { state: "served", source: "organization" }
-            : provider === "openai"
-              ? { state: "served", source: "parent", parentOrg: "org-parent" }
-              : { state: "unknown" },
+            : { state: "served", source: "parent", parentOrg: "org-parent" },
         );
       },
     };
@@ -516,9 +521,10 @@ describe("platform domain (model readiness, composed availability)", () => {
     });
     const port = await server.start();
     const transport = createGrpcTransport({ baseUrl: `http://127.0.0.1:${port}` });
-    const ids = await seedOrganizations(transport, ["readiness-child", "readiness-broken"]);
+    const ids = await seedOrganizations(transport, ["readiness-child", "readiness-broken", "readiness-undeclared"]);
     org = organizationId(ids, "readiness-child");
     broken = organizationId(ids, "readiness-broken");
+    undeclared = organizationId(ids, "readiness-undeclared");
     client = createClient(PlatformQueryController, transport);
   });
 
@@ -533,7 +539,11 @@ describe("platform domain (model readiness, composed availability)", () => {
     expect(out.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
       ["anthropic", ProviderAvailability.served_by_organization, ""],
       ["openai", ProviderAvailability.served_by_parent_organization, "org-parent"],
-      ["cursor", ProviderAvailability.availability_unknown, ""],
+    ]);
+    const unknown = await client.getModelReadiness({ org: undeclared });
+    expect(unknown.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
+      ["anthropic", ProviderAvailability.availability_unknown, ""],
+      ["openai", ProviderAvailability.availability_unknown, ""],
     ]);
   });
 

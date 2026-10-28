@@ -4,16 +4,14 @@
  * activity, and the transport layer reads per request.
  *
  * Why it is the runtime's and not a harness's: every proxy-bound request the
- * runner makes carries `x-stigmer-execution-id` from this store (the Cursor
- * fetch and HTTP/2 interceptors stamp it; `rejection-capture.ts` correlates
- * unhandled rejections by it), and a large share of those requests are made
+ * runner makes carries `x-stigmer-execution-id` from this store, and a large
+ * share of those requests are made
  * OUTSIDE any engine stretch — File downloads and status offload
  * through the artifact proxy, the memory selection, the structured-output
  * extraction and the plan File's save in the epilogue, and in a cloud
  * sandbox the control-plane writes themselves. Under `maxConcurrentActivities
- * > 1` the fallback (a module-level id, `fetch-interceptor.ts`
- * `setInterceptorExecutionId`) is whichever turn set it last; this store is
- * what makes concurrent turns not overwrite each other's headers.
+ * > 1` this store is what keeps concurrent turns from overwriting each
+ * other's headers.
  *
  * In the agent host the store also carries the turn's key, which the runner
  * minted for this turn alone (`agent-host/remote-adapter.ts`): every call
@@ -21,9 +19,8 @@
  * execution id ({@link TURN_KEY_HEADER}), and the proxy admits a call only
  * for the turn whose key it carries (`agent-proxy/server.ts`).
  *
- * Moved from `activities/execute-cursor/fetch-interceptor.ts` (#1070)
- * so `harness/run-turn.ts` can enter it without importing the
- * adapter; the interceptors import it from here. No harness enters it: the
+ * The runtime's, so `harness/run-turn.ts` enters it without importing an
+ * adapter (#1070). No harness enters it: the
  * contract lists it among the things deliberately NOT on `TurnSink`.
  */
 

@@ -83,7 +83,6 @@ describe("subagentModel", () => {
         JSON.stringify({
           models: [
             { id: "claude-sonnet-4-5", provider: "anthropic", harness: "native" },
-            { id: "composer-2", provider: "cursor", harness: "cursor" },
             { id: "claude-opus-5", provider: "anthropic", harness: "claude" },
           ],
         }),
@@ -99,7 +98,6 @@ describe("subagentModel", () => {
 
   it("answers a listed id chosen for this engine", async () => {
     expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.NATIVE)).toBe("claude-sonnet-4-5");
-    expect(await subagentModel("composer-2", Harness.CURSOR, Harness.CURSOR)).toBe("composer-2");
   });
 
   it("reads Claude's own section, never native's", async () => {
@@ -114,17 +112,17 @@ describe("subagentModel", () => {
 
   it("counts an unspecified engine as the native one", async () => {
     expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.UNSPECIFIED)).toBe("claude-sonnet-4-5");
-    expect(await subagentModel("composer-2", Harness.CURSOR, Harness.UNSPECIFIED)).toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.UNSPECIFIED)).toBeUndefined();
   });
 
   it("runs the turn's model when the choice was made for another engine", async () => {
-    expect(await subagentModel("claude-sonnet-4-5", Harness.CURSOR, Harness.NATIVE)).toBeUndefined();
-    expect(await subagentModel("composer-2", Harness.NATIVE, Harness.CURSOR)).toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.NATIVE)).toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.NATIVE, Harness.CLAUDE)).toBeUndefined();
   });
 
   it("runs the turn's model for an id this engine's section does not list", async () => {
     expect(await subagentModel("gpt-9", Harness.NATIVE, Harness.NATIVE)).toBeUndefined();
-    expect(await subagentModel("composer-2", Harness.NATIVE), "listed only for Cursor").toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.NATIVE), "listed only for Claude").toBeUndefined();
   });
 
   it.each(["sonnet", "fast", "inherit", "", "  "])("runs the turn's model for %j", async (model) => {
@@ -133,7 +131,7 @@ describe("subagentModel", () => {
 
   it("counts a plugin agent's model, which names no engine, on whichever engine lists it", async () => {
     expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE)).toBe("claude-sonnet-4-5");
-    expect(await subagentModel("composer-2", Harness.CURSOR)).toBe("composer-2");
+    expect(await subagentModel("claude-opus-5", Harness.CLAUDE)).toBe("claude-opus-5");
   });
 
   it("runs the turn's model when the registry cannot be read", async () => {

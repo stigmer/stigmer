@@ -48,8 +48,7 @@ permissions:
 
 jobs:
   # One leg per arch, each on its own native runner (the builder bundles its
-  # own arch's @cursor/sdk platform package, so QEMU would be both slow and
-  # wrong). Both legs build the whole Dockerfile once into one builder, so
+  # own arch's native packages, so QEMU would be both slow and wrong). Both legs build the whole Dockerfile once into one builder, so
   # the base, the runner layer and (on amd64) the cloud sandbox image come
   # from the same stages and the same cache.
   #
@@ -264,9 +263,8 @@ jobs:
       # with the modes a sandbox gives it). The runner's slim check runs from
       # the checkout, mounted read-only (its scripts import only Node
       # built-ins and each other), against the Temporal dev server on the
-      # host network: the cloud-mode boot to the Temporal dial, @cursor/sdk
-      # and its platform package, the attach waiter, a worker that reaches
-      # RUNNING, and the manager lifecycle, its authenticated run with an
+      # host network: the cloud-mode boot to the Temporal dial, the attach
+      # waiter, a worker that reaches RUNNING, and the manager lifecycle, its authenticated run with an
       # OTLP endpoint set, as production sets one; and the Claude engine the
       # layer carries: exactly the pinned packages, its executable run as the
       # agent user, and the boot logging it ready (--claude-engines, check

@@ -1,14 +1,15 @@
 /**
  * The Claude harness's capability flags — the facts about Anthropic's Claude
- * Agent SDK engine the turn runtime branches on, declared once
- * (`harness/capabilities.ts` has the matrix and the meaning of each flag).
+ * Agent SDK engine the turn runtime branches on, declared once, and the
+ * facts every harness shares, as this one meets them
+ * (`harness/capabilities.ts` has the matrix and the meaning of each).
  *
- *  - `interrupt`: the engine stops at a gated call itself (`defer` from a
+ *  - The approval pause: the engine stops at a gated call itself (`defer` from a
  *    `PreToolUse` callback, one call a turn) and, resumed, runs exactly
  *    that call, answered by its id and checked against the call the person
  *    saw (`gate.ts`, `turn.ts`). A sub-agent's call that would wait is
  *    refused: the engine loses a sub-agent's deferred call.
- *  - `deterministic`: the engine's session id is derived from the thread id
+ *  - The state id: the engine's session id is derived from the thread id
  *    the runtime mints (`engine-session-id.ts`), so nothing is bound.
  *  - Sub-agents as `agents` definitions, each run to its end before the
  *    main agent goes on, with its own tools, skills, servers and shell
@@ -65,16 +66,10 @@ export function claudeRowAwaitsGate(row: ToolCall): boolean {
 
 export const CLAUDE_CAPABILITIES: HarnessCapabilities = {
   harness: Harness.CLAUDE,
-  pausePrimitive: "interrupt",
-  stateIdSource: "deterministic",
   subAgents: true,
   runsHooks: true,
-  readsToolMarks: true,
   visionProfile: DEEP_AGENT_VISION_PROFILE,
   fileReview: { harnessId: CLAUDE_HARNESS_ID, excludePaths: [] },
   boundaryRewritesRow: claudeRowAwaitsGate,
-  subAgentProgress: "streamed",
-  continuation: "checkpoint",
-  midTurnInput: "next-step",
   contextCompaction: "engine-cli",
 };

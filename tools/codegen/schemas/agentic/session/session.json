@@ -66,26 +66,10 @@
         "enumType": "ai.stigmer.agentic.session.v1.Harness",
         "enumValues": [
           "HARNESS_NATIVE",
-          "HARNESS_CURSOR",
           "HARNESS_CLAUDE"
         ]
       },
-      "description": "Execution harness for this session.\n\n Determines which harness runs every turn in this session:\n - NATIVE (default): Stigmer's own runner\n - CURSOR: the Cursor SDK\n - CLAUDE: Anthropic's Claude Agent SDK\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and a run\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
-      "required": false
-    },
-    {
-      "name": "CursorMode",
-      "jsonName": "cursorMode",
-      "protoField": "cursor_mode",
-      "type": {
-        "kind": "string",
-        "enumType": "ai.stigmer.agentic.session.v1.CursorMode",
-        "enumValues": [
-          "CURSOR_MODE_LOCAL",
-          "CURSOR_MODE_CLOUD"
-        ]
-      },
-      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation and never changed — switching mid-session would\n lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.",
+      "description": "Execution harness for this session.\n\n Determines which harness runs every turn in this session:\n - NATIVE (default): Stigmer's own runner\n - CLAUDE: Anthropic's Claude Agent SDK\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and a run\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
       "required": false
     },
     {

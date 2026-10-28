@@ -13,10 +13,11 @@
  *   - without a governing policy the agent's and organization's defaults
  *     are ignored, and a conversation naming its own Environment is refused
  *     with LOCAL_ENVIRONMENT_MESSAGE;
- *   - ResolveSessionEnvironment re-resolves until the first turn, then keeps
- *     the stored stamp and source; ValidateEnvironmentImmutability refuses a
- *     changed or dropped spec.environment_ref once harness_state_id is set,
- *     and passes before it and for an echo;
+ *   - ResolveSessionEnvironment re-resolves until the conversation has run
+ *     (a run row in it, ../has-run.ts), then keeps the stored stamp and
+ *     source; ValidateEnvironmentImmutability refuses a changed or dropped
+ *     spec.environment_ref once it has run, and passes before it and for an
+ *     echo;
  *   - AdmitSessionEnvironment reads the pinned agent tree and refuses an
  *     unlisted MCP host of a limited Environment, and reads nothing for a
  *     conversation with no Environment.
@@ -60,7 +61,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { EnvironmentSource, ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -87,6 +88,7 @@ import type { Store } from "../../../store/interface.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
 import { FAKE_SANDBOX_DRIVER, environmentInput, sandboxUnit } from "../../environment/__tests__/support.js";
 import { LOCAL_ENVIRONMENT_MESSAGE, unlistedMcpHostMessage } from "../../run/environment-admission.js";
+import { agentExecutionListIndex } from "../../run/list-index.js";
 import type { EnvironmentPolicy } from "../../run/environment-admission.js";
 import { newAdmitSessionEnvironmentStep } from "../admit-session-environment.js";
 import {
@@ -128,9 +130,23 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
     return { kind: ApiResourceKind.environment, org: ORG, id };
   }
 
+  /** The session that has run: a run row in it, the fact the locks read. */
+  const RUN_SESSION = "ses_run";
+  /** The session that has not. */
+  const FRESH_SESSION = "ses_fresh";
+
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "resolve-session-environment-test-"));
-    store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db")));
+    store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db"), undefined, { listIndexes: [agentExecutionListIndex] }));
+    await store.saveResource(
+      ApiResourceKind.run,
+      "run_1",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_1", org: ORG },
+        spec: { target: { case: "sessionId", value: RUN_SESSION } },
+      }),
+    );
     await store.saveResource(
       ApiResourceKind.organization,
       ORG,
@@ -303,12 +319,11 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
   });
 
   describe("ResolveSessionEnvironment", () => {
-    function stored(harnessStateId: string): Session {
+    function stored(sessionId: string): Session {
       return create(SessionSchema, {
-        metadata: { id: "ses_1", org: ORG },
+        metadata: { id: sessionId, org: ORG },
         spec: { executionTarget: ExecutionTarget.CLOUD, environmentRef: ref("env_01first") },
         status: {
-          harnessStateId,
           environment: ref("env_01first"),
           environmentSource: EnvironmentSource.SESSION,
         },
@@ -324,14 +339,14 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
       return ctx.newState;
     }
 
-    it("keeps the stamp once the first turn has run, whatever the write names", async () => {
-      const kept = await resolveOver(stored("thread-1"), conversation({ own: { id: "env_01other" } }));
+    it("keeps the stamp once the conversation has run, whatever the write names", async () => {
+      const kept = await resolveOver(stored(RUN_SESSION), conversation({ own: { id: "env_01other" } }));
       expect(kept.status?.environment?.id).toBe("env_01first");
       expect(kept.status?.environmentSource).toBe(EnvironmentSource.SESSION);
     });
 
-    it("re-resolves on every write before the first turn, and on create", async () => {
-      const before = await resolveOver(stored(""), conversation({ agentId: "agt_plain", pinned: HEAD }));
+    it("re-resolves on every write before the conversation has run, and on create", async () => {
+      const before = await resolveOver(stored(FRESH_SESSION), conversation({ agentId: "agt_plain", pinned: HEAD }));
       expect(before.status?.environment?.id).toBe("env_01org");
       expect(before.status?.environmentSource).toBe(EnvironmentSource.ORGANIZATION);
       const created = await resolveOver(undefined, conversation({ org: BARE_ORG }));
@@ -341,28 +356,27 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
   });
 
   describe("ValidateEnvironmentImmutability", () => {
-    function run(storedRef: string, harnessStateId: string, nextRef: string | undefined): void {
+    async function run(storedRef: string, sessionId: string, nextRef: string | undefined): Promise<void> {
       const existing = create(SessionSchema, {
-        metadata: { id: "ses_1", org: ORG },
+        metadata: { id: sessionId, org: ORG },
         spec: { environmentRef: ref(storedRef) },
-        status: { harnessStateId },
       });
       const ctx = new RequestContext(
         SessionSchema,
         create(SessionSchema, {
-          metadata: { id: "ses_1", org: ORG },
+          metadata: { id: sessionId, org: ORG },
           spec: nextRef === undefined ? {} : { environmentRef: ref(nextRef) },
         }),
         testCallerIdentity(),
         ApiResourceKind.session,
       );
       ctx.set(EXISTING_RESOURCE_KEY, existing);
-      newValidateEnvironmentImmutabilityStep().execute(ctx);
+      await newValidateEnvironmentImmutabilityStep(store).execute(ctx);
     }
 
-    function refusalOf(call: () => void): ConnectError {
+    async function refusalOf(call: () => Promise<void>): Promise<ConnectError> {
       try {
-        call();
+        await call();
       } catch (error) {
         if (error instanceof ConnectError) {
           return error;
@@ -372,18 +386,18 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
       throw new Error("expected a refusal");
     }
 
-    it("refuses another Environment, or dropping it, once harness_state_id is set", () => {
+    it("refuses another Environment, or dropping it, once the conversation has run", async () => {
       for (const next of ["env_01second", undefined]) {
-        const error = refusalOf(() => run("env_01first", "thread-1", next));
+        const error = await refusalOf(() => run("env_01first", RUN_SESSION, next));
         expect(error.code).toBe(Code.FailedPrecondition);
         expect(error.rawMessage).toBe(IMMUTABLE_MESSAGE);
       }
     });
 
-    it("passes an echo, and any change before the first turn", () => {
-      expect(() => run("env_01first", "thread-1", "env_01first")).not.toThrow();
-      expect(() => run("env_01first", "", "env_01second")).not.toThrow();
-      expect(() => run("env_01first", "", undefined)).not.toThrow();
+    it("passes an echo, and any change before the conversation has run", async () => {
+      await expect(run("env_01first", RUN_SESSION, "env_01first")).resolves.toBeUndefined();
+      await expect(run("env_01first", FRESH_SESSION, "env_01second")).resolves.toBeUndefined();
+      await expect(run("env_01first", FRESH_SESSION, undefined)).resolves.toBeUndefined();
     });
   });
 
@@ -590,9 +604,15 @@ describe("the session chains' Environment, composed under an authentication post
       sessionInput({ executionTarget: ExecutionTarget.CLOUD, environmentRef: environmentRef("org-box") }),
     );
     const id = session.metadata!.id;
-    const stored = await server.store.getResource(ApiResourceKind.session, id, SessionSchema);
-    (stored.status ??= create(SessionStatusSchema)).harnessStateId = "thread-1";
-    await server.store.saveResource(ApiResourceKind.session, id, SessionSchema, stored);
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.run,
+      "run_env_1",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_env_1", org: session.metadata!.org },
+        spec: { target: { case: "sessionId", value: id } },
+      }),
+    );
 
     const refused = await errorOf(() =>
       sessions.update({

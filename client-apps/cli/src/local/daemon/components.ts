@@ -112,12 +112,11 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     // out the workflow's heartbeat timeout before it continues.
     STIGMER_DRAIN_GRACE_MS: String(GRACEFUL_STOP_TIMEOUT_MS - RUNNER_EXIT_MARGIN_MS),
   };
-  if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
   // Explicit set (after the base spread) so the launcher-resolved key wins over any
   // stale inherited value — the delivery path for a `stigmer setup`-persisted key.
   // The Anthropic key is the one `stigmer setup` saves. Every other way the
-  // runner reaches a provider (CURSOR_API_KEY, OPENAI_API_KEY, a gateway, a
-  // cloud backend) arrives through the base env spread above.
+  // runner reaches a provider (OPENAI_API_KEY, a gateway, a cloud backend)
+  // arrives through the base env spread above.
   if (config.anthropicApiKey !== undefined) env.ANTHROPIC_API_KEY = config.anthropicApiKey;
   if (config.activityRouting !== undefined) env.STIGMER_ACTIVITY_ROUTING = config.activityRouting;
   return env;

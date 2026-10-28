@@ -1,7 +1,8 @@
 /**
  * Pins the save-time checks of a saved RunConfig's tier and thinking mode
- * (run-config-checks.ts) against the BUNDLED registry, beyond what the
- * agent suites that call them pin:
+ * (run-config-checks.ts) against the BUNDLED registry (and, for the fast
+ * tier the bundle prices on no model, a one-row local registry), beyond
+ * what the agent suites that call them pin:
  *
  *   - a refusal lists the models the engine offers in that dimension, and
  *     lists none when the engine offers none (an engine the registry does
@@ -30,28 +31,44 @@ import {
   savedThinkingModeRefusal,
 } from "../run-config-checks.js";
 
-const models = new ModelRegistryStore({
-  bundledDocument: bundledModelRegistryDocument(),
-  upstreamOrigin: "http://unused.test",
-  refreshEnabled: false,
-  logger: createLogger({ level: "error", pretty: false, write: () => {} }),
-});
+function storeOf(bundledDocument: string): ModelRegistryStore {
+  return new ModelRegistryStore({
+    bundledDocument,
+    upstreamOrigin: "http://unused.test",
+    refreshEnabled: false,
+    logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+  });
+}
+
+const models = storeOf(bundledModelRegistryDocument());
+
+/** One native model priced fast: the bundle prices no fast variant. */
+const fastModels = storeOf(
+  JSON.stringify({
+    models: [
+      { id: "claude-sonnet-4.6", harness: "native" },
+      { id: "claude-opus-4.8", harness: "native", pricingVariants: { fast: { inputPricePerMillion: 30 } } },
+    ],
+  }),
+);
 
 const SITE = { fieldPath: "spec.run_config" };
 
 describe("the saved tier and thinking checks", () => {
   it("list the engine's fast models, and none for an engine with none", () => {
     const fast = create(RunConfigSchema, { modelName: "claude-sonnet-4.6", serviceTier: ServiceTier.FAST });
-    expect(savedServiceTierRefusal(models, SITE, "cursor", fast)).toContain("models with a fast tier on 'cursor'");
-    const unknownEngine = savedServiceTierRefusal(models, SITE, "no-such-engine", fast);
+    expect(savedServiceTierRefusal(fastModels, SITE, "native", fast)).toContain(
+      "models with a fast tier on 'native': claude-opus-4.8",
+    );
+    const unknownEngine = savedServiceTierRefusal(fastModels, SITE, "no-such-engine", fast);
     expect(unknownEngine).toContain("no fast variant");
     expect(unknownEngine).not.toContain("models with a fast tier");
   });
 
   it("list the engine's thinking models, and none for an engine with none", () => {
-    const thinking = create(RunConfigSchema, { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED });
-    expect(savedThinkingModeRefusal(models, SITE, "cursor", thinking)).toContain(
-      "models with a thinking mode on 'cursor'",
+    const thinking = create(RunConfigSchema, { modelName: "no-such-model", thinkingMode: ThinkingMode.ENABLED });
+    expect(savedThinkingModeRefusal(models, SITE, "claude", thinking)).toContain(
+      "models with a thinking mode on 'claude': claude-fable-5, claude-haiku-4.5",
     );
     const unknownEngine = savedThinkingModeRefusal(models, SITE, "no-such-engine", thinking);
     expect(unknownEngine).toContain("no thinking capability");
@@ -80,7 +97,7 @@ describe("the saved tier and thinking checks", () => {
     expect(
       savedChoiceWithoutModelRefusal(
         SITE,
-        create(RunConfigSchema, { modelName: "composer-2.5", serviceTier: ServiceTier.FAST }),
+        create(RunConfigSchema, { modelName: "claude-opus-4.8", serviceTier: ServiceTier.FAST }),
       ),
     ).toBe("");
     expect(savedChoiceWithoutModelRefusal(SITE, create(RunConfigSchema, { maxCostUsd: 1 }))).toBe("");

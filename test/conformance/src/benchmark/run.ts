@@ -8,9 +8,9 @@
 // spawned WITHOUT `proxy` and WITH a log file under the run's directory. The
 // target itself is not reused because it hard-wires the mock proxy into every
 // boot. The runner child inherits this process's environment, which is how
-// ANTHROPIC_API_KEY, OPENAI_API_KEY (with OPENAI_BASE_URL, when the native
-// model is served on another OpenAI-compatible address) and CURSOR_API_KEY
-// reach it; nothing is written anywhere. So one run holds one OpenAI-slot
+// ANTHROPIC_API_KEY and OPENAI_API_KEY (with OPENAI_BASE_URL, when the
+// native model is served on another OpenAI-compatible address) reach it;
+// nothing is written anywhere. So one run holds one OpenAI-slot
 // address, and measures one native model (cells.ts).
 //
 // Every turn of every cell goes through one driver (session.ts), so a turn
@@ -368,7 +368,7 @@ function registryHas(registry: ModelRegistryDocument, id: string, harness: Bench
 }
 
 /** The engine a harness's rows name in the model registry (`row.harness`). */
-const REGISTRY_ROW_HARNESS: Record<BenchmarkHarness, string> = { "deep-agent": "native", cursor: "cursor", claude: "claude" };
+const REGISTRY_ROW_HARNESS: Record<BenchmarkHarness, string> = { "deep-agent": "native", claude: "claude" };
 
 /** The agent an attempt runs, provisioned fresh; its resources are deferred on `fixtures`. */
 interface ProvisionedAgent {
@@ -569,7 +569,7 @@ export function renderSummary(report: BenchmarkReport): string {
     "",
   );
   lines.push(
-    `| scenario | harness | n | failed | e2e ms | first token ms | runner first token ms | before activity ms | rounds | tool calls | mcp connect ms | cursor send ms | est. cost µ$ | cache hit | model |`,
+    `| scenario | harness | n | failed | e2e ms | first token ms | runner first token ms | before activity ms | rounds | tool calls | mcp connect ms | est. cost µ$ | cache hit | model |`,
   );
   lines.push(`|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|`);
   for (const comparison of report.comparisons) {
@@ -581,7 +581,7 @@ export function renderSummary(report: BenchmarkReport): string {
       if (marked) markedNative = true;
       const cost = `${cell(m?.estimated_cost_micros)}${marked ? "*" : ""}`;
       lines.push(
-        `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.tool_calls)} | ${cell(m?.mcp_connect_ms)} | ${cell(m?.cursor_send_returned_ms)} | ${cost} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
+        `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.tool_calls)} | ${cell(m?.mcp_connect_ms)} | ${cost} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
       );
     }
   }

@@ -80,7 +80,6 @@ describe("assertLlmBackendsPreflight", () => {
     vi.stubEnv("ANTHROPIC_BASE_URL", "");
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("CURSOR_API_KEY", "");
     for (const [key, value] of Object.entries(vars)) {
       vi.stubEnv(key, value);
     }
@@ -99,25 +98,25 @@ describe("assertLlmBackendsPreflight", () => {
     expect(() => assertLlmBackendsPreflight(null)).toThrow(/CLOUD_ML_REGION/);
   });
 
-  it("logs the providers the runner reaches, with the Cursor key the factory resolved", () => {
-    stubBackendEnv({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global" });
+  it("logs the providers the runner reaches, and how", () => {
+    stubBackendEnv({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global", OPENAI_API_KEY: "sk-openai" });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    assertLlmBackendsPreflight(null, "cursor-key");
-    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (vertex), cursor (key)");
+    assertLlmBackendsPreflight(null);
+    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (vertex), openai (key)");
   });
 
   it("logs that it reaches no model provider when it holds none", () => {
     stubBackendEnv({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    assertLlmBackendsPreflight(null, "");
+    assertLlmBackendsPreflight(null);
     expect(log).toHaveBeenCalledWith("[runner] reaches: no model provider");
   });
 
   it("logs every provider reached through an options-supplied proxy", () => {
     stubBackendEnv({});
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    assertLlmBackendsPreflight("https://api.stigmer.ai", "proxy-managed");
-    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (proxy), openai (proxy), cursor (proxy)");
+    assertLlmBackendsPreflight("https://api.stigmer.ai");
+    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (proxy), openai (proxy)");
   });
 
   it("warns instead of throwing when an options-supplied proxy makes the var inert", () => {

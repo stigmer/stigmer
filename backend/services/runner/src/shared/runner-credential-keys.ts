@@ -12,10 +12,9 @@
  *
  * Consumers:
  * - runner-credential-store.ts: captures every name listed in this module
- *   out of `process.env` at boot (issue #508 — the Cursor SDK's local agent
- *   runtime runs in-process and its shell tool spawns from the runner's own
- *   env, so credentials must not LIVE there; see that module for custody
- *   rules).
+ *   out of `process.env` at boot (issue #508 — a vendor engine's spawns
+ *   inherit the environment they start from, so credentials must not LIVE
+ *   there; see that module for custody rules).
  * - shared/shell-env.ts: SHELL_ENV_DENYLIST for the native harness `execute` tool
  *   (defense-in-depth behind the boot scrub).
  * - mcp-manager.test.ts: leak-tripwire canaries for MCP stdio subprocesses
@@ -47,8 +46,9 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // Fallback bearer token for model-registry/pricing fetches when
   // STIGMER_TOKEN is unset (registry-endpoint.ts).
   "STIGMER_AUTH_TOKEN",
-  // Cursor harness credential (config.ts) — agent-spawned processes never
-  // need direct Cursor API access.
+  // The retired Cursor harness's key. No code reads it any more, but a
+  // deployment configured before the retirement may still set it, so it
+  // stays in custody: an agent's process never sees it.
   "CURSOR_API_KEY",
   // Direct-mode Anthropic key for the native harness (model-client.ts).
   "ANTHROPIC_API_KEY",

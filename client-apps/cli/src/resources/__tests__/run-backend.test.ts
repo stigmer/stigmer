@@ -9,7 +9,7 @@
 // folded events, and the logs listed and followed from the session's log.
 //
 // The log holds four runs of session ses_1: aex_1 finished (a message, a
-// Shell call), aex_live still working (more of its events, and its end, come
+// Bash call), aex_live still working (more of its events, and its end, come
 // only on the stream), aex_wait waiting on one tool call, aex_two waiting on
 // two, aex_long holding one long message, aex_chat a message and no tool
 // call; aex_empty has no events,
@@ -64,7 +64,7 @@ const thread = "aex_1.t1";
 const STORED: SessionEvent[] = [
   user("aex_1", "do it"),
   phase("aex_1", "running"),
-  use("aex_1", "c1", "Shell", { input: { command: "make" } }),
+  use("aex_1", "c1", "Bash", { input: { command: "make" } }),
   result("aex_1", "c1", "ok"),
   use("aex_1", "c2", "fetch"),
   use("aex_1", "t1", "task"),
@@ -254,7 +254,7 @@ describe("trace", () => {
     const cap = capture();
     await traceRun(client, "aex_1", "table", cap.streams);
     expect(cap.text()).toContain("Agent: Reviewer (completed, 20s)");
-    expect(cap.text()).toContain("  [completed] Shell                      ok\n");
+    expect(cap.text()).toContain("  [completed] Bash                       ok\n");
     expect(cap.text()).toContain("  [stopped] fetch                      \n");
     expect(cap.text()).toContain("  [completed] task");
     expect(cap.text()).toContain("    [failed] read                       no such file\n");
@@ -322,7 +322,7 @@ describe("logs", () => {
     await streamRunLogs(client, { runId: "aex_1", follow: false }, never, cap.streams);
     expect(cap.lines[0]).toBe("[user.message] do it\n");
     expect(cap.lines[1]).toBe('[stigmer.run.status] {"phase":"running"}\n');
-    expect(cap.lines).toContain('[agent.tool_use] {"input":{"command":"make"},"name":"Shell"}\n');
+    expect(cap.lines).toContain('[agent.tool_use] {"input":{"command":"make"},"name":"Bash"}\n');
     expect(cap.lines).toContain('[session.thread_status_running] {"agent_name":"researcher","session_thread_id":"aex_1.t1"}\n');
     expect(cap.lines).toContain("[agent.tool_result] ok\n");
     expect(cap.lines).toContain("[agent.message] done\n");

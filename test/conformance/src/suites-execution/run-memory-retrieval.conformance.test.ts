@@ -6,8 +6,8 @@
 //
 // The conformance environment runs with NO embeddings-capable provider (the
 // mock proxy speaks only Anthropic and fences every other provider path with
-// a 500), which is exactly the deployment posture of Anthropic-only and
-// Cursor-only OSS operators. The cross-edition property pinned here is
+// a 500), which is exactly the deployment posture of Anthropic-only OSS
+// operators. The cross-edition property pinned here is
 // therefore CREDENTIAL PRESENCE, not edition: both editions
 // run the same runner code, and without an embedder every execution injects
 // the full candidate set (Phase 2 behavior, unchanged) with an honest

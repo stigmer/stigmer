@@ -25,7 +25,7 @@ export interface SessionHeaderInfo {
    * Resolved harness for the session. Surfaced for every engine but native,
    * the default: an engine changes the toolset, conversation-state model,
    * and billing, and it may come from the account preference rather than a
-   * flag — a Cursor or Claude session must never start silently (the CLI
+   * flag — a Claude session must never start silently (the CLI
    * counterpart of the web composer's harness selector).
    */
   readonly harness?: HarnessFlag;

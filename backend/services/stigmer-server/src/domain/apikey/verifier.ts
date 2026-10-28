@@ -20,9 +20,10 @@
  * JWT login). The owner is the key's creator,
  * status.audit.spec_audit.created_by (the Java owner extractor's actual
  * read), whose actor row also carries the email/displayName the audit
- * seam wants. Expiry is "expires_at set and past"; never_expires is
- * deliberately not read — Java parity (never-expiring keys leave
- * expires_at unset). A key limited to one organization (spec.bound_org) carries
+ * seam wants. Expiry is "expires_at set and past, unless never_expires,
+ * which wins": the contract ignores expires_at on a never-expiring key,
+ * and every client already shows such a key as never expiring
+ * (stigmer/stigmer#1434). A key limited to one organization (spec.bound_org) carries
  * it as the identity's `boundOrg`, so it works in that organization and its
  * child organizations (authorization/credential-binding.ts); a key without
  * one speaks for its owner everywhere.
@@ -171,7 +172,8 @@ export function newApiKeyIdentityVerifier(
         throw new ConnectError(INVALID_TOKEN_MESSAGE, Code.Unauthenticated);
       }
       const now = deps.now();
-      const expiresAt = key.spec?.expiresAt;
+      const expiresAt =
+        key.spec?.neverExpires === true ? undefined : key.spec?.expiresAt;
       if (expiresAt !== undefined && timestampDate(expiresAt) <= now) {
         throw new ConnectError(TOKEN_EXPIRED_MESSAGE, Code.Unauthenticated);
       }

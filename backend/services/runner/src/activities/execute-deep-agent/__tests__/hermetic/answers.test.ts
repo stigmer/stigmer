@@ -1,6 +1,5 @@
 /**
- * Hermetic: asking before an edit on the native engine, the twin of the
- * Cursor arm in `execute-cursor/__tests__/hermetic/answers.test.ts`.
+ * Hermetic: asking before an edit on the native engine.
  *
  * The agent's own hook asks on `Write` with file review off. The model's
  * `write_file` waits for a person (WAITING_FOR_APPROVAL); between turns the

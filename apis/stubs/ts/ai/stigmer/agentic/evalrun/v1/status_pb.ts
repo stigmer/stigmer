@@ -389,8 +389,7 @@ export type EvalRunCaseTarget = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunCa
 
   /**
    * Why this case did not run on this target, as in "not run: model
-   * 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
-   * resumed conversations"; empty when it ran.
+   * 'sonnet' is not in Stigmer's catalog"; empty when it ran.
    *
    * @generated from field: string not_run_reason = 2;
    */

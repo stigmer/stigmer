@@ -80,7 +80,7 @@ describe("ExecuteDeepAgent hermetic — a saved subagent's own context", () => {
       document: {
         models: [
           ...REGISTRY_DOCUMENT.models,
-          { ...REGISTRY_DOCUMENT.models[1], id: NOTES_MODEL, displayName: "Claude Sonnet 4.6 (hermetic fixture)" },
+          { ...REGISTRY_DOCUMENT.models[0], id: NOTES_MODEL, displayName: "Claude Sonnet 4.6 (hermetic fixture)" },
         ],
       },
     });

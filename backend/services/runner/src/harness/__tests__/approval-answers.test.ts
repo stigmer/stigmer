@@ -82,11 +82,11 @@ function grant(callId: string, lease: { category?: string; server?: string; hook
   });
 }
 
-function asked(callId: string, policySource: string, contentDigest = "", policyHook = ""): SessionEvent {
+function asked(callId: string, policySource: string, policyHook = ""): SessionEvent {
   const toolUseId = toolUseEventId(RUN, callId);
   return create(SessionEventSchema, {
     runId: RUN,
-    event: { case: "stigmerPermissionAsked", value: { id: `${toolUseId}.ask`, toolUseId, policySource, policyHook, contentDigest } },
+    event: { case: "stigmerPermissionAsked", value: { id: `${toolUseId}.ask`, toolUseId, policySource, policyHook } },
   });
 }
 
@@ -162,15 +162,15 @@ describe("the run's answers, grants and asks", () => {
     ]);
   });
 
-  it("keeps what each call was asked under: its rule's word, its hook and its content digest", () => {
+  it("keeps what each call was asked under: its rule's word and its hook", () => {
     const { asks } = approvalAnswersOf(RUN, status(), [
-      asked("call_allow", "builtin_category", "sha256:abc"),
-      asked("call_deny", "hook", "args:def", "safety"),
+      asked("call_allow", "builtin_category"),
+      asked("call_deny", "hook", "safety"),
       asked("call_allow", "hook"),
     ]);
     expect([...asks.entries()]).toEqual([
-      [toolUseEventId(RUN, "call_allow"), { policySource: "builtin_category", policyHook: "", contentDigest: "sha256:abc" }],
-      [toolUseEventId(RUN, "call_deny"), { policySource: "hook", policyHook: "safety", contentDigest: "args:def" }],
+      [toolUseEventId(RUN, "call_allow"), { policySource: "builtin_category", policyHook: "" }],
+      [toolUseEventId(RUN, "call_deny"), { policySource: "hook", policyHook: "safety" }],
     ]);
   });
 });

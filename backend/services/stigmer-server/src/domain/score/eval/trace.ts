@@ -25,9 +25,7 @@
  *     provider's call id (../turn.ts `callIdOf`);
  *   - the tool calls, each with its Claude name and its JSON-encoded
  *     input. An engine name reads as the Claude tool it covers
- *     (`@stigmer/tool-vocabulary` `claudeNameOf`): a tool that writes and
- *     edits reads as Write when its file was created in the run, as Edit
- *     otherwise. An MCP call reads as `mcp__<server>__<tool>`, its
+ *     (`@stigmer/tool-vocabulary` `claudeNameOf`). An MCP call reads as `mcp__<server>__<tool>`, its
  *     MCP server name already the name a turn gives a plugin's server,
  *     `plugin_<plugin>_<server>`, as Claude Code does. A read of a mounted
  *     skill's `SKILL.md` reads as `Skill {"skill": "<plugin>:<name>"}`,
@@ -55,9 +53,8 @@
  * Sub-agent threads are not traversed, as the other two readers do not
  * traverse them. A thinking, a harness note and a compaction add no line.
  *
- * The skill mounts, on both engines, rendered by
- * execute-deep-agent/prompt-builder.ts `renderSkillsSection` and
- * execute-cursor/prompt-builder.ts `formatSkillsSection`: an organization's
+ * The skill mounts, rendered by execute-deep-agent/prompt-builder.ts
+ * `renderSkillsSection`: an organization's
  * own skill at `.stigmer/skills/<name>/SKILL.md` in the workspace, a link
  * into the session's platform directory (`.../platform/skills/<name>/`,
  * the runner's shared/skill-resolver.ts); a plugin's skill inside the
@@ -68,7 +65,7 @@
  * a mount moves, a skill read stops reading as `Skill` and every
  * `tool_used: Skill` grader fails.
  *
- * Proven by __tests__/trace.test.ts, over a native and a Cursor transcript,
+ * Proven by __tests__/trace.test.ts, over a native and a Claude transcript,
  * and ../__tests__/transcript-from-events.test.ts.
  */
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
@@ -176,8 +173,6 @@ export interface EvalTraceDeps {
  */
 function toolEngineOf(harness: Harness): ToolEngine {
   switch (harness) {
-    case Harness.CURSOR:
-      return "cursor";
     case Harness.CLAUDE:
       return "claude";
     case Harness.NATIVE:
@@ -198,7 +193,6 @@ export async function evalTraceOf(
   const { run } = transcript;
   const turn = turnOfTranscript(transcript);
   const files = await filesOf(run, deps);
-  const created = new Set(files.kind === "recorded" ? files.created : []);
   const engine = toolEngineOf(deps.harness);
   const seqOf = new Map(
     transcript.events.map((event) => [eventIdOf(event), event.seq] as const),
@@ -231,7 +225,7 @@ export async function evalTraceOf(
     }
     const results: JsonValue[] = [];
     for (const use of group.uses) {
-      const named = namedCall(use, engine, deps, created);
+      const named = namedCall(use, engine, deps);
       toolCalls.push(named);
       const text = use.result?.text ?? "";
       const errored = use.result?.isError === true;
@@ -314,7 +308,6 @@ function namedCall(
   use: ToolUse,
   engine: ToolEngine,
   deps: EvalTraceDeps,
-  created: ReadonlySet<string>,
 ): EvalToolCall {
   const args: JsonObject = use.input;
   const input = JSON.stringify(args);
@@ -322,13 +315,7 @@ function namedCall(
     return { name: `mcp__${use.mcpServerName}__${use.name}`, input };
   }
   const path = pathArgumentOf(args);
-  const fileChange =
-    path === undefined
-      ? undefined
-      : created.has(normalise(path))
-        ? "add"
-        : "modify";
-  const name = claudeNameOf(engine, use.name, fileChange);
+  const name = claudeNameOf(engine, use.name);
   if (name === "Read" && path !== undefined) {
     const skill = skillReadOf(path, deps);
     if (skill !== undefined) {

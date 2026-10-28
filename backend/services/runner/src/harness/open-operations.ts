@@ -32,11 +32,10 @@
  *   - A call is DELEGATING when a `sub_agent_started` names its id (the
  *     sub-agent's id is the delegating call's on every harness,
  *     `transcript/events.ts`), in either order: native announces the
- *     sub-agent before the `task` call starts. A delegating call counts as
- *     open only on a harness that reports its sub-agents' work at completion
- *     (`HarnessCapabilities.subAgentProgress`); where the work streams, the
- *     sub-agent's own calls are what count, so a sub-agent whose model hangs
- *     with nothing open is caught at the window like the root's.
+ *     sub-agent before the `task` call starts. A delegating call never counts
+ *     as open: every harness streams its sub-agents' work, so the
+ *     sub-agent's own calls are what count, and a sub-agent whose model
+ *     hangs with nothing open is caught at the window like the root's.
  *
  * A scope whose agent waits for its background commands at a round's end
  * (`background_wait_started` until `background_wait_finished`) holds the
@@ -64,7 +63,7 @@
  * The oldest open call, with its age, is what the runtime's backstop reads:
  * an operation open longer than `Config.openOperationMaxMs` is stopped
  * ({@link OperationLimitError}), because some operations have no bound of
- * our own (a Cursor `task`, Cursor's MCP calls) and a live heartbeat over an
+ * our own (an engine's opaque tool) and a live heartbeat over an
  * unbounded call would keep a dead turn alive forever. Ages are on the wall
  * clock read when the event is observed; a relayed event's few milliseconds
  * in the pipe are nothing against a bound measured in minutes.
@@ -76,15 +75,13 @@
  * waited on its model, measured here when it is sent.
  */
 
-import type { SubAgentProgress } from "./capabilities.js";
 import type { TranscriptEvent } from "./transcript/events.js";
 
 /**
  * Default backstop for one open operation (ms), `Config.openOperationMaxMs`:
  * a tool call or delegated task open this long is stopped and the turn
  * fails with the operation-limit copy. It exists for what has no bound of
- * our own (a Cursor `task`, Cursor's MCP calls, an opaque tool of a later
- * harness); every operation the runner runs itself is bounded well below it
+ * our own (an engine's opaque tool); every operation the runner runs itself is bounded well below it
  * (the MCP SDK's 60 s request, `web_fetch`'s 15 s per hop).
  */
 export const DEFAULT_OPEN_OPERATION_MAX_MS = 3_600_000;
@@ -109,7 +106,6 @@ export interface OperationsSnapshot {
 }
 
 export interface OpenOperationsOptions {
-  readonly subAgentProgress: SubAgentProgress;
   /** Told when the last counted operation closes: the moment the stall window counts from. */
   readonly onIdle?: () => void;
   /** `Date.now` in production; tests inject a scripted one. */
@@ -240,7 +236,7 @@ export class OpenOperations {
   }
 
   private counts(operation: OpenOperation): boolean {
-    return !this.delegating.has(operation.callId) || this.options.subAgentProgress === "at-completion";
+    return !this.delegating.has(operation.callId);
   }
 
   private close(callId: string): void {

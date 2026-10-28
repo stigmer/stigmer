@@ -8,8 +8,12 @@
  * single persist chokepoint, the whole-activity heartbeat, the stop
  * controller's four producers, the reinvocation seam, the byte-pinned copy —
  * is the kit's and is registered here through `describeHarnessRuntimeContract`
- * exactly as `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`
- * registers it against the real Cursor adapter. An arm that differs between
+ * exactly as each real adapter's hermetic `harness-contract.test.ts`
+ * registers it (`activities/execute-deep-agent/`, `activities/execute-claude/`).
+ * The state id is the runtime's (`thread-{sessionId}`), present on the FIRST
+ * turn, so the runtime's reinvocation fact — the seed, the reconcile — comes
+ * from the persisted log and from nothing else, and every arm that resumes
+ * exercises it end to end. An arm that differs between
  * the fake and the real engine is an adapter defect, not a runtime one.
  * The long-turn arms the fake fails today (a silent operation, streamed
  * output, a continued turn) are the runtime's gaps, marked by their issue;
@@ -40,6 +44,10 @@
  * does the plan a Plan-mode turn returns: its final message saved into the
  * folder and returned as one File of the turn, with no artifact store.
  *
+ * So is the interval of the turn's whole-activity heartbeat: the cancellation
+ * pulse (`shared/heartbeat.ts`), half the bound on how soon a pause reaches a
+ * turn; the module's `startHeartbeat` is spied on, calling through.
+ *
  * The hermetic environment is created at module level because the subject's
  * `config` is read at collection time; the forks pool keeps it private to
  * this file.
@@ -56,10 +64,15 @@ import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/
 import { isPlanFileName, PLAN_STAGING_FILE, planFileName } from "../../shared/plan-file.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
+import { CANCELLATION_PULSE_MS, startHeartbeat } from "../../shared/heartbeat.js";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
+vi.mock("../../shared/heartbeat.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../shared/heartbeat.js")>();
+  return { ...actual, startHeartbeat: vi.fn(actual.startHeartbeat) };
+});
 
 import {
   ScriptedClock,
@@ -83,7 +96,6 @@ import {
   assertCostCapTerminates,
   assertFailedSurfaceWritesItsCopy,
   assertNonExecutingDecisionSettlesSkipped,
-  assertRejectedBindFails,
   assertWorkspaceLockTimeoutFails,
   describeHarnessRuntimeContract,
   RuntimeExecutionDriver,
@@ -103,9 +115,6 @@ const TASK_QUEUE = "runtime-test-queue";
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
 const subject = scriptedSubject({
-  pausePrimitive: "interrupt",
-  stateIdSource: "engine-minted",
-  continuation: "digest",
   config: { workspaceRootDir: env.workspaceRootDir, taskQueue: TASK_QUEUE },
 });
 const harness: RuntimeContractHarness = { subject, env, clock };
@@ -170,7 +179,6 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_COMPLETED,
       ]);
-      expect(driver.record.harnessBinds, "an engine-minted adapter binds once across the round trip").toHaveLength(1);
     });
 
     it("the cost cap: the fake's stated price reads exactly in the copy", async () => {
@@ -192,17 +200,10 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(systemMessages(driver.record.rowsOf(final))).toEqual(rows);
     });
 
-    it("a rejected bind: the fake names the failure and nothing of the scenario was folded in", async () => {
-      clock.reset();
-      const { driver, final } = await assertRejectedBindFails(harness, "fake-bind-rejects");
-      expect(final.error).toContain("could not bind engine state");
-      expect(aiMessages(driver.record.rowsOf(final))).toEqual([]);
-    });
 
     it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197)", async () => {
       // Until #1096 this arm pinned the opposite: the runtime FAILED a
-      // reinvocation carrying any REJECT (`rejectedByUserArm`, Cursor's
-      // legacy), against the proto's `APPROVAL_ACTION_REJECT` doc, the
+      // reinvocation carrying any REJECT (`rejectedByUserArm`), against the proto's `APPROVAL_ACTION_REJECT` doc, the
       // conformance suite and the native harness.
       // The kit's runtime half now carries the contract for every subject;
       // what is the fake's own here is the persist cadence around it.
@@ -538,7 +539,6 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const final = driver.record.lastFullStatus!;
       expect(final.error).toContain("the environment's npm packages did not install: `npm install` exited 1");
       expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_RUN);
-      expect(driver.record.harnessBinds, "the engine was never reached").toHaveLength(0);
     });
 
     it("a clean install lets the turn run", async () => {
@@ -604,6 +604,22 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         await assertWorkspaceLockTimeoutFails(harness, "fake-timeline-no-engine");
       });
       expect(lines).toEqual([]);
+    });
+  });
+
+  describe("the runtime's cancellation pulse", () => {
+    // A pause reaches a turn only on a heartbeat, and a turn waiting on a
+    // silent model call or a long tool sends none but this pulse, so its
+    // interval bounds how soon such a turn stops (stigmer#1378); the worker's
+    // throttle is the other bound (`__tests__/worker.test.ts`).
+    it("pulses the activity's heartbeat every CANCELLATION_PULSE_MS for the whole turn", async () => {
+      clock.reset();
+      vi.mocked(startHeartbeat).mockClear();
+      const driver = new RuntimeExecutionDriver(harness, "fake-cancellation-pulse");
+      const invocation = await driver.turn([scenario.say("Done.")]);
+
+      expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+      expect(vi.mocked(startHeartbeat).mock.calls.map(([intervalMs]) => intervalMs)).toEqual([CANCELLATION_PULSE_MS]);
     });
   });
 

@@ -35,9 +35,6 @@ private static final long serialVersionUID = 0L;
     agentId_ = "";
     agentVersionHash_ = "";
     state_ = "";
-    harnessStateId_ = "";
-    harnessStateIdHistory_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
     routineId_ = "";
     environmentSource_ = 0;
   }
@@ -377,140 +374,6 @@ java.lang.String defaultValue) {
     }
   }
 
-  public static final int HARNESS_STATE_ID_FIELD_NUMBER = 5;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object harnessStateId_ = "";
-  /**
-   * <pre>
-   * Harness-specific state identifier for conversation continuity.
-   *
-   * Populated after the first run completes; empty until then. It is the
-   * harness's own conversation id:
-   *
-   * - NATIVE: the native harness's thread id, "thread-{session_id}".
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent runs.
-   * </pre>
-   *
-   * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-   * @return The harnessStateId.
-   */
-  @java.lang.Override
-  public java.lang.String getHarnessStateId() {
-    java.lang.Object ref = harnessStateId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      harnessStateId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Harness-specific state identifier for conversation continuity.
-   *
-   * Populated after the first run completes; empty until then. It is the
-   * harness's own conversation id:
-   *
-   * - NATIVE: the native harness's thread id, "thread-{session_id}".
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent runs.
-   * </pre>
-   *
-   * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-   * @return The bytes for harnessStateId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getHarnessStateIdBytes() {
-    java.lang.Object ref = harnessStateId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      harnessStateId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int HARNESS_STATE_ID_HISTORY_FIELD_NUMBER = 6;
-  @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList harnessStateIdHistory_ =
-      com.google.protobuf.LazyStringArrayList.emptyList();
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-   * @return A list containing the harnessStateIdHistory.
-   */
-  public com.google.protobuf.ProtocolStringList
-      getHarnessStateIdHistoryList() {
-    return harnessStateIdHistory_;
-  }
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-   * @return The count of harnessStateIdHistory.
-   */
-  public int getHarnessStateIdHistoryCount() {
-    return harnessStateIdHistory_.size();
-  }
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-   * @param index The index of the element to return.
-   * @return The harnessStateIdHistory at the given index.
-   */
-  public java.lang.String getHarnessStateIdHistory(int index) {
-    return harnessStateIdHistory_.get(index);
-  }
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the harnessStateIdHistory at the given index.
-   */
-  public com.google.protobuf.ByteString
-      getHarnessStateIdHistoryBytes(int index) {
-    return harnessStateIdHistory_.getByteString(index);
-  }
-
   public static final int ROUTINE_ID_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
   private volatile java.lang.Object routineId_ = "";
@@ -656,12 +519,6 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, state_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessStateId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 5, harnessStateId_);
-    }
-    for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 6, harnessStateIdHistory_.getRaw(i));
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(routineId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, routineId_);
     }
@@ -701,17 +558,6 @@ java.lang.String defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, state_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessStateId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, harnessStateId_);
-    }
-    {
-      int dataSize = 0;
-      for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
-        dataSize += computeStringSizeNoTag(harnessStateIdHistory_.getRaw(i));
-      }
-      size += dataSize;
-      size += 1 * getHarnessStateIdHistoryList().size();
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(routineId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, routineId_);
@@ -756,10 +602,6 @@ java.lang.String defaultValue) {
         other.internalGetVaultAttachers())) return false;
     if (!getState()
         .equals(other.getState())) return false;
-    if (!getHarnessStateId()
-        .equals(other.getHarnessStateId())) return false;
-    if (!getHarnessStateIdHistoryList()
-        .equals(other.getHarnessStateIdHistoryList())) return false;
     if (!getRoutineId()
         .equals(other.getRoutineId())) return false;
     if (hasEnvironment() != other.hasEnvironment()) return false;
@@ -793,12 +635,6 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + STATE_FIELD_NUMBER;
     hash = (53 * hash) + getState().hashCode();
-    hash = (37 * hash) + HARNESS_STATE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getHarnessStateId().hashCode();
-    if (getHarnessStateIdHistoryCount() > 0) {
-      hash = (37 * hash) + HARNESS_STATE_ID_HISTORY_FIELD_NUMBER;
-      hash = (53 * hash) + getHarnessStateIdHistoryList().hashCode();
-    }
     hash = (37 * hash) + ROUTINE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getRoutineId().hashCode();
     if (hasEnvironment()) {
@@ -980,9 +816,6 @@ java.lang.String defaultValue) {
       agentVersionHash_ = "";
       internalGetMutableVaultAttachers().clear();
       state_ = "";
-      harnessStateId_ = "";
-      harnessStateIdHistory_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
       routineId_ = "";
       environment_ = null;
       if (environmentBuilder_ != null) {
@@ -1044,22 +877,15 @@ java.lang.String defaultValue) {
         result.state_ = state_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.harnessStateId_ = harnessStateId_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
-        harnessStateIdHistory_.makeImmutable();
-        result.harnessStateIdHistory_ = harnessStateIdHistory_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.routineId_ = routineId_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.environment_ = environmentBuilder_ == null
             ? environment_
             : environmentBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.environmentSource_ = environmentSource_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1098,24 +924,9 @@ java.lang.String defaultValue) {
         bitField0_ |= 0x00000010;
         onChanged();
       }
-      if (!other.getHarnessStateId().isEmpty()) {
-        harnessStateId_ = other.harnessStateId_;
-        bitField0_ |= 0x00000020;
-        onChanged();
-      }
-      if (!other.harnessStateIdHistory_.isEmpty()) {
-        if (harnessStateIdHistory_.isEmpty()) {
-          harnessStateIdHistory_ = other.harnessStateIdHistory_;
-          bitField0_ |= 0x00000040;
-        } else {
-          ensureHarnessStateIdHistoryIsMutable();
-          harnessStateIdHistory_.addAll(other.harnessStateIdHistory_);
-        }
-        onChanged();
-      }
       if (!other.getRoutineId().isEmpty()) {
         routineId_ = other.routineId_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (other.hasEnvironment()) {
@@ -1174,31 +985,21 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000010;
               break;
             } // case 34
-            case 42: {
-              harnessStateId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 42
-            case 50: {
-              ensureHarnessStateIdHistoryIsMutable();
-              harnessStateIdHistory_.add(input.readStringRequireUtf8());
-              break;
-            } // case 50
             case 58: {
               routineId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             case 66: {
               input.readMessage(
                   internalGetEnvironmentFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             case 72: {
               environmentSource_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000080;
               break;
             } // case 72
             case 794: {
@@ -1882,326 +1683,6 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private java.lang.Object harnessStateId_ = "";
-    /**
-     * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then. It is the
-     * harness's own conversation id:
-     *
-     * - NATIVE: the native harness's thread id, "thread-{session_id}".
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
-     * </pre>
-     *
-     * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-     * @return The harnessStateId.
-     */
-    public java.lang.String getHarnessStateId() {
-      java.lang.Object ref = harnessStateId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        harnessStateId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then. It is the
-     * harness's own conversation id:
-     *
-     * - NATIVE: the native harness's thread id, "thread-{session_id}".
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
-     * </pre>
-     *
-     * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-     * @return The bytes for harnessStateId.
-     */
-    public com.google.protobuf.ByteString
-        getHarnessStateIdBytes() {
-      java.lang.Object ref = harnessStateId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        harnessStateId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then. It is the
-     * harness's own conversation id:
-     *
-     * - NATIVE: the native harness's thread id, "thread-{session_id}".
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
-     * </pre>
-     *
-     * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-     * @param value The harnessStateId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setHarnessStateId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      harnessStateId_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then. It is the
-     * harness's own conversation id:
-     *
-     * - NATIVE: the native harness's thread id, "thread-{session_id}".
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
-     * </pre>
-     *
-     * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearHarnessStateId() {
-      harnessStateId_ = getDefaultInstance().getHarnessStateId();
-      bitField0_ = (bitField0_ & ~0x00000020);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then. It is the
-     * harness's own conversation id:
-     *
-     * - NATIVE: the native harness's thread id, "thread-{session_id}".
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
-     * </pre>
-     *
-     * <code>string harness_state_id = 5 [json_name = "harnessStateId"];</code>
-     * @param value The bytes for harnessStateId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setHarnessStateIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      harnessStateId_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-
-    private com.google.protobuf.LazyStringArrayList harnessStateIdHistory_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureHarnessStateIdHistoryIsMutable() {
-      if (!harnessStateIdHistory_.isModifiable()) {
-        harnessStateIdHistory_ = new com.google.protobuf.LazyStringArrayList(harnessStateIdHistory_);
-      }
-      bitField0_ |= 0x00000040;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @return A list containing the harnessStateIdHistory.
-     */
-    public com.google.protobuf.ProtocolStringList
-        getHarnessStateIdHistoryList() {
-      harnessStateIdHistory_.makeImmutable();
-      return harnessStateIdHistory_;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @return The count of harnessStateIdHistory.
-     */
-    public int getHarnessStateIdHistoryCount() {
-      return harnessStateIdHistory_.size();
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @param index The index of the element to return.
-     * @return The harnessStateIdHistory at the given index.
-     */
-    public java.lang.String getHarnessStateIdHistory(int index) {
-      return harnessStateIdHistory_.get(index);
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the harnessStateIdHistory at the given index.
-     */
-    public com.google.protobuf.ByteString
-        getHarnessStateIdHistoryBytes(int index) {
-      return harnessStateIdHistory_.getByteString(index);
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @param index The index to set the value at.
-     * @param value The harnessStateIdHistory to set.
-     * @return This builder for chaining.
-     */
-    public Builder setHarnessStateIdHistory(
-        int index, java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureHarnessStateIdHistoryIsMutable();
-      harnessStateIdHistory_.set(index, value);
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @param value The harnessStateIdHistory to add.
-     * @return This builder for chaining.
-     */
-    public Builder addHarnessStateIdHistory(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureHarnessStateIdHistoryIsMutable();
-      harnessStateIdHistory_.add(value);
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @param values The harnessStateIdHistory to add.
-     * @return This builder for chaining.
-     */
-    public Builder addAllHarnessStateIdHistory(
-        java.lang.Iterable<java.lang.String> values) {
-      ensureHarnessStateIdHistoryIsMutable();
-      com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, harnessStateIdHistory_);
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearHarnessStateIdHistory() {
-      harnessStateIdHistory_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000040);;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 6 [json_name = "harnessStateIdHistory"];</code>
-     * @param value The bytes of the harnessStateIdHistory to add.
-     * @return This builder for chaining.
-     */
-    public Builder addHarnessStateIdHistoryBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      ensureHarnessStateIdHistoryIsMutable();
-      harnessStateIdHistory_.add(value);
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object routineId_ = "";
     /**
      * <pre>
@@ -2260,7 +1741,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       routineId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2275,7 +1756,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearRoutineId() {
       routineId_ = getDefaultInstance().getRoutineId();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -2294,7 +1775,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       routineId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2312,7 +1793,7 @@ java.lang.String defaultValue) {
      * @return Whether the environment field is set.
      */
     public boolean hasEnvironment() {
-      return ((bitField0_ & 0x00000100) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <pre>
@@ -2347,7 +1828,7 @@ java.lang.String defaultValue) {
       } else {
         environmentBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2366,7 +1847,7 @@ java.lang.String defaultValue) {
       } else {
         environmentBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2380,7 +1861,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeEnvironment(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (environmentBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0) &&
+        if (((bitField0_ & 0x00000040) != 0) &&
           environment_ != null &&
           environment_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
           getEnvironmentBuilder().mergeFrom(value);
@@ -2391,7 +1872,7 @@ java.lang.String defaultValue) {
         environmentBuilder_.mergeFrom(value);
       }
       if (environment_ != null) {
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       return this;
@@ -2405,7 +1886,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment = 8 [json_name = "environment", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public Builder clearEnvironment() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000040);
       environment_ = null;
       if (environmentBuilder_ != null) {
         environmentBuilder_.dispose();
@@ -2423,7 +1904,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment = 8 [json_name = "environment", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentBuilder() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000040;
       onChanged();
       return internalGetEnvironmentFieldBuilder().getBuilder();
     }
@@ -2489,7 +1970,7 @@ java.lang.String defaultValue) {
      */
     public Builder setEnvironmentSourceValue(int value) {
       environmentSource_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2517,7 +1998,7 @@ java.lang.String defaultValue) {
      */
     public Builder setEnvironmentSource(ai.stigmer.agentic.session.v1.EnvironmentSource value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       environmentSource_ = value.getNumber();
       onChanged();
       return this;
@@ -2531,7 +2012,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearEnvironmentSource() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000080);
       environmentSource_ = 0;
       onChanged();
       return this;

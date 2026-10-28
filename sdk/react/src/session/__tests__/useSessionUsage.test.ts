@@ -150,8 +150,8 @@ describe("useSessionUsage", () => {
   it("passes the report's estimated flag through for runner-reported runs", async () => {
     const report = create(GetSessionUsageReportOutputSchema, {
       sessionId: SESSION_ID,
-      totalUsage: { totalTokens: 900n, llmCallCount: 0, primaryModel: "composer-2" },
-      runs: [{ runId: "run_1", primaryModel: "composer-2", totalTokens: 900n, isEstimated: true }],
+      totalUsage: { totalTokens: 900n, llmCallCount: 0, primaryModel: "claude-sonnet-4-6" },
+      runs: [{ runId: "run_1", primaryModel: "claude-sonnet-4-6", totalTokens: 900n, isEstimated: true }],
       isEstimated: true,
     });
     mockStigmer(vi.fn(async () => report));

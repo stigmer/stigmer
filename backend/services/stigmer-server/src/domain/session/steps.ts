@@ -2,14 +2,13 @@
  * Session domain-local pipeline steps — port the inline steps of
  * pkg/domain/session/controller/ (create.go, delete.go, list.go,
  * validate_harness_immutability.go,
- * validate_execution_target_immutability.go,
- * record_harness_state_history.go) and its steps/ package
+ * validate_execution_target_immutability.go) and its steps/ package
  * (filter_by_channel.go; FilterByAgent reads the pinned agent). Shared
  * steps stay
  * in src/pipeline/steps/; these exist because they embody
- * session-specific contracts: the harness/execution-target immutability
- * sentinels, the server-owned harness-state history, the active-execution
- * delete guard with its execution cascade, and the list filters.
+ * session-specific contracts: the harness and execution-target locks once
+ * a conversation has run, the active-execution delete guard with its
+ * execution cascade, and the list filters.
  *
  * An empty spec.agent_ref is a legal shape and stays empty: the session
  * runs the built-in assistant (session/v1/spec.proto). No step here guards
@@ -35,7 +34,6 @@ import type { SessionList } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
-import type { SessionStatus } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -65,6 +63,7 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
 import { agentExecutionListIndex } from "../run/list-index.js";
+import { sessionHasRun } from "./has-run.js";
 import { sessionListIndex } from "./list-index.js";
 import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
@@ -77,13 +76,10 @@ export const LIST_RESULT_KEY = "listResult";
 // ValidateHarnessImmutability — validate_harness_immutability.go: rejects
 // session updates that change the harness once the session has run. Each
 // harness owns its conversation state independently (native keeps it under
-// the session's own LangGraph thread; Cursor in a Cursor-hosted agent whose
-// id it binds as harness_state_id); switching harness mid-session would
-// silently discard conversation history. A session counts as "used" once it
-// has a run row, the fact every engine leaves (stigmer/stigmer#2566), or a
-// bound harness_state_id, so a Cursor session whose runs were deleted stays
-// locked. An engine that derives its state from the session never binds an
-// id, so the sentinel alone left those engines movable.
+// the session's own LangGraph thread, Claude in its session store keyed by
+// the session); switching harness mid-session would silently discard
+// conversation history. A session counts as "used" once it has a run row,
+// the fact every harness leaves (stigmer/stigmer#2566).
 // ---------------------------------------------------------------------------
 
 export function newValidateHarnessImmutabilityStep(
@@ -125,7 +121,7 @@ export function newValidateHarnessImmutabilityStep(
       }
 
       // A session that has not run yet can still change engines.
-      if (!(await sessionHasRun(store, existing))) {
+      if (!(await sessionHasRun(store, ctx, existing))) {
         return;
       }
 
@@ -134,27 +130,6 @@ export function newValidateHarnessImmutabilityStep(
       );
     },
   };
-}
-
-/**
- * Whether the session has run: a bound harness_state_id, else any run row
- * in it, read through the list index's session key as
- * listExecutionsBySession reads them. A store fault is Internal, never a
- * reading of the session.
- */
-async function sessionHasRun(store: Store, session: Session): Promise<boolean> {
-  if ((session.status?.harnessStateId ?? "") !== "") {
-    return true;
-  }
-  try {
-    const rows = await store.queryResources(agentExecutionListIndex, {
-      anyKey: [{ name: "session", value: session.metadata?.id ?? "" }],
-      limit: 1,
-    });
-    return rows.length > 0;
-  } catch (error) {
-    throw internalError(error, "failed to list agent executions");
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -173,9 +148,9 @@ async function sessionHasRun(store: Store, session: Session): Promise<boolean> {
 // nothing on cloud-defaulting deployments and wave through updates that
 // really do move the session (oss#397).
 //
-// Locks on the harness_state_id sentinel alone, which only an engine that
-// binds a state id sets; reading the run rows, as harness immutability
-// does, is stigmer/stigmer#2598.
+// Locks once the session has run, by the same run-row predicate as the
+// harness lock, so it holds on every harness (stigmer/stigmer#2598): the
+// files the first turn wrote stay where it ran.
 // ---------------------------------------------------------------------------
 
 /**
@@ -192,10 +167,11 @@ const EXECUTION_TARGET_GO_NAMES: Readonly<Record<ExecutionTarget, string>> = {
 
 export function newValidateExecutionTargetImmutabilityStep(
   temporalConfig: AgentExecutionTemporalConfig,
+  store: Store,
 ): PipelineStep<SessionDesc> {
   return {
     name: "ValidateExecutionTargetImmutability",
-    execute(ctx: RequestContext<SessionDesc>): void {
+    async execute(ctx: RequestContext<SessionDesc>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
       if (existing === undefined) {
         return;
@@ -203,10 +179,6 @@ export function newValidateExecutionTargetImmutabilityStep(
 
       const existingSpec = existing.spec;
       if (existingSpec === undefined) {
-        return;
-      }
-
-      if ((existing.status?.harnessStateId ?? "") === "") {
         return;
       }
 
@@ -223,40 +195,20 @@ export function newValidateExecutionTargetImmutabilityStep(
         inputSpec.executionTarget,
       );
 
-      if (inputTarget !== existingTarget) {
-        throw failedPreconditionError(
-          `session execution_target cannot be changed after the first execution (${EXECUTION_TARGET_GO_NAMES[existingTarget]} → ${EXECUTION_TARGET_GO_NAMES[inputTarget]}; unset resolves to the deployment default, ${temporalConfig.defaultExecutionTarget}) — workspace state may not be portable between local and cloud environments`,
-        );
+      if (inputTarget === existingTarget) {
+        return;
       }
+
+      // A session that has not run yet can still move.
+      if (!(await sessionHasRun(store, ctx, existing))) {
+        return;
+      }
+
+      throw failedPreconditionError(
+          `session execution_target cannot be changed after the first execution (${EXECUTION_TARGET_GO_NAMES[existingTarget]} → ${EXECUTION_TARGET_GO_NAMES[inputTarget]}; unset resolves to the deployment default, ${temporalConfig.defaultExecutionTarget}) — workspace state may not be portable between local and cloud environments`,
+      );
     },
   };
-}
-
-// ---------------------------------------------------------------------------
-// The harness state a run's runner records (bindHarnessState): the new id,
-// and the id it replaces appended to the history.
-//
-// A session can span multiple harness-side conversations: when the
-// cursor-runner's resume fails, it creates a fresh Cursor agent and binds
-// its id. The replaced id must not be destroyed — Cursor's own usage events
-// name the conversation id they ran under, so joining them back to the
-// session reads the union of current + prior ids, and every turn that ran
-// under a replaced id would otherwise become an orphaned event.
-//
-// Runs inside the store's atomic write on the live row, so two binds never
-// lose each other's id.
-// ---------------------------------------------------------------------------
-
-export function recordHarnessState(status: SessionStatus, harnessStateId: string): void {
-  const previousId = status.harnessStateId;
-  if (
-    previousId !== "" &&
-    previousId !== harnessStateId &&
-    !status.harnessStateIdHistory.includes(previousId)
-  ) {
-    status.harnessStateIdHistory.push(previousId);
-  }
-  status.harnessStateId = harnessStateId;
 }
 
 // ---------------------------------------------------------------------------

@@ -21,8 +21,8 @@
  * returns what its hooks hand back to the model.
  *
  * It holds no engine state and imports no engine: the native gate
- * (`middleware/approval-gate.ts`) and the Cursor engine's hook server
- * (`execute-cursor/hook-server.ts`) decide what an answer does to the call,
+ * (`middleware/approval-gate.ts`) and the Claude engine's gate
+ * (`execute-claude/gate.ts`) decide what an answer does to the call,
  * and each injects its engine's views. Its one effect on the world is
  * running commands, through an injected {@link HookProcessRunner}
  * (`run.ts`), each in a span `stigmer.hook.run`. What a hook reads on stdin
@@ -67,17 +67,11 @@ export type HookPermissionMode = "default" | "plan" | "bypassPermissions";
 /** The call a hook is asked about, as the engine made it. */
 export interface HookToolCall {
   readonly id: string;
-  /** The engine's name for the tool (the bound name on native; the hook's `tool_name` on Cursor). */
+  /** The engine's name for the tool (the bound name on native; Claude Code's on Claude). */
   readonly name: string;
   readonly args: Record<string, unknown>;
   /** The MCP server the tool belongs to; `""` for a built-in. */
   readonly serverSlug: string;
-  /**
-   * The name the call's transcript row carries, when it differs from
-   * `name` (the Cursor engine names a row by its stream name); a hook lease
-   * is keyed by it, as the row that leased it was.
-   */
-  readonly rowName?: string;
 }
 
 /** Which graph made the call: a sub-agent's carries its type and invocation id. */
@@ -225,7 +219,7 @@ export class HookEvaluator {
         // an ask behind an unsure `if` still reaches a person.
         const leased = run.sure
           && (answer.decision === "ask" || answer.decision === "defer")
-          && this.deps.leases.has(hookLeaseKey(run.entry.source.plugin, call.serverSlug, call.rowName ?? call.name));
+          && this.deps.leases.has(hookLeaseKey(run.entry.source.plugin, call.serverSlug, call.name));
         return { ...answer, ...(leased ? { decision: "allow" as const } : {}), source: run.entry.source, format: run.entry.format, leased };
       }),
     );

@@ -30,7 +30,6 @@ import { renderSummary, runBenchmark, type BenchmarkStack, type RunOptions } fro
 const REGISTRY = {
   models: [
     { id: PARITY_MODEL["deep-agent"], harness: "native" },
-    { id: PARITY_MODEL.cursor, harness: "cursor" },
     { id: PARITY_MODEL.claude, harness: "claude" },
   ],
 };
@@ -70,7 +69,7 @@ describe("runBenchmark's quality arm", () => {
       judge: false,
       quality: [
         { id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] },
-        { id: "quality/cursor", harness: "cursor", modelRequested: "not-a-cursor-model" },
+        { id: "quality/claude", harness: "claude", modelRequested: "not-a-claude-model" },
       ],
       refused: [],
     };
@@ -78,7 +77,7 @@ describe("runBenchmark's quality arm", () => {
 
     const report = await runBenchmark(refusingStack(), plan, OPTIONS, io);
 
-    expect(report.refused).toEqual([{ cell: "quality/cursor", reason: "model not in registry for harness" }]);
+    expect(report.refused).toEqual([{ cell: "quality/claude", reason: "model not in registry for harness" }]);
     expect(report.quality).toEqual({
       plugin: "",
       eval_id: "",
@@ -99,7 +98,7 @@ describe("runBenchmark's quality arm", () => {
       "Quality eval run: create: push the working agent's plugin: organizations are closed",
       "",
       "Refused:",
-      "- quality/cursor: model not in registry for harness",
+      "- quality/claude: model not in registry for harness",
     ]);
   });
 
@@ -152,7 +151,7 @@ describe("renderQuality", () => {
           },
         ],
         notRun: [
-          { name: "refine-over-turns", target: "cursor/claude-sonnet-4-6", reason: "not run on Cursor: resumed conversations" },
+          { name: "refine-over-turns", target: "claude/claude-sonnet-4.6", reason: "not run on Claude: resumed conversations" },
           { name: "other", reason: "not run: plugins" },
         ],
           },
@@ -170,7 +169,7 @@ describe("renderQuality", () => {
       "| config-fix | native/claude-sonnet-4.6 | n/a | no |",
       "",
       "Quality cases not run:",
-      "- refine-over-turns on cursor/claude-sonnet-4-6: not run on Cursor: resumed conversations",
+      "- refine-over-turns on claude/claude-sonnet-4.6: not run on Claude: resumed conversations",
       "- other: not run: plugins",
       "",
       "Quality eval run: execution: the eval run failed: workflow timed out",

@@ -4,7 +4,7 @@
  * A cloud embedder's contract should be one endpoint plus one token. From that
  * the runner needs two things it should not have to know or hold ahead of time:
  * the Temporal frontend coordinates to poll for work, and (on cloud) a minted
- * iss=stigmer access token for its Cursor-proxy traffic. This module resolves
+ * iss=stigmer access token for its proxy traffic. This module resolves
  * both at boot from a single control-plane call:
  *
  *   1. Explicit address wins. If TEMPORAL_SERVICE_ADDRESS (or the equivalent
@@ -29,17 +29,10 @@
  * just keeps its existing token.
  */
 
-// StigmerClient is intentionally NOT statically imported here. It transitively
-// pulls in @connectrpc/connect-node, which does `import * as http2 from
-// "node:http2"` and snapshots the http2 ESM facade on first import. The Cursor
-// SDK HTTP/2 auth interceptor (http2-interceptor.ts) patches `http2.connect`
-// via require() and only propagates to that facade if it runs BEFORE the
-// snapshot. A static import here would drag connect-node into the runner's
-// pre-install module graph (this module is statically imported by runner.ts /
-// runner-manager.ts), freezing the facade to the unpatched connect and silently
-// breaking BiDi auth. Loading the client dynamically keeps connect-node out of
-// the pre-install graph, consistent with the runner's dynamic-import-for-order
-// convention. See assertHttp2ConnectPatched() for the boot-time guard.
+// StigmerClient is loaded dynamically, not statically imported here: it
+// transitively pulls in @connectrpc/connect-node, and this module is
+// statically imported by runner.ts / runner-manager.ts, whose boot path
+// loads the client only when discovery needs it.
 import type { RunnerBootstrapConfig } from "./client/stigmer-client.js";
 
 const LOCAL_TEMPORAL_ADDRESS = "localhost:7233";

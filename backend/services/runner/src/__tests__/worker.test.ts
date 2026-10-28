@@ -2,8 +2,9 @@
  * Pins what startWorker hands Temporal: the run credential's activity
  * interceptor on every worker (the dispatch's input key is the credential's
  * one channel), no workflow-side interceptor module and no sinks unless
- * OpenTelemetry is configured, and the workflow code the source resolves (a
- * pre-built bundle by path). NativeConnection and Worker are mocked; the
+ * OpenTelemetry is configured, the workflow code the source resolves (a
+ * pre-built bundle by path), and the heartbeat throttle a cancellation is
+ * delivered within (`shared/heartbeat.ts`). NativeConnection and Worker are mocked; the
  * connection and worker the SDK returns are handed back unchanged.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +32,7 @@ vi.mock("../workflow-source.js", () => ({
 
 import type { Config } from "../config.js";
 import { runCredentialActivityInterceptor } from "../interceptors/run-credential-activity.js";
+import { CANCELLATION_PULSE_MS } from "../shared/heartbeat.js";
 import { startWorker, type WorkerActivities } from "../worker.js";
 import { resetTelemetrySettingsForTests } from "../otel-export.js";
 
@@ -43,7 +45,7 @@ const config = {
 } as unknown as Config;
 
 const activities: WorkerActivities = {
-  ExecuteCursor: async () => ({}),
+  ExecuteClaude: async () => ({}),
   ExecuteDeepAgent: async () => ({}),
 };
 
@@ -103,5 +105,12 @@ describe("startWorker", () => {
     expect(options.maxConcurrentActivityTaskExecutions).toBe(4);
     expect(options.activities).toBe(activities);
     expect(options.dataConverter).toEqual({ payloadCodecs: [codec] });
+  });
+
+  it("sends a heartbeat within the cancellation pulse, so a pause reaches a running turn in seconds", async () => {
+    await startWorker({ config, activities });
+
+    const options = sdk.create.mock.calls[0]![0];
+    expect(options.maxHeartbeatThrottleInterval).toBe(CANCELLATION_PULSE_MS);
   });
 });

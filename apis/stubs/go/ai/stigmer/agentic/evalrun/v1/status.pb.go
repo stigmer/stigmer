@@ -757,8 +757,7 @@ type EvalRunCaseTarget struct {
 	// The engine and model.
 	Target *EvalRunTarget `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Why this case did not run on this target, as in "not run: model
-	// 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
-	// resumed conversations"; empty when it ran.
+	// 'sonnet' is not in Stigmer's catalog"; empty when it ran.
 	NotRunReason string `protobuf:"bytes,2,opt,name=not_run_reason,json=notRunReason,proto3" json:"not_run_reason,omitempty"`
 	// The tries with the compared plugin; when no plugin is compared, the
 	// only tries, run with what the agent attaches.

@@ -1,6 +1,6 @@
 /**
  * @regression file-hitl-proxy-reconcile — the file-review reconcile crash in
- * cloud/desktop (proxy) artifact mode: an ExecuteCursor turn died on
+ * cloud/desktop (proxy) artifact mode: a turn died on
  * `Artifact download failed (HTTP 404) ... NoSuchKey` for a CAS manifest a
  * git-only turn never wrote.
  *
@@ -47,7 +47,7 @@ import type { FileReviewEvent } from "../../../gen/turn/ai/stigmer/runner/turn/v
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-proxy-1";
 const CHANGE_SET_ID = `${EXEC_ID}:0`;
-const HARNESS = "cursor";
+const HARNESS = "claude";
 
 // ─── Mock proxy + object store (faithful to ProxyArtifactStorage's contract) ──
 

@@ -28,7 +28,7 @@ import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows
 const ctx: ChangeSetContext = {
   changeSetId: "exec-1:0",
   turnId: "turn-0",
-  harnessId: "cursor",
+  harnessId: "claude",
   timestamp: "2026-06-30T00:00:00Z",
 };
 

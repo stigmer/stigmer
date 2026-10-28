@@ -113,10 +113,6 @@ describe("the mock endpoint", () => {
       ["plugin_kit_tracker", { kind: "plugin", pluginId: "plg_1", plugin: "kit", server: "tracker" }],
       ["plugin_kit_orders", { kind: "plugin", pluginId: "plg_1", plugin: "kit", server: "orders" }],
     ]);
-    expect(endpoint?.listed).toEqual([
-      { server: "plugin_kit_tracker", tools: ["close_issue", "create_issue"] },
-      { server: "plugin_kit_orders", tools: ["lookup_order", "receipt", "refund"] },
-    ]);
     const tracker = await connect("plugin_kit_tracker");
     const { tools } = await tracker.listTools();
     expect(tools.map((t) => [t.name, t.description, t.inputSchema])).toEqual([

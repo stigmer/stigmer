@@ -10,9 +10,8 @@
  * at base per-token rates (ledger-verified), so the registry fact that
  * makes ENABLED selectable is a thinking capability on the model's entry
  * for the conversation's engine — `thinking` (a fixed budget) or
- * `adaptiveThinking` (depth adapts). Both engines translate the mode:
- * Cursor as its thinking variant, native as Anthropic's `thinking`
- * parameter in the form the entry declares. The engine scoping is what
+ * `adaptiveThinking` (depth adapts). Native translates the mode as
+ * Anthropic's `thinking` parameter in the form the entry declares. The engine scoping is what
  * keeps a selection honest: an id such as claude-sonnet-5 has an entry on
  * each engine, and only the entry the conversation runs on says what its
  * model does.

@@ -183,10 +183,6 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.runner.publicEndpoint;
   }
 
-  cursorBidiBaseUrl(): string {
-    return this.cloud.cursorBidiBaseUrl();
-  }
-
   publicBaseUrl(): string {
     return this.cloud.publicBaseUrl();
   }
@@ -196,8 +192,7 @@ export class CloudExecutionTarget implements TargetProfile {
   }
 
   // Every tenancy this target provisions can run: it holds the fixture
-  // provider keys (and the run's real Cursor key, when one is supplied), as
-  // an organization whose admin pasted them does.
+  // provider keys, as an organization whose admin pasted them does.
   async provisionTenancy(): Promise<TenancyContext> {
     const context = await this.cloud.provisionTenancy();
     await this.keyTenancy(context.org);

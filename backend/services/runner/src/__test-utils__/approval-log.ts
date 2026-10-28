@@ -95,8 +95,8 @@ export function answerEventsFor(
 
 /**
  * The `stigmer.permission.asked` the runner's emitter writes for a row that
- * asks (`harness/events/emitter.ts` `writeToolUse`): its policy source word,
- * its hook and its content digest, as the row carried them at the ask.
+ * asks (`harness/events/emitter.ts` `writeToolUse`): its policy source word
+ * and its hook, as the row carried them at the ask.
  */
 export function askedEventFor(args: { readonly sessionId: string; readonly runId: string }, row: ToolCall): SessionEvent {
   const toolUseId = toolUseEventId(args.runId, row.id);
@@ -112,7 +112,6 @@ export function askedEventFor(args: { readonly sessionId: string; readonly runId
         argsPreview: row.argsPreview,
         policySource: POLICY_SOURCE_WORDS[row.approvalPolicySource],
         policyHook: row.approvalPolicyHook,
-        contentDigest: row.approvalContentDigest,
       },
     },
   });

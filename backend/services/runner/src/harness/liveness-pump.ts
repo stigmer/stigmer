@@ -6,9 +6,9 @@
  *
  * Why it exists: a ten-minute build prints nothing, and the console could
  * only guess from the silence ("taking longer than usual"), whether the
- * runner was alive or dead. On Cursor it could not even see that a tool was
- * running, because Cursor's tool use reaches the log only once its row is
- * past the boundary (`events/emitter.ts`). With this preview the console
+ * runner was alive or dead, and a harness whose tool use reaches the log
+ * only once its row is past the boundary (`events/emitter.ts`) showed no
+ * running tool at all. With this preview the console
  * shows "Running shell · 14 min", and silence means what it says: no word
  * from the turn at all.
  *

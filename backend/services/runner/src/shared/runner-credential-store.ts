@@ -2,13 +2,11 @@
  * Custody point for the runner's own secrets — the VALUES companion to
  * runner-credential-keys.ts's names (issue #508).
  *
- * Why this exists: the Cursor SDK's local agent runtime ships inside
- * `@cursor/sdk` and runs IN-PROCESS in the runner. Its shell tool spawns
- * bash with `{...process.env, ...}` and its git layer does the same, so
- * anything living in the runner's `process.env` is readable by every shell
- * command the agent runs — and the SDK exposes no env option for local
- * agents to scrub at the spawn boundary. Denylists on runner-owned spawn
- * sites (shell-env.ts) cannot reach those vendor spawns. The only fix that
+ * Why this exists: a vendor engine's own spawns (its shell tool, its git
+ * layer, the CLI it starts) inherit the environment of the process they
+ * start from, so anything living in `process.env` is readable by every
+ * command the agent runs, and denylists on runner-owned spawn sites
+ * (shell-env.ts) cannot reach those vendor spawns. The only fix that
  * covers every spawn surface, present and future, is for secrets not to
  * LIVE in `process.env` at all: this module captures them at boot and is
  * the sole holder afterwards.

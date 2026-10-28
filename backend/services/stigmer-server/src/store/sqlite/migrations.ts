@@ -1948,11 +1948,11 @@ function migrateToV32(db: DatabaseSync): void {
 }
 
 /**
- * v33: a session's harness state moves from its spec to its status — the
+ * v33: a session's retired harness state leaves its spec — the
  * Postgres driver's v28 in this engine's terms
  * (../session-harness-state-moved.ts says what each row becomes). Every
  * session row is read in keyset pages and rewritten only when its spec
- * holds a moved field, its `updated_at` left alone. Runs inside
+ * holds a retired field, its `updated_at` left alone. Runs inside
  * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
  * boot stops on the row it names.
  */

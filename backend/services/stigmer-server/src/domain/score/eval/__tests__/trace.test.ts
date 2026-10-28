@@ -1,7 +1,6 @@
 /**
- * Pins the eval's reader of a try (trace.ts) over a native and a Cursor
- * turn, read from the turn's session events and the files on its run: engine names read as Claude's (Write for a file the run
- * created, Edit for one it changed), an MCP call as
+ * Pins the eval's reader of a try (trace.ts) over a native and a Claude
+ * turn, read from the turn's session events and the files on its run: engine names read as Claude's, an MCP call as
  * `mcp__<server>__<tool>`, its server slug read as written since a turn
  * already names a plugin's server `plugin_<plugin>_<server>`; a read of a
  * mounted skill's SKILL.md (the workspace link and the platform
@@ -260,16 +259,17 @@ describe("the eval trace, a plugin skill's read", () => {
       { name: "Skill", input: JSON.stringify({ skill: "thermos:lint" }) },
     ]);
 
-    const cursor = runOf(
+    const claude = runOf(
       [
-        call("k1", "read", {
-          path: `/home/u/.stigmer/sessions/s/platform/plugins/${DIGEST}/skills/review/SKILL.md`,
+        call("k1", "Read", {
+          file_path: `/home/u/.stigmer/sessions/s/platform/plugins/${DIGEST}/skills/review/SKILL.md`,
         }),
       ],
       [],
     );
-    const viaCursor = await evalTraceOf(cursor, deps(Harness.CURSOR, { skillNames }));
-    expect(viaCursor.toolCalls[0]?.input).toBe(
+    const viaClaude = await evalTraceOf(claude, deps(Harness.CLAUDE, { skillNames }));
+    expect(viaClaude.toolCalls[0]?.name).toBe("Skill");
+    expect(viaClaude.toolCalls[0]?.input).toBe(
       JSON.stringify({ skill: "thermos:code-review" }),
     );
   });
@@ -342,34 +342,6 @@ describe("the eval trace's created paths", () => {
   });
 });
 
-describe("the eval trace, Cursor transcript", () => {
-  it("reads the SDK's names, a created file's edit as Write and a changed one's as Edit", async () => {
-    const cursor = runOf(
-      [
-        call("k1", "read", {
-          path: "/home/u/.stigmer/sessions/s/platform/skills/review/SKILL.md",
-        }),
-        call("k2", "edit", { path: "CHANGELOG.md" }),
-        call("k3", "edit", { path: "src/a.ts" }),
-        call("k4", "shell", { command: "ls" }),
-        call("k5", "readLints", {}),
-      ],
-      [baseline("t1"), candidate("t1", [created])],
-    );
-    const trace = await evalTraceOf(cursor, deps(Harness.CURSOR));
-    expect(trace.toolCalls.map((c) => c.name)).toEqual([
-      "Skill",
-      "Write",
-      "Edit",
-      "Bash",
-      "readLints",
-    ]);
-    expect(trace.toolCalls[0]?.input).toBe(
-      JSON.stringify({ skill: "thermos:review" }),
-    );
-  });
-});
-
 describe("the eval trace, by the engine that made the calls", () => {
   it("reads a Claude run's calls as they were made, an MCP call by its server and tool", async () => {
     const run = runOf(
@@ -385,9 +357,13 @@ describe("the eval trace, by the engine that made the calls", () => {
     expect(trace.toolCalls.map((c) => c.name)).toEqual(["Bash", "Skill", "ToolSearch", "mcp__docs__lookup"]);
   });
 
-  it("names a number no engine owns rather than reading its calls as native's", async () => {
+  it("names a number no engine owns, the retired 2 included, rather than reading its calls as native's", async () => {
     const run = runOf([call("k1", "Bash", { command: "ls" })], []);
-    await expect(evalTraceOf(run, deps(7 as Harness))).rejects.toThrow("eval trace: harness 7 names no engine");
+    for (const number of [2, 7]) {
+      await expect(evalTraceOf(run, deps(number as Harness))).rejects.toThrow(
+        `eval trace: harness ${number} names no engine`,
+      );
+    }
   });
 });
 

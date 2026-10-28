@@ -13,7 +13,7 @@
  *   - a session's earlier turns, a deleted run's events included, become
  *     `history.jsonl` (every tool use paired, as the format requires) with
  *     a `case.yaml` naming it; a call that never returned is noted; a
- *     Cursor session's history is noted as one the Cursor engine cannot
+ *     Claude session's history is noted as one the Claude engine cannot
  *     resume;
  *   - each MCP call of the turn becomes a fixed mock under its server's
  *     turn name (an agent's own server, a plugin's), `error: true` for a
@@ -383,15 +383,7 @@ describe("a case from a turn that continues a conversation", () => {
     expect(fileOf(await buildCaseFromRun(temp.store, logger, { run: unstamped, caseName: "unstamped", skill: "", callerId: CALLER }), "history.jsonl")).toBeUndefined();
   });
 
-  it("notes that the Cursor engine cannot resume the history", async () => {
-    const run = await seedConversation(Harness.CURSOR);
-    const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "cite-the-bug", skill: "", callerId: CALLER });
-    expect(built.notes).toContain(
-      "the conversation ran on the Cursor engine, which cannot resume a recorded history: the case runs on the native engine only",
-    );
-  });
-
-  it("notes that the Claude engine cannot resume the history either", async () => {
+  it("notes that the Claude engine cannot resume the history", async () => {
     const run = await seedConversation(Harness.CLAUDE);
     const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "on-claude", skill: "", callerId: CALLER });
     expect(built.notes).toContain(

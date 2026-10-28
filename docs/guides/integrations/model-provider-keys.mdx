@@ -1,19 +1,17 @@
 ---
 title: Model Provider Keys
 description:
-  Run your Agents on Stigmer Cloud with your Organization's own Anthropic,
-  OpenAI and Cursor keys, on the provider's API or on your own compatible
-  endpoint.
+  Run your Agents on Stigmer Cloud with your Organization's own Anthropic and
+  OpenAI keys, on the provider's API or on your own compatible endpoint.
 ---
 
 On Stigmer Cloud every model call a native Agent run makes runs on a key your
 Organization owns, on every plan. An admin adds an Anthropic key, an OpenAI key,
 or both, and your Agents run on them: the provider bills your Organization
 directly, and Stigmer meters the calls and charges nothing for them. Stigmer
-never runs a model call on a key of its own. Cursor-harness runs work the same
-way, on your Organization's own [Cursor key](#cursor), and Claude-harness runs
-on your Organization's Anthropic key: a Claude run runs Claude models only, so
-it always needs that key, whatever its model.
+never runs a model call on a key of its own. Claude-harness runs work the same
+way, on your Organization's Anthropic key: a Claude run runs Claude models only,
+so it always needs that key, whatever its model.
 
 Stigmer tells you which models can run before you try one. **Models &
 providers**, in the console's sidebar, shows each provider, whether it is
@@ -52,8 +50,8 @@ standard input with `--key-stdin`, never from the command line.
 
 ## The rules
 
-- **One key per provider.** Your Organization holds at most one Anthropic key,
-  one OpenAI key and one Cursor key. Saving another replaces the one you have.
+- **One key per provider.** Your Organization holds at most one Anthropic key
+  and one OpenAI key. Saving another replaces the one you have.
 - **A provider is a protocol.** The Anthropic slot serves Anthropic's API or any
   endpoint that speaks it; the OpenAI slot serves OpenAI's API or any endpoint
   that speaks OpenAI's API (an Azure OpenAI deployment that accepts a bearer
@@ -76,33 +74,6 @@ standard input with `--key-stdin`, never from the command line.
   another is served by the parent's key for any provider it holds none of. The
   child sees that key read-only; its own key for a provider always wins.
 
-## Cursor
-
-A Cursor-harness run on Stigmer Cloud runs on your Organization's own Cursor
-key. Add it on the **Cursor** card of **Models & providers**, as you would an
-Anthropic or OpenAI key, and every Cursor run of your Organization uses it. A
-Cursor run in an Organization with no Cursor key is refused before it starts:
-
-```
-This organization has no Cursor key, so the run was not started. An admin can
-add one in Models & providers.
-```
-
-- **Which key.** A Cursor user API key, from your
-  [Cursor dashboard](https://cursor.com/dashboard), or a team service-account
-  key. Cursor's SDK does not accept a team administrator API key, and Stigmer
-  refuses one when you save it.
-- **Who pays.** Cursor bills each run to the plan behind the key: a user key to
-  that user's plan, a service-account key to its team. Stigmer charges nothing
-  for the run.
-- **A paid Cursor plan.** Cursor refuses runs on a free-plan key.
-- **No base URL.** Cursor serves from its own hosts, so a Cursor key takes none.
-- **Child Organizations inherit it.** As with the other keys, an Organization
-  with no Cursor key of its own runs Cursor on its parent's.
-- **The key stays out of the run.** The Stigmer proxy adds the key to the Cursor
-  SDK's traffic on its way to Cursor, so it never reaches the sandbox the run
-  works in.
-
 ## Run a model your endpoint serves
 
 A model the Stigmer catalog does not list, served by your own endpoint, is named
@@ -124,7 +95,12 @@ spec:
 
 Stigmer accepts the form wherever a native model is named, subagents included.
 Settings that depend on what Stigmer knows about a model, the fast service tier
-and explicit thinking, stay limited to the catalog's models.
+and explicit thinking, stay limited to the catalog's models, and a model the
+catalog does not list has no catalog price.
+
+This is how you reach a model family the catalog does not list, such as Gemini,
+Kimi, GLM or Grok: point the OpenAI slot at an OpenAI-compatible endpoint that
+serves it, and name the model `openai:<name>`.
 
 ## When a call fails on your key
 

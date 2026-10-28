@@ -23,14 +23,12 @@ export const MODEL_REGISTRY = {
     model("claude", "claude-haiku-4.5", "Claude Haiku 4.5", "Quick responses, lower cost", "fastest", "economy", true, { thinking: true }),
     model("claude", "claude-sonnet-4.6", "Claude Sonnet 4.6", "Best for most tasks", "fast", "standard", true, { adaptiveThinking: true }),
     model("claude", "claude-opus-4.8", "Claude Opus 4.8", "Frontier agentic coding", "slow", "premium", true, { adaptiveThinking: true }),
-    { ...model("cursor", "composer-2.5", "Composer 2.5", "Cursor's flagship agentic coding model", "fastest", "economy", true, {}), provider: "cursor" },
-    { ...model("cursor", "gpt-5.3-codex", "GPT-5.3 Codex", "Optimized for code", "fast", "standard", true, { thinking: true }), provider: "openai" },
   ],
 } as const;
 
-/** One registry entry: an Anthropic model unless overridden, with vision and the thinking it offers. */
+/** One registry entry: an Anthropic model, with vision and the thinking it offers. */
 function model(
-  harness: "native" | "claude" | "cursor",
+  harness: "native" | "claude",
   id: string,
   displayName: string,
   shortDescription: string,

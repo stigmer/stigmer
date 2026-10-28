@@ -10,35 +10,30 @@
  * (`harness/__tests__/import-direction.test.ts`; the rule the turn runtime
  * is written under). The registry knows rows, never which adapters exist.
  *
- * ORDER IS LOAD-BEARING (`registry.ts` `bootHarnesses`): the Cursor
- * adapter's interceptors must patch `node:http2` before anything dials the
- * control plane, so it boots first. The native deep-agent adapter boots
- * second; its `boot` registers the deepagents harness profiles and loads
- * LangChain, both after the patch (#1096, 2026-09-13; until then the roots
- * imported the native orchestrator directly beside this table). The Claude
- * adapter boots third; its `boot` loads the Agent SDK when the runner
- * carries it and records its absence otherwise, so a runner without the
- * engine still serves the other two.
+ * Boot order is declaration order (`registry.ts` `bootHarnesses`), and
+ * shutdown runs in reverse. The native deep-agent adapter boots first; its
+ * `boot` registers the deepagents harness profiles and loads LangChain
+ * (#1096). The Claude adapter boots second; its `boot` loads the Agent SDK
+ * when the runner carries it and records its absence otherwise, so a runner
+ * without the engine still serves native. Neither boot depends on the
+ * other's.
  *
- * THIS MODULE'S STATIC GRAPH MUST STAY CONNECT- AND SDK-FREE. The roots
- * import it BEFORE they boot the harnesses, and the Cursor adapter's boot is
- * where `node:http2` is patched and `@cursor/sdk` first loaded; an adapter
- * factory that imported its SDK statically would defeat both. Every adapter
- * named here loads its vendor SDK inside `boot` (`execute-cursor/adapter.ts`
- * and `execute-deep-agent/adapter.ts` show the shape; the native adapter's
+ * THIS MODULE'S STATIC GRAPH MUST STAY SDK-FREE. The roots import it BEFORE
+ * they boot the harnesses, and the runner's own process loads no engine:
+ * every engine runs in the agent host (`HOSTED_HARNESSES` below). Every
+ * adapter named here loads its vendor SDK inside `boot`
+ * (`execute-deep-agent/adapter.ts` shows the shape; the native adapter's
  * `__tests__/adapter-graph-is-sdk-free.test.ts` walks its static graph off
  * the syntax tree). `__tests__/harness-boot-order.test.ts` boots a fresh
- * process through this module — every row — and fails if any graph
- * regresses.
+ * process through this module — every row — and fails if the runner's
+ * process loads an engine's SDK.
  */
 
-import { createCursorAdapter } from "./activities/execute-cursor/adapter.js";
 import { createClaudeAdapter } from "./activities/execute-claude/adapter.js";
 import { createDeepAgentAdapter } from "./activities/execute-deep-agent/adapter.js";
 import type { HarnessName, HarnessRow } from "./harness/registry.js";
 
 export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
-  { harness: "cursor", adapter: createCursorAdapter() },
   { harness: "deep-agent", adapter: createDeepAgentAdapter() },
   { harness: "claude", adapter: createClaudeAdapter() },
 ];
@@ -46,8 +41,8 @@ export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
 /**
  * The harnesses whose engines run in the agent host, the runner's separate
  * process that holds none of its keys (`agent-host/hosting.ts`, #2016):
- * every one. Each adapter's boot (the Cursor interceptors, the engines'
- * SDKs) and its approval hook server run there, and the runner's own
- * process loads no engine (`__tests__/harness-boot-order.test.ts`).
+ * every one. Each adapter's boot (the engines' SDKs) and its approval hook
+ * server run there, and the runner's own process loads no engine
+ * (`__tests__/harness-boot-order.test.ts`).
  */
-export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["cursor", "deep-agent", "claude"]);
+export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["deep-agent", "claude"]);

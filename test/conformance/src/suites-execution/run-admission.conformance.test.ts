@@ -17,27 +17,21 @@
 //     synchronously at create, FAILED_PRECONDITION with ErrorInfo reason
 //     PROVIDER_KEY_REQUIRED naming the provider and the model, and nothing
 //     reaches a model;
-//   - a Cursor run is refused the same way when the organization holds no
-//     Cursor key: the engine names the provider, and a run on Auto names no
-//     model, so the copy names none;
 //   - a Claude run is refused the same way when the organization holds no
 //     Anthropic key: the engine runs Claude models only, so it names the
 //     provider, and the copy names the run's model or the engine's default;
 //   - the same organization, once it saves its keys, runs to completion: the
 //     provider bills the organization directly.
 //
-// The keyed half is native only: a Cursor key is checked with Cursor itself
-// at save, so no fixture can stand in for one, and a keyed Cursor run would
-// reach Cursor. Skipped on the open-source targets: no provider keys exist
-// there (a self-hosted runner calls its providers with the operator's own
-// keys).
+// Skipped on the open-source targets: no provider keys exist there (a
+// self-hosted runner calls its providers with the operator's own keys).
 //
 // What the runners are declared to reach (runnerProviderDeclaration targets):
 // open source answers from STIGMER_RUNNER_PROVIDERS, so the target boots a
 // sibling with an engine whose runners are declared to reach Anthropic
 // alone, and getModelReadiness is held to the refusal there, model by model:
-//   - the answer reports anthropic served by the runners, openai and cursor
-//     missing from them, exactly as declared;
+//   - the answer reports anthropic served by the runners and openai missing
+//     from them, exactly as declared;
 //   - a run on every model the answer reports missing is refused at create
 //     with PROVIDER_KEY_REQUIRED naming that provider and model, in the
 //     runners' copy, and starts no conversation;
@@ -134,28 +128,6 @@ describe.skipIf(!billingEnabled)(
       expect(mock.remaining()).toBe(0);
     });
 
-    it("[billing.gate.provider-key.keyless-cursor-run-refused] a Cursor run of an organization with no Cursor key is refused at create with PROVIDER_KEY_REQUIRED naming Cursor, and nothing reaches a model", async () => {
-      const { org } = await provisionBare();
-      const agentRef = await provisionAgent(org);
-
-      const err = await expectGrpcCode(
-        () =>
-          clients.agentExecutionCommand.create(
-            makeAgentExecution({ org, name: uniqueName("aex-cursor"), agentRef, sessionSpec: { harness: Harness.CURSOR } }),
-          ),
-        Code.FailedPrecondition,
-        "keyless Cursor create",
-      );
-      const [info] = err.findDetails(ErrorInfoSchema);
-      expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
-      expect(info?.metadata["org"]).toBe(org);
-      expect(info?.metadata["provider"]).toBe("cursor");
-      expect(err.rawMessage).toBe(
-        "This organization has no Cursor key, so the run was not started. An admin can add one in Models & providers.",
-      );
-      expect(mock.remaining()).toBe(0);
-    });
-
     it("[billing.gate.provider-key.keyless-claude-run-refused] a Claude run of an organization with no Anthropic key is refused at create with PROVIDER_KEY_REQUIRED naming Anthropic, and nothing reaches a model", async () => {
       const { org } = await provisionBare();
       const agentRef = await provisionAgent(org);
@@ -207,7 +179,6 @@ const OPERATOR_BEARER = "conformance-trusted-local-operator";
 const PROVIDER_LABELS: Readonly<Record<string, string>> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
-  cursor: "Cursor",
 };
 
 // The copy a member reads when the runners reach no key for the run's model.
@@ -271,25 +242,29 @@ describe.skipIf(!runnerProviderDeclaration)(
       );
     }
 
-    it("[rpc:PlatformQueryController.getModelReadiness] reports anthropic served by the runners and openai and cursor missing from them, as declared", async () => {
+    it("[rpc:PlatformQueryController.getModelReadiness] reports anthropic served by the runners and openai missing from them, as declared", async () => {
       const { org } = await provisionOrgAndAgent();
 
       const answer = await declared.platformQuery.getModelReadiness({ org });
       expect(answer.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
         ["anthropic", ProviderAvailability.served_by_runners, ""],
         ["openai", ProviderAvailability.missing_from_runners, ""],
-        ["cursor", ProviderAvailability.missing_from_runners, ""],
       ]);
     });
 
     it("[rpc:PlatformQueryController.getModelReadiness] [rpc:RunCommandController.create] a run on every model reported missing is refused at create with PROVIDER_KEY_REQUIRED naming its provider and model, and starts no conversation", async () => {
       const { org, agentRef } = await provisionOrgAndAgent();
-      const answer = await declared.platformQuery.getModelReadiness({ org });
-      const missing = answer.models.filter((m) => m.availability === ProviderAvailability.missing_from_runners);
+      // The catalog may list no OpenAI model, so the answer also judges one
+      // the catalog does not list: at least one model is always missing.
+      const judged = `openai:${uniqueName("conformance-model")}`;
+      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.NATIVE, model: judged } });
+      const missing = [...answer.models, ...(answer.judged === undefined ? [] : [answer.judged])].filter(
+        (m) => m.availability === ProviderAvailability.missing_from_runners,
+      );
       expect(
-        new Set(missing.map((m) => m.harness)),
-        "every Cursor model needs Cursor, which the runners do not reach",
-      ).toContain(Harness.CURSOR);
+        new Set(missing.map((m) => m.provider)),
+        "OpenAI, which the runners do not reach, is the one missing provider",
+      ).toEqual(new Set(["openai"]));
 
       for (const model of missing) {
         const what = `a ${Harness[model.harness]} run on ${model.model}`;

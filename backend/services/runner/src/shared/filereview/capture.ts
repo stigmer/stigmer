@@ -9,8 +9,8 @@
  *
  * It is parameterized by `harnessId` (stamped onto the BASELINE payload, which is
  * the projection's source of truth for `turn_id`/`harness_id`) and `excludePaths`
- * (the runner-owned files a harness writes into the workspace), so the Cursor and
- * deep-agent harnesses author IDENTICAL ledger entries through this one seam. Each
+ * (the runner-owned files a harness writes into the workspace), so every
+ * harness authors IDENTICAL ledger entries through this one seam. Each
  * harness keeps only its presentation concerns (e.g. hiding flowed transcript
  * rows) in its own adapter.
  *
@@ -107,10 +107,9 @@ export function deriveCaptureSubstrate(
  *
  * With review off a built-in write or delete simply flows and nothing is
  * captured. With review on and no substrate, file writes ask before they run
- * (the classic deny-gate): in the Cursor harness that fallback is also the
- * ONLY branch that arms the resume-time exact-apply guarantee (see
- * shared/exact-apply.ts); the deep-agent harness re-applies an approved write
- * via LangGraph checkpoint replay and needs no exact-apply. Keeping this the
+ * (the classic deny-gate), and an approved write runs as the engine resumes
+ * it (the deep-agent by LangGraph checkpoint replay, the Claude engine by
+ * running the deferred call). Keeping this the
  * single, named, truth-table-tested decision pins exactly when capture and
  * the deny-gate engage in either harness.
  */

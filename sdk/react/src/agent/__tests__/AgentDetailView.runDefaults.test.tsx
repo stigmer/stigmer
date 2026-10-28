@@ -44,8 +44,8 @@ function renderEditable(agent: Agent, update: (resource: Agent, paths: string[])
 
 const AGENT_SPEC: MessageInitShape<typeof AgentSpecSchema> = {
   instructions: "Answer tickets.",
-  harness: Harness.CURSOR,
-  runConfig: { modelName: "composer-2.5", maxToolRounds: 8 },
+  harness: Harness.CLAUDE,
+  runConfig: { modelName: "claude-sonnet-4-6", maxToolRounds: 8 },
 };
 
 describe("AgentDetailView run defaults", () => {
@@ -65,9 +65,9 @@ describe("AgentDetailView run defaults", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<Agent>(update);
     expect(sent.paths).toEqual(["spec.harness", "spec.run_config"]);
-    expect(sent.resource.spec?.harness).toBe(Harness.CURSOR);
+    expect(sent.resource.spec?.harness).toBe(Harness.CLAUDE);
     expect(sent.resource.spec?.runConfig).toMatchObject({
-      modelName: "composer-2.5",
+      modelName: "claude-sonnet-4-6",
       maxCostUsd: 3,
       maxToolRounds: 8,
     });
@@ -78,7 +78,7 @@ describe("AgentDetailView run defaults", () => {
     const update = vi.fn(async (resource: Agent, paths: string[]): Promise<Agent> => {
       void resource;
       void paths;
-      throw new Error("model composer-2.5 is not listed for the cursor engine");
+      throw new Error("model claude-sonnet-4-6 is not listed for the claude engine");
     });
     renderEditable(agent, update);
 
@@ -86,7 +86,7 @@ describe("AgentDetailView run defaults", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect((await screen.findByRole("alert")).textContent).toMatch(
-      /not listed for the cursor engine/,
+      /not listed for the claude engine/,
     );
     // The edit stays open so the person can correct it.
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();

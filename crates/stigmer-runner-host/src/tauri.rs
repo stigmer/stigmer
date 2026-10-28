@@ -68,8 +68,6 @@ pub struct RunnerConfigInput {
     #[serde(default)]
     pub stigmer_token: Option<String>,
     #[serde(default)]
-    pub cursor_api_key: Option<String>,
-    #[serde(default)]
     pub anthropic_api_key: Option<String>,
     #[serde(default)]
     pub openai_api_key: Option<String>,
@@ -102,7 +100,6 @@ impl RunnerConfigInput {
             stigmer_endpoint: self.stigmer_endpoint,
             temporal_namespace: self.temporal_namespace,
             stigmer_token: self.stigmer_token,
-            cursor_api_key: self.cursor_api_key,
             anthropic_api_key: self.anthropic_api_key,
             openai_api_key: self.openai_api_key,
             workspace_root_dir: Some(workspace_root_dir),

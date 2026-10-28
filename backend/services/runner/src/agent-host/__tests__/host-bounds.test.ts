@@ -19,7 +19,6 @@ const BOUNDS = {
   shellTimeoutMaxSeconds: 13,
   shellBackgroundEnabled: false,
   workspaceLockTimeoutMs: 17_000,
-  agentResolveTimeoutMs: 19_000,
 } as const;
 
 describe("the agent host's adapters", () => {

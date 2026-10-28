@@ -21,7 +21,7 @@
 // `--threshold`, `--max-cost-usd`, `-j`, `--allow-tools`, `--judge-model`,
 // `--json`), so a command line moves between the two. Two differ.
 // `--model` names an engine and a model, `native/claude-sonnet-4-6` or
-// `cursor/gpt-5`, because Stigmer runs a model on one of its engines; a
+// `claude/claude-sonnet-5`, because Stigmer runs a model on one of its engines; a
 // bare model id is the native engine's. With no `--model` an eval run
 // about an agent runs each case on the agent as it runs: its own engine,
 // model and settings. `--max-cost-usd` is required by the API, so the CLI

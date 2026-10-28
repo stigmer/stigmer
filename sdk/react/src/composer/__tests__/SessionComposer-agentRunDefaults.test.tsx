@@ -82,20 +82,20 @@ const OPUS: ModelInfo = {
   thinkingCapable: true,
 };
 
-const COMPOSER: ModelInfo = {
-  modelId: "composer-2.5",
-  provider: "cursor",
-  displayName: "Composer 2.5",
-  shortDescription: "Cursor's own model",
-  speedTier: "fastest",
-  costTier: "economy",
-  harness: "cursor",
+const SONNET_5: ModelInfo = {
+  modelId: "claude-sonnet-5",
+  provider: "anthropic",
+  displayName: "Sonnet 5",
+  shortDescription: "Listed on the Claude engine only",
+  speedTier: "fast",
+  costTier: "standard",
+  harness: "claude",
   featured: true,
   serviceTiers: [],
 };
 
 // The same model id listed on the other engine as well.
-const SONNET_ON_CURSOR: ModelInfo = { ...SONNET, harness: "cursor", displayName: "Sonnet 4.6 (Cursor)", featured: false };
+const SONNET_ON_CLAUDE: ModelInfo = { ...SONNET, harness: "claude", displayName: "Sonnet 4.6 (Claude)", featured: false };
 
 const AGENT_DEFAULTS: AgentRunDefaults = {
   modelName: "claude-sonnet-4-6",
@@ -117,7 +117,7 @@ function createWrapper() {
     return (
       <StigmerContext.Provider value={client}>
         <ModelRegistryContext.Provider
-          value={{ models: [HAIKU, SONNET, OPUS, COMPOSER, SONNET_ON_CURSOR], isLoading: false, error: null, refetch: vi.fn() }}
+          value={{ models: [HAIKU, SONNET, OPUS, SONNET_5, SONNET_ON_CLAUDE], isLoading: false, error: null, refetch: vi.fn() }}
         >
           {children}
         </ModelRegistryContext.Provider>
@@ -318,9 +318,9 @@ describe("SessionComposer — the agent's run defaults", () => {
     fireEvent.click(screen.getByRole("button", { name: /Sonnet 4\.6|Haiku 4\.5|Opus 4\.1/ }));
     fireEvent.click(await screen.findByRole("option", { name: /Haiku 4\.5/ }));
 
-    // The agent's engine arrives after the pick: cursor, with its model.
-    rerender({ harness: "cursor", agentRunDefaults: { modelName: "composer-2.5" } });
-    expect(await screen.findByRole("button", { name: /Agent default: Composer 2\.5/ })).toBeTruthy();
+    // The agent's engine arrives after the pick: claude, with its model.
+    rerender({ harness: "claude", agentRunDefaults: { modelName: "claude-sonnet-5" } });
+    expect(await screen.findByRole("button", { name: /Agent default: Sonnet 5/ })).toBeTruthy();
     submitMessage("On the agent's engine");
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
@@ -333,11 +333,11 @@ describe("SessionComposer — the agent's run defaults", () => {
     fireEvent.click(screen.getByRole("button", { name: /Sonnet 4\.6|Haiku 4\.5|Opus 4\.1/ }));
     fireEvent.click(await screen.findByRole("option", { name: /Haiku 4\.5/ }));
 
-    rerender({ harness: "cursor", agentRunDefaults: undefined });
+    rerender({ harness: "claude", agentRunDefaults: undefined });
     submitMessage("On the new engine");
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][1]).toBe("composer-2.5");
+    expect(onSubmit.mock.calls[0][1]).toBe("claude-sonnet-5");
   });
 
   it("keeps a picked model the new engine lists too", async () => {
@@ -345,7 +345,7 @@ describe("SessionComposer — the agent's run defaults", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Sonnet 4\.6|Haiku 4\.5|Opus 4\.1/ }));
     fireEvent.click(await screen.findByRole("option", { name: /^Sonnet 4\.6/ }));
-    rerender({ harness: "cursor", agentRunDefaults: undefined });
+    rerender({ harness: "claude", agentRunDefaults: undefined });
     submitMessage("Sonnet on either engine");
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
@@ -358,10 +358,10 @@ describe("SessionComposer — the agent's run defaults", () => {
       defaultModelId: "claude-haiku-4-5",
     });
 
-    rerender({ harness: "cursor", agentRunDefaults: undefined, defaultModelId: "composer-2.5" });
+    rerender({ harness: "claude", agentRunDefaults: undefined, defaultModelId: "claude-sonnet-5" });
     submitMessage("The host's model for the new engine");
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit.mock.calls[0][1]).toBe("composer-2.5");
+    expect(onSubmit.mock.calls[0][1]).toBe("claude-sonnet-5");
   });
 });

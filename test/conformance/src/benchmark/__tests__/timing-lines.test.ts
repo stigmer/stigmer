@@ -5,10 +5,10 @@
 //
 // Pinned: prose, an unrelated JSON object and a torn last line are skipped;
 // lines are matched to an execution by `execution_id`; the axes and counts
-// read the fields and segments `turn_phases`, `execution_setup` and Cursor's
-// `turn_first_event` carry, and are null when a line, field or segment is
-// absent (native connects MCP only when a server is attached; only Cursor
-// writes a first-event line); segments survive whole.
+// read the fields and segments `turn_phases` and `execution_setup` carry,
+// and are null when a line, field or segment is absent (a setup line names
+// a `connect_mcp` segment only when it connected servers); segments survive
+// whole.
 import { describe, expect, it } from "vitest";
 import { axesFromTiming, parseTimingLines, timingFor } from "../timing-lines";
 
@@ -47,28 +47,15 @@ const PHASES_LINE = JSON.stringify({
   segments: [{ name: "model_round", start_ms: 1200.5, duration_ms: 2200.4 }],
 });
 
-const CURSOR_SETUP_LINE = JSON.stringify({
+const CLAUDE_SETUP_LINE = JSON.stringify({
   stigmer_timing: "execution_setup",
   execution_id: "aex_c",
-  harness: "cursor",
+  harness: "claude",
   mcp_server_count: 1,
   skill_count: 8,
   workspace_entry_count: 1,
   total_ms: 1500,
   segments: [{ name: "resolve_agent", start_ms: 0, duration_ms: 1500 }],
-});
-
-const CURSOR_FIRST_EVENT_LINE = JSON.stringify({
-  stigmer_timing: "turn_first_event",
-  execution_id: "aex_c",
-  harness: "cursor",
-  agent_resumed: false,
-  mcp_server_count: 1,
-  total_ms: 3100,
-  segments: [
-    { name: "send_returned", start_ms: 0, duration_ms: 2400 },
-    { name: "first_delta", start_ms: 2400, duration_ms: 700 },
-  ],
 });
 
 const OTHER_EXECUTION = JSON.stringify({
@@ -84,8 +71,7 @@ const LOG = [
   SETUP_LINE,
   "ExecuteDeepAgent model resolved: execution=aex_1",
   PHASES_LINE,
-  CURSOR_SETUP_LINE,
-  CURSOR_FIRST_EVENT_LINE,
+  CLAUDE_SETUP_LINE,
   OTHER_EXECUTION,
   '{"stigmer_timing":"turn_phases","execution_id":"aex_3","tot',
 ].join("\n");
@@ -97,7 +83,6 @@ describe("parseTimingLines", () => {
       "execution_setup:aex_1",
       "turn_phases:aex_1",
       "execution_setup:aex_c",
-      "turn_first_event:aex_c",
       "turn_phases:aex_2",
     ]);
   });
@@ -124,23 +109,21 @@ describe("timingFor and axesFromTiming", () => {
       tool_calls: 3,
       sub_agent_calls: 1,
       mcp_connect_ms: 212.6,
-      cursor_send_returned_ms: null,
       mcp_server_count: 1,
       skill_count: 8,
       workspace_entry_count: 1,
     });
   });
 
-  it("reads Cursor's send window off its first-event line, and no MCP connect segment off its setup", () => {
+  it("reads no MCP connect time off a setup line that names no connect_mcp segment", () => {
     const axes = axesFromTiming(timingFor(parseTimingLines(LOG), "aex_c"));
-    expect(axes.cursor_send_returned_ms).toBe(2400);
     expect(axes.mcp_connect_ms).toBeNull();
     expect(axes.mcp_server_count).toBe(1);
   });
 
   it("reads null, never zero, for an execution whose lines are not present yet", () => {
     const timing = timingFor(parseTimingLines(LOG), "aex_missing");
-    expect(timing).toEqual({ turn_phases: null, execution_setup: null, turn_first_event: null });
+    expect(timing).toEqual({ turn_phases: null, execution_setup: null });
     expect(axesFromTiming(timing).runner_first_visible_token_ms).toBeNull();
     expect(axesFromTiming(timing).execution_setup_ms).toBeNull();
   });

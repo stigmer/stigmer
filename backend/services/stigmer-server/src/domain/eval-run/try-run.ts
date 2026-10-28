@@ -42,7 +42,7 @@
  *     it from its mock. With `allow_real_servers` a server the case does
  *     not mock is not disallowed either, so the runner starts it, its tools
  *     granted only by `allow_tools`. With nothing granted the try still gets an allow-list, so an
- *     engine's own extras (Cursor's `generateImage`, ...) and every MCP
+ *     engine's own extras and every MCP
  *     server are out of scope exactly as for a read-only case: the runner
  *     reads an empty `tools` as every tool and refuses one in which nothing
  *     resolves, so it names `TodoWrite`, the one tool on every engine's

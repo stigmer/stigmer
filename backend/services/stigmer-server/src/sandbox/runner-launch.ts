@@ -16,8 +16,8 @@
  *   - `/runner/bin/node`: the runner's own Node, at the repository's
  *     `.nvmrc` version, never on the agent's `PATH`, so the agent's `node`
  *     stays the base image's own and a runner Node upgrade is never a change
- *     an agent's commands can see. The waiter and the Cursor approval hook
- *     reach it as `process.execPath`.
+ *     an agent's commands can see. The waiter reaches it as
+ *     `process.execPath`.
  *   - `/runner/dist/main.js`: the runner (the slim runner artifact, its
  *     `node_modules` beside it in `/runner/dist`).
  *   - `/runner/dist/attach/main.js`: the attach waiter, the entry of a

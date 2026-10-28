@@ -255,12 +255,12 @@ describe("mountTurnFiles", () => {
     expect(getModelVisionCapability).not.toHaveBeenCalledWith("requested-model");
   });
 
-  it("asks about the turn's own engine's default: Claude's on Claude, native's for Cursor's Auto", async () => {
+  it("asks about the turn's own engine's default: Claude's on Claude, native's on native", async () => {
     const client = mockStigmerClient({ mountRunFiles: vi.fn().mockResolvedValue([file("file_img", "shot.png", PNG, "image/png")]) });
 
     await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.CLAUDE);
     expect(getDefaultModel).toHaveBeenLastCalledWith("claude");
-    await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.CURSOR);
+    await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.NATIVE);
     expect(getDefaultModel).toHaveBeenLastCalledWith("native");
   });
 

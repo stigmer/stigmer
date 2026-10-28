@@ -234,12 +234,6 @@ its calls before its own.
   its file, on the model its file names when the conversation's
   [Harness](/docs/concepts/harnesses) lists that model.
 
-On the Cursor Harness a subagent runs with its instructions, model and Skills. A
-subagent that brings its own tool lists, or a saved one that brings its own
-plugins, hooks or MCP servers, is refused there, by name, since Cursor cannot
-tell its tool calls from the main Agent's; run such an Agent on the native
-Harness.
-
 ## Run settings
 
 An Agent can carry the settings its conversations run with: the model, whether
@@ -297,8 +291,7 @@ Two rules combine them:
   Agent's; a channel that names none runs the Agent's. A tier or thinking
   setting belongs to its model: it comes from the layer that chose the model or
   a more specific one, never from a layer whose model was replaced. When no
-  layer names a model, the Harness picks: native uses its default model, Cursor
-  uses Auto.
+  layer names a model, the Harness uses its default model.
 - **Limits are the tightest any layer sets.** That covers cost, tool rounds and
   result size. A message or a channel can lower this Agent's $2 cap to $0.50,
   but cannot raise it to $5.

@@ -10,9 +10,8 @@
  * (`__test-utils__/harness-contract/`), so a `Context.current()` anywhere
  * in the adapter would throw there; and an adapter that threw a
  * `CancelledFailure` would be deciding pause-vs-shutdown, which is the
- * runtime's table. The Cursor adapter's fence
- * (`execute-cursor/__tests__/adapter-is-temporal-free.test.ts`) is the
- * precedent; this is its native twin.
+ * runtime's table. The Claude adapter's fence
+ * (`execute-claude/__tests__/adapter-is-temporal-free.test.ts`) is its twin.
  *
  * Until #1096 (2026-09-13) one module was tolerated here: `index.ts`, the
  * orchestrator the adapter replaced, which imported `@temporalio/activity`

@@ -30,7 +30,6 @@ export interface RunnerConfig {
   stigmerEndpoint: string;
   temporalNamespace?: string;
   stigmerToken?: string;
-  cursorApiKey?: string;
   workspaceRootDir?: string;
   proxyEndpoint?: string;
 }
@@ -88,23 +87,20 @@ export async function getRunnerConfig(): Promise<RunnerConfig> {
     || undefined;
   // This is the runner's CONTROL-PLANE credential: the Auth0 access token the
   // runner presents to the Stigmer server for bootstrap + activity gRPC. It is
-  // NOT what authenticates the runner's Cursor-proxy traffic — on cloud the
+  // NOT what authenticates the runner's LLM proxy traffic — on cloud the
   // server mints a dedicated iss=stigmer token during bootstrap and the runner
   // owns/refreshes that proxy credential itself (see runner-manager.ts). The
   // desktop only needs to keep this Auth0 token fresh (TokenBridge in App.tsx),
   // which in turn lets the runner re-mint its proxy token indefinitely.
   const stigmerToken = loadTokens()?.accessToken || undefined;
 
-  // Proxy endpoint for the runner's Cursor SDK traffic. Must include a URL
-  // scheme and must be HTTPS so the SDK negotiates HTTP/2 via ALPN — required
-  // for the HTTP/2 interceptor that injects x-stigmer-auth headers.
+  // Proxy endpoint for the runner's LLM traffic, with a URL scheme.
   //
-  // Precedence: dedicated runner proxy URL (TLS) > general API URL > fallback.
+  // Precedence: general API URL > stored API URL > the control-plane endpoint.
   // Token presence gates proxy mode: authenticated against a cloud-edition
   // server implies the proxy is available.
   const proxyEndpoint = stigmerToken
-    ? (import.meta.env.VITE_STIGMER_RUNNER_PROXY_URL
-       || import.meta.env.VITE_STIGMER_API_URL
+    ? (import.meta.env.VITE_STIGMER_API_URL
        || localStorage.getItem("stigmer.apiUrl")
        || normalizeToUrl(stigmerEndpoint))
     : undefined;

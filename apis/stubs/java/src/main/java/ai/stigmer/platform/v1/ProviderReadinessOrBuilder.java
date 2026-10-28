@@ -12,8 +12,8 @@ public interface ProviderReadinessOrBuilder extends
 
   /**
    * <pre>
-   * The provider's name: "anthropic", "openai" or "cursor", the names
-   * provider keys are saved under.
+   * The provider's name: "anthropic" or "openai", the names provider keys
+   * are saved under.
    * </pre>
    *
    * <code>string provider = 1 [json_name = "provider"];</code>
@@ -22,8 +22,8 @@ public interface ProviderReadinessOrBuilder extends
   java.lang.String getProvider();
   /**
    * <pre>
-   * The provider's name: "anthropic", "openai" or "cursor", the names
-   * provider keys are saved under.
+   * The provider's name: "anthropic" or "openai", the names provider keys
+   * are saved under.
    * </pre>
    *
    * <code>string provider = 1 [json_name = "provider"];</code>

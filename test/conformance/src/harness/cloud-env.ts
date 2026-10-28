@@ -79,7 +79,6 @@ export const CLOUD_ENV = {
   // binds. Each is REQUIRED on a cloud target (the flags are true there): an
   // environment that forgets one fails its arms loudly, never false-greens.
   proxyAddress: "STIGMER_CONFORMANCE_CLOUD_PROXY_ADDRESS",
-  cursorBidiAddress: "STIGMER_CONFORMANCE_CLOUD_CURSOR_BIDI_ADDRESS",
   publicAddress: "STIGMER_CONFORMANCE_CLOUD_PUBLIC_ADDRESS",
   stripeWebhookAddress: "STIGMER_CONFORMANCE_CLOUD_STRIPE_WEBHOOK_ADDRESS",
   // The webhook signing secret the server under test was booted with; the

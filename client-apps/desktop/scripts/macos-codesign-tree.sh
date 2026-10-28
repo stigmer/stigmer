@@ -9,8 +9,7 @@
 # but never files under Resources/ (tauri-bundler macos/app.rs signs the
 # NESTED_CODE_FOLDER set only). tauri.conf.json ships the embedded runner as a
 # resource (resources/runner), and that tree carries native code: Temporal's
-# core bridge (index.node) and @cursor/sdk's cursorsandbox and rg. Unsigned,
-# any one of them fails the whole submission.
+# core bridge (index.node). Unsigned, it fails the whole submission.
 #
 # Two verbs over the same walk:
 #
@@ -24,8 +23,8 @@
 #                               macos-notarize-dmg.sh runs this over the built
 #                               .app: `codesign --verify --deep --strict` seals
 #                               Resources/ as data rather than verifying it as
-#                               code, so it would pass an app whose rg is still
-#                               ad-hoc. This is the check the notary applies.
+#                               code, so it would pass an app whose core bridge
+#                               is still ad-hoc. This is the check the notary applies.
 #
 # Both verbs take --entitlements <plist> before <dir>. sign then applies the
 # plist to every executable (libraries never carry entitlements), and verify
@@ -34,8 +33,8 @@
 # executables all need the same grants: stage-node-runtime.sh signs the bundled
 # Node runtime this way (macos-entitlements/node-runtime.plist; V8 needs
 # allow-jit under the hardened runtime), and macos-notarize-dmg.sh verifies
-# that runtime directory alone, since the runner's rg and cursorsandbox carry
-# no entitlements and must not be asked to.
+# that runtime directory alone, since the runner's native code carries no
+# entitlements and must not be asked to.
 #
 # The identity "-" is codesign's ad-hoc identity. It is accepted by both verbs
 # (sign uses it without --timestamp, which needs a real identity; verify then

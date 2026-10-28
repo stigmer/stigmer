@@ -3196,7 +3196,7 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
     return db;
   }
 
-  it("v33 moves a Cursor session's harness id and history to its status, keeps its stamp, and leaves the rest byte for byte", () => {
+  it("v33 drops a session's retired harness id and history, keeps its stamp, and leaves the rest byte for byte", () => {
     const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_32);
     insert(
       setup,
@@ -3217,10 +3217,7 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
     expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_33);
     const moved = row(db, "session", "ses_cursor");
     expect(moved.data).toEqual(
-      currentSessionRow({
-        ...conversation("ses_cursor"),
-        status: { harnessStateId: "agent-7f3c", harnessStateIdHistory: ["agent-1a2b"] },
-      }),
+      currentSessionRow(conversation("ses_cursor")),
     );
     expect(moved.updated_at).toBe(SEEDED_AT);
     expect(Buffer.from(row(db, "session", "ses_new").data).equals(Buffer.from(untouched))).toBe(true);
@@ -3245,9 +3242,7 @@ describe("v33 and v34: a session's harness state moves to its status, and every 
     db.prepare(`DELETE FROM resources WHERE kind = 'session' AND id = 'ses_zz_bad'`).run();
     runMigrations(db, SCHEMA_VERSION_33);
     const last = `ses_${String(SESSION_HARNESS_PAGE_SIZE).padStart(4, "0")}`;
-    expect(fromBinary(SessionSchema, row(db, "session", last).data).status?.harnessStateId).toBe(
-      `thread-${SESSION_HARNESS_PAGE_SIZE}`,
-    );
+    expect(fromBinary(SessionSchema, row(db, "session", last).data).spec?.$unknown ?? []).toEqual([]);
   });
 
   it("v34 stamps every resource of every kind with its etag across pages, keeps its stamp, and leaves an unknown kind's rows alone", () => {

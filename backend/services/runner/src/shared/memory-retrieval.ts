@@ -31,7 +31,7 @@
  * read identically.
  *
  * Written-once across re-invocations: the same execution's prompt is
- * rebuilt on approval resume (native) and fresh-agent recovery (cursor).
+ * rebuilt on approval resume.
  * Re-running selection there could pick a DIFFERENT subset mid-execution —
  * so when the loaded execution already carries a report, this module
  * REPLAYS it (selected ids resolved against the snapshot, or wholesale
@@ -42,7 +42,7 @@
  * embedder, HTTP error, timeout, malformed response — degrades to
  * wholesale injection with a selection_active=false report, never a
  * failed or degraded execution. Deployments with no
- * embeddings-capable credential (Anthropic-only, Cursor-only OSS) run
+ * embeddings-capable credential (Anthropic-only OSS) run
  * wholesale injection unchanged, forever.
  */
 

@@ -104,8 +104,6 @@ export class LocalExecutionTarget implements TargetProfile {
     guestMinting: false,
     // No sandbox lane in cloud mode, as on `local`.
     cloudTargetRefusesLocalPrograms: false,
-    // No provider keys, as on `local`: a Cursor run is admitted at create.
-    cursorRunsAdmitted: true,
     // The runner this target spawns carries the Claude engine in its own
     // install (target.ts).
     claudeTurnsRun: true,

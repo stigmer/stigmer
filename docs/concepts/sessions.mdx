@@ -84,9 +84,7 @@ turn, and the turn keeps going for as long as the job takes:
   event your app read
   ([Resume a dropped stream](/docs/sdk/streaming#resume-a-dropped-stream)).
 - **You can steer it while it works.** A message sent during the turn waits in
-  the Session, and the turn reads it at its next step, without starting over. On
-  the [Cursor harness](/docs/concepts/harnesses#cursor-harness), when Cursor
-  can't take the message mid-run, the turn reads it as soon as that run ends
+  the Session, and the turn reads it at its next step, without starting over
   (`user.message` in [Read the events](/docs/sdk/streaming#read-the-events)).
 - **It tells its person when it needs them.** When the turn finishes, fails or
   waits for an answer, the person who started the Session is told, in the
@@ -194,10 +192,9 @@ every source.
 ## Harness
 
 Every Session runs on a [Harness](/docs/concepts/harnesses) — the execution
-engine that processes the Agent's turns. Stigmer supports three: **Native** (the
-default), **Cursor** (for Cursor SDK-powered execution with access to
-Cursor-specific models and coding tools) and **Claude** (Anthropic's Claude
-Agent SDK, running Claude models on your Organization's Anthropic key).
+engine that processes the Agent's turns. Stigmer supports two: **Native** (the
+default) and **Claude** (Anthropic's Claude Agent SDK, running Claude models on
+your Organization's Anthropic key).
 
 You set the Harness when creating a Session; when you set none, the Session
 starts on the Agent's own `harness`, or native when the Agent names none. Once
@@ -205,7 +202,7 @@ the first run starts, the Harness is locked for that Session.
 
 ```yaml validate-as="Session"
 spec:
-  harness: HARNESS_CURSOR
+  harness: HARNESS_CLAUDE
 ```
 
 See [Harnesses](/docs/concepts/harnesses) for a full comparison.

@@ -42,7 +42,7 @@ message RecordLlmCallUsageInput {
   // second proxy replica. Stamped verbatim onto the usage record's `call_id`.
   string call_id = 20 [(buf.validate.field).string.max_len = 128];
 
-  // Provider identifier (e.g., "openai", "anthropic", "cursor").
+  // Provider identifier (e.g., "openai", "anthropic").
   string provider = 3 [(buf.validate.field).required = true];
 
   // Model as reported by the provider in the response.
@@ -75,7 +75,7 @@ message RecordLlmCallUsageInput {
   // Raw provider usage JSON for audit/debug.
   string provider_usage_json = 13;
 
-  // Harness that originated this call ("native", "cursor" or "claude").
+  // Harness that originated this call ("native" or "claude").
   // Set by the proxy controller based on which proxy path handled the request.
   // When empty, the billing handler falls back to the model catalog.
   string harness = 14;
@@ -96,8 +96,7 @@ message RecordLlmCallUsageInput {
   // verbatim by the proxy from the SSE stream — the wire truth billing
   // reconciles against the run's REQUESTED tier (the
   // service_tier.mismatch counter). Empty when the provider reported
-  // none, and for cursor-harness calls, whose billed variant arrives
-  // through the cursor path's pricing-variant resolution instead.
+  // none.
   string served_service_tier = 18;
 
   // The run this call is metered under, as the proxy resolved

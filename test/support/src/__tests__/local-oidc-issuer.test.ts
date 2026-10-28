@@ -24,9 +24,8 @@
 // Under the `tls` option the issuer is an outside provider a server reads
 // over HTTPS: it spells itself `https://`, and a client that trusts the
 // certificate it was handed reads its discovery document and key set. The
-// certificate is the runner's loopback one, imported by path as the
-// conformance harness imports the runner's sources; the issuer itself
-// mints none.
+// certificate is a loopback one (`loopback-certificate.ts`) the test
+// mints; the issuer itself mints none.
 import {
   createHash,
   createPublicKey,
@@ -38,11 +37,11 @@ import { get as httpsGet } from "node:https";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { mintLoopbackCertificate } from "../../../../backend/services/runner/src/agent-proxy/loopback-certificate.ts";
 import {
   startLocalOidcIssuer,
   type LocalOidcIssuer,
 } from "../local-oidc-issuer.ts";
+import { mintLoopbackCertificate } from "../loopback-certificate.ts";
 
 let issuer: LocalOidcIssuer;
 

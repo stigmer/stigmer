@@ -95,10 +95,10 @@ describe("makeAgentExecution's target", () => {
     const target = makeAgentExecution({
       ...base,
       agentRef: { ...REF, version: "stable" },
-      sessionSpec: { harness: Harness.CURSOR, subject: "review" },
+      sessionSpec: { harness: Harness.CLAUDE, subject: "review" },
     }).spec?.target;
     const spec = target?.case === "sessionSpec" ? target.value : undefined;
-    expect(spec?.harness).toBe(Harness.CURSOR);
+    expect(spec?.harness).toBe(Harness.CLAUDE);
     expect(spec?.subject).toBe("review");
     expect(spec?.agentRef).toMatchObject({ org: "acme", slug: "code-reviewer", version: "stable" });
   });

@@ -68,10 +68,8 @@
 // its tools (fail closed). On the native engine, which every other arm here
 // runs on, that case does not arise: the engine reads the marks from the tools it
 // loads, and a server it could not load offers the model no tool to call.
-// The Cursor engine lists each server separately and asks for every tool of
-// one whose listing failed; no conformance suite drives the Cursor engine
-// (it needs Cursor's own service), so that arm is the runner's unit
-// contract (runner shared/mcp-tool-listing.ts, shared/approval-policy.ts).
+// The rule is the runner's unit contract (runner shared/mcp-tool-listing.ts,
+// shared/approval-policy.ts).
 //
 // Every gate-resolving answer goes through confirmPerContract
 // (support/answers.ts): what the answer leaves waiting is asserted there

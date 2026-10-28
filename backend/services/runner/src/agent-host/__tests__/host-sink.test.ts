@@ -12,13 +12,10 @@
  * And the calls it makes of the runner: a burst of persist requests
  * becomes one write and one follow-up, each resolving once the runner
  * answered; a persist or a progress label that cannot cross never rejects
- * (the contract's promise), it logs; binding the state id writes the two
- * fields the runtime writes on the shared session record, once the runner
- * has written them.
+ * (the contract's promise), it logs.
  */
 
-import { create, toBinary } from "@bufbuild/protobuf";
-import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -98,21 +95,5 @@ describe("the host sink's calls to the runner", () => {
       "[agent-host] persist request failed: turn=turn-1, the runner is gone",
       "[agent-host] progress label not reported: execution=aex_fixture_0001, the runner is gone",
     ]);
-  });
-
-  it("forwards the state id to the runner and leaves the session record as it was handed", async () => {
-    const { turn, runner, input } = hostTurn(0);
-    input.session.metadata!.slug = "server-generated";
-    const before = toBinary(SessionSchema, input.session);
-    let bound = "";
-    runner.handle("bindHarnessState", async (args) => {
-      bound = args.harnessStateId;
-      expect(Object.keys(args).sort(), "the bind carries the id and its turn, nothing of the session").toEqual(["harnessStateId", "turnId"]);
-      return null;
-    });
-
-    await turn.sink.bindHarnessState("engine-state-1");
-    expect(bound).toBe("engine-state-1");
-    expect(toBinary(SessionSchema, input.session), "the session's door records the id; the record is not rewritten").toEqual(before);
   });
 });

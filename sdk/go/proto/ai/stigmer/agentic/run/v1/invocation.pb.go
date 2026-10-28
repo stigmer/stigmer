@@ -165,8 +165,8 @@ func (x *AgentInvocation) GetResources() []*v1.SessionResource {
 // agent's defaults, and the lane's operator profile.
 //
 //   - Choices. model_name comes from the first layer that names one. When no
-//     layer names one, the model is left to the engine (the native engine's
-//     registry default; Cursor's Auto). service_tier and thinking_mode each
+//     layer names one, the model is left to the harness's registry default.
+//     service_tier and thinking_mode each
 //     come from the first layer, at or above the model's layer, that sets
 //     them: a less specific layer's tier or thinking was chosen for another
 //     model, so it never lands on this one. Without a model, tier and thinking
@@ -193,8 +193,7 @@ type RunConfig struct {
 	// done so far is kept. The limit is checked each time the engine reports
 	// its spend, so a run can end somewhat above it. The native harness
 	// reports after every model call, counts a subagent's spend toward the
-	// limit, and advises the agent to wrap up at about 80% of the budget; the
-	// Cursor harness gives no warning.
+	// limit, and advises the agent to wrap up at about 80% of the budget.
 	//
 	// 0 = not set at this layer. The budget is per message: a follow-up
 	// message, or a run resuming after an approval, starts a fresh count; a
@@ -217,7 +216,7 @@ type RunConfig struct {
 	// set, the valid range is 10–1000; values outside it are clamped to the
 	// nearest bound. The budget is per message: a follow-up message, or a run
 	// resuming after an approval, starts a fresh count. Subagent rounds are
-	// not counted, and the Cursor harness does not enforce this field.
+	// not counted.
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
 	// Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.
 	//
@@ -250,7 +249,7 @@ type RunConfig struct {
 	//
 	// 0 = not set at this layer; with no layer setting it the platform default
 	// applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
-	// a subagent's included; the Cursor harness does not read this field.
+	// a subagent's included.
 	MaxToolResultChars int32 `protobuf:"varint,6,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache

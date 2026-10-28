@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032&ai/stigmer/agentic/session/v1/io.proto" +
       "\0328ai/stigmer/commons/apiresource/rpc_ser" +
       "vice_options.proto\032+ai/stigmer/commons/r" +
-      "pc/method_options.proto2\354\020\n\030SessionComma" +
+      "pc/method_options.proto2\342\017\n\030SessionComma" +
       "ndController\022W\n\005apply\022&.ai.stigmer.agent" +
       "ic.session.v1.Session\032&.ai.stigmer.agent" +
       "ic.session.v1.Session\022\245\001\n\006create\022&.ai.st" +
@@ -92,15 +92,12 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "sionEventsResponse\"\004\320\270\030\001\022\203\001\n\nclaimInput\022" +
       "5.ai.stigmer.agentic.session.v1.ClaimSes" +
       "sionInputInput\0328.ai.stigmer.agentic.sess" +
-      "ion.v1.ClaimSessionInputResponse\"\004\320\270\030\001\022\207" +
-      "\001\n\020bindHarnessState\0224.ai.stigmer.agentic" +
-      ".session.v1.BindHarnessStateInput\0327.ai.s" +
-      "tigmer.agentic.session.v1.BindHarnessSta" +
-      "teResponse\"\004\320\270\030\001\032\004\240\377+*B\247\001B\014CommandProtoP" +
-      "\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1" +
-      "\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\St" +
-      "igmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!A" +
-      "i::Stigmer::Agentic::Session::V1b\006proto3"
+      "ion.v1.ClaimSessionInputResponse\"\004\320\270\030\001\032\004" +
+      "\240\377+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002\035Ai.Stig" +
+      "mer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agen" +
+      "tic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sess" +
+      "ion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agenti" +
+      "c::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

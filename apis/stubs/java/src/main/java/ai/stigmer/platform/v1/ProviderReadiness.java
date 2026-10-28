@@ -60,8 +60,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object provider_ = "";
   /**
    * <pre>
-   * The provider's name: "anthropic", "openai" or "cursor", the names
-   * provider keys are saved under.
+   * The provider's name: "anthropic" or "openai", the names provider keys
+   * are saved under.
    * </pre>
    *
    * <code>string provider = 1 [json_name = "provider"];</code>
@@ -82,8 +82,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The provider's name: "anthropic", "openai" or "cursor", the names
-   * provider keys are saved under.
+   * The provider's name: "anthropic" or "openai", the names provider keys
+   * are saved under.
    * </pre>
    *
    * <code>string provider = 1 [json_name = "provider"];</code>
@@ -518,8 +518,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object provider_ = "";
     /**
      * <pre>
-     * The provider's name: "anthropic", "openai" or "cursor", the names
-     * provider keys are saved under.
+     * The provider's name: "anthropic" or "openai", the names provider keys
+     * are saved under.
      * </pre>
      *
      * <code>string provider = 1 [json_name = "provider"];</code>
@@ -539,8 +539,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider's name: "anthropic", "openai" or "cursor", the names
-     * provider keys are saved under.
+     * The provider's name: "anthropic" or "openai", the names provider keys
+     * are saved under.
      * </pre>
      *
      * <code>string provider = 1 [json_name = "provider"];</code>
@@ -561,8 +561,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider's name: "anthropic", "openai" or "cursor", the names
-     * provider keys are saved under.
+     * The provider's name: "anthropic" or "openai", the names provider keys
+     * are saved under.
      * </pre>
      *
      * <code>string provider = 1 [json_name = "provider"];</code>
@@ -579,8 +579,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider's name: "anthropic", "openai" or "cursor", the names
-     * provider keys are saved under.
+     * The provider's name: "anthropic" or "openai", the names provider keys
+     * are saved under.
      * </pre>
      *
      * <code>string provider = 1 [json_name = "provider"];</code>
@@ -594,8 +594,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider's name: "anthropic", "openai" or "cursor", the names
-     * provider keys are saved under.
+     * The provider's name: "anthropic" or "openai", the names provider keys
+     * are saved under.
      * </pre>
      *
      * <code>string provider = 1 [json_name = "provider"];</code>

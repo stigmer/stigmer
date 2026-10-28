@@ -21,7 +21,7 @@ import "buf/validate/validate.proto";
 // @internal
 // An ALLOWLIST by
 // construction: platform-owned run fields (approval_mode,
-// execution_target, harness_state_id,
+// execution_target,
 // auto_approve_all, org/labels/subject) cannot
 // appear here, so embedding surfaces never need a blocklist validator
 // — the rejected alternative was embedding RunSpec /
@@ -31,8 +31,7 @@ import "buf/validate/validate.proto";
 // (a routine's files are its resources, which each run copies),
 // plugins/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
-// deliverable is a plan for a human who isn't there), cursor_mode
-// (runner-owned constant). Surface-specific constraints live in the
+// deliverable is a plan for a human who isn't there). Surface-specific constraints live in the
 // embedding surface's handlers, never here — e.g. routines reject
 // local_path workspace sources and enforce agent_ref.org ==
 // metadata.org.
@@ -78,8 +77,7 @@ message AgentInvocation {
   // Verified before deciding: unattended approval semantics are one
   // shared contract across every harness (approval-policy.ts), so
   // owner harness choice changes the engine, never the safety
-  // posture. cursor_mode stays runner-owned and is deliberately
-  // absent.
+  // posture.
   ai.stigmer.agentic.session.v1.Harness harness = 3 [(buf.validate.field).enum.defined_only = true];
 
   // Field 4 held the invocation's workspace entries until a conversation's
@@ -167,8 +165,8 @@ message AgentInvocation {
 // agent's defaults, and the lane's operator profile.
 //
 // - Choices. model_name comes from the first layer that names one. When no
-//   layer names one, the model is left to the engine (the native engine's
-//   registry default; Cursor's Auto). service_tier and thinking_mode each
+//   layer names one, the model is left to the harness's registry default.
+//   service_tier and thinking_mode each
 //   come from the first layer, at or above the model's layer, that sets
 //   them: a less specific layer's tier or thinking was chosen for another
 //   model, so it never lands on this one. Without a model, tier and thinking
@@ -202,8 +200,7 @@ message RunConfig {
   // done so far is kept. The limit is checked each time the engine reports
   // its spend, so a run can end somewhat above it. The native harness
   // reports after every model call, counts a subagent's spend toward the
-  // limit, and advises the agent to wrap up at about 80% of the budget; the
-  // Cursor harness gives no warning.
+  // limit, and advises the agent to wrap up at about 80% of the budget.
   //
   // 0 = not set at this layer. The budget is per message: a follow-up
   // message, or a run resuming after an approval, starts a fresh count; a
@@ -237,7 +234,7 @@ message RunConfig {
   // set, the valid range is 10–1000; values outside it are clamped to the
   // nearest bound. The budget is per message: a follow-up message, or a run
   // resuming after an approval, starts a fresh count. Subagent rounds are
-  // not counted, and the Cursor harness does not enforce this field.
+  // not counted.
   //
   // @internal
   // An implementation knob, not a user concept: API-reachable for
@@ -279,6 +276,6 @@ message RunConfig {
   //
   // 0 = not set at this layer; with no layer setting it the platform default
   // applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
-  // a subagent's included; the Cursor harness does not read this field.
+  // a subagent's included.
   int32 max_tool_result_chars = 6 [(buf.validate.field).int32.gte = 0];
 }

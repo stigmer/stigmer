@@ -18,22 +18,20 @@ interface EngineEntry {
 /** Every engine by the word the CLI takes, in proto order. */
 export const ENGINES = {
   native: { harness: Harness.NATIVE, label: "Stigmer", accountModel: "defaultNativeModel" },
-  cursor: { harness: Harness.CURSOR, label: "Cursor", accountModel: "defaultCursorModel" },
   claude: { harness: Harness.CLAUDE, label: "Claude", accountModel: "defaultClaudeModel" },
 } as const satisfies Record<string, EngineEntry>;
 
-/** An engine's word: `native`, `cursor` or `claude`. */
+/** An engine's word: `native` or `claude`. */
 export type EngineWord = keyof typeof ENGINES;
 
 /** The engine words, in proto order. */
 export const ENGINE_WORDS = Object.keys(ENGINES) as EngineWord[];
 
-/** The words, quoted and joined for a refusal: `"native", "cursor" or "claude"`. */
+/** The words, quoted and joined for a refusal: `"native" or "claude"`. */
 export const ENGINE_WORD_LIST = `${ENGINE_WORDS.slice(0, -1).map((word) => `"${word}"`).join(", ")} or "${ENGINE_WORDS.at(-1)!}"`;
 
 const WORD_BY_HARNESS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, EngineWord>> = {
   [Harness.NATIVE]: "native",
-  [Harness.CURSOR]: "cursor",
   [Harness.CLAUDE]: "claude",
 };
 

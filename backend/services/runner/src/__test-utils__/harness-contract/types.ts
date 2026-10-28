@@ -13,8 +13,8 @@
  * The scenario vocabulary is deliberately small and engine-neutral: it says
  * what the kit needs to PROVOKE, never how an engine behaves. The scripted
  * fake consumes it directly; a real harness's subject translates it onto that
- * harness's own double (the Cursor subject onto the scripted `@cursor/sdk`
- * agent of `execute-cursor/__test-utils__/`). One vocabulary, not one per
+ * harness's own double (the native subject onto a scripted model,
+ * `execute-deep-agent/__test-utils__/contract-subject.ts`). One vocabulary, not one per
  * engine, so the kit cannot drift from what the fake can do.
  *
  * Gated actions reuse `ProposedAction` from `approval-contract/types.ts`, the
@@ -55,16 +55,10 @@ import type { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/en
  *  - `fail`: the engine fails with a message the adapter can name; the turn
  *    ends `failed` on the given surface (`engine` unless the scenario says
  *    otherwise — the runtime's three failure copies are its own invariant).
- *  - `cancelled`: the engine ends its own run cancelled with nothing to
- *    wait for (an SDK-side cancel); the turn ends `cancelled`. Not every
- *    engine can end itself (a LangGraph run is stopped only by the runtime's
- *    signal and settles `interrupted`), so a subject that cannot produce it
- *    says so and the runtime arm is reported SKIPPED there.
  *  - `limit`: the engine exhausts the tool-round budget the execution set and
  *    stops at a step boundary with its work checkpointed; the turn ends
- *    `tool_call_limit`. Not every engine has such a budget (Cursor's SDK does
- *    not), so a subject that cannot produce it says so and the runtime arm
- *    is reported SKIPPED there.
+ *    `tool_call_limit`. A subject whose engine has no such budget says so and
+ *    the runtime arm is reported SKIPPED there.
  *  - `open`: the engine starts an operation identified by `toolCallId` and
  *    keeps it open until the kit releases it: a tool that runs for a while
  *    (`as: "tool"`), or a subagent that works (`as: "subagent"`). With
@@ -78,16 +72,11 @@ import type { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/en
  *  - `compact`: the engine compacts its context once — the summarization a
  *    long conversation forces — and the turn plays on. A subject whose engine
  *    has no context to compact says so and the arm is reported SKIPPED there.
- *  - `cut`: the engine's vendor ends its connection mid-turn, a cause no stop
- *    of the runtime's made (Cursor's backend ends a long run's stream,
- *    stigmer#2436); the turn ends `stream_cut`. A subject whose engine has
- *    no vendor connection to lose says so and the arm is reported SKIPPED
- *    there.
  *  - `message`: a person sends `text` to the session while the engine plays
  *    the step before it (a tool the engine runs, an answer it writes), and
- *    the engine reads it where its harness reads a message sent mid-turn
- *    (`HarnessCapabilities.midTurnInput`): at its next model call after an
- *    open operation, at its round's end after an answer. The subject sends
+ *    the engine reads it where every harness reads a message sent mid-turn:
+ *    at its next model call after an open operation, at its round's end
+ *    after an answer. The subject sends
  *    it through the kit's person ({@link EngineView.sendMessage}) as it plays
  *    the step before, and the engine's reading of it is the step: a subject
  *    whose engine does not read it there fails the script. Never the first
@@ -100,11 +89,9 @@ export type ScenarioStep =
   | { readonly kind: "usage"; readonly delta: UsageDelta }
   | { readonly kind: "hang" }
   | { readonly kind: "fail"; readonly message: string; readonly surface: FailureSurface }
-  | { readonly kind: "cancelled" }
   | { readonly kind: "limit" }
   | { readonly kind: "open"; readonly toolCallId: string; readonly as: OperationShape; readonly streams: boolean }
   | { readonly kind: "compact" }
-  | { readonly kind: "cut" }
   | { readonly kind: "message"; readonly text: string };
 
 /**
@@ -154,9 +141,6 @@ export const scenario = {
   fail(message: string, surface: FailureSurface = "engine"): ScenarioStep {
     return { kind: "fail", message, surface };
   },
-  cancelled(): ScenarioStep {
-    return { kind: "cancelled" };
-  },
   limit(): ScenarioStep {
     return { kind: "limit" };
   },
@@ -165,9 +149,6 @@ export const scenario = {
   },
   compact(): ScenarioStep {
     return { kind: "compact" };
-  },
-  cut(): ScenarioStep {
-    return { kind: "cut" };
   },
   message(text: string): ScenarioStep {
     return { kind: "message", text };
@@ -322,9 +303,9 @@ export interface LongTurnControls {
   /**
    * The runner driving the session's turn is killed: what the engine keeps
    * outside the process stays as the process left it, and nothing the
-   * process would do on its way out reaches it (a Cursor agent's run stays
-   * active in its store). The kit calls it just before it cancels the lost
-   * invocation, so the cancel stands for the process's end, not its stop.
+   * process would do on its way out reaches it. The kit calls it just
+   * before it cancels the lost invocation, so the cancel stands for the
+   * process's end, not its stop.
    */
   loseRunner(sessionId: string): void;
 }

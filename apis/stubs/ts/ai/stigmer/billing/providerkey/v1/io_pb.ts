@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/io.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSLEAgoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESMgoIcHJvdmlkZXIYAiABKAlCILpIHXIbUglhbnRocm9waWNSBm9wZW5haVIGY3Vyc29yEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQSKgoIYmFzZV91cmwYBCABKAlCGLpIFdgBAXIQGIAQOghodHRwczovL4gBATqZAbpIlQEakgEKHHByb3ZpZGVyX2tleS5jdXJzb3JfYmFzZV91cmwSQGEgQ3Vyc29yIGtleSB0YWtlcyBubyBiYXNlIFVSTDsgQ3Vyc29yIHNlcnZlcyBmcm9tIGl0cyBvd24gaG9zdHMaMHRoaXMucHJvdmlkZXIgIT0gJ2N1cnNvcicgfHwgdGhpcy5iYXNlX3VybCA9PSAnJyJiChZEZWxldGVQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIyCghwcm92aWRlchgCIAEoCUIgukgdchtSCWFudGhyb3BpY1IGb3BlbmFpUgZjdXJzb3IiZwoVTGlzdFByb3ZpZGVyS2V5c0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglwYWdlX3NpemUYAiABKAVCB7pIBBoCKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgicgoWTGlzdFByb3ZpZGVyS2V5c091dHB1dBI/CgdlbnRyaWVzGAEgAygLMi4uYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLlByb3ZpZGVyS2V5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSKgAQoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haRIbCgdhcGlfa2V5GAMgASgJQgq6SAdyBRAIGIAEEioKCGJhc2VfdXJsGAQgASgJQhi6SBXYAQFyEBiAEDoIaHR0cHM6Ly+IAQEiWgoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSJnChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCXBhZ2Vfc2l6ZRgCIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACCJyChZMaXN0UHJvdmlkZXJLZXlzT3V0cHV0Ej8KB2VudHJpZXMYASADKAsyLi5haS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEuUHJvdmlkZXJLZXkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJYgZwcm90bzM", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
 
 /**
  * Save the organization's key for a provider, replacing any key it holds for
@@ -33,9 +33,7 @@ export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.Set
   provider: string;
 
   /**
-   * The provider API key. Write-only: no read returns it. For "cursor", a
-   * Cursor user API key or a team service-account API key (Cursor's SDK
-   * refuses Team Admin keys).
+   * The provider API key. Write-only: no read returns it.
    *
    * @generated from field: string api_key = 3;
    */
@@ -48,8 +46,7 @@ export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.Set
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1". A Cursor key takes
-   * none: Cursor serves from its own hosts.
+   * "https://my-resource.openai.azure.com/openai/v1".
    *
    * @generated from field: string base_url = 4;
    */

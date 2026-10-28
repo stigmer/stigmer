@@ -318,7 +318,7 @@ describe("agent-execution-create run gate (composed server)", () => {
       command.create(
         createInput(
           { case: "sessionId", value: "ses_01someoneelses" },
-          { modelName: "composer-2.5", thinkingMode: ThinkingMode.ENABLED },
+          { modelName: "no-such-model", thinkingMode: ThinkingMode.ENABLED },
         ),
       ),
     );
@@ -337,7 +337,7 @@ describe("agent-execution-create run gate (composed server)", () => {
     const err = await captureError(() =>
       command.create(
         createInput(newConversation(agent.slug), {
-          modelName: "composer-2.5",
+          modelName: "no-such-model",
           thinkingMode: ThinkingMode.ENABLED,
         }),
       ),

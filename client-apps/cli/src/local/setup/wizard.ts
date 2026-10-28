@@ -7,7 +7,7 @@
 // Setup saves the one key the native and Claude engines run the catalog's
 // models on, Anthropic's, so the interactive flow is a single API-key prompt
 // rather than a provider menu, followed by the skippable operator-identity
-// prompt (oss#796). The runner reaches the other providers (OpenAI, Cursor,
+// prompt (oss#796). The runner reaches the other providers (OpenAI, and
 // Anthropic through Vertex, Bedrock, Foundry or a gateway) by settings
 // exported in the shell; local/provider-reach.ts says which it reaches. There
 // is no model concept here at all: the platform model registry owns the

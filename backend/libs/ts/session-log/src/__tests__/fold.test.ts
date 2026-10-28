@@ -597,7 +597,7 @@ describe("to-do lists", () => {
       user(R, "go"),
       use(R, "t1", "write_todos", { input: { todos: [{ content: "read", status: "pending" }, { content: "write", status: "in_progress" }] } }),
       result(R, "t1", "ok"),
-      use(R, "t2", "updateTodos", { input: { merge: true, todos: [{ id: "todo-0", content: "read", status: "completed" }] } }),
+      use(R, "t2", "TodoWrite", { input: { merge: true, todos: [{ id: "todo-0", content: "read", status: "completed" }] } }),
       result(R, "t2", "ok"),
       use(R, "t3", "write_todos", { input: { todos: [] } }),
       result(R, "t3", "bad", { isError: true }),

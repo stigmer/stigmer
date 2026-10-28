@@ -95,11 +95,11 @@ export const STATUS_PAYLOAD_SOFT_LIMIT_BYTES = 3 * 1024 * 1024;
 export const STATUS_PAYLOAD_HARD_LIMIT_BYTES = 2 * 1024 * 1024;
 
 /**
- * Marker left in place of an aggregate-elided inline field. Exported so the
- * resume-time exact-apply resolver can recognize (and refuse to write) an elided
- * body rather than corrupting a file with the marker text — the lossy elision is
- * the one case where the exact approved bytes are unrecoverable and exact-apply
- * must fall back. The two sides cannot drift because they share this constant.
+ * Marker left in place of an aggregate-elided inline field. Exported so a
+ * reader of a stored call (the Claude gate, `activities/execute-claude/gate.ts`)
+ * can recognize an elided body rather than take the marker text for the call's
+ * own: the lossy elision is the one case where the exact bytes are
+ * unrecoverable. The two sides cannot drift because they share this constant.
  */
 export const ELISION_MARKER = "[output elided to keep status under the size limit]";
 
@@ -192,16 +192,14 @@ function findDataUrlInString(s: string): ImagePayload | null {
 
 /**
  * Build an ImagePayload from a block's `data` + optional mime hint. Accepts the
- * shapes the Cursor SDK actually delivers for an image block's `data`:
- *   - Node Buffer-JSON ({ type:"Buffer", data:number[] }) — the runtime shape
- *     confirmed from a real cursor-harness get_app_state result. (The SDK's .d.ts
- *     types `data` as a string, but at runtime image bytes serialize as
- *     Buffer-JSON, so both must be handled.)
+ * shapes an image block's `data` arrives in:
+ *   - Node Buffer-JSON ({ type:"Buffer", data:number[] }) — image bytes a
+ *     client serialized as a Buffer;
  *   - a `data:` URL string, or
  *   - a bare base64 string.
  * Anything else (a file path, a number) yields null, so only an explicit image
- * signal ever matches. The mime hint defaults to image/png when absent — Cursor
- * MCP image blocks frequently omit mimeType.
+ * signal ever matches. The mime hint defaults to image/png when absent — MCP
+ * image blocks frequently omit mimeType.
  */
 function imageFromData(data: unknown, mime: unknown): ImagePayload | null {
   const mimeType = typeof mime === "string" && mime.length > 0 ? mime : "image/png";
@@ -229,7 +227,7 @@ function imageFromData(data: unknown, mime: unknown): ImagePayload | null {
  * Extract an image from a single object IF it is a recognized image block.
  * Recognized shapes, all of which carry an explicit image marker (so an
  * arbitrary object never matches):
- *   - Cursor SDK MCP block:      { image: { data: <base64|dataUrl>, mimeType? } }
+ *   - nested image block:        { image: { data: <base64|dataUrl>, mimeType? } }
  *   - Anthropic/MCP-style block: { type: "image", data: <base64>, mimeType? }
  *   - OpenAI-style block:        { type: "image_url", image_url: { url: <dataUrl> } }
  *     (also tolerates { type: "image", image: <base64> })
@@ -238,11 +236,9 @@ function imageFromData(data: unknown, mime: unknown): ImagePayload | null {
  * keep searching siblings/children.
  */
 function imageFromBlock(obj: Record<string, unknown>): ImagePayload | null {
-  // Cursor SDK shape: the image rides under a nested `image` object. This is the
-  // exact shape @cursor/sdk uses for MCP image content (see conversation-types),
-  // which canonicalizeImageResult normalizes — but only when the result reaches
-  // it as an object. A result delivered already-serialized (a string) bypasses
-  // that, so detection must recognize this shape directly.
+  // Nested shape: the image rides under an `image` object. A result delivered
+  // already-serialized (a string) reaches no normalizer, so detection must
+  // recognize this shape directly.
   if (obj.image && typeof obj.image === "object") {
     const img = obj.image as Record<string, unknown>;
     const payload = imageFromData(img.data, img.mimeType ?? img.mime_type);

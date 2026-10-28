@@ -12,7 +12,7 @@ public interface GetModelReadinessOutputOrBuilder extends
 
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -21,7 +21,7 @@ public interface GetModelReadinessOutputOrBuilder extends
       getProvidersList();
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -29,7 +29,7 @@ public interface GetModelReadinessOutputOrBuilder extends
   ai.stigmer.platform.v1.ProviderReadiness getProviders(int index);
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -37,7 +37,7 @@ public interface GetModelReadinessOutputOrBuilder extends
   int getProvidersCount();
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>
@@ -46,7 +46,7 @@ public interface GetModelReadinessOutputOrBuilder extends
       getProvidersOrBuilderList();
   /**
    * <pre>
-   * Every provider, in the server's order (anthropic, openai, cursor).
+   * Every provider, in the server's order (anthropic, openai).
    * </pre>
    *
    * <code>repeated .ai.stigmer.platform.v1.ProviderReadiness providers = 1 [json_name = "providers"];</code>

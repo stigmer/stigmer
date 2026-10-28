@@ -52,21 +52,8 @@ public interface PricingBlockOrBuilder extends
 
   /**
    * <pre>
-   * Cursor Token Rate surcharge, micro-USD per million billable tokens.
-   * Zero for native-harness models and fee-exempt cursor models (Auto and
-   * the first-party pool). Variants inherit the base entry's rate and
-   * leave this zero.
-   * </pre>
-   *
-   * <code>int64 cursor_token_rate_micros_per_million = 5 [json_name = "cursorTokenRateMicrosPerMillion", (.buf.validate.field) = { ... }</code>
-   * @return The cursorTokenRateMicrosPerMillion.
-   */
-  long getCursorTokenRateMicrosPerMillion();
-
-  /**
-   * <pre>
    * Where these rates came from (e.g. "anthropic_api",
-   * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+   * "openai_pricing_page", "derived_from_notes"). Provenance, not
    * approval — see the update-model-registry rule for the sign-off
    * lifecycle.
    * </pre>
@@ -78,7 +65,7 @@ public interface PricingBlockOrBuilder extends
   /**
    * <pre>
    * Where these rates came from (e.g. "anthropic_api",
-   * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+   * "openai_pricing_page", "derived_from_notes"). Provenance, not
    * approval — see the update-model-registry rule for the sign-off
    * lifecycle.
    * </pre>

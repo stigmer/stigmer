@@ -26,11 +26,11 @@
 // (the session suite's), tool lists scoping a plugin's tools (run-tool-lists),
 // the approval default over a plugin tool's destructive mark (run-approval),
 // the values a plugin's server reads (vault-resolution), the wording of the
-// skill and sub-agent prompts (assertions read names, never prose), and the
-// Cursor harness, which this suite does not drive. On Claude (its own block,
-// where the target runs Claude turns) the suite proves the skill loaded
-// through the engine's Skill tool and the hook's refusal; the plugin's
-// sub-agents and servers on Claude are the runner's hermetic suites'.
+// skill and sub-agent prompts (assertions read names, never prose). On
+// Claude (its own block, where the target runs Claude turns) the suite
+// proves the skill loaded through the engine's Skill tool and the hook's
+// refusal; the plugin's sub-agents and servers on Claude are the runner's
+// hermetic suites'.
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";

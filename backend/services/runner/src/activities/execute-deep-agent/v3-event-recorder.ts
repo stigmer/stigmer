@@ -4,7 +4,7 @@
  * Activated by the V3_EVENT_RECORD_DIR environment variable. When set,
  * the adapter's stream loop (`turn-stream.ts`) records every raw protocol
  * event and flushes them atomically to a JSON file after the stream
- * completes — the native twin of `execute-cursor/cursor-event-recorder.ts`.
+ * completes.
  *
  * Development infrastructure: the captured events are the ground truth the
  * v3 fixtures (`__test-utils__/v3-event-fixtures.ts`) and the builder's

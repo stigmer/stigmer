@@ -10,8 +10,8 @@
 //
 // These settings hold the one key `stigmer setup` saves, Anthropic's; they do
 // not say which providers the local runner reaches. The runner also reaches
-// Cursor and OpenAI by a key in the shell, and Anthropic through a gateway or
-// a cloud backend, none of which `setup` stores. What it reaches is judged by
+// OpenAI by a key in the shell, and Anthropic through a gateway or a cloud
+// backend, none of which `setup` stores. What it reaches is judged by
 // the runner's own rule over the environment the launcher builds
 // (provider-reach.ts), which is what `stigmer status`, `stigmer up`'s card and
 // the server's STIGMER_RUNNER_PROVIDERS read. Two invariants hold:

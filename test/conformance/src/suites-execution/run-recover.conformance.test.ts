@@ -23,7 +23,8 @@
 // its FAILED result (it does not throw), so a reset replays the preserved
 // failure instead of re-dispatching.
 // Continuity of completed work is carried by the session's harness state
-// (LangGraph thread checkpoint / harness_state_id), not by Temporal history.
+// (the LangGraph thread checkpoint, or the Claude engine's session store),
+// not by Temporal history.
 //
 // Already covered in the main Run suite (not re-asserted here):
 // - recover of a non-FAILED terminal execution -> FailedPrecondition.

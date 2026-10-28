@@ -54,7 +54,6 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import type { MockAbort } from "../../harness/stop-controller.js";
 import type { McpServerHome, ResolvedMcpServer } from "../mcp-resolver.js";
-import { definitionOf, type OfferedTool } from "../mcp-tool-listing.js";
 import type { AgentMockExchange, AgentMockModel } from "./agent-mock.js";
 import type { CaseArchive } from "./case-archive.js";
 import { joinCasePath } from "./case-archive.js";
@@ -71,10 +70,6 @@ export interface MockEndpointBinding {
 export interface MockEndpoint {
   /** The stand-ins, as the turn's server list carries them; each replaces the plugin's server of the same name. */
   readonly servers: readonly ResolvedMcpServer[];
-  /** Each stand-in's mocked tools, as a turn's tool listing names them (`McpToolListing.listed`). */
-  readonly listed: readonly { readonly server: string; readonly tools: readonly string[] }[];
-  /** What each stand-in offers of its tools, as a turn's tool listing records them (`McpToolListing.offered`). */
-  readonly offered: readonly OfferedTool[];
   bind(binding: MockEndpointBinding): void;
   close(): Promise<void>;
 }
@@ -167,10 +162,6 @@ export async function startMockEndpoint(args: {
 
   return {
     servers: [...standIns.values()].map(({ server }) => resolvedServerOf(context, server, port, token)),
-    listed: [...standIns.values()].map(({ server, tools }) => ({ server: server.segment, tools: [...tools.keys()] })),
-    offered: [...standIns.values()].flatMap(({ server, tools }) =>
-      [...tools.values()].map(({ listing }) => definitionOf(server.segment, listing.name, listing.description ?? "", listing.inputSchema)),
-    ),
     bind: (next) => {
       binding = next;
     },

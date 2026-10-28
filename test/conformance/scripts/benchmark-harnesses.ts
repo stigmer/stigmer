@@ -1,10 +1,10 @@
-// Measures the native, Cursor and Claude harnesses against REAL providers and writes
+// Measures the native and Claude harnesses against REAL providers and writes
 // the report the harness work is judged on
 // (`make benchmark-harnesses`; `npm run benchmark:harnesses -- <flags>`).
 // Domain: conformance benchmark (the live instrument's entrypoint).
 //
 // THIS IS AN EXPERIMENT, NOT A TEST. It makes live model calls and spends
-// real money: at the defaults, twelve scenarios on each of three harnesses, one warm-up
+// real money: at the defaults, twelve scenarios on each of two harnesses, one warm-up
 // plus five samples each, three turns per sample on the four three-turn
 // scenarios (the bare turn-2 cell and the working agent's read-edit,
 // cross-turn and long-log cells) — 120 executions a harness — plus the quality arm: one
@@ -23,10 +23,9 @@
 // (the runner's own key, in this direct mode); OPENAI_API_KEY for
 // an OpenAI-provider native model (`--native-model openai:<name>`, or a `gpt*`
 // catalog id), with OPENAI_BASE_URL when that model is served on another
-// OpenAI-compatible address (Google's, a router's); CURSOR_API_KEY for
-// the Cursor cells; the `stigmer` CLI on PATH for every timing cell on the
-// working agent (its memory spawns `stigmer mcp-server`; `make
-// install-cli-shim`); `go` on PATH for the quality cases that run `go test`
+// OpenAI-compatible address (Google's, a router's); the `stigmer` CLI on
+// PATH for every timing cell on the working agent (its memory spawns
+// `stigmer mcp-server`; `make install-cli-shim`); `go` on PATH for the quality cases that run `go test`
 // and the background cells (whose Go test cache the run clears before each
 // attempt); `lsof` and `ps` on PATH, with which every working-agent attempt
 // finds the processes it left running and stops them; the network. A missing key or CLI refuses the cells that need it BY NAME in
@@ -38,11 +37,11 @@
 // Flags:
 //   --reps N                 warm samples per cell (default 5; odd keeps the median an observed sample)
 //   --quality-reps N         tries per quality case per harness (default 3)
-//   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/cursor`)
-//   --only native|cursor|claude  one harness
+//   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/claude`)
+//   --only native|claude     one harness
 //   --native-model <id>      the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
 //                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
-//                            report records the host, API and cost basis it ran on. Not with --only cursor or claude.
+//                            report records the host, API and cost basis it ran on. Not with --only claude.
 //   --stack <checkout>       boot that stigmer checkout's server and runner (built there first: `npm ci`,
 //                            `make build-runner build-server`) instead of this tree's; this tree stays the
 //                            instrument, so its clients and readers measure both alike. The report records
@@ -245,7 +244,6 @@ async function main(): Promise<void> {
   const env = {
     anthropicKey: Boolean(process.env["ANTHROPIC_API_KEY"]),
     openaiKey: Boolean(process.env["OPENAI_API_KEY"]),
-    cursorKey: Boolean(process.env["CURSOR_API_KEY"]),
     stigmerCli: onPath("stigmer"),
   };
   const plan = planCells(env, flags);
@@ -253,7 +251,7 @@ async function main(): Promise<void> {
   for (const refusal of plan.refused) console.error(`refused ${refusal.cell}: ${refusal.reason}`);
   if (plan.cells.length === 0 && plan.quality.length === 0 && !plan.judge) {
     console.error(
-      "every cell was refused; nothing to run (set ANTHROPIC_API_KEY, OPENAI_API_KEY and/or CURSOR_API_KEY, or widen --only/--cells)",
+      "every cell was refused; nothing to run (set ANTHROPIC_API_KEY and/or OPENAI_API_KEY, or widen --only/--cells)",
     );
     process.exit(2);
   }

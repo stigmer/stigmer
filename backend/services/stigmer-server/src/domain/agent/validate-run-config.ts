@@ -4,11 +4,10 @@
  * before the version is hashed, so no version holding defaults the platform
  * would refuse is ever recorded.
  *
- * A model name belongs to an engine: each engine lists its own models, and
- * only two names appear on both. So the defaults are judged on the engine
- * they name:
+ * A model name belongs to an engine: each engine lists its own models. So
+ * the defaults are judged on the engine they name:
  *   - a model with no engine named is refused: the name could mean either
- *     catalog, and on the wrong one Cursor would quietly run Auto;
+ *     catalog;
  *   - a model the engine does not list is refused with a did-you-mean (the
  *     write-time existence rule every surface shares, pin-validation.ts;
  *     existence is never re-judged at run time, oss#774);
@@ -17,7 +16,7 @@
  *     model (modelcatalog/run-config-checks.ts, the checks every saved
  *     surface shares).
  * An engine with no model is valid: "new conversations on this agent start
- * on Cursor". Bounds are proto-validated (non-negative) and need no engine.
+ * on Claude". Bounds are proto-validated (non-negative) and need no engine.
  *
  * A registry the build cannot read checks nothing (the existence rule's
  * no-op posture), except the engine a model needs, which is a fact of the
@@ -59,7 +58,7 @@ export function newValidateAgentRunConfigStep(
       if (model !== "" && engine === Harness.UNSPECIFIED) {
         throw invalidArgumentError(
           "spec.run_config.model_name requires spec.harness: a model name belongs to an " +
-            "engine (native or cursor), and each lists its own models. Name the engine " +
+            "engine (native or claude), and each lists its own models. Name the engine " +
             "the model was chosen for.",
         );
       }

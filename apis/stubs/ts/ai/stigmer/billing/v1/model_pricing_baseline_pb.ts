@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/model_pricing_baseline.proto.
  */
 export const file_ai_stigmer_billing_v1_model_pricing_baseline: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvbW9kZWxfcHJpY2luZ19iYXNlbGluZS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxIoADCgxQcmljaW5nQmxvY2sSLwoeaW5wdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAEgASgDQge6SAQiAigAEjAKH291dHB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YAiABKANCB7pIBCICKAASNQokY2FjaGVfd3JpdGVfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAMgASgDQge6SAQiAigAEjQKI2NhY2hlX3JlYWRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAQgASgDQge6SAQiAigAEjUKJGN1cnNvcl90b2tlbl9yYXRlX21pY3Jvc19wZXJfbWlsbGlvbhgFIAEoA0IHukgEIgIoABIYCgZzb3VyY2UYBiABKAlCCLpIBXIDGIABEh0KC3NvdXJjZV9ub3RlGAcgASgJQgi6SAVyAxiAEBIwCgxlZmZlY3RpdmVfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIm8KDlByaWNpbmdWYXJpYW50EjwKB3ByaWNpbmcYASABKAsyIy5haS5zdGlnbWVyLmJpbGxpbmcudjEuUHJpY2luZ0Jsb2NrQga6SAPIAQESHwoId2lyZV9pZHMYAiADKAlCDbpICpIBByIFcgMYgAEifgoTU3VtbWFyaXphdGlvbkNvbmZpZxIiChF0cmlnZ2VyX3RocmVzaG9sZBgBIAEoBUIHukgEGgIoABIeCg10YXJnZXRfdG9rZW5zGAIgASgFQge6SAQaAigAEiMKEm1heF9zdW1tYXJ5X3Rva2VucxgDIAEoBUIHukgEGgIoACKrAQoRTW9kZWxDYXBhYmlsaXRpZXMSEAoIdG9vbF91c2UYASABKAgSDgoGdmlzaW9uGAIgASgIEhEKCXN0cmVhbWluZxgDIAEoCBIQCgh0aGlua2luZxgEIAEoCBIZChFhZGFwdGl2ZV90aGlua2luZxgFIAEoCBIeChF0aGlua2luZ19yZXF1aXJlZBgGIAEoCEgAiAEBQhQKEl90aGlua2luZ19yZXF1aXJlZCL3CAoUTW9kZWxQcmljaW5nQmFzZWxpbmUSEwoLYmFzZWxpbmVfaWQYASABKAkSHQoIbW9kZWxfaWQYAiABKAlCC7pICMgBAXIDGIABEh4KDGFwaV9tb2RlbF9pZBgDIAEoCUIIukgFcgMYgAESHAoIcHJvdmlkZXIYBCABKAlCCrpIB8gBAXICGEASGwoHaGFybmVzcxgFIAEoCUIKukgHyAEBcgIYQBIhCgxkaXNwbGF5X25hbWUYBiABKAlCC7pICMgBAXIDGIABEiMKEXNob3J0X2Rlc2NyaXB0aW9uGAcgASgJQgi6SAVyAxiAAhI4CgpzcGVlZF90aWVyGAggASgJQiS6SCFyH1IHZmFzdGVzdFIEZmFzdFIIYmFsYW5jZWRSBHNsb3cSNAoJY29zdF90aWVyGAkgASgJQiG6SB5yHFIHZWNvbm9teVIIc3RhbmRhcmRSB3ByZW1pdW0SEAoIZmVhdHVyZWQYCiABKAgSPAoHcHJpY2luZxgLIAEoCzIjLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QcmljaW5nQmxvY2tCBrpIA8gBARJaChBwcmljaW5nX3ZhcmlhbnRzGAwgAygLMkAuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lLlByaWNpbmdWYXJpYW50c0VudHJ5Eh8KCHdpcmVfaWRzGBggAygJQg26SAqSAQciBXIDGIABEiYKFWNvbnRleHRfd2luZG93X3Rva2VucxgNIAEoBUIHukgEGgIoABIiChFtYXhfb3V0cHV0X3Rva2VucxgOIAEoBUIHukgEGgIoABIlChR0b2tlbl9jb3VudGVyX21ldGhvZBgPIAEoCUIHukgEcgIYQBJBCg1zdW1tYXJpemF0aW9uGBAgASgLMiouYWkuc3RpZ21lci5iaWxsaW5nLnYxLlN1bW1hcml6YXRpb25Db25maWcSPgoMY2FwYWJpbGl0aWVzGBEgASgLMiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsQ2FwYWJpbGl0aWVzEkEKBnN0YXR1cxgSIAEoDjIxLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZVN0YXR1cxIeChZzdXBlcnNlZGVzX2Jhc2VsaW5lX2lkGBMgASgJEhIKCmRlY2lkZWRfYnkYFCABKAkSLgoKZGVjaWRlZF9hdBgVIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASHwoNcmV2aXNpb25fbm90ZRgWIAEoCUIIukgFcgMYgAgSLgoKY3JlYXRlZF9hdBgXIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAaXQoUUHJpY2luZ1ZhcmlhbnRzRW50cnkSCwoDa2V5GAEgASgJEjQKBXZhbHVlGAIgASgLMiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlByaWNpbmdWYXJpYW50OgI4ASqnAQoaTW9kZWxQcmljaW5nQmFzZWxpbmVTdGF0dXMSLQopbW9kZWxfcHJpY2luZ19iYXNlbGluZV9zdGF0dXNfdW5zcGVjaWZpZWQQABIbChdwcmljaW5nX2Jhc2VsaW5lX2FjdGl2ZRABEh8KG3ByaWNpbmdfYmFzZWxpbmVfc3VwZXJzZWRlZBACEhwKGHByaWNpbmdfYmFzZWxpbmVfcmV0aXJlZBADYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvbW9kZWxfcHJpY2luZ19iYXNlbGluZS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxIvUCCgxQcmljaW5nQmxvY2sSLwoeaW5wdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAEgASgDQge6SAQiAigAEjAKH291dHB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YAiABKANCB7pIBCICKAASNQokY2FjaGVfd3JpdGVfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAMgASgDQge6SAQiAigAEjQKI2NhY2hlX3JlYWRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAQgASgDQge6SAQiAigAEhgKBnNvdXJjZRgGIAEoCUIIukgFcgMYgAESHQoLc291cmNlX25vdGUYByABKAlCCLpIBXIDGIAQEjAKDGVmZmVjdGl2ZV9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgFEAZSJGN1cnNvcl90b2tlbl9yYXRlX21pY3Jvc19wZXJfbWlsbGlvbiJvCg5QcmljaW5nVmFyaWFudBI8CgdwcmljaW5nGAEgASgLMiMuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlByaWNpbmdCbG9ja0IGukgDyAEBEh8KCHdpcmVfaWRzGAIgAygJQg26SAqSAQciBXIDGIABIn4KE1N1bW1hcml6YXRpb25Db25maWcSIgoRdHJpZ2dlcl90aHJlc2hvbGQYASABKAVCB7pIBBoCKAASHgoNdGFyZ2V0X3Rva2VucxgCIAEoBUIHukgEGgIoABIjChJtYXhfc3VtbWFyeV90b2tlbnMYAyABKAVCB7pIBBoCKAAiqwEKEU1vZGVsQ2FwYWJpbGl0aWVzEhAKCHRvb2xfdXNlGAEgASgIEg4KBnZpc2lvbhgCIAEoCBIRCglzdHJlYW1pbmcYAyABKAgSEAoIdGhpbmtpbmcYBCABKAgSGQoRYWRhcHRpdmVfdGhpbmtpbmcYBSABKAgSHgoRdGhpbmtpbmdfcmVxdWlyZWQYBiABKAhIAIgBAUIUChJfdGhpbmtpbmdfcmVxdWlyZWQi9wgKFE1vZGVsUHJpY2luZ0Jhc2VsaW5lEhMKC2Jhc2VsaW5lX2lkGAEgASgJEh0KCG1vZGVsX2lkGAIgASgJQgu6SAjIAQFyAxiAARIeCgxhcGlfbW9kZWxfaWQYAyABKAlCCLpIBXIDGIABEhwKCHByb3ZpZGVyGAQgASgJQgq6SAfIAQFyAhhAEhsKB2hhcm5lc3MYBSABKAlCCrpIB8gBAXICGEASIQoMZGlzcGxheV9uYW1lGAYgASgJQgu6SAjIAQFyAxiAARIjChFzaG9ydF9kZXNjcmlwdGlvbhgHIAEoCUIIukgFcgMYgAISOAoKc3BlZWRfdGllchgIIAEoCUIkukghch9SB2Zhc3Rlc3RSBGZhc3RSCGJhbGFuY2VkUgRzbG93EjQKCWNvc3RfdGllchgJIAEoCUIhukgechxSB2Vjb25vbXlSCHN0YW5kYXJkUgdwcmVtaXVtEhAKCGZlYXR1cmVkGAogASgIEjwKB3ByaWNpbmcYCyABKAsyIy5haS5zdGlnbWVyLmJpbGxpbmcudjEuUHJpY2luZ0Jsb2NrQga6SAPIAQESWgoQcHJpY2luZ192YXJpYW50cxgMIAMoCzJALmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZS5QcmljaW5nVmFyaWFudHNFbnRyeRIfCgh3aXJlX2lkcxgYIAMoCUINukgKkgEHIgVyAxiAARImChVjb250ZXh0X3dpbmRvd190b2tlbnMYDSABKAVCB7pIBBoCKAASIgoRbWF4X291dHB1dF90b2tlbnMYDiABKAVCB7pIBBoCKAASJQoUdG9rZW5fY291bnRlcl9tZXRob2QYDyABKAlCB7pIBHICGEASQQoNc3VtbWFyaXphdGlvbhgQIAEoCzIqLmFpLnN0aWdtZXIuYmlsbGluZy52MS5TdW1tYXJpemF0aW9uQ29uZmlnEj4KDGNhcGFiaWxpdGllcxgRIAEoCzIoLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbENhcGFiaWxpdGllcxJBCgZzdGF0dXMYEiABKA4yMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxQcmljaW5nQmFzZWxpbmVTdGF0dXMSHgoWc3VwZXJzZWRlc19iYXNlbGluZV9pZBgTIAEoCRISCgpkZWNpZGVkX2J5GBQgASgJEi4KCmRlY2lkZWRfYXQYFSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh8KDXJldmlzaW9uX25vdGUYFiABKAlCCLpIBXIDGIAIEi4KCmNyZWF0ZWRfYXQYFyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wGl0KFFByaWNpbmdWYXJpYW50c0VudHJ5EgsKA2tleRgBIAEoCRI0CgV2YWx1ZRgCIAEoCzIlLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QcmljaW5nVmFyaWFudDoCOAEqpwEKGk1vZGVsUHJpY2luZ0Jhc2VsaW5lU3RhdHVzEi0KKW1vZGVsX3ByaWNpbmdfYmFzZWxpbmVfc3RhdHVzX3Vuc3BlY2lmaWVkEAASGwoXcHJpY2luZ19iYXNlbGluZV9hY3RpdmUQARIfChtwcmljaW5nX2Jhc2VsaW5lX3N1cGVyc2VkZWQQAhIcChhwcmljaW5nX2Jhc2VsaW5lX3JldGlyZWQQA2IGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * PricingBlock is one complete set of per-token rates with provenance —
@@ -55,18 +55,8 @@ export type PricingBlock = Message<"ai.stigmer.billing.v1.PricingBlock"> & {
   cacheReadPriceMicrosPerMillion: bigint;
 
   /**
-   * Cursor Token Rate surcharge, micro-USD per million billable tokens.
-   * Zero for native-harness models and fee-exempt cursor models (Auto and
-   * the first-party pool). Variants inherit the base entry's rate and
-   * leave this zero.
-   *
-   * @generated from field: int64 cursor_token_rate_micros_per_million = 5;
-   */
-  cursorTokenRateMicrosPerMillion: bigint;
-
-  /**
    * Where these rates came from (e.g. "anthropic_api",
-   * "cursor_pricing_page", "derived_from_notes"). Provenance, not
+   * "openai_pricing_page", "derived_from_notes"). Provenance, not
    * approval — see the update-model-registry rule for the sign-off
    * lifecycle.
    *
@@ -100,8 +90,8 @@ export const PricingBlockSchema: GenMessage<PricingBlock> = /*@__PURE__*/
 /**
  * PricingVariant is a speed/mode variant (e.g. "fast") of a base model.
  *
- * Variants carry a full pricing block of their own; identity, catalog
- * metadata, and the Cursor Token Rate are inherited from the base entry.
+ * Variants carry a full pricing block of their own; identity and catalog
+ * metadata are inherited from the base entry.
  *
  * @generated from message ai.stigmer.billing.v1.PricingVariant
  */
@@ -113,8 +103,8 @@ export type PricingVariant = Message<"ai.stigmer.billing.v1.PricingVariant"> & {
 
   /**
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    *
    * @generated from field: repeated string wire_ids = 2;
    */
@@ -191,14 +181,7 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
 
   /**
    * Whether image input delivered to this model produces genuine visual
-   * understanding.
-   *
-   * The meaning is harness-scoped. For native-harness entries this is the
-   * provider-documented capability of the model itself. For cursor-harness
-   * entries it encodes "images work through this model on the Cursor
-   * path": Cursor's serving stack hands vision off to a multimodal model
-   * server-side, so a model that is text-only by its own documentation
-   * (composer-2.5) still sees images when dispatched via Cursor.
+   * understanding: the provider-documented capability of the model itself.
    *
    * @generated from field: bool vision = 2;
    */
@@ -212,9 +195,8 @@ export type ModelCapabilities = Message<"ai.stigmer.billing.v1.ModelCapabilities
   streaming: boolean;
 
   /**
-   * Whether the model supports extended thinking. On a cursor-harness entry
-   * it is the model's thinking variant; on a native entry it is the
-   * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
+   * Whether the model supports extended thinking in the fixed-budget form
+   * (Anthropic `{type: "enabled", budget_tokens}`).
    *
    * @generated from field: bool thinking = 4;
    */
@@ -272,8 +254,7 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
   baselineId: string;
 
   /**
-   * Stigmer canonical model id (e.g. "claude-sonnet-4.6" for native,
-   * "claude-sonnet-4-6" for cursor — id schemes differ per harness).
+   * Stigmer canonical model id (e.g. "claude-sonnet-4.6").
    *
    * @generated from field: string model_id = 2;
    */
@@ -282,14 +263,14 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
   /**
    * Provider API identifier the runner resolves to (e.g.
    * "claude-sonnet-4-6"). Empty when the canonical id is already the
-   * wire name (most cursor entries).
+   * wire name.
    *
    * @generated from field: string api_model_id = 3;
    */
   apiModelId: string;
 
   /**
-   * LLM provider (e.g. "anthropic", "openai", "cursor"). Free-form:
+   * LLM provider (e.g. "anthropic", "openai"). Free-form:
    * new providers appear without a contract change.
    *
    * @generated from field: string provider = 4;
@@ -297,7 +278,7 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
   provider: string;
 
   /**
-   * Execution harness ("native", "cursor", "claude").
+   * Execution harness ("native" or "claude").
    *
    * @generated from field: string harness = 5;
    */
@@ -358,11 +339,9 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
    * Wire model names that resolve directly to this base entry — the
    * base-level twin of PricingVariant.wire_ids, for served-model names
    * that neither match the canonical id nor normalize to a clean
-   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
-   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
-   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
-   * names the catalog never uses). Matched case-insensitively; billed
-   * at the base rates.
+   * "base + suffix" form (e.g. a dated snapshot name a provider reports
+   * for a model the catalog lists undated). Matched case-insensitively;
+   * billed at the base rates.
    *
    * Distinct from api_model_id, which is the single OUTBOUND identifier
    * the runner dispatches with. Wire ids are INBOUND aliases only: they

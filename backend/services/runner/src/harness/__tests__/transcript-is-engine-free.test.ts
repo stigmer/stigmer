@@ -6,9 +6,9 @@
  *
  * Why it matters (the canonical transcript's one disposition rule): the builder folds
  * facts into the status proto; every fact about an engine — a LangGraph
- * namespace, a Cursor `SDKMessage`, a LangChain `ToolMessage` envelope —
- * reaches it as a translator's output, never as an import. A Claude or Codex
- * adapter is then a translator and nothing else. `@temporalio/*` is refused
+ * namespace, a Claude `SDKMessage`, a LangChain `ToolMessage` envelope —
+ * reaches it as a translator's output, never as an import. A Codex adapter
+ * is then a translator and nothing else. `@temporalio/*` is refused
  * for the same reason the adapters refuse it: the builder runs under the
  * contract kit outside any activity, and it moved out from under the native
  * adapter's Temporal-free fence when it moved into `harness/` (the runtime

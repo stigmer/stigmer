@@ -4,8 +4,8 @@
  *
  * Four fences stand on it: `src/harness/` and production `src/shared/` never
  * import `src/activities/` (`harness/__tests__/import-direction.test.ts`,
- * the rule the turn runtime is written under); the Cursor adapter never
- * imports `@temporalio/*` (`execute-cursor/__tests__/adapter-is-temporal-
+ * the rule the turn runtime is written under); an adapter never imports
+ * `@temporalio/*` (`execute-deep-agent/__tests__/adapter-is-temporal-
  * free.test.ts`, what lets the contract kit run it outside an activity);
  * `src/harness/transcript/` names no package outside a short allow-list
  * (`harness/__tests__/transcript-is-engine-free.test.ts`, what keeps the one

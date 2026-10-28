@@ -133,8 +133,7 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
         toolUse={toolUse({
           name: "Grep",
           input: { pattern: "pipeline" },
-          result:
-            '{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}',
+          result: "No files found",
         })}
         // Header did not truncate the short query.
         primaryArgTruncated={false}
@@ -147,31 +146,13 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
     expect(container.textContent).toContain("No files found");
   });
 
-  it("unwraps the real {status,value:{workspaceResults}} grep result instead of dumping JSON", () => {
-    const { container } = render(
-      <ToolCallDetail
-        toolUse={toolUse({
-          name: "Grep",
-          input: { pattern: "pipeline" },
-          result:
-            '{"status":"success","value":{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}}',
-        })}
-      />,
-    );
-    // The body renders the empty state, never the raw envelope keys.
-    expect(container.textContent).toContain("No files found");
-    expect(container.textContent).not.toContain("workspaceResults");
-    expect(container.textContent).not.toContain("status");
-  });
-
   it("does not restate the result count in the body (the row header shows it)", () => {
     const { container } = render(
       <ToolCallDetail
         toolUse={toolUse({
           name: "Glob",
           input: { pattern: "Dockerfile" },
-          result:
-            '{"status":"success","value":{"files":["Dockerfile"],"totalFiles":1,"clientTruncated":false,"ripgrepTruncated":false}}',
+          result: "Dockerfile",
         })}
       />,
     );
@@ -188,8 +169,7 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
         toolUse={toolUse({
           name: "Grep",
           input: { pattern: longQuery },
-          result:
-            '{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}',
+          result: "No files found",
         })}
         primaryArgTruncated
       />,
@@ -204,10 +184,9 @@ describe("ToolCallDetail — edit body has no duplicate stats", () => {
     const { container } = render(
       <ToolCallDetail
         toolUse={toolUse({
-          name: "StrReplace",
-          input: { path: "src/x.ts" },
-          result:
-            '{"status":"success","value":{"linesAdded":1,"linesRemoved":0,"diffString":"@@ -0,0 +1,1 @@\\n+new line"}}',
+          name: "Edit",
+          input: { file_path: "src/x.ts", old_string: "a\n", new_string: "a\nnew line\n" },
+          result: "The file src/x.ts has been updated successfully.",
         })}
       />,
     );
@@ -255,7 +234,7 @@ describe("ToolCallDetail — write body", () => {
   function writeCall(opts?: Partial<ToolUseInit>): ToolUse {
     return toolUse({
       name: "write_file",
-      input: { file_path: "notes.md", contents: "proposed body\n" },
+      input: { file_path: "notes.md", content: "proposed body\n" },
       result: "Successfully wrote to 'notes.md'",
       ...opts,
     });
@@ -297,7 +276,7 @@ describe("ToolCallDetail — write body", () => {
     const longBody = Array.from({ length: 55 }, (_, i) => `line ${i + 1}`).join("\n");
     const { container, getAllByRole } = render(
       <ToolCallDetail
-        toolUse={writeCall({ input: { file_path: "notes.md", contents: longBody } })}
+        toolUse={writeCall({ input: { file_path: "notes.md", content: longBody } })}
       />,
     );
     // The file view self-truncates (line-count mechanism, one control)...

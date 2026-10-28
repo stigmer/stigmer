@@ -59,16 +59,16 @@ describe("classifyTool", () => {
 
 describe("toolApprovalCategory", () => {
   it("collapses write AND edit (both taxonomies) onto 'write'", () => {
-    for (const name of ["write", "write_file", "Write", "edit", "edit_file", "StrReplace", "EditNotebook", "Edit", "NotebookEdit"]) {
+    for (const name of ["write", "write_file", "Write", "edit", "edit_file", "Edit", "NotebookEdit"]) {
       expect(toolApprovalCategory(name)).toBe("write");
     }
   });
 
   it("maps the delete and shell aliases to their category", () => {
-    for (const name of ["delete", "delete_file", "remove_file", "Delete"]) {
+    for (const name of ["delete", "delete_file", "remove_file"]) {
       expect(toolApprovalCategory(name)).toBe("delete");
     }
-    for (const name of ["shell", "bash", "execute", "execute_command", "run_command", "terminal", "Shell", "Bash"]) {
+    for (const name of ["shell", "bash", "execute", "execute_command", "run_command", "terminal", "Bash"]) {
       expect(toolApprovalCategory(name)).toBe("shell");
     }
   });

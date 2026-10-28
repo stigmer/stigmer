@@ -10,7 +10,7 @@
 // runner's marker counts from every runner log in the run's directory. The
 // summary names the arm, the measured code beside the instrument and the
 // marker counts, and marks a default-rate native cost with a line saying it
-// is not a price, leaving Cursor's, Claude's and an unobserved cost unmarked,
+// is not a price, leaving Claude's and an unobserved cost unmarked,
 // and lists every side a cell ran on. A Claude target passes the registry
 // pre-check only on a Claude row, and its eval target is `claude/<model>`;
 // the report records every arm's model, native's from the plan. A stack
@@ -73,7 +73,7 @@ describe("runBenchmark's native arm", () => {
     expect(report.refused).toEqual([]);
     expect(report.quality?.targets).toEqual(["native/openai:gemini-3-pro"]);
     expect(report.models).toEqual({
-      parity: { "deep-agent": "openai:gemini-3-pro", cursor: PARITY_MODEL.cursor, claude: PARITY_MODEL.claude },
+      parity: { "deep-agent": "openai:gemini-3-pro", claude: PARITY_MODEL.claude },
       judge_requested: PARITY_MODEL["deep-agent"],
       native_endpoint: "generativelanguage.googleapis.com",
       native_api: "chat-completions",
@@ -183,10 +183,9 @@ describe("renderSummary's native arm", () => {
           agent: "bare",
           sides: {
             "deep-agent": summarize("deep-agent", makeSample(), [makeSample({ measures: { estimated_cost_micros: 1234 } })], null),
-            cursor: summarize("cursor", makeSample(), [makeSample({ measures: { estimated_cost_micros: 999 } })], null),
             claude: summarize("claude", makeSample(), [makeSample({ measures: { estimated_cost_micros: 2468 } })], null),
           },
-          cost_ratio: { cursor: 999 / 1234, claude: 2 },
+          cost_ratio: { claude: 2 },
         },
         {
           scenario: "report-parity-medium",
@@ -210,7 +209,6 @@ describe("renderSummary's native arm", () => {
     expect(lines[1]).toBe("Code: abc (the instrument's own)");
     expect(lines[2]).toMatch(/^Runner log: edits repaired 0; .*; hook failures 2; from runner\.log$/);
     expect(lines.find((line) => line.startsWith("| report-parity-simple | deep-agent"))).toContain("| 1234* |");
-    expect(lines.find((line) => line.startsWith("| report-parity-simple | cursor"))).toContain("| 999 |");
     expect(lines.find((line) => line.startsWith("| report-parity-simple | claude")), "Claude's cost is the runner's catalog price, unmarked").toContain("| 2468 |");
     expect(lines.find((line) => line.startsWith("| report-parity-medium | deep-agent")), "no cost observed, nothing to mark").toContain("| n/a |");
     expect(lines).toContain(

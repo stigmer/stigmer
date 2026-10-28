@@ -5,11 +5,10 @@ import type { DiffHunk } from "./types.js";
 /**
  * Parses a unified-diff patch *string* into presentation {@link DiffHunk}s.
  *
- * This is the bridge that lets a harness which only emits a ready unified diff
- * (the Cursor harness's `diffString` -> `view.unifiedDiff` / `FileChange.
- * unifiedDiff`) render through the same accessible {@link DiffViewer} table as a
- * computed before/after diff — instead of being dumped as a raw `<pre>` with the
- * `--- /dev/null`, `+++ b/...`, `@@` preamble and inline `+`/`-` prefixes.
+ * This is the bridge that lets a ready unified-diff patch render through the
+ * same accessible {@link DiffViewer} table as a computed before/after diff —
+ * instead of being dumped as a raw `<pre>` with the `--- /dev/null`,
+ * `+++ b/...`, `@@` preamble and inline `+`/`-` prefixes.
  *
  * The `---`/`+++` file headers parse into metadata and are discarded; only the
  * hunks survive, mapped through the shared {@link mapPatchHunks}. A diff input is

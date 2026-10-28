@@ -48,23 +48,6 @@ type SessionStatus struct {
 	// session.status_idle event's word. A session none of whose turns ever
 	// worked reads idle.
 	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	// Harness-specific state identifier for conversation continuity.
-	//
-	// Populated after the first run completes; empty until then. It is the
-	// harness's own conversation id:
-	//
-	// - NATIVE: the native harness's thread id, "thread-{session_id}".
-	//
-	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-	//     returned by Agent.create(). Used for Agent.resume() on
-	//     subsequent runs.
-	HarnessStateId string `protobuf:"bytes,5,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
-	// Prior harness state identifiers this session has owned, oldest first.
-	//
-	// A session can span multiple harness-side conversations: when the
-	// cursor-runner's resume fails, it creates a fresh Cursor agent and
-	// replaces harness_state_id, and the replaced id lands here.
-	HarnessStateIdHistory []string `protobuf:"bytes,6,rep,name=harness_state_id_history,json=harnessStateIdHistory,proto3" json:"harness_state_id_history,omitempty"`
 	// The routine whose fire started this conversation; empty for every other
 	// conversation.
 	RoutineId string `protobuf:"bytes,7,opt,name=routine_id,json=routineId,proto3" json:"routine_id,omitempty"`
@@ -142,20 +125,6 @@ func (x *SessionStatus) GetState() string {
 	return ""
 }
 
-func (x *SessionStatus) GetHarnessStateId() string {
-	if x != nil {
-		return x.HarnessStateId
-	}
-	return ""
-}
-
-func (x *SessionStatus) GetHarnessStateIdHistory() []string {
-	if x != nil {
-		return x.HarnessStateIdHistory
-	}
-	return nil
-}
-
 func (x *SessionStatus) GetRoutineId() string {
 	if x != nil {
 		return x.RoutineId
@@ -181,22 +150,20 @@ var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa5\x05\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xfa\x04\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
 	"\x12agent_version_hash\x18\x02 \x01(\tR\x10agentVersionHash\x12i\n" +
 	"\x0fvault_attachers\x18\x03 \x03(\v2@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x14\n" +
-	"\x05state\x18\x04 \x01(\tR\x05state\x12(\n" +
-	"\x10harness_state_id\x18\x05 \x01(\tR\x0eharnessStateId\x127\n" +
-	"\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x12\x1d\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12\x1d\n" +
 	"\n" +
 	"routine_id\x18\a \x01(\tR\troutineId\x12\\\n" +
 	"\venvironment\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\venvironment\x12_\n" +
 	"\x12environment_source\x18\t \x01(\x0e20.ai.stigmer.agentic.session.v1.EnvironmentSourceR\x11environmentSource\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x8a\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\x10harness_state_idR\x18harness_state_id_historyB\x8a\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\vStatusProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (

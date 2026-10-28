@@ -5,8 +5,8 @@
  *
  * This is the runner half of the apply-then-review subsystem. It is intentionally
  * harness-agnostic — it takes per-file before/after content and a kind, not a
- * git-specific shape — so the Cursor (git substrate) and deep-agent (mutation
- * buffer) harnesses author IDENTICAL ledger entries through one seam. Event ids
+ * git-specific shape — so every harness authors IDENTICAL ledger entries
+ * through one seam. Event ids
  * are deterministic ({@link eventId}) so a re-sent heartbeat or a Temporal retry
  * never duplicates an event.
  */
@@ -316,7 +316,7 @@ export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFil
 export interface ChangeSetContext {
   readonly changeSetId: string;
   readonly turnId: string;
-  /** "cursor" | "deep-agent" | "claude". */
+  /** "deep-agent" | "claude". */
   readonly harnessId: string;
   /** ISO 8601 timestamp authored onto each event. */
   readonly timestamp: string;

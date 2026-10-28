@@ -3,8 +3,8 @@
  * runner first starts separating (#2016). Before, the agent's side ran as
  * the runner's own user, so its state and its workspace are the runner's:
  *
- *  - `sessions` and `hitl-gate` under the runner's `~/.stigmer` (each
- *    session's platform directory, checkpoints, pending approvals) move
+ *  - `sessions` under the runner's `~/.stigmer` (each session's platform
+ *    directory, checkpoints, engine state) moves
  *    into the agent's home, where the host now looks for them
  *    (`agent-identity.ts` `agentStateHome`);
  *  - that state and the workspace root become the agent's, every entry
@@ -36,7 +36,7 @@ import type { AgentIdentity } from "./agent-identity.js";
 export const HANDOVER_MARKER = "agent-handover-v1";
 
 /** The agent's state directories under `~/.stigmer`. */
-const AGENT_STATE_DIRS = ["sessions", "hitl-gate"] as const;
+const AGENT_STATE_DIRS = ["sessions"] as const;
 
 export interface HandoverIo {
   readonly chown: (path: string, uid: number, gid: number) => void;

@@ -11,8 +11,7 @@
  * recording) is the gate's. The native gate (`middleware/approval-gate.ts`)
  * and the Claude gate (`activities/execute-claude/gate.ts`) both call them,
  * so the two engines can never disagree on which edit flows or which secret
- * is kept out. The Cursor hook carries the same rules in its generated
- * script, held equal by its own tests (`execute-cursor/approval-policy.ts`).
+ * is kept out.
  */
 
 import { extractFilePath } from "./file-tools.js";
@@ -29,8 +28,7 @@ export interface FileEditPosture {
    * {@link isCapturablePath}) FLOWS instead of interrupting: the edit is reviewed
    * post-hoc as a captured `FileChangeSet`, not gated before it runs. A gitignored
    * path is NOT capturable by the git substrate, so it stays gated unless
-   * {@link captureIgnored} routes it into CAS capture — the exact twin of the
-   * Cursor hook's `__stigmer_is_gitignored` allow-branch. `shell` and MCP tools
+   * {@link captureIgnored} routes it into CAS capture. `shell` and MCP tools
    * are never bypassed by this flag. Off (the default) keeps the classic
    * true-pause gate for every mutation.
    */

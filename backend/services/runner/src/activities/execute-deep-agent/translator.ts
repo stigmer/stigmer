@@ -48,8 +48,7 @@
  * `middleware/approval-gate.ts`), and duplicating them would be a second copy
  * of the decision — exactly the drift one writer per fact exists to end. So
  * the held call reaches the transcript as `approval_proposed` from the
- * post-stream seed, the one writer of a row's approval fields; the Cursor
- * harness answers the same way since #1117. Until #1097 the builder carried a
+ * post-stream seed, the one writer of a row's approval fields. Until #1097 the builder carried a
  * copy of the decision that gated MCP tools only, a path production never
  * took.
  *
@@ -84,8 +83,8 @@
  * a replay.
  *
  * The file was `v3-protocol-normalizer.ts` (a stateless `normalize`) until
- * #1097 made it stateful — the same word as `execute-cursor/translator.ts`,
- * so a third harness's author finds one shape in both.
+ * #1097 made it stateful — the same word as `execute-claude/translator.ts`,
+ * so another harness's author finds one shape in both.
  *
  * Defensive parsing: handles both snake_case and camelCase field names
  * for tool IDs/names (protocol spec uses camelCase but recordings show
@@ -378,8 +377,7 @@ export interface V3UsagePayload {
  *
  * A loop concern, deliberately NOT a `TranscriptEvent`:
  * usage is neither a row nor a message, and `translate`'s return type stays
- * the one signature every harness's translator shares. The Cursor loop reads
- * its usage from the SDK's `turn-ended` delta — the same division.
+ * the one signature every harness's translator shares.
  */
 export function usageOf(event: V3ProtocolEvent): V3UsagePayload | undefined {
   const data = event.params.data as Record<string, unknown> | undefined;

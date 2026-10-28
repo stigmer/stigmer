@@ -11,7 +11,7 @@
 //     prompt on a terminal, sends it once in the resolved organization, says
 //     whether the provider checked it, and never prints it; a key given as
 //     an argument or a flag, or no way to read one, is a usage error before
-//     anything is sent; a Cursor base URL is refused in the contract's words;
+//     anything is sent; a base URL that is not https is refused;
 //   - delete removes with --force, asks on a terminal naming the provider
 //     and the organization, and off a terminal without --force aborts with
 //     nothing sent, as every confirmed delete does (output/confirm.ts);
@@ -98,6 +98,9 @@ const backend = vi.hoisted(() => ({
   keys: [] as ProviderKey[],
   // The check the server reports on a saved key.
   check: 1 as ProviderKeyCheck,
+  // OpenAI's standing: served (by the parent organization on the cloud, by
+  // the runners on open source), missing, or unknown (open source only).
+  openai: "served" as "served" | "missing" | "unknown",
 }));
 
 vi.mock("../../../local/setup/prompt.js", () => ({
@@ -116,25 +119,34 @@ vi.mock("../../../backend.js", () => ({
         getServerInfo: async () => ({ deploymentMode: backend.edition, singleOrg: backend.edition === "local" }),
         getModelReadiness: async (org: string) => {
           backend.readinessOrgs.push(org);
-          return backend.edition === "local"
-            ? create(GetModelReadinessOutputSchema, {
-                providers: [
-                  { provider: "anthropic", availability: ProviderAvailability.served_by_runners },
-                  { provider: "openai", availability: ProviderAvailability.missing_from_runners },
-                  { provider: "cursor", availability: ProviderAvailability.availability_unknown },
-                ],
-              })
-            : create(GetModelReadinessOutputSchema, {
-                providers: [
-                  { provider: "anthropic", availability: ProviderAvailability.served_by_organization },
-                  {
+          if (backend.edition === "local") {
+            return create(GetModelReadinessOutputSchema, {
+              providers: [
+                { provider: "anthropic", availability: ProviderAvailability.served_by_runners },
+                {
+                  provider: "openai",
+                  availability:
+                    backend.openai === "served"
+                      ? ProviderAvailability.served_by_runners
+                      : backend.openai === "missing"
+                        ? ProviderAvailability.missing_from_runners
+                        : ProviderAvailability.availability_unknown,
+                },
+              ],
+            });
+          }
+          return create(GetModelReadinessOutputSchema, {
+            providers: [
+              { provider: "anthropic", availability: ProviderAvailability.served_by_organization },
+              backend.openai === "served"
+                ? {
                     provider: "openai",
                     availability: ProviderAvailability.served_by_parent_organization,
                     parentOrg: "acme-holdings",
-                  },
-                  { provider: "cursor", availability: ProviderAvailability.missing_from_organization },
-                ],
-              });
+                  }
+                : { provider: "openai", availability: ProviderAvailability.missing_from_organization },
+            ],
+          });
         },
       },
       providerkey: {
@@ -242,6 +254,7 @@ beforeEach(() => {
   backend.keyList = "keys";
   backend.keys = [ANTHROPIC_KEY, OPENAI_KEY];
   backend.check = ProviderKeyCheck.checked;
+  backend.openai = "served";
   pipedStdin();
 });
 
@@ -268,7 +281,7 @@ describe("CLI-12 provider keys are saved, listed and removed from the CLI", () =
       "2026-08-14",
       "never",
     ]);
-    expect(cells(lines[4])).toEqual(["Cursor", "not connected", "-", "-", "-", "-", "-", "-"]);
+    expect(lines).toHaveLength(4);
   });
 
   it("saves a key piped in with --key-stdin, says the provider checked it, and never prints it", async () => {
@@ -295,6 +308,7 @@ describe("stigmer provider-key list", () => {
     backend.edition = "local";
     backend.config = LOCAL_CONFIG;
     backend.keyList = "unimplemented";
+    backend.openai = "missing";
     const { stdout, stderr } = await run(["provider-key", "list"]);
     // The one organization the server holds fills an empty org.
     expect(backend.readinessOrgs).toEqual([""]);
@@ -303,9 +317,19 @@ describe("stigmer provider-key list", () => {
     expect(lines.slice(2).map(cells)).toEqual([
       ["Anthropic", "set on this machine"],
       ["OpenAI", "not connected"],
-      ["Cursor", "not known: set where the runner runs"],
     ]);
     expect(stderr).toBe("");
+
+    backend.openai = "unknown";
+    const unknown = await run(["provider-key", "list"]);
+    expect(cells(unknown.stdout.trimEnd().split("\n")[3])).toEqual(["OpenAI", "not known: set where the runner runs"]);
+  });
+
+  it("shows a provider no key serves as not connected, with no key details", async () => {
+    backend.openai = "missing";
+    backend.keys = [ANTHROPIC_KEY];
+    const { stdout } = await run(["provider-key", "list"]);
+    expect(cells(stdout.trimEnd().split("\n")[3])).toEqual(["OpenAI", "not connected", "-", "-", "-", "-", "-", "-"]);
   });
 
   it("prints the providers and their keys as JSON, and as YAML", async () => {
@@ -322,8 +346,12 @@ describe("stigmer provider-key list", () => {
         parent_org: "acme-holdings",
         key: expect.objectContaining({ inherited_from_org: "acme-holdings", check: "unchecked" }),
       }),
-      { provider: "cursor", availability: "missing_from_organization" },
     ]);
+
+    backend.openai = "missing";
+    backend.keys = [ANTHROPIC_KEY];
+    const missing = JSON.parse((await run(["provider-key", "list", "-o", "json"])).stdout) as Record<string, unknown>[];
+    expect(missing[1]).toEqual({ provider: "openai", availability: "missing_from_organization" });
 
     const yaml = (await run(["provider-key", "list", "-o", "yaml"])).stdout;
     expect(yaml.startsWith("- provider: anthropic")).toBe(true);
@@ -334,12 +362,9 @@ describe("stigmer provider-key list", () => {
     backend.edition = "local";
     backend.config = LOCAL_CONFIG;
     backend.keyList = "unimplemented";
+    backend.openai = "unknown";
     const json = JSON.parse((await run(["provider-key", "list", "--json"])).stdout) as Record<string, unknown>[];
-    expect(json.map((row) => row.availability)).toEqual([
-      "served_by_runners",
-      "missing_from_runners",
-      "availability_unknown",
-    ]);
+    expect(json.map((row) => row.availability)).toEqual(["served_by_runners", "availability_unknown"]);
     expect(json.some((row) => "key" in row)).toBe(false);
   });
 
@@ -380,9 +405,9 @@ describe("stigmer provider-key set", () => {
 
   it("reads the key from the hidden prompt on a terminal", async () => {
     terminalStdin();
-    await run(["provider-key", "set", "cursor"]);
-    expect(backend.prompts).toEqual(["Cursor key"]);
-    expect(backend.set.map((input) => [input.provider, input.apiKey])).toEqual([["cursor", "sk-typed-at-the-prompt-5678"]]);
+    await run(["provider-key", "set", "openai"]);
+    expect(backend.prompts).toEqual(["OpenAI key"]);
+    expect(backend.set.map((input) => [input.provider, input.apiKey])).toEqual([["openai", "sk-typed-at-the-prompt-5678"]]);
   });
 
   it("prints the saved key as JSON with -o json", async () => {
@@ -417,15 +442,14 @@ describe("stigmer provider-key set", () => {
     nothingSent();
   });
 
-  it("refuses an empty key, an unknown provider, a Cursor base URL and a base URL that is not https", async () => {
+  it("refuses an empty key, an unknown provider and a base URL that is not https", async () => {
     pipedStdin("\n");
     expect((await failureOf(["provider-key", "set", "anthropic", "--key-stdin"])).message).toBe("no Anthropic key given");
-    expect((await failureOf(["provider-key", "set", "gemini", "--key-stdin"])).message).toContain(
-      "Use anthropic, openai or cursor.",
-    );
-    expect((await failureOf(["provider-key", "set", "cursor", "--base-url", "https://cursor.example.com"])).message).toBe(
-      "a Cursor key takes no base URL; Cursor serves from its own hosts",
-    );
+    for (const provider of ["gemini", "cursor"]) {
+      expect((await failureOf(["provider-key", "set", provider, "--key-stdin"])).message).toContain(
+        "Use anthropic or openai.",
+      );
+    }
     expect((await failureOf(["provider-key", "set", "openai", "--base-url", "http://gateway.example.com/v1"])).exitCode).toBe(
       ExitCode.Usage,
     );

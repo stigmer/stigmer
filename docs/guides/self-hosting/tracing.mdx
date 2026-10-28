@@ -26,7 +26,6 @@ an AI trace. A plain trace viewer such as Jaeger shows the same spans by name.
 | `chat <model>`         | model call          | the provider, the model asked for and the one that answered, input, output and cached tokens, why it stopped                                     |
 | `execute_tool <tool>`  | tool call           | the tool and its call ID; an MCP server's tool also names the server                                                                             |
 | `invoke_agent <name>`  | subagent invocation | nested under the `execute_tool task` call that started it                                                                                        |
-| `invoke_agent Cursor`  | Cursor engine run   | the model and the run's tokens in total, with each tool call under it                                                                            |
 
 A run that waits for your approval and then carries on stays one trace: each
 turn is a root span in it, and your tool shows the latest turn's name.
@@ -34,10 +33,6 @@ turn is a root span in it, and your tool shows the latest turn's name.
 `stigmer.run.kind` tells runs apart: `conversation`, `routine`, `judge` (an AI
 judge grading another run) or `eval-try` (one try of an eval run). Filter on it
 to keep the judge's grades out of a view of your users' runs.
-
-The Cursor engine makes its model calls inside Cursor's service, so a Cursor run
-shows its tokens as one total, not per call. Langfuse prices no `invoke_agent`
-span, so it shows a Cursor run's tokens but no cost.
 
 ## Turn it on
 

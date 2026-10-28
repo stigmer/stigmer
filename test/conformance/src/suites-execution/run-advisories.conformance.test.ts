@@ -28,8 +28,7 @@
 // price, so its token counts would be guesses.
 //
 // Deliberately out of scope: the advisories' wording (behaviour tuning,
-// asserted nowhere on the wire), the Cursor harness (it carries none of these
-// middlewares), and which threshold fires when (pinned beside each middleware
+// asserted nowhere on the wire) and which threshold fires when (pinned beside each middleware
 // in the runner's unit suites).
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

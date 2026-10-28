@@ -11,8 +11,6 @@
 
 import { describe, expect, it } from "vitest";
 
-import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
-import { listTurnTools } from "../mcp-tool-listing.js";
 import {
   CHANNEL_ID_LABEL,
   CONVERSATION_ATTACHMENT_SLUG,
@@ -21,13 +19,6 @@ import {
   readChannelConversationId,
   synthesizeConversationAttachment,
 } from "../conversation-attachment.js";
-
-const noLeases: ActiveLeases = {
-  global: false,
-  categories: new Set(),
-  servers: new Set(),
-  hooks: new Set(),
-};
 
 const cloudOptions = {
   bridgeEndpoint: "https://mcp.stigmer.ai",
@@ -135,18 +126,13 @@ describe("synthesizeConversationAttachment", () => {
     expect(attachment?.headers).toBeUndefined();
   });
 
-  it("is approval-free by construction: never listed, so the approval default asks for none of its tools", async () => {
+  it("is approval-free by construction: the platform's own server, whose tools every engine leaves out of the approval default", () => {
     const attachment = synthesizeConversationAttachment("chn_1", cloudOptions)!;
 
     // Channel surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool
     // resolves as skip-and-adapt — a gated escalation would never fire
     // (synthesized attachments are approval-free by construction).
     expect(attachment.home, "the platform's own server, no plugin's").toEqual({ kind: "platform" });
-    const listing = await listTurnTools([attachment], () => Promise.reject(new Error("a platform server is never listed")));
-    expect(listing).toEqual({ listed: [], destructive: [], unlisted: [], offered: [] });
-    const mcpDefault = buildMcpApprovalDefault(listing, noLeases);
-    expect(mcpDefault.destructive.size).toBe(0);
-    expect(mcpDefault.unlisted.size).toBe(0);
   });
 
 });

@@ -26,8 +26,8 @@
  * lost, or that a stopped invocation took and never handed its engine, is
  * still read by this turn.
  *
- * Without `force`, a claim makes no call while nothing is pending: Cursor
- * steers at the hint. With it, a claim always asks: an engine about to
+ * Without `force`, a claim makes no call while nothing is pending: the
+ * Claude engine reads at the hint between its calls. With it, a claim always asks: an engine about to
  * finish its round asks once, so a message that arrived after the newest
  * write is still read by this turn, and the native engine asks at every
  * model call, since a silent tool writes no status to refresh the hint. A claim

@@ -1,9 +1,0 @@
-{
-  "messages": [
-    {
-      "type": "MESSAGE_SYSTEM",
-      "content": "Execution failed: the agent made no progress for too long and was stopped (Agent stream stalled: no activity for 3s). You can retry or resume.",
-      "timestamp": "2026-01-01T00:00:04.000Z"
-    }
-  ]
-}

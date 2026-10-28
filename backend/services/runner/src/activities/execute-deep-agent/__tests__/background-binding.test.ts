@@ -211,7 +211,7 @@ describe("background commands on a real graph", () => {
     } as Parameters<typeof createDeepAgent>[0]);
 
     const translator = new DeepAgentTranslator(null);
-    const operations = new OpenOperations({ subAgentProgress: "streamed" });
+    const operations = new OpenOperations({});
     const seen: TranscriptEvent[] = [];
     let stalled = false;
     const watchdog = startStallWatchdog(300, () => (stalled = true), { held: () => operations.held() });

@@ -84,14 +84,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether image input delivered to this model produces genuine visual
-   * understanding.
-   *
-   * The meaning is harness-scoped. For native-harness entries this is the
-   * provider-documented capability of the model itself. For cursor-harness
-   * entries it encodes "images work through this model on the Cursor
-   * path": Cursor's serving stack hands vision off to a multimodal model
-   * server-side, so a model that is text-only by its own documentation
-   * (composer-2.5) still sees images when dispatched via Cursor.
+   * understanding: the provider-documented capability of the model itself.
    * </pre>
    *
    * <code>bool vision = 2 [json_name = "vision"];</code>
@@ -121,9 +114,8 @@ private static final long serialVersionUID = 0L;
   private boolean thinking_ = false;
   /**
    * <pre>
-   * Whether the model supports extended thinking. On a cursor-harness entry
-   * it is the model's thinking variant; on a native entry it is the
-   * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
+   * Whether the model supports extended thinking in the fixed-budget form
+   * (Anthropic `{type: "enabled", budget_tokens}`).
    * </pre>
    *
    * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -677,14 +669,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether image input delivered to this model produces genuine visual
-     * understanding.
-     *
-     * The meaning is harness-scoped. For native-harness entries this is the
-     * provider-documented capability of the model itself. For cursor-harness
-     * entries it encodes "images work through this model on the Cursor
-     * path": Cursor's serving stack hands vision off to a multimodal model
-     * server-side, so a model that is text-only by its own documentation
-     * (composer-2.5) still sees images when dispatched via Cursor.
+     * understanding: the provider-documented capability of the model itself.
      * </pre>
      *
      * <code>bool vision = 2 [json_name = "vision"];</code>
@@ -697,14 +682,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether image input delivered to this model produces genuine visual
-     * understanding.
-     *
-     * The meaning is harness-scoped. For native-harness entries this is the
-     * provider-documented capability of the model itself. For cursor-harness
-     * entries it encodes "images work through this model on the Cursor
-     * path": Cursor's serving stack hands vision off to a multimodal model
-     * server-side, so a model that is text-only by its own documentation
-     * (composer-2.5) still sees images when dispatched via Cursor.
+     * understanding: the provider-documented capability of the model itself.
      * </pre>
      *
      * <code>bool vision = 2 [json_name = "vision"];</code>
@@ -721,14 +699,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether image input delivered to this model produces genuine visual
-     * understanding.
-     *
-     * The meaning is harness-scoped. For native-harness entries this is the
-     * provider-documented capability of the model itself. For cursor-harness
-     * entries it encodes "images work through this model on the Cursor
-     * path": Cursor's serving stack hands vision off to a multimodal model
-     * server-side, so a model that is text-only by its own documentation
-     * (composer-2.5) still sees images when dispatched via Cursor.
+     * understanding: the provider-documented capability of the model itself.
      * </pre>
      *
      * <code>bool vision = 2 [json_name = "vision"];</code>
@@ -788,9 +759,8 @@ private static final long serialVersionUID = 0L;
     private boolean thinking_ ;
     /**
      * <pre>
-     * Whether the model supports extended thinking. On a cursor-harness entry
-     * it is the model's thinking variant; on a native entry it is the
-     * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
+     * Whether the model supports extended thinking in the fixed-budget form
+     * (Anthropic `{type: "enabled", budget_tokens}`).
      * </pre>
      *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -802,9 +772,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the model supports extended thinking. On a cursor-harness entry
-     * it is the model's thinking variant; on a native entry it is the
-     * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
+     * Whether the model supports extended thinking in the fixed-budget form
+     * (Anthropic `{type: "enabled", budget_tokens}`).
      * </pre>
      *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>
@@ -820,9 +789,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether the model supports extended thinking. On a cursor-harness entry
-     * it is the model's thinking variant; on a native entry it is the
-     * fixed-budget form (Anthropic `{type: "enabled", budget_tokens}`).
+     * Whether the model supports extended thinking in the fixed-budget form
+     * (Anthropic `{type: "enabled", budget_tokens}`).
      * </pre>
      *
      * <code>bool thinking = 4 [json_name = "thinking"];</code>

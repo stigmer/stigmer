@@ -17,7 +17,7 @@
  *    failure).
  *
  * A suite writes the call inside its skip condition,
- * `describe.skipIf(!liveSecret("CURSOR_API_KEY"))(...)`, never through a
+ * `describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))(...)`, never through a
  * variable or an alias: `scripts/test-integrity.mjs` explains a skip by the
  * text of its condition, and reads `liveSecret(` as carrying its reason only
  * in a live file.
@@ -34,7 +34,7 @@
 import { appendFileSync } from "node:fs";
 
 /** The provider keys a live test may ask for; each is a credential a live run provides. */
-export type LiveSecretName = "ANTHROPIC_API_KEY" | "CURSOR_API_KEY";
+export type LiveSecretName = "ANTHROPIC_API_KEY";
 
 const announced = new Set<LiveSecretName>();
 

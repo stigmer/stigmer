@@ -127,8 +127,8 @@ export const AgentInvocationSchema: GenMessage<AgentInvocation> = /*@__PURE__*/
  * agent's defaults, and the lane's operator profile.
  *
  * - Choices. model_name comes from the first layer that names one. When no
- *   layer names one, the model is left to the engine (the native engine's
- *   registry default; Cursor's Auto). service_tier and thinking_mode each
+ *   layer names one, the model is left to the harness's registry default.
+ *   service_tier and thinking_mode each
  *   come from the first layer, at or above the model's layer, that sets
  *   them: a less specific layer's tier or thinking was chosen for another
  *   model, so it never lands on this one. Without a model, tier and thinking
@@ -163,8 +163,7 @@ export type RunConfig = Message<"ai.stigmer.agentic.run.v1.RunConfig"> & {
    * done so far is kept. The limit is checked each time the engine reports
    * its spend, so a run can end somewhat above it. The native harness
    * reports after every model call, counts a subagent's spend toward the
-   * limit, and advises the agent to wrap up at about 80% of the budget; the
-   * Cursor harness gives no warning.
+   * limit, and advises the agent to wrap up at about 80% of the budget.
    *
    * 0 = not set at this layer. The budget is per message: a follow-up
    * message, or a run resuming after an approval, starts a fresh count; a
@@ -192,7 +191,7 @@ export type RunConfig = Message<"ai.stigmer.agentic.run.v1.RunConfig"> & {
    * set, the valid range is 10–1000; values outside it are clamped to the
    * nearest bound. The budget is per message: a follow-up message, or a run
    * resuming after an approval, starts a fresh count. Subagent rounds are
-   * not counted, and the Cursor harness does not enforce this field.
+   * not counted.
    *
    * @generated from field: int32 max_tool_rounds = 3;
    */
@@ -240,7 +239,7 @@ export type RunConfig = Message<"ai.stigmer.agentic.run.v1.RunConfig"> & {
    *
    * 0 = not set at this layer; with no layer setting it the platform default
    * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
-   * a subagent's included; the Cursor harness does not read this field.
+   * a subagent's included.
    *
    * @generated from field: int32 max_tool_result_chars = 6;
    */

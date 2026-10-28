@@ -98,10 +98,11 @@ Covered against the `local` target:
   negatives. Who may name or change a session's agent, and add a turn to it,
   is the run-gate suite's. Session has **no
   Temporal involvement**, so the lifecycle-bound behaviors it only gates — the
-  `harness_state_id` sentinel and the `harness`/`execution_target` immutability it
-  enables once an execution has run, plus the runtime merge of session-level
-  `plugins`/`skill_refs` into the agent graph — are out of scope here and
-  belong to the execution-lifecycle slice.
+  `harness`/`execution_target` immutability that holds once the session has
+  run, plus the runtime merge of session-level `plugins`/`skill_refs` into the
+  agent graph — are out of scope here and belong to the execution-lifecycle
+  slice (`session-immutability`, which drives a real turn on native and on
+  Claude first).
 
 Note: `mcp.conformance.test.ts` exercises the `@stigmer/mcp-server`
 **bridge** — Stigmer's own MCP tool surface against a live server — not a
@@ -176,19 +177,19 @@ their failure message, so a reproduced failure says what the runner published
 ### Benchmarking the harnesses (an experiment, not a test)
 
 `make benchmark-harnesses` (or `npm run benchmark:harnesses -w @stigmer/conformance -- <flags>`)
-drives the native, Cursor and Claude harnesses against **real providers** and writes
+drives the native and Claude harnesses against **real providers** and writes
 the report the harness work is judged on. It boots the same
 MCP fixture + Temporal + server + runner stack the execution suites use, but
 with the runner in **direct mode** (no mock proxy) reading
-`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (with `OPENAI_BASE_URL`) and
-`CURSOR_API_KEY` from the environment. A missing key,
+`ANTHROPIC_API_KEY` and `OPENAI_API_KEY` (with `OPENAI_BASE_URL`) from the
+environment. A missing key,
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
 test` cannot reach it, and it spends money: at the defaults, twelve scenarios
 on each harness with one warm-up plus five samples each, three turns a
 sample on the four three-turn scenarios (120 executions a harness), plus the
 quality arm's eval run (eleven cases, three tries each on each harness).
-`--only native|cursor|claude` runs one harness; its report refuses the
+`--only native|claude` runs one harness; its report refuses the
 others' cells `excluded by --only`, which `benchmark-compare` reads as
 expected, so the arms of one instrument commit may be taken as one report
 each and pooled. Its numbers
@@ -211,8 +212,7 @@ install of it, on the runner's `ANTHROPIC_API_KEY` in this direct mode, so a
 Claude cell needs the Anthropic key and nothing else. Its parity model is
 Claude Sonnet 4.6 under the Claude engine's own catalog row, the served model
 the native arm's parity cells pin, so a parity cell measures the engine and
-not the model; its `default` cells run the Claude engine's catalog default,
-as Cursor's run Cursor's.
+not the model; its `default` cells run the Claude engine's catalog default.
 
 The native arm runs on Claude Sonnet 4.6 unless `--native-model <id>` names
 another model: a catalog id, or the own-endpoint form `openai:<name>` /
@@ -223,7 +223,7 @@ OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 npm run benchmark:harnesses -- --only native --native-model openai:<gemini id>`.
 The model replaces the parity pin in every native parity, turn-2 and working
 cell and in the native quality target; the native `default` cells are refused,
-and the Cursor and Claude arms, the judge and the prompts stay as they are. A native cell
+and the Claude arm, the judge and the prompts stay as they are. A native cell
 needs the key of its model's provider. One run measures one native model,
 because the runner holds one OpenAI-slot key and address for the whole run.
 The report records every arm's model in `models.parity`, by harness, and the
@@ -305,9 +305,8 @@ Per execution it reads its sources and joins them by execution id:
 - the terminal status: `streaming_usage` (tokens and the runner's rate-card
   cost ESTIMATE), `status.error` on a failure, and memory on the spec as the
   platform attachment;
-- the runner's `turn_phases`, `execution_setup` and Cursor-only
-  `turn_first_event` timing lines, from its tee'd log (rounds, tool calls,
-  MCP connect on native, the SDK's send window on Cursor, the declared counts;
+- the runner's `turn_phases` and `execution_setup` timing lines, from its
+  tee'd log (rounds, tool calls, MCP connect on native, the declared counts;
   each tool call is placed on the model round that issued it from the
   timeline's spans, `src/benchmark/tool-call-facts.ts`);
 - the Temporal history, through the `temporal` CLI (the wait before the
@@ -366,7 +365,7 @@ reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
 whether each arm holds the bar the reference arm sets (default: native on
 the parity model). An arm is a harness on one model at one endpoint,
 on one version of the code (`native/<model>@<host>#<code>`,
-`cursor/<model>#<code>`, `claude/<model>#<code>`, the code being the first ten characters of
+`claude/<model>#<code>`, the code being the first ten characters of
 `git.code_sha`); a native report taken with background commands off is an
 arm of its own, `+background-off` after the code, so name the reference in
 full when reading it beside the arm with them on. `--reference` takes a label, or a prefix of one ending
@@ -425,7 +424,7 @@ through every restart, resuming from its last seq. At the end the session's
 log must read back unbroken, and the follower must have been sent exactly
 that log, once and in order. Otherwise the transcript reads broken and the
 script exits 1. The `long-turn-real-clock.yaml` workflow runs it on demand.
-`npm run long-turn:live -- --harness deep-agent|cursor|claude` plays the same
+`npm run long-turn:live -- --harness deep-agent|claude` plays the same
 profiles against a real provider on the benchmark's stack, with the same
 follower and verdict. On Claude the agent lists one saved helper on Claude
 for the subagent step, which the step names with the engine's `Agent` tool:
@@ -502,22 +501,12 @@ an org is just a unique slug. There is no CI lane for the cloud targets in this
 repository: the cloud composition's own repository runs them and keeps the
 readouts.
 
-**Provider keys, and `CURSOR_API_KEY`.** Stigmer Cloud serves every run on
-the organization's own provider keys and refuses a run whose organization
-holds no key for its provider at create, so the targets key a tenancy as an
-admin would (`keyTenancy`, `src/targets/cloud.ts`): the fixture Anthropic and
-OpenAI keys (`CONFORMANCE_PROVIDER_KEYS`, whose save check the fake LLM
-provider answers) always, and the organization's Cursor key only when the
-invoking shell exports `CURSOR_API_KEY`, the name the runner's direct mode and
-the open-source live lanes read. There is no fixture Cursor key: the cloud
-checks a Cursor key with Cursor itself when it is saved, so it must be a real
-user API key or team service-account key on a paid Cursor plan, and every
-keyed tenancy makes one check call to Cursor. Without it the arms that create
-a Cursor run on the cloud target skip with that reason
-(`CapabilityFlags.cursorRunsAdmitted`); with it they run, and none of them
-sends a Cursor model request (the one that starts a turn is refused before
-its first model call). The local targets ask for no provider key and admit
-Cursor runs either way.
+**Provider keys.** Stigmer Cloud serves every run on the organization's own
+provider keys and refuses a run whose organization holds no key for its
+provider at create, so the targets key a tenancy as an admin would
+(`keyTenancy`, `src/targets/cloud.ts`): the fixture Anthropic and OpenAI keys
+(`CONFORMANCE_PROVIDER_KEYS`, whose save check the fake LLM provider
+answers). The local targets ask for no provider key.
 
 **The direct-login arms** (`direct-login.conformance.test.ts`)
 drive the lane a console, desktop, CLI or MCP client actually rides: the raw
@@ -560,7 +549,7 @@ things make them different from the CRUD suites:
   to export); they publish a control URL the workers script them through
   (`support/cloud-fixtures-client.ts`). Suites reset the fakes in `afterEach`
   — they are shared across every file.
-- **Lanes have their own addresses.** `STIGMER_CONFORMANCE_CLOUD_{PROXY,CURSOR_BIDI,PUBLIC,STRIPE_WEBHOOK}_ADDRESS`
+- **Lanes have their own addresses.** `STIGMER_CONFORMANCE_CLOUD_{PROXY,PUBLIC,STRIPE_WEBHOOK}_ADDRESS`
   (+ `_STRIPE_WEBHOOK_SECRET`, `_FIXTURES_CONTROL_URL`), because the
   composition serves extension-owned lanes on separate listeners. The flags
   (`billingEngine`, `billingPlans`, `sideChannelProxy`, `publicLane`) state

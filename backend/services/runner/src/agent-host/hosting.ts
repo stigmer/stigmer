@@ -13,25 +13,17 @@
  * the one every test sees.
  *
  * The host sees the environment the agent's tools have always seen
- * (`environment.ts`), plus one setting: `NODE_EXTRA_CA_CERTS` names a file
- * holding the Cursor lane's certificate (`agent-proxy/cursor-lane.ts`), and
- * the operator's own extra certificates when they named some, so the host's
- * Cursor SDK trusts the lane on loopback and everything it trusted before.
- * Once configured, the host also sets `CURSOR_BACKEND_URL` to the lane for
- * its Cursor SDK (`entry.ts`); the agent's shells and hooks leave it out.
- * When the sandbox has an Environment with packages, the folders they
+ * (`environment.ts`). When the sandbox has an Environment with packages, the folders they
  * install into come first on the host's PATH (`environment/install.ts`),
  * and the install starts here, once the agent's home is handed over,
  * beside the worker: each turn awaits it (`harness/run-turn.ts`).
  *
  * THIS MODULE IS IMPORTED BEFORE THE HARNESSES BOOT, so its static graph
- * stays connect- and SDK-free like the table's
+ * stays SDK-free like the table's
  * (`__tests__/harness-boot-order.test.ts` boots through it).
  */
 
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { homedir } from "node:os";
 
 import type { Config } from "../config.js";
 import { HOSTED_HARNESSES } from "../harness-adapters.js";
@@ -87,12 +79,11 @@ export async function hostHarnesses(
   const environment = sandboxEnvironmentFrom();
   startEnvironmentInstall(environment);
   const proxy = await AgentProxy.start(config);
-  const trust = writeTrustedCertificates(proxy.cursorCertificate, process.env.NODE_EXTRA_CA_CERTS);
   const supervisor = new AgentHostSupervisor({
     proxy,
     start:
       options.start ??
-      processHostStarter(() => withEnvironmentPath({ ...agentHostEnvironment(), NODE_EXTRA_CA_CERTS: trust.file }, environment, identity)),
+      processHostStarter(() => withEnvironmentPath(agentHostEnvironment(), environment, identity)),
   });
   // From here on, the runtime's operations on the agent's paths are the host's.
   const restoreFs = installAgentFs(
@@ -112,7 +103,6 @@ export async function hostHarnesses(
       // A separating runner never performs them itself: after the host, they fail.
       if (identity !== null) installAgentFs(refusingAgentFs("the agent host has closed; the runner performs no operation on the agent's paths itself"));
       await proxy.close();
-      trust.remove();
     },
   };
 }
@@ -135,28 +125,4 @@ export function handOver(
   } catch (err) {
     return `the runner cannot hand the agent user its files: ${err instanceof Error ? err.message : String(err)}`;
   }
-}
-
-/**
- * The file the host's `NODE_EXTRA_CA_CERTS` names: the lane's certificate,
- * after the operator's extra certificates when `operatorFile` names a
- * readable file (Node reads one such file, so both go in it). The folder
- * and the file are readable by any user, so a host started as another user
- * reads them too; the certificate is public, its key never leaves the
- * runner's memory.
- */
-export function writeTrustedCertificates(certPem: string, operatorFile: string | undefined): { readonly file: string; remove(): void } {
-  let operator = "";
-  if (operatorFile) {
-    try {
-      operator = readFileSync(operatorFile, "utf8");
-    } catch (err) {
-      console.warn(`[agent-host] NODE_EXTRA_CA_CERTS=${operatorFile} could not be read, so the agent host trusts only the Cursor lane's certificate besides the defaults: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-  const dir = mkdtempSync(join(tmpdir(), "stigmer-agent-proxy-"));
-  chmodSync(dir, 0o755);
-  const file = join(dir, "trusted.pem");
-  writeFileSync(file, `${operator}${operator && !operator.endsWith("\n") ? "\n" : ""}${certPem}`, { mode: 0o644 });
-  return { file, remove: () => rmSync(dir, { recursive: true, force: true }) };
 }

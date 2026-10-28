@@ -22,8 +22,7 @@
  *
  * Like `PLAN_MODE_DIRECTIVE` (plan-mode-prompt.ts), this module is the single
  * source of truth for the words; each harness wraps them in its own prompt
- * framing (XML-tag section for Cursor, markdown heading for the native
- * harness).
+ * framing (a markdown heading in both today).
  */
 
 import { isPlanFileName } from "./plan-file.js";
@@ -35,9 +34,9 @@ import { isPlanFileName } from "./plan-file.js";
  * the approved plan is the entire plan→progress linkage: the runner's todo
  * extraction and the clients' todo renderers light up unchanged.
  *
- * Deliberately tool-agnostic ("your to-do list"): the Cursor harness exposes
- * TodoWrite/updateTodos, the native harness write_todos, and each runtime
- * already teaches the model its own tool.
+ * Deliberately tool-agnostic ("your to-do list"): the Claude engine exposes
+ * TodoWrite, the native harness write_todos, and each runtime already
+ * teaches the model its own tool.
  *
  * Wording constraint: this block rides BOTH variants, and the conversation-only
  * variant is pinned by tests to never contain "plan.md" (it has no plan file

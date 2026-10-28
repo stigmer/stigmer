@@ -23,12 +23,11 @@ pricing_baseline_superseded: ModelPricingBaselineStatus
 pricing_baseline_retired: ModelPricingBaselineStatus
 
 class PricingBlock(_message.Message):
-    __slots__ = ("input_price_micros_per_million", "output_price_micros_per_million", "cache_write_price_micros_per_million", "cache_read_price_micros_per_million", "cursor_token_rate_micros_per_million", "source", "source_note", "effective_at")
+    __slots__ = ("input_price_micros_per_million", "output_price_micros_per_million", "cache_write_price_micros_per_million", "cache_read_price_micros_per_million", "source", "source_note", "effective_at")
     INPUT_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     CACHE_WRITE_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     CACHE_READ_PRICE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
     SOURCE_NOTE_FIELD_NUMBER: _ClassVar[int]
     EFFECTIVE_AT_FIELD_NUMBER: _ClassVar[int]
@@ -36,11 +35,10 @@ class PricingBlock(_message.Message):
     output_price_micros_per_million: int
     cache_write_price_micros_per_million: int
     cache_read_price_micros_per_million: int
-    cursor_token_rate_micros_per_million: int
     source: str
     source_note: str
     effective_at: _timestamp_pb2.Timestamp
-    def __init__(self, input_price_micros_per_million: _Optional[int] = ..., output_price_micros_per_million: _Optional[int] = ..., cache_write_price_micros_per_million: _Optional[int] = ..., cache_read_price_micros_per_million: _Optional[int] = ..., cursor_token_rate_micros_per_million: _Optional[int] = ..., source: _Optional[str] = ..., source_note: _Optional[str] = ..., effective_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, input_price_micros_per_million: _Optional[int] = ..., output_price_micros_per_million: _Optional[int] = ..., cache_write_price_micros_per_million: _Optional[int] = ..., cache_read_price_micros_per_million: _Optional[int] = ..., source: _Optional[str] = ..., source_note: _Optional[str] = ..., effective_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class PricingVariant(_message.Message):
     __slots__ = ("pricing", "wire_ids")

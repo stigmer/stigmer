@@ -35,7 +35,6 @@ import { buildReadyMessage } from "./ipc-protocol.js";
 import { AGENT_HOST_MODE_ARG } from "./agent-host/protocol.js";
 import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
-import { handleUnhandledRejection } from "./activities/execute-cursor/rejection-capture.js";
 import { installProcessPipeGuards, reportFatal } from "./pipe-safety.js";
 import { armExitBackstop } from "./exit-backstop.js";
 
@@ -44,9 +43,11 @@ import { armExitBackstop } from "./exit-backstop.js";
 // Temporal heartbeats and kills the in-flight execution (issue #177).
 const { writeStdout, writeStderr } = installProcessPipeGuards();
 
+/* v8 ignore start -- @preserve: the process boundary; an unhandled rejection is logged and never ends the runner */
 process.on("unhandledRejection", (reason) => {
-  handleUnhandledRejection(reason);
+  console.error("Unhandled rejection in runner:", reason);
 });
+/* v8 ignore stop */
 
 process.on("uncaughtException", (err) => {
   reportFatal(writeStderr, "Uncaught exception in runner:", err);
@@ -80,7 +81,6 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       temporalNamespace: config.temporalNamespace,
       stigmerEndpoint: config.stigmerBackendEndpoint,
       stigmerToken: config.stigmerTokenRef.current ?? undefined,
-      cursorApiKey: config.cursorApiKey || undefined,
       workspaceRootDir: config.workspaceRootDir,
       maxConcurrentActivitiesPerSession: config.maxConcurrentActivities,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
@@ -88,7 +88,6 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       checkpointerType: config.checkpointerType,
       checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
       artifactProxyEndpoint: config.artifactProxyEndpoint ?? undefined,
-      cloudModeEnabled: config.cloudModeEnabled,
       executionMode: config.mode,
       ...operatorBounds(config),
     });
@@ -193,7 +192,6 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     temporalNamespace: config.temporalNamespace,
     stigmerEndpoint: config.stigmerBackendEndpoint,
     stigmerToken: config.stigmerTokenRef.current ?? undefined,
-    cursorApiKey: config.cursorApiKey || undefined,
     workspaceRootDir: config.workspaceRootDir,
     maxConcurrentActivities: config.maxConcurrentActivities,
     proxyEndpoint: config.proxyEndpoint ?? undefined,
@@ -201,7 +199,6 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     checkpointerType: config.checkpointerType,
     checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
     artifactProxyEndpoint: config.artifactProxyEndpoint ?? undefined,
-    cloudModeEnabled: config.cloudModeEnabled,
     // Honor the operator's MODE env (resolved into config.mode) instead of
     // re-deriving execution location from the proxy. This keeps static mode
     // consistent with manager mode, which already passes config.mode.

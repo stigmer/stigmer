@@ -116,7 +116,7 @@ function addComponentSection(result: CommandResult, name: string, label: string,
 // Judged by the runner's own reach rule (provider-reach.ts) over the
 // environment the launcher gives the runner: this shell's, with the key
 // `stigmer setup` saved written over it (launch.ts, resolveLlmKeyInputs). So a
-// laptop on a Cursor key, Vertex, Bedrock, Foundry or a gateway is reported
+// laptop on an OpenAI key, Vertex, Bedrock, Foundry or a gateway is reported
 // as reaching it, and only one that reaches nothing is told agents will not
 // execute.
 function addLlmSection(result: CommandResult, home: string, env: NodeJS.ProcessEnv): void {

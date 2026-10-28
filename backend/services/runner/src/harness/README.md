@@ -3,9 +3,8 @@
 This folder is the turn runtime, the code that runs one agent turn for every
 harness, and the contract a harness implements to run behind it
 (`harness/types.ts`). A harness is one engine the runner can drive: today the
-native LangGraph deep-agent, the Cursor SDK and the Claude Agent SDK; the
-contract was designed against the Codex SDK as well
-(`harness/capabilities.ts`). An adapter is the `HarnessAdapter` object a
+native LangGraph deep-agent and the Claude Agent SDK; the contract was
+designed against the Codex SDK as well (`harness/capabilities.ts`). An adapter is the `HarnessAdapter` object a
 harness's factory returns; a harness is that adapter plus its registry row.
 
 This file is an index for someone adding a harness. To add one: read the modules
@@ -17,15 +16,15 @@ The rules this file follows are at the end.
 The harness identity is spelled differently in each layer, and every spelling is
 pinned somewhere. Read a row across before searching for anything.
 
-| Spelling | Native | Cursor | Claude |
-| --- | --- | --- | --- |
-| The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-cursor/` | `activities/execute-claude/` |
-| `HarnessName` in `harness/registry.ts` | `deep-agent` | `cursor` | `claude` |
-| The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteCursor` | `ExecuteClaude` |
-| The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_NATIVE` | `HARNESS_CURSOR` | `HARNESS_CLAUDE` |
-| The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `cursor` | `claude` |
-| The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts`, `activities/execute-cursor/cursor-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `cursor` | `claude` |
-| The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@cursor/sdk` | `@anthropic-ai/claude-agent-sdk` |
+| Spelling | Native | Claude |
+| --- | --- | --- |
+| The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-claude/` |
+| `HarnessName` in `harness/registry.ts` | `deep-agent` | `claude` |
+| The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteClaude` |
+| The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_NATIVE` | `HARNESS_CLAUDE` |
+| The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `claude` |
+| The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `claude` |
+| The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@anthropic-ai/claude-agent-sdk` |
 
 The runner runs a Claude turn, the agent's skills, sub-agents and hooks
 included (`activities/execute-claude/agents.ts`, `activities/execute-claude/hooks.ts`),
@@ -39,9 +38,10 @@ engine comes from in each edition is "The Claude engine" below.
 - `harness/types.ts` — the contract: `HarnessAdapter`, `TurnInput`, `TurnSink`,
   `TurnOutcome`, and what was deliberately left off it.
 - `harness/capabilities.ts` — the flags the runtime branches on instead of
-  harness names (`HarnessCapabilities`, `PausePrimitive`, `StateIdSource`,
-  `boundaryRewritesRow`, `SubAgentProgress`, `MidTurnInput`), the harness matrix the contract was designed against,
-  and which values a real adapter stands behind.
+  harness names (`HarnessCapabilities`, `boundaryRewritesRow`,
+  `ContextCompaction`), the facts every harness shares, the harness matrix the
+  contract was designed against, and which values a real adapter stands
+  behind.
 - `__test-utils__/harness-contract/scripted-adapter.ts` — the template: every
   rule of the contract as the smallest code that obeys it, with the reason
   beside it.
@@ -61,21 +61,12 @@ engine comes from in each edition is "The Claude engine" below.
 - `harness/open-operations.ts` — `OpenOperations`, the runtime's fold over the
   same events into what is running right now: it holds the stall watchdog while
   a tool call or a delegated task is open, so a silent build is not a stall, and
-  names the oldest open call for the backstop. An adapter supplies one fact,
-  when its engine reports a sub-agent's work (`subAgentProgress`).
-- `harness/continuation-digest.ts` — the platform's record of the current
-  turn, rendered from the run's events in the session's log, and its two
-  framings: the continuation an engine that holds its own conversation is
-  sent instead of the task, and the recovery a fresh agent that lost its
-  conversation reads. The runtime hands it on `TurnInput.continuation` to a
-  harness whose `continuation` capability is `"digest"`; a `"checkpoint"`
-  harness resumes from its engine's own saved state.
+  names the oldest open call for the backstop.
 - `harness/turn-input.ts` — the sink's `input` channel, the messages a person
   sends to the session while the turn works: the server's pending hint,
   recorded from every status write, and the claim that takes them as the
-  run's, their files mounted as the turn's own are. An adapter claims where
-  its engine delivers what it takes (its `midTurnInput` capability,
-  `harness/capabilities.ts`), and a turn delivers every message it took,
+  run's, their files mounted as the turn's own are. An adapter claims before
+  its engine's next model call, and a turn delivers every message it took,
   never a next turn.
 - `harness/preview-pump.ts` — `PreviewPump`, which sends a running tool's output
   to the session between writes, on the streaming floor, through the persist
@@ -116,7 +107,7 @@ Every harness's adapter runs in the agent host, the runner's second process,
 which holds none of its keys; the runner's own process loads no engine SDK
 (`__tests__/harness-boot-order.test.ts`):
 
-- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones: all three.
+- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones: both.
 - `agent-host/hosting.ts` — what the composition roots call: the table with
   each hosted row's adapter replaced by its remote stand-in.
 - `agent-host/remote-adapter.ts` — the stand-in: `createRemoteAdapter` turns
@@ -127,8 +118,7 @@ which holds none of its keys; the runner's own process loads no engine SDK
 - `agent-host/codec.ts` — what crosses: the `TurnInput`, and the status split
   by the owners this file's contract names.
 - `agent-proxy/server.ts` — `AgentProxy`, the runner's loopback proxy, the
-  host's only way to a credentialed call; `agent-proxy/cursor-lane.ts` its
-  Cursor lane, TLS on loopback, which keeps the Cursor access token.
+  host's only way to a credentialed call (`agent-proxy/lanes.ts`).
 - `shared/agent-fs.ts` — the runtime's file and process operations on the
   agent's paths, which the runner routes to the host (`agent-host/remote-fs.ts`,
   `agent-host/fs-service.ts`), so the runtime never acts on them with the
@@ -177,24 +167,21 @@ What the contract requires:
 - `activities/<harness>/adapter.ts` — a factory returning a `HarnessAdapter`.
   `activities/execute-deep-agent/adapter.ts` (`createDeepAgentAdapter`) is the
   smaller real shape, with no per-session state;
-  `activities/execute-cursor/adapter.ts` (`createCursorAdapter`) is the one with
-  session state; `activities/execute-claude/adapter.ts` (`createClaudeAdapter`)
-  is the one whose engine is a separate program, and boots without it.
+  `activities/execute-claude/adapter.ts` (`createClaudeAdapter`) is the one
+  whose engine is a separate program, and boots without it.
 - `activities/<harness>/<harness>-capabilities.ts` — the flags, declared once,
   each with its reason:
   `activities/execute-deep-agent/deep-agent-capabilities.ts`
   (`DEEP_AGENT_CAPABILITIES`),
-  `activities/execute-cursor/cursor-capabilities.ts` (`CURSOR_CAPABILITIES`),
   `activities/execute-claude/claude-capabilities.ts` (`CLAUDE_CAPABILITIES`).
 - `activities/<harness>/translator.ts` — the engine's events rendered as
   `TranscriptEvent`s into `TranscriptBuilder` (`harness/transcript/events.ts` is
   the union): `activities/execute-deep-agent/translator.ts`,
-  `activities/execute-cursor/translator.ts`,
   `activities/execute-claude/translator.ts`.
 
 Everything else in an adapter's folder is the engine's business and is not a
-template: 24 of the native adapter's 27 modules, 37 of the Cursor adapter's 40
-and 23 of the Claude adapter's 26, counted as the footprint below counts files. That business is:
+template: 24 of the native adapter's 27 modules and 23 of the Claude adapter's
+26, counted as the footprint below counts files. That business is:
 
 - how the engine is created or resumed,
 - how the prompt is placed,
@@ -209,7 +196,6 @@ What every adapter's test side carries:
   translated onto the harness's own SDK double.
   `activities/execute-deep-agent/__test-utils__/contract-subject.ts` is the
   smaller example;
-  `activities/execute-cursor/__test-utils__/contract-subject.ts` the first;
   `activities/execute-claude/__test-utils__/contract-subject.ts` has no SDK
   double: it runs the real engine and scripts only what its model says, through
   the wire mock behind the runner's real proxy
@@ -218,23 +204,20 @@ What every adapter's test side carries:
   halves of the kit against the real adapter, with what the subject cannot
   produce declared SKIPPED:
   `activities/execute-deep-agent/__tests__/hermetic/harness-contract.test.ts`,
-  `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`,
   `activities/execute-claude/__tests__/hermetic/harness-contract.test.ts`. Their
   goldens: `activities/execute-deep-agent/__tests__/hermetic/goldens/`,
-  `activities/execute-cursor/__tests__/hermetic/goldens/`,
   `activities/execute-claude/__tests__/hermetic/goldens/`.
 - `activities/<harness>/__tests__/adapter-is-temporal-free.test.ts` — the fence
   that keeps `@temporalio/*` out of the adapter:
   `activities/execute-deep-agent/__tests__/adapter-is-temporal-free.test.ts`,
-  `activities/execute-cursor/__tests__/adapter-is-temporal-free.test.ts`,
   `activities/execute-claude/__tests__/adapter-is-temporal-free.test.ts`.
 - `activities/<harness>/__tests__/adapter-graph-is-sdk-free.test.ts` — the fence
   that walks the adapter module's static graph and refuses a vendor SDK on it. A
   new harness adds it.
   `activities/execute-deep-agent/__tests__/adapter-graph-is-sdk-free.test.ts` is
   the shape, `activities/execute-claude/__tests__/adapter-graph-is-sdk-free.test.ts`
-  its second; the Cursor adapter predates it, and
-  `__tests__/harness-boot-order.test.ts` proves its graph in a fresh process.
+  its second; `__tests__/harness-boot-order.test.ts` proves the whole table's
+  graph in a fresh process.
 
 ## Sites a new harness touches
 
@@ -256,8 +239,8 @@ and nothing per harness; there is nothing to touch there.
   there first; the runner's entry lands with its adapter row, since only a row
   is ever looked up.
 - `harness/capabilities.ts` — the harness matrix in the header gains a column.
-- `config.ts` — the harness's own settings, if it has any (`cursorApiKey`,
-  `checkpointerType` are the two adapters' today).
+- `config.ts` — the harness's own settings, if it has any
+  (`checkpointerType` is the native adapter's today).
 - `shared/filereview/events.ts` — a comment stating the closed set of
   file-review ids.
 - `__tests__/harness-boot-order.test.ts` — the header states the row count; its
@@ -285,11 +268,11 @@ reads stdin when it is not a terminal).
 X=(--hidden -g '!.git' -g '!node_modules' -g '!**/gen/**' -g '!*_pb.*' -g '!*.pb.go' -g '!apis/stubs/**'
    -g '!**/dist/**' -g '!**/dist-slim/**' -g '!**/.turbo/**' -g '!**/.yarn/**' -g '!**/.next/**'
    -g '!**/__tests__/**' -g '!*.test.*' -g '!**/goldens/**' -g '!*lock*')
-rg -l "${X[@]}" 'HARNESS_(NATIVE|CURSOR|CLAUDE)|Harness\.(NATIVE|CURSOR|CLAUDE)|\bHarnessOption\b' . < /dev/null  # the proto enum
-rg -l "${X[@]}" 'ExecuteDeepAgent|ExecuteCursor|ExecuteClaude|HARNESS_ACTIVITY_NAMES' . < /dev/null          # the activity name
-rg -l "${X[@]}" '\bHarnessName\b|["'"'"'](deep-agent|cursor|claude)["'"'"']' . < /dev/null                    # the registry name and file-review id
-rg -l "${X[@]}" '"harness"\s*:\s*"(native|cursor|claude)"' . < /dev/null                                    # the model registry's key
-rg -l "${X[@]}" '@cursor/sdk|\bdeepagents\b|@anthropic-ai/claude-agent-sdk' . < /dev/null                   # the vendor SDK package
+rg -l "${X[@]}" 'HARNESS_(NATIVE|CLAUDE)|Harness\.(NATIVE|CLAUDE)|\bHarnessOption\b' . < /dev/null  # the proto enum
+rg -l "${X[@]}" 'ExecuteDeepAgent|ExecuteClaude|HARNESS_ACTIVITY_NAMES' . < /dev/null                # the activity name
+rg -l "${X[@]}" '\bHarnessName\b|["'"'"'](deep-agent|claude)["'"'"']' . < /dev/null                          # the registry name and file-review id
+rg -l "${X[@]}" '"harness"\s*:\s*"(native|claude)"' . < /dev/null                                          # the model registry's key
+rg -l "${X[@]}" '\bdeepagents\b|@anthropic-ai/claude-agent-sdk' . < /dev/null                               # the vendor SDK package
 ```
 
 Every hit falls into one of five classes:
@@ -331,7 +314,7 @@ sites the compiler cannot see: prose, data and rules true of one engine.
 | `backend/services/runner/proto/ai/stigmer/runner/turn/v1/enum.proto`, `backend/services/runner/proto/ai/stigmer/runner/turn/v1/ledger.proto` | Comments stating each harness's tool-name style and the file-review ids. |
 | `backend/services/runner/package.json`, `backend/services/runner/scripts/bundle-slim.mjs`, `backend/services/runner/scripts/verify-slim-artifact.mjs` | The vendor SDK dependencies, the slim bundle's `RUNTIME_EXTERNALS`, and the check that loads them from the slim artifact. |
 | `backend/services/runner/README.md`, `backend/README.md` | List the harnesses and the SDK behind each. |
-| `backend/services/stigmer-server/src/temporal/agentexecution/workflows/invoke-agent-execution.ts` | The exhaustive switch on the enum: the deterministic-state flow (`EnsureThread`, then the engine's `Execute*` activity) for an engine whose state id derives from the session, the Cursor flow for one that mints its own. The largest site; a new harness needs an arm here, one of these two flows or its own. |
+| `backend/services/stigmer-server/src/temporal/agentexecution/workflows/invoke-agent-execution.ts` | The exhaustive switch on the enum: the deterministic-state flow (`EnsureThread`, then the engine's `Execute*` activity) for an engine whose state id derives from the session. The largest site; a new harness needs an arm here, that flow or its own. |
 | `backend/services/stigmer-server/src/temporal/agentexecution/workflow-input.ts` | The `harness` field's comment lists each number and its activity. |
 | `backend/services/stigmer-server/scripts/capture-replay-histories.ts` | One stub per activity, and a committed history per flow (a maintainer script). |
 | `backend/services/stigmer-server/src/modelcatalog/pin-validation.ts` | `harnessName` and the `HARNESS_NAME_*` section words. |
@@ -339,12 +322,10 @@ sites the compiler cannot see: prose, data and rules true of one engine.
 | `backend/services/stigmer-server/src/domain/run/usage-fold.ts` | The usage report's engine word and its per-engine token arithmetic. |
 | `backend/services/stigmer-server/src/domain/score/eval/trace.ts` | The engine's tool vocabulary for the eval's graders. |
 | `backend/libs/ts/plugin-package/src/evals/read-eval-suite.ts`, `backend/services/stigmer-server/src/domain/eval-run/matrix.ts`, `backend/services/stigmer-server/src/domain/eval/case-from-run.ts` | Each engine's eval features it cannot run (`EVAL_ENGINE_UNSUPPORTED_FEATURES`) and each engine's word and name in a case's not-run copy (`EVAL_ENGINES`); a new harness states its own answer. |
-| `backend/services/stigmer-server/src/temporal/routine/model-pinning.ts`, `backend/services/stigmer-server/src/domain/run/resolve-run-config.ts` | The unattended pin rule, Cursor's alone (its empty model is Auto, priced by Cursor's own pick); a new harness says whether its empty model is a catalog row. |
 | `client-apps/cli/src/commands/agent-exec-flags.ts`, `client-apps/cli/src/commands/eval.ts` | The `--harness` flag's and the eval `--model` target's help texts list the values. |
 | `client-apps/cli/src/resources/run/engines.ts` | The CLI's one engine table (`ENGINES`): each word's enum member, name and account default-model field, typed over the enum, which the run's flags, create and header and the eval target read (`client-apps/cli/src/resources/run/prepare.ts`, `client-apps/cli/src/resources/run/create.ts`, `client-apps/cli/src/resources/run/header.ts`, `client-apps/cli/src/resources/eval-run/options.ts`). |
 | `sdk/react/src/models/harness.ts` | The SDK hub: `HarnessOption`, `HARNESS_META`, `HARNESS_LABELS`, `DEFAULT_HARNESS`, `toProtoHarness`, `fromProtoHarness`, all read from one option-to-enum table typed over the whole enum; and `HARNESS_OPTIONS`, the offered engines, kept by hand with `isHarnessOption`. |
 | `sdk/react/src/models/registry.ts` | The default model per harness. |
-| `sdk/react/src/models/HarnessSelector.tsx` | The premium mark on the Cursor segment; the segments come from `HARNESS_OPTIONS`. |
 | `sdk/react/src/identity-account/useAccountExecutionDefaults.ts` | Each harness's default-model field and update path (`ACCOUNT_DEFAULT_MODELS`), which the preferences panel and the new-session flow read. |
 | `sdk/react/src/session/usePersistedModel.ts` | A device storage key per harness (`modelStorageKey`). |
 | `sdk/react/src/usage/HarnessSplitCard.tsx` | A colour per harness in the usage split. |
@@ -352,7 +333,7 @@ sites the compiler cannot see: prose, data and rules true of one engine.
 | `sdk/typescript/src/eval-run/result-document.ts` | The engine's word in an eval result. |
 | `test/conformance/src/benchmark/cells.ts`, `test/conformance/src/benchmark/compare.ts`, `test/conformance/src/benchmark/run.ts`, `test/conformance/src/benchmark/report.ts`, `test/conformance/src/benchmark/temporal-history.ts`, `test/conformance/scripts/benchmark-harnesses.ts`, `test/conformance/scripts/long-turn-live.ts` | The benchmark's harness list and its per-harness keys, models, costs and sides. |
 | `test/conformance/src/support/engine-arms.ts` | The execution conformance suite's engine arms: how each engine's tool calls are scripted on the wire mock. A harness the suite proves adds an arm. |
-| `docs/concepts/harnesses.mdx`, `docs/guides/runners/cursor-harness.mdx`, `docs/guides/runners/claude-harness.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current. |
+| `docs/concepts/harnesses.mdx`, `docs/guides/runners/claude-harness.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current. |
 
 The cloud composition that serves api.stigmer.ai has sites of the same classes
 (run admission, the usage meter's call description, the channel broker's
@@ -474,16 +455,6 @@ Words the probes match that are not the harness. Nothing to touch.
   `backend/services/stigmer-server/src/domain/agent/steps.ts`,
   `backend/services/stigmer-server/src/domain/plugin/push.ts`,
   `sdk/typescript/src/hook-words.ts`.
-- The Cursor SDK as a subject: `plugins/cursor-sdk/` (a plugin teaching agents
-  to build with it).
-- `cursor` as a model provider (its provider key and usage rows):
-  `apis/ai/stigmer/agentic/run/v1/usage.proto`,
-  `apis/ai/stigmer/billing/providerkey/v1/api.proto`,
-  `apis/ai/stigmer/billing/providerkey/v1/io.proto`,
-  `sdk/react/src/billing/ProviderKeysSection.tsx`,
-  `sdk/react/src/billing/useProviderKeys.ts`,
-  `sdk/react/src/session/useSessionUsage.ts`,
-  `test/conformance/src/targets/cloud.ts`.
 
 ### Verifying
 
@@ -504,9 +475,8 @@ runs the kit, every fence, the boot-order test and this file's own test.
 - `__test-utils__/hermetic-activity.ts` — `runActivityHermetically`: a real
   activity with no network, and the rule for a golden that will not hold still.
   The vendor SDK double is the adapter's own.
-- `__tests__/harness-contract.test.ts` — the template under both pause
-  primitives and both state-id sources; a real adapter registers both halves in
-  its own hermetic file instead.
+- `__tests__/harness-contract.test.ts` — the template; a real adapter
+  registers both halves in its own hermetic file instead.
 - `__test-utils__/__tests__/harness-contract-self-check.test.ts` — every
   invariant run against an adapter broken in exactly the way it exists to catch.
 - `harness/__tests__/run-turn.test.ts` — the runtime-side half against the
@@ -530,8 +500,8 @@ engine runs nothing past its boundary, and a continued turn (after a drain, a lo
 runner, or a drain after an approved call ran) never hands the engine the
 task or the decision again. A continued turn says once why it paused, carries
 the run's cost count, and settles with no model call when its engine had
-already finished. A `checkpoint` engine also continues a run lost before
-anything of it reached the log, from its own save. A stall while the turn
+already finished. An engine also continues a run lost before anything of it
+reached the log, from its own save. A stall while the turn
 waits on its model continues (the provider's); one with nothing owed fails
 as before. A turn of many invocations is one change set, and a turn stopped
 by an arm that returns still leaves its edits to keep or undo. They drive
@@ -557,7 +527,7 @@ excluded. Run from `backend/services/runner/` to re-measure:
 
 ```bash
 wc -l src/__test-utils__/harness-contract/scripted-adapter.ts
-for d in src/activities/execute-deep-agent src/activities/execute-cursor src/activities/execute-claude src/harness; do
+for d in src/activities/execute-deep-agent src/activities/execute-claude src/harness; do
   printf '%s: ' "$d"
   find "$d" -name '*.ts' -not -path '*/__tests__/*' -not -path '*/__test-utils__/*' | xargs cat | wc -l
 done
@@ -567,7 +537,6 @@ done
 | -------------------------------------------------------------------------------------------------------- | ------ | ----- |
 | The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator | 609    | 1     |
 | The native adapter, `activities/execute-deep-agent/`                                                     | 6,273  | 27    |
-| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,921 | 40    |
 | The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 5,357  | 26    |
 | The runtime, `harness/`, for scale: written once                                                         | 11,415 | 29    |
 | The test side the native adapter adds: its subject, its hermetic kit file, its two fences                | 935    | 4     |
@@ -583,7 +552,8 @@ carry the reasoning.
   for byte.
 - #1064 — the adapter contract, the scripted template, the contract kit and the
   registry.
-- #1070 — the turn runtime extracted; the Cursor activity became an adapter.
+- #1070 — the turn runtime extracted from the first harness's activity, which
+  became an adapter.
 - #1096 — the native deep-agent harness as an adapter over the same runtime.
 - #1097 — one transcript builder over one canonical event for every harness.
 - #1136 — the headers made readable to a stranger; every citation public.

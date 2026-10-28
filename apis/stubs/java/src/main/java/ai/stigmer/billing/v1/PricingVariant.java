@@ -9,8 +9,8 @@ package ai.stigmer.billing.v1;
  * <pre>
  * PricingVariant is a speed/mode variant (e.g. "fast") of a base model.
  *
- * Variants carry a full pricing block of their own; identity, catalog
- * metadata, and the Cursor Token Rate are inherited from the base entry.
+ * Variants carry a full pricing block of their own; identity and catalog
+ * metadata are inherited from the base entry.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.PricingVariant}
@@ -91,8 +91,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -105,8 +105,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -118,8 +118,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -132,8 +132,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Wire model names that resolve directly to this variant — names that
-   * do not normalize to a clean "base + suffix" form (e.g.
-   * "composer-2.5-fast"). Matched case-insensitively.
+   * do not normalize to a clean "base + suffix" form (e.g. a provider's
+   * own name for the variant). Matched case-insensitively.
    * </pre>
    *
    * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -328,8 +328,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * PricingVariant is a speed/mode variant (e.g. "fast") of a base model.
    *
-   * Variants carry a full pricing block of their own; identity, catalog
-   * metadata, and the Cursor Token Rate are inherited from the base entry.
+   * Variants carry a full pricing block of their own; identity and catalog
+   * metadata are inherited from the base entry.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.PricingVariant}
@@ -637,8 +637,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -652,8 +652,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -665,8 +665,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -679,8 +679,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -694,8 +694,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -715,8 +715,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -735,8 +735,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -755,8 +755,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>
@@ -772,8 +772,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Wire model names that resolve directly to this variant — names that
-     * do not normalize to a clean "base + suffix" form (e.g.
-     * "composer-2.5-fast"). Matched case-insensitively.
+     * do not normalize to a clean "base + suffix" form (e.g. a provider's
+     * own name for the variant). Matched case-insensitively.
      * </pre>
      *
      * <code>repeated string wire_ids = 2 [json_name = "wireIds", (.buf.validate.field) = { ... }</code>

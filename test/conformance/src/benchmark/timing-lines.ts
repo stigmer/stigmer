@@ -1,9 +1,6 @@
 // Reads the runner's `stigmer_timing` lines out of its tee'd log: the
-// `turn_phases` line the turn runtime writes at settle for every harness, the
-// `execution_setup` line each adapter writes when its engine is ready, and
-// the Cursor adapter's `turn_first_event` line, whose `send_returned` segment
-// is the one place the Cursor SDK's own MCP spawn shows (it connects inside
-// `send()`, after setup is written; runner execute-cursor/turn-settle.ts).
+// `turn_phases` line the turn runtime writes at settle for every harness, and
+// the `execution_setup` line each adapter writes when its engine is ready.
 // Domain: conformance benchmark (the runner-clock axes).
 //
 // The line is one JSON object per stdout line with a string `stigmer_timing`
@@ -22,13 +19,9 @@ import type { BenchmarkAxes, TimingLine, TimingSegment } from "./report";
 
 export const TURN_PHASES_EVENT = "turn_phases";
 export const EXECUTION_SETUP_EVENT = "execution_setup";
-export const TURN_FIRST_EVENT_EVENT = "turn_first_event";
 
 /** The native `execution_setup` segment that spans connecting the MCP servers. */
 export const CONNECT_MCP_SEGMENT = "connect_mcp";
-
-/** The Cursor `turn_first_event` segment that spans the SDK's `send()` call. */
-export const SEND_RETURNED_SEGMENT = "send_returned";
 
 // How long a reader waits for an execution's `turn_phases` line to land in
 // the tee'd file after the execution turned terminal. The line is written at
@@ -78,7 +71,6 @@ export function parseTimingLines(text: string): TimingLine[] {
 export interface ExecutionTiming {
   turn_phases: TimingLine | null;
   execution_setup: TimingLine | null;
-  turn_first_event: TimingLine | null;
 }
 
 /** The lines of one execution, by its `execution_id`; `null` for a line not (yet) present. */
@@ -87,7 +79,6 @@ export function timingFor(lines: readonly TimingLine[], executionId: string): Ex
   return {
     turn_phases: ofExecution.find((line) => line.event === TURN_PHASES_EVENT) ?? null,
     execution_setup: ofExecution.find((line) => line.event === EXECUTION_SETUP_EVENT) ?? null,
-    turn_first_event: ofExecution.find((line) => line.event === TURN_FIRST_EVENT_EVENT) ?? null,
   };
 }
 
@@ -105,7 +96,6 @@ export function axesFromTiming(
   | "tool_calls"
   | "sub_agent_calls"
   | "mcp_connect_ms"
-  | "cursor_send_returned_ms"
   | "mcp_server_count"
   | "skill_count"
   | "workspace_entry_count"
@@ -122,7 +112,6 @@ export function axesFromTiming(
     tool_calls: numberField(phases, "tool_calls"),
     sub_agent_calls: numberField(phases, "sub_agents"),
     mcp_connect_ms: segmentDuration(setup, CONNECT_MCP_SEGMENT),
-    cursor_send_returned_ms: segmentDuration(timing.turn_first_event, SEND_RETURNED_SEGMENT),
     mcp_server_count: numberField(setup, "mcp_server_count"),
     skill_count: numberField(setup, "skill_count"),
     workspace_entry_count: numberField(setup, "workspace_entry_count"),

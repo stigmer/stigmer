@@ -7,7 +7,7 @@
       "expected": { "category": "write" }
     },
     {
-      "name": "builtin-write-cursor",
+      "name": "builtin-write-claude",
       "input": { "toolName": "Write" },
       "expected": { "category": "write" }
     },
@@ -17,28 +17,13 @@
       "expected": { "category": "write" }
     },
     {
-      "name": "builtin-edit-cursor-collapses-to-write",
-      "input": { "toolName": "StrReplace" },
-      "expected": { "category": "write" }
-    },
-    {
       "name": "builtin-delete-native",
       "input": { "toolName": "delete_file" },
       "expected": { "category": "delete" }
     },
     {
-      "name": "builtin-delete-cursor",
-      "input": { "toolName": "Delete" },
-      "expected": { "category": "delete" }
-    },
-    {
       "name": "builtin-shell-native",
       "input": { "toolName": "execute" },
-      "expected": { "category": "shell" }
-    },
-    {
-      "name": "builtin-shell-cursor",
-      "input": { "toolName": "Shell" },
       "expected": { "category": "shell" }
     },
     {

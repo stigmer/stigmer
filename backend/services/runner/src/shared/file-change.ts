@@ -1,6 +1,5 @@
 /**
- * Pure path + binary-detection helpers shared by the native (deepagents) and
- * Cursor harnesses' file-review capture.
+ * Pure path + binary-detection helpers for the runner's file-review capture.
  *
  * Deliberately dependency-free and side-effect-free: no file IO, no diff
  * computation, no proto knowledge. `resolveWorkspacePath` normalizes a touched
@@ -40,7 +39,8 @@ export function bytesLookBinary(bytes: Uint8Array): boolean {
  * `virtualRoot` distinguishes the two harness path conventions:
  *  - native (deepagents) addresses files against a virtual root where a leading
  *    "/" denotes the workspace root;
- *  - Cursor passes real filesystem paths that may be absolute.
+ *  - a caller holding real filesystem paths (which may be absolute) passes
+ *    `false`.
  *
  * A path that is absolute but outside `rootDir` is displayed as-is (we never
  * surface an escaping `../../` relative path).

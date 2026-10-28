@@ -1941,7 +1941,7 @@ type GetOrgUsageReportOutput struct {
 	// Daily token trend within the time range, one row per UTC day that has a
 	// run, ordered chronologically.
 	DailyUsage []*DailyUsage `protobuf:"bytes,11,rep,name=daily_usage,json=dailyUsage,proto3" json:"daily_usage,omitempty"`
-	// Usage split by execution harness (e.g., "native" vs "cursor").
+	// Usage split by execution harness (e.g., "native" vs "claude").
 	HarnessUsage []*HarnessUsage `protobuf:"bytes,12,rep,name=harness_usage,json=harnessUsage,proto3" json:"harness_usage,omitempty"`
 	// Aggregated usage across the organization in the time range.
 	TotalUsage    *UsageReportAggregate `protobuf:"bytes,13,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
@@ -2450,12 +2450,12 @@ func (x *DailyUsage) GetLlmCallCount() int32 {
 
 // Usage split by execution harness within an org report.
 //
-// Each entry represents one harness (e.g., "native", "cursor" or "claude") and
+// Each entry represents one harness (e.g., "native" or "claude") and
 // aggregates tokens, call count, and run count for that harness
 // within the report's time range.
 type HarnessUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Harness identifier (e.g., "native", "cursor", "claude").
+	// Harness identifier (e.g., "native", "claude").
 	Harness string `protobuf:"bytes,1,opt,name=harness,proto3" json:"harness,omitempty"`
 	// Total tokens through this harness (cache-inclusive, as the aggregate's).
 	TotalTokens int64 `protobuf:"varint,2,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`

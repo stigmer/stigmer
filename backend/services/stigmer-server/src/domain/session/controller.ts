@@ -3,9 +3,9 @@
  * query sides): the conversation thread a person has with an agent, or with
  * the built-in assistant when it names none. Create and update pin the
  * agent the session names, at the version it resolves to
- * (resolve-session-agent.ts); update enforces the harness and
- * execution-target immutability sentinels and maintains the server-owned
- * harness_state_id_history; delete blocks while executions are active and
+ * (resolve-session-agent.ts); update keeps the harness, the execution
+ * target and the conversation's own Environment once it has run
+ * (has-run.ts); delete blocks while executions are active and
  * cascades the session's agent executions and its Files; updateSubject is a field-level
  * read-modify-write.
  *
@@ -174,7 +174,6 @@ import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { appendSessionEvents } from "./events/append.js";
 import { claimSessionInput } from "./events/claim-input.js";
-import { bindHarnessState } from "./bind-harness.js";
 import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { listSessionEvents } from "./events/list.js";
@@ -278,7 +277,6 @@ export function registerSessionServices(
       updateSubject(deps, req, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteSession(deps, id, ctx),
     appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
-    bindHarnessState: (input, ctx) => bindHarnessState(deps, input, ctx),
     claimInput: (input, ctx) => claimSessionInput(deps, input, ctx),
     reviewFileChanges: (input, ctx) =>
       reviewFileChanges(deps, input, callerIdentityOf(ctx)),
@@ -453,9 +451,9 @@ async function update(
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
       .addStep(newValidateHarnessImmutabilityStep(deps.store))
-      .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
+      .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig, deps.store))
       .addStep(newNormalizeReferencesStep(deps.store))
-      .addStep(newValidateEnvironmentImmutabilityStep())
+      .addStep(newValidateEnvironmentImmutabilityStep(deps.store))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(
         newValidateReferencesStep(deps.store, deps.authorizer, {

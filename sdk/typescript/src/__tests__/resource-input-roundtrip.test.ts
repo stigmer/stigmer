@@ -56,7 +56,6 @@ import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/api
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   Harness,
-  CursorMode,
   ExecutionTarget,
   GitWriteBackMode,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -380,8 +379,7 @@ describe("toAgentExecutionInput", () => {
             skillRefs: [
               { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
             ],
-            harness: Harness.CURSOR,
-            cursorMode: CursorMode.CLOUD,
+            harness: Harness.CLAUDE,
             executionTarget: ExecutionTarget.CLOUD,
           },
         },
@@ -604,9 +602,9 @@ describe("toIdentityAccountInput (tripwire)", () => {
         },
         preferences: {
           standingContext: "Keep answers terse.",
-          defaultHarness: "cursor",
+          defaultHarness: "claude",
           defaultNativeModel: "claude-sonnet-4.6",
-          defaultCursorModel: "composer-2.5",
+          defaultClaudeModel: "claude-sonnet-5",
         },
       },
     });
@@ -786,8 +784,7 @@ describe("toSessionInput", () => {
         skillRefs: [
           { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
         ],
-        harness: Harness.CURSOR,
-        cursorMode: CursorMode.CLOUD,
+        harness: Harness.CLAUDE,
         executionTarget: ExecutionTarget.CLOUD,
         vaults: [{ org: "acme", slug: "customer-1234", kind: ApiResourceKind.vault }],
         includeMyVault: true,

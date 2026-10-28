@@ -341,6 +341,10 @@ process, re-encoding to a format every harness can display inline.
 - Output format: JPEG stays JPEG; everything else prefers PNG (crisp UI
   text), switching to JPEG only for photographic content — detected by
   PNG byte density, where PNG can exceed the runner's inline byte cap.
+- A same-format resize that grew the file returns the original: the
+  runner caps bytes, not pixels, so the smaller original is the better
+  payload. A cross-format re-encode is kept even when larger, the price
+  of being visible to every model.
 
 Never throws; every failure path returns the original file (see module
 doc). Non-image files are returned unchanged.

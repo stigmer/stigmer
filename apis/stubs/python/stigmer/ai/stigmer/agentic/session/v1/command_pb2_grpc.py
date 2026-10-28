@@ -77,11 +77,6 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputResponse.FromString,
                 _registered_method=True)
-        self.bindHarnessState = channel.unary_unary(
-                '/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateResponse.FromString,
-                _registered_method=True)
 
 
 class SessionCommandControllerServicer(object):
@@ -306,17 +301,6 @@ class SessionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def bindHarnessState(self, request, context):
-        """Record the harness's conversation id for a run's session.
-
-        Only the runner acting for the run may call it, while the run is not
-        finished. The id replaced, if any, joins the session's
-        harness_state_id_history.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_SessionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -379,11 +363,6 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.claimInput,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputResponse.SerializeToString,
-            ),
-            'bindHarnessState': grpc.unary_unary_rpc_method_handler(
-                    servicer.bindHarnessState,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -711,33 +690,6 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def bindHarnessState(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState',
-            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -11,7 +11,7 @@
  * the call never ran, so the tools channel says nothing of it), so the model's
  * next turn answers a row the status already holds; after the stream the row
  * is SKIPPED with UNATTENDED_SKIP provenance and the skip message as its
- * result, the shape Cursor's turn boundary stamps for the same skip.
+ * result (`shared/unattended-skips.ts`).
  *
  * The session's log says the permission policy refused the call:
  * `evaluated_permission: "deny"` on its `agent.tool_use`, Managed Agents'

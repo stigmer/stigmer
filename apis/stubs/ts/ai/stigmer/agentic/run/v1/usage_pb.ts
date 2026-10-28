@@ -362,8 +362,7 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
 
   /**
    * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-   * mirroring service_tier's convention: cursor harness derives it from the
-   * resolved wire id's variant suffix; empty when the wire carries no
+   * mirroring service_tier's convention; empty when the wire carries no
    * evidence — never guessed. Thinking is per-token price-neutral
    * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
    * consumption-drift reconciliation.
@@ -577,7 +576,7 @@ export type ModelUsage = Message<"ai.stigmer.agentic.run.v1.ModelUsage"> & {
   model: string;
 
   /**
-   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * LLM provider (e.g., "openai", "anthropic").
    *
    * @generated from field: string provider = 2;
    */
@@ -663,9 +662,8 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.run.v1.Streaming
   cacheWriteTokens: bigint;
 
   /**
-   * Total tokens across all turns: input_tokens + output_tokens. The Cursor
-   * SDK reports input_tokens cache-inclusive (cache_read/cache_write are
-   * subsets of it), so the cache buckets are NOT added again here.
+   * Total tokens across all turns: input_tokens + output_tokens; the cache
+   * buckets are NOT added again here.
    *
    * @generated from field: int64 total_tokens = 5;
    */
@@ -714,8 +712,8 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.run.v1.Streaming
 
   /**
    * JSON-encoded provider variant parameters the runner sent with the model
-   * selection (Cursor ModelSelection.params, e.g.
-   * [{"id":"fast","value":"false"}]). Empty when the harness sent none.
+   * selection (e.g. [{"id":"fast","value":"false"}]). Empty when the
+   * harness sent none.
    *
    * @generated from field: string requested_model_params = 11;
    */

@@ -7,8 +7,9 @@
 # a changed provider API or a price table that no longer knows a model is seen
 # the week it happens instead of by a user:
 #   runner-live  the runner's live suites: a native turn, a tool call and a
-#                cost-cap stop on Claude Haiku; the workflow llm_call; every
-#                registry row's id at its provider; the Cursor instruments.
+#                cost-cap stop on Claude Haiku; a Claude engine turn through
+#                an approval; the workflow llm_call; every registry row's id
+#                at its provider.
 #   cli-live     the CLI npm just published, `stigmer up` and an agent run on
 #                Claude Haiku (test/install/smoke-cli-cutover.mjs --live-model).
 #
@@ -21,20 +22,18 @@
 # Never on a pull request or in the merge queue: it spends money and depends
 # on providers being up, so it blocks nothing.
 #
-# Money: the case list is fixed; each native and Cursor execution runs under
-# its own cost cap (max_cost_usd) and each workflow call under a token cap.
-# runner-live's step summary lists the estimated spend of every case that has
-# an estimate (the native turns, the llm_call cases, the Cursor transcript).
-# The SDK-direct Cursor instruments and the CLI's one turn have no product cap
-# and no estimate; each takes at most one short turn, and the summary names
-# them.
+# Money: the case list is fixed; each execution runs under its own cost cap
+# (max_cost_usd) and each workflow call under a token cap. runner-live's step
+# summary lists the estimated spend of every case that has an estimate (the
+# native turns, the llm_call cases). The CLI's one turn has no product cap and
+# no estimate; it takes at most one short turn.
 #
-# Keys: ANTHROPIC_API_KEY and CURSOR_API_KEY from the `provider-integration`
-# environment, which deploys only to `main`. A release run runs on `main` and
-# checks out the tagged commit, which the release job admits only when `main`
-# carries it; a dispatch runs on its own ref, and the environment refuses
-# every ref but `main`. The keys reach one step each through
-# `env:` and are never printed. STIGMER_LIVE=1 makes a missing key fail the
+# Key: ANTHROPIC_API_KEY from the `provider-integration` environment, which
+# deploys only to `main`. A release run runs on `main` and checks out the
+# tagged commit, which the release job admits only when `main` carries it; a
+# dispatch runs on its own ref, and the environment refuses every ref but
+# `main`. The key reaches one step per job through `env:` and is never
+# printed. STIGMER_LIVE=1 makes a missing key fail the
 # run instead of skipping it (backend/services/runner/src/__test-utils__/live-gate.ts).
 #
 # Red: an unattended (workflow_run) failure files or comments on one
@@ -171,12 +170,8 @@ jobs:
         env:
           STIGMER_LIVE: "1"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: |
-          {
-            echo "### Runner live suites: estimated spend per case"
-            echo "- the SDK-direct Cursor instruments: at most one short turn each, no product cap, no estimate"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "### Runner live suites: estimated spend per case" >> "$GITHUB_STEP_SUMMARY"
           npm run test:live
 
   cli-live:

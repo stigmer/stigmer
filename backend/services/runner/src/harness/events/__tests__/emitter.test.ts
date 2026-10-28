@@ -175,18 +175,6 @@ describe("the ask's policy source", () => {
     }
   });
 
-  it("carries the content digest the call was asked under, which a resumed turn reads back as the edit an approval allows", async () => {
-    const log = logDouble();
-    const e = emitter(log);
-    const waiting = { name: "write", status: S.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true, result: "" };
-    const st = status({
-      messages: [{ type: AI, content: "Writing.", toolCalls: [row("w", { ...waiting, approvalContentDigest: "d1" }), row("s", { ...waiting, name: "shell" })] }],
-    });
-    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
-    await e.flush(st, { final: true });
-    const asks = log.events.flatMap((ev) => (ev.event.case === "stigmerPermissionAsked" ? [ev.event.value] : []));
-    expect(asks.map((ask) => [ask.toolUseId.slice(RUN.length + 1), ask.contentDigest])).toEqual([["w", "d1"], ["s", ""]]);
-  });
 });
 
 describe("the permission a tool use carries", () => {
@@ -220,9 +208,8 @@ describe("the permission a tool use carries", () => {
 });
 
 describe("a harness whose boundary rewrites rows", () => {
-  // The adapter's predicate decides which rows wait; this stand-in holds a
-  // hook-blocked call, as Cursor's does (`execute-cursor/boundary-rows.ts`,
-  // whose own test runs this emitter with the real predicate).
+  // The adapter's predicate decides which rows wait (Claude's is
+  // `claudeRowAwaitsGate`); this stand-in holds a hook-blocked call.
   const boundary = { boundaryRewritesRow: (tc: { error: string }) => tc.error.includes("blocked by a hook") };
 
   it("holds the row the boundary may rewrite, and everything after it, until the terminal write", async () => {

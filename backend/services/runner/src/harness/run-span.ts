@@ -16,8 +16,7 @@
  * to the server (`client/stigmer-client.ts` injects the active context),
  * the agent's hooks join it, and the agent host runs the engine under it
  * (`shared/trace-context.ts`), where the engines' `chat` and
- * `execute_tool` spans nest (`middleware/otel-spans.ts`,
- * `activities/execute-cursor/run-telemetry.ts`).
+ * `execute_tool` spans nest (`middleware/otel-spans.ts`).
  *
  * Its facts arrive as resolution learns them: the run and its session
  * ({@link RunSpan.identify}, which also names the span), the model, the

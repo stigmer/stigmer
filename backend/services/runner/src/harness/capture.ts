@@ -28,20 +28,18 @@
  * that the runtime cannot read is what its engine observed touching
  * CAS-owned paths (`TurnSink.bindCasObservations`).
  *
- * Until #1096 both adapters carried this whole act (Cursor in its
- * `turn-boundary.ts` between the stream and `run.wait()`, the deep-agent in
- * its `turn-settle.ts`), each with its own evidence source and its own
- * scoping rules for the provenance and the stamp. The two rules here are the
- * one reading both engines already produce:
+ * Until #1096 each adapter carried this whole act, with its own evidence
+ * source and its own scoping rules for the provenance and the stamp. The
+ * two rules here are the one reading every engine produces:
  *
  *  - PROVENANCE (`shared/filereview/command-provenance.ts` is the
  *    rule; this is its two inputs). "This turn's commands" are the top-level
  *    rows whose id had not SETTLED before the engine ran — never a message
- *    position, because on BOTH engines an approved command executes on the
- *    row the runtime seeded for it (the deep-agent's builder and Cursor's
- *    translator both reconcile the re-attempt onto the seeded WAITING row),
- *    at its prior position; a positional scope misses it (Cursor's
- *    did, so its auto-keep never qualified a gated-then-approved command).
+ *    position, because an approved command executes on the row the runtime
+ *    seeded for it (each engine's translator reconciles the re-attempt onto
+ *    the seeded WAITING row), at its prior position; a positional scope
+ *    misses it, so an auto-keep would never qualify a gated-then-approved
+ *    command.
  *    "Executed" is a COMPLETED row. "Consented" is the row's own
  *    `approval_action`, the person's answer the seed copied from the
  *    session's log (`approval-answers.ts`) — the seeded row keeps its id and
@@ -188,7 +186,6 @@ export async function pinCaptureBaseline(args: {
         workspace,
         baselineTree,
         excludePaths: fileReview.excludePaths,
-        transientPaths: fileReview.transientPaths ?? [],
         casSlice: artifactStorage !== undefined,
         // Delegates to whatever the adapter binds later; `capture` is
         // assigned before any capture() can run.
@@ -211,31 +208,6 @@ export async function pinCaptureBaseline(args: {
  * a workspace with storage, so the fourth cell is unreachable and says so.
  */
 function buildProgressSubstrate(args: {
-  readonly executionId: string;
-  readonly workspace: TurnWorkspace;
-  readonly baselineTree: string;
-  readonly excludePaths: readonly string[];
-  readonly transientPaths: readonly string[];
-  readonly casSlice: boolean;
-  readonly readObservations: CasTouchedReader;
-}): ProgressSubstrate {
-  const { transientPaths } = args;
-  const substrate = buildShapedProgressSubstrate(args);
-  if (transientPaths.length === 0) return substrate;
-  // A path the harness rewrites for the turn only: dropped from what the
-  // progress shows, by path, since the baseline holds it and a tree exclusion
-  // would read its absence as a deletion.
-  const transient = new Set(transientPaths);
-  return {
-    async capture() {
-      const { delta, changed } = await substrate.capture();
-      const entries = delta.entries.filter((e) => !transient.has(e.pathAfter) && !transient.has(e.pathBefore));
-      return { delta: { ...delta, entries }, changed };
-    },
-  };
-}
-
-function buildShapedProgressSubstrate(args: {
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly baselineTree: string;

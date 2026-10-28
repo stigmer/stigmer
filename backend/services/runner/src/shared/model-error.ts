@@ -230,7 +230,7 @@ export function classifyModelCallError(
   //    wrapper turns the SDK's timeout into. Any link, not the root: the
   //    SDK keeps undici's `TypeError` beneath its connection error, so the
   //    root of a dropped connection is `fetch failed`. The callers' catch
-  //    blocks are broad (deep-agent, Cursor), and a WorkspaceLockTimeoutError
+  //    blocks are broad, and a WorkspaceLockTimeoutError
   //    is not a model connection timeout, nor a DOMException TimeoutError.
   const links = causeChainOf(err);
   if (isModelTimeout(links)) {
@@ -445,7 +445,7 @@ function classifyStreamFailure(type: string, rawMessage: string, ctx: ModelError
  * LangChain's OpenAI wrapper turns it into. Matched by that exact shape,
  * because other timeouts share the name: a DOMException's (an
  * `AbortSignal.timeout` of the caller's own), the runner's own
- * `with-timeout.ts` class (a Cursor agent's create), and LangChain's
+ * `with-timeout.ts` class (a bounded call of its own), and LangChain's
  * `MiddlewareError`, which copies its cause's name onto itself.
  */
 export function isModelTimeout(links: readonly Error[]): boolean {

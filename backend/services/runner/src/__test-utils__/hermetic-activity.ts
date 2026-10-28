@@ -3,7 +3,7 @@
  * network, no credentials, and no live Temporal worker, and read back every
  * status it persisted.
  *
- * Why this exists: the runner's activities (`ExecuteCursor`, `ExecuteDeepAgent`)
+ * Why this exists: the runner's activities (`ExecuteDeepAgent`, `ExecuteClaude`)
  * are the wire contract the control plane's workflow keys on — the phases they
  * persist, the copy they write, whether they RETURN a slim status or THROW
  * `CancelledFailure`. Refactoring them safely needs goldens recorded through the
@@ -11,9 +11,9 @@
  * earlier activity tests ran their activity hermetically by mocking three
  * modules at the boundary with a hand-written `Context` stand-in and a scripted
  * graph object; this module is that convention made reusable, harness-agnostic,
- * and driven by the framework's own activity environment. Both harnesses now
- * run on it (`execute-cursor/__test-utils__/hermetic-cursor.ts`,
- * `execute-deep-agent/__test-utils__/hermetic-deep-agent.ts`), and the earlier
+ * and driven by the framework's own activity environment. Both harnesses
+ * run on it (`execute-deep-agent/__test-utils__/hermetic-deep-agent.ts`,
+ * `execute-claude/__test-utils__/hermetic-claude.ts`), and the earlier
  * native tests were re-homed onto the native driver (#1096), their assertions
  * carried into `execute-deep-agent/__tests__/hermetic/`.
  *
@@ -21,8 +21,9 @@
  * NOT the vendor SDK — the Temporal `Context`, the control-plane client, the
  * runner-owned `~/.stigmer` tree, artifact storage, the model registry, the
  * clock, the worker-shutdown signal — is set up here. The vendor SDK double
- * belongs to the harness (`activities/execute-cursor/__test-utils__/scripted-*.ts`),
- * the same split as `approval-contract/` (runner-wide kit) + each harness's
+ * belongs to the harness (`execute-deep-agent/__test-utils__/scripted-model.ts`,
+ * `execute-claude/__test-utils__/claude-wire.ts`), the same split as
+ * `approval-contract/` (runner-wide kit) + each harness's
  * `gateway-substrate.ts`.
  *
  * Three substitutions, and why each is shaped the way it is:
@@ -63,16 +64,14 @@
  * a ticking clock runs the same path and lands on the same instants every run.
  * Timers stay real so the periodic heartbeat and the stall watchdog behave.
  *
- * The live posture (#1097's live-run gate): a `CURSOR_API_KEY`-gated live
- * instrument keeps all three substitutions above — the real `Context`, the
- * record behind the client, the temp environment — and drops only the
- * harness's SDK double, so the REAL activity runs against the REAL vendor SDK
- * with everything the activity persists still readable from the record.
- * Two things differ from a hermetic run and both are the caller's explicit
- * choice: no `ScriptedClock` is installed (the real SDK is not ticked, and a
- * frozen clock would skip the persist cadence production runs), and the
- * environment may name an `eventRecordingDir` so the run leaves a recording.
- * The harness's driver names the entry (`beginLiveCursorScenario`).
+ * The live posture (#1097's live-run gate): a key-gated live instrument
+ * keeps all three substitutions above — the real `Context`, the record
+ * behind the client, the temp environment — and drops only the harness's
+ * SDK double, so the REAL activity runs against the REAL vendor SDK with
+ * everything the activity persists still readable from the record. One
+ * thing differs from a hermetic run, the caller's explicit choice: no
+ * `ScriptedClock` is installed (the real SDK is not ticked, and a frozen
+ * clock would skip the persist cadence production runs).
  *
  * Not in scope: this module never edits a production module and never
  * normalizes output. If a golden is not byte-stable, the volatile source is
@@ -104,7 +103,6 @@ import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/se
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   AppendSessionEventsResponseSchema,
-  BindHarnessStateResponseSchema,
   SessionEventPreviewSchema,
   type SessionEventPreview,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
@@ -303,8 +301,6 @@ export class ExecutionRecord {
   private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
   readonly setupProgress: string[] = [];
-  /** Every `bindHarnessState` call, in order (the `harness_state_id` write-back). */
-  readonly harnessBinds: { readonly runId: string; readonly harnessStateId: string }[] = [];
   /** The session's event log as the runner appended it, in order (one entry per distinct id). */
   readonly sessionEvents: SessionEvent[] = [];
   /** The session's queue: messages a person sent while the turn worked, not yet claimed, in the order sent. */
@@ -812,10 +808,6 @@ export class ExecutionRecord {
         const signal = this.runNamed(id) === this.execution ? this.applyStatusUpdate(status) : this.applyReconcileStatus(status);
         return create(UpdateStatusResponseSchema, { signal, inputPending: this.queuedMessages.length > 0 });
       }),
-      bindHarnessState: vi.fn(async (runId: string, harnessStateId: string) => {
-        this.harnessBinds.push({ runId, harnessStateId });
-        return create(BindHarnessStateResponseSchema, { harnessStateId });
-      }),
       appendSessionEvents: vi.fn(async (runId: string, events: readonly SessionEvent[], previews: readonly SessionEventPreview[]) => {
         this.appendSessionEvents(runId, events, previews);
         return create(AppendSessionEventsResponseSchema);
@@ -886,8 +878,8 @@ let boundClient: StigmerClient | undefined;
 /**
  * Bind the client the mocked `StigmerClient` constructor hands out for the
  * current run. Called by the harness driver immediately before invoking the
- * activity factory (`createCursorActivities(config)` constructs its client
- * inside the factory, so the bind must precede the factory call).
+ * activity factory (the factory constructs its client, so the bind must
+ * precede the factory call).
  */
 export function bindHermeticClient(client: StigmerClient): void {
   boundClient = client;
@@ -933,10 +925,6 @@ export function hermeticStigmerClientModule(): { StigmerClient: new () => Stigme
  *    (an absent store flips capture off — a different code path).
  *  - `STIGMER_RUNNER_HITL_SECRET`: the one randomness source on the activity
  *    path, pinned so grant tokens and fingerprints are byte-stable.
- *  - `CURSOR_EVENT_RECORD_DIR` cleared: never write recordings from a test —
- *    unless the caller names an `eventRecordingDir`, the live instruments'
- *    opt-in (below), in which case this environment SETS it. Either way the
- *    variable has one owner here, and dispose restores it.
  */
 const PINNED_ENV = {
   ARTIFACT_STORAGE_TYPE: "local",
@@ -944,19 +932,6 @@ const PINNED_ENV = {
 } as const;
 
 const CLEARED_ENV = ["STIGMER_PROXY_ENDPOINT", "STIGMER_CLOUD_API_URL"] as const;
-
-/** The one name the Cursor recorder is switched on by (`turn-settle.ts` reads it). */
-const CURSOR_EVENT_RECORD_DIR = "CURSOR_EVENT_RECORD_DIR";
-
-export interface HermeticEnvironmentOptions {
-  /**
-   * Where the Cursor event recorder writes this run's raw SDK recording
-   * (`<dir>/<executionId>.cursor-events.jsonl`). Named ONLY by a live
-   * instrument, whose point is a recording of the real SDK; a hermetic
-   * scenario leaves it unset and the variable is cleared for the run.
-   */
-  readonly eventRecordingDir?: string;
-}
 
 export interface HermeticEnvironment {
   /** The temp `HOME` (the runner's `~/.stigmer` lands under it). */
@@ -974,7 +949,7 @@ export interface HermeticEnvironment {
  * `beforeAll`) — the fingerprint secret is memoized per process on first use,
  * and vitest isolates files in forks, so per-file is the natural unit.
  */
-export function createHermeticEnvironment(options: HermeticEnvironmentOptions = {}): HermeticEnvironment {
+export function createHermeticEnvironment(): HermeticEnvironment {
   const root = mkdtempSync(join(tmpdir(), "stigmer-hermetic-"));
   const home = join(root, "home");
   const workspaceRootDir = join(root, "workspaces");
@@ -990,7 +965,6 @@ export function createHermeticEnvironment(options: HermeticEnvironmentOptions = 
   set("LOCAL_ARTIFACT_PATH", artifactPath);
   for (const [k, v] of Object.entries(PINNED_ENV)) set(k, v);
   for (const k of CLEARED_ENV) set(k, undefined);
-  set(CURSOR_EVENT_RECORD_DIR, options.eventRecordingDir);
 
   let disposed = false;
   return {

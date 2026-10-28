@@ -329,8 +329,7 @@ export interface ServerConfig {
   /**
    * The runner's secrets every provisioned sandbox receives
    * (STIGMER_SANDBOX_RUNNER_SECRETS, the same list form), such as the
-   * direct-mode model and Cursor keys an open-source runner authenticates
-   * with: a runner outside the cloud has no proxy to hold them for it
+   * direct-mode model keys an open-source runner authenticates with: a runner outside the cloud has no proxy to hold them for it
    * (the runner's config.ts, "Direct mode"). Every driver delivers them
    * through the channel it uses for the runner's token, never a plain
    * manifest value or argv.
@@ -338,8 +337,8 @@ export interface ServerConfig {
   readonly sandboxRunnerSecretEnv: Readonly<Record<string, string>>;
   /**
    * The model providers this server's runners reach
-   * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic`,
-   * `openai` and `cursor`), as names, never values. Undefined when unset:
+   * (STIGMER_RUNNER_PROVIDERS: a comma-separated list of `anthropic` and
+   * `openai`), as names, never values. Undefined when unset:
    * the server cannot see a runner that runs as its own process, so every
    * provider is unknown and nothing is refused for it. Set but empty: the
    * runners reach none, and a run that needs one is refused at create

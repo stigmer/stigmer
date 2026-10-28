@@ -5,8 +5,8 @@ import { getErrorReason, getUserMessage } from "@stigmer/client";
 
 /**
  * The reason Stigmer Cloud refuses a run that needs a provider the
- * organization holds no key for: its model's, or Cursor for a run on the
- * Cursor harness (billing/providerkey/v1/api.proto).
+ * organization holds no key for: its model's
+ * (billing/providerkey/v1/api.proto).
  */
 export const PROVIDER_KEY_REQUIRED = "PROVIDER_KEY_REQUIRED";
 
@@ -17,9 +17,9 @@ export const DEFAULT_PROVIDER_KEYS_HREF = "/settings/provider-keys";
 export interface ProviderKeyRequired {
   /** The organization the run was refused in. */
   readonly org: string;
-  /** The provider it has no key for: `anthropic`, `openai` or `cursor`. */
+  /** The provider it has no key for: `anthropic` or `openai`. */
   readonly provider: string;
-  /** The model the run would have used; empty when it names none, as a Cursor run on Auto does. */
+  /** The model the run would have used; empty when it names none. */
   readonly model: string;
 }
 

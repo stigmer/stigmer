@@ -15,8 +15,6 @@
  *    every one of which the runtime owns (`codec.ts`); a tool output's
  *    stored reference is kept only under the turn's own key prefix or as
  *    the runtime seeded it;
- *  - a harness state bind carries only the id; the runtime records it
- *    through the session's `bindHarnessState` door;
  *  - a usage report's counts are clamped to finite, non-negative numbers;
  *  - a plugin verify names one of the turn's own plugins.
  *
@@ -55,7 +53,6 @@ import {
   decodeCasSnapshot,
   decodeMessage,
   encodeMessage,
-  encodeRunEvents,
   type TurnFields,
   encodeTurnInput, encodeOffloads } from "./codec.js";
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
@@ -202,10 +199,6 @@ class RemoteTurn {
           await sink.reportProgress(label);
           return null;
         },
-        bindHarnessState: async ({ harnessStateId }) => {
-          await sink.bindHarnessState(harnessStateId);
-          return null;
-        },
         selectRecalledMemories: async () => (await input.standing.selectRecalledMemories()) ?? null,
         verifyPlugin: async ({ slug }) => {
           const plugin = input.hooks.sources.find((s) => s.plugin?.slug === slug)?.plugin;
@@ -213,7 +206,6 @@ class RemoteTurn {
           await plugin.verify();
           return null;
         },
-        readRunEvents: async () => encodeRunEvents(await input.readRunEvents()),
         claimInput: async ({ force }) => {
           const messages = await sink.input.claim({ force });
           return { messages, pending: sink.input.pending() };
@@ -325,15 +317,14 @@ function clampUsage(delta: UsageDelta): UsageDelta {
   };
 }
 
-const SETTLED_KINDS: ReadonlySet<string> = new Set(["completed", "cancelled", "awaiting_approval", "tool_call_limit", "interrupted"]);
+const SETTLED_KINDS: ReadonlySet<string> = new Set(["completed", "awaiting_approval", "tool_call_limit", "interrupted"]);
 const FAILURE_SURFACES: ReadonlySet<string> = new Set(["engine", "actionable", "internal"]);
 
 /** The host's outcome, taken only in a shape the runtime knows: anything else is an internal failure, never the host's own choice. */
 function fromWireOutcome(wire: WireOutcome): TurnOutcome {
   // Read as the host sent it, not as the type promises: the host is the agent's.
   const raw = wire as { readonly kind?: unknown; readonly message?: unknown; readonly surface?: unknown; readonly cause?: WireError };
-  if (typeof raw.kind === "string" && SETTLED_KINDS.has(raw.kind)) return { kind: raw.kind as Exclude<TurnOutcome["kind"], "failed" | "stream_cut"> };
-  if (raw.kind === "stream_cut" && typeof raw.message === "string") return { kind: "stream_cut", message: raw.message };
+  if (typeof raw.kind === "string" && SETTLED_KINDS.has(raw.kind)) return { kind: raw.kind as Exclude<TurnOutcome["kind"], "failed"> };
   if (raw.kind !== "failed" || typeof raw.message !== "string" || typeof raw.surface !== "string" || !FAILURE_SURFACES.has(raw.surface)) {
     return { kind: "failed", surface: "internal", message: "The agent process answered with an outcome this runner does not know." };
   }

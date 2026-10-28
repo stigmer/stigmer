@@ -51,14 +51,14 @@ vi.mock("../../models/ModelSelector.js", () => ({
     onHarnessChange,
   }: {
     onValueChange: (modelId: string) => void;
-    onHarnessChange: (harness: "cursor") => void;
+    onHarnessChange: (harness: "claude") => void;
   }) => (
     <>
       <button type="button" onClick={() => onValueChange("claude-haiku-4-5")}>
         pick a model
       </button>
-      <button type="button" onClick={() => onHarnessChange("cursor")}>
-        use cursor
+      <button type="button" onClick={() => onHarnessChange("claude")}>
+        use claude
       </button>
     </>
   ),
@@ -280,7 +280,7 @@ describe("EvalRunsTab on a plugin", () => {
     fireEvent.click(
       screen.getAllByRole("button", { name: "pick a model" })[1]!,
     );
-    fireEvent.click(screen.getAllByRole("button", { name: "use cursor" })[1]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "use claude" })[1]!);
     fireEvent.click(screen.getByRole("button", { name: "Remove model 1" }));
     expect(
       screen.getAllByRole("button", { name: "pick a model" }),
@@ -293,7 +293,7 @@ describe("EvalRunsTab on a plugin", () => {
     await vi.waitFor(() => expect(mock.evalrun.create).toHaveBeenCalled());
     expect(mock.evalrun.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        targets: [{ harness: Harness.CURSOR }],
+        targets: [{ harness: Harness.CLAUDE }],
         concurrency: 4,
       }),
     );

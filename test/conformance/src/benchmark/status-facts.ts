@@ -141,7 +141,6 @@ export function nullAxes(): BenchmarkAxes {
     sub_agent_calls: null,
     review_ready_ms: null,
     mcp_connect_ms: null,
-    cursor_send_returned_ms: null,
     mcp_server_count: null,
     attachment_count: null,
     skill_count: null,

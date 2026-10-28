@@ -464,7 +464,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
 // The verdict is decided on the one axis #1008 is defined by: did the runner
 // print WORKER_STOPPED_MARKER? A line-exact match anywhere in the tail — not
 // "the last line", because the runner may legitimately print after the worker
-// stops (a parked Cursor agent being closed, say), and such a line must not
+// stops (an engine closing its session, say), and such a line must not
 // turn a #1008 hang into a false alarm. Whatever followed the marker is in the
 // quoted excerpt, where a reader can see it, not folded into the verdict.
 // Pure, so the unit arms drive it directly; it never throws, because it runs

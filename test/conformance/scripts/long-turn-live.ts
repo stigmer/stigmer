@@ -16,8 +16,7 @@
 // run's spec.run_config.max_cost_usd carries it, the server keeps the smallest
 // bound any layer sets (domain/run/resolve-run-config.ts), and the runtime
 // ends the turn `budget_reached` at the crossing (harness/cost-cap-watch.ts).
-// Defaults: $10 a run on native and on Claude, $20 on Cursor (which bills
-// the Cursor account).
+// Defaults: $10 a run on native and on Claude.
 //
 // On Claude (`--harness claude`) the agent lists one saved helper on Claude
 // for the `subagent` step, and the step names it with the engine's `Agent`
@@ -54,11 +53,11 @@
 // bundled steps, or that compacted fewer than three times, reads void.
 // `--profile retention --model claude-haiku-4.5` is the goal-retention probe.
 //
-// Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native and Claude,
-// CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
+// Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native and Claude;
+// the `stigmer` CLI (`make install-cli-shim`).
 //
 // Flags: those of the real-clock run (--profile, --minutes, --steps, --out),
-// plus --harness deep-agent|cursor|claude (default deep-agent), --model <registry id>
+// plus --harness deep-agent|claude (default deep-agent), --model <registry id>
 // (default the harness's parity model) and --max-cost-usd N.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -75,11 +74,11 @@ import { createUniqueOrganization } from "../src/support/organizations";
 import { makeAgentExecution } from "../src/support/runs";
 
 /** The product cost cap each harness's run carries unless --max-cost-usd says otherwise. */
-const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { "deep-agent": 10, cursor: 20, claude: 10 };
-const KEY_OF: Record<BenchmarkHarness, string> = { "deep-agent": "ANTHROPIC_API_KEY", cursor: "CURSOR_API_KEY", claude: "ANTHROPIC_API_KEY" };
+const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { "deep-agent": 10, claude: 10 };
+const KEY_OF: Record<BenchmarkHarness, string> = { "deep-agent": "ANTHROPIC_API_KEY", claude: "ANTHROPIC_API_KEY" };
 
 /** Whether the harness's `subagent` step needs a saved helper: its engine has no general-purpose one. */
-const NEEDS_SAVED_HELPER: Record<BenchmarkHarness, boolean> = { "deep-agent": false, cursor: false, claude: true };
+const NEEDS_SAVED_HELPER: Record<BenchmarkHarness, boolean> = { "deep-agent": false, claude: true };
 
 /**
  * The live agent says what the run is. Without it a model reads a list of

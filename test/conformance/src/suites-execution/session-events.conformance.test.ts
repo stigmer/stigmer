@@ -71,7 +71,6 @@ import type { AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { GitWorkspace } from "../harness/git-workspace";
@@ -424,42 +423,6 @@ describe("a session's event log on real turns", () => {
     );
     const idle = events[events.length - 1]!.event;
     expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("end_turn");
-  });
-
-  it("[rpc:SessionCommandController.bindHarnessState] the run's runner records the harness state in the session's status; an edit made during the turn stays; a credential for another run is refused", async () => {
-    const { org } = await target.provisionTenancy();
-    const sessionId = await newSession(org);
-    mock.enqueue(anthropicText("Held while the runner binds."), { delayMs: HOLD_MS });
-    const runId = await startTurn(org, sessionId, "bind for me");
-    await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
-
-    // The owner edits the conversation while the turn runs.
-    await clients.sessionCommand.update({
-      resource: { metadata: { id: sessionId }, spec: { subject: "Renamed during the turn" } },
-      updateMask: { paths: ["spec.subject"] },
-    });
-
-    const minted = await clients.platformQuery.getRunnerScopedToken({ scope: { case: "runId", value: runId } });
-    const runner = target.clientsPresenting(minted.runnerScopedToken);
-    const first = await runner.sessionCommand.bindHarnessState({ runId, harnessStateId: "thread-1" });
-    expect([first.harnessStateId, first.harnessStateIdHistory]).toEqual(["thread-1", []]);
-    const second = await runner.sessionCommand.bindHarnessState({ runId, harnessStateId: "thread-2" });
-    expect([second.harnessStateId, second.harnessStateIdHistory]).toEqual(["thread-2", ["thread-1"]]);
-
-    const session = await clients.sessionQuery.get({ value: sessionId });
-    expect(session.spec?.subject, "the edit made during the turn stays").toBe("Renamed during the turn");
-    expect(session.status?.harnessStateId).toBe("thread-2");
-    expect(session.status?.harnessStateIdHistory).toEqual(["thread-1"]);
-
-    const otherRun = await expectGrpcCode(
-      () => runner.sessionCommand.bindHarnessState({ runId: "run_01conformancenotthisrun", harnessStateId: "thread-forged" }),
-      Code.PermissionDenied,
-      "bindHarnessState naming another run",
-    );
-    expect(otherRun.rawMessage).toBe("only the runner acting for this run may record its session's harness state");
-
-    await clients.sessionCommand.interrupt({ sessionId });
-    await awaitTerminal(clients, runId);
   });
 
   it("[rpc:SessionCommandController.appendEvents] the run's runner appends the agent's events: resends once, refuses changed content, streams previews, refuses the server's types and other runs' credentials, and a finished run", async () => {

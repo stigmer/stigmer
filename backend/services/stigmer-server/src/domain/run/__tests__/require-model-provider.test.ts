@@ -38,17 +38,21 @@ const catalog: ProviderNeedCatalog = {
   defaultModel: () => "claude-sonnet-4.6",
 };
 
+/** The catalog with no default model on any engine, so a turn naming none names none in its refusal. */
+const catalogWithoutDefaults: ProviderNeedCatalog = { ...catalog, defaultModel: () => undefined };
+
 const logger = createLogger({ level: "error", pretty: false, write: () => {} });
 
 function stepAnswering(
   report: ProviderAvailabilityReport | Error,
   visitor = false,
+  stepCatalog: ProviderNeedCatalog = catalog,
 ): ReturnType<typeof newRequireModelProviderStep> {
   const availability: ProviderAvailabilityProvider = {
     availability: () => (report instanceof Error ? Promise.reject(report) : Promise.resolve(report)),
   };
   return newRequireModelProviderStep({
-    catalog,
+    catalog: stepCatalog,
     availability,
     visitorClassifier: { isVisitor: () => visitor },
     logger,
@@ -98,20 +102,23 @@ describe("RequireModelProvider", () => {
   });
 
   it("refuses a provider missing from the runners, naming stigmer setup and the restart", async () => {
-    const refused = await refusal(stepAnswering({ state: "missing", scope: "runners" }), turn({ engine: Harness.CURSOR }));
-    expect(refused.rawMessage).toBe(
-      "This server's runners have no Cursor key, so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`.",
+    const refused = await refusal(
+      stepAnswering({ state: "missing", scope: "runners" }, false, catalogWithoutDefaults),
+      turn({ engine: Harness.CLAUDE }),
     );
-    expect(refused.findDetails(ErrorInfoSchema)[0]?.metadata).toEqual({ org: "org-acme", provider: "cursor", model: "" });
+    expect(refused.rawMessage).toBe(
+      "This server's runners have no Anthropic key, so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`.",
+    );
+    expect(refused.findDetails(ErrorInfoSchema)[0]?.metadata).toEqual({ org: "org-acme", provider: "anthropic", model: "" });
   });
 
   it("names no model in either copy when the turn names none, and the model when it does", async () => {
     const organization = await refusal(
-      stepAnswering({ state: "missing", scope: "organization" }),
-      turn({ engine: Harness.CURSOR }),
+      stepAnswering({ state: "missing", scope: "organization" }, false, catalogWithoutDefaults),
+      turn({ engine: Harness.CLAUDE }),
     );
     expect(organization.rawMessage).toBe(
-      "This organization has no Cursor key, so the run was not started. An admin can add one in Models & providers.",
+      "This organization has no Anthropic key, so the run was not started. An admin can add one in Models & providers.",
     );
     const runners = await refusal(
       stepAnswering({ state: "missing", scope: "runners" }),

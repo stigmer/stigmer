@@ -91,11 +91,6 @@ const (
 	// Stigmer-managed checkpoints, custom tools, sandbox isolation,
 	// pause/resume, and full HITL approval flow.
 	Harness_HARNESS_NATIVE Harness = 1
-	// Cursor SDK execution engine.
-	//
-	// Cursor-managed conversation state, Cursor built-in tools + MCP,
-	// both local and cloud runtimes. Premium billing tier.
-	Harness_HARNESS_CURSOR Harness = 2
 	// Anthropic's Claude Agent SDK execution engine.
 	//
 	// Approvals that stop at the exact call, conversation state mirrored to
@@ -109,13 +104,11 @@ var (
 	Harness_name = map[int32]string{
 		0: "HARNESS_UNSPECIFIED",
 		1: "HARNESS_NATIVE",
-		2: "HARNESS_CURSOR",
 		3: "HARNESS_CLAUDE",
 	}
 	Harness_value = map[string]int32{
 		"HARNESS_UNSPECIFIED": 0,
 		"HARNESS_NATIVE":      1,
-		"HARNESS_CURSOR":      2,
 		"HARNESS_CLAUDE":      3,
 	}
 )
@@ -272,77 +265,6 @@ func (ExecutionTarget) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{3}
 }
 
-// CursorMode selects the Cursor SDK agent type for sessions using
-// HARNESS_CURSOR.
-//
-// Determined once at session creation and never changed mid-session.
-// Switching would lose Cursor-side conversation state because local
-// agents (agent- prefix) and cloud agents (bc- prefix) maintain
-// separate, incompatible conversation stores.
-//
-// Ignored when harness is not HARNESS_CURSOR.
-type CursorMode int32
-
-const (
-	// Not yet determined or not applicable (non-Cursor harness).
-	// Runner defaults to LOCAL for backward compatibility.
-	CursorMode_CURSOR_MODE_UNSPECIFIED CursorMode = 0
-	// Local Cursor agent created with a local cwd configuration.
-	//
-	// Works with any workspace source (git or local path). Conversation
-	// state is carried by the Cursor SDK's native local store, which the
-	// runner persists on the durable workspace volume so Agent.resume()
-	// survives pod restart and snapshot restore.
-	CursorMode_CURSOR_MODE_LOCAL CursorMode = 1
-	// Cloud Cursor agent created with a cloud repos configuration.
-	//
-	// Requires every resource to be a git repository (HTTPS URL).
-	// Cursor natively manages conversation state for cloud agents.
-	// Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
-	CursorMode_CURSOR_MODE_CLOUD CursorMode = 2
-)
-
-// Enum value maps for CursorMode.
-var (
-	CursorMode_name = map[int32]string{
-		0: "CURSOR_MODE_UNSPECIFIED",
-		1: "CURSOR_MODE_LOCAL",
-		2: "CURSOR_MODE_CLOUD",
-	}
-	CursorMode_value = map[string]int32{
-		"CURSOR_MODE_UNSPECIFIED": 0,
-		"CURSOR_MODE_LOCAL":       1,
-		"CURSOR_MODE_CLOUD":       2,
-	}
-)
-
-func (x CursorMode) Enum() *CursorMode {
-	p := new(CursorMode)
-	*p = x
-	return p
-}
-
-func (x CursorMode) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (CursorMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[4].Descriptor()
-}
-
-func (CursorMode) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[4]
-}
-
-func (x CursorMode) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use CursorMode.Descriptor instead.
-func (CursorMode) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{4}
-}
-
 var File_ai_stigmer_agentic_session_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
@@ -350,12 +272,11 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/session/v1/enum.proto\x12\x1dai.stigmer.agentic.session.v1*Y\n" +
 	"\x10GitWriteBackMode\x12#\n" +
 	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*^\n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*`\n" +
 	"\aHarness\x12\x17\n" +
 	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHARNESS_NATIVE\x10\x01\x12\x12\n" +
-	"\x0eHARNESS_CURSOR\x10\x02\x12\x12\n" +
-	"\x0eHARNESS_CLAUDE\x10\x03*\xba\x01\n" +
+	"\x0eHARNESS_CLAUDE\x10\x03\"\x04\b\x02\x10\x02*\x0eHARNESS_CURSOR*\xba\x01\n" +
 	"\x11EnvironmentSource\x12\"\n" +
 	"\x1eENVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aENVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n" +
@@ -365,12 +286,7 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"\x0fExecutionTarget\x12 \n" +
 	"\x1cEXECUTION_TARGET_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16EXECUTION_TARGET_LOCAL\x10\x01\x12\x1a\n" +
-	"\x16EXECUTION_TARGET_CLOUD\x10\x02*W\n" +
-	"\n" +
-	"CursorMode\x12\x1b\n" +
-	"\x17CURSOR_MODE_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11CURSOR_MODE_LOCAL\x10\x01\x12\x15\n" +
-	"\x11CURSOR_MODE_CLOUD\x10\x02B\x88\x02\n" +
+	"\x16EXECUTION_TARGET_CLOUD\x10\x02B\x88\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -385,13 +301,12 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_ai_stigmer_agentic_session_v1_enum_proto_goTypes = []any{
 	(GitWriteBackMode)(0),  // 0: ai.stigmer.agentic.session.v1.GitWriteBackMode
 	(Harness)(0),           // 1: ai.stigmer.agentic.session.v1.Harness
 	(EnvironmentSource)(0), // 2: ai.stigmer.agentic.session.v1.EnvironmentSource
 	(ExecutionTarget)(0),   // 3: ai.stigmer.agentic.session.v1.ExecutionTarget
-	(CursorMode)(0),        // 4: ai.stigmer.agentic.session.v1.CursorMode
 }
 var file_ai_stigmer_agentic_session_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -411,7 +326,7 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      4,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

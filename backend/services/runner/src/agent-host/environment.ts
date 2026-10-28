@@ -19,8 +19,8 @@
  * nothing the agent may not have (#2016). What passes is what a process
  * needs to run (the path, the locale, the time zone, a terminal, a temporary
  * directory), the network's proxy and trust settings, and the engines' and
- * the runner's non-secret settings (`CURSOR_`, `STIGMER_`, `OTEL_` and
- * `NODE_` names, the runner's secrets still dropped, among them the
+ * the runner's non-secret settings (`STIGMER_`, `OTEL_` and `NODE_`
+ * names, the runner's secrets still dropped, among them the
  * collector's login, which the host never needs because it exports through
  * the runner's local proxy (`agent-proxy/otlp-forward.ts`); any other
  * `OTEL_*_HEADERS`, which carry a token, and `NODE_AUTH_TOKEN`, an npm
@@ -59,7 +59,7 @@ const ALLOWED_NAMES: ReadonlySet<string> = new Set([
   "SSL_CERT_DIR",
 ]);
 
-const ALLOWED_PREFIXES = ["LC_", "CURSOR_", "STIGMER_", "OTEL_", "NODE_"] as const;
+const ALLOWED_PREFIXES = ["LC_", "STIGMER_", "OTEL_", "NODE_"] as const;
 
 /** Names under those prefixes that carry a credential, not a setting: a collector's auth headers (`OTEL_EXPORTER_OTLP_HEADERS` and its per-signal forms) and an npm registry's token. */
 const CARRIES_A_CREDENTIAL = /^(?:OTEL_.*_HEADERS|NODE_AUTH_TOKEN)$/;
@@ -82,7 +82,7 @@ export function agentHostEnvironment(env: NodeJS.ProcessEnv = process.env, separ
 /**
  * The host's environment with the Environment's install folders first on
  * its PATH, when the sandbox has packages: the agent's shell and the
- * commands Cursor starts both inherit the host's PATH, so both find them.
+ * commands an engine starts both inherit the host's PATH, so both find them.
  * No NODE_PATH: npm packages install as `npm i -g` does, their commands on
  * the PATH, and a NODE_PATH would reach the host's own module lookups.
  */

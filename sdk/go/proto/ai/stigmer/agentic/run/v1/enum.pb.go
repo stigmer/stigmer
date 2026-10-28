@@ -245,12 +245,8 @@ func (RunControlSignal) EnumDescriptor() ([]byte, []int) {
 // runs.
 //
 // Enforcement:
-//   - Native harness: tool-level enforcement — write tools are
+//   - Every harness: tool-level enforcement — write tools are
 //     removed from the tool set in PLAN mode.
-//   - Cursor harness: best-effort via system prompt injection. The Cursor SDK
-//     does not expose a mode parameter, so the agent is instructed not to
-//     make changes. When the SDK adds native mode support, the prompt-based
-//     approach will be replaced.
 type InteractionMode int32
 
 const (
@@ -270,8 +266,7 @@ const (
 	// implementation plans, and answering architectural questions without
 	// side effects.
 	//
-	// Native harness: enforced by removing write tools from the tool set.
-	// Cursor harness: best-effort via system prompt directive.
+	// Enforced by removing write tools from the tool set.
 	InteractionMode_INTERACTION_MODE_PLAN InteractionMode = 2
 )
 
@@ -405,9 +400,9 @@ func (ApprovalMode) EnumDescriptor() ([]byte, []int) {
 // ServiceTier selects the provider-side speed/service tier for a run's
 // model calls.
 //
-// Providers spell this differently — Cursor exposes per-model "fast" variants
-// at higher per-token rates, Anthropic and OpenAI expose service tiers — but
-// the platform semantic is uniform: the tier is a deterministic, user-selected
+// Providers spell this differently (Anthropic and OpenAI expose service
+// tiers, some providers per-model "fast" variants at higher per-token rates),
+// but the platform semantic is uniform: the tier is a deterministic, user-selected
 // attribute validated against the model registry at create time. A tier is
 // selectable for a model only when the registry prices it
 // (pricingVariants.<tier>), so a selected tier is always billable.
@@ -479,11 +474,8 @@ func (ServiceTier) EnumDescriptor() ([]byte, []int) {
 // ServiceTier (stigmer/stigmer#772).
 //
 // Unlike the fast tier, thinking is NOT a separately priced dimension:
-// Cursor bills thinking variants at the model's base per-token rates
-// (verified against the live pricing page and 277 team-ledger events on
-// 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills
-// exactly the fast variant rate). Thinking costs more only by generating
-// additional reasoning tokens, billed as ordinary output. Selectability is
+// thinking costs more only by generating additional reasoning tokens,
+// billed as ordinary output. Selectability is
 // therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for
 // models whose registry entry on the run's harness declares a
 // thinking capability (capabilities.thinking or capabilities.adaptive_thinking),

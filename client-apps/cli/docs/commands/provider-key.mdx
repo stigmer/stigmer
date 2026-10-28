@@ -1,13 +1,12 @@
 See which model providers serve your Organization, and save, list and remove its provider keys.
 
-Every run calls its model through a provider: Anthropic, OpenAI or Cursor. On
-Stigmer Cloud each call goes out on a key your Organization owns, one per
-provider, and the provider bills your Organization directly. A run whose model
-needs a provider no key serves is refused before it starts. `list` shows where
-each provider stands on every edition; `set` and `delete` manage the keys on
-Stigmer Cloud, where only those who manage the Organization's billing may. The
-commands act in the Organization `--org` names, then `STIGMER_ORG`, then your
-context.
+Every run calls its model through a provider: Anthropic or OpenAI. On Stigmer
+Cloud each call goes out on a key your Organization owns, one per provider, and
+the provider bills your Organization directly. A run whose model needs a
+provider no key serves is refused before it starts. `list` shows where each
+provider stands on every edition; `set` and `delete` manage the keys on Stigmer
+Cloud, where only those who manage the Organization's billing may. The commands
+act in the Organization `--org` names, then `STIGMER_ORG`, then your context.
 
 {/* AUTO_USAGE */}
 
@@ -27,7 +26,7 @@ stigmer provider-key set openai --key-stdin < openai.key
 stigmer provider-key set openai --base-url https://my-resource.openai.azure.com/openai/v1
 
 # Remove a key; asks first on a terminal
-stigmer provider-key delete cursor
+stigmer provider-key delete anthropic
 ```
 
 {/* AUTO_FLAGS */}
@@ -61,7 +60,7 @@ says whether it works.
 
 `--base-url` points an Anthropic or OpenAI key at an endpoint that speaks that
 provider's API, such as a gateway or Azure OpenAI. It takes an `https` URL, as
-the provider's own SDK takes its base URL. A Cursor key takes none.
+the provider's own SDK takes its base URL.
 
 ### On your own machine
 

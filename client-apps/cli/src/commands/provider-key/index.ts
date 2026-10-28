@@ -99,7 +99,7 @@ export function registerProviderKey(program: Command): void {
 
   const setCmd = group
     .command("set <provider>")
-    .description("save the organization's key for anthropic, openai or cursor, replacing any it holds (Stigmer Cloud)")
+    .description("save the organization's key for anthropic or openai, replacing any it holds (Stigmer Cloud)")
     .option("--key-stdin", "read the key from stdin instead of a hidden prompt")
     .option("--base-url <url>", "use the key against your own Anthropic- or OpenAI-compatible endpoint (https)")
     // Declared only to refuse it: a key on the command line stays in the
@@ -112,7 +112,7 @@ export function registerProviderKey(program: Command): void {
       const resources = await import("../../resources/provider-key.js");
       const provider = resources.parseProvider(providerArg);
       if (command.args.length > 1 || options.key !== undefined) resources.refuseKeyOnCommandLine(provider);
-      const baseUrl = resources.parseBaseUrl(provider, options.baseUrl);
+      const baseUrl = resources.parseBaseUrl(options.baseUrl);
       // The session refuses a server that keeps no keys before the key is
       // asked for: no one types a key a server will not keep.
       const [session, { renderResult }] = await Promise.all([

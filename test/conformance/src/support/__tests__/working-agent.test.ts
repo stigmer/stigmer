@@ -97,11 +97,11 @@ describe("workingAgentSessionSpec", () => {
   it("bootstraps the session on the harness asked for, with the one workspace mounted by host path", () => {
     const spec = workingAgentSessionSpec(
       { org: "org", agentRef: { org: "org", slug: "orders-agent" }, workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: "/tmp/x/orders-sync" }, pluginSlug: "orders-api", skillSlugs: [] },
-      Harness.CURSOR,
+      Harness.CLAUDE,
       "harness benchmark",
     );
     expect(spec).toEqual({
-      harness: Harness.CURSOR,
+      harness: Harness.CLAUDE,
       subject: "harness benchmark",
       resources: [
         { name: WORKING_AGENT_WORKSPACE_NAME, resource: { case: "localPath", value: { path: "/tmp/x/orders-sync" } } },

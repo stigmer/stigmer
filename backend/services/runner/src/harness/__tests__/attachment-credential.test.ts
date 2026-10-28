@@ -67,7 +67,6 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     subagents: [],
     plugins: [],
     mergedSkillRefs: [],
-    cloudRepos: [],
   } as ResolvedBlueprint;
   const mcp = await resolveMcpServersAndPolicies(deps, {
     execution: create(RunSchema, { status: create(RunStatusSchema, { recalledMemories: create(RecalledMemoriesSchema, { enabled: true }) }) }),
@@ -75,7 +74,6 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     sessionId: "ses-attach",
     blueprint,
     values: NO_RUN_VALUES,
-    readsToolMarks: true,
     grants: new Map(),
   });
   return { mcp, status, rows };

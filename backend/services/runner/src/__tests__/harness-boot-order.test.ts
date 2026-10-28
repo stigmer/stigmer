@@ -1,25 +1,18 @@
 /**
- * The harness boot order, and the runner's freedom from the engines, proven
- * in fresh processes.
+ * The runner's freedom from the engines, proven in fresh processes.
  *
  * Every harness runs in the agent host (#2016): the composition roots import
  * `harness-adapters.js`, `harness/registry.js` and `agent-host/hosting.js`,
  * host the table, and boot the remote adapters, which start a host from this
- * build's entry and boot the real adapters there. The Cursor adapter's
- * `boot` installs its proxy interceptors — the HTTP/2 one patches
- * `node:http2`, whose ESM facade is snapshotted at its first import by
- * `@connectrpc/connect-node` — proves the patch reached the facade, and only
- * then loads `@cursor/sdk`; that ordering now holds inside the host's own
- * fresh process; a host that imported `node:http2` first fails on the
- * facade, which the third arm proves with a host started that way.
+ * build's entry and boot the real adapters there.
  *
  * The runner itself loads no engine. The child runs with
  * `__test-utils__/refuse-engine-sdks.ts`, a resolve hook that refuses
- * `@cursor/sdk`, `deepagents` and `@anthropic-ai/claude-agent-sdk` in the
- * runner's process (the host is spawned without it), so a runner that
- * booted an engine in-process, or imported one anywhere on its boot path,
- * fails the first arm; the refusal arms import an SDK on purpose to prove
- * the refusal is live, Cursor's and Claude's.
+ * `deepagents` and `@anthropic-ai/claude-agent-sdk` in the runner's process
+ * (the host is spawned without it), so a runner that booted an engine
+ * in-process, or imported one anywhere on its boot path, fails the first
+ * arm; the refusal arms import an SDK on purpose to prove the refusal is
+ * live, native's and Claude's.
  *
  * `HOME` points at a temp dir so an SDK import-time side effect cannot touch
  * the developer's home; the proxy endpoint is an inert loopback; nothing is
@@ -43,7 +36,7 @@ interface ChildVerdict {
   readonly line: string;
 }
 
-async function runChild(arm: "boot" | "import-engine" | "import-claude" | "host-http2-first"): Promise<ChildVerdict> {
+async function runChild(arm: "boot" | "import-engine" | "import-claude"): Promise<ChildVerdict> {
   const home = mkdtempSync(join(tmpdir(), "stigmer-boot-order-"));
   try {
     const { stdout } = await execFileAsync(process.execPath, ["--import", "tsx", "--import", REFUSE_ENGINES, CHILD, arm], {
@@ -68,22 +61,16 @@ function verdictLine(stdout: string, stderr: string): string {
 }
 
 describe("harness boot order (fresh process)", () => {
-  it("boots every harness in a real agent host, the Cursor interceptors first there, while the runner loads no engine", async () => {
+  it("boots every harness in a real agent host while the runner loads no engine", async () => {
     const verdict = await runChild("boot");
     expect(verdict.line, "the child's verdict").toBe("harness-boot-order: ok");
     expect(verdict.exitCode).toBe(0);
   });
 
-  it("fails loudly on the facade in a host that imported node:http2 first (the guard is live in the host)", async () => {
-    const verdict = await runChild("host-http2-first");
-    expect(verdict.exitCode).toBe(1);
-    expect(verdict.line).toMatch(/node:http2 ESM facade is unpatched/);
-  });
-
-  it("refuses an engine's SDK in the runner's process (the fence is live)", async () => {
+  it("refuses the native engine's SDK in the runner's process (the fence is live)", async () => {
     const verdict = await runChild("import-engine");
     expect(verdict.exitCode).toBe(1);
-    expect(verdict.line).toBe("harness-boot-order: the runner process imported @cursor/sdk, an engine SDK that belongs to the agent host");
+    expect(verdict.line).toBe("harness-boot-order: the runner process imported deepagents, an engine SDK that belongs to the agent host");
   });
 
   it("refuses the Claude engine's SDK in the runner's process", async () => {

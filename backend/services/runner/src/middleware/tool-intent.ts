@@ -21,9 +21,9 @@
  *   semantics, so the extra argument is dropped before the backend's
  *   `execute(command)` ever runs. Approval fingerprints are equally
  *   unaffected (`description` is not a salient arg field).
- * - The argument name deliberately matches the Cursor harness, whose built-in
- *   Shell tool already carries a model-authored `description` — both
- *   harnesses converge on one wire key and the SDK reads a single field.
+ * - The argument name deliberately matches Claude Code's built-in Bash tool,
+ *   which already carries a model-authored `description` — both harnesses
+ *   converge on one wire key and the SDK reads a single field.
  *
  * The swapped-in declaration is a `StructuredToolParams` object — langchain's
  * first-class shape for a non-executable, bind-time-only tool definition
@@ -43,8 +43,8 @@ import type { StigmerMiddleware } from "./types.js";
 import { ToolKind } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
- * The wire name of the intent argument. Shared with the Cursor harness's
- * built-in Shell tool and read by the SDK's tool presentation layer — the
+ * The wire name of the intent argument. Shared with the Claude engine's
+ * built-in Bash tool and read by the SDK's tool presentation layer — the
  * three surfaces must agree on this key.
  */
 export const INTENT_ARG = "description";

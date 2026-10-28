@@ -48,10 +48,9 @@
  *     A caller whose lists deny `Skill` reads no skill's files. A caller
      whose lists exclude `Read` is still offered it, for the platform's
      own content alone: a file whose real path lies inside the platform
-     folder, on a turn whose `.stigmer` is the link to it, as Cursor's
-     hook admits it (`shared/workspace/stigmer-link.ts`
-     `readsPlatformContent`) and the native engine admits it by its
-     route.
+     folder, on a turn whose `.stigmer` is the link to it
+     (`shared/workspace/stigmer-link.ts` `readsPlatformContent`), as the
+     native engine admits it by its route.
  *  3. The secret-like write block (`shared/file-edit-policy.ts`), ahead of
  *     any hook, its path recorded for the turn's review.
  *  4. The agent's `PreToolUse` hooks (`hooks.ts`): a deny refuses, naming
@@ -65,7 +64,7 @@
  *  6. A hook's allow runs the call; its ask asks a person, unless it also
  *     rewrote the call: this engine's card and the session's log hold the
  *     model's own call, so a person would approve arguments other than the
- *     ones that run, and the call is refused (Cursor's rule).
+ *     ones that run, and the call is refused.
  *  7. With no hook deciding, the file-edit flows, then the approval
  *     default (`shared/approval-policy.ts` `resolveToolApproval`) over
  *     Claude Code's tool names, which the shared classification knows.

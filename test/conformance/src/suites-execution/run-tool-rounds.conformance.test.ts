@@ -14,9 +14,8 @@
 // would end the run the same way, and repeated arguments would let loop
 // detection stop it first. The unconsumed turns prove the stop was the budget.
 //
-// Deliberately out of scope: the Cursor harness (spec.proto: it does not
-// enforce the field), parallel calls in one round, the clamp to the 10–1000
-// range and loop detection, each pinned beside its code in the runner
+// Deliberately out of scope: parallel calls in one round, the clamp to the
+// 10–1000 range and loop detection, each pinned beside its code in the runner
 // (recursion-limit.test.ts, execution-budget.test.ts, tool-rounds.test.ts,
 // loop-detection.test.ts).
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";

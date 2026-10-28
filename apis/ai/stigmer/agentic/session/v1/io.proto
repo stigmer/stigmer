@@ -440,26 +440,6 @@ message UpdateSessionInput {
   google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }
 
-// BindHarnessStateInput names a run and the harness's conversation id its
-// session continues from.
-message BindHarnessStateInput {
-  // The run whose session the id belongs to.
-  string run_id = 1 [(buf.validate.field).required = true];
-
-  // The harness's own conversation id.
-  string harness_state_id = 2 [(buf.validate.field).required = true];
-}
-
-// BindHarnessStateResponse answers the session's harness state after the
-// write.
-message BindHarnessStateResponse {
-  // The id now recorded.
-  string harness_state_id = 1;
-
-  // The ids the session owned before, oldest first.
-  repeated string harness_state_id_history = 2;
-}
-
 // StreamAttentionRequest opens the caller's stream of what needs them in
 // one organization.
 message StreamAttentionRequest {

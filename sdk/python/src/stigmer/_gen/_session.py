@@ -102,12 +102,6 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def bind_harness_state(self, input: io_pb2.BindHarnessStateInput) -> io_pb2.BindHarnessStateResponse:
-        try:
-            return self._command.bindHarnessState(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def get(self, id: str) -> api_pb2.Session:
         try:
             return self._query.get(io_pb2.SessionId(value=id))
@@ -204,7 +198,6 @@ class SessionInput:
     metadata: dict[str, str] = field(default_factory=dict)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
-    cursor_mode: int = 0
     execution_target: int = 0
     vaults: list[ResourceRef] = field(default_factory=list)
     include_my_vault: bool = False
@@ -217,7 +210,6 @@ class SessionInput:
         spec = spec_pb2.SessionSpec(
             subject=self.subject,
             harness=self.harness,
-            cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
             include_my_vault=self.include_my_vault,
             file_review=self.file_review,

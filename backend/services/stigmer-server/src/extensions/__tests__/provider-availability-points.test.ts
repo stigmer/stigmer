@@ -44,7 +44,7 @@ describe("the providerAvailability driver point", () => {
 describe("runnerProviderAvailability", () => {
   it("answers unknown for every provider when nothing was declared", async () => {
     const built = runnerProviderAvailability(undefined);
-    for (const name of ["anthropic", "openai", "cursor"] as const) {
+    for (const name of ["anthropic", "openai"] as const) {
       expect(await built.availability("org-1", name)).toEqual({ state: "unknown" });
     }
   });
@@ -52,7 +52,7 @@ describe("runnerProviderAvailability", () => {
   it("serves a declared provider from the runners and reports the others missing from them", async () => {
     const built = runnerProviderAvailability(new Set(["anthropic"]));
     expect(await built.availability("org-1", "anthropic")).toEqual({ state: "served", source: "runners" });
-    expect(await built.availability("org-1", "cursor")).toEqual({ state: "missing", scope: "runners" });
+    expect(await built.availability("org-1", "openai")).toEqual({ state: "missing", scope: "runners" });
   });
 
   it("reports every provider missing when the runners were declared to reach none", async () => {

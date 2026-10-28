@@ -13,7 +13,6 @@ describe("runner-owned activity names", () => {
     expect({ ...names }).toEqual({
       ENSURE_THREAD_ACTIVITY_NAME: "EnsureThread",
       EXECUTE_DEEP_AGENT_ACTIVITY_NAME: "ExecuteDeepAgent",
-      EXECUTE_CURSOR_ACTIVITY_NAME: "ExecuteCursor",
       EXECUTE_CLAUDE_ACTIVITY_NAME: "ExecuteClaude",
       GENERATE_SESSION_SUBJECT_ACTIVITY_NAME: "GenerateSessionSubject",
     });

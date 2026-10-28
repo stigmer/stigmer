@@ -3,16 +3,15 @@
  * to "can this model run here?" and its refusal at create read.
  *
  * A provider is named by the wire protocol its key speaks, the names
- * provider keys are saved under (billing/providerkey/v1): "anthropic",
- * "openai" and "cursor". {@link MODEL_PROVIDERS} is the one list and its
- * order is the order every answer reports them in; a provider joins or
- * leaves by an entry here, and every table typed over it fails to compile
- * until it says what it does with the change.
+ * provider keys are saved under (billing/providerkey/v1): "anthropic" and
+ * "openai". {@link MODEL_PROVIDERS} is the one list and its order is the
+ * order every answer reports them in; a provider joins or leaves by an
+ * entry here, and every table typed over it fails to compile until it says
+ * what it does with the change.
  *
  * The provider follows the engine the turn runs on:
- *   - a Cursor turn needs Cursor, whatever its model (Cursor's own servers
- *     run the model, on the Cursor key);
- *   - a Claude turn needs Anthropic: the engine runs Claude models only;
+ *   - a Claude turn needs Anthropic, whatever its model: the engine runs
+ *     Claude models only;
  *   - a native turn needs its model's provider, read from the catalog
  *     (`providerOf`: a catalog entry's provider, or an `anthropic:` or
  *     `openai:` prefix), the model being the one the turn names, else the
@@ -31,7 +30,7 @@ import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 import { harnessName } from "./pin-validation.js";
 
 /** Every model provider, in the order every answer reports them. */
-export const MODEL_PROVIDERS = ["anthropic", "openai", "cursor"] as const;
+export const MODEL_PROVIDERS = ["anthropic", "openai"] as const;
 
 /** A model provider's name. */
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
@@ -40,7 +39,6 @@ export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 export const MODEL_PROVIDER_LABELS: Readonly<Record<ModelProvider, string>> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
-  cursor: "Cursor",
 };
 
 /** Whether `name` is one of {@link MODEL_PROVIDERS}. */
@@ -48,7 +46,7 @@ export function isModelProvider(name: string): name is ModelProvider {
   return (MODEL_PROVIDERS as readonly string[]).includes(name);
 }
 
-/** The provider a turn needs, and the model a refusal names (empty when the turn names none, as a Cursor turn on Auto does). */
+/** The provider a turn needs, and the model a refusal names (empty when neither the turn nor the catalog names one). */
 export interface ProviderNeed {
   readonly provider: ModelProvider;
   readonly model: string;
@@ -67,8 +65,6 @@ export function providerNeededBy(
   catalog: ProviderNeedCatalog,
 ): ProviderNeed | undefined {
   switch (engine) {
-    case Harness.CURSOR:
-      return { provider: "cursor", model };
     case Harness.CLAUDE:
       return {
         provider: "anthropic",
@@ -82,8 +78,7 @@ export function providerNeededBy(
         return undefined;
       }
       const provider = catalog.providerOf(section, resolved);
-      // A native turn's calls never go to Cursor, so a Cursor key serves none.
-      if (provider === undefined || !isModelProvider(provider) || provider === "cursor") {
+      if (provider === undefined || !isModelProvider(provider)) {
         return undefined;
       }
       return { provider, model: resolved };

@@ -14,7 +14,7 @@
  * supplies only what genuinely differs — how "this turn's tool calls" are scoped,
  * and how a single executed command's DIRECT consent row is identified — via
  * {@link CommandProvenanceCoreInputs}. Keeping the rule in one place is what makes
- * the Cursor and deep-agent qualifications provably identical (a second copy would
+ * the harnesses' qualifications provably identical (a second copy would
  * drift on edge cases — the divergence the AI-Engineer role warns against).
  *
  * TRUST BOUNDARY. This module asserts turn FACTS (which tools ran this turn),
@@ -64,9 +64,8 @@ export const NON_MUTATING_KINDS: ReadonlySet<ToolKind> = new Set([
  */
 export interface CommandProvenanceCoreInputs {
   /**
-   * This turn's tool calls, already scoped by the harness (Cursor: the positional
-   * slice from the turn's first streamed message; deep-agent: the calls whose id
-   * is new since a pre-stream settled snapshot). Order is preserved but irrelevant.
+   * This turn's tool calls, already scoped by the harness (deep-agent: the
+   * calls whose id is new since a pre-stream settled snapshot). Order is preserved but irrelevant.
    */
   readonly turnToolCalls: readonly ToolCall[];
   /**
@@ -77,15 +76,13 @@ export interface CommandProvenanceCoreInputs {
   /**
    * Whether a (shell) tool call actually EXECUTED this turn, as opposed to being
    * a pending/denied gate that produced no mutation. A non-executed shell neither
-   * needs consent nor disqualifies (Cursor: not in the denial ledger; deep-agent:
-   * status is COMPLETED).
+   * needs consent nor disqualifies (deep-agent: status is COMPLETED).
    */
   readonly isExecutedCommand: (tc: ToolCall) => boolean;
   /**
    * The tool-call id of the row whose `approval_action` (the log's answer) DIRECTLY
    * authorized this executed command, or undefined when none does (then the lease
-   * / global-bypass fallbacks apply). Cursor maps a reinvocation grant token back
-   * to its consent row; the deep-agent's gated command IS its own consent row
+   * / global-bypass fallbacks apply). The deep-agent's gated command IS its own consent row
    * (same id, its answer copied onto it at the seed).
    */
   readonly resolveDirectConsent: (tc: ToolCall) => string | undefined;

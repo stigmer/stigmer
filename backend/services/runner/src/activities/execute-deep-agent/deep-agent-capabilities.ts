@@ -1,16 +1,16 @@
 /**
  * The native deep-agent harness's capability flags — the facts about the
- * LangGraph engine the turn runtime branches on, declared once
- * (`harness/capabilities.ts` has the matrix and the meaning of each flag).
+ * LangGraph engine the turn runtime branches on, declared once, and the
+ * facts every harness shares, as this one meets them
+ * (`harness/capabilities.ts` has the matrix and the meaning of each).
  *
- *  - `interrupt`: the approval gate (`middleware/approval-gate.ts`) calls
- *    LangGraph's `interrupt()` at a gated tool; the graph checkpoints and
- *    stops, and the adapter resumes it with a `Command(resume)` carrying
+ *  - The approval pause: the approval gate (`middleware/approval-gate.ts`)
+ *    calls LangGraph's `interrupt()` at a gated tool; the graph checkpoints
+ *    and stops, and the adapter resumes it with a `Command(resume)` carrying
  *    the decisions (`hitl.ts`). No engine re-run, no exact-apply.
- *  - `deterministic`: the thread id is the runtime's, minted from the
- *    session before the first turn (`ensure-thread.ts`), so the adapter
- *    never binds a state id and the runtime's reinvocation fact is the
- *    persisted transcript.
+ *  - The state id: the thread id is the runtime's, minted from the session
+ *    before the first turn (`ensure-thread.ts`), and the runtime's
+ *    reinvocation fact is the persisted transcript.
  *  - A system prompt: instructions, skills, input files and standing context
  *    ride `createDeepAgent`'s `systemPrompt` (`prompt-builder.ts`).
  *  - Sub-agents as compiled sub-graphs (`subagent-transformer.ts`), each
@@ -40,18 +40,10 @@ export const DEEP_AGENT_HARNESS_ID = "deep-agent";
 
 export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
   harness: Harness.NATIVE,
-  pausePrimitive: "interrupt",
-  stateIdSource: "deterministic",
   subAgents: true,
   runsHooks: true,
-  readsToolMarks: true,
   visionProfile: DEEP_AGENT_VISION_PROFILE,
   fileReview: { harnessId: DEEP_AGENT_HARNESS_ID, excludePaths: [] },
-  subAgentProgress: "streamed",
-  // The session's thread saves every step; the continuation streams it on.
-  continuation: "checkpoint",
-  // A message is read before the next model call (turn-input-middleware.ts).
-  midTurnInput: "next-step",
   // deepagents' summarizer, under the runner's wrapper, on the turn's model
   // (middleware/compaction.ts).
   contextCompaction: "runner-summarizer",

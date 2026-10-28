@@ -19,9 +19,8 @@
  *
  * The rule (resolveRunConfig, pure):
  *   - the model comes from the first layer that names one; none leaves the
- *     model to the engine (the native registry default, Cursor's Auto). The
- *     server never stamps a registry default: it would change what Auto
- *     runs;
+ *     model to the engine's registry default. The server never stamps a
+ *     registry default: the engine resolves its own;
  *   - tier and thinking each come from the first layer at or above the
  *     model's layer that sets them, so a less specific layer's choice never
  *     lands on a model it was not written for, and no triple runs that no
@@ -43,11 +42,7 @@
  * a refusal reserves nothing. It refuses a surface's saved settings that
  * set a tier or thinking with no model of their own (savedChoiceRefusal):
  * saved settings name the model they are for, and only a live message may
- * set either alone. And it refuses an unattended turn that would
- * run Cursor with no model at any layer: the pin-presence rule
- * (temporal/routine/model-pinning.ts) judged on what will run, closing an
- * agent whose engine is Cursor reached by a routine that names no engine.
- * CreateSessionIfNeeded resolves again (reResolveRunConfig) when the
+ * set either alone. CreateSessionIfNeeded resolves again (reResolveRunConfig) when the
  * session it creates pins another version than the stamp did, and judges
  * the result by the same checks. A new conversation whose turn names a
  * model but no engine starts on native, the engine that name was judged on
@@ -78,18 +73,11 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { RunLanes } from "../../extensions/run-lanes.js";
-import {
-  failedPreconditionError,
-  invalidArgumentError,
-} from "../../pipeline/errors.js";
+import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
-import { CURSOR_AUTO_PRICE_REASON } from "../../temporal/routine/model-pinning.js";
 import { readRunAgentSpec } from "../agent/run-defaults.js";
-import {
-  HARNESS_NAME_CURSOR,
-  harnessName,
-} from "../../modelcatalog/pin-validation.js";
+import { harnessName } from "../../modelcatalog/pin-validation.js";
 import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 
 import { ROUTINE_ID_LABEL_KEY } from "../vault/resolve.js";
@@ -325,10 +313,6 @@ export function newResolveRunConfigStep(
       if (unnamed !== "") {
         throw invalidArgumentError(unnamed);
       }
-      const refusal = unattendedPinRefusal(placement);
-      if (refusal !== "") {
-        throw failedPreconditionError(refusal);
-      }
     },
   };
 }
@@ -416,36 +400,14 @@ export function savedChoiceRefusal(placement: RunConfigPlacement): string {
 }
 
 /**
- * The run-time pin-presence refusal, or "": an unattended turn that will
- * run Cursor with no model at any layer would run Auto, priced by the
- * provider account's own setting with nobody watching. Cursor's alone: an
- * empty model on native or Claude is that engine's catalog default row,
- * priced by the catalog.
- */
-export function unattendedPinRefusal(placement: RunConfigPlacement): string {
-  if (
-    placement.lane.approvalMode !== ApprovalMode.UNATTENDED ||
-    placement.harness !== HARNESS_NAME_CURSOR ||
-    placement.resolution.config.modelName !== ""
-  ) {
-    return "";
-  }
-  return (
-    "an unattended run on the Cursor harness must name a model: set model_name in " +
-    `${placement.lane.turnName} or in the agent's run defaults (spec.run_config) — ` +
-    CURSOR_AUTO_PRICE_REASON
-  );
-}
-
-/**
  * A new conversation whose turn names a model but no engine starts on
  * native: a model name belongs to an engine, and every save-time check
  * (a schedule's, a message's own) reads an unset engine
  * as native, so that is the engine the name was judged on. Written onto
  * the new session's spec before its session exists, so the agent's engine
  * (ResolveSessionAgent) applies only to a turn naming neither, and a
- * schedule saved with a native model never fires it on Cursor because its
- * agent's author moved the agent's engine.
+ * schedule saved with a native model never fires it on another engine
+ * because its agent's author moved the agent's engine.
  */
 function pinModelEngine(execution: Run, lane: PlacedLane): void {
   const sessionSpec = newSessionSpecOf(execution.spec);

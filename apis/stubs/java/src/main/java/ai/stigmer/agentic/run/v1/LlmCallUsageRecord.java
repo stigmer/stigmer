@@ -971,8 +971,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-   * mirroring service_tier's convention: cursor harness derives it from the
-   * resolved wire id's variant suffix; empty when the wire carries no
+   * mirroring service_tier's convention; empty when the wire carries no
    * evidence — never guessed. Thinking is per-token price-neutral
    * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
    * consumption-drift reconciliation.
@@ -997,8 +996,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-   * mirroring service_tier's convention: cursor harness derives it from the
-   * resolved wire id's variant suffix; empty when the wire carries no
+   * mirroring service_tier's convention; empty when the wire carries no
    * evidence — never guessed. Thinking is per-token price-neutral
    * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
    * consumption-drift reconciliation.
@@ -4413,8 +4411,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-     * mirroring service_tier's convention: cursor harness derives it from the
-     * resolved wire id's variant suffix; empty when the wire carries no
+     * mirroring service_tier's convention; empty when the wire carries no
      * evidence — never guessed. Thinking is per-token price-neutral
      * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
      * consumption-drift reconciliation.
@@ -4438,8 +4435,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-     * mirroring service_tier's convention: cursor harness derives it from the
-     * resolved wire id's variant suffix; empty when the wire carries no
+     * mirroring service_tier's convention; empty when the wire carries no
      * evidence — never guessed. Thinking is per-token price-neutral
      * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
      * consumption-drift reconciliation.
@@ -4464,8 +4460,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-     * mirroring service_tier's convention: cursor harness derives it from the
-     * resolved wire id's variant suffix; empty when the wire carries no
+     * mirroring service_tier's convention; empty when the wire carries no
      * evidence — never guessed. Thinking is per-token price-neutral
      * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
      * consumption-drift reconciliation.
@@ -4486,8 +4481,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-     * mirroring service_tier's convention: cursor harness derives it from the
-     * resolved wire id's variant suffix; empty when the wire carries no
+     * mirroring service_tier's convention; empty when the wire carries no
      * evidence — never guessed. Thinking is per-token price-neutral
      * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
      * consumption-drift reconciliation.
@@ -4505,8 +4499,7 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
-     * mirroring service_tier's convention: cursor harness derives it from the
-     * resolved wire id's variant suffix; empty when the wire carries no
+     * mirroring service_tier's convention; empty when the wire carries no
      * evidence — never guessed. Thinking is per-token price-neutral
      * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
      * consumption-drift reconciliation.

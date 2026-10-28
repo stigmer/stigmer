@@ -48,18 +48,18 @@ const MATRIX: ReadonlyArray<readonly [string, ReachEnv]> = [
   ["no environment", {}],
   ["an Anthropic key", { ANTHROPIC_API_KEY: KEY }],
   ["an OpenAI key", { OPENAI_API_KEY: KEY }],
-  ["a Cursor key", { CURSOR_API_KEY: KEY }],
-  ["all three keys", { ANTHROPIC_API_KEY: KEY, OPENAI_API_KEY: KEY, CURSOR_API_KEY: KEY }],
-  ["empty keys", { ANTHROPIC_API_KEY: "", OPENAI_API_KEY: "", CURSOR_API_KEY: "" }],
-  ["blank keys", { ANTHROPIC_API_KEY: "  ", OPENAI_API_KEY: "  ", CURSOR_API_KEY: "  " }],
+  ["an old Cursor key, which no engine reads", { CURSOR_API_KEY: KEY }],
+  ["both keys", { ANTHROPIC_API_KEY: KEY, OPENAI_API_KEY: KEY }],
+  ["empty keys", { ANTHROPIC_API_KEY: "", OPENAI_API_KEY: "" }],
+  ["blank keys", { ANTHROPIC_API_KEY: "  ", OPENAI_API_KEY: "  " }],
   ["a gateway without a key", { ANTHROPIC_BASE_URL: "https://llm-gateway.internal" }],
   ["a gateway with a key", { ANTHROPIC_BASE_URL: "https://llm-gateway.internal/", ANTHROPIC_API_KEY: KEY }],
   ["a blank gateway with a key", { ANTHROPIC_BASE_URL: "  ", ANTHROPIC_API_KEY: KEY }],
-  ["a gateway that is not a URL", { ANTHROPIC_BASE_URL: "llm-gateway.internal", CURSOR_API_KEY: KEY }],
+  ["a gateway that is not a URL", { ANTHROPIC_BASE_URL: "llm-gateway.internal", OPENAI_API_KEY: KEY }],
   ["a gateway on another scheme", { ANTHROPIC_BASE_URL: "ftp://llm-gateway.internal", ANTHROPIC_API_KEY: KEY }],
   ["vertex with its region", { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global" }],
   ["vertex, upper case, with its region", { STIGMER_ANTHROPIC_BACKEND: " Vertex ", CLOUD_ML_REGION: "asia-south1" }],
-  ["vertex without its region", { STIGMER_ANTHROPIC_BACKEND: "vertex", CURSOR_API_KEY: KEY }],
+  ["vertex without its region", { STIGMER_ANTHROPIC_BACKEND: "vertex", OPENAI_API_KEY: KEY }],
   ["vertex with a blank region", { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: " " }],
   ["vertex beside a gateway", { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global", ANTHROPIC_BASE_URL: "https://gw.example" }],
   ["bedrock with its region", { STIGMER_ANTHROPIC_BACKEND: "bedrock", AWS_REGION: "ap-south-1" }],
@@ -74,7 +74,7 @@ const MATRIX: ReadonlyArray<readonly [string, ReachEnv]> = [
   ["an unsupported Anthropic backend", { STIGMER_ANTHROPIC_BACKEND: "azure", ANTHROPIC_API_KEY: KEY }],
   ["an explicit public backend with a key", { STIGMER_ANTHROPIC_BACKEND: "public", ANTHROPIC_API_KEY: KEY }],
   ["a blank backend with a key", { STIGMER_ANTHROPIC_BACKEND: "  ", ANTHROPIC_API_KEY: KEY }],
-  ["the planned OpenAI backend", { STIGMER_OPENAI_BACKEND: "azure", ANTHROPIC_API_KEY: KEY, CURSOR_API_KEY: KEY }],
+  ["the planned OpenAI backend", { STIGMER_OPENAI_BACKEND: "azure", ANTHROPIC_API_KEY: KEY }],
   ["a proxy", { STIGMER_PROXY_ENDPOINT: "https://api.stigmer.ai" }],
   ["a proxy over a broken backend", { STIGMER_PROXY_ENDPOINT: "https://api.stigmer.ai", STIGMER_ANTHROPIC_BACKEND: "vertex" }],
   ["a blank proxy with a key", { STIGMER_PROXY_ENDPOINT: "  ", ANTHROPIC_API_KEY: KEY }],
@@ -86,10 +86,9 @@ describe("providerReach — the arms", () => {
   });
 
   it("reaches each provider by its own key, in the fixed provider order", () => {
-    expect(providerReach({ CURSOR_API_KEY: KEY, OPENAI_API_KEY: KEY, ANTHROPIC_API_KEY: KEY })).toEqual([
+    expect(providerReach({ OPENAI_API_KEY: KEY, ANTHROPIC_API_KEY: KEY })).toEqual([
       { provider: "anthropic", via: "key" },
       { provider: "openai", via: "key" },
-      { provider: "cursor", via: "key" },
     ]);
   });
 
@@ -97,9 +96,8 @@ describe("providerReach — the arms", () => {
     expect(providerReach({ ANTHROPIC_API_KEY: " ", OPENAI_API_KEY: "\t" })).toEqual([]);
   });
 
-  it("counts a non-empty Cursor key as a key, untrimmed, as the runner's config keeps it", () => {
-    expect(providerReach({ CURSOR_API_KEY: "" })).toEqual([]);
-    expect(providerReach({ CURSOR_API_KEY: " " })).toEqual([{ provider: "cursor", via: "key" }]);
+  it("reaches no provider on an old Cursor key, which no engine reads", () => {
+    expect(providerReach({ CURSOR_API_KEY: KEY })).toEqual([]);
   });
 
   it("reaches Anthropic through a gateway, with or without a key", () => {
@@ -122,23 +120,23 @@ describe("providerReach — the arms", () => {
   });
 
   it("reaches nothing when the runner would refuse to boot", () => {
-    expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "vertex", CURSOR_API_KEY: KEY })).toEqual([]);
+    expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "vertex", OPENAI_API_KEY: KEY })).toEqual([]);
     expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "bedrock", AWS_REGION: "x", STIGMER_BEDROCK_MODEL_MAP: "a=" })).toEqual([]);
     expect(providerReach({ STIGMER_ANTHROPIC_BACKEND: "foundry", ANTHROPIC_FOUNDRY_RESOURCE: "r", ANTHROPIC_FOUNDRY_BASE_URL: "https://r" })).toEqual([]);
     expect(providerReach({ STIGMER_OPENAI_BACKEND: "azure", OPENAI_API_KEY: KEY })).toEqual([]);
     expect(providerReach({ ANTHROPIC_BASE_URL: "not a url", ANTHROPIC_API_KEY: KEY })).toEqual([]);
   });
 
-  it("reaches all three through a proxy, which owns routing over every other setting", () => {
+  it("reaches both through a proxy, which owns routing over every other setting", () => {
     expect(providerReach({ STIGMER_PROXY_ENDPOINT: "https://api.stigmer.ai", STIGMER_ANTHROPIC_BACKEND: "nonsense" })).toEqual(
       REACHABLE_PROVIDERS.map((provider) => ({ provider, via: "proxy" })),
     );
   });
 
   it("renders the setting's value and the readable line", () => {
-    const reach = providerReach({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global", CURSOR_API_KEY: KEY });
-    expect(runnerProvidersValue(reach)).toBe("anthropic,cursor");
-    expect(describeReach(reach)).toBe("anthropic (vertex), cursor (key)");
+    const reach = providerReach({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global", OPENAI_API_KEY: KEY });
+    expect(runnerProvidersValue(reach)).toBe("anthropic,openai");
+    expect(describeReach(reach)).toBe("anthropic (vertex), openai (key)");
     expect(runnerProvidersValue([])).toBe("");
     expect(describeReach([])).toBe("");
   });

@@ -19,7 +19,7 @@
  * the facts the runtime owes on it: the terminal phase, the copy
  * (`terminal-table.ts` `TERMINAL_COPY`, byte-pinned), `status.error`,
  * `completedAt`, "the step after never runs", the whole-activity heartbeat,
- * one bind for an engine-minted harness, the slim return, and — on every
+ * the slim return, and — on every
  * arm, whatever the outcome — a transcript that streams nothing once the
  * turn has settled ({@link assertTranscriptStreamsNothing}). What is NOT
  * asserted here is engine cadence — how many IN_PROGRESS persists precede
@@ -102,7 +102,7 @@ export const RUNTIME_USER_MESSAGE = "Summarize the repository.";
 /** Above the clock's 1 s step and small enough that the watchdog's real poll (stallMs / 4) fires promptly. */
 export const STALL_TIMEOUT_MS = 2_000;
 
-/** The cost-cap arm's numbers, the same the Cursor golden prices: 600 000 input tokens against a $0.50 budget. */
+/** The cost-cap arm's numbers: 600 000 input tokens against a $0.50 budget. */
 export const COST_CAP_BUDGET_USD = 0.5;
 export const COST_CAP_INPUT_TOKENS = 600_000;
 /** What the fake states for those tokens; a real adapter prices them itself and must land above the budget too. */
@@ -155,16 +155,14 @@ export function slimOf(subject: HarnessContractSubject, invocation: ActivityInvo
  * One execution's worth of turns through the REAL runtime against one
  * subject. A new driver per arm, with its own record under its own ids (a
  * real engine is per session; two arms on one session would share a parked
- * engine). It threads the state id the runtime bound (an engine-minted
- * harness's `harnessBinds`; a deterministic harness's runtime-minted id)
- * and sets `turnSeq` as the workflow does between invocations: one more
+ * engine). It threads the runtime-minted state id and sets `turnSeq` as the workflow does between invocations: one more
  * after an invocation that returned (an approval cycle), 0 after one that
  * threw (a drain, a lost runner, a stall the model owed or a pause, which
  * the workflow recovers by running the turn from its first invocation).
  */
 export class RuntimeExecutionDriver {
   readonly record: ExecutionRecord;
-  private threadId: string;
+  private readonly threadId: string;
   private turnSeq = 0;
 
   constructor(
@@ -185,7 +183,7 @@ export class RuntimeExecutionDriver {
         agentVersionHash: DEFAULT_RECORD_IDS.agentVersionHash,
       },
     });
-    this.threadId = harness.subject.adapter.capabilities.stateIdSource === "deterministic" ? `thread-${this.sessionId}` : "";
+    this.threadId = `thread-${this.sessionId}`;
   }
 
   get sessionId(): string {
@@ -222,8 +220,6 @@ export class RuntimeExecutionDriver {
       turn_seq: this.turnSeq,
     };
     const invocation = await runActivityHermetically(activity, [input], { taskQueue: config.taskQueue, onControls: options.onControls });
-    const bound = this.record.harnessBinds.at(-1)?.harnessStateId;
-    if (bound) this.threadId = bound;
     this.turnSeq = invocation.outcome.kind === "threw" ? 0 : this.turnSeq + 1;
     return invocation;
   }
@@ -323,8 +319,7 @@ export interface RuntimeArmResult {
 
 /**
  * A completed turn: the runtime's own six resolution labels lead the setup
- * progress (a harness's follow), an engine-minted adapter binds exactly once
- * and its id is on the session, the persisted transcript ends with the answer
+ * progress (a harness's follow), the persisted transcript ends with the answer
  * and the slim return carries none of it, `completedAt` is stamped, no error, the whole-activity
  * heartbeat pulsed, and the usage the adapter priced is summed on the status.
  */
@@ -339,12 +334,6 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
   expect(slim, `${subject.name}: the slim return carries no transcript`).not.toHaveProperty("messages");
   expect(driver.record.persistedPhases.at(-1), `${subject.name}: the last persist is COMPLETED`).toBe(RunPhase.RUN_COMPLETED);
   expect(driver.record.setupProgress.slice(0, RUNTIME_SETUP_LABELS.length), `${subject.name}: the runtime's resolution labels lead the setup progress`).toEqual([...RUNTIME_SETUP_LABELS]);
-  if (subject.adapter.capabilities.stateIdSource === "engine-minted") {
-    expect(driver.record.harnessBinds, `${subject.name}: an engine-minted adapter binds once`).toHaveLength(1);
-    expect(driver.record.harnessBinds[0]?.harnessStateId, `${subject.name}: the bound id reaches the session's door`).toBeTruthy();
-  } else {
-    expect(driver.record.harnessBinds, `${subject.name}: a deterministic adapter binds nothing`).toHaveLength(0);
-  }
   const final = finalStatusOf(harness, driver);
   expect(aiMessages(driver.record.rowsOf(final)).at(-1), `${subject.name}: the transcript ends with the last assistant text`).toBe(text);
   expect(final.completedAt, `${subject.name}: a completed turn is stamped`).not.toBe("");
@@ -359,8 +348,7 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
 /**
  * The approval round trip: the proposal RETURNS `WAITING_FOR_APPROVAL` with
  * one WAITING row and nothing executed; the user approves; the reinvocation
- * by the bound id executes it exactly once, clears the wait, completes, and
- * binds nothing new. The proposal is a `shell`, the built-in every harness
+ * executes it exactly once, clears the wait and completes. The proposal is a `shell`, the built-in every harness
  * gates in every workspace posture (a `write` flows: with review off it is
  * never asked, and with review on the hermetic environment's artifact
  * storage puts it on apply-then-review capture).
@@ -378,7 +366,6 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, g
     expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     expect(driver.record.waitingToolCalls().map((tc) => tc.id), `${subject.name}: exactly the proposal waits`).toEqual([id]);
     expect(subject.executionCount(id), `${subject.name}: a proposal never executes in its own turn`).toBe(0);
-    const bindsAfterFirst = driver.record.harnessBinds.length;
 
     expect(driver.decide(ApprovalAction.APPROVE), `${subject.name}: one row to decide`).toBe(1);
 
@@ -388,7 +375,6 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, g
     expect(aiMessages(finalRowsOf(harness, driver)).at(-1)).toBe("Done.");
     expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
     expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
-    expect(driver.record.harnessBinds, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
   });
   return { driver, invocations, final: finalStatusOf(harness, driver) };
 }
@@ -885,33 +871,6 @@ export async function assertModelStallContinues(harness: RuntimeContractHarness,
 }
 
 /**
- * The engine's vendor ends its connection mid-turn (Cursor's backend ends a
- * long run's stream, stigmer#2436): no stop of the runtime's caused it, and
- * the vendor kept the conversation, so nothing terminal is written, the note
- * says why, the typed continuation tells the workflow to run the turn again,
- * and the next invocation picks up from where the turn was, never handing
- * the engine the task.
- */
-export async function assertStreamCutContinues(harness: RuntimeContractHarness, label = "rt-stream-cut"): Promise<RuntimeArmResult> {
-  const { subject } = harness;
-  const controls = longTurnOf(subject);
-  const driver = new RuntimeExecutionDriver(harness, label);
-  const read = `${label}-read`;
-
-  const first = await driver.turn([scenario.say("Reading the config."), scenario.read(read, "package.json"), scenario.cut(), scenario.say(NEVER_SEEN)]);
-
-  expect(continuationCauseOf(first.outcome), `${subject.name}: a cut the vendor made continues`).toBe("stream-cut");
-  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes["stream-cut"]);
-  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
-
-  const second = await driver.turn([scenario.read(read, "package.json"), scenario.say("The config is read.")]);
-  expectCompleted(harness, driver, second, "The config is read.");
-  expect(harnessNotesOf(driver), `${subject.name}: the cut's note, once`).toEqual([TERMINAL_COPY.continuation.notes["stream-cut"]]);
-  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
-  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
-}
-
-/**
  * A turn the platform STOPs after a write landed: the turn completes early,
  * and what it left on the tree is a change set to keep or undo, captured
  * when the stop's arm returned (#1115). Before it, those edits sat on the
@@ -1017,7 +976,7 @@ export async function assertCostCapTerminates(harness: RuntimeContractHarness, l
  * with the platform-stop row and no error, and the step after the STOP never
  * runs — the awaited `requestPersist` at work. The persist the
  * control plane answers is the one carrying a completed `read`: the discrete
- * event every harness flushes on (the Cursor golden's lever), where a bare
+ * event every harness flushes on, where a bare
  * assistant message may ride an engine's cadence to the settle persist, too
  * late to stop anything.
  */
@@ -1042,24 +1001,6 @@ export async function assertPlatformStopCompletesEarly(harness: RuntimeContractH
 }
 
 // ── Arms: the engine ends its own run ───────────────────────────────────────
-
-/** An engine-cancelled run ends CANCELLED: no error, no copy, stamped. */
-export async function assertEngineCancelledEndsCancelled(harness: RuntimeContractHarness, label = "rt-cancelled"): Promise<RuntimeArmResult> {
-  const { subject } = harness;
-  const driver = new RuntimeExecutionDriver(harness, label);
-
-  const invocation = await driver.turn([scenario.say("Looking at the pull requests."), scenario.cancelled(), scenario.say(NEVER_SEEN)]);
-
-  const slim = slimOf(subject, invocation);
-  expect(slim.phase, `${subject.name}: an engine cancel ends CANCELLED`).toBe("RUN_CANCELLED");
-  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_CANCELLED);
-  const final = finalStatusOf(harness, driver);
-  expect(final.error).toBe("");
-  expect(final.completedAt).not.toBe("");
-  expect(systemMessages(driver.record.rowsOf(final))).toEqual([]);
-  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
-  return { driver, invocations: [invocation], final };
-}
 
 /**
  * A failed turn writes its surface's copy and RETURNS FAILED: the `engine`
@@ -1107,35 +1048,9 @@ export async function assertFailedSurfaceWritesItsCopy(harness: RuntimeContractH
 // ── Arms: failures before or around the engine ──────────────────────────────
 
 /**
- * A rejected `bindHarnessState` (the session write refused) ends the turn
- * FAILED on the internal surface with nothing executed.
- * Engine-minted harnesses only: a deterministic one never binds.
- */
-export async function assertRejectedBindFails(harness: RuntimeContractHarness, label = "rt-bind-rejects"): Promise<RuntimeArmResult> {
-  const { subject } = harness;
-  const driver = new RuntimeExecutionDriver(harness, label);
-
-  const invocation = await driver.turn([scenario.say(NEVER_SEEN)], {
-    clientOverrides: {
-      bindHarnessState: async () => {
-        throw new Error("session write refused");
-      },
-    },
-  });
-
-  expect(slimOf(subject, invocation).phase, `${subject.name}: a rejected bind RETURNS FAILED`).toBe("RUN_FAILED");
-  const final = finalStatusOf(harness, driver);
-  expect(final.error).not.toBe("");
-  expect(systemMessages(driver.record.rowsOf(final))[0], `${subject.name}: a rejected bind is an internal failure`).toBe(TERMINAL_COPY.internalFailure.row);
-  expect(aiMessages(driver.record.rowsOf(final)), `${subject.name}: nothing ran after the rejected bind`).not.toContain(NEVER_SEEN);
-  return { driver, invocations: [invocation], final };
-}
-
-/**
  * An error during resolution (before any engine runs) fails the turn through
  * the runtime's own unexpected-error arm: nothing persisted before the
- * failure, the two internal rows, the progress stopped at the failing phase,
- * no bind.
+ * failure, the two internal rows, the progress stopped at the failing phase.
  */
 export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeContractHarness, label = "rt-resolution-error"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -1157,7 +1072,6 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
   expect(final.error).toBe("[Error] runtime fault injected at getSession");
   expect(systemMessages(driver.record.rowsOf(final))).toEqual([TERMINAL_COPY.internalFailure.row, `Error details: ${final.error}`]);
   expect(driver.record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);
-  expect(driver.record.harnessBinds).toHaveLength(0);
   return { driver, invocations: [invocation], final };
 }
 
@@ -1180,7 +1094,6 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
     expect(final.error).toContain(`Workspace is in use by another session: ${resolvedDir}`);
     expect(systemMessages(driver.record.rowsOf(final))).toEqual([`Execution failed: ${final.error}`]);
     expect(driver.record.setupProgress.at(-1)).toBe("Waiting for workspace — in use by another session");
-    expect(driver.record.harnessBinds).toHaveLength(0);
     return { driver, invocations: [invocation], final };
   } finally {
     await release();
@@ -1436,7 +1349,7 @@ export const KIT_OPEN_OPERATION_MAX_MS = (LONG_OPERATION_WINDOWS + 1) * STALL_TI
  * An operation open past the runtime's backstop stops the turn: FAILED, with
  * the operation-limit copy naming the call and the limit, never the stall's
  * "made no progress", and the stall's stop cause. What it guards is an
- * operation with no bound of our own (a Cursor `task`): a live heartbeat over
+ * operation with no bound of our own (an engine's opaque tool): a live heartbeat over
  * it would otherwise keep a dead turn alive forever.
  */
 export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeContractHarness, label = "rt-operation-limit"): Promise<RuntimeArmResult> {
@@ -1808,10 +1721,9 @@ export async function assertContinuationCarriesTheRunsCount(harness: RuntimeCont
  * A runner lost after its engine took the run's input, before anything of
  * the run reached the session's log: a process killed while its first
  * writes were still in flight. The runtime cannot tell this run from a first
- * invocation, so only the adapter's own memory of its engine can: a
- * `checkpoint` engine continues from its save, and a `digest` engine
- * continues the conversation it was sent the run in, both without the task
- * (stigmer#2417, stigmer#2487). Nothing the first invocation wrote lands, as
+ * invocation, so only the adapter's own memory of its engine can: the
+ * engine continues from its save, without the task (stigmer#2417,
+ * stigmer#2487). Nothing the first invocation wrote lands, as
  * nothing a killed process wrote does.
  */
 export async function assertLostBeforeTheLogKnewContinuesFromTheEngine(harness: RuntimeContractHarness, label = "rt-lost-before-log"): Promise<RuntimeArmResult> {
@@ -2049,18 +1961,9 @@ export interface RuntimeContractOptions {
   /**
    * Whether this subject's engine can exhaust a tool-round budget and end a
    * turn `tool_call_limit` (`scenario.limit()`); the arm is registered
-   * SKIPPED otherwise. On by default; the Cursor subject turns it off (its
-   * SDK has no such budget).
+   * SKIPPED otherwise. On by default.
    */
   readonly toolCallLimit?: boolean;
-  /**
-   * Whether this subject's engine can end its OWN run cancelled with nothing
-   * to wait for (`scenario.cancelled()`, an SDK-side cancel); the arm is
-   * registered SKIPPED otherwise. On by default; the native subject turns it
-   * off (no LangGraph path ends a turn `cancelled` — a stop is the runtime's
-   * and settles `interrupted`).
-   */
-  readonly engineCancel?: boolean;
   /**
    * Whether this subject's engine can hand work to a subagent
    * (`scenario.open(…, { as: "subagent" })`); the arm is registered SKIPPED
@@ -2073,12 +1976,6 @@ export interface RuntimeContractOptions {
    * default; the scripted fake turns it off (no context).
    */
   readonly compaction?: boolean;
-  /**
-   * Whether this subject's engine holds a vendor connection that the vendor
-   * can end mid-turn (`scenario.cut()`); the arm is registered SKIPPED
-   * otherwise. On by default; the native subject turns it off.
-   */
-  readonly streamCut?: boolean;
   /**
    * The long-turn and approval arms that are a known gap on this subject,
    * each with the open issue that names it (`<owner>/<repo>#<n>`). The arm
@@ -2201,10 +2098,6 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertModelStallContinues(harness);
     });
-    it.skipIf(options.streamCut === false)("a connection the vendor ended continues, and the next invocation picks up without the task", async () => {
-      clock.reset();
-      await assertStreamCutContinues(harness);
-    });
     it("a cost cap terminates the turn with the budget copy; the step after the overrun is never processed", async () => {
       clock.reset();
       await assertCostCapTerminates(harness);
@@ -2212,10 +2105,6 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     it("a platform STOP answered to a persist completes the turn early; the step after the STOP never runs", async () => {
       clock.reset();
       await assertPlatformStopCompletesEarly(harness);
-    });
-    it.skipIf(options.engineCancel === false)("an engine-cancelled run ends CANCELLED with no error and no copy", async () => {
-      clock.reset();
-      await assertEngineCancelledEndsCancelled(harness);
     });
     it.skipIf(options.toolCallLimit === false)("a tool-call limit terminates the turn with the cross-repo prefix and the user copy, persisted and returned", async () => {
       clock.reset();
@@ -2227,10 +2116,6 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
         await assertFailedSurfaceWritesItsCopy(harness, surface, FAILURE_MESSAGES[surface]);
       });
     }
-    it.skipIf(subject.adapter.capabilities.stateIdSource !== "engine-minted")("a rejected bindHarnessState ends the turn failed with nothing executed", async () => {
-      clock.reset();
-      await assertRejectedBindFails(harness);
-    });
     it("an error during resolution fails the turn through the internal arm before any engine runs", async () => {
       clock.reset();
       await assertResolutionErrorFailsBeforeEngine(harness);
@@ -2303,7 +2188,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertLostBeforeTheLogKnewContinuesFromTheEngine(harness));
       });
-      it.skipIf(subject.adapter.capabilities.continuation !== "checkpoint")("a continued turn whose engine had finished settles with no model call", async () => {
+      it("a continued turn whose engine had finished settles with no model call", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertFinishedEngineSettlesWithoutAModelCall(harness));
       });

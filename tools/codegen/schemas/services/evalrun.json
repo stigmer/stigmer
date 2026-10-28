@@ -283,11 +283,6 @@
           "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
         {
-          "name": "HARNESS_CURSOR",
-          "number": 2,
-          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
-        },
-        {
           "name": "HARNESS_CLAUDE",
           "number": 3,
           "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer, model calls on the organization's own Anthropic key. A runner\n that does not carry the engine refuses its turns plainly."
@@ -1111,7 +1106,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why this case did not run on this target, as in \"not run: model\n 'sonnet' is not in Stigmer's catalog\" or \"not run on Cursor:\n resumed conversations\"; empty when it ran.",
+          "description": "Why this case did not run on this target, as in \"not run: model\n 'sonnet' is not in Stigmer's catalog\"; empty when it ran.",
           "required": false
         },
         {
@@ -1391,7 +1386,6 @@
             "enumType": "ai.stigmer.agentic.session.v1.Harness",
             "enumValues": [
               "HARNESS_NATIVE",
-              "HARNESS_CURSOR",
               "HARNESS_CLAUDE"
             ]
           },

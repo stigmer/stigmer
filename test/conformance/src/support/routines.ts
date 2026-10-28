@@ -60,10 +60,16 @@ export function invalidTimeZoneMessage(zone: string): string {
 }
 
 // The deterministic launch-gate refusal the firing suite fires against with
-// no model behind it: an agent whose engine is Cursor and which names no
-// model, under a routine naming neither, would run Auto unattended (#362).
-// Every fragment is part of the pinned copy.
-export const MODEL_PIN_REFUSAL_FRAGMENTS = ["must name a model", "stigmer/stigmer#362"] as const;
+// no model behind it: a routine that turns thinking off, on an agent whose
+// native model always thinks, asks for a turn the provider would refuse, so
+// the run create refuses it before any run exists. Every fragment is part of
+// the pinned copy.
+export const ALWAYS_THINKING_MODEL = "claude-fable-5";
+export const THINKING_OFF_REFUSAL_FRAGMENTS = [
+  "thinking_mode 'disabled'",
+  `model '${ALWAYS_THINKING_MODEL}'`,
+  "the model always thinks on the native harness",
+] as const;
 
 // ─── What a fired run is told (byte-pinned) ─────────────────────────────────
 

@@ -4,7 +4,6 @@ import { type ReactNode } from "react";
 import { useModelRegistry } from "../useModelRegistry";
 import {
   DEFAULT_MODEL_ID,
-  DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
   modelKey,
   parseRegistryDocument,
@@ -54,24 +53,24 @@ const TEST_REGISTRY_JSON = {
       pricing: { inputPricePerMillion: 2.5, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 1.25 },
     },
     {
-      id: "default",
-      displayName: "Cursor Auto",
-      shortDescription: "Automatic model selection",
-      speedTier: "fast",
-      provider: "cursor",
-      harness: "cursor",
+      id: "claude-haiku-4.5",
+      displayName: "Claude Haiku 4.5",
+      shortDescription: "Fast Claude Agent model",
+      speedTier: "fastest",
+      provider: "anthropic",
+      harness: "claude",
       costTier: "standard",
       featured: true,
-      pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 },
+      pricing: { inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.1 },
     },
     {
-      id: "claude-4.6-sonnet",
-      displayName: "Claude 4.6 Sonnet",
-      shortDescription: "Balanced Cursor model",
-      speedTier: "fast",
+      id: "claude-opus-4.8",
+      displayName: "Claude Opus 4.8",
+      shortDescription: "Complex Claude Agent work",
+      speedTier: "slow",
       provider: "anthropic",
-      harness: "cursor",
-      costTier: "standard",
+      harness: "claude",
+      costTier: "premium",
       featured: false,
       pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 },
       pricingVariants: {
@@ -240,7 +239,7 @@ describe("useModelRegistry visionLimits pass-through (#365)", () => {
 
 describe("parseRegistryJson service tiers (#357)", () => {
   it("surfaces pricingVariants keys as serviceTiers", () => {
-    const withVariants = TEST_MODELS.find((m) => m.modelId === "claude-4.6-sonnet");
+    const withVariants = TEST_MODELS.find((m) => m.modelId === "claude-opus-4.8");
     expect(withVariants?.serviceTiers).toEqual(["fast"]);
   });
 
@@ -259,11 +258,11 @@ describe("useModelRegistry", () => {
       }
     });
 
-    it("includes models from both native and cursor harnesses", () => {
+    it("includes models from both native and claude harnesses", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
       const harnesses = new Set(result.current.models.map((m) => m.harness));
       expect(harnesses.has("native")).toBe(true);
-      expect(harnesses.has("cursor")).toBe(true);
+      expect(harnesses.has("claude")).toBe(true);
     });
 
     it("includes all non-disabled models", () => {
@@ -343,13 +342,13 @@ describe("useModelRegistry", () => {
       expect(model!.harness).toBe("native");
     });
 
-    it("resolves cursor models by compound key via getByKey", () => {
+    it("resolves claude models by compound key via getByKey", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
-      const key = modelKey("cursor", DEFAULT_CURSOR_MODEL_ID);
+      const key = modelKey("claude", "claude-haiku-4.5");
       const model = result.current.getByKey(key);
       expect(model).toBeDefined();
-      expect(model!.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
-      expect(model!.harness).toBe("cursor");
+      expect(model!.modelId).toBe("claude-haiku-4.5");
+      expect(model!.harness).toBe("claude");
     });
 
     it("returns undefined for unknown compound keys via getByKey", () => {
@@ -368,14 +367,14 @@ describe("useModelRegistry", () => {
       }
     });
 
-    it("excludes cursor-harness models", () => {
+    it("excludes claude-harness models", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "native" }),
       { wrapper: createWrapper() });
-      const cursorModels = result.current.models.filter(
-        (m) => m.harness === "cursor",
+      const claudeModels = result.current.models.filter(
+        (m) => m.harness === "claude",
       );
-      expect(cursorModels).toHaveLength(0);
+      expect(claudeModels).toHaveLength(0);
     });
 
     it("resolves defaultModel to the featured standard-cost native model (what an unpinned execution runs, #663)", () => {
@@ -387,45 +386,34 @@ describe("useModelRegistry", () => {
     });
   });
 
-  describe("cursor harness", () => {
-    it("shows only cursor-harness models", () => {
+  describe("claude harness", () => {
+    it("shows only claude-harness models", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "cursor" }),
+        useModelRegistry({ harness: "claude" }),
       { wrapper: createWrapper() });
+      expect(result.current.models.length).toBeGreaterThan(0);
       for (const model of result.current.models) {
-        expect(model.harness).toBe("cursor");
+        expect(model.harness).toBe("claude");
       }
     });
 
-    it("includes cursor-harness models from multiple providers", () => {
+    it("resolves defaultModel to the featured standard-cost claude-harness model", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "cursor" }),
+        useModelRegistry({ harness: "claude" }),
       { wrapper: createWrapper() });
-      const providers = new Set(result.current.models.map((m) => m.provider));
-      expect(providers.size).toBeGreaterThan(1);
+      expect(result.current.defaultModel!.modelId).toBe("claude-haiku-4.5");
     });
 
-    it("resolves defaultModel to DEFAULT_CURSOR_MODEL_ID", () => {
+    it("looks up claude-harness models via getModel", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "cursor" }),
+        useModelRegistry({ harness: "claude" }),
       { wrapper: createWrapper() });
-      expect(result.current.defaultModel!.modelId).toBe(
-        DEFAULT_CURSOR_MODEL_ID,
-      );
-    });
-
-    it("looks up cursor models via getModel", () => {
-      const { result } = renderHook(() =>
-        useModelRegistry({ harness: "cursor" }),
-      { wrapper: createWrapper() });
-      expect(
-        result.current.getModel(DEFAULT_CURSOR_MODEL_ID),
-      ).toBeDefined();
+      expect(result.current.getModel("claude-opus-4.8")).toBeDefined();
     });
 
     it("cannot look up native-only models via getModel", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "cursor" }),
+        useModelRegistry({ harness: "claude" }),
       { wrapper: createWrapper() });
       expect(result.current.getModel(DEFAULT_MODEL_ID)).toBeUndefined();
     });

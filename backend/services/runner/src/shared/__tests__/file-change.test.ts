@@ -59,7 +59,7 @@ describe("resolveWorkspacePath", () => {
     });
   });
 
-  describe("cursor (virtualRoot=false)", () => {
+  describe("real filesystem paths (virtualRoot=false)", () => {
     it("makes an absolute path under the root relative for display", () => {
       expect(resolveWorkspacePath("/work/space/src/app.ts", root, false)).toEqual({
         path: "src/app.ts",

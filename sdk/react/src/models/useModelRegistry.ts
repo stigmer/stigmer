@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import {
   DEFAULT_MODEL_ID,
-  DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
   resolveDefaultModelId,
   modelKey,
@@ -19,7 +18,6 @@ export interface UseModelRegistryOptions {
   /**
    * Restrict to a single harness.
    *
-   * - `"cursor"` — only Cursor-harness models, default → {@link DEFAULT_CURSOR_MODEL_ID}
    * - `"native"`, `"claude"` — only that harness's models, filtered by {@link DISABLED_PROVIDERS}
    * - omitted — **unified mode**: all enabled models from every harness
    */

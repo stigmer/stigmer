@@ -6,9 +6,7 @@
 // policy a proof installs is upstream's. A plugin's files are the manifest's
 // list, read from disk, so a file git ignores in the fixture (Python's
 // `__pycache__`, which hookify's own `.gitignore` hides) never rides a push;
-// `vendoredPaths` lists the disk for the test that refuses such a file. The
-// runner, which does not depend on this package, reads the same fixture and
-// manifest by path (`cursor-hooks-gate.live.test.ts`).
+// `vendoredPaths` lists the disk for the test that refuses such a file.
 // Domain: test support (fixtures).
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";

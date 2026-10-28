@@ -240,7 +240,7 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
 }
 
 /** The engines a readiness answer lists, in the proto's order. */
-const READINESS_ENGINES: readonly Harness[] = [Harness.NATIVE, Harness.CURSOR, Harness.CLAUDE].filter((engine) =>
+const READINESS_ENGINES: readonly Harness[] = [Harness.NATIVE, Harness.CLAUDE].filter((engine) =>
   OFFERED_HARNESSES.has(engine),
 );
 
@@ -381,7 +381,7 @@ async function getLicenseStatus(
  * (the proto's "the one reachable by the caller"). The
  * RunnerAccessToken / TokenType / RunnerAccessTokenExpiresInSeconds fields
  * are intentionally left empty in OSS: minting an iss=stigmer proxy token
- * is a cloud-only capability (OSS has no Cursor BiDi proxy to authenticate
+ * is a cloud-only capability (OSS has no hosted model proxy to authenticate
  * against), so OSS runners keep using the token they already hold. The
  * suite pins the presence-based all-or-nothing coupling of those fields.
  *

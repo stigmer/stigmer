@@ -218,8 +218,8 @@ export interface ToolCategoryInfo {
   /**
    * JSON argument key carrying a model-authored intent phrase for this kind
    * (stigmer#276), or `undefined` for kinds without one. Shell is the only
-   * carrier today: every harness converges on `description` — the Cursor and
-   * Claude harnesses' built-in shell tools ship it natively, and the native
+   * carrier today: every harness converges on `description` — the Claude
+   * harness's built-in shell tool ships it natively, and the native
    * harness's tool-intent middleware adds it to the `execute` schema at bind
    * time.
    */
@@ -540,13 +540,11 @@ export function extractShellIntentFromPreview(
  * pre-execution gate ({@link ApprovalCardBody}) and the post-execution row
  * ({@link ToolArgsView}) — so the two never disagree on what "the content" is.
  * Spans every harness's file-tool shapes (deepagents' and Claude's
- * `content`/`new_string`, Cursor's `contents`/`new_text`).
+ * `content`/`new_string`).
  */
 const WRITE_CONTENT_FIELDS = [
-  "contents",
   "content",
   "file_content",
-  "new_text",
   "new_string",
   "replacement",
 ] as const;

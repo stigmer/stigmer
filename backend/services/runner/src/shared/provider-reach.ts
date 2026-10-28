@@ -12,7 +12,7 @@
  * configuration.
  *
  *   - A proxy (`STIGMER_PROXY_ENDPOINT`, trimmed, as `preflightLlmBackends`
- *     reads it) owns routing for every provider: all three, via `proxy`.
+ *     reads it) owns routing for every provider: both, via `proxy`.
  *   - A configuration the runner refuses to boot on reaches nothing: an
  *     unsupported `STIGMER_ANTHROPIC_BACKEND` or `STIGMER_OPENAI_BACKEND`, an
  *     `ANTHROPIC_BASE_URL` that is not an http(s) URL, or a non-public
@@ -24,9 +24,6 @@
  *     it holds, none included); otherwise a non-blank `ANTHROPIC_API_KEY`
  *     (`checkDirectCredentials`).
  *   - OpenAI: a non-blank `OPENAI_API_KEY` (`checkDirectCredentials`).
- *   - Cursor: a non-empty `CURSOR_API_KEY` (`config.ts`, which keeps the
- *     value untrimmed, and the Cursor lane's own check in
- *     `agent-proxy/cursor-lane.ts`).
  *
  * This module imports nothing, so a test elsewhere can load it from source
  * by path. The CLI keeps a copy (`client-apps/cli/src/local/provider-reach.ts`),
@@ -35,7 +32,7 @@
  */
 
 /** The model providers a runner can reach, in the order they are reported. */
-export const REACHABLE_PROVIDERS = ["anthropic", "openai", "cursor"] as const;
+export const REACHABLE_PROVIDERS = ["anthropic", "openai"] as const;
 
 export type ReachableProvider = (typeof REACHABLE_PROVIDERS)[number];
 
@@ -74,16 +71,15 @@ export function providerReach(env: ReachEnv): readonly ProviderReach[] {
     reach.push({ provider: "anthropic", via: "key" });
   }
   if (filled(env.OPENAI_API_KEY)) reach.push({ provider: "openai", via: "key" });
-  if ((env.CURSOR_API_KEY ?? "") !== "") reach.push({ provider: "cursor", via: "key" });
   return reach;
 }
 
-/** The setting's value for a reach: the providers' names, comma-separated (`"anthropic,cursor"`). */
+/** The setting's value for a reach: the providers' names, comma-separated (`"anthropic,openai"`). */
 export function runnerProvidersValue(reach: readonly ProviderReach[]): string {
   return reach.map((entry) => entry.provider).join(",");
 }
 
-/** A reach for a person to read: `anthropic (vertex), cursor (key)`, or `""` when it is empty. */
+/** A reach for a person to read: `anthropic (vertex), openai (key)`, or `""` when it is empty. */
 export function describeReach(reach: readonly ProviderReach[]): string {
   return reach.map((entry) => `${entry.provider} (${entry.via})`).join(", ");
 }

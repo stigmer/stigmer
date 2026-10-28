@@ -15,7 +15,6 @@ describe("providerReach", () => {
     const all = [
       { provider: "anthropic", via: "proxy" },
       { provider: "openai", via: "proxy" },
-      { provider: "cursor", via: "proxy" },
     ];
     expect(providerReach({ STIGMER_PROXY_ENDPOINT: "https://proxy.example" })).toEqual(all);
     expect(providerReach({ STIGMER_PROXY_ENDPOINT: "https://proxy.example", STIGMER_ANTHROPIC_BACKEND: "nope" })).toEqual(
@@ -30,7 +29,7 @@ describe("providerReach", () => {
   });
 
   it("reaches nothing when the runner would refuse to boot on its settings", () => {
-    const keys = { ANTHROPIC_API_KEY: "sk-ant", OPENAI_API_KEY: "sk-oa", CURSOR_API_KEY: "key_c" };
+    const keys = { ANTHROPIC_API_KEY: "sk-ant", OPENAI_API_KEY: "sk-oa" };
     expect(providerReach({ ...keys, STIGMER_ANTHROPIC_BACKEND: "azure" })).toEqual([]);
     expect(providerReach({ ...keys, STIGMER_OPENAI_BACKEND: "azure" })).toEqual([]);
     expect(providerReach({ ...keys, ANTHROPIC_BASE_URL: "not a url" })).toEqual([]);
@@ -43,12 +42,10 @@ describe("providerReach", () => {
       providerReach({
         ANTHROPIC_BASE_URL: "  http://gateway.example  ",
         OPENAI_API_KEY: "sk-oa",
-        CURSOR_API_KEY: "key_c",
       }),
     ).toEqual([
       { provider: "anthropic", via: "gateway" },
       { provider: "openai", via: "key" },
-      { provider: "cursor", via: "key" },
     ]);
   });
 
@@ -87,24 +84,25 @@ describe("providerReach", () => {
     ).toEqual([]);
   });
 
-  it("reaches nothing with no settings at all", () => {
+  it("reaches nothing with no settings at all, nor on an old Cursor key, which no engine reads", () => {
     expect(providerReach({})).toEqual([]);
+    expect(providerReach({ CURSOR_API_KEY: "key_c" })).toEqual([]);
   });
 });
 
 describe("the reach, written out", () => {
   const reach = [
     { provider: "anthropic", via: "vertex" },
-    { provider: "cursor", via: "key" },
+    { provider: "openai", via: "key" },
   ] as const;
 
   it("is the setting's value: the providers' names, comma-separated", () => {
-    expect(runnerProvidersValue(reach)).toBe("anthropic,cursor");
+    expect(runnerProvidersValue(reach)).toBe("anthropic,openai");
     expect(runnerProvidersValue([])).toBe("");
   });
 
   it("is a line a person reads: each provider with its route", () => {
-    expect(describeReach(reach)).toBe("anthropic (vertex), cursor (key)");
+    expect(describeReach(reach)).toBe("anthropic (vertex), openai (key)");
     expect(describeReach([])).toBe("");
   });
 });

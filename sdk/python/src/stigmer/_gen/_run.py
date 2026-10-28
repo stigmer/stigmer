@@ -264,7 +264,6 @@ class SessionSpecInput:
     metadata: dict[str, str] = field(default_factory=dict)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
-    cursor_mode: int = 0
     execution_target: int = 0
     vaults: list[ResourceRef] = field(default_factory=list)
     include_my_vault: bool = False
@@ -277,7 +276,6 @@ class SessionSpecInput:
         msg = session_spec_pb2.SessionSpec(
             subject=self.subject,
             harness=self.harness,
-            cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
             include_my_vault=self.include_my_vault,
             file_review=self.file_review,

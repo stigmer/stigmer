@@ -81,12 +81,12 @@ describe("buildStatusResult", () => {
     expect(result.hints).toContain("Configure a provider: stigmer setup");
   });
 
-  it("judges by the runner's reach: a Cursor key, a cloud backend or a gateway lets agents run", async () => {
+  it("judges by the runner's reach: an OpenAI key, a cloud backend or a gateway lets agents run", async () => {
     writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
 
-    const cursor = await buildStatusResult(home, open, { CURSOR_API_KEY: "ck" });
-    expect(field(cursor, "LLM Configuration", "Providers")).toBe("cursor (key)");
-    expect(field(cursor, "LLM Configuration", "Status")).toBeUndefined();
+    const openai = await buildStatusResult(home, open, { OPENAI_API_KEY: "sk-oa" });
+    expect(field(openai, "LLM Configuration", "Providers")).toBe("openai (key)");
+    expect(field(openai, "LLM Configuration", "Status")).toBeUndefined();
 
     const vertex = await buildStatusResult(home, open, { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global" });
     expect(field(vertex, "LLM Configuration", "Providers")).toBe("anthropic (vertex)");

@@ -148,10 +148,9 @@ server:
 
 runner:
   llm:
-    # Optional: the name of a Secret carrying ANTHROPIC_API_KEY and/or
-    # CURSOR_API_KEY. Read by explicit references marked optional, never
-    # envFrom (which would inject a Secret's every key). Agents need one
-    # key.
+    # Optional: the name of a Secret carrying ANTHROPIC_API_KEY. Read by an
+    # explicit reference marked optional, never envFrom (which would inject
+    # a Secret's every key). Agents need the key.
     existingSecret: ""
   stigmerToken:
     # With server.oidc.issuer set, the API key the runner calls the server

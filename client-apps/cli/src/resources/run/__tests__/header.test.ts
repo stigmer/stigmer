@@ -32,18 +32,13 @@ describe("renderSessionHeader", () => {
     expect(agent.text()).not.toContain("Mode:");
   });
 
-  it("surfaces the cursor harness but not native/default (oss#293)", () => {
-    // A cursor session may have been selected by the account preference, not
+  it("surfaces the claude harness but not native/default (oss#293)", () => {
+    // A Claude session may have been selected by the account preference, not
     // a flag — the header is the CLI's only pre-stream channel to say so.
-    const cursor = capture();
-    renderSessionHeader(cursor.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "cursor", workspaces: [] });
-    expect(cursor.text()).toContain("Harness:");
-    expect(cursor.text()).toContain("Cursor");
-
     const claude = capture();
     renderSessionHeader(claude.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "claude", workspaces: [] });
     expect(claude.text()).toContain("Harness:");
-    expect(claude.text(), "a Claude session never starts silently either").toContain("Claude");
+    expect(claude.text()).toContain("Claude");
 
     // Native (explicit or defaulted) stays implicit, like agent mode.
     const native = capture();

@@ -166,9 +166,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Stigmer-signed access token the runner uses to authenticate its
-   * Cursor-proxy traffic (the x-stigmer-auth header).
+   * model-proxy traffic (the x-stigmer-auth header).
    *
-   * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+   * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
    * server with no signing key configured. The runner keeps using its existing
    * token in that case.
    * </pre>
@@ -192,9 +192,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Stigmer-signed access token the runner uses to authenticate its
-   * Cursor-proxy traffic (the x-stigmer-auth header).
+   * model-proxy traffic (the x-stigmer-auth header).
    *
-   * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+   * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
    * server with no signing key configured. The runner keeps using its existing
    * token in that case.
    * </pre>
@@ -1183,9 +1183,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Stigmer-signed access token the runner uses to authenticate its
-     * Cursor-proxy traffic (the x-stigmer-auth header).
+     * model-proxy traffic (the x-stigmer-auth header).
      *
-     * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+     * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
      * </pre>
@@ -1208,9 +1208,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Stigmer-signed access token the runner uses to authenticate its
-     * Cursor-proxy traffic (the x-stigmer-auth header).
+     * model-proxy traffic (the x-stigmer-auth header).
      *
-     * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+     * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
      * </pre>
@@ -1234,9 +1234,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Stigmer-signed access token the runner uses to authenticate its
-     * Cursor-proxy traffic (the x-stigmer-auth header).
+     * model-proxy traffic (the x-stigmer-auth header).
      *
-     * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+     * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
      * </pre>
@@ -1256,9 +1256,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Stigmer-signed access token the runner uses to authenticate its
-     * Cursor-proxy traffic (the x-stigmer-auth header).
+     * model-proxy traffic (the x-stigmer-auth header).
      *
-     * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+     * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
      * </pre>
@@ -1275,9 +1275,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Stigmer-signed access token the runner uses to authenticate its
-     * Cursor-proxy traffic (the x-stigmer-auth header).
+     * model-proxy traffic (the x-stigmer-auth header).
      *
-     * Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+     * Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
      * server with no signing key configured. The runner keeps using its existing
      * token in that case.
      * </pre>

@@ -8,8 +8,8 @@ import "buf/validate/validate.proto";
 // agent's tool calls and can refuse a call, ask a person first, or let it run.
 //
 // A plugin's hooks are recorded here at install; an agent can also carry a
-// block of its own (AgentSpec.hooks). Every engine, native, Cursor and
-// Claude, runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
+// block of its own (AgentSpec.hooks). Every harness, native and Claude,
+// runs hooks in Claude Code's format (PreToolUse and PostToolUse) and in Cursor's
 // (preToolUse, beforeShellExecution, beforeMCPExecution, postToolUse and
 // afterMCPExecution).
 //
@@ -89,8 +89,8 @@ message HookGroup {
 //
 // The command reads the call as JSON on stdin and answers as its format's
 // hooks do: exit code 2 refuses the call, and JSON on stdout can allow, ask or
-// deny with a reason. A Cursor-format "ask" waits for a person on both
-// engines, where Cursor itself lets the call run.
+// deny with a reason. A Cursor-format "ask" waits for a person on every
+// harness, where Cursor itself lets the call run.
 message HookHandler {
   // The command to run. Without args it runs in bash; ${CLAUDE_PLUGIN_ROOT}
   // names the plugin's files and ${CLAUDE_PROJECT_DIR} the workspace, and in

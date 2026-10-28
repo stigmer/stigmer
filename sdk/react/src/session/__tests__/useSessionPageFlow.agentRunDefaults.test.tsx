@@ -138,7 +138,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
   });
 
   it("applies no agent default on another engine, and the remembered model seeds", () => {
-    mockAgentSpec = { ...AGENT_ON_NATIVE, harness: Harness.CURSOR };
+    mockAgentSpec = { ...AGENT_ON_NATIVE, harness: Harness.CLAUDE };
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     expect(result.current.agentRunDefaults).toBeUndefined();

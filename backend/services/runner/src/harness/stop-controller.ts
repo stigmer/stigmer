@@ -17,9 +17,7 @@
  * stop) is decided at settlement,
  * not at abort.
  *
- * Nothing here is engine-specific and nothing here persists; the Cursor
- * orchestrator kept the same facts as flags on its stream state
- * (`turn-stream.ts` `TurnStreamState`, before #1070 moved them out).
+ * Nothing here is engine-specific and nothing here persists.
  *
  * A yield is not a stop. When the runner drains, the turn is asked to stop
  * at its engine's next durable step boundary so the next runner continues

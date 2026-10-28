@@ -63,8 +63,8 @@ metrics:
     surface: proxy
     disposition: ported
     alerts: [platform-provider-errors-log]
-  - name: stigmer.proxy.cursor.execution_authority_lookups
-    surface: proxy
+  - name: stigmer.sandbox.pool.target
+    surface: platform
     disposition: dropped
     note: the mechanism retired with Java
 `;
@@ -85,7 +85,7 @@ describe("parseInventory — metrics", () => {
   it("rejects a name outside the stigmer.* namespace and a duplicated name", () => {
     const foreign = `${ROW}${METRICS.replace("stigmer.proxy.llm.platform_provider_errors", "http.server.duration")}`;
     expect(parseInventory(foreign).problems.some((p) => p.kind === "schema")).toBe(true);
-    const dup = `${ROW}${METRICS.replace("stigmer.proxy.cursor.execution_authority_lookups", "stigmer.proxy.llm.platform_provider_errors")}`;
+    const dup = `${ROW}${METRICS.replace("stigmer.sandbox.pool.target", "stigmer.proxy.llm.platform_provider_errors")}`;
     expect(parseInventory(dup).problems.filter((p) => p.kind === "duplicate-id")).toHaveLength(1);
   });
 });

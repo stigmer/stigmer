@@ -32,8 +32,7 @@ public interface ModelPricingBaselineOrBuilder extends
 
   /**
    * <pre>
-   * Stigmer canonical model id (e.g. "claude-sonnet-4.6" for native,
-   * "claude-sonnet-4-6" for cursor — id schemes differ per harness).
+   * Stigmer canonical model id (e.g. "claude-sonnet-4.6").
    * </pre>
    *
    * <code>string model_id = 2 [json_name = "modelId", (.buf.validate.field) = { ... }</code>
@@ -42,8 +41,7 @@ public interface ModelPricingBaselineOrBuilder extends
   java.lang.String getModelId();
   /**
    * <pre>
-   * Stigmer canonical model id (e.g. "claude-sonnet-4.6" for native,
-   * "claude-sonnet-4-6" for cursor — id schemes differ per harness).
+   * Stigmer canonical model id (e.g. "claude-sonnet-4.6").
    * </pre>
    *
    * <code>string model_id = 2 [json_name = "modelId", (.buf.validate.field) = { ... }</code>
@@ -56,7 +54,7 @@ public interface ModelPricingBaselineOrBuilder extends
    * <pre>
    * Provider API identifier the runner resolves to (e.g.
    * "claude-sonnet-4-6"). Empty when the canonical id is already the
-   * wire name (most cursor entries).
+   * wire name.
    * </pre>
    *
    * <code>string api_model_id = 3 [json_name = "apiModelId", (.buf.validate.field) = { ... }</code>
@@ -67,7 +65,7 @@ public interface ModelPricingBaselineOrBuilder extends
    * <pre>
    * Provider API identifier the runner resolves to (e.g.
    * "claude-sonnet-4-6"). Empty when the canonical id is already the
-   * wire name (most cursor entries).
+   * wire name.
    * </pre>
    *
    * <code>string api_model_id = 3 [json_name = "apiModelId", (.buf.validate.field) = { ... }</code>
@@ -78,7 +76,7 @@ public interface ModelPricingBaselineOrBuilder extends
 
   /**
    * <pre>
-   * LLM provider (e.g. "anthropic", "openai", "cursor"). Free-form:
+   * LLM provider (e.g. "anthropic", "openai"). Free-form:
    * new providers appear without a contract change.
    * </pre>
    *
@@ -88,7 +86,7 @@ public interface ModelPricingBaselineOrBuilder extends
   java.lang.String getProvider();
   /**
    * <pre>
-   * LLM provider (e.g. "anthropic", "openai", "cursor"). Free-form:
+   * LLM provider (e.g. "anthropic", "openai"). Free-form:
    * new providers appear without a contract change.
    * </pre>
    *
@@ -100,7 +98,7 @@ public interface ModelPricingBaselineOrBuilder extends
 
   /**
    * <pre>
-   * Execution harness ("native", "cursor", "claude").
+   * Execution harness ("native" or "claude").
    * </pre>
    *
    * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -109,7 +107,7 @@ public interface ModelPricingBaselineOrBuilder extends
   java.lang.String getHarness();
   /**
    * <pre>
-   * Execution harness ("native", "cursor", "claude").
+   * Execution harness ("native" or "claude").
    * </pre>
    *
    * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -298,11 +296,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue);
    * Wire model names that resolve directly to this base entry — the
    * base-level twin of PricingVariant.wire_ids, for served-model names
    * that neither match the canonical id nor normalize to a clean
-   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
-   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
-   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
-   * names the catalog never uses). Matched case-insensitively; billed
-   * at the base rates.
+   * "base + suffix" form (e.g. a dated snapshot name a provider reports
+   * for a model the catalog lists undated). Matched case-insensitively;
+   * billed at the base rates.
    *
    * Distinct from api_model_id, which is the single OUTBOUND identifier
    * the runner dispatches with. Wire ids are INBOUND aliases only: they
@@ -319,11 +315,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue);
    * Wire model names that resolve directly to this base entry — the
    * base-level twin of PricingVariant.wire_ids, for served-model names
    * that neither match the canonical id nor normalize to a clean
-   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
-   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
-   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
-   * names the catalog never uses). Matched case-insensitively; billed
-   * at the base rates.
+   * "base + suffix" form (e.g. a dated snapshot name a provider reports
+   * for a model the catalog lists undated). Matched case-insensitively;
+   * billed at the base rates.
    *
    * Distinct from api_model_id, which is the single OUTBOUND identifier
    * the runner dispatches with. Wire ids are INBOUND aliases only: they
@@ -339,11 +333,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue);
    * Wire model names that resolve directly to this base entry — the
    * base-level twin of PricingVariant.wire_ids, for served-model names
    * that neither match the canonical id nor normalize to a clean
-   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
-   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
-   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
-   * names the catalog never uses). Matched case-insensitively; billed
-   * at the base rates.
+   * "base + suffix" form (e.g. a dated snapshot name a provider reports
+   * for a model the catalog lists undated). Matched case-insensitively;
+   * billed at the base rates.
    *
    * Distinct from api_model_id, which is the single OUTBOUND identifier
    * the runner dispatches with. Wire ids are INBOUND aliases only: they
@@ -360,11 +352,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue);
    * Wire model names that resolve directly to this base entry — the
    * base-level twin of PricingVariant.wire_ids, for served-model names
    * that neither match the canonical id nor normalize to a clean
-   * "base + suffix" form (e.g. "gemini-3-flash-preview" for
-   * gemini-3-flash, "accounts/fireworks/models/kimi-k2p7-code" for
-   * kimi-k2.7-code — Cursor's serving stack reports upstream serving
-   * names the catalog never uses). Matched case-insensitively; billed
-   * at the base rates.
+   * "base + suffix" form (e.g. a dated snapshot name a provider reports
+   * for a model the catalog lists undated). Matched case-insensitively;
+   * billed at the base rates.
    *
    * Distinct from api_model_id, which is the single OUTBOUND identifier
    * the runner dispatches with. Wire ids are INBOUND aliases only: they

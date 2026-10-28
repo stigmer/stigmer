@@ -3,9 +3,8 @@
  *
  * Harness-agnostic: the turn runtime's workspace phase, serving both
  * adapters (the native orchestrator's twin, `provisionWorkspace`, retired
- * with it in #1096, which also carried its one difference). Agents run LOCAL
- * (cloud is disabled — see execute-cursor/cursor-mode.ts), so the runner
- * must clone the session's git repositories itself and mount its local
+ * with it in #1096, which also carried its one difference). Agents run
+ * LOCAL, so the runner must clone the session's git repositories itself and mount its local
  * folders before the agent runs. Cloud agents previously cloned git repos
  * server-side; that path is no longer used. The session's Files are
  * resources too, but not the workspace's: the File mount places them

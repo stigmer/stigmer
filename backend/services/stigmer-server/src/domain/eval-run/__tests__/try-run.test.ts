@@ -179,12 +179,12 @@ describe("a try's session and run", () => {
       cell: { caseIndex: 0, targetIndex: 0, arm: "without", tryIndex: 0 },
       attempt: 1,
       caseName: "first-case",
-      harness: Harness.CURSOR,
+      harness: Harness.CLAUDE,
       attachment: onPlugin("without"),
     });
     expect(session.spec?.plugins.map((ref) => ref.id)).toEqual(["plg_1"]);
     expect(session.spec?.agentRef).toBeUndefined();
-    expect(session.spec?.harness).toBe(Harness.CURSOR);
+    expect(session.spec?.harness).toBe(Harness.CLAUDE);
   });
 
   // A session create refuses a session with no name (ResolveSlug), and its

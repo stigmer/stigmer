@@ -103,7 +103,6 @@ fn config(mode: &str, log: &RunnerLog) -> RunnerConfig {
         stigmer_endpoint: "https://api.example.test".to_string(),
         temporal_namespace: None,
         stigmer_token: Some("tok-1".to_string()),
-        cursor_api_key: None,
         anthropic_api_key: None,
         openai_api_key: None,
         workspace_root_dir: None,

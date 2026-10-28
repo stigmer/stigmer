@@ -11,9 +11,8 @@
  * the real runtime under `MockActivityEnvironment` with the same subjects.
  *
  * The kit IS the runtime stand-in. {@link ExecutionDriver} does what the
- * runtime and the server do around a turn: builds the `TurnInput`, threads
- * the engine's state id (empty on an engine-minted harness's first turn, then
- * the id the adapter bound; one fixed id for a deterministic harness),
+ * runtime and the server do around a turn: builds the `TurnInput`, hands
+ * the engine's state id (the runtime's, one fixed id for the session),
  * advances `turnSeq`, records a person's answer the way the server's answer
  * core does (a `user.tool_confirmation` on the modelled log, and nothing on
  * the row, `../approval-log.ts`) and on the next invocation does what the
@@ -49,17 +48,12 @@
  *     is even gated (a proposal after the hang has no row); a signal aborted
  *     BEFORE `runTurn` yields `interrupted` with nothing done. Stated over a
  *     FRESH proposal on purpose: WHEN an already-approved pending action
- *     executes on the resumed turn is the pause primitive's business — an
- *     interrupt engine completes the pending task before its model speaks,
- *     a deny-and-retry engine re-reaches it whenever its model does — so it
- *     is below the contract line (each harness's own kit file observes its
- *     order).
+ *     executes on the resumed turn is the engine's business, below the
+ *     contract line (each harness's own kit file observes its order).
  *  5. Usage reaches the sink as non-negative deltas summing to what the engine
  *     emitted.
- *  6. Capability and behaviour agree on the state id: an `engine-minted`
- *     adapter binds before its first persist and resumes by the bound id, and
- *     surfaces a rejected bind as `failed` with nothing done after it; a
- *     `deterministic` adapter never binds.
+ *  6. The state id is the runtime's: the adapter is handed it on its first
+ *     turn and resumes by the same id on every later one.
  *  7. Lifetimes: `releaseSession` for a served session and for an unknown one
  *     both resolve; `shutdown` after a release resolves; `boot` after
  *     `shutdown` resolves (a worker restart re-boots the same module state).
@@ -77,11 +71,6 @@
  * 8 by the issue that will make it ({@link HarnessContractOptions.knownGaps},
  * `../known-gap.ts`): each passes while the call is refused where it would
  * wait, and fails the day the pause lands, so the fix removes the mark.
- *
- * Above the contract line the pause primitives are indistinguishable: both
- * end a turn `awaiting_approval`, both take the decisions on reinvocation.
- * The kit therefore never branches on `capabilities.pausePrimitive`, and the
- * runner test runs the fake under both to prove it.
  */
 
 import { afterAll, beforeAll, describe, it, expect } from "vitest";
@@ -119,7 +108,7 @@ import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner
  */
 export const INTERRUPT_SETTLE_BOUND_MS = 5_000;
 
-const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "tool_call_limit", "failed", "interrupted", "stream_cut"] as const satisfies readonly TurnOutcome["kind"][];
+const OUTCOME_KINDS = ["completed", "awaiting_approval", "tool_call_limit", "failed", "interrupted"] as const satisfies readonly TurnOutcome["kind"][];
 
 /** Representative gated action shared by the invariants. */
 const WRITE_ALPHA: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
@@ -160,7 +149,7 @@ export interface TurnInFlight {
 export class ExecutionDriver {
   readonly executionId: string;
   readonly sessionId: string;
-  private threadId: string;
+  private readonly threadId: string;
   private turnSeq = 0;
   private persisted: RunStatus | undefined;
   /** The rows the last turn folded into: where {@link decide} finds the row a person answers. */
@@ -173,10 +162,9 @@ export class ExecutionDriver {
   constructor(private readonly subject: HarnessContractSubject, label: string) {
     this.executionId = `exec-${label}`;
     this.sessionId = `ses-${label}`;
-    // A deterministic harness's id is the runtime's, known before any engine
-    // exists (native's `thread-{sessionId}`); an engine-minted one has nothing
-    // until the adapter binds.
-    this.threadId = subject.adapter.capabilities.stateIdSource === "deterministic" ? `thread-${this.sessionId}` : "";
+    // The id is the runtime's, known before any engine exists
+    // (`thread-{sessionId}`).
+    this.threadId = `thread-${this.sessionId}`;
     this.messages = new KitMessageQueue(this.executionId);
   }
 
@@ -243,8 +231,6 @@ export class ExecutionDriver {
     await this.writeRows(sink.rows, sink.seeded);
     this.persisted = sink.status;
     this.lastRows = sink.rows;
-    const bound = sink.boundStateIds.at(-1);
-    if (bound !== undefined) this.threadId = bound;
     this.turnSeq += 1;
   }
 
@@ -536,47 +522,17 @@ export async function assertUsageReachesSinkAsDeltas(subject: HarnessContractSub
 // ── Invariant 6 ─────────────────────────────────────────────────────────────
 
 /**
- * Invariant 6: capability and behaviour agree on the state id. Engine-minted:
- * the bind precedes the first persist (so a crash mid-turn still resumes),
- * the id threaded back on the next invocation is accepted, and a rejected
- * bind ends the turn `failed` with nothing done after it. Deterministic: the
- * adapter never binds and accepts the runtime's id on every turn.
+ * Invariant 6: the state id is the runtime's. The adapter is handed it on
+ * its first turn and resumes by the same id on the next one.
  */
-export async function assertStateIdCapabilityAgrees(subject: HarnessContractSubject): Promise<void> {
+export async function assertStateIdIsTheRuntimes(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv6");
   const first = await driver.turn([scenario.say("first turn")]);
   expect(first.outcome.kind, `${subject.name}: a plain turn must complete`).toBe("completed");
-
-  if (subject.adapter.capabilities.stateIdSource === "engine-minted") {
-    expect(first.input.threadId, `${subject.name}: an engine-minted harness has no state id before its first turn`).toBe("");
-    const events = first.sink.events;
-    const firstBind = events.findIndex((e) => e.kind === "bind");
-    const firstPersist = events.findIndex((e) => e.kind === "persist");
-    expect(firstBind, `${subject.name}: an engine-minted adapter must bind its state id on the first turn`).toBeGreaterThanOrEqual(0);
-    expect(first.sink.boundStateIds[0], `${subject.name}: the bound state id must be non-empty`).toBeTruthy();
-    if (firstPersist >= 0) {
-      expect(firstBind, `${subject.name}: the state id must be bound BEFORE the first persist request, or a crash mid-turn cannot resume`).toBeLessThan(firstPersist);
-    }
-
-    const second = await driver.turn([scenario.say("second turn")]);
-    expect(second.input.threadId, `${subject.name}: the kit threads the bound id back as threadId`).toBe(first.sink.boundStateIds[0]);
-    expect(second.outcome.kind, `${subject.name}: resuming by the id the adapter bound must complete`).toBe("completed");
-    expect(second.sink.boundStateIds, `${subject.name}: a resumed turn must not bind a new state id`).toHaveLength(0);
-
-    const failing = new ExecutionDriver(subject, "inv6-bind-rejects");
-    const rejecting = new RecordingTurnSink({ bindRejectsWith: new Error("session write failed") });
-    const rejected = await failing.turn([scenario.say("never persisted")], { sink: rejecting });
-    expect(rejected.outcome.kind, `${subject.name}: a rejected bind must end the turn failed, not reject runTurn`).toBe("failed");
-    expect(rejecting.persistRequests, `${subject.name}: nothing may be persisted after a rejected bind`).toBe(0);
-    expect(rejecting.rows.messages, `${subject.name}: nothing may be folded into the rows after a rejected bind`).toHaveLength(0);
-  } else {
-    expect(first.input.threadId, `${subject.name}: a deterministic harness is handed the runtime's id on its first turn`).not.toBe("");
-    expect(first.sink.boundStateIds, `${subject.name}: a deterministic adapter must never bind a state id`).toHaveLength(0);
-    const second = await driver.turn([scenario.say("second turn")]);
-    expect(second.input.threadId, `${subject.name}: a deterministic id is the same on every turn`).toBe(first.input.threadId);
-    expect(second.outcome.kind, `${subject.name}: a deterministic resume must complete`).toBe("completed");
-    expect(second.sink.boundStateIds, `${subject.name}: a deterministic adapter must never bind a state id`).toHaveLength(0);
-  }
+  expect(first.input.threadId, `${subject.name}: the runtime's id is handed on the first turn`).not.toBe("");
+  const second = await driver.turn([scenario.say("second turn")]);
+  expect(second.input.threadId, `${subject.name}: the id is the same on every turn`).toBe(first.input.threadId);
+  expect(second.outcome.kind, `${subject.name}: resuming by the runtime's id must complete`).toBe("completed");
 }
 
 // ── Invariant 7 ─────────────────────────────────────────────────────────────
@@ -711,8 +667,8 @@ export function describeHarnessContract(subject: HarnessContractSubject, options
     it("reports usage as non-negative deltas that sum to what the engine emitted (invariant 5)", async () => {
       await assertUsageReachesSinkAsDeltas(subject);
     });
-    it(`binds its state id as its ${subject.adapter.capabilities.stateIdSource} capability declares (invariant 6)`, async () => {
-      await assertStateIdCapabilityAgrees(subject);
+    it("resumes by the runtime's state id (invariant 6)", async () => {
+      await assertStateIdIsTheRuntimes(subject);
     });
     it("serves, releases, shuts down and re-boots without a rejection (invariant 7)", async () => {
       await assertLifetimesResolve(subject);

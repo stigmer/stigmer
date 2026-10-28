@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  DEFAULT_CURSOR_MODEL_ID,
   DEFAULT_MODEL_ID,
   resolveDefaultModelId,
   type ModelInfo,
@@ -10,12 +9,9 @@ import {
  * The harness-default arm is a contract, not a suggestion
  * (stigmer/stigmer#663): this resolution feeds the composer's pill, and
  * the submission adopts what the pill displays — so the default must be
- * what the platform actually runs for an unpinned run:
- *
- * - cursor → the registry's Auto entry (the runner coerces an empty
- *   model_name to "default")
- * - native → the runner's getDefaultModel() rule (featured + standard
- *   cost, then any standard cost)
+ * what the platform actually runs for an unpinned run: the runner's
+ * getDefaultModel() rule (featured + standard cost, then any standard
+ * cost), in the engine's own rows.
  */
 
 function model(overrides: Partial<ModelInfo> & { modelId: string }): ModelInfo {
@@ -31,44 +27,6 @@ function model(overrides: Partial<ModelInfo> & { modelId: string }): ModelInfo {
     ...overrides,
   };
 }
-
-describe("resolveDefaultModelId — cursor harness", () => {
-  it("prefers the Auto entry over featured models listed before it (the production order that caused #663)", () => {
-    // Mirrors the live registry: featured premium models precede Auto.
-    const models = [
-      model({ modelId: "claude-opus-4-8", harness: "cursor", featured: true, costTier: "premium" }),
-      model({ modelId: DEFAULT_CURSOR_MODEL_ID, harness: "cursor", featured: true }),
-    ];
-    expect(resolveDefaultModelId("cursor", models)).toEqual({
-      modelId: DEFAULT_CURSOR_MODEL_ID,
-      source: "harness_default",
-    });
-  });
-
-  it("falls back to the first featured cursor model when the registry has no Auto entry", () => {
-    const models = [
-      model({ modelId: "composer-2.5", harness: "cursor", featured: true }),
-    ];
-    expect(resolveDefaultModelId("cursor", models).modelId).toBe("composer-2.5");
-  });
-
-  it("falls back to the hardcoded cursor id on an empty registry", () => {
-    expect(resolveDefaultModelId("cursor", [])).toEqual({
-      modelId: DEFAULT_CURSOR_MODEL_ID,
-      source: "platform_fallback",
-    });
-  });
-
-  it("lets an explicit user preference win over Auto", () => {
-    const models = [
-      model({ modelId: DEFAULT_CURSOR_MODEL_ID, harness: "cursor", featured: true }),
-      model({ modelId: "composer-2.5", harness: "cursor", featured: true }),
-    ];
-    expect(
-      resolveDefaultModelId("cursor", models, { userPreference: "composer-2.5" }),
-    ).toEqual({ modelId: "composer-2.5", source: "user_preference" });
-  });
-});
 
 describe("resolveDefaultModelId — native harness", () => {
   it("skips a featured premium model for the featured standard-cost one (the runner's own rule)", () => {
@@ -105,11 +63,42 @@ describe("resolveDefaultModelId — native harness", () => {
     });
   });
 
-  it("never resolves across harnesses (a cursor Auto entry is invisible to native)", () => {
+  it("never resolves across harnesses (a Claude-harness row is invisible to native)", () => {
     const models = [
-      model({ modelId: DEFAULT_CURSOR_MODEL_ID, harness: "cursor", featured: true }),
+      model({ modelId: "claude-haiku-4.5", harness: "claude", featured: true, costTier: "standard" }),
       model({ modelId: "claude-sonnet-4.6", featured: true, costTier: "standard" }),
     ];
     expect(resolveDefaultModelId("native", models).modelId).toBe("claude-sonnet-4.6");
+  });
+});
+
+describe("resolveDefaultModelId — claude harness", () => {
+  it("applies the same standard-cost rule within the Claude harness's own rows", () => {
+    const models = [
+      model({ modelId: "claude-sonnet-4.6", featured: true, costTier: "standard" }),
+      model({ modelId: "claude-opus-4.6", harness: "claude", featured: true, costTier: "premium" }),
+      model({ modelId: "claude-haiku-4.5", harness: "claude", featured: true, costTier: "standard" }),
+    ];
+    expect(resolveDefaultModelId("claude", models)).toEqual({
+      modelId: "claude-haiku-4.5",
+      source: "harness_default",
+    });
+  });
+
+  it("lets an explicit user preference win over the harness default", () => {
+    const models = [
+      model({ modelId: "claude-haiku-4.5", harness: "claude", featured: true, costTier: "standard" }),
+      model({ modelId: "claude-opus-4.6", harness: "claude", featured: true, costTier: "premium" }),
+    ];
+    expect(
+      resolveDefaultModelId("claude", models, { userPreference: "claude-opus-4.6" }),
+    ).toEqual({ modelId: "claude-opus-4.6", source: "user_preference" });
+  });
+
+  it("falls back to the hardcoded Claude model on an empty registry", () => {
+    expect(resolveDefaultModelId("claude", [])).toEqual({
+      modelId: DEFAULT_MODEL_ID,
+      source: "platform_fallback",
+    });
   });
 });

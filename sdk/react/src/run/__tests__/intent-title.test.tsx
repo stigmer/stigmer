@@ -124,7 +124,7 @@ describe("extractShellIntentFromPreview", () => {
 describe("useToolPresentation title precedence", () => {
   it("titles a shell row with the model-authored intent", () => {
     const tc = makeToolUse({
-      name: "Shell",
+      name: "Bash",
       args: { command: "npm test", [SHELL_INTENT_ARG_FIELD]: "Run the test suite" },
     });
     const { result } = renderHook(() => useToolPresentation(tc));
@@ -136,7 +136,7 @@ describe("useToolPresentation title precedence", () => {
   });
 
   it("falls back to the category label when no intent is present", () => {
-    const tc = makeToolUse({ name: "Shell", args: { command: "ls" } });
+    const tc = makeToolUse({ name: "Bash", args: { command: "ls" } });
     const { result } = renderHook(() => useToolPresentation(tc));
 
     expect(result.current.intent).toBeNull();
@@ -149,7 +149,7 @@ describe("useToolPresentation title precedence", () => {
     });
     try {
       const tc = makeToolUse({
-        name: "Shell",
+        name: "Bash",
         args: { command: "ls", [SHELL_INTENT_ARG_FIELD]: "List files" },
       });
       const { result } = renderHook(() => useToolPresentation(tc));
@@ -170,7 +170,7 @@ describe("ToolCallItem shell header", () => {
 
   it("renders the intent as the title and the command as the subtitle", () => {
     const tc = makeToolUse({
-      name: "Shell",
+      name: "Bash",
       args: {
         command: "npx vitest run src/parser",
         [SHELL_INTENT_ARG_FIELD]: "Run unit tests for the parser",
@@ -186,7 +186,7 @@ describe("ToolCallItem shell header", () => {
 
   it("renders an intent-less shell row exactly as before: bare label, no subtitle", () => {
     const tc = makeToolUse({
-      name: "Shell",
+      name: "Bash",
       args: { command: "ls -la" },
     });
     const { container } = render(<ToolCallItem toolUse={tc} />);

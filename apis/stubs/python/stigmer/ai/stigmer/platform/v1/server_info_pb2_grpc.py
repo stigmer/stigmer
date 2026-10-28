@@ -112,12 +112,12 @@ class PlatformQueryControllerServicer(object):
         """Returns which model providers serve an organization and, for every model
         on every engine, whether a run of it would start.
 
-        A run needs one provider: a Cursor run needs Cursor whatever its model,
-        a Claude run needs Anthropic, and a native run needs its model's
-        provider. A run whose provider is missing is refused at create with
-        FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, by the same rule this
-        answer is read from, so a client can mark a model and hold Send before
-        the person tries.
+        A run needs one provider: a Claude run needs Anthropic whatever its
+        model, and a native run needs its model's provider. The providers are
+        anthropic and openai; the engines are native and claude. A run whose
+        provider is missing is refused at create with FAILED_PRECONDITION,
+        reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
+        so a client can mark a model and hold Send before the person tries.
 
         Every edition answers. On Stigmer Cloud a provider is served by the
         organization's own key or its parent organization's. On a server whose
@@ -139,7 +139,7 @@ class PlatformQueryControllerServicer(object):
         execution) needs two things at boot, both of which are details it should
         not have to know or hold ahead of time: the Temporal frontend coordinates
         to poll for work, and a Stigmer-signed identity to authenticate its
-        Cursor-proxy traffic. This RPC lets the runner self-bootstrap through the
+        model-proxy traffic. This RPC lets the runner self-bootstrap through the
         one authenticated door it already opens at startup: it presents the token
         it already holds and the control plane returns the environment's Temporal
         coordinates plus a freshly minted runner access token. The contract for a

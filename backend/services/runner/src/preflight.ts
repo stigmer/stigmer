@@ -89,7 +89,7 @@ export function preflightNodeRuntime(
  * first request, far too late for a good operator experience).
  *
  * A configuration that passes logs one line naming the model providers the
- * runner reaches and how (`reaches: anthropic (vertex), cursor (key)`), by
+ * runner reaches and how (`reaches: anthropic (vertex), openai (key)`), by
  * the rule `stigmer up` also uses to tell the server what its runner
  * reaches (shared/provider-reach.ts), so an operator reads the same answer
  * the server was given.
@@ -99,10 +99,8 @@ export function preflightNodeRuntime(
  *   embedders), so it is threaded explicitly instead of re-read from env —
  *   an options-supplied proxy must downgrade backend vars to warnings the
  *   same way STIGMER_PROXY_ENDPOINT does.
- * @param cursorApiKey The Cursor key the factory resolved (its options, not
- *   the environment, for an embedder), threaded for the same reason.
  */
-export function assertLlmBackendsPreflight(proxyEndpoint?: string | null, cursorApiKey?: string): void {
+export function assertLlmBackendsPreflight(proxyEndpoint?: string | null): void {
   const env = proxyEndpoint
     ? { ...process.env, STIGMER_PROXY_ENDPOINT: proxyEndpoint }
     : process.env;
@@ -118,7 +116,6 @@ export function assertLlmBackendsPreflight(proxyEndpoint?: string | null, cursor
   const reach = providerReach({
     ...runnerSecretsEnvView(),
     ...(proxyEndpoint ? { STIGMER_PROXY_ENDPOINT: proxyEndpoint } : {}),
-    ...(cursorApiKey !== undefined ? { CURSOR_API_KEY: cursorApiKey } : {}),
   });
   console.log(`[runner] reaches: ${reach.length > 0 ? describeReach(reach) : "no model provider"}`);
 }

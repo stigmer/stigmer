@@ -36,8 +36,7 @@
 // - `rounds` and `tool_calls` are the runtime's fold of each harness's own
 //   events (runner harness/turn-timeline.ts) and are NOT one unit across
 //   harnesses: both count a sub-agent's work, a native round is a provider
-//   call, and a Cursor round is a stretch of output between tool calls, with
-//   a sub-agent's transcript synthesized into rounds of its own (stigmer#1289).
+//   call, and each other engine folds its rounds from its own events.
 //   Compare a harness with itself across runs; across harnesses, read them as
 //   shape.
 // - A turn that edits files parks for review before it ends (the runner
@@ -98,18 +97,20 @@
 //   so a fast sample that skipped the work reads as what it is.
 // - A report is keyed by engine (schema v11): a comparison's `sides` and
 //   `cost_ratio`, and the arms' models (`models.parity`), are records over
-//   `BenchmarkHarness`, where v10 named a native and a Cursor field. A third
-//   engine (Claude) then needs no schema change, and retiring one is
-//   deleting a member of the union, which the compiler follows to every
-//   site that branched on it.
+//   `BenchmarkHarness`, where v10 named one field per engine. Adding an
+//   engine then needs no schema change, and neither does retiring one: its
+//   member leaves the union, which the compiler follows to every site that
+//   branched on it, and the axes only its samples carried leave with it. A
+//   v11 report written while an engine since retired still reads: the
+//   reader checks the engines it knows and ignores the rest.
 
 export const BENCHMARK_REPORT_SCHEMA_VERSION = 11;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
-export type BenchmarkHarness = "deep-agent" | "cursor" | "claude";
+export type BenchmarkHarness = "deep-agent" | "claude";
 
 /** Each harness's word in an arm's label (`<word>/<model>`), a quality target and the CLI's flags. */
-export const ARM_WORD: Record<BenchmarkHarness, string> = { "deep-agent": "native", cursor: "cursor", claude: "claude" };
+export const ARM_WORD: Record<BenchmarkHarness, string> = { "deep-agent": "native", claude: "claude" };
 
 /**
  * Every harness the benchmark measures, in the order a report lists them:
@@ -135,7 +136,6 @@ export type SampleOutcome = "completed" | "failed" | "cancelled" | "timeout";
 
 export type RefusalReason =
   | "missing ANTHROPIC_API_KEY"
-  | "missing CURSOR_API_KEY"
   | "missing OPENAI_API_KEY"
   | "model provider unknown"
   | "the native model is pinned by --native-model"
@@ -193,9 +193,8 @@ export interface BenchmarkAxes {
   before_activity_ms: number | null;
   /**
    * Temporal's clock: the EnsureThread activity's ActivityTaskScheduled to its
-   * ActivityTaskCompleted. Null on every Cursor sample by construction: only the
-   * native flow schedules EnsureThread (the LangGraph thread); the Cursor flow
-   * reads its harness state instead (invoke-agent-execution.ts).
+   * ActivityTaskCompleted. Null on every Claude sample by construction: only
+   * the native flow schedules EnsureThread (the LangGraph thread).
    */
   ensure_thread_ms: number | null;
   /** Runner clock (the activity's start): `turn_phases.first_visible_token_ms`. */
@@ -221,18 +220,11 @@ export interface BenchmarkAxes {
    */
   review_ready_ms: number | null;
   /**
-   * Runner clock: the `connect_mcp` segment of `execution_setup`. Null on
-   * every Cursor sample by construction: the Cursor SDK connects its servers
-   * inside `send()`, after setup is written (see `cursor_send_returned_ms`).
-   * Null on a native turn with no server to connect.
+   * Runner clock: the `connect_mcp` segment of `execution_setup`. Null on a
+   * turn whose setup line names no such segment, as a native turn with no
+   * server to connect.
    */
   mcp_connect_ms: number | null;
-  /**
-   * Runner clock: the `send_returned` segment of the Cursor-only
-   * `turn_first_event` line, the window in which the SDK acquires its
-   * executor and spawns stdio servers. Null on every native sample.
-   */
-  cursor_send_returned_ms: number | null;
   /** `execution_setup.mcp_server_count`: the servers the agent and session declare, attachments excluded. */
   mcp_server_count: number | null;
   /** Platform attachments the runtime adds beside the declared servers (memory, on this stack). */
@@ -371,8 +363,6 @@ export interface SiblingTurn {
 export interface SampleTiming {
   turn_phases: TimingLine | null;
   execution_setup: TimingLine | null;
-  /** The Cursor-only first-event line; `null` on every native sample. */
-  turn_first_event: TimingLine | null;
 }
 
 export interface BenchmarkSample {
@@ -585,7 +575,6 @@ const AXIS_KEYS: readonly (keyof BenchmarkAxes)[] = [
   "sub_agent_calls",
   "review_ready_ms",
   "mcp_connect_ms",
-  "cursor_send_returned_ms",
   "mcp_server_count",
   "attachment_count",
   "skill_count",

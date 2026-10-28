@@ -49,18 +49,14 @@ import { readCursorPages } from "./cursor-pages.js";
 export type ProviderKeyClient = Pick<Stigmer, "providerkey" | "platform">;
 
 /** The providers a key is saved for, as the contract names them (io.proto). */
-export const PROVIDERS = ["anthropic", "openai", "cursor"] as const;
+export const PROVIDERS = ["anthropic", "openai"] as const;
 
 export type Provider = (typeof PROVIDERS)[number];
 
 const DISPLAY_NAMES: ReadonlyMap<string, string> = new Map([
   ["anthropic", "Anthropic"],
   ["openai", "OpenAI"],
-  ["cursor", "Cursor"],
 ]);
-
-/** The words the contract refuses a Cursor base URL with (SetProviderKeyInput's rule). */
-export const CURSOR_TAKES_NO_BASE_URL = "a Cursor key takes no base URL; Cursor serves from its own hosts";
 
 /** The fix `set` and `delete` name on an open-source server. */
 export const LOCAL_KEYS_FIX =
@@ -71,23 +67,21 @@ export function parseProvider(value: string): Provider {
   const wanted = value.trim().toLowerCase();
   const found = PROVIDERS.find((provider) => provider === wanted);
   if (found !== undefined) return found;
-  throw new UsageError(`unknown provider "${value}"\n\nUse anthropic, openai or cursor.`);
+  throw new UsageError(`unknown provider "${value}"\n\nUse anthropic or openai.`);
 }
 
-/** A provider's name as a person reads it: Anthropic, OpenAI, Cursor. */
+/** A provider's name as a person reads it: Anthropic, OpenAI. */
 export function providerDisplayName(provider: string): string {
   return DISPLAY_NAMES.get(provider) ?? provider;
 }
 
 /**
- * The base URL `--base-url` names, checked as far as the client can: none
- * for Cursor (the contract's rule, in its words), and an https URL
- * otherwise. Whether it resolves to a public address is the server's to say.
+ * The base URL `--base-url` names, checked as far as the client can: an
+ * https URL. Whether it resolves to a public address is the server's to say.
  */
-export function parseBaseUrl(provider: Provider, value: string | undefined): string {
+export function parseBaseUrl(value: string | undefined): string {
   const baseUrl = (value ?? "").trim();
   if (baseUrl === "") return "";
-  if (provider === "cursor") throw new UsageError(CURSOR_TAKES_NO_BASE_URL);
   const url = URL.canParse(baseUrl) ? new URL(baseUrl) : undefined;
   if (url === undefined || url.protocol !== "https:") {
     throw new UsageError(

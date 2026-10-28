@@ -91,10 +91,10 @@ describe("renderEvalTables", () => {
 
   it("prints no block for a target no case ran on", () => {
     const evalRun = finishedEval();
-    evalRun.spec!.targets.push(create(EvalRunTargetSchema, { harness: Harness.CURSOR, modelName: "gpt-5" }));
+    evalRun.spec!.targets.push(create(EvalRunTargetSchema, { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" }));
     const out = renderEvalTables(evalRun, "");
     expect(out.split("\n")[0]).toBe("thermos@d10000000000 · native/claude-sonnet-4-6");
-    expect(out).not.toContain("cursor/gpt-5");
+    expect(out).not.toContain("claude/claude-sonnet-5");
   });
 
   it("keeps a run's error on one line in NOTES", () => {

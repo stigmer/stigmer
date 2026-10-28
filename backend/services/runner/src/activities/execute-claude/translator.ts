@@ -48,7 +48,7 @@
  * (`mcp__stigmer__bash`, `host-shell.ts`) is reported as `Bash` too, so the
  * aliased name never reaches a row. An MCP call's row is its tool, by the
  * bare name its server gave it, with the bridged server's slug
- * (`mcp-bridge.ts`), as the native and Cursor engines name it, so every
+ * (`mcp-bridge.ts`), as the native engine names it, so every
  * reader of a row (the session's log, the eval trace, the views) reads one
  * spelling; the engine's own `mcp__<slug>__<tool>` never reaches a row.
  * Every other name is a built-in's.

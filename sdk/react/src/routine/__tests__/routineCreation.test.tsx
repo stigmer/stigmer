@@ -439,7 +439,7 @@ describe("RoutineForm", () => {
       shortDescription: "Balanced default",
       speedTier: "balanced",
       costTier: "standard",
-      harness: "cursor",
+      harness: "claude",
       featured: true,
       serviceTiers: [],
     };
@@ -472,8 +472,11 @@ describe("RoutineForm", () => {
     });
     await pickAgent();
 
-    // Nothing pinned yet: the trigger shows the placeholder.
+    // Nothing pinned yet: the trigger shows the placeholder. The picker
+    // browses the native engine first; switch it to Claude to list the model.
     fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Select harness" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Claude" }));
     fireEvent.click(
       await screen.findByRole("option", { name: /Claude Sonnet 4\.6/ }),
     );
@@ -483,7 +486,7 @@ describe("RoutineForm", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
     expect(input.agent.runConfig).toEqual({ modelName: "claude-sonnet-4-6" });
-    expect(input.agent.harness).toBe(Harness.CURSOR);
+    expect(input.agent.harness).toBe(Harness.CLAUDE);
   });
 
   it("toggling the fast tier on a capable model lands service_tier on run_config (#357)", async () => {
@@ -492,13 +495,13 @@ describe("RoutineForm", () => {
     const onComplete = vi.fn();
 
     const fastCapable: ModelInfo = {
-      modelId: "composer-2.5",
-      provider: "cursor",
-      displayName: "Composer 2.5",
-      shortDescription: "Fast agentic model",
-      speedTier: "fastest",
-      costTier: "economy",
-      harness: "cursor",
+      modelId: "claude-opus-4-8",
+      provider: "anthropic",
+      displayName: "Claude Opus 4.8",
+      shortDescription: "Frontier model with a fast tier",
+      speedTier: "slow",
+      costTier: "premium",
+      harness: "native",
       featured: true,
       serviceTiers: ["fast"],
     };
@@ -532,11 +535,11 @@ describe("RoutineForm", () => {
     await pickAgent();
 
     fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
-    fireEvent.click(await screen.findByRole("option", { name: /Composer 2\.5/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Claude Opus 4\.8/ }));
 
     // The popover closed on selection; reopen it — the options-area switch
     // renders only for the now-selected fast-capable model.
-    fireEvent.click(screen.getByRole("button", { name: /Composer 2\.5/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Claude Opus 4\.8/ }));
     fireEvent.click(await screen.findByRole("switch", { name: "Fast tier" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
@@ -544,7 +547,7 @@ describe("RoutineForm", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
     expect(input.agent.runConfig).toEqual({
-      modelName: "composer-2.5",
+      modelName: "claude-opus-4-8",
       serviceTier: ServiceTier.FAST,
     });
   });

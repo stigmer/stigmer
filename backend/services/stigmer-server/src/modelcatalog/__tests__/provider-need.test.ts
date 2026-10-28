@@ -1,10 +1,9 @@
 /**
- * The provider rule (provider-need.ts) over every engine: Cursor needs
- * Cursor whatever the model, Claude needs Anthropic and names the engine's
- * default when the turn names none, native needs its model's provider
- * from the catalog (an entry's, or an explicit prefix) and nothing when
- * that provider is no key slot, Cursor's own included. The catalog is a
- * fixed fake so each arm reads one answer.
+ * The provider rule (provider-need.ts) over every engine: Claude needs
+ * Anthropic whatever the model and names the engine's default when the
+ * turn names none, native needs its model's provider from the catalog (an
+ * entry's, or an explicit prefix) and nothing when that provider is no key
+ * slot. The catalog is a fixed fake so each arm reads one answer.
  */
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { describe, expect, it } from "vitest";
@@ -21,7 +20,6 @@ const PROVIDERS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     "claude-sonnet-4.6": "anthropic",
     "gpt-5.2": "openai",
     "gemini-3-pro": "google",
-    "composer-2": "cursor",
   },
 };
 
@@ -35,16 +33,12 @@ const catalog: ProviderNeedCatalog = {
 };
 
 describe("providerNeededBy", () => {
-  it("a Cursor turn needs Cursor, whatever its model, and names the model it was given", () => {
-    expect(providerNeededBy(Harness.CURSOR, "gpt-5.2", catalog)).toEqual({ provider: "cursor", model: "gpt-5.2" });
-    expect(providerNeededBy(Harness.CURSOR, "", catalog)).toEqual({ provider: "cursor", model: "" });
-  });
-
-  it("a Claude turn needs Anthropic, naming the engine's default when the turn names no model", () => {
+  it("a Claude turn needs Anthropic, whatever its model, naming the engine's default when the turn names no model", () => {
     expect(providerNeededBy(Harness.CLAUDE, "claude-sonnet-4.6", catalog)).toEqual({
       provider: "anthropic",
       model: "claude-sonnet-4.6",
     });
+    expect(providerNeededBy(Harness.CLAUDE, "gpt-5.2", catalog)).toEqual({ provider: "anthropic", model: "gpt-5.2" });
     expect(providerNeededBy(Harness.CLAUDE, "", catalog)).toEqual({ provider: "anthropic", model: "claude-opus-4.8" });
     expect(providerNeededBy(Harness.CLAUDE, "", { ...catalog, defaultModel: () => undefined })).toEqual({
       provider: "anthropic",
@@ -64,18 +58,18 @@ describe("providerNeededBy", () => {
     });
   });
 
-  it("a native model whose provider is no key slot, is Cursor's, or is unknown needs nothing judged", () => {
+  it("a native model whose provider is no key slot or is unknown needs nothing judged", () => {
     expect(providerNeededBy(Harness.NATIVE, "gemini-3-pro", catalog)).toBeUndefined();
-    expect(providerNeededBy(Harness.NATIVE, "composer-2", catalog)).toBeUndefined();
     expect(providerNeededBy(Harness.NATIVE, "no-such-model", catalog)).toBeUndefined();
     expect(providerNeededBy(Harness.NATIVE, "", { ...catalog, defaultModel: () => undefined })).toBeUndefined();
   });
 });
 
 describe("the provider list", () => {
-  it("names the three key slots in report order", () => {
-    expect(MODEL_PROVIDERS).toEqual(["anthropic", "openai", "cursor"]);
+  it("names the two key slots in report order", () => {
+    expect(MODEL_PROVIDERS).toEqual(["anthropic", "openai"]);
     expect(isModelProvider("openai")).toBe(true);
+    expect(isModelProvider("cursor")).toBe(false);
     expect(isModelProvider("google")).toBe(false);
   });
 });

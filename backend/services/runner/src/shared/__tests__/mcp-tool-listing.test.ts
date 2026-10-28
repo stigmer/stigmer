@@ -1,11 +1,5 @@
 /**
  * Pins the MCP tools listing (shared/mcp-tool-listing.ts):
- *   - a turn's listing (`listTurnTools`) asks only plugin servers, never the
- *     platform's own, collects each server's destructive marks by server, and
- *     names a server whose listing failed in `unlisted` (and not in
- *     `listed`), so the approval default asks before every one of its tools,
- *     and offers each listed tool's description and schema for the turn's
- *     record;
  *   - a recorded definition (`definitionOf`) copies the schema, keeps one of
  *     exactly the cap in UTF-8 bytes and omits one a byte over, keeping its
  *     name and description;
@@ -26,9 +20,7 @@ import {
   initTimeoutMessageFor,
   initTimeoutMsFor,
   listServerTools,
-  listTurnTools,
   stdioAsAgent,
-  type ListedTool,
 } from "../mcp-tool-listing.js";
 
 const mcp = vi.hoisted(() => ({
@@ -60,74 +52,10 @@ function pluginServer(slug: string, overrides: Partial<ResolvedMcpServer> = {}):
   };
 }
 
-/** The schema every listed tool of these tests offers. */
-const SCHEMA = { type: "object", properties: { id: { type: "string" } }, required: ["id"] };
-
-function tool(name: string, destructive = false): ListedTool {
-  return { name, description: `${name} things`, inputSchema: SCHEMA, destructive };
-}
 
 beforeEach(() => {
   vi.clearAllMocks();
   mcp.close.mockResolvedValue(undefined);
-});
-
-describe("listTurnTools", () => {
-  it("collects each listed server's tools and its destructive marks, by server", async () => {
-    const tools: Record<string, ListedTool[]> = {
-      plugin_a_api: [tool("read"), tool("drop", true)],
-      plugin_b_api: [tool("drop"), tool("wipe", true)],
-    };
-    const listing = await listTurnTools([pluginServer("plugin_a_api"), pluginServer("plugin_b_api")], async (server) => tools[server.slug] ?? []);
-
-    expect(listing).toEqual({
-      listed: [
-        { server: "plugin_a_api", tools: ["read", "drop"] },
-        { server: "plugin_b_api", tools: ["drop", "wipe"] },
-      ],
-      destructive: [
-        { server: "plugin_a_api", tool: "drop" },
-        { server: "plugin_b_api", tool: "wipe" },
-      ],
-      unlisted: [],
-      offered: [
-        { server: "plugin_a_api", name: "read", description: "read things", inputSchema: SCHEMA, schemaOmitted: false },
-        { server: "plugin_a_api", name: "drop", description: "drop things", inputSchema: SCHEMA, schemaOmitted: false },
-        { server: "plugin_b_api", name: "drop", description: "drop things", inputSchema: SCHEMA, schemaOmitted: false },
-        { server: "plugin_b_api", name: "wipe", description: "wipe things", inputSchema: SCHEMA, schemaOmitted: false },
-      ],
-    });
-  });
-
-  it("names a server whose listing failed in unlisted, never in listed, and keeps the others", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const listing = await listTurnTools([pluginServer("plugin_down_api"), pluginServer("plugin_up_api")], async (server) => {
-      if (server.slug === "plugin_down_api") throw new Error("connection refused");
-      return [tool("drop", true)];
-    });
-
-    expect(listing.unlisted).toEqual(["plugin_down_api"]);
-    expect(listing.listed).toEqual([{ server: "plugin_up_api", tools: ["drop"] }]);
-    expect(listing.destructive).toEqual([{ server: "plugin_up_api", tool: "drop" }]);
-    expect(warn.mock.calls.flat().join("\n")).toContain("connection refused");
-    warn.mockRestore();
-  });
-
-  it("never lists the platform's own servers: none of their tools asks", async () => {
-    const list = vi.fn(async (_server: ResolvedMcpServer): Promise<readonly ListedTool[]> => [tool("remember", true)]);
-    const listing = await listTurnTools([pluginServer("stigmer-memory", { home: { kind: "platform" } }), pluginServer("plugin_a_api")], list);
-
-    expect(list.mock.calls.map(([server]) => server.slug)).toEqual(["plugin_a_api"]);
-    expect(listing.listed.map(({ server }) => server)).toEqual(["plugin_a_api"]);
-    expect(listing.offered.map(({ server }) => server), "nor offers them for the turn's record").toEqual(["plugin_a_api"]);
-    expect(listing.unlisted).toEqual([]);
-  });
-
-  it("lists nothing for a turn without plugin servers", async () => {
-    const list = vi.fn(async (): Promise<readonly ListedTool[]> => []);
-    expect(await listTurnTools([], list)).toEqual({ listed: [], destructive: [], unlisted: [], offered: [] });
-    expect(list).not.toHaveBeenCalled();
-  });
 });
 
 describe("definitionOf", () => {

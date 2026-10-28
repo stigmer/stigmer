@@ -44,7 +44,6 @@ const TOUCHED = [
   // Every other variable the reach rule reads, so the shell's own cannot leak in.
   "ANTHROPIC_BASE_URL",
   "OPENAI_API_KEY",
-  "CURSOR_API_KEY",
   "STIGMER_ANTHROPIC_BACKEND",
   "STIGMER_OPENAI_BACKEND",
   "STIGMER_PROXY_ENDPOINT",
@@ -132,7 +131,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
 
   it("omits the runner from the contract in server-only mode, and reports none", async () => {
     const home = tempDir("stigmer-fg-home-");
-    process.env.CURSOR_API_KEY = "ck";
+    process.env.OPENAI_API_KEY = "sk-oa";
     let captured: InternalDaemonDeps | null = null;
     const onReady = vi.fn();
 

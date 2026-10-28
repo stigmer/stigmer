@@ -37,11 +37,11 @@
  *     stigmer#282);
  *   - a new run records the values-fetched patch and never calls the
  *     retired run-end cleanup, on any exit;
- *   - the cursor flow's harness_state_id re-read discipline;
  *   - the engine switch: native and Claude share the deterministic-state
  *     flow (EnsureThread's thread on every invocation), each on its own
- *     Execute* activity; a number no engine owns fails the run naming it
- *     and runs nothing;
+ *     Execute* activity; a number no harness owns (the retired 2
+ *     among them) fails the run naming it and runs nothing, never as
+ *     native;
  *   - every end of the workflow (completed, failed by the runner, broken,
  *     cancelled) calls StartQueuedTurn with the run's session as its last
  *     act; a run in no session calls nothing; a StartQueuedTurn that fails
@@ -120,7 +120,7 @@ interface RecordedStatus {
 }
 
 interface ActivityScript {
-  /** Consumed per ExecuteDeepAgent/ExecuteCursor invocation, in order. */
+  /** Consumed per Execute* invocation (every harness), in order. */
   executeBehaviors: Array<
     (input: {
       execution_id: string;
@@ -161,8 +161,6 @@ interface ActivityScript {
   openGateCounts: Array<number | Error>;
   /** Each CountOpenGates call's (execution id, session id), in order. */
   gateCalls: Array<[string, string]>;
-  /** Consumed per ReadHarnessStateId call, in order; last one sticks. */
-  harnessStateIds: Array<string | (() => Promise<string>)>;
   persistedStatuses: RecordedStatus[];
   deletedExecutionContexts: string[];
   ensureThreadResult: string;
@@ -205,7 +203,6 @@ function resetScript(): void {
     loadCalls: 0,
     openGateCounts: [],
     gateCalls: [],
-    harnessStateIds: [],
     persistedStatuses: [],
     deletedExecutionContexts: [],
     ensureThreadResult: "thread-1",
@@ -286,10 +283,6 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
       script.executeActivities.push("ExecuteDeepAgent");
       return takeExecuteBehavior(input);
     }) as never,
-    ExecuteCursor: ((input: Parameters<typeof takeExecuteBehavior>[0]) => {
-      script.executeActivities.push("ExecuteCursor");
-      return takeExecuteBehavior(input);
-    }) as never,
     ExecuteClaude: ((input: Parameters<typeof takeExecuteBehavior>[0]) => {
       script.executeActivities.push("ExecuteClaude");
       return takeExecuteBehavior(input);
@@ -344,16 +337,6 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
         throw ApplicationFailure.create({ message: entry.message, nonRetryable: true });
       }
       return entry;
-    },
-    ReadHarnessStateId: async (): Promise<string> => {
-      const entry =
-        script.harnessStateIds.length > 1
-          ? script.harnessStateIds.shift()!
-          : script.harnessStateIds[0];
-      if (entry === undefined) {
-        throw new Error("test script exhausted: unexpected ReadHarnessStateId");
-      }
-      return typeof entry === "function" ? entry() : entry;
     },
     // The retired run-end cleanup, still registered for histories that
     // call it; a new run never does.
@@ -670,11 +653,10 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       async () => slimResult(RunPhase.RUN_COMPLETED),
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
-    script.harnessStateIds = [""];
 
     await (await startWorkflow(workflowInput({ reconcile_file_review: true }))).result();
     await (
-      await startWorkflow(workflowInput({ reconcile_file_review: true, harness: Harness.CURSOR }))
+      await startWorkflow(workflowInput({ reconcile_file_review: true, harness: Harness.CLAUDE }))
     ).result();
 
     expect(script.executeCalls).toHaveLength(2);
@@ -785,32 +767,6 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           type: "StigmerTurnContinues",
           message: "[StallTimeoutError] Agent stream stalled: no activity for 180s. Retry or resume.",
           details: ["model-stall"],
-          category: ApplicationFailureCategory.BENIGN,
-        });
-      },
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-
-    const handle = await startWorkflow(workflowInput());
-    await handle.result();
-
-    expect(script.executeCalls, "the turn is invoked again and completes").toHaveLength(2);
-    expect(
-      script.persistedStatuses.some((entry) => entry.status.phase === RunPhase.RUN_FAILED),
-      "a continued turn never shows FAILED",
-    ).toBe(false);
-  }, 60_000);
-
-  it("auto-recovers a turn whose engine's vendor ended its connection (a StigmerTurnContinues stream cut, stigmer#2436)", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    const { ApplicationFailure, ApplicationFailureCategory } = await import("@temporalio/common");
-    script.executeBehaviors = [
-      async () => {
-        // Cursor's side ended the run's stream: continued, carrying the
-        // runner's words for the cut for a give-up.
-        throw ApplicationFailure.create({
-          type: "StigmerTurnContinues",
-          message: "[unknown] [canceled] http/2 stream closed with error code CANCEL (0x8) [category=stream-cut, source=sdk, retryable=true]",
-          details: ["stream-cut"],
           category: ApplicationFailureCategory.BENIGN,
         });
       },
@@ -973,39 +929,23 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     }, 30_000);
   }
 
-  it("a harness number no engine owns fails the run, naming it, and runs no engine", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    const handle = await startWorkflow(workflowInput({ harness: 7 }));
-    await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+  // 2 is the retired Cursor number the wire reserves; 7 was never assigned.
+  for (const unowned of [2, 7]) {
+    it(`harness number ${unowned}, which no harness owns, fails the run naming it and never runs as native`, async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
 
-    expect(script.executeActivities).toEqual([]);
-    const failed = script.persistedStatuses.filter(
-      (entry) => entry.status.phase === RunPhase.RUN_FAILED,
-    );
-    expect(failed.at(-1)?.status.error).toMatch(/harness 7 names no engine/);
-  }, 30_000);
+      const handle = await startWorkflow(workflowInput({ harness: unowned }));
+      await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
 
-  it("cursor flow re-reads harness_state_id before each re-invocation", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-    script.openGateCounts = [1];
-    // First read: empty (the activity creates the Cursor agent); the
-    // re-invocation read returns the stored agentId for Agent.resume.
-    script.harnessStateIds = ["", "cursor-agent-1"];
-
-    const handle = await startWorkflow(
-      workflowInput({ harness: Harness.CURSOR }),
-    );
-    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
-    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
-    await handle.result();
-
-    expect(script.executeCalls).toEqual([
-      { thread_id: "", turn_seq: 0 },
-      { thread_id: "cursor-agent-1", turn_seq: 1 },
-    ]);
-  }, 30_000);
+      expect(script.executeActivities).toEqual([]);
+      const failed = script.persistedStatuses.filter(
+        (entry) => entry.status.phase === RunPhase.RUN_FAILED,
+      );
+      expect(failed.at(-1)?.status.error).toBe(
+        `harness ${unowned} names no harness this workflow runs`,
+      );
+    }, 30_000);
+  }
 
   it("hands the run credential to every deep-agent invocation — the first turn and the re-invocation alike", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
@@ -1027,15 +967,14 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     ]);
   }, 30_000);
 
-  it("hands the run credential to the cursor invocation too", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("hands the run credential to the Claude invocation too", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
-    script.harnessStateIds = [""];
 
     const handle = await startWorkflow(
       workflowInput({
-        harness: Harness.CURSOR,
+        harness: Harness.CLAUDE,
         execution_context_token: "run-credential-2",
       }),
     );

@@ -112,10 +112,10 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     const slug = await agentIn(org);
 
     // A routine reads an unset engine as native; a channel is judged
-    // against every engine's list, so the web channel names the native id
-    // and the Slack channel the Cursor id, and both are known.
+    // against every engine's list, so the web channel names native's id and
+    // the Slack channel another, and both are known.
     const onNative = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
-    const onCursor = create(RunConfigSchema, { modelName: "claude-haiku-4-5", thinkingMode: ThinkingMode.ENABLED });
+    const onAnyEngine = create(RunConfigSchema, { modelName: "claude-sonnet-4.5", thinkingMode: ThinkingMode.ENABLED });
 
     const routine = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved-ok"), slug));
     if (routine.spec?.agent === undefined) {
@@ -138,7 +138,7 @@ describe("Saved run settings name the model their tier or thinking is for", () =
       ChannelSchema,
       makeSlackChannel(org, uniqueName("channel-saved-ok"), slug, { modelName: null }),
     );
-    channel.spec!.runConfig = onCursor;
+    channel.spec!.runConfig = onAnyEngine;
     const savedChannel = await clients.channelCommand.create(channel);
     fixtures.defer(() => clients.channelCommand.delete({ value: savedChannel.metadata!.id }));
     expect(savedChannel.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);

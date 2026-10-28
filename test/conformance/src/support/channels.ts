@@ -37,7 +37,7 @@ export const CHANNEL_KIND = "Channel";
 // registry-valid pin both editions accept at write (a pin is validated
 // against every engine's catalog, since a channel names no engine). Whether
 // an unpinned channel is stored is pinned in the suite itself.
-export const CHANNEL_FIXTURE_MODEL = "composer-2.5";
+export const CHANNEL_FIXTURE_MODEL = "claude-haiku-4.5";
 
 // The fields every type shares.
 interface CommonChannelOptions {
@@ -112,7 +112,7 @@ export interface SlackChannelOptions extends CommonChannelOptions {
   appRefOrg?: string;
   // Per-channel model pin. Defaults to CHANNEL_FIXTURE_MODEL (see its
   // comment); pass an unknown name for the existence-rule negative (#774)
-  // or `null` to omit the pin entirely (the two-armed #362 divergence).
+  // or `null` to omit the pin entirely (an unpinned channel, #362).
   modelName?: string | null;
 }
 

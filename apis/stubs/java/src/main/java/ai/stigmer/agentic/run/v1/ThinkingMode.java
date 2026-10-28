@@ -12,11 +12,8 @@ package ai.stigmer.agentic.run.v1;
  * ServiceTier (stigmer/stigmer#772).
  *
  * Unlike the fast tier, thinking is NOT a separately priced dimension:
- * Cursor bills thinking variants at the model's base per-token rates
- * (verified against the live pricing page and 277 team-ledger events on
- * 2026-08-15 — thinking wire ids bill exactly base; thinking+fast bills
- * exactly the fast variant rate). Thinking costs more only by generating
- * additional reasoning tokens, billed as ordinary output. Selectability is
+ * thinking costs more only by generating additional reasoning tokens,
+ * billed as ordinary output. Selectability is
  * therefore CAPABILITY-gated, not pricing-gated: ENABLED is valid only for
  * models whose registry entry on the run's harness declares a
  * thinking capability (capabilities.thinking or capabilities.adaptive_thinking),

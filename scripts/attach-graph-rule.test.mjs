@@ -23,7 +23,7 @@ test("the runner's own modules and @temporalio are refused in both shapes", () =
     "dist/runner-manager.js",
     "dist/worker.js",
     "dist/harness/run-turn.js",
-    "dist/activities/execute-cursor/index.js",
+    "dist/activities/execute-claude/adapter.js",
     "node_modules/@temporalio/common/lib/errors.js",
     "../../../node_modules/@temporalio/worker/lib/index.js",
   ];

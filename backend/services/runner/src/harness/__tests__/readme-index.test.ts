@@ -20,7 +20,7 @@
  *  2. A backticked identifier occurs in the text of at least one FILE the
  *     same passage resolved under rule 1. A passage that names a symbol and
  *     cites no file is an offence: the index rule ("say where it lives") made
- *     mechanical. Hyphenated literals (`deep-agent`, `deny-and-retry`) count
+ *     mechanical. Hyphenated literals (`deep-agent`, `file-review`) count
  *     as identifiers so the wire words are checked too.
  *
  * A "passage" is a markdown block — one paragraph, one list item with its
@@ -29,7 +29,7 @@
  * Fenced code blocks are blanked before the scan (they hold shell commands
  * and search patterns, not references). Two token classes are exempt with
  * a reason: a template (`activities/<harness>/adapter.ts`, contains `<`)
- * names a shape, not a file; a package specifier (`@cursor/sdk`, starts
+ * names a shape, not a file; a package specifier (`@anthropic-ai/claude-agent-sdk`, starts
  * with `@`) is resolved by npm, not by this tree.
  *
  * Hand-rolled over three regular expressions rather than a markdown parser:
@@ -122,7 +122,7 @@ function backtickedTokens(text: string): string[] {
 type TokenClass = "template" | "package" | "path" | "identifier" | "other";
 
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$-]{3,}$/;
-/** A directory (`activities/execute-cursor/`) or a file with an extension, with or without a directory part (`harness-adapters.ts` sits at the `src/` root). */
+/** A directory (`activities/execute-claude/`) or a file with an extension, with or without a directory part (`harness-adapters.ts` sits at the `src/` root). */
 const DIRECTORY = /\/$/;
 const FILE_WITH_EXTENSION = /^[^.\s][^\s]*\.[A-Za-z0-9]{1,5}$/;
 
@@ -256,15 +256,15 @@ describe("the scanner (the checker itself)", () => {
   it.each<[string, TokenClass]>([
     ["harness/types.ts", "path"],
     ["harness-adapters.ts", "path"],
-    ["activities/execute-cursor/", "path"],
+    ["activities/execute-claude/", "path"],
     ["apis/", "path"],
     ["apis/ai/stigmer/agentic/session/v1/enum.proto", "path"],
     ["activities/<harness>/adapter.ts", "template"],
-    ["@cursor/sdk", "package"],
+    ["@anthropic-ai/claude-agent-sdk", "package"],
     ["@temporalio/*", "package"],
     ["HarnessAdapter", "identifier"],
     ["deep-agent", "identifier"],
-    ["deny-and-retry", "identifier"],
+    ["file-review", "identifier"],
     ["boot", "identifier"],
     ["src", "other"],
     ["make codegen", "other"],
@@ -297,7 +297,7 @@ describe("the scanner (the checker itself)", () => {
 
   it("ignores templates, package specifiers, prose in backticks and anything inside a code fence", () => {
     const text = [
-      "- `activities/<harness>/adapter.ts` loads `@cursor/sdk` inside `boot`; see `harness/types.ts`.",
+      "- `activities/<harness>/adapter.ts` loads `@anthropic-ai/claude-agent-sdk` inside `boot`; see `harness/types.ts`.",
       "",
       "```bash",
       "rg -l 'x/y.ts' `NoSuchExport`",

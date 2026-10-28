@@ -151,7 +151,7 @@ describe("the Run evals form", () => {
         runs: 3,
         targets: [
           { harness: "native", modelName: "" },
-          { harness: "cursor", modelName: "gpt-5" },
+          { harness: "native", modelName: "gpt-5" },
         ],
         compare: false,
         maxCostUsd: 2.5,
@@ -163,7 +163,7 @@ describe("the Run evals form", () => {
       pluginId: "plg_1",
       targets: [
         { harness: Harness.NATIVE },
-        { harness: Harness.CURSOR, modelName: "gpt-5" },
+        { harness: Harness.NATIVE, modelName: "gpt-5" },
       ],
       runs: 3,
       ablation: EvalRunAblation.none,
@@ -209,7 +209,7 @@ describe("an eval run's rows", () => {
     );
     expect(labelsOf(evalRun)).toEqual([
       "native/claude-sonnet-4-6",
-      "cursor/gpt-5",
+      "native/gpt-5",
     ]);
     const [row] = rowsOf(evalRun);
     expect(
@@ -222,7 +222,7 @@ describe("an eval run's rows", () => {
       ]),
     ).toEqual([
       ["native/claude-sonnet-4-6", 1, 0.33, 0.67, true],
-      ["cursor/gpt-5", 1, 0.33, 0.67, true],
+      ["native/gpt-5", 1, 0.33, 0.67, true],
     ]);
     expect(
       row?.cells[0]?.tries.map(
@@ -327,7 +327,7 @@ describe("an eval run's rows", () => {
     casesOf(evalRun)[0]!.targets.pop();
     expect(labelsOf(evalRun)).toEqual([
       "native/claude-sonnet-4-6",
-      "cursor/gpt-5",
+      "native/gpt-5",
     ]);
     expect(
       rowsOf(evalRun)[0]?.cells.map((cell) => cell.target),
@@ -440,12 +440,12 @@ describe("the pieces every subject shares", () => {
         caseModels: false,
         targets: [
           { harness: "native", modelName: "" },
-          { harness: "cursor", modelName: "gpt-5" },
+          { harness: "native", modelName: "gpt-5" },
         ],
       }),
     ).toEqual([
       { harness: Harness.NATIVE },
-      { harness: Harness.CURSOR, modelName: "gpt-5" },
+      { harness: Harness.NATIVE, modelName: "gpt-5" },
     ]);
   });
 

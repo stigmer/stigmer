@@ -241,7 +241,7 @@ const orgReport = create(GetOrgUsageReportOutputSchema, {
   topAgents: [{ agentId: "agt_1", agentName: "Reviewer", runCount: 6, totalTokens: 6000n, workingSeconds: 42n }],
   harnessUsage: [
     { harness: "native", runCount: 7, totalTokens: 7000n, callCount: 21 },
-    { harness: "cursor", runCount: 3, totalTokens: 3000n },
+    { harness: "claude", runCount: 3, totalTokens: 3000n },
   ],
   dailyUsage: [{ date: "2026-03-01", runCount: 4, totalTokens: 4000n }],
 });
@@ -259,7 +259,7 @@ describe("renderOrgUsage", () => {
     expect(out).toMatch(/Reviewer\s+6\s+6\.0k\s+60\.0%\s+42s/);
     expect(out).toMatch(/HARNESS\s+RUNS\s+TOKENS\s+SHARE/);
     expect(out).toMatch(/native\s+7\s+7\.0k\s+70\.0%/);
-    expect(out).toMatch(/cursor\s+3\s+3\.0k\s+30\.0%/);
+    expect(out).toMatch(/claude\s+3\s+3\.0k\s+30\.0%/);
     expect(out).toMatch(/DATE\s+RUNS\s+TOKENS/);
     expect(out).toMatch(/2026-03-01\s+4\s+4\.0k/);
     expect(out).not.toMatch(/\$|COST|cost/);

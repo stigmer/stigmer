@@ -493,9 +493,9 @@ type GetRunnerBootstrapConfigOutput struct {
 	// Temporal namespace the runner should use.
 	TemporalNamespace string `protobuf:"bytes,2,opt,name=temporal_namespace,json=temporalNamespace,proto3" json:"temporal_namespace,omitempty"`
 	// Stigmer-signed access token the runner uses to authenticate its
-	// Cursor-proxy traffic (the x-stigmer-auth header).
+	// model-proxy traffic (the x-stigmer-auth header).
 	//
-	// Empty when the server cannot mint one — OSS (no Cursor proxy) or a cloud
+	// Empty when the server cannot mint one — OSS (no hosted model proxy) or a cloud
 	// server with no signing key configured. The runner keeps using its existing
 	// token in that case.
 	RunnerAccessToken string `protobuf:"bytes,3,opt,name=runner_access_token,json=runnerAccessToken,proto3" json:"runner_access_token,omitempty"`

@@ -26,10 +26,10 @@
 #              the agent's side as its own user, stigmer-agent, and only
 #              root can, and on Substrate the base image's USER decides who
 #              it is); no /proc; any of bash, git, setpriv (util-linux: how
-#              the runner drops to the agent user) and the text tools the
-#              Cursor approval hook runs, missing from PATH (without them a
-#              repository workspace, the agent user or every Cursor turn
-#              breaks).
+#              the runner drops to the agent user) and the standard text
+#              tools an agent's hooks and commands rely on, missing from
+#              PATH (without them a repository workspace, the agent user or
+#              an agent's hooks break).
 #   warned   - rg (the native agent's grep falls back to a substring
 #              search): one feature degrades, so the runner starts.
 #

@@ -74,7 +74,7 @@ describe("the default model, runner and server", () => {
       models: [
         { id: "cheap", provider: "anthropic", harness: "native", costTier: "economy" },
         { id: "gpt-untiered", provider: "openai", harness: "native" },
-        { id: "claude-cursor", provider: "anthropic", harness: "cursor", costTier: "standard", featured: true },
+        { id: "claude-only", provider: "anthropic", harness: "claude", costTier: "standard", featured: true },
       ],
     });
     expect(await bothDefaults(document)).toEqual({ runner: "gpt-untiered", server: "gpt-untiered" });

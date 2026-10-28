@@ -149,7 +149,6 @@ public final class IdentityAccountInput {
         private final String standingContext;
         private final String defaultHarness;
         private final String defaultNativeModel;
-        private final String defaultCursorModel;
         private final boolean memoryEnabled;
         private final boolean defaultAutoApprove;
         private final String defaultClaudeModel;
@@ -158,7 +157,6 @@ public final class IdentityAccountInput {
             this.standingContext = builder.standingContext;
             this.defaultHarness = builder.defaultHarness;
             this.defaultNativeModel = builder.defaultNativeModel;
-            this.defaultCursorModel = builder.defaultCursorModel;
             this.memoryEnabled = builder.memoryEnabled;
             this.defaultAutoApprove = builder.defaultAutoApprove;
             this.defaultClaudeModel = builder.defaultClaudeModel;
@@ -175,9 +173,6 @@ public final class IdentityAccountInput {
             if (this.defaultNativeModel != null) {
                 builder.setDefaultNativeModel(this.defaultNativeModel);
             }
-            if (this.defaultCursorModel != null) {
-                builder.setDefaultCursorModel(this.defaultCursorModel);
-            }
             builder.setMemoryEnabled(this.memoryEnabled);
             builder.setDefaultAutoApprove(this.defaultAutoApprove);
             if (this.defaultClaudeModel != null) {
@@ -192,7 +187,6 @@ public final class IdentityAccountInput {
             private String standingContext;
             private String defaultHarness;
             private String defaultNativeModel;
-            private String defaultCursorModel;
             private boolean memoryEnabled;
             private boolean defaultAutoApprove;
             private String defaultClaudeModel;
@@ -202,7 +196,6 @@ public final class IdentityAccountInput {
             public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
             public Builder defaultHarness(String defaultHarness) { this.defaultHarness = defaultHarness; return this; }
             public Builder defaultNativeModel(String defaultNativeModel) { this.defaultNativeModel = defaultNativeModel; return this; }
-            public Builder defaultCursorModel(String defaultCursorModel) { this.defaultCursorModel = defaultCursorModel; return this; }
             public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
             public Builder defaultAutoApprove(boolean defaultAutoApprove) { this.defaultAutoApprove = defaultAutoApprove; return this; }
             public Builder defaultClaudeModel(String defaultClaudeModel) { this.defaultClaudeModel = defaultClaudeModel; return this; }

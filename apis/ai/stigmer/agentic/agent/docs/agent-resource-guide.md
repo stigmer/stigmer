@@ -106,7 +106,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
 | `spec.env` | No | The keys the agent needs, each with a description and whether it is secret; values come from vaults at run time. See [Declared Keys](#declared-keys). |
-| `spec.harness` | No | The engine (`HARNESS_NATIVE`, `HARNESS_CURSOR` or `HARNESS_CLAUDE`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
+| `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CLAUDE`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
 ## Hooks
@@ -147,9 +147,8 @@ A hook is also code the agent's author chose, and it runs without asking anyone:
 
 What holds:
 
-- Every engine, native, Cursor and Claude, runs hooks in Claude Code's format and in Cursor's, in the Cloud and on a laptop. A Cursor-format `ask` waits for a person on every engine, where Cursor itself lets the call run.
-- On the Cursor engine a hook sees no subagent identity (`agent_id`, `agent_type`), web fetch and web search reach no hook (an agent whose `PreToolUse` hooks would match them runs there without them; the subagent tool is hidden only when a matcher names it, since a subagent's own calls reach every hook), and a hook's rewrite applies only where Cursor applies one (a shell command, its directory or timeout, a file path, a search pattern, a URL); a rewrite of a file's content or of an MCP tool's arguments is refused with a sentence.
-- Workspace hook files never run for the agent. On the Cursor engine a repository's `.cursor/hooks.json` entries are set aside for the turn and restored; `.claude/settings*.json` hooks are set aside in a folder the runner cloned or created, and a turn on a person's own folder whose `.claude` settings carry hooks is refused, naming the file.
+- Every engine, native and Claude, runs hooks in Claude Code's format and in Cursor's, in the Cloud and on a laptop. A Cursor-format `ask` waits for a person on every engine, where Cursor itself lets the call run.
+- Workspace hook files (`.claude/settings*.json`, `.cursor/hooks.json`) never run for the agent.
 - Apply checks an inline block in either format. In Claude Code's (the default): events `PreToolUse` or `PostToolUse`, every matcher and condition in the shape Claude Code accepts, no `fail_closed`, and `${user_config.KEY}` only in a handler with `args`; an omitted format is filled with Claude Code's. In Cursor's, which the block names (`format: HOOK_FORMAT_CURSOR`): events `preToolUse`, `beforeShellExecution`, `beforeMCPExecution`, `postToolUse` or `afterMCPExecution`, a matcher that is `*` or a regular expression, `fail_closed` allowed, and no `condition`, `args` or `${user_config.KEY}`. Apply also refuses more than one inline block, and a `plugins` list that names a plugin twice.
 - Installing a plugin with hooks, in either format, records them on the plugin and declares in the plugin's `env` every variable those hooks read. A conversation can list plugins of its own (the Session's `spec.plugins`); their hooks run too, in a chat with no agent as well.
 - A plugin reference with no `version` follows the plugin's installed version. A hook that reads a variable the run does not have refuses the turn, naming the variable.

@@ -14,8 +14,8 @@
 //     present on every edition).
 //   - getRunnerBootstrapConfig always carries reachable Temporal coordinates,
 //     and its token/key fields follow the PRESENCE-BASED contract: an empty
-//     token means "not minted" (OSS has no Cursor proxy; a cloud server may
-//     lack a signing key), and the companion fields (token_type,
+//     token means "not minted" (OSS serves no side-channel proxy; a cloud
+//     server may lack a signing key), and the companion fields (token_type,
 //     expires_in_seconds, key ids) are present exactly when their principal
 //     is — never half-populated. Clients branch on presence, so a
 //     half-populated response is a broken contract even when every field is
@@ -29,12 +29,13 @@
 //     (CapabilityFlags.licenseStatus).
 //
 //   - getModelReadiness answers every edition the same SHAPE for an
-//     organization: the three providers in the server's order, each with a
-//     specified availability and a parent organization exactly when one
-//     serves it; every catalog model on every offered engine, each at its
-//     provider's availability by the one rule (Cursor needs cursor, Claude
-//     needs anthropic, native needs its model's provider, else no provider
-//     and unknown); the input's model judged exactly when named. Whose keys
+//     organization: the two providers (anthropic, openai) in the server's
+//     order, each with a specified availability and a parent organization
+//     exactly when one serves it; every catalog model on every offered
+//     engine (native, claude), each at its provider's availability by the
+//     one rule (Claude needs anthropic, native needs its model's provider,
+//     else no provider and unknown); the input's model judged exactly when
+//     named. Whose keys
 //     the answer reads differs by edition (the organization's own on the
 //     cloud, the runners' declaration on open source), so the values are not
 //     pinned here: that each answer is the refusal create gives is held by
@@ -135,10 +136,10 @@ describe("Platform conformance — getLicenseStatus", () => {
 
 // The providers every answer reports, in the server's order: the names
 // provider keys are saved under.
-const READINESS_PROVIDERS = ["anthropic", "openai", "cursor"];
+const READINESS_PROVIDERS = ["anthropic", "openai"];
 
 // The engines a readiness answer lists models for, in the order it lists them.
-const READINESS_ENGINES = [Harness.NATIVE, Harness.CURSOR, Harness.CLAUDE];
+const READINESS_ENGINES = [Harness.NATIVE, Harness.CLAUDE];
 
 // Every availability a provider can be reported at; unspecified is a broken
 // server.
@@ -156,7 +157,7 @@ function availabilityByProvider(answer: GetModelReadinessOutput): Map<string, Pr
 }
 
 describe("Platform conformance — getModelReadiness", () => {
-  it("[rpc:PlatformQueryController.getModelReadiness] reports exactly anthropic, openai and cursor in that order, each at a specified availability, naming a parent organization exactly when one serves it", async () => {
+  it("[rpc:PlatformQueryController.getModelReadiness] reports exactly anthropic and openai in that order, each at a specified availability, naming a parent organization exactly when one serves it", async () => {
     const { org } = await target.provisionTenancy();
     const answer = await clients.platformQuery.getModelReadiness({ org });
 
@@ -181,7 +182,7 @@ describe("Platform conformance — getModelReadiness", () => {
     expect(new Set(engines), "every offered engine lists its models").toEqual(new Set(READINESS_ENGINES));
     expect(
       engines,
-      "engine order: native, then cursor, then claude",
+      "engine order: native, then claude",
     ).toEqual([...engines].sort((a, b) => READINESS_ENGINES.indexOf(a) - READINESS_ENGINES.indexOf(b)));
     for (const model of answer.models) {
       expect(model.model, "a listed model names itself").not.toBe("");
@@ -198,15 +199,12 @@ describe("Platform conformance — getModelReadiness", () => {
     }
   });
 
-  it("[rpc:PlatformQueryController.getModelReadiness] a Cursor model needs cursor, a Claude model anthropic, and a native model never cursor", async () => {
+  it("[rpc:PlatformQueryController.getModelReadiness] a Claude model needs anthropic, and a native model its own provider", async () => {
     const { org } = await target.provisionTenancy();
     const answer = await clients.platformQuery.getModelReadiness({ org });
 
     for (const model of answer.models) {
       switch (model.harness) {
-        case Harness.CURSOR:
-          expect(model.provider, `Cursor runs ${model.model} on the Cursor key`).toBe("cursor");
-          break;
         case Harness.CLAUDE:
           expect(model.provider, `the Claude engine runs ${model.model} on Anthropic`).toBe("anthropic");
           break;

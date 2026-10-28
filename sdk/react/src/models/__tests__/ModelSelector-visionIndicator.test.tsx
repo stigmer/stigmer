@@ -35,20 +35,20 @@ const BLIND: ModelInfo = {
   shortDescription: "Text-only economy model",
   speedTier: "fast",
   costTier: "economy",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: [],
   visionCapability: false,
 };
 
 const SIGHTED: ModelInfo = {
-  modelId: "composer-2.5",
-  provider: "cursor",
-  displayName: "Composer 2.5",
+  modelId: "claude-sonnet-4-6",
+  provider: "anthropic",
+  displayName: "Sonnet 4.6",
   shortDescription: "Fast agentic model",
   speedTier: "fastest",
   costTier: "economy",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: [],
   visionCapability: true,
@@ -56,12 +56,12 @@ const SIGHTED: ModelInfo = {
 
 const UNASSESSED: ModelInfo = {
   modelId: "mystery-model",
-  provider: "cursor",
+  provider: "anthropic",
   displayName: "Mystery Model",
   shortDescription: "Never capability-assessed",
   speedTier: "fast",
   costTier: "standard",
-  harness: "cursor",
+  harness: "native",
   featured: true,
   serviceTiers: [],
 };
@@ -77,9 +77,9 @@ function renderSelector() {
       }}
     >
       <ModelSelector
-        value="composer-2.5"
+        value="claude-sonnet-4-6"
         onValueChange={vi.fn()}
-        harness="cursor"
+        harness="native"
       />
     </ModelRegistryContext.Provider>,
   );
@@ -105,7 +105,7 @@ afterEach(cleanup);
 describe("ModelSelector — no-image-input indicator", () => {
   it("marks an explicitly blind model with visible badge text", async () => {
     renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     // Visible text, not a tooltip — keyboard and touch users must see it
     // before picking the model (stigmer/no-native-title).
@@ -115,14 +115,14 @@ describe("ModelSelector — no-image-input indicator", () => {
 
   it("shows nothing on an explicitly sighted model", async () => {
     renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
-    expect(modelOption("Composer 2.5").textContent).not.toContain("No image input");
+    expect(modelOption("Sonnet 4.6").textContent).not.toContain("No image input");
   });
 
   it("shows nothing on an unassessed model (tri-state: absent is not false)", async () => {
     renderSelector();
-    await openPopover("Composer 2.5");
+    await openPopover("Sonnet 4.6");
 
     expect(modelOption("Mystery Model").textContent).not.toContain("No image input");
   });

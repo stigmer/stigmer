@@ -55,9 +55,6 @@
 // hands the model its result as interrupted, its outcome unknown. The Claude
 // arms run where the target runs Claude turns (claudeTurnsRun).
 //
-// Cursor is not here: its SDK cannot run inside a runner process against a
-// double (the hermetic kit mocks `@cursor/sdk` in the test process), so its
-// continuation is proven in process by the contract kit's re-sent-task arm.
 // The cloud target is excluded by name (vitest.cloud-execution.config.ts): its
 // runner and server are the composition's and have no restart door.
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
