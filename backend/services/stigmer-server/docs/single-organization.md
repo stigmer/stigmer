@@ -212,6 +212,12 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | GitHubQueryController.listRepositories | org |
 | GitHubQueryController.searchRepositories | org |
 
+## `ai.stigmer.platform.v1`
+
+| Method | Fills |
+|---|---|
+| PlatformQueryController.getModelReadiness | org |
+
 ## `ai.stigmer.search.v1`
 
 | Method | Fills |
