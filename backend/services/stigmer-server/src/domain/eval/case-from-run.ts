@@ -34,7 +34,13 @@
  *     called. An eval run's stand-in offers the model those definitions, so
  *     the replay is shown the tool the run was shown; a mocked tool with no
  *     definition is offered a generic description and an input schema that
- *     accepts anything, as before definitions were recorded;
+ *     accepts anything, as before definitions were recorded. A case's file
+ *     replaces its suite's `_tools.json` for that server whole (the format
+ *     merges a case's mocks over its suite's file by file), so a case added
+ *     to an eval ({@link CaseFromRunInput.suiteText}) also lists the tools
+ *     the eval's own `mocks/<server>/_tools.json` holds, the turn's
+ *     definitions winning per tool, and a tool the suite defines is not
+ *     noted as undefined;
  *   - `graders/criteria.md`: an `llm` rubric whose PASS line the author
  *     writes and whose FAIL line names what went wrong: the first failing
  *     reason of the run's AI judge, else of its eval run, else the caller's
@@ -62,6 +68,7 @@ import { create, type JsonObject } from "@bufbuild/protobuf";
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 
+import { parseToolsList, type SavedTool } from "@stigmer/eval-runtime";
 import { EVAL_ENGINE_UNSUPPORTED_FEATURES, isToolNameSegment, type EvalEngine } from "@stigmer/plugin-package";
 import { EvalCaseArchiveSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { EvalCaseArchive } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
@@ -105,6 +112,12 @@ export interface CaseFromRunInput {
   readonly skill: string;
   /** The caller's identity: whose thumbs-down note seeds the rubric. */
   readonly callerId: string;
+  /**
+   * The eval the case is added to: one of its files' text, by its path from
+   * the suite's root, or undefined when it holds none. Absent when the case
+   * is answered for the caller to place, whose suite the server cannot see.
+   */
+  readonly suiteText?: (path: string) => string | undefined;
 }
 
 /** The case folder: its name, its files under `<case>/`, and how it differs from the run. */
@@ -181,7 +194,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     }
   }
 
-  files.push(...mockFilesOf(toolUsesOf(turn), definitionsOf(own?.events ?? []), notes));
+  files.push(...mockFilesOf(toolUsesOf(turn), definitionsOf(own?.events ?? []), input.suiteText, notes));
   files.push({ path: "graders/criteria.md", content: criteriaFile(failureOf(await listRunScores(store, logger, runId), input.callerId)) });
   if (input.skill !== "") {
     files.push({ path: "graders/skill-fired.md", content: skillFiredFile(input.skill) });
@@ -351,6 +364,7 @@ function definitionsOf(events: ReadonlyArray<SessionEvent>): Map<string, Stigmer
 function mockFilesOf(
   uses: ReadonlyArray<ToolUse>,
   definitions: ReadonlyMap<string, StigmerMcpToolDefinitionEvent>,
+  suiteText: CaseFromRunInput["suiteText"],
   notes: string[],
 ): Array<{ path: string; content: string }> {
   const kept = new Map<string, { readonly use: ToolUse; differing: number }>();
@@ -408,7 +422,7 @@ function mockFilesOf(
     path: `mocks/${use.mcpServerName}/${use.name}.md`,
     content: `---\ntype: fixed\n${use.result?.isError === true ? "error: true\n" : ""}---\n${use.result?.text ?? ""}`,
   }));
-  return [...mocks, ...toolsFilesOf([...kept.values()].map(({ use }) => use), definitions, notes)];
+  return [...mocks, ...toolsFilesOf([...kept.values()].map(({ use }) => use), definitions, suiteText, notes)];
 }
 
 /** One tool of a `_tools.json`, in MCP's `tools/list` shape. */
@@ -420,38 +434,49 @@ interface ListedTool {
 
 /**
  * Each mocked server's `_tools.json`: its mocked tools as the turn offered
- * them, a tool with no definition left out (its stand-in offers the generic
- * one) and noted, as is one whose schema was too large to record (its
- * stand-in offers the recorded description with a schema that accepts
- * anything). A server none of whose tools has a definition gets no file.
+ * them, then, for a case added to an eval, the tools the suite's own file
+ * for that server lists and the turn did not record (the module header). A
+ * definition whose schema was too large to record takes the suite's schema
+ * for that tool when it has one. A server with no recorded definition gets
+ * no file, so a suite's file still applies whole. A called tool that
+ * neither defines is noted, as is a schema neither holds.
  */
 function toolsFilesOf(
   mocked: ReadonlyArray<ToolUse>,
   definitions: ReadonlyMap<string, StigmerMcpToolDefinitionEvent>,
+  suiteText: CaseFromRunInput["suiteText"],
   notes: string[],
 ): Array<{ path: string; content: string }> {
   const byServer = new Map<string, ListedTool[]>();
   const undefinedCalls: string[] = [];
   const omitted: string[] = [];
+  const suites = new Map<string, ReadonlyMap<string, SavedTool>>();
+  const suiteOf = (server: string): ReadonlyMap<string, SavedTool> => {
+    let suite = suites.get(server);
+    if (suite === undefined) {
+      const text = suiteText?.(`mocks/${server}/_tools.json`);
+      suite = new Map((text === undefined ? [] : parseToolsList(text)).map((tool) => [tool.name, tool]));
+      suites.set(server, suite);
+    }
+    return suite;
+  };
   for (const use of mocked) {
     const call = `${use.mcpServerName}.${use.name}`;
     const definition = definitions.get(call);
+    const saved = suiteOf(use.mcpServerName).get(use.name);
     if (definition === undefined) {
-      undefinedCalls.push(call);
+      if (saved === undefined) undefinedCalls.push(call);
       continue;
     }
-    if (definition.inputSchemaOmitted) omitted.push(call);
+    const inputSchema = definition.inputSchema ?? (saved?.inputSchema as JsonObject | undefined);
+    if (definition.inputSchemaOmitted && inputSchema === undefined) omitted.push(call);
     const tools = byServer.get(use.mcpServerName) ?? [];
-    tools.push({
-      name: use.name,
-      description: definition.description,
-      ...(definition.inputSchema === undefined ? {} : { inputSchema: definition.inputSchema }),
-    });
+    tools.push({ name: use.name, description: definition.description, ...(inputSchema === undefined ? {} : { inputSchema }) });
     byServer.set(use.mcpServerName, tools);
   }
   if (undefinedCalls.length > 0) {
     notes.push(
-      `the turn recorded no definition of ${undefinedCalls.join(", ")} (it ran before tools' definitions were recorded): ` +
+      `the turn recorded no definition of ${undefinedCalls.join(", ")} (it ran before tools' definitions were recorded, or its server's tools could not be listed): ` +
         `${undefinedCalls.length === 1 ? "its mock offers" : "their mocks offer"} a generic description and an input schema that accepts anything`,
     );
   }
@@ -461,10 +486,11 @@ function toolsFilesOf(
         `${omitted.length === 1 ? "its mock offers its" : "their mocks offer their"} description with an input schema that accepts anything`,
     );
   }
-  return [...byServer].map(([server, tools]) => ({
-    path: `mocks/${server}/_tools.json`,
-    content: `${JSON.stringify({ tools }, null, 2)}\n`,
-  }));
+  return [...byServer].map(([server, recorded]) => {
+    const names = new Set(recorded.map((tool) => tool.name));
+    const rest = [...suiteOf(server).values()].filter((tool) => !names.has(tool.name));
+    return { path: `mocks/${server}/_tools.json`, content: `${JSON.stringify({ tools: [...recorded, ...rest] }, null, 2)}\n` };
+  });
 }
 
 /**

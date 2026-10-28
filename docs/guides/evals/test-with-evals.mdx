@@ -530,7 +530,9 @@ The case holds:
   without calling the real server;
 - `mocks/<server>/_tools.json`: each mocked tool's description and input schema
   as the run offered them to the model, so the case offers the model the same
-  tool and it calls the tool as it did in the run;
+  tool and it calls the tool as it did in the run. Added to an eval whose own
+  `mocks/<server>/_tools.json` lists that server's tools, the case's file keeps
+  those beside the run's, since a case's file replaces its suite's;
 - `graders/criteria.md`: an `llm` grader whose FAIL line names what went wrong,
   from the AI judge's failing reason, else an eval run's failing check, else the
   comment you left with a thumbs-down; you write the PASS line, since only you

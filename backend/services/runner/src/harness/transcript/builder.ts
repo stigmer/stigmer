@@ -241,7 +241,9 @@ export class TranscriptBuilder {
    * (`McpToolListing.offered`), handed over once at its setup. Nothing is
    * written for it, and the observer is not told: the first row of a tool
    * projects that tool's definition (the header), so a tool the turn never
-   * calls never leaves the builder, nor the agent host's process.
+   * calls never reaches the rows, and never rides a persist across the agent
+   * host's pipe. (Cursor's catalog is the runtime's own listing, which
+   * crosses once, with the turn's input.)
    */
   offerTools(tools: readonly OfferedTool[]): void {
     this.offered = new Map(tools.map((tool) => [mcpToolKey(tool.server, tool.name), tool]));

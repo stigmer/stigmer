@@ -352,9 +352,11 @@ async function buildCaseFromRunHandler(
  * AddCaseFromRun — the run's turn built as a case, added to an eval of the
  * run's organization as a new version: the eval's current files and the
  * case, through the push's own chain (its can_edit question, its version
- * archive, its tag). The current version is read and the archive built in
- * each attempt, and the push held to that version, so a push landing
- * meanwhile makes the attempt run again on it rather than be overwritten.
+ * archive, its tag). The current version is read and the case and the
+ * archive built in each attempt, the case over that version's files (its
+ * `_tools.json` lists the suite's tools too, case-from-run.ts), and the push
+ * held to that version, so a push landing meanwhile makes the attempt run
+ * again on it rather than be overwritten.
  */
 async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunRequest, ctx: HandlerContext): Promise<Eval> {
   const caller = await validatedCaller(deps, EvalCommandController.method.addCaseFromRun, req, ctx);
@@ -368,7 +370,6 @@ async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunR
     throw failedPreconditionError(EVAL_CASE_OTHER_ORGANIZATION);
   }
   const target = await evalOfOrganization(deps, caller, ref, runOrg);
-  const built = await buildCaseFromRun(deps.store, deps.logger, { run, caseName: req.caseName, skill, callerId: caller.identityId });
   return runGuardedWrite(async () => {
     const head = await evalOrNotFound(deps, target.metadata?.id ?? "");
     // The push's own question, asked before a byte of the eval is read: a
@@ -388,6 +389,14 @@ async function addCaseFromRun(deps: EvalControllerDeps, req: AddEvalCaseFromRunR
       throw archiveReadError(error, digest, "failed to load eval archive");
     }
     const { files } = openArchiveFiles(bytes, EVAL_NOUN);
+    const held = new Set(files.entries.map((entry) => entry.path));
+    const built = await buildCaseFromRun(deps.store, deps.logger, {
+      run,
+      caseName: req.caseName,
+      skill,
+      callerId: caller.identityId,
+      suiteText: (path) => (held.has(path) ? new TextDecoder().decode(files.read(path)) : undefined),
+    });
     const prefix = `${built.caseName}/`;
     if (files.entries.some((entry) => entry.path === built.caseName || entry.path.startsWith(prefix))) {
       throw new ConnectError(evalCaseExistsMessage(built.caseName, slug), Code.AlreadyExists);

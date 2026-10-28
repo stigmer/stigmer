@@ -8,6 +8,8 @@
  *   - Carol builds a case from her ended turn: the archive holds the case
  *     under its suggested name, its history and its mocks with the tool as
  *     the turn offered it (`_tools.json`), and its digest is the archive's;
+ *     added to an eval whose suite lists that server's tools, the case's
+ *     `_tools.json` keeps the suite's beside the turn's;
  *   - she adds it to her eval: the new version holds the eval's cases and
  *     the new one, under the version message the request named or one
  *     naming the run, and the tag it named; adding a case of a name the
@@ -237,6 +239,31 @@ describe("an eval case from a run (built-in posture, composed server)", () => {
     const collision = await failureOf(carolEvals().addCaseFromRun({ runId, eval: { slug }, caseName: "first" }));
     expect(collision.code).toBe(Code.AlreadyExists);
     expect(collision.rawMessage).toBe(evalCaseExistsMessage("first", slug));
+  });
+
+  it("adds a case whose _tools.json keeps the suite's own tools of its server beside the turn's", async () => {
+    const runId = await seedConversation("ses_suite_tools", carolId);
+    const slug = "carols-billing";
+    const suiteTools = { tools: [{ name: "lookup_order", description: "Look an order up.", inputSchema: { type: "object", required: ["id"] } }] };
+    await carolEvals().push({
+      org: ORG,
+      slug,
+      artifact: writeArchive([
+        { path: "first/prompt.md", bytes: encoder.encode("The first case.\n") },
+        { path: "first/graders/judge.md", bytes: encoder.encode(JUDGE) },
+        { path: "mocks/billing/_tools.json", bytes: encoder.encode(JSON.stringify(suiteTools)) },
+      ]),
+    });
+
+    await carolEvals().addCaseFromRun({ runId, eval: { slug }, caseName: "with-suite-tools" });
+    const { files } = openArchiveFiles((await carolQuery().download({ org: ORG, slug })).artifact, "eval");
+    expect(JSON.parse(decoder.decode(files.read("with-suite-tools/mocks/billing/_tools.json")))).toEqual({
+      tools: [
+        { name: "refund", description: "Refund an order.", inputSchema: { type: "object", required: ["order_id"] } },
+        { name: "lookup_order", description: "Look an order up.", inputSchema: { type: "object", required: ["id"] } },
+      ],
+    });
+    expect(readEvalFolder(files).findings).toEqual([]);
   });
 
   it("refuses a turn that has not ended, a run that is not there and a name an eval's root keeps, building or adding", async () => {
