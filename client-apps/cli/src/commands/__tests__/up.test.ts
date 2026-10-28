@@ -32,6 +32,17 @@ vi.mock("../../local/daemon/launch.js", () => ({
     launched.runs.push(run);
     return launched.report;
   },
+  // The foreground shape renders the card when the stack serves, then
+  // stays up; the stub serves at once and returns as a clean shutdown.
+  upForeground: async (
+    run: unknown,
+    _home: string,
+    hooks: { readonly onReady: (report: UpReport) => Promise<void> },
+  ): Promise<number> => {
+    launched.runs.push(run);
+    await hooks.onReady(launched.report);
+    return 0;
+  },
 }));
 
 vi.mock("../../local/webconsole/index.js", () => ({
@@ -147,6 +158,14 @@ describe("stigmer up — the agents line", () => {
     expect(card.hints).toContain(
       "Add a model provider: stigmer setup, then stigmer down && stigmer up",
     );
+  });
+
+  it("renders the same card in the foreground once the stack serves", async () => {
+    launched.consoleServed = true;
+    launched.report = { runnerReach: [{ provider: "anthropic", via: "key" }] };
+    const card = await upCard("--foreground");
+    expect(fields(card, "Endpoints").console).toBe("http://localhost:7234");
+    expect(Object.keys(fields(card, "Agents"))).toEqual(["ready"]);
   });
 
   it("says there is no runner when only the control plane started", async () => {

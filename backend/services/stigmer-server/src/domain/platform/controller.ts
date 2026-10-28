@@ -259,10 +259,6 @@ function wireAvailability(report: ProviderAvailabilityReport): ProviderAvailabil
         : ProviderAvailability.missing_from_runners;
     case "unknown":
       return ProviderAvailability.availability_unknown;
-    default: {
-      const exhaustive: never = report;
-      throw new Error(`unhandled availability report: ${JSON.stringify(exhaustive)}`);
-    }
   }
 }
 

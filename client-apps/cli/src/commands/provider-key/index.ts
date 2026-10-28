@@ -88,10 +88,6 @@ export function registerProviderKey(program: Command): void {
         process.stdout.write(stringify(resources.providerListJson(listing)));
         return;
       }
-      if (listing.standings.length === 0) {
-        process.stdout.write(output.renderEmpty("model providers"));
-        return;
-      }
       process.stdout.write(
         output.renderTable(resources.providerTableHeaders(listing), resources.providerTableRows(listing)),
       );

@@ -88,12 +88,7 @@ export function parseBaseUrl(provider: Provider, value: string | undefined): str
   const baseUrl = (value ?? "").trim();
   if (baseUrl === "") return "";
   if (provider === "cursor") throw new UsageError(CURSOR_TAKES_NO_BASE_URL);
-  let url: URL | undefined;
-  try {
-    url = new URL(baseUrl);
-  } catch {
-    url = undefined;
-  }
+  const url = URL.canParse(baseUrl) ? new URL(baseUrl) : undefined;
   if (url === undefined || url.protocol !== "https:") {
     throw new UsageError(
       `--base-url must be an https URL, not "${baseUrl}"\n\nFor example: --base-url https://gateway.example.com/openai/v1`,
@@ -330,11 +325,7 @@ function checkWords(check: ProviderKeyCheck): string {
 /** The endpoint's host, or "-" for the provider's own API. */
 function endpointHost(baseUrl: string): string {
   if (baseUrl === "") return "-";
-  try {
-    return new URL(baseUrl).host;
-  } catch {
-    return baseUrl;
-  }
+  return URL.canParse(baseUrl) ? new URL(baseUrl).host : baseUrl;
 }
 
 function dayOf(at: Timestamp | undefined): string | undefined {

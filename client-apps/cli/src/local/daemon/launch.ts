@@ -85,6 +85,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
   await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
 
   saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
+  /* v8 ignore next -- @preserve: up() spawns the real daemon, which no unit test starts; the cli-up lane's smoke-getting-started runs it end to end, and upReport has its own tests */
   return upReport(env);
 }
 

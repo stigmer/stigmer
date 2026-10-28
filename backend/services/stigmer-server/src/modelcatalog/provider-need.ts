@@ -88,9 +88,5 @@ export function providerNeededBy(
       }
       return { provider, model: resolved };
     }
-    default: {
-      const unknown: never = engine;
-      return unknown;
-    }
   }
 }

@@ -40,6 +40,7 @@ import {
 import {
   GetModelReadinessOutputSchema,
   ProviderAvailability,
+  ProviderReadinessSchema,
 } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { StigmerError } from "@stigmer/client";
 import { Command } from "commander";
@@ -48,6 +49,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../../config/index.js";
 import { CliExitError } from "../../../errors/cli-exit-error.js";
 import { ExitCode } from "../../../errors/exit-codes.js";
+import { standingWords } from "../../../resources/provider-key.js";
 import { registerProviderKey } from "../index.js";
 
 const CLOUD_CONFIG: Config = {
@@ -91,7 +93,9 @@ const backend = vi.hoisted(() => ({
   deleted: [] as DeleteProviderKeyInput[],
   prompts: [] as string[],
   // How the key list answers: the keys, Unimplemented, or PermissionDenied.
-  keyList: "keys" as "keys" | "unimplemented" | "denied",
+  keyList: "keys" as "keys" | "unimplemented" | "denied" | "unavailable",
+  // The keys the list answers with.
+  keys: [] as ProviderKey[],
   // The check the server reports on a saved key.
   check: 1 as ProviderKeyCheck,
 }));
@@ -142,7 +146,10 @@ vi.mock("../../../backend.js", () => ({
           if (backend.keyList === "denied") {
             throw new StigmerError("permission-denied", "unauthorized to view provider keys", Code.PermissionDenied);
           }
-          return create(ListProviderKeysOutputSchema, { entries: [ANTHROPIC_KEY, OPENAI_KEY] });
+          if (backend.keyList === "unavailable") {
+            throw new StigmerError("unavailable", "the key store is down", Code.Unavailable);
+          }
+          return create(ListProviderKeysOutputSchema, { entries: backend.keys });
         },
         set: async (input: SetProviderKeyInput): Promise<ProviderKey> => {
           backend.set.push(input);
@@ -233,6 +240,7 @@ beforeEach(() => {
   backend.deleted.length = 0;
   backend.prompts.length = 0;
   backend.keyList = "keys";
+  backend.keys = [ANTHROPIC_KEY, OPENAI_KEY];
   backend.check = ProviderKeyCheck.checked;
   pipedStdin();
 });
@@ -482,5 +490,57 @@ describe("stigmer provider-key on a server that keeps no provider keys", () => {
     expect(failure.exitCode).toBe(ExitCode.Usage);
     expect(failure.hints?.[0]).toContain("whoever runs them");
     nothingSent();
+  });
+});
+
+describe("stigmer provider-key, the rarer answers", () => {
+  it("shows a key's own endpoint by its host, and a check that was never recorded as a dash", async () => {
+    backend.keys = [
+      create(ProviderKeySchema, {
+        org: "org_ctx",
+        provider: "anthropic",
+        keyHint: "g4te",
+        baseUrl: "https://gateway.acme.example/anthropic",
+        createdBy: "ida_ana",
+        updatedAt: timestampFromDate(new Date("2026-10-20T08:30:00Z")),
+      }),
+    ];
+    const { stdout } = await run(["provider-key", "list"]);
+    expect(cells(stdout.trimEnd().split("\n")[2])).toEqual([
+      "Anthropic",
+      "connected",
+      "…g4te",
+      "gateway.acme.example",
+      "-",
+      "ida_ana",
+      "2026-10-20",
+      "never",
+    ]);
+  });
+
+  it("fails the list with the key store's own error when it is neither unserved nor refused", async () => {
+    backend.keyList = "unavailable";
+    await expect(run(["provider-key", "list"])).rejects.toThrow(/the key store is down/);
+  });
+
+  it("says only Saved when the server recorded no check", async () => {
+    backend.check = ProviderKeyCheck.provider_key_check_unspecified;
+    pipedStdin("sk-piped-1234\n");
+    const { stderr } = await run(["provider-key", "set", "openai", "--key-stdin"]);
+    expect(stderr).toContain("Saved");
+    expect(stderr).not.toContain("checked");
+  });
+
+  it("refuses a base URL that does not parse", async () => {
+    pipedStdin("sk-piped-1234\n");
+    const failure = await failureOf(["provider-key", "set", "openai", "--key-stdin", "--base-url", "not a url"]);
+    expect(failure.exitCode).toBe(ExitCode.Usage);
+    expect(failure.message).toContain('--base-url must be an https URL, not "not a url"');
+  });
+
+  it("calls an availability this build does not know not known", () => {
+    expect(standingWords(create(ProviderReadinessSchema, { provider: "anthropic", availability: 99 as ProviderAvailability }))).toBe(
+      "not known",
+    );
   });
 });
