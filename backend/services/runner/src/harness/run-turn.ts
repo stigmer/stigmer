@@ -59,6 +59,7 @@ import { loadArtifactStorageConfig, resolveUsableArtifactStorage } from "../shar
 import { TimingRecorder } from "../shared/cold-start-timing.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import { CANCELLATION_PULSE_MS, startHeartbeat } from "../shared/heartbeat.js";
+import { describeCauseChain } from "../shared/error-chain.js";
 import { describeExecutionError } from "../shared/model-error.js";
 import { collectOutputs } from "../shared/outputs.js";
 import { savePlanOutput } from "../shared/plan-file.js";
@@ -723,7 +724,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface));
         console.error(
           `${activityName} failed (${outcome.surface}): execution=${executionId}, error=${outcome.message}` +
-            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : ""),
+            (outcome.cause instanceof Error ? `, cause=${describeCauseChain(outcome.cause)}` : ""),
         );
         return settledFailure;
       }

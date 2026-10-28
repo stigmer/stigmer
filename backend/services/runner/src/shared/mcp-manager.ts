@@ -33,12 +33,16 @@
  * This manager serves LangGraph-based deep agent executions, and a tools listing
  * (shared/mcp-tool-listing.ts) builds its spawn config through
  * toMcpClientConfig too.
+ *
+ * A failed connect's network error is logged: the adapter drops it, and
+ * `shared/mcp-network-errors.ts` finds it again.
  */
 
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import type { Connection } from "@langchain/mcp-adapters";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import { withNetworkErrorCapture } from "./mcp-network-errors.js";
 import { sanitizeSchemaPatterns } from "./mcp-schema-sanitizer.js";
 
 /**
@@ -88,6 +92,15 @@ export function toMcpClientConfig(
   return config;
 }
 
+/** Each HTTP server's URL by its name in `config`, for a failed connect's network error (`mcp-network-errors.ts`). */
+export function httpServerUrlsOf(config: Record<string, Connection>): Map<string, string> {
+  const urls = new Map<string, string>();
+  for (const [slug, connection] of Object.entries(config)) {
+    if ("url" in connection && typeof connection.url === "string") urls.set(slug, connection.url);
+  }
+  return urls;
+}
+
 export interface McpConnectionResult {
   client: MultiServerMCPClient;
   /** Every tool of every connected server. */
@@ -113,7 +126,7 @@ export async function connectMcpServers(
   }
 
   const client = new MultiServerMCPClient(connectionConfig);
-  const discoveredToolMap = await client.initializeConnections();
+  const discoveredToolMap = await withNetworkErrorCapture(httpServerUrlsOf(connectionConfig), () => client.initializeConnections());
 
   // Drop unicode-invalid regex patterns from every discovered tool's input
   // schema BEFORE anything downstream holds a reference (issue #420):

@@ -45,6 +45,7 @@
  */
 
 import type { HarnessName } from "../harness/registry.js";
+import { causeChainOf, errorCodeOf } from "../shared/error-chain.js";
 import type { UsageDelta } from "../harness/types.js";
 import type { TranscriptEvent } from "../harness/transcript/events.js";
 import type { TurnMessage } from "../harness/turn-input.js";
@@ -72,11 +73,22 @@ export const AGENT_HOST_CHANNEL_FD = 3;
 
 // ─── What crosses ───────────────────────────────────────────────────────────
 
-/** An error as it crosses: its name, message and stack, rebuilt as an `Error` on the far side. */
+/**
+ * An error as it crosses: its name, message and stack, rebuilt as an `Error`
+ * on the far side. A failed turn's cause also carries what is under it
+ * ({@link toWireErrorChain}): its string `code`, its `cause`, and an
+ * `AggregateError`'s `errors`. The fields are optional, so an error sent
+ * flat rebuilds exactly as before they existed.
+ */
 export interface WireError {
   readonly name: string;
   readonly message: string;
   readonly stack?: string;
+  /** An errno or undici string code (`ECONNRESET`, `UND_ERR_SOCKET`); a numeric code does not cross. */
+  readonly code?: string;
+  readonly cause?: WireError;
+  /** An `AggregateError`'s members, each one link with no cause of its own. */
+  readonly errors?: readonly WireError[];
 }
 
 /**
@@ -381,9 +393,78 @@ export function toWireError(err: unknown): WireError {
   return { name: "Error", message: String(err) };
 }
 
-export function fromWireError(wire: WireError): Error {
-  const err = new Error(wire.message);
+/**
+ * The most links of a cause chain that cross, outermost first. Far above a
+ * real chain (LangChain wraps once per middleware, a dozen or two), and a
+ * bound on what a host can make the runner rebuild.
+ */
+export const MAX_WIRE_CAUSE_LINKS = 256;
+
+/**
+ * A failed turn's cause with its chain, for the runner's failed-turn log line
+ * (`harness/run-turn.ts`), which reads nothing else of it. Every other error
+ * that crosses (a thrown adapter, a failed call) goes flat through
+ * {@link toWireError}: the runtime words a thrown error's root for the user
+ * (`describeExecutionError`), and that message does not change here. The
+ * walk is `causeChainOf`'s, so a cycle ends it; only the outermost link
+ * keeps its stack, since the log prints none.
+ */
+export function toWireErrorChain(err: unknown): WireError {
+  const links = causeChainOf(err).slice(0, MAX_WIRE_CAUSE_LINKS);
+  const endCause = links.length === MAX_WIRE_CAUSE_LINKS ? undefined : links[links.length - 1]?.cause;
+  const end = endCause !== undefined && endCause !== null && !(endCause instanceof Error) ? toWireError(endCause) : undefined;
+  const chain = links.reduceRight<WireError | undefined>((below, link, index) => ({
+    ...(index === 0 ? toWireError(link) : { name: link.name, message: link.message }),
+    ...wireLinkFields(link),
+    ...(below !== undefined ? { cause: below } : {}),
+  }), end);
+  return chain ?? toWireError(err);
+}
+
+function wireLink(err: unknown): WireError {
+  if (!(err instanceof Error)) return toWireError(err);
+  const code = errorCodeOf(err);
+  return { name: err.name, message: err.message, ...(code !== undefined ? { code } : {}) };
+}
+
+function wireLinkFields(link: Error): Pick<WireError, "code" | "errors"> {
+  const { code } = wireLink(link);
+  const members = link instanceof AggregateError && Array.isArray(link.errors) ? link.errors.map(wireLink) : [];
+  return {
+    ...(code !== undefined ? { code } : {}),
+    ...(members.length > 0 ? { errors: members } : {}),
+  };
+}
+
+/**
+ * One link as the far side sent it, read by shape: the host is the agent's,
+ * so a field of the wrong type is dropped, never trusted.
+ */
+function linkFromWire(wire: WireError, cause: Error | undefined): Error {
+  const members = Array.isArray(wire.errors)
+    ? wire.errors.filter(isWireLink).map((member) => linkFromWire(member, undefined))
+    : undefined;
+  const options = cause !== undefined ? { cause } : undefined;
+  const err = members !== undefined ? new AggregateError(members, wire.message, options) : new Error(wire.message, options);
   err.name = wire.name;
-  if (wire.stack) err.stack = wire.stack;
+  if (typeof wire.stack === "string" && wire.stack !== "") err.stack = wire.stack;
+  if (typeof wire.code === "string") Object.assign(err, { code: wire.code });
   return err;
+}
+
+function isWireLink(value: unknown): value is WireError {
+  const shaped = value as { name?: unknown; message?: unknown } | null;
+  return typeof shaped === "object" && shaped !== null && typeof shaped.name === "string" && typeof shaped.message === "string";
+}
+
+/** The error rebuilt: the flat form as it always was, and a chain's links, innermost first, up to {@link MAX_WIRE_CAUSE_LINKS}. */
+export function fromWireError(wire: WireError): Error {
+  const links: WireError[] = [wire];
+  for (let next = wire.cause; isWireLink(next) && links.length < MAX_WIRE_CAUSE_LINKS; next = next.cause) links.push(next);
+  let rebuilt: Error | undefined;
+  for (let index = links.length - 1; index >= 0; index--) {
+    const link = links[index];
+    if (link !== undefined) rebuilt = linkFromWire(link, rebuilt);
+  }
+  return rebuilt ?? linkFromWire(wire, undefined);
 }

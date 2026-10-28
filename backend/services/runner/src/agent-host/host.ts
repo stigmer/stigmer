@@ -42,6 +42,7 @@ import { HostTurn, type HostPeer } from "./host-sink.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
   toWireError,
+  toWireErrorChain,
   type HostCalls,
   type HostNotices,
   type RunnerCalls,
@@ -206,6 +207,6 @@ function toWireOutcome(outcome: TurnOutcome): WireOutcome {
     kind: "failed",
     message: outcome.message,
     surface: outcome.surface,
-    ...(outcome.cause !== undefined ? { cause: toWireError(outcome.cause) } : {}),
+    ...(outcome.cause !== undefined ? { cause: toWireErrorChain(outcome.cause) } : {}),
   };
 }

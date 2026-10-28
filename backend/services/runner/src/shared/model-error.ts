@@ -30,6 +30,7 @@
  * 401 as the platform rejecting the runner's session.
  */
 
+import { causeChainOf } from "./error-chain.js";
 import type { LlmProvider } from "./llm-proxy.js";
 import {
   parseAnthropicBackend,
@@ -452,15 +453,6 @@ export function isModelTimeout(links: readonly Error[]): boolean {
   return links.some((link) =>
     link.constructor.name.includes("APIConnectionTimeout")
     || (link.name === "TimeoutError" && link.constructor === Error));
-}
-
-/** The error and its causes, outermost first, each once. */
-export function causeChainOf(err: unknown): Error[] {
-  const links: Error[] = [];
-  for (let current: unknown = err; current instanceof Error && !links.includes(current); current = current.cause) {
-    links.push(current);
-  }
-  return links;
 }
 
 /**

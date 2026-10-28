@@ -191,6 +191,26 @@ describe("TurnTimeline — one sub_agent span per subAgentId", () => {
   });
 });
 
+describe("TurnTimeline — delegated work in the counts", () => {
+  it("counts a sub-agent's rounds and tool calls in the turn's, and the delegation in sub_agents", () => {
+    const line = run([
+      [0, START],
+      [100, { kind: "sub_agent_started", subAgentId: "s1", name: "researcher", subject: "x", input: "x" }],
+      [200, { kind: "message_start", runId: "sr1", subAgentId: "s1" }],
+      [300, { kind: "tool_started", callId: "sc1", name: "read_file", input: { path: "a" }, mcpServerSlug: "", subAgentId: "s1" }],
+      [400, { kind: "tool_finished", callId: "sc1", result: "ok", subAgentId: "s1" }],
+      [500, { kind: "message_finish", runId: "sr1", subAgentId: "s1" }],
+      [600, { kind: "message_start", runId: "sr2", subAgentId: "s1" }],
+      [700, { kind: "message_finish", runId: "sr2", subAgentId: "s1" }],
+      [800, { kind: "sub_agent_finished", subAgentId: "s1", output: "done" }],
+      [900, FINISH],
+    ], 1_000);
+    expect(line.rounds, "the main agent's one round and the sub-agent's two").toBe(3);
+    expect(line.tool_calls, "the sub-agent's call").toBe(1);
+    expect(line.sub_agents).toBe(1);
+  });
+});
+
 describe("TurnTimeline — background commands, waits and reminders", () => {
   it("spans each command by its starting call, from its start to its first end", () => {
     const line = run([
