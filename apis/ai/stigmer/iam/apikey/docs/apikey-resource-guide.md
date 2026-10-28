@@ -44,14 +44,11 @@ status: {}  # System-managed, never set by users
 
 ### Expiry Rules
 
-Set one of the two, never both:
+- `never_expires: true` — the key never expires, and `expires_at` is ignored even when it is set.
+- `expires_at` alone, set to a future timestamp — the key expires at that moment.
+- Neither set — the key has no expiry.
 
-- `never_expires: true`, with `expires_at` left unset — the key never expires.
-- `expires_at` set to a future timestamp — the key expires at that moment.
-
-Setting neither also gives a key with no expiry. `stigmer apikey create` always sets one: 90 days from now, unless `--expires-in` or `--never-expires` says otherwise.
-
-Do not set both. The contract says `never_expires` wins, but the server currently expires such a key at `expires_at` ([#1434](https://github.com/stigmer/stigmer/issues/1434)).
+`stigmer apikey create` always sets one: 90 days from now, unless `--expires-in` or `--never-expires` says otherwise.
 
 ## Status Fields
 

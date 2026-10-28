@@ -58,7 +58,7 @@ import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { loadArtifactStorageConfig, resolveUsableArtifactStorage } from "../shared/artifact-storage.js";
 import { TimingRecorder } from "../shared/cold-start-timing.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
-import { startHeartbeat } from "../shared/heartbeat.js";
+import { CANCELLATION_PULSE_MS, startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
 import { collectOutputs } from "../shared/outputs.js";
 import { savePlanOutput } from "../shared/plan-file.js";
@@ -119,19 +119,6 @@ import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { costCapWatchFor } from "./cost-cap-watch.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
 import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-
-/**
- * Interval of the activity-wide periodic heartbeat. Started before any phase
- * runs: setup phases make network calls (blueprint resolution, workspace
- * clone, MCP tools listing, engine create) that can stall, and a pulse only
- * between them leaves every individual call uncovered — the production
- * stale-proxy incident hung inside `Agent.create` with zero heartbeats and
- * surfaced as an opaque five-minute Temporal timeout. The details name the
- * current step so a stall is attributed. Safe ONLY because every call below
- * is itself bounded (the resolve timeout, the stall watchdog): an unbounded
- * hang under a live heartbeat would keep a dead activity alive forever.
- */
-const PERIODIC_HEARTBEAT_MS = 30_000;
 
 /**
  * Vendor SDKs register abort listeners on the cancellation signal for each
@@ -339,7 +326,19 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   // hosted turn's persist requests reach the runtime on the
   // agent host's pipe, whose I/O events carry no activity context (#2090).
   const heartbeat = (details?: unknown): void => activity.heartbeat(details);
-  const periodicHeartbeat = startHeartbeat(PERIODIC_HEARTBEAT_MS, () => ({ phase: heartbeatPhase, execution: executionId }));
+  // The activity-wide periodic heartbeat, started before any phase runs, for
+  // two reasons. Setup phases make network calls (blueprint resolution,
+  // workspace clone, MCP tools listing, engine create) that can stall, and a
+  // pulse only between them leaves every individual call uncovered — the
+  // production stale-proxy incident hung inside `Agent.create` with zero
+  // heartbeats and surfaced as an opaque five-minute Temporal timeout; the
+  // details name the current step so a stall is attributed. And a pause
+  // reaches the turn only on a heartbeat, so a turn waiting on a silent model
+  // call or a long tool, which persists nothing, hears it within one pulse
+  // (`shared/heartbeat.ts`). Safe ONLY because every call below is itself
+  // bounded (the resolve timeout, the stall watchdog): an unbounded hang under
+  // a live heartbeat would keep a dead activity alive forever.
+  const periodicHeartbeat = startHeartbeat(CANCELLATION_PULSE_MS, () => ({ phase: heartbeatPhase, execution: executionId }));
 
   // The session's queued messages for this turn (turn-input.ts): the
   // chokepoint records each write's pending hint, the adapter claims them

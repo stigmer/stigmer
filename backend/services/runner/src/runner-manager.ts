@@ -39,6 +39,7 @@ import {
   type WorkflowSource,
 } from "./workflow-source.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
+import { heartbeatWorkerOptions } from "./shared/heartbeat.js";
 import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
@@ -404,6 +405,8 @@ async function buildStigmerRunnerManager(
       activities,
       workflowBundle,
       maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
+      // A pause reaches a turn on its next heartbeat; sent within seconds.
+      ...heartbeatWorkerOptions,
       dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
       sinks: interceptorConfig.sinks,
       interceptors: interceptorConfig.interceptors,

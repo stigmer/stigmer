@@ -20,7 +20,10 @@
  *   - createForServiceAccount, by an admin, makes a key that speaks for
  *     the service account (its creator stamp), filed in and bound to the
  *     account's organization (metadata.org and spec.bound_org), with the
- *     plaintext answered once; the key authenticates as the account. A
+ *     plaintext answered once; the key authenticates as the account, and
+ *     still does past an expires_at it was minted with alongside
+ *     never_expires, which wins (stigmer/stigmer#1434), while a past
+ *     expires_at alone is refused "token has expired". A
  *     member is refused; a person target is refused (nobody manages a
  *     person's keys, so PERMISSION_DENIED under the built-in model, and
  *     FAILED_PRECONDITION past a permissive Authorizer, where the
@@ -35,6 +38,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { fromBinary } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -64,6 +68,7 @@ import type { ServerExtension } from "../../../extensions/registry.js";
 import { serviceAccountRefusedMessage } from "../../../pipeline/steps/refuse-service-account.js";
 import { accountIdFor } from "../../identityaccount/constants.js";
 import { notAServiceAccountMessage } from "../controller.js";
+import { TOKEN_EXPIRED_MESSAGE } from "../verifier.js";
 
 const FOUNDER = "fake|keys-founder";
 const MEMBER = "fake|keys-member";
@@ -231,6 +236,36 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
         presenting(adminSa.key),
       ).whoAmI({});
       expect(me.metadata?.id).toBe(adminSa.id);
+    });
+
+    it("a key minted never-expiring with a past expiry still authenticates; the past expiry alone is refused (stigmer/stigmer#1434)", async () => {
+      const keys = createClient(ApiKeyCommandController, asFounder());
+      const past = timestampFromDate(new Date(Date.now() - 60_000));
+      const neverExpiring = await keys.createForServiceAccount({
+        serviceAccountId: memberSa.id,
+        name: "lapsed-never",
+        neverExpires: true,
+        expiresAt: past,
+      });
+      const me = await createClient(
+        IdentityAccountQueryController,
+        presenting(neverExpiring.spec?.keyHash ?? ""),
+      ).whoAmI({});
+      expect(me.metadata?.id).toBe(memberSa.id);
+
+      const lapsed = await keys.createForServiceAccount({
+        serviceAccountId: memberSa.id,
+        name: "lapsed",
+        expiresAt: past,
+      });
+      const error = await refusal(
+        createClient(
+          IdentityAccountQueryController,
+          presenting(lapsed.spec?.keyHash ?? ""),
+        ).whoAmI({}),
+      );
+      expect(error.code).toBe(Code.Unauthenticated);
+      expect(error.rawMessage).toBe(TOKEN_EXPIRED_MESSAGE);
     });
 
     it("a member is refused", async () => {

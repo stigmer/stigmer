@@ -6,7 +6,9 @@
  * user's pause is (#776). Then every session worker drains, the harnesses
  * release what they hold, and the Temporal connection closes.
  * A manager whose boot fails once the agent host is up releases the
- * harnesses before the error reaches its caller.
+ * harnesses before the error reaches its caller. Every session's worker
+ * sends heartbeats within the cancellation pulse, as the static worker does,
+ * so a pause reaches a turn in a sandbox as fast as anywhere.
  *
  * Temporal, the control-plane bootstrap, the harness registry and the LLM
  * preflight are replaced at their module seams, so the manager's own
@@ -20,6 +22,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 /** One fake worker per queue: `run()` settles when `shutdown()` is called, as the SDK's drain does. */
 interface FakeWorker {
   readonly taskQueue: string;
+  /** The heartbeat throttle the worker was created with. */
+  readonly maxHeartbeatThrottleInterval: unknown;
   /** The queue's shutdown signal as it read when the drain began. */
   abortedAtDrain?: boolean;
   run(): Promise<void>;
@@ -49,13 +53,14 @@ vi.mock("@temporalio/worker", () => ({
     },
   },
   Worker: {
-    create: async ({ taskQueue }: { taskQueue: string }) => {
+    create: async ({ taskQueue, maxHeartbeatThrottleInterval }: { taskQueue: string; maxHeartbeatThrottleInterval?: unknown }) => {
       let release: () => void = () => {};
       const drained = new Promise<void>((resolve) => {
         release = resolve;
       });
       const worker: FakeWorker = {
         taskQueue,
+        maxHeartbeatThrottleInterval,
         run: () => drained,
         shutdown() {
           worker.abortedAtDrain = fakes.signalOf?.(taskQueue)?.aborted ?? false;
@@ -110,6 +115,7 @@ import {
   createStigmerRunnerManager,
   getShutdownSignalForQueue,
 } from "../runner-manager.js";
+import { CANCELLATION_PULSE_MS } from "../shared/heartbeat.js";
 
 fakes.signalOf = getShutdownSignalForQueue;
 
@@ -186,6 +192,24 @@ describe("StigmerRunnerManager.removeSession", () => {
     await manager.removeSession("ses_release");
 
     expect(fakes.releasedSessions).toEqual(["ses_release"]);
+    await manager.shutdown();
+  });
+});
+
+describe("StigmerRunnerManager.addSession", () => {
+  it("creates the session's worker with the cancellation pulse's heartbeat throttle", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const manager = await createStigmerRunnerManager({
+      stigmerEndpoint: "localhost:7234",
+      temporalAddress: "127.0.0.1:7233",
+      workspaceRootDir: join(tmpdir(), "stigmer-runner-manager-heartbeat-test"),
+    });
+
+    await manager.addSession("ses_pulse");
+
+    const worker = fakes.workers.find((w) => w.taskQueue === "session:ses_pulse");
+    expect(worker?.maxHeartbeatThrottleInterval).toBe(CANCELLATION_PULSE_MS);
     await manager.shutdown();
   });
 });

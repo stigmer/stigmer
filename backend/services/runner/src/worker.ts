@@ -19,6 +19,7 @@ import type { Config } from "./config.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
+import { heartbeatWorkerOptions } from "./shared/heartbeat.js";
 
 export interface WorkerActivities {
   [key: string]: (...args: any[]) => Promise<unknown>;
@@ -102,6 +103,8 @@ export async function startWorker(opts: StartWorkerOptions): Promise<StartedWork
     maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
     // In-flight turns yield at a step boundary within it (`Config.drainGraceMs`).
     shutdownGraceTime: config.drainGraceMs,
+    // A pause reaches a turn on its next heartbeat; sent within seconds.
+    ...heartbeatWorkerOptions,
     dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
     sinks,
     interceptors: {

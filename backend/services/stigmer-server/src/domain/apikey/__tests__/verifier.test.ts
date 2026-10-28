@@ -2,7 +2,9 @@
  * Pins the apikey identity verifier — the chassis's first OSS entry:
  * claim-or-pass by the case-insensitive stk_ prefix, the byte-pinned
  * Java classifyAuthError copy on the two failure arms (unknown/revoked →
- * "invalid token", expired → "token has expired"), the
+ * "invalid token", expired → "token has expired", where a key is expired
+ * when expires_at is past unless never_expires is set, which wins:
+ * stigmer/stigmer#1434), the
  * authenticates-as-owner identity mapping (created_by actor → identityId
  * + display fields), and instant revocation (delete visible on the very
  * next verify — the no-cache posture), and a key limited to one
@@ -152,6 +154,7 @@ afterAll(async () => {
 let seq = 0;
 async function seedKey(options?: {
   expiresAt?: Date;
+  neverExpires?: boolean;
   boundOrg?: string;
   ownerId?: string;
   email?: string;
@@ -178,6 +181,9 @@ async function seedKey(options?: {
         fingerprint: plaintext.slice(-6),
         ...(options?.expiresAt !== undefined
           ? { expiresAt: timestampFromDate(options.expiresAt) }
+          : {}),
+        ...(options?.neverExpires !== undefined
+          ? { neverExpires: options.neverExpires }
           : {}),
         ...(options?.boundOrg !== undefined ? { boundOrg: options.boundOrg } : {}),
       },
@@ -272,6 +278,28 @@ describe("verification arms", () => {
     });
     const identity = await verifier().verify(plaintext);
     expect(identity?.callerClass).toBe("user");
+  });
+
+  it("never_expires wins over a past expires_at (stigmer/stigmer#1434)", async () => {
+    const { plaintext } = await seedKey({
+      expiresAt: new Date(Date.now() - 60_000),
+      neverExpires: true,
+    });
+    const identity = await verifier().verify(plaintext);
+    expect(identity?.callerClass).toBe("user");
+  });
+
+  it("never_expires false leaves a past expires_at in force", async () => {
+    const { plaintext } = await seedKey({
+      expiresAt: new Date(Date.now() - 60_000),
+      neverExpires: false,
+    });
+    await expect(verifier().verify(plaintext)).rejects.toSatisfy(
+      (error: unknown) => {
+        expect(ConnectError.from(error).rawMessage).toBe(TOKEN_EXPIRED_MESSAGE);
+        return true;
+      },
+    );
   });
 
   it("a deleted key is rejected on the very next verify (no cache)", async () => {
