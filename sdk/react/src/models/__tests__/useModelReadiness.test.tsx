@@ -154,6 +154,28 @@ describe("useModelReadiness", () => {
     expect(getModelReadiness).toHaveBeenCalledTimes(2);
   });
 
+  it("follows the organization the hook is given: asks for the new one, and its refetch asks for it again", async () => {
+    let answer = NOTHING_CONNECTED;
+    const cache = new FetchCache();
+    const getModelReadiness = vi.fn(async (_org: string) => answer);
+    const { result, rerender } = renderHook(({ org }) => useModelReadiness(org), {
+      initialProps: { org: ORG_ID },
+      wrapper: wrapperFor({ platform: { getModelReadiness } }, cache),
+    });
+    await waitFor(() => expect(result.current.models).not.toBeNull());
+
+    rerender({ org: "org_other" });
+    await waitFor(() => expect(getModelReadiness).toHaveBeenLastCalledWith("org_other"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const asked = getModelReadiness.mock.calls.length;
+
+    answer = ANTHROPIC_CONNECTED;
+    act(() => result.current.refetch());
+
+    await waitFor(() => expect(nothingRuns(result.current.models)).toBe(false));
+    expect(getModelReadiness.mock.calls.slice(asked)).toEqual([["org_other"]]);
+  });
+
   it("reads nothing for a null or empty organization", () => {
     const { client, getModelReadiness } = clientAnswering(() => NOTHING_CONNECTED);
     const nullOrg = renderHook(() => useModelReadiness(null), { wrapper: wrapperFor(client) });
