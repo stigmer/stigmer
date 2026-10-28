@@ -60,7 +60,7 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  *
  * The form speaks the composer's vocabulary: a routine is
  * a saved run — which agent, what message, what workspace, which
- * engine and model, what budget — plus a cadence. It reuses the
+ * harness and model, what budget — plus a cadence. It reuses the
  * composer's own pickers ({@link ModelSelector}, {@link WorkspaceEditor})
  * so the interactive and scheduled surfaces cannot drift, minus only
  * what unattended makes impossible (no local folders, no file uploads,
@@ -420,7 +420,7 @@ export function RoutineForm({
           fire-time failures. Nothing is pinned until a model is picked. */}
       <div className="stg:space-y-1">
         <span className={labelClasses}>
-          Engine &amp; model{" "}
+          Harness &amp; model{" "}
           <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
         </span>
         <div className="stg:flex stg:items-center stg:gap-2">
@@ -456,8 +456,8 @@ export function RoutineForm({
           )}
         </div>
         <p className={hintClasses}>
-          Runs use the platform&rsquo;s default engine and model unless you
-          pick one here. Picking a model pins the engine it belongs to.
+          Runs use the platform&rsquo;s default harness and model unless you
+          pick one here. Picking a model pins the harness it belongs to.
         </p>
       </div>
 

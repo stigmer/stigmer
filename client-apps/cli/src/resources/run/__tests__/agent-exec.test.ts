@@ -213,7 +213,7 @@ describe("executeResolvedAgent", () => {
     // Harness visibility: a Claude session must announce itself before streaming —
     // whether the flag or the account preference selected it.
     expect(stderrLines.join("")).toContain("Harness:");
-    expect(stderrLines.join("")).toContain("Claude");
+    expect(stderrLines.join("")).toContain("Claude Agent");
   });
 });
 

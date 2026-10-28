@@ -21,9 +21,9 @@ import { fromProtoHarness, type HarnessOption } from "../models/harness.js";
 import { fromProtoServiceTier, type ServiceTierOption } from "../models/service-tier.js";
 import { fromProtoThinkingMode, type ThinkingModeOption } from "../models/thinking-mode.js";
 
-/** The choices an agent's run defaults make for a conversation on its engine. */
+/** The choices an agent's run defaults make for a conversation on its harness. */
 export interface AgentRunDefaults {
-  /** The model the author chose, as the registry lists it on the agent's engine. */
+  /** The model the author chose, as the registry lists it on the agent's harness. */
   readonly modelName: string;
   /** The speed tier the author chose, when they chose one. */
   readonly serviceTier?: ServiceTierOption;
@@ -32,7 +32,7 @@ export interface AgentRunDefaults {
 }
 
 /**
- * The engine the agent names, or `undefined` when it names none: a new
+ * The harness the agent names, or `undefined` when it names none: a new
  * conversation on the agent starts on it unless the person picks another.
  */
 export function agentHarnessOf(spec: AgentSpec | undefined): HarnessOption | undefined {
@@ -43,7 +43,7 @@ export function agentHarnessOf(spec: AgentSpec | undefined): HarnessOption | und
 /**
  * The agent's model choices that apply to a conversation running
  * `harness`, or `undefined` when none do: the agent names no model, or
- * names an engine other than the one the conversation runs.
+ * names a harness other than the one the conversation runs.
  *
  * @example
  * ```ts

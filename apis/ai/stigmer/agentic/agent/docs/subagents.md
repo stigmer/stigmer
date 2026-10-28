@@ -21,7 +21,7 @@ A turn offers two kinds of subagent:
   Claude Code's plugin subagents: they work with the conversation's tools,
   narrowed by their agent file's lists.
 
-The native engine also offers built-in subagents, such as `explore`.
+Stigmer's own harness (`native`) also offers built-in subagents, such as `explore`.
 
 ## Listing Subagents
 
@@ -130,7 +130,7 @@ A saved subagent runs its own definition:
 - **Its instructions.** Its `description` tells the main agent when to hand it
   work.
 - **Its model.** Its `run_config.model_name` when its `harness` is the
-  conversation's engine; otherwise the turn's model.
+  conversation's harness; otherwise the turn's model.
 - **Its tools.** Its own `tools` and `disallowed_tools`, capped by the turn's
   lists (those a message, or the routine or channel it came through, sets), never by the
   parent agent's lists. A subagent can use a tool the parent may not.
@@ -168,7 +168,7 @@ A plugin's agents follow Claude Code's rule for plugin subagents:
 - **No hooks or MCP servers of its own.** The conversation's hooks run on its
   calls.
 - **Model.** The `model:` its file names, when that is a model id the
-  conversation's engine lists. `inherit`, an alias such as `sonnet`, or any
+  conversation's harness lists. `inherit`, an alias such as `sonnet`, or any
   other value runs the turn's model, and install warns about an alias or an
   unknown value. A plugin pushed before the model was read carries none until it
   is pushed again.
@@ -179,9 +179,9 @@ In the main agent's `tools`, `Agent` lets it start any subagent, and
 `Agent(bank-reconciler, thermos:review)` limits it to those named. Inside a
 subagent the `Agent` tool is gone, whatever its lists say.
 
-## Engines
+## Harnesses
 
-The native engine runs everything on this page.
+Stigmer's own harness runs everything on this page.
 
 ## Writing Descriptions
 

@@ -1,6 +1,8 @@
 /**
- * The offered-engine rule (harness.ts), pure: every harness the proto names
- * is offered (native, Claude, and unspecified, the platform default), and a
+ * The harness table and the offered-harness rule (harness.ts), pure: each
+ * harness's label as people read it ("Stigmer", "Claude Agent"); every
+ * harness the proto names is offered (native, Claude, and unspecified, the
+ * platform default), and a
  * number no harness owns, the retired 2 included, is refused naming the
  * number and the field that named it, never read as native. The
  * step refuses with FailedPrecondition at the first unoffered engine a
@@ -20,7 +22,8 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import {
-  OFFERED_HARNESSES,
+  HARNESSES,
+  harnessFacts,
   newRefuseUnofferedHarnessStep,
   offeredHarnessRefusal,
 } from "../harness.js";
@@ -40,8 +43,13 @@ describe("offeredHarnessRefusal", () => {
     }
   });
 
-  it("offers exactly native and Claude", () => {
-    expect([...OFFERED_HARNESSES].sort()).toEqual([Harness.NATIVE, Harness.CLAUDE].sort());
+  it("names and offers Stigmer and Claude Agent, unspecified read as Stigmer", () => {
+    expect(HARNESSES).toEqual({
+      [Harness.NATIVE]: { label: "Stigmer", offered: true },
+      [Harness.CLAUDE]: { label: "Claude Agent", offered: true },
+    });
+    expect(harnessFacts(Harness.UNSPECIFIED)?.label).toBe("Stigmer");
+    expect(harnessFacts(2 as Harness)).toBeUndefined();
   });
 });
 

@@ -205,8 +205,8 @@ public interface EvalRunSpecOrBuilder extends
 
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -217,8 +217,8 @@ public interface EvalRunSpecOrBuilder extends
       getTargetsList();
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -228,8 +228,8 @@ public interface EvalRunSpecOrBuilder extends
   ai.stigmer.agentic.evalrun.v1.EvalRunTarget getTargets(int index);
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -239,8 +239,8 @@ public interface EvalRunSpecOrBuilder extends
   int getTargetsCount();
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>
@@ -251,8 +251,8 @@ public interface EvalRunSpecOrBuilder extends
       getTargetsOrBuilderList();
   /**
    * <pre>
-   * The engines and models each case runs on, at most six. Empty runs each
-   * case on the agent as it runs (its own engine, model and settings), or,
+   * The harnesses and models each case runs on, at most six. Empty runs each
+   * case on the agent as it runs (its own harness, model and settings), or,
    * on the built-in assistant, on the model the case names or the
    * platform's default model.
    * </pre>

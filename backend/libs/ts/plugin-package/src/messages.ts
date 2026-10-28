@@ -162,7 +162,7 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
   "sub-agent-skill-unknown": (c) =>
     `subagent ${q(c.subject)}${at(c.path)} asks for skill ${q(c.detail)}, which the plugin does not ship`,
   "sub-agent-model-unknown": (c) =>
-    `subagent ${q(c.subject)}${at(c.path)} names model ${q(c.detail)}, which is not a model alias Stigmer knows; the subagent runs on it only where the conversation's engine lists it as a model, else on the conversation's model`,
+    `subagent ${q(c.subject)}${at(c.path)} names model ${q(c.detail)}, which is not a model alias Stigmer knows; the subagent runs on it only where the conversation's harness lists it as a model, else on the conversation's model`,
   "sub-agent-field-ignored": (c) =>
     `subagent ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored${
       PLUGIN_AGENT_FIELDS_CLAUDE_IGNORES.has(c.detail ?? "") ? "; Claude Code ignores it on a plugin's agents too" : ""

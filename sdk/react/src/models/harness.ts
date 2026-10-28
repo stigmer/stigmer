@@ -5,8 +5,8 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
  *
  * Used on component props and hook options so platform builders
  * do not need to import proto enums to use the SDK. Exactly the
- * engines the proto names; it grows only when the proto enum does.
- * A named engine is not necessarily an offered one: the pickers offer
+ * harnesses the proto names; it grows only when the proto enum does.
+ * A named harness is not necessarily an offered one: the pickers offer
  * {@link HARNESS_OPTIONS}.
  */
 export type HarnessOption = "native" | "claude";
@@ -44,14 +44,14 @@ export interface HarnessDisplayInfo {
 
 /**
  * Display metadata for every named harness, offered or not (a session the
- * server ran on an engine this build does not offer still shows its name).
+ * server ran on a harness this build does not offer still shows its name).
  *
  * Drives the harness dropdown in {@link ModelSelector} and provides
  * labels for the compact trigger button.
  */
 export const HARNESS_META: Readonly<Record<HarnessOption, HarnessDisplayInfo>> = {
-  native: { label: "Stigmer", description: "Stigmer's native agent runtime" },
-  claude: { label: "Claude", description: "Powered by Claude" },
+  native: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
+  claude: { label: "Claude Agent", description: "Anthropic's Claude Agent SDK: Claude models on your Anthropic key" },
 };
 
 /**
@@ -65,28 +65,28 @@ export const HARNESS_LABELS: Readonly<Record<HarnessOption, string>> = Object.fr
 ) as Record<HarnessOption, string>;
 
 /**
- * The engines the platform offers, in proto enum order: what every picker
- * lists. Kept by hand because offering an engine is a product decision,
- * not a fact of the proto: an engine is named before it is offered, and
- * the server refuses one it does not offer. Every named engine is offered
- * today.
+ * The harnesses the platform offers, in proto enum order: what every
+ * picker lists. Kept by hand because offering a harness is a product
+ * decision, not a fact of the proto: a harness is named before it is
+ * offered, and the server refuses one it does not offer. Every named
+ * harness is offered today.
  */
 export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "claude"];
 
-/** Platform default — resolves to the native engine. */
+/** Platform default — resolves to the Stigmer harness (`"native"`). */
 export const DEFAULT_HARNESS: HarnessOption = "native";
 
 /**
- * Whether a string names an engine the platform offers — the check for a
+ * Whether a string names a harness the platform offers — the check for a
  * value the SDK did not write itself (a stored preference, a URL
- * parameter), which may name an engine this platform does not run or does
+ * parameter), which may name a harness this platform does not run or does
  * not offer yet; a picker must never preselect either.
  */
 export function isHarnessOption(value: string): value is HarnessOption {
   return (HARNESS_OPTIONS as readonly string[]).includes(value);
 }
 
-/** Whether a string names an engine the proto names, offered or not (a registry entry's section). */
+/** Whether a string names a harness the proto names, offered or not (a registry entry's section). */
 export function isNamedHarness(value: string): value is HarnessOption {
   return Object.hasOwn(HARNESS_BY_OPTION, value);
 }

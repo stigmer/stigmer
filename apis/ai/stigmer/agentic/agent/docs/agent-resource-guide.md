@@ -106,7 +106,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
 | `spec.env` | No | The keys the agent needs, each with a description and whether it is secret; values come from vaults at run time. See [Declared Keys](#declared-keys). |
-| `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CLAUDE`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
+| `spec.harness` | No | The harness (`HARNESS_NATIVE`, Stigmer, or `HARNESS_CLAUDE`, Claude Agent) the run defaults were chosen for, and the harness a new conversation on this agent starts on when nobody names a harness or a model (a turn naming a model but no harness starts on Stigmer). Unspecified: Stigmer. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
 ## Hooks
@@ -147,7 +147,7 @@ A hook is also code the agent's author chose, and it runs without asking anyone:
 
 What holds:
 
-- Every engine, native and Claude, runs hooks in Claude Code's format and in Cursor's, in the Cloud and on a laptop. A Cursor-format `ask` waits for a person on every engine, where Cursor itself lets the call run.
+- Every harness, Stigmer and Claude Agent, runs hooks in Claude Code's format and in Cursor's, in the Cloud and on a laptop. A Cursor-format `ask` waits for a person on every harness, where Cursor itself lets the call run.
 - Workspace hook files (`.claude/settings*.json`, `.cursor/hooks.json`) never run for the agent.
 - Apply checks an inline block in either format. In Claude Code's (the default): events `PreToolUse` or `PostToolUse`, every matcher and condition in the shape Claude Code accepts, no `fail_closed`, and `${user_config.KEY}` only in a handler with `args`; an omitted format is filled with Claude Code's. In Cursor's, which the block names (`format: HOOK_FORMAT_CURSOR`): events `preToolUse`, `beforeShellExecution`, `beforeMCPExecution`, `postToolUse` or `afterMCPExecution`, a matcher that is `*` or a regular expression, `fail_closed` allowed, and no `condition`, `args` or `${user_config.KEY}`. Apply also refuses more than one inline block, and a `plugins` list that names a plugin twice.
 - Installing a plugin with hooks, in either format, records them on the plugin and declares in the plugin's `env` every variable those hooks read. A conversation can list plugins of its own (the Session's `spec.plugins`); their hooks run too, in a chat with no agent as well.
@@ -192,13 +192,13 @@ spec:
 ```
 
 - **Choices are defaults; limits are caps.** A message, routine or channel that names a model replaces the agent's model (and the tier and thinking that came with it). The agent's `max_cost_usd`, `max_tool_rounds` and `max_tool_result_chars` are caps a message, routine or channel can lower, never raise.
-- **Engine-bound.** `model_name`, `service_tier` and `thinking_mode` apply only on the engine `spec.harness` names. On a conversation running another engine, only the limits apply.
-- **Versioned.** The defaults are part of the agent's content hash, so a conversation pinned to a version keeps that version's model. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations.
+- **Harness-bound.** `model_name`, `service_tier` and `thinking_mode` apply only on the harness `spec.harness` names. On a conversation running another harness, only the limits apply.
+- **Versioned.** The defaults are part of the agent's content hash, so a conversation pinned to a version keeps that version's model. A conversation keeps the harness it started on; a later version naming another harness changes only new conversations.
 - **Checked at save** (create and update are refused with `INVALID_ARGUMENT`):
-  - `model_name` requires `spec.harness`, since each engine lists its own models.
-  - `model_name` must be a model the named engine lists in the Model Registry; an unknown name is refused with a did-you-mean.
-  - `SERVICE_TIER_FAST` needs a model with a fast pricing tier on that engine; `THINKING_MODE_ENABLED` needs a model the registry marks thinking-capable on that engine. Either one requires `model_name` in the same `run_config`.
-  - A `harness` with no model is valid: new conversations start on that engine and the engine picks the model.
+  - `model_name` requires `spec.harness`, since each harness lists its own models.
+  - `model_name` must be a model the named harness lists in the Model Registry; an unknown name is refused with a did-you-mean.
+  - `SERVICE_TIER_FAST` needs a model with a fast pricing tier on that harness; `THINKING_MODE_ENABLED` needs a model the registry marks thinking-capable on that harness. Either one requires `model_name` in the same `run_config`.
+  - A `harness` with no model is valid: new conversations start on that harness and the harness picks the model.
 
 ## Status Fields
 

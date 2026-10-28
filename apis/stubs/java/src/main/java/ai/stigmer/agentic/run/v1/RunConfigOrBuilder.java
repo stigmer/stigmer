@@ -36,8 +36,8 @@ public interface RunConfigOrBuilder extends
    *
    * When the run's estimated spend reaches this limit, the run stops with a
    * "send another message to continue" prompt and ends TERMINATED; the work
-   * done so far is kept. The limit is checked each time the engine reports
-   * its spend, so a run can end somewhat above it. The native harness
+   * done so far is kept. The limit is checked each time the harness reports
+   * its spend, so a run can end somewhat above it. Stigmer's own harness
    * reports after every model call, counts a subagent's spend toward the
    * limit, and advises the agent to wrap up at about 80% of the budget.
    *
@@ -85,7 +85,7 @@ public interface RunConfigOrBuilder extends
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses STANDARD, never the provider account default. FAST is valid only
    * for a model whose registry entry declares a fast pricing variant on the
-   * engine that runs it; validated fail-closed on the resolved settings at
+   * harness that runs it; validated fail-closed on the resolved settings at
    * create.
    * </pre>
    *
@@ -100,7 +100,7 @@ public interface RunConfigOrBuilder extends
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses STANDARD, never the provider account default. FAST is valid only
    * for a model whose registry entry declares a fast pricing variant on the
-   * engine that runs it; validated fail-closed on the resolved settings at
+   * harness that runs it; validated fail-closed on the resolved settings at
    * create.
    * </pre>
    *
@@ -118,7 +118,7 @@ public interface RunConfigOrBuilder extends
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses DISABLED, never the provider account default. ENABLED is valid only
    * for a model whose registry entry declares the thinking capability on the
-   * engine that runs it; validated fail-closed on the resolved settings at
+   * harness that runs it; validated fail-closed on the resolved settings at
    * create. Combines freely with service_tier.
    * </pre>
    *
@@ -135,7 +135,7 @@ public interface RunConfigOrBuilder extends
    * UNSPECIFIED is not set at this layer; with no layer setting it the run
    * uses DISABLED, never the provider account default. ENABLED is valid only
    * for a model whose registry entry declares the thinking capability on the
-   * engine that runs it; validated fail-closed on the resolved settings at
+   * harness that runs it; validated fail-closed on the resolved settings at
    * create. Combines freely with service_tier.
    * </pre>
    *

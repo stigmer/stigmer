@@ -184,7 +184,7 @@ describe("a local runner without the engine", () => {
       surface: "actionable",
       message: downloadFailedMessage("failed to download the Claude engine: HTTP 404 from https://registry.test/x.tgz"),
     });
-    expect(downloadFailedMessage("x")).toBe("Claude could not be downloaded to this computer (x). Check the connection and try again, or run this turn on another engine.");
+    expect(downloadFailedMessage("x")).toBe("The Claude Agent SDK could not be downloaded to this computer (x). Check the connection and try again, or run this turn on another harness.");
     await expect(adapter.runTurn(turnInputFixture(), new RecordingTurnSink())).resolves.toEqual({ kind: "completed" });
     expect(attempt).toBe(2);
   });

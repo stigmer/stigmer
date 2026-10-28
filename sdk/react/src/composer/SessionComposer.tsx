@@ -336,7 +336,7 @@ export interface SessionComposerProps {
   readonly defaultModelId?: string;
   /**
    * The run defaults of the agent the message runs, when they apply to
-   * this conversation's engine (`agentRunDefaultsFor`). While the person
+   * this conversation's harness (`agentRunDefaultsFor`). While the person
    * has not picked a model and {@link defaultModelId} names none, the
    * picker reads "Agent default: <model>" with the agent's tier and
    * thinking as its switches' state, and an untouched send asks for no
@@ -348,7 +348,7 @@ export interface SessionComposerProps {
    * <model>" as the way back: choosing it drops their model, tier and
    * thinking picks (and calls {@link onModelPickCleared}). Every pick is
    * also dropped when {@link agentRef} names another agent, and a model
-   * pick when the engine changes to one that does not list the model.
+   * pick when the harness changes to one that does not list the model.
    */
   readonly agentRunDefaults?: AgentRunDefaults;
   /** Called when the user changes the selected model. */

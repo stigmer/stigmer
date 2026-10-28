@@ -329,7 +329,7 @@ describe("folding several runs", () => {
   });
 
   it.each([2, 99])("harness %i, a value no engine owns, is a defect, named rather than counted as native", (harness) => {
-    expect(() => harnessName(harness as Harness)).toThrow(new RegExp(`harness ${harness} names no engine`));
+    expect(() => harnessName(harness as Harness)).toThrow(new RegExp(`harness ${harness} is not one the proto names`));
   });
 
   it("an empty fold is zero everywhere", () => {

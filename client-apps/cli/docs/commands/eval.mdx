@@ -3,7 +3,7 @@ assistant, with and without a plugin, and score them.
 
 `stigmer eval run` starts an eval run. The cases are those in a plugin's
 `evals/` folder or in an eval pushed with `stigmer push eval`, written in Claude
-Code's plugin-eval format. Each case runs several times on every engine and
+Code's plugin-eval format. Each case runs several times on every harness and
 model you name, and gets a score and whether every try passed (`PASS^k`); when
 the eval run compares a plugin, each case also runs without it, and gets a score
 without it and the difference (`Δ`). Every try is a conversation: in Stigmer
@@ -30,7 +30,7 @@ run's creator does.
 
 `--eval` and `--cases-from` choose whose cases run on an agent: an eval, a
 plugin the agent uses, or the one `--plugin` names. With no `--model`, each case
-runs on an agent as it runs: its own engine, model and settings. The eval run
+runs on an agent as it runs: its own harness, model and settings. The eval run
 runs on the server: the command starts it, prints a line as each try finishes,
 then the table. Closing the terminal leaves it running; Ctrl+C cancels it.
 
@@ -101,9 +101,10 @@ code.
 
 ### How it differs from `claude plugin eval`
 
-`--model` names an engine and a model (`native/<model>` or `claude/<model>`),
-because Stigmer runs a model on one of its engines; a bare model ID is the
-native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
+`--model` names a harness and a model (`native/<model>` for `"native"`
+(Stigmer) or `claude/<model>` for `"claude"` (Claude Agent)), because Stigmer
+runs a model on one of its harnesses; a bare model ID is the Stigmer harness's.
+`--max-cost-usd` is always set: 5 when you omit it. A try the
 platform could not grade, such as one refused for a missing provider key, is
 shown as not graded and left out of every score instead of scoring 0. A scaffold
 runs without `--scaffold`, inside the try's own sandbox; `--scaffold` is

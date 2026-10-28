@@ -53,7 +53,7 @@ describe("the Claude adapter on a runner without the engine", () => {
 
     const outcome = await adapter.runTurn(turnInputFixture({ message: "hello" }), new RecordingTurnSink());
     expect(outcome).toEqual({ kind: "failed", surface: "actionable", message: NOT_INSTALLED_MESSAGE });
-    expect(NOT_INSTALLED_MESSAGE).toBe("Claude is not installed on this runner, so this turn cannot run on Claude. Run it on another engine.");
+    expect(NOT_INSTALLED_MESSAGE).toBe("The Claude Agent SDK is not installed on this runner, so this turn cannot run on the Claude Agent harness. Run it on another harness.");
   });
 
 });

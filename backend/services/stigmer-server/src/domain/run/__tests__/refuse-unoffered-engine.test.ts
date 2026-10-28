@@ -41,7 +41,7 @@ describe("RefuseUnofferedEngine", () => {
     expect(thrown).toBeInstanceOf(ConnectError);
     expect((thrown as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((thrown as ConnectError).rawMessage).toBe(
-      `the conversation's engine names harness ${engine}, which this platform does not run`,
+      `the conversation names harness ${engine}, which this platform does not run`,
     );
   });
 

@@ -112,21 +112,21 @@ export function turnSkillsOf(lists: readonly (readonly EngineSkill[])[]): Engine
     if (skill.origin !== "own") {
       if (skill.plugin === OWN_SKILLS_PLUGIN) {
         throw new SkillNameClash(
-          `A plugin is named '${OWN_SKILLS_PLUGIN}', which Claude keeps for the agent's own skills, so its skill '${skill.name}' cannot load. Rename the plugin, or run this agent on another engine.`,
+          `A plugin is named '${OWN_SKILLS_PLUGIN}', which the Claude Agent harness keeps for the agent's own skills, so its skill '${skill.name}' cannot load. Rename the plugin, or run this agent on another harness.`,
         );
       }
       const origins = originsByPlugin.get(skill.plugin) ?? new Set<string>();
       origins.add(skill.origin);
       originsByPlugin.set(skill.plugin, origins);
       if (origins.size > 1) {
-        throw new SkillNameClash(`Two plugins are named '${skill.plugin}', so Claude cannot tell their skills apart. Rename one, or run this agent on another engine.`);
+        throw new SkillNameClash(`Two plugins are named '${skill.plugin}', so the Claude Agent harness cannot tell their skills apart. Rename one, or run this agent on another harness.`);
       }
     }
     const seen = byId.get(skill.id);
     if (seen === undefined) {
       byId.set(skill.id, skill);
     } else if (seen.sourceDir !== skill.sourceDir) {
-      throw new SkillNameClash(`The skills '${seen.name}' and '${skill.name}' both load on Claude as '${skill.id}'. Rename one, or run this agent on another engine.`);
+      throw new SkillNameClash(`The skills '${seen.name}' and '${skill.name}' both load on the Claude Agent harness as '${skill.id}'. Rename one, or run this agent on another harness.`);
     }
   }
   return [...byId.values()];

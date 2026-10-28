@@ -450,7 +450,7 @@ All visual properties flow through `--stgm-*` design tokens.
     additionalTabs: { type: "readonly AdditionalTab[]", description: "Consumer-provided extension tabs, appended after the built-ins." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Initial tab in uncontrolled mode." },
-    editable: { type: "boolean", description: "Enable inline editing of the routine's mutable spec fields (cadence, message, vaults, environment, engine & model, budget). Each field saves independently via a lossless full-resource re-apply (useUpdateRoutineSpec). The slug is renamed on its own, from the Overview's slug field, by whoever may delete the routine (the old slug keeps leading to it for 30 days). The server-immutable fields — target agent, target type — never gain an edit affordance; workspace edits go through Edit YAML for now." },
+    editable: { type: "boolean", description: "Enable inline editing of the routine's mutable spec fields (cadence, message, vaults, environment, harness & model, budget). Each field saves independently via a lossless full-resource re-apply (useUpdateRoutineSpec). The slug is renamed on its own, from the Overview's slug field, by whoever may delete the routine (the old slug keeps leading to it for 30 days). The server-immutable fields — target agent, target type — never gain an edit affordance; workspace edits go through Edit YAML for now." },
     now: { type: "Date", description: "The instant \"next fire\" countdowns and run timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
     onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern — the Console pushes a Library route; an embedding host does whatever fits." },
@@ -514,7 +514,7 @@ Single-page form for creating a `Routine`.
 
 The form speaks the composer's vocabulary: a routine is
 a saved run — which agent, what message, what workspace, which
-engine and model, what budget — plus a cadence. It reuses the
+harness and model, what budget — plus a cadence. It reuses the
 composer's own pickers ([`ModelSelector`](/docs/sdk/react/models#modelselector), [`WorkspaceEditor`](/docs/sdk/react/workspace#workspaceeditor))
 so the interactive and scheduled surfaces cannot drift, minus only
 what unattended makes impossible (no local folders, no file uploads,

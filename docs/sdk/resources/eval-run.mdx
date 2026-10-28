@@ -477,7 +477,7 @@ Input for creating or updating an Eval Run.
     pluginDigest: { type: "string", description: "The version (archive digest) of the plugin evaluated." },
     comparedPluginId: { type: "string", description: "ID of a plugin each case runs with and, unless ablation is none, without, on the agent: whether the agent does better with it." },
     cases: { type: "EvalRunCaseSourceInput[]", description: "Whose cases run, on an agent: Evals of the agent's organization, and plugins the agent attaches or the compared plugin.", typeDescriptionLink: "#evalruncasesourceinput" },
-    targets: { type: "EvalRunTargetInput[]", description: "The engines and models each case runs on, at most six.", typeDescriptionLink: "#evalruntargetinput" },
+    targets: { type: "EvalRunTargetInput[]", description: "The harnesses and models each case runs on, at most six.", typeDescriptionLink: "#evalruntargetinput" },
     runs: { type: "number", description: "Tries per case, arm and target, from 1 to 50." },
     ablation: { type: "EvalRunAblation", description: "Whether each case also runs without the compared plugin.", typeDescriptionLink: "#evalrunablation" },
     threshold: { type: "number", description: "The score a case needs to pass, from 0 to 1, or 1 when unset: every scored check passes on every try." },
@@ -521,12 +521,12 @@ Generic reference to any API resource.
 
 ### EvalRunTargetInput
 
-EvalRunTarget is one engine and model a case runs on.
+EvalRunTarget is one harness and model a case runs on.
 
 <TypeTable
   type={{
-    harness: { type: "Harness", description: "The engine.", typeDescriptionLink: "#harness" },
-    modelName: { type: "string", description: "A model id from the model catalog for that engine, as in \"claude-sonnet-4-6\"." },
+    harness: { type: "Harness", description: "The harness.", typeDescriptionLink: "#harness" },
+    modelName: { type: "string", description: "A model id from the model catalog for that harness, as in \"claude-sonnet-4-6\"." },
   }}
 />
 
@@ -665,7 +665,7 @@ EvalRunCaseTarget is one case's results on one target.
 
 <TypeTable
   type={{
-    target: { type: "EvalRunTarget", description: "The engine and model.", typeDescriptionLink: "#evalruntarget" },
+    target: { type: "EvalRunTarget", description: "The harness and model.", typeDescriptionLink: "#evalruntarget" },
     notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\"; empty when it ran." },
     withPlugin: { type: "EvalRunArm", description: "The tries with the compared plugin; when no plugin is compared, the only tries, run with what the agent attaches.", typeDescriptionLink: "#evalrunarm" },
     withoutPlugin: { type: "EvalRunArm", description: "The tries without the compared plugin; unset when the eval run makes no comparison.", typeDescriptionLink: "#evalrunarm" },
@@ -721,12 +721,12 @@ EvalRunPlugin is one plugin a try loads, as the eval run ran it.
 
 ### EvalRunTarget
 
-EvalRunTarget is one engine and model a case runs on.
+EvalRunTarget is one harness and model a case runs on.
 
 <TypeTable
   type={{
-    harness: { type: "Harness", description: "The engine.", typeDescriptionLink: "#harness" },
-    modelName: { type: "string", description: "A model id from the model catalog for that engine, as in \"claude-sonnet-4-6\"." },
+    harness: { type: "Harness", description: "The harness.", typeDescriptionLink: "#harness" },
+    modelName: { type: "string", description: "A model id from the model catalog for that harness, as in \"claude-sonnet-4-6\"." },
   }}
 />
 
@@ -772,12 +772,12 @@ EvalRunPartialReason is why an eval run stopped early.
 
 ### Harness
 
-Harness identifies the execution engine that processes agent activities for a session.
+Harness identifies the harness, the agent loop that processes a session's turns.
 
 | Value | Description |
 |-------|-------------|
-| `HARNESS_NATIVE` | Stigmer's native execution engine. |
-| `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
+| `HARNESS_NATIVE` | Stigmer: Stigmer's own harness. |
+| `HARNESS_CLAUDE` | Claude Agent: Anthropic's Claude Agent SDK. |
 
 ### EvalRunTryState
 

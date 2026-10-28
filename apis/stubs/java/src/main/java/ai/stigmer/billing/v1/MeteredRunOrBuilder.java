@@ -36,7 +36,7 @@ public interface MeteredRunOrBuilder extends
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the catalog
    * fallback when the wire's requested_model came up empty. Empty when no
-   * layer named a model and the engine chose.
+   * layer named a model and the harness chose.
    * </pre>
    *
    * <code>string pinned_model = 2 [json_name = "pinnedModel"];</code>
@@ -49,7 +49,7 @@ public interface MeteredRunOrBuilder extends
    * layer chose it: the message, the agent's defaults or the lane's profile)
    * — the authoritative statement of what was asked for, and the catalog
    * fallback when the wire's requested_model came up empty. Empty when no
-   * layer named a model and the engine chose.
+   * layer named a model and the harness chose.
    * </pre>
    *
    * <code>string pinned_model = 2 [json_name = "pinnedModel"];</code>

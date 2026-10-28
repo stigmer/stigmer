@@ -36,7 +36,7 @@ import "buf/validate/validate.proto";
 // (the spec's subject oneof): the subject's editors start, cancel and
 // delete eval runs; its viewers in its own organization read them. Kind
 // number 65, id prefix "evr". The subject's organization pays for every
-// try and every AI-graded check. The cases run on Stigmer's own engines,
+// try and every AI-graded check. The cases run on Stigmer's own harnesses,
 // so a score measures the cases on Stigmer, which can differ from Claude
 // Code's own `claude plugin eval` on the same suite.
 message EvalRun {

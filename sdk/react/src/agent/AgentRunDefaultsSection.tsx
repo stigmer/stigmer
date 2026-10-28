@@ -128,11 +128,11 @@ function RunDefaultsSummary({ spec }: { readonly spec: AgentSpec | undefined }) 
 
   return (
     <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-4 stg:gap-y-1.5 stg:p-3 stg:text-sm">
-      <SummaryRow label="Engine">
-        {engine ? HARNESS_LABELS[engine] : "None (the conversation's engine)"}
+      <SummaryRow label="Harness">
+        {engine ? HARNESS_LABELS[engine] : "None (the conversation's harness)"}
       </SummaryRow>
       <SummaryRow label="Model">
-        {modelName !== "" ? (model?.displayName ?? modelName) : "None (the engine's default)"}
+        {modelName !== "" ? (model?.displayName ?? modelName) : "None (the harness's default)"}
       </SummaryRow>
       {modelName !== "" && (
         <>
@@ -259,7 +259,7 @@ function RunDefaultsEditor({
   return (
     <div className="stg:flex stg:flex-col stg:gap-3 stg:p-3">
       <div className="stg:flex stg:flex-col stg:gap-1.5">
-        <span className="stg:text-xs stg:font-medium stg:text-foreground">Engine and model</span>
+        <span className="stg:text-xs stg:font-medium stg:text-foreground">Harness and model</span>
         {engine === undefined ? (
           <div>
             <button
@@ -272,7 +272,7 @@ function RunDefaultsEditor({
                 "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
               )}
             >
-              Choose an engine
+              Choose a harness
             </button>
           </div>
         ) : (
@@ -289,7 +289,7 @@ function RunDefaultsEditor({
               onServiceTierChange={modelName !== "" ? setServiceTier : undefined}
               thinkingMode={thinkingMode}
               onThinkingModeChange={modelName !== "" ? setThinkingMode : undefined}
-              placeholderLabel="Engine default model"
+              placeholderLabel="Harness default model"
               disabled={isSaving}
             />
             {modelName !== "" && (
@@ -303,14 +303,14 @@ function RunDefaultsEditor({
               disabled={isSaving}
               className={quietButtonClasses}
             >
-              No engine
+              No harness
             </button>
           </div>
         )}
         <p className="stg:text-2xs stg:text-muted-foreground">
-          A new conversation on this agent starts on this engine unless the
+          A new conversation on this agent starts on this harness unless the
           person picks another. The model, its speed and thinking apply on
-          this engine to every message that does not choose its own.
+          this harness to every message that does not choose its own.
         </p>
       </div>
 

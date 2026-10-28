@@ -97,10 +97,10 @@ import { readSessionEvents } from "../session/events/run-events.js";
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import { MAX_CASE_ARCHIVE_BYTES, evalCaseSkillMessage, evalCaseTooLargeMessage } from "./constants.js";
 
-/** The engines a recorded history resumes on, as a case's note names them. */
-const RESUMING_ENGINES = (Object.keys(EVAL_ENGINE_UNSUPPORTED_FEATURES) as EvalEngine[])
-  .filter((engine) => !EVAL_ENGINE_UNSUPPORTED_FEATURES[engine].includes("resumed conversations"))
-  .map((engine) => `the ${engine} engine`)
+/** The harnesses a recorded history resumes on, as a case's note names them. */
+const RESUMING_HARNESSES = [...new Map(Object.values(EVAL_ENGINES).map((engine) => [engine.word, engine.label])).entries()]
+  .filter(([word]) => !EVAL_ENGINE_UNSUPPORTED_FEATURES[word].includes("resumed conversations"))
+  .map(([, label]) => `the ${label} harness`)
   .join(" or ");
 
 /** What a case is built from. */
@@ -190,7 +190,7 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
     }
     const engine = EVAL_ENGINES[harness];
     if (EVAL_ENGINE_UNSUPPORTED_FEATURES[engine.word].includes("resumed conversations")) {
-      notes.push(`the conversation ran on the ${engine.label} engine, which cannot resume a recorded history: the case runs on ${RESUMING_ENGINES} only`);
+      notes.push(`the conversation ran on the ${engine.label} harness, which cannot resume a recorded history: the case runs on ${RESUMING_HARNESSES} only`);
     }
   }
 

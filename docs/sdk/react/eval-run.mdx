@@ -415,7 +415,7 @@ The Run evals form's settings.
   type={{
     allowTools: { type: "readonly string[]", description: "Tools every try may use beyond each case's own list, in Claude Code's names.", required: true },
     caseGlob: { type: "string", description: "Runs only the cases whose name matches this glob, as in \"review-*\"; empty runs every case.", required: true },
-    caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. On a plugin each case then runs on its own `model`; on an agent, the agent runs as it runs (its own engine and model).", required: true },
+    caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. On a plugin each case then runs on its own `model`; on an agent, the agent runs as it runs (its own harness and model).", required: true },
     caseSources: { type: "readonly string[]", description: "On an agent: the slugs of the plugins whose cases run.", required: true },
     caseTags: { type: "readonly string[]", description: "Runs only the cases carrying one of these tags; empty runs every case.", required: true },
     compare: { type: "boolean", description: "Also run every case without the plugin compared (on a plugin, the plugin itself), for the difference it makes.", required: true },
@@ -431,7 +431,7 @@ The Run evals form's settings.
 
 ### EvalFormTarget
 
-One engine and model in the Run evals form; an empty model is the engine's default.
+One harness and model in the Run evals form; an empty model is the harness's default.
 
 <TypeTable
   type={{
@@ -539,7 +539,7 @@ The settings the Run evals form shares on an agent and on a plugin: which models
 
 <TypeTable
   type={{
-    caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. On a plugin each case then runs on its own `model`; on an agent, the agent runs as it runs (its own engine and model).", required: true },
+    caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. On a plugin each case then runs on its own `model`; on an agent, the agent runs as it runs (its own harness and model).", required: true },
     concurrency: { type: "number", description: "", required: true },
     maxCostUsd: { type: "number", description: "", required: true },
     runs: { type: "number", description: "Tries per case, arm and target; 0 is each case's own `runs`.", required: true },

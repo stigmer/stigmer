@@ -124,7 +124,7 @@ message UpdateStatusResponse {
   // @internal
   // Read under the same lock as the status write it answers. The runner
   // takes them with SessionCommandController.claimInput at a point where
-  // its engine can deliver them.
+  // its harness can deliver them.
   bool input_pending = 3;
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "EvalRunTarget",
-  "description": "EvalRunTarget is one engine and model a case runs on.",
+  "description": "EvalRunTarget is one harness and model a case runs on.",
   "protoType": "ai.stigmer.agentic.evalrun.v1.EvalRunTarget",
   "protoFile": "apis/ai/stigmer/agentic/evalrun/v1/spec.proto",
   "fields": [
@@ -16,7 +16,7 @@
           "HARNESS_CLAUDE"
         ]
       },
-      "description": "The engine. Unspecified is the native engine.",
+      "description": "The harness. Unspecified is native (Stigmer's own harness).",
       "required": false
     },
     {
@@ -26,7 +26,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "A model id from the model catalog for that engine, as in\n \"claude-sonnet-4-6\". Empty uses the engine's default model.",
+      "description": "A model id from the model catalog for that harness, as in\n \"claude-sonnet-4-6\". Empty uses the harness's default model.",
       "required": false,
       "validation": {
         "maxLength": 128

@@ -126,8 +126,8 @@ describe("refuseUnrunnableHooks", () => {
     expect(refuseUnrunnableHooks(blueprintWith([plugin("safety"), plugin("quiet", { hooks: false })], [inline()]), { runsHooks: false })).toEqual({
       kind: "hooks-refused",
       message:
-        "This conversation has hooks (the plugin 'safety-rails', the agent's own hooks block), and this engine does not run hooks yet. " +
-        "Run it on Stigmer's native engine, or remove the hooks.",
+        "This conversation has hooks (the plugin 'safety-rails', the agent's own hooks block), and this harness does not run hooks yet. " +
+        "Run it on the Stigmer harness, or remove the hooks.",
     });
   });
 
@@ -148,7 +148,7 @@ describe("refuseUnrunnableHooks", () => {
       kind: "hooks-refused",
       message:
         "This conversation has hooks (the plugin 'guard-rails' of the subagent 'release-notes', the subagent 'release-notes''s own hooks block), " +
-        "and this engine does not run hooks yet. Run it on Stigmer's native engine, or remove the hooks.",
+        "and this harness does not run hooks yet. Run it on the Stigmer harness, or remove the hooks.",
     });
     expect(refuseUnrunnableHooks(blueprint, { runsHooks: true })).toBeUndefined();
   });

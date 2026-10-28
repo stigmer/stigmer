@@ -316,7 +316,7 @@ type MeteredRun struct {
 	// layer chose it: the message, the agent's defaults or the lane's profile)
 	// — the authoritative statement of what was asked for, and the catalog
 	// fallback when the wire's requested_model came up empty. Empty when no
-	// layer named a model and the engine chose.
+	// layer named a model and the harness chose.
 	PinnedModel string `protobuf:"bytes,2,opt,name=pinned_model,json=pinnedModel,proto3" json:"pinned_model,omitempty"`
 	// The service tier the run resolved (status.run_config.
 	// service_tier); UNSPECIFIED resolves to standard. Reconciled against

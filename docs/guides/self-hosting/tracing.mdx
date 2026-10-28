@@ -79,11 +79,11 @@ the runner's own secrets.
 ### The login never reaches an Agent
 
 The runner holds your tool's login and keeps it out of every process an Agent
-starts, as it does its model keys. The engines that make the model calls run in
-a process of their own beside the runner, and that process never sees the login:
-it hands its spans to the runner, which sends them on to your tool with the
-login added. For Langfuse this matters: its secret key reads every conversation
-you send it.
+starts, as it does its model keys. The harnesses that make the model calls run
+in a process of their own beside the runner, and that process never sees the
+login: it hands its spans to the runner, which sends them on to your tool with
+the login added. For Langfuse this matters: its secret key reads every
+conversation you send it.
 
 ## The conversation's text
 

@@ -93,8 +93,8 @@ describe("the Claude views", () => {
   });
 
   it.each<[string, HookFormatName, Record<string, unknown>, RegExp]>([
-    ["Edit", "cursor", { content: "whole file" }, /rewrote content, which this engine's Edit does not take/],
-    ["Write", "cursor", { old_string: "a", new_string: "b" }, /rewrote old_string, new_string, which this engine's Write does not take/],
+    ["Edit", "cursor", { content: "whole file" }, /rewrote content, which this harness's Edit does not take/],
+    ["Write", "cursor", { old_string: "a", new_string: "b" }, /rewrote old_string, new_string, which this harness's Write does not take/],
     ["Bash", "cursor", { cwd: "/elsewhere" }, /moved the command to another directory/],
     ["Glob", "cursor", { pattern: "TODO" }, /a file listing a search pattern/],
   ])("refuses a rewrite of %s this engine cannot take, saying why", (name, format, rewrite, why) => {

@@ -204,7 +204,7 @@ message EvalRunMockedServer {
 
 // EvalRunCaseTarget is one case's results on one target.
 message EvalRunCaseTarget {
-  // The engine and model.
+  // The harness and model.
   EvalRunTarget target = 1;
 
   // Why this case did not run on this target, as in "not run: model

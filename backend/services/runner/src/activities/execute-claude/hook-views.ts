@@ -129,12 +129,12 @@ export class ClaudeToolViews implements HookToolViews {
     if (format === "claude-code") return { ...rewrite };
     if (call.serverSlug !== "") return { ...call.args, ...rewrite };
     const foreign = Object.keys(rewrite).filter((key) => WRITE_FIELDS_NOT_TAKEN.get(call.name)?.has(key));
-    if (foreign.length > 0) return `the hook rewrote ${foreign.join(", ")}, which this engine's ${call.name} does not take`;
+    if (foreign.length > 0) return `the hook rewrote ${foreign.join(", ")}, which this harness's ${call.name} does not take`;
     const input = { ...this.cursorViewOf(call)?.toolInput, ...rewrite };
     if (call.name === HOST_SHELL_TOOL.engineName) {
       const { cwd, ...rest } = input;
       if (cwd !== undefined && cwd !== "" && cwd !== this.ctx.workspaceRoot) {
-        return "the hook moved the command to another directory, which this engine's shell cannot take";
+        return "the hook moved the command to another directory, which this harness's shell cannot take";
       }
       return rest;
     }

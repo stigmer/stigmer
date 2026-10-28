@@ -210,9 +210,9 @@ describe("Cursor's view of a native call", () => {
     expect(partial("edit_file", { file_path: `${ROOT}/src/b.ts` }), "a Cursor rewrite names only what it changes").toEqual({ ...CALLS["edit_file"], file_path: "/src/b.ts" });
     expect(partial("execute", { command: "ls" })).toEqual({ ...CALLS["execute"], command: "ls" });
     expect(partial("edit_file", { content: "whole file" }), "Cursor's Write is a create too").toBe(
-      "the hook rewrote content, which this engine's edit_file does not take",
+      "the hook rewrote content, which this harness's edit_file does not take",
     );
-    expect(partial("write_file", { old_string: "a", new_string: "b" })).toBe("the hook rewrote old_string, new_string, which this engine's write_file does not take");
+    expect(partial("write_file", { old_string: "a", new_string: "b" })).toBe("the hook rewrote old_string, new_string, which this harness's write_file does not take");
     const issue = { title: "a", body: "b" };
     expect(views.argsFrom({ name: "create_issue", args: issue, serverSlug: "github" }, "cursor", { title: "c" }), "an MCP call's too").toEqual({ title: "c", body: "b" });
     expect(views.argsFrom({ name: "create_issue", args: issue, serverSlug: "github" }, "claude-code", { title: "c" })).toEqual({ title: "c" });

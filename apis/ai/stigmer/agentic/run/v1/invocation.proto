@@ -65,9 +65,9 @@ message AgentInvocation {
     max_len: 8192
   }];
 
-  // Execution engine for the run's session. Unspecified: native when
-  // run_config names a model (the engine the model was checked against at
-  // save), else the agent's own engine (AgentSpec.harness), else the
+  // Harness for the run's session. Unspecified: native (Stigmer) when
+  // run_config names a model (the harness the model was checked against at
+  // save), else the agent's own harness (AgentSpec.harness), else the
   // embedding surface's platform default.
   //
   // @internal
@@ -76,7 +76,7 @@ message AgentInvocation {
   // the config demotes from "the only source" to "the default".
   // Verified before deciding: unattended approval semantics are one
   // shared contract across every harness (approval-policy.ts), so
-  // owner harness choice changes the engine, never the safety
+  // owner harness choice changes the harness, never the safety
   // posture.
   ai.stigmer.agentic.session.v1.Harness harness = 3 [(buf.validate.field).enum.defined_only = true];
 
@@ -175,8 +175,8 @@ message AgentInvocation {
 //   the smallest positive value any layer sets. An operator profile is a
 //   ceiling the message, the routine or channel, and the agent can lower
 //   but never raise.
-// - The agent's choices apply only on the engine its defaults name
-//   (AgentSpec.harness). On a conversation running another engine the
+// - The agent's choices apply only on the harness its defaults name
+//   (AgentSpec.harness). On a conversation running another harness the
 //   agent layer gives its bounds alone.
 //
 // Saved settings are self-contained: a routine, channel or agent that sets
@@ -197,8 +197,8 @@ message RunConfig {
   //
   // When the run's estimated spend reaches this limit, the run stops with a
   // "send another message to continue" prompt and ends TERMINATED; the work
-  // done so far is kept. The limit is checked each time the engine reports
-  // its spend, so a run can end somewhat above it. The native harness
+  // done so far is kept. The limit is checked each time the harness reports
+  // its spend, so a run can end somewhat above it. Stigmer's own harness
   // reports after every model call, counts a subagent's spend toward the
   // limit, and advises the agent to wrap up at about 80% of the budget.
   //
@@ -248,7 +248,7 @@ message RunConfig {
   // UNSPECIFIED is not set at this layer; with no layer setting it the run
   // uses STANDARD, never the provider account default. FAST is valid only
   // for a model whose registry entry declares a fast pricing variant on the
-  // engine that runs it; validated fail-closed on the resolved settings at
+  // harness that runs it; validated fail-closed on the resolved settings at
   // create.
   ServiceTier service_tier = 4 [(buf.validate.field).enum.defined_only = true];
 
@@ -259,7 +259,7 @@ message RunConfig {
   // UNSPECIFIED is not set at this layer; with no layer setting it the run
   // uses DISABLED, never the provider account default. ENABLED is valid only
   // for a model whose registry entry declares the thinking capability on the
-  // engine that runs it; validated fail-closed on the resolved settings at
+  // harness that runs it; validated fail-closed on the resolved settings at
   // create. Combines freely with service_tier.
   ThinkingMode thinking_mode = 5 [(buf.validate.field).enum.defined_only = true];
 

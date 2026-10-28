@@ -70,7 +70,7 @@ export const MAX_EVAL_CONCURRENCY = 8;
 /** The highest cost limit an eval run accepts, in US dollars. */
 export const MAX_EVAL_COST_USD = 1000;
 
-/** One engine and model in the Run evals form; an empty model is the engine's default. */
+/** One harness and model in the Run evals form; an empty model is the harness's default. */
 export interface EvalFormTarget {
   readonly harness: HarnessOption;
   readonly modelName: string;
@@ -81,7 +81,7 @@ export interface EvalRunSettings {
   /**
    * Send no targets; `targets` is kept for when this is off. On a plugin
    * each case then runs on its own `model`; on an agent, the agent runs as
-   * it runs (its own engine and model).
+   * it runs (its own harness and model).
    */
   readonly caseModels: boolean;
   readonly targets: readonly EvalFormTarget[];
