@@ -129,6 +129,8 @@ export class EnterpriseTarget implements TargetProfile {
     guestMinting: false,
     cloudTargetRefusesLocalPrograms: false,
     runModelCallsMetered: false,
+    // No engine on this target: no run create reaches the provider check.
+    runnerProviderDeclaration: false,
     // The primary is an enforcing lane that mints user tokens.
     userTokens: true,
     // The license requires the require-authentication posture.

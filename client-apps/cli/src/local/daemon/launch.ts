@@ -30,6 +30,8 @@ import { resolveOperatorIdentity } from "../operator-config.js";
 import { ensureRunner } from "../runtime/runner.js";
 import { ensureServer } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
+import type { ProviderReach } from "../provider-reach.js";
+import { localRunnerReach } from "./components.js";
 import { buildDaemonEnv, type DaemonEnvInputs, readDaemonConfig } from "./env.js";
 import { NodeProcessHost, type OutputMirror } from "./host.js";
 import { type InternalDaemonDeps, runInternalDaemon, waitForShutdownSignal } from "./process.js";
@@ -47,6 +49,17 @@ export interface UpOptions {
   noWeb?: boolean;
 }
 
+/** What a started stack reports to the person who started it (`stigmer up`'s card). */
+export interface UpReport {
+  /**
+   * The providers the stack's runner reaches, judged over the environment
+   * the daemon gives it (the value the server was handed as
+   * STIGMER_RUNNER_PROVIDERS, unless the operator exported one), or
+   * undefined when the stack starts no runner.
+   */
+  readonly runnerReach: readonly ProviderReach[] | undefined;
+}
+
 /** Everything both `up` shapes need once the heavy resolution is done. */
 interface PreparedLaunch {
   data: string;
@@ -56,7 +69,7 @@ interface PreparedLaunch {
 }
 
 /** Start the local stack in the background. Throws on any startup failure. */
-export async function up(options: UpOptions = {}, home: string = homedir()): Promise<void> {
+export async function up(options: UpOptions = {}, home: string = homedir()): Promise<UpReport> {
   const { data, logs, temporalAddress, env } = await prepareLaunch(options, home);
 
   const daemonPid = spawnDaemon(env, join(logs, "daemon.log"));
@@ -72,6 +85,14 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
   await waitForTcp({ port: SERVER_PORT, timeoutMs: READY_TIMEOUT_MS, label: "stigmer-server" });
 
   saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, daemonPid, options));
+  /* v8 ignore next -- @preserve: up() spawns the real daemon, which no unit test starts; the cli-up lane's smoke-getting-started runs it end to end, and upReport has its own tests */
+  return upReport(env);
+}
+
+// The daemon reads its configuration from the very environment the launcher
+// built, so reading it here gives the runner environment the daemon builds.
+function upReport(env: NodeJS.ProcessEnv): UpReport {
+  return { runnerReach: localRunnerReach(readDaemonConfig(env), env) };
 }
 
 /** Seams of the foreground launcher, injectable for tests. */
@@ -82,8 +103,8 @@ export interface UpForegroundDeps {
   waitForShutdown?: () => Promise<void>;
   /** Receives each line the server and runner write (default: a `[component]`-prefixed stdout mirror). */
   mirror?: OutputMirror;
-  /** Invoked once the stack is serving — the moment a detached `up` would have returned. */
-  onReady?: () => void | Promise<void>;
+  /** Invoked once the stack is serving — the moment a detached `up` would have returned — with what it reports. */
+  onReady?: (report: UpReport) => void | Promise<void>;
 }
 
 /**
@@ -114,7 +135,7 @@ export async function upForeground(
     waitForShutdown: deps.waitForShutdown ?? waitForShutdownSignal,
     onStarted: async () => {
       saveStartupConfig(data, buildStartupConfig(data, logs, temporalAddress, process.pid, options));
-      await deps.onReady?.();
+      await deps.onReady?.(upReport(env));
     },
   });
 }
@@ -270,8 +291,9 @@ async function stopManagedTemporal(home: string): Promise<void> {
 // the config file, so the launcher must write it into the daemon contract explicitly
 // — unlike a shell-exported key, it cannot flow by env inheritance. resolveApiKey's
 // precedence (env var > config file) makes both cases one code path; when the env
-// var is set this re-writes the same value. Anthropic is the only provider the
-// local stack executes on, so it is the only key with a persisted delivery path.
+// var is set this re-writes the same value. The Anthropic key is the one `stigmer
+// setup` saves, so it is the only key with a persisted delivery path; the runner
+// reaches other providers through the environment it inherits.
 function resolveLlmKeyInputs(config: Config): Pick<DaemonEnvInputs, "anthropicApiKey"> {
   if (resolveProvider(config) !== "anthropic") return {};
   const key = resolveApiKey(config);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { RUNNER_READY_MARKER, RUNNER_TASK_QUEUE } from "../../constants.js";
 import type { DaemonConfig } from "../env.js";
-import { buildComponents, buildRunnerEnv, buildServerEnv } from "../components.js";
+import { buildComponents, buildRunnerEnv, buildServerEnv, localRunnerReach } from "../components.js";
 import { GRACEFUL_STOP_TIMEOUT_MS } from "../supervisor.js";
 
 const config: DaemonConfig = {
@@ -91,8 +91,8 @@ describe("buildRunnerEnv", () => {
     expect(env.ANTHROPIC_API_KEY).toBe("sk-ant-resolved");
   });
 
-  // Anthropic is the only key with a contract slot; other provider keys (for
-  // advanced per-agent overrides) flow through shell-env inheritance untouched.
+  // The Anthropic key is the only one with a contract slot (`stigmer setup`
+  // saves it); every other provider key flows through shell-env inheritance.
   it("passes other shell-exported provider keys through via the base env spread", () => {
     const env = buildRunnerEnv(config, { OPENAI_API_KEY: "sk-oai-shell" });
     expect(env.OPENAI_API_KEY).toBe("sk-oai-shell");
@@ -122,6 +122,47 @@ describe("buildRunnerEnv", () => {
     expect(runnerEnv.ARTIFACT_STORAGE_TYPE).toBe("local");
     // The runner mints no download links, so the daemon hands it no serve URL.
     expect(runnerEnv).not.toHaveProperty("LOCAL_ARTIFACT_SERVE_URL");
+  });
+});
+
+describe("the server's STIGMER_RUNNER_PROVIDERS", () => {
+  // The server refuses a run whose provider no runner reaches; the daemon
+  // tells it what its own runner reaches, judged over the environment that
+  // runner is given (stigmer#1084).
+  it("is empty when the runner holds no provider", () => {
+    expect(buildServerEnv(config, {}).STIGMER_RUNNER_PROVIDERS).toBe("");
+  });
+
+  it("names the providers the runner's environment reaches, the saved key included", () => {
+    const env = buildServerEnv({ ...config, anthropicApiKey: "sk-ant-saved" }, { OPENAI_API_KEY: "sk-oa" });
+    expect(env.STIGMER_RUNNER_PROVIDERS).toBe("anthropic,openai");
+  });
+
+  it("counts a cloud backend or a gateway as reaching Anthropic", () => {
+    const vertex = buildServerEnv(config, { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global" });
+    expect(vertex.STIGMER_RUNNER_PROVIDERS).toBe("anthropic");
+    const gateway = buildServerEnv(config, { ANTHROPIC_BASE_URL: "http://127.0.0.1:4242", OPENAI_API_KEY: "sk-oai" });
+    expect(gateway.STIGMER_RUNNER_PROVIDERS).toBe("anthropic,openai");
+  });
+
+  it("keeps a value the operator exported, an empty one included", () => {
+    expect(buildServerEnv(config, { STIGMER_RUNNER_PROVIDERS: "openai", ANTHROPIC_API_KEY: "sk-ant" }).STIGMER_RUNNER_PROVIDERS).toBe(
+      "openai",
+    );
+    expect(buildServerEnv(config, { STIGMER_RUNNER_PROVIDERS: "", OPENAI_API_KEY: "sk-oa" }).STIGMER_RUNNER_PROVIDERS).toBe("");
+  });
+
+  it("is left unset when the daemon starts no runner, so the server refuses nothing", () => {
+    const env = buildServerEnv({ ...config, serverOnly: true }, { OPENAI_API_KEY: "sk-oa" });
+    expect(env).not.toHaveProperty("STIGMER_RUNNER_PROVIDERS");
+    expect(localRunnerReach({ ...config, runner: undefined }, {})).toBeUndefined();
+  });
+
+  it("reports how each provider is reached, from the runner's environment", () => {
+    expect(localRunnerReach(config, { ANTHROPIC_BASE_URL: "https://gw.example", OPENAI_API_KEY: "sk-oa" })).toEqual([
+      { provider: "anthropic", via: "gateway" },
+      { provider: "openai", via: "key" },
+    ]);
   });
 });
 

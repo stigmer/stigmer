@@ -148,7 +148,7 @@ These are orthogonal. The **desktop runner** is the canonical case where they di
 The transport setting drives two credential modes:
 
 - **Direct mode** (local / OSS): the runner calls its model providers with the keys or cloud identity you configure; `STIGMER_TOKEN` is optional against a trusted-local server, which verifies no credential, and is the runner's own API key against a self-hosted server with sign-in on (the run's per-run credential arrives with each dispatch; see `src/shared/run-credential.ts`). `STIGMER_PROXY_ENDPOINT` is unset.
-- **Proxy mode** (cloud / managed runners): `STIGMER_PROXY_ENDPOINT` and `STIGMER_TOKEN` are required. The organization's own provider keys are saved in Settings → Provider keys, and the proxy validates your token and injects the key upstream, so the key never reaches the runner or the sandbox. The agent host's model calls go to the runner's local proxy, which forwards them to `STIGMER_PROXY_ENDPOINT`.
+- **Proxy mode** (cloud / managed runners): `STIGMER_PROXY_ENDPOINT` and `STIGMER_TOKEN` are required. The organization's own provider keys are saved on the Models & providers page, and the proxy validates your token and injects the key upstream, so the key never reaches the runner or the sandbox. The agent host's model calls go to the runner's local proxy, which forwards them to `STIGMER_PROXY_ENDPOINT`.
 
 ## Required infrastructure
 
@@ -156,7 +156,7 @@ The transport setting drives two credential modes:
 |-----------|------|---------|
 | Temporal | Always | The runner is a Temporal Worker. It needs a reachable Temporal frontend and a namespace. You may set these explicitly (`TEMPORAL_SERVICE_ADDRESS`, `TEMPORAL_NAMESPACE`), but when a token is present the runner self-discovers them from the control plane at boot — see the env reference below. |
 | Stigmer backend | Always | The control plane (`STIGMER_BACKEND_ENDPOINT`) for status updates, blueprints, and (local) artifact serving. |
-| Stigmer proxy + token | Proxy/cloud only | The proxy (`STIGMER_PROXY_ENDPOINT`) injects the organization's own provider keys (saved in Settings → Provider keys) and brokers artifact storage; `STIGMER_TOKEN` authenticates to it. |
+| Stigmer proxy + token | Proxy/cloud only | The proxy (`STIGMER_PROXY_ENDPOINT`) injects the organization's own provider keys (saved on the Models & providers page) and brokers artifact storage; `STIGMER_TOKEN` authenticates to it. |
 
 In local/direct mode, only Temporal and the Stigmer backend are required, and both default to localhost.
 

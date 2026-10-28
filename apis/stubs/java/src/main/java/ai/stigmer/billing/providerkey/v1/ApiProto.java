@@ -42,7 +42,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n+ai/stigmer/billing/providerkey/v1/api." +
       "proto\022!ai.stigmer.billing.providerkey.v1" +
-      "\032\037google/protobuf/timestamp.proto\"\200\003\n\013Pr" +
+      "\032\037google/protobuf/timestamp.proto\"\313\003\n\013Pr" +
       "oviderKey\022\020\n\003org\030\001 \001(\tR\003org\022\032\n\010provider\030" +
       "\002 \001(\tR\010provider\022\031\n\010key_hint\030\003 \001(\tR\007keyHi" +
       "nt\022\035\n\ncreated_by\030\004 \001(\tR\tcreatedBy\0229\n\ncre" +
@@ -52,12 +52,16 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "used_at\030\007 \001(\0132\032.google.protobuf.Timestam" +
       "pR\nlastUsedAt\022,\n\022inherited_from_org\030\t \001(" +
       "\tR\020inheritedFromOrg\022\031\n\010base_url\030\n \001(\tR\007b" +
-      "aseUrlJ\004\010\010\020\tR\006in_useB\263\001B\010ApiProtoP\001\242\002\004AS" +
-      "BP\252\002!Ai.Stigmer.Billing.Providerkey.V1\312\002" +
-      "!Ai\\Stigmer\\Billing\\Providerkey\\V1\342\002-Ai\\" +
-      "Stigmer\\Billing\\Providerkey\\V1\\GPBMetada" +
-      "ta\352\002%Ai::Stigmer::Billing::Providerkey::" +
-      "V1b\006proto3"
+      "aseUrl\022I\n\005check\030\013 \001(\01623.ai.stigmer.billi" +
+      "ng.providerkey.v1.ProviderKeyCheckR\005chec" +
+      "kJ\004\010\010\020\tR\006in_use*R\n\020ProviderKeyCheck\022\"\n\036p" +
+      "rovider_key_check_unspecified\020\000\022\013\n\007check" +
+      "ed\020\001\022\r\n\tunchecked\020\002B\263\001B\010ApiProtoP\001\242\002\004ASB" +
+      "P\252\002!Ai.Stigmer.Billing.Providerkey.V1\312\002!" +
+      "Ai\\Stigmer\\Billing\\Providerkey\\V1\342\002-Ai\\S" +
+      "tigmer\\Billing\\Providerkey\\V1\\GPBMetadat" +
+      "a\352\002%Ai::Stigmer::Billing::Providerkey::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -69,7 +73,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_providerkey_v1_ProviderKey_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_providerkey_v1_ProviderKey_descriptor,
-        new java.lang.String[] { "Org", "Provider", "KeyHint", "CreatedBy", "CreatedAt", "UpdatedAt", "LastUsedAt", "InheritedFromOrg", "BaseUrl", });
+        new java.lang.String[] { "Org", "Provider", "KeyHint", "CreatedBy", "CreatedAt", "UpdatedAt", "LastUsedAt", "InheritedFromOrg", "BaseUrl", "Check", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

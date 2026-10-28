@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { RUNNER_TASK_QUEUE, RUNNER_READY_MARKER, SERVER_PID_FILE, RUNNER_PID_FILE, SERVER_PORT, TEMPORAL_NAMESPACE } from "../constants.js";
 import { ARTIFACTS_SUBDIR } from "../paths.js";
 import { waitForTcp } from "../net/tcp.js";
+import { type ProviderReach, providerReach, runnerProvidersValue } from "../provider-reach.js";
 import type { DaemonConfig } from "./env.js";
 import type { ComponentSpec, ReadinessGate } from "./types.js";
 import { GRACEFUL_STOP_TIMEOUT_MS } from "./supervisor.js";
@@ -24,6 +25,9 @@ const RUNNER_EXIT_MARGIN_MS = 2_000;
 
 /** How long the server has to open its gRPC port before startup aborts. */
 const SERVER_GATE_TIMEOUT_MS = 30_000;
+
+/** The server's setting naming the providers its runners reach (the server's `boot/config.ts`). */
+export const RUNNER_PROVIDERS_ENV = "STIGMER_RUNNER_PROVIDERS";
 
 /**
  * Environment for the `stigmer-server` child. Pins ports, Temporal coordinates,
@@ -51,7 +55,30 @@ export function buildServerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
   // from the session's stamped created_by, never from its own env.
   if (config.operatorEmail !== undefined) env.STIGMER_OPERATOR_EMAIL = config.operatorEmail;
   if (config.operatorName !== undefined) env.STIGMER_OPERATOR_NAME = config.operatorName;
+  // The providers the runner this daemon starts can reach, so the server
+  // refuses a run that needs one it lacks at create, instead of the run
+  // failing at its first model call (stigmer#1084). A value the operator
+  // exported wins, an empty one included (it declares "none"); with no
+  // runner here (`--server-only`) the server is told nothing and refuses
+  // nothing, since a runner elsewhere is not this daemon's to judge.
+  const reach = localRunnerReach(config, base);
+  if (reach !== undefined && base[RUNNER_PROVIDERS_ENV] === undefined) {
+    env[RUNNER_PROVIDERS_ENV] = runnerProvidersValue(reach);
+  }
   return env;
+}
+
+/**
+ * The providers the runner this daemon starts reaches, judged by the
+ * runner's own rule over the very environment it is given, or undefined
+ * when the daemon starts no runner.
+ */
+export function localRunnerReach(
+  config: DaemonConfig,
+  base: NodeJS.ProcessEnv = process.env,
+): readonly ProviderReach[] | undefined {
+  if (config.serverOnly || config.runner === undefined) return undefined;
+  return providerReach(buildRunnerEnv(config, base));
 }
 
 /**
@@ -87,9 +114,9 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
   };
   // Explicit set (after the base spread) so the launcher-resolved key wins over any
   // stale inherited value — the delivery path for a `stigmer setup`-persisted key.
-  // Anthropic only: it is the sole provider local execution supports. Other keys
-  // (e.g. a shell-exported OPENAI_API_KEY for advanced per-agent gpt-* overrides)
-  // still reach the runner through the base env spread above.
+  // The Anthropic key is the one `stigmer setup` saves. Every other way the
+  // runner reaches a provider (OPENAI_API_KEY, a gateway, a cloud backend)
+  // arrives through the base env spread above.
   if (config.anthropicApiKey !== undefined) env.ANTHROPIC_API_KEY = config.anthropicApiKey;
   if (config.activityRouting !== undefined) env.STIGMER_ACTIVITY_ROUTING = config.activityRouting;
   return env;

@@ -22,6 +22,15 @@
  * — it hands the provider one instant and stamps checked_at from the same
  * one — and copies the provider's presence contract to the wire unchanged.
  *
+ * getModelReadiness answers, in every edition, which model providers serve
+ * an organization and which models can run, from the same rule
+ * (modelcatalog/provider-need.ts) and the same composed availability
+ * provider (extensions/provider-availability.ts) the run create chain's
+ * RequireModelProvider refuses by; the execution suite's
+ * run-admission.conformance.test.ts holds a model reported missing to the
+ * refusal, and platform.conformance.test.ts the answer's shape and
+ * authorization on every edition.
+ *
  * getRunnerScopedToken is the mint side of the runner-token lane
  * (oss#535) — the seam src/runnerauth/. What the token IS depends on the
  * server's posture, and so does who may obtain one:
@@ -57,7 +66,18 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
-import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ExecutionTarget, Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  GetModelReadinessOutputSchema,
+  ModelReadinessSchema,
+  ProviderAvailability,
+  ProviderReadinessSchema,
+} from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+import type {
+  GetModelReadinessInput,
+  GetModelReadinessOutput,
+  ModelReadiness,
+} from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import {
   EnvironmentAvailabilitySchema,
   GetLicenseStatusOutputSchema,
@@ -78,6 +98,20 @@ import type {
 import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
 import type { Logger } from "../../boot/logger.js";
 import type { LicenseStatusProvider } from "../../extensions/license-status.js";
+import type {
+  ProviderAvailabilityProvider,
+  ProviderAvailabilityReport,
+} from "../../extensions/provider-availability.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
+import { harnessName } from "../../modelcatalog/pin-validation.js";
+import {
+  MODEL_PROVIDERS,
+  providerNeededBy,
+  type ModelProvider,
+} from "../../modelcatalog/provider-need.js";
+import { authorizeDirect } from "../../pipeline/steps/authorize.js";
+import { PROVIDER_AVAILABILITY_UNAVAILABLE_COPY } from "../run/require-model-provider.js";
 import type { EnvironmentPolicy } from "../run/environment-admission.js";
 import { isServiceAccountCaller } from "../../extensions/identity.js";
 import {
@@ -150,6 +184,15 @@ export interface PlatformControllerDeps {
    */
   readonly licenseStatus: LicenseStatusProvider;
   /**
+   * Which model providers serve an organization (the composed point, the
+   * one the run create chain refuses by), and the catalog the models and
+   * the rule read.
+   */
+  readonly providerAvailability: ProviderAvailabilityProvider;
+  readonly modelCatalog: ModelCatalogProvider;
+  /** Authorizes getModelReadiness against its annotation (can_view on the organization). */
+  readonly authorizer: Authorizer;
+  /**
    * The deployment's Environment policy, the one the session and run
    * services and the Environment controller hold: `environments.applies`
    * is whether it governs a conversation that names no target, and the
@@ -172,6 +215,7 @@ export function registerPlatformServices(
   router.service(PlatformQueryController, {
     getServerInfo: () => getServerInfo(deps),
     getLicenseStatus: () => getLicenseStatus(deps),
+    getModelReadiness: (input, ctx) => getModelReadiness(deps, input, ctx),
     getRunnerBootstrapConfig: (_input, ctx) =>
       getRunnerBootstrapConfig(deps, ctx),
     getRunnerScopedToken: (input, ctx) =>
@@ -191,6 +235,94 @@ function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
       limitedNetworking: deps.environmentPolicy.support.limitedNetworking,
       packages: deps.environmentPolicy.support.packages,
     }),
+  });
+}
+
+/** The engines a readiness answer lists: every engine the proto names, in its order. */
+const READINESS_ENGINES: readonly Harness[] = [Harness.NATIVE, Harness.CLAUDE];
+
+/** Each report as the wire names it. */
+function wireAvailability(report: ProviderAvailabilityReport): ProviderAvailability {
+  switch (report.state) {
+    case "served":
+      return report.source === "organization"
+        ? ProviderAvailability.served_by_organization
+        : report.source === "parent"
+          ? ProviderAvailability.served_by_parent_organization
+          : ProviderAvailability.served_by_runners;
+    case "missing":
+      return report.scope === "organization"
+        ? ProviderAvailability.missing_from_organization
+        : ProviderAvailability.missing_from_runners;
+    case "unknown":
+      return ProviderAvailability.availability_unknown;
+  }
+}
+
+/**
+ * Which providers serve the organization, and whether every catalog model on
+ * every offered engine (and the input's model, when it names one) can run.
+ *
+ * Each provider is asked once; a model's availability is its provider's, by
+ * the rule RequireModelProvider refuses with, so the answer and the refusal
+ * agree by construction. A model the rule judges nothing for (a native model
+ * whose provider no key serves) reports no provider and unknown. A provider
+ * whose availability cannot be read fails the whole answer UNAVAILABLE,
+ * as create would.
+ */
+async function getModelReadiness(
+  deps: PlatformControllerDeps,
+  input: GetModelReadinessInput,
+  ctx: HandlerContext,
+): Promise<GetModelReadinessOutput> {
+  await authorizeDirect(
+    PlatformQueryController.method.getModelReadiness,
+    deps.authorizer,
+    callerIdentityOf(ctx),
+    input,
+  );
+  let reports: ReadonlyMap<ModelProvider, ProviderAvailabilityReport>;
+  try {
+    reports = new Map(
+      await Promise.all(
+        MODEL_PROVIDERS.map(
+          async (provider) => [provider, await deps.providerAvailability.availability(input.org, provider)] as const,
+        ),
+      ),
+    );
+  } catch (err) {
+    deps.logger.warn("Model readiness could not read provider availability", {
+      org: input.org,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw new ConnectError(PROVIDER_AVAILABILITY_UNAVAILABLE_COPY, Code.Unavailable);
+  }
+  const reportOf = (provider: ModelProvider): ProviderAvailabilityReport =>
+    reports.get(provider) ?? { state: "unknown" };
+  const judge = (engine: Harness, model: string): ModelReadiness => {
+    const placed = engine === Harness.UNSPECIFIED ? Harness.NATIVE : engine;
+    const need = providerNeededBy(placed, model, deps.modelCatalog);
+    return create(ModelReadinessSchema, {
+      harness: placed,
+      model,
+      provider: need?.provider ?? "",
+      availability:
+        need === undefined ? ProviderAvailability.availability_unknown : wireAvailability(reportOf(need.provider)),
+    });
+  };
+  return create(GetModelReadinessOutputSchema, {
+    providers: MODEL_PROVIDERS.map((provider) => {
+      const report = reportOf(provider);
+      return create(ProviderReadinessSchema, {
+        provider,
+        availability: wireAvailability(report),
+        parentOrg: report.state === "served" && report.source === "parent" ? report.parentOrg : "",
+      });
+    }),
+    models: READINESS_ENGINES.flatMap((engine) =>
+      deps.modelCatalog.canonicalModels(harnessName(engine)).map((model) => judge(engine, model)),
+    ),
+    judged: input.model === undefined ? undefined : judge(input.model.harness, input.model.model),
   });
 }
 

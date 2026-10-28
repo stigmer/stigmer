@@ -24,6 +24,9 @@ Commands:
   service-account                      manage the organization's service
                                        accounts, the accounts its automation
                                        acts as
+  provider-key                         see which model providers serve the
+                                       organization, and manage its provider
+                                       keys (Stigmer Cloud)
   access-history                       read and export who gave whom access to
                                        what in the organization (owners and
                                        admins)

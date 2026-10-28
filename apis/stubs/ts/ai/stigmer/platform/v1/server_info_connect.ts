@@ -5,6 +5,7 @@
 
 import { GetLicenseStatusInput, GetLicenseStatusOutput, GetRunnerBootstrapConfigInput, GetRunnerBootstrapConfigOutput, GetRunnerScopedTokenInput, GetRunnerScopedTokenOutput, GetServerInfoInput, GetServerInfoOutput } from "./server_info_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { GetModelReadinessInput, GetModelReadinessOutput } from "./model_readiness_pbjs";
 
 /**
  * Query service for server identity, capabilities, and runner bootstrap.
@@ -20,6 +21,9 @@ import { MethodKind } from "@bufbuild/protobuf";
  * Signed-in clients call getLicenseStatus to learn the state of the
  * license the server holds; every edition answers, and only an Enterprise
  * deployment ever answers anything but absent.
+ *
+ * Signed-in members call getModelReadiness to learn which models can run in
+ * their organization before they start a run.
  *
  * @generated from service ai.stigmer.platform.v1.PlatformQueryController
  */
@@ -63,6 +67,34 @@ export const PlatformQueryController = {
       name: "getLicenseStatus",
       I: GetLicenseStatusInput,
       O: GetLicenseStatusOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Returns which model providers serve an organization and, for every model
+     * on every engine, whether a run of it would start.
+     *
+     * A run needs one provider: a Claude run needs Anthropic whatever its
+     * model, and a native run needs its model's provider. The providers are
+     * anthropic and openai; the engines are native and claude. A run whose
+     * provider is missing is refused at create with FAILED_PRECONDITION,
+     * reason PROVIDER_KEY_REQUIRED, by the same rule this answer is read from,
+     * so a client can mark a model and hold Send before the person tries.
+     *
+     * Every edition answers. On Stigmer Cloud a provider is served by the
+     * organization's own key or its parent organization's. On a server whose
+     * runners are its own processes it is served by what the runners reach,
+     * as the operator declared it (on a laptop, `stigmer up` declares it), and
+     * unknown when nothing was declared.
+     *
+     * Any member of the organization may ask, because a member about to start
+     * a run needs the answer; a guest never can.
+     *
+     * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness
+     */
+    getModelReadiness: {
+      name: "getModelReadiness",
+      I: GetModelReadinessInput,
+      O: GetModelReadinessOutput,
       kind: MethodKind.Unary,
     },
     /**

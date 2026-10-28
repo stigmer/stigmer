@@ -45,7 +45,7 @@ describe("buildStatusResult", () => {
     });
     writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: anthropic\n      api_key: sk-x\n");
 
-    const result = await buildStatusResult(home, open);
+    const result = await buildStatusResult(home, open, {});
     expect(result.status).toBe("success");
 
     const titles = result.sections.map((s) => s.title);
@@ -54,11 +54,11 @@ describe("buildStatusResult", () => {
 
     expect(field(result, "Runner", "Status")).toBe("Running ✓ (polling)");
     expect(field(result, "Runner", "Restarts")).toBe("1");
-    expect(field(result, "LLM Configuration", "Provider")).toBe("Anthropic (Cloud)");
+    // The key `stigmer setup` saved reaches the runner, so Anthropic is reached by key.
+    expect(field(result, "LLM Configuration", "Providers")).toBe("anthropic (key)");
     // No model configured: the platform model registry owns the execution
     // default, and status says so instead of asserting a version.
     expect(field(result, "LLM Configuration", "Model")).toBe("Auto (platform default)");
-    expect(field(result, "LLM Configuration", "API Key")).toBe("Configured ✓");
     expect(field(result, "Web UI", "Temporal")).toBe("http://localhost:8233");
   });
 
@@ -66,17 +66,34 @@ describe("buildStatusResult", () => {
     writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
     writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: anthropic\n      model: claude-x\n      api_key: sk-x\n");
 
-    const result = await buildStatusResult(home, open);
+    const result = await buildStatusResult(home, open, {});
     expect(field(result, "LLM Configuration", "Model")).toBe("Auto (platform default)");
   });
 
-  it("reports a non-anthropic provider as unknown — local execution is Anthropic-only", async () => {
+  it("tells a stack that reaches no provider that agents will not execute, and names stigmer setup", async () => {
     writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
+    // A saved provider the launcher does not deliver a key for reaches nothing.
     writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: ollama\n");
 
-    const result = await buildStatusResult(home, open);
-    expect(field(result, "LLM Configuration", "Provider")).toBe("Unknown (ollama)");
+    const result = await buildStatusResult(home, open, { OPENAI_API_KEY: " " });
+    expect(field(result, "LLM Configuration", "Providers")).toBe("Not configured");
     expect(field(result, "LLM Configuration", "Status")).toBe("Agents will not execute");
+    expect(result.hints).toContain("Configure a provider: stigmer setup");
+  });
+
+  it("judges by the runner's reach: an OpenAI key, a cloud backend or a gateway lets agents run", async () => {
+    writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
+
+    const openai = await buildStatusResult(home, open, { OPENAI_API_KEY: "sk-oa" });
+    expect(field(openai, "LLM Configuration", "Providers")).toBe("openai (key)");
+    expect(field(openai, "LLM Configuration", "Status")).toBeUndefined();
+
+    const vertex = await buildStatusResult(home, open, { STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global" });
+    expect(field(vertex, "LLM Configuration", "Providers")).toBe("anthropic (vertex)");
+
+    const gateway = await buildStatusResult(home, open, { ANTHROPIC_BASE_URL: "https://llm-gateway.internal" });
+    expect(field(gateway, "LLM Configuration", "Providers")).toBe("anthropic (gateway)");
+    expect(gateway.hints).not.toContain("Configure a provider: stigmer setup");
   });
 
   it("shows runner as starting before the readiness marker", async () => {

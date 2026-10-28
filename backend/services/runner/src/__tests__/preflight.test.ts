@@ -64,7 +64,8 @@ describe("assertLlmBackendsPreflight", () => {
   // is what a misconfigured deployment sees instead of accepting work. The
   // per-case parse/prereq tables live in shared/__tests__/llm-backend.test.ts;
   // here we pin the wrapper's contract: throw on fatal, warn on precedence,
-  // silent when clean, and options-proxy treated like the env proxy.
+  // silent when clean, options-proxy treated like the env proxy, and the one
+  // line naming the providers the runner reaches (shared/provider-reach.ts).
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
@@ -76,6 +77,9 @@ describe("assertLlmBackendsPreflight", () => {
     vi.stubEnv("STIGMER_ANTHROPIC_BACKEND", "");
     vi.stubEnv("STIGMER_OPENAI_BACKEND", "");
     vi.stubEnv("CLOUD_ML_REGION", "");
+    vi.stubEnv("ANTHROPIC_BASE_URL", "");
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("OPENAI_API_KEY", "");
     for (const [key, value] of Object.entries(vars)) {
       vi.stubEnv(key, value);
     }
@@ -84,6 +88,7 @@ describe("assertLlmBackendsPreflight", () => {
   it("passes silently for an unconfigured deployment", () => {
     stubBackendEnv({});
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
     expect(() => assertLlmBackendsPreflight(null)).not.toThrow();
     expect(warn).not.toHaveBeenCalled();
   });
@@ -93,9 +98,31 @@ describe("assertLlmBackendsPreflight", () => {
     expect(() => assertLlmBackendsPreflight(null)).toThrow(/CLOUD_ML_REGION/);
   });
 
+  it("logs the providers the runner reaches, and how", () => {
+    stubBackendEnv({ STIGMER_ANTHROPIC_BACKEND: "vertex", CLOUD_ML_REGION: "global", OPENAI_API_KEY: "sk-openai" });
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    assertLlmBackendsPreflight(null);
+    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (vertex), openai (key)");
+  });
+
+  it("logs that it reaches no model provider when it holds none", () => {
+    stubBackendEnv({});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    assertLlmBackendsPreflight(null);
+    expect(log).toHaveBeenCalledWith("[runner] reaches: no model provider");
+  });
+
+  it("logs every provider reached through an options-supplied proxy", () => {
+    stubBackendEnv({});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    assertLlmBackendsPreflight("https://api.stigmer.ai");
+    expect(log).toHaveBeenCalledWith("[runner] reaches: anthropic (proxy), openai (proxy)");
+  });
+
   it("warns instead of throwing when an options-supplied proxy makes the var inert", () => {
     stubBackendEnv({ STIGMER_ANTHROPIC_BACKEND: "vertex" });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
     expect(() => assertLlmBackendsPreflight("https://api.stigmer.ai")).not.toThrow();
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining("STIGMER_ANTHROPIC_BACKEND=vertex is ignored"),

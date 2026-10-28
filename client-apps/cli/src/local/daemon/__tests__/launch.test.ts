@@ -1,8 +1,8 @@
 // Pins the foreground launcher's contract with the daemon body: the config it
 // hands over is the detached shape's, encoded through the same env contract;
 // the children inherit that built environment; the post-readiness work (the
-// startup record, the caller's onReady) runs from onStarted;
-// the daemon's exit code is the launcher's. Resolution is driven through the
+// startup record, the caller's onReady, handed the providers the runner
+// reaches) runs from onStarted; the daemon's exit code is the launcher's. Resolution is driven through the
 // same overrides a container sets (STIGMER_SERVER_DIR, STIGMER_RUNNER_DIR,
 // STIGMER_TEMPORAL_BIN), so nothing is downloaded or installed.
 
@@ -14,7 +14,7 @@ import { SERVER_PORT } from "../../constants.js";
 import { tcpConnects } from "../../net/tcp.js";
 import { loadStartupConfig } from "../../state/startup-config.js";
 import { DaemonEnvVar } from "../env.js";
-import { upForeground } from "../launch.js";
+import { type UpReport, upForeground } from "../launch.js";
 import type { InternalDaemonDeps } from "../process.js";
 
 // The launcher refuses to start beside a stack already serving on the server
@@ -35,7 +35,19 @@ function builtPackage(prefix: string): string {
   return dir;
 }
 
-const TOUCHED = ["STIGMER_SERVER_DIR", "STIGMER_RUNNER_DIR", "STIGMER_TEMPORAL_BIN", "STIGMER_NODE_BIN", "ANTHROPIC_API_KEY"] as const;
+const TOUCHED = [
+  "STIGMER_SERVER_DIR",
+  "STIGMER_RUNNER_DIR",
+  "STIGMER_TEMPORAL_BIN",
+  "STIGMER_NODE_BIN",
+  "ANTHROPIC_API_KEY",
+  // Every other variable the reach rule reads, so the shell's own cannot leak in.
+  "ANTHROPIC_BASE_URL",
+  "OPENAI_API_KEY",
+  "STIGMER_ANTHROPIC_BACKEND",
+  "STIGMER_OPENAI_BACKEND",
+  "STIGMER_PROXY_ENDPOINT",
+] as const;
 let saved: Record<string, string | undefined>;
 
 beforeEach(() => {
@@ -64,6 +76,7 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     process.env.ANTHROPIC_API_KEY = "sk-test";
     const order: string[] = [];
     let captured: InternalDaemonDeps | null = null;
+    let reported: UpReport | null = null;
 
     const code = await upForeground({ noWeb: true }, home, {
       runDaemon: async (deps) => {
@@ -73,8 +86,9 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
         order.push("daemon:waiting");
         return 0;
       },
-      onReady: () => {
+      onReady: (report) => {
         order.push("onReady");
+        reported = report;
       },
       waitForShutdown: () => Promise.resolve(),
     });
@@ -93,6 +107,8 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     // The children inherit the built environment, contract variables included.
     expect(deps.env?.[DaemonEnvVar.DataDir]).toBe(join(home, ".stigmer", "data"));
     expect(deps.env?.[DaemonEnvVar.ServerEntry]).toBe(deps.config?.server.entryPath);
+    // The card hears what the runner the daemon builds reaches.
+    expect(reported).toEqual({ runnerReach: [{ provider: "anthropic", via: "key" }] });
     // The startup record names this process as the daemon.
     expect(loadStartupConfig(join(home, ".stigmer", "data"))?.stigmer_server_pid).toBe(process.pid);
   });
@@ -113,20 +129,25 @@ describe.skipIf(serverPortBusy)("upForeground", () => {
     expect(loadStartupConfig(join(home, ".stigmer", "data"))).toBeNull();
   });
 
-  it("omits the runner from the contract in server-only mode", async () => {
+  it("omits the runner from the contract in server-only mode, and reports none", async () => {
     const home = tempDir("stigmer-fg-home-");
+    process.env.OPENAI_API_KEY = "sk-oa";
     let captured: InternalDaemonDeps | null = null;
+    const onReady = vi.fn();
 
     await upForeground({ serverOnly: true }, home, {
       runDaemon: async (deps) => {
         captured = deps;
+        await deps.onStarted?.();
         return 0;
       },
+      onReady,
       waitForShutdown: () => Promise.resolve(),
     });
 
     const deps = captured as unknown as InternalDaemonDeps;
     expect(deps.config?.serverOnly).toBe(true);
     expect(deps.config?.runner).toBeUndefined();
+    expect(onReady).toHaveBeenCalledWith({ runnerReach: undefined });
   });
 });

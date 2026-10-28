@@ -109,6 +109,9 @@ export class LocalExecutionTarget implements TargetProfile {
     claudeTurnsRun: true,
     // No meter, as on `local`: every run is counted from its runner's report.
     runModelCallsMetered: false,
+    // A sibling with its own engine, declared to reach Anthropic alone
+    // (spawnSibling below; target.ts).
+    runnerProviderDeclaration: true,
     // Open source serves the token service; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
     // the user-token verifier and the origin guard are composed.

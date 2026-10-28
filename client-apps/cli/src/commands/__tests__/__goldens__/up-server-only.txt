@@ -1,0 +1,12 @@
+Starting Stigmer local stack… (first run may take a moment)
+✓ Stigmer control plane is up
+
+Endpoints:
+  server     http://localhost:7234
+  console    http://localhost:7234
+
+Agents:
+  not ready    no local runner (control plane only)
+
+  Check status with: stigmer status
+  Stop it with:    stigmer down

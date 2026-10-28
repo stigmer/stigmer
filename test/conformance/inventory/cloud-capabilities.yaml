@@ -399,7 +399,7 @@ rows:
     lane: >-
       gate.providerKey
     behavior: >-
-      A native agent-execution create in an org holding no provider key for the run's model's provider (the agent's model, or the catalog's default model when none is named) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org, provider and model, the copy "This organization has no <Anthropic|OpenAI> key for model '<model>', so the run was not started. An admin can add one in Settings → Provider keys.", and nothing reaches a model.
+      A native agent-execution create in an org holding no provider key for the run's model's provider (the agent's model, or the catalog's default model when none is named) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org, provider and model, the copy "This organization has no <Anthropic|OpenAI> key for model '<model>', so the run was not started. An admin can add one in Models & providers.", and nothing reaches a model.
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -412,7 +412,7 @@ rows:
     lane: >-
       gate.providerKey
     behavior: >-
-      A Claude agent-execution create in an org holding no Anthropic key (its own or its parent organization's) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org and provider "anthropic", the copy "This organization has no Anthropic key for model '<model>', so the run was not started. An admin can add one in Settings → Provider keys." naming the run's model, else the Claude engine's catalog default (the model clause dropped when the catalog lists none), and nothing reaches a model.
+      A Claude agent-execution create in an org holding no Anthropic key (its own or its parent organization's) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org and provider "anthropic", the copy "This organization has no Anthropic key for model '<model>', so the run was not started. An admin can add one in Models & providers." naming the run's model, else the Claude engine's catalog default (the model clause dropped when the catalog lists none), and nothing reaches a model.
     class: carve-out
     disposition: conformance
     observability: launcher

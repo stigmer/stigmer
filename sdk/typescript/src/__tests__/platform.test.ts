@@ -14,6 +14,10 @@
  * and `undefined` from a server that predates it. So does what an
  * Environment does there: each of its three answers as sent, and
  * `undefined` from a server that predates the field.
+ *
+ * getModelReadiness sends the organization and the model to judge as asked,
+ * returns the server's answer as it came, and wraps a refusal in the
+ * client's own error.
  */
 import { describe, expect, it } from "vitest";
 import { createRouterTransport } from "@connectrpc/connect";
@@ -24,6 +28,15 @@ import {
   ServerEdition,
 } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
+import { Code, ConnectError } from "@connectrpc/connect";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  GetModelReadinessOutputSchema,
+  ProviderAvailability,
+  type GetModelReadinessInput,
+} from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
+
+import { StigmerError } from "../gen/errors";
 import { PlatformClient } from "../platform";
 
 function clientAnswering(
@@ -108,5 +121,44 @@ describe("PlatformClient.getServerInfo", () => {
   it("reports environments as undefined from a server that predates the field", async () => {
     const info = await clientAnswering(ServerEdition.cloud, false, false).getServerInfo();
     expect(info.environments).toBeUndefined();
+  });
+});
+
+describe("PlatformClient.getModelReadiness", () => {
+  function readinessClient(answer: (input: GetModelReadinessInput) => Promise<unknown>): PlatformClient {
+    return new PlatformClient(
+      createRouterTransport(({ service }) => {
+        service(PlatformQueryController, {
+          getModelReadiness: async (input) => {
+            await answer(input);
+            return create(GetModelReadinessOutputSchema, {
+              providers: [{ provider: "anthropic", availability: ProviderAvailability.served_by_runners }],
+              judged:
+                input.model === undefined
+                  ? undefined
+                  : { harness: input.model.harness, model: input.model.model, provider: "openai" },
+            });
+          },
+        });
+      }),
+    );
+  }
+
+  it("sends the organization, and the model to judge only when one is named", async () => {
+    const sent: GetModelReadinessInput[] = [];
+    const client = readinessClient(async (input) => sent.push(input));
+    const plain = await client.getModelReadiness("org_acme");
+    const judged = await client.getModelReadiness("org_acme", { harness: Harness.NATIVE, model: "openai:house" });
+    expect(sent.map((input) => [input.org, input.model?.model])).toEqual([
+      ["org_acme", undefined],
+      ["org_acme", "openai:house"],
+    ]);
+    expect(plain.providers[0]?.availability).toBe(ProviderAvailability.served_by_runners);
+    expect(judged.judged?.provider).toBe("openai");
+  });
+
+  it("wraps a refusal in the client's own error", async () => {
+    const client = readinessClient(() => Promise.reject(new ConnectError("unauthorized", Code.PermissionDenied)));
+    await expect(client.getModelReadiness("org_acme")).rejects.toBeInstanceOf(StigmerError);
   });
 });

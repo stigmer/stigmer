@@ -86,16 +86,17 @@ console has no runner page.
 Everything the runner needs arrives through the file your shape already uses.
 You never edit the compose file or the chart.
 
-| What                                         | Docker Compose (`.env`)   | Kubernetes (values file)             | Who sets it                                                                 |
-| -------------------------------------------- | ------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
-| Server address, Temporal address, queue name | Fixed in the compose file | Fixed in the chart                   | The release. Two things named once can't drift.                             |
-| Your LLM key                                 | `ANTHROPIC_API_KEY`       | `runner.llm.existingSecret`          | You. The runner holds it; the server never does.                            |
-| File storage                                 | The `artifacts` volume    | The `stigmer-artifacts` claim        | The release. One disk the server writes and the runner reads.               |
-| The runner's own state                       | The `runner-data` volume  | The `stigmer-runner-data` claim      | The release. Checkpoints and Agents' working directories, not backup state. |
-| The runner's own API key                     | `STIGMER_TOKEN`           | `runner.stigmerToken.existingSecret` | You, once [authentication is on](./authentication#give-the-runner-its-key). |
-| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`      | `server.publicUrl`                   | You, when clients reach the API anywhere but this machine's port.           |
+| What                                         | Docker Compose (`.env`)                                                  | Kubernetes (values file)                       | Who sets it                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- | --------------------------------------------------------------------------- |
+| Server address, Temporal address, queue name | Fixed in the compose file                                                | Fixed in the chart                             | The release. Two things named once can't drift.                             |
+| Your LLM key                                 | `ANTHROPIC_API_KEY`                                                      | `runner.llm.existingSecret`                    | You. The runner holds it; the server never does.                            |
+| File storage                                 | The `artifacts` volume                                                   | The `stigmer-artifacts` claim                  | The release. One disk the server writes and the runner reads.               |
+| The runner's own state                       | The `runner-data` volume                                                 | The `stigmer-runner-data` claim                | The release. Checkpoints and Agents' working directories, not backup state. |
+| The runner's own API key                     | `STIGMER_TOKEN`                                                          | `runner.stigmerToken.existingSecret`           | You, once [authentication is on](./authentication#give-the-runner-its-key). |
+| The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                                                     | `server.publicUrl`                             | You, when clients reach the API anywhere but this machine's port.           |
+| Which providers the runners reach            | Not yet ([stigmer#2675](https://github.com/stigmer/stigmer/issues/2675)) | `server.extraEnv` (`STIGMER_RUNNER_PROVIDERS`) | You, so the console and create know which models can run.                   |
 
-Four of these rows carry a design decision worth knowing.
+Five of these rows carry a design decision worth knowing.
 
 **The LLM key lives with the runner and nowhere else.** The server has no
 setting for it. Agents on the Stigmer and Claude Agent Harnesses need
@@ -107,6 +108,16 @@ and the runner makes each model call for it, so nothing an Agent runs can read
 the key by any path (**Root, `HOME` and Node settings**, below). The
 [all-in-one container](./all-in-one) is the exception: it runs `stigmer up` as
 one user, as on your own machine.
+
+**The server is told which providers the runners reach, never their keys.**
+`STIGMER_RUNNER_PROVIDERS` lists them by name, comma-separated, from `anthropic`
+and `openai` (`anthropic,openai`), matching the keys you gave the runners. The
+console's **Models & providers** page and model picker read it, and a run on a
+provider left off the list is refused before it starts, with copy that says so.
+Left unset, the server cannot tell, so every provider shows as configured where
+the runner runs and nothing is refused: the runner's own error names a missing
+key. A name that is not a provider stops the server at boot. On your own machine
+`stigmer up` sets it for you.
 
 **File storage is shared by disk, not by HTTP.** The server writes a stored file
 to a path and the runner reads the same path, so the two must see one disk. That

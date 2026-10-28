@@ -8,7 +8,8 @@
 // the LLM section untouched, and vice versa. Writes land under
 // backend.local.llm / backend.local.operator, preserving every other config
 // field. The valid provider set is owned by wizard.ts's PROVIDER_CHOICES
-// (Anthropic-only + skip — the only story the native runner serves).
+// (Anthropic + skip: the key setup saves; the runner reaches other providers
+// by keys exported in the shell, local/provider-reach.ts).
 //
 // Setup deliberately has NO model concept: the platform model registry owns
 // the execution default, and per-run overrides belong to `stigmer run

@@ -1,9 +1,14 @@
-// Conformance suite for run admission on the organization's own provider keys
-// (billingGates targets).
-// Domain: billing — the provider-key gate an agent-execution create runs
-// through on the hosted edition, on the create chain's
-// `agent-execution-create:pre-side-effect-gate` slot, after the request's own
-// validation.
+// Conformance suite for run admission on the model provider a run needs.
+// Domain: run admission — whether a run's model provider is there, judged at
+// create after the request's own validation and the edition's gates, before
+// anything starts.
+//
+// Two halves, one rule: a run whose provider is reported missing is refused
+// at create, FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED
+// naming the organization, the provider and the model, and nothing reaches a
+// model.
+//
+// The organization's own provider keys (billingGates targets):
 //
 // The hosted edition serves every model call on a key the organization
 // owns and never on one of its own, so a run is admitted on a key and on
@@ -18,11 +23,31 @@
 //   - the same organization, once it saves its keys, runs to completion: the
 //     provider bills the organization directly.
 //
-// Skipped on the local OSS targets: no provider-key gate exists there (a
+// Skipped on the open-source targets: no provider keys exist there (a
 // self-hosted runner calls its providers with the operator's own keys).
+//
+// What the runners are declared to reach (runnerProviderDeclaration targets):
+// open source answers from STIGMER_RUNNER_PROVIDERS, so the target boots a
+// sibling with an engine whose runners are declared to reach Anthropic
+// alone, and getModelReadiness is held to the refusal there, model by model:
+//   - the answer reports anthropic served by the runners and openai missing
+//     from them, exactly as declared;
+//   - a run on every model the answer reports missing is refused at create
+//     with PROVIDER_KEY_REQUIRED naming that provider and model, in the
+//     runners' copy, and starts no conversation;
+//   - a run on every other model is admitted;
+//   - a model the catalog does not list (`openai:<name>`) is judged as
+//     create judges it.
+// No runner serves the sibling: an admitted run's turn is not played, only
+// its admission is read. Skipped on the cloud targets, whose answer is the
+// organization's keys (the half above), and on the targets without an
+// engine, where the engine gate refuses a run create before the provider
+// check. That every edition answers the readiness shape is
+// platform.conformance.test.ts's.
 import { Code } from "@connectrpc/connect";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ProviderAvailability } from "@stigmer/apis/ai/stigmer/platform/v1/model_readiness_pb";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -33,10 +58,12 @@ import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
-import { createTarget, type TargetProfile, type TenancyContext } from "../targets";
+import { createUniqueOrganization } from "../support/organizations";
+import { createTarget, type SiblingServer, type TargetProfile, type TenancyContext } from "../targets";
 
-// Collection-time capability read (the routine-firing/forwarder pattern).
+// Collection-time capability reads (the routine-firing/forwarder pattern).
 const billingEnabled = createTarget().capabilities.billingGates;
+const runnerProviderDeclaration = createTarget().capabilities.runnerProviderDeclaration;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -97,7 +124,7 @@ describe.skipIf(!billingEnabled)(
       expect(["anthropic", "openai"]).toContain(info?.metadata["provider"]);
       expect(info?.metadata["model"], "the refusal names the model the run would have used").not.toBe("");
       expect(err.rawMessage).toMatch(/^This organization has no (Anthropic|OpenAI) key for model '.+', so the run was not started\./);
-      expect(err.rawMessage).toContain("An admin can add one in Settings → Provider keys.");
+      expect(err.rawMessage).toContain("An admin can add one in Models & providers.");
       expect(mock.remaining()).toBe(0);
     });
 
@@ -118,7 +145,7 @@ describe.skipIf(!billingEnabled)(
       expect(info?.metadata["org"]).toBe(org);
       expect(info?.metadata["provider"]).toBe("anthropic");
       expect(err.rawMessage).toMatch(/^This organization has no Anthropic key( for model '.+')?, so the run was not started\./);
-      expect(err.rawMessage).toContain("An admin can add one in Settings → Provider keys.");
+      expect(err.rawMessage).toContain("An admin can add one in Models & providers.");
       expect(mock.remaining()).toBe(0);
     });
 
@@ -135,6 +162,160 @@ describe.skipIf(!billingEnabled)(
 
       const final = await awaitTerminal(clients, created.metadata!.id);
       expect(final.status?.phase, "the keyed org's run completes").toBe(RunPhase.RUN_COMPLETED);
+    });
+  },
+);
+
+// What the declared sibling's runners reach: Anthropic alone.
+const DECLARED_RUNNER_PROVIDERS = "anthropic";
+
+// The bearer every request to the declared sibling presents. The sibling runs
+// the open-source trusted-local posture (no issuer, no verifier), which admits
+// any request as its one operator, so the token is never verified; the
+// harness's readiness gate presents one, so these clients do too.
+const OPERATOR_BEARER = "conformance-trusted-local-operator";
+
+// Each provider's name as the refusal copy reads it.
+const PROVIDER_LABELS: Readonly<Record<string, string>> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+};
+
+// How a laptop gives its runner each provider's key, as the refusal says it.
+const RUNNER_KEY_FIX: Readonly<Record<string, string>> = {
+  anthropic: "run `stigmer setup`",
+  openai: "set OPENAI_API_KEY in the shell you start Stigmer from",
+};
+
+// The copy a member reads when the runners reach no key for the run's model.
+function runnersMissingCopy(provider: string, model: string): string {
+  return (
+    `This server's runners have no ${PROVIDER_LABELS[provider]} key for model '${model}', ` +
+    `so the run was not started. On your own machine, ${RUNNER_KEY_FIX[provider]}, then \`stigmer down && stigmer up\`.`
+  );
+}
+
+describe.skipIf(!runnerProviderDeclaration)(
+  "Run admission — a run is admitted exactly as getModelReadiness reports its provider (runners declared to reach Anthropic alone)",
+  () => {
+    let declaredTarget: TargetProfile | undefined;
+    let sibling: SiblingServer | undefined;
+    let declared: ConformanceClients;
+    const declaredFixtures = new FixtureTracker();
+
+    beforeAll(async () => {
+      declaredTarget = createTarget();
+      await declaredTarget.setup();
+      // A target that declares the lane and cannot boot its server is a
+      // target bug, not a skippable condition.
+      if (declaredTarget.spawnSibling === undefined) {
+        throw new Error(
+          `target ${declaredTarget.name} declares runnerProviderDeclaration but provides no spawnSibling()`,
+        );
+      }
+      sibling = await declaredTarget.spawnSibling({
+        env: { STIGMER_RUNNER_PROVIDERS: DECLARED_RUNNER_PROVIDERS },
+        readinessBearer: OPERATOR_BEARER,
+      });
+      declared = sibling.clientsPresenting(OPERATOR_BEARER);
+    });
+
+    afterEach(async () => {
+      await declaredFixtures.cleanup();
+    });
+
+    afterAll(async () => {
+      await sibling?.teardown();
+      await declaredTarget?.teardown();
+    });
+
+    async function provisionOrgAndAgent(): Promise<{ org: string; agentRef: AgentRefInit }> {
+      const { id: org } = await createUniqueOrganization(declared.organizationCommand, "the declared server's tenancy");
+      const agent = await declared.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+      declaredFixtures.defer(() => declared.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+      return { org, agentRef: agentRefOf(agent) };
+    }
+
+    function runOn(org: string, agentRef: AgentRefInit, harness: Harness, model: string) {
+      return declared.agentExecutionCommand.create(
+        makeAgentExecution({
+          org,
+          name: uniqueName("aex-readiness"),
+          agentRef,
+          sessionSpec: { harness },
+          runConfig: { modelName: model },
+        }),
+      );
+    }
+
+    it("[rpc:PlatformQueryController.getModelReadiness] reports anthropic served by the runners and openai missing from them, as declared", async () => {
+      const { org } = await provisionOrgAndAgent();
+
+      const answer = await declared.platformQuery.getModelReadiness({ org });
+      expect(answer.providers.map((p) => [p.provider, p.availability, p.parentOrg])).toEqual([
+        ["anthropic", ProviderAvailability.served_by_runners, ""],
+        ["openai", ProviderAvailability.missing_from_runners, ""],
+      ]);
+    });
+
+    it("[rpc:PlatformQueryController.getModelReadiness] [rpc:RunCommandController.create] a run on every model reported missing is refused at create with PROVIDER_KEY_REQUIRED naming its provider and model, and starts no conversation", async () => {
+      const { org, agentRef } = await provisionOrgAndAgent();
+      // The catalog may list no OpenAI model, so the answer also judges one
+      // the catalog does not list: at least one model is always missing.
+      const judged = `openai:${uniqueName("conformance-model")}`;
+      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.NATIVE, model: judged } });
+      const missing = [...answer.models, ...(answer.judged === undefined ? [] : [answer.judged])].filter(
+        (m) => m.availability === ProviderAvailability.missing_from_runners,
+      );
+      expect(
+        new Set(missing.map((m) => m.provider)),
+        "OpenAI, which the runners do not reach, is the one missing provider",
+      ).toEqual(new Set(["openai"]));
+
+      for (const model of missing) {
+        const what = `a ${Harness[model.harness]} run on ${model.model}`;
+        const err = await expectGrpcCode(() => runOn(org, agentRef, model.harness, model.model), Code.FailedPrecondition, what);
+        const [info] = err.findDetails(ErrorInfoSchema);
+        expect(info?.reason, what).toBe("PROVIDER_KEY_REQUIRED");
+        expect(info?.metadata, what).toEqual({ org, provider: model.provider, model: model.model });
+        expect(err.rawMessage, what).toBe(runnersMissingCopy(model.provider, model.model));
+      }
+      const sessions = await declared.sessionQuery.list({ org });
+      expect(sessions.entries, "a refused run starts no conversation").toHaveLength(0);
+    });
+
+    it("[rpc:PlatformQueryController.getModelReadiness] [rpc:RunCommandController.create] a run on every model not reported missing is admitted at create", async () => {
+      const { org, agentRef } = await provisionOrgAndAgent();
+      const answer = await declared.platformQuery.getModelReadiness({ org });
+      const admitted = answer.models.filter((m) => m.availability !== ProviderAvailability.missing_from_runners);
+      expect(
+        new Set(admitted.map((m) => m.harness)),
+        "Anthropic, which the runners reach, serves the Claude engine",
+      ).toContain(Harness.CLAUDE);
+
+      for (const model of admitted) {
+        const created = await runOn(org, agentRef, model.harness, model.model);
+        expect(created.metadata?.id, `a ${Harness[model.harness]} run on ${model.model} is admitted`).not.toBe("");
+      }
+    });
+
+    it("[rpc:PlatformQueryController.getModelReadiness] [rpc:RunCommandController.create] a model the catalog does not list is judged as create judges it: an openai: reference is missing, and its run is refused naming it", async () => {
+      const { org, agentRef } = await provisionOrgAndAgent();
+      const model = `openai:${uniqueName("conformance-model")}`;
+
+      const answer = await declared.platformQuery.getModelReadiness({ org, model: { harness: Harness.NATIVE, model } });
+      expect(answer.judged?.provider).toBe("openai");
+      expect(answer.judged?.availability).toBe(ProviderAvailability.missing_from_runners);
+
+      const err = await expectGrpcCode(
+        () => runOn(org, agentRef, Harness.NATIVE, model),
+        Code.FailedPrecondition,
+        `a native run on ${model}`,
+      );
+      const [info] = err.findDetails(ErrorInfoSchema);
+      expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
+      expect(info?.metadata).toEqual({ org, provider: "openai", model });
+      expect(err.rawMessage).toBe(runnersMissingCopy("openai", model));
     });
   },
 );

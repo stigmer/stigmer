@@ -158,6 +158,9 @@ export class CloudTarget implements TargetProfile {
     // execution arm's run is unmetered and counted from its runner's report
     // (target.ts says why; the proxy suite proves the metered read).
     runModelCallsMetered: false,
+    // The composition answers from the organization's own keys, never a
+    // runner declaration (target.ts).
+    runnerProviderDeclaration: false,
   };
 
   private grpcBaseUrl: string | undefined;

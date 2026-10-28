@@ -1,0 +1,105 @@
+See which model providers serve your Organization, and save, list and remove its provider keys.
+
+Every run calls its model through a provider: Anthropic or OpenAI. On Stigmer
+Cloud each call goes out on a key your Organization owns, one per provider, and
+the provider bills your Organization directly. A run whose model needs a
+provider no key serves is refused before it starts. `list` shows where each
+provider stands on every edition; `set` and `delete` manage the keys on Stigmer
+Cloud, where only those who manage the Organization's billing may. The commands
+act in the Organization `--org` names, then `STIGMER_ORG`, then your context.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# See every provider and where it stands
+stigmer provider-key list
+
+# Save the Anthropic key, typed at a hidden prompt
+stigmer provider-key set anthropic
+
+# Save a key from a script, through stdin
+stigmer provider-key set openai --key-stdin < openai.key
+
+# Use the key against your own OpenAI-compatible endpoint
+stigmer provider-key set openai --base-url https://my-resource.openai.azure.com/openai/v1
+
+# Remove a key; asks first on a terminal
+stigmer provider-key delete anthropic
+```
+
+{/* AUTO_FLAGS */}
+
+### Where a provider stands
+
+`list` prints one row per provider, in the server's order:
+
+| State                                  | Meaning                                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `connected`                            | Your Organization's own key serves it.                                                             |
+| `through <parent>`                     | Your parent Organization's key serves it; that key is managed on the parent.                       |
+| `set on this machine`                  | The runners reach it with a key their operator gave them.                                          |
+| `not connected`                        | Nothing serves it, and runs that need it are refused. Save a key, or give the runners one.         |
+| `not known: set where the runner runs` | The server cannot tell; nothing is refused, and the runner's own error is the answer.             |
+
+On Stigmer Cloud each row also shows its key: the last four characters, the
+endpoint it is used against (`-` for the provider's own API), whether the
+provider confirmed it when it was saved, who saved it and when, and when a run
+last used it. `-o json` and `-o yaml` print the same as data.
+
+### Saving a key
+
+A key is never taken on the command line, where it would stay in your shell
+history and show in the process list. Type it at the hidden prompt, or pipe it
+in with `--key-stdin`. Saving replaces any key your Organization holds for that
+provider. Stigmer asks the provider once whether it accepts the key: a key it
+refuses is not saved; `Saved; checked with Anthropic` means it accepted it; and
+`Saved, not checked` means it did not answer, so the first run that needs it
+says whether it works.
+
+`--base-url` points an Anthropic or OpenAI key at an endpoint that speaks that
+provider's API, such as a gateway or Azure OpenAI. It takes an `https` URL, as
+the provider's own SDK takes its base URL.
+
+### On your own machine
+
+The open-source server keeps no provider keys: its runners use the keys they
+were given. `list` still shows where each provider stands, and `set` and
+`delete` say where the keys come from instead: `stigmer setup` for Anthropic's
+and `OPENAI_API_KEY` in the shell you start Stigmer from for OpenAI's, then
+`stigmer down && stigmer up`.
+
+{/* AUTO_SUBCOMMANDS */}
+
+## Examples
+
+### Set up a new Organization from a script
+
+```bash
+stigmer --org acme provider-key set anthropic --key-stdin < anthropic.key
+stigmer --org acme provider-key list
+```
+
+### Remove a key from a script
+
+```bash
+stigmer provider-key delete openai --force
+```
+
+Off a terminal, `delete` removes nothing without `--force`.
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command                           | Description                                       |
+| --------------------------------- | ------------------------------------------------- |
+| [`stigmer setup`](./setup)        | Give the runners on your own machine their keys   |
+| [`stigmer usage`](./usage)        | See the tokens your Organization's runs use       |
+
+## See also
+
+- [Model provider keys](/docs/guides/integrations/model-provider-keys) — How a
+  key serves your Organization's runs
+- [Command Reference](./) — All available commands

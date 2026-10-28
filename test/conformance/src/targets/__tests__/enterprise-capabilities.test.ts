@@ -32,6 +32,7 @@ const ENTERPRISE_MATRIX: CapabilityFlags = {
   guestMinting: false,
   cloudTargetRefusesLocalPrograms: false,
   runModelCallsMetered: false,
+  runnerProviderDeclaration: false,
   userTokens: true,
   requiresAuthentication: true,
   directLogin: false,

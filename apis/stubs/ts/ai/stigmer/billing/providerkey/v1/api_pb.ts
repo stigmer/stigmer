@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/billing/providerkey/v1/api.proto (package ai.stigmer.billing.providerkey.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/api.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEioAIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGgoSaW5oZXJpdGVkX2Zyb21fb3JnGAkgASgJEhAKCGJhc2VfdXJsGAogASgJSgQICBAJUgZpbl91c2ViBnByb3RvMw", [file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEi5AIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGgoSaW5oZXJpdGVkX2Zyb21fb3JnGAkgASgJEhAKCGJhc2VfdXJsGAogASgJEkIKBWNoZWNrGAsgASgOMjMuYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLlByb3ZpZGVyS2V5Q2hlY2tKBAgIEAlSBmluX3VzZSpSChBQcm92aWRlcktleUNoZWNrEiIKHnByb3ZpZGVyX2tleV9jaGVja191bnNwZWNpZmllZBAAEgsKB2NoZWNrZWQQARINCgl1bmNoZWNrZWQQAmIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * An organization's own model provider key, as every caller sees it: the key
@@ -27,9 +27,10 @@ export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
  * The Stigmer Cloud proxy serves every one of the organization's calls to
  * that provider on this key, on every plan, and on no other: a run that
  * needs a provider the organization holds no key for (by its model) is
- * refused with FAILED_PRECONDITION,
- * reason PROVIDER_KEY_REQUIRED. The provider bills the organization
- * directly, and Stigmer meters the calls without charging them.
+ * refused with FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, and
+ * PlatformQueryController.getModelReadiness says so before a run is tried.
+ * The provider bills the organization directly, and Stigmer meters the calls
+ * without charging them.
  *
  * Provider keys are not an API resource. They are keyed by organization and
  * provider, and they authorize against the organization, as billing does.
@@ -104,6 +105,14 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
    * @generated from field: string base_url = 10;
    */
   baseUrl: string;
+
+  /**
+   * Whether the provider confirmed the key when it was saved (updated_at).
+   * Unspecified on a key saved before the outcome was recorded.
+   *
+   * @generated from field: ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11;
+   */
+  check: ProviderKeyCheck;
 };
 
 /**
@@ -112,4 +121,41 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
  */
 export const ProviderKeySchema: GenMessage<ProviderKey> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_providerkey_v1_api, 0);
+
+/**
+ * The outcome of the check a save makes with the provider.
+ *
+ * A save asks the provider once whether it accepts the key. A refusal (the
+ * provider's 401 or 403) refuses the save; any other answer, or none,
+ * saves the key unchecked, and its first run says whether it works.
+ *
+ * @generated from enum ai.stigmer.billing.providerkey.v1.ProviderKeyCheck
+ */
+export enum ProviderKeyCheck {
+  /**
+   * @generated from enum value: provider_key_check_unspecified = 0;
+   */
+  provider_key_check_unspecified = 0,
+
+  /**
+   * The provider accepted the key.
+   *
+   * @generated from enum value: checked = 1;
+   */
+  checked = 1,
+
+  /**
+   * The provider could not be asked or did not answer plainly; the key was
+   * saved without its confirmation.
+   *
+   * @generated from enum value: unchecked = 2;
+   */
+  unchecked = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.
+ */
+export const ProviderKeyCheckSchema: GenEnum<ProviderKeyCheck> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_billing_providerkey_v1_api, 0);
 

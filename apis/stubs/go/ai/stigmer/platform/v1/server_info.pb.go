@@ -839,7 +839,7 @@ var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
+	"(ai/stigmer/platform/v1/server_info.proto\x12\x16ai.stigmer.platform.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a$ai/stigmer/platform/v1/license.proto\x1a,ai/stigmer/platform/v1/model_readiness.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
 	"\x12GetServerInfoInput\"\xd2\x02\n" +
 	"\x13GetServerInfoOutput\x12?\n" +
 	"\aedition\x18\x01 \x01(\x0e2%.ai.stigmer.platform.v1.ServerEditionR\aedition\x12\x18\n" +
@@ -889,10 +889,11 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x03oss\x10\x01\x12\t\n" +
 	"\x05cloud\x10\x02\x12\x0e\n" +
 	"\n" +
-	"enterprise\x10\x032\x9a\x04\n" +
+	"enterprise\x10\x032\xd1\x05\n" +
 	"\x17PlatformQueryController\x12n\n" +
 	"\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04ȸ\x18\x01\x12w\n" +
-	"\x10getLicenseStatus\x12-.ai.stigmer.platform.v1.GetLicenseStatusInput\x1a..ai.stigmer.platform.v1.GetLicenseStatusOutput\"\x04и\x18\x01\x12\x8f\x01\n" +
+	"\x10getLicenseStatus\x12-.ai.stigmer.platform.v1.GetLicenseStatusInput\x1a..ai.stigmer.platform.v1.GetLicenseStatusOutput\"\x04и\x18\x01\x12\xb4\x01\n" +
+	"\x11getModelReadiness\x12..ai.stigmer.platform.v1.GetModelReadinessInput\x1a/.ai.stigmer.platform.v1.GetModelReadinessOutput\">¸\x18:\b\x01\x10\x1e\"\x03org*/unauthorized to view this organization's models\x12\x8f\x01\n" +
 	"\x18getRunnerBootstrapConfig\x125.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a6.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04и\x18\x01\x12\x83\x01\n" +
 	"\x14getRunnerScopedToken\x121.ai.stigmer.platform.v1.GetRunnerScopedTokenInput\x1a2.ai.stigmer.platform.v1.GetRunnerScopedTokenOutput\"\x04и\x18\x01B\xf4\x01\n" +
 	"\x1acom.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
@@ -926,6 +927,8 @@ var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(LicenseState)(0),                      // 11: ai.stigmer.platform.v1.LicenseState
 	(*LicenseClaims)(nil),                  // 12: ai.stigmer.platform.v1.LicenseClaims
 	(*timestamppb.Timestamp)(nil),          // 13: google.protobuf.Timestamp
+	(*GetModelReadinessInput)(nil),         // 14: ai.stigmer.platform.v1.GetModelReadinessInput
+	(*GetModelReadinessOutput)(nil),        // 15: ai.stigmer.platform.v1.GetModelReadinessOutput
 }
 var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.platform.v1.GetServerInfoOutput.edition:type_name -> ai.stigmer.platform.v1.ServerEdition
@@ -936,14 +939,16 @@ var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	9,  // 5: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.renewal:type_name -> ai.stigmer.platform.v1.TokenRenewal
 	1,  // 6: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
 	4,  // 7: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:input_type -> ai.stigmer.platform.v1.GetLicenseStatusInput
-	6,  // 8: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
-	8,  // 9: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
-	2,  // 10: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
-	5,  // 11: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:output_type -> ai.stigmer.platform.v1.GetLicenseStatusOutput
-	7,  // 12: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
-	10, // 13: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
+	14, // 8: ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness:input_type -> ai.stigmer.platform.v1.GetModelReadinessInput
+	6,  // 9: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	8,  // 10: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	2,  // 11: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
+	5,  // 12: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:output_type -> ai.stigmer.platform.v1.GetLicenseStatusOutput
+	15, // 13: ai.stigmer.platform.v1.PlatformQueryController.getModelReadiness:output_type -> ai.stigmer.platform.v1.GetModelReadinessOutput
+	7,  // 14: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	10, // 15: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -955,6 +960,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 		return
 	}
 	file_ai_stigmer_platform_v1_license_proto_init()
+	file_ai_stigmer_platform_v1_model_readiness_proto_init()
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7].OneofWrappers = []any{
 		(*GetRunnerScopedTokenInput_RunId)(nil),

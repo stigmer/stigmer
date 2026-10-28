@@ -678,7 +678,7 @@ describe("the judge's activities", () => {
     for (const [refusal, reason] of [
       [
         new ConnectError(
-          "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.",
+          "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Models & providers.",
           Code.FailedPrecondition,
         ),
         JUDGE_NOT_STARTED_REASON,

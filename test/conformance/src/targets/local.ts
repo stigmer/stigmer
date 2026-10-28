@@ -89,6 +89,9 @@ export class LocalTarget implements TargetProfile {
     // No meter in this edition: every run's usage is counted from its
     // runner's own report and marked estimated.
     runModelCallsMetered: false,
+    // No engine on this target: the engine gate refuses a run create before
+    // the provider check a runner declaration feeds.
+    runnerProviderDeclaration: false,
     // Open source serves the token service; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
     // the user-token verifier and the origin guard are composed.

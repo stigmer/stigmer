@@ -372,4 +372,27 @@ describe("loadConfig", () => {
       });
     });
   });
+
+  describe("STIGMER_RUNNER_PROVIDERS", () => {
+    it("is undefined when unset: the server cannot tell what its runners reach", () => {
+      expect(loadConfig({}).runnerProviders).toBeUndefined();
+    });
+
+    it("is empty when set to nothing: the runners reach no provider", () => {
+      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: "" }).runnerProviders).toEqual(new Set());
+      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: " , " }).runnerProviders).toEqual(new Set());
+    });
+
+    it("holds the listed providers, spaces trimmed", () => {
+      expect(loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic, openai" }).runnerProviders).toEqual(
+        new Set(["anthropic", "openai"]),
+      );
+    });
+
+    it("refuses a name that is not a provider, so a typo never reads as a missing one", () => {
+      expect(() => loadConfig({ STIGMER_RUNNER_PROVIDERS: "anthropic,gemini" })).toThrow(
+        'STIGMER_RUNNER_PROVIDERS lists "gemini", which is not a model provider — list any of anthropic, openai',
+      );
+    });
+  });
 });

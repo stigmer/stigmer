@@ -19,9 +19,10 @@ package ai.stigmer.billing.providerkey.v1;
  * The Stigmer Cloud proxy serves every one of the organization's calls to
  * that provider on this key, on every plan, and on no other: a run that
  * needs a provider the organization holds no key for (by its model) is
- * refused with FAILED_PRECONDITION,
- * reason PROVIDER_KEY_REQUIRED. The provider bills the organization
- * directly, and Stigmer meters the calls without charging them.
+ * refused with FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, and
+ * PlatformQueryController.getModelReadiness says so before a run is tried.
+ * The provider bills the organization directly, and Stigmer meters the calls
+ * without charging them.
  *
  * Provider keys are not an API resource. They are keyed by organization and
  * provider, and they authorize against the organization, as billing does.
@@ -55,6 +56,7 @@ private static final long serialVersionUID = 0L;
     createdBy_ = "";
     inheritedFromOrg_ = "";
     baseUrl_ = "";
+    check_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -475,6 +477,34 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int CHECK_FIELD_NUMBER = 11;
+  private int check_ = 0;
+  /**
+   * <pre>
+   * Whether the provider confirmed the key when it was saved (updated_at).
+   * Unspecified on a key saved before the outcome was recorded.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+   * @return The enum numeric value on the wire for check.
+   */
+  @java.lang.Override public int getCheckValue() {
+    return check_;
+  }
+  /**
+   * <pre>
+   * Whether the provider confirmed the key when it was saved (updated_at).
+   * Unspecified on a key saved before the outcome was recorded.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+   * @return The check.
+   */
+  @java.lang.Override public ai.stigmer.billing.providerkey.v1.ProviderKeyCheck getCheck() {
+    ai.stigmer.billing.providerkey.v1.ProviderKeyCheck result = ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.forNumber(check_);
+    return result == null ? ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -516,6 +546,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(baseUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, baseUrl_);
     }
+    if (check_ != ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.provider_key_check_unspecified.getNumber()) {
+      output.writeEnum(11, check_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -554,6 +587,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(baseUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(10, baseUrl_);
+    }
+    if (check_ != ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.provider_key_check_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(11, check_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -597,6 +634,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getInheritedFromOrg())) return false;
     if (!getBaseUrl()
         .equals(other.getBaseUrl())) return false;
+    if (check_ != other.check_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -632,6 +670,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getInheritedFromOrg().hashCode();
     hash = (37 * hash) + BASE_URL_FIELD_NUMBER;
     hash = (53 * hash) + getBaseUrl().hashCode();
+    hash = (37 * hash) + CHECK_FIELD_NUMBER;
+    hash = (53 * hash) + check_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -743,9 +783,10 @@ private static final long serialVersionUID = 0L;
    * The Stigmer Cloud proxy serves every one of the organization's calls to
    * that provider on this key, on every plan, and on no other: a run that
    * needs a provider the organization holds no key for (by its model) is
-   * refused with FAILED_PRECONDITION,
-   * reason PROVIDER_KEY_REQUIRED. The provider bills the organization
-   * directly, and Stigmer meters the calls without charging them.
+   * refused with FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED, and
+   * PlatformQueryController.getModelReadiness says so before a run is tried.
+   * The provider bills the organization directly, and Stigmer meters the calls
+   * without charging them.
    *
    * Provider keys are not an API resource. They are keyed by organization and
    * provider, and they authorize against the organization, as billing does.
@@ -813,6 +854,7 @@ private static final long serialVersionUID = 0L;
       }
       inheritedFromOrg_ = "";
       baseUrl_ = "";
+      check_ = 0;
       return this;
     }
 
@@ -883,6 +925,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.baseUrl_ = baseUrl_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.check_ = check_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -936,6 +981,9 @@ private static final long serialVersionUID = 0L;
         baseUrl_ = other.baseUrl_;
         bitField0_ |= 0x00000100;
         onChanged();
+      }
+      if (other.check_ != 0) {
+        setCheckValue(other.getCheckValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1014,6 +1062,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 82
+            case 88: {
+              check_ = input.readEnum();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2053,6 +2106,83 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       baseUrl_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private int check_ = 0;
+    /**
+     * <pre>
+     * Whether the provider confirmed the key when it was saved (updated_at).
+     * Unspecified on a key saved before the outcome was recorded.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+     * @return The enum numeric value on the wire for check.
+     */
+    @java.lang.Override public int getCheckValue() {
+      return check_;
+    }
+    /**
+     * <pre>
+     * Whether the provider confirmed the key when it was saved (updated_at).
+     * Unspecified on a key saved before the outcome was recorded.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+     * @param value The enum numeric value on the wire for check to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setCheckValue(int value) {
+      check_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the provider confirmed the key when it was saved (updated_at).
+     * Unspecified on a key saved before the outcome was recorded.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+     * @return The check.
+     */
+    @java.lang.Override
+    public ai.stigmer.billing.providerkey.v1.ProviderKeyCheck getCheck() {
+      ai.stigmer.billing.providerkey.v1.ProviderKeyCheck result = ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.forNumber(check_);
+      return result == null ? ai.stigmer.billing.providerkey.v1.ProviderKeyCheck.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Whether the provider confirmed the key when it was saved (updated_at).
+     * Unspecified on a key saved before the outcome was recorded.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+     * @param value The check to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCheck(ai.stigmer.billing.providerkey.v1.ProviderKeyCheck value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000200;
+      check_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the provider confirmed the key when it was saved (updated_at).
+     * Unspecified on a key saved before the outcome was recorded.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCheck() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      check_ = 0;
       onChanged();
       return this;
     }

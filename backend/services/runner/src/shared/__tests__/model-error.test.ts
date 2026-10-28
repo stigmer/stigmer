@@ -609,14 +609,14 @@ describe("classifyModelCallError when the organization has no key for the provid
     });
     expect(classified).toEqual({
       code: "LLM_PROVIDER_KEY_REQUIRED",
-      message: "This organization has no Anthropic key. An admin can add one in Settings → Provider keys.",
+      message: "This organization has no Anthropic key. An admin can add one on the Models & providers page.",
     });
   });
 
   it("names the model's provider generically when the caller does not know it", () => {
     const classified = classifyModelCallError(sdkError(403, refusal), { proxyMode: true });
     expect(classified?.message).toBe(
-      "This organization has no key for this model's provider. An admin can add one in Settings → Provider keys.",
+      "This organization has no key for this model's provider. An admin can add one on the Models & providers page.",
     );
   });
 });

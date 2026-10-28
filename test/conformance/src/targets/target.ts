@@ -512,6 +512,24 @@ export interface CapabilityFlags {
   // meter, the execution arm gated on this flag runs instead of the
   // estimated one.
   runModelCallsMetered: boolean;
+  // The target can boot a server of its edition, with an engine behind it,
+  // whose runners are DECLARED to reach some model providers and not others
+  // (STIGMER_RUNNER_PROVIDERS): its sibling, declared to reach Anthropic
+  // alone, so getModelReadiness reports anthropic served by the runners and
+  // openai missing from them, and a run create reaches the
+  // provider check. The run-admission facet holds that answer to the
+  // refusal there: a run on a model reported missing is refused
+  // PROVIDER_KEY_REQUIRED naming its provider, and every other model is
+  // admitted.
+  //
+  // True for the local execution targets, whose siblings bring their own
+  // Temporal. False for the plain local targets: no engine, so a run create
+  // is refused UNAVAILABLE by the engine gate before the provider check runs.
+  // False for the cloud targets BY THE EDITION: the composition answers from
+  // the organization's own keys, not a declaration, and its keyless refusal
+  // is pinned by the billingGates arms of the same facet. False for
+  // enterprise: no engine on this target.
+  runnerProviderDeclaration: boolean;
 }
 
 // The Stripe webhook lane as the suite drives it: where the composition
