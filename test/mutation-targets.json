@@ -36,6 +36,9 @@
         "src/pipeline/steps/validate-visibility.ts",
         "src/pipeline/steps/guard-*.ts",
         "src/pipeline/steps/authorize*.ts",
+        "src/domain/run/require-model-provider.ts",
+        "src/modelcatalog/provider-need.ts",
+        "src/extensions/provider-availability.ts",
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],
@@ -109,6 +112,14 @@
         "src/resources/run/epilogue.ts",
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
+      ],
+      "concurrency": 4
+    },
+    "cli-provider-reach": {
+      "title": "which model providers the laptop's runner reaches",
+      "package": "client-apps/cli",
+      "mutate": [
+        "src/local/provider-reach.ts"
       ],
       "concurrency": 4
     },
