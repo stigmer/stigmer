@@ -12,7 +12,8 @@
  *     interrupt runs, over a real SQLite store with a stub engine:
  *     phase refusals, idempotent already-in-target, NotFound, the
  *     disconnected-engine refusal, warn-and-proceed on workflow-not-found,
- *     and recover's full terminate → re-plan → fresh-start chain, the new
+ *     a terminate's reason read from the request and recorded whether or
+ *     not its workflow still exists (stigmer#1472), and recover's full terminate → re-plan → fresh-start chain, the new
  *     source manifest persisted on the run before the fresh workflow
  *     starts, so its runner's fetch reads the vaults as they are now;
  *   - recover records the session's pin on a turn that recorded no agent,
@@ -609,6 +610,88 @@ describe("lifecycle pipelines", () => {
     );
     expect(result.status?.phase).toBe(RunPhase.RUN_TERMINATED);
     expect(result.status?.error).toBe("Terminated: disk full");
+  });
+
+  // stigmer#1472: the reason comes from the request, so a terminate whose
+  // workflow is already gone records it exactly as a live one does.
+  it("terminate of a run whose workflow is already gone persists the request's reason", async () => {
+    const reason = "Channel turn deadline exceeded (10m); stopped by the delivery backstop";
+    const deps = lifecycleDeps(
+      connected(
+        stubConnectedEngine({
+          terminateWorkflow: async (executionId) => {
+            throw new EngineWorkflowNotFoundError(executionId);
+          },
+        }),
+      ),
+    );
+    const id = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS });
+
+    const result = await terminateExecution(deps, terminateInput(id, reason), testCallerIdentity());
+
+    expect(result.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+    const persisted = await store.getResource(ApiResourceKind.run, id, RunSchema);
+    expect(persisted.status?.error).toBe(`Terminated: ${reason}`);
+  });
+
+  it("terminate of a run whose workflow is already gone, with no reason, persists the default", async () => {
+    const deps = lifecycleDeps(
+      connected(
+        stubConnectedEngine({
+          terminateWorkflow: async (executionId) => {
+            throw new EngineWorkflowNotFoundError(executionId);
+          },
+        }),
+      ),
+    );
+    const id = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS });
+
+    await terminateExecution(deps, terminateInput(id), testCallerIdentity());
+
+    const persisted = await store.getResource(ApiResourceKind.run, id, RunSchema);
+    expect(persisted.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+    expect(persisted.status?.error).toBe("Terminated by user");
+  });
+
+  it("terminate with no reason hands Temporal the default and persists it once, never doubled", async () => {
+    const handed: string[] = [];
+    const deps = lifecycleDeps(
+      connected(
+        stubConnectedEngine({
+          terminateWorkflow: async (_executionId, reason) => void handed.push(reason),
+        }),
+      ),
+    );
+    const id = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS });
+
+    await terminateExecution(deps, terminateInput(id), testCallerIdentity());
+
+    expect(handed).toEqual(["Terminated by user"]);
+    const persisted = await store.getResource(ApiResourceKind.run, id, RunSchema);
+    expect(persisted.status?.error).toBe("Terminated by user");
+  });
+
+  it("pause hands Temporal the request's reason, or the default, and leaves status.error alone", async () => {
+    const handed: string[] = [];
+    const deps = lifecycleDeps(
+      connected(
+        stubConnectedEngine({
+          signalPause: async (_executionId, reason) => void handed.push(reason),
+        }),
+      ),
+    );
+    const withReason = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, error: "earlier" });
+    const withoutReason = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS });
+
+    await pauseExecution(deps, pauseInput(withReason, "lunch"), testCallerIdentity());
+    await pauseExecution(deps, pauseInput(withoutReason), testCallerIdentity());
+
+    expect(handed).toEqual(["lunch", "Paused by user"]);
+    const paused = await store.getResource(ApiResourceKind.run, withReason, RunSchema);
+    expect(paused.status?.phase).toBe(RunPhase.RUN_PAUSED);
+    expect(paused.status?.error).toBe("earlier");
+    const pausedBare = await store.getResource(ApiResourceKind.run, withoutReason, RunSchema);
+    expect(pausedBare.status?.error).toBe("");
   });
 
   // The lifecycle persist step is notify
