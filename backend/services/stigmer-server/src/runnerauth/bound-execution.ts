@@ -80,7 +80,10 @@ export interface BoundExecution {
   readonly executionId: string;
   /** `metadata.org` — the capture capability scopes a memory to it. */
   readonly org: string;
-  /** The creator stamp as written: an account id since 3.15.0, a raw issuer subject before. */
+  /**
+   * The creator stamp as written: an account id, or the raw issuer subject a
+   * write made before the caller's account existed carries.
+   */
   readonly createdBy: string;
   /** The agent execution's session; empty for a connect, which has none. */
   readonly sessionId: string;
