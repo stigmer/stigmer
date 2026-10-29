@@ -448,9 +448,10 @@ describe.each(COMPOSED_DRIVERS)("one agent slug per organization, raced on a com
     expect(refused).toHaveLength(1);
     const refusal = ConnectError.from(refused[0]!.reason);
     expect(refusal.code).toBe(Code.AlreadyExists);
-    expect(refusal.rawMessage).toMatch(/^Agent already exists: slug 'support' in org '/);
-
     const winner = (landed[0] as PromiseFulfilledResult<{ metadata?: { id: string } }>).value;
+    expect(refusal.rawMessage, "the organization by its slug, the holder by its id").toBe(
+      `Agent already exists: slug 'support' in org 'acme' (id: ${winner.metadata?.id ?? ""})`,
+    );
     const found = await query.getByReference({
       kind: ApiResourceKind.agent,
       org: acmeId,

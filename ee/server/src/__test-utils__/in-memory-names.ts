@@ -12,6 +12,8 @@
  * `rowsHold`, when given, makes every row a rig stores hold its name, as
  * the backfill and every create chain make it on a server: a name nobody
  * claimed here resolves to the row of that kind, organization and slug.
+ * `nameOrganization` gives an organization id its slug, as an
+ * organization's create does, for copy that names the organization.
  */
 import type {
   NameTable,
@@ -123,4 +125,9 @@ export function inMemoryNames(
     },
   };
   return { resourceNames, entries };
+}
+
+/** Gives the organization `id` the current slug `slug` in the table, as its create would. */
+export async function nameOrganization(names: NameTable, id: string, slug: string): Promise<void> {
+  await names.resourceNames.claim({ kind: "organization", org: "", name: slug }, id, new Date().toISOString());
 }

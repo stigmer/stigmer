@@ -273,6 +273,43 @@ describe("CheckDuplicate (org-scoped)", () => {
       newCheckDuplicateStep<typeof AgentSchema>(store).execute(otherOrg),
     ).resolves.toBeUndefined();
   });
+
+  it("names the organization by its slug, not its id, and names none when the resource has no organization", async () => {
+    await store.resourceNames.claim(
+      { kind: ApiResourceKind[ApiResourceKind.organization], org: "", name: "acme" },
+      "org_acme",
+      new Date().toISOString(),
+    );
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_2",
+      AgentSchema,
+      agent({ id: "agt_2", slug: "support", org: "org_acme" }),
+    );
+    const inAcme = await captureError(() =>
+      newCheckDuplicateStep<typeof AgentSchema>(store).execute(
+        agentCtx(agent({ slug: "support", org: "org_acme" })),
+      ),
+    );
+    expect((inAcme as ConnectError).rawMessage).toBe(
+      "Agent already exists: slug 'support' in org 'acme' (id: agt_2)",
+    );
+
+    await store.saveResource(
+      ApiResourceKind.agent,
+      "agt_3",
+      AgentSchema,
+      agent({ id: "agt_3", slug: "orphan", org: "" }),
+    );
+    const noOrg = await captureError(() =>
+      newCheckDuplicateStep<typeof AgentSchema>(store).execute(
+        agentCtx(agent({ slug: "orphan", org: "" })),
+      ),
+    );
+    expect((noOrg as ConnectError).rawMessage).toBe(
+      "Agent already exists: slug 'orphan' (id: agt_3)",
+    );
+  });
 });
 
 describe("BuildNewState", () => {

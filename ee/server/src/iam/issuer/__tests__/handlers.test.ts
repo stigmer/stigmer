@@ -115,7 +115,8 @@ import { IdentityAccountProvisioningMode } from "@stigmer/apis/ai/stigmer/iam/id
 
 import { InMemoryIssuerStore, storedIssuer } from "./in-memory-issuer-store.js";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
+import { inMemoryNames, nameOrganization } from "../../../__test-utils__/in-memory-names.js";
+import type { InMemoryNames } from "../../../__test-utils__/in-memory-names.js";
 import { UNBOUND_CREDENTIAL_BINDING } from "../../../__test-utils__/unbound-credential-binding.js";
 
 const ADMIN = "ida_admin";
@@ -215,6 +216,7 @@ interface Rig {
   readonly commands: ReturnType<typeof createClient<typeof FederationIssuerCommandController>>;
   readonly queries: ReturnType<typeof createClient<typeof FederationIssuerQueryController>>;
   readonly store: InMemoryIssuerStore;
+  readonly names: InMemoryNames;
   readonly checks: AuthzCheck[];
   readonly created: ResourceCreatedEvent[];
   readonly removed: string[];
@@ -330,6 +332,7 @@ function rig(
     commands: createClient(FederationIssuerCommandController, transport),
     queries: createClient(FederationIssuerQueryController, transport),
     store,
+    names,
     checks,
     created,
     removed,
@@ -439,14 +442,15 @@ describe("create", () => {
     expect(await r.store.findById("fis_chosen_by_caller")).toBeUndefined();
   });
 
-  it("refuses a slug the organization holds with the provider's copy, before any dial", async () => {
+  it("refuses a slug the organization holds with the library's copy, naming the organization by its slug and the holder by its id, before any dial", async () => {
     const r = rig();
+    await nameOrganization(r.names, "acme", "acme-corp");
     await r.store.insert(storedIssuer({ id: "fis_held", org: "acme", slug: "acme-platform" }));
 
     const refused = await failure(r.commands.create(provider({})));
     expect(refused.code).toBe(Code.AlreadyExists);
     expect(refused.rawMessage).toBe(
-      "FederationIssuer already exists: slug 'acme-platform' in org 'acme'",
+      "FederationIssuer already exists: slug 'acme-platform' in org 'acme-corp' (id: fis_held)",
     );
     expect(r.dialed).toEqual([]);
 
@@ -462,11 +466,12 @@ describe("create", () => {
       }
     }
     const r = rig({ store: new RacingStore() });
+    await nameOrganization(r.names, "acme", "acme-corp");
 
     const refused = await failure(r.commands.create(provider()));
     expect(refused.code).toBe(Code.AlreadyExists);
-    expect(refused.rawMessage).toBe(
-      "FederationIssuer already exists: slug 'acme-platform' in org 'acme'",
+    expect(refused.rawMessage, "the holder the table never named goes unnamed, never the caller's own id").toBe(
+      "FederationIssuer already exists: slug 'acme-platform' in org 'acme-corp'",
     );
     expect(r.created).toEqual([]);
     expect(r.invalidations).toBe(0);
