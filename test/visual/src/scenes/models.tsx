@@ -10,13 +10,11 @@
 // too (`launcherRoutes`): no Environments, no My vault yet, a server that
 // predates the server-info fields.
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
 import type { ProviderKey } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { ProviderKeyQueryController } from "@stigmer/apis/ai/stigmer/billing/providerkey/v1/query_pb";
 import { GrantQueryController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/query_pb";
-import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountQueryController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/query_pb";
 import {
   ProviderAvailability,
@@ -26,7 +24,7 @@ import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/se
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ModelSelector, ModelsHub, NewSessionViewer, useModelReadiness } from "@stigmer/react-sdk";
 import { samples } from "@stigmer/react-sdk/test";
-import { NOTHING_ON_THE_RUNNER, ORGANIZATION, readiness } from "../fixtures.ts";
+import { ACCOUNT, NOTHING_ON_THE_RUNNER, ORGANIZATION, readiness } from "../fixtures.ts";
 import type { Drawing } from "./drawing.ts";
 
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
@@ -35,12 +33,6 @@ function inert(): void {}
 
 /** Who is looking at a cloud organization: an admin may add keys, a member may not. */
 type Viewer = "admin" | "member";
-
-/** The person's own account, with no default models chosen. */
-const ACCOUNT = create(IdentityAccountSchema, {
-  metadata: { id: "ia-ada", name: "Ada Lovelace", slug: "ada", org: ORG_ID },
-  spec: { idpId: "auth0|ada", email: "ada@acme.example" },
-});
 
 /** The calls every scene here makes: the organizations, readiness, the key list, the permission, the account. */
 function modelsRoutes(answer: GetModelReadinessOutput, keys: readonly ProviderKey[], viewer: Viewer) {

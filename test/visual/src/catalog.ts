@@ -52,6 +52,7 @@ export type SceneId =
   | "model-selector-open"
   | "model-selector-not-ready"
   | "dashboard-kpis"
+  | `session-${SessionSceneName}`
   | `preset-${Preset}`;
 
 /** One scene and how it is pictured. */
@@ -90,9 +91,43 @@ export const THREAD_STATES = [
 
 /** The conversation states no thread scene draws, each with what draws it instead. */
 export const THREAD_DRAWN_ELSEWHERE: Readonly<Partial<Record<ScenarioName, string>>> = {
-  "load-failed":
-    "not pictured yet: a session that cannot load never reaches the thread, and SessionViewer's own full-page error waits for the session view's scene",
+  "load-failed": "a session that cannot load never reaches the thread: session-load-failed draws the session view's own error",
+  busy: "a long turn is about the whole session view (its liveness line, its composer's Stop): session-busy and session-end-user draw it",
+  finished: "a finished session is about the whole session view (its Files, its origin, its panel): session-finished and its siblings draw it",
 };
+
+/**
+ * The session view's scenes: the whole `SessionViewer` (thread, composer,
+ * panel and banners) for each person who looks at it, in the states that
+ * tell their jobs apart: following a long turn, answering an approval,
+ * reading what a turn produced, a failure, and a session that cannot load.
+ */
+export type SessionSceneName = (typeof SESSION_SCENES)[number]["id"] extends `session-${infer Name}` ? Name : never;
+
+const SESSION_SCENES = [
+  { id: "session-busy", title: "Session: a long turn at work, in the console", widths: ["desktop", "narrow"] },
+  { id: "session-approval", title: "Session: a tool call waits for approval, in the console", widths: ["desktop"] },
+  {
+    id: "session-finished",
+    title: "Session: a finished turn a routine started, with an edit and two Files returned, in the console",
+    widths: ["desktop"],
+  },
+  {
+    id: "session-inspector",
+    title: "Session: the finished turn with the console's panel open",
+    widths: ["desktop"],
+    opens: "Show panel",
+  },
+  { id: "session-failed", title: "Session: a failed turn, in the console", widths: ["desktop"] },
+  {
+    id: "session-end-user",
+    title: "Session: a long turn at work, inside a customer's product with no panel",
+    widths: ["desktop"],
+  },
+  { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },
+  { id: "session-observer", title: "Session: the finished turn, for a reviewer who reads it", widths: ["desktop"] },
+  { id: "session-load-failed", title: "Session: the conversation cannot load", widths: ["desktop"] },
+] as const satisfies readonly { readonly id: `session-${string}`; readonly title: string; readonly widths: readonly WidthName[]; readonly opens?: string }[];
 
 /** The presets the `completed` thread is drawn in beyond the default look, which `thread-completed` is. */
 export const PRESETS = ["corporate", "startup", "friendly", "fintech", "monochrome"] as const satisfies readonly ThemePresetId[];
@@ -146,6 +181,7 @@ export const SCENES: readonly Scene[] = [
     opens: "Claude Sonnet 4.6",
   },
   { id: "dashboard-kpis", title: "Dashboard figures", widths: ["desktop"] },
+  ...SESSION_SCENES,
   ...PRESETS.map((preset) => ({
     id: `preset-${preset}` as const,
     title: `The completed thread in the ${preset} preset`,
