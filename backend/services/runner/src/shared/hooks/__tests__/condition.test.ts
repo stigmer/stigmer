@@ -453,6 +453,7 @@ describe("splitShellCommands", () => {
   it.each([
     ["a nested eval", "echo $(eval x)"],
     ["an interpreter over an eval", "bash -c 'eval x'"],
+    ["a trap action over an eval", "trap 'eval x' EXIT"],
     ["an open subshell", "(echo hi"],
     ["an open substitution inside quotes", 'echo "$(open"'],
     ["an open backtick inside quotes", 'echo "`open"'],
