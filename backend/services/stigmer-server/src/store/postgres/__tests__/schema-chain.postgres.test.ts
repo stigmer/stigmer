@@ -1,6 +1,7 @@
 /**
  * Pins the one Postgres schema runner (../schema-chain.ts) on a chain of its
- * own in a schema of its own: it creates the schema and its ledger, applies
+ * own in a schema of its own: a schema with no ledger reads version 0; the
+ * runner creates the schema and its ledger, applies
  * each step once with its digest, runs a step's rewrite inside the step's
  * transaction, rolls a failing step back whole and names it, stops at
  * `through` and resumes after it, serializes two first boots on the lock,
@@ -13,7 +14,7 @@ import pg from "pg";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { migrationChecksum } from "../../schema-checksum.js";
-import { runSchemaChain } from "../schema-chain.js";
+import { currentSchemaVersion, runSchemaChain } from "../schema-chain.js";
 import type { PostgresSchemaMigration } from "../schema-chain.js";
 import {
   createTestDatabase,
@@ -85,6 +86,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)("runSchemaChain", () => {
   }
 
   it("creates the schema and ledger, applies each step once with its digest, and runs a rewrite in its step", async () => {
+    const client = await pool.connect();
+    try {
+      expect(await currentSchemaVersion(client, SCHEMA)).toBe(0);
+    } finally {
+      client.release();
+    }
     await run(STEPS, 1);
     await pool.query(
       `INSERT INTO chain_test.notes (id, body) VALUES ('a', 'one two three')`,

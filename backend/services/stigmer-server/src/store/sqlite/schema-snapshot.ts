@@ -79,9 +79,6 @@ function formatStatement(sql: string): string {
   }
   const open = flat.indexOf("(");
   const close = flat.lastIndexOf(")");
-  if (open < 0 || close < open) {
-    return flat;
-  }
   const items = splitTopLevel(flat.slice(open + 1, close));
   return `${flat.slice(0, open).trimEnd()} (\n${items.map((item) => `  ${item}`).join(",\n")}\n)${flat.slice(close + 1)}`;
 }

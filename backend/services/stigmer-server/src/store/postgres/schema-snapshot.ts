@@ -80,10 +80,12 @@ async function tableText(
       ORDER BY a.attnum`,
     [oid],
   );
+  // Postgres 18 also lists a column's NOT NULL as a constraint (contype
+  // 'n'); the column's own line prints it.
   const constraints = await client.query<{ name: string; def: string }>(
     `SELECT quote_ident(conname) AS name, pg_get_constraintdef(oid, true) AS def
        FROM pg_constraint
-      WHERE conrelid = $1
+      WHERE conrelid = $1 AND contype <> 'n'
       ORDER BY conname COLLATE "C"`,
     [oid],
   );
@@ -116,10 +118,6 @@ async function tableText(
     return line;
   });
   for (const constraint of constraints.rows) {
-    // A column's NOT NULL is printed on the column; Postgres 18 also lists it here.
-    if (constraint.def.startsWith("NOT NULL ")) {
-      continue;
-    }
     lines.push(`  CONSTRAINT ${constraint.name} ${constraint.def}`);
   }
   const name = `${schema}.${table}`;
