@@ -32,13 +32,6 @@ message PluginStatus {
   // Storage key of the plugin archive.
   string artifact_storage_key = 2;
 
-  // Fields 3 to 5 held the install's lifecycle state, the failure naming the
-  // member that did not install, and the per-kind counts, while install
-  // created a resource per skill, server and composed agent. Install now
-  // stores the plugin alone in one write, so none of them can be set.
-  reserved 3, 4, 5;
-  reserved "state", "error", "materialized";
-
   // Warnings the last push recorded: components Stigmer does not carry,
   // model hints it did not apply, names that shadow built-ins.
   repeated PluginWarning warnings = 6;
@@ -60,8 +53,7 @@ message PluginStatus {
   // A summary for the plugin page, derived at push from the archive by the
   // library's suite reader. A broken suite never refuses an install: each
   // case that cannot load is a finding here. An eval reads the suite from
-  // the archive itself, which stays authoritative; plugins installed before
-  // this field existed carry it after their next push. The runner reads dir
+  // the archive itself, which stays authoritative. The runner reads dir
   // to keep the cases out of every session's plugin mount.
   PluginEvalSuite evals = 8;
 

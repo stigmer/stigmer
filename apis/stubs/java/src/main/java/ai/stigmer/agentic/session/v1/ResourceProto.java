@@ -58,7 +58,7 @@ public final class ResourceProto extends com.google.protobuf.GeneratedFile {
       "\n,ai/stigmer/agentic/session/v1/resource" +
       ".proto\022\035ai.stigmer.agentic.session.v1\032(a" +
       "i/stigmer/agentic/session/v1/enum.proto\032" +
-      "\033buf/validate/validate.proto\"\314\003\n\017Session" +
+      "\033buf/validate/validate.proto\"\306\003\n\017Session" +
       "Resource\022\034\n\004name\030\001 \001(\tB\010\272H\005r\003\030\377\001R\004name\022A" +
       "\n\004file\030\003 \001(\0132+.ai.stigmer.agentic.sessio" +
       "n.v1.FileResourceH\000R\004file\022]\n\016git_reposit" +
@@ -70,30 +70,29 @@ public final class ResourceProto extends com.google.protobuf.GeneratedFile {
       "repository or a folder needs a name; a f" +
       "ile takes none\0322has(this.file) ? this.na" +
       "me == \'\' : this.name != \'\'B\021\n\010resource\022\005" +
-      "\272H\002\010\001J\004\010\002\020\003\"\245\002\n\014FileResource\022 \n\007file_id\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\006fileId\022\362\001\n\nmount_path\030\002 " +
-      "\001(\tB\322\001\272H\316\001r\003\030\200\010\272\001\305\001\n!file_resource.mount" +
-      "_path.relative\022Hmount_path is relative t" +
-      "o .stigmer/uploads/: no leading /, no .." +
-      " segment\032V!this.startsWith(\'/\') && !this" +
-      ".contains(\'\\\\\') && !this.split(\'/\').exis" +
-      "ts(s, s == \'..\')R\tmountPath\"\203\003\n\025GitRepos" +
-      "itoryResource\022\262\001\n\003url\030\001 \001(\tB\237\001\272H\233\001\272\001\224\001\n!" +
-      "git_repository_resource.url.https\022Rurl m" +
-      "ust use HTTPS (e.g. https://github.com/o" +
-      "rg/repo). SSH URLs are not supported.\032\033t" +
-      "his.startsWith(\'https://\')\310\001\001R\003url\022\026\n\006br" +
-      "anch\030\002 \001(\tR\006branch\022\026\n\006commit\030\003 \001(\tR\006comm" +
-      "it\022W\n\017write_back_mode\030\005 \001(\0162/.ai.stigmer" +
-      ".agentic.session.v1.GitWriteBackModeR\rwr" +
-      "iteBackMode\022\037\n\005token\030\006 \001(\tB\t\272H\006r\004\030\200\200\004R\005t" +
-      "okenJ\004\010\004\020\005R\005depth\"0\n\021LocalPathResource\022\033" +
-      "\n\004path\030\001 \001(\tB\007\272H\004r\002\020\001R\004pathB\250\001B\rResource" +
-      "ProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Sess" +
-      "ion.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002" +
-      ")Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetada" +
-      "ta\352\002!Ai::Stigmer::Agentic::Session::V1b\006" +
-      "proto3"
+      "\272H\002\010\001\"\245\002\n\014FileResource\022 \n\007file_id\030\001 \001(\tB" +
+      "\007\272H\004r\002\020\001R\006fileId\022\362\001\n\nmount_path\030\002 \001(\tB\322\001" +
+      "\272H\316\001r\003\030\200\010\272\001\305\001\n!file_resource.mount_path." +
+      "relative\022Hmount_path is relative to .sti" +
+      "gmer/uploads/: no leading /, no .. segme" +
+      "nt\032V!this.startsWith(\'/\') && !this.conta" +
+      "ins(\'\\\\\') && !this.split(\'/\').exists(s, " +
+      "s == \'..\')R\tmountPath\"\366\002\n\025GitRepositoryR" +
+      "esource\022\262\001\n\003url\030\001 \001(\tB\237\001\272H\233\001\272\001\224\001\n!git_re" +
+      "pository_resource.url.https\022Rurl must us" +
+      "e HTTPS (e.g. https://github.com/org/rep" +
+      "o). SSH URLs are not supported.\032\033this.st" +
+      "artsWith(\'https://\')\310\001\001R\003url\022\026\n\006branch\030\002" +
+      " \001(\tR\006branch\022\026\n\006commit\030\003 \001(\tR\006commit\022W\n\017" +
+      "write_back_mode\030\005 \001(\0162/.ai.stigmer.agent" +
+      "ic.session.v1.GitWriteBackModeR\rwriteBac" +
+      "kMode\022\037\n\005token\030\006 \001(\tB\t\272H\006r\004\030\200\200\004R\005token\"0" +
+      "\n\021LocalPathResource\022\033\n\004path\030\001 \001(\tB\007\272H\004r\002" +
+      "\020\001R\004pathB\250\001B\rResourceProtoP\001\242\002\004ASAS\252\002\035Ai" +
+      ".Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer" +
+      "\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic" +
+      "\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::A" +
+      "gentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

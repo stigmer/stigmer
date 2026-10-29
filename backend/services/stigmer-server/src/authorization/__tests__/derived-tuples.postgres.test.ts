@@ -103,17 +103,6 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("a row that still carries the retired public level derives no viewer tuple at all — no shape reaches every account, and the level's own org floor left with it", () => {
-    expect(
-      derivedFor("skill", {
-        visibility: ApiResourceVisibility.visibility_public,
-      }),
-    ).toEqual([
-      "skill:skill-1#organization@organization:acme",
-      "skill:skill-1#owner@identity_account:ida_carol",
-    ]);
-  });
-
   it("an unspecified level derives no visibility tuple — a legacy row reads private in both editions", () => {
     expect(
       derivedFor("plugin", {

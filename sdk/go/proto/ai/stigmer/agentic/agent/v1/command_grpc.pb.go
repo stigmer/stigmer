@@ -108,9 +108,7 @@ type AgentCommandControllerClient interface {
 	// a later agent created at the same org/slug starts clean. A teardown
 	// that fails refuses the delete and keeps the agent and that channel, so
 	// a retry finishes it. Sessions on the agent are not deleted: their next
-	// message fails, naming the agent. Nor is a chat link written in another
-	// organization before sharing across organizations was retired; such a
-	// link stops resolving instead.
+	// message fails, naming the agent.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 	// Assign or move a tag to a specific agent version.
 	//
@@ -277,9 +275,7 @@ type AgentCommandControllerServer interface {
 	// a later agent created at the same org/slug starts clean. A teardown
 	// that fails refuses the delete and keeps the agent and that channel, so
 	// a retry finishes it. Sessions on the agent are not deleted: their next
-	// message fails, naming the agent. Nor is a chat link written in another
-	// organization before sharing across organizations was retired; such a
-	// link stops resolving instead.
+	// message fails, naming the agent.
 	Delete(context.Context, *AgentId) (*Agent, error)
 	// Assign or move a tag to a specific agent version.
 	//

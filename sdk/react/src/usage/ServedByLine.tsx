@@ -6,7 +6,7 @@
  *
  * The report's `served_by` rows always sum to the aggregate's tokens, with
  * tokens whose server is not known (a run counted from its runner's own
- * report, or a record older than the field) under UNSPECIFIED. The line
+ * report, or a metered call whose meter did not say) under UNSPECIFIED. The line
  * shows a split only when more than one known source appears; one known
  * source reads as a plain sentence ("All on your keys"), and an aggregate
  * with no known source shows nothing, or an "estimated" note where the
@@ -49,8 +49,6 @@ function sourceLabel(source: ProviderKeySource): string | null {
   switch (source) {
     case ProviderKeySource.ORGANIZATION:
       return "your keys";
-    case ProviderKeySource.PLATFORM:
-      return "the platform's connection";
     case ProviderKeySource.UNSPECIFIED:
       return null;
     default: {

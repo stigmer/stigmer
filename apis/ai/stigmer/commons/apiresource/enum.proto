@@ -62,7 +62,6 @@ enum ApiResourceStateOperationType {
 //   AND read-only viewers all satisfy the organization#viewer userset)
 // - CHILD_ORGS: resource#child_org_viewer@organization:<org>#child_org_viewer
 //   (everyone in every child organization of the owning organization)
-// - PUBLIC: retired; see the value's own comment.
 enum ApiResourceVisibility {
   // Default/unspecified - backend infers from context.
   // For new resources the default is config-driven per kind: blueprint kinds
@@ -85,20 +84,6 @@ enum ApiResourceVisibility {
   // `owner: [identity_account] or admin from organization`.
   visibility_private = 1;
 
-  // Retired. This level made a resource readable to every account on the
-  // server; it is refused at create and at updateVisibility for every kind,
-  // and every stored row that held it has been moved to visibility_org.
-  // Sharing across organizations happens through plugins (a copy is
-  // installed and owned) or, from a parent organization to its children,
-  // through visibility_child_orgs.
-  //
-  // @internal
-  // The value is kept, never renumbered: audit snapshots written before the
-  // level was retired carry it, and a reader that meets the number must
-  // still name it. Named visibility_public to avoid Java reserved keyword
-  // conflict.
-  visibility_public = 2;
-
   // Everyone in the owning organization can access (read) this resource —
   // all org roles including read-only viewers (the role just-in-time provisioning
   // grants by default). Running or otherwise spending against the resource
@@ -107,9 +92,6 @@ enum ApiResourceVisibility {
   // read, never spend.
   //
   // FGA tuple: resource#viewer@organization:<org>#viewer
-  // (The tuple once targeted organization#member, which
-  // excluded viewer-role users; the authorization model no longer admits
-  // that shape.)
   visibility_org = 3;
 
   // Everyone in every child organization of the owning organization can

@@ -445,14 +445,6 @@ enum AccessChangeCause {
   // The server's operator became owner of an organization nobody owned.
   operator_ownership = 10;
 
-  // A person who signed in through a platform client was given the
-  // organization role that client granted. No longer written: a minted
-  // user's sign-in role is an ordinary grant made by the service account
-  // whose key minted the token, as federation records its own. It stays
-  // because history entries hold it, and an entry's cause is what
-  // happened then.
-  platform_client_grant = 11;
-
   // An administrator created a service account with its role in the
   // organization.
   service_account_created = 12;

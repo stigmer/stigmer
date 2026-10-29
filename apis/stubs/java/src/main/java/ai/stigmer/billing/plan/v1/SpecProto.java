@@ -74,7 +74,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "nt_hours, the hours it is charged past\032\\" +
       "!has(this.terms.per_agent_hour_micros) |" +
       "| has(this.entitlements.limits.included_" +
-      "agent_hours)\"\223\003\n\tPlanTerms\022B\n\026monthly_mi" +
+      "agent_hours)\"\363\002\n\tPlanTerms\022B\n\026monthly_mi" +
       "nimum_micros\030\001 \001(\003B\007\272H\004\"\002(\000H\000R\024monthlyMi" +
       "nimumMicros\210\001\001\022=\n\024per_extra_org_micros\030\003" +
       " \001(\003B\007\272H\004\"\002(\000H\001R\021perExtraOrgMicros\210\001\001\022<\n" +
@@ -83,14 +83,13 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "cros\030\005 \001(\003B\007\272H\004\"\002 \000H\003R\022perAgentHourMicro" +
       "s\210\001\001B\031\n\027_monthly_minimum_microsB\027\n\025_per_" +
       "extra_org_microsB\026\n\024_annual_price_micros" +
-      "B\030\n\026_per_agent_hour_microsJ\004\010\002\020\003R\030usage_" +
-      "share_basis_points*P\n\016PlanInstrument\022\037\n\033" +
-      "plan_instrument_unspecified\020\000\022\020\n\014subscri" +
-      "ption\020\001\022\013\n\007license\020\002B\230\001B\tSpecProtoP\001\242\002\004A" +
-      "SBP\252\002\032Ai.Stigmer.Billing.Plan.V1\312\002\032Ai\\St" +
-      "igmer\\Billing\\Plan\\V1\342\002&Ai\\Stigmer\\Billi" +
-      "ng\\Plan\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Bi" +
-      "lling::Plan::V1b\006proto3"
+      "B\030\n\026_per_agent_hour_micros*P\n\016PlanInstru" +
+      "ment\022\037\n\033plan_instrument_unspecified\020\000\022\020\n" +
+      "\014subscription\020\001\022\013\n\007license\020\002B\230\001B\tSpecPro" +
+      "toP\001\242\002\004ASBP\252\002\032Ai.Stigmer.Billing.Plan.V1" +
+      "\312\002\032Ai\\Stigmer\\Billing\\Plan\\V1\342\002&Ai\\Stigm" +
+      "er\\Billing\\Plan\\V1\\GPBMetadata\352\002\036Ai::Sti" +
+      "gmer::Billing::Plan::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

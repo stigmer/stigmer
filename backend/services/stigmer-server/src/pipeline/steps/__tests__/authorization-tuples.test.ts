@@ -62,17 +62,6 @@ describe("visibilityShapesFor (the reconciler's level→shape policy)", () => {
     ]).toEqual([]);
   });
 
-  it("the retired public level expands to nothing for every kind — no wildcard shape exists", () => {
-    for (const kind of [
-      ApiResourceKind.agent,
-      ApiResourceKind.vault,
-      ApiResourceKind.plugin,
-      ApiResourceKind.session,
-    ]) {
-      expect([...visibilityShapesFor(kind, V.visibility_public)]).toEqual([]);
-    }
-  });
-
   it("session (no visibility config): every level yields nothing, silently", () => {
     expect([
       ...visibilityShapesFor(ApiResourceKind.session, V.visibility_org),

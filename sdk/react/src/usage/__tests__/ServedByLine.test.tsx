@@ -18,8 +18,9 @@ const org = (tokens: number, calls = 1): ServedByRow => ({
   totalTokens: tokens,
   llmCallCount: calls,
 });
-const platform = (tokens: number, calls = 1): ServedByRow => ({
-  providerKeySource: ProviderKeySource.PLATFORM,
+// A source a newer server may report that this build does not name.
+const newer = (tokens: number, calls = 1): ServedByRow => ({
+  providerKeySource: 7 as ProviderKeySource,
   totalTokens: tokens,
   llmCallCount: calls,
 });
@@ -31,11 +32,11 @@ const unknown = (tokens: number, calls = 0): ServedByRow => ({
 
 describe("summarizeServedBy", () => {
   it("splits by tokens when two known sources served, most first, unknown last", () => {
-    expect(summarizeServedBy([platform(2_000), org(6_000), unknown(2_000)])).toEqual({
+    expect(summarizeServedBy([newer(2_000), org(6_000), unknown(2_000)])).toEqual({
       kind: "split",
       shares: [
         { label: "your keys", tokens: 6_000, percent: 60 },
-        { label: "the platform's connection", tokens: 2_000, percent: 20 },
+        { label: "source 7", tokens: 2_000, percent: 20 },
         { label: "source not recorded", tokens: 2_000, percent: 20 },
       ],
     });
@@ -50,12 +51,11 @@ describe("summarizeServedBy", () => {
   });
 
   it("ignores a known row with nothing in it", () => {
-    expect(summarizeServedBy([org(6_000), platform(0, 0)])).toEqual({ kind: "single", text: "All on your keys" });
+    expect(summarizeServedBy([org(6_000), newer(0, 0)])).toEqual({ kind: "single", text: "All on your keys" });
   });
 
   it("names a source this build does not know by its number, as a known server", () => {
-    const unlisted: ServedByRow = { providerKeySource: 7 as ProviderKeySource, totalTokens: 1_000, llmCallCount: 1 };
-    expect(summarizeServedBy([org(3_000), unlisted])).toEqual({
+    expect(summarizeServedBy([org(3_000), newer(1_000)])).toEqual({
       kind: "split",
       shares: [
         { label: "your keys", tokens: 3_000, percent: 75 },
@@ -73,9 +73,9 @@ describe("summarizeServedBy", () => {
 
 describe("ServedByLine", () => {
   it("renders the split as one labelled line", () => {
-    render(<ServedByLine rows={[org(6_000), platform(2_000)]} />);
+    render(<ServedByLine rows={[org(6_000), newer(2_000)]} />);
     expect(screen.getByLabelText("Served by").textContent).toBe(
-      "Served by your keys 6.0k tokens (75%) · the platform's connection 2.0k tokens (25%)",
+      "Served by your keys 6.0k tokens (75%) · source 7 2.0k tokens (25%)",
     );
   });
 

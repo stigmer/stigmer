@@ -244,7 +244,6 @@ describe("an organization's service account as a caller", () => {
       IdentityAccountProvisioningMode.direct,
       IdentityAccountProvisioningMode.app_user,
       IdentityAccountProvisioningMode.federated,
-      IdentityAccountProvisioningMode.machine,
       IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
     ]) {
       const row = serviceAccountRow({});

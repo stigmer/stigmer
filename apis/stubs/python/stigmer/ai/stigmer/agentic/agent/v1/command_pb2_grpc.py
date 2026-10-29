@@ -158,9 +158,7 @@ class AgentCommandControllerServicer(object):
         a later agent created at the same org/slug starts clean. A teardown
         that fails refuses the delete and keeps the agent and that channel, so
         a retry finishes it. Sessions on the agent are not deleted: their next
-        message fails, naming the agent. Nor is a chat link written in another
-        organization before sharing across organizations was retired; such a
-        link stops resolving instead.
+        message fails, naming the agent.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

@@ -31,11 +31,8 @@ For each vector:
 
 - `policySource` is the runner's `PolicySource` union string, or `null` for the
   `UNSPECIFIED` default (a call that needed no approval — a read-only built-in,
-  an MCP tool its server does not mark destructive — or a legacy execution
-  predating the field).
+  an MCP tool its server does not mark destructive).
 - `name_proto` is the fully-qualified proto enum value name.
-- `number` is the proto enum field number. A retired value is reserved, number
-  and name, and never renumbered or reused: values 1 to 3 recorded the removed
-  per-tool approval policies and are reserved in the proto, so the corpus no
-  longer lists them. Clients fall back to `UNSPECIFIED` for a number they do
-  not know, exactly as for an unset `tool_kind`.
+- `number` is the proto enum field number. Numbers 1 to 3 are unused, so the
+  corpus lists none of them. Clients fall back to `UNSPECIFIED` for a number
+  they do not know, exactly as for an unset `tool_kind`.

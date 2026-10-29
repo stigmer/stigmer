@@ -9,8 +9,6 @@ import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresou
 import {
   blueprintVisibilityLevels,
   vaultVisibilityLevels,
-  visibilityLabel,
-  visibilityOption,
 } from "../visibilityLevels";
 
 describe("vaultVisibilityLevels", () => {
@@ -78,24 +76,3 @@ describe("blueprintVisibilityLevels", () => {
   });
 });
 
-describe("the retired public level", () => {
-  it("is offered by no level list", () => {
-    const offered = [
-      ...blueprintVisibilityLevels({ offersChildOrgs: true }),
-      ...vaultVisibilityLevels(),
-    ].map((l) => l.value);
-    expect(offered).not.toContain(ApiResourceVisibility.visibility_public);
-  });
-
-  it("still renders truthfully for a stored value from before the retirement", () => {
-    // A row on a server not yet upgraded can carry the level; a badge that
-    // fell through to "Private" would lie about who can read the row.
-    const option = visibilityOption(ApiResourceVisibility.visibility_public);
-    expect(option.label).toBe("Public");
-    expect(option.tone).toBe("public");
-    expect(option.description).toContain("Retired");
-    expect(option.confirmPrompt).toBeUndefined();
-    expect(option.confirmDialog).toBeUndefined();
-    expect(visibilityLabel(ApiResourceVisibility.visibility_public)).toBe("Public");
-  });
-});

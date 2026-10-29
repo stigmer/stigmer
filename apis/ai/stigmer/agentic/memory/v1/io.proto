@@ -24,9 +24,6 @@ message ListMemoriesRequest {
   // Organization slug to scope the listing.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  reserved 2;
-  reserved "page_info";
-
   // The most entries to return: 0 asks for the default page of 50, and a
   // size above 100 is read as 100.
   int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
@@ -43,9 +40,6 @@ message ListMemoriesRequest {
 
 // Response containing a paginated list of memories.
 message MemoryList {
-  reserved 1;
-  reserved "total_count";
-
   // Memories in the current page.
   repeated Memory entries = 2;
 

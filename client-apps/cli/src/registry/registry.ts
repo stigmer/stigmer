@@ -21,8 +21,6 @@ export interface TypeInfo {
   readonly displayName: string;
   /** ID prefix new ids are minted with, e.g. "chapp". */
   readonly idPrefix: string;
-  /** Every prefix this type's ids may carry: `idPrefix`, then any retired ones. */
-  readonly idPrefixes: readonly string[];
   /** Canonical singular form (lowercase name), e.g. "channelapp". */
   readonly singular: string;
   /** Plural form for list commands, e.g. "channelapps". */
@@ -82,7 +80,6 @@ export function buildTypeInfo(kind: ApiResourceKind): TypeInfo | undefined {
     name: meta.name,
     displayName: meta.displayName,
     idPrefix: meta.idPrefix,
-    idPrefixes: [meta.idPrefix, ...(meta.retiredIdPrefixes ?? [])].filter((p) => p !== ""),
     singular,
     plural: singular.endsWith("s") ? singular : `${singular}s`,
     // ApiResourceKind[kind] reverse-maps to the proto enum value name (e.g.

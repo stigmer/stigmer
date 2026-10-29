@@ -1339,8 +1339,7 @@ those tokens get.
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: FederationIssuer` (enum `federation_issuer`), prefix
-  `fis` (ids minted before the rename keep `idp`). proto:
-  `iam/federationissuer/v1/spec.proto`.
+  `fis`. proto: `iam/federationissuer/v1/spec.proto`.
 - **Key fields**: `jwks_uri`, `allowed_issuers`, `expected_audience`,
   `create_accounts_on_sign_in`, `sign_in_role`, `external_id_claim`.
 - **Context rule**: Do not use on the sales site. In quickstart, say "your
@@ -1537,8 +1536,9 @@ organizations** (everyone in every child organization).
   three and default to Organization; a shared vault offers Private and
   Organization.
 - **Context rule**: "General access" in the console and concept docs, as Google
-  Drive says it; "visibility" in reference. Never "public" for a level, and
-  never "Platform" (see [Public (visibility)](#public-visibility)).
+  Drive says it; "visibility" in reference. Never "public" or "Platform" for a
+  level: no level reaches every account on a server, and another Organization's
+  work reaches yours as a Plugin you install.
 - **Note**: General access widens who sees and uses a resource, never who may
   spend: starting a conversation also needs the Organization's Member role. See
   [Sharing and access](/docs/concepts/sharing-and-access).
@@ -1680,9 +1680,8 @@ message, start a routine or open a chat link.
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Run`, the console's "Run" page). In prose say "run" in lower case: the
   word is also a verb, so no style rule can capitalize it.
-- **API surface**: `kind: Run`, id prefix `run` (`run_...`); a store that
-  existed before the rename also holds runs whose ids start `aex_...`, and those
-  ids keep working. proto: `run/v1/api.proto`. CLI:
+- **API surface**: `kind: Run`, id prefix `run` (`run_...`). proto:
+  `run/v1/api.proto`. CLI:
 
   ```bash
   stigmer run <agent_name> "<prompt>"
@@ -2241,28 +2240,6 @@ went with it.
   a manifest that still carries `kind: Project`, which says what happened and
   names `stigmer push plugin`. Lowercase "project" for an npm, Go, Python or
   Maven project stays ordinary English.
-
----
-
-#### Public (visibility)
-
-Retired term. `visibility_public` was a resource visibility level that made an
-Agent, Skill, MCP Server or Plugin readable to every signed-in person on the
-server, and the Library's "All" scope listed other Organizations' public
-resources for reference in place. Both went with the level: a resource is
-visible to its creator (Private), to its Organization (Organization, the
-default), or to every child organization of its Organization (Child
-organizations). Another Organization's work reaches yours as a Plugin you
-install and own. A server upgrading from a release that still had the level
-moves every row that carried it to Organization visibility.
-
-- **Capitalize**: Yes, when naming the retired level in an upgrade note.
-- **Context rule**: Do not use for a resource level in new writing. "Public"
-  stays ordinary English for a chat link's audience ("anyone with the link", the
-  `public` audience of a chat link) and for a public website or API. A doc
-  describing "publishing to the marketplace" or "a public Skill another
-  Organization can reference" is describing the retired level; point it at
-  Plugin, or at Child organizations when one Organization is the other's parent.
 
 ---
 

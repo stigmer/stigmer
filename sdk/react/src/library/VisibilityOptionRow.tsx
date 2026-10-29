@@ -144,8 +144,6 @@ export const SELECTED_STYLES: Record<VisibilityTone, string> = {
   org: "stg:bg-blue-100 stg:text-blue-800 stg:dark:bg-blue-900/40 stg:dark:text-blue-300",
   childOrgs:
     "stg:bg-violet-100 stg:text-violet-800 stg:dark:bg-violet-900/40 stg:dark:text-violet-300",
-  public:
-    "stg:bg-emerald-100 stg:text-emerald-800 stg:dark:bg-emerald-900/40 stg:dark:text-emerald-300",
 };
 
 /** Inline-confirm (escalation prompt) treatment, keyed by tone. */
@@ -181,15 +179,6 @@ export const PROMPT_STYLES: Record<
     cancel:
       "stg:text-violet-700 stg:hover:text-violet-900 stg:dark:text-violet-300 stg:dark:hover:text-violet-100",
   },
-  public: {
-    container:
-      "stg:border-emerald-200 stg:bg-emerald-50 stg:dark:border-emerald-800/50 stg:dark:bg-emerald-950/30",
-    text: "stg:text-emerald-800 stg:dark:text-emerald-200",
-    confirm:
-      "stg:bg-emerald-600 stg:hover:bg-emerald-700 stg:dark:bg-emerald-600 stg:dark:hover:bg-emerald-500",
-    cancel:
-      "stg:text-emerald-700 stg:hover:text-emerald-900 stg:dark:text-emerald-300 stg:dark:hover:text-emerald-100",
-  },
 };
 
 // ---------------------------------------------------------------------------
@@ -209,8 +198,6 @@ export function VisibilityIcon({
       return <UsersIcon className={className} />;
     case "childOrgs":
       return <BuildingsIcon className={className} />;
-    case "public":
-      return <GlobeIcon className={className} />;
     default:
       return <LockIcon className={className} />;
   }
@@ -243,16 +230,6 @@ function BuildingsIcon({ className }: { readonly className?: string }) {
       <path d="M6.5 6.5 14 8.5V14" />
       <path d="M2 14h12" />
       <path d="M4.25 6h.01M4.25 8.5h.01M4.25 11h.01M10.5 10.5h.01M10.5 12.5h.01" />
-    </svg>
-  );
-}
-
-function GlobeIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="8" cy="8" r="6" />
-      <path d="M2 8h12" />
-      <path d="M8 2c1.66 1.46 2.6 3.63 2.6 6s-.94 4.54-2.6 6c-1.66-1.46-2.6-3.63-2.6-6s.94-4.54 2.6-6Z" />
     </svg>
   );
 }

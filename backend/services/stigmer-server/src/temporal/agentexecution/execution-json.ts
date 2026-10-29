@@ -24,14 +24,13 @@
  *   string or a Struct value is never touched. The tables go once no
  *   history recorded before that release can still run, the way
  *   deprecatePatch ends a patched branch.
- * - Reserved names. When a release removes a field and reserves its name
- *   (the run's transcript, `messages` among them, which the workflow's
- *   own stop and failure writes carried), the JSON still carries it. A
- *   field name the message reserves is dropped, as its data left the
- *   contract with it, under its retired spelling too (the tables keep a
- *   reserved field's rename for that); any other unknown name is refused,
- *   so a status update stays strict. A name reachable only inside a
- *   reserved field left the tables with it.
+ * - Reserved names. A release that removes a field reserves its name, and
+ *   a status write recorded before the deploy still carries it. A field
+ *   name the message reserves is dropped, as its data left the contract
+ *   with it, under its retired spelling too (the tables keep a reserved
+ *   field's rename for that); any other unknown name is refused, so a
+ *   status update stays strict. A name reachable only inside a reserved
+ *   field leaves the tables with it.
  *
  * Bundle-safe: imported by the workflow.
  */
@@ -45,8 +44,6 @@ import {
   type MessageShape,
 } from "@bufbuild/protobuf";
 export const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
-  ["subAgentExecutions", "subAgentRuns"],
-  ["sub_agent_executions", "sub_agent_runs"],
   ["supersedesExecutionId", "supersedesRunId"],
   ["supersedes_execution_id", "supersedes_run_id"],
 ]);

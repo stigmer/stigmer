@@ -422,9 +422,8 @@ public interface RunStatusOrBuilder extends
    * agent_id).
    *
    * Empty when agent_id is empty, or when the agent had no recorded version
-   * at create (an agent last written before agents were versioned, or one
-   * whose last version failed to archive); such a turn runs the agent as
-   * it is when the turn starts.
+   * at create (its last version failed to archive); such a turn runs the
+   * agent as it is when the turn starts.
    * </pre>
    *
    * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
@@ -438,9 +437,8 @@ public interface RunStatusOrBuilder extends
    * agent_id).
    *
    * Empty when agent_id is empty, or when the agent had no recorded version
-   * at create (an agent last written before agents were versioned, or one
-   * whose last version failed to archive); such a turn runs the agent as
-   * it is when the turn starts.
+   * at create (its last version failed to archive); such a turn runs the
+   * agent as it is when the turn starts.
    * </pre>
    *
    * <code>string agent_version_hash = 28 [json_name = "agentVersionHash"];</code>
@@ -454,8 +452,7 @@ public interface RunStatusOrBuilder extends
    * Every skill and plugin a turn of this run loaded, for the agent and its
    * subagents, at the version it loaded. A turn that resumes after a pause
    * and loads a newer version adds an entry, so a run that ran two versions
-   * of one skill lists both. Empty for a run that loaded none, and for runs
-   * that predate this field.
+   * of one skill lists both. Empty for a run that loaded none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
@@ -467,8 +464,7 @@ public interface RunStatusOrBuilder extends
    * Every skill and plugin a turn of this run loaded, for the agent and its
    * subagents, at the version it loaded. A turn that resumes after a pause
    * and loads a newer version adds an entry, so a run that ran two versions
-   * of one skill lists both. Empty for a run that loaded none, and for runs
-   * that predate this field.
+   * of one skill lists both. Empty for a run that loaded none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
@@ -480,8 +476,7 @@ public interface RunStatusOrBuilder extends
    * Every skill and plugin a turn of this run loaded, for the agent and its
    * subagents, at the version it loaded. A turn that resumes after a pause
    * and loads a newer version adds an entry, so a run that ran two versions
-   * of one skill lists both. Empty for a run that loaded none, and for runs
-   * that predate this field.
+   * of one skill lists both. Empty for a run that loaded none.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>

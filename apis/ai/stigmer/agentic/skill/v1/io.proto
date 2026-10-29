@@ -66,9 +66,6 @@ message PushSkillRequest {
   // Stored in SkillStatus.git_provenance for traceability.
   GitProvenance git_provenance = 4;
 
-  // Reserved field numbers from previous schema versions.
-  reserved 5;
-
   // Optional human-readable message describing what changed in this version.
   // Stored in metadata.version.message for version history display.
   // Analogous to a git commit message. If empty, the version timeline falls
@@ -281,9 +278,6 @@ message ListSkillVersionsResponse {
   // Set when more entries may follow: pass it as page_token to continue.
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
-
-  reserved 3;
-  reserved "total_count";
 }
 
 // Input for listing an organization's skills, newest first.

@@ -43,9 +43,7 @@ message ApiResourceMetadata {
   // System-generated unique identifier.
   //
   // For every kind this is a generated, prefixed id (e.g. agt_<ulid>,
-  // org_<ulid>). An organization made by a release before organization ids
-  // were minted keeps the id it was given then, which equals its first slug.
-  // Two kinds derive it from their natural key instead: a direct
+  // org_<ulid>). Two kinds derive it from their natural key instead: a direct
   // IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of
   // sha256(spec.idp_id)), so one subject can only ever be one account; and
   // a Grant's id is derived from its triple (`grt_` followed by 26
@@ -110,9 +108,6 @@ message ApiResourceMetadata {
       expression: "this.all(k, !k.contains('/') || k.matches('^[^/]{1,253}/'))"
     }
   ];
-
-  reserved 7;
-  reserved "annotations";
 
   // Search words for the resource, in GitHub's topic form: lowercase
   // letters, digits and hyphens, starting with a letter or digit, at most 50

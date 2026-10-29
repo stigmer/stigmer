@@ -104,10 +104,10 @@ describe("parseVisibility", () => {
     }
   });
 
-  it("refuses the retired public level by name, with the remedy and the valid values", () => {
-    for (const spelling of ["public", "visibility_public", " PUBLIC "]) {
+  it("answers a guessed public level with how resources are shared, and the valid values", () => {
+    for (const spelling of ["public", " PUBLIC "]) {
       expect(() => parseVisibility(spelling, "--visibility")).toThrow(
-        /invalid 'visibility' value '.*' in --visibility: the public level is retired[\s\S]*plugins[\s\S]*Valid values: private, org, child-orgs\./,
+        /invalid 'visibility' value '.*' in --visibility: public is not a visibility level[\s\S]*plugins[\s\S]*Valid values: private, org, child-orgs\./,
       );
     }
   });

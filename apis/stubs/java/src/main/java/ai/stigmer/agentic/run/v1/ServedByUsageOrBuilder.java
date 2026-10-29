@@ -14,7 +14,7 @@ public interface ServedByUsageOrBuilder extends
    * <pre>
    * Whose credential served the calls. UNSPECIFIED counts the tokens whose
    * server is not known: a run counted from its runner's own report, or a
-   * metered record written before the meter recorded the credential.
+   * metered call whose meter did not report the credential.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 1 [json_name = "providerKeySource"];</code>
@@ -25,7 +25,7 @@ public interface ServedByUsageOrBuilder extends
    * <pre>
    * Whose credential served the calls. UNSPECIFIED counts the tokens whose
    * server is not known: a run counted from its runner's own report, or a
-   * metered record written before the meter recorded the credential.
+   * metered call whose meter did not report the credential.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 1 [json_name = "providerKeySource"];</code>

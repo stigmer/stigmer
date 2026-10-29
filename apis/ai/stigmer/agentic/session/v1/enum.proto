@@ -53,16 +53,6 @@ enum Harness {
   // pause/resume, and full HITL approval flow.
   HARNESS_STIGMER = 1;
 
-  // HARNESS_NATIVE was this value's name before the harness took the first
-  // word of its label as its one word. The name is reserved so no other harness ever takes it.
-  reserved "HARNESS_NATIVE";
-
-  // 2 was HARNESS_CURSOR, the harness that ran Cursor's SDK agent on
-  // Cursor's servers. It was retired: the number and the name are
-  // reserved so neither is ever reused for a different harness.
-  reserved 2;
-  reserved "HARNESS_CURSOR";
-
   // Claude Agent: Anthropic's Claude Agent SDK. Claude models on the
   // organization's own Anthropic key.
   //

@@ -70,8 +70,7 @@ message ChannelDelivery {
   google.protobuf.Timestamp next_attempt_at = 15;
 
   // The reply text as rendered for the external user, recorded when the
-  // delivery reached a terminal status. Empty while pending/delivering, and
-  // on rows terminal before this field existed.
+  // delivery reached a terminal status. Empty while pending/delivering.
   //
   // @internal
   // The conversation timeline renders agent replies from THIS field, never
@@ -84,8 +83,7 @@ message ChannelDelivery {
   string reply_text = 17;
 
   // Why the delivery FAILED, in the platform's classification. Unspecified
-  // unless status is failed (and on rows terminal before this field
-  // existed).
+  // unless status is failed.
   //
   // @internal
   // The classification that

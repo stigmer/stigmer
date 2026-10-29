@@ -24,15 +24,6 @@ message BillingAccount {
   // Current lifecycle status.
   BillingAccountStatus status = 3;
 
-  // 4, 5, 7 and 8 held balance, auto_recharge,
-  // allowed_negative_balance_micros and low_balance_threshold_micros: the
-  // organization's prepaid credit balance and its top-up and low-balance
-  // settings. Runs use the organization's own provider keys and plans are
-  // invoiced in arrears, so no account holds a balance; the numbers and the
-  // names are reserved so neither is ever reused for a different field.
-  reserved 4, 5, 7, 8;
-  reserved "balance", "auto_recharge", "allowed_negative_balance_micros", "low_balance_threshold_micros";
-
   // Stripe Customer ID. Empty until the org's first Stripe interaction.
   string stripe_customer_id = 6;
 

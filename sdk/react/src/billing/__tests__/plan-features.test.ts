@@ -32,13 +32,13 @@ import { BUSINESS as BUSINESS_PLAN, RETIRED, TEAM } from "./fixtures";
 
 const USD = 1_000_000n;
 const BUSINESS = create(EntitlementsSchema, {
-  features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.child_orgs],
+  features: [Feature.channels, Feature.chat_links, Feature.teams, Feature.child_orgs],
   limits: { includedChildOrgs: 5 },
 });
 
 describe("offeredFeatures", () => {
   it("lists what Cloud offers, leaving out what names nothing, in contract order", () => {
-    const listed = create(EntitlementsSchema, { features: [Feature.teams, Feature.platform_client, ...BUSINESS.features] });
+    const listed = create(EntitlementsSchema, { features: [Feature.teams, 99 as Feature, ...BUSINESS.features] });
     expect(offeredFeatures(listed).map((f) => f.label)).toEqual([
       "Slack and WhatsApp",
       "Chat links",

@@ -1049,10 +1049,10 @@ const file_ai_stigmer_agentic_plugin_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"is_current\x18\x05 \x01(\bR\tisCurrent\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x120\n" +
-	"\x14artifact_storage_key\x18\a \x01(\tR\x12artifactStorageKey\"\xa3\x01\n" +
+	"\x14artifact_storage_key\x18\a \x01(\tR\x12artifactStorageKey\"\x90\x01\n" +
 	"\x1aListPluginVersionsResponse\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.agentic.plugin.v1.PluginVersionEntryR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenJ\x04\b\x03\x10\x04R\vtotal_count\"\x8f\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8f\x02\n" +
 	"\x12ListPluginsRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +

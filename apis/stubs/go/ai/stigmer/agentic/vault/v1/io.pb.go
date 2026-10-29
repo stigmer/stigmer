@@ -1229,7 +1229,7 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\x19GetVaultByExternalIdInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12(\n" +
 	"\vexternal_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
-	"externalId\"\x9d\x02\n" +
+	"externalId\"\x8c\x02\n" +
 	"\x11ListVaultsRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
@@ -1238,10 +1238,10 @@ const file_ai_stigmer_agentic_vault_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x05 \x03(\v2:.ai.stigmer.agentic.vault.v1.ListVaultsRequest.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x02\x10\x03R\tpage_info\"\x84\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"q\n" +
 	"\tVaultList\x12<\n" +
 	"\aentries\x18\x02 \x03(\v2\".ai.stigmer.agentic.vault.v1.VaultR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\x9b\x04\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x9b\x04\n" +
 	"\x10StartSignInInput\x12F\n" +
 	"\x05vault\x18\x01 \x01(\v2(.ai.stigmer.agentic.vault.v1.VaultTargetB\x06\xbaH\x03\xc8\x01\x01R\x05vault\x12$\n" +
 	"\aaddress\x18\x02 \x01(\tB\n" +

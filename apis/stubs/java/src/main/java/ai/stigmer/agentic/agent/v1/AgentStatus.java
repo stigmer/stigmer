@@ -107,8 +107,8 @@ private static final long serialVersionUID = 0L;
    * records none. The history is read through AgentQueryController's
    * listVersions and getVersion.
    *
-   * Empty for an agent last written before agents were versioned, and when
-   * the version could not be recorded (the write still succeeds).
+   * Empty when the version could not be recorded (the write still
+   * succeeds).
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -139,8 +139,8 @@ private static final long serialVersionUID = 0L;
    * records none. The history is read through AgentQueryController's
    * listVersions and getVersion.
    *
-   * Empty for an agent last written before agents were versioned, and when
-   * the version could not be recorded (the write still succeeds).
+   * Empty when the version could not be recorded (the write still
+   * succeeds).
    * </pre>
    *
    * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -674,8 +674,8 @@ private static final long serialVersionUID = 0L;
      * records none. The history is read through AgentQueryController's
      * listVersions and getVersion.
      *
-     * Empty for an agent last written before agents were versioned, and when
-     * the version could not be recorded (the write still succeeds).
+     * Empty when the version could not be recorded (the write still
+     * succeeds).
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -705,8 +705,8 @@ private static final long serialVersionUID = 0L;
      * records none. The history is read through AgentQueryController's
      * listVersions and getVersion.
      *
-     * Empty for an agent last written before agents were versioned, and when
-     * the version could not be recorded (the write still succeeds).
+     * Empty when the version could not be recorded (the write still
+     * succeeds).
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -737,8 +737,8 @@ private static final long serialVersionUID = 0L;
      * records none. The history is read through AgentQueryController's
      * listVersions and getVersion.
      *
-     * Empty for an agent last written before agents were versioned, and when
-     * the version could not be recorded (the write still succeeds).
+     * Empty when the version could not be recorded (the write still
+     * succeeds).
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -765,8 +765,8 @@ private static final long serialVersionUID = 0L;
      * records none. The history is read through AgentQueryController's
      * listVersions and getVersion.
      *
-     * Empty for an agent last written before agents were versioned, and when
-     * the version could not be recorded (the write still succeeds).
+     * Empty when the version could not be recorded (the write still
+     * succeeds).
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>
@@ -790,8 +790,8 @@ private static final long serialVersionUID = 0L;
      * records none. The history is read through AgentQueryController's
      * listVersions and getVersion.
      *
-     * Empty for an agent last written before agents were versioned, and when
-     * the version could not be recorded (the write still succeeds).
+     * Empty when the version could not be recorded (the write still
+     * succeeds).
      * </pre>
      *
      * <code>string version_hash = 3 [json_name = "versionHash"];</code>

@@ -17,7 +17,7 @@ public enum IdentityAccountProvisioningMode
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default value for legacy accounts created before provisioning mode tracking.
+   * Not set. The server sets a mode on every account it creates.
    * </pre>
    *
    * <code>identity_account_provisioning_mode_unspecified = 0;</code>
@@ -39,14 +39,6 @@ public enum IdentityAccountProvisioningMode
    * <code>federated = 2;</code>
    */
   federated(2),
-  /**
-   * <pre>
-   * Machine-to-machine client credentials account for inter-service communication.
-   * </pre>
-   *
-   * <code>machine = 3;</code>
-   */
-  machine(3),
   /**
    * <pre>
    * A person who signs in from an organization's own product: the
@@ -104,7 +96,7 @@ public enum IdentityAccountProvisioningMode
   }
   /**
    * <pre>
-   * Default value for legacy accounts created before provisioning mode tracking.
+   * Not set. The server sets a mode on every account it creates.
    * </pre>
    *
    * <code>identity_account_provisioning_mode_unspecified = 0;</code>
@@ -126,14 +118,6 @@ public enum IdentityAccountProvisioningMode
    * <code>federated = 2;</code>
    */
   public static final int federated_VALUE = 2;
-  /**
-   * <pre>
-   * Machine-to-machine client credentials account for inter-service communication.
-   * </pre>
-   *
-   * <code>machine = 3;</code>
-   */
-  public static final int machine_VALUE = 3;
   /**
    * <pre>
    * A person who signs in from an organization's own product: the
@@ -206,7 +190,6 @@ public enum IdentityAccountProvisioningMode
       case 0: return identity_account_provisioning_mode_unspecified;
       case 1: return direct;
       case 2: return federated;
-      case 3: return machine;
       case 4: return app_user;
       case 5: return service_account;
       default: return null;

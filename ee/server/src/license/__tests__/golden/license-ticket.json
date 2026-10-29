@@ -1,6 +1,6 @@
 {
   "keyId": "license-signing-golden:v1",
-  "publicKeyBase64": "0vC2VTvtGFZ75WmW8qNmT4LDWLsf9Nd4QLjFKOy8QpM=",
+  "publicKeyBase64": "a4rM3hJTJ34Qf5vr6e21h69JLlOxJh33xXNIOOdwwvc=",
   "claims": {
     "licenseId": "lic_01k5r3v0000000000000000001",
     "customer": {
@@ -13,15 +13,11 @@
       "limits": {
         "maxOrgs": 5,
         "maxUsers": 250
-      },
-      "features": [
-        "sso_enforcement",
-        "platform_client"
-      ]
+      }
     },
     "issuedAt": "2026-09-22T10:00:00Z",
     "expiresAt": "2027-09-22T10:00:00Z",
     "graceUntil": "2027-10-22T10:00:00Z"
   },
-  "ticket": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImxpY2Vuc2Utc2lnbmluZy1nb2xkZW46djEifQ.eyJsaWNlbnNlSWQiOiJsaWNfMDFrNXIzdjAwMDAwMDAwMDAwMDAwMDAwMDEiLCJjdXN0b21lciI6eyJpZCI6ImN1c18wMWs1cjN2MDAwMDAwMDAwMDAwMDAwMDAwMCIsImRpc3BsYXlOYW1lIjoiQWNtZSBSb2JvdGljcyIsImNvbnRhY3RFbWFpbCI6ImxpY2Vuc2luZ0BhY21lLmV4YW1wbGUifSwidGVybSI6InBhaWQiLCJlbnRpdGxlbWVudHMiOnsibGltaXRzIjp7Im1heE9yZ3MiOjUsIm1heFVzZXJzIjoyNTB9LCJmZWF0dXJlcyI6WyJzc29fZW5mb3JjZW1lbnQiLCJwbGF0Zm9ybV9jbGllbnQiXX0sImlzc3VlZEF0IjoiMjAyNi0wOS0yMlQxMDowMDowMFoiLCJleHBpcmVzQXQiOiIyMDI3LTA5LTIyVDEwOjAwOjAwWiIsImdyYWNlVW50aWwiOiIyMDI3LTEwLTIyVDEwOjAwOjAwWiJ9.GkiAsu3Xgy_KqDU-wCHG-85al-dsY2X37BrP-DlZMJhELKT3zFPSqXecy9TMohxQBA5UZ8T8q-iXLKGult3QCA", "ticketScan": "gitleaks:allow -- a test vector signed by a key that was generated for it and discarded"
+  "ticket": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImxpY2Vuc2Utc2lnbmluZy1nb2xkZW46djEifQ.eyJsaWNlbnNlSWQiOiJsaWNfMDFrNXIzdjAwMDAwMDAwMDAwMDAwMDAwMDEiLCJjdXN0b21lciI6eyJpZCI6ImN1c18wMWs1cjN2MDAwMDAwMDAwMDAwMDAwMDAwMCIsImRpc3BsYXlOYW1lIjoiQWNtZSBSb2JvdGljcyIsImNvbnRhY3RFbWFpbCI6ImxpY2Vuc2luZ0BhY21lLmV4YW1wbGUifSwidGVybSI6InBhaWQiLCJlbnRpdGxlbWVudHMiOnsibGltaXRzIjp7Im1heE9yZ3MiOjUsIm1heFVzZXJzIjoyNTB9fSwiaXNzdWVkQXQiOiIyMDI2LTA5LTIyVDEwOjAwOjAwWiIsImV4cGlyZXNBdCI6IjIwMjctMDktMjJUMTA6MDA6MDBaIiwiZ3JhY2VVbnRpbCI6IjIwMjctMTAtMjJUMTA6MDA6MDBaIn0.2PmLPksoxHRIRr5tvekyEOoBlM5IstgR7jsnFuW590gBS590WYoJvXD2LeoK4d653Z7ZZBAbJ3YWTei8NyaRCg", "ticketScan": "gitleaks:allow -- a test vector signed by a key that was generated for it and discarded"
 }

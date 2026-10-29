@@ -11,20 +11,14 @@ DESCRIPTOR: _descriptor.FileDescriptor
 class Feature(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     feature_unspecified: _ClassVar[Feature]
-    sso_enforcement: _ClassVar[Feature]
-    platform_client: _ClassVar[Feature]
-    byo_provider_keys: _ClassVar[Feature]
     channels: _ClassVar[Feature]
-    sharing: _ClassVar[Feature]
+    chat_links: _ClassVar[Feature]
     teams: _ClassVar[Feature]
     child_orgs: _ClassVar[Feature]
     access_history: _ClassVar[Feature]
 feature_unspecified: Feature
-sso_enforcement: Feature
-platform_client: Feature
-byo_provider_keys: Feature
 channels: Feature
-sharing: Feature
+chat_links: Feature
 teams: Feature
 child_orgs: Feature
 access_history: Feature

@@ -1,7 +1,8 @@
 An IdentityAccount represents a user or machine principal in Stigmer. It is the
 core identity primitive for authentication and authorization. Accounts can be
-direct (signed up via Stigmer), federated (provisioned through an external
-identity provider), or machine (service-to-service credentials).
+direct (signed up via Stigmer, machine credentials included), federated
+(provisioned through an external identity provider), an app user (minted by an
+organization's own product) or a service account.
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1

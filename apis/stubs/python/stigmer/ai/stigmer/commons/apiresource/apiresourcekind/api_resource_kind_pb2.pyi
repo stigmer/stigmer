@@ -1,11 +1,10 @@
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_group_pb2 as _api_resource_group_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import authorization_config_pb2 as _authorization_config_pb2
 from google.protobuf import descriptor_pb2 as _descriptor_pb2
-from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -101,7 +100,7 @@ KIND_META_FIELD_NUMBER: _ClassVar[int]
 kind_meta: _descriptor.FieldDescriptor
 
 class ApiResourceKindMeta(_message.Message):
-    __slots__ = ("group", "version", "name", "display_name", "id_prefix", "is_versioned", "not_search_indexed", "tier", "authorization", "retired_id_prefixes")
+    __slots__ = ("group", "version", "name", "display_name", "id_prefix", "is_versioned", "not_search_indexed", "tier", "authorization")
     GROUP_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -111,7 +110,6 @@ class ApiResourceKindMeta(_message.Message):
     NOT_SEARCH_INDEXED_FIELD_NUMBER: _ClassVar[int]
     TIER_FIELD_NUMBER: _ClassVar[int]
     AUTHORIZATION_FIELD_NUMBER: _ClassVar[int]
-    RETIRED_ID_PREFIXES_FIELD_NUMBER: _ClassVar[int]
     group: _api_resource_group_pb2.ApiResourceGroup
     version: ApiResourceVersion
     name: str
@@ -121,5 +119,4 @@ class ApiResourceKindMeta(_message.Message):
     not_search_indexed: bool
     tier: ResourceTier
     authorization: _authorization_config_pb2.AuthorizationConfig
-    retired_id_prefixes: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, group: _Optional[_Union[_api_resource_group_pb2.ApiResourceGroup, str]] = ..., version: _Optional[_Union[ApiResourceVersion, str]] = ..., name: _Optional[str] = ..., display_name: _Optional[str] = ..., id_prefix: _Optional[str] = ..., is_versioned: bool = ..., not_search_indexed: bool = ..., tier: _Optional[_Union[ResourceTier, str]] = ..., authorization: _Optional[_Union[_authorization_config_pb2.AuthorizationConfig, _Mapping]] = ..., retired_id_prefixes: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(self, group: _Optional[_Union[_api_resource_group_pb2.ApiResourceGroup, str]] = ..., version: _Optional[_Union[ApiResourceVersion, str]] = ..., name: _Optional[str] = ..., display_name: _Optional[str] = ..., id_prefix: _Optional[str] = ..., is_versioned: bool = ..., not_search_indexed: bool = ..., tier: _Optional[_Union[ResourceTier, str]] = ..., authorization: _Optional[_Union[_authorization_config_pb2.AuthorizationConfig, _Mapping]] = ...) -> None: ...

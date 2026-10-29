@@ -43,7 +43,7 @@ import {
 } from "@stigmer/client";
 import { requireOrganization } from "../../client/single-org.js";
 import { resolveAgent } from "../agent/resolve.js";
-import { idPrefixesFor, parseReference } from "../reference.js";
+import { idPrefixOf, parseReference } from "../reference.js";
 import { asStartRefusal, runEval, type EvalIo } from "./follow.js";
 import type { EvalRunOptions, EvalTarget } from "./options.js";
 import { evalExitCode, oneLine, renderEvalReport, type EvalExit } from "./report.js";
@@ -166,7 +166,7 @@ async function resolveSubject(client: Stigmer, org: string, options: EvalRunOpti
 }
 
 async function resolvePlugin(client: Stigmer, ref: string, org: string): Promise<Plugin> {
-  const parsed = parseReference(ref, org, idPrefixesFor(ApiResourceKind.plugin));
+  const parsed = parseReference(ref, org, idPrefixOf(ApiResourceKind.plugin));
   if (parsed.kind === "id") {
     return client.plugin.get(parsed.id);
   }
@@ -176,7 +176,7 @@ async function resolvePlugin(client: Stigmer, ref: string, org: string): Promise
 
 /** A `--cases-from` reference as the create's case source: by id, or by slug in its organization. */
 function caseSourceOf(ref: string, agentOrg: string): EvalRunCaseSourceInput {
-  const parsed = parseReference(ref, agentOrg, idPrefixesFor(ApiResourceKind.plugin));
+  const parsed = parseReference(ref, agentOrg, idPrefixOf(ApiResourceKind.plugin));
   return parsed.kind === "id"
     ? { plugin: { org: "", slug: "", id: parsed.id } }
     : { plugin: { org: parsed.org, slug: parsed.slug } };
@@ -184,7 +184,7 @@ function caseSourceOf(ref: string, agentOrg: string): EvalRunCaseSourceInput {
 
 /** An `--eval` reference as the create's case source: by id, or by slug in its organization, at its version. */
 function evalSourceOf(target: EvalTarget, agentOrg: string): EvalRunCaseSourceInput {
-  const parsed = parseReference(target.ref, agentOrg, idPrefixesFor(ApiResourceKind.eval));
+  const parsed = parseReference(target.ref, agentOrg, idPrefixOf(ApiResourceKind.eval));
   const ref =
     parsed.kind === "id" ? { org: "", slug: "", id: parsed.id } : { org: parsed.org, slug: parsed.slug };
   return { eval: { ...ref, ...(target.version !== "" && { version: target.version }) } };

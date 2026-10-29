@@ -266,7 +266,7 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x88\t\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd0\a\n" +
 	"\vSessionSpec\x12W\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12T\n" +
@@ -285,7 +285,7 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\tresources\x18\x16 \x03(\v2..ai.stigmer.agentic.session.v1.SessionResourceB\t\xbaH\x06\x92\x01\x03\x10\xe8\aR\tresources\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\r\x10\x0eJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\v\x10\fJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x10harness_state_idR\x18harness_state_id_historyR\x11workspace_entriesR\x11mcp_server_usagesR\vcursor_modeR\asecretsR\vconnectionsB\x88\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x88\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (

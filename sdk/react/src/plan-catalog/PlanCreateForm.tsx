@@ -15,7 +15,7 @@ import { useCreatePlan } from "./usePlanMutations.js";
 /** The features a subscription plan can list, in contract order. */
 const PLAN_FEATURES: readonly NamedFeature[] = [
   Feature.channels,
-  Feature.sharing,
+  Feature.chat_links,
   Feature.teams,
   Feature.child_orgs,
   Feature.access_history,

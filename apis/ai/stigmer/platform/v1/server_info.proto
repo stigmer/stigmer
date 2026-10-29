@@ -386,16 +386,6 @@ message GetRunnerScopedTokenInput {
   // The dispatched work the token will serve. The runner names only the id it
   // was dispatched; the server derives the token's scope from the resource
   // itself (a run scopes to its parent session).
-  //
-  // Arm 2 held workflow_run_id, which scoped a token to one workflow run's
-  // ExecutionContext, until the workflow product was removed platform-wide.
-  // Arm 3 held pool_claim, the exchange a pre-started pool sandbox made for
-  // the session it was claimed for, until the hosted edition's sandbox pool
-  // was removed. Both are reserved so their numbers and names are never
-  // reused for a different arm.
-  reserved 2, 3;
-  reserved "workflow_run_id", "pool_claim";
-
   oneof scope {
     option (buf.validate.oneof).required = true;
 

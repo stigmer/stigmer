@@ -7,7 +7,7 @@
 // This module owns the run-type check, the
 // cancel-with-result semantics, and the run reads shared by `get run`,
 // `list runs`, `delete run` and `download`; the run-ID check is
-// reference.ts's `isRunId`, over the kind's current and retired prefixes.
+// reference.ts's `isRunId`.
 
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";

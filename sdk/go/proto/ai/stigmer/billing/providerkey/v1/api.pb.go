@@ -125,7 +125,7 @@ type ProviderKey struct {
 	// gateway. Always empty on an inherited row.
 	BaseUrl string `protobuf:"bytes,10,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
 	// Whether the provider confirmed the key when it was saved (updated_at).
-	// Unspecified on a key saved before the outcome was recorded.
+	// Unspecified when the server holds no outcome for the key.
 	Check         ProviderKeyCheck `protobuf:"varint,11,opt,name=check,proto3,enum=ai.stigmer.billing.providerkey.v1.ProviderKeyCheck" json:"check,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -235,7 +235,7 @@ var File_ai_stigmer_billing_providerkey_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcb\x03\n" +
+	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbd\x03\n" +
 	"\vProviderKey\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
@@ -251,7 +251,7 @@ const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n" +
 	"\bbase_url\x18\n" +
 	" \x01(\tR\abaseUrl\x12I\n" +
-	"\x05check\x18\v \x01(\x0e23.ai.stigmer.billing.providerkey.v1.ProviderKeyCheckR\x05checkJ\x04\b\b\x10\tR\x06in_use*R\n" +
+	"\x05check\x18\v \x01(\x0e23.ai.stigmer.billing.providerkey.v1.ProviderKeyCheckR\x05check*R\n" +
 	"\x10ProviderKeyCheck\x12\"\n" +
 	"\x1eprovider_key_check_unspecified\x10\x00\x12\v\n" +
 	"\achecked\x10\x01\x12\r\n" +

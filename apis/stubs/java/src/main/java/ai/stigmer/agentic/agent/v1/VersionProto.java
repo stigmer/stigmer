@@ -65,7 +65,7 @@ public final class VersionProto extends com.google.protobuf.GeneratedFile {
       "gmer/agentic/agent/v1/spec.proto\032+ai/sti" +
       "gmer/commons/apiresource/status.proto\032\033b" +
       "uf/validate/validate.proto\032\037google/proto" +
-      "buf/timestamp.proto\"\365\002\n\021AgentVersionEntr" +
+      "buf/timestamp.proto\"\337\002\n\021AgentVersionEntr" +
       "y\022!\n\014version_hash\030\001 \001(\tR\013versionHash\0229\n\n" +
       "applied_at\030\002 \001(\0132\032.google.protobuf.Times" +
       "tampR\tappliedAt\022T\n\napplied_by\030\003 \001(\01325.ai" +
@@ -74,27 +74,26 @@ public final class VersionProto extends com.google.protobuf.GeneratedFile {
       "\035\n\nis_current\030\005 \001(\010R\tisCurrent\022\030\n\007messag" +
       "e\030\006 \001(\tR\007message\022K\n\rspec_snapshot\030\007 \001(\0132" +
       "&.ai.stigmer.agentic.agent.v1.AgentSpecR" +
-      "\014specSnapshotJ\004\010\010\020\tR\016git_provenance\"\235\001\n\026" +
-      "ListAgentVersionsInput\022\030\n\003org\030\001 \001(\tB\006\272H\003" +
-      "\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slug\022\'\n\n" +
-      "page_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022$\n" +
-      "\tpage_size\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize\"\240\001\n\031" +
-      "ListAgentVersionsResponse\022H\n\007entries\030\001 \003" +
-      "(\0132..ai.stigmer.agentic.agent.v1.AgentVe" +
-      "rsionEntryR\007entries\022&\n\017next_page_token\030\002" +
-      " \001(\tR\rnextPageTokenJ\004\010\003\020\004R\013total_count\"s" +
-      "\n\024GetAgentVersionInput\022!\n\010agent_id\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\007agentId\0228\n\014version_hash\030\002 \001(\tB" +
-      "\025\272H\022r\0202\016^[a-f0-9]{64}$R\013versionHash\"\241\001\n\024" +
-      "TagAgentVersionInput\022!\n\010agent_id\030\001 \001(\tB\006" +
-      "\272H\003\310\001\001R\007agentId\0228\n\014version_hash\030\002 \001(\tB\025\272" +
-      "H\022r\0202\016^[a-f0-9]{64}$R\013versionHash\022,\n\003tag" +
-      "\030\003 \001(\tB\032\272H\027r\025\020\0012\021^[a-zA-Z0-9._-]+$R\003tagB" +
-      "\237\001B\014VersionProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.A" +
-      "gentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Age" +
-      "nt\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBM" +
-      "etadata\352\002\037Ai::Stigmer::Agentic::Agent::V" +
-      "1b\006proto3"
+      "\014specSnapshot\"\235\001\n\026ListAgentVersionsInput" +
+      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\t" +
+      "B\006\272H\003\310\001\001R\004slug\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r" +
+      "\003\030\200\010R\tpageToken\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032" +
+      "\002(\000R\010pageSize\"\215\001\n\031ListAgentVersionsRespo" +
+      "nse\022H\n\007entries\030\001 \003(\0132..ai.stigmer.agenti" +
+      "c.agent.v1.AgentVersionEntryR\007entries\022&\n" +
+      "\017next_page_token\030\002 \001(\tR\rnextPageToken\"s\n" +
+      "\024GetAgentVersionInput\022!\n\010agent_id\030\001 \001(\tB" +
+      "\006\272H\003\310\001\001R\007agentId\0228\n\014version_hash\030\002 \001(\tB\025" +
+      "\272H\022r\0202\016^[a-f0-9]{64}$R\013versionHash\"\241\001\n\024T" +
+      "agAgentVersionInput\022!\n\010agent_id\030\001 \001(\tB\006\272" +
+      "H\003\310\001\001R\007agentId\0228\n\014version_hash\030\002 \001(\tB\025\272H" +
+      "\022r\0202\016^[a-f0-9]{64}$R\013versionHash\022,\n\003tag\030" +
+      "\003 \001(\tB\032\272H\027r\025\020\0012\021^[a-zA-Z0-9._-]+$R\003tagB\237" +
+      "\001B\014VersionProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Ag" +
+      "entic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agen" +
+      "t\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMe" +
+      "tadata\352\002\037Ai::Stigmer::Agentic::Agent::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

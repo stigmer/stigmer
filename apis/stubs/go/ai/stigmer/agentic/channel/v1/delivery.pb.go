@@ -200,12 +200,10 @@ type ChannelDelivery struct {
 	// Earliest time of the next delivery attempt (backoff schedule).
 	NextAttemptAt *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=next_attempt_at,json=nextAttemptAt,proto3" json:"next_attempt_at,omitempty"`
 	// The reply text as rendered for the external user, recorded when the
-	// delivery reached a terminal status. Empty while pending/delivering, and
-	// on rows terminal before this field existed.
+	// delivery reached a terminal status. Empty while pending/delivering.
 	ReplyText string `protobuf:"bytes,17,opt,name=reply_text,json=replyText,proto3" json:"reply_text,omitempty"`
 	// Why the delivery FAILED, in the platform's classification. Unspecified
-	// unless status is failed (and on rows terminal before this field
-	// existed).
+	// unless status is failed.
 	FailureKind ChannelAttemptFailureKind `protobuf:"varint,18,opt,name=failure_kind,json=failureKind,proto3,enum=ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind" json:"failure_kind,omitempty"`
 	// The thread-safe explanation of a FAILED delivery, when one was
 	// authored for the conversation surface. Empty unless failure_kind is

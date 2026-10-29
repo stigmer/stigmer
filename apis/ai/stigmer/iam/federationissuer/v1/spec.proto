@@ -155,25 +155,6 @@ message FederationIssuerSpec {
     max_len: 200
   }];
 
-  // Field 5 held a requests-per-minute budget that no server ever enforced;
-  // it was removed rather than left as a setting that does nothing, and is
-  // reserved so the number and name cannot return with another meaning.
-  reserved 5;
-  reserved "rate_limit_budget";
-
-  // Replaced by create_accounts_on_sign_in and sign_in_role, which grant on
-  // each organization's first sign-in rather than once per account.
-  reserved 9, 10, 11;
-  reserved "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role";
-
-  // Fields 7, 8 and 15 made an issuer its organization's single sign-on:
-  // the console's "Sign in with" button, the browser client it used, and the
-  // requirement that people act in the organization only through it.
-  // Stigmer has no single sign-on of its own, so they were removed, and are
-  // reserved so the numbers and names cannot return with another meaning.
-  reserved 7, 8, 15;
-  reserved "is_sso_provider", "oidc_client_id", "sso_required";
-
   // OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
   // When Stigmer auto-provisions a federated account from a token that carries
   // no email claim, it calls this endpoint with that token (as a Bearer token)

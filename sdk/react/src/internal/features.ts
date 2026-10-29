@@ -3,23 +3,13 @@
 // the plan comparison, the upgrade notice), so a feature reads the same
 // wherever it appears.
 //
-// Keyed by every feature that grants something, so a value added to the
-// contract fails to compile here until it has words. `sso_enforcement`,
-// `platform_client` and `byo_provider_keys` are not: they gate nothing
-// (platform/v1/entitlement.proto; Stigmer has no single sign-on of its own,
-// and every plan runs on the organization's own provider keys), so no
-// surface names them.
+// Keyed by every feature the contract names, so a value added to the
+// contract fails to compile here until it has words.
 
 import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
 
-/** A feature that grants something: every value but the zero value and the ungated ones. */
-export type NamedFeature = Exclude<
-  Feature,
-  | Feature.feature_unspecified
-  | Feature.sso_enforcement
-  | Feature.platform_client
-  | Feature.byo_provider_keys
->;
+/** A feature that grants something: every value but the zero value. */
+export type NamedFeature = Exclude<Feature, Feature.feature_unspecified>;
 
 /**
  * Label and one-line explanation per named feature, and whether the label
@@ -36,7 +26,7 @@ export const FEATURE_COPY: Readonly<
     description: "Reach people in Slack and WhatsApp through the hosted channel runtime.",
     plural: true,
   },
-  [Feature.sharing]: {
+  [Feature.chat_links]: {
     label: "Chat links",
     description: "Hosted chat links and embeds, for your organization or for anyone with the link.",
     plural: true,

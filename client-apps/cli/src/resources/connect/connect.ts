@@ -28,7 +28,7 @@ import { PLACEHOLDER_PATTERN } from "@stigmer/plugin-package";
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
 import { PlaceholderResolutionError } from "../mcp/placeholder-resolver.js";
-import { idPrefixesFor, parseReference } from "../reference.js";
+import { idPrefixOf, parseReference } from "../reference.js";
 import { holdsLoginFor, toolAddress } from "./address.js";
 import { localDiscover } from "./discover.js";
 import { readMyVault, runSignIn } from "./sign-in.js";
@@ -96,7 +96,7 @@ function connectCommand(plugin: string, server: McpServerEntry, serverCount: num
 
 // Resolve a reference (id, org/slug, or bare slug) to the plugin.
 async function resolvePlugin(client: Stigmer, reference: string, org: string): Promise<Plugin> {
-  const parsed = parseReference(reference, org, idPrefixesFor(ApiResourceKind.plugin));
+  const parsed = parseReference(reference, org, idPrefixOf(ApiResourceKind.plugin));
   if (parsed.kind === "id") return client.plugin.get(parsed.id);
   return client.plugin.getByReference({ org: parsed.org, slug: parsed.slug });
 }

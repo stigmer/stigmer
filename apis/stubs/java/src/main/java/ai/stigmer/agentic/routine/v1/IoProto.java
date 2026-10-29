@@ -104,7 +104,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "mestamp.proto\")\n\tRoutineId\022\034\n\005value\030\001 \001(" +
       "\tB\006\272H\003\310\001\001R\005value\"I\n\020FireRoutineInput\022\026\n\002" +
       "id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\035\n\004text\030\002 \001(\tB\t\272H\006r" +
-      "\004\030\200\200\004R\004text\"\313\002\n\032ListRoutinesByAgentReque" +
+      "\004\030\200\200\004R\004text\"\272\002\n\032ListRoutinesByAgentReque" +
       "st\022!\n\010agent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022\020\n" +
       "\003org\030\003 \001(\tR\003org\022$\n\tpage_size\030\004 \001(\005B\007\272H\004\032" +
       "\002(\000R\010pageSize\022\'\n\npage_token\030\005 \001(\tB\010\272H\005r\003" +
@@ -112,70 +112,68 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "mer.agentic.routine.v1.ListRoutinesByAge" +
       "ntRequest.LabelsEntryR\006labels\0329\n\013LabelsE" +
       "ntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005v" +
-      "alue:\0028\001J\004\010\002\020\003R\tpage_info\"\212\001\n\013RoutineLis" +
-      "t\022@\n\007entries\030\002 \003(\0132&.ai.stigmer.agentic." +
-      "routine.v1.RoutineR\007entries\022&\n\017next_page" +
-      "_token\030\003 \001(\tR\rnextPageTokenJ\004\010\001\020\002R\013total" +
-      "_count\"\243\002\n\023ListRoutinesRequest\022\031\n\003org\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\003org\022V\n\006labels\030\002 \003(\0132>.ai.s" +
-      "tigmer.agentic.routine.v1.ListRoutinesRe" +
-      "quest.LabelsEntryR\006labels\022$\n\tpage_size\030\004" +
-      " \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\005 " +
-      "\001(\tB\010\272H\005r\003\030\200\010R\tpageToken\0329\n\013LabelsEntry\022" +
-      "\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:" +
-      "\0028\001J\004\010\003\020\004R\tpage_info\"\371\001\n\021RoutineFireResu" +
-      "lt\022@\n\007routine\030\001 \001(\0132&.ai.stigmer.agentic" +
-      ".routine.v1.RoutineR\007routine\022K\n\007outcome\030" +
-      "\002 \001(\01621.ai.stigmer.agentic.routine.v1.Ro" +
-      "utineFireOutcomeR\007outcome\022\025\n\006run_id\030\003 \001(" +
-      "\tR\005runId\022%\n\016refusal_reason\030\004 \001(\tR\rrefusa" +
-      "lReason\022\027\n\007fire_id\030\005 \001(\tR\006fireId\"\263\004\n\013Rou" +
-      "tineFire\022\035\n\nroutine_id\030\001 \001(\tR\troutineId\022" +
-      "\020\n\003org\030\002 \001(\tR\003org\022F\n\021nominal_fire_time\030\003" +
-      " \001(\0132\032.google.protobuf.TimestampR\017nomina" +
-      "lFireTime\022H\n\006origin\030\004 \001(\01620.ai.stigmer.a" +
-      "gentic.routine.v1.RoutineFireOriginR\006ori" +
-      "gin\022K\n\007outcome\030\005 \001(\01621.ai.stigmer.agenti" +
-      "c.routine.v1.RoutineFireOutcomeR\007outcome" +
-      "\022\026\n\006reason\030\006 \001(\tR\006reason\022\025\n\006run_id\030\007 \001(\t" +
-      "R\005runId\022;\n\013recorded_at\030\010 \001(\0132\032.google.pr" +
-      "otobuf.TimestampR\nrecordedAt\022=\n\014complete" +
-      "d_at\030\t \001(\0132\032.google.protobuf.TimestampR\013" +
-      "completedAt\022\027\n\007fire_id\030\n \001(\tR\006fireId\022P\n\010" +
-      "fired_by\030\013 \001(\01325.ai.stigmer.commons.apir" +
-      "esource.ApiResourceAuditActorR\007firedBy\"\240" +
-      "\001\n\027ListRoutineFiresRequest\022%\n\nroutine_id" +
-      "\030\001 \001(\tB\006\272H\003\310\001\001R\troutineId\022$\n\tpage_size\030\003" +
-      " \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\004 " +
-      "\001(\tB\010\272H\005r\003\030\200\010R\tpageTokenJ\004\010\002\020\003R\tpage_inf" +
-      "o\"\222\001\n\017RoutineFireList\022D\n\007entries\030\002 \003(\0132*" +
-      ".ai.stigmer.agentic.routine.v1.RoutineFi" +
-      "reR\007entries\022&\n\017next_page_token\030\003 \001(\tR\rne" +
-      "xtPageTokenJ\004\010\001\020\002R\013total_count\"\347\002\n\022Updat" +
-      "eRoutineInput\022J\n\010resource\030\001 \001(\0132&.ai.sti" +
-      "gmer.agentic.routine.v1.RoutineB\006\272H\003\330\001\003R" +
-      "\010resource\022C\n\013update_mask\030\002 \001(\0132\032.google." +
-      "protobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\277" +
-      "\001\272H\273\001\032\270\001\n\027update_names_its_target\022Gresou" +
-      "rce.metadata.id is required: an update n" +
-      "ames the routine by its id\032Thas(this.res" +
-      "ource) && has(this.resource.metadata) &&" +
-      " this.resource.metadata.id != \'\'*z\n\021Rout" +
-      "ineFireOrigin\022#\n\037ROUTINE_FIRE_ORIGIN_UNS" +
-      "PECIFIED\020\000\022 \n\034ROUTINE_FIRE_ORIGIN_SCHEDU" +
-      "LE\020\001\022\036\n\032ROUTINE_FIRE_ORIGIN_MANUAL\020\002*\262\002\n" +
-      "\022RoutineFireOutcome\022$\n ROUTINE_FIRE_OUTC" +
-      "OME_UNSPECIFIED\020\000\022 \n\034ROUTINE_FIRE_OUTCOM" +
-      "E_STARTED\020\001\022 \n\034ROUTINE_FIRE_OUTCOME_REFU" +
-      "SED\020\002\022\'\n#ROUTINE_FIRE_OUTCOME_TARGET_MIS" +
-      "SING\020\003\022 \n\034ROUTINE_FIRE_OUTCOME_SKIPPED\020\004" +
-      "\022\"\n\036ROUTINE_FIRE_OUTCOME_COMPLETED\020\005\022\037\n\033" +
-      "ROUTINE_FIRE_OUTCOME_FAILED\020\006\022\"\n\036ROUTINE" +
-      "_FIRE_OUTCOME_TIMED_OUT\020\007B\242\001B\007IoProtoP\001\242" +
-      "\002\004ASAR\252\002\035Ai.Stigmer.Agentic.Routine.V1\312\002" +
-      "\035Ai\\Stigmer\\Agentic\\Routine\\V1\342\002)Ai\\Stig" +
-      "mer\\Agentic\\Routine\\V1\\GPBMetadata\352\002!Ai:" +
-      ":Stigmer::Agentic::Routine::V1b\006proto3"
+      "alue:\0028\001\"w\n\013RoutineList\022@\n\007entries\030\002 \003(\013" +
+      "2&.ai.stigmer.agentic.routine.v1.Routine" +
+      "R\007entries\022&\n\017next_page_token\030\003 \001(\tR\rnext" +
+      "PageToken\"\222\002\n\023ListRoutinesRequest\022\031\n\003org" +
+      "\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022V\n\006labels\030\002 \003(\0132>.a" +
+      "i.stigmer.agentic.routine.v1.ListRoutine" +
+      "sRequest.LabelsEntryR\006labels\022$\n\tpage_siz" +
+      "e\030\004 \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token" +
+      "\030\005 \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\0329\n\013LabelsEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005val" +
+      "ue:\0028\001\"\371\001\n\021RoutineFireResult\022@\n\007routine\030" +
+      "\001 \001(\0132&.ai.stigmer.agentic.routine.v1.Ro" +
+      "utineR\007routine\022K\n\007outcome\030\002 \001(\01621.ai.sti" +
+      "gmer.agentic.routine.v1.RoutineFireOutco" +
+      "meR\007outcome\022\025\n\006run_id\030\003 \001(\tR\005runId\022%\n\016re" +
+      "fusal_reason\030\004 \001(\tR\rrefusalReason\022\027\n\007fir" +
+      "e_id\030\005 \001(\tR\006fireId\"\263\004\n\013RoutineFire\022\035\n\nro" +
+      "utine_id\030\001 \001(\tR\troutineId\022\020\n\003org\030\002 \001(\tR\003" +
+      "org\022F\n\021nominal_fire_time\030\003 \001(\0132\032.google." +
+      "protobuf.TimestampR\017nominalFireTime\022H\n\006o" +
+      "rigin\030\004 \001(\01620.ai.stigmer.agentic.routine" +
+      ".v1.RoutineFireOriginR\006origin\022K\n\007outcome" +
+      "\030\005 \001(\01621.ai.stigmer.agentic.routine.v1.R" +
+      "outineFireOutcomeR\007outcome\022\026\n\006reason\030\006 \001" +
+      "(\tR\006reason\022\025\n\006run_id\030\007 \001(\tR\005runId\022;\n\013rec" +
+      "orded_at\030\010 \001(\0132\032.google.protobuf.Timesta" +
+      "mpR\nrecordedAt\022=\n\014completed_at\030\t \001(\0132\032.g" +
+      "oogle.protobuf.TimestampR\013completedAt\022\027\n" +
+      "\007fire_id\030\n \001(\tR\006fireId\022P\n\010fired_by\030\013 \001(\013" +
+      "25.ai.stigmer.commons.apiresource.ApiRes" +
+      "ourceAuditActorR\007firedBy\"\217\001\n\027ListRoutine" +
+      "FiresRequest\022%\n\nroutine_id\030\001 \001(\tB\006\272H\003\310\001\001" +
+      "R\troutineId\022$\n\tpage_size\030\003 \001(\005B\007\272H\004\032\002(\000R" +
+      "\010pageSize\022\'\n\npage_token\030\004 \001(\tB\010\272H\005r\003\030\200\010R" +
+      "\tpageToken\"\177\n\017RoutineFireList\022D\n\007entries" +
+      "\030\002 \003(\0132*.ai.stigmer.agentic.routine.v1.R" +
+      "outineFireR\007entries\022&\n\017next_page_token\030\003" +
+      " \001(\tR\rnextPageToken\"\347\002\n\022UpdateRoutineInp" +
+      "ut\022J\n\010resource\030\001 \001(\0132&.ai.stigmer.agenti" +
+      "c.routine.v1.RoutineB\006\272H\003\330\001\003R\010resource\022C" +
+      "\n\013update_mask\030\002 \001(\0132\032.google.protobuf.Fi" +
+      "eldMaskB\006\272H\003\310\001\001R\nupdateMask:\277\001\272H\273\001\032\270\001\n\027u" +
+      "pdate_names_its_target\022Gresource.metadat" +
+      "a.id is required: an update names the ro" +
+      "utine by its id\032Thas(this.resource) && h" +
+      "as(this.resource.metadata) && this.resou" +
+      "rce.metadata.id != \'\'*z\n\021RoutineFireOrig" +
+      "in\022#\n\037ROUTINE_FIRE_ORIGIN_UNSPECIFIED\020\000\022" +
+      " \n\034ROUTINE_FIRE_ORIGIN_SCHEDULE\020\001\022\036\n\032ROU" +
+      "TINE_FIRE_ORIGIN_MANUAL\020\002*\262\002\n\022RoutineFir" +
+      "eOutcome\022$\n ROUTINE_FIRE_OUTCOME_UNSPECI" +
+      "FIED\020\000\022 \n\034ROUTINE_FIRE_OUTCOME_STARTED\020\001" +
+      "\022 \n\034ROUTINE_FIRE_OUTCOME_REFUSED\020\002\022\'\n#RO" +
+      "UTINE_FIRE_OUTCOME_TARGET_MISSING\020\003\022 \n\034R" +
+      "OUTINE_FIRE_OUTCOME_SKIPPED\020\004\022\"\n\036ROUTINE" +
+      "_FIRE_OUTCOME_COMPLETED\020\005\022\037\n\033ROUTINE_FIR" +
+      "E_OUTCOME_FAILED\020\006\022\"\n\036ROUTINE_FIRE_OUTCO" +
+      "ME_TIMED_OUT\020\007B\242\001B\007IoProtoP\001\242\002\004ASAR\252\002\035Ai" +
+      ".Stigmer.Agentic.Routine.V1\312\002\035Ai\\Stigmer" +
+      "\\Agentic\\Routine\\V1\342\002)Ai\\Stigmer\\Agentic" +
+      "\\Routine\\V1\\GPBMetadata\352\002!Ai::Stigmer::A" +
+      "gentic::Routine::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

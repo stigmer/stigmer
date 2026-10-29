@@ -78,7 +78,6 @@ message IdentityAccountSpec {
   bool is_machine_account = 6;
 
   // How this identity account was provisioned.
-  // Unspecified for legacy accounts created before this field was introduced.
   // (ignored for create) this value is assigned by backend.
   IdentityAccountProvisioningMode provisioning_mode = 7;
 
@@ -148,17 +147,6 @@ message IdentityAccountPreferences {
   // (self-healing), so coupling the update RPC to the registry would add
   // machinery without safety.
   string default_stigmer_model = 3 [(buf.validate.field).string.max_len = 100];
-
-  // default_native_model was this field's name before the Stigmer harness
-  // took "stigmer" as its one word. The name is reserved so no other field
-  // ever takes it.
-  reserved "default_native_model";
-
-  // Field 4 held default_cursor_model, the default model for the retired
-  // Cursor harness. The number and the name are reserved so neither is
-  // ever reused for a different field.
-  reserved 4;
-  reserved "default_cursor_model";
 
   // Whether the platform may remember confirmed facts about this
   // account. Off by default; operative only where the organization has

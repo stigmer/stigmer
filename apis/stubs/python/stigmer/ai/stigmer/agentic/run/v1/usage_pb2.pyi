@@ -41,7 +41,6 @@ class UsageCompletionStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 class ProviderKeySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     PROVIDER_KEY_SOURCE_UNSPECIFIED: _ClassVar[ProviderKeySource]
-    PROVIDER_KEY_SOURCE_PLATFORM: _ClassVar[ProviderKeySource]
     PROVIDER_KEY_SOURCE_ORGANIZATION: _ClassVar[ProviderKeySource]
 USAGE_METERING_SOURCE_UNSPECIFIED: UsageMeteringSource
 USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED: UsageMeteringSource
@@ -62,7 +61,6 @@ USAGE_COMPLETION_STATUS_ESTIMATED_ONLY: UsageCompletionStatus
 USAGE_COMPLETION_STATUS_RECONCILED: UsageCompletionStatus
 USAGE_COMPLETION_STATUS_CONFLICT: UsageCompletionStatus
 PROVIDER_KEY_SOURCE_UNSPECIFIED: ProviderKeySource
-PROVIDER_KEY_SOURCE_PLATFORM: ProviderKeySource
 PROVIDER_KEY_SOURCE_ORGANIZATION: ProviderKeySource
 
 class TokenUsage(_message.Message):

@@ -140,13 +140,6 @@ message VaultConnectionSignIn {
   // Sealed at rest beside the access token; the renewal reads it in-process.
   string refresh_token = 5;
 
-  // Fields 6 and 7 held the MCP server a sign-in was started from and
-  // whether it was a local program: a sign-in then filled that one server.
-  // A sign-in now fills every HTTP tool at its address, as a pasted login
-  // does, and a local program has no sign-in.
-  reserved 6, 7;
-  reserved "mcp_server_id", "local_program";
-
   // The login app the sign-in used, so a renewal presents the same client:
   // "org:<OAuthApp id>" for an organization's app, "stigmer:<key>" for one of
   // Stigmer's built-in login apps, and empty for a client registered with

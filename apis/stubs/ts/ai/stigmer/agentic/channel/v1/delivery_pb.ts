@@ -146,8 +146,7 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.channel.v1.ChannelDeli
 
   /**
    * The reply text as rendered for the external user, recorded when the
-   * delivery reached a terminal status. Empty while pending/delivering, and
-   * on rows terminal before this field existed.
+   * delivery reached a terminal status. Empty while pending/delivering.
    *
    * @generated from field: string reply_text = 17;
    */
@@ -155,8 +154,7 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.channel.v1.ChannelDeli
 
   /**
    * Why the delivery FAILED, in the platform's classification. Unspecified
-   * unless status is failed (and on rows terminal before this field
-   * existed).
+   * unless status is failed.
    *
    * @generated from field: ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind failure_kind = 18;
    */

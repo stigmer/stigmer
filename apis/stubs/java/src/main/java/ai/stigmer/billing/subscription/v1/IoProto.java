@@ -99,8 +99,8 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\007plan_id\030\002 \001(\tB\006\272" +
       "H\003\310\001\001R\006planId\"3\n\027CancelSubscriptionInput" +
       "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"2\n\026GetPeriodE" +
-      "stimateInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\244" +
-      "\003\n\016PeriodEstimate\022\027\n\007plan_id\030\001 \001(\tR\006plan" +
+      "stimateInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\345" +
+      "\002\n\016PeriodEstimate\022\027\n\007plan_id\030\001 \001(\tR\006plan" +
       "Id\022=\n\014period_start\030\002 \001(\0132\032.google.protob" +
       "uf.TimestampR\013periodStart\0229\n\nperiod_end\030" +
       "\003 \001(\0132\032.google.protobuf.TimestampR\tperio" +
@@ -108,34 +108,32 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ount\022L\n\005lines\030\007 \003(\01326.ai.stigmer.billing" +
       ".subscription.v1.PeriodEstimateLineR\005lin" +
       "es\022!\n\014total_micros\030\010 \001(\003R\013totalMicros\022\'\n" +
-      "\017working_seconds\030\t \001(\003R\016workingSecondsJ\004" +
-      "\010\004\020\005J\004\010\005\020\006R\024provider_cost_microsR\033commis" +
-      "sion_collected_micros\".\n\022GetAgentHoursIn" +
-      "put\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\216\003\n\nAgentH" +
-      "ours\022\'\n\017working_seconds\030\001 \001(\003R\016workingSe" +
-      "conds\022*\n\016included_hours\030\002 \001(\005H\000R\rinclude" +
-      "dHours\210\001\001\0226\n\025per_agent_hour_micros\030\003 \001(\003" +
-      "H\001R\022perAgentHourMicros\210\001\001\022=\n\014window_star" +
-      "t\030\004 \001(\0132\032.google.protobuf.TimestampR\013win" +
-      "dowStart\0229\n\nwindow_end\030\005 \001(\0132\032.google.pr" +
-      "otobuf.TimestampR\twindowEnd\022L\n\006window\030\006 " +
-      "\001(\01624.ai.stigmer.billing.subscription.v1" +
-      ".AgentHoursWindowR\006windowB\021\n\017_included_h" +
-      "oursB\030\n\026_per_agent_hour_micros\"\211\001\n\022Perio" +
-      "dEstimateLine\022N\n\004kind\030\001 \001(\0162:.ai.stigmer" +
-      ".billing.subscription.v1.PeriodEstimateL" +
-      "ineKindR\004kind\022#\n\ramount_micros\030\002 \001(\003R\014am" +
-      "ountMicros*^\n\020AgentHoursWindow\022\"\n\036agent_" +
-      "hours_window_unspecified\020\000\022\022\n\016calendar_m" +
-      "onth\020\001\022\022\n\016billing_period\020\002*\207\001\n\026PeriodEst" +
-      "imateLineKind\022)\n%period_estimate_line_ki" +
-      "nd_unspecified\020\000\022\010\n\004plan\020\001\022\016\n\nchild_orgs" +
-      "\020\003\022\017\n\013agent_hours\020\004\"\004\010\002\020\002*\021commission_cr" +
-      "editB\266\001B\007IoProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.B" +
-      "illing.Subscription.V1\312\002\"Ai\\Stigmer\\Bill" +
-      "ing\\Subscription\\V1\342\002.Ai\\Stigmer\\Billing" +
-      "\\Subscription\\V1\\GPBMetadata\352\002&Ai::Stigm" +
-      "er::Billing::Subscription::V1b\006proto3"
+      "\017working_seconds\030\t \001(\003R\016workingSeconds\"." +
+      "\n\022GetAgentHoursInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001" +
+      "\001R\003org\"\216\003\n\nAgentHours\022\'\n\017working_seconds" +
+      "\030\001 \001(\003R\016workingSeconds\022*\n\016included_hours" +
+      "\030\002 \001(\005H\000R\rincludedHours\210\001\001\0226\n\025per_agent_" +
+      "hour_micros\030\003 \001(\003H\001R\022perAgentHourMicros\210" +
+      "\001\001\022=\n\014window_start\030\004 \001(\0132\032.google.protob" +
+      "uf.TimestampR\013windowStart\0229\n\nwindow_end\030" +
+      "\005 \001(\0132\032.google.protobuf.TimestampR\twindo" +
+      "wEnd\022L\n\006window\030\006 \001(\01624.ai.stigmer.billin" +
+      "g.subscription.v1.AgentHoursWindowR\006wind" +
+      "owB\021\n\017_included_hoursB\030\n\026_per_agent_hour" +
+      "_micros\"\211\001\n\022PeriodEstimateLine\022N\n\004kind\030\001" +
+      " \001(\0162:.ai.stigmer.billing.subscription.v" +
+      "1.PeriodEstimateLineKindR\004kind\022#\n\ramount" +
+      "_micros\030\002 \001(\003R\014amountMicros*^\n\020AgentHour" +
+      "sWindow\022\"\n\036agent_hours_window_unspecifie" +
+      "d\020\000\022\022\n\016calendar_month\020\001\022\022\n\016billing_perio" +
+      "d\020\002*n\n\026PeriodEstimateLineKind\022)\n%period_" +
+      "estimate_line_kind_unspecified\020\000\022\010\n\004plan" +
+      "\020\001\022\016\n\nchild_orgs\020\003\022\017\n\013agent_hours\020\004B\266\001B\007" +
+      "IoProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billing.Su" +
+      "bscription.V1\312\002\"Ai\\Stigmer\\Billing\\Subsc" +
+      "ription\\V1\342\002.Ai\\Stigmer\\Billing\\Subscrip" +
+      "tion\\V1\\GPBMetadata\352\002&Ai::Stigmer::Billi" +
+      "ng::Subscription::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

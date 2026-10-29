@@ -36,9 +36,6 @@ message ListRoutinesByAgentRequest {
   // Identifier of the agent whose routines to retrieve.
   string agent_id = 1 [(buf.validate.field).required = true];
 
-  reserved 2;
-  reserved "page_info";
-
   // Organization slug to scope the results to.
   //
   // When set, only routines whose metadata.org matches are returned —
@@ -68,9 +65,6 @@ message ListRoutinesByAgentRequest {
 
 // Response containing a paginated list of routines.
 message RoutineList {
-  reserved 1;
-  reserved "total_count";
-
   // Routines in the current page.
   repeated Routine entries = 2;
 
@@ -88,9 +82,6 @@ message ListRoutinesRequest {
   // A selective filter may answer short pages, even empty ones, that still
   // carry a token.
   map<string, string> labels = 2;
-
-  reserved 3;
-  reserved "page_info";
 
   // The most entries to return: 0 asks for the default page of 50, and a
   // size above 100 is read as 100.
@@ -234,9 +225,6 @@ message ListRoutineFiresRequest {
   // Routine whose fires to list.
   string routine_id = 1 [(buf.validate.field).required = true];
 
-  reserved 2;
-  reserved "page_info";
-
   // The most entries to return: 0 asks for the default page of 50, and a
   // size above 100 is read as 100.
   int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
@@ -248,9 +236,6 @@ message ListRoutineFiresRequest {
 
 // Response containing a paginated list of routine fires, newest first.
 message RoutineFireList {
-  reserved 1;
-  reserved "total_count";
-
   // Fires in the current page.
   repeated RoutineFire entries = 2;
 

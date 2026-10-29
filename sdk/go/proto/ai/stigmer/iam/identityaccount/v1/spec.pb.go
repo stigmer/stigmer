@@ -70,7 +70,6 @@ type IdentityAccountSpec struct {
 	// (ignored for create) this value is assigned by backend based on idp_id.
 	IsMachineAccount bool `protobuf:"varint,6,opt,name=is_machine_account,json=isMachineAccount,proto3" json:"is_machine_account,omitempty"`
 	// How this identity account was provisioned.
-	// Unspecified for legacy accounts created before this field was introduced.
 	// (ignored for create) this value is assigned by backend.
 	ProvisioningMode IdentityAccountProvisioningMode `protobuf:"varint,7,opt,name=provisioning_mode,json=provisioningMode,proto3,enum=ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode" json:"provisioning_mode,omitempty"`
 	// Reference to the FederationIssuer that owns this federated account.
@@ -293,14 +292,14 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
 	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12n\n" +
 	"\x15federation_issuer_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13federationIssuerRef\x12_\n" +
-	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\x98\x03\n" +
+	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\xe6\x02\n" +
 	"\x1aIdentityAccountPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12B\n" +
 	"\x0fdefault_harness\x18\x02 \x01(\tB\x19\xbaH\x16\xd8\x01\x01r\x11R\astigmerR\x06claudeR\x0edefaultHarness\x12;\n" +
 	"\x15default_stigmer_model\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x18dR\x13defaultStigmerModel\x12%\n" +
 	"\x0ememory_enabled\x18\x05 \x01(\bR\rmemoryEnabled\x120\n" +
 	"\x14default_auto_approve\x18\x06 \x01(\bR\x12defaultAutoApprove\x129\n" +
-	"\x14default_claude_model\x18\a \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultClaudeModelJ\x04\b\x04\x10\x05R\x14default_native_modelR\x14default_cursor_modelB\xa8\x02\n" +
+	"\x14default_claude_model\x18\a \x01(\tB\a\xbaH\x04r\x02\x18dR\x12defaultClaudeModelB\xa8\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01ZKgo.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (

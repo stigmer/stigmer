@@ -107,43 +107,43 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "belsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030" +
       "\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"1\n\016" +
       "OrganizationId\022\037\n\005value\030\001 \001(\tB\t\272H\006r\004\020\001\030@" +
-      "R\005value\"\220\001\n\032OrganizationExternalLookup\022+" +
-      "\n\013external_id\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\002R\nexterna" +
-      "lId\022(\n\nparent_org\030\003 \001(\tB\t\272H\006r\004\020\001\030@R\tpare" +
-      "ntOrgJ\004\010\001\020\002R\025identity_provider_ref\"\227\002\n\022L" +
-      "istChildOrgsInput\022\033\n\003org\030\001 \001(\tB\t\272H\006r\004\020\001\030" +
-      "@R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004\032\002(\000R\010page" +
-      "Size\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r\003\030\200\010R\tpage" +
-      "Token\022Z\n\006labels\030\004 \003(\0132B.ai.stigmer.tenan" +
-      "cy.organization.v1.ListChildOrgsInput.La" +
-      "belsEntryR\006labels\0329\n\013LabelsEntry\022\020\n\003key\030" +
-      "\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\202\001\n" +
-      "\014ChildOrgList\022J\n\007entries\030\001 \003(\01320.ai.stig" +
-      "mer.tenancy.organization.v1.Organization" +
-      "R\007entries\022&\n\017next_page_token\030\002 \001(\tR\rnext" +
-      "PageToken\"\241\001\n\037UpdateOrganizationPolicies" +
-      "Input\022 \n\006org_id\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005orgId\022" +
-      "\\\n\010policies\030\002 \001(\01328.ai.stigmer.tenancy.o" +
-      "rganization.v1.OrganizationPoliciesB\006\272H\003" +
-      "\310\001\001R\010policies\"\245\001\n UpdateOrganizationEmbe" +
-      "ddingInput\022 \n\006org_id\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005o" +
-      "rgId\022_\n\tembedding\030\002 \001(\01329.ai.stigmer.ten" +
-      "ancy.organization.v1.OrganizationEmbeddi" +
-      "ngB\006\272H\003\310\001\001R\tembedding\"\373\002\n\027UpdateOrganiza" +
-      "tionInput\022T\n\010resource\030\001 \001(\01320.ai.stigmer" +
-      ".tenancy.organization.v1.OrganizationB\006\272" +
-      "H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001(\0132\032.g" +
-      "oogle.protobuf.FieldMaskB\006\272H\003\310\001\001R\nupdate" +
-      "Mask:\304\001\272H\300\001\032\275\001\n\027update_names_its_target\022" +
-      "Lresource.metadata.id is required: an up" +
-      "date names the organization by its id\032Th" +
-      "as(this.resource) && has(this.resource.m" +
-      "etadata) && this.resource.metadata.id !=" +
-      " \'\'B\266\001B\007IoProtoP\001\242\002\004ASTO\252\002\"Ai.Stigmer.Te" +
-      "nancy.Organization.V1\312\002\"Ai\\Stigmer\\Tenan" +
-      "cy\\Organization\\V1\342\002.Ai\\Stigmer\\Tenancy\\" +
-      "Organization\\V1\\GPBMetadata\352\002&Ai::Stigme" +
-      "r::Tenancy::Organization::V1b\006proto3"
+      "R\005value\"s\n\032OrganizationExternalLookup\022+\n" +
+      "\013external_id\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\002R\nexternal" +
+      "Id\022(\n\nparent_org\030\003 \001(\tB\t\272H\006r\004\020\001\030@R\tparen" +
+      "tOrg\"\227\002\n\022ListChildOrgsInput\022\033\n\003org\030\001 \001(\t" +
+      "B\t\272H\006r\004\020\001\030@R\003org\022$\n\tpage_size\030\002 \001(\005B\007\272H\004" +
+      "\032\002(\000R\010pageSize\022\'\n\npage_token\030\003 \001(\tB\010\272H\005r" +
+      "\003\030\200\010R\tpageToken\022Z\n\006labels\030\004 \003(\0132B.ai.sti" +
+      "gmer.tenancy.organization.v1.ListChildOr" +
+      "gsInput.LabelsEntryR\006labels\0329\n\013LabelsEnt" +
+      "ry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005val" +
+      "ue:\0028\001\"\202\001\n\014ChildOrgList\022J\n\007entries\030\001 \003(\013" +
+      "20.ai.stigmer.tenancy.organization.v1.Or" +
+      "ganizationR\007entries\022&\n\017next_page_token\030\002" +
+      " \001(\tR\rnextPageToken\"\241\001\n\037UpdateOrganizati" +
+      "onPoliciesInput\022 \n\006org_id\030\001 \001(\tB\t\272H\006r\004\020\001" +
+      "\030@R\005orgId\022\\\n\010policies\030\002 \001(\01328.ai.stigmer" +
+      ".tenancy.organization.v1.OrganizationPol" +
+      "iciesB\006\272H\003\310\001\001R\010policies\"\245\001\n UpdateOrgani" +
+      "zationEmbeddingInput\022 \n\006org_id\030\001 \001(\tB\t\272H" +
+      "\006r\004\020\001\030@R\005orgId\022_\n\tembedding\030\002 \001(\01329.ai.s" +
+      "tigmer.tenancy.organization.v1.Organizat" +
+      "ionEmbeddingB\006\272H\003\310\001\001R\tembedding\"\373\002\n\027Upda" +
+      "teOrganizationInput\022T\n\010resource\030\001 \001(\01320." +
+      "ai.stigmer.tenancy.organization.v1.Organ" +
+      "izationB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask" +
+      "\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310" +
+      "\001\001R\nupdateMask:\304\001\272H\300\001\032\275\001\n\027update_names_i" +
+      "ts_target\022Lresource.metadata.id is requi" +
+      "red: an update names the organization by" +
+      " its id\032Thas(this.resource) && has(this." +
+      "resource.metadata) && this.resource.meta" +
+      "data.id != \'\'B\266\001B\007IoProtoP\001\242\002\004ASTO\252\002\"Ai." +
+      "Stigmer.Tenancy.Organization.V1\312\002\"Ai\\Sti" +
+      "gmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stigme" +
+      "r\\Tenancy\\Organization\\V1\\GPBMetadata\352\002&" +
+      "Ai::Stigmer::Tenancy::Organization::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

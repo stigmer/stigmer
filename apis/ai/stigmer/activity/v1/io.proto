@@ -13,13 +13,6 @@ message RecentActivityEntry {
   // Session ID.
   string id = 1;
 
-  // Field 2 held a discriminator between a session and a workflow run, and
-  // field 5 a workflow run's phase label, until the workflow product was
-  // removed platform-wide and recents became sessions only. Reserved so the
-  // numbers and names are never reused for different fields.
-  reserved 2, 5;
-  reserved "type", "status";
-
   // Human-readable label for display: the conversation subject.
   string subject = 3;
 

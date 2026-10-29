@@ -208,8 +208,8 @@ func (x *ApiResourceByOrgBySlugRequest) GetSlug() string {
 //   - Org-only kinds (vault):
 //     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
 //
-// visibility_public is refused for every kind (INVALID_ARGUMENT naming the
-// supported levels); the level is retired.
+// A level the kind does not support is refused with INVALID_ARGUMENT naming
+// the supported levels.
 type UpdateVisibilityInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ID of the resource whose visibility is being updated.

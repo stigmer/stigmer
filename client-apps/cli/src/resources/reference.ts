@@ -5,10 +5,8 @@
 //   "my-org/my-agent"   -> by org/slug (explicit org)
 //   "my-agent"          -> by org/slug (org from --org/context)
 //
-// The kind's id prefixes disambiguate a bare token: "org" resolves "org_x" as
-// an ID but "acme" as a slug. A kind's retired prefixes count too (a run
-// minted as "aex_…" before the run kind's prefix became "run"): ids are never
-// rewritten, so a stored id keeps the prefix it was minted with.
+// The kind's id prefix disambiguates a bare token: "org" resolves "org_x" as
+// an ID but "acme" as a slug.
 //
 // The lower half of this module adds the *strict* classification the run/resume
 // resolvers need (Go's pkg/reference): prefix-by-kind detection and full ID
@@ -26,7 +24,7 @@ export type ParsedReference =
 export function parseReference(
   ref: string,
   defaultOrg: string,
-  idPrefixes: string | readonly string[],
+  idPrefix: string,
 ): ParsedReference {
   const trimmed = ref.trim();
 
@@ -35,8 +33,7 @@ export function parseReference(
     return { kind: "ref", org: trimmed.slice(0, slash), slug: trimmed.slice(slash + 1) };
   }
 
-  const prefixes = typeof idPrefixes === "string" ? [idPrefixes] : idPrefixes;
-  if (prefixes.some((prefix) => prefix !== "" && trimmed.startsWith(`${prefix}_`))) {
+  if (idPrefix !== "" && trimmed.startsWith(`${idPrefix}_`)) {
     return { kind: "id", id: trimmed };
   }
 
@@ -49,22 +46,21 @@ export function parseReference(
 const ULID_LENGTH = 26;
 
 /**
- * Every prefix a kind's ids may carry (from the proto kind_meta mirror): its
- * id_prefix, then its retired ones. Empty for a kind the mirror lacks.
+ * The prefix a kind's ids carry (from the proto kind_meta mirror); "" for a
+ * kind the mirror lacks.
  */
-export function idPrefixesFor(kind: ApiResourceKind): readonly string[] {
-  const meta = KIND_META.get(kind);
-  if (meta === undefined) return [];
-  return [meta.idPrefix, ...(meta.retiredIdPrefixes ?? [])].filter((prefix) => prefix !== "");
+export function idPrefixOf(kind: ApiResourceKind): string {
+  return KIND_META.get(kind)?.idPrefix ?? "";
 }
 
-// Every known resource-ID prefix, current and retired, deduped. Built once
-// from the kind_meta mirror so there is a single source of truth shared with
-// the rest of the CLI (the registry) rather than a hand-rolled prefix list.
+// Every known resource-ID prefix, deduped. Built once from the kind_meta
+// mirror so there is a single source of truth shared with the rest of the CLI
+// (the registry) rather than a hand-rolled prefix list.
 const ALL_ID_PREFIXES: readonly string[] = (() => {
   const set = new Set<string>();
   for (const kind of KIND_META.keys()) {
-    for (const prefix of idPrefixesFor(kind)) set.add(prefix);
+    const prefix = idPrefixOf(kind);
+    if (prefix !== "") set.add(prefix);
   }
   return [...set];
 })();
@@ -87,9 +83,9 @@ function hasKindPrefix(ref: string, prefix: string): boolean {
   return separatorsFor(prefix).some((sep) => trimmed.startsWith(`${prefix}${sep}`));
 }
 
-/** True if `ref` carries one of `kind`'s id prefixes, current or retired. */
+/** True if `ref` carries `kind`'s id prefix. */
 function hasPrefixOf(ref: string, kind: ApiResourceKind): boolean {
-  return idPrefixesFor(kind).some((prefix) => hasKindPrefix(ref, prefix));
+  return hasKindPrefix(ref, idPrefixOf(kind));
 }
 
 /** True if `ref` carries the agent ID prefix (`agt_…`/`agt-…`). */
@@ -102,16 +98,12 @@ export function isSessionId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.session);
 }
 
-/** True if `ref` carries a routine ID prefix (`rtn_…`, or `sch_…` from while the kind was Schedule; either separator). */
+/** True if `ref` carries the routine ID prefix (`rtn_…`/`rtn-…`). */
 export function isRoutineId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.routine);
 }
 
-/**
- * True if `ref` is a run ID: `run_…`, or `aex_…` (either separator) for a run
- * minted before the run kind's prefix changed. Case-sensitive, so "RUN_" is
- * not one.
- */
+/** True if `ref` is a run ID (`run_…`). Case-sensitive, so "RUN_" is not one. */
 export function isRunId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.run);
 }

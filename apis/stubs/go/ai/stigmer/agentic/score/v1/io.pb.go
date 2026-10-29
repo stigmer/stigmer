@@ -1148,10 +1148,10 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x04 \x03(\v2C.ai.stigmer.agentic.score.v1.ListScoresBySessionRequest.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x84\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"q\n" +
 	"\tScoreList\x12<\n" +
 	"\aentries\x18\x02 \x03(\v2\".ai.stigmer.agentic.score.v1.ScoreR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"|\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"|\n" +
 	"\x1cGetAgentQualityReportRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
 	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +

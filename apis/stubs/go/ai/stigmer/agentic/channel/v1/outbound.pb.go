@@ -207,13 +207,12 @@ type ChannelOutboundMessage struct {
 	// The message body as rendered for the external recipient, recorded at
 	// send time. For template sends this is the registry's body text with
 	// the payload's parameter values substituted; empty for text sends
-	// (the body lives in the payload's text arm), for rows written before
-	// this field existed, and for sends whose registry was unreachable at
-	// send time.
+	// (the body lives in the payload's text arm) and for sends whose registry
+	// was unreachable at send time.
 	RenderedBody string `protobuf:"bytes,20,opt,name=rendered_body,json=renderedBody,proto3" json:"rendered_body,omitempty"`
 	// Why the send FAILED, in the platform's classification. Unspecified
-	// unless status is failed (and on rows terminal before this field
-	// existed). A third axis fact beside status and the receipt pair.
+	// unless status is failed. A third axis fact beside status and the
+	// receipt pair.
 	FailureKind ChannelAttemptFailureKind `protobuf:"varint,21,opt,name=failure_kind,json=failureKind,proto3,enum=ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind" json:"failure_kind,omitempty"`
 	// The thread-safe explanation of a FAILED send, when one was authored
 	// for the conversation surface. Empty unless failure_kind is

@@ -45,11 +45,6 @@ message OrganizationId {
 // Input for finding a child organization by the identifier its parent keeps
 // for it.
 message OrganizationExternalLookup {
-  // 1 was identity_provider_ref: a child is found under its parent
-  // organization now, not under an identity provider.
-  reserved 1;
-  reserved "identity_provider_ref";
-
   // The child's external_id: the parent's own identifier for it.
   string external_id = 2 [(buf.validate.field).string = {
     min_len: 1

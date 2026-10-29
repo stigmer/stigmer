@@ -37,7 +37,7 @@ export const EMPTY_PLAN_DRAFT: PlanDraft = {
   name: "",
   slug: "",
   monthlyMinimumUsd: "",
-  features: [Feature.channels, Feature.sharing],
+  features: [Feature.channels, Feature.chat_links],
   includedChildOrgs: "",
   perExtraOrganizationUsd: "",
   includedAgentHours: "",

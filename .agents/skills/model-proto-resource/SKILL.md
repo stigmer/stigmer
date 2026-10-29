@@ -81,7 +81,8 @@ supports and the default, and the `grantable_roles`. The server reads this
 metadata by reflection for id minting, search, visibility and the
 authorization-tuple lifecycle, so a kind that is not registered here does not
 exist to the platform. Read the entries around yours for the shape a similar
-kind chose, and keep enum numbers unique and never reused.
+kind chose, and keep enum numbers unique. A kind or value that leaves keeps its
+number and name `reserved`, so neither is reused.
 
 Each service names its kind once with the service option
 `(ai.stigmer.commons.apiresource.api_resource_kind)`.

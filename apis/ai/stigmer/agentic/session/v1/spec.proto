@@ -15,12 +15,6 @@ import "buf/validate/validate.proto";
 // assistant when it names none. The overview.md file provides the
 // SDK-facing description and example YAML.
 message SessionSpec {
-  // Field 1 named the agent instance the session ran against until the
-  // instance kind was removed; a session names its agent directly through
-  // agent_ref.
-  reserved 1;
-  reserved "agent_instance_id";
-
   // The agent this conversation runs, as 'org/slug' with an optional
   // version; empty means no agent, and the built-in assistant answers with
   // the plugins and skills this session itself declares.
@@ -54,24 +48,8 @@ message SessionSpec {
   // Conversation title for UI display.
   string subject = 2;
 
-  // Fields 3 and 13 held the harness's conversation id and its history,
-  // which moved to status and were later retired there.
-  reserved 3, 13;
-  reserved "harness_state_id", "harness_state_id_history";
-
   // Custom key-value pairs for client-specific information.
   map<string, string> metadata = 5;
-
-  // Field 6 held the conversation's workspace entries until its files,
-  // repositories and folders became one list (resources).
-  reserved 6;
-  reserved "workspace_entries";
-
-  // Field 7 named MCP server resources this conversation added until an MCP
-  // server became configuration inside a plugin: a conversation lists the
-  // plugins it adds in plugins.
-  reserved 7;
-  reserved "mcp_server_usages";
 
   // Skills to inject into this session's context.
   //
@@ -103,11 +81,6 @@ message SessionSpec {
   // - STIGMER: ExecuteDeepAgent activity -> Stigmer unified runner
   // - CLAUDE: ExecuteClaude activity -> Stigmer unified runner
   Harness harness = 10 [(buf.validate.field).enum.defined_only = true];
-
-  // Field 11 held cursor_mode, the retired Cursor harness's agent type.
-  // The number and the name are reserved so neither is ever reused.
-  reserved 11;
-  reserved "cursor_mode";
 
   // Where session activities are executed — local client or cloud sandbox.
   //
@@ -145,12 +118,6 @@ message SessionSpec {
     (ai.stigmer.commons.apiresource.reference_kind) = vault,
     (buf.validate.field).repeated.max_items = 20
   ];
-
-  // Fields 16 and 17 held secrets and logins handed to one conversation
-  // until a conversation's values moved to vaults; a key is saved in a
-  // vault, and the conversation names the vault.
-  reserved 16, 17;
-  reserved "secrets", "connections";
 
   // Whether each turn also uses its sender's own My vault, first, ahead of
   // the listed vaults. Off unless the caller sets it.

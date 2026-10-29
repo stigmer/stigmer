@@ -86,7 +86,6 @@ describe("isAppUserAccount — telling a product's users from the organization's
     for (const mode of [
       IdentityAccountProvisioningMode.direct,
       IdentityAccountProvisioningMode.federated,
-      IdentityAccountProvisioningMode.machine,
       IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
     ]) {
       expect(isAppUserAccount(person(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
@@ -119,7 +118,6 @@ describe("isServiceAccount — telling an organization's automation from its peo
     for (const mode of [
       IdentityAccountProvisioningMode.direct,
       IdentityAccountProvisioningMode.federated,
-      IdentityAccountProvisioningMode.machine,
       IdentityAccountProvisioningMode.app_user,
       IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
     ]) {

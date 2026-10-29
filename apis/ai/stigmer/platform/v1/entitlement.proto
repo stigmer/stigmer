@@ -66,13 +66,6 @@ message EntitlementLimits {
   // gate reads it.
   optional int32 max_active_session_sandboxes = 4 [(buf.validate.field).int32.gt = 0];
 
-  // Field 5 held max_active_workflow_sandboxes, the cap on sandboxes a
-  // workflow run held, until the workflow product was removed
-  // platform-wide. Reserved so the number and name are never reused for a
-  // different limit.
-  reserved 5;
-  reserved "max_active_workflow_sandboxes";
-
   // How many days an archived session workspace is kept before it is
   // deleted, its files and snapshot included. Absent keeps it for as long
   // as the session exists. Read by a subscription. A license ignores it
@@ -93,31 +86,12 @@ message EntitlementLimits {
 // A capability an entitlement can unlock.
 //
 // The vocabulary is closed and grows one value at a time, each landing with
-// the gate that reads it: an enum value is a wire identifier that can never
-// be removed, so a feature is named here only once something in the
-// platform can be gated on it. Values are added, never renamed or reused.
+// the gate that reads it, so a feature is named here only once something in
+// the platform can be gated on it. A value is a wire identifier: once
+// released it is never renamed, and a value that leaves keeps its number
+// and name reserved so neither is reused.
 enum Feature {
   feature_unspecified = 0;
-
-  // No longer used: gates nothing. It enforced sign-in through an
-  // organization's single sign-on provider, and Stigmer has no single
-  // sign-on of its own. It stays because plans and licenses already issued
-  // carry it and an enum value is a wire identifier. A new plan or license
-  // does not list it.
-  sso_enforcement = 1;
-
-  // No longer used: gates nothing. It named the platform client credential,
-  // which Stigmer no longer has; a product mints its users' tokens with a
-  // service account's key in every edition. It stays
-  // because licenses already issued carry it and an enum value is a wire
-  // identifier. A new plan or license does not list it.
-  platform_client = 2;
-
-  // No longer used: gates nothing. Every plan serves model calls on the
-  // organization's own provider keys, and no edition reads this value. It
-  // stays because plans and licenses already issued carry it and an enum
-  // value is a wire identifier. A new plan or license does not list it.
-  byo_provider_keys = 3;
 
   // Serving an agent's Slack and WhatsApp channels through the Cloud's
   // hosted channel runtime. The Channel kind itself is open source; this
@@ -133,9 +107,8 @@ enum Feature {
   // hosted lane inside Cloud plans. It is not an edition gate, and a
   // license never lists it: the open-source server stores chat links
   // freely, and whether a self-hosted server serves them to guests is its
-  // edition's to decide, never its license's. The name is older than chat
-  // links becoming channels and stays: an enum value is a wire identifier.
-  sharing = 5;
+  // edition's to decide, never its license's.
+  chat_links = 5;
 
   // Creating teams and adding members to them. The team kind is Enterprise
   // and Cloud; this feature tiers it inside Cloud plans, so an organization

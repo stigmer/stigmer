@@ -384,7 +384,7 @@ var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x05\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xf3\x04\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
 	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12)\n" +
@@ -396,7 +396,7 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\bpolicies\x18\t \x01(\v28.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesR\bpolicies\x12W\n" +
 	"\tembedding\x18\n" +
 	" \x01(\v29.ai.stigmer.tenancy.organization.v1.OrganizationEmbeddingR\tembedding:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n" +
-	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x06\x10\aR\x0fmanagement_modeR\x15identity_provider_refR\vis_personal\"\x9f\x05\n" +
+	",organization.external_id_requires_parent_org\x12Dexternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == '' || this.parent_org != ''\"\x9f\x05\n" +
 	"\x15OrganizationEmbedding\x12'\n" +
 	"\x0fallowed_origins\x18\x01 \x03(\tR\x0eallowedOrigins\x12:\n" +
 	"\x1acreate_accounts_on_sign_in\x18\x02 \x01(\bR\x16createAccountsOnSignIn\x12<\n" +

@@ -92,14 +92,14 @@ function stampedBy(id: string) {
 
 /** The one agent execution the capture arms read: Carol's run in `acme`, on session `ses_carol`. */
 const AGENT_RUN = create(RunSchema, {
-  metadata: { id: "aex_agent_run", name: "aex_agent_run", org: "acme" },
+  metadata: { id: "run_agent_run", name: "run_agent_run", org: "acme" },
   spec: { target: { case: "sessionId", value: "ses_carol" } },
   status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
 /** A run created before sign-in was on: its stamp names nobody the server recognizes. */
 const NOBODYS_RUN = create(RunSchema, {
-  metadata: { id: "aex_nobodys_run", name: "aex_nobodys_run", org: "acme" },
+  metadata: { id: "run_nobodys_run", name: "run_nobodys_run", org: "acme" },
   spec: { target: { case: "sessionId", value: "ses_old" } },
   status: {
     phase: RunPhase.RUN_IN_PROGRESS,
@@ -109,15 +109,15 @@ const NOBODYS_RUN = create(RunSchema, {
 
 /** A run whose row names no organization: no credential may be bound to nothing. */
 const ORGLESS_RUN = create(RunSchema, {
-  metadata: { id: "aex_orgless_run", name: "aex_orgless_run", org: "" },
+  metadata: { id: "run_orgless_run", name: "run_orgless_run", org: "" },
   spec: { target: { case: "sessionId", value: "ses_orgless" } },
   status: { phase: RunPhase.RUN_IN_PROGRESS, ...stampedBy(HUMAN) },
 });
 
 const ROWS: Record<string, unknown> = {
-  aex_orgless_run: ORGLESS_RUN,
-  aex_agent_run: AGENT_RUN,
-  aex_nobodys_run: NOBODYS_RUN,
+  run_orgless_run: ORGLESS_RUN,
+  run_agent_run: AGENT_RUN,
+  run_nobodys_run: NOBODYS_RUN,
 };
 
 /** Carol's connect: the attempt the connect lane recorded for her, keyed by the connect's execution id. */
@@ -210,24 +210,24 @@ const person: CallerIdentity = {
   rawToken: "eyJ.person.token",
 };
 
-const agentBound = runnerCaller(service.mintRunCredential("aex_agent_run"));
+const agentBound = runnerCaller(service.mintRunCredential("run_agent_run"));
 /** The connect lane's runner: the clocked token bound to Carol's connect attempt (connect.ts `prepareConnect`). */
 const connectBound = runnerCaller(service.mint(CONNECT_ID, 300).token);
 
 describe("the default lane is byte-identical", () => {
   it("mints and verifies on execution_scoped exactly as the default provider", () => {
-    const minted = provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "aex_prov", 0);
+    const minted = provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "run_prov", 0);
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, minted.token)).toBe(
-      "aex_prov",
+      "run_prov",
     );
     expect(provider.isEnabled(TOKEN_TYPE_EXECUTION_SCOPED)).toBe(true);
     expect(provider.isEnabled("sandbox")).toBe(false);
   });
 
   it("carries the default's run-credential capability unchanged — the dispatch mints through it", () => {
-    const token = provider.mintRunCredential!("aex_dispatch");
+    const token = provider.mintRunCredential!("run_dispatch");
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, token)).toBe(
-      "aex_dispatch",
+      "run_dispatch",
     );
     expect(isClockedToken(token)).toBe(false);
   });
@@ -269,19 +269,19 @@ describe("exchangeScopedToken — the mint gate", () => {
 
   it("mints the RUN credential for the run's own person: bound to the execution, no clock, no expiry on the wire", async () => {
     const minted = await exchange(
-      { arm: "agent-execution", executionId: "aex_agent_run" },
+      { arm: "agent-execution", executionId: "run_agent_run" },
       carol,
     );
     expect(minted.minted).toBe(true);
     if (!minted.minted) throw new Error("unreachable");
-    expect(service.verify(minted.token)).toBe("aex_agent_run");
+    expect(service.verify(minted.token)).toBe("run_agent_run");
     expect(isClockedToken(minted.token)).toBe(false);
     expect(minted.expiresInSeconds).toBe(0);
   });
 
   it("another signed-in person is refused with one sentence — the impersonation path this gate closes", async () => {
     const failure = await refusal(
-      exchange({ arm: "agent-execution", executionId: "aex_agent_run" }, bruce),
+      exchange({ arm: "agent-execution", executionId: "run_agent_run" }, bruce),
     );
     expect(failure.code).toBe(Code.PermissionDenied);
     expect(failure.rawMessage).toBe(RUN_CREDENTIAL_NOT_RUNS_PERSON_MESSAGE);
@@ -293,7 +293,7 @@ describe("exchangeScopedToken — the mint gate", () => {
   it("a credential bound to another organization than the run's is refused with the binding's sentence — it cannot swap itself for a credential that works there", async () => {
     const failure = await refusal(
       exchange(
-        { arm: "agent-execution", executionId: "aex_agent_run" },
+        { arm: "agent-execution", executionId: "run_agent_run" },
         { ...carol, boundOrg: "globex" },
       ),
     );
@@ -304,7 +304,7 @@ describe("exchangeScopedToken — the mint gate", () => {
   it("a credential bound to the run's own organization, or to its parent, is minted the run credential", async () => {
     for (const boundOrg of ["acme", "acme_parent"]) {
       const minted = await exchange(
-        { arm: "agent-execution", executionId: "aex_agent_run" },
+        { arm: "agent-execution", executionId: "run_agent_run" },
         { ...carol, boundOrg },
       );
       expect(minted.minted).toBe(true);
@@ -314,7 +314,7 @@ describe("exchangeScopedToken — the mint gate", () => {
   it("a run whose creator stamp names nobody is nobody's to hold — refused with the same sentence", async () => {
     const failure = await refusal(
       exchange(
-        { arm: "agent-execution", executionId: "aex_nobodys_run" },
+        { arm: "agent-execution", executionId: "run_nobodys_run" },
         carol,
       ),
     );
@@ -324,10 +324,10 @@ describe("exchangeScopedToken — the mint gate", () => {
 
   it("a run that does not exist is NOT_FOUND with the load-first copy — what a `get` on that id answers", async () => {
     const failure = await refusal(
-      exchange({ arm: "agent-execution", executionId: "aex_missing" }, carol),
+      exchange({ arm: "agent-execution", executionId: "run_missing" }, carol),
     );
     expect(failure.code).toBe(Code.NotFound);
-    expect(failure.rawMessage).toBe("Run not found: aex_missing");
+    expect(failure.rawMessage).toBe("Run not found: run_missing");
   });
 
   it("a connect binding is NOT_FOUND — the exchange mints run credentials, and a connect is not a run", async () => {
@@ -340,8 +340,8 @@ describe("exchangeScopedToken — the mint gate", () => {
 
   it("a runner already acting as the person may hold a credential for that person's other run (the credential's reach, pinned as a known fact)", async () => {
     const minted = await exchange(
-      { arm: "agent-execution", executionId: "aex_agent_run" },
-      runnerCaller(service.mintRunCredential("aex_orgless_run")),
+      { arm: "agent-execution", executionId: "run_agent_run" },
+      runnerCaller(service.mintRunCredential("run_orgless_run")),
     );
     expect(minted.minted).toBe(true);
   });
@@ -369,7 +369,7 @@ describe("exchangeScopedToken — the mint gate", () => {
     });
     expect(
       await keyless.exchangeScopedToken!(
-        { arm: "agent-execution", executionId: "aex_agent_run" },
+        { arm: "agent-execution", executionId: "run_agent_run" },
         carol,
       ),
     ).toEqual({ minted: false });
@@ -385,7 +385,7 @@ describe("the runner-subject verifier binds the run's organization", () => {
 
   it("a run credential admits the run's person bound to the run's organization — whoever started the run, it works there alone", async () => {
     const identity = await verifier.verify(
-      service.mintRunCredential("aex_agent_run"),
+      service.mintRunCredential("run_agent_run"),
     );
     expect(identity?.identityId).toBe(HUMAN);
     expect(identity?.callerClass).toBe("runner");
@@ -394,7 +394,7 @@ describe("the runner-subject verifier binds the run's organization", () => {
 
   it("a run whose row names no organization admits nobody — an empty binding would read as none", async () => {
     const failure = await verifier
-      .verify(service.mintRunCredential("aex_orgless_run"))
+      .verify(service.mintRunCredential("run_orgless_run"))
       .then(
         () => undefined,
         (error: unknown) => error,
@@ -414,13 +414,13 @@ describe("runnerBindingOf — the one reading of what a runner is bound to", () 
   it("an agent-bound run credential", () => {
     expect(runnerBindingOf(service, agentBound)).toEqual({
       kind: "agent-execution",
-      executionId: "aex_agent_run",
+      executionId: "run_agent_run",
     });
   });
 
   it("the exchange lane's clocked token binds the same way", () => {
-    const clocked = runnerCaller(service.mint("aex_clocked", 300).token);
-    expect(runnerBindingOf(service, clocked)?.executionId).toBe("aex_clocked");
+    const clocked = runnerCaller(service.mint("run_clocked", 300).token);
+    expect(runnerBindingOf(service, clocked)?.executionId).toBe("run_clocked");
   });
 
   it("the connect lane's token IS a runner binding, named — every capability answers it by kind, none by accident", () => {
@@ -437,7 +437,7 @@ describe("runnerBindingOf — the one reading of what a runner is bound to", () 
       "a runner-class caller holding a token this server did not sign",
       runnerCaller(
         RunnerAuthService.create(randomBytes(32)).mintRunCredential(
-          "aex_other",
+          "run_other",
         ),
       ),
     ],
@@ -489,7 +489,7 @@ describe("authorizeMemoryCapture", () => {
   });
 
   it("an agent-bound runner whose run has vanished is refused — a memory the server cannot attribute is not written as nobody's", async () => {
-    const orphan = runnerCaller(service.mintRunCredential("aex_vanished"));
+    const orphan = runnerCaller(service.mintRunCredential("run_vanished"));
     expect(await decide(orphan, "acme")).toEqual({ verdict: "refuse" });
   });
 
@@ -499,7 +499,7 @@ describe("authorizeMemoryCapture", () => {
 
   it("a runner-class caller whose token this server did not sign is no-opinion, never a throw — the gate then applies its own logic", async () => {
     const stranger = runnerCaller(
-      RunnerAuthService.create(randomBytes(32)).mintRunCredential("aex_other"),
+      RunnerAuthService.create(randomBytes(32)).mintRunCredential("run_other"),
     );
     expect(await decide(stranger, "acme")).toEqual({ verdict: "no-opinion" });
   });

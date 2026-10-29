@@ -18,9 +18,7 @@ import "buf/validate/validate.proto";
 // subset of a run, so a routine speaks the composer's vocabulary instead of
 // a routine-only one. Apply-time cron validation is purely lexical, so no
 // cron parser exists in either edition; the Temporal server owns calendar
-// and DST semantics. Field 4 was the single arm of a `target` oneof while
-// the kind was Schedule: a one-arm oneof and a plain field at the same
-// number are the same bytes, so stored rows read unchanged.
+// and DST semantics.
 message RoutineSpec {
   option (buf.validate.message).cel = {
     id: "cron_needs_time_zone"

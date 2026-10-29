@@ -643,6 +643,10 @@ func (x *GetRunnerBootstrapConfigOutput) GetMcpBridgeEndpoint() string {
 // Names the unit of dispatched work a runner wants a scoped token for.
 type GetRunnerScopedTokenInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// The dispatched work the token will serve. The runner names only the id it
+	// was dispatched; the server derives the token's scope from the resource
+	// itself (a run scopes to its parent session).
+	//
 	// Types that are valid to be assigned to Scope:
 	//
 	//	*GetRunnerScopedTokenInput_RunId
@@ -889,12 +893,11 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
 	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\x12.\n" +
 	"\x13mcp_bridge_endpoint\x18\n" +
-	" \x01(\tR\x11mcpBridgeEndpoint\"\xaf\x01\n" +
+	" \x01(\tR\x11mcpBridgeEndpoint\"\x86\x01\n" +
 	"\x19GetRunnerScopedTokenInput\x12\x17\n" +
 	"\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12@\n" +
 	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +
-	"\x05scope\x12\x05\xbaH\x02\b\x01J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x0fworkflow_run_idR\n" +
-	"pool_claim\"\x0e\n" +
+	"\x05scope\x12\x05\xbaH\x02\b\x01\"\x0e\n" +
 	"\fTokenRenewal\"\x99\x01\n" +
 	"\x1aGetRunnerScopedTokenOutput\x12.\n" +
 	"\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n" +

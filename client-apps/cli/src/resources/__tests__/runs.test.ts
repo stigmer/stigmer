@@ -29,11 +29,7 @@ describe("isRunId", () => {
     ["run-01ARZ3NDEKTSV4RRFFQ69G5FAV", false],
     ["run-nightly-report", false],
     ["run_", true],
-    // A run minted before the run kind's prefix became `run` keeps its id.
-    ["aex_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
-    ["aex-01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
     ["RUN_run", false], // case-sensitive
-    ["AEX_run", false],
     ["agt_abc", false], // different kind
     ["runner", false], // a word that starts with the prefix is no id
   ])("%j -> %s", (ref, expected) => {
@@ -60,7 +56,7 @@ describe("renderRunList", () => {
   const list = create(RunListSchema, {
     entries: [
       create(RunSchema, {
-        metadata: { id: "aex_1" },
+        metadata: { id: "run_1" },
         status: {
           agentId: "agt_1",
           phase: RunPhase.RUN_IN_PROGRESS,
@@ -68,25 +64,25 @@ describe("renderRunList", () => {
         },
       }),
       // Nothing recorded yet: every unset column is a dash.
-      create(RunSchema, { metadata: { id: "aex_2" } }),
+      create(RunSchema, { metadata: { id: "run_2" } }),
     ],
   });
   const result = { schema: RunListSchema, message: list };
 
   it("renders the full list envelope as protojson for json", () => {
     const json = JSON.parse(renderRunList(result, "json"));
-    expect(json.entries[0].metadata.id).toBe("aex_1");
+    expect(json.entries[0].metadata.id).toBe("run_1");
   });
 
   it("renders a table with a friendly phase label", () => {
     const table = renderRunList(result, "table");
     expect(table).toContain("AGENT");
     // The agent column is the agent the turn ran, as the server recorded it.
-    expect(table).toMatch(/aex_1\s+agt_1\s+in-progress\s+2026-03-01T10:00:00Z/);
+    expect(table).toMatch(/run_1\s+agt_1\s+in-progress\s+2026-03-01T10:00:00Z/);
   });
 
   it("renders a dash for an unset agent, phase and start", () => {
-    expect(renderRunList(result, "table")).toMatch(/aex_2\s+-\s+-\s+-/);
+    expect(renderRunList(result, "table")).toMatch(/run_2\s+-\s+-\s+-/);
   });
 });
 
@@ -102,8 +98,8 @@ function listingClient(): {
       list: async (req: ListRunsRequest) => {
         agentRequests.push(req);
         return req.pageToken === ""
-          ? page([create(RunSchema, { metadata: { id: "aex_1" } })], "p2")
-          : page([create(RunSchema, { metadata: { id: "aex_2" } })], "");
+          ? page([create(RunSchema, { metadata: { id: "run_1" } })], "p2")
+          : page([create(RunSchema, { metadata: { id: "run_2" } })], "");
       },
       get: async (id: string) => create(RunSchema, { metadata: { id } }),
     },
@@ -121,9 +117,9 @@ function runIds(message: Message): string[] {
 describe("getRun", () => {
   it("reads a run through the run controller, with its schema", async () => {
     const { client } = listingClient();
-    const result = await getRun(client, "aex_9");
+    const result = await getRun(client, "run_9");
     expect(result.schema).toBe(RunSchema);
-    expect(runIds(result.message)).toEqual(["aex_9"]);
+    expect(runIds(result.message)).toEqual(["run_9"]);
   });
 });
 
@@ -132,7 +128,7 @@ describe("listAgentRuns", () => {
     const { client, agentRequests } = listingClient();
     const result = await listAgentRuns(client, 2, "acme");
     expect(result.schema).toBe(RunListSchema);
-    expect(runIds(result.message)).toEqual(["aex_1", "aex_2"]);
+    expect(runIds(result.message)).toEqual(["run_1", "run_2"]);
     expect(agentRequests.map((r) => [r.pageSize, r.pageToken, r.org])).toEqual([
       [2, "", "acme"],
       [1, "p2", "acme"],
@@ -142,7 +138,7 @@ describe("listAgentRuns", () => {
   it("stops at the limit and names no organization by default", async () => {
     const { client, agentRequests } = listingClient();
     const result = await listAgentRuns(client, 1);
-    expect(runIds(result.message)).toEqual(["aex_1"]);
+    expect(runIds(result.message)).toEqual(["run_1"]);
     expect(agentRequests.map((r) => r.org)).toEqual([""]);
   });
 });

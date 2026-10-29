@@ -482,7 +482,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether the provider confirmed the key when it was saved (updated_at).
-   * Unspecified on a key saved before the outcome was recorded.
+   * Unspecified when the server holds no outcome for the key.
    * </pre>
    *
    * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
@@ -494,7 +494,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether the provider confirmed the key when it was saved (updated_at).
-   * Unspecified on a key saved before the outcome was recorded.
+   * Unspecified when the server holds no outcome for the key.
    * </pre>
    *
    * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
@@ -2114,7 +2114,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the provider confirmed the key when it was saved (updated_at).
-     * Unspecified on a key saved before the outcome was recorded.
+     * Unspecified when the server holds no outcome for the key.
      * </pre>
      *
      * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
@@ -2126,7 +2126,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the provider confirmed the key when it was saved (updated_at).
-     * Unspecified on a key saved before the outcome was recorded.
+     * Unspecified when the server holds no outcome for the key.
      * </pre>
      *
      * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
@@ -2143,7 +2143,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the provider confirmed the key when it was saved (updated_at).
-     * Unspecified on a key saved before the outcome was recorded.
+     * Unspecified when the server holds no outcome for the key.
      * </pre>
      *
      * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
@@ -2157,7 +2157,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the provider confirmed the key when it was saved (updated_at).
-     * Unspecified on a key saved before the outcome was recorded.
+     * Unspecified when the server holds no outcome for the key.
      * </pre>
      *
      * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>
@@ -2174,7 +2174,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether the provider confirmed the key when it was saved (updated_at).
-     * Unspecified on a key saved before the outcome was recorded.
+     * Unspecified when the server holds no outcome for the key.
      * </pre>
      *
      * <code>.ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11 [json_name = "check"];</code>

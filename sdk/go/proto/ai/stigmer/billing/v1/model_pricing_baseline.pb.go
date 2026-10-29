@@ -707,7 +707,7 @@ var File_ai_stigmer_billing_v1_model_pricing_baseline_proto protoreflect.FileDes
 
 const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/billing/v1/model_pricing_baseline.proto\x12\x15ai.stigmer.billing.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x90\x04\n" +
+	"2ai/stigmer/billing/v1/model_pricing_baseline.proto\x12\x15ai.stigmer.billing.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe4\x03\n" +
 	"\fPricingBlock\x12K\n" +
 	"\x1einput_price_micros_per_million\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1ainputPriceMicrosPerMillion\x12M\n" +
 	"\x1foutput_price_micros_per_million\x18\x02 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x1boutputPriceMicrosPerMillion\x12V\n" +
@@ -716,7 +716,7 @@ const file_ai_stigmer_billing_v1_model_pricing_baseline_proto_rawDesc = "" +
 	"\x06source\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x06source\x12)\n" +
 	"\vsource_note\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\n" +
 	"sourceNote\x12=\n" +
-	"\feffective_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAtJ\x04\b\x05\x10\x06R$cursor_token_rate_micros_per_million\"\x81\x01\n" +
+	"\feffective_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\veffectiveAt\"\x81\x01\n" +
 	"\x0ePricingVariant\x12E\n" +
 	"\apricing\x18\x01 \x01(\v2#.ai.stigmer.billing.v1.PricingBlockB\x06\xbaH\x03\xc8\x01\x01R\apricing\x12(\n" +
 	"\bwire_ids\x18\x02 \x03(\tB\r\xbaH\n" +

@@ -157,12 +157,11 @@ const VISIBILITY_ALIASES: ReadonlyMap<string, ApiResourceVisibility> = new Map([
 ]);
 
 /**
- * The spellings of the retired public level. They are refused like any
- * unknown value, with one extra clause: an author who wrote `public` meant
- * something the platform no longer offers, and the error should say so
- * rather than read as a typo.
+ * `public` is the level an author most often guesses. It is refused like
+ * any unknown value, with the clause that says how a resource is shared
+ * instead, so the error reads as guidance rather than a typo.
  */
-const RETIRED_VISIBILITY_SPELLINGS: ReadonlySet<string> = new Set(["public", "visibility_public"]);
+const GUESSED_PUBLIC_SPELLING = "public";
 
 const VALID_VISIBILITY_VALUES = "Valid values: private, org, child-orgs.";
 
@@ -178,9 +177,9 @@ export function parseVisibility(value: unknown, source = SKILL_FILE): ApiResourc
   }
   const key = value.trim().toLowerCase();
   if (key === "" || key === "unspecified" || key === "api_resource_visibility_unspecified") return undefined;
-  if (RETIRED_VISIBILITY_SPELLINGS.has(key)) {
+  if (key === GUESSED_PUBLIC_SPELLING) {
     throw new UsageError(
-      `invalid 'visibility' value '${value}' in ${source}: the public level is retired\n\n` +
+      `invalid 'visibility' value '${value}' in ${source}: public is not a visibility level\n\n` +
         "Resources are shared across organizations through plugins, or with an\n" +
         `organization's child organizations through the child-orgs level. ${VALID_VISIBILITY_VALUES}`,
     );

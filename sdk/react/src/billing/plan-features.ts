@@ -105,7 +105,7 @@ export const FREE_PLAN: {
 } = {
   name: "Free",
   entitlements: create(EntitlementsSchema, {
-    features: [Feature.channels, Feature.sharing],
+    features: [Feature.channels, Feature.chat_links],
     limits: { includedAgentHours: 30, maxActiveSessionSandboxes: 5 },
   }),
   extras: ["Unlimited members"],

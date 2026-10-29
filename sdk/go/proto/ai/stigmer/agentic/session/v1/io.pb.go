@@ -1938,10 +1938,10 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\tSessionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"'\n" +
 	"\aAgentId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8a\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"w\n" +
 	"\vSessionList\x12@\n" +
 	"\aentries\x18\x02 \x03(\v2&.ai.stigmer.agentic.session.v1.SessionR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\x95\x02\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x89\x02\n" +
 	"\x13ListSessionsRequest\x12$\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
@@ -1950,7 +1950,7 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x05 \x03(\v2>.ai.stigmer.agentic.session.v1.ListSessionsRequest.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x03\x10\x04R\x04tags\"\xa8\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x02\n" +
 	"\x1aListSessionsByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +

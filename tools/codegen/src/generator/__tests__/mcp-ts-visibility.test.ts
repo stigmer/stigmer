@@ -1,7 +1,7 @@
 /**
  * Pins the visibility input the MCP TypeScript generator writes on every
  * top-level apply tool: the three levels the server accepts, by enum name,
- * child organizations among them, and never the retired names.
+ * child organizations among them.
  *
  * The generator runs over the real schemas into a temporary directory, and
  * the case reads what it wrote for Agent.
@@ -29,11 +29,9 @@ describe("the MCP apply tools' visibility input", () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it("offers private, org and child_orgs by enum name, and no retired level", () => {
+  it("offers private, org and child_orgs by enum name", () => {
     expect(agent).toContain(
       "Allowed values: visibility_private, visibility_org, visibility_child_orgs.",
     );
-    expect(agent).not.toContain("visibility_platform");
-    expect(agent).not.toContain("visibility_public");
   });
 });

@@ -21,8 +21,7 @@ public enum VendorApprovalStatus
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default / unset. Treated as approved for backwards compatibility.
-   * OAuth apps that do not go through a vendor approval process
+   * Default / unset. Treated as approved: OAuth apps that do not go through a vendor approval process
    * (e.g., self-hosted or private vendor integrations) leave this unset.
    * </pre>
    *
@@ -68,8 +67,7 @@ public enum VendorApprovalStatus
   }
   /**
    * <pre>
-   * Default / unset. Treated as approved for backwards compatibility.
-   * OAuth apps that do not go through a vendor approval process
+   * Default / unset. Treated as approved: OAuth apps that do not go through a vendor approval process
    * (e.g., self-hosted or private vendor integrations) leave this unset.
    * </pre>
    *

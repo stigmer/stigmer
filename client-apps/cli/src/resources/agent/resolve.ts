@@ -2,7 +2,7 @@
 // quality`, so an agent named one way by one names it the same way by the
 // other.
 //
-// An id (`agt_…`, or a retired prefix) is read as it is, from whichever
+// An id (`agt_…`) is read as it is, from whichever
 // organization holds it; `org/slug` is read in that organization; a bare
 // slug is read in the active organization. A slug needs an organization,
 // so on a server that holds several and with none set, the command says
@@ -13,7 +13,7 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
 import { requireOrganization } from "../../client/single-org.js";
-import { idPrefixesFor, parseReference } from "../reference.js";
+import { idPrefixOf, parseReference } from "../reference.js";
 
 /** Reads the agent `ref` names (an id, `org/slug` or a slug in `org`); a refused read rejects with the server's error. */
 export async function resolveAgent(
@@ -22,7 +22,7 @@ export async function resolveAgent(
   org: string,
   setItWith: readonly string[],
 ): Promise<Agent> {
-  const parsed = parseReference(ref, org, idPrefixesFor(ApiResourceKind.agent));
+  const parsed = parseReference(ref, org, idPrefixOf(ApiResourceKind.agent));
   if (parsed.kind === "id") {
     return client.agent.get(parsed.id);
   }

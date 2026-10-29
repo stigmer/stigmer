@@ -30,8 +30,7 @@ const (
 type VendorApprovalStatus int32
 
 const (
-	// Default / unset. Treated as approved for backwards compatibility.
-	// OAuth apps that do not go through a vendor approval process
+	// Default / unset. Treated as approved: OAuth apps that do not go through a vendor approval process
 	// (e.g., self-hosted or private vendor integrations) leave this unset.
 	VendorApprovalStatus_VENDOR_APPROVAL_STATUS_UNSPECIFIED VendorApprovalStatus = 0
 	// The OAuth app has been submitted to the vendor for review and is
@@ -95,9 +94,8 @@ func (VendorApprovalStatus) EnumDescriptor() ([]byte, []int) {
 type TokenEndpointAuthMethod int32
 
 const (
-	// Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
-	// compatibility — every OAuthApp created before this field existed
-	// authenticated via HTTP Basic.
+	// Default / unset. Treated as CLIENT_SECRET_BASIC (HTTP Basic), the
+	// method RFC 6749 requires every authorization server to support.
 	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED TokenEndpointAuthMethod = 0
 	// client_secret_basic: the secret rides the Authorization header as
 	// HTTP Basic credentials (RFC 6749 §2.3.1's baseline method).
@@ -194,8 +192,8 @@ type OAuthAppSpec struct {
 	// process before a third-party OAuth app can be used publicly. This
 	// field tracks where Stigmer's registration stands with the vendor.
 	//
-	// UNSPECIFIED is treated as approved for backwards compatibility — only
-	// apps explicitly marked PENDING are gated in the UI.
+	// UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+	// are gated in the UI.
 	VendorApprovalStatus VendorApprovalStatus `protobuf:"varint,9,opt,name=vendor_approval_status,json=vendorApprovalStatus,proto3,enum=ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus" json:"vendor_approval_status,omitempty"`
 	// Documentation URL explaining how users can bring their own OAuth
 	// app credentials or personal access tokens for this vendor while
@@ -214,8 +212,8 @@ type OAuthAppSpec struct {
 	// RFC 6749 §2.3 forbids presenting credentials through more than one
 	// channel at once, and some servers reject requests that do.
 	//
-	// UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-	// compatibility, preserving the historical behavior byte-for-byte.
+	// UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+	// requires every authorization server to support.
 	TokenEndpointAuthMethod TokenEndpointAuthMethod `protobuf:"varint,11,opt,name=token_endpoint_auth_method,json=tokenEndpointAuthMethod,proto3,enum=ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod" json:"token_endpoint_auth_method,omitempty"`
 	// The addresses this app signs in to: a tool's URL (Slack's MCP endpoint
 	// at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized

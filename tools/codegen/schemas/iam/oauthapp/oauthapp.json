@@ -106,7 +106,7 @@
           "VENDOR_APPROVAL_STATUS_REJECTED"
         ]
       },
-      "description": "Vendor marketplace/app-review approval status for this OAuth app.\n\n Many vendors (Slack, Figma, Salesforce, etc.) require an approval\n process before a third-party OAuth app can be used publicly. This\n field tracks where Stigmer's registration stands with the vendor.\n\n UNSPECIFIED is treated as approved for backwards compatibility — only\n apps explicitly marked PENDING are gated in the UI.",
+      "description": "Vendor marketplace/app-review approval status for this OAuth app.\n\n Many vendors (Slack, Figma, Salesforce, etc.) require an approval\n process before a third-party OAuth app can be used publicly. This\n field tracks where Stigmer's registration stands with the vendor.\n\n UNSPECIFIED is treated as approved: only apps explicitly marked PENDING\n are gated in the UI.",
       "required": false
     },
     {
@@ -131,7 +131,7 @@
           "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST"
         ]
       },
-      "description": "How the client secret is presented to the vendor's token endpoint\n during authorization-code exchange and refresh.\n\n RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,\n but some vendors' token endpoints accept only client_secret_post\n (e.g. HubSpot advertises token_endpoint_auth_methods_supported:\n [\"client_secret_post\"]). Exactly one method is ever used per request —\n RFC 6749 §2.3 forbids presenting credentials through more than one\n channel at once, and some servers reject requests that do.\n\n UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards\n compatibility, preserving the historical behavior byte-for-byte.",
+      "description": "How the client secret is presented to the vendor's token endpoint\n during authorization-code exchange and refresh.\n\n RFC 6749 §2.3.1 requires authorization servers to support HTTP Basic,\n but some vendors' token endpoints accept only client_secret_post\n (e.g. HubSpot advertises token_endpoint_auth_methods_supported:\n [\"client_secret_post\"]). Exactly one method is ever used per request —\n RFC 6749 §2.3 forbids presenting credentials through more than one\n channel at once, and some servers reject requests that do.\n\n UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749\n requires every authorization server to support.",
       "required": false
     },
     {

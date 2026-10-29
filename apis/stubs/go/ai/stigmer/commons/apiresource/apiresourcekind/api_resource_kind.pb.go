@@ -83,11 +83,10 @@ func (ApiResourceVersion) EnumDescriptor() ([]byte, []int) {
 // kind's tier changes in the same change that makes the edition serve it,
 // so a client never offers a surface the server answers UNIMPLEMENTED to.
 //
-// Value names are JSON wire and the conformance suite pins them, so
-// `cloud_only` keeps its pre-Enterprise name beside `open_source` and
-// `enterprise`. Value numbers are wire identifiers, not ranks —
-// `enterprise` was added after `cloud_only` and sits at 3; compare tiers
-// to editions through an explicit rank, never through these numbers.
+// Value names are JSON wire and the conformance suite pins them. Value
+// numbers are wire identifiers, not ranks (`enterprise` sits at 3, after
+// `cloud_only`): compare tiers to editions through an explicit rank, never
+// through these numbers.
 type ResourceTier int32
 
 const (
@@ -408,16 +407,8 @@ type ApiResourceKindMeta struct {
 	Tier ResourceTier `protobuf:"varint,8,opt,name=tier,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier" json:"tier,omitempty"`
 	// FGA authorization configuration - defines how FGA tuples are created for this resource
 	Authorization *AuthorizationConfig `protobuf:"bytes,9,opt,name=authorization,proto3" json:"authorization,omitempty"`
-	// Prefixes this kind's ids were minted with before `id_prefix`. Ids are
-	// identities and are never rewritten, so a store keeps the ids it minted
-	// under an earlier prefix: readers that tell a kind from an id read these
-	// too. Never minted. A kind whose ids are derived from their content (a
-	// Grant's from its triple) moves its stored ids to the new prefix when it
-	// is renamed, and lists the old prefix here so the prefix stays reserved
-	// and an id held outside the store still names its kind.
-	RetiredIdPrefixes []string `protobuf:"bytes,10,rep,name=retired_id_prefixes,json=retiredIdPrefixes,proto3" json:"retired_id_prefixes,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApiResourceKindMeta) Reset() {
@@ -513,13 +504,6 @@ func (x *ApiResourceKindMeta) GetAuthorization() *AuthorizationConfig {
 	return nil
 }
 
-func (x *ApiResourceKindMeta) GetRetiredIdPrefixes() []string {
-	if x != nil {
-		return x.RetiredIdPrefixes
-	}
-	return nil
-}
-
 var file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
@@ -541,7 +525,7 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto 
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_proto_rawDesc = "" +
 	"\n" +
-	"Fai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1aGai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x1aIai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x1a google/protobuf/descriptor.proto\"\xdd\x04\n" +
+	"Fai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1aGai/stigmer/commons/apiresource/apiresourcekind/api_resource_group.proto\x1aIai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x1a google/protobuf/descriptor.proto\"\xad\x04\n" +
 	"\x13ApiResourceKindMeta\x12V\n" +
 	"\x05group\x18\x01 \x01(\x0e2@.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroupR\x05group\x12\\\n" +
 	"\aversion\x18\x02 \x01(\x0e2B.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceVersionR\aversion\x12\x12\n" +
@@ -551,9 +535,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\fis_versioned\x18\x06 \x01(\bR\visVersioned\x12,\n" +
 	"\x12not_search_indexed\x18\a \x01(\bR\x10notSearchIndexed\x12P\n" +
 	"\x04tier\x18\b \x01(\x0e2<.ai.stigmer.commons.apiresource.apiresourcekind.ResourceTierR\x04tier\x12i\n" +
-	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization\x12.\n" +
-	"\x13retired_id_prefixes\x18\n" +
-	" \x03(\tR\x11retiredIdPrefixes*B\n" +
+	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization*B\n" +
 	"\x12ApiResourceVersion\x12$\n" +
 	" api_resource_version_unspecified\x10\x00\x12\x06\n" +
 	"\x02v1\x10\x01*^\n" +
@@ -566,35 +548,35 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"enterprise\x10\x03*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x89$\n" +
+	"\astigmer\x10\x01*\xe2!\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
-	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x126\n" +
+	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x120\n" +
 	"\x05grant\x10\n" +
-	"\x1a+\xaa\xff+'\b\x02\x10\x01\x1a\x05Grant\"\x05Grant*\x03grt8\x01@\x01J\x04\b\x02\x10\x01R\x04iamp\x12P\n" +
+	"\x1a%\xaa\xff+!\b\x02\x10\x01\x1a\x05Grant\"\x05Grant*\x03grt8\x01@\x01J\x04\b\x02\x10\x01\x12P\n" +
 	"\x10identity_account\x10\v\x1a:\xaa\xff+6\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida8\x01@\x01J\x04\b\x04\x10\x03\x125\n" +
 	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x01J\x04\b\x04\x10\x01\x12?\n" +
 	"\n" +
 	"invitation\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
 	"Invitation\"\n" +
-	"Invitation*\x03inv8\x01@\x03J\x04\b\x02\x10\x04\x12\x85\x01\n" +
-	"\x11federation_issuer\x10\x15\x1an\xaa\xff+j\b\x02\x10\x01\x1a\x10FederationIssuer\"\x11Federation Issuer*\x03fis8\x01@\x03J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change themR\x03idp\x12i\n" +
+	"Invitation*\x03inv8\x01@\x03J\x04\b\x02\x10\x04\x12\x80\x01\n" +
+	"\x11federation_issuer\x10\x15\x1ai\xaa\xff+e\b\x02\x10\x01\x1a\x10FederationIssuer\"\x11Federation Issuer*\x03fis8\x01@\x03J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12i\n" +
 	"\toauth_app\x10\x16\x1aZ\xaa\xff+V\b\x02\x10\x01\x1a\bOAuthApp\"\tOAuth App*\x04oapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12o\n" +
 	"\x04team\x10\x18\x1ae\xaa\xff+a\b\x02\x10\x01\x1a\x04Team\"\x04Team*\x02tm8\x01@\x03JG\b\x02\x10\x04:\x01\x03J>\b\x03\x12:Belongs to the team and holds every role the team is given\x12\xf2\x03\n" +
 	"\forganization\x10\x1e\x1a\xdf\x03\xaa\xff+\xda\x03\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\xb0\x03\b\x04\x10\x01:\x04\x01\x02\x03\x04JK\b\x01\x12GEverything, including deleting the organization and choosing its ownersJ\x9f\x01\b\x02\x12\x9a\x01Manage people, settings, billing, and the organization's agents and tools; cannot read private conversations, delete the organization or change its ownersJk\b\x03\x12gStart conversations with the agents shared with them, and create agents when the organization allows itJH\b\x04\x12DSee what is shared with the organization; cannot start conversations\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x03J\x04\b\x05\x10\x04\x12\x80\x02\n" +
-	"\x05agent\x10(\x1a\xf4\x01\xaa\xff+\xef\x01\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\xd1\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ@\b\x06\x12<Change and run it; cannot delete it or decide who has accessJ5\b\x04\x121Run it and see how it is set up; cannot change it\x12M\n" +
-	"\x03run\x10)\x1aD\xaa\xff+@\b\x01\x10\x01\x1a\x03Run\"\x03Run*\x03run@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
+	"\x05agent\x10(\x1a\xf4\x01\xaa\xff+\xef\x01\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt0\x01@\x01J\xd1\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x03\x01\x06\x04B\x02\x06\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ@\b\x06\x12<Change and run it; cannot delete it or decide who has accessJ5\b\x04\x121Run it and see how it is set up; cannot change it\x12H\n" +
+	"\x03run\x10)\x1a?\xaa\xff+;\b\x01\x10\x01\x1a\x03Run\"\x03Run*\x03run@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
 	"\asession\x12\asession\x1a\n" +
-	"session_idR\x03aex\x12\x8d\x02\n" +
+	"session_id\x12\x8d\x02\n" +
 	"\asession\x10*\x1a\xff\x01\xaa\xff+\xfa\x01\b\x01\x10\x01\x1a\aSession\"\aSession*\x03ses@\x01J\xda\x01\b\x02\x10\x01\" \n" +
 	"\aroutine\x12\aroutine \x01*\n" +
 	"routine_id:\x03\x01\x05\x04JO\b\x01\x12KEverything, including deleting the conversation and deciding who has accessJ+\b\x05\x12'Read the conversation and send messagesJ/\b\x04\x12+Read the conversation; cannot send messages\x12\xbc\x01\n" +
-	"\x05skill\x10+\x1a\xb0\x01\xaa\xff+\xab\x01\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xbc\x02\n" +
-	"\achannel\x10/\x1a\xae\x02\xaa\xff+\xa9\x02\b\x01\x10\x01\x1a\aChannel\"\aChannel*\x03chn8\x01@\x01J\xfd\x01\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05JC\b\x01\x12?Everything, including the channel's settings and who has accessJI\b\x04\x12ESee the channel and read its conversations; cannot change it or replyJ^\b\x05\x12ZRead the channel's Slack and WhatsApp conversations and reply to customers as the businessR\x03ashR\x03ach\x12p\n" +
+	"\x05skill\x10+\x1a\xb0\x01\xaa\xff+\xab\x01\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xb2\x02\n" +
+	"\achannel\x10/\x1a\xa4\x02\xaa\xff+\x9f\x02\b\x01\x10\x01\x1a\aChannel\"\aChannel*\x03chn8\x01@\x01J\xfd\x01\b\x02\x10\x01:\x03\x01\x04\x05B\x02\x04\x05JC\b\x01\x12?Everything, including the channel's settings and who has accessJI\b\x04\x12ESee the channel and read its conversations; cannot change it or replyJ^\b\x05\x12ZRead the channel's Slack and WhatsApp conversations and reply to customers as the business\x12p\n" +
 	"\vchannel_app\x100\x1a_\xaa\xff+[\b\x01\x10\x01\x1a\n" +
-	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12\xc5\x01\n" +
-	"\aroutine\x108\x1a\xb7\x01\xaa\xff+\xb2\x01\b\x01\x10\x01\x1a\aRoutine\"\aRoutine*\x03rtn8\x01@\x01J\x8b\x01\b\x02\x10\x01:\x02\x05\x04B\x02\x05\x04J@\b\x05\x12<Start it, with a message, and see its runs; cannot change itJ;\b\x04\x127See the routine and its runs; cannot start or change itR\x03sch\x12m\n" +
+	"ChannelApp\"\vChannel App*\x05chapp8\x01@\x01J1\b\x02\x10\x04:\x01\x04J(\b\x04\x12$See its settings; cannot change them\x12\xc0\x01\n" +
+	"\aroutine\x108\x1a\xb2\x01\xaa\xff+\xad\x01\b\x01\x10\x01\x1a\aRoutine\"\aRoutine*\x03rtn8\x01@\x01J\x8b\x01\b\x02\x10\x01:\x02\x05\x04B\x02\x05\x04J@\b\x05\x12<Start it, with a message, and see its runs; cannot change itJ;\b\x04\x127See the routine and its runs; cannot start or change it\x12m\n" +
 	"\x06memory\x109\x1aa\xaa\xff+]\b\x01\x10\x01\x1a\x06Memory\"\x06Memory*\x03mem8\x01@\x01J>\b\x02\x10\x04\"8\n" +
 	"\x10identity_account\x12\asubject\x1a\x1bsubject_identity_account_id\x12\xbf\x01\n" +
 	"\x06plugin\x10:\x1a\xb2\x01\xaa\xff+\xad\x01\b\x01\x10\x01\x1a\x06Plugin\"\x06Plugin*\x03plg0\x01@\x01J\x8d\x01\b\x02\x10\x01*\x06\x10\x01\x18\x01 \x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ5\b\x04\x121Use it and see what it contains; cannot change it\x12\xbc\x01\n" +
@@ -602,9 +584,9 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x10identity_account\x12\x06person\x1a\x06person \x01\" \n" +
 	"\forganization\x12\torg_owned\x1a\x03org \x01*\x02\x18\x01:\x01\aB\x01\aJ5\b\a\x121Use this vault's logins and secrets in their runs\x12D\n" +
 	"\x05score\x10=\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\x05Score\"\x05Score*\x03scr8\x01@\x01J\x18\b\x03\x10\x01\x1a\x12\n" +
-	"\x03run\x12\x03run\x1a\x06run_id\x12c\n" +
-	"\fscoring_rule\x10>\x1aQ\xaa\xff+M\b\x01\x10\x01\x1a\vScoringRule\"\fScoring Rule*\x03srl8\x01@\x01J\x1e\b\x03\x10\x04\x1a\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_idR\x03evl\x12s\n" +
+	"\x03run\x12\x03run\x1a\x06run_id\x12^\n" +
+	"\fscoring_rule\x10>\x1aL\xaa\xff+H\b\x01\x10\x01\x1a\vScoringRule\"\fScoring Rule*\x03srl8\x01@\x01J\x1e\b\x03\x10\x04\x1a\x18\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_id\x12s\n" +
 	"\beval_run\x10A\x1ae\xaa\xff+a\b\x01\x10\x01\x1a\aEvalRun\"\bEval Run*\x03evr8\x01@\x01J?\b\x02\x10\x04\"\x1a\n" +
 	"\x05agent\x12\x05agent\x1a\bagent_id \x01\"\x1d\n" +
 	"\x06plugin\x12\x06plugin\x1a\tplugin_id \x01\x12\xd2\x01\n" +
@@ -615,9 +597,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"session_id*\x02\x18\x01:\x02\x01\x04B\x01\x04JA\b\x01\x12=Everything, including deleting it and deciding who has accessJ,\b\x04\x12(See it and download it; cannot change it\x12-\n" +
 	"\x04plan\x10F\x1a#\xaa\xff+\x1f\b\x04\x10\x01\x1a\x04Plan\"\x04Plan*\x03pln8\x01@\x02J\x04\b\x05\x10\x04\x12E\n" +
 	"\fsubscription\x10G\x1a3\xaa\xff+/\b\x04\x10\x01\x1a\fSubscription\"\fSubscription*\x03sub8\x01@\x02J\x04\b\x02\x10\x04\x126\n" +
-	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04\"\x04\b\x17\x10\x17\"\x04\b,\x10,\"\x04\b-\x10-\"\x04\b.\x10.\"\x04\b1\x101\"\x04\b2\x102\"\x04\b3\x103\"\x04\b4\x104\"\x04\b5\x105\"\x04\b6\x106\"\x04\b7\x107\"\x04\b<\x10<\"\x04\b?\x10?\"\x04\b@\x10@*\x0fplatform_client*\n" +
-	"mcp_server*\x0eagent_instance*\vagent_share*\tdatastore*\bworkflow*\x11workflow_instance*\fworkflow_run*\x11execution_context*\bartifact*\aproject*\vplugin_eval*\n" +
-	"agent_eval:\x85\x01\n" +
+	"\alicense\x10H\x1a)\xaa\xff+%\b\x04\x10\x01\x1a\aLicense\"\aLicense*\x03lic8\x01@\x02J\x04\b\x05\x10\x04:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

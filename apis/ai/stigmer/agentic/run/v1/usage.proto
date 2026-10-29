@@ -77,14 +77,9 @@ enum UsageCompletionStatus {
 // The proxy picks the key, injects it upstream, and reports the same source
 // with the usage payload, so the record never disagrees with what was sent
 // on the wire.
-//
-// @internal
-// UNSPECIFIED marks a record written before this field existed.
 enum ProviderKeySource {
+  // The meter did not report whose credential served the call.
   PROVIDER_KEY_SOURCE_UNSPECIFIED = 0;
-
-  // A connection the platform provides served the call.
-  PROVIDER_KEY_SOURCE_PLATFORM = 1;
 
   // The organization's own provider key served the call (bring-your-own
   // provider keys): the provider bills the organization directly.
@@ -230,13 +225,6 @@ message LlmCallUsageRecord {
   UsageTrustLevel trust_level = 21;
   UsageCompletionStatus usage_status = 22;
 
-  // 23 held is_billable: whether the call was debited from the
-  // organization's prepaid credit. Calls are metered and never charged, so
-  // the number and the name are reserved so neither is ever reused for a
-  // different field.
-  reserved 23;
-  reserved "is_billable";
-
   // ─── Provider / Request Metadata ────────────────────────────────────────────
   string provider = 30;
   string requested_model = 31;
@@ -247,23 +235,13 @@ message LlmCallUsageRecord {
   string provider_request_id = 36;
   string harness = 37;
 
-  // 38, 39 and 43 held cursor_account_id, cursor_key_id and
-  // cursor_key_source: which platform-owned Cursor account and key served
-  // a cursor-harness call. Every Cursor call now runs on the
-  // organization's own Cursor key, so the pool and its attribution were
-  // removed; the numbers and the names are reserved so neither is ever
-  // reused for a different field.
-  reserved 38, 39, 43;
-  reserved "cursor_account_id", "cursor_key_id", "cursor_key_source";
-
   int32 http_status_code = 40;
   string finish_reason = 41;
   string error_code = 42;
 
   // Whose provider credential served this call. ORGANIZATION marks a call on
   // the organization's own key, which is metered and never charged;
-  // PLATFORM marks a call served by a connection the platform provides.
-  // UNSPECIFIED marks a record written before this field existed.
+  // UNSPECIFIED marks a call whose meter did not report it.
   ProviderKeySource provider_key_source = 45;
 
   // Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
@@ -276,12 +254,6 @@ message LlmCallUsageRecord {
   // ─── Token Usage ────────────────────────────────────────────────────────────
   TokenUsage tokens = 50;
 
-  // 51 held cost: the call's price and the pricing snapshot it was
-  // computed from. Calls are metered and never priced, so the number and
-  // the name are reserved so neither is ever reused for a different field.
-  reserved 51;
-  reserved "cost";
-
   // ─── Proxy Timing ──────────────────────────────────────────────────────────
   // Present when metering_source is PROXY_PROVIDER_REPORTED.
   ProxyTiming proxy_timing = 60;
@@ -289,13 +261,6 @@ message LlmCallUsageRecord {
   // ─── Raw Provider Usage ─────────────────────────────────────────────────────
   // Compact JSON of provider's raw usage object for audit/debug.
   string provider_usage_json = 70;
-
-  // 80 held billing: the link from the call to its debit of the
-  // organization's prepaid credit. Calls are metered and never charged, so
-  // the number and the name are reserved so neither is ever reused for a
-  // different field.
-  reserved 80;
-  reserved "billing";
 
   // ─── Scope ──────────────────────────────────────────────────────────────────
   // Denormalized from the run for direct queries by org and session.
@@ -355,13 +320,6 @@ message UsageReportAggregate {
   // its runner's own report adds its tokens and no calls.
   int32 llm_call_count = 10;
 
-  // 20 and 21 held billable_cost_micros and provider_cost_micros, the
-  // aggregate's charged and priced amounts. Usage is counted in tokens and
-  // never priced, so the numbers and the names are reserved so neither is
-  // ever reused for a different field.
-  reserved 20, 21;
-  reserved "billable_cost_micros", "provider_cost_micros";
-
   // Primary model and provider: the model with the most tokens in this
   // aggregate. The provider is empty when a runner-reported run's harness
   // names none.
@@ -377,7 +335,7 @@ message UsageReportAggregate {
 message ServedByUsage {
   // Whose credential served the calls. UNSPECIFIED counts the tokens whose
   // server is not known: a run counted from its runner's own report, or a
-  // metered record written before the meter recorded the credential.
+  // metered call whose meter did not report the credential.
   ProviderKeySource provider_key_source = 1;
 
   // Total tokens served this way (cache-inclusive, as the aggregate's).
@@ -406,13 +364,6 @@ message ModelUsage {
 
   // Number of metered LLM API calls to this model.
   int32 call_count = 7;
-
-  // 8 and 9 held billable_cost_micros and provider_cost_micros, the model's
-  // charged and priced amounts. Usage is counted in tokens and never
-  // priced, so the numbers and the names are reserved so neither is ever
-  // reused for a different field.
-  reserved 8, 9;
-  reserved "billable_cost_micros", "provider_cost_micros";
 
   // Total tokens for this model (cache-inclusive, as the aggregate's).
   int64 total_tokens = 10;

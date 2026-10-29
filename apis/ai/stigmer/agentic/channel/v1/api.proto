@@ -26,10 +26,8 @@ import "buf/validate/validate.proto";
 // billing org. A nameless channel takes the slug `<agent slug>-<type>`;
 // a named one takes its own, and rename moves it. The hosted chat link
 // carries metadata.id, never an org or slug, so no rename or later name
-// holder can move it. Ids minted while chat links and connections were two
-// kinds keep their ash_ and ach_ prefixes (the kind's retired prefixes).
-// The overview.md file provides the SDK-facing description and example
-// YAML.
+// holder can move it. The overview.md file provides the SDK-facing
+// description and example YAML.
 message Channel {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];

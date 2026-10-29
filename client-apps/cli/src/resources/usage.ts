@@ -343,7 +343,7 @@ function reportTokens(usage: UsageReportAggregate | undefined, models: readonly 
  * shows only when more than one known source served tokens; a single known
  * source reads as its name, with any tokens whose server was not recorded
  * noted beside it. No known source (every run counted from its runner's own
- * report, or metered records older than the field) prints nothing, since
+ * report, or metered calls whose meter did not say) prints nothing, since
  * there is nothing to tell apart.
  */
 export function formatServedBy(usage: UsageReportAggregate | undefined): string {
@@ -373,8 +373,6 @@ function servedByLabel(source: ProviderKeySource): string {
   switch (source) {
     case ProviderKeySource.ORGANIZATION:
       return "your keys";
-    case ProviderKeySource.PLATFORM:
-      return "the platform's connection";
     case ProviderKeySource.UNSPECIFIED:
       return "not recorded";
     default: {

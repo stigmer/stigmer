@@ -733,18 +733,6 @@ describe("updateVisibility", () => {
       ApiResourceVisibility.visibility_private,
     ]);
   });
-
-  it("NOT_FOUND wins over level validation (load-before-validate, the cloud-parity ordering)", async () => {
-    // Unknown id + an unsupported level: the load must fail first.
-    await expectCode(
-      command.updateVisibility({
-        resourceId: "skl_missing",
-        visibility: ApiResourceVisibility.visibility_public,
-      }),
-      Code.NotFound,
-      "unknown id with bad level",
-    );
-  });
 });
 
 describe("delete", () => {

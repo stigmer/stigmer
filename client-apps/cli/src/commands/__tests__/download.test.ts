@@ -102,13 +102,13 @@ describe("stigmer download run", () => {
 
   it("passes --path and --output-dir through, and fails a partial download with a non-zero exit", async () => {
     outcome = { total: 2, downloaded: 1, noOutputs: false, incompletePhase: undefined };
-    const failed = await runDownload("RUNS", "aex_1", "--path", "reports/q3.md", "-o", "/tmp/out").then(
+    const failed = await runDownload("RUNS", "run_1", "--path", "reports/q3.md", "-o", "/tmp/out").then(
       () => undefined,
       (err: unknown) => err,
     );
     expect(download.downloadRunOutputs).toHaveBeenCalledWith(
       stigmer,
-      "aex_1",
+      "run_1",
       { outputPath: "reports/q3.md", outputDir: "/tmp/out" },
       expect.any(Function),
     );
@@ -119,23 +119,13 @@ describe("stigmer download run", () => {
 
   it("says when the run produced no outputs, with the tip", async () => {
     outcome = { total: 0, downloaded: 0, noOutputs: true, incompletePhase: undefined };
-    const { out } = await runDownload("run", "aex_1");
-    expect(out).toContain("No outputs found for run: aex_1");
+    const { out } = await runDownload("run", "run_1");
+    expect(out).toContain("No outputs found for run: run_1");
     expect(out).toContain("Tip: outputs are the files an agent saves in .stigmer/outputs/. Not every run saves one.");
   });
 
-  it("takes a run minted before the run kind's prefix became run", async () => {
-    await runDownload("run", "aex_1");
-    expect(download.downloadRunOutputs).toHaveBeenCalledWith(
-      stigmer,
-      "aex_1",
-      { outputPath: "", outputDir: "." },
-      expect.any(Function),
-    );
-  });
-
   it("refuses a type whose verb matrix promises no download, naming the types that do, before any call", async () => {
-    await expect(runDownload("agent", "aex_1")).rejects.toThrow(
+    await expect(runDownload("agent", "run_1")).rejects.toThrow(
       new UsageError("download not supported for type: agent\n\nThe types that download: run, session, file, eval"),
     );
     await expect(runDownload("nope", "x")).rejects.toThrow("download not supported for type: nope");

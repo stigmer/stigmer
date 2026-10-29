@@ -65,31 +65,30 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "r/agentic/memory/v1/api.proto\032\033buf/valid" +
       "ate/validate.proto\032 google/protobuf/fiel" +
       "d_mask.proto\"(\n\010MemoryId\022\034\n\005value\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\005value\"\242\002\n\023ListMemoriesRequest\022\031" +
+      "\006\272H\003\310\001\001R\005value\"\221\002\n\023ListMemoriesRequest\022\031" +
       "\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022$\n\tpage_size\030\003" +
       " \001(\005B\007\272H\004\032\002(\000R\010pageSize\022\'\n\npage_token\030\004 " +
       "\001(\tB\010\272H\005r\003\030\200\010R\tpageToken\022U\n\006labels\030\005 \003(\013" +
       "2=.ai.stigmer.agentic.memory.v1.ListMemo" +
       "riesRequest.LabelsEntryR\006labels\0329\n\013Label" +
       "sEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR" +
-      "\005value:\0028\001J\004\010\002\020\003R\tpage_info\"\207\001\n\nMemoryLi" +
-      "st\022>\n\007entries\030\002 \003(\0132$.ai.stigmer.agentic" +
-      ".memory.v1.MemoryR\007entries\022&\n\017next_page_" +
-      "token\030\003 \001(\tR\rnextPageTokenJ\004\010\001\020\002R\013total_" +
-      "count\"\343\002\n\021UpdateMemoryInput\022H\n\010resource\030" +
-      "\001 \001(\0132$.ai.stigmer.agentic.memory.v1.Mem" +
-      "oryB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001" +
-      "(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001R\n" +
-      "updateMask:\276\001\272H\272\001\032\267\001\n\027update_names_its_t" +
-      "arget\022Fresource.metadata.id is required:" +
-      " an update names the memory by its id\032Th" +
-      "as(this.resource) && has(this.resource.m" +
-      "etadata) && this.resource.metadata.id !=" +
-      " \'\'B\236\001B\007IoProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer.Ag" +
-      "entic.Memory.V1\312\002\034Ai\\Stigmer\\Agentic\\Mem" +
-      "ory\\V1\342\002(Ai\\Stigmer\\Agentic\\Memory\\V1\\GP" +
-      "BMetadata\352\002 Ai::Stigmer::Agentic::Memory" +
-      "::V1b\006proto3"
+      "\005value:\0028\001\"t\n\nMemoryList\022>\n\007entries\030\002 \003(" +
+      "\0132$.ai.stigmer.agentic.memory.v1.MemoryR" +
+      "\007entries\022&\n\017next_page_token\030\003 \001(\tR\rnextP" +
+      "ageToken\"\343\002\n\021UpdateMemoryInput\022H\n\010resour" +
+      "ce\030\001 \001(\0132$.ai.stigmer.agentic.memory.v1." +
+      "MemoryB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030" +
+      "\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001" +
+      "\001R\nupdateMask:\276\001\272H\272\001\032\267\001\n\027update_names_it" +
+      "s_target\022Fresource.metadata.id is requir" +
+      "ed: an update names the memory by its id" +
+      "\032Thas(this.resource) && has(this.resourc" +
+      "e.metadata) && this.resource.metadata.id" +
+      " != \'\'B\236\001B\007IoProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer" +
+      ".Agentic.Memory.V1\312\002\034Ai\\Stigmer\\Agentic\\" +
+      "Memory\\V1\342\002(Ai\\Stigmer\\Agentic\\Memory\\V1" +
+      "\\GPBMetadata\352\002 Ai::Stigmer::Agentic::Mem" +
+      "ory::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

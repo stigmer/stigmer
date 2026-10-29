@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1f\x61i/stigmer/activity/v1/io.proto\x12\x16\x61i.stigmer.activity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x01\n\x13RecentActivityEntry\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n\x07subject\x18\x03 \x01(\tR\x07subject\x12\x39\n\nupdated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAtJ\x04\x08\x02\x10\x03J\x04\x08\x05\x10\x06R\x04typeR\x06status\"J\n\x19ListRecentActivityRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x10\n\x03org\x18\x02 \x01(\tR\x03org\"c\n\x1aListRecentActivityResponse\x12\x45\n\x07\x65ntries\x18\x01 \x03(\x0b\x32+.ai.stigmer.activity.v1.RecentActivityEntryR\x07\x65ntriesB\xa0\x01\n\x1a\x63om.ai.stigmer.activity.v1B\x07IoProtoP\x01\xa2\x02\x03\x41SA\xaa\x02\x16\x41i.Stigmer.Activity.V1\xca\x02\x16\x41i\\Stigmer\\Activity\\V1\xe2\x02\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Activity::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1f\x61i/stigmer/activity/v1/io.proto\x12\x16\x61i.stigmer.activity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"z\n\x13RecentActivityEntry\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n\x07subject\x18\x03 \x01(\tR\x07subject\x12\x39\n\nupdated_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\"J\n\x19ListRecentActivityRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x10\n\x03org\x18\x02 \x01(\tR\x03org\"c\n\x1aListRecentActivityResponse\x12\x45\n\x07\x65ntries\x18\x01 \x03(\x0b\x32+.ai.stigmer.activity.v1.RecentActivityEntryR\x07\x65ntriesB\xa0\x01\n\x1a\x63om.ai.stigmer.activity.v1B\x07IoProtoP\x01\xa2\x02\x03\x41SA\xaa\x02\x16\x41i.Stigmer.Activity.V1\xca\x02\x16\x41i\\Stigmer\\Activity\\V1\xe2\x02\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\xea\x02\x19\x41i::Stigmer::Activity::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,10 +33,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.activity.v1.io_p
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\032com.ai.stigmer.activity.v1B\007IoProtoP\001\242\002\003ASA\252\002\026Ai.Stigmer.Activity.V1\312\002\026Ai\\Stigmer\\Activity\\V1\342\002\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\352\002\031Ai::Stigmer::Activity::V1'
-  _globals['_RECENTACTIVITYENTRY']._serialized_start=93
-  _globals['_RECENTACTIVITYENTRY']._serialized_end=241
-  _globals['_LISTRECENTACTIVITYREQUEST']._serialized_start=243
-  _globals['_LISTRECENTACTIVITYREQUEST']._serialized_end=317
-  _globals['_LISTRECENTACTIVITYRESPONSE']._serialized_start=319
-  _globals['_LISTRECENTACTIVITYRESPONSE']._serialized_end=418
+  _globals['_RECENTACTIVITYENTRY']._serialized_start=92
+  _globals['_RECENTACTIVITYENTRY']._serialized_end=214
+  _globals['_LISTRECENTACTIVITYREQUEST']._serialized_start=216
+  _globals['_LISTRECENTACTIVITYREQUEST']._serialized_end=290
+  _globals['_LISTRECENTACTIVITYRESPONSE']._serialized_start=292
+  _globals['_LISTRECENTACTIVITYRESPONSE']._serialized_end=391
 # @@protoc_insertion_point(module_scope)

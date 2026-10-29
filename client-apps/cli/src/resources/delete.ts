@@ -177,7 +177,7 @@ async function planStandardDelete(
     throw new UsageError(`delete not implemented for ${info.displayName}`);
   }
 
-  const parsed = parseReference(reference, org, info.idPrefixes);
+  const parsed = parseReference(reference, org, info.idPrefix);
   // ResourceResult.message is the opaque proto Message; every resource carries
   // the ApiResourceMetadata envelope, so read it through the structural view.
   const resource = (await getter(client, parsed))

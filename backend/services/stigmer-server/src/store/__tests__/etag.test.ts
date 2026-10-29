@@ -91,7 +91,7 @@ describe("etagOf", () => {
         written.metadata!.org = "org_2";
       },
       (written) => {
-        written.metadata!.visibility = ApiResourceVisibility.visibility_public;
+        written.metadata!.visibility = ApiResourceVisibility.visibility_child_orgs;
       },
       (written) => {
         written.metadata!.etag = "anything";

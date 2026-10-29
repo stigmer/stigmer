@@ -11,10 +11,6 @@ import "ai/stigmer/runner/turn/v1/enum.proto";
 // writes the session's stigmer.file_review.* events and the run's
 // file_changes from it. Runner-private: never part of the public contract
 // (apis/), compiled only for the runner and its in-process agent host.
-//
-// Field comments are carried over from the public contract these types came
-// from; where one names a retired run method or server projection, the
-// session's events now carry that role.
 
 // One human decision on a change set or a single file within it.
 //

@@ -27,8 +27,8 @@ spec:
   entitlements:
     features:
       - channels
-      - sharing
-  description: "Channels and sharing for a growing team."
+      - chat_links
+  description: "Channels and chat links for a growing team."
 ```
 
 ## Client Access
@@ -390,11 +390,8 @@ A capability an entitlement can unlock.
 
 | Value | Description |
 |-------|-------------|
-| `sso_enforcement` | No longer used: gates nothing. |
-| `platform_client` | No longer used: gates nothing. |
-| `byo_provider_keys` | No longer used: gates nothing. |
 | `channels` | Serving an agent's Slack and WhatsApp channels through the Cloud's hosted channel runtime. |
-| `sharing` | Serving an agent's chat links (web channels) through the Cloud's hosted lane, to the organization's members or to anyone who has the link. |
+| `chat_links` | Serving an agent's chat links (web channels) through the Cloud's hosted lane, to the organization's members or to anyone who has the link. |
 | `teams` | Creating teams and adding members to them. |
 | `child_orgs` | Creating child organizations (spec.parent_org), the organizations an integrator runs for its own customers. |
 | `access_history` | Reading an organization's access history: who gave whom access to what, and when. |

@@ -62,53 +62,14 @@ enum IamPermission {
   can_create_identity_account = 21;
   can_create_oauth_app = 23;
 
-  // Value 24 was the permission to create a platform client, removed with
-  // the kind: a product now mints its users' tokens with a service
-  // account's key (can_mint_user_tokens).
-  reserved 24;
-  reserved "can_create_platform_client";
-
   // Resource-level create permissions.
   can_create_run_in = 13;
-
-  // Value 14 was the permission to create an agent instance from an agent,
-  // removed with the instance kind.
-  reserved 14;
-  reserved "can_create_instance";
-
-  // Value 7 held can_create_workflow until the workflow product was
-  // removed platform-wide. Reserved so the number is never reused for a
-  // different permission.
-  reserved 7;
-  reserved "can_create_workflow";
 
   // Execution permission.
   can_execute = 15;
 
-  // Values 12 and 16 held can_create_environment and can_read_secrets,
-  // removed with the old Environment kind when vaults replaced it: no read
-  // returns a saved value, so there is nothing to reveal. The name
-  // can_create_environment is today's Environment's, at 60.
-  reserved 12, 16;
-  reserved "can_read_secrets";
-
   // Platform-level permissions.
   can_bootstrap_iam = 17;
-
-  // Value 22 was the permission to connect to an MCP server, removed with
-  // the MCP server kind: a plugin's server is checked by whoever may view
-  // the plugin.
-  reserved 22;
-  reserved "can_connect";
-
-  // Values 18, 20, 25 and 26 held can_manage_identity_accounts,
-  // login_to_back_office, can_create_runner and can_delete_session. No RPC,
-  // pipeline step or authorization model relation asked any of them (the
-  // last three named a relation no type defined), so they answered nothing.
-  // Reserved so the numbers and names are never reused for different
-  // permissions.
-  reserved 18, 20, 25, 26;
-  reserved "can_manage_identity_accounts", "login_to_back_office", "can_create_runner", "can_delete_session";
 
   // Billing permissions (org-scoped).
   can_view_billing = 27;
@@ -117,11 +78,6 @@ enum IamPermission {
   // Platform-level permission to execute internal billing operations
   // (recording a metered LLM call). Gated to operator (machine account).
   can_execute_billing_ops = 29;
-
-  // Value 30 held can_create_agent_share until chat links became the web
-  // type of a channel, created under can_create_channel.
-  reserved 30;
-  reserved "can_create_agent_share";
 
   // Organization-level permission to create channels: a chat link, a Slack
   // workspace connection or a WhatsApp number for one of the organization's
@@ -149,25 +105,6 @@ enum IamPermission {
   // pipeline).
   can_manage_model_pricing = 32;
 
-  // Values 33 and 34 held can_use_records / can_create_datastore until
-  // the Datastore domain was removed platform-wide. Reserved so the
-  // numbers are never reused for different permissions.
-  reserved 33, 34;
-  reserved "can_use_records", "can_create_datastore";
-  // Value 10 held can_create_project until the Project kind was removed
-  // platform-wide. Reserved so the number is never reused for a different
-  // permission.
-  reserved 10;
-  reserved "can_create_project";
-
-  // 35 was can_manage_cursor_accounts, the operator grant behind the pool
-  // of platform-owned Cursor accounts that served the cursor harness.
-  // Every Cursor run now uses the organization's own Cursor key, so the
-  // pool and its console were removed; the number and the name are
-  // reserved so neither is ever reused for a different permission.
-  reserved 35;
-  reserved "can_manage_cursor_accounts";
-
   // Resource-level permission to participate in a channel's
   // conversations: reply to customers as the business, take over and
   // hand back the control token, and clear the attention flag.
@@ -186,22 +123,6 @@ enum IamPermission {
   // on (plugin membership and lineage, the stamps a run's vaults are found by) — so ordinary requests may echo or
   // remove them but never write them.
   can_write_reserved_labels = 37;
-
-  // 38 was can_view_provider_standing, the operator grant behind the
-  // canary probe of the platform's own LLM provider accounts. Every model
-  // call now runs on a key the organization owns, so the probe and its
-  // console were removed; the number and the name are reserved so neither
-  // is ever reused for a different permission.
-  reserved 38;
-  reserved "can_view_provider_standing";
-
-  // 39 was can_set_public_visibility, the operator grant behind the
-  // retired visibility_public level (see ApiResourceVisibility). No
-  // resource can hold that level, so nothing is left to grant; the number
-  // and the name are reserved so neither is ever reused for a different
-  // permission.
-  reserved 39;
-  reserved "can_set_public_visibility";
 
   // Organization-level permission to install a plugin: push an Agent
   // Plugins archive into the organization. Who may bring a package into an
@@ -222,17 +143,6 @@ enum IamPermission {
   // different act, and a different audit line, from editing the catalog.
   can_issue_license = 42;
 
-  // Value 43 was the organization-level permission to create an MCP server,
-  // removed with the MCP server kind: a one-off server is a plugin, and
-  // takes can_create_plugin.
-  reserved 43;
-  reserved "can_create_mcp_server";
-
-  // Value 44 was the organization-level permission to create an agent
-  // instance, removed with the instance kind.
-  reserved 44;
-  reserved "can_create_agent_instance";
-
   // Organization-level permission to create a team in the organization.
   //
   // @internal
@@ -240,14 +150,6 @@ enum IamPermission {
   // one is the organization's administrators' decision, like who may grant
   // access. The Team kind is served by the Enterprise and Cloud editions.
   can_create_team = 45;
-
-  // 46 was can_manage_credits, the platform grant to add or remove an
-  // organization's prepaid credit by hand. Runs use the organization's own
-  // provider keys and plans are invoiced in arrears, so no organization
-  // holds credit; the number and the name are reserved so neither is ever
-  // reused for a different permission.
-  reserved 46;
-  reserved "can_manage_credits";
 
   // Organization-level permission to create, find and list the
   // organization's child organizations: OrganizationCommandController.create

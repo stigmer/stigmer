@@ -176,15 +176,13 @@ type RunStatus struct {
 	// agent_id).
 	//
 	// Empty when agent_id is empty, or when the agent had no recorded version
-	// at create (an agent last written before agents were versioned, or one
-	// whose last version failed to archive); such a turn runs the agent as
-	// it is when the turn starts.
+	// at create (its last version failed to archive); such a turn runs the
+	// agent as it is when the turn starts.
 	AgentVersionHash string `protobuf:"bytes,28,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
 	// Every skill and plugin a turn of this run loaded, for the agent and its
 	// subagents, at the version it loaded. A turn that resumes after a pause
 	// and loads a newer version adds an entry, so a run that ran two versions
-	// of one skill lists both. Empty for a run that loaded none, and for runs
-	// that predate this field.
+	// of one skill lists both. Empty for a run that loaded none.
 	LoadedVersions *LoadedVersions `protobuf:"bytes,36,opt,name=loaded_versions,json=loadedVersions,proto3" json:"loaded_versions,omitempty"`
 	// Standing preferences declared by the organization and the calling user,
 	// snapshotted into this run at create time.
@@ -814,7 +812,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x03RunR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x126\n" +
 	"\x04spec\x18\x04 \x01(\v2\".ai.stigmer.agentic.run.v1.RunSpecR\x04spec\x12<\n" +
-	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xc7\x0e\n" +
+	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\x9a\f\n" +
 	"\tRunStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12C\n" +
 	"\x05phase\x18\x02 \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12\x14\n" +
@@ -840,9 +838,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"eval_files\x18\" \x01(\v2$.ai.stigmer.agentic.run.v1.EvalFilesR\tevalFiles\x12\x99\x01\n" +
 	"\n" +
 	"stop_cause\x18# \x01(\tBz\xbaHw\xd8\x01\x01rrR\x0ebudget_reachedR\atimeoutR\x0einfrastructureR\rplatform_stopR\x04userR\vmodel_errorR\x06failedR\feval_stoppedR\x0freview_resolvedR\tstopCause\x12P\n" +
-	"\rmessage_files\x18& \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\fmessageFilesJ\x04\b\x01\x10\x02J\x04\b\x04\x10\x05J\x04\b\t\x10\n" +
-	"J\x04\b\x0e\x10\x0fJ\x04\b\x10\x10\x11J\x04\b\x15\x10\x16J\x04\b\x16\x10\x17J\x04\b\x17\x10\x18J\x04\b\x18\x10\x19J\x04\b\x1a\x10\x1bJ\x04\b\n" +
-	"\x10\vJ\x04\b\f\x10\rJ\x04\b\x0f\x10\x10R\bmessagesR\x0esub_agent_runsR\x05todosR\fcontext_infoR\x11pending_approvalsR\x11structured_outputR\x15approval_event_streamR\x10file_change_setsR\x18file_review_event_streamR\x18recalled_memories_reportR\x0ecallback_tokenR\x10resolved_contextR\tartifacts\"\xe4\x02\n" +
+	"\rmessage_files\x18& \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\fmessageFiles\"\xe4\x02\n" +
 	"\x0eLoadedVersions\x12\xa5\x01\n" +
 	"\x06skills\x18\x01 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBW\xbaHP\x92\x01M\"K\xba\x01H\n" +
 	"\x18loaded_versions.skill_id\x12\x1da loaded skill is named by id\x1a\rthis.id != ''\xe0\x85,+R\x06skills\x12\xa9\x01\n" +
@@ -851,7 +847,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x0eRunCredentials\x12\x1b\n" +
 	"\x06person\x18\x01 \x01(\tH\x00R\x06person\x88\x01\x01\x12C\n" +
 	"\asources\x18\x02 \x03(\v2).ai.stigmer.agentic.run.v1.RunValueSourceR\asourcesB\t\n" +
-	"\a_person\"\xa5\x02\n" +
+	"\a_person\"\x96\x02\n" +
 	"\x0eRunValueSource\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\bdeclarer\x18\x02 \x01(\v2+.ai.stigmer.agentic.run.v1.RunValueDeclarerR\bdeclarer\x12A\n" +
@@ -860,7 +856,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x05entry\x18\x05 \x01(\tR\x05entry\x12\x14\n" +
 	"\x05login\x18\x06 \x01(\bR\x05login\x12\x1f\n" +
 	"\vplain_value\x18\b \x01(\tR\n" +
-	"plainValueJ\x04\b\a\x10\bR\asign_in\"\xc1\x02\n" +
+	"plainValue\"\xac\x02\n" +
 	"\x10RunValueDeclarer\x12C\n" +
 	"\x04kind\x18\x01 \x01(\x0e2/.ai.stigmer.agentic.run.v1.RunValueDeclarerKindR\x04kind\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
@@ -869,7 +865,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x06server\x18\x06 \x01(\tR\x06server\x12#\n" +
 	"\rplugin_digest\x18\a \x01(\tR\fpluginDigest\x12\x19\n" +
 	"\bagent_id\x18\b \x01(\tR\aagentId\x12#\n" +
-	"\ragent_version\x18\t \x01(\tR\fagentVersionJ\x04\b\x03\x10\x04R\rmcp_server_id\"4\n" +
+	"\ragent_version\x18\t \x01(\tR\fagentVersion\"4\n" +
 	"\rSetupProgress\x12#\n" +
 	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xeb\x01\n" +
 	"\x1dcom.ai.stigmer.agentic.run.v1B\bApiProtoP\x01Z7go.stigmer.ai/sdk/proto/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"

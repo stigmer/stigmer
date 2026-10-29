@@ -263,8 +263,7 @@ message ConversationTimelineItem {
   string attempt_detail = 14;
 
   // Why a FAILED send attempt failed, in the platform's classification.
-  // Unspecified on non-failed items and on rows written before the
-  // classification existed.
+  // Unspecified on non-failed items.
   //
   // @internal
   // The structured twin, shipped WITH attempt_detail and never after it
@@ -308,9 +307,6 @@ message ListChannelConversationsInput {
   // Optional filter: only conversations on this channel.
   string channel_id = 2 [(buf.validate.field).string.max_len = 128];
 
-  reserved 3;
-  reserved "page_info";
-
   // Optional filter: narrow the list to a server-evaluated predicate.
   // Unspecified lists every conversation on the authorized channels.
   ChannelConversationListFilter filter = 4;
@@ -348,9 +344,6 @@ enum ChannelConversationListFilter {
 // ChannelConversationList contains a page of channel conversations,
 // newest activity first.
 message ChannelConversationList {
-  reserved 1;
-  reserved "total_count";
-
   // Conversations in the current page.
   repeated ChannelConversation entries = 2;
 

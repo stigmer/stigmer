@@ -9,12 +9,10 @@ class IdentityAccountProvisioningMode(int, metaclass=_enum_type_wrapper.EnumType
     identity_account_provisioning_mode_unspecified: _ClassVar[IdentityAccountProvisioningMode]
     direct: _ClassVar[IdentityAccountProvisioningMode]
     federated: _ClassVar[IdentityAccountProvisioningMode]
-    machine: _ClassVar[IdentityAccountProvisioningMode]
     app_user: _ClassVar[IdentityAccountProvisioningMode]
     service_account: _ClassVar[IdentityAccountProvisioningMode]
 identity_account_provisioning_mode_unspecified: IdentityAccountProvisioningMode
 direct: IdentityAccountProvisioningMode
 federated: IdentityAccountProvisioningMode
-machine: IdentityAccountProvisioningMode
 app_user: IdentityAccountProvisioningMode
 service_account: IdentityAccountProvisioningMode

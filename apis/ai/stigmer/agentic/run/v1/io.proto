@@ -22,9 +22,6 @@ message SessionId {
 
 // RunList contains one page of runs, newest first.
 message RunList {
-  reserved 1;
-  reserved "total_pages";
-
   // Runs in this page, newest first.
   repeated Run entries = 2;
 
@@ -45,9 +42,6 @@ message ListRunsRequest {
 
   // Filter by run phase (optional).
   RunPhase phase = 3;
-
-  reserved 4;
-  reserved "tags";
 
   // Organization slug to scope the results to.
   //
@@ -717,12 +711,6 @@ message GetAgentUsageReportInput {
   // through its last instant) or an RFC 3339 instant.
   string to_date = 3;
 
-  reserved 4;
-  reserved "page_size";
-
-  reserved 5;
-  reserved "page_token";
-
   // Organization scope for the report: usage of this agent within this
   // organization. Only runs belonging to this organization are
   // aggregated. The caller must hold can_view on the organization.
@@ -754,15 +742,6 @@ message GetAgentUsageReportOutput {
 
   // Total number of runs within the time range.
   int32 total_runs = 7;
-
-  // 8 held total_billable_cost_micros, the agent's charged amount. Usage is
-  // counted in tokens and never priced, so the number and the name are
-  // reserved so neither is ever reused for a different field.
-  reserved 8;
-  reserved "total_billable_cost_micros";
-
-  reserved 9;
-  reserved "next_page_token";
 }
 
 // GetOrgUsageReportInput requests a usage report for an entire organization.
@@ -799,14 +778,6 @@ message GetOrgUsageReportOutput {
 
   // Total runs across all agents in the time range.
   int32 total_runs = 4;
-
-  // 5 held total_billable_cost_micros; 7, 8 and 9 held top_agents_by_cost,
-  // daily_costs and harness_breakdown, which ordered, dated and split the
-  // organization's charged amount. Usage is counted in tokens and never
-  // priced: fields 10 to 12 replace them, and the numbers and the names
-  // are reserved so neither is ever reused for a different field.
-  reserved 5, 7, 8, 9;
-  reserved "total_billable_cost_micros", "top_agents_by_cost", "daily_costs", "harness_breakdown";
 
   // Per-model breakdown across the organization.
   repeated ModelUsage model_breakdown = 6;
@@ -852,12 +823,6 @@ message RunUsageSummary {
   // Cache read tokens for this run.
   int64 cache_read_input_tokens = 6;
 
-  // 7 held billable_cost_micros, the run's charged amount. Usage is counted
-  // in tokens and never priced, so the number and the name are reserved so
-  // neither is ever reused for a different field.
-  reserved 7;
-  reserved "billable_cost_micros";
-
   // Primary model used for this run.
   string primary_model = 8;
 
@@ -894,12 +859,6 @@ message SessionUsageSummary {
   // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 3;
 
-  // 4 held billable_cost_micros, the session's charged amount. Usage is
-  // counted in tokens and never priced, so the number and the name are
-  // reserved so neither is ever reused for a different field.
-  reserved 4;
-  reserved "billable_cost_micros";
-
   // ISO 8601 timestamp of the first run in this session.
   string first_run_at = 5;
 
@@ -928,12 +887,6 @@ message AgentUsageSummary {
   // Total tokens across all runs (cache-inclusive: the sum of each
   // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 4;
-
-  // 5 held billable_cost_micros, the agent's charged amount. Usage is
-  // counted in tokens and never priced, so the number and the name are
-  // reserved so neither is ever reused for a different field.
-  reserved 5;
-  reserved "billable_cost_micros";
 
   // Seconds an agent was working (thinking, calling tools, writing files),
   // counted from the session's status events; waiting for a person is never

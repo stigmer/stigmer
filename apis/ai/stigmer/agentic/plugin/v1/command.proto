@@ -59,8 +59,7 @@ service PluginCommandController {
   // Authorization: can_manage_audience on the plugin for every transition.
   // Visibility decides who reaches the resource, so it is the owner's decision
   // and not an edit: an editor may change the definition but not its audience.
-  // The level is checked against the plugin's VisibilityConfig
-  // (visibility_public is refused).
+  // The level is checked against the plugin's VisibilityConfig.
   rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Plugin) {
     option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;

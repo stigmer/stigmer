@@ -80,15 +80,6 @@ message RecordLlmCallUsageInput {
   // When empty, the billing handler falls back to the model catalog.
   string harness = 14;
 
-  // 15, 16 and 17 held cursor_account_id, cursor_key_id and
-  // cursor_key_source: which platform-owned Cursor account and key the
-  // proxy injected upstream. Every Cursor call now runs on the
-  // organization's own Cursor key, so the pool and its attribution were
-  // removed; the numbers and the names are reserved so neither is ever
-  // reused for a different field.
-  reserved 15, 16, 17;
-  reserved "cursor_account_id", "cursor_key_id", "cursor_key_source";
-
   // Provider-reported service tier that actually served this call
   // (Stigmer harness, stigmer/stigmer#361): Anthropic reports it in the
   // response usage ("standard" | "priority" | "batch"), OpenAI at the
@@ -113,9 +104,8 @@ message RecordLlmCallUsageInput {
   // Whose provider credential the proxy injected upstream for this call,
   // stamped verbatim onto the usage record (the proxy holds the fact).
   // ORGANIZATION means the organization's own provider key served the
-  // call, which is recorded and never charged.
-  // PLATFORM means a connection the platform provides served it.
-  // UNSPECIFIED from a proxy that predates the field.
+  // call, which is recorded and never charged. UNSPECIFIED means the proxy
+  // did not say.
   ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21;
 }
 
@@ -150,14 +140,6 @@ message MeteredRun {
 message RecordLlmCallUsageResponse {
   // ID of the created LlmCallUsageRecord.
   string usage_record_id = 1;
-
-  // 2, 3 and 4 held provider_cost_micros, customer_billable_amount_micros
-  // and is_billable: the call's price and whether it was debited from the
-  // organization's prepaid credit. Calls are metered and never priced or
-  // charged, so the numbers and the names are reserved so neither is ever
-  // reused for a different field.
-  reserved 2, 3, 4;
-  reserved "provider_cost_micros", "customer_billable_amount_micros", "is_billable";
 
   // True if this was a duplicate (idempotency key already existed).
   bool is_duplicate = 5;

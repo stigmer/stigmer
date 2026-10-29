@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxIp0BCglTa2lsbFNwZWMSGQoIc2tpbGxfbWQYASABKAlCB7pIBHICEAESKAoDdGFnGAIgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSMAoEbmFtZRgDIAEoCUIiukgfch0yG15bYS16MC05XSsoWy4tXVthLXowLTldKykqJBITCgtkZXNjcmlwdGlvbhgFIAEoCUoECAQQBWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxIpcBCglTa2lsbFNwZWMSGQoIc2tpbGxfbWQYASABKAlCB7pIBHICEAESKAoDdGFnGAIgASgJQhu6SBhyFjIUXiR8XlthLXpBLVowLTkuXy1dKyQSMAoEbmFtZRgDIAEoCUIiukgfch0yG15bYS16MC05XSsoWy4tXVthLXowLTldKykqJBITCgtkZXNjcmlwdGlvbhgFIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * SkillSpec defines the desired state of a skill.

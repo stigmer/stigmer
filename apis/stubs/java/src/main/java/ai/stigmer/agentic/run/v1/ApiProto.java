@@ -93,7 +93,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "R\010metadata\0226\n\004spec\030\004 \001(\0132\".ai.stigmer.ag" +
       "entic.run.v1.RunSpecR\004spec\022<\n\006status\030\005 \001" +
       "(\0132$.ai.stigmer.agentic.run.v1.RunStatus" +
-      "R\006status\"\307\016\n\tRunStatus\022F\n\005audit\030c \001(\01320." +
+      "R\006status\"\232\014\n\tRunStatus\022F\n\005audit\030c \001(\01320." +
       "ai.stigmer.commons.apiresource.ApiResour" +
       "ceAuditR\005audit\022C\n\005phase\030\002 \001(\0162#.ai.stigm" +
       "er.agentic.run.v1.RunPhaseB\010\272H\005\202\001\002\020\001R\005ph" +
@@ -132,47 +132,39 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "failedR\014eval_stoppedR\017review_resolved\330\001\001" +
       "R\tstopCause\022P\n\rmessage_files\030& \003(\0132+.ai." +
       "stigmer.agentic.session.v1.ContentBlockR" +
-      "\014messageFilesJ\004\010\001\020\002J\004\010\004\020\005J\004\010\t\020\nJ\004\010\016\020\017J\004\010" +
-      "\020\020\021J\004\010\025\020\026J\004\010\026\020\027J\004\010\027\020\030J\004\010\030\020\031J\004\010\032\020\033J\004\010\n\020\013J" +
-      "\004\010\014\020\rJ\004\010\017\020\020R\010messagesR\016sub_agent_runsR\005t" +
-      "odosR\014context_infoR\021pending_approvalsR\021s" +
-      "tructured_outputR\025approval_event_streamR" +
-      "\020file_change_setsR\030file_review_event_str" +
-      "eamR\030recalled_memories_reportR\016callback_" +
-      "tokenR\020resolved_contextR\tartifacts\"\344\002\n\016L" +
-      "oadedVersions\022\245\001\n\006skills\030\001 \003(\01324.ai.stig" +
-      "mer.commons.apiresource.ApiResourceRefer" +
-      "enceBW\272HP\222\001M\"K\272\001H\n\030loaded_versions.skill" +
-      "_id\022\035a loaded skill is named by id\032\rthis" +
-      ".id != \'\'\340\205,+R\006skills\022\251\001\n\007plugins\030\002 \003(\0132" +
-      "4.ai.stigmer.commons.apiresource.ApiReso" +
-      "urceReferenceBY\272HR\222\001O\"M\272\001J\n\031loaded_versi" +
-      "ons.plugin_id\022\036a loaded plugin is named " +
-      "by id\032\rthis.id != \'\'\340\205,:R\007plugins\"}\n\016Run" +
-      "Credentials\022\033\n\006person\030\001 \001(\tH\000R\006person\210\001\001" +
-      "\022C\n\007sources\030\002 \003(\0132).ai.stigmer.agentic.r" +
-      "un.v1.RunValueSourceR\007sourcesB\t\n\007_person" +
-      "\"\245\002\n\016RunValueSource\022\020\n\003key\030\001 \001(\tR\003key\022G\n" +
-      "\010declarer\030\002 \001(\0132+.ai.stigmer.agentic.run" +
-      ".v1.RunValueDeclarerR\010declarer\022A\n\006origin" +
-      "\030\003 \001(\0162).ai.stigmer.agentic.run.v1.RunVa" +
-      "lueOriginR\006origin\022\031\n\010vault_id\030\004 \001(\tR\007vau" +
-      "ltId\022\024\n\005entry\030\005 \001(\tR\005entry\022\024\n\005login\030\006 \001(" +
-      "\010R\005login\022\037\n\013plain_value\030\010 \001(\tR\nplainValu" +
-      "eJ\004\010\007\020\010R\007sign_in\"\301\002\n\020RunValueDeclarer\022C\n" +
-      "\004kind\030\001 \001(\0162/.ai.stigmer.agentic.run.v1." +
-      "RunValueDeclarerKindR\004kind\022\022\n\004name\030\002 \001(\t" +
-      "R\004name\022%\n\016repository_url\030\004 \001(\tR\rreposito" +
-      "ryUrl\022\033\n\tplugin_id\030\005 \001(\tR\010pluginId\022\026\n\006se" +
-      "rver\030\006 \001(\tR\006server\022#\n\rplugin_digest\030\007 \001(" +
-      "\tR\014pluginDigest\022\031\n\010agent_id\030\010 \001(\tR\007agent" +
-      "Id\022#\n\ragent_version\030\t \001(\tR\014agentVersionJ" +
-      "\004\010\003\020\004R\rmcp_server_id\"4\n\rSetupProgress\022#\n" +
-      "\rcurrent_phase\030\001 \001(\tR\014currentPhaseB\223\001B\010A" +
-      "piProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Ru" +
-      "n.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\St" +
-      "igmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::S" +
-      "tigmer::Agentic::Run::V1b\006proto3"
+      "\014messageFiles\"\344\002\n\016LoadedVersions\022\245\001\n\006ski" +
+      "lls\030\001 \003(\01324.ai.stigmer.commons.apiresour" +
+      "ce.ApiResourceReferenceBW\272HP\222\001M\"K\272\001H\n\030lo" +
+      "aded_versions.skill_id\022\035a loaded skill i" +
+      "s named by id\032\rthis.id != \'\'\340\205,+R\006skills" +
+      "\022\251\001\n\007plugins\030\002 \003(\01324.ai.stigmer.commons." +
+      "apiresource.ApiResourceReferenceBY\272HR\222\001O" +
+      "\"M\272\001J\n\031loaded_versions.plugin_id\022\036a load" +
+      "ed plugin is named by id\032\rthis.id != \'\'\340" +
+      "\205,:R\007plugins\"}\n\016RunCredentials\022\033\n\006person" +
+      "\030\001 \001(\tH\000R\006person\210\001\001\022C\n\007sources\030\002 \003(\0132).a" +
+      "i.stigmer.agentic.run.v1.RunValueSourceR" +
+      "\007sourcesB\t\n\007_person\"\226\002\n\016RunValueSource\022\020" +
+      "\n\003key\030\001 \001(\tR\003key\022G\n\010declarer\030\002 \001(\0132+.ai." +
+      "stigmer.agentic.run.v1.RunValueDeclarerR" +
+      "\010declarer\022A\n\006origin\030\003 \001(\0162).ai.stigmer.a" +
+      "gentic.run.v1.RunValueOriginR\006origin\022\031\n\010" +
+      "vault_id\030\004 \001(\tR\007vaultId\022\024\n\005entry\030\005 \001(\tR\005" +
+      "entry\022\024\n\005login\030\006 \001(\010R\005login\022\037\n\013plain_val" +
+      "ue\030\010 \001(\tR\nplainValue\"\254\002\n\020RunValueDeclare" +
+      "r\022C\n\004kind\030\001 \001(\0162/.ai.stigmer.agentic.run" +
+      ".v1.RunValueDeclarerKindR\004kind\022\022\n\004name\030\002" +
+      " \001(\tR\004name\022%\n\016repository_url\030\004 \001(\tR\rrepo" +
+      "sitoryUrl\022\033\n\tplugin_id\030\005 \001(\tR\010pluginId\022\026" +
+      "\n\006server\030\006 \001(\tR\006server\022#\n\rplugin_digest\030" +
+      "\007 \001(\tR\014pluginDigest\022\031\n\010agent_id\030\010 \001(\tR\007a" +
+      "gentId\022#\n\ragent_version\030\t \001(\tR\014agentVers" +
+      "ion\"4\n\rSetupProgress\022#\n\rcurrent_phase\030\001 " +
+      "\001(\tR\014currentPhaseB\223\001B\010ApiProtoP\001\242\002\004ASAR\252" +
+      "\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer" +
+      "\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run" +
+      "\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::" +
+      "Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -51,7 +51,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "i/stigmer/commons/apiresource/field_opti" +
       "ons.proto\032\'ai/stigmer/commons/apiresourc" +
       "e/io.proto\032+ai/stigmer/commons/apiresour" +
-      "ce/status.proto\"\372\004\n\rSessionStatus\022F\n\005aud" +
+      "ce/status.proto\"\302\004\n\rSessionStatus\022F\n\005aud" +
       "it\030c \001(\01320.ai.stigmer.commons.apiresourc" +
       "e.ApiResourceAuditR\005audit\022\031\n\010agent_id\030\001 " +
       "\001(\tR\007agentId\022,\n\022agent_version_hash\030\002 \001(\t" +
@@ -65,13 +65,12 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "ronment_source\030\t \001(\01620.ai.stigmer.agenti" +
       "c.session.v1.EnvironmentSourceR\021environm" +
       "entSource\032A\n\023VaultAttachersEntry\022\020\n\003key\030" +
-      "\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001J\004\010\005" +
-      "\020\006J\004\010\006\020\007R\020harness_state_idR\030harness_stat" +
-      "e_id_historyB\246\001B\013StatusProtoP\001\242\002\004ASAS\252\002\035" +
-      "Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigm" +
-      "er\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer:" +
-      ":Agentic::Session::V1b\006proto3"
+      "\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001B\246\001B" +
+      "\013StatusProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agent" +
+      "ic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Sessi" +
+      "on\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GP" +
+      "BMetadata\352\002!Ai::Stigmer::Agentic::Sessio" +
+      "n::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

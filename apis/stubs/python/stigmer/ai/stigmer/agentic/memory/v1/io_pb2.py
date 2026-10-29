@@ -27,7 +27,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/memory/v1/io.proto\x12\x1c\x61i.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"(\n\x08MemoryId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xa2\x02\n\x13ListMemoriesRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12U\n\x06labels\x18\x05 \x03(\x0b\x32=.ai.stigmer.agentic.memory.v1.ListMemoriesRequest.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01J\x04\x08\x02\x10\x03R\tpage_info\"\x87\x01\n\nMemoryList\x12>\n\x07\x65ntries\x18\x02 \x03(\x0b\x32$.ai.stigmer.agentic.memory.v1.MemoryR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\x08\x01\x10\x02R\x0btotal_count\"\xe3\x02\n\x11UpdateMemoryInput\x12H\n\x08resource\x18\x01 \x01(\x0b\x32$.ai.stigmer.agentic.memory.v1.MemoryB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbe\x01\xbaH\xba\x01\x1a\xb7\x01\n\x17update_names_its_target\x12\x46resource.metadata.id is required: an update names the memory by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xc0\x01\n com.ai.stigmer.agentic.memory.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1c\x41i.Stigmer.Agentic.Memory.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/memory/v1/io.proto\x12\x1c\x61i.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"(\n\x08MemoryId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x91\x02\n\x13ListMemoriesRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12$\n\tpage_size\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x04 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\x12U\n\x06labels\x18\x05 \x03(\x0b\x32=.ai.stigmer.agentic.memory.v1.ListMemoriesRequest.LabelsEntryR\x06labels\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"t\n\nMemoryList\x12>\n\x07\x65ntries\x18\x02 \x03(\x0b\x32$.ai.stigmer.agentic.memory.v1.MemoryR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xe3\x02\n\x11UpdateMemoryInput\x12H\n\x08resource\x18\x01 \x01(\x0b\x32$.ai.stigmer.agentic.memory.v1.MemoryB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbe\x01\xbaH\xba\x01\x1a\xb7\x01\n\x17update_names_its_target\x12\x46resource.metadata.id is required: an update names the memory by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xc0\x01\n com.ai.stigmer.agentic.memory.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1c\x41i.Stigmer.Agentic.Memory.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -54,11 +54,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MEMORYID']._serialized_start=174
   _globals['_MEMORYID']._serialized_end=214
   _globals['_LISTMEMORIESREQUEST']._serialized_start=217
-  _globals['_LISTMEMORIESREQUEST']._serialized_end=507
+  _globals['_LISTMEMORIESREQUEST']._serialized_end=490
   _globals['_LISTMEMORIESREQUEST_LABELSENTRY']._serialized_start=433
   _globals['_LISTMEMORIESREQUEST_LABELSENTRY']._serialized_end=490
-  _globals['_MEMORYLIST']._serialized_start=510
-  _globals['_MEMORYLIST']._serialized_end=645
-  _globals['_UPDATEMEMORYINPUT']._serialized_start=648
-  _globals['_UPDATEMEMORYINPUT']._serialized_end=1003
+  _globals['_MEMORYLIST']._serialized_start=492
+  _globals['_MEMORYLIST']._serialized_end=608
+  _globals['_UPDATEMEMORYINPUT']._serialized_start=611
+  _globals['_UPDATEMEMORYINPUT']._serialized_end=966
 # @@protoc_insertion_point(module_scope)

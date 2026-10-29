@@ -331,7 +331,7 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc0\a\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8f\a\n" +
 	"\x0fAgentInvocation\x12]\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
 	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
@@ -344,7 +344,7 @@ const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\x0fenvironment_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x12\xa4\x03\n" +
 	"\tresources\x18\t \x03(\v2..ai.stigmer.agentic.session.v1.SessionResourceB\xd5\x02\xbaH\xd1\x02\x92\x01\xcd\x02\x10\xf4\x03\"\xc7\x02\xba\x01\x8c\x01\n" +
 	"\x17resources.no_local_path\x12Za routine's runs cannot use a folder on someone's machine: name a git repository or a File\x1a\x15!has(this.local_path)\xba\x01\xb3\x01\n" +
-	"\x12resources.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a<!has(this.git_repository) || this.git_repository.token == ''R\tresourcesJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x11workspace_entriesR\x10environment_refs\"\xf6\x02\n" +
+	"\x12resources.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a<!has(this.git_repository) || this.git_repository.token == ''R\tresources\"\xf6\x02\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +

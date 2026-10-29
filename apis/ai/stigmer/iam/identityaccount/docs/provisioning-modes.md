@@ -4,16 +4,14 @@ How IdentityAccounts are created and what distinguishes each mode.
 
 ## Overview
 
-Every IdentityAccount is created in one of five provisioning modes. The mode is determined automatically at creation time based on the `idp_id` value and the provisioning context. Users cannot set `provisioning_mode` directly.
+Every IdentityAccount is created in one of four provisioning modes. The mode is determined automatically at creation time based on the `idp_id` value and the provisioning context. Users cannot set `provisioning_mode` directly.
 
 | Mode | `provisioning_mode` value | Who creates it | `idp_id` format |
 |---|---|---|---|
 | Direct | `direct` | Auth0 authentication (JIT on first login) | `auth0\|{subject}` |
 | Federated | `federated` | The platform via API, or Stigmer on the first sign-in when the FederationIssuer provisions accounts | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
-| Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
 | App user | `app_user` | `TokenService.mintUserToken`, called with a service account's key | `stgm_pc\|{org}\|{external_user_id}` |
 | Service account | `service_account` | An organization admin, through `createServiceAccount` | `stgm_sa\|{org id}\|{random}` |
-| Legacy | `identity_account_provisioning_mode_unspecified` | Pre-dates the provisioning_mode field | Varies |
 
 ## Direct Mode
 
@@ -81,23 +79,23 @@ The `idp_id` stores the raw OIDC `sub` claim from the external identity provider
 
 Example: `google-oauth2|109876543210`
 
-## Machine Mode
+## Machine Accounts
 
-A machine account represents an Auth0 M2M client credential. It is used for inter-service communication — one service calling another service's API on behalf of itself, not on behalf of a user.
+A machine account is a direct account whose subject is an Auth0 M2M client credential, not a provisioning mode of its own. It is used for inter-service communication — one service calling another service's API on behalf of itself, not on behalf of a user.
 
 ### Flow
 
 ```
 1. A machine account is registered in Auth0 as an M2M application
-2. During platform bootstrap, Stigmer creates a machine IdentityAccount
-   with idp_id = "{auth0_client_id}@clients"
+2. Stigmer creates a direct IdentityAccount with
+   idp_id = "{auth0_client_id}@clients"
 3. FGA policies are created granting the machine account the required permissions
 4. The service authenticates by presenting a client credentials JWT to Stigmer
 ```
 
 ### Characteristics
 
-- `provisioning_mode`: `machine`
+- `provisioning_mode`: `direct`
 - `idp_id`: ends with `@clients` (e.g., `HqKdZn9xyz@clients`)
 - `is_machine_account`: `true` (computed)
 - `email`, `first_name`, `last_name`: typically empty — machine accounts have no human profile

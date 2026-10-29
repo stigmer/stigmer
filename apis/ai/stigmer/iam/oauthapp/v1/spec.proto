@@ -95,8 +95,8 @@ message OAuthAppSpec {
   // process before a third-party OAuth app can be used publicly. This
   // field tracks where Stigmer's registration stands with the vendor.
   //
-  // UNSPECIFIED is treated as approved for backwards compatibility — only
-  // apps explicitly marked PENDING are gated in the UI.
+  // UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+  // are gated in the UI.
   VendorApprovalStatus vendor_approval_status = 9;
 
   // Documentation URL explaining how users can bring their own OAuth
@@ -117,8 +117,8 @@ message OAuthAppSpec {
   // RFC 6749 §2.3 forbids presenting credentials through more than one
   // channel at once, and some servers reject requests that do.
   //
-  // UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-  // compatibility, preserving the historical behavior byte-for-byte.
+  // UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+  // requires every authorization server to support.
   TokenEndpointAuthMethod token_endpoint_auth_method = 11;
 
   // The addresses this app signs in to: a tool's URL (Slack's MCP endpoint
@@ -144,8 +144,7 @@ message OAuthAppSpec {
 // apps to pass a review/approval process before they can be used by
 // end users. This enum tracks that lifecycle.
 enum VendorApprovalStatus {
-  // Default / unset. Treated as approved for backwards compatibility.
-  // OAuth apps that do not go through a vendor approval process
+  // Default / unset. Treated as approved: OAuth apps that do not go through a vendor approval process
   // (e.g., self-hosted or private vendor integrations) leave this unset.
   VENDOR_APPROVAL_STATUS_UNSPECIFIED = 0;
 
@@ -167,9 +166,8 @@ enum VendorApprovalStatus {
 // authenticate with PKCE alone and never carry a client secret, so this
 // enum is meaningful only for OAuthApp-backed vendor OAuth.
 enum TokenEndpointAuthMethod {
-  // Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
-  // compatibility — every OAuthApp created before this field existed
-  // authenticated via HTTP Basic.
+  // Default / unset. Treated as CLIENT_SECRET_BASIC (HTTP Basic), the
+  // method RFC 6749 requires every authorization server to support.
   TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;
 
   // client_secret_basic: the secret rides the Authorization header as

@@ -211,12 +211,12 @@ var File_ai_stigmer_activity_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_activity_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1fai/stigmer/activity/v1/io.proto\x12\x16ai.stigmer.activity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x01\n" +
+	"\x1fai/stigmer/activity/v1/io.proto\x12\x16ai.stigmer.activity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"z\n" +
 	"\x13RecentActivityEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x03 \x01(\tR\asubject\x129\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtJ\x04\b\x02\x10\x03J\x04\b\x05\x10\x06R\x04typeR\x06status\"J\n" +
+	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"J\n" +
 	"\x19ListRecentActivityRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\"c\n" +

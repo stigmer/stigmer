@@ -152,7 +152,7 @@ message WebChannelConfig {
   //
   // @internal
   // Readers ask one predicate (domain/channel `channelAdmitsAnyone`:
-  // exactly public), so a legacy row holding 0 reads as organization. The
+  // exactly public), so an unset audience reads as organization. The
   // guest mint and the anonymous profile read admit only a public channel.
   // On a server without guest sign-in, an organization link is the one a
   // signed-in reader opens; with sign-in off, every reader counts as

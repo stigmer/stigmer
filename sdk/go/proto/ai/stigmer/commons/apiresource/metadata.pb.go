@@ -51,9 +51,7 @@ type ApiResourceMetadata struct {
 	// System-generated unique identifier.
 	//
 	// For every kind this is a generated, prefixed id (e.g. agt_<ulid>,
-	// org_<ulid>). An organization made by a release before organization ids
-	// were minted keeps the id it was given then, which equals its first slug.
-	// Two kinds derive it from their natural key instead: a direct
+	// org_<ulid>). Two kinds derive it from their natural key instead: a direct
 	// IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of
 	// sha256(spec.idp_id)), so one subject can only ever be one account; and
 	// a Grant's id is derived from its triple (`grt_` followed by 26
@@ -296,7 +294,7 @@ var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescript
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9f\a\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\a\n" +
 	"\x13ApiResourceMetadata\x12\x1f\n" +
 	"\x04name\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\x18\xc8\x01R\x04name\x12;\n" +
 	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
@@ -313,7 +311,7 @@ const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	" \x01(\tR\x04etag\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\a\x10\bR\vannotations\"\x88\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x01\n" +
 	"\x1aApiResourceMetadataVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12.\n" +

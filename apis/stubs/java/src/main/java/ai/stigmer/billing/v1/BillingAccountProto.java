@@ -48,7 +48,7 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
       "\n+ai/stigmer/billing/v1/billing_account." +
       "proto\022\025ai.stigmer.billing.v1\032 ai/stigmer" +
       "/billing/v1/enum.proto\032\037google/protobuf/" +
-      "timestamp.proto\"\355\003\n\016BillingAccount\022\016\n\002id" +
+      "timestamp.proto\"\376\002\n\016BillingAccount\022\016\n\002id" +
       "\030\001 \001(\tR\002id\022\020\n\003org\030\002 \001(\tR\003org\022C\n\006status\030\003" +
       " \001(\0162+.ai.stigmer.billing.v1.BillingAcco" +
       "untStatusR\006status\022,\n\022stripe_customer_id\030" +
@@ -58,17 +58,14 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
       "od\0229\n\ncreated_at\030\t \001(\0132\032.google.protobuf" +
       ".TimestampR\tcreatedAt\0229\n\nupdated_at\030\n \001(" +
       "\0132\032.google.protobuf.TimestampR\tupdatedAt" +
-      "J\004\010\004\020\005J\004\010\005\020\006J\004\010\007\020\010J\004\010\010\020\tR\007balanceR\rauto_" +
-      "rechargeR\037allowed_negative_balance_micro" +
-      "sR\034low_balance_threshold_micros\"\246\001\n\024Paym" +
-      "entMethodSummary\022*\n\021payment_method_id\030\001 " +
-      "\001(\tR\017paymentMethodId\022\024\n\005brand\030\002 \001(\tR\005bra" +
-      "nd\022\024\n\005last4\030\003 \001(\tR\005last4\022\033\n\texp_month\030\004 " +
-      "\001(\005R\010expMonth\022\031\n\010exp_year\030\005 \001(\005R\007expYear" +
-      "B\214\001B\023BillingAccountProtoP\001\242\002\003ASB\252\002\025Ai.St" +
-      "igmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1" +
-      "\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030A" +
-      "i::Stigmer::Billing::V1b\006proto3"
+      "\"\246\001\n\024PaymentMethodSummary\022*\n\021payment_met" +
+      "hod_id\030\001 \001(\tR\017paymentMethodId\022\024\n\005brand\030\002" +
+      " \001(\tR\005brand\022\024\n\005last4\030\003 \001(\tR\005last4\022\033\n\texp" +
+      "_month\030\004 \001(\005R\010expMonth\022\031\n\010exp_year\030\005 \001(\005" +
+      "R\007expYearB\214\001B\023BillingAccountProtoP\001\242\002\003AS" +
+      "B\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\B" +
+      "illing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMet" +
+      "adata\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

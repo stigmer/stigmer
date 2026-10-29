@@ -961,17 +961,13 @@ describe("membership rules", () => {
   });
 
   describe("isPersonAccount — the row-level twin of the user-class gate", () => {
-    it("a provisioned person is; a machine account or a machine-mode account is not", () => {
+    it("a provisioned person is; a machine account is not", () => {
       expect(isPersonAccount(account("auth0|alice", "alice@example.com"))).toBe(
         true,
       );
       const flagged = account("bot@clients", "");
       flagged.spec!.isMachineAccount = true;
       expect(isPersonAccount(flagged)).toBe(false);
-      const machineMode = account("bot2@clients", "");
-      machineMode.spec!.provisioningMode =
-        IdentityAccountProvisioningMode.machine;
-      expect(isPersonAccount(machineMode)).toBe(false);
     });
 
     it("an app user is not: the mint grants it the embedding sign-in role and nothing else", () => {

@@ -39,14 +39,8 @@ const KINDS_WITH_META: ApiResourceKind[] = Object.values(ApiResourceKind)
   });
 
 describe("supportsVisibility", () => {
-  it("refuses the retired public level for every kind", () => {
-    expect(KINDS_WITH_META.length).toBeGreaterThan(20);
-    for (const kind of KINDS_WITH_META) {
-      expect(supportsVisibility(kind, V.visibility_public)).toBe(false);
-    }
-  });
-
   it("private and unspecified are supported by every kind", () => {
+    expect(KINDS_WITH_META.length).toBeGreaterThan(20);
     for (const kind of KINDS_WITH_META) {
       expect(supportsVisibility(kind, V.visibility_private)).toBe(true);
       expect(
@@ -84,7 +78,7 @@ describe("supportsVisibility", () => {
 });
 
 describe("supportedVisibilityLevels (the copy fragment)", () => {
-  it("names the levels that remain, private first, never the retired one", () => {
+  it("names the kind's levels, private first", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.agent)).toBe(
       "visibility_private, visibility_org, visibility_child_orgs",
     );
@@ -94,10 +88,5 @@ describe("supportedVisibilityLevels (the copy fragment)", () => {
     expect(supportedVisibilityLevels(ApiResourceKind.session)).toBe(
       "visibility_private",
     );
-    for (const kind of KINDS_WITH_META) {
-      expect(supportedVisibilityLevels(kind)).not.toContain(
-        "visibility_public",
-      );
-    }
   });
 });

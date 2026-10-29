@@ -136,9 +136,6 @@ function runRow(
 describe("boundExecutionKindOf", () => {
   it.each([
     ["run_1", "agent-execution"],
-    // A run minted before the run kind's prefix became `run` keeps its id,
-    // so a pre-upgrade run waiting on an approval keeps its credential.
-    ["aex_1", "agent-execution"],
     [newConnectExecutionId("plg_1"), "mcp-connect"],
   ])("%s binds %s", (id, kind) => {
     expect(boundExecutionKindOf(id)).toBe(kind);
@@ -166,15 +163,15 @@ describe("bindsARun — what a no-`exp` credential may name", () => {
 describe("loadBoundExecution", () => {
   it("reads the row's facts the lane needs and nothing else", async () => {
     const store = storeOf({
-      aex_1: runRow("aex_1", AgentPhase.RUN_IN_PROGRESS, "", {
+      run_1: runRow("run_1", AgentPhase.RUN_IN_PROGRESS, "", {
         createdBy: "ida_carol",
         sessionId: "ses_carol",
         org: "acme",
       }),
     });
-    expect(await loadBoundExecution(store, "aex_1", NOW)).toEqual({
+    expect(await loadBoundExecution(store, "run_1", NOW)).toEqual({
       kind: "agent-execution",
-      executionId: "aex_1",
+      executionId: "run_1",
       org: "acme",
       createdBy: "ida_carol",
       sessionId: "ses_carol",
@@ -236,7 +233,7 @@ describe("loadBoundExecution", () => {
 
   it("a missing row is undefined — the typed not-found, and only that, is absorbed", async () => {
     expect(
-      await loadBoundExecution(storeOf({}), "aex_missing", NOW),
+      await loadBoundExecution(storeOf({}), "run_missing", NOW),
     ).toBeUndefined();
   });
 
@@ -246,7 +243,7 @@ describe("loadBoundExecution", () => {
       getResource: vi.fn(() => Promise.reject(fault)),
       connectAttempts: attemptStore({}, [], new Error("unreachable")),
     };
-    await expect(loadBoundExecution(store, "aex_1", NOW)).rejects.toBe(fault);
+    await expect(loadBoundExecution(store, "run_1", NOW)).rejects.toBe(fault);
   });
 
   describe("liveness — the agent execution's own terminal set", () => {
@@ -256,8 +253,8 @@ describe("loadBoundExecution", () => {
       ["WAITING_FOR_APPROVAL", AgentPhase.RUN_WAITING_FOR_APPROVAL],
       ["PAUSED", AgentPhase.RUN_PAUSED],
     ])("%s is live", async (_name, phase) => {
-      const store = storeOf({ aex_1: runRow("aex_1", phase) });
-      expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
+      const store = storeOf({ run_1: runRow("run_1", phase) });
+      expect((await loadBoundExecution(store, "run_1", NOW))?.live).toBe(true);
     });
 
     it.each([
@@ -268,8 +265,8 @@ describe("loadBoundExecution", () => {
     ])(
       "%s with no completed_at is dead at once — no grace without a timestamp",
       async (_name, phase) => {
-        const store = storeOf({ aex_1: runRow("aex_1", phase) });
-        expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(
+        const store = storeOf({ run_1: runRow("run_1", phase) });
+        expect((await loadBoundExecution(store, "run_1", NOW))?.live).toBe(
           false,
         );
       },
@@ -277,9 +274,9 @@ describe("loadBoundExecution", () => {
 
     it("a row with no status has not started, which is live", async () => {
       const store = storeOf({
-        aex_1: create(RunSchema, { metadata: { id: "aex_1" } }),
+        run_1: create(RunSchema, { metadata: { id: "run_1" } }),
       });
-      expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
+      expect((await loadBoundExecution(store, "run_1", NOW))?.live).toBe(true);
     });
   });
 
@@ -293,27 +290,27 @@ describe("loadBoundExecution", () => {
       ["long after", -(G * 10), false],
     ])("a run that ended %s → live=%s", async (_label, offset, live) => {
       const store = storeOf({
-        aex_1: runRow("aex_1", AgentPhase.RUN_COMPLETED, iso(offset)),
+        run_1: runRow("run_1", AgentPhase.RUN_COMPLETED, iso(offset)),
       });
-      expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(live);
+      expect((await loadBoundExecution(store, "run_1", NOW))?.live).toBe(live);
     });
 
     it("a completed_at in the future (a skewed writer's clock) is inside the grace, not an error", async () => {
       const store = storeOf({
-        aex_1: runRow("aex_1", AgentPhase.RUN_COMPLETED, iso(60_000)),
+        run_1: runRow("run_1", AgentPhase.RUN_COMPLETED, iso(60_000)),
       });
-      expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(true);
+      expect((await loadBoundExecution(store, "run_1", NOW))?.live).toBe(true);
     });
 
     it("an unparsable completed_at gets no grace — fail closed", async () => {
       const store = storeOf({
-        aex_1: runRow(
-          "aex_1",
+        run_1: runRow(
+          "run_1",
           AgentPhase.RUN_COMPLETED,
           "yesterday-ish",
         ),
       });
-      expect((await loadBoundExecution(store, "aex_1", NOW))?.live).toBe(false);
+      expect((await loadBoundExecution(store, "run_1", NOW))?.live).toBe(false);
     });
   });
 });

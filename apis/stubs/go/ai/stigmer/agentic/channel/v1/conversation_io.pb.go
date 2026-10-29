@@ -451,8 +451,7 @@ type ConversationTimelineItem struct {
 	// diagnostics deliberately stay off the thread.
 	AttemptDetail string `protobuf:"bytes,14,opt,name=attempt_detail,json=attemptDetail,proto3" json:"attempt_detail,omitempty"`
 	// Why a FAILED send attempt failed, in the platform's classification.
-	// Unspecified on non-failed items and on rows written before the
-	// classification existed.
+	// Unspecified on non-failed items.
 	AttemptFailureKind ChannelAttemptFailureKind `protobuf:"varint,15,opt,name=attempt_failure_kind,json=attemptFailureKind,proto3,enum=ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind" json:"attempt_failure_kind,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -1432,7 +1431,7 @@ const file_ai_stigmer_agentic_channel_v1_conversation_io_proto_rawDesc = "" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x1d\n" +
 	"\n" +
-	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\x9b\x02\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\x8a\x02\n" +
 	"\x1dListChannelConversationsInput\x12\x1b\n" +
 	"\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x12'\n" +
 	"\n" +
@@ -1440,10 +1439,10 @@ const file_ai_stigmer_agentic_channel_v1_conversation_io_proto_rawDesc = "" +
 	"\x06filter\x18\x04 \x01(\x0e2<.ai.stigmer.agentic.channel.v1.ChannelConversationListFilterR\x06filter\x12$\n" +
 	"\tpage_size\x18\x05 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x03\x10\x04R\tpage_info\"\xa2\x01\n" +
+	"page_token\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x8f\x01\n" +
 	"\x17ChannelConversationList\x12L\n" +
 	"\aentries\x18\x02 \x03(\v22.ai.stigmer.agentic.channel.v1.ChannelConversationR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xbc\x01\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xbc\x01\n" +
 	"\x1eCountChannelConversationsInput\x12\x1b\n" +
 	"\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x12'\n" +
 	"\n" +

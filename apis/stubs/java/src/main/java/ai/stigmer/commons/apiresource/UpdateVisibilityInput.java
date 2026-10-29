@@ -27,8 +27,8 @@ package ai.stigmer.commons.apiresource;
  * - Org-only kinds (vault):
  * PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
  *
- * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
- * supported levels); the level is retired.
+ * A level the kind does not support is refused with INVALID_ARGUMENT naming
+ * the supported levels.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.UpdateVisibilityInput}
@@ -340,8 +340,8 @@ private static final long serialVersionUID = 0L;
    * - Org-only kinds (vault):
    * PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
    *
-   * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
-   * supported levels); the level is retired.
+   * A level the kind does not support is refused with INVALID_ARGUMENT naming
+   * the supported levels.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.UpdateVisibilityInput}

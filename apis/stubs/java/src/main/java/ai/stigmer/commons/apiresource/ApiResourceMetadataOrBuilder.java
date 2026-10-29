@@ -91,9 +91,7 @@ public interface ApiResourceMetadataOrBuilder extends
    * System-generated unique identifier.
    *
    * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;,
-   * org_&lt;ulid&gt;). An organization made by a release before organization ids
-   * were minted keeps the id it was given then, which equals its first slug.
-   * Two kinds derive it from their natural key instead: a direct
+   * org_&lt;ulid&gt;). Two kinds derive it from their natural key instead: a direct
    * IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of
    * sha256(spec.idp_id)), so one subject can only ever be one account; and
    * a Grant's id is derived from its triple (`grt_` followed by 26
@@ -111,9 +109,7 @@ public interface ApiResourceMetadataOrBuilder extends
    * System-generated unique identifier.
    *
    * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;,
-   * org_&lt;ulid&gt;). An organization made by a release before organization ids
-   * were minted keeps the id it was given then, which equals its first slug.
-   * Two kinds derive it from their natural key instead: a direct
+   * org_&lt;ulid&gt;). Two kinds derive it from their natural key instead: a direct
    * IdentityAccount's id is derived from its issuer subject (`ida_` followed by 26 Crockford-base32 characters of
    * sha256(spec.idp_id)), so one subject can only ever be one account; and
    * a Grant's id is derived from its triple (`grt_` followed by 26
