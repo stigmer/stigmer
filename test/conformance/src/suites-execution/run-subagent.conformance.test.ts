@@ -62,7 +62,7 @@ import { anthropicText, anthropicToolUse, anthropicToolUses } from "@stigmer/tes
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type McpToolFixture, mcpToolName } from "../harness/mcp-server";
 import { requireRegistryRow } from "../harness/model-registry";
 import {
   AGENT_API_VERSION,
@@ -100,8 +100,8 @@ const TASK_TOOL_NAME = "task";
 const STIGMER_SHELL_TOOL = "execute";
 // The platform's own tools a subagent is never given: memory capture, and a
 // channel's send tool.
-const MEMORY_TOOL_NAME = "remember";
-const CHANNEL_SEND_TOOL_NAME = "send_channel_message";
+const MEMORY_TOOL_NAME = mcpToolName("stigmer-memory", "remember");
+const CHANNEL_SEND_TOOL_NAME = mcpToolName("stigmer-channels", "send_channel_message");
 
 // Two Stigmer registry ids whose provider ids differ from them and from each
 // other, so the model each request ran on is read off the wire.
