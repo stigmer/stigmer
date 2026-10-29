@@ -121,7 +121,7 @@ describe("validate on a plugin directory", () => {
     const run = await runValidate("-f", plugin);
     expect(run.exitCode).toBe(ExitCode.Success);
     expect(run.stdout).toBe("");
-    expect(run.stderr).toContain("Plugin 'github' is valid with 2 warnings");
+    expect(run.stderr).toContain("Plugin 'github' is valid with 1 warning");
     expect(run.stderr).toContain("Cursor plugin");
     // Section keys are padded to the widest key, so match key and value loosely.
     expect(run.stderr).toMatch(/MCP servers\s+1: github \(http\)/);
@@ -148,7 +148,7 @@ describe("validate on a plugin directory", () => {
 
   it("prints only the status line with --quiet", async () => {
     const run = await runValidate("-f", plugin, "--quiet");
-    expect(run.stderr.trim()).toBe("⚠ Plugin 'github' is valid with 2 warnings");
+    expect(run.stderr.trim()).toBe("⚠ Plugin 'github' is valid with 1 warning");
   });
 
   it("refuses with exit 2 and every problem's sentence", async () => {
