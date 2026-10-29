@@ -287,6 +287,7 @@ describe("conditionVerdict: sure, unsure, or no", () => {
     expect(conditionVerdict("WebFetch(domain:example.com)", { toolName: "WebFetch", toolInput: { url: "::" } }, CTX)).toBe("unsure");
     expect(conditionVerdict("Agent(explore)", { toolName: "Agent", toolInput: {} }, CTX)).toBe("unsure");
     expect(conditionVerdict("Grep(nested:x)", { toolName: "Grep", toolInput: { nested: {} } }, CTX)).toBe("unsure");
+    expect(conditionVerdict("Grep(constructor:*)", { toolName: "Grep", toolInput: {} }, CTX), "an inherited name is not an argument").toBe("unsure");
   });
 });
 

@@ -334,7 +334,7 @@ function argumentVerdict(spec: string, input: Record<string, unknown>): Conditio
   // an argument the call does not carry, is not a sure "no": the handler runs.
   const key = spec.slice(0, colon).trim();
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) return "unsure";
-  const value = input[key];
+  const value = Object.hasOwn(input, key) ? input[key] : undefined;
   if (value === undefined || value === null) return "unsure";
   if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return "unsure";
   return sure(wildcardMatch(spec.slice(colon + 1).trim(), String(value)));
