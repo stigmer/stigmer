@@ -227,15 +227,12 @@ export function formatChannelTemplatesSection(channels: readonly ChannelMessagin
 /**
  * Expected absences log quietly; anything else warns so an operator can
  * diagnose a mis-provisioned credential without failing the execution.
- * UNIMPLEMENTED is a control plane predating the discovery RPC — the
- * deploy-order case, which heals itself once the server catches up.
+ * FAILED_PRECONDITION is a server with no messaging runtime (its template
+ * read refuses), UNAVAILABLE a server out of reach for the moment.
  */
 function logDiscoveryFailure(what: string, err: unknown): void {
   const ce = ConnectError.from(err);
-  const expected =
-    ce.code === Code.Unimplemented ||
-    ce.code === Code.FailedPrecondition ||
-    ce.code === Code.Unavailable;
+  const expected = ce.code === Code.FailedPrecondition || ce.code === Code.Unavailable;
   if (expected) {
     console.debug(`[channel-attachment] ${what} degraded to honest absence: ${ce.message}`);
   } else {
