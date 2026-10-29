@@ -2247,8 +2247,8 @@ function extractPrimaryArg(toolUse: Pick<ToolUse, "name" | "mcpServerName" | "in
 ### extractShellIntent
 
 Extracts the model-authored intent phrase from a SHELL tool call, or null
-when absent (legacy runs, models that skipped the optional arg, and
-every non-shell kind). See [`SHELL_INTENT_ARG_FIELD`](#shell_intent_arg_field).
+when absent (a model that skipped the optional arg, and every non-shell
+kind). See [`SHELL_INTENT_ARG_FIELD`](#shell_intent_arg_field).
 
 ```tsx
 function extractShellIntent(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">): string | null
@@ -3227,7 +3227,7 @@ function resolvePathAction(path: string, resources: readonly SessionResource[]):
 Resolves a tool's presentation category from its name + MCP slug.
 
 Classification is delegated to `@stigmer/client`'s name-based resolver (the same
-table the runner and Go CLI use), then mapped to presentation metadata. When
+table the runner and the CLI use), then mapped to presentation metadata. When
 the caller holds the tool use, prefer [`resolveToolCategoryFromCall`](#resolvetoolcategoryfromcall).
 
 ```tsx
@@ -3639,7 +3639,7 @@ Props for [`ToolCallGroup`](#toolcallgroup).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    formatSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom label formatter for a folded run chip (e.g. a run of reads). Receives the run's tool uses and returns the chip's collapsed label.  NOTE: the unit of summary moved from the *turn* to the *run*. This used to label the whole turn (\"Ran 3 tools\"); since the turn no longer collapses, it now labels each ToolRunGroup chip. The signature is unchanged." },
+    formatSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom label formatter for a folded run chip (e.g. a run of reads). Receives the run's tool uses and returns the chip's collapsed label.  The unit of summary is the *run*, not the turn: the turn does not collapse, so this labels each ToolRunGroup chip." },
     toolUses: { type: "readonly ToolUse[]", description: "Tool uses in this group, in the order the agent made them. A tool use that started a subagent renders its nested thread instead of a standard detail panel.", required: true },
   }}
 />
@@ -3773,7 +3773,7 @@ The fully-resolved presentation for a tool call, returned by [`useToolPresentati
     category: { type: "ToolCategory", description: "Presentation category (1:1 with kind).", required: true },
     chrome: { type: "ToolChrome", description: "Default chrome tier for this tool — `\"quiet\"` renders an unboxed line, `\"card\"` a bordered card (see ToolChrome). A pending gate or a failure escalates to `\"card\"` in the component layer; this is the *settled* default.", required: true },
     disclosure: { type: "ToolDisclosure", description: "Default inline disclosure for this tool — `\"preview\"` keeps a bounded, persistent preview of the result, `\"summary\"` keeps a compact row. The active/awaiting state can still force a row open; this is the *settled* default.", required: true, typeDescriptionLink: "#tooldisclosure" },
-    intent: { type: "string | null", description: "The model-authored intent phrase for a SHELL call (stigmer#276), or null when absent (legacy runs, skipped optional arg, non-shell kinds). Raw extraction — precedence against overrides is resolved in ToolPresentation.title.", required: true },
+    intent: { type: "string | null", description: "The model-authored intent phrase for a SHELL call (stigmer#276), or null when absent (a skipped optional arg, non-shell kinds). Raw extraction — precedence against overrides is resolved in ToolPresentation.title.", required: true },
     kind: { type: "ToolKind", description: "Harness-agnostic kind (wire field, with name fallback).", required: true },
     label: { type: "string", description: "Display label, e.g. \"Edit\", \"Shell\".", required: true },
     primaryArg: { type: "string | null", description: "Primary argument (path, command, pattern...), or null.", required: true },
