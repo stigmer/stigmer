@@ -97,6 +97,10 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
  * for its server), none is bridged.
  */
 export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): void {
+  // Both already given (flags, or a runner's own environment): the config is
+  // not read, so a dangling current_backend cannot stop a server that needs
+  // nothing from it.
+  if (isSet(env.STIGMER_SERVER_ADDRESS) && isSet(env.STIGMER_API_KEY)) return;
   const { entry } = activeBackend(config);
   if (entry === undefined) {
     setIfEmpty(env, "STIGMER_SERVER_ADDRESS", "localhost:7234");
@@ -117,6 +121,10 @@ export function applyFlagsEnv(flags: McpServerFlags, env: NodeJS.ProcessEnv): vo
   setIfPresent(env, "STIGMER_API_KEY", flags.apiKey);
   setIfPresent(env, "STIGMER_MCP_LOG_FORMAT", flags.logFormat);
   setIfPresent(env, "STIGMER_MCP_LOG_LEVEL", flags.logLevel);
+}
+
+function isSet(value: string | undefined): boolean {
+  return value !== undefined && value !== "";
 }
 
 function setIfEmpty(env: NodeJS.ProcessEnv, key: string, value: string | undefined): void {

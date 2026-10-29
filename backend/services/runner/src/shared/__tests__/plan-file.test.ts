@@ -19,7 +19,6 @@ import { installAgentFs, localAgentFs } from "../agent-fs.js";
 import { collectOutputs, OUTPUTS_SUBDIR, prepareOutputsFolder } from "../outputs.js";
 import {
   isPlanFileName,
-  PLAN_FILE_NAME,
   PLAN_STAGING_FILE,
   planFileName,
   savePlanOutput,
@@ -86,16 +85,15 @@ describe("planFileName", () => {
     expect(planFileName(text)).toBe(`${planId(text)}.plan.md`);
   });
 
-  it("never freshly emits the legacy plan.md name", () => {
+  it("names every plan with the .plan.md suffix detection keys on", () => {
     for (const text of ["# A Title\n\nbody", "no heading", "# Plan:\n\nx"]) {
-      expect(planFileName(text)).not.toBe(PLAN_FILE_NAME);
+      expect(isPlanFileName(planFileName(text))).toBe(true);
     }
   });
 });
 
 describe("isPlanFileName", () => {
-  it("accepts the legacy exact name and any *.plan.md", () => {
-    expect(isPlanFileName("plan.md")).toBe(true);
+  it("accepts any *.plan.md", () => {
     expect(isPlanFileName("feature_x.plan.md")).toBe(true);
     expect(isPlanFileName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
     expect(isPlanFileName("a1b2c3d4.plan.md")).toBe(true);
@@ -103,6 +101,7 @@ describe("isPlanFileName", () => {
 
   it("rejects non-plan filenames", () => {
     expect(isPlanFileName("notes.md")).toBe(false);
+    expect(isPlanFileName("plan.md")).toBe(false);
     expect(isPlanFileName("plan.md.bak")).toBe(false);
     expect(isPlanFileName("myplan.md")).toBe(false);
   });

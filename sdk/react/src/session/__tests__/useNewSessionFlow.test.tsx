@@ -250,16 +250,6 @@ describe("useNewSessionFlow", () => {
       expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBe(CLAUDE_MODEL_ID);
     });
 
-    it("restores compound keys from localStorage as plain modelId", () => {
-      localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
-      // Legacy: compound key was stored before fix
-      localStorage.setItem(STORAGE_KEY_MODEL_CLAUDE, "claude/claude-haiku-4.5");
-
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
-
-      // Should extract plain modelId and validate against registry
-      expect(result.current.modelId).toBe(CLAUDE_MODEL_ID);
-    });
   });
 
   describe("model validation timing", () => {

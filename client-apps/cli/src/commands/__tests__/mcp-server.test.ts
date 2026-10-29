@@ -4,7 +4,8 @@
 // a self-hosted entry's API key), read from a config file as `stigmer auth login`
 // writes it; the local daemon gets its fixed address and no credential; a value
 // already in the environment or set by a flag always wins, and a stored
-// credential is never bridged to an address other than its own backend's.
+// credential is never bridged to an address other than its own backend's. When
+// both are already given, the config is not read at all.
 
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -105,6 +106,14 @@ describe("applyConfigEnv", () => {
     const env: NodeJS.ProcessEnv = { STIGMER_SERVER_ADDRESS: "preset:7234" };
     applyConfigEnv(getDefault(), env);
     expect(env.STIGMER_SERVER_ADDRESS).toBe("preset:7234");
+  });
+
+  it("reads no config when the environment already gives the address and the key", () => {
+    const dangling: Config = { ...getDefault(), current_backend: "gone" };
+    const env: NodeJS.ProcessEnv = { STIGMER_SERVER_ADDRESS: "runner:7234", STIGMER_API_KEY: "key" };
+    applyConfigEnv(dangling, env);
+    expect(env).toEqual({ STIGMER_SERVER_ADDRESS: "runner:7234", STIGMER_API_KEY: "key" });
+    expect(() => applyConfigEnv(dangling, { STIGMER_SERVER_ADDRESS: "runner:7234" })).toThrow(/does not exist/);
   });
 });
 

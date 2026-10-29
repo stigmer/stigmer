@@ -591,9 +591,7 @@ export function useNewSessionFlow(
       // Persist only explicit choices — never the seeded value — so the
       // embedder's defaultHarness keeps applying until the user decides.
       localStorage.setItem(STORAGE_KEY_HARNESS, h);
-      const storedModel = localStorage.getItem(modelStorageKey(h));
-      const plain = storedModel ? (parseModelKey(storedModel)?.modelId ?? storedModel) : undefined;
-      setModelIdRaw(plain);
+      setModelIdRaw(localStorage.getItem(modelStorageKey(h)) ?? undefined);
     },
     [isGuest],
   );
@@ -606,11 +604,8 @@ export function useNewSessionFlow(
   useEffect(() => {
     if (isGuest || isModelsLoading) return;
     const stored = localStorage.getItem(modelStorageKey(harness));
-    if (stored) {
-      const plain = parseModelKey(stored)?.modelId ?? stored;
-      if (getModel(plain)) {
-        setModelIdRaw(plain);
-      }
+    if (stored && getModel(stored)) {
+      setModelIdRaw(stored);
     }
   }, [getModel, harness, isGuest, isModelsLoading]);
 
