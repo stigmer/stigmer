@@ -68,7 +68,7 @@ export const ALWAYS_THINKING_MODEL = "claude-fable-5";
 export const THINKING_OFF_REFUSAL_FRAGMENTS = [
   "thinking_mode 'disabled'",
   `model '${ALWAYS_THINKING_MODEL}'`,
-  "the model always thinks on the native harness",
+  "the model always thinks on the stigmer harness",
 ] as const;
 
 // ─── What a fired run is told (byte-pinned) ─────────────────────────────────
