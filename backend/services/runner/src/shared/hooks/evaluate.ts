@@ -67,7 +67,7 @@ export type HookPermissionMode = "default" | "plan" | "bypassPermissions";
 /** The call a hook is asked about, as the engine made it. */
 export interface HookToolCall {
   readonly id: string;
-  /** The engine's name for the tool (the bound name on Stigmer; Claude Code's on Claude). */
+  /** The tool's name: Claude Code's on Claude; on Stigmer a built-in's bound name, or an MCP tool's bare name beside `serverSlug`. */
   readonly name: string;
   readonly args: Record<string, unknown>;
   /** The MCP server the tool belongs to; `""` for a built-in. */

@@ -25,7 +25,6 @@ const ROOT = "/ws";
 const views = new StigmerToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => (path.startsWith(`${ROOT}/`) ? path.slice(ROOT.length) : undefined),
-  toolServerMap: new Map([["create_issue", "plugin_tracker_github"]]),
   serverNames: new Map([["plugin_tracker_github", { name: "plugin:tracker:github", source: "plugin" }]]),
   platformServerSlugs: new Set(),
 });

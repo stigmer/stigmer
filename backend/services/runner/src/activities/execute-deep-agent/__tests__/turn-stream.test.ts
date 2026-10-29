@@ -53,6 +53,7 @@ import {
   resetSeq,
 } from "../__test-utils__/v3-event-fixtures.js";
 import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 const PRICING: ModelPricing = {
   model: "claude-haiku-4.5",
@@ -67,7 +68,7 @@ const PRICING: ModelPricing = {
 function openGate(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateState {
   return {
     mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
-    toolServerMap: new Map(),
+    mcpIndex: McpToolIndex.EMPTY,
     leasedCategories: new Set(),
     globalBypass: false,
     unattended: false,

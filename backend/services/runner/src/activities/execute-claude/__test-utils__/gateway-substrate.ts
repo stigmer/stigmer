@@ -61,7 +61,7 @@ import { ClaudeGate, canUseToolOf, gateHooks, notOfferedMessage, PLATFORM_READ_O
 import { ClaudeToolViews } from "../hook-views.js";
 import { HookFeedback, NO_HOOKS, type TurnHookEvaluators } from "../hooks.js";
 import { HOST_SHELL_TOOL } from "../host-shell.js";
-import { mcpToolName } from "../mcp-bridge.js";
+import { McpToolIndex, mcpToolName } from "../../../shared/mcp-tool-names.js";
 
 /** The kit's MCP server and every tool it lists. */
 const SERVER = "srv";
@@ -113,10 +113,12 @@ function rowNameOf(call: EngineCall): string {
   return call.name === HOST_SHELL_TOOL.aliasedName ? HOST_SHELL_TOOL.engineName : (serverOf(call.name)?.tool ?? call.name);
 }
 
+/** Every tool the kit's servers list, by Claude Code's names, as the bridge indexes them (`mcp-bridge.ts`). */
+const KIT_TOOLS = McpToolIndex.of([SERVER, TWIN_SERVER].map((slug) => ({ slug, tools: SERVER_TOOLS })), mcpToolName);
+
 /** The MCP server and tool an engine name stands for. */
 function serverOf(name: string): { slug: string; tool: string } | undefined {
-  const match = /^mcp__([^_]+(?:_[^_]+)*)__(.+)$/.exec(name);
-  return match === null || match[1] === HOST_SHELL_TOOL.server ? undefined : { slug: match[1]!, tool: match[2]! };
+  return KIT_TOOLS.ownerOf(name);
 }
 
 /** Claude Code's input for an action a hook rewrites a call into. */
@@ -136,7 +138,7 @@ function reachOf(lists: ContractToolLists | undefined, subLists: ContractToolLis
   });
   const helperScope = subLists === undefined ? scope : scope.narrow('Sub-agent "helper"', subLists);
   const spec: SubagentSpec = { name: HELPER, kind: "saved", description: HELPER, instructions: "", scope: helperScope, skills: [], servers: [SRV, TWIN], model: undefined, shellValues: {} };
-  const offered = new Set([SERVER, TWIN_SERVER].flatMap((slug) => SERVER_TOOLS.map((tool) => mcpToolName(slug, tool))));
+  const offered = new Set(KIT_TOOLS.engineNames());
   const agents = turnAgentsOf(input, [spec], { offered, serverOf }, { planMode: false, structuredOutput: false });
   return { root: agents.root.reach, subagents: new Map([...agents.subagents].map(([name, world]) => [name, world.reach])) };
 }

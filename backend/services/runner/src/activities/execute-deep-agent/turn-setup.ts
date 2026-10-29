@@ -69,6 +69,7 @@ import { createCompactionMiddleware } from "../../middleware/compaction.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
 import { definitionOf, type McpToolListing, type OfferedTool } from "../../shared/mcp-tool-listing.js";
+import { McpToolIndex } from "../../shared/mcp-tool-names.js";
 import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
   checkMainToolListResolution,
@@ -139,7 +140,7 @@ export interface DeepAgentWorkspace {
   readonly isCapturablePath: (rawPath: string) => Promise<boolean>;
 }
 
-/** The tool surface once connected: LangChain tools plus the tool → server map the builders attribute by. */
+/** The tool surface once connected: LangChain tools, each named by its server, plus the index the builders attribute by. */
 export interface DeepAgentTools {
   /** Absent when the turn has no servers to connect: `MultiServerMCPClient` refuses an empty config. */
   readonly connection: McpConnectionResult | undefined;
@@ -147,14 +148,16 @@ export interface DeepAgentTools {
   readonly mcpTools: readonly DynamicStructuredTool[];
   /** Every connected server's tools, the subagents' servers included, by slug. */
   readonly serverToolMap: ReadonlyMap<string, readonly DynamicStructuredTool[]>;
-  readonly toolServerMap: ReadonlyMap<string, string>;
+  /** The server and bare tool each MCP engine name stands for (`shared/mcp-tool-names.ts`). */
+  readonly mcpIndex: McpToolIndex;
 }
 
 /** The gate's posture for this turn, read once and shared by the builders, the reconciler and the sub-agents. */
 export interface DeepAgentGateState {
   /** The approval default's MCP half: which MCP tools ask, and which servers a lease cleared. */
   readonly mcpDefault: McpApprovalDefault;
-  readonly toolServerMap: ReadonlyMap<string, string>;
+  /** The server and bare tool each MCP engine name stands for. */
+  readonly mcpIndex: McpToolIndex;
   readonly leasedCategories: ReadonlySet<ToolApprovalCategory>;
   /** Pre-armed spec.auto_approve_all — the one unscoped, whole-run bypass; the gate is not installed under it. */
   readonly globalBypass: boolean;
@@ -275,19 +278,14 @@ export async function connectTools(input: TurnInput, sink: TurnSink): Promise<De
     }
   }
   if (servers.size === 0) {
-    return { connection: undefined, mcpTools: [], serverToolMap: new Map(), toolServerMap: new Map() };
+    return { connection: undefined, mcpTools: [], serverToolMap: new Map(), mcpIndex: McpToolIndex.EMPTY };
   }
   await sink.reportProgress("Connecting tools…");
   const connection = await connectMcpServers([...servers.values()]);
-  const serverToolMap = new Map<string, readonly DynamicStructuredTool[]>();
-  const toolServerMap = new Map<string, string>();
-  for (const [serverName, serverTools] of Object.entries(connection.serverToolMap)) {
-    serverToolMap.set(serverName, serverTools as DynamicStructuredTool[]);
-    for (const t of serverTools) toolServerMap.set(t.name, serverName);
-  }
+  const serverToolMap = new Map<string, readonly DynamicStructuredTool[]>(Object.entries(connection.serverToolMap));
   sink.setupTiming.mark("connect_mcp");
   sink.recordActivity();
-  return { connection, mcpTools: toolsOf(serverToolMap, input.mcp.servers), serverToolMap, toolServerMap };
+  return { connection, mcpTools: toolsOf(serverToolMap, input.mcp.servers), serverToolMap, mcpIndex: connection.index };
 }
 
 /** The connected tools of `servers`, in their order. */
@@ -310,19 +308,20 @@ export function toolsOf(
  * connect has no tools to call, so none is left unread.
  */
 export function listingOfLoadedTools(
-  serverToolMap: ReadonlyMap<string, readonly DynamicStructuredTool[]>,
+  tools: Pick<DeepAgentTools, "serverToolMap" | "mcpIndex">,
   platformServerSlugs: ReadonlySet<string>,
 ): McpToolListing {
   const listed: { server: string; tools: string[] }[] = [];
   const destructive: { server: string; tool: string }[] = [];
   const offered: OfferedTool[] = [];
-  for (const [server, tools] of serverToolMap) {
+  for (const [server, serverTools] of tools.serverToolMap) {
     if (platformServerSlugs.has(server)) continue;
-    listed.push({ server, tools: tools.map((tool) => tool.name) });
-    for (const tool of tools) {
+    const bare = (tool: DynamicStructuredTool) => tools.mcpIndex.toolOf(tool.name);
+    listed.push({ server, tools: serverTools.map(bare) });
+    for (const tool of serverTools) {
       const annotations = (tool.metadata as { annotations?: { destructiveHint?: unknown } } | undefined)?.annotations;
-      if (annotations?.destructiveHint === true) destructive.push({ server, tool: tool.name });
-      offered.push(definitionOf(server, tool.name, tool.description, tool.schema));
+      if (annotations?.destructiveHint === true) destructive.push({ server, tool: bare(tool) });
+      offered.push(definitionOf(server, bare(tool), tool.description, tool.schema));
     }
   }
   return { listed, destructive, unlisted: [], offered };
@@ -341,7 +340,7 @@ export function listingOfLoadedTools(
 export function readGateState(input: TurnInput, tools: DeepAgentTools, listing: McpToolListing): DeepAgentGateState {
   return {
     mcpDefault: buildMcpApprovalDefault(listing, input.mcp.leases),
-    toolServerMap: tools.toolServerMap,
+    mcpIndex: tools.mcpIndex,
     leasedCategories: input.mcp.leases.categories,
     globalBypass: input.mcp.leases.global,
     unattended: isUnattendedApprovalMode(input.execution),
@@ -545,7 +544,7 @@ export async function buildEngine(
   const toolScope = input.mcp.toolScope;
   checkTurnToolLists(input, tools, toolScope, shellEnv !== undefined);
   const scopeBase: SubagentScopeBase = {
-    serverToolMap: tools.serverToolMap,
+    mcpIndex: tools.mcpIndex,
     platformServerSlugs: input.mcp.platformServerSlugs,
     admitsRoutedRead,
     readsSkillContent: skillContentReadCheck(workspace.backend.platformDir),
@@ -554,7 +553,7 @@ export async function buildEngine(
   // The agent's hooks, run inside the gate before the default
   // (`hooks-setup.ts`); null when the agent has none. A hook that cannot run
   // as written refuses the turn here (`HookSetupError`).
-  const hooks = await buildHookEvaluator(input, sink, tools, config.cursorStreamStallTimeoutMs);
+  const hooks = await buildHookEvaluator(input, sink, config.cursorStreamStallTimeoutMs);
 
   // The approval gate config is the single source of truth for HITL gating,
   // built once and inherited verbatim by sub-agents. Null under the global
@@ -570,7 +569,7 @@ export async function buildEngine(
     ? {
         mcpDefault: gate.mcpDefault,
         leasedCategories: gate.leasedCategories,
-        toolServerMap: gate.toolServerMap,
+        mcpIndex: gate.mcpIndex,
         fingerprintKey: executionFingerprintKey(executionId),
         executionId,
         fileCaptureMode: captureMode,
@@ -598,7 +597,7 @@ export async function buildEngine(
   // subagent a shell, as it gives the parent none.
   const subagentGraphs: SavedSubagentGraph[] = [];
   for (const subagent of input.subagents) {
-    const evaluator = await buildHookEvaluator(input, sink, tools, config.cursorStreamStallTimeoutMs, subagent);
+    const evaluator = await buildHookEvaluator(input, sink, config.cursorStreamStallTimeoutMs, subagent);
     subagentGraphs.push({
       subagent,
       mcpTools: toolsOf(tools.serverToolMap, subagent.servers),
@@ -691,7 +690,7 @@ export async function buildEngine(
           warningPct: 80,
         }
       : null,
-    otelSpans: { toolServerMap: gate.toolServerMap },
+    otelSpans: { mcpIndex: gate.mcpIndex },
     toolScope: { ...scopeBase, scope: toolScope },
     approvalGate: approvalGateConfig,
     // Every graph, every mode (issue #754): the dialect-repair seam that keeps
@@ -726,7 +725,7 @@ export async function buildEngine(
     // to the SAME per-turn observer as the parent.
     casObserver: workspace.casObserver,
     parentModelName: modelName,
-    toolServerMap: tools.toolServerMap,
+    mcpIndex: tools.mcpIndex,
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
     turnBoundary,
@@ -873,7 +872,7 @@ export function turnToolInventory(
   const servers = new Map<string, Set<string>>();
   for (const [slug, serverTools] of tools.serverToolMap) {
     if (platformServerSlugs.has(slug) || (bound !== undefined && !bound.has(slug))) continue;
-    servers.set(slug, new Set(serverTools.map((t) => t.name)));
+    servers.set(slug, new Set(serverTools.map((t) => tools.mcpIndex.toolOf(t.name))));
   }
   return {
     claudeTools: claudeToolsOf(boundNames, STIGMER_TOOL_COVERS),

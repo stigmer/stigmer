@@ -27,6 +27,7 @@ import type { ToolCallRequest, ModelCallRequest } from "../types.js";
 import { TELEMETRY_OFF, adoptTelemetrySettings, resetTelemetrySettingsForTests } from "../../otel-export.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import { _resetRegistryCache } from "../../shared/model-registry.js";
+import { McpToolIndex } from "../../shared/mcp-tool-names.js";
 
 const exporter = new InMemorySpanExporter();
 let provider: NodeTracerProvider;
@@ -309,14 +310,14 @@ describe("OtelSpansMiddleware", () => {
       expect(spanNamed("execute_tool task").attributes["gen_ai.tool.call.result"]).toBe("the sub-agent's answer");
     });
 
-    it("wraps MCP tools that are in the server map", async () => {
+    it("spans an MCP tool by its bare name beside its server, never the name the model called", async () => {
       const mw = createOtelSpansMiddleware({
-        toolServerMap: new Map([["mcp_tool", "my-server"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "my-server", tools: ["mcp_tool"] }]),
       });
-      const msg = new ToolMessage({ content: "ok", tool_call_id: "tc_1", name: "mcp_tool" });
+      const msg = new ToolMessage({ content: "ok", tool_call_id: "tc_1", name: "mcp__my-server__mcp_tool" });
       const handler = vi.fn().mockResolvedValue(msg);
 
-      const result = await mw.wrapToolCall!(makeToolRequest("mcp_tool"), handler);
+      const result = await mw.wrapToolCall!(makeToolRequest("mcp__my-server__mcp_tool"), handler);
       expect(handler).toHaveBeenCalled();
       expect(result).toBe(msg);
 
@@ -334,17 +335,17 @@ describe("OtelSpansMiddleware", () => {
 
     it("propagates errors from MCP tool handler", async () => {
       const mw = createOtelSpansMiddleware({
-        toolServerMap: new Map([["mcp_tool", "my-server"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "my-server", tools: ["mcp_tool"] }]),
       });
       const handler = vi.fn().mockRejectedValue(new Error("tool failed"));
 
-      await expect(mw.wrapToolCall!(makeToolRequest("mcp_tool"), handler))
+      await expect(mw.wrapToolCall!(makeToolRequest("mcp__my-server__mcp_tool"), handler))
         .rejects.toThrow("tool failed");
       expect(spanNamed("execute_tool mcp_tool").status.code).toBe(SpanStatusCode.ERROR);
     });
 
     it("spans a built-in tool as a function tool, with no MCP attributes", async () => {
-      const mw = createOtelSpansMiddleware({ toolServerMap: new Map([["other_tool", "server-a"]]) });
+      const mw = createOtelSpansMiddleware({ mcpIndex: McpToolIndex.of([{ slug: "server-a", tools: ["other_tool"] }]) });
       const msg = new ToolMessage({ content: "ok", tool_call_id: "tc_1", name: "read_file" });
 
       const result = await mw.wrapToolCall!(makeToolRequest("read_file", { file_path: "/a.txt" }), async () => msg);

@@ -94,6 +94,7 @@ import type { TurnSubagent } from "../../harness/types.js";
 import { ONE_LEVEL_LAYER, pluginSubagentScope, subagentModel, subagentPromptExtras } from "../../shared/subagents.js";
 import { renderSkillsSection } from "./prompt-builder.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
+import { McpToolIndex } from "../../shared/mcp-tool-names.js";
 
 // =========================================================================
 // Built-in subagent types and prompts
@@ -267,7 +268,7 @@ export interface SubagentTransformOptions {
   /**
    * The parent's approval-gate config, inherited verbatim so a mutating tool
    * inside a sub-agent is gated identically to one in the parent (same default,
-   * toolServerMap, fingerprint key, execution id). Null under auto-approve-all,
+   * MCP index, fingerprint key, execution id). Null under auto-approve-all,
    * where the parent gate is inert too — sub-agents then install no gate either.
    */
   readonly approvalGate: ApprovalGateConfig | null;
@@ -280,8 +281,8 @@ export interface SubagentTransformOptions {
    */
   readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
-  /** Which MCP server each parent tool belongs to, for the sub-agents' tool spans (`middleware/otel-spans.ts`). */
-  readonly toolServerMap?: ReadonlyMap<string, string>;
+  /** The server and bare tool each MCP engine name stands for, for the sub-agents' tool spans (`middleware/otel-spans.ts`). */
+  readonly mcpIndex?: McpToolIndex;
   /**
    * URL-guard posture for the Stigmer harness's `web_fetch` tool, inherited from the
    * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
@@ -565,8 +566,8 @@ export async function compileSubagents(
     readonly platformDir?: string;
     /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
     readonly casObserver?: CasCaptureObserver;
-    /** See {@link SubagentTransformOptions.toolServerMap}. */
-    readonly toolServerMap?: ReadonlyMap<string, string>;
+    /** See {@link SubagentTransformOptions.mcpIndex}. */
+    readonly mcpIndex?: McpToolIndex;
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
     /** Shell env for `execute`; see {@link SubagentTransformOptions.shellEnv}. */
     readonly shellEnv?: Record<string, string>;
@@ -648,7 +649,7 @@ export async function compileSubagents(
           captureIgnored: !!opts.casObserver,
           pathNormalization: { rootDir: opts.workspaceRootDir },
           ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
-          otelSpans: { toolServerMap: opts.toolServerMap ?? new Map() },
+          otelSpans: { mcpIndex: opts.mcpIndex ?? McpToolIndex.EMPTY },
           ...(shell ? { shell } : {}),
         })] as unknown[],
         backend,
@@ -726,7 +727,7 @@ export async function transformAndCompileSubagents(
     approvalGate,
     casObserver,
     parentModelName,
-    toolServerMap,
+    mcpIndex,
     webFetchPosture,
     costAdvisory,
     turnBoundary,
@@ -797,7 +798,7 @@ export async function transformAndCompileSubagents(
     workspaceRootDir: workspaceBackend.rootDir,
     platformDir: workspaceBackend.platformDir,
     casObserver,
-    toolServerMap,
+    mcpIndex,
     modelFactory,
     shellEnv,
     shellStreaming,

@@ -8,9 +8,17 @@
  *   (issue #420; semantics in shared/mcp-schema-sanitizer.ts) — a vendor
  *   pattern that cannot compile under the /u flag must not leave its tool
  *   permanently uncallable
+ * - Each tool named by its server, once, before anything holds it: the
+ *   model is offered `mcp__<server>__<tool>`, fitted to the providers'
+ *   limit (`shared/mcp-tool-names.ts`), so two servers' tools of one name
+ *   are two tools and none takes a built-in's name (stigmer#1860). The
+ *   adapter's tool still calls its server by the name the server listed.
+ * - The index (`index`) that answers which server and tool an engine name
+ *   stands for, from what the servers listed: everything downstream that
+ *   attributes a call to its server reads it, and everything that leaves
+ *   the engine carries the bare tool beside its server
  * - A per-server map of the tool OBJECTS each server contributed
- *   (`serverToolMap`), the one identity downstream code attributes an MCP
- *   tool to its server by. Every tool a server lists is bound: what the
+ *   (`serverToolMap`). Every tool a server lists is bound: what the
  *   model may see and call is the agent's tool lists, applied per model
  *   call and per tool call by `middleware/tool-scope.ts`, on the parent and
  *   on every sub-agent alike, so there is one place lists apply
@@ -44,6 +52,7 @@ import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 import { withNetworkErrorCapture } from "./mcp-network-errors.js";
 import { sanitizeSchemaPatterns } from "./mcp-schema-sanitizer.js";
+import { McpToolIndex, engineToolName } from "./mcp-tool-names.js";
 
 /**
  * Convert harness-agnostic ResolvedMcpServer[] into the
@@ -105,8 +114,10 @@ export interface McpConnectionResult {
   client: MultiServerMCPClient;
   /** Every tool of every connected server. */
   tools: DynamicStructuredTool[];
-  /** Each server's tool objects, by slug: the identity a tool is attributed to its server by. */
+  /** Each server's tool objects, by slug. */
   serverToolMap: Record<string, DynamicStructuredTool[]>;
+  /** Each tool's engine name, and the server and tool each engine name stands for. */
+  index: McpToolIndex;
 }
 
 /**
@@ -122,7 +133,7 @@ export async function connectMcpServers(
 
   if (Object.keys(connectionConfig).length === 0) {
     const client = new MultiServerMCPClient({});
-    return { client, tools: [], serverToolMap: {} };
+    return { client, tools: [], serverToolMap: {}, index: McpToolIndex.EMPTY };
   }
 
   const client = new MultiServerMCPClient(connectionConfig);
@@ -154,9 +165,24 @@ export async function connectMcpServers(
     }
   }
 
+  // Name every tool by its server, like the sanitizer above, before
+  // anything downstream holds it: binding reads `tool.name` when it builds
+  // the provider's definition. The adapter's tool calls its server with the
+  // name the server listed, which it captured at load. The index refuses
+  // two tools that would take one name before any is renamed.
+  let index: McpToolIndex;
+  try {
+    index = McpToolIndex.of(
+      Object.entries(discoveredToolMap).map(([slug, discovered]) => ({ slug, tools: discovered.map((tool) => tool.name) })),
+    );
+  } catch (err) {
+    await client.close();
+    throw err;
+  }
   const serverToolMap: Record<string, DynamicStructuredTool[]> = {};
   const tools: DynamicStructuredTool[] = [];
   for (const [slug, discovered] of Object.entries(discoveredToolMap)) {
+    for (const tool of discovered) tool.name = engineToolName(slug, tool.name);
     serverToolMap[slug] = discovered;
     tools.push(...discovered);
   }
@@ -168,5 +194,5 @@ export async function connectMcpServers(
       .join(", ")}`,
   );
 
-  return { client, tools, serverToolMap };
+  return { client, tools, serverToolMap, index };
 }

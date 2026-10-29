@@ -10,9 +10,15 @@
  *
  *   - the tool's result, rendered to the string the row carries — the
  *     LangChain ToolMessage envelope and the LangGraph Command unwrapped;
- *   - the tool's attribution (`mcpServerSlug`) and authorization provenance,
- *     from the gate's posture (`resolveApprovalProvenance`, the gate's
- *     read-side twin);
+ *   - the tool's name and attribution: the model calls an MCP tool as
+ *     `mcp__<server>__<tool>` (`shared/mcp-tool-names.ts`), and every
+ *     tool start, the root's, a sub-agent's and a refused call's alike,
+ *     leaves here as the bare tool beside its server (`mcpServerSlug`),
+ *     read from the turn's index ({@link DeepAgentTranslator.resolve}), as
+ *     the Claude engine's translator does, so the engine name never
+ *     reaches a row;
+ *   - the authorization provenance, from the gate's posture
+ *     (`resolveApprovalProvenance`, the gate's read-side twin);
  *   - a call the agent's tool lists refused, from the tool-scope
  *     middleware's custom-stream event (`normalizeCustom`): a failure with
  *     no provenance, since the call never started; and a call a hook
@@ -52,9 +58,9 @@
  * copy of the decision that gated MCP tools only, a path production never
  * took.
  *
- * Attribution and provenance are answered for ROOT-scope calls only: a
- * sub-agent's rows carry none on either harness today (#1133), and one
- * handler set would otherwise stamp them as a side effect.
+ * Provenance is answered for ROOT-scope calls only: a sub-agent's rows
+ * carry none on either harness today (#1133), and one handler set would
+ * otherwise stamp them as a side effect. Attribution is every call's.
  *
  * The scope, in LangGraph's v3 grammar (read at @langchain/langgraph 1.3.2,
  * and unchanged at 1.4.18 — the delegation, to-do, tool-call, structured-
@@ -151,7 +157,7 @@ export class DeepAgentTranslator {
     const out: StreamFact[] = [];
     for (const event of normalize(raw)) {
       if (subAgentId !== undefined) {
-        out.push({ ...event, subAgentId });
+        out.push({ ...(event.kind === "tool_started" ? this.resolve(event) : event), subAgentId });
         continue;
       }
       switch (event.kind) {
@@ -219,8 +225,8 @@ export class DeepAgentTranslator {
   /**
    * A custom-stream event's transcript events (`normalizeCustom`), scoped
    * like any other. A refused call never opens a sub-agent (the `task` call
-   * never ran); at the root it gets the server attribution, and keeps the
-   * provenance the gate's refusal carries. Inside a sub-agent no row
+   * never ran); in either scope it gets its name and server, and at the
+   * root it keeps the provenance the gate's refusal carries. Inside a sub-agent no row
    * carries provenance (#1133), so a refusal drops it and a hook's
    * `tool_policy` is not reported; an unattended skip keeps it, the
    * provenance `reconcileUnattendedSkips` stamps on the sub-agent's row
@@ -230,30 +236,40 @@ export class DeepAgentTranslator {
     return events.flatMap((event): StreamFact[] => {
       if (subAgentId !== undefined) {
         if (event.kind === "tool_policy") return [];
-        if (event.kind !== "tool_started" || event.provenance === "unattended_skip") return [{ ...event, subAgentId }];
-        const { provenance: _provenance, policyHook: _policyHook, ...unattributed } = event;
+        if (event.kind !== "tool_started") return [{ ...event, subAgentId }];
+        if (event.provenance === "unattended_skip") return [{ ...this.resolve(event), subAgentId }];
+        const { provenance: _provenance, policyHook: _policyHook, ...unattributed } = this.resolve(event);
         return [{ ...unattributed, subAgentId }];
       }
       if (event.kind !== "tool_started") return [event];
-      return [{ ...event, mcpServerSlug: this.gate?.toolServerMap.get(event.name) ?? "" }];
+      return [this.resolve(event)];
     });
   }
 
-  /** The attribution and provenance for one root-scope tool start. */
+  /**
+   * A tool start as everything outside the engine names it: an MCP tool's
+   * engine name becomes its bare tool beside its server, from the turn's
+   * index; a built-in keeps its own name, with no server.
+   */
+  private resolve(event: ToolStartedEvent): ToolStartedEvent {
+    const owner = this.gate?.mcpIndex.ownerOf(event.name);
+    return owner === undefined ? event : { ...event, name: owner.tool, mcpServerSlug: owner.slug };
+  }
+
+  /** The name, attribution and provenance for one root-scope tool start. */
   private attribute(event: ToolStartedEvent): ToolStartedEvent {
     const gate = this.gate;
     if (!gate) return event;
-    const mcpServerSlug = gate.toolServerMap.get(event.name) ?? "";
+    const resolved = this.resolve(event);
     const provenance: PolicySource | undefined = resolveApprovalProvenance(
-      event.name,
-      mcpServerSlug,
+      resolved.name,
+      resolved.mcpServerSlug,
       gate.mcpDefault,
       gate.leasedCategories,
       gate.globalBypass,
     );
     return {
-      ...event,
-      mcpServerSlug,
+      ...resolved,
       ...(provenance !== undefined ? { provenance } : {}),
     };
   }
