@@ -129,7 +129,7 @@ export function buildMiddlewareStack(
   }
 
   if (config.approvalGate) {
-    stack.push(createApprovalGateMiddleware(config.approvalGate));
+    stack.push(createApprovalGateMiddleware(config.approvalGate, config.toolScope ?? undefined));
   }
 
   const costAdvisory =

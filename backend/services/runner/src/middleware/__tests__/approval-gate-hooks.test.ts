@@ -3,7 +3,8 @@
  * gateway contract observes from outside: the custom-stream events it
  * writes (a hook's refusal, and which hook decided a call that runs), the
  * card's payload for a hook's ask, the hook recorded beside an unattended
- * skip (and the skip's refusal event, which opens its row), a rewrite checked again against the secret block, and the hooks'
+ * skip (and the skip's refusal event, which opens its row), a rewrite checked again against the secret block and against
+ * the graph's tool scope (refused as the scope refuses, under the pre-armed bypass too), and the hooks'
  * feedback appended to the result, a graph command's tool message included.
  * `interrupt()` is mocked; the hooks are
  * the real evaluator over a scripted process runner.
@@ -19,7 +20,8 @@ import { HookSet } from "../../shared/hooks/hook-set.js";
 import type { HookProcessRunner, HookRunResult } from "../../shared/hooks/run.js";
 import { StigmerToolViews } from "../../shared/hooks/tool-view.js";
 import { createApprovalGateMiddleware, HOOK_FEEDBACK_HEADING, TOOL_POLICY_EVENT, type ApprovalGateConfig } from "../approval-gate.js";
-import { TOOL_REFUSED_EVENT } from "../tool-scope.js";
+import { TOOL_REFUSED_EVENT, type ToolScopeConfig } from "../tool-scope.js";
+import { outOfScopeMessage, ToolScope, type ToolLists } from "../../shared/tool-lists.js";
 import type { ToolCallRequest } from "../types.js";
 
 vi.mock("@langchain/langgraph", async (importOriginal) => ({ ...(await importOriginal<object>()), interrupt: vi.fn() }));
@@ -28,11 +30,11 @@ import { McpToolIndex } from "../../shared/mcp-tool-names.js";
 
 const mockedInterrupt = vi.mocked(interrupt);
 
-/** Hooks whose PreToolUse answer for every Bash and Write call is `pre`, and PostToolUse answer `post`. */
+/** Hooks whose PreToolUse answer for every Bash, Write and Read call is `pre`, and PostToolUse answer `post`. */
 function hooksAnswering(pre: Partial<HookRunResult>, post: Partial<HookRunResult> = {}, leases: ReadonlySet<string> = new Set()): HookEvaluator {
   const run: HookProcessRunner = async (spec) => ({ exitCode: 0, stdout: "", stderr: "", timedOut: false, ...(spec.command === "post" ? post : pre) });
   const group = (event: string, command: string) =>
-    create(HookGroupSchema, { event, matcher: "Bash|Write", handlers: [create(HookHandlerSchema, { command })] });
+    create(HookGroupSchema, { event, matcher: "Bash|Write|Read", handlers: [create(HookHandlerSchema, { command })] });
   return new HookEvaluator({
     set: HookSet.of([{
       source: { plugin: "safety", root: "/p", data: "/d", options: new Map() },
@@ -58,13 +60,27 @@ const decide = (permissionDecision: string, extra: Record<string, unknown> = {})
   stdout: JSON.stringify({ hookSpecificOutput: { permissionDecision, ...extra } }),
 });
 
-function gate(hooks: HookEvaluator, extra: Partial<ApprovalGateConfig> = {}) {
-  return createApprovalGateMiddleware({
-    mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
+function gate(hooks: HookEvaluator, extra: Partial<ApprovalGateConfig> = {}, toolScope?: ToolScopeConfig) {
+  return createApprovalGateMiddleware(
+    {
+      mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
+      mcpIndex: McpToolIndex.EMPTY,
+      hooks,
+      ...extra,
+    },
+    toolScope,
+  );
+}
+
+/** A graph's tool scope over these lists: the platform dir is routed, and its `skills/` holds skills' files. */
+function scopeOf(lists: ToolLists): ToolScopeConfig {
+  return {
+    scope: ToolScope.of('Agent "a"', lists),
     mcpIndex: McpToolIndex.EMPTY,
-    hooks,
-    ...extra,
-  });
+    platformServerSlugs: new Set(),
+    admitsRoutedRead: async (path) => path.startsWith("/.stigmer/"),
+    readsSkillContent: async (path) => path.startsWith("/.stigmer/skills/"),
+  };
 }
 
 function call(name: string, args: Record<string, unknown>): { request: ToolCallRequest; writer: ReturnType<typeof vi.fn> } {
@@ -185,6 +201,41 @@ describe("the gate's hooks", () => {
     expect(handler).not.toHaveBeenCalled();
     expect(recordBlockedSecret).toHaveBeenCalledWith("/.env");
     expect(String(result.content)).toContain("blocked for security");
+  });
+
+  describe("a rewrite judged again by the graph's tool scope", () => {
+    const readOnly = scopeOf({ tools: ["Grep"], disallowedTools: [] });
+    const rewritesTo = (file_path: string) => hooksAnswering(decide("allow", { updatedInput: { file_path } }));
+    const read = (file_path: string) => call("read_file", { file_path });
+
+    it("refuses a routed read rewritten into a workspace file, with the scope's message and event, under the bypass too", async () => {
+      for (const globalBypass of [false, true]) {
+        const { request, writer } = read("/.stigmer/inputs/brief.md");
+        const handler = vi.fn();
+        const result = (await gate(rewritesTo("/ws/src/app.ts"), { globalBypass }, readOnly).wrapToolCall!(request, handler)) as ToolMessage;
+        const message = outOfScopeMessage("read_file", readOnly.scope);
+        expect(handler).not.toHaveBeenCalled();
+        expect(result.status).toBe("error");
+        expect(result.content).toBe(message);
+        expect(writer).toHaveBeenCalledWith({ name: TOOL_REFUSED_EVENT, tool_call_id: "call_1", tool_name: "read_file", input: { file_path: "/src/app.ts" }, message });
+      }
+    });
+
+    it("refuses a rewrite into a skill's files when the scope hides skills", async () => {
+      const hidden = scopeOf({ tools: [], disallowedTools: ["Skill"] });
+      const handler = vi.fn();
+      const result = (await gate(rewritesTo("/ws/.stigmer/skills/guide/SKILL.md"), {}, hidden).wrapToolCall!(read("/notes.md").request, handler)) as ToolMessage;
+      expect(handler).not.toHaveBeenCalled();
+      expect(result.content).toBe(outOfScopeMessage("read_file", hidden.scope));
+    });
+
+    it("runs a rewrite the scope admits, and any rewrite where the graph has no scope", async () => {
+      const handler = vi.fn(async (req: ToolCallRequest) => new ToolMessage({ content: String(req.toolCall.args["file_path"]), tool_call_id: "call_1", name: "read_file" }));
+      const admitted = (await gate(rewritesTo("/ws/.stigmer/inputs/other.md"), {}, readOnly).wrapToolCall!(read("/.stigmer/inputs/brief.md").request, handler)) as ToolMessage;
+      expect(admitted.content).toContain("/.stigmer/inputs/other.md");
+      const unscoped = (await gate(rewritesTo("/ws/src/app.ts")).wrapToolCall!(read("/.stigmer/inputs/brief.md").request, handler)) as ToolMessage;
+      expect(unscoped.content).toContain("/src/app.ts");
+    });
   });
 
   it("runs the rewritten call", async () => {

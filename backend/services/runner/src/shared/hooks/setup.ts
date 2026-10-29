@@ -101,7 +101,9 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
     const options = new Map<string, string>();
     const own = plugin === null ? (shellValues ?? values) : (input.runValues.plugins.get(plugin.id) ?? {});
     for (const key of format === "claude-code" ? handlers.flatMap(userConfigKeys) : []) {
-      const value = own[key];
+      // Own keys only: `constructor` or `toString` would otherwise read a
+      // function every plain object inherits.
+      const value = Object.hasOwn(own, key) ? own[key] : undefined;
       if (value === undefined) {
         const claimant = toolHolding(input, key);
         throw new HookSetupError(
@@ -180,7 +182,7 @@ function valuesKeyOf(server: ResolvedMcpServer): string | undefined {
  */
 function toolHolding(input: Pick<HookSetupInput, "runValues" | "mcpServers">, key: string): string | undefined {
   for (const [groupKey, group] of input.runValues.tools) {
-    if (!(key in group.values)) continue;
+    if (!Object.hasOwn(group.values, key)) continue;
     const server = input.mcpServers.find((candidate) => valuesKeyOf(candidate) === groupKey);
     return server?.slug ?? groupKey.slice(groupKey.lastIndexOf("\u0000") + 1);
   }

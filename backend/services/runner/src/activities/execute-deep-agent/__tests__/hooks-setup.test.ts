@@ -4,7 +4,8 @@
  * `${user_config.KEY}` resolved from that plugin's own values
  * (`RunValues.plugins`) and never another plugin's or the agent's, the
  * agent's own block's from the agent's values, a missing one refusing the
- * turn by name (and by the MCP server whose value it is); a shell-form hook
+ * turn by name (and by the MCP server whose value it is), a name every
+ * object inherits (`constructor`) being missing too; a shell-form hook
  * with no `bash` on the hook's PATH refusing the turn; and Claude's
  * `permission_mode` for the turn.
  *
@@ -137,6 +138,24 @@ describe("buildHookEvaluator", () => {
     await expect(buildHookEvaluator(pluginOnly, sink, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook in the agent's own hooks block reads the variable X, which this run does not give the agent. Declare X in the agent's env and set its value, then run again.",
+      ),
+    );
+  });
+
+  it("reads only a value's own key, never one every object inherits", async () => {
+    // `constructor` and `toString` are on every plain object's prototype: read
+    // through it, the hook would be handed a function's source as the value.
+    const reads = groups({ command: "check", args: ["${user_config.constructor}"] });
+    await expect(buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: reads }]), sink, 180_000)).rejects.toThrow(
+      new HookSetupError(
+        "A hook of the plugin 'safety' reads the variable constructor, which none of this conversation's vaults holds. Save constructor in one of them, then run again.",
+      ),
+    );
+    const tools = new Map<string, ToolValueGroup>([[toolValuesKey("plugin", "plg_github", "api"), { url: "https://api.githubcopilot.com/mcp/", values: { API_TOKEN: "t" } }]]);
+    const inherited = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check", args: ["${user_config.toString}"] }) }], { tools });
+    await expect(buildHookEvaluator(inherited, sink, 180_000)).rejects.toThrow(
+      new HookSetupError(
+        "A hook of the plugin 'safety' reads the variable toString, which none of this conversation's vaults holds. Save toString in one of them, then run again.",
       ),
     );
   });

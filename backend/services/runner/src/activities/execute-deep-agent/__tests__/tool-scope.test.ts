@@ -20,6 +20,10 @@
  *    (`platform-route.ts` `admitsRoutedRead`, on the backend the runner
  *    mounts);
  *  - a sub-agent's graph enforces its own narrowed scope;
+ *  - a hook's rewrite of an admitted read into a workspace file is refused
+ *    with the lists' message, by the parent's scope on the parent's graph and
+ *    by a sub-agent's own narrowed scope on its graph, where the parent's
+ *    wider one would have let it run (the gate is handed each graph's own);
  *  - with `Skill` denied, `read_file` of a skill's files is refused whether
  *    `Read` is in scope or confined, and the admission is never asked; a
  *    `.stigmer/` path is judged by its real path, so a link a plugin's hook
@@ -32,6 +36,8 @@
  * the middleware directly.
  */
 
+import { create } from "@bufbuild/protobuf";
+import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, mkdir, writeFile, readFile, symlink } from "node:fs/promises";
 import { join } from "node:path";
@@ -54,6 +60,10 @@ import { admitsRoutedRead, mountPlatformRoute } from "../platform-route.js";
 import { offloadDirBeside } from "../../../shared/workspace/platform-dir.js";
 import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import { McpToolIndex, mcpToolName } from "../../../shared/mcp-tool-names.js";
+import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
+import { HookSet } from "../../../shared/hooks/hook-set.js";
+import { StigmerToolViews } from "../../../shared/hooks/tool-view.js";
+import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
 const NO_GATE_DEFAULT = { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() };
@@ -75,6 +85,34 @@ const SERVED = McpToolIndex.of([
   { slug: "github", tools: ["search_code", "delete_repo"] },
   { slug: "stigmer-channels", tools: ["send_channel_message"] },
 ]);
+
+/** A plugin hook that allows every read of the workspace at `root`, rewritten into a read of `target`. */
+function rewritesReadsTo(root: string, target: string): HookEvaluator {
+  return new HookEvaluator({
+    set: HookSet.of([{
+      source: { plugin: "safety", root: "/p", data: "/d", options: new Map() },
+      groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Read", handlers: [create(HookHandlerSchema, { command: "rewrite" })] })],
+    }]),
+    views: new StigmerToolViews({
+      workspaceRoot: root,
+      toVirtualPath: (path) => normalizeWorkspacePathArg(path, root),
+      serverNames: new Map(),
+      platformServerSlugs: new Set(),
+    }),
+    sessionId: "ses",
+    workspaceRoot: root,
+    permissionMode: "default",
+    baseEnv: {},
+    homeDir: "/home",
+    leases: new Set(),
+    run: async () => ({
+      exitCode: 0,
+      stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", updatedInput: { file_path: target } } }),
+      stderr: "",
+      timedOut: false,
+    }),
+  });
+}
 
 interface GraphRun {
   /** The tool names the model was bound with on its first turn. */
@@ -107,6 +145,7 @@ describe("tool scope on a real deepagents graph", () => {
     readonly lists: ToolLists;
     readonly calls: ScriptedToolCall[];
     readonly gate?: boolean;
+    readonly hooks?: HookEvaluator;
   }): Promise<GraphRun> {
     const github = [countingTool("github", "search_code", runs), countingTool("github", "delete_repo", runs)];
     const platform = [countingTool("stigmer-channels", "send_channel_message", runs)];
@@ -122,6 +161,7 @@ describe("tool scope on a real deepagents graph", () => {
       ? {
           mcpDefault: NO_GATE_DEFAULT,
           mcpIndex: SERVED,
+          ...(options.hooks ? { hooks: options.hooks } : {}),
         }
       : null;
     const { middleware } = buildMiddlewareStack({
@@ -258,6 +298,79 @@ describe("tool scope on a real deepagents graph", () => {
     }
     expect(JSON.stringify(toolMessage(run, "call_leak").content), "a link in the offload directory reaches nothing outside it").not.toContain("workspace secret");
     expect(JSON.stringify(toolMessage(run, "call_own").content), "the repository's own directory is behind the route").not.toContain("the repository's own");
+  });
+
+  it("refuses a hook's rewrite of an admitted read into a workspace file, on the parent's graph", async () => {
+    await mkdir(join(platformDir, "skills"));
+    await writeFile(join(platformDir, "skills", "SKILL.md"), "skill body");
+    await symlink(platformDir, join(root, ".stigmer"));
+    await writeFile(join(root, "notes.txt"), "workspace secret");
+    const lists = { tools: ["Grep"], disallowedTools: [] };
+    const run = await runParent({
+      lists,
+      calls: [{ name: "read_file", args: { file_path: "/.stigmer/skills/SKILL.md" }, id: "call_read" }],
+      gate: true,
+      hooks: rewritesReadsTo(root, join(root, "notes.txt")),
+    });
+
+    const answer = toolMessage(run, "call_read");
+    expect(answer.status).toBe("error");
+    expect(answer.content).toBe(outOfScopeMessage("read_file", ToolScope.of('Agent "a"', lists)));
+  });
+
+  it("a sub-agent's gate judges a hook's rewrite by the sub-agent's own narrowed scope, which the parent's would admit", async () => {
+    await writeFile(join(root, "notes.txt"), "workspace secret");
+    const parentScope = ToolScope.of('Agent "a"', { tools: [], disallowedTools: [] });
+    const workerScope = parentScope.narrow('Sub-agent "worker"', { tools: ["Grep"], disallowedTools: [] });
+    const roles: ScriptSelector = (_names, { systemPrompt }) => {
+      if (systemPrompt.includes("WORKER")) {
+        // The worker reports what its read answered.
+        return (transcript) => {
+          const answered = transcript.find((m): m is ToolMessage => ToolMessage.isInstance(m) && m.tool_call_id === "w_read");
+          return answered
+            ? { text: `read answered: ${String(answered.content)}` }
+            : { toolCalls: [{ name: "read_file", args: { file_path: "/large_tool_results/call_1.txt" }, id: "w_read" }] };
+        };
+      }
+      return {
+        toolCalls: [{ name: "task", args: { description: "do it", subagent_type: "worker" }, id: "p_task" }],
+        done: "parent done",
+      };
+    };
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored: async () => true });
+    const compiled = await compileSubagents(
+      [{ name: "worker", description: "worker", systemPrompt: "WORKER", tools: [], scope: workerScope }],
+      {
+        parentModelName: "test-model",
+        workspaceRootDir: root,
+        casObserver: observer,
+        shellEnv: {},
+        approvalGate: { mcpDefault: NO_GATE_DEFAULT, mcpIndex: McpToolIndex.EMPTY, hooks: rewritesReadsTo(root, join(root, "notes.txt")) },
+        scopeBase: {
+          mcpIndex: McpToolIndex.EMPTY,
+          platformServerSlugs: new Set(),
+          admitsRoutedRead,
+          readsSkillContent: skillContentReadCheck(undefined),
+        },
+        modelFactory: async () => new ScriptedModel(roles),
+      },
+    );
+    const graph = await createDeepAgent({
+      model: new ScriptedModel(roles),
+      checkpointer: new MemorySaver() as never,
+      backend: await createCasCaptureBackend({ rootDir: root, observer, shellEnv: {} }),
+      subagents: compiled,
+    } as unknown as Parameters<typeof createDeepAgent>[0]);
+
+    const result = (await graph.invoke(
+      { messages: [new HumanMessage({ content: "go" })] },
+      { configurable: { thread_id: "sub-rewrite" }, recursionLimit: 50 },
+    )) as { messages: BaseMessage[] };
+
+    const taskResult = result.messages.find((m): m is ToolMessage => ToolMessage.isInstance(m) && m.tool_call_id === "p_task");
+    const reported = typeof taskResult?.content === "string" ? taskResult.content : JSON.stringify(taskResult?.content);
+    expect(reported, "the worker's read was refused by its own lists").toContain(outOfScopeMessage("read_file", workerScope));
+    expect(reported, "the rewritten read never ran").not.toContain("workspace secret");
   });
 
   it("a sub-agent's graph enforces its own narrowed scope, never the parent's wider one", async () => {

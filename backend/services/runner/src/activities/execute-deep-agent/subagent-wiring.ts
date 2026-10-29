@@ -195,6 +195,8 @@ export function buildSubAgentMiddleware(
     // gitignored edit on an unobserved backend would apply unobserved,
     // unreviewable bytes. Sub-agent git-tracked edits are always captured by
     // the backend-agnostic boundary diff.
+    // The sub-agent's own narrowed scope judges a hook's rewrite, never the
+    // parent's, which the inherited gate config does not carry.
     stack.push(createApprovalGateMiddleware(
       options.captureIgnored
         ? options.approvalGate
@@ -204,6 +206,7 @@ export function buildSubAgentMiddleware(
             recordBlockedSecret: undefined,
             captureDeleteBefore: undefined,
           },
+      options.toolScope,
     ));
   }
 
