@@ -85,8 +85,6 @@ beforeEach(() => {
   writeFileSync(
     configFile(),
     [
-      "backend:",
-      "  type: cloud",
       "backends:",
       "  team:",
       "    type: selfhost",

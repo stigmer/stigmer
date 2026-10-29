@@ -28,7 +28,7 @@ afterEach(() => {
 
 function localConfig(context?: Config["context"]): Config {
   return {
-    backend: { type: "local" },
+    backend: {},
     backends: {},
     current_backend: "local",
     context,
@@ -40,7 +40,7 @@ function cloudConfig(
   context?: Config["context"],
 ): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       cloud: { type: "cloud", endpoint: "cloud.example:443", ...overrides },
     },
@@ -51,7 +51,7 @@ function cloudConfig(
 
 function selfhostConfig(overrides: Partial<NamedBackendConfig> = {}): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       staging: {
         type: "selfhost",

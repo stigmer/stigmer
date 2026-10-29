@@ -18,7 +18,7 @@
 // letting the server read its Config from the environment.
 
 import type { Command } from "commander";
-import type { Config } from "../config/config.js";
+import { type Config, activeBackend } from "../config/config.js";
 
 /** Flags the command bridges into the server's environment. */
 export interface McpServerFlags {
@@ -33,7 +33,7 @@ export interface McpServerFlags {
 const HELP_AFTER = `
 Environment variables:
   STIGMER_SERVER_ADDRESS         gRPC address (default: CLI config, else localhost:7234)
-  STIGMER_API_KEY                API key (auto-resolved from CLI config for cloud)
+  STIGMER_API_KEY                API key (default: the active CLI backend's credential)
   STIGMER_MCP_TRANSPORT          stdio | http | both (default: stdio)
   STIGMER_MCP_ROSTER             full | channels | memory (default: full; channels = send_channel_message only, memory = remember only)
   STIGMER_MCP_HTTP_PORT          HTTP listen port (default: 8080)
@@ -85,21 +85,20 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
 }
 
 /**
- * Bridge CLI config into the server's environment, but only where unset, so a
- * pre-existing environment variable (or a flag bridged before this) wins. Local
- * backends connect to the local server without auth; cloud backends contribute
- * the stored endpoint and token.
+ * Bridge the active backend into the server's environment, but only where
+ * unset, so a pre-existing environment variable (or a flag bridged before this)
+ * wins. The local daemon is reached without auth; a named backend contributes
+ * its endpoint and its credential (a cloud login's token, a self-hosted
+ * entry's API key).
  */
 export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): void {
-  if (config.backend.type === "local") {
+  const { entry } = activeBackend(config);
+  if (entry === undefined) {
     setIfEmpty(env, "STIGMER_SERVER_ADDRESS", "localhost:7234");
     return;
   }
-  const cloud = config.backend.cloud;
-  if (cloud !== undefined) {
-    setIfEmpty(env, "STIGMER_SERVER_ADDRESS", cloud.endpoint);
-    setIfEmpty(env, "STIGMER_API_KEY", cloud.token);
-  }
+  setIfEmpty(env, "STIGMER_SERVER_ADDRESS", entry.endpoint);
+  setIfEmpty(env, "STIGMER_API_KEY", entry.type === "cloud" ? entry.token : entry.api_key);
 }
 
 /** Bridge explicitly-set flags into the server's environment (highest precedence). */

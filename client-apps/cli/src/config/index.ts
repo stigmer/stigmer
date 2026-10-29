@@ -2,8 +2,6 @@
 
 export {
   type BackendConfig,
-  type BackendType,
-  type CloudBackendConfig,
   type Config,
   type ContextConfig,
   type MarketplaceEntryConfig,

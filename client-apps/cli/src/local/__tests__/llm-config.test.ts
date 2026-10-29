@@ -9,7 +9,7 @@ import {
 } from "../llm-config.js";
 
 function config(local?: unknown): Config {
-  return { backend: { type: "local", local } };
+  return { backend: { local } };
 }
 
 describe("detectProviderFromEnv", () => {
