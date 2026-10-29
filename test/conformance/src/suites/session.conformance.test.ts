@@ -368,8 +368,7 @@ describe("[rpc:SessionCommandController.updateSubject] Session conformance — s
 
   it("updateSubject rejects an empty id with InvalidArgument", () =>
     // id declares required=true; the transport-boundary protovalidate interceptor
-    // enforces it before the handler runs (previously Unknown on the
-    // retired Go server).
+    // enforces it before the handler runs.
     expectGrpcCode(
       () => clients.sessionCommand.updateSubject({ id: "", subject: "anything" }),
       Code.InvalidArgument,

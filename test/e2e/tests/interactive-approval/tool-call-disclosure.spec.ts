@@ -143,9 +143,9 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     // Collapsed: the diff body is clipped to the budget — the shared
     // BoundedContent clamp (`stg:overflow-hidden` + the standard max height),
     // the same primitive the approval gate uses, so the two surfaces are
-    // visually consistent by construction. (With capture restored, the row's
-    // diff renders through the file-diff family, not the legacy tool-preview
-    // wrapper — the selectors target the diff's own clamp.)
+    // visually consistent by construction. (With capture on, the row's diff
+    // renders through the file-diff family, not the tool-preview wrapper —
+    // the selectors target the diff's own clamp.)
     const diff = fileDiff(row).first();
     await expect(diff).toBeVisible();
     const clamp = diff.locator('[class*="overflow-hidden"]').first();

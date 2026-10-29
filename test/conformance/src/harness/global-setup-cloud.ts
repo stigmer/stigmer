@@ -2,16 +2,14 @@
 // Domain: conformance harness (cloud target lifecycle).
 //
 // The cloud targets connect to an environment somebody else booted and
-// published through the CLOUD_ENV variables (cloud-env.ts) — since 2026-09-10
-// that is the TypeScript composition, booted by stigmer-cloud's readout recipe
+// published through the CLOUD_ENV variables (cloud-env.ts): the TypeScript
+// composition, booted by stigmer-cloud's readout recipe
 // (backend/services/stigmer-server/spike/README.md there), which also starts
 // the cloud-capability fixtures (fake LLM upstream, Stripe, Discord —
 // cloud-fixtures.ts, imported from this workspace) and mints the suite's
-// identities. Until the Java stigmer-service retired
-// this setup could boot that service hermetically through a Go launcher in
-// test/integration; the OSS repository cannot boot the private composition,
-// so the launcher half retired with the service and this setup now REFUSES to
-// run without a declared environment rather than silently testing nothing.
+// identities. The OSS repository cannot boot the private composition, so this
+// setup REFUSES to run without a declared environment rather than silently
+// testing nothing.
 //
 // vitest runs globalSetup in the main process; workers fork afterwards and
 // inherit process.env, so the contract is read from the environment as-is.

@@ -3,8 +3,7 @@
 //
 // globalSetup only checks the STIGMER_CONFORMANCE_CLOUD_* contract is declared
 // (the environment is booted elsewhere — this repository cannot boot the
-// private composition; until 2026-09-10 it booted the Java stigmer-service
-// hermetically) and refuses by name otherwise; each suite file's CloudTarget
+// private composition) and refuses by name otherwise; each suite file's CloudTarget
 // then just connects.
 //
 // mcp.conformance.test.ts runs here too: its backend resolver keys off

@@ -47,9 +47,7 @@
 //
 // Deliberately out of scope: the save rules (pinning, one level at save,
 // listing once, the delete guard) are the agent suite's, who may list which
-// agent is the run gate's, the local stores' retirement of inline sub-agents
-// is the store suites' (a conformance target cannot seed a pre-upgrade
-// store), and the prompt wording (assertions read names, models and
+// agent is the run gate's, and the prompt wording (assertions read names, models and
 // markers, never prose).
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";

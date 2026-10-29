@@ -37,7 +37,7 @@
 // Like the sibling fixtures (mock-llm.ts, mcp-server.ts) it is TS-pure,
 // long-lived within a suite file, programmable at runtime through public
 // levers, and request-capturing — the captures are the wire-level observation
-// point for what the Go server actually sent (PKCE verifier, DCR body shape,
+// point for what the server under test actually sent (PKCE verifier, DCR body shape,
 // secret channel). Suites call reset() in afterEach so levers and captures
 // never leak across tests.
 //
@@ -77,7 +77,7 @@ export interface CapturedDcrRequest {
 }
 
 // One authorize pre-flight probe: the query parameters of the authorization
-// URL the Go server built (response_type, client_id, code_challenge, ...).
+// URL the server under test built (response_type, client_id, code_challenge, ...).
 export interface CapturedAuthorizeProbe {
   params: URLSearchParams;
 }

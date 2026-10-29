@@ -11,8 +11,7 @@
 // auth and no flake (a git repository resource is HTTPS-only and needs a remote).
 //
 // Two seeds are load-bearing, and both come from the runner's own tests
-// (shared/filereview's shadow-capture test) via the Go reference fixture
-// (test/integration/harness/git_workspace.go, since retired):
+// (shared/filereview's shadow-capture test):
 //
 // - `.stigmer/` is git-IGNORED, in both .gitignore and .git/info/exclude. The
 //   runner persists per-session state under {workspace}/.stigmer/, and the

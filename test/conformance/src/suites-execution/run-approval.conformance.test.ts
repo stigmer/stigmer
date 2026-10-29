@@ -265,8 +265,7 @@ describe("Run approval — spec bypass and what an ask names", () => {
   });
 });
 
-// The two arms below came from the Go offline suite (hitl_offline_test.go)
-// and assert what the answer arms leave out: the lease a grant gives across
+// The two arms below assert what the answer arms leave out: the lease a grant gives across
 // the turn's model requests, and the resumed transcript under the runner's
 // durable checkpointer.
 describe("Run approval — the grant's lease, durable resume", () => {
@@ -302,7 +301,7 @@ describe("Run approval — the grant's lease, durable resume", () => {
     expect(mock.remaining(), "all three scripted requests were consumed").toBe(0);
   });
 
-  // Cancel AT THE GATE (the Go arm TestOffline_HITL_CancelAtGate) is the
+  // Cancel AT THE GATE is the
   // session's interrupt arm below: a parked gate is abandoned by stopping
   // the session's unfinished turns.
 

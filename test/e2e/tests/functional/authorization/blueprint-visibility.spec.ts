@@ -10,7 +10,7 @@ import { openManageAccessFromKebab, visibilityBadge } from "../../../helpers/acc
  * the Manage access dialog, and the dialog's General access control is where
  * the level changes: Private, Organization or, for an organization that
  * is not itself a child on a server that holds more than one, Child
- * organizations; never the retired public level. A change is written to
+ * organizations; never a public level. A change is written to
  * the server and the header follows it.
  *
  * Run against the open-source server, where the owner of a resource holds

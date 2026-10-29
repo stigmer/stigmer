@@ -223,7 +223,7 @@ export function createComposeStack({ model, log }) {
     workDir,
     /**
      * Bring the stack up at `release` ({ kind: "build" } or { kind:
-     * "published", version: "3.41.0" }) from `composeFile`.
+     * "published", version: "0.1.0" }) from `composeFile`.
      */
     async start(release, { composeFile = CHECKOUT_COMPOSE_FILE } = {}) {
       bringUp(release, composeFile);

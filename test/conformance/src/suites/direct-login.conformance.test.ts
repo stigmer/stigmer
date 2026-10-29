@@ -6,8 +6,8 @@
 // tokens minted for its people rather than the tenant's own:
 //   - a token for a subject with NO account is ADMITTED, idp-shaped: whoAmI
 //     answers NOT_FOUND with the byte-pinned copy (the console's signal to
-//     call provisionMyAccount), never UNAUTHENTICATED — the Java mapper's
-//     raw-subject fallback, the composition's direct-idp miss arm;
+//     call provisionMyAccount), never UNAUTHENTICATED — the composition's
+//     direct-idp miss arm;
 //   - a FIRST login end to end: provisionMyAccount creates a `direct`
 //     account for that subject from the tenant's /userinfo, the
 //     organization the edition creates at sign-up is CREATED BY the new
@@ -19,9 +19,8 @@
 //     minted for its own resource) is accepted beside the API audience;
 //   - a token for a FOREIGN audience, an EXPIRED token, and a token signed
 //     by a STRANGER under the tenant's issuer are refused UNAUTHENTICATED
-//     with the Java classifyAuthError copy, byte-pinned on both editions
-//     (GrpcSecurityConfigBase.classifyAuthError; the composition's
-//     iam/direct/verifier.ts constants are the same bytes by contract).
+//     with copy byte-pinned on both editions (the composition's
+//     iam/direct/verifier.ts constants).
 // The suite forges nothing about the tenant: tokens come from the TARGET's
 // own mint (directLoginTenant — the readout substrate hands the harness the
 // mock tenant's key); only the stranger arm signs with a throwaway key,
@@ -53,7 +52,7 @@ import {
   type TargetProfile,
 } from "../targets";
 
-// Java classifyAuthError arms — byte-pinned cross-edition copy.
+// The token refusal arms — byte-pinned cross-edition copy.
 const TOKEN_EXPIRED_MESSAGE = "token has expired";
 const TOKEN_AUDIENCE_MESSAGE =
   "token audience does not match the expected audience";

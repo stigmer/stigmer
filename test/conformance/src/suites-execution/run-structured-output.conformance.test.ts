@@ -34,8 +34,7 @@
 // Deliberately NOT asserted: whether the fallback validates the value against
 // the schema (extra fields, a missing required field, a wrong type). The
 // fallback does no validation today, and pinning that would bless the absence
-// of validation as contract; the question is filed as a runner issue. Replaces
-// the Go offline suite's structured_output_offline_test.go hard arms.
+// of validation as contract; the question is filed as a runner issue.
 import type { JsonObject } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";

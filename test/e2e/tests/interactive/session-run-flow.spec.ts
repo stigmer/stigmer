@@ -62,10 +62,7 @@ const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
  * CURRENT session viewer exposes (stigmer/stigmer#743 re-anchor): the
  * composer offers Stop while a run is active and stays open, since a
  * message sent then waits for the working turn; the response lands in the
- * thread. The pre-redesign sidebar "Execution
- * progress" phase region these tests originally pinned is no longer
- * rendered by any console page — run phases are deliberately not a
- * header/sidebar surface anymore.
+ * thread. Run phases are deliberately not a header/sidebar surface.
  */
 test.describe("Agent execution via session", () => {
   test.describe.configure({ timeout: CASE_BUDGET_MS });

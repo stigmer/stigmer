@@ -30,8 +30,9 @@
 // suite (suites/run.conformance.test.ts) so it also gates the cloud
 // edition.
 //
-// A turn's dispatch queue is the server's to derive, never a caller's: the
-// retired request field that once named one is read as an unknown field.
+// A turn's dispatch queue is the server's to derive, never a caller's: a
+// request carrying a queue name under a field number RunSpec does not define
+// is read with that field as an unknown one.
 //
 // A message's Files (spec.file_ids) cross from the server to the runner: the
 // Files block below proves the runner places each at .stigmer/uploads/ byte
@@ -480,7 +481,6 @@ describe("Run conformance — lifecycle (running execution)", () => {
   // interrupt (or a UI whose button was clicked twice) must not see an error
   // for a state it asked for. The interrupt stops only what is unfinished, so
   // the second one stops nothing and the turn stays as the first left it.
-  // (From the Go offline suite's lifecycle arms.)
   it("[rpc:SessionCommandController.interrupt] a second interrupt, once the turn is stopped, stops nothing", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
@@ -525,7 +525,7 @@ describe("Run conformance — lifecycle (running execution)", () => {
     // learns of its cancellation only on its next heartbeat, seconds after
     // the pause (the case below), so a held turn released before then
     // completes and persists a terminal COMPLETED that races everything
-    // after it (stigmer#869 family; verified identical on the Go target).
+    // after it (stigmer#869 family).
     // While the turn is still HELD, that rogue writer cannot write, and
     // the resumed re-invocation is queued behind the session workspace
     // lock — so the resume RPC's IN_PROGRESS persist is a STABLE
@@ -857,10 +857,10 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
   });
 });
 
-// The retired RunSpec field that once let a caller name the
-// turn's dispatch queue (activity_task_queue, number 11). Reserved on the
-// wire: a request carrying it is read with the field as an unknown one.
-const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;
+// A field number RunSpec does not define (11, between workspace_file_refs and
+// supersedes_run_id): a request carrying it is read with the field as an
+// unknown one, so bytes there can never name the turn's dispatch queue.
+const UNDEFINED_RUN_SPEC_FIELD = 11;
 
 // What the agent saves in its outputs folder (.stigmer/outputs/) comes back
 // as Files of the conversation, written by the turn, each at the path it was
@@ -953,7 +953,7 @@ describe("Run conformance — a turn's outputs", () => {
 });
 
 describe("Run conformance — a turn's dispatch queue is the server's to derive", () => {
-  it("[rpc:RunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
+  it("[rpc:RunCommandController.create] a request naming a dispatch queue in a field RunSpec does not define still runs on the shared runner pool", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
 
@@ -962,13 +962,13 @@ describe("Run conformance — a turn's dispatch queue is the server's to derive"
       RunSchema,
       makeAgentExecution({ org, name: uniqueName("run-queue"), agentRef: agentRefOf(agent) }),
     );
-    // The retired field's bytes as a caller could still send them: a string
-    // naming a queue no runner polls.
+    // Bytes a caller can send under that number: a string naming a queue no
+    // runner polls.
     request.spec!.$unknown = [
       {
-        no: RETIRED_ACTIVITY_TASK_QUEUE_FIELD,
+        no: UNDEFINED_RUN_SPEC_FIELD,
         wireType: WireType.LengthDelimited,
-        data: new BinaryWriter().string(`wfexec:${foreignId("wex")}`).finish(),
+        data: new BinaryWriter().string(`elsewhere:${foreignId("other")}`).finish(),
       },
     ];
     const created = await clients.agentExecutionCommand.create(request);
@@ -990,7 +990,7 @@ describe("Run conformance — a turn's dispatch queue is the server's to derive"
 // shared directory (server-process.ts / runner-process.ts) and
 // cloud-execution's runner fetches through the real service's MinIO-backed
 // routes (stigmer#803), so every case here runs on every execution target
-// (the retired sharedRunnerArtifactStore gate, see target.ts).
+// (no capability gates it, see target.ts).
 describe("Run conformance — a message's Files (#285)", () => {
   // A File of the person's own, uploaded inline: the run's conversation
   // takes its own copy when the run names it.

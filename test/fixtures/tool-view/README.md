@@ -3,8 +3,7 @@
 These files are the **single source of truth** for tool-call classification,
 result normalization, and intent-title extraction across every surface: the
 `@stigmer/client` TypeScript layer consumed by React, Ink, and the CLI's headless
-renderers. (An earlier Go CLI `toolrender` package consumed them too; it was
-retired by the CLI TypeScript migration, PR #203.)
+renderers, and the runner's tool-kind table.
 
 They exist because tool *result* payloads are produced by third-party engines
 (deepagents, the Claude Agent SDK) whose formats are version-fragile. Encoding every
@@ -14,7 +13,7 @@ in one place, instead of silently drifting across client implementations.
 ## Files
 
 - `classification.json` — `name` (+ optional `mcpServerSlug`) -> `toolKind`.
-  Validates `resolveToolKind`'s legacy name-fallback path.
+  Validates `resolveToolKind`'s name-fallback path.
 - `result-views.json` — a `ToolCall` projection -> the expected `ToolResultView`
   discriminator and the deterministic scalar facts.
 - `intent-title.json` — model-authored shell intent extraction (stigmer#276):

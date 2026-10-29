@@ -6,10 +6,10 @@
 // (suites-execution/run.conformance.test.ts) because of how the
 // suites are targeted: src/suites/** runs against every edition — including
 // `npm run test:cloud` — while suites-execution/** needs a provisioned engine
-// (Temporal + runner + mock LLM) and only runs against the local Go execution
-// target. Validation is step 1 of both editions' create pipelines, so these
+// (Temporal + runner + mock LLM) and only runs against an execution target.
+// Validation is step 1 of both editions' create pipelines, so these
 // rejections are provable on any target with fake IDs and no engine — and
-// keeping them here is what makes the cloud (Java) edition's protovalidate
+// keeping them here is what makes the cloud edition's protovalidate
 // enforcement a gated contract rather than an assumption.
 //
 // Also pinned here, because each refusal comes before the engine gate: a

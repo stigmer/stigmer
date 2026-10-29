@@ -1,7 +1,6 @@
 // Side-channel proxy conformance — the HTTP lanes runners use so they carry
 // zero provider secrets (Class A; no runner, the suite IS the runner). The
-// rows were first read from the retired Java service's behavior, and the
-// composition is held to them.
+// composition is held to the inventory's rows.
 // Domain: proxy.
 //
 // Lanes and what this file asserts:
@@ -477,9 +476,8 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const document = { thread_id: threadId, checkpoint_ns: "", checkpoint_id: checkpointId, checkpoint: { v: 1, ts: "now" }, metadata: { step: 1 } };
 
       const put = await proxyFetch("/v1/proxy/checkpoints/checkpoint", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(document) });
-      // A bodiless ok(): the contract pinned is "2xx, no body" (the retired
-      // Java service answered 204 or 200 run to run), recorded on the
-      // inventory row; the composition answers 200.
+      // A bodiless ok(): the contract pinned is "2xx, no body", recorded on
+      // the inventory row; the composition answers 200.
       expect([200, 204]).toContain(put.status);
       const get = await proxyFetch(`/v1/proxy/checkpoints/checkpoint?thread_id=${threadId}&checkpoint_id=${checkpointId}`);
       expect(get.status).toBe(200);

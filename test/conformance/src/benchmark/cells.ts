@@ -128,7 +128,7 @@ export const WORKING_READ_EDIT_PROMPTS: readonly string[] = [
 /**
  * The working agent's cross-turn session: three read-only questions, each
  * reaching a different one of the fixture's skills by its words (an order and
- * a customer, a data summary, the Go tests), so a Stigmer system prompt that
+ * a customer, a data summary, the fixture's Go tests), so a Stigmer system prompt that
  * chose skills by the message would change on every turn. The sampled second
  * turn and its siblings record their cache writes; a turn whose system prompt
  * held writes only its own new tokens.

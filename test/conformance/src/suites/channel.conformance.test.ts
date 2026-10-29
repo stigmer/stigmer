@@ -1089,7 +1089,7 @@ describe("Channel conformance — the anonymous resolution lane", () => {
   it("[rpc:ChannelQueryController.getAgentProfile] answers ONE byte-identical NotFound for absent, other-kind, disabled, and agent-deleted web channels", async () => {
     const { org } = await target.provisionTenancy();
 
-    // Absent channel, under a retired prefix: old links keep their ids.
+    // Absent channel: an id no channel holds.
     const missingId = "chn_01confnevercreated";
     const absent = await expectGrpcCode(
       () => clients.channelQuery.getAgentProfile({ channelId: missingId }),

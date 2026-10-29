@@ -30,8 +30,8 @@
 // Out of scope: the install-time probe that completes a URL-only server
 // (suites/plugin-sign-in-probe.conformance.test.ts), the sign-in lane itself
 // (suites/vault-sign-in.conformance.test.ts, suites/plugin-oauth), and how a
-// turn uses the marks (run-approval). A listing has no run, so the retired
-// "a connect that names its run" arm has no successor here; how the runner
+// turn uses the marks (run-approval). A listing has no run, so no arm here
+// names one; how the runner
 // treats a `readOnlyHint` beside the destructive mark is the runner's unit
 // arm.
 import { Code } from "@connectrpc/connect";

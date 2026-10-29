@@ -3,22 +3,21 @@
 // any handler runs, as a function of the credential it presents:
 //   - NO credential on a non-public method: refused UNAUTHENTICATED
 //     "authentication token missing" where the target requires
-//     authentication (the Java GrpcSecurityConfigBase copy, byte-pinned; the
-//     TS chassis reproduces it under the OIDC-issuer arm and under the
-//     require-authentication registry point the cloud composition declares);
+//     authentication (byte-pinned; the chassis answers it under the
+//     OIDC-issuer arm and under the require-authentication registry point
+//     the cloud composition declares);
 //     admitted as the single operator where it does not (the OSS
 //     trusted-local posture — a contract too, pinned so the TS server keeps
 //     it);
-//   - NO credential on an is_public method: answers on EVERY target (the
-//     Java isPublic skip; getServerInfo is what consoles and CLIs read
-//     before login);
+//   - NO credential on an is_public method: answers on EVERY target
+//     (getServerInfo is what consoles and CLIs read before login);
 //   - NO credential on the standard gRPC health service: SERVING on EVERY
-//     target (the Java by-name skip — the health proto cannot carry our
+//     target (skipped by name — the health proto cannot carry our
 //     option, and a Kubernetes `grpc:` probe is exactly this call; a
 //     refused probe is a pod that never becomes Ready, stigmer#974);
 //   - a credential NOTHING claims: refused UNAUTHENTICATED where a verifier
-//     is composed (code only — Java's classifyAuthError copy and the TS
-//     chassis's differ by design); admitted as the operator on the
+//     is composed (code only — the editions' verifier walks word it
+//     differently by design); admitted as the operator on the
 //     verifier-less local targets (the trusted-local fall-through);
 //   - an API-KEY credential (stigmer#984): a server-minted `stk_` key
 //     authenticates AS its owner wherever a posture is on — a write through
@@ -50,9 +49,8 @@ import { FixtureTracker } from "../harness/fixtures";
 import { uniqueName } from "../support/naming";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
 
-// The Java interceptor's refusal copy, byte-pinned on both editions
-// (GrpcSecurityConfigBase.java; the TS chassis's
-// AUTHENTICATION_TOKEN_MISSING_MESSAGE is the same bytes by contract).
+// The refusal copy both editions pin byte for byte (the chassis's
+// AUTHENTICATION_TOKEN_MISSING_MESSAGE).
 const TOKEN_MISSING_MESSAGE = "authentication token missing";
 
 // Shaped like nothing any verifier issues — not a JWT, not an API key
@@ -115,9 +113,9 @@ describe("authentication posture: a request with a credential nothing claims", (
   it("is refused UNAUTHENTICATED where a verifier is composed, admitted as the operator on verifier-less targets", async () => {
     const presenting = target.clientsPresenting(UNCLAIMABLE_CREDENTIAL);
     if (target.capabilities.requiresAuthentication) {
-      // Code only: the two editions word this refusal differently by
-      // design (Java classifies the parse failure; the TS chassis names the
-      // verifier walk). Both refuse — that is the contract.
+      // Code only: the editions word this refusal differently by design
+      // (each names its own verifier walk). Both refuse — that is the
+      // contract.
       await expectGrpcCode(
         () => presenting.organizationQuery.listMine({}),
         Code.Unauthenticated,
@@ -144,9 +142,8 @@ describe("authentication posture: a request with a credential nothing claims", (
 // write made THROUGH the key carries the key owner's id on its audit, the
 // same principal the primary credential carries. Where authentication is
 // required, a garbage or deleted key is refused with the byte-pinned copy
-// both editions share (`invalid token` — the Java classifyAuthError
-// fallback and the TS apikey verifier's INVALID_TOKEN_MESSAGE are the same
-// bytes by contract). On verifier-less local targets the key is one more
+// both editions share (`invalid token`, the apikey verifier's
+// INVALID_TOKEN_MESSAGE). On verifier-less local targets the key is one more
 // unclaimed credential and falls through to the operator (the
 // trusted-local fall-through) — pinned as that contract, not as key
 // verification.

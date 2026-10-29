@@ -200,8 +200,7 @@ describe("Skill conformance — push & identity", () => {
     // Stored entries with data descriptors: what Go's archive/zip emits by
     // default, i.e. what a Go SDK integrator pushes unless they hand-tune the
     // writer. A streaming ZIP parser cannot read this shape; a central-directory
-    // parser can. Both editions must accept it (#336: the cloud edition
-    // rejected it while the OSS server accepted it). fflate's zipSync cannot
+    // parser can. Both editions must accept it (#336). fflate's zipSync cannot
     // emit this shape, which is why no other case in this suite covers it.
     const pushed = await pushSkill(
       org,
@@ -336,9 +335,8 @@ describe("[rpc:SkillCommandController.push] Skill conformance — push validatio
   it("rejects a SKILL.md nested under a directory (InvalidArgument, #452)", async () => {
     const { org } = await target.provisionTenancy();
     // "Zipped the folder instead of its contents" — the most common archiving
-    // mistake. The cloud edition used to accept this shape while OSS rejected
-    // it (#452); acceptance was the bug: runners extract entry paths verbatim,
-    // so a nested skill's references/ and scripts/ never resolve at runtime.
+    // mistake (#452). Runners extract entry paths verbatim, so a nested
+    // skill's references/ and scripts/ would never resolve at runtime.
     // Both editions must reject it at push, where the mistake is fixable.
     await expectGrpcCode(
       () =>
@@ -1212,8 +1210,8 @@ describe("Skill conformance — artifact transfer lane (#675)", () => {
       body: Buffer.from(artifact),
       headers: { "content-type": "application/zip" },
     });
-    // Any 2xx — the contract every lane client enforces (Go's putArtifact,
-    // the SDK routed clients). The OSS lane answers 204; presigned R2/S3/
+    // Any 2xx — the contract every lane client enforces (the SDK routed
+    // clients). The OSS lane answers 204; presigned R2/S3/
     // MinIO PUTs answer 200, so pinning one exact status would make the pin
     // unsatisfiable by one edition.
     expect(put.ok, `staging PUT succeeds (HTTP ${put.status})`).toBe(true);

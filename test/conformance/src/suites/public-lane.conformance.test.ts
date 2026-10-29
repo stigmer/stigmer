@@ -1,7 +1,7 @@
 // Public lane conformance — /api/v1/public/{model-registry,
 // leads/contact-sales}, the endpoints the marketing site and every
-// open-source install call without credentials (Class A). The rows were first read from the retired Java
-// service's behavior, and the composition is held to them.
+// open-source install call without credentials (Class A). The composition is
+// held to the inventory's rows.
 // Domain: public REST lane.
 //
 // The site-facing contract is carved out as byte-identical: the
@@ -30,8 +30,7 @@ let control: CloudFixturesClient;
 
 const CONTACT_SALES_PATH = "/api/v1/public/leads/contact-sales";
 
-// The exact copy the site contract pins (platform/leads/ContactSalesLead.java,
-// LeadsController.java).
+// The exact copy the site contract pins.
 const LEADS_COPY = {
   name: "Name is required (max 1000 characters)",
   email: "A valid email is required",
@@ -55,7 +54,7 @@ function siteSubmission(overrides: Record<string, unknown> = {}): Record<string,
     message: "We would like to talk about a pilot.",
     website: "",
     // `_t` is the ELAPSED milliseconds since the form opened (the request
-    // record's elapsedMillis); Java screens 0 < _t < 2000 as a bot.
+    // record's elapsedMillis); the lane screens 0 < _t < 2000 as a bot.
     _t: 10_000,
     ...overrides,
   };
