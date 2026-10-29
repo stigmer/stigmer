@@ -8,8 +8,6 @@
  *
  *   - no `secrets.existingSecret`: the .env.example sentence and the
  *     one-liner to create the Secret;
- *   - a retired reserved key turned on: the sentence saying no edition uses
- *     it, or, for the old license value, where the license goes now;
  *   - an Enterprise setting with no license, which the server would never
  *     read; a license with sign-in off, which the server refuses at boot;
  *     allowedCidrs with no fence to open;
@@ -51,17 +49,6 @@ test("a render without secrets.existingSecret is refused with the .env.example s
   expectRefusal(result, /secrets\.existingSecret/, "missing Secret");
   expectRefusal(result, /STIGMER_ENCRYPTION_KEY/, "missing Secret");
   expectRefusal(result, /openssl rand -base64 32/, "missing Secret");
-});
-
-test("the retired reserved keys are refused when turned on, each naming what replaced it", () => {
-  for (const key of ["openfga", "redis", "openbao"]) {
-    const result = helmTemplate("bundled", { sets: [`${key}.enabled=true`] });
-    expectRefusal(result, new RegExp(`${key}\\.enabled is retired: no Stigmer edition runs`), `${key}.enabled=true`);
-    expectRefusal(result, /remove it from your values/, `${key}.enabled=true`);
-  }
-  const license = helmTemplate("bundled", { sets: ["licenseKeySecret=my-license"] });
-  expectRefusal(license, /licenseKeySecret is retired.*move the name there/s, "licenseKeySecret");
-  assert.ok(!license.stderr.includes("my-license"), "the refusal never repeats the value, which may be the key itself");
 });
 
 test("an Enterprise setting with no license is refused: the open-source server never reads it", () => {

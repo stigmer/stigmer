@@ -110,18 +110,18 @@ open-source image never reads them. The retention renders through int,
 because a values file's number reaches a template as a float.
 */ -}}
 {{- define "stigmer.enterpriseServerEnv" -}}
-{{- $retention := dig "enterprise" "accessHistoryRetentionDays" "" .Values.AsMap }}
+{{- $retention := .Values.enterprise.accessHistoryRetentionDays }}
 # The license key, from its Secret; not optional: a licensed
 # pod without its key would boot as open source.
 - name: STIGMER_LICENSE_KEY
   valueFrom:
     secretKeyRef:
       name: {{ include "stigmer.licenseSecret" . | quote }}
-      key: {{ dig "enterprise" "license" "key" "STIGMER_LICENSE_KEY" .Values.AsMap | quote }}
+      key: {{ .Values.enterprise.license.key | quote }}
 - name: STIGMER_OUTBOUND_EGRESS
   value: {{ include "stigmer.outboundEgress" . | quote }}
 - name: STIGMER_ORGANIZATION_CREATORS
-  value: {{ join "," (dig "enterprise" "organizationCreators" (list) .Values.AsMap) | quote }}
+  value: {{ join "," .Values.enterprise.organizationCreators | quote }}
 - name: STIGMER_ACCESS_HISTORY_RETENTION_DAYS
   value: {{ ternary (toString (int $retention)) "" (not (empty $retention)) | quote }}
 {{- end -}}
