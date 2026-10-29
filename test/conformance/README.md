@@ -189,7 +189,7 @@ test` cannot reach it, and it spends money: at the defaults, twelve scenarios
 on each harness with one warm-up plus five samples each, three turns a
 sample on the four three-turn scenarios (120 executions a harness), plus the
 quality arm's eval run (eleven cases, three tries each on each harness).
-`--only native|claude` runs one harness; its report refuses the
+`--only stigmer|claude` runs one harness; its report refuses the
 others' cells `excluded by --only`, which `benchmark-compare` reads as
 expected, so the arms of one instrument commit may be taken as one report
 each and pooled. Its numbers
@@ -220,7 +220,7 @@ another model: a catalog id, or the own-endpoint form `openai:<name>` /
 this way through Google's OpenAI-compatible address:
 `OPENAI_API_KEY=<a Gemini key>
 OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-npm run benchmark:harnesses -- --only native --stigmer-model openai:<gemini id>`.
+npm run benchmark:harnesses -- --only stigmer --stigmer-model openai:<gemini id>`.
 The model replaces the parity pin in every native parity, turn-2 and working
 cell and in the native quality target; the native `default` cells are refused,
 and the Claude arm, the judge and the prompts stay as they are. A native cell

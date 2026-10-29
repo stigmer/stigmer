@@ -16,8 +16,8 @@ import { explicitProvider } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /**
- * Each harness's one word: its label in lower case (docs/vocabulary.md,
- * Harness). The word is what the registry document names a harness's
+ * Each harness's one word: the first word of its label, in lower case
+ * (docs/vocabulary.md, Harness). The word is what the registry document names a harness's
  * section, what usage reports and the account default store, and what
  * people type; this table is the server's one statement of it, read by
  * every consumer here and exported to the editions so none re-declares

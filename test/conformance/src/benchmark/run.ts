@@ -367,8 +367,6 @@ function registryHas(registry: ModelRegistryDocument, id: string, harness: Bench
   return registry.models.some((row) => row.id === id && row.harness === harness);
 }
 
-/** The engine a harness's rows name in the model registry (`row.harness`). */
-
 /** The agent an attempt runs, provisioned fresh; its resources are deferred on `fixtures`. */
 interface ProvisionedAgent {
   org: string;

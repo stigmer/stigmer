@@ -48,10 +48,10 @@ describe("the option set is the proto's harness set", () => {
   it("recognises a stored string only when it names an offered engine", () => {
     expect(isHarnessOption("stigmer")).toBe(true);
     expect(isHarnessOption("claude")).toBe(true);
-    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE", "native", "deep-agent"]) {
       expect(isHarnessOption(stored)).toBe(false);
     }
-    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE", "native", "deep-agent"]) {
       expect(isNamedHarness(word)).toBe(false);
     }
   });
@@ -70,7 +70,7 @@ describe("parseModelKey", () => {
 });
 
 describe("harness constants", () => {
-  it("defaults to native harness", () => {
+  it("defaults to the Stigmer harness", () => {
     expect(DEFAULT_HARNESS).toBe("stigmer");
   });
 
@@ -97,7 +97,7 @@ describe("harness constants", () => {
 });
 
 describe("toProtoHarness", () => {
-  it("maps native to Harness.STIGMER", () => {
+  it("maps stigmer to Harness.STIGMER", () => {
     expect(toProtoHarness("stigmer")).toBe(Harness.STIGMER);
   });
 
@@ -107,7 +107,7 @@ describe("toProtoHarness", () => {
 });
 
 describe("fromProtoHarness", () => {
-  it("maps Harness.STIGMER to native", () => {
+  it("maps Harness.STIGMER to stigmer", () => {
     expect(fromProtoHarness(Harness.STIGMER)).toBe("stigmer");
   });
 
@@ -115,17 +115,17 @@ describe("fromProtoHarness", () => {
     expect(fromProtoHarness(Harness.CLAUDE)).toBe("claude");
   });
 
-  it("maps Harness.UNSPECIFIED to native (safe default)", () => {
+  it("maps Harness.UNSPECIFIED to stigmer (safe default)", () => {
     expect(fromProtoHarness(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
-  it("maps unknown numeric values to native (safe default)", () => {
+  it("maps unknown numeric values to stigmer (safe default)", () => {
     expect(fromProtoHarness(999 as Harness)).toBe("stigmer");
   });
 });
 
 describe("round-trip conversion", () => {
-  it("native survives toProto -> fromProto", () => {
+  it("stigmer survives toProto -> fromProto", () => {
     expect(fromProtoHarness(toProtoHarness("stigmer"))).toBe("stigmer");
   });
 

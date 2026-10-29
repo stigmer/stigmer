@@ -43,7 +43,7 @@ export const GitWriteBackModeSchema: GenEnum<GitWriteBackMode> = /*@__PURE__*/
  * turns. Each value has one label, the same on every surface: HARNESS_STIGMER
  * is "Stigmer" and HARNESS_CLAUDE is "Claude Agent". Every string that names a
  * harness (the CLI flag, the account default, the model registry, usage) uses
- * its label in lower case: "stigmer", "claude".
+ * the first word of its label, in lower case: "stigmer", "claude".
  *
  * Each harness corresponds to a different Temporal activity type registered
  * by the runner daemon. The harness determines:

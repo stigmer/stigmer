@@ -34,7 +34,7 @@ breaking:
   # (3) becomes default_stigmer_model, numbers kept and the old names
   # reserved. Stored data holds enums and fields by number, so nothing stored
   # changes meaning. This block exists for that pull request; the pull request
-  # that removes it lands straight after the merge.
+  # that removes it lands straight after the merge (stigmer/stigmer#2705).
   ignore_only:
     ENUM_VALUE_SAME_NAME:
       - ai/stigmer/agentic/session/v1/enum.proto

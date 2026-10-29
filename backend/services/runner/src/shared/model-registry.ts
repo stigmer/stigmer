@@ -211,7 +211,7 @@ export async function isModelListedFor(modelId: string, harness: RegistryHarness
 /**
  * Derive the recommended economy-tier model for summarization/classification
  * tasks, given a primary model name. Thin alias over getEconomyModel — the
- * registry (costTier=economy, harness=native, same provider preferred) drives
+ * registry (costTier=economy, harness=stigmer, same provider preferred) drives
  * the choice; no model names are hardcoded here. See getEconomyModel for the
  * resolution order.
  */
@@ -221,7 +221,7 @@ export async function getSummarizationModel(primaryModel: string): Promise<strin
 
 /**
  * Resolve the economy-tier model for a given primary model by querying
- * the registry for costTier=economy + same provider + harness=native.
+ * the registry for costTier=economy + same provider + harness=stigmer.
  *
  * Resolution order:
  * 1. Find the primary model's provider in the registry

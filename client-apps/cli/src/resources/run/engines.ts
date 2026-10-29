@@ -29,8 +29,9 @@ export const ENGINE_WORDS = Object.keys(ENGINES) as EngineWord[];
 
 /**
  * A word as help and refusals show it, beside its label only where the two
- * differ: `"stigmer"`, `"claude" (Claude Agent)`. A word is its label in
- * lower case unless the label says more (docs/vocabulary.md, "Harness").
+ * differ: `"stigmer"`, `"claude" (Claude Agent)`. A word is the first word of
+ * its label, in lower case (docs/vocabulary.md, "Harness"), so the two differ
+ * where the label says more.
  */
 export function engineChoice(word: EngineWord): string {
   const label = ENGINES[word].label;

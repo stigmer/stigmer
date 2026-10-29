@@ -43,9 +43,9 @@ const STORE = makeStore({
 
 const NATIVE_ONLY = makeStore({ models: [{ id: "anthropic/claude-4", harness: "stigmer" }] });
 
-// docs/vocabulary.md, "Harness": a harness's one word is its label in lower case.
+// docs/vocabulary.md, "Harness": a harness's one word is the first word of its label, in lower case.
 describe("the harness words", () => {
-  it("names each harness by its label in lower case, in the proto's order", () => {
+  it("names each harness by the first word of its label, in lower case, in the proto's order", () => {
     expect(HARNESS_WORDS).toEqual({ [Harness.STIGMER]: "stigmer", [Harness.CLAUDE]: "claude" });
     expect(HARNESS_WORD_LIST).toEqual(["stigmer", "claude"]);
   });

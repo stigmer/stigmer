@@ -38,8 +38,8 @@
 //   --reps N                 warm samples per cell (default 5; odd keeps the median an observed sample)
 //   --quality-reps N         tries per quality case per harness (default 3)
 //   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/claude`)
-//   --only native|claude     one harness
-//   --stigmer-model <id>      the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
+//   --only stigmer|claude    one harness
+//   --stigmer-model <id>     the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
 //                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
 //                            report records the host, API and cost basis it ran on. Not with --only claude.
 //   --stack <checkout>       boot that stigmer checkout's server and runner (built there first: `npm ci`,

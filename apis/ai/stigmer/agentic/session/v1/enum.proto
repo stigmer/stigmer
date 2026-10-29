@@ -32,7 +32,7 @@ enum GitWriteBackMode {
 // turns. Each value has one label, the same on every surface: HARNESS_STIGMER
 // is "Stigmer" and HARNESS_CLAUDE is "Claude Agent". Every string that names a
 // harness (the CLI flag, the account default, the model registry, usage) uses
-// its label in lower case: "stigmer", "claude".
+// the first word of its label, in lower case: "stigmer", "claude".
 //
 // Each harness corresponds to a different Temporal activity type registered
 // by the runner daemon. The harness determines:
@@ -53,8 +53,8 @@ enum Harness {
   // pause/resume, and full HITL approval flow.
   HARNESS_STIGMER = 1;
 
-  // HARNESS_NATIVE was this value's name before the harness took its label
-  // as its one word. The name is reserved so no other harness ever takes it.
+  // HARNESS_NATIVE was this value's name before the harness took the first
+  // word of its label as its one word. The name is reserved so no other harness ever takes it.
   reserved "HARNESS_NATIVE";
 
   // 2 was HARNESS_CURSOR, the harness that ran Cursor's SDK agent on

@@ -489,7 +489,7 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 # working agent (whose memory spawns `stigmer mcp-server`) when the CLI is
 # not on PATH, and runs the rest; the check lives there so `npm run` refuses
 # the same way. Flags pass through BENCHMARK_ARGS
-# (e.g. BENCHMARK_ARGS="--reps 3 --only native").
+# (e.g. BENCHMARK_ARGS="--reps 3 --only stigmer").
 .PHONY: benchmark-harnesses
 benchmark-harnesses: build-runner ## Measure the native and Claude harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs and ANTHROPIC_API_KEY; spends money)
 	@command -v temporal >/dev/null 2>&1 || { \

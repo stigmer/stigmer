@@ -103,8 +103,8 @@
 //   branched on it, and the axes only its samples carried leave with it. A
 //   v11 report written while an engine since retired still reads: the
 //   reader checks the engines it knows and ignores the rest.
-// - Every harness is keyed by its one word, its label in lower case
-//   (schema v12): `stigmer` and `claude` in `sides`, `models.parity`, an
+// - Every harness is keyed by its one word, the first word of its label in
+//   lower case (schema v12): `stigmer` and `claude` in `sides`, `models.parity`, an
 //   arm's label (`stigmer/<model>`) and the cell ids, and the Stigmer arm's
 //   endpoint, API and cost basis are `models.stigmer_endpoint`,
 //   `stigmer_api` and `stigmer_cost_basis`. v11 keyed the same arm

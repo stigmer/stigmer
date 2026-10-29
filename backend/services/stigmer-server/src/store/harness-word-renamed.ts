@@ -1,6 +1,6 @@
 /**
  * The one data migration both store drivers run when the Stigmer harness
- * takes its label as its one word: an identity account whose default
+ * takes the first word of its label as its one word: an identity account whose default
  * harness preference holds a word the platform no longer takes has it
  * rewritten, so the account can be updated again. The drivers own the SQL;
  * this module owns what one row becomes.
