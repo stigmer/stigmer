@@ -225,6 +225,30 @@ describe("TemporalManager close/reconnect race", () => {
     ).toBe(1);
     expect(record.shutdowns, "no workers may be created after close").toBe(0);
   });
+
+  it("dials once while a reconnection is already in flight", async () => {
+    const manager = newManager([]);
+    let dials = 0;
+    let releaseDial: (() => void) | undefined;
+    const dialGate = new Promise<void>((resolve) => {
+      releaseDial = resolve;
+    });
+    stubDial(manager, async () => {
+      dials++;
+      await dialGate;
+      throw new Error("still down");
+    });
+    const reconnect = manager as unknown as {
+      attemptReconnection: () => Promise<void>;
+    };
+
+    const first = reconnect.attemptReconnection();
+    await reconnect.attemptReconnection();
+    releaseDial!();
+    await first;
+
+    expect(dials, "the second attempt stands down while the first dials").toBe(1);
+  });
 });
 
 describe("TemporalManager worker tracking", () => {

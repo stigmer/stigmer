@@ -4,6 +4,8 @@
  * drift here silently orphans every stored row of that kind — these pins
  * fail first.
  */
+import { create, toBinary } from "@bufbuild/protobuf";
+import { BytesValueSchema } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -12,6 +14,7 @@ import {
   apiResourceKindName,
   extractFieldValue,
   extractLabelValue,
+  scanForFieldMatch,
   toSnakeCase,
 } from "../proto-fields.js";
 import { makeOrganization } from "./support.js";
@@ -57,6 +60,25 @@ describe("extractFieldValue", () => {
     expect(extractFieldValue(OrganizationSchema, org, "spec.nope")).toBe("");
     expect(extractFieldValue(OrganizationSchema, org, "kind.inner")).toBe("");
     expect(extractFieldValue(OrganizationSchema, org, "metadata")).toBe("");
+  });
+
+  it("renders a bytes field as its raw bytes, one character per byte", () => {
+    const bytes = create(BytesValueSchema, { value: new Uint8Array([0x68, 0x69, 0xe9]) });
+    expect(extractFieldValue(BytesValueSchema, bytes, "value")).toBe("hi\u00e9");
+  });
+});
+
+describe("scanForFieldMatch", () => {
+  it("skips a record that does not decode and returns the first match after it", () => {
+    const org = makeOrganization({ id: "acme", description: "hello" });
+    const malformed = new Uint8Array([0xff, 0xff, 0xff]);
+    const found = scanForFieldMatch(
+      [malformed, toBinary(OrganizationSchema, org)],
+      OrganizationSchema,
+      "metadata.slug",
+      "acme",
+    );
+    expect(found?.metadata?.slug).toBe("acme");
   });
 });
 
