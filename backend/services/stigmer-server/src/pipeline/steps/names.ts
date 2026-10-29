@@ -32,11 +32,14 @@
  *     read by id, in place of the scan every lookup by slug used to run.
  *     A read follows a previous name a rename left for its hold
  *     (pipeline/steps/rename.ts);
- *   - findResourceForWrite: a write's lookup. By the id the request carries
+ *   - findResourceForWrite: apply's lookup. By the id the request carries
  *     first, then by name; a previous name is refused with SLUG_RENAMED,
  *     because a write that kept following it would make a second resource
- *     once the hold ends. Every loader of a write calls it (LoadForApply,
- *     LoadExisting, and the probes of kinds kept elsewhere).
+ *     once the hold ends. LoadForApply and the probes of kinds kept
+ *     elsewhere call it; an update names its target by id alone
+ *     (load-existing.ts);
+ *   - nameTakenError: the refusal of a name another resource holds, naming
+ *     the organization by its slug (organizationNameForPeople), never its id.
  *
  * NAMED_KINDS says, for every kind, whether its slug is claimed or why
  * not; __tests__/names.postgres.test.ts holds it equal to ApiResourceKind, so a new
@@ -308,23 +311,48 @@ export function slugRenamedError(kind: ApiResourceKind, slug: string): Error {
  * The refusal of a create or rename whose slug another resource of the
  * kind holds: SLUG_RESERVED for a recent previous name, which still leads
  * to the resource that held it, and the kind's duplicate copy for a
- * current one.
+ * current one. The copy names the organization by its slug (the name was
+ * resolved in the organization the write acts in) and the holder by its
+ * id; it leaves out the organization when the kind's names have none, and
+ * the id when the caller cannot name the holder (a backstop's lost race).
  */
-export function nameTakenError(
+export async function nameTakenError(
+  names: NameTable,
   kind: ApiResourceKind,
-  entry: ResourceNameEntry,
-): Error {
-  if (entry.state === "previous") {
+  held: Pick<ResourceNameEntry, "name" | "org" | "id" | "state">,
+): Promise<Error> {
+  if (held.state === "previous") {
     const noun = kindNoun(kind);
     return alreadyExistsWithReasonError(
-      `${capitalized(noun)} slug '${entry.name}' was recently another ${noun}'s, and still leads to it`,
-      { reason: SLUG_RESERVED, metadata: { slug: entry.name } },
+      `${capitalized(noun)} slug '${held.name}' was recently another ${noun}'s, and still leads to it`,
+      { reason: SLUG_RESERVED, metadata: { slug: held.name } },
     );
   }
-  return alreadyExistsError(
-    getKindName(kind),
-    `slug '${entry.name}' in org '${entry.org}' (id: ${entry.id})`,
+  const org = await organizationNameForPeople(names, held.org);
+  const inOrg = org === "" ? "" : ` in org '${org}'`;
+  const holder = held.id === "" ? "" : ` (id: ${held.id})`;
+  return alreadyExistsError(getKindName(kind), `slug '${held.name}'${inOrg}${holder}`);
+}
+
+/**
+ * How copy a person reads names an organization: its current slug, or the
+ * value as given when nothing holds a current name for it ("" stays "").
+ * For the organization the reader acts in (their own), never for another
+ * organization's id, which a refusal must not map to its name.
+ */
+export async function organizationNameForPeople(
+  names: NameTable,
+  org: string,
+): Promise<string> {
+  if (org === "") {
+    return "";
+  }
+  const current = await names.resourceNames.current(
+    kindEnumName(ApiResourceKind.organization),
+    "",
+    org,
   );
+  return current?.name ?? org;
 }
 
 /**
@@ -368,8 +396,8 @@ export async function claimNameOf<Desc extends DescMessage>(
   resource: MessageShape<Desc>,
   schema: Desc,
   holder?: NameHolder,
-  refusal: (entry: ResourceNameEntry) => Error = (entry) =>
-    nameTakenError(kind, entry),
+  refusal: (entry: ResourceNameEntry) => Error | Promise<Error> = (entry) =>
+    nameTakenError(store, kind, entry),
 ): Promise<void> {
   const metadata = metadataOf(resource);
   const slug = metadata?.slug ?? "";
@@ -395,7 +423,7 @@ export async function claimNameOf<Desc extends DescMessage>(
     throw internalError(error, "failed to claim the resource's name");
   }
   if (!claim.claimed) {
-    throw refusal(claim.entry);
+    throw await refusal(claim.entry);
   }
   const claimed: ClaimedName = { entry: claim.entry, holder: rowHolder };
   ctx.set(CLAIMED_NAME_KEY, claimed);

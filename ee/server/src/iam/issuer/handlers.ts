@@ -110,6 +110,7 @@ import {
   runGuardedWrite,
   writeConflictError,
   EXISTING_RESOURCE_BYTES_KEY,
+  nameTakenError,
   newClaimNameStep,
   newResolveSlugStep,
   portRenameRows,
@@ -127,7 +128,6 @@ import { deniedCopyOf } from "../reference-miss.js";
 import type { OrganizationLookup } from "../organization-links.js";
 import type { IssuerRemoval } from "./removal.js";
 import {
-  duplicateIssuerError,
   findIssuerByName,
   newRefuseRenamingDeletedIssuerStep,
   newCheckDuplicateIssuerStep,
@@ -412,13 +412,15 @@ async function insertIssuer(
     case "inserted":
       break;
     case "slug-taken": {
-      const winner = await findIssuerByName(
-        deps.names,
-        deps.store,
-        provider.metadata?.org ?? "",
-        provider.metadata?.slug ?? "",
-      );
-      throw duplicateIssuerError(winner ?? provider);
+      const org = provider.metadata?.org ?? "";
+      const slug = provider.metadata?.slug ?? "";
+      const winner = await findIssuerByName(deps.names, deps.store, org, slug);
+      throw await nameTakenError(deps.names, KIND, {
+        state: "current",
+        name: slug,
+        org,
+        id: winner?.metadata?.id ?? "",
+      });
     }
     case "route-taken":
       throw routeTakenError(outcome.route);

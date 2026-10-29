@@ -171,7 +171,7 @@ import { kindEnumName } from "../apiresource-meta.js";
 import { evaluateAuthorizer } from "./authorize.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { messageFieldByName, metadataOf, ownParentOrgOf, owningOrgOf } from "./shapes.js";
-import { findResourceByName, resolveName } from "./names.js";
+import { findResourceByName, organizationNameForPeople, resolveName } from "./names.js";
 
 const API_RESOURCE_REFERENCE_TYPE =
   "ai.stigmer.commons.apiresource.ApiResourceReference";
@@ -1218,10 +1218,8 @@ async function namedForPeople<
   if (parent.org === "" || !refusesOwn) {
     return verdicts;
   }
-  const slug = (
-    await store.resourceNames.current(ApiResourceKind[ApiResourceKind.organization], "", parent.org)
-  )?.name;
-  if (slug === undefined || slug === parent.org) {
+  const slug = await organizationNameForPeople(store, parent.org);
+  if (slug === parent.org) {
     return verdicts;
   }
   return verdicts.map((verdict) =>

@@ -406,6 +406,11 @@ describe("onComposed: the store's one name table", () => {
     if (names === undefined) {
       throw new Error("the unit received no name table");
     }
+    await names.claim(
+      { kind: ApiResourceKind[ApiResourceKind.organization], org: "", name: "acme" },
+      "org_acme",
+      new Date().toISOString(),
+    );
     const team = create(TeamSchema, {
       metadata: { id: "tem_acme", org: "org_acme", slug: "platform", name: "Platform" },
     });
@@ -433,7 +438,7 @@ describe("onComposed: the store's one name table", () => {
         ApiResourceKind.team,
         portHolder(async () => team),
       ).execute(rival),
-    ).rejects.toThrow("Team already exists: slug 'platform' in org 'org_acme' (id: tem_acme)");
+    ).rejects.toThrow("Team already exists: slug 'platform' in org 'acme' (id: tem_acme)");
   });
 });
 

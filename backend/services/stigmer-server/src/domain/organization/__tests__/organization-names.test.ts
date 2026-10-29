@@ -574,6 +574,49 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(updated.metadata?.slug).toBe("hooli-xyz");
     expect(updated.spec?.description).toBe("updated by id");
   });
+
+  it("an apply carrying an id no organization holds finds its organization by slug, as every kind's apply does; an update by that id is NotFound", async () => {
+    const made = await organizations.create(organizationInput("vandelay"));
+    const id = made.metadata?.id ?? "";
+    const stale = "org_01jzzzzzzzzzzzzzzzzzzzzzzz";
+
+    const applied = await organizations.apply({
+      ...organizationInput("vandelay"),
+      metadata: { name: "vandelay", slug: "vandelay", id: stale, org: "" },
+      spec: { description: "applied from another install's file" },
+    });
+    expect(applied.metadata?.id, "the organization the slug names, not a second one").toBe(id);
+    expect(applied.spec?.description).toBe("applied from another install's file");
+    expect((await resolve("vandelay"))?.id).toBe(id);
+
+    const fresh = await organizations.apply({
+      ...organizationInput("kramerica"),
+      metadata: { name: "kramerica", slug: "kramerica", id: stale, org: "" },
+    });
+    expect(fresh.metadata?.id).toMatch(MINTED_ID);
+    expect(fresh.metadata?.id, "a free slug makes the organization under a minted id").not.toBe(stale);
+
+    await organizations.rename(create(RenameInputSchema, { resourceId: id, slug: "vandelay-industries" }));
+    const renamed = await grpcError(() =>
+      organizations.apply({
+        ...organizationInput("vandelay"),
+        metadata: { name: "vandelay", slug: "vandelay", id: stale, org: "" },
+      }),
+    );
+    expect(renamed.code).toBe(Code.FailedPrecondition);
+    expect(reasonOf(renamed)).toBe("SLUG_RENAMED");
+
+    const notFound = await grpcError(() =>
+      organizations.update({
+        resource: {
+          ...organizationInput("vandelay-industries"),
+          metadata: { name: "vandelay", slug: "vandelay-industries", id: stale, org: "" },
+        },
+        updateMask: { paths: ["*"] },
+      }),
+    );
+    expect(notFound.code, "an update names its organization by id").toBe(Code.NotFound);
+  });
 });
 
 describe("releaseSlugClaimAfterFailure", () => {
