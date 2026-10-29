@@ -21,7 +21,9 @@
  * `execute` on a `LocalShellBackend` over a throwaway directory): the scope
  * decides by the engine's own tool names, so the probe aliases above would read
  * as engine extras there. A sub-agent drive narrows the scope exactly as
- * `subagent-wiring.ts` hands each sub-agent graph its own.
+ * `subagent-wiring.ts` hands each sub-agent graph its own. Both drives
+ * hand the gate the scope they install, as the production stacks do, so a
+ * hook's rewrite is judged again by it.
  *
  * The hooks drive (`authorizeUnderHooks`) runs the production gate with the
  * production evaluator (`shared/hooks/`) over the same real built-ins, and
@@ -41,7 +43,7 @@ import { createDeepAgent, LocalShellBackend, StateBackend } from "deepagents";
 
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
 import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
-import { createToolScopeMiddleware } from "../../../middleware/tool-scope.js";
+import { createToolScopeMiddleware, type ToolScopeConfig } from "../../../middleware/tool-scope.js";
 import { deriveLeaseScope, hookLeaseKey, mcpToolKey, type McpApprovalDefault } from "../../../shared/approval-policy.js";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet, type HookSourceGroups } from "../../../shared/hooks/hook-set.js";
@@ -246,6 +248,17 @@ function toStigmerCall(action: ProposedAction): { name: string; tool: string; ar
   }
 }
 
+/** The scope config a drive installs ahead of its gate and hands the gate, as `buildMiddlewareStack` does. */
+function scopeConfigOf(scope: ToolScope, action: ProposedAction): ToolScopeConfig {
+  return {
+    scope,
+    mcpIndex: mcpIndexOf(action),
+    platformServerSlugs: new Set(),
+    admitsRoutedRead,
+    readsSkillContent: skillContentReadCheck(undefined),
+  };
+}
+
 /** Drive one action through the scope middleware (and the gate, unless trust is pre-armed). */
 async function runListsProbe(
   lists: ContractToolLists,
@@ -274,22 +287,18 @@ async function runListsProbe(
     let scope = ToolScope.of('Agent "contract"', lists);
     if (options.subAgent) scope = scope.narrow('Sub-agent "helper"', options.subAgent);
 
-    const middleware: unknown[] = [
-      createToolScopeMiddleware({
-        scope,
-        mcpIndex: mcpIndexOf(action),
-        platformServerSlugs: new Set(),
-        admitsRoutedRead,
-        readsSkillContent: skillContentReadCheck(undefined),
-      }),
-    ];
+    const toolScope = scopeConfigOf(scope, action);
+    const middleware: unknown[] = [createToolScopeMiddleware(toolScope)];
     if (!options.autoApproveAll) {
       middleware.push(
-        createApprovalGateMiddleware({
-          mcpDefault: mcpDefaultFor(action),
-          mcpIndex: mcpIndexOf(action),
-          leasedCategories: NO_LEASED_CATEGORIES,
-        }),
+        createApprovalGateMiddleware(
+          {
+            mcpDefault: mcpDefaultFor(action),
+            mcpIndex: mcpIndexOf(action),
+            leasedCategories: NO_LEASED_CATEGORIES,
+          },
+          toolScope,
+        ),
       );
     }
 
@@ -343,6 +352,8 @@ function claudeInputOf(action: ProposedAction, root: string): Record<string, unk
       return { file_path: join(root, action.resource), content: action.content ?? "x" };
     case "shell":
       return { command: action.resource };
+    case "read":
+      return { file_path: join(root, action.platformContent ? `${PLATFORM_ROUTE_PREFIX}${action.resource}` : action.resource) };
     default:
       throw new Error(`claudeInputOf: no rewrite into a ${action.kind} action`);
   }
@@ -403,15 +414,8 @@ async function runHooksProbe(
     });
 
     const middleware: unknown[] = [];
-    if (options.lists) {
-      middleware.push(createToolScopeMiddleware({
-        scope: ToolScope.of('Agent "contract"', options.lists),
-        mcpIndex: mcpIndexOf(action),
-        platformServerSlugs: new Set(),
-        admitsRoutedRead,
-        readsSkillContent: skillContentReadCheck(undefined),
-      }));
-    }
+    const toolScope = options.lists ? scopeConfigOf(ToolScope.of('Agent "contract"', options.lists), action) : undefined;
+    if (toolScope) middleware.push(createToolScopeMiddleware(toolScope));
     middleware.push(createApprovalGateMiddleware({
       mcpDefault: mcpDefaultFor(action),
       mcpIndex: mcpIndexOf(action),
@@ -421,7 +425,7 @@ async function runHooksProbe(
       unattended: options.unattended ?? false,
       unattendedSkips: new Map(),
       ...(options.subAgent ? { subAgent: { type: options.subAgent, id: "contract-invocation" } } : {}),
-    }));
+    }, toolScope));
 
     const backend = new LocalShellBackend({ rootDir: root, virtualMode: true });
     await backend.initialize();

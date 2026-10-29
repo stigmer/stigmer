@@ -15,7 +15,10 @@
  * below reads canonical virtual paths, and AHEAD of the approval gate, so a
  * listed-out call is refused before it could reach an approval card. It is
  * installed whenever the scope carries a list, independent of the gate: under
- * auto-approve-all the gate is absent and the lists still bind.
+ * auto-approve-all the gate is absent and the lists still bind. The gate is
+ * its second caller ({@link toolScopeRefusal}): a hook's rewrite replaces the
+ * arguments this middleware judged, so the gate has the same graph's scope
+ * judge them again, under the pre-armed bypass too.
  *
  * How a refusal reaches the timeline: a call that never runs its handler
  * fires no tool events, so the middleware says so itself, on the graph's
@@ -148,38 +151,54 @@ function toolNameOf(tool: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
+/** Whether the MCP tool `name` stands for is in scope; `undefined` for a name no server listed. */
+function mcpToolInScope(config: ToolScopeConfig, name: string): boolean | undefined {
+  const owner = config.mcpIndex.ownerOf(name);
+  if (owner === undefined) return undefined;
+  return config.platformServerSlugs.has(owner.slug) || config.scope.allowsMcpTool(owner.slug, owner.tool);
+}
+
+/** Whether a call may run, by the name the model called. */
+async function callable(config: ToolScopeConfig, request: ToolCallRequest): Promise<boolean> {
+  const { scope } = config;
+  const { name, args } = request.toolCall;
+  const mcp = mcpToolInScope(config, name);
+  if (mcp !== undefined) return mcp;
+  const path = args[READ_PATH_ARG];
+  const read = name === READ_TOOL && typeof path === "string";
+  // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
+  if (read && scope.hidesSkills && (await config.readsSkillContent(path))) return false;
+  if (scope.allowsEngineTool(scopeNameOf(name), STIGMER_TOOL_COVERS)) return true;
+  return read && (await config.admitsRoutedRead(path));
+}
+
+/**
+ * The scope's answer to a call: `undefined` when it may run (always, for an
+ * unrestricted scope), or the refusal, its event already written. The
+ * middleware's own check, and the approval gate's on a hook's rewritten
+ * arguments, which this graph's scope judges again as the Claude engine's
+ * gate does (`execute-claude/gate.ts`).
+ */
+export async function toolScopeRefusal(config: ToolScopeConfig, request: ToolCallRequest): Promise<ToolMessage | undefined> {
+  if (!config.scope.restricted || (await callable(config, request))) return undefined;
+  const { name, id, args } = request.toolCall;
+  const message = outOfScopeMessage(name, config.scope);
+  customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({ name: TOOL_REFUSED_EVENT, tool_call_id: id ?? "", tool_name: name, input: args, message });
+  return new ToolMessage({ content: message, tool_call_id: id ?? "", name, status: "error" });
+}
+
 /** The middleware; see the module header. Install only when `scope.restricted`. */
 export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddleware {
-  const { scope, mcpIndex, platformServerSlugs, admitsRoutedRead, readsSkillContent } = config;
-
-  /** Whether the MCP tool `name` stands for is in scope; `undefined` for a name no server listed. */
-  const mcpToolInScope = (name: string): boolean | undefined => {
-    const owner = mcpIndex.ownerOf(name);
-    if (owner === undefined) return undefined;
-    return platformServerSlugs.has(owner.slug) || scope.allowsMcpTool(owner.slug, owner.tool);
-  };
+  const { scope } = config;
 
   /** Whether a tool the model is shown stays visible: `read_file` always does (the header's exception). */
   const visible = (tool: unknown): boolean => {
     const name = toolNameOf(tool);
     if (name === undefined) return true;
-    const mcp = mcpToolInScope(name);
+    const mcp = mcpToolInScope(config, name);
     if (mcp !== undefined) return mcp;
     if (name === READ_TOOL) return true;
     return scope.allowsEngineTool(scopeNameOf(name), STIGMER_TOOL_COVERS);
-  };
-
-  /** Whether a call may run, by the name the model called. */
-  const callable = async (request: ToolCallRequest): Promise<boolean> => {
-    const { name, args } = request.toolCall;
-    const mcp = mcpToolInScope(name);
-    if (mcp !== undefined) return mcp;
-    const path = args[READ_PATH_ARG];
-    const read = name === READ_TOOL && typeof path === "string";
-    // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
-    if (read && scope.hidesSkills && (await readsSkillContent(path))) return false;
-    if (scope.allowsEngineTool(scopeNameOf(name), STIGMER_TOOL_COVERS)) return true;
-    return read && (await admitsRoutedRead(path));
   };
 
   return {
@@ -191,11 +210,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     },
 
     async wrapToolCall(request, handler) {
-      if (await callable(request)) return handler(request);
-      const { name, id, args } = request.toolCall;
-      const message = outOfScopeMessage(name, scope);
-      customStreamWriterOf<ToolRefusedPayload>(request.runtime)?.({ name: TOOL_REFUSED_EVENT, tool_call_id: id ?? "", tool_name: name, input: args, message });
-      return new ToolMessage({ content: message, tool_call_id: id ?? "", name, status: "error" });
+      return (await toolScopeRefusal(config, request)) ?? handler(request);
     },
   };
 }

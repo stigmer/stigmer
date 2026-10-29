@@ -59,7 +59,11 @@
  *
  *  1. Secret-like writes are blocked exactly as before, ahead of any hook:
  *     no hook can allow one where the block applies. A hook's rewritten
- *     arguments are checked again.
+ *     arguments are checked again: first by the graph's tool scope (the one
+ *     installed ahead of this gate, passed in beside the config; its refusal
+ *     reads as the scope's own, under the pre-armed bypass too), then by
+ *     this block. A hook's rewrite replaces the arguments, which the lists
+ *     and the block judge again, as the Claude engine's gate does.
  *  2. PreToolUse. `deny` refuses the call (the handler never runs; the row
  *     opens and fails through the refusal event, with the hook named);
  *     `ask` (or `defer`) shows the approval card, naming the hook, unless
@@ -116,7 +120,7 @@ import {
 } from "../shared/approval-policy.js";
 import { hookAskMessage, hookFeedbackSection, hookRefusalMessage, personDecisionSentence } from "../shared/hooks/messages.js";
 import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
-import { TOOL_REFUSED_EVENT, customStreamWriterOf, type ToolRefusedPayload } from "./tool-scope.js";
+import { TOOL_REFUSED_EVENT, customStreamWriterOf, toolScopeRefusal, type ToolRefusedPayload, type ToolScopeConfig } from "./tool-scope.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
 import type { McpToolIndex } from "../shared/mcp-tool-names.js";
 import { blockedSecretPath, captureFlows, fileEditFlow, secretBlockMessage, type FileEditPosture } from "../shared/file-edit-policy.js";
@@ -245,8 +249,15 @@ function secretBlockToolMessage(toolName: string, path: string, toolCallId: stri
   return new ToolMessage({ content: secretBlockMessage(toolName, path), tool_call_id: toolCallId, name: toolName });
 }
 
+/**
+ * The gate. `toolScope` is the scope this same graph installs ahead of it,
+ * passed per graph rather than in `config`, which a sub-agent inherits
+ * verbatim: a sub-agent's rewrite is judged by its own narrowed lists, never
+ * the parent's.
+ */
 export function createApprovalGateMiddleware(
   config: ApprovalGateConfig,
+  toolScope?: ToolScopeConfig,
 ): StigmerMiddleware {
   const { mcpDefault, mcpIndex } = config;
   const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
@@ -281,6 +292,9 @@ export function createApprovalGateMiddleware(
       let call = request;
       if (pre.updatedArgs !== undefined) {
         call = { ...request, toolCall: { ...toolCall, args: pre.updatedArgs } };
+        // The lists bind under the bypass too, as they do ahead of this gate.
+        const outOfScope = toolScope === undefined ? undefined : await toolScopeRefusal(toolScope, call);
+        if (outOfScope !== undefined) return outOfScope;
         if (!globalBypass) {
           const blocked = await secretWriteBlock(config, call.toolCall, serverSlug, category);
           if (blocked) return blocked;

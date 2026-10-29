@@ -74,6 +74,11 @@
  *     destructive is gated, and a call to the other runs, whichever of the
  *     two the turn lists first.
  *
+ * A hook's rewrite and the tool lists (capability: runsHooks):
+ * 39. a hook's rewrite is judged again by the tool lists: a read the lists
+ *     admit, rewritten into one they refuse, is refused as the lists refuse
+ *     it, under "trust this whole run" too.
+ *
  * Capability-gated invariants (9, 10, 11, 19) run only where the substrate supports
  * the relevant lease; the "executes exactly once" count in (2) is asserted only
  * where the substrate observes execution. Differences are gated, never forked —
@@ -86,6 +91,7 @@ import type {
   ContractHookBehaviour,
   GatewayDecision,
   GatewaySubstrate,
+  HooksDriveOptions,
   HooksOutcome,
   ListsOutcome,
   ProposedAction,
@@ -125,6 +131,9 @@ function expectRefused(substrate: GatewaySubstrate, what: string, outcome: Lists
   expect(outcome.executed, `${substrate.name}: a refused ${what} must not run`).toBe(false);
   expect(outcome.gated, `${substrate.name}: a refused ${what} must never ask for approval`).toBe(false);
 }
+
+/** A hook that rewrites any read into a read of a workspace file (invariant 39). */
+const REWRITES_INTO_WORKSPACE: ContractHook[] = [{ event: "PreToolUse", matcher: "Read", does: { answer: "allow", rewrite: READ } }];
 
 /** A PreToolUse hook on shell commands. */
 function onShell(does: ContractHookBehaviour, extra: Partial<ContractHook> = {}): ContractHook {
@@ -374,7 +383,7 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
   });
 }
 
-/** Invariants 20 to 32: an agent's hooks at the gate. */
+/** Invariants 20 to 32 and 39: an agent's hooks at the gate. */
 function describeHooksContract(
   substrate: GatewaySubstrate,
   under: NonNullable<GatewaySubstrate["authorizeUnderHooks"]>,
@@ -495,6 +504,17 @@ function describeHooksContract(
       expect(outcome.refusedBy).toBe("lists");
       expect(outcome.hookRuns).toEqual([]);
     });
+
+    it("a hook's rewrite is judged again by the tool lists (invariant 39)", async () => {
+      // Read excluded admits the platform's content (invariant 18), never a workspace file.
+      const lists = { tools: ["Grep"], disallowedTools: [] };
+      for (const autoApproveAll of [false, true]) {
+        const outcome = await under(REWRITES_INTO_WORKSPACE, PLATFORM_READ, { lists, autoApproveAll });
+        expect(outcome.hookRuns.length, `${substrate.name}: the hook saw the admitted read`).toBe(1);
+        expect(outcome.refusedBy, `${substrate.name}: a rewrite out of the lists (trust ${autoApproveAll})`).toBe("lists");
+        expect(outcome.executed, `${substrate.name}: a rewrite out of the lists must not run`).toBe(false);
+      }
+    });
   });
 
   describe("hooks in Cursor's format", () => {
@@ -584,7 +604,8 @@ export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]):
     }
 
     const withHooks = available.filter((s) => s.capabilities.runsHooks && s.authorizeUnderHooks);
-    const hookCases: Array<{ label: string; hooks: ContractHook[]; action: ProposedAction; decision?: GatewayDecision }> = [
+    const readOnly = { lists: { tools: ["Grep"], disallowedTools: [] } };
+    const hookCases: Array<{ label: string; hooks: ContractHook[]; action: ProposedAction; decision?: GatewayDecision; options?: HooksDriveOptions }> = [
       { label: "a hook's deny refuses a shell", hooks: [onShell({ answer: "deny" })], action: SHELL },
       { label: "a hook's allow runs a shell", hooks: [onShell({ answer: "allow" })], action: SHELL },
       { label: "a hook's ask holds a read", hooks: [{ event: "PreToolUse", matcher: "Read", does: { answer: "ask" } }], action: READ },
@@ -594,11 +615,13 @@ export function describeCrossSubstrateAgreement(substrates: GatewaySubstrate[]):
       { label: "a Cursor-format deny refuses a shell", hooks: [{ event: "preToolUse", matcher: "Shell", does: { answer: "deny" }, format: "cursor" }], action: SHELL },
       { label: "a Cursor-format ask holds a shell", hooks: [{ event: "preToolUse", matcher: "Shell", does: { answer: "ask" }, format: "cursor" }], action: SHELL },
       { label: "a secret write is blocked whatever the hook says", hooks: [{ event: "PreToolUse", matcher: "Write", does: { answer: "allow" } }], action: SECRET_WRITE },
+      { label: "a rewrite out of the lists is refused", hooks: REWRITES_INTO_WORKSPACE, action: PLATFORM_READ, options: readOnly },
+      { label: "a rewrite out of the lists is refused under trust", hooks: REWRITES_INTO_WORKSPACE, action: PLATFORM_READ, options: { ...readOnly, autoApproveAll: true } },
     ];
-    for (const { label, hooks, action, decision } of hookCases) {
+    for (const { label, hooks, action, decision, options } of hookCases) {
       (withHooks.length >= 2 ? it : it.skip)(`both substrates agree on the hooks: ${label}`, async () => {
         const outcomes = await Promise.all(
-          withHooks.map((s) => s.authorizeUnderHooks!(hooks, action, decision !== undefined ? { decision } : {})),
+          withHooks.map((s) => s.authorizeUnderHooks!(hooks, action, { ...options, ...(decision !== undefined ? { decision } : {}) })),
         );
         const seen = outcomes.map((o) => `${o.executed}/${o.refusedBy ?? "-"}`);
         const detail = withHooks.map((s, i) => `${s.name}=${seen[i]}`).join(", ");
