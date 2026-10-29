@@ -17,6 +17,9 @@ export interface ComponentState {
   started_at: string;
   restart_count: number;
   last_error?: string;
+  /** The component's last stderr lines when it failed, oldest first: its own
+   * account of why, which `stigmer up` prints under the error. */
+  last_output?: string[];
   /** For components that announce readiness (the runner's "polling" marker):
    * true once observed. Absent for components without a readiness signal. */
   ready?: boolean;
@@ -37,6 +40,12 @@ export function writeHealthState(path: string, state: HealthState): void {
   const tmp = `${path}.tmp`;
   writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`, "utf8");
   renameSync(tmp, path);
+}
+
+/** Where a reader of the snapshot points a person for a component's full log:
+ * one wording, so `stigmer status` and a failed `stigmer up` never differ. */
+export function componentLogsHint(component: string): string {
+  return `View ${component} logs: stigmer logs --component ${component}`;
 }
 
 /** Load the health state, or null if it is missing or unparseable. */

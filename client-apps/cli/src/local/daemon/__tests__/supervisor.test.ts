@@ -17,6 +17,8 @@ interface FakeChild {
   handle: ChildHandle;
   signals: NodeJS.Signals[];
   termExits: boolean;
+  /** What the child has written to stderr, as the host's tail holds it. */
+  stderr: string[];
   triggerExit(info?: ExitInfo): void;
   triggerReady(): void;
 }
@@ -27,7 +29,7 @@ class FakeHost implements ProcessHost {
   private nextPid = 1000;
 
   spawn(request: SpawnRequest): ChildHandle {
-    let exited = false;
+    let exited: ExitInfo | null = null;
     let exitCb: ((info: ExitInfo) => void) | null = null;
     let readyCb: (() => void) | null = null;
     const signals: NodeJS.Signals[] = [];
@@ -38,16 +40,19 @@ class FakeHost implements ProcessHost {
       request,
       signals,
       termExits: true,
+      stderr: [],
       triggerExit: (info = { code: 1, signal: null }) => {
-        if (!exited) {
-          exited = true;
+        if (exited === null) {
+          exited = info;
           exitCb?.(info);
         }
       },
       triggerReady: () => readyCb?.(),
       handle: {
         pid,
-        hasExited: () => exited,
+        hasExited: () => exited !== null,
+        exitInfo: () => exited,
+        stderrTail: () => child.stderr,
         onExit: (cb) => {
           exitCb = cb;
         },
@@ -58,9 +63,9 @@ class FakeHost implements ProcessHost {
           signals.push(signal);
           order.push(request.command);
           if (signal === "SIGKILL" || (signal === "SIGTERM" && child.termExits)) {
-            if (!exited) {
-              exited = true;
-              exitCb?.({ code: null, signal });
+            if (exited === null) {
+              exited = { code: null, signal };
+              exitCb?.(exited);
             }
           }
         },
@@ -151,6 +156,52 @@ describe("startAll", () => {
     // The runner is registered up front but never started after the abort.
     expect(hs.components.runner.state).toBe("stopped");
   });
+
+  // stigmer#1845: the record says why, in the child's own words, so `up` and
+  // `status` can say it too.
+  it("records the gate's error and the child's last stderr lines when the server exits before ready", async () => {
+    const exitGate: ReadinessGate = {
+      description: "exits",
+      wait: async (handle) => {
+        host.latest("stigmer-server").stderr = ["boot failed: schema version 14 is newer than this server supports"];
+        host.latest("stigmer-server").triggerExit({ code: 1, signal: null });
+        throw new Error(`the server exited with code ${handle.exitInfo()?.code} before it was ready`);
+      },
+    };
+    const { sup, host, hs } = makeSupervisor([spec("stigmer-server", { critical: true, gate: exitGate })]);
+    const result = await sup.startAll();
+
+    expect(result.failedCritical).toBe("stigmer-server");
+    expect(hs.components["stigmer-server"]).toMatchObject({
+      state: "failed",
+      last_error: "the server exited with code 1 before it was ready",
+      last_output: ["boot failed: schema version 14 is newer than this server supports"],
+    });
+  });
+
+  it("records the last stderr lines of a server that hangs past its gate", async () => {
+    const { sup, host, hs } = makeSupervisor([spec("stigmer-server", { critical: true, gate: failGate })]);
+    const started = sup.startAll();
+    host.latest("stigmer-server").stderr = ["waiting for the database…"];
+    await started;
+
+    expect(hs.components["stigmer-server"].last_error).toBe("did not become ready");
+    expect(hs.components["stigmer-server"].last_output).toEqual(["waiting for the database…"]);
+  });
+
+  it("records no output for a component that could not be spawned", async () => {
+    const broken: ComponentSpec = {
+      ...spec("stigmer-server", { critical: true }),
+      resolve: () => {
+        throw new Error("server entry not found");
+      },
+    };
+    const { sup, hs } = makeSupervisor([broken]);
+    await sup.startAll();
+
+    expect(hs.components["stigmer-server"].last_error).toBe("server entry not found");
+    expect(hs.components["stigmer-server"].last_output).toBeUndefined();
+  });
 });
 
 describe("readiness marker", () => {
@@ -167,10 +218,12 @@ describe("settleCheck", () => {
   it("marks a component that crashed during startup as failed", async () => {
     const { sup, host, hs } = makeSupervisor([spec("runner")]);
     await sup.startAll();
-    host.latest("runner").triggerExit();
+    host.latest("runner").stderr = ["Error: Cannot find module 'x'"];
+    host.latest("runner").triggerExit({ code: 1, signal: null });
     sup.settleCheck();
     expect(hs.components.runner.state).toBe("failed");
-    expect(hs.components.runner.last_error).toMatch(/crashed during startup/);
+    expect(hs.components.runner.last_error).toBe("crashed during startup (exited with code 1)");
+    expect(hs.components.runner.last_output).toEqual(["Error: Cannot find module 'x'"]);
   });
 });
 
@@ -179,11 +232,14 @@ describe("restart policy", () => {
     const { sup, host, clock, hs } = makeSupervisor([spec("runner")]);
     await sup.startAll();
     clock.t += 10_000; // 10s uptime
+    host.latest("runner").stderr = ["lost the queue"];
     host.latest("runner").triggerExit();
     await sup.tick();
 
     expect(hs.components.runner.restart_count).toBe(1);
     expect(hs.components.runner.state).toBe("running");
+    // A fresh start clears the last failure's record.
+    expect(hs.components.runner.last_output).toBeUndefined();
     expect(host.countOf("runner")).toBe(2);
   });
 
@@ -191,11 +247,36 @@ describe("restart policy", () => {
     const { sup, host, clock, hs } = makeSupervisor([spec("runner")]);
     await sup.startAll();
     clock.t += 1_000; // 1s uptime — inside the rapid-crash window
+    host.latest("runner").stderr = ["fatal: bad config"];
+    host.latest("runner").triggerExit({ code: null, signal: "SIGABRT" });
+    await sup.tick();
+
+    expect(hs.components.runner.state).toBe("failed");
+    expect(hs.components.runner.last_error).toMatch(/^crashed immediately after start \(was stopped by SIGABRT\)/);
+    expect(hs.components.runner.last_output).toEqual(["fatal: bad config"]);
+    expect(host.countOf("runner")).toBe(1); // not respawned
+  });
+
+  it("marks a component failed, with no stale output, when its respawn cannot be resolved", async () => {
+    let resolves = 0;
+    const flaky: ComponentSpec = {
+      ...spec("runner"),
+      resolve: () => {
+        resolves += 1;
+        if (resolves > 1) throw new Error("runner entry not found");
+        return spec("runner").resolve();
+      },
+    };
+    const { sup, host, clock, hs } = makeSupervisor([flaky]);
+    await sup.startAll();
+    clock.t += 10_000;
+    host.latest("runner").stderr = ["from the run before"];
     host.latest("runner").triggerExit();
     await sup.tick();
 
     expect(hs.components.runner.state).toBe("failed");
-    expect(host.countOf("runner")).toBe(1); // not respawned
+    expect(hs.components.runner.last_error).toBe("runner entry not found");
+    expect(hs.components.runner.last_output).toBeUndefined();
   });
 
   it("stops retrying after the max-restart ceiling", async () => {
@@ -203,11 +284,13 @@ describe("restart policy", () => {
     await sup.startAll();
     hs.components.runner.restart_count = MAX_RESTARTS;
     clock.t += 10_000;
+    host.latest("runner").stderr = ["out of memory"];
     host.latest("runner").triggerExit();
     await sup.tick();
 
     expect(hs.components.runner.state).toBe("failed");
     expect(hs.components.runner.last_error).toMatch(/max restarts/);
+    expect(hs.components.runner.last_output).toEqual(["out of memory"]);
     expect(host.countOf("runner")).toBe(1);
   });
 });
@@ -233,6 +316,24 @@ describe("server health probe", () => {
     await sup.tick();
     expect(hs.components["stigmer-server"].state).toBe("running");
   });
+
+  it("clears the recorded error and output when an unhealthy server answers again", async () => {
+    let healthy = false;
+    const { sup, clock, hs } = makeSupervisor([spec("stigmer-server", { critical: true, gate: okGate })], {
+      probe: async () => healthy,
+    });
+    await sup.startAll();
+    clock.t += 10_000;
+    await sup.tick();
+    hs.components["stigmer-server"].last_output = ["stale"];
+
+    healthy = true;
+    await sup.tick();
+
+    expect(hs.components["stigmer-server"].state).toBe("running");
+    expect(hs.components["stigmer-server"].last_error).toBeUndefined();
+    expect(hs.components["stigmer-server"].last_output).toBeUndefined();
+  });
 });
 
 describe("shutdown", () => {
@@ -256,5 +357,15 @@ describe("shutdown", () => {
 
     expect(host.latest("runner").signals).toContain("SIGTERM");
     expect(host.latest("runner").signals).toContain("SIGKILL");
+  });
+
+  it("stops a server that failed its gate while still running, keeping its failed state", async () => {
+    const { sup, host, hs } = makeSupervisor([spec("stigmer-server", { critical: true, gate: failGate })]);
+    await sup.startAll();
+    await sup.shutdown();
+
+    expect(host.latest("stigmer-server").signals).toEqual(["SIGTERM"]);
+    expect(hs.components["stigmer-server"].state).toBe("failed");
+    expect(readPidFile(join(dir, "stigmer-server.pid"))).toBeNull();
   });
 });

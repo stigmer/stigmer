@@ -2,6 +2,11 @@
 // restart with rapid-crash and max-restart guards, server health probing, and
 // reverse-order shutdown.
 //
+// Every path that marks a component failed records why in the health snapshot:
+// the error, and the child's last stderr lines, exited or still hanging. That
+// record is what `stigmer status` shows and what a failed `stigmer up` prints
+// (stigmer#1845), so a stopped-after-failure component keeps its "failed".
+//
 // Every side effect (spawning, time, the health probe) is injected, so this
 // whole policy is unit-testable without real processes or real waiting — the
 // property the Go daemon never had. process.ts wires this to the real host,
@@ -9,7 +14,7 @@
 
 import { SERVER_PORT } from "../constants.js";
 import { type Logger, log as defaultLog } from "../../logger.js";
-import { tcpConnects } from "../net/tcp.js";
+import { describeExit, tcpConnects } from "../net/tcp.js";
 import type { ComponentState, HealthState } from "../state/health-state.js";
 import { removePidFile, writePidFile } from "../state/pidfile.js";
 import type { ChildHandle, Clock, ComponentSpec, ProcessHost } from "./types.js";
@@ -86,8 +91,7 @@ export class ProcessSupervisor {
       try {
         this.spawn(m);
       } catch (err) {
-        m.state.state = "failed";
-        m.state.last_error = String(err);
+        this.markFailed(m, errorMessage(err), null);
         this.log.error("failed to start component", { component: m.spec.name, error: String(err) });
         if (m.spec.critical) {
           this.persist();
@@ -101,8 +105,7 @@ export class ProcessSupervisor {
           await m.spec.gate.wait(m.handle);
           this.log.info("component ready", { component: m.spec.name, gate: m.spec.gate.description });
         } catch (err) {
-          m.state.state = "failed";
-          m.state.last_error = `not ready: ${String(err)}`;
+          this.markFailed(m, errorMessage(err), m.handle);
           this.persist();
           if (m.spec.critical) return { ok: false, failedCritical: m.spec.name };
         }
@@ -116,8 +119,7 @@ export class ProcessSupervisor {
   settleCheck(): void {
     for (const m of this.managed) {
       if (m.handle !== null && m.handle.hasExited()) {
-        m.state.state = "failed";
-        m.state.last_error = "crashed during startup";
+        this.markFailed(m, `crashed during startup${exitSuffix(m.handle)}`, m.handle);
         this.log.error("component crashed during startup", { component: m.spec.name, pid: m.state.pid });
       }
     }
@@ -150,7 +152,8 @@ export class ProcessSupervisor {
       this.log.info("stopping component", { component: m.spec.name, pid: m.state.pid });
       await this.killAndWait(m);
       removePidFile(m.spec.pidFile);
-      m.state.state = "stopped";
+      // A component stopped because its start failed stays "failed".
+      if (m.state.state !== "failed") m.state.state = "stopped";
     }
     this.persist();
   }
@@ -161,6 +164,7 @@ export class ProcessSupervisor {
         m.unhealthyCount = 0;
         m.state.state = "running";
         m.state.last_error = undefined;
+        m.state.last_output = undefined;
         this.log.info("component recovered — gRPC port responding again", { component: m.spec.name });
       }
       return;
@@ -180,14 +184,17 @@ export class ProcessSupervisor {
   private async tryRestart(m: Managed): Promise<void> {
     const startedAtMs = m.state.started_at !== "" ? Date.parse(m.state.started_at) : 0;
     if (startedAtMs > 0 && this.clock.now() - startedAtMs < RAPID_CRASH_WINDOW_MS) {
-      m.state.state = "failed";
-      m.state.last_error = "crashed immediately after start (likely a configuration or dependency error)";
+      const handle = m.handle;
+      this.markFailed(
+        m,
+        `crashed immediately after start${handle === null ? "" : exitSuffix(handle)} (likely a configuration or dependency error)`,
+        handle,
+      );
       this.log.error("component crashed too quickly, marking failed", { component: m.spec.name });
       return;
     }
     if (m.state.restart_count >= MAX_RESTARTS) {
-      m.state.state = "failed";
-      m.state.last_error = `exceeded max restarts (${MAX_RESTARTS})`;
+      this.markFailed(m, `exceeded max restarts (${MAX_RESTARTS})`, m.handle);
       this.log.error("component exceeded max restarts, marking failed", { component: m.spec.name });
       return;
     }
@@ -197,8 +204,7 @@ export class ProcessSupervisor {
       this.spawn(m);
       this.log.info("component restarted", { component: m.spec.name, restart_count: m.state.restart_count });
     } catch (err) {
-      m.state.state = "failed";
-      m.state.last_error = String(err);
+      this.markFailed(m, errorMessage(err), null);
       this.log.error("failed to restart component", { component: m.spec.name, error: String(err) });
     }
   }
@@ -222,9 +228,19 @@ export class ProcessSupervisor {
     m.state.state = "running";
     m.state.started_at = new Date(this.clock.now()).toISOString();
     m.state.last_error = undefined;
+    m.state.last_output = undefined;
     if (request.readinessMarker !== undefined) m.state.ready = false;
 
     writePidFile(m.spec.pidFile, handle.pid);
+  }
+
+  // Mark a component failed with why: the error, and the last stderr lines of
+  // the child that failed (none when no child was spawned for this failure).
+  private markFailed(m: Managed, error: string, handle: ChildHandle | null): void {
+    m.state.state = "failed";
+    m.state.last_error = error;
+    const output = handle?.stderrTail() ?? [];
+    m.state.last_output = output.length > 0 ? [...output] : undefined;
   }
 
   // SIGTERM, wait for graceful exit, then SIGKILL as a last resort.
@@ -246,4 +262,15 @@ export class ProcessSupervisor {
     const result = await Promise.race([waiter.then(() => undefined), this.clock.sleep(ms).then(() => timeout)]);
     return result === timeout;
   }
+}
+
+// An error's own message, so a recorded error never begins "Error:".
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+// " (exited with code 1)" once the child's end is observed, else nothing.
+function exitSuffix(handle: ChildHandle): string {
+  const exit = handle.exitInfo();
+  return exit === null ? "" : ` (${describeExit(exit)})`;
 }
