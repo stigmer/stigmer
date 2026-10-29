@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import type { Connection } from "@langchain/mcp-adapters";
 import { connectMcpServers, toMcpClientConfig } from "../mcp-manager.js";
-import { McpToolNameCollisionError, engineToolName } from "../mcp-tool-names.js";
+import { McpToolIndex, McpToolNameCollisionError, engineToolName } from "../mcp-tool-names.js";
 import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 
@@ -232,6 +232,14 @@ describe("connectMcpServers — every tool binds, named by its server", () => {
     const fitted = result.serverToolMap[long][0];
     expect(fitted.name).toBe(engineToolName(long, "get_portfolio_positions"));
     expect(result.index.ownerOf(fitted.name)).toEqual({ slug: long, tool: "get_portfolio_positions" });
+  });
+
+  it("connects nothing for servers it cannot configure, with an empty index", async () => {
+    const result = await connectMcpServers([makeServer({ slug: "no-command", connectionType: "stdio" })]);
+
+    expect(result.tools).toEqual([]);
+    expect(result.serverToolMap).toEqual({});
+    expect(result.index).toBe(McpToolIndex.EMPTY);
   });
 
   it("refuses two tools that would take one name, and closes what it connected", async () => {
