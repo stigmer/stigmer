@@ -496,7 +496,7 @@ describe("StigmerClient", () => {
       expect(token).toBe("scoped-tok");
     });
 
-    it("treats a claim-less user JWT as no runner credential (legacy desktop shape)", async () => {
+    it("treats a claim-less user JWT as no runner credential", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType(undefined));
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({ token: "scoped-tok" });
 

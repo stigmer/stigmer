@@ -31,9 +31,9 @@
  *
  * OWNERSHIP: the platform owns the `.stigmer` name inside a workspace, but
  * never deletes what it did not make. A real (non-symlink) `.stigmer` entry
- * found where the link goes — left by an older runner, or written by a shell
- * command or an engine's edit on a turn with no link, where nothing sits between
- * those tools and the disk (#1123) — is MOVED out of the workspace to the
+ * found where the link goes — written by a shell command or an engine's
+ * edit on a turn with no link, where nothing sits between those tools and
+ * the disk (#1123) — is MOVED out of the workspace to the
  * session's `displaced/` dir (platform-dir.ts `getDisplacedDir`) and named in
  * a warning; an empty directory is simply removed. Out of the workspace
  * because a write-back commits everything the tree holds (`git add -A`) and

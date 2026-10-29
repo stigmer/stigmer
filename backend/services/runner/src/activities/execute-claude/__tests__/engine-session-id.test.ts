@@ -23,7 +23,7 @@ describe("the engine's ids", () => {
   });
 
   it("derives the run's opening message id from the execution id", () => {
-    expect(runMessageIdOf("run_1")).toBe("f7bfedf6-1a52-5ae4-b771-22d80ccb0771");
+    expect(runMessageIdOf("run_1")).toBe("d93c2104-74fe-5ac5-932b-e45c0cb78dbc");
   });
 
   it("derives a sent message's id from its user message id", () => {

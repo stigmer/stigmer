@@ -38,7 +38,7 @@ describe("runCredentialActivityInterceptor", () => {
     ).toBe("cred-input");
   });
 
-  it("runs a credential-less activity with an empty store — an older server, the cloud", async () => {
+  it("runs a credential-less activity with an empty store, as the cloud dispatches it", async () => {
     expect(await execute({ args: ["run_1", ""], headers: {} })).toBeUndefined();
     expect(
       await execute({

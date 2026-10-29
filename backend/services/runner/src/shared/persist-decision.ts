@@ -2,17 +2,14 @@
  * Streaming persist decision for a harness turn.
  *
  * Harness-agnostic, and both adapters' stream loops read it
- * (`execute-deep-agent/turn-stream.ts`, `execute-claude/turn.ts`; the
- * Stigmer harness's orchestrator's own copy of the rule retired with it in #1096):
+ * (`execute-deep-agent/turn-stream.ts`, `execute-claude/turn.ts`):
  * `shouldPersist = transcriptDirty || scheduler.shouldSendUpdate(eventCount)`.
  * Both harnesses thus share one cadence model — a discrete state change
  * flushes immediately, high-frequency token deltas ride a bounded time
  * cadence.
  *
- * One flag, the transcript builder's `dirty` (since #1097). Until then the
- * decision took three flags — the delta enricher's, the todo tracker's and
- * the accumulator's — of which two were constant `false` on both loops once the one builder folded every discrete change; a shape
- * that named writers which no longer existed.
+ * One flag, the transcript builder's `dirty` (#1097): the one builder folds
+ * every discrete change, so no other writer can make a turn dirty.
  *
  * Extracted as a single pure function so the stream loop and its unit tests
  * exercise the same implementation and cannot drift.

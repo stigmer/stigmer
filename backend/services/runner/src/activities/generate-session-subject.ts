@@ -7,13 +7,9 @@
  * deadline and a single attempt. Failures are non-critical by contract: the
  * session simply keeps its sentinel subject, and the workflow logs a warning.
  *
- * Cross-edition parity: this is the behavioral twin of stigmer-cloud's
- * GenerateSessionSubjectActivityImpl (Java, runs in-process on the server
- * because the Java server owns an LLM call service; the OSS LLM stack lives
- * here in the runner). The system prompt, skip rules, 50-char cap, and the
- * heuristic fallback are kept in lockstep so both editions title sessions
- * identically. The previous owner was the retired Python agent-runner
- * (stigmer/stigmer#665).
+ * Both editions dispatch it here, where the LLM stack lives, so one system
+ * prompt, one set of skip rules, one 50-char cap and one heuristic fallback
+ * title every session (stigmer/stigmer#665).
  *
  * Model + credential resolution: the economy model for the configured
  * primary (registry costTier=economy, graceful degrade to the primary),

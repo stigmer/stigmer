@@ -1,60 +1,60 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_delegate",
+      "id": "run_claude_0001.toolu_delegate",
       "input": {},
       "name": "Agent"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_created": {
-      "id": "aex_claude_0001.toolu_delegate.created",
+      "id": "run_claude_0001.toolu_delegate.created",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_sent": {
-      "id": "aex_claude_0001.toolu_delegate.sent",
+      "id": "run_claude_0001.toolu_delegate.sent",
       "content": [
         {
           "type": "text",
           "text": "Run the tests and report."
         }
       ],
-      "to_session_thread_id": "aex_claude_0001.toolu_delegate",
+      "to_session_thread_id": "run_claude_0001.toolu_delegate",
       "to_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_running": {
-      "id": "aex_claude_0001.toolu_delegate.running",
+      "id": "run_claude_0001.toolu_delegate.running",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_runner_skill",
+      "id": "run_claude_0001.toolu_runner_skill",
       "input": {
         "skill": "agent:ci-checklist"
       },
       "name": "Skill",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_runner_skill.r",
-      "tool_use_id": "aex_claude_0001.toolu_runner_skill",
+      "id": "run_claude_0001.toolu_runner_skill.r",
+      "tool_use_id": "run_claude_0001.toolu_runner_skill",
       "content": [
         {
           "type": "text",
@@ -64,11 +64,11 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "stigmer_mcp_tool_definition": {
-      "id": "aex_claude_0001.def.h020bb838b5f3beecbb073d4010627fab",
-      "tool_use_id": "aex_claude_0001.toolu_runner_ci",
+      "id": "run_claude_0001.def.h020bb838b5f3beecbb073d4010627fab",
+      "tool_use_id": "run_claude_0001.toolu_runner_ci",
       "mcp_server_name": "ci",
       "name": "run",
       "description": "Run the CI suite.",
@@ -83,24 +83,24 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_mcp_tool_use": {
-      "id": "aex_claude_0001.toolu_runner_ci",
+      "id": "run_claude_0001.toolu_runner_ci",
       "input": {
         "target": "all"
       },
       "mcp_server_name": "ci",
       "name": "run",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_mcp_tool_result": {
-      "id": "aex_claude_0001.toolu_runner_ci.r",
-      "mcp_tool_use_id": "aex_claude_0001.toolu_runner_ci",
+      "id": "run_claude_0001.toolu_runner_ci.r",
+      "mcp_tool_use_id": "run_claude_0001.toolu_runner_ci",
       "content": [
         {
           "type": "text",
@@ -110,23 +110,23 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_runner_shell",
+      "id": "run_claude_0001.toolu_runner_shell",
       "input": {
         "command": "echo \"$RUNNER_TOKEN|${MAIN_VALUE:-none}\"; echo $PPID > .runner-ppid"
       },
       "name": "Bash",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_runner_shell.r",
-      "tool_use_id": "aex_claude_0001.toolu_runner_shell",
+      "id": "run_claude_0001.toolu_runner_shell.r",
+      "tool_use_id": "run_claude_0001.toolu_runner_shell",
       "content": [
         {
           "type": "text",
@@ -136,11 +136,11 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "stigmer_mcp_tool_definition": {
-      "id": "aex_claude_0001.def.he550ff649aff2c1ece5dd8aa2d24e7c4",
-      "tool_use_id": "aex_claude_0001.toolu_runner_docs",
+      "id": "run_claude_0001.def.he550ff649aff2c1ece5dd8aa2d24e7c4",
+      "tool_use_id": "run_claude_0001.toolu_runner_docs",
       "mcp_server_name": "docs",
       "name": "lookup",
       "description": "Look a thing up.",
@@ -155,24 +155,24 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_mcp_tool_use": {
-      "id": "aex_claude_0001.toolu_runner_docs",
+      "id": "run_claude_0001.toolu_runner_docs",
       "input": {
         "target": "x"
       },
       "mcp_server_name": "docs",
       "name": "lookup",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_mcp_tool_result": {
-      "id": "aex_claude_0001.toolu_runner_docs.r",
-      "mcp_tool_use_id": "aex_claude_0001.toolu_runner_docs",
+      "id": "run_claude_0001.toolu_runner_docs.r",
+      "mcp_tool_use_id": "run_claude_0001.toolu_runner_docs",
       "content": [
         {
           "type": "text",
@@ -183,10 +183,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_message": {
-      "id": "aex_claude_0001.toolu_delegate.m1",
+      "id": "run_claude_0001.toolu_delegate.m1",
       "content": [
         {
           "type": "text",
@@ -196,35 +196,35 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_received": {
-      "id": "aex_claude_0001.toolu_delegate.received",
+      "id": "run_claude_0001.toolu_delegate.received",
       "content": [
         {
           "type": "text",
           "text": "All suites pass."
         }
       ],
-      "from_session_thread_id": "aex_claude_0001.toolu_delegate",
+      "from_session_thread_id": "run_claude_0001.toolu_delegate",
       "from_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_idle": {
-      "id": "aex_claude_0001.toolu_delegate.idle",
+      "id": "run_claude_0001.toolu_delegate.idle",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_delegate",
+      "session_thread_id": "run_claude_0001.toolu_delegate",
       "stop_reason": {
         "type": "end_turn"
       }
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_delegate.r",
-      "tool_use_id": "aex_claude_0001.toolu_delegate",
+      "id": "run_claude_0001.toolu_delegate.r",
+      "tool_use_id": "run_claude_0001.toolu_delegate",
       "content": [
         {
           "type": "text",
@@ -234,9 +234,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m1",
+      "id": "run_claude_0001.root.m1",
       "content": [
         {
           "type": "text",

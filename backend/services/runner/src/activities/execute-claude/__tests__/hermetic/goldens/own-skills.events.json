@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_skill_review",
+      "id": "run_claude_0001.toolu_skill_review",
       "input": {
         "skill": "agent:review"
       },
@@ -10,10 +10,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_skill_review.r",
-      "tool_use_id": "aex_claude_0001.toolu_skill_review",
+      "id": "run_claude_0001.toolu_skill_review.r",
+      "tool_use_id": "run_claude_0001.toolu_skill_review",
       "content": [
         {
           "type": "text",
@@ -23,9 +23,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_skill_notes",
+      "id": "run_claude_0001.toolu_skill_notes",
       "input": {
         "skill": "agent:notes.style"
       },
@@ -33,10 +33,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_skill_notes.r",
-      "tool_use_id": "aex_claude_0001.toolu_skill_notes",
+      "id": "run_claude_0001.toolu_skill_notes.r",
+      "tool_use_id": "run_claude_0001.toolu_skill_notes",
       "content": [
         {
           "type": "text",
@@ -46,9 +46,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_skill_glob",
+      "id": "run_claude_0001.toolu_skill_glob",
       "input": {
         "pattern": "*.md"
       },
@@ -56,10 +56,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_skill_glob.r",
-      "tool_use_id": "aex_claude_0001.toolu_skill_glob",
+      "id": "run_claude_0001.toolu_skill_glob.r",
+      "tool_use_id": "run_claude_0001.toolu_skill_glob",
       "content": [
         {
           "type": "text",
@@ -69,9 +69,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m1",
+      "id": "run_claude_0001.root.m1",
       "content": [
         {
           "type": "text",

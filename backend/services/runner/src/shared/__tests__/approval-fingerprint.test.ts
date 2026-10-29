@@ -14,7 +14,7 @@ interface FingerprintVector {
   expected: string;
 }
 
-// Single source of truth, shared byte-for-byte with the future Go/Java editions.
+// Single source of truth, shared byte-for-byte with every implementation of the contract.
 const vectorsPath = fileURLToPath(
   new URL("../../../../../../apis/testdata/hitl/fingerprint/vectors.json", import.meta.url),
 );

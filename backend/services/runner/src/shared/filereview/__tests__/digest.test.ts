@@ -1,10 +1,9 @@
 /**
- * The TypeScript driver of the cross-edition file-digest corpus
- * (`apis/testdata/hitl/file-digest/vectors.json`). The Go (`digest_test.go`) and
- * Java (`FileDigestTest`) suites replay the SAME vectors, so a passing run in all
- * three proves the runner computes byte-identical `file_digest` /
- * `aggregate_digest` to both backends — the load-bearing parity contract for the
- * producer.
+ * The runner's driver of the shared file-digest corpus
+ * (`apis/testdata/hitl/file-digest/vectors.json`). The server's suite
+ * (`digest-corpus.test.ts`) replays the SAME vectors, so a passing run in both
+ * proves the runner computes the `file_digest` / `aggregate_digest` the server
+ * checks, byte for byte — the load-bearing parity contract for the producer.
  */
 
 import { readFileSync } from "node:fs";

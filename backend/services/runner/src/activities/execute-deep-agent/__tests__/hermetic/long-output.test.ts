@@ -19,8 +19,8 @@
  *    tool's own output, whole.
  *  - A sub-agent: the run's bound reaches it (it cut at 30,000 whatever the
  *    run said), its own long result is kept in the same session folder, and
- *    its long report reaches the parent cut, with its file, where `task`'s
- *    Command used to pass it whole.
+ *    its long report reaches the parent cut, with its file, never whole
+ *    through `task`'s Command.
  *
  * The shell's own 100,000-character capture is `run-command.test.ts`'s, on
  * real processes. Structure and side effects only; no golden.

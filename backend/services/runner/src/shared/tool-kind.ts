@@ -19,7 +19,7 @@ import { ToolKind } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // Bare tool name -> ToolKind, covering every naming convention above. A name
 // found here is a built-in and wins over a non-empty mcp_server_slug (an MCP
-// server is not expected to shadow a built-in name; matching the legacy resolver).
+// server is not expected to shadow a built-in name).
 const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["read", ToolKind.FILE_READ],
   ["read_file", ToolKind.FILE_READ],

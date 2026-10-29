@@ -260,7 +260,7 @@ export async function reportSetupProgress(
  * enums, omitted defaults) instead of returning a raw @bufbuild/protobuf
  * message. Temporal's default JsonPayloadConverter calls JSON.stringify,
  * which serializes Uint8Array bytes fields as {} — invalid protobuf JSON
- * that the Java workflow's JsonFormat.Parser rejects.
+ * that the server's strict status decode rejects.
  */
 export function slimStatus(full: RunStatus): unknown {
   const slim = create(RunStatusSchema, {

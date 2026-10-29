@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m0",
+      "id": "run_hermetic_0001.root.m0",
       "content": [
         {
           "type": "text",
@@ -12,9 +12,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hermetic-read-0001",
+      "id": "run_hermetic_0001.call-hermetic-read-0001",
       "input": {
         "file_path": "/notes.md"
       },
@@ -22,10 +22,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_result": {
-      "id": "aex_hermetic_0001.call-hermetic-read-0001.r",
-      "tool_use_id": "aex_hermetic_0001.call-hermetic-read-0001",
+      "id": "run_hermetic_0001.call-hermetic-read-0001.r",
+      "tool_use_id": "run_hermetic_0001.call-hermetic-read-0001",
       "content": [
         {
           "type": "text",

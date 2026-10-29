@@ -99,7 +99,7 @@ export const STIGMER_MCP_SERVER_NAME = "stigmer.mcp.server_name";
 /** `stigmer.run.kind`: what started a run, read from its labels. */
 export type RunKind = "conversation" | "routine" | "judge" | "eval-try";
 
-// ─── Metrics (names unchanged since the Go runner) ─────────────────────────
+// ─── Metrics (names are contract: dashboards and alerts read them) ─────────
 
 export const METRIC_LLM_CALL_DURATION = "stigmer.llm.call.duration";
 export const METRIC_LLM_CALL_COUNT = "stigmer.llm.call.count";

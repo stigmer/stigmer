@@ -2,8 +2,8 @@
  * Tool classification tests.
  *
  * Validates classifyTool against the shared cross-language contract in
- * test/fixtures/tool-view/classification.json, so the runner, the SDK fallback
- * resolver, and the Go CLI cannot drift apart.
+ * test/fixtures/tool-view/classification.json, so the runner and the SDK
+ * fallback resolver cannot drift apart.
  */
 
 import { readFileSync } from "node:fs";

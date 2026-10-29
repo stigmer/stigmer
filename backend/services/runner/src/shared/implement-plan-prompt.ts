@@ -61,8 +61,8 @@ export interface PlanCandidate {
  * Find the approved plan document among the Files this turn's message
  * carried — never the conversation's earlier Files, where an older plan may
  * still sit — and answer its workspace path. Detection keys on the File's
- * own filename against the plan convention ({@link isPlanFileName} — the
- * legacy `plan.md` or any `*.plan.md`), the same convention the UI uses to
+ * own filename against the plan convention ({@link isPlanFileName}: any
+ * `*.plan.md`), the same convention the UI uses to
  * detect the plan File, never on the mount path: the server mounts a
  * second plan of the same name at `x.plan-2.md`, which no longer matches.
  * Returns `undefined` when the message carried no plan (the upload failed),

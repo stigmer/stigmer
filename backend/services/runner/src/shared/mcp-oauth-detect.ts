@@ -40,8 +40,9 @@ const PROBE_CLIENT_NAME = "stigmer-runner";
  * challenge. The message is self-contained and user-facing: it survives the
  * Temporal boundary and is shown by the connect error wrappers verbatim.
  *
- * The literal phrase "requires OAuth" is a stable marker the Go/Java connect
- * wrappers match to avoid appending a generic "check your credentials" suffix.
+ * The literal phrase "requires OAuth" is a stable marker the server's tool
+ * listing matches (`domain/plugin/list-tools.ts`) to avoid appending a generic
+ * "check your credentials" suffix.
  */
 export class OAuthRequiredError extends Error {
   constructor(

@@ -574,7 +574,7 @@ describe("V3ProtocolNormalizer", () => {
       ]);
     });
 
-    it("makes nothing of the retired note event: an ending reaches the person as the command's own status", () => {
+    it("makes nothing of a background note event: an ending reaches the person as the command's own status", () => {
       const t = new DeepAgentTranslator(null);
       expect(t.translate(makeProtocolEvent("custom", { name: "stigmer.background_note", text: "Background command `npm test` exited with code 1." }))).toEqual([]);
     });

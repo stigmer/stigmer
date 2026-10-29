@@ -622,8 +622,8 @@ export interface PendingInterrupt {
   message: string;
   /**
    * Authorization provenance the gate attached to the interrupt
-   * (approval-gate.ts `policy_source`) — the PolicySource union string, or "" for
-   * legacy. Lets the gateway contract assert every gated side effect is
+   * (approval-gate.ts `policy_source`) — the PolicySource union string, or "" when
+   * the gate attached none. Lets the gateway contract assert every gated side effect is
    * provenance-tagged.
    */
   policySource: string;

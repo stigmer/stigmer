@@ -21,7 +21,7 @@
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
           "policyEngineVersion": "hooks-3",
-          "fileChangeSetId": "aex_hermetic_0001:0"
+          "fileChangeSetId": "run_hermetic_0001:0"
         }
       ]
     },
@@ -32,45 +32,45 @@
     }
   ],
   "fileReviewEventStream": {
-    "runId": "aex_hermetic_0001",
+    "runId": "run_hermetic_0001",
     "events": [
       {
-        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:0",
+        "eventId": "run_hermetic_0001:0:run_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
+        "changeSetId": "run_hermetic_0001:0",
         "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
         "timestamp": "2026-01-01T00:00:00.000Z",
         "actor": "runner",
         "baselineCaptured": {
-          "changeSetId": "aex_hermetic_0001:0",
-          "turnId": "aex_hermetic_0001:0",
+          "changeSetId": "run_hermetic_0001:0",
+          "turnId": "run_hermetic_0001:0",
           "harnessId": "stigmer",
           "baselineSnapshot": {
             "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
             "git": {
               "treeOid": "eef5def4c3fe3cdc0aa9364b04186bf3bc7811dd",
-              "ref": "refs/stigmer/baseline/aex_hermetic_0001"
+              "ref": "refs/stigmer/baseline/run_hermetic_0001"
             }
           }
         }
       },
       {
-        "eventId": "aex_hermetic_0001:0:aex_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:0",
+        "eventId": "run_hermetic_0001:0:run_hermetic_0001:0:FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
+        "changeSetId": "run_hermetic_0001:0",
         "eventType": "FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED",
         "timestamp": "2026-01-01T00:00:02.000Z",
         "actor": "runner",
         "candidateCaptured": {
-          "changeSetId": "aex_hermetic_0001:0",
+          "changeSetId": "run_hermetic_0001:0",
           "candidateSnapshot": {
             "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
             "git": {
               "treeOid": "1a133f79f91b6022f1db92fb33a37ec0aa88183f",
-              "ref": "refs/stigmer/capture/aex_hermetic_0001"
+              "ref": "refs/stigmer/capture/run_hermetic_0001"
             }
           },
           "changes": [
             {
-              "id": "aex_hermetic_0001:0:notes.md",
+              "id": "run_hermetic_0001:0:notes.md",
               "pathBefore": "notes.md",
               "pathAfter": "notes.md",
               "kind": "FILE_CHANGE_KIND_MODIFY",

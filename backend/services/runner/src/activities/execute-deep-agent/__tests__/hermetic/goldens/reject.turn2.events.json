@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m0",
+      "id": "run_hermetic_0001.root.m0",
       "content": [
         {
           "type": "text",
@@ -12,9 +12,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "id": "run_hermetic_0001.call-hermetic-exec-0001",
       "input": {
         "command": "echo hermetic-a"
       },
@@ -23,10 +23,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "stigmer_permission_asked": {
-      "id": "aex_hermetic_0001.call-hermetic-exec-0001.ask",
-      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "id": "run_hermetic_0001.call-hermetic-exec-0001.ask",
+      "tool_use_id": "run_hermetic_0001.call-hermetic-exec-0001",
       "message": "Run command: echo hermetic-a",
       "args_preview": "{\"command\":\"echo hermetic-a\"}",
       "policy_source": "builtin_category"
@@ -34,19 +34,19 @@
   },
   {
     "session_id": "ses_hermetic_0001",
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "user_tool_confirmation": {
-      "id": "sevt_tc_04cdee2dcafafa5f4821929b24b91aa3ef0ab80b",
+      "id": "sevt_tc_f2156563ca6d5ca48c07d1faac150293544487fd",
       "result": "deny",
-      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "tool_use_id": "run_hermetic_0001.call-hermetic-exec-0001",
       "deny_message": "use make clean instead"
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_result": {
-      "id": "aex_hermetic_0001.call-hermetic-exec-0001.r",
-      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "id": "run_hermetic_0001.call-hermetic-exec-0001.r",
+      "tool_use_id": "run_hermetic_0001.call-hermetic-exec-0001",
       "content": [
         {
           "type": "text",
@@ -57,9 +57,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m1",
+      "id": "run_hermetic_0001.root.m1",
       "content": [
         {
           "type": "text",

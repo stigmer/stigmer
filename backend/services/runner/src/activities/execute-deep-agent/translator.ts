@@ -5,8 +5,8 @@
  *
  * The one module that knows LangGraph's wire shape:
  * the shared builder folds what comes out of here and nothing of the engine
- * reaches it otherwise. Every engine fact the builder used to read is
- * answered on this side now (since #1097):
+ * reaches it otherwise. Every engine fact the builder needs is answered on
+ * this side (#1097):
  *
  *   - the tool's result, rendered to the string the row carries — the
  *     LangChain ToolMessage envelope and the LangGraph Command unwrapped;

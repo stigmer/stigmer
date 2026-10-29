@@ -9,10 +9,8 @@
  * request the activity makes — however deep, however detached — is made as
  * the run's human.
  *
- * An activity whose dispatch carried no credential runs with no credential
- * in the store, and the client falls back to the process credential exactly
- * as it did before the store existed — an older server, and the cloud, see
- * no change.
+ * An activity whose dispatch carried no credential (the cloud's) runs with
+ * no credential in the store, and the client uses the process credential.
  *
  * Both worker roots (`worker.ts`, `runner-manager.ts`) register this
  * unconditionally; it is inert without a credential. It logs nothing: a

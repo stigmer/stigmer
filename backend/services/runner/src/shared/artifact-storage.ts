@@ -116,10 +116,8 @@ export class LocalArtifactStorage implements ArtifactStorage {
    * Map a storage key to an absolute path and guarantee it stays inside
    * `basePath`. Storage keys embed caller-influenced filenames, and
    * `join` *cleans* `..` rather than rejecting it — so without this guard a
-   * crafted key escapes the store and reads or writes arbitrary paths. Mirrors
-   * the Go `LocalStorage` containment check so both implementations of the one
-   * storage contract behave identically. Escapes throw; they never return a
-   * usable path.
+   * crafted key escapes the store and reads or writes arbitrary paths. Escapes
+   * throw; they never return a usable path.
    */
   private resolveWithinRoot(key: string): string {
     const root = resolve(this.basePath);
@@ -349,9 +347,8 @@ export interface ArtifactStorageConfig {
  * The default local artifact root, `~/.stigmer/data/artifacts`. This must be
  * the SAME directory the stigmer-server writes to (its ARTIFACT_LOCAL_BASE_PATH
  * default) so a storage-key artifact the server wrote resolves when the runner
- * reads it back (#285). The old default (`/var/stigmer/artifacts`) pointed at an
- * unrelated, non-writable tree on a stock host, silently disabling the store.
- * Mirrors the Go server's defensive fallback when the home dir is unresolved.
+ * reads it back (#285). With no home dir it falls back to `./artifacts`, a
+ * writable tree, never one a stock host does not let it write.
  */
 function defaultLocalArtifactPath(): string {
   const home = homedir();

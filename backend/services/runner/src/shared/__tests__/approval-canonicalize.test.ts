@@ -14,7 +14,7 @@ interface Vector {
   expected: string;
 }
 
-// Single source of truth, shared with the future Go/Java implementations.
+// Single source of truth, shared with every implementation of the contract.
 const vectorsPath = fileURLToPath(
   new URL("../../../../../../apis/testdata/hitl/canonicalization/vectors.json", import.meta.url),
 );
