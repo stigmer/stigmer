@@ -145,6 +145,10 @@ async function runProbe(
     toolServerMap,
     leasedCategories,
   });
+  // A same-name probe's other server: its tool of the same name is bound first, and never counts.
+  const twin = action.kind === "mcp" && action.mcpTwin !== undefined
+    ? [tool(async () => "twin ran", { name, description: `contract twin tool ${name}`, schema: z.object({}).passthrough() })]
+    : [];
 
   const agent = await createDeepAgent({
     model: new ScriptedModel(() => ({
@@ -153,7 +157,7 @@ async function runProbe(
     })),
     checkpointer: new MemorySaver() as never,
     backend: new StateBackend(),
-    tools: [countingTool],
+    tools: [...twin, countingTool],
     middleware: [gate],
   } as unknown as Parameters<typeof createDeepAgent>[0]);
 
@@ -184,6 +188,9 @@ function mcpDefaultFor(action: ProposedAction): McpApprovalDefault {
   const destructive = new Set<string>();
   if (action.kind === "mcp" && action.mcpDestructive) {
     destructive.add(mcpToolKey(action.mcpServerSlug ?? "srv", action.mcpToolName ?? "mcp_tool"));
+  }
+  if (action.kind === "mcp" && action.mcpTwin?.destructive === true) {
+    destructive.add(mcpToolKey(action.mcpTwin.slug, action.mcpToolName ?? "mcp_tool"));
   }
   return { destructive, unlisted: new Set<string>(), leasedServers: new Set() };
 }

@@ -11,9 +11,10 @@
  * actually ran:
  *  - `github` and `notes` both list `remove`; github marks its own
  *    destructive. A call to github's asks first, on a card naming github,
- *    and never reaches either server; until stigmer#1860 the tool node ran
- *    github's while approval read the call as notes' (the last server's
- *    name won) and let it through unasked.
+ *    and never reaches either server. Until stigmer#1860 the turn never got
+ *    that far: two tools of one name fail langchain's tool-identity check
+ *    at the first model call ("You have modified a tool in wrapModelCall",
+ *    langchain 1.5.14, whose registry is keyed by name).
  *  - A hook matching `mcp__notes__remove` refuses notes' call, and only
  *    that one: the refused row names notes.
  *  - github's own `write_file` is github's tool, judged by github's default

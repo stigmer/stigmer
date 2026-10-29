@@ -66,6 +66,8 @@ import { mcpToolName } from "../mcp-bridge.js";
 /** The kit's MCP server and every tool it lists. */
 const SERVER = "srv";
 const SERVER_TOOLS = ["search_issues", "close_issue", "delete_repository"];
+/** A second server listing every tool the first does, the twin a same-name probe names (invariant 38). */
+const TWIN_SERVER = "other";
 
 /** The call id every drive's call carries; the resumed invocation re-fires it. */
 const CALL_ID = "toolu_contract_1";
@@ -122,18 +124,19 @@ function rewriteInputOf(action: ProposedAction, root: string): Record<string, un
   return engineCallOf(action, root).input;
 }
 
-/** The kit's MCP server, resolved as the agent's own. */
+/** The kit's MCP servers, resolved as the agent's own. */
 const SRV: ResolvedMcpServer = { slug: SERVER, connectionType: "http", home: { kind: "agent", agentId: "agt_contract", subagent: null, server: SERVER } };
+const TWIN: ResolvedMcpServer = { slug: TWIN_SERVER, connectionType: "http", home: { kind: "agent", agentId: "agt_contract", subagent: null, server: TWIN_SERVER } };
 
 /** Each agent's reach under `lists` (the agent's) and `subLists` (a sub-agent's, narrowed from them), as a turn computes it. */
 function reachOf(lists: ContractToolLists | undefined, subLists: ContractToolLists | undefined): { root: Reach; subagents: Map<string, Reach> } {
   const scope = lists === undefined ? ToolScope.unrestricted() : ToolScope.of('Agent "contract"', lists);
   const input = turnInputFixture({
-    mcp: { ...turnInputFixture().mcp, servers: [SRV], toolScope: scope },
+    mcp: { ...turnInputFixture().mcp, servers: [SRV, TWIN], toolScope: scope },
   });
   const helperScope = subLists === undefined ? scope : scope.narrow('Sub-agent "helper"', subLists);
-  const spec: SubagentSpec = { name: HELPER, kind: "saved", description: HELPER, instructions: "", scope: helperScope, skills: [], servers: [SRV], model: undefined, shellValues: {} };
-  const offered = new Set(SERVER_TOOLS.map((tool) => mcpToolName(SERVER, tool)));
+  const spec: SubagentSpec = { name: HELPER, kind: "saved", description: HELPER, instructions: "", scope: helperScope, skills: [], servers: [SRV, TWIN], model: undefined, shellValues: {} };
+  const offered = new Set([SERVER, TWIN_SERVER].flatMap((slug) => SERVER_TOOLS.map((tool) => mcpToolName(slug, tool))));
   const agents = turnAgentsOf(input, [spec], { offered, serverOf }, { planMode: false, structuredOutput: false });
   return { root: agents.root.reach, subagents: new Map([...agents.subagents].map(([name, world]) => [name, world.reach])) };
 }
@@ -142,6 +145,7 @@ function reachOf(lists: ContractToolLists | undefined, subLists: ContractToolLis
 function mcpDefaultFor(action: ProposedAction): McpApprovalDefault {
   const destructive = new Set<string>();
   if (action.kind === "mcp" && action.mcpDestructive) destructive.add(mcpToolKey(action.mcpServerSlug ?? SERVER, action.mcpToolName ?? "search_issues"));
+  if (action.kind === "mcp" && action.mcpTwin?.destructive === true) destructive.add(mcpToolKey(action.mcpTwin.slug, action.mcpToolName ?? "search_issues"));
   return { destructive, unlisted: new Set<string>(), leasedServers: new Set() };
 }
 
@@ -192,9 +196,9 @@ interface Invocation {
   readonly modelRead: string;
 }
 
-/** Counts of what ran across a drive's invocations. */
+/** What ran across a drive's invocations: the server of each MCP tool that ran. */
 interface Counts {
-  mcp: number;
+  readonly mcp: string[];
 }
 
 /** Run one call through one invocation's gate as the engine does (the header). */
@@ -246,7 +250,7 @@ function runTool(world: DriveWorld, gate: ClaudeGate, name: string, args: Record
       return { ran: true, ok: false, text: err instanceof Error ? err.message : String(err) };
     }
   }
-  counts.mcp += 1;
+  counts.mcp.push(server.slug);
   return world.failTool ? { ran: true, ok: false, text: "the server failed" } : { ran: true, ok: true, text: "found three issues" };
 }
 
@@ -271,7 +275,7 @@ async function drive(
   decision: GatewayDecision,
   resumed: EngineCall = call,
 ): Promise<{ first: Invocation; last: Invocation; counts: Counts }> {
-  const counts: Counts = { mcp: 0 };
+  const counts: Counts = { mcp: [] };
   const first = await invoke(world, new ClaudeGate(factsOf(world, undefined)), call, counts);
   if (!first.deferred || decision === "none") return { first, last: first, counts };
   const shown: WaitingCall = { name: rowNameOf(call), mcpServerSlug: serverOf(call.name)?.slug ?? "", args: call.input };
@@ -328,7 +332,7 @@ function executionCountOf(action: ProposedAction, root: string, counts: Counts, 
     case "write":
       return WRITE_RESOURCES.filter((resource) => existsSync(join(root, resource))).length;
     case "mcp":
-      return counts.mcp;
+      return counts.mcp.filter((slug) => slug === (action.mcpServerSlug ?? SERVER)).length;
     case "read":
       return ran ? 1 : 0;
     default: {
