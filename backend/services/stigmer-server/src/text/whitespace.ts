@@ -7,7 +7,7 @@
  * MINUS U+0085, so they disagree on BOM'd and NEL-padded input. Two readers
  * depend on the difference. SKILL.md frontmatter refuses a "---" line that
  * carries a BOM. Search decides list mode from the trimmed query, so a query
- * of exactly "﻿" runs an empty-match search instead of listing
+ * of exactly "\uFEFF" runs an empty-match search instead of listing
  * everything, and "\u0085" is the mirror image.
  *
  * Proven by src/text/__tests__/whitespace.test.ts and both readers' suites.

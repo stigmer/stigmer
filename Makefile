@@ -810,7 +810,7 @@ test-conformance-all: ## Run both conformance slices (CRUD + execution)
 # script nobody typechecks is a gate nobody hears. The build stages the
 # package and asks npm what it would publish, so a vendored file npm would
 # drop fails here rather than at the release. Structural validity of the
-# ai.stigmer/ overlays against the contract is check-docs-yaml's job
+# plugin manifests against the contract is check-docs-yaml's job
 # (authoring dir `plugins`).
 test-plugins-static: ## Run the plugin catalogue's static suite (fast, no network)
 	@npm run build -w @stigmer/eval-runtime --silent

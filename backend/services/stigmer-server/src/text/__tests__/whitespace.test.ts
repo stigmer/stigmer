@@ -14,17 +14,17 @@ describe("trimWhiteSpace", () => {
     expect(trimWhiteSpace("  foo  ")).toBe("foo");
     expect(trimWhiteSpace("\t\nfoo\r\n")).toBe("foo");
     expect(trimWhiteSpace("\u0085foo\u0085")).toBe("foo");
-    expect(trimWhiteSpace(" foo　")).toBe("foo");
+    expect(trimWhiteSpace("\u00A0foo\u3000")).toBe("foo");
   });
 
   it("does NOT trim U+FEFF: the BOM is kept", () => {
-    expect(trimWhiteSpace("﻿foo")).toBe("﻿foo");
-    expect(trimWhiteSpace("﻿")).toBe("﻿");
+    expect(trimWhiteSpace("\uFEFFfoo")).toBe("\uFEFFfoo");
+    expect(trimWhiteSpace("\uFEFF")).toBe("\uFEFF");
   });
 
   it("reduces all-space input to empty", () => {
     expect(trimWhiteSpace("")).toBe("");
-    expect(trimWhiteSpace(" \t\u0085  ")).toBe("");
+    expect(trimWhiteSpace(" \t\u0085\u2003 ")).toBe("");
   });
 });
 
@@ -36,7 +36,7 @@ describe("splitOnWhiteSpace", () => {
   });
 
   it("does NOT split on U+FEFF: one token", () => {
-    expect(splitOnWhiteSpace("foo﻿bar")).toEqual(["foo﻿bar"]);
+    expect(splitOnWhiteSpace("foo\uFEFFbar")).toEqual(["foo\uFEFFbar"]);
   });
 
   it("yields [] for empty and all-space input", () => {
