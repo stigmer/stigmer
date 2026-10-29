@@ -70,7 +70,10 @@ export default defineConfig({
 
   use: {
     baseURL,
-    trace: "on-first-retry",
+    // With no retries the failed run is the only run, so every test records
+    // and only a failure keeps its trace, which CI uploads with the report.
+    // A retry-keyed mode here would never record anything.
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
 
