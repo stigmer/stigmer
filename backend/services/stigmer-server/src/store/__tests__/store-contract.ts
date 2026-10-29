@@ -2332,7 +2332,7 @@ export function describeStoreContract(
 
     it("reads a parent's rows through a key, or through any of several", async () => {
       await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
-      await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
+      await save(session("ses_2", "acme", 2, { channel: "chn_1" }));
       await save(session("ses_3", "acme", 3, { agentId: "agt_2" }));
 
       expect(
@@ -2347,7 +2347,7 @@ export function describeStoreContract(
           await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
             anyKey: [
               { name: "agent", value: "agt_1" },
-              { name: "channel", value: "ach_1" },
+              { name: "channel", value: "chn_1" },
             ],
           }),
         ),
@@ -2360,12 +2360,12 @@ export function describeStoreContract(
 
     it("leaves out rows holding a value for any key it is told to, the unproven included", async () => {
       await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
-      await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
+      await save(session("ses_2", "acme", 2, { channel: "chn_1" }));
       await save(
-        session("ses_3", "acme", 3, { agentId: "agt_1", channel: "ach_2" }),
+        session("ses_3", "acme", 3, { agentId: "agt_1", channel: "chn_2" }),
       );
       await save(session("ses_4", "acme", 4));
-      await save(session("ses_5", "other", 5, { channel: "ach_3" }));
+      await save(session("ses_5", "other", 5, { channel: "chn_3" }));
 
       expect(
         ids(
@@ -2418,7 +2418,7 @@ export function describeStoreContract(
         "ses_old_channel",
         toBinary(
           SessionSchema,
-          session("ses_old_channel", "acme", 10, { channel: "ach_9" }),
+          session("ses_old_channel", "acme", 10, { channel: "chn_9" }),
         ),
       );
       await fx.writeAsOlderBinary(

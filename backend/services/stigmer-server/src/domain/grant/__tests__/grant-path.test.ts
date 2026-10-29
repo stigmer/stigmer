@@ -568,7 +568,7 @@ describe("leaving an organization: the account's rows on its resources", () => {
   const ELSEWHERE = "agt_elsewhere0000000000000000";
   const TEAM = "tm_sre000000000000000000000000";
   const SESSION = "ses_alice0000000000000000000000";
-  const RUN = "aex_alice0000000000000000000000";
+  const RUN = "run_alice0000000000000000000000";
 
   /** The scope link a resource's creation writes: `organization:<org>` holds `organization` on it. */
   function scopeLink(kind: string, id: string, org: string): GrantSpec {
@@ -1094,7 +1094,7 @@ describe("who and why: every access row reaches the store with its change record
   });
 
   it("a run's revoke walks to its session and takes the organization from the session's stored row", async () => {
-    const RUN = "aex_audited00000000000000000";
+    const RUN = "run_audited00000000000000000";
     const SESSION = "ses_audited00000000000000000";
     const { grants, path } = pathOver(
       [],

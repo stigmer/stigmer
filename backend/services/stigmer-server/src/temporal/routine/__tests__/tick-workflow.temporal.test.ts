@@ -89,7 +89,7 @@ function resetScript(): void {
     recordTickArgs: [],
     runStart: {
       outcome: RUN_STARTED,
-      executionId: "aex_tick",
+      executionId: "run_tick",
       trackingTimeoutMinutes: 60,
       failureReason: "",
     },
@@ -146,7 +146,7 @@ async function runTick(options?: { workflowId?: string }): Promise<void> {
   const handle = await env.client.workflow.start(TICK_WORKFLOW_TYPE, {
     taskQueue: TASK_QUEUE,
     workflowId: options?.workflowId ?? `tick-test-${workflowSeq}-${Date.now()}`,
-    args: ["sch_tick"],
+    args: ["rtn_tick"],
   });
   await handle.result();
 }
@@ -213,7 +213,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
 
       await runTick();
       expect(script.failureCalls).toEqual([
-        { routineId: "sch_tick", reason, kind: FAILURE_START_FAILED },
+        { routineId: "rtn_tick", reason, kind: FAILURE_START_FAILED },
       ]);
       expect(script.successCalls).toEqual([]);
       expect(script.pollCount).toBe(0);
@@ -239,7 +239,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
 
     await runTick();
     expect(script.pollCount).toBe(1);
-    expect(script.successCalls).toEqual(["sch_tick"]);
+    expect(script.successCalls).toEqual(["rtn_tick"]);
     expect(script.failureCalls).toEqual([]);
   }, 30_000);
 
@@ -251,7 +251,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
 
     await runTick();
     expect(script.pollCount).toBe(2);
-    expect(script.successCalls).toEqual(["sch_tick"]);
+    expect(script.successCalls).toEqual(["rtn_tick"]);
     expect(script.failureCalls).toEqual([]);
   }, 30_000);
 
@@ -259,12 +259,12 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     if (!envReady) return testCtx.skip();
     script.runStart = {
       outcome: RUN_ALREADY_STARTED,
-      executionId: "aex_tick",
+      executionId: "run_tick",
       trackingTimeoutMinutes: 60,
       failureReason: "",
     };
     await runTick();
-    expect(script.successCalls).toEqual(["sch_tick"]);
+    expect(script.successCalls).toEqual(["rtn_tick"]);
   }, 30_000);
 
   it("records the 'run X ended failed' verdict on a FAILED phase", async (testCtx) => {
@@ -274,8 +274,8 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     await runTick();
     expect(script.failureCalls).toEqual([
       {
-        routineId: "sch_tick",
-        reason: "run aex_tick ended failed",
+        routineId: "rtn_tick",
+        reason: "run run_tick ended failed",
         kind: FAILURE_RUN_FAILED,
       },
     ]);
@@ -297,7 +297,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     // poll (the poll-first loop never sleeps past its own deadline).
     script.runStart = {
       outcome: RUN_STARTED,
-      executionId: "aex_tick",
+      executionId: "run_tick",
       trackingTimeoutMinutes: 0,
       failureReason: "",
     };
@@ -307,8 +307,8 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     expect(script.pollCount).toBe(1);
     expect(script.failureCalls).toEqual([
       {
-        routineId: "sch_tick",
-        reason: "run aex_tick did not finish within 0 minutes",
+        routineId: "rtn_tick",
+        reason: "run run_tick did not finish within 0 minutes",
         kind: FAILURE_RUN_TIMED_OUT,
       },
     ]);
@@ -336,7 +336,7 @@ describe("schedule/tick workflow (TestWorkflowEnvironment)", () => {
     if (!envReady) return testCtx.skip();
     script.tickOutcome = TICK_SKIPPED_DISABLED;
 
-    await runTick({ workflowId: "schedule/tick/sch_tick-2026-08-25T09:30:00Z" });
+    await runTick({ workflowId: "schedule/tick/rtn_tick-2026-08-25T09:30:00Z" });
     expect(script.recordTickArgs[0]?.nominal).toBe("2026-08-25T09:30:00Z");
   }, 30_000);
 

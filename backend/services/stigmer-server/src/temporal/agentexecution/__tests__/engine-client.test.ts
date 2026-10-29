@@ -168,7 +168,7 @@ function dispatchedInput(startCalls: StartCall[]): Record<string, unknown> {
 
 function startInput(overrides: Partial<Parameters<TemporalExecutionEngine["startInvokeWorkflow"]>[0]> = {}) {
   return {
-    executionId: "aex_1",
+    executionId: "run_1",
     sessionId: "",
     agentId: "agt_1",
     autoApproveAll: false,
@@ -186,7 +186,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     expect(startCalls).toHaveLength(1);
     const call = startCalls[0]!;
     expect(call.workflowType).toBe("stigmer/agent-execution/invoke");
-    expect(call.options["workflowId"]).toBe("stigmer/agent-execution/invoke/aex_1");
+    expect(call.options["workflowId"]).toBe("stigmer/agent-execution/invoke/run_1");
     expect(call.options["taskQueue"]).toBe("agent_execution_stigmer");
     expect(call.options["memo"]).toEqual({
       activityTaskQueue: DEFAULT_ACTIVITY_TASK_QUEUE,
@@ -195,7 +195,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     expect(call.options["workflowRunTimeout"]).toBeUndefined();
     expect(call.options["args"]).toEqual([
       {
-        execution_id: "aex_1",
+        execution_id: "run_1",
         session_id: "",
         agent_id: "agt_1",
         // Dispatch defaults: harness STIGMER (nonzero — Go's omitempty
@@ -212,11 +212,11 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     const { client, startCalls } = stubClient();
     const engine = newEngine(client);
 
-    await engine.startInvokeWorkflow(startInput({ executionId: "aex_cred" }));
+    await engine.startInvokeWorkflow(startInput({ executionId: "run_cred" }));
 
     const token = dispatchedInput(startCalls)["execution_context_token"];
     expect(typeof token).toBe("string");
-    expect(runnerAuth.verify(token as string)).toBe("aex_cred");
+    expect(runnerAuth.verify(token as string)).toBe("run_cred");
     expect(isClockedToken(token as string)).toBe(false);
   });
 
@@ -322,18 +322,18 @@ describe("TemporalExecutionEngine lifecycle operations", () => {
     const { client, handleCalls } = stubClient();
     const engine = newEngine(client);
 
-    await engine.signalApprovalGateResolved("aex_2");
-    await engine.signalPause("aex_2", "Paused by user");
-    await engine.signalResume("aex_2");
-    await engine.cancelWorkflow("aex_2");
-    await engine.terminateWorkflow("aex_2", "Terminated by user");
+    await engine.signalApprovalGateResolved("run_2");
+    await engine.signalPause("run_2", "Paused by user");
+    await engine.signalResume("run_2");
+    await engine.cancelWorkflow("run_2");
+    await engine.terminateWorkflow("run_2", "Terminated by user");
 
     expect(handleCalls.map((call) => [call.workflowId, call.method, ...call.args])).toEqual([
-      ["stigmer/agent-execution/invoke/aex_2", "signal", "approvalGateResolved"],
-      ["stigmer/agent-execution/invoke/aex_2", "signal", "pause", "Paused by user"],
-      ["stigmer/agent-execution/invoke/aex_2", "signal", "resume"],
-      ["stigmer/agent-execution/invoke/aex_2", "cancel"],
-      ["stigmer/agent-execution/invoke/aex_2", "terminate", "Terminated by user"],
+      ["stigmer/agent-execution/invoke/run_2", "signal", "approvalGateResolved"],
+      ["stigmer/agent-execution/invoke/run_2", "signal", "pause", "Paused by user"],
+      ["stigmer/agent-execution/invoke/run_2", "signal", "resume"],
+      ["stigmer/agent-execution/invoke/run_2", "cancel"],
+      ["stigmer/agent-execution/invoke/run_2", "terminate", "Terminated by user"],
     ]);
   });
 
@@ -344,11 +344,11 @@ describe("TemporalExecutionEngine lifecycle operations", () => {
     const engine = newEngine(client);
 
     for (const op of [
-      () => engine.signalApprovalGateResolved("aex_3"),
-      () => engine.signalPause("aex_3", "r"),
-      () => engine.signalResume("aex_3"),
-      () => engine.cancelWorkflow("aex_3"),
-      () => engine.terminateWorkflow("aex_3", "r"),
+      () => engine.signalApprovalGateResolved("run_3"),
+      () => engine.signalPause("run_3", "r"),
+      () => engine.signalResume("run_3"),
+      () => engine.cancelWorkflow("run_3"),
+      () => engine.terminateWorkflow("run_3", "r"),
     ]) {
       await expect(op()).rejects.toBeInstanceOf(EngineWorkflowNotFoundError);
     }
@@ -357,7 +357,7 @@ describe("TemporalExecutionEngine lifecycle operations", () => {
   it("passes through other errors unmapped", async () => {
     const { client } = stubClient({ handleError: new Error("connection reset") });
     const engine = newEngine(client);
-    await expect(engine.signalResume("aex_4")).rejects.toThrow("connection reset");
+    await expect(engine.signalResume("run_4")).rejects.toThrow("connection reset");
   });
 });
 

@@ -57,7 +57,7 @@ const ORG = "acme";
 const ANA = "ida_ana";
 const BEN = "ida_ben";
 const ADMIN = "ida_admin";
-const ROUTINE_ID = "sch_nightly";
+const ROUTINE_ID = "rtn_nightly";
 
 let rig: VaultRig;
 /** Who may use which vault, as "principal:vaultId". */

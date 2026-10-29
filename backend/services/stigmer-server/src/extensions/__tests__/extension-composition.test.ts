@@ -897,9 +897,9 @@ describe("extension composition (driver substitution)", () => {
       server.inProcessTransport,
     );
     const out = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aex_substituted" },
+      scope: { case: "runId", value: "run_substituted" },
     });
-    expect(out.runnerScopedToken).toBe("fake-execution_scoped-aex_substituted");
+    expect(out.runnerScopedToken).toBe("fake-execution_scoped-run_substituted");
     expect(out.expiresInSeconds).toBe(42);
   });
 
@@ -1115,7 +1115,7 @@ describe("extension composition (gate slots + status hooks)", () => {
   });
 
   it("observers see the terminal updateStatus transition once and the decorator contributes the signal", async () => {
-    const executionId = "aexec_o4_hooks";
+    const executionId = "run_o4_hooks";
     await server.store.saveResource(
       ApiResourceKind.run,
       executionId,
@@ -1446,7 +1446,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
           spec: {},
         }),
       );
-      const runIds = ["aex_c2_cascade_1", "aex_c2_cascade_2"];
+      const runIds = ["run_c2_cascade_1", "run_c2_cascade_2"];
       for (const runId of runIds) {
         await server.store.saveResource(
           ApiResourceKind.run,
@@ -1474,7 +1474,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
 
     it("a child's cleanup failure never fails the parent's delete", async () => {
       const sessionId = "ses_c2_unclean";
-      const runId = "aex_c2_unclean";
+      const runId = "run_c2_unclean";
       await server.store.saveResource(
         ApiResourceKind.session,
         sessionId,

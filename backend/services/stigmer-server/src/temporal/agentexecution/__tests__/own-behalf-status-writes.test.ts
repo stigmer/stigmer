@@ -172,7 +172,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
   }
 
   it("stamps FAILED with updateStatusOnFailure's payload; the Authorizer is never asked", async () => {
-    await seedExecution("aex_ownbehalf_failed");
+    await seedExecution("run_ownbehalf_failed");
     const failed = create(RunStatusSchema, {
       phase: RunPhase.RUN_FAILED,
       error: "agent execution failed: runner refused",
@@ -181,11 +181,11 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     const before = logLines.length;
 
     await updateStatus(
-      "aex_ownbehalf_failed",
+      "run_ownbehalf_failed",
       toJson(RunStatusSchema, failed),
     );
 
-    const execution = await persisted("aex_ownbehalf_failed");
+    const execution = await persisted("run_ownbehalf_failed");
     expect(execution.status?.phase).toBe(RunPhase.RUN_FAILED);
     expect(execution.status?.error).toBe(
       "agent execution failed: runner refused",
@@ -209,10 +209,10 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
   });
 
   it("fires the composed status observers on the terminal transition, as for any status write", async () => {
-    await seedExecution("aex_ownbehalf_observed");
+    await seedExecution("run_ownbehalf_observed");
 
     await updateStatus(
-      "aex_ownbehalf_observed",
+      "run_ownbehalf_observed",
       toJson(
         RunStatusSchema,
         create(RunStatusSchema, {
@@ -226,15 +226,15 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     expect(transitions[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(transitions[0]?.newPhase).toBe(RunPhase.RUN_FAILED);
     expect(transitions[0]?.run.metadata?.id).toBe(
-      "aex_ownbehalf_observed",
+      "run_ownbehalf_observed",
     );
   });
 
   it("stamps CANCELLED with updateStatusOnCancellation's payload", async () => {
-    await seedExecution("aex_ownbehalf_cancelled");
+    await seedExecution("run_ownbehalf_cancelled");
 
     await updateStatus(
-      "aex_ownbehalf_cancelled",
+      "run_ownbehalf_cancelled",
       toJson(
         RunStatusSchema,
         create(RunStatusSchema, {
@@ -244,7 +244,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       ),
     );
 
-    const execution = await persisted("aex_ownbehalf_cancelled");
+    const execution = await persisted("run_ownbehalf_cancelled");
     expect(execution.status?.phase).toBe(RunPhase.RUN_CANCELLED);
     // A user-initiated cancel is a quiet terminal state (stigmer#282).
     expect(execution.status?.error).toBe("");
@@ -253,12 +253,12 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
   });
 
   it("re-asserts a phase with the message-less persistInterruptedStatus shape", async () => {
-    await seedExecution("aex_ownbehalf_interrupted");
+    await seedExecution("run_ownbehalf_interrupted");
     // The recovery path's first write: a transient FAILED the interrupted
     // runner activity may have left behind …
     await server.store.updateResource(
       ApiResourceKind.run,
-      "aex_ownbehalf_interrupted",
+      "run_ownbehalf_interrupted",
       RunSchema,
       (execution) => {
         execution.status!.phase = RunPhase.RUN_PAUSED;
@@ -267,7 +267,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
 
     // … overwritten with IN_PROGRESS so the console shows "resuming".
     await updateStatus(
-      "aex_ownbehalf_interrupted",
+      "run_ownbehalf_interrupted",
       toJson(
         RunStatusSchema,
         create(RunStatusSchema, {
@@ -276,14 +276,14 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       ),
     );
 
-    const execution = await persisted("aex_ownbehalf_interrupted");
+    const execution = await persisted("run_ownbehalf_interrupted");
     expect(execution.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(authorizerCalls).toHaveLength(0);
   });
 
   it("surfaces the lane's NotFound as the activity's failure for a deleted execution", async () => {
     await expect(
-      updateStatus("aex_ownbehalf_missing", { phase: "RUN_FAILED" }),
+      updateStatus("run_ownbehalf_missing", { phase: "RUN_FAILED" }),
     ).rejects.toThrow(/not found/i);
     expect(authorizerCalls).toHaveLength(0);
   });

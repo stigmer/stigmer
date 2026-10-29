@@ -261,7 +261,7 @@ describe("the byte-pinned classifyAuthError arms", () => {
       Buffer.from(JSON.stringify(value)).toString("base64url");
     const hs256 = `${segment({ alg: "HS256", typ: "JWT" })}.${segment({
       token_type: "execution_scoped",
-      execution_id: "aex_1",
+      execution_id: "run_1",
       iat: 1,
       exp: 4102444800,
     })}.${segment("a-mac-this-verifier-cannot-check")}`;

@@ -267,7 +267,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
   it("run: PARENT scope resolves the session link from spec.session_id, owner INHERITED", () => {
     const execution = create(RunSchema, {
-      metadata: { id: "aexec_1", org: "acme" },
+      metadata: { id: "run_1", org: "acme" },
       spec: { target: { case: "sessionId", value: "ses_parent" } },
     });
     const event = resolveResourceCreatedEvent(
@@ -288,7 +288,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 
   it("run with no session id fails the request (Java's missing-parent arm)", () => {
     const execution = create(RunSchema, {
-      metadata: { id: "aexec_2", org: "acme" },
+      metadata: { id: "run_2", org: "acme" },
     });
     expect(() =>
       resolveResourceCreatedEvent(
@@ -346,7 +346,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
 describe("cleanUpDeletedResource (the delete cleanup every chain and cascade shares)", () => {
   const event: ResourceDeletedEvent = {
     kind: ApiResourceKind.run,
-    resourceId: "aex_cleanup_subject",
+    resourceId: "run_cleanup_subject",
     orgId: "acme",
     caller,
   };
@@ -403,7 +403,7 @@ describe("cleanUpDeletedResource (the delete cleanup every chain and cascade sha
           "authorization cleanup failed — orphaned grants may remain",
         fields: {
           kind: "Run",
-          resourceId: "aex_cleanup_subject",
+          resourceId: "run_cleanup_subject",
           error: "fga is down",
         },
       },

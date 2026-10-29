@@ -78,8 +78,8 @@ const OWNER_ID = "ida_01owner";
 
 describe("scheduledExecutionName — a schedule fire's id, THE idempotency key (byte-pinned)", () => {
   it("lowercases the id, maps underscores to hyphens, appends the 20060102t150405z time", () => {
-    expect(scheduledExecutionName("SCH_01ABC", NOMINAL)).toBe(
-      "sch-01abc-20260825t093000z",
+    expect(scheduledExecutionName("RTN_01ABC", NOMINAL)).toBe(
+      "rtn-01abc-20260825t093000z",
     );
   });
 

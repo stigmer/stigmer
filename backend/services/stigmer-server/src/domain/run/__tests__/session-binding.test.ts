@@ -267,7 +267,7 @@ describe("ValidateSessionImmutability (update)", () => {
     stored: Run | undefined,
   ): RequestContext<typeof RunSchema> {
     const ctx = contextFor({
-      metadata: { id: "aex_1", org: "acme" },
+      metadata: { id: "run_1", org: "acme" },
       spec: { target: sid(sessionId), message: "edited" },
     });
     if (stored !== undefined) ctx.set(EXISTING_RESOURCE_KEY, stored);
@@ -275,7 +275,7 @@ describe("ValidateSessionImmutability (update)", () => {
   }
 
   const stored = create(RunSchema, {
-    metadata: { id: "aex_1", org: "acme" },
+    metadata: { id: "run_1", org: "acme" },
     spec: { target: sid("ses_first"), message: "original" },
   });
 
@@ -302,7 +302,7 @@ describe("ValidateSessionImmutability (update)", () => {
 
   it("a new session_spec in place of the stored session is refused", async () => {
     const ctx = contextFor({
-      metadata: { id: "aex_1", org: "acme" },
+      metadata: { id: "run_1", org: "acme" },
       spec: { target: { case: "sessionSpec", value: {} }, message: "edited" },
     });
     ctx.set(EXISTING_RESOURCE_KEY, stored);
@@ -318,7 +318,7 @@ describe("ValidateSessionImmutability (update)", () => {
   });
 
   it("an update with no spec at all keeps the stored session", () => {
-    const ctx = contextFor({ metadata: { id: "aex_1", org: "acme" } });
+    const ctx = contextFor({ metadata: { id: "run_1", org: "acme" } });
     ctx.set(EXISTING_RESOURCE_KEY, stored);
 
     newValidateSessionImmutabilityStep().execute(ctx);
@@ -328,7 +328,7 @@ describe("ValidateSessionImmutability (update)", () => {
 
   it("an execution stored without a session cannot be moved into one", async () => {
     const sessionless = create(RunSchema, {
-      metadata: { id: "aex_1", org: "acme" },
+      metadata: { id: "run_1", org: "acme" },
       spec: { message: "original" },
     });
 

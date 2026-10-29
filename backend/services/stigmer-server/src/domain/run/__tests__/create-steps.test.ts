@@ -142,7 +142,7 @@ let dir: string;
 let store: Store;
 
 beforeEach(() => {
-  dir = mkdtempSync(path.join(tmpdir(), "aexec-create-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-create-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
     listIndexes: LIST_INDEXES,
   });
@@ -1377,13 +1377,13 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
     });
 
     const execution = newExecution("ses_sw");
-    execution.metadata!.id = "aexec_sw_fail";
+    execution.metadata!.id = "run_sw_fail";
     // The chain stamps PENDING at SetInitialPhase before this step runs.
     execution.status = create(RunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
     });
     // Persist stored the run before this step runs.
-    await store.saveResource(ApiResourceKind.run, "aexec_sw_fail", RunSchema, execution);
+    await store.saveResource(ApiResourceKind.run, "run_sw_fail", RunSchema, execution);
 
     const err = await expectCode(
       () => step.execute(newContext(execution)),
@@ -1397,7 +1397,7 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
 
     const persisted = await store.getResource(
       ApiResourceKind.run,
-      "aexec_sw_fail",
+      "run_sw_fail",
       RunSchema,
     );
     expect(persisted.status?.phase).toBe(RunPhase.RUN_FAILED);
@@ -1426,7 +1426,7 @@ describe("newStartWorkflowStep — the workflow input", () => {
       statusObservers: [],
     });
     const execution = newExecution("ses_turn");
-    execution.metadata!.id = "aexec_input";
+    execution.metadata!.id = "run_input";
     execution.status = create(RunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
       agentId: "agt_called",
@@ -1435,7 +1435,7 @@ describe("newStartWorkflowStep — the workflow input", () => {
 
     await step.execute(newContext(execution));
 
-    expect(input?.executionId).toBe("aexec_input");
+    expect(input?.executionId).toBe("run_input");
     expect(input?.sessionId).toBe("ses_turn");
     expect(input?.agentId).toBe("agt_called");
     expect(input?.reconcileFileReview).toBe(false);

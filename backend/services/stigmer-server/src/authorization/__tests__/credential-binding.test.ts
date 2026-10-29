@@ -267,8 +267,8 @@ describe("the rule, for a caller bound to one organization", () => {
     const f = fixture([
       row("session", "ses_a", ALPHA),
       row("session", "ses_b", BETA),
-      row("run", "aex_a", ALPHA),
-      row("run", "aex_b", BETA),
+      row("run", "run_a", ALPHA),
+      row("run", "run_b", BETA),
     ]);
     const binding = newCredentialBinding(f.deps);
     const caller = boundTo(ALPHA);
@@ -276,10 +276,10 @@ describe("the rule, for a caller bound to one organization", () => {
       binding.verdict(caller, { kind, id, permission: VIEW });
     expect(await verdictOf(ApiResourceKind.session, "ses_a")).toBe("inside");
     expect(await verdictOf(ApiResourceKind.session, "ses_b")).toBe("outside");
-    expect(await verdictOf(ApiResourceKind.run, "aex_a")).toBe(
+    expect(await verdictOf(ApiResourceKind.run, "run_a")).toBe(
       "inside",
     );
-    expect(await verdictOf(ApiResourceKind.run, "aex_b")).toBe(
+    expect(await verdictOf(ApiResourceKind.run, "run_b")).toBe(
       "outside",
     );
   });

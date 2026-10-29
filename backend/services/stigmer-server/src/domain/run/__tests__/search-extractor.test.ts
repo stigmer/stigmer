@@ -15,7 +15,7 @@ import { agentExecutionSearchExtractor } from "../search-extractor.js";
 
 const run = create(RunSchema, {
   metadata: {
-    id: "aex_search",
+    id: "run_search",
     name: "nightly-triage",
     slug: "nightly-triage",
     org: "acme",
@@ -41,7 +41,7 @@ describe("agentExecutionSearchExtractor", () => {
     const result = agentExecutionSearchExtractor.toSearchResult(run, 0.5);
 
     expect(result?.kind).toBe(ApiResourceKind.run);
-    expect(result?.id).toBe("aex_search");
+    expect(result?.id).toBe("run_search");
     expect(result?.qualifiedSlug).toBe("acme/nightly-triage");
     expect(result?.description).toBe("");
     expect(result?.score).toBe(0.5);

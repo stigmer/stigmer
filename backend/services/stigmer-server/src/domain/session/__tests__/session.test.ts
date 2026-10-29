@@ -239,7 +239,7 @@ async function seedExecution(
   phase: RunPhase,
 ): Promise<string> {
   executionCounter += 1;
-  const id = `aex_sessiontest_${executionCounter}`;
+  const id = `run_sessiontest_${executionCounter}`;
   const execution = create(RunSchema, {
     apiVersion: API_VERSION,
     kind: "Run",

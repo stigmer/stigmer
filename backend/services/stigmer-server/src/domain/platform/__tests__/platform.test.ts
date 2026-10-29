@@ -215,7 +215,7 @@ describe("platform domain (composed server)", () => {
 
   it("mints for the run_id arm, bound to exactly that run", async () => {
     const out = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aexec_01platformtest" },
+      scope: { case: "runId", value: "run_01platformtest" },
     });
 
     expect(out.runnerScopedToken).not.toBe("");
@@ -225,7 +225,7 @@ describe("platform domain (composed server)", () => {
     // The minted token verifies against the SAME key the values fetch
     // uses, and its binding is the named execution id.
     expect(server.runnerAuthService.verify(out.runnerScopedToken)).toBe(
-      "aexec_01platformtest",
+      "run_01platformtest",
     );
   });
 
@@ -536,7 +536,7 @@ describe("platform domain (keyless runner-token service)", () => {
     const client = createClient(PlatformQueryController, transport);
 
     const out = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aexec_01keyless" },
+      scope: { case: "runId", value: "run_01keyless" },
     });
     expect(out.runnerScopedToken).toBe("");
     expect(out.tokenType).toBe("");
@@ -718,9 +718,9 @@ describe("platform domain (capability-delegating provider)", () => {
         callerIdentityId: caller.identityId,
         callerClass: caller.callerClass,
       });
-      if (request.arm === "agent-execution" && request.executionId === "aexec_denied") {
+      if (request.arm === "agent-execution" && request.executionId === "run_denied") {
         throw new ConnectError(
-          "run aexec_denied is not the caller's to serve",
+          "run run_denied is not the caller's to serve",
           Code.PermissionDenied,
         );
       }
@@ -800,7 +800,7 @@ describe("platform domain (capability-delegating provider)", () => {
     exchanged.length = 0;
 
     const minted = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aexec_cap1" },
+      scope: { case: "runId", value: "run_cap1" },
     });
     expect(minted.runnerScopedToken).toBe("cloud-token");
     expect(minted.tokenType).toBe("Bearer");
@@ -816,7 +816,7 @@ describe("platform domain (capability-delegating provider)", () => {
     expect(renewal.expiresInSeconds).toBe(0);
 
     expect(exchanged.map((e) => e.request)).toEqual([
-      { arm: "agent-execution", executionId: "aexec_cap1" },
+      { arm: "agent-execution", executionId: "run_cap1" },
       { arm: "renewal" },
     ]);
     // The trusted-local identity the chain stamped is what crossed the
@@ -830,14 +830,14 @@ describe("platform domain (capability-delegating provider)", () => {
   it("a refusal thrown by the implementation propagates as the gRPC error", async () => {
     try {
       await client.getRunnerScopedToken({
-        scope: { case: "runId", value: "aexec_denied" },
+        scope: { case: "runId", value: "run_denied" },
       });
       throw new Error("expected the call to fail");
     } catch (error) {
       expect(error).toBeInstanceOf(ConnectError);
       expect((error as ConnectError).code).toBe(Code.PermissionDenied);
       expect((error as ConnectError).rawMessage).toBe(
-        "run aexec_denied is not the caller's to serve",
+        "run run_denied is not the caller's to serve",
       );
     }
   });

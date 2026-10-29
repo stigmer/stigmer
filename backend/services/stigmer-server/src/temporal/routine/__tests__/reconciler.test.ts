@@ -203,11 +203,11 @@ beforeEach(async () => {
 
 describe("runPass — the four phases", () => {
   it("arms a row without an artifact", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_unarmed", RoutineSchema, routineRow("sch_unarmed"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_unarmed", RoutineSchema, routineRow("rtn_unarmed"));
 
     const counts = await reconciler().runPass();
     expect(counts).toMatchObject({ rowsExamined: 1, armed: 1, repaired: 0, orphansDeleted: 0, failures: 0 });
-    expect(syncerScript.ensured).toEqual(["sch_unarmed"]);
+    expect(syncerScript.ensured).toEqual(["rtn_unarmed"]);
   });
 
   it("arms nothing for a routine with no cron, and removes the artifact a removed cron left", async () => {
@@ -225,8 +225,8 @@ describe("runPass — the four phases", () => {
   });
 
   it("leaves a converged artifact untouched", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_ok", RoutineSchema, routineRow("sch_ok"));
-    listedArtifacts = [converged("sch_ok")];
+    await store.saveResource(ApiResourceKind.routine, "rtn_ok", RoutineSchema, routineRow("rtn_ok"));
+    listedArtifacts = [converged("rtn_ok")];
 
     const counts = await reconciler().runPass();
     expect(counts).toMatchObject({ armed: 0, repaired: 0, orphansDeleted: 0, failures: 0 });
@@ -234,50 +234,50 @@ describe("runPass — the four phases", () => {
   });
 
   it("repairs note drift (the fingerprint is the only spec-change witness)", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_drift", RoutineSchema, routineRow("sch_drift"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_drift", RoutineSchema, routineRow("rtn_drift"));
     listedArtifacts = [
-      { scheduleId: "schedule/tick/sch_drift", state: { note: "cron=old tz=old", paused: false } },
+      { scheduleId: "schedule/tick/rtn_drift", state: { note: "cron=old tz=old", paused: false } },
     ];
 
     const counts = await reconciler().runPass();
     expect(counts.repaired).toBe(1);
-    expect(syncerScript.ensured).toEqual(["sch_drift"]);
+    expect(syncerScript.ensured).toEqual(["rtn_drift"]);
   });
 
   it("repairs paused drift (the two-lever DesiredPaused diff)", async () => {
     await store.saveResource(
       ApiResourceKind.routine,
-      "sch_pausedrift",
+      "rtn_pausedrift",
       RoutineSchema,
-      routineRow("sch_pausedrift", { pausedReason: "Paused after 5..." }),
+      routineRow("rtn_pausedrift", { pausedReason: "Paused after 5..." }),
     );
-    listedArtifacts = [converged("sch_pausedrift")]; // live artifact NOT paused
+    listedArtifacts = [converged("rtn_pausedrift")]; // live artifact NOT paused
 
     const counts = await reconciler().runPass();
     expect(counts.repaired).toBe(1);
   });
 
   it("reaps a genuine orphan only after the point read confirms the row is gone", async () => {
-    listedArtifacts = [converged("sch_ghost")];
+    listedArtifacts = [converged("rtn_ghost")];
 
     const counts = await reconciler().runPass();
     expect(counts.orphansDeleted).toBe(1);
-    expect(syncerScript.toreDown).toEqual(["sch_ghost"]);
+    expect(syncerScript.toreDown).toEqual(["rtn_ghost"]);
   });
 
   it("NEVER reaps an artifact whose row exists at the point read (THE phase-3 guard)", async () => {
     // The race the guard exists for: the artifact is listed but the row
     // was missing from phase 2's snapshot (created between the listing
     // and the walk). The fresh point read finds it — no teardown.
-    listedArtifacts = [converged("sch_latecomer")];
+    listedArtifacts = [converged("rtn_latecomer")];
     const passPromise = (async () => {
       // The row lands before phase 3's point read (deterministically:
       // before the pass even starts — the guard must hold a fortiori).
       await store.saveResource(
         ApiResourceKind.routine,
-        "sch_latecomer",
+        "rtn_latecomer",
         RoutineSchema,
-        routineRow("sch_latecomer"),
+        routineRow("rtn_latecomer"),
       );
       return reconciler().runPass();
     })();
@@ -298,8 +298,8 @@ describe("runPass — the four phases", () => {
   });
 
   it("counts a per-row arm failure and continues the pass", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_a", RoutineSchema, routineRow("sch_a"));
-    await store.saveResource(ApiResourceKind.routine, "sch_b", RoutineSchema, routineRow("sch_b"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_a", RoutineSchema, routineRow("rtn_a"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_b", RoutineSchema, routineRow("rtn_b"));
     syncerScript.ensureError = new Error("temporal away");
 
     const counts = await reconciler().runPass();
@@ -308,9 +308,9 @@ describe("runPass — the four phases", () => {
   });
 
   it("counts and logs a failed repair of a drifted artifact, and continues the pass", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_drift", RoutineSchema, routineRow("sch_drift"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_drift", RoutineSchema, routineRow("rtn_drift"));
     listedArtifacts = [
-      { scheduleId: "schedule/tick/sch_drift", state: { note: "cron=old tz=old", paused: false } },
+      { scheduleId: "schedule/tick/rtn_drift", state: { note: "cron=old tz=old", paused: false } },
     ];
     syncerScript.ensureError = new Error("temporal away");
     const log = capturingLogger();
@@ -321,7 +321,7 @@ describe("runPass — the four phases", () => {
       {
         level: "error",
         message: "Reconciliation failed to repair a drifted artifact (pass continues)",
-        fields: { routine_id: "sch_drift", error: "temporal away" },
+        fields: { routine_id: "rtn_drift", error: "temporal away" },
       },
     ]);
   });
@@ -330,8 +330,8 @@ describe("runPass — the four phases", () => {
     const unscheduled = routineRow("rtn_ondemand");
     unscheduled.spec!.cron = undefined;
     await store.saveResource(ApiResourceKind.routine, "rtn_ondemand", RoutineSchema, unscheduled);
-    await store.saveResource(ApiResourceKind.routine, "sch_next", RoutineSchema, routineRow("sch_next"));
-    listedArtifacts = [converged("rtn_ondemand"), converged("sch_next")];
+    await store.saveResource(ApiResourceKind.routine, "rtn_next", RoutineSchema, routineRow("rtn_next"));
+    listedArtifacts = [converged("rtn_ondemand"), converged("rtn_next")];
     syncerScript.ensureError = new Error("temporal away");
     const log = capturingLogger();
 
@@ -347,7 +347,7 @@ describe("runPass — the four phases", () => {
   });
 
   it("leaves an orphan whose point read faulted, counting and logging it (only not-found proves an orphan)", async () => {
-    listedArtifacts = [converged("sch_unsure")];
+    listedArtifacts = [converged("rtn_unsure")];
     const log = capturingLogger();
     const faulty = storeWith("getResource", () => Promise.reject(new Error("database offline")));
 
@@ -358,13 +358,13 @@ describe("runPass — the four phases", () => {
       {
         level: "error",
         message: "Reconciliation could not confirm an orphan (leaving it; pass continues)",
-        fields: { routine_id: "sch_unsure", error: "database offline" },
+        fields: { routine_id: "rtn_unsure", error: "database offline" },
       },
     ]);
   });
 
   it("counts and logs a failed orphan teardown, and continues the pass", async () => {
-    listedArtifacts = [converged("sch_ghost")];
+    listedArtifacts = [converged("rtn_ghost")];
     syncerScript.teardownError = new Error("temporal away");
     const log = capturingLogger();
 
@@ -374,7 +374,7 @@ describe("runPass — the four phases", () => {
       {
         level: "error",
         message: "Reconciliation failed to delete an orphaned artifact (pass continues)",
-        fields: { routine_id: "sch_ghost", error: "temporal away" },
+        fields: { routine_id: "rtn_ghost", error: "temporal away" },
       },
     ]);
   });
@@ -395,7 +395,7 @@ describe("runPass — the four phases", () => {
   });
 
   it("skips a corrupt row with a warning and converges the rest", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_whole", RoutineSchema, routineRow("sch_whole"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_whole", RoutineSchema, routineRow("rtn_whole"));
     const log = capturingLogger();
     // A truncated tag varint: no Routine decodes from it.
     const corrupt = new Uint8Array([0xff, 0xff]);
@@ -406,7 +406,7 @@ describe("runPass — the four phases", () => {
 
     const counts = await reconciler(fakeClient(), { store: withCorrupt, logger: log.logger }).runPass();
     expect(counts).toMatchObject({ rowsExamined: 1, armed: 1, failures: 0 });
-    expect(syncerScript.ensured).toEqual(["sch_whole"]);
+    expect(syncerScript.ensured).toEqual(["rtn_whole"]);
     expect(log.lines).toHaveLength(1);
     expect(log.lines[0]).toMatchObject({
       level: "warn",
@@ -423,7 +423,7 @@ describe("runPass — the four phases", () => {
   });
 
   it("skips silently when Temporal is not connected", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_offline", RoutineSchema, routineRow("sch_offline"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_offline", RoutineSchema, routineRow("rtn_offline"));
     // Built directly: an undefined argument would take reconciler()'s
     // connected default.
     const offline = new RoutineReconciler(() => undefined, store, fakeSyncer(), config, silentLogger);
@@ -466,15 +466,15 @@ describe("runPass — the four phases", () => {
 
 describe("the loop — kicks, coalescing, stop, containment", () => {
   it("kill-switch off: the kick still runs a pass (reconnect convergence is correctness)", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_kick", RoutineSchema, routineRow("sch_kick"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_kick", RoutineSchema, routineRow("rtn_kick"));
     const r = reconciler();
     const kick = r.startReconciliation(); // boot pass queues immediately
     kick(); // coalesces with the boot pass or queues one more
     // Observe the pass land BEFORE stopping: stop() deliberately skips
     // queued-but-unstarted passes (Go's context-cancel shutdown).
-    await waitFor(() => syncerScript.ensured.includes("sch_kick"));
+    await waitFor(() => syncerScript.ensured.includes("rtn_kick"));
     await r.stop();
-    expect(syncerScript.ensured).toContain("sch_kick");
+    expect(syncerScript.ensured).toContain("rtn_kick");
   });
 
   it("a pass that throws unexpectedly is logged, and neither bricks the queue nor escapes stop()", async () => {
@@ -508,13 +508,13 @@ describe("the loop — kicks, coalescing, stop, containment", () => {
 
     // And a NEW reconciler after a failure keeps working (the queue was
     // never poisoned for subsequent enqueues).
-    await store.saveResource(ApiResourceKind.routine, "sch_after", RoutineSchema, routineRow("sch_after"));
+    await store.saveResource(ApiResourceKind.routine, "rtn_after", RoutineSchema, routineRow("rtn_after"));
     const healthy = reconciler();
     const kick2 = healthy.startReconciliation();
     kick2();
-    await waitFor(() => syncerScript.ensured.includes("sch_after"));
+    await waitFor(() => syncerScript.ensured.includes("rtn_after"));
     await healthy.stop();
-    expect(syncerScript.ensured).toContain("sch_after");
+    expect(syncerScript.ensured).toContain("rtn_after");
   });
 
   it("no pass starts after stop()", async () => {

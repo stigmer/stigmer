@@ -214,7 +214,7 @@ describe("memory create", () => {
         provenance: {
           agentId: "agt_1",
           sessionId: "ses_1",
-          runId: "aex_1",
+          runId: "run_1",
           toolCallId: "call_invented",
         },
       },
@@ -222,7 +222,7 @@ describe("memory create", () => {
 
     expect(created.spec?.provenance?.agentId).toBe("agt_1");
     expect(created.spec?.provenance?.sessionId).toBe("ses_1");
-    expect(created.spec?.provenance?.runId).toBe("aex_1");
+    expect(created.spec?.provenance?.runId).toBe("run_1");
     expect(created.spec?.provenance?.toolCallId ?? "").toBe("");
   });
 

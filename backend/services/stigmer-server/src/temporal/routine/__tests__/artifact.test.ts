@@ -35,7 +35,7 @@ function schedule(overrides?: {
   timeZone?: string;
 }) {
   return create(RoutineSchema, {
-    metadata: { id: "sch_01test", org: "acme", slug: "daily" },
+    metadata: { id: "rtn_01test", org: "acme", slug: "daily" },
     spec: {
       cron: overrides?.cron ?? "0 9 * * *",
       timeZone: overrides?.timeZone ?? "Asia/Kolkata",
@@ -48,11 +48,11 @@ function schedule(overrides?: {
 
 describe("artifact identity", () => {
   it("prefixes the resource id with schedule/tick/", () => {
-    expect(artifactId("sch_01test")).toBe("schedule/tick/sch_01test");
+    expect(artifactId("rtn_01test")).toBe("schedule/tick/rtn_01test");
   });
 
   it("resourceIdOf inverts artifactId", () => {
-    expect(resourceIdOf("schedule/tick/sch_01test")).toBe("sch_01test");
+    expect(resourceIdOf("schedule/tick/rtn_01test")).toBe("rtn_01test");
   });
 });
 
@@ -79,7 +79,7 @@ describe("createOptions — the baked policy", () => {
   const options = artifact.createOptions(schedule());
 
   it("pins the artifact id and cron spec", () => {
-    expect(options.scheduleId).toBe("schedule/tick/sch_01test");
+    expect(options.scheduleId).toBe("schedule/tick/rtn_01test");
     expect(options.spec.cronExpressions).toEqual(["0 9 * * *"]);
     expect(options.spec.timezone).toBe("Asia/Kolkata");
   });
@@ -92,9 +92,9 @@ describe("createOptions — the baked policy", () => {
 
   it("bakes the action: workflow id = artifact id, type schedule/tick, ONE arg, own queue, 24h backstop", () => {
     expect(options.action.type).toBe("startWorkflow");
-    expect(options.action.workflowId).toBe("schedule/tick/sch_01test");
+    expect(options.action.workflowId).toBe("schedule/tick/rtn_01test");
     expect(options.action.workflowType).toBe("schedule/tick");
-    expect(options.action.args).toEqual(["sch_01test"]);
+    expect(options.action.args).toEqual(["rtn_01test"]);
     expect(options.action.taskQueue).toBe("schedule_stigmer");
     expect(options.action.workflowRunTimeout).toBe(24 * 3_600_000);
     // No retry policy: a failed tick is a missed fire, not a hot loop.

@@ -26,7 +26,7 @@ import {
 import { TEST_URL_SIGNING_KEY, testUrlSigner } from "../__test-utils__/url-signer.js";
 
 const NOW = Date.UTC(2026, 9, 7, 12, 0, 0);
-const KEY = "artifacts/aex_1/plan.md";
+const KEY = "artifacts/run_1/plan.md";
 
 function params(query: string): URLSearchParams {
   return new URLSearchParams(query);

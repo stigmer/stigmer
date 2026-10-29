@@ -297,7 +297,7 @@ describe("ValidateGrantableRole", () => {
           contextOf(
             triple(team, "participant", {
               kind: "channel",
-              id: "ach_1",
+              id: "chn_1",
             }),
           ),
         ),

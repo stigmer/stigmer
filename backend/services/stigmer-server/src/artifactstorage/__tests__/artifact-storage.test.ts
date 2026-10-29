@@ -146,7 +146,7 @@ describe("LocalArtifactStorage", () => {
   });
 
   it("signed URL: the key's path, then the filename when set, the expiry and the signature", async () => {
-    const key = "artifacts/aex_1/plan.md";
+    const key = "artifacts/run_1/plan.md";
     const expires = Math.floor((NOW + 3600_000) / 1000);
     const inline = await storage.getSignedUrl(key, 3600_000, "", "person");
     expect(inline).toMatch(
@@ -186,7 +186,7 @@ describe("LocalArtifactStorage", () => {
 
   it("signed URL: the expiry is clamped to the 7-day ceiling the R2 backend shares", async () => {
     const url = new URL(
-      await storage.getSignedUrl("artifacts/aex_1/plan.md", 30 * 24 * 3600_000, "", "person"),
+      await storage.getSignedUrl("artifacts/run_1/plan.md", 30 * 24 * 3600_000, "", "person"),
     );
     expect(Number(url.searchParams.get("exp"))).toBe(
       Math.floor((NOW + MAX_SIGNED_URL_TTL_MS) / 1000),
@@ -197,7 +197,7 @@ describe("LocalArtifactStorage", () => {
   it("signed URL: a resolved serve URL is read at every mint, not at construction", async () => {
     let origin = "";
     const resolved = new LocalArtifactStorage(base, () => origin, signer);
-    const key = "artifacts/aex_1/plan.md";
+    const key = "artifacts/run_1/plan.md";
     await expect(resolved.getSignedUrl(key, 3600_000, "", "person")).rejects.toThrow(
       "local serve URL not configured",
     );

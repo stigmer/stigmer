@@ -328,10 +328,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           // one whose session is gone. Stamped by nobody on purpose: an
           // execution's owner is INHERITED, the stamp says nothing.
           for (const [id, session] of [
-            ["aex_f1", "ses_founder"],
-            ["aex_f2", "ses_founder"],
-            ["aex_m1", "ses_member"],
-            ["aex_orphan", "ses_gone"],
+            ["run_f1", "ses_founder"],
+            ["run_f2", "ses_founder"],
+            ["run_m1", "ses_member"],
+            ["run_orphan", "ses_gone"],
           ] as const) {
             await save("run", {
               id,
@@ -425,10 +425,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("an execution is its SESSION's (`can_view from session`): each person lists the runs of their own sessions; an orphaned execution is nobody's", async () => {
             expect(
               await listAs(resolved(FOUNDER), ApiResourceKind.run),
-            ).toEqual(["aex_f1", "aex_f2"]);
+            ).toEqual(["run_f1", "run_f2"]);
             expect(
               await listAs(resolved(MEMBER), ApiResourceKind.run),
-            ).toEqual(["aex_m1"]);
+            ).toEqual(["run_m1"]);
             expect(
               await listAs(resolved(ADMIN), ApiResourceKind.run),
             ).toEqual([]);

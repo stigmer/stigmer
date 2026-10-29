@@ -54,7 +54,7 @@ describe("notifyStatusObservers", () => {
 
     await notifyStatusObservers(
       deps,
-      execution("aexec_same"),
+      execution("run_same"),
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_IN_PROGRESS,
     );
@@ -62,14 +62,14 @@ describe("notifyStatusObservers", () => {
 
     await notifyStatusObservers(
       deps,
-      execution("aexec_changed"),
+      execution("run_changed"),
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,
     );
     expect(seen).toHaveLength(1);
     expect(seen[0]?.oldPhase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(seen[0]?.newPhase).toBe(RunPhase.RUN_COMPLETED);
-    expect(seen[0]?.run.metadata?.id).toBe("aexec_changed");
+    expect(seen[0]?.run.metadata?.id).toBe("run_changed");
   });
 
   it("runs observers in registration order, awaiting each", async () => {
@@ -88,7 +88,7 @@ describe("notifyStatusObservers", () => {
         ],
         logger,
       },
-      execution("aexec_order"),
+      execution("run_order"),
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_FAILED,
     );
@@ -110,7 +110,7 @@ describe("notifyStatusObservers", () => {
           ],
           logger,
         },
-        execution("aexec_faulty"),
+        execution("run_faulty"),
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_CANCELLED,
       ),
@@ -130,7 +130,7 @@ describe("applyResponseDecorators", () => {
         },
       ],
       logger,
-      execution("aexec_dec"),
+      execution("run_dec"),
       create(UpdateStatusResponseSchema, {
         signal: RunControlSignal.UNSPECIFIED,
       }),
@@ -153,7 +153,7 @@ describe("applyResponseDecorators", () => {
         },
       ],
       logger,
-      execution("aexec_partial"),
+      execution("run_partial"),
       create(UpdateStatusResponseSchema, {
         signal: RunControlSignal.UNSPECIFIED,
       }),

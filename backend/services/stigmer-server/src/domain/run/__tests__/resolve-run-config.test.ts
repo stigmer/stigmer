@@ -394,7 +394,7 @@ describe("ResolveRunConfig over a real store", () => {
   it("a schedule's turn is capped by the schedule profile and runs unattended", async () => {
     const ctx = await resolve(
       execution({
-        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
+        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_1" } },
         spec: { message: "hi", runConfig: { maxToolRounds: 50, maxCostUsd: 0.25 } },
       }),
       { routineProfile: rc({ maxToolRounds: 20, maxCostUsd: 1 }) },
@@ -452,7 +452,7 @@ describe("ResolveRunConfig over a real store", () => {
   it("refuses a routine's saved fast tier with no model of its own, naming the routine's settings", async () => {
     const err = await resolve(
       execution({
-        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
+        metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_1" } },
         spec: { message: "hi", runConfig: { serviceTier: ServiceTier.FAST } },
         status: { agentId: AGENT, agentVersionHash: PINNED },
       }),
@@ -521,7 +521,7 @@ describe("ResolveRunConfig over a real store", () => {
     async (harness) => {
       const ctx = await resolve(
         execution({
-          metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "sch_1" } },
+          metadata: { labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_1" } },
           spec: {
             message: "hi",
             target: { case: "sessionSpec", value: { harness } },

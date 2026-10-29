@@ -175,7 +175,7 @@ describe("list read scope (composed server, fake scope)", () => {
     }
     // Two turns of one session — the rows a server-internal reader of a
     // conversation's executions asks listBySession for.
-    for (const id of ["aex_turn_1", "aex_turn_2"]) {
+    for (const id of ["run_turn_1", "run_turn_2"]) {
       await server.store.saveResource(
         ApiResourceKind.run,
         id,
@@ -348,14 +348,14 @@ describe("list read scope (composed server, fake scope)", () => {
       );
       const turns = await query.listBySession({ sessionId: "ses_mine" });
       expect(turns.entries.map((e) => e.metadata?.id).sort()).toEqual([
-        "aex_turn_1",
-        "aex_turn_2",
+        "run_turn_1",
+        "run_turn_2",
       ]);
       expect(seenKinds).toEqual([]);
     });
 
     it("a caller propagated through the in-process header keeps its class and is narrowed like the wire", async () => {
-      allowed = new Set(["aex_turn_2"]);
+      allowed = new Set(["run_turn_2"]);
       const query = createClient(
         RunQueryController,
         server.inProcessTransport,
@@ -370,7 +370,7 @@ describe("list read scope (composed server, fake scope)", () => {
           },
         },
       );
-      expect(turns.entries.map((e) => e.metadata?.id)).toEqual(["aex_turn_2"]);
+      expect(turns.entries.map((e) => e.metadata?.id)).toEqual(["run_turn_2"]);
       expect(seenKinds).toEqual([ApiResourceKind.run]);
     });
   });

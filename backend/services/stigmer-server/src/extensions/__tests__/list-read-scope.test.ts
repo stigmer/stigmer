@@ -347,19 +347,19 @@ describe("restrictListByReadScope", () => {
     it("a run candidate carries its session as the ResolvedParentLink the tuple lifecycle wrote", async () => {
       const executions = [
         {
-          metadata: { id: "aex_1", org: "acme", labels: {} },
+          metadata: { id: "run_1", org: "acme", labels: {} },
           spec: { target: { case: "sessionId", value: "ses_a" } },
         },
         {
-          metadata: { id: "aex_2", org: "acme", labels: {} },
+          metadata: { id: "run_2", org: "acme", labels: {} },
           spec: { target: { case: "sessionId", value: "ses_a" } },
         },
         {
-          metadata: { id: "aex_3", org: "acme", labels: {} },
+          metadata: { id: "run_3", org: "acme", labels: {} },
           spec: { target: { case: "sessionId", value: "ses_b" } },
         },
       ];
-      const { scope, seen } = recordingScope(["aex_1", "aex_3"]);
+      const { scope, seen } = recordingScope(["run_1", "run_3"]);
       const kept = await restrictListByReadScope(
         scope,
         caller,
@@ -367,21 +367,21 @@ describe("restrictListByReadScope", () => {
         executions,
         "",
       );
-      expect(kept.map((r) => r.metadata.id)).toEqual(["aex_1", "aex_3"]);
+      expect(kept.map((r) => r.metadata.id)).toEqual(["run_1", "run_3"]);
       // The parent is one of the row's parent links — resolved once, named
       // twice: as the link the derivation reads and as the designation a
       // driver may answer in place of the child.
       expect(seen[0]).toEqual([
         {
-          ...bareFacts("aex_1", "acme", [sessionLink("ses_a")]),
+          ...bareFacts("run_1", "acme", [sessionLink("ses_a")]),
           authorizationParent: sessionLink("ses_a"),
         },
         {
-          ...bareFacts("aex_2", "acme", [sessionLink("ses_a")]),
+          ...bareFacts("run_2", "acme", [sessionLink("ses_a")]),
           authorizationParent: sessionLink("ses_a"),
         },
         {
-          ...bareFacts("aex_3", "acme", [sessionLink("ses_b")]),
+          ...bareFacts("run_3", "acme", [sessionLink("ses_b")]),
           authorizationParent: sessionLink("ses_b"),
         },
       ]);
@@ -389,10 +389,10 @@ describe("restrictListByReadScope", () => {
 
     it("a row whose spec does not name its parent carries no parent — offered as itself, never dropped", async () => {
       const executions = [
-        { metadata: { id: "aex_orphan", org: "acme", labels: {} }, spec: {} },
-        { metadata: { id: "aex_specless", org: "acme", labels: {} } },
+        { metadata: { id: "run_orphan", org: "acme", labels: {} }, spec: {} },
+        { metadata: { id: "run_specless", org: "acme", labels: {} } },
       ];
-      const { scope, seen } = recordingScope(["aex_orphan", "aex_specless"]);
+      const { scope, seen } = recordingScope(["run_orphan", "run_specless"]);
       const kept = await restrictListByReadScope(
         scope,
         caller,
@@ -401,12 +401,12 @@ describe("restrictListByReadScope", () => {
         "",
       );
       expect(kept.map((r) => r.metadata.id)).toEqual([
-        "aex_orphan",
-        "aex_specless",
+        "run_orphan",
+        "run_specless",
       ]);
       expect(seen[0]).toEqual([
-        bareFacts("aex_orphan", "acme", []),
-        bareFacts("aex_specless", "acme", []),
+        bareFacts("run_orphan", "acme", []),
+        bareFacts("run_specless", "acme", []),
       ]);
     });
 
@@ -444,7 +444,7 @@ describe("restrictListByReadScope", () => {
     it("no scope composed = the input unchanged, the parent never resolved", async () => {
       const executions = [
         {
-          metadata: { id: "aex_1", org: "acme", labels: {} },
+          metadata: { id: "run_1", org: "acme", labels: {} },
           spec: { target: { case: "sessionId", value: "ses_a" } },
         },
       ];

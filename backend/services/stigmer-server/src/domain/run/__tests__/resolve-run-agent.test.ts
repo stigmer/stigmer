@@ -354,7 +354,7 @@ describe("ResolveRunAgent (recover)", () => {
     const ctx = new RequestContext(
       RecoverRunInputSchema,
       create(RecoverRunInputSchema, {
-        id: loaded?.metadata?.id ?? "aex_none",
+        id: loaded?.metadata?.id ?? "run_none",
       }),
       testCallerIdentity(),
       ApiResourceKind.run,
@@ -379,11 +379,11 @@ describe("ResolveRunAgent (recover)", () => {
 
   it("records the session's pin on a turn with no stamp, persisted and handed on", async () => {
     await seedSession(pinnedSession("ses_r", "agt_r", PINNED));
-    const turn = await seedTurn("aex_r", "ses_r");
+    const turn = await seedTurn("run_r", "ses_r");
 
     const ctx = await recover(turn);
 
-    const persisted = await storedTurn("aex_r");
+    const persisted = await storedTurn("run_r");
     expect(persisted.status?.agentId).toBe("agt_r");
     expect(persisted.status?.agentVersionHash).toBe(PINNED);
     const handedOn = ctx.get(LOADED_EXECUTION_KEY) as Run;
@@ -393,60 +393,60 @@ describe("ResolveRunAgent (recover)", () => {
 
   it("leaves a turn that recorded its agent as it is", async () => {
     await seedSession(pinnedSession("ses_moved", "agt_now", HEAD));
-    const turn = await seedTurn("aex_stamped", "ses_moved", "agt_then");
+    const turn = await seedTurn("run_stamped", "ses_moved", "agt_then");
 
     const ctx = await recover(turn);
 
-    expect((await storedTurn("aex_stamped")).status?.agentId).toBe("agt_then");
+    expect((await storedTurn("run_stamped")).status?.agentId).toBe("agt_then");
     expect(ctx.get(LOADED_EXECUTION_KEY)).toBe(turn);
   });
 
   it("leaves a turn whose session pins no agent as it is", async () => {
     await seedSession(pinnedSession("ses_builtin", "", ""));
-    const turn = await seedTurn("aex_builtin", "ses_builtin");
+    const turn = await seedTurn("run_builtin", "ses_builtin");
 
     await recover(turn);
 
-    expect((await storedTurn("aex_builtin")).status?.agentId ?? "").toBe("");
+    expect((await storedTurn("run_builtin")).status?.agentId ?? "").toBe("");
   });
 
   it("leaves a turn that names no session as it is: there is no pin to record", async () => {
     const turn = create(RunSchema, {
       metadata: {
-        id: "aex_no_session",
+        id: "run_no_session",
         org: "test-org",
-        slug: "aex_no_session",
+        slug: "run_no_session",
       },
       spec: {},
     });
     await store.saveResource(
       ApiResourceKind.run,
-      "aex_no_session",
+      "run_no_session",
       RunSchema,
       turn,
     );
 
     const ctx = await recover(turn);
 
-    expect((await storedTurn("aex_no_session")).status?.agentId ?? "").toBe("");
+    expect((await storedTurn("run_no_session")).status?.agentId ?? "").toBe("");
     expect(ctx.get(LOADED_EXECUTION_KEY)).toBe(turn);
   });
 
   it("does nothing when the recover is skipped", async () => {
     await seedSession(pinnedSession("ses_skip", "agt_skip", HEAD));
-    const turn = await seedTurn("aex_skip", "ses_skip");
+    const turn = await seedTurn("run_skip", "ses_skip");
 
     await recover(turn, true);
 
-    expect((await storedTurn("aex_skip")).status?.agentId ?? "").toBe("");
+    expect((await storedTurn("run_skip")).status?.agentId ?? "").toBe("");
   });
 
   it("asks about the session's pin for a turn that recorded none, and a refusal writes nothing", async () => {
     await seedSession(pinnedSession("ses_gated", "agt_gated", PINNED));
-    const turn = await seedTurn("aex_gated", "ses_gated");
+    const turn = await seedTurn("run_gated", "ses_gated");
     const ctx = new RequestContext(
       RecoverRunInputSchema,
-      create(RecoverRunInputSchema, { id: "aex_gated" }),
+      create(RecoverRunInputSchema, { id: "run_gated" }),
       testCallerIdentity(),
       ApiResourceKind.run,
     );
@@ -461,7 +461,7 @@ describe("ResolveRunAgent (recover)", () => {
 
     expect(error.code).toBe(Code.PermissionDenied);
     expect(error.rawMessage).toBe("unauthorized to run agent 'agt_gated'");
-    expect((await storedTurn("aex_gated")).status?.agentId ?? "").toBe("");
+    expect((await storedTurn("run_gated")).status?.agentId ?? "").toBe("");
     expect(ctx.get(LOADED_EXECUTION_KEY)).toBe(turn);
   });
 
@@ -474,19 +474,19 @@ describe("ResolveRunAgent (recover)", () => {
   it("is NotFound when the turn's row is gone before the stamp is written", async () => {
     await seedSession(pinnedSession("ses_gone", "agt_gone", HEAD));
     const turn = create(RunSchema, {
-      metadata: { id: "aex_gone", org: "test-org", slug: "aex_gone" },
+      metadata: { id: "run_gone", org: "test-org", slug: "run_gone" },
       spec: { target: { case: "sessionId", value: "ses_gone" } },
     });
 
     const error = await refusal(recover(turn));
 
     expect(error.code).toBe(Code.NotFound);
-    expect(error.rawMessage).toContain("aex_gone");
+    expect(error.rawMessage).toContain("run_gone");
   });
 
   it("is Internal when the stamp cannot be written", async () => {
     await seedSession(pinnedSession("ses_down", "agt_down", HEAD));
-    const turn = await seedTurn("aex_down", "ses_down");
+    const turn = await seedTurn("run_down", "ses_down");
     const failing: Store = new Proxy(store, {
       get(target, property, receiver) {
         if (property === "updateResource") {
@@ -499,7 +499,7 @@ describe("ResolveRunAgent (recover)", () => {
     const error = await refusal(recover(turn, false, failing));
 
     expect(error.code).toBe(Code.Internal);
-    expect((await storedTurn("aex_down")).status?.agentId ?? "").toBe("");
+    expect((await storedTurn("run_down")).status?.agentId ?? "").toBe("");
   });
 });
 
@@ -521,7 +521,7 @@ describe("AuthorizeRunAgent (recover)", () => {
 
   function turnRunning(agentId: string): Run {
     return create(RunSchema, {
-      metadata: { id: "aex_rerun", org: "test-org" },
+      metadata: { id: "run_rerun", org: "test-org" },
       status: { agentId, agentVersionHash: HEAD },
     });
   }

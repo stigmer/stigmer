@@ -55,7 +55,7 @@ function runIn(org: string, caller: CallerIdentity) {
   return new RequestContext(
     RunSchema,
     create(RunSchema, {
-      metadata: { id: "aex_1", name: "run", org },
+      metadata: { id: "run_1", name: "run", org },
     }),
     caller,
     ApiResourceKind.run,
@@ -130,7 +130,7 @@ describe("the step and the persist backstop", () => {
     });
     expect(saved).toEqual([]);
     await persist.execute(runIn("org_globex", person));
-    expect(saved).toEqual(["aex_1"]);
+    expect(saved).toEqual(["run_1"]);
   });
 
   it("persist saves a row filed in a child of the bound organization", async () => {
@@ -143,7 +143,7 @@ describe("the step and the persist backstop", () => {
     await newPersistStep<typeof RunSchema>(store, binding).execute(
       runIn("org_acme_cust", boundToAcme),
     );
-    expect(saved).toEqual(["aex_1"]);
+    expect(saved).toEqual(["run_1"]);
   });
 
   it("persist leaves an API key to the binding's own rule: its metadata.org is not the organization it is limited to", async () => {

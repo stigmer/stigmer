@@ -67,7 +67,7 @@ function scoringRuleCtx(org = "org_1") {
   return new RequestContext(
     ScoringRuleSchema,
     create(ScoringRuleSchema, {
-      metadata: { id: "evl_1", name: "evl_1", org },
+      metadata: { id: "srl_1", name: "srl_1", org },
       spec: { agentId: "agt_1", enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
     }),
     testCallerIdentity(),
@@ -133,9 +133,9 @@ describe("the scoring rule steps' faults", () => {
     ).toBe(Code.Internal);
     await temp.store.saveResource(
       ApiResourceKind.scoring_rule,
-      "evl_1",
+      "srl_1",
       ScoringRuleSchema,
-      create(ScoringRuleSchema, { metadata: { id: "evl_1", name: "evl_1", org: "org_1" }, spec: { agentId: "agt_1" } }),
+      create(ScoringRuleSchema, { metadata: { id: "srl_1", name: "srl_1", org: "org_1" }, spec: { agentId: "agt_1" } }),
     );
     expect(
       await codeOf(() => newCascadeDeleteScoringRulesStep(failing(temp.store, "deleteResource"), undefined, silentLogger).execute(agentCtx),
@@ -147,7 +147,7 @@ describe("the scoring rule steps' faults", () => {
     const undecodable = new Proxy(temp.store, {
       get(target, property, receiver) {
         if (property === "queryResources") {
-          return () => Promise.resolve([{ id: "evl_bad", data: new Uint8Array([255, 255, 255]) }]);
+          return () => Promise.resolve([{ id: "srl_bad", data: new Uint8Array([255, 255, 255]) }]);
         }
         const value: unknown = Reflect.get(target, property, receiver);
         return typeof value === "function" ? value.bind(target) : value;
@@ -158,7 +158,7 @@ describe("the scoring rule steps' faults", () => {
 
   it("throws a budget write's store fault rather than reading it as grading off", async () => {
     const broken = failing(temp.store, "updateResource");
-    await expect(reserve(broken, "evl_1", new Date(), 0.25, "limit")).rejects.toThrow("disk full");
-    await expect(settle(broken, "evl_1", new Date(), 0.25, "2026-10", 0, { kind: "graded" })).rejects.toThrow("disk full");
+    await expect(reserve(broken, "srl_1", new Date(), 0.25, "limit")).rejects.toThrow("disk full");
+    await expect(settle(broken, "srl_1", new Date(), 0.25, "2026-10", 0, { kind: "graded" })).rejects.toThrow("disk full");
   });
 });

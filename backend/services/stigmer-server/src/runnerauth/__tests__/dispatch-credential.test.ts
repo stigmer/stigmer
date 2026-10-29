@@ -38,10 +38,10 @@ describe("runCredentialForDispatch", () => {
     const provider = newExecutionScopedRunnerCredentialProvider(service);
     const { logger, entries } = capturingLogger();
 
-    const token = runCredentialForDispatch(provider, "aex_dispatch", logger);
+    const token = runCredentialForDispatch(provider, "run_dispatch", logger);
 
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, token)).toBe(
-      "aex_dispatch",
+      "run_dispatch",
     );
     expect(entries).toEqual([]);
   });
@@ -50,7 +50,7 @@ describe("runCredentialForDispatch", () => {
     const withoutCapability: RunCredentialMint = {};
     const { logger, entries } = capturingLogger();
 
-    expect(runCredentialForDispatch(withoutCapability, "aex_1", logger)).toBe(
+    expect(runCredentialForDispatch(withoutCapability, "run_1", logger)).toBe(
       "",
     );
     expect(entries).toEqual([]);
@@ -62,7 +62,7 @@ describe("runCredentialForDispatch", () => {
     );
     const { logger, entries } = capturingLogger();
 
-    expect(runCredentialForDispatch(keyless, "aex_1", logger)).toBe("");
+    expect(runCredentialForDispatch(keyless, "run_1", logger)).toBe("");
     expect(entries).toEqual([]);
   });
 
@@ -74,7 +74,7 @@ describe("runCredentialForDispatch", () => {
     };
     const { logger, entries } = capturingLogger();
 
-    expect(runCredentialForDispatch(throwing, "aex_fault", logger)).toBe("");
+    expect(runCredentialForDispatch(throwing, "run_fault", logger)).toBe("");
 
     expect(entries).toHaveLength(1);
     const [warning] = entries;
@@ -87,7 +87,7 @@ describe("runCredentialForDispatch", () => {
       "execution_id",
     ]);
     expect(warning!.fields).toMatchObject({
-      execution_id: "aex_fault",
+      execution_id: "run_fault",
       error: "signing key unreadable",
     });
   });

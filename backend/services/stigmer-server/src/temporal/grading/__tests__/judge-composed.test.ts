@@ -755,7 +755,7 @@ describe("the judge's activities", () => {
         },
       },
     });
-    const ticket: JudgeTicket = { evaluatorId: "evl_x", modelName: "", capUsd: PER_GRADE_CAP_USD, period: periodOf(new Date()) };
+    const ticket: JudgeTicket = { evaluatorId: "srl_x", modelName: "", capUsd: PER_GRADE_CAP_USD, period: periodOf(new Date()) };
     expect(await activities[START_JUDGE_ACTIVITY_NAME](runId, ticket)).toEqual({
       kind: "refused",
       failure: "cannot-act",

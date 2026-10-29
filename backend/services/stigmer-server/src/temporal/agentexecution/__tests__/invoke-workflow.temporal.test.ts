@@ -6,11 +6,10 @@
  *
  * What these pin (all load-bearing orchestration contracts):
  *   - the happy path (EnsureThread → ExecuteDeepAgent), and
- *     the same run from an input that still carries the retired
- *     `callback_token` and `parent_workflow_id` keys (an older server's
- *     dispatch): the keys are ignored and it runs as an ordinary run,
- *     its own history recording no signal or cancel to another workflow
- *     and no activity beyond an ordinary run's;
+ *     the same run from an input carrying keys the input interface does
+ *     not name: the keys are ignored and it runs as an ordinary run, its
+ *     own history recording no signal or cancel to another workflow and
+ *     no activity beyond an ordinary run's;
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input); a new run reads its gate as the count of the
@@ -409,26 +408,26 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
   }, 30_000);
 
-  it("runs an input still carrying the retired callback_token and parent_workflow_id keys as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("runs an input carrying keys the input interface does not name as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
-    // The shape an older server dispatched for a run a workflow step
-    // started; this interface no longer names either key.
-    const olderServerInput = {
+    // Keys the input interface does not name: the plain-JSON input
+    // decodes them and the workflow acts on none.
+    const inputWithUnknownKeys = {
       ...workflowInput(),
       callback_token: "Y2FsbGJhY2stdG9rZW4=",
-      parent_workflow_id: "wex-parent-1",
+      parent_workflow_id: "parent-1",
     };
-    const handle = await startWorkflow(olderServerInput);
+    const handle = await startWorkflow(inputWithUnknownKeys);
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
 
-    // The run's own history: a reintroduced signal or cancel to the
-    // parent the retired keys named, or an activity that completes the
-    // parent's step by its callback token, would be recorded here.
+    // The run's own history: a signal or cancel to the parent those keys
+    // name, or an activity that completes a step by the callback token,
+    // would be recorded here.
     const history = await handle.fetchHistory();
     const events = history.events ?? [];
     const { EventType } = proto.temporal.api.enums.v1;

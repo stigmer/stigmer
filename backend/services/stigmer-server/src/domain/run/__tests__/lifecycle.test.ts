@@ -126,7 +126,7 @@ let dir: string;
 let store: Store;
 
 beforeAll(() => {
-  dir = mkdtempSync(path.join(tmpdir(), "aexec-lifecycle-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-lifecycle-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
     listIndexes: LIST_INDEXES,
   });
@@ -284,7 +284,7 @@ async function seedExecution(init: {
   error?: string;
 }): Promise<string> {
   counter += 1;
-  const id = `aexec_lifecycle_${counter}`;
+  const id = `run_lifecycle_${counter}`;
   await store.saveResource(
     ApiResourceKind.run,
     id,
@@ -465,7 +465,7 @@ describe("lifecycle pipelines", () => {
       () =>
         cancelExecution(
           deps,
-          cancelInput("aexec_missing"),
+          cancelInput("run_missing"),
           testCallerIdentity(),
         ),
       Code.NotFound,
@@ -1787,7 +1787,7 @@ describe("lifecycle pause racing a write to the run's record", () => {
     const deps = lifecycleDeps(connected(stubConnectedEngine()));
 
     for (let i = 0; i < 50; i++) {
-      const id = `aexec_pause_race_${i}`;
+      const id = `run_pause_race_${i}`;
       await store.saveResource(
         ApiResourceKind.run,
         id,

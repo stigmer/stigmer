@@ -44,7 +44,7 @@ const TASK_QUEUE = "grade-run-workflow-test";
 const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url)
   .pathname;
 
-const TICKET: JudgeTicket = { evaluatorId: "evl_test", modelName: "", capUsd: 0.25, period: "2026-10" };
+const TICKET: JudgeTicket = { evaluatorId: "srl_test", modelName: "", capUsd: 0.25, period: "2026-10" };
 
 type TestWorkflowEnvironment =
   import("@temporalio/testing").TestWorkflowEnvironment;

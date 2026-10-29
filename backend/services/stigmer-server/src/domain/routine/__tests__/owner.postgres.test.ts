@@ -75,7 +75,7 @@ describe.each(driverFixtures([ApiResourceKind.identity_account]))("a routine's o
     });
 
     it("a routine stamped with the raw issuer subject (the 3.14.x shape) resolves to the same account", async () => {
-      expect((await resolveRoutineOwner(accounts, routine("sch_by_sub", SUBJECT))).metadata?.id).toBe(CAROL);
+      expect((await resolveRoutineOwner(accounts, routine("rtn_by_sub", SUBJECT))).metadata?.id).toBe(CAROL);
     });
 
     it.each([
