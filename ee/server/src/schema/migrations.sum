@@ -1,0 +1,3 @@
+# One line per schema step: its version and the SHA-256 of its statements.
+# A merged line never changes or goes; a new step adds a line. Written by `npm run schema:snapshot`.
+1 ec97499986fc64d63fe5d19feaef4ada28842d50dd387515071452881b35eb98

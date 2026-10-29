@@ -39,6 +39,8 @@
  *
  * Proven by __tests__/outputs.test.ts.
  */
+import { createHash } from "node:crypto";
+
 import type { HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
@@ -66,6 +68,7 @@ import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresou
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { getIdPrefix } from "../../pipeline/apiresource-meta.js";
 import {
   failedPreconditionError,
   internalError,
@@ -82,7 +85,6 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
 import type { FileBlobs } from "./blobs.js";
-import { derivedFileId } from "./convert-attachments.js";
 import { fileMimeType } from "./mime.js";
 import { fileNameOf } from "./steps.js";
 
@@ -147,14 +149,23 @@ export function outputFilename(outputPath: string): string {
   return outputPath.slice(outputPath.lastIndexOf("/") + 1);
 }
 
+/** Crockford's base32, lowercase: the alphabet a ULID, and so an id, is written in. */
+const BASE32 = "0123456789abcdefghjkmnpqrstvwxyz";
+
 /**
  * An output File's id, derived from what makes it this output: its
- * organization, run, path and content's hash. The tag keeps it from any
- * conversion's id (convert-attachments.ts), whose material begins with a
- * run id.
+ * organization, run, path and content's hash, shaped as a minted id. The
+ * leading tag is the derivation's domain, so no other material hashed the
+ * same way can produce the same id.
  */
 export function outputFileId(org: string, runId: string, outputPath: string, contentSha256: string): string {
-  return derivedFileId(["stigmer.run-output", org, runId, outputPath, contentSha256].join("\u0000"));
+  const material = ["stigmer.run-output", org, runId, outputPath, contentSha256].join("\u0000");
+  const digest = createHash("sha256").update(material).digest();
+  let body = "";
+  for (let i = 0; i < 26; i++) {
+    body += BASE32[(digest[i] ?? 0) % 32];
+  }
+  return `${getIdPrefix(ApiResourceKind.file)}_${body}`;
 }
 
 /** Mints one staged upload per output the turn saved (module header). */

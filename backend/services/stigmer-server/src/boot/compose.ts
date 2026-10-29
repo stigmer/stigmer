@@ -119,10 +119,7 @@ import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
 import { deleteKeysOwnedBy } from "../domain/apikey/account-keys.js";
 import type { IdentityVerifier } from "../extensions/identity.js";
 import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
-import {
-  createArtifactFileServer,
-  warnOnLegacyArtifactLayout,
-} from "../artifactstorage/file-server.js";
+import { createArtifactFileServer } from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { newEnvironmentPolicy } from "../domain/run/environment-admission.js";
@@ -177,7 +174,6 @@ import { registerPluginServices } from "../domain/plugin/controller.js";
 import { registerEvalServices } from "../domain/eval/controller.js";
 import { registerRunEvalCaseService } from "../domain/eval/run-eval-case.js";
 import { EVAL_ARTIFACT_KEY_PREFIX } from "../domain/eval/constants.js";
-import { refreshLegacyPluginStatuses } from "../domain/plugin/legacy-status.js";
 import { newLocalProgramPolicy } from "../domain/run/local-programs.js";
 import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
@@ -194,8 +190,6 @@ import {
   uploadUrl as skillUploadUrl,
 } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
-import { convertStoredAttachments } from "../domain/file/convert-attachments.js";
-import { convertStoredOutputs } from "../domain/file/convert-outputs.js";
 import { newFileBlobs, uploadRefOf as fileUploadRefOf } from "../domain/file/blobs.js";
 import {
   STAGED_FILE_NAME,
@@ -1520,27 +1514,6 @@ export async function composeServer(
     logger,
     maxBytes: config.fileMaxBytes,
   });
-  // Stage: the attachments runs carried before a message's files were
-  // Files become Files of their conversations, from the rows the store's
-  // migration left (domain/file/convert-attachments.ts). Awaited like the
-  // role reconcile: a storage fault is a loud boot throw, the next boot
-  // converges, and an old conversation never shows its files missing.
-  // The generic store is where attachments always lived.
-  await convertStoredAttachments({
-    store,
-    storage: artifactStorage,
-    lifecycle: authorizationLifecycle,
-    logger,
-  });
-  // The same for the files the Stigmer harness uploaded for a run before
-  // what a turn returns became Files (domain/file/convert-outputs.ts): each
-  // becomes an output File of its run, over the bytes where they are.
-  await convertStoredOutputs({
-    store,
-    storage: artifactStorage,
-    lifecycle: authorizationLifecycle,
-    logger,
-  });
   const fileTransferLane =
     fileUploadSlots === undefined
       ? undefined
@@ -2643,7 +2616,6 @@ export async function composeServer(
       // also means the derived serve URL exists before a request can mint
       // one.
       if (artifactFileServer !== undefined) {
-        await warnOnLegacyArtifactLayout(config.artifactLocalBasePath, logger);
         try {
           artifactLaneBoundPort = await artifactFileServer.listen(
             artifactLanePort,
@@ -2658,16 +2630,6 @@ export async function composeServer(
           );
         }
       }
-      // A plugin installed before plugins were whole has its status
-      // filled from its archive before search indexes it and before any
-      // turn reads it (domain/plugin/legacy-status.ts), which warns and
-      // never throws, so boot never fails on it.
-      await refreshLegacyPluginStatuses({
-        store,
-        artifactStorage: pluginArtifactStorage,
-        outboundFetch,
-        logger,
-      });
       // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,
       // and rebuilding here makes every resource — including rows an

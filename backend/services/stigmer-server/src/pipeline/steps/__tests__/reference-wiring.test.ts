@@ -31,7 +31,11 @@ import { fileURLToPath } from "node:url";
 import type { DescField, DescMessage } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceGroup } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_group_pb";
+import {
+  ApiResourceKind,
+  ApiResourceKindSchema,
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import {
   newPinSubagentsStep,
@@ -50,12 +54,45 @@ import {
 } from "../../../domain/routine/steps.js";
 import { newResolveSessionAgentStep } from "../../../domain/session/resolve-session-agent.js";
 import { newVaultAttachmentsStep } from "../../../domain/vault/attachments.js";
-import { RESOURCE_SCHEMAS } from "../../../store/resource-etags-stamped.js";
+import { getKindMeta } from "../../apiresource-meta.js";
 import { newNormalizeReferencesStep, newValidateReferencesStep } from "../references.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.resolve(HERE, "../../..");
 const INVENTORY_DOC = path.resolve(SRC, "../docs/reference-fields.md");
+
+/** The kinds that name no stored resource message: the audit record and the platform singleton. */
+const NO_RESOURCE_MESSAGE: ReadonlySet<ApiResourceKind> = new Set([
+  ApiResourceKind.api_resource_kind_unknown,
+  ApiResourceKind.api_resource_version,
+  ApiResourceKind.platform,
+]);
+
+/**
+ * Every kind's resource message, found from its `kind_meta` in the
+ * generated module that declares it, so a new kind is read without a list
+ * to keep.
+ */
+async function resourceSchemas(): Promise<ReadonlyMap<ApiResourceKind, DescMessage>> {
+  const out = new Map<ApiResourceKind, DescMessage>();
+  for (const value of ApiResourceKindSchema.values) {
+    const kind = value.number as ApiResourceKind;
+    if (NO_RESOURCE_MESSAGE.has(kind)) {
+      continue;
+    }
+    const meta = getKindMeta(kind);
+    const specifier = `@stigmer/apis/ai/stigmer/${ApiResourceGroup[meta.group]}/${meta.name.toLowerCase()}/v1/api_pb`;
+    const generated = (await import(specifier)) as Record<string, unknown>;
+    const schema = generated[`${meta.name}Schema`] as DescMessage | undefined;
+    if (schema === undefined) {
+      throw new Error(`${specifier} declares no ${meta.name}Schema`);
+    }
+    out.set(kind, schema);
+  }
+  return out;
+}
+
+const RESOURCE_SCHEMAS = await resourceSchemas();
 
 /** A step factory, built with placeholder dependencies only to read its frozen name. */
 type Factory = (...deps: never[]) => { readonly name: string };

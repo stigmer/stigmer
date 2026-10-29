@@ -25,7 +25,7 @@
  * and COMMIT is synchronous — nothing can interleave into an open
  * transaction on the sole connection.
  *
- * Proven by __tests__/ (migrations incl. the Go-database fixture,
+ * Proven by __tests__/ (the schema chain and its snapshot,
  * per-method contracts, the permanent FTS5 probe) and end-to-end by
  * the conformance suites on local.
  */
@@ -84,8 +84,6 @@ import {
 import { stampEtag } from "../etag.js";
 import { fileBlobRefusal } from "../file-blobs.js";
 import type {
-  AttachmentConversion,
-  OutputConversion,
   FileBlobRecord,
   FileBlobState,
   FileBlobStore,
@@ -273,7 +271,7 @@ export class SqliteStore implements Store {
 
   /**
    * Opens (or creates) the database at dbPath, applies the pragmas in Go's
-   * order, runs migrations — Go NewStore — and reconciles the list index
+   * order, brings the schema up to date (migrations.ts) and reconciles the list index
    * (derives the facts of every unproven row of a declared kind).
    */
   static open(
@@ -298,7 +296,7 @@ export class SqliteStore implements Store {
     db.exec("PRAGMA temp_store=MEMORY"); // Keep temp tables in memory
 
     try {
-      runMigrations(db, undefined, logger);
+      runMigrations(db, { logger });
     } catch (error) {
       db.close();
       throw error;
@@ -970,22 +968,6 @@ export class SqliteStore implements Store {
       .prepare(`DELETE FROM resources WHERE kind = ?`)
       .run(kindName);
     db.prepare(`DELETE FROM resource_list_keys WHERE kind = ?`).run(kindName);
-    return Number(result.changes);
-  }
-
-  async deleteResourcesByIdPrefix(
-    kind: ApiResourceKind,
-    idPrefix: string,
-  ): Promise<number> {
-    const db = this.open();
-    const kindName = apiResourceKindName(kind);
-    // GLOB 'prefix*' uses the (kind, id) index where LIKE would not (Go).
-    const result = db
-      .prepare(`DELETE FROM resources WHERE kind = ? AND id GLOB ?`)
-      .run(kindName, `${idPrefix}*`);
-    db.prepare(
-      `DELETE FROM resource_list_keys WHERE kind = ? AND id GLOB ?`,
-    ).run(kindName, `${idPrefix}*`);
     return Number(result.changes);
   }
 
@@ -3373,90 +3355,7 @@ class SqliteFileBlobStore implements FileBlobStore {
   async deleteByOrg(org: string): Promise<number> {
     return immediateTransaction(this.open(), (db) => {
       db.prepare(`DELETE FROM file_blob_refs WHERE org = ?`).run(org);
-      db.prepare(`DELETE FROM file_conversions WHERE org = ?`).run(org);
-      db.prepare(`DELETE FROM output_conversions WHERE org = ?`).run(org);
       return Number(db.prepare(`DELETE FROM file_blobs WHERE org = ?`).run(org).changes);
     });
   }
-
-  async listConversions(limit: number): Promise<AttachmentConversion[]> {
-    const rows = this.open()
-      .prepare(
-        `SELECT ${FILE_CONVERSION_COLUMNS} FROM file_conversions
-         ORDER BY created_at, run_id, position
-         LIMIT ?`,
-      )
-      .all(limit) as unknown as FileConversionRow[];
-    return rows.map(fileConversionOf);
-  }
-
-  async forgetConversion(runId: string, position: number): Promise<void> {
-    this.open().prepare(`DELETE FROM file_conversions WHERE run_id = ? AND position = ?`).run(runId, position);
-  }
-
-  async listOutputConversions(limit: number): Promise<OutputConversion[]> {
-    const rows = this.open()
-      .prepare(
-        `SELECT ${OUTPUT_CONVERSION_COLUMNS} FROM output_conversions
-         ORDER BY created_at, run_id, position
-         LIMIT ?`,
-      )
-      .all(limit) as unknown as OutputConversionRow[];
-    return rows.map(outputConversionOf);
-  }
-
-  async forgetOutputConversion(runId: string, position: number): Promise<void> {
-    this.open().prepare(`DELETE FROM output_conversions WHERE run_id = ? AND position = ?`).run(runId, position);
-  }
-}
-
-const FILE_CONVERSION_COLUMNS =
-  "run_id, position, org, session_id, filename, storage_key, content_type, created_at";
-
-interface FileConversionRow {
-  run_id: string;
-  position: number;
-  org: string;
-  session_id: string;
-  filename: string;
-  storage_key: string;
-  content_type: string;
-  created_at: string;
-}
-
-function fileConversionOf(row: FileConversionRow): AttachmentConversion {
-  return {
-    runId: row.run_id,
-    position: Number(row.position),
-    org: row.org,
-    sessionId: row.session_id,
-    filename: row.filename,
-    storageKey: row.storage_key,
-    contentType: row.content_type,
-    createdAt: row.created_at,
-  };
-}
-
-const OUTPUT_CONVERSION_COLUMNS = "run_id, position, org, session_id, name, storage_key, created_at";
-
-interface OutputConversionRow {
-  run_id: string;
-  position: number;
-  org: string;
-  session_id: string;
-  name: string;
-  storage_key: string;
-  created_at: string;
-}
-
-function outputConversionOf(row: OutputConversionRow): OutputConversion {
-  return {
-    runId: row.run_id,
-    position: Number(row.position),
-    org: row.org,
-    sessionId: row.session_id,
-    name: row.name,
-    storageKey: row.storage_key,
-    createdAt: row.created_at,
-  };
 }

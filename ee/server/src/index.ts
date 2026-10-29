@@ -37,6 +37,7 @@ export type { EnterprisePostgres, EnterpriseSchema } from "./schema/enterprise-p
 export {
   ENTERPRISE_MIGRATION_LOCK_KEY,
   ENTERPRISE_MIGRATIONS,
+  ENTERPRISE_SCHEMA,
   ENTERPRISE_SCHEMA_VERSION,
   runEnterpriseMigrations,
 } from "./schema/enterprise-migrations.js";

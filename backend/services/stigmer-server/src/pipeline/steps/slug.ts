@@ -98,9 +98,7 @@ export function generateSlug(name: string): string {
  *     first 8 hex digits of the source's SHA-256, so two long names that
  *     share their first 54 characters still differ.
  *
- * Names people type keep checkDerivedSlug's refusal and its fix. The store
- * migration that repairs account slugs stored before the rules held keeps
- * a frozen copy of this rule (store/account-slugs-repaired.ts).
+ * Names people type keep checkDerivedSlug's refusal and its fix.
  */
 export function fittedSlug(name: string, ...fallbacks: string[]): string {
   let source = name;

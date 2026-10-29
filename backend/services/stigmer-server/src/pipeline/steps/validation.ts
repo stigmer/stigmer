@@ -30,9 +30,9 @@ export function validator(): Validator {
  * an update's request carries only the fields its mask names, so the rules
  * hold for the merged resource, the one that will be stored.
  *
- * One exception, on an update: a row stored before the label and tag rules
- * may hold values they refuse (store/label-tag-report.ts names such rows,
- * and nothing rewrites them). A write that leaves the row's labels, or its
+ * One exception, on an update: a row stored before a label or tag rule
+ * tightened may hold values the rule now refuses, and nothing rewrites
+ * stored rows for it. A write that leaves the row's labels, or its
  * tags, exactly as stored is not refused for them; a write that changes
  * them is held to the rules, and every other rule binds as before. A
  * create has no stored row, so it meets every rule.

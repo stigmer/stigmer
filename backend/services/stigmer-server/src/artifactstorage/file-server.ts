@@ -218,38 +218,3 @@ async function serveArtifact(
     res.end();
   }
 }
-
-/**
- * Go warnOnLegacyArtifactLayout: a one-line migration hint when a
- * pre-#285 store layout is detected (base was a PARENT; artifacts lived at
- * <base>/artifacts/<key>). Keys off the two subpaths only the OLD layout
- * produces — <base>/artifacts/attachments and the doubled
- * <base>/artifacts/artifacts — so it cannot false-positive on a healthy
- * new-layout install.
- */
-export async function warnOnLegacyArtifactLayout(
-  basePath: string,
-  logger: Logger,
-): Promise<void> {
-  for (const sub of ["attachments", "artifacts"]) {
-    const legacy = path.join(basePath, "artifacts", sub);
-    try {
-      const info = await stat(legacy);
-      if (info.isDirectory()) {
-        logger.warn(
-          "Detected artifacts under a pre-#285 layout at <base>/artifacts/*. " +
-            "The artifact root is now <base> itself. Move <base>/artifacts/* up into " +
-            "<base> (or set ARTIFACT_LOCAL_BASE_PATH to the old <base>/artifacts) so " +
-            "existing artifacts remain reachable.",
-          {
-            legacyDir: path.join(basePath, "artifacts"),
-            artifactRoot: basePath,
-          },
-        );
-        return;
-      }
-    } catch {
-      // Absent legacy path: the healthy case.
-    }
-  }
-}

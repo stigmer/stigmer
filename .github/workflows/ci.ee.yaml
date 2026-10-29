@@ -95,6 +95,19 @@ jobs:
         working-directory: backend/services/stigmer-server
         run: npm ci
 
+      # Every schema chain the open-source tree ships (the store's two and
+      # Enterprise's) is under this lane's paths, so its migrations.sum
+      # files are compared here: a merged step never changes or goes
+      # (backend/services/stigmer-server/scripts/check-migration-sums.ts
+      # says why).
+      - name: Refuse a change to a merged schema step
+        working-directory: backend/services/stigmer-server
+        run: |
+          git fetch --no-tags --depth=1 origin "${BASE_REF}"
+          npm run --silent schema:check-sums -- --base FETCH_HEAD
+        env:
+          BASE_REF: ${{ github.base_ref || 'main' }}
+
       - name: Install Enterprise dependencies
         working-directory: ee/server
         run: npm ci

@@ -6,17 +6,62 @@ consolidated members Go kept behind the `DB()` escape hatch — bootstrap state,
 MCP OAuth). Two drivers implement it:
 
 - `sqlite/` — the laptop-tier default (`node:sqlite`, zero-config, one file)
-  with its versioned migration chain (v1–v6 adopted from Go DDL-faithful, then
-  this port's own steps, each named at its constant in `sqlite/migrations.ts`).
+  with its schema chain (`sqlite/migrations.ts`).
 - `postgres/` — the self-host/team tier (`pg` pool, row-level `FOR UPDATE`
-  atomicity, its own independent migration chain with real indexes,
-  `tsvector`/`tsquery` search).
+  atomicity, its own schema chain with real indexes, `tsvector`/`tsquery`
+  search).
 
 Selection is boot config (`boot/config.ts`): `DATABASE_URL` set → Postgres (it
 wins when both are set — `DB_PATH` always has a default value); else sqlite on
 `DB_PATH`. Domain code depends on `interface.ts` only — never on a driver
 directory. Driver-neutral helpers shared by both drivers live here
 (`proto-fields.ts` reflection + scan semantics, `list-index.ts`, `logger.ts`).
+
+## Schema migrations
+
+Each schema chain is a list of steps, `{ version, statements, rewrite? }`,
+applied in order at every open: the store's Postgres chain
+(`postgres/migrations.ts`, the `public` schema) and SQLite chain
+(`sqlite/migrations.ts`), Enterprise's `ee` chain, and any composition's own.
+Every Postgres chain runs through the one runner the package exports,
+`runSchemaChain` (`postgres/schema-chain.ts`): its own advisory lock, its
+ledger `<schema>.schema_version` with each applied step's digest, one
+transaction per step. SQLite's runner is its synchronous twin
+(`sqlite/schema-chain.ts`). v1 of each chain is the schema 0.1.0 starts from.
+
+Beside each chain sit two committed files. `schema.snapshot.sql` is the
+schema a fresh replay leaves, printed from the catalogue
+(`postgres/schema-snapshot.ts`, `sqlite/schema-snapshot.ts`) and compared by
+the chain's test, so a schema change reaches review as a diff of the schema.
+It prints tables, their constraints and their indexes, which is all the
+chains hold; a step that adds another kind of object (a view, a trigger, a
+function, a type) extends the printers in the same change.
+`migrations.sum` holds each step's SHA-256 (`schema-checksum.ts`).
+`npm run schema:snapshot` rewrites both after a new step.
+
+The practice, for every step after 0.1.0:
+
+1. A schema change is a new step. A merged step never changes or goes: a
+   merge may deploy at once, and a team's own server upgrades from any
+   release. `npm run schema:check-sums` refuses a changed or removed
+   `migrations.sum` line against the base branch (the Enterprise lane runs
+   it), and every runner refuses to boot when a step it recorded differs
+   from the build's.
+2. Each step is safe while the previous release's server still runs against
+   the same database during a roll: expand now (a new nullable column, a new
+   table, a new index), contract in a later release once no running server
+   reads the old shape. The list index's repair at open is the example: rows
+   an older binary writes are re-derived, never refused.
+3. A step that rewrites stored rows decodes them only through descriptors
+   frozen in the step, never through live generated types; otherwise a
+   later contract change would change what a shipped step does. `rewrite`
+   code is not hashed, so this rule is what keeps it fixed.
+4. Every earlier release upgrades. A new baseline is cut only together with
+   a release every install must pass through, announced as such; the next
+   release then refuses any database below it.
+5. No downgrades. A database ahead of the build is refused before anything
+   is read: "schema version N is newer than this server supports". A
+   database from before the 0.1.0 baseline meets the same refusal.
 
 ## The list index
 
@@ -66,10 +111,6 @@ A File's bytes live in a blob store under a key the server mints, and that key i
 
 `Store.files.insert` and `Store.files.remove` change who names a blob, and each commits the File's resource row (with its etag and list keys, as `insertResource` writes one), its ref and the blob's state in one transaction, as `writeResourceAppendingEvents` commits a row with its events. One lock order: the blob's row first, then the resource rows. Postgres takes `SELECT … FROM file_blobs … FOR UPDATE` before it touches a resource row; SQLite serializes every writer under `BEGIN IMMEDIATE`. So two removes of a blob's last two Files orphan it exactly once, and an insert racing the remove of a blob's last File lands first or is refused. The contract both drivers pass is the kit `__tests__/file-blobs-contract.ts`.
 
-A third table, `file_conversions`, holds the attachments runs carried before a message's files became Files. The step that turned a conversation's workspace entries into its resources (Postgres v40, SQLite v44, `workspace-becomes-resources.ts`) lifted each one off its run into a row keyed by the run and its position, and the file domain reads them oldest run first (`Store.files.listConversions`), makes each a File of the run's conversation, and forgets it (`forgetConversion`). An organization's purge removes its rows with its blobs.
-
-A fourth, `output_conversions`, holds the files the Stigmer harness uploaded for a run before what a turn returns became Files. The step that retired them (Postgres v41, SQLite v45, `run-artifacts-become-files.ts`) lifted each file entry off its run's status into a row keyed the same way, and the file domain makes each a File of the run, with the run's id and the file's name as its output path (`Store.files.listOutputConversions`, `forgetOutputConversion`). It is a table of its own because its keys are trusted by another shape and its rows become a run's outputs, not a message's files. An organization's purge removes its rows too.
-
 ## The permission history
 
 Every change to an access row can be recorded in `grant_history`
@@ -103,31 +144,7 @@ handed out twice, and `Store.permissionHistoryHead` reads an organization's last
 number even when every entry has gone. The runner that calls it, and how long a history is kept, are
 the domain's (`domain/grant/history-retention.ts`).
 
-The tables were `iam_policy_history` and `iam_policy_history_heads`, with the
-column `policy_id`, until the kind was renamed Grant (Postgres v34, SQLite
-v38). That step also moved every stored grant's id from `iamp_X` to `grt_X`, in
-its row, its list keys and its history entries: a grant's id is derived from
-its triple and copied by nothing but its own history, so unlike every other
-kind's ids it follows the rename (`kind-rename.ts` has the reasons).
-
-## Two kinds merged into one
-
-The agent share (a hosted chat link) and the agent channel (a Slack or WhatsApp
-connection) became one Channel kind whose type says which (Postgres v37,
-SQLite v41, `channel-kinds-merged.ts`). Each stored row is converted, not
-retired, and keeps its id: a chat link lives in pages Stigmer does not control
-and a connection in a provider's install, so an `ash_` or `ach_` id stays
-valid under the kind's retired prefixes. The rows are read by field number,
-since the two generated messages are gone; the frozen shapes in
-`frozen-envelopes.ts` keep the older steps reading them as they did. Names
-were kept per kind, so a share and a channel of one organization could hold
-one slug: the older row keeps it, by creation time then by id, the name
-backfill's own rule (`resource-names-backfill.ts`), and the other takes its
-type as a suffix, logged. Grants on either kind are re-keyed to the channel's
-triple and their history follows, and a chat link's guest conversations take
-the one label every channel's conversations carry, `stigmer.ai/channel-id`.
-
-## Contract and continuity
+## Contract
 
 The behavioral contract both drivers must satisfy identically is
 `__tests__/store-contract.ts`, invoked by each driver's store-contract test (`sqlite/__tests__/store-contract.test.ts`, `postgres/__tests__/store-contract.postgres.test.ts`)
@@ -137,12 +154,3 @@ own tests. One deliberate semantic difference: sqlite
 serializes ALL writes globally as a side effect of its single synchronous
 connection; Postgres guarantees per-resource atomicity only — the interface
 contract is the narrower one.
-
-Schema continuity across the Go cutover (any Go-created database adopts forward)
-is proven by `sqlite/__tests__/migrations.test.ts` against a real Go-created
-fixture. The fixture is FROZEN: the Go server retired, its schema can no
-longer change, and the committed v6 dump is the permanent record of what real pre-cutover databases look like. The generator
-script (`scripts/regen-go-db-fixture.sh`) was retired with it and remains in git
-history should the fixture ever need forensic regeneration. The Postgres chain
-has no adoption story by construction — no Postgres database predates its
-driver.

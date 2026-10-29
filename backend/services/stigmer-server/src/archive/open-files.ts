@@ -20,8 +20,8 @@
  * entry and the caller's noun. The push step wraps them into its
  * InvalidArgument arm.
  *
- * Proven by the plugin domain's __tests__/plugin.test.ts and
- * __tests__/legacy-status.test.ts, and the eval domain's push tests.
+ * Proven by the plugin domain's __tests__/plugin.test.ts and the eval
+ * domain's push tests.
  */
 import type { PluginFileEntry, PluginFiles } from "@stigmer/plugin-package";
 import { comparePaths, isContainedPath } from "@stigmer/plugin-package";

@@ -383,9 +383,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `backend/services/stigmer-server/src/domain/score/judge/judge-run.ts`,
   `backend/services/stigmer-server/src/temporal/agentexecution/dispatch.ts`,
   `backend/services/stigmer-server/src/temporal/agentexecution/activities.ts`,
-  `backend/services/stigmer-server/src/extensions/metered-usage.ts`,
-  `backend/services/stigmer-server/src/store/sub-agents-retired.ts` (read the
-  session's harness, or default an unspecified one to Stigmer).
+  `backend/services/stigmer-server/src/extensions/metered-usage.ts`.
 - The React SDK: `sdk/react/src/index.ts`, `sdk/react/src/models/index.ts`,
   `sdk/react/src/models/ModelSelector.tsx`,
   `sdk/react/src/models/service-tier.ts`,

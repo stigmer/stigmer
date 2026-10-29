@@ -10,8 +10,7 @@
  * with an eval run's hundreds of tries, and an eval run's delete finds
  * them through it. Revision 4 renamed the key from `plugin_eval` when the
  * label became `stigmer.ai/eval-run`; the store derives every session's
- * keys again once, at open, after the store migration relabelled the
- * retired kinds' tries (store/eval-kinds-retired.ts). A session belongs to one organization, which is every
+ * keys again once, at open. A session belongs to one organization, which is every
  * declaration's first fact, so `session.list` narrows by it when the
  * request names one.
  *

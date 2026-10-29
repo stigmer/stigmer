@@ -27,9 +27,8 @@
  * revision 3 `plugin_eval`, revision 4 `working_session`, revision 5
  * `schedule`, revision 6 took waiting runs out of `working_session` into
  * `waiting_session`, revision 7 added `agent`, and revision 8 renamed
- * `plugin_eval` to `eval_run` with its label (store/eval-kinds-retired.ts),
- * revision 9 renamed `schedule` to `routine` with its label
- * (store/schedules-become-routines.ts), and revision 10 added
+ * `plugin_eval` to `eval_run` with its label, revision 9 renamed
+ * `schedule` to `routine` with its label, and revision 10 added
  * `paused_session`: the store derives every existing
  * run's keys again once, at open.
  *

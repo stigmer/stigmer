@@ -380,12 +380,9 @@ export {
 // one row per subject there as it does for every account the library mints.
 export { accountIdFor } from "./domain/identityaccount/constants.js";
 // A slug fitted to metadata.slug's rules for a name the server chooses (an
-// account's email, a managed resource's name), and the frozen repair a store
-// migration applies to an account slug stored before the rules held: an
-// edition that writes its own account rows derives and repairs through the
-// same two.
+// account's email, a managed resource's name): an edition that writes its
+// own account rows derives it the same way.
 export { fittedSlug } from "./pipeline/steps/slug.js";
-export { repairAccountSlug } from "./store/account-slugs-repaired.js";
 // The guest-token capability (drivers.guestTokenMinting — the one token
 // method only an edition that hosts shared-agent pages serves).
 export type { GuestTokenMinting } from "./extensions/guest-token-minting.js";
@@ -841,6 +838,16 @@ export type { RawResourceDocument } from "./store/interface.js";
 // piecemeal. Not for production wiring: compose.ts selects the driver from
 // config, and a composition never opens a second store.
 export { PostgresStore } from "./store/postgres/store.js";
+// The one runner for every Postgres schema chain in a shared database: a
+// composition's own chain (its schema, its lock key, its steps as data) runs
+// through it, with the same ledger, digest check and refusals as the store's
+// chain, so the migration discipline lives once. The digest and the sum
+// file, and the snapshot a chain's test compares with a fresh replay, come
+// with it (store/README.md, "Schema migrations").
+export { runSchemaChain, currentSchemaVersion } from "./store/postgres/schema-chain.js";
+export type { PostgresSchemaChain, PostgresSchemaMigration } from "./store/postgres/schema-chain.js";
+export { migrationChecksum, renderMigrationSum } from "./store/schema-checksum.js";
+export { snapshotPostgresSchema } from "./store/postgres/schema-snapshot.js";
 export type {
   ArtifactStorage,
   ArtifactStorageDriverFactory,
