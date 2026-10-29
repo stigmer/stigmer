@@ -14,8 +14,10 @@ import { describe, expect, it } from "vitest";
 import { POSTGRES_MIGRATIONS } from "../postgres/migrations.js";
 import {
   assertChainShape,
+  compareSums,
   migrationChecksum,
   renderMigrationSum,
+  sumLines,
 } from "../schema-checksum.js";
 import { SQLITE_MIGRATIONS } from "../sqlite/migrations.js";
 
