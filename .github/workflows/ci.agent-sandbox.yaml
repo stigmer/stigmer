@@ -16,6 +16,11 @@
 # deleted gracefully and then by force, and the turn completes on the next
 # pod each time with the model handed the task once.
 #
+# The lane runs the server's whole live class, so the Docker sandbox driver's
+# live test (src/sandbox/__tests__/docker.live.test.ts) runs here too, on the
+# runner's own Docker, with the runner image the script already pulled; a
+# change to that driver selects this lane (oss#1600).
+#
 # Runs:
 # - from ci.gate.yaml (workflow_call, no input) when scripts/ci-lanes.mjs
 #   finds the change needs it, against the release the driver is tested

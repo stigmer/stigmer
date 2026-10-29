@@ -80,4 +80,4 @@ The root map's rows for `sdk/typescript`, `sdk/react` and `sdk/ink`, plus
 `npm run typecheck -w @stigmer/embed && npm run test -w @stigmer/embed`,
 `make gen-sdk-docs-check` when an exported symbol or a token changes,
 `make -C sdk/go verify`, `make -C sdk/python codegen-verify`,
-`make -C sdk/java verify` for the language SDKs.
+`make -C sdk/python test`, `make -C sdk/java verify` for the language SDKs.

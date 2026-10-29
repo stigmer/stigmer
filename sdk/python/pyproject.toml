@@ -27,6 +27,13 @@ dependencies = [
     "stigmer-apis>=0.1.0",
 ]
 
+# Installed by `make test`, never by users of the published package.
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+]
+
 [project.urls]
 Homepage = "https://stigmer.ai"
 Repository = "https://github.com/stigmer/stigmer"

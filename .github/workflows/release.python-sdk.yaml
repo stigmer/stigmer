@@ -136,6 +136,11 @@ jobs:
       - name: Generate SDK client code
         run: make -C sdk/python codegen
 
+      # A red suite stops the publish. The environment lives outside
+      # sdk/python, so the build below can never pack it into the sdist.
+      - name: Test the SDK
+        run: make -C sdk/python test VENV="$RUNNER_TEMP/python-sdk-venv"
+
       - name: Set version and pin protos dependency
         working-directory: sdk/python
         run: |
