@@ -726,6 +726,11 @@ test-agent-sandbox: build-server ## Run the agent-sandbox driver's live test and
 	@for tool in docker kind kubectl temporal; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the agent-sandbox live test needs it"; exit 1; }; done
 	node scripts/agent-sandbox-live.mjs
 
+.PHONY: test-docker-sandbox
+test-docker-sandbox: build-server ## Run the Docker driver's live test alone: a runner container through the real docker CLI, its labels and env, its teardown (needs a Docker daemon; RUNNER_IMAGE a local image, else the published runner). ci.agent-sandbox runs it with the rest of the live class
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the Docker driver's live test needs it"; exit 1; }
+	cd $(SERVER_DIR) && if [ -n "$${RUNNER_IMAGE:-}" ]; then export STIGMER_SANDBOX_RUNNER_IMAGE="$$RUNNER_IMAGE"; fi && npm run test:live -- src/sandbox/__tests__/docker.live.test.ts
+
 .PHONY: smoke-helm
 smoke-helm: build-server build-web stage-compose-runner-cli ## Build both images from source, install the chart on kind and run the gate smoke (needs Docker, kind, helm, kubectl)
 	@for tool in docker kind helm kubectl; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the Helm smoke needs it"; exit 1; }; done

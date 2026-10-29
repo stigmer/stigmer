@@ -206,3 +206,12 @@ make codegen
 ```
 
 Handwritten code lives in `src/stigmer/` (outside `_gen/`): `_client.py`, `_transport.py`, `_interceptors.py`, `_search.py`, `_tokens.py`, and `__init__.py`.
+
+## Tests
+
+```bash
+cd sdk/python
+make test
+```
+
+It makes a virtual environment in `.venv`, installs the SDK and the proto stubs from this repository into it (not PyPI's `stigmer-apis`, which can lag the tree), and runs `pytest`. `make clean` removes the environment.

@@ -15,7 +15,8 @@
 #     schema or generator change that lands without its regenerated output
 #     fails here rather than drifting.
 #   - Python runs codegen-verify (regen + ast.parse) because no other lane
-#     ever syntax-checks the committed Python output; TypeScript and
+#     ever syntax-checks the committed Python output, then the SDK's pytest
+#     suite against the in-tree proto stubs (oss#1491); TypeScript and
 #     mcp-server compile validity is already covered by ci.ts-workspace's
 #     turbo `build` (their src/gen is inside the package, so a regen makes
 #     the package affected), so their steps stay freshness-only.
@@ -79,6 +80,17 @@ jobs:
             mcp-server/src/gen \
             sdk/typescript/src/gen \
             sdk/python/src/stigmer/_gen
+
+      # After the freshness check, so a stale _gen dir fails with that
+      # check's plainer message first and the tests read code known to match
+      # the schemas. 3.11 is the floor pyproject.toml's requires-python names.
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Test the Python SDK
+        run: make -C sdk/python test
 
       # Census guard for the stub scrub (oss#497): committed protoc stubs
       # must carry no @internal comment sections. The scrub runs inside the

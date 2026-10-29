@@ -29,7 +29,8 @@
  *     server, the turn proof's server and its mock LLM; on Docker Desktop
  *     the proof's server alone (the shipped server takes no listen address).
  * Then it runs `npm run test:live` in the server package with those
- * addresses (the driver's live class), and, when that passes, the turn proof
+ * addresses (the server's live class: this driver's test, and the Docker
+ * driver's, which drives the host's own Docker), and, when that passes, the turn proof
  * (`npm run test:agent-sandbox` in test/conformance): the open-source server
  * on the agent-sandbox driver, a Stigmer turn held open in a pod, the pod
  * deleted, the turn completed on the next one. The proof boots the built

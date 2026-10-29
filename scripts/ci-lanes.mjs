@@ -80,6 +80,11 @@ export const LANES = {
       "backend/services/stigmer-server/src/sandbox/provisioner.ts",
       "backend/services/stigmer-server/src/sandbox/naming.ts",
       "backend/services/stigmer-server/src/sandbox/runner-launch.ts",
+      // The Docker driver, its environment, and its live test: the lane runs
+      // the server's whole live class on the runner's own Docker (oss#1600).
+      "backend/services/stigmer-server/src/sandbox/docker.ts",
+      "backend/services/stigmer-server/src/sandbox/environment.ts",
+      "backend/services/stigmer-server/src/sandbox/__tests__/docker.live.test.ts",
       // The logger the live test hands the driver.
       "backend/services/stigmer-server/src/boot/logger.ts",
       // The live class's config and the entry point that makes its cluster.
@@ -246,8 +251,9 @@ export const LANES = {
       "mcp-server/Makefile",
       "sdk/typescript/src/gen/**",
       "sdk/typescript/Makefile",
-      "sdk/python/src/stigmer/_gen/**",
-      "sdk/python/Makefile",
+      // The Python SDK whole: its generated dir, the handwritten client,
+      // the tests the lane runs and the manifest they install from.
+      "sdk/python/**",
       "sdk/go/proto/**",
       // The substrate driver's Agent Substrate stubs and their generator
       // config (make gen-substrate-stubs-check).
