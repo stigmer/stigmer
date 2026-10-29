@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// renamed message, changed field type, changed lifecycle guarantee); additive fields never
 /// bump it. Hosts compare this against the runner's advertised version to decide
 /// compatibility — see [`crate::host`] negotiation.
-pub const IPC_PROTOCOL_VERSION: u32 = 2;
+pub const IPC_PROTOCOL_VERSION: u32 = 1;
 
 /// Commands the host writes to the runner's stdin (newline-delimited JSON).
 #[derive(Debug, Serialize)]
@@ -45,10 +45,9 @@ pub enum IpcCommand {
 pub enum IpcResponse {
     #[serde(rename_all = "camelCase")]
     Ready {
-        // Optional so a pre-version-1 runner that omits the field still deserializes; the
-        // host treats absence as version 1. See the IPC spec "Protocol version" section.
-        #[serde(default)]
-        protocol_version: Option<u32>,
+        // Required: a `ready` without it is refused. See the IPC spec "Protocol version"
+        // section.
+        protocol_version: u32,
     },
     #[serde(rename_all = "camelCase")]
     SessionAdded {
@@ -82,39 +81,29 @@ mod tests {
         serde_json::from_str(FIXTURES).expect("golden IPC fixtures must be valid JSON")
     }
 
-    // Backward-compatibility contract: the host must parse `ready` whether or not the
-    // runner sends protocolVersion. An older runner omits it. See the IPC spec.
+    // The handshake's version is required: the host reads it, and a `ready` without it
+    // is refused. See the IPC spec.
     #[test]
     fn ready_parses_with_protocol_version() {
         let resp: IpcResponse =
             serde_json::from_str(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
         match resp {
             IpcResponse::Ready { protocol_version } => {
-                assert_eq!(
-                    protocol_version,
-                    Some(1),
-                    "should read the advertised version"
-                );
+                assert_eq!(protocol_version, 1, "should read the advertised version");
             }
             other => panic!("expected Ready, got {other:?}"),
         }
     }
 
     #[test]
-    fn ready_parses_without_protocol_version() {
-        let resp: IpcResponse = serde_json::from_str(r#"{"type":"ready"}"#).unwrap();
-        match resp {
-            IpcResponse::Ready { protocol_version } => {
-                assert_eq!(protocol_version, None, "absent field must default to None");
-            }
-            other => panic!("expected Ready, got {other:?}"),
-        }
+    fn ready_without_protocol_version_is_refused() {
+        assert!(serde_json::from_str::<IpcResponse>(r#"{"type":"ready"}"#).is_err());
     }
 
     #[test]
-    fn protocol_version_is_two() {
+    fn protocol_version_is_one() {
         assert_eq!(
-            IPC_PROTOCOL_VERSION, 2,
+            IPC_PROTOCOL_VERSION, 1,
             "bump only on a breaking IPC change"
         );
     }
@@ -169,7 +158,7 @@ mod tests {
     }
 
     // Every response the runner emits must deserialize from the golden wire shape into the
-    // expected typed variant — including the legacy `ready` that omits protocolVersion.
+    // expected typed variant.
     #[test]
     fn responses_match_golden_fixtures() {
         let r = &fixtures()["responses"];
@@ -181,13 +170,7 @@ mod tests {
         assert!(matches!(
             from("ready"),
             IpcResponse::Ready {
-                protocol_version: Some(2)
-            }
-        ));
-        assert!(matches!(
-            from("readyLegacy"),
-            IpcResponse::Ready {
-                protocol_version: None
+                protocol_version: 1
             }
         ));
         match from("sessionAdded") {

@@ -36,8 +36,8 @@ export const RUN_CREDENTIAL_INPUT_KEY = "execution_context_token" as const;
 /**
  * The run credential an activity input carries, or `undefined` when the
  * argument is not an object carrying a non-empty string under the key —
- * positional string arguments, the connect lane's camelCase input, and an
- * older server's credential-less object all answer `undefined`.
+ * positional string arguments (EnsureThread's), the connect lane's camelCase
+ * input, and a credential-less dispatch's object all answer `undefined`.
  */
 export function readRunCredentialFromInput(arg: unknown): string | undefined {
   if (arg === null || typeof arg !== "object") {

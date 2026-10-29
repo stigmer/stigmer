@@ -120,11 +120,11 @@ describe("loadConfig", () => {
     expect(config.taskQueue).toBe("runner:abc123");
   });
 
-  it("respects TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE as fallback", () => {
+  it("polls stigmer_runner without STIGMER_TASK_QUEUE, whatever the server's own queue variable says", () => {
     process.env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE = "custom-queue";
     const config = loadConfig();
 
-    expect(config.taskQueue).toBe("custom-queue");
+    expect(config.taskQueue).toBe("stigmer_runner");
   });
 
   it("no longer requires TEMPORAL_SERVICE_ADDRESS up front in cloud mode", () => {

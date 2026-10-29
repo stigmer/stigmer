@@ -32,11 +32,10 @@ import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
 import { AgentMcpServerSchema, AgentSpecSchema, HookSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { GetArtifactResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { HttpMcpServerSchema, McpServerEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
 import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RecalledMemoriesSchema, RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
@@ -45,6 +44,7 @@ import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/
 import { ApiResourceReferenceSchema, type ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 
+import { mintedDownload } from "../../__test-utils__/minted-download.js";
 import { createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -125,10 +125,7 @@ function client(available: readonly string[] = []) {
       if (!available.includes(r.slug)) throw new Error(`skill ${r.slug} not found`);
       return skill(r.slug);
     }),
-    getPluginArtifactDownloadUrl: vi.fn(async () => {
-      throw new ConnectError("no lane", Code.Unimplemented);
-    }),
-    getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+    getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE))),
   });
   return { client: c, fetches };
 }

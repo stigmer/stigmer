@@ -197,8 +197,8 @@ export function sessionWorkspaceDir(env: HermeticEnvironment): string {
 // Running a scenario
 // ---------------------------------------------------------------------------
 
-/** The `ExecuteDeepAgent` function as the runner serves it: the typed object OR the legacy positional pair. */
-export type ExecuteDeepAgentFn = (arg0: ExecuteActivityInput | string, arg1?: string) => Promise<unknown>;
+/** The `ExecuteDeepAgent` function as the runner serves it: the typed object. */
+export type ExecuteDeepAgentFn = (input: ExecuteActivityInput) => Promise<unknown>;
 
 /** How the driver obtains the activity from a `Config` — the one seam the move onto the runtime flipped. */
 export type ActivityFactory = (config: Config) => Promise<ExecuteDeepAgentFn>;
@@ -401,8 +401,6 @@ export interface DeepAgentTurnOptions {
   readonly turnSeq?: number;
   /** Overrides the production thread id ({@link FIXTURE.threadId}) — only to stage the empty-id edge. */
   readonly threadId?: string;
-  /** Drive the legacy positional `(executionId, threadId)` wire shape instead of the typed object. */
-  readonly positional?: boolean;
   readonly activityFactory?: ActivityFactory;
   readonly onControls?: (controls: InvocationControls) => void;
 }
@@ -424,10 +422,7 @@ export async function runDeepAgentTurn(
     thread_id: threadId,
     turn_seq: turnSeq,
   };
-  const args: [ExecuteActivityInput | string, string?] = options.positional
-    ? [scenario.record.executionId, threadId]
-    : [input];
-  return runActivityHermetically(activity, args, {
+  return runActivityHermetically(activity, [input], {
     taskQueue: scenario.config.taskQueue,
     onControls: (controls) => {
       scenario.controls = controls;

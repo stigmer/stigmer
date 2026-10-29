@@ -364,10 +364,7 @@ async function cachedArchive(
   let fetched: Uint8Array | undefined;
   try {
     fetched = await downloadArchive(
-      {
-        mintDownloadUrl: (key) => client.getPluginArtifactDownloadUrl(key),
-        fetchUnary: (key) => client.getPluginArtifact(key),
-      },
+      { mintDownloadUrl: (key) => client.getPluginArtifactDownloadUrl(key) },
       storageKey,
     );
   } catch (err) {

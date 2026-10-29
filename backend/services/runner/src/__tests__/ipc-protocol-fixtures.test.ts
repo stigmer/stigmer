@@ -37,7 +37,6 @@ describe("ipc-protocol golden fixtures", () => {
     expect(Object.keys(responses).sort()).toEqual([
       "error",
       "ready",
-      "readyLegacy",
       "sessionAdded",
       "sessionRemoved",
       "shutdownComplete",
@@ -51,11 +50,5 @@ describe("ipc-protocol golden fixtures", () => {
     // `null` is the canonical "clear the token" shape; absence is a host quirk, not the
     // contract. The Rust mirror is checked against this exact value.
     expect(commands.updateTokenCleared.token).toBeNull();
-  });
-
-  it("keeps a legacy `ready` without a protocolVersion for backward-compat hosts", () => {
-    const { readyLegacy } = buildFixtures().responses;
-    expect(readyLegacy).toEqual({ type: "ready" });
-    expect("protocolVersion" in readyLegacy).toBe(false);
   });
 });

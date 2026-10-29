@@ -17,14 +17,13 @@
  * the run's scoped credential as the File mount is: the server answers the
  * archive of the version the run's spec names, signed for the runner's
  * address, which may differ from a person's (a sandbox on a local stack;
- * stigmer#2364). A server that predates the door (`Unimplemented`) is read
- * by the Eval's reference at the stamped version, the read that asks
- * can_view of the run's caller. A `FailedPrecondition` from the door (most
- * often no transfer lane; also a finished run or a run with no Eval case,
- * which a live try never is) is read inline by that same reference read,
- * so it reaches no byte the run's caller may not view. Any other refusal
- * of the door, a gate refusal among them, fails the try naming the Eval:
- * falling back past it would hide the gate's answer.
+ * stigmer#2364). A `FailedPrecondition` from the door (most often no
+ * transfer lane; also a finished run or a run with no Eval case, which a
+ * live try never is) is read inline by the Eval's reference at the stamped
+ * version, the read that asks can_view of the run's caller, so it reaches
+ * no byte the run's caller may not view. Any other refusal of the door, a
+ * gate refusal among them, fails the try naming the Eval: falling back
+ * past it would hide the gate's answer.
  *
  * A plugin that moved past the eval's version is refused: the case workflow
  * starts no try then, so meeting it here means a push landed between the
@@ -33,12 +32,11 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
+import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { EvalArchiveDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
-import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { downloadArchive } from "../archive-mount.js";
 import { cleanEntryPath, sha256Hex } from "../plugin-mount.js";
@@ -78,9 +76,8 @@ async function fetchEvalArchive(client: StigmerClient, context: EvalCaseContext,
   try {
     bytes = await downloadArchive(
       {
-        mintDownloadUrl: () => mintEvalCaseUrl(client, executionId, ref),
-        fetchUnary: () => client.downloadEval(ref),
-        inlineOn: [Code.Unimplemented, Code.FailedPrecondition],
+        mintDownloadUrl: () => mintEvalCaseUrl(client, executionId),
+        inline: { on: [Code.FailedPrecondition], fetch: () => client.downloadEval(ref) },
       },
       context.evalId,
     );
@@ -95,18 +92,12 @@ async function fetchEvalArchive(client: StigmerClient, context: EvalCaseContext,
 }
 
 /**
- * The run's door first, under its scoped credential; the reference read
- * only when the server predates the door. Every other answer of the door
- * stands; the transport reads a `FailedPrecondition` inline (the header).
+ * The run's door, under its scoped credential. Its answer stands; the
+ * transport reads a `FailedPrecondition` inline (the header).
  */
-async function mintEvalCaseUrl(client: StigmerClient, executionId: string, ref: ApiResourceReference): Promise<EvalArchiveDownloadUrl> {
+async function mintEvalCaseUrl(client: StigmerClient, executionId: string): Promise<EvalArchiveDownloadUrl> {
   const scopedToken = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
-  try {
-    return await client.getRunEvalCaseArchiveDownloadUrl(executionId, scopedToken);
-  } catch (err) {
-    if (err instanceof ConnectError && err.code === Code.Unimplemented) return client.getEvalDownloadUrl(ref);
-    throw err;
-  }
+  return client.getRunEvalCaseArchiveDownloadUrl(executionId, scopedToken);
 }
 
 /** A plugin's archive at the eval's digest, by its storage key, as a mount reads it. */
@@ -123,10 +114,7 @@ async function fetchPluginArchive(client: StigmerClient, context: EvalCaseContex
   let bytes: Uint8Array | undefined;
   try {
     bytes = await downloadArchive(
-      {
-        mintDownloadUrl: (key) => client.getPluginArtifactDownloadUrl(key),
-        fetchUnary: (key) => client.getPluginArtifact(key),
-      },
+      { mintDownloadUrl: (key) => client.getPluginArtifactDownloadUrl(key) },
       storageKey,
     );
   } catch (err) {

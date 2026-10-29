@@ -3,7 +3,7 @@ title: Manager-mode IPC protocol
 description:
   The line-delimited JSON contract for driving the Stigmer runner as a
   subprocess in manager mode. Commands, responses, lifecycle, the versioned
-  handshake, and backward-compatibility rules for host authors.
+  handshake, and compatibility rules for host authors.
 ---
 
 This is the reference for the stdin/stdout protocol that drives the runner in
@@ -49,11 +49,11 @@ Framing rules:
 The runner advertises a protocol version in its [`ready`](#ready) message:
 
 ```json
-{ "type": "ready", "protocolVersion": 2 }
+{ "type": "ready", "protocolVersion": 1 }
 ```
 
-- `protocolVersion` is an **integer**. The current version is `2`; version 2
-  removed the workflow execution commands and their responses.
+- `protocolVersion` is an **integer** and is required. The current version is
+  `1`, the protocol's first.
 - The number increments **only on a breaking change** — a removed or renamed
   message, a changed field type, or a changed lifecycle guarantee. Adding a new
   optional field or a new message type does **not** bump it, because those
@@ -69,9 +69,8 @@ How a host should use it:
    runner is newer than the host. The host should refuse to proceed and surface
    a clear upgrade message rather than driving a protocol it does not
    understand.
-3. If the field is **absent**, treat the runner as protocol version `1` (the
-   field was introduced in version 1; a runner that omits it predates this
-   field).
+3. If the field is **absent**, the message is not a valid `ready`. The host
+   should refuse to proceed, as it would for any malformed handshake.
 
 The runner does not negotiate or downgrade. Compatibility is the host's
 decision.
@@ -88,7 +87,7 @@ sequenceDiagram
     Runner->>Host: {"type":"error","message":"...","fatal":true}
     Runner-->>Host: exit(1)
   else initialization succeeds
-    Runner->>Host: {"type":"ready","protocolVersion":2}
+    Runner->>Host: {"type":"ready","protocolVersion":1}
   end
   loop while stdin is open
     Host->>Runner: command (one JSON object per line)
@@ -197,7 +196,7 @@ The runner replies with [`shutdownComplete`](#shutdowncomplete) and then exits.
 Sent once at startup, after the manager is initialized.
 
 ```json
-{ "type": "ready", "protocolVersion": 2 }
+{ "type": "ready", "protocolVersion": 1 }
 ```
 
 | Field             | Type    | Description                                                                        |
@@ -286,7 +285,7 @@ Sent in response to [`shutdown`](#shutdown), just before the process exits.
 Note: a shutdown triggered by the host closing stdin does **not** produce this
 message.
 
-## Backward compatibility and host tolerance
+## Compatibility and host tolerance
 
 The protocol grows by addition. A host must **ignore unknown fields** so that a
 newer runner, which may add fields to existing messages, does not break an older
@@ -294,10 +293,6 @@ host. Both reference hosts get this for free: Rust `serde` ignores unknown
 fields unless `deny_unknown_fields` is set, and Go's `encoding/json` ignores
 them by default. If you implement a host in another language, replicate this
 tolerance.
-
-Conversely, a host that needs a field a runner does not send (for example,
-`protocolVersion` from a pre-version-1 runner) should apply a sensible default
-rather than failing. See [Protocol version](#protocol-version).
 
 ## Reference host implementations
 

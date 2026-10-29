@@ -4,8 +4,8 @@
  * checkpointer, a real command hook.
  *
  * The agent lists the `safety` plugin (`AgentSpec.plugins`). The blueprint
- * reads it by reference, the hooks phase fetches its archive (the unary lane; the
- * download lane answers Unimplemented here), verifies it against the
+ * reads it by reference, the hooks phase fetches its archive over the
+ * transfer lane (a minted `data:` URL here), verifies it against the
  * installed digest and mounts it; the hook is the plugin's own extensionless
  * bash script, made executable by its `#!` line, run in shell form from
  * `${CLAUDE_PLUGIN_ROOT}`. It reads the call on stdin and answers as Claude
@@ -64,7 +64,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { GetArtifactResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 
@@ -84,6 +84,7 @@ import {
   rowsGolden,
   rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
+import { mintedDownload } from "../../../../__test-utils__/minted-download.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
@@ -169,7 +170,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
       message: "Clean the build, list the files, then publish.",
     });
     usePlugin(record, "agent", "safety");
-    const getPluginArtifact = vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE }));
+    const mintPluginDownload = vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE)));
     const scenario = beginDeepAgentScenario({
       env,
       clock,
@@ -177,10 +178,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
       checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => SAFETY),
-        getPluginArtifactDownloadUrl: vi.fn(async () => {
-          throw new ConnectError("no download lane", Code.Unimplemented);
-        }),
-        getPluginArtifact,
+        getPluginArtifactDownloadUrl: mintPluginDownload,
       },
       script: () => ({
         turns: [
@@ -242,7 +240,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(record.rowsOf(final).messages.flatMap((m) => m.toolCalls).some((tc) => tc.id === DELETE.id), "the resumed turn carries no copy of it").toBe(false);
 
     // The second turn mounts from the session's verified cache.
-    expect(getPluginArtifact).toHaveBeenCalledTimes(1);
+    expect(mintPluginDownload).toHaveBeenCalledTimes(1);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
     await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/hooks.turn2.status.json"));
@@ -264,10 +262,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
       checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => SAFETY),
-        getPluginArtifactDownloadUrl: vi.fn(async () => {
-          throw new ConnectError("no download lane", Code.Unimplemented);
-        }),
-        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+        getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE))),
       },
       script: () => ({
         turns: [
@@ -355,10 +350,7 @@ fi
       checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => once),
-        getPluginArtifactDownloadUrl: vi.fn(async () => {
-          throw new ConnectError("no download lane", Code.Unimplemented);
-        }),
-        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: onceArchive })),
+        getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(onceArchive))),
       },
       script: () => ({
         turns: [
@@ -392,10 +384,7 @@ fi
       checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => SAFETY),
-        getPluginArtifactDownloadUrl: vi.fn(async () => {
-          throw new ConnectError("no download lane", Code.Unimplemented);
-        }),
-        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+        getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE))),
       },
       script: () => ({
         turns: [
@@ -419,7 +408,7 @@ fi
     const record = deepAgentExecutionRecord({ message: "Clean the build.", builtInAssistant: true });
     usePlugin(record, "session", "safety");
     record.execution.spec!.excludedPluginIds = [SAFETY.metadata!.id];
-    const getPluginArtifact = vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE }));
+    const mintPluginDownload = vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE)));
     const scenario = beginDeepAgentScenario({
       env,
       clock,
@@ -427,10 +416,7 @@ fi
       checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => SAFETY),
-        getPluginArtifactDownloadUrl: vi.fn(async () => {
-          throw new ConnectError("no download lane", Code.Unimplemented);
-        }),
-        getPluginArtifact,
+        getPluginArtifactDownloadUrl: mintPluginDownload,
       },
       script: () => ({
         turns: [
@@ -442,7 +428,7 @@ fi
 
     await runDeepAgentTurn(scenario, { turnSeq: 0 });
 
-    expect(getPluginArtifact, "an excluded plugin's archive is never fetched").not.toHaveBeenCalled();
+    expect(mintPluginDownload, "an excluded plugin's archive is never fetched").not.toHaveBeenCalled();
     const deleted = record.lastFullRows!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === DELETE.id)!;
     expect(deleted.approvalPolicySource).not.toBe(ApprovalPolicySource.HOOK);
     expect(deleted.approvalPolicyHook).toBe("");
@@ -493,10 +479,7 @@ fi
       checkpointer: "sqlite",
       clientOverrides: {
         getPluginByReference: vi.fn(async () => SAFETY),
-        getPluginArtifactDownloadUrl: vi.fn(async () => {
-          throw new ConnectError("no download lane", Code.Unimplemented);
-        }),
-        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: forged })),
+        getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(forged))),
       },
       script: () => {
         throw new Error("the model must never be asked when a subagent's hooks cannot be mounted");

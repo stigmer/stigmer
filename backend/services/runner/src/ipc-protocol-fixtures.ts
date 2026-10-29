@@ -38,10 +38,6 @@ export interface IpcFixtures {
   };
   responses: {
     ready: IpcReady;
-    // A pre-version-1 runner that omits `protocolVersion`. Not an `IpcReady` (which now
-    // requires the field), so it is typed as the legacy subset — hosts must treat it as
-    // version 1. This is the backward-compatibility contract every host mirror tests.
-    readyLegacy: Omit<IpcReady, "protocolVersion">;
     sessionAdded: IpcSessionAdded;
     sessionRemoved: IpcSessionRemoved;
     tokenUpdated: IpcTokenUpdated;
@@ -66,7 +62,6 @@ export function buildFixtures(): IpcFixtures {
     },
     responses: {
       ready: buildReadyMessage(),
-      readyLegacy: { type: "ready" },
       sessionAdded: {
         type: "sessionAdded",
         sessionId: SESSION_ID,
