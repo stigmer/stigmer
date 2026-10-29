@@ -1,6 +1,6 @@
 /**
- * Pins the tools listing workflows (workflows/list-plugin-tools.ts), both
- * registered under pinned names: each runs the listing activity once, passes
+ * Pins the tools listing workflow (workflows/list-plugin-tools.ts),
+ * registered under its pinned name: it runs the listing activity once, passes
  * the plugin, the server's name, the attempt and its token through (absent
  * becomes null), and returns the wire shape the server reads — each tool's
  * name, description and camelCase `destructiveHint`, and nothing else. The
@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type { ListPluginToolsInput, ListPluginToolsOutput } from "../../activities/list-plugin-tools.js";
-import { listPluginTools, listPluginToolsLegacy } from "../list-plugin-tools.js";
+import { listPluginTools } from "../list-plugin-tools.js";
 import type { ListPluginToolsWorkflowInput } from "../types.js";
 
 const temporal = vi.hoisted(() => ({
@@ -25,7 +25,6 @@ vi.mock("@temporalio/workflow", () => ({
 
 const workflows = [
   ["stigmer/mcp-server/connect", listPluginTools],
-  ["stigmer/mcp-server/discover", listPluginToolsLegacy],
 ] as const;
 
 beforeEach(() => {

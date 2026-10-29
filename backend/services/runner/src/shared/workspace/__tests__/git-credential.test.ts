@@ -426,22 +426,6 @@ env >> ${loot}
     expectNoTokenIn(workspace);
   }, GIT_TEST_TIMEOUT_MS);
 
-  it("scrubs a clone an earlier runner left holding the token", async () => {
-    const workspace = join(root, "ws");
-    execFileSync("git", ["clone", origin, workspace], { stdio: "pipe" });
-    // What the earlier runner wrote: the token in the origin URL (local
-    // mode), or a repo-local credential store and its helper (cloud mode).
-    execFileSync("git", ["remote", "set-url", "origin", `https://x-access-token:${TOKEN}@github.com/acme/app.git`], { cwd: workspace });
-    const store = join(workspace, ".git", ".git-credentials");
-    writeFileSync(store, `https://x-access-token:${TOKEN}@github.com\n`);
-    execFileSync("git", ["config", "credential.helper", `store --file=${store}`], { cwd: workspace });
-
-    await provisionGit({ url: REPO_URL, branch: "main", backend: new LocalWorkspaceBackend(workspace), token: TOKEN, isLocalMode: false, writeBack: true });
-
-    expectNoTokenIn(workspace);
-    expect(() => execFileSync("git", ["config", "--local", "--get-all", "credential.helper"], { cwd: workspace, stdio: "pipe" })).toThrow();
-  }, GIT_TEST_TIMEOUT_MS);
-
   it("a write-back pushes the session branch and leaves no byte of the token", async () => {
     const workspace = join(root, "ws");
     const backend = new LocalWorkspaceBackend(workspace);

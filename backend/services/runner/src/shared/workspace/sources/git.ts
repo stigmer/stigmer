@@ -1,7 +1,7 @@
 /**
  * Git workspace source — clones a repository into the workspace.
  *
- * Key behaviors ported from Python:
+ * Key behaviors:
  * - Idempotent: detects existing .git and skips re-clone
  * - A repository's token (the run's repository values, matched to this
  *   entry by its name and URL) reaches only the clone's network commands,
@@ -10,8 +10,6 @@
  *   configuration and stored nowhere (../git-credential.ts). The remote URL
  *   is always the clean one, and `.git` holds no token.
  * - Token is never logged; sanitized in error messages
- * - Reuse scrubs what earlier runners stored: a token in the origin URL, a
- *   repo-local `.git-credentials` file and the `store` helper naming it
  * - Commit: a commit the resource names is checked out on the branch after
  *   the fetch, fetched by id first when no branch holds it; the clone then
  *   sits on the branch at that commit, so write-back still has a base
@@ -48,9 +46,6 @@ export interface GitProvisionOptions {
 
 /** The one host the executing user's GitHub token is ever sent to. */
 const GITHUB_HOST = "github.com";
-
-/** The credential file earlier runners kept inside the clone; reuse deletes it. */
-const LEGACY_CREDENTIAL_FILE = ".git-credentials";
 
 /** A commit id as a resource names one: an abbreviated or full SHA-1 or SHA-256 object name. */
 const COMMIT_ID = /^[0-9a-fA-F]{7,64}$/;
@@ -115,7 +110,6 @@ async function reuseExistingRepo(
   token: string,
   writeBack: boolean | undefined,
 ): Promise<ProvisionResult> {
-  await scrubStoredCredentials(backend, cloneDir);
   const metadata = await extractGitMetadata(cloneDir, url, backend, writeBack === true && token !== "");
 
   return {
@@ -125,45 +119,6 @@ async function reuseExistingRepo(
     gitMetadata: metadata,
     entryName: "",
   };
-}
-
-/**
- * Removes every token an earlier runner stored in a clone: a token-bearing
- * origin URL is rewritten clean, the repo-local `.git-credentials` file is
- * deleted, and the repo-local `store` helper that named it is unset (only
- * that one; a helper the owner set is left alone). Each step is non-fatal:
- * a clone with nothing stored is the common case.
- */
-async function scrubStoredCredentials(backend: WorkspaceBackend, cloneDir: string): Promise<void> {
-  const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
-  try {
-    const origin = (await exec("git remote get-url origin")).trim();
-    const clean = stripToken(origin);
-    if (clean !== origin) {
-      await exec(`git remote set-url origin ${shellQuote(clean)}`);
-    }
-  } catch (err) {
-    console.warn(`[git] Could not read or clean the origin remote (non-fatal): ${err instanceof Error ? err.message.split("\n")[0] : err}`);
-  }
-  const credFile = join(cloneDir, ".git", LEGACY_CREDENTIAL_FILE);
-  try {
-    if (await backend.exists(credFile)) {
-      await exec(`rm -f ${shellQuote(credFile)}`);
-    }
-  } catch (err) {
-    console.warn(`[git] Could not remove the stored credential file (non-fatal): ${err}`);
-  }
-  try {
-    const helpers = (await exec("git config --local --get-all credential.helper").catch(() => ""))
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line !== "");
-    if (helpers.some((helper) => helper.startsWith("store --file=") && helper.endsWith(LEGACY_CREDENTIAL_FILE))) {
-      await exec(`git config --local --unset-all credential.helper ${shellQuote(`^store --file=.*${LEGACY_CREDENTIAL_FILE}$`)}`);
-    }
-  } catch (err) {
-    console.warn(`[git] Could not unset the stored credential helper (non-fatal): ${err}`);
-  }
 }
 
 /**
