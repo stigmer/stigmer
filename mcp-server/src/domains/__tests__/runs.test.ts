@@ -16,9 +16,6 @@
 // transcript fields dropped from the run, and the cancel short-circuit. A
 // scripted RPC failure per method pins the error copy each tool returns when
 // the backend refuses (rpcerr's classification plus what the tool names).
-// The former `secrets` and `runtime_env` arguments are pinned as refused,
-// naming vaults, so a caller still sending one never starts a run without
-// the keys it meant to pass.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -437,25 +434,6 @@ describe("run tools integration", () => {
       expect(result.content[0]?.text).toContain(
         `vaults: "${entry}" is not a vault name; name each vault by slug or org/slug.`,
       );
-      expect(agentLookups).toBe(0);
-      expect(createdRun).toBeUndefined();
-    },
-  );
-
-  it.each(["secrets", "runtime_env"])(
-    "run_agent refuses the former %s argument, naming vaults, and starts nothing",
-    async (argument) => {
-      const result = await callTool("run_agent", {
-        org: "acme",
-        agent: "code-reviewer",
-        message: "review this PR",
-        [argument]: { REPO: "stigmer/stigmer" },
-      });
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0]?.text).toContain(`no longer takes ${argument}`);
-      expect(result.content[0]?.text).toContain("`stigmer vault set-secret <NAME> --mine`");
-      expect(result.content[0]?.text).toContain("`vaults`");
       expect(agentLookups).toBe(0);
       expect(createdRun).toBeUndefined();
     },

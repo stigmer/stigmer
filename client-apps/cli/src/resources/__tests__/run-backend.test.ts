@@ -202,13 +202,6 @@ describe("answering a waiting run", () => {
     expect(confirms.map((c) => [c.result, c.denyMessage])).toEqual([["deny", "unsafe"]]);
   });
 
-  it("refuses a retired action with the word that replaced it, sending nothing", async () => {
-    await expect(answer({ action: "approve" })).rejects.toThrow('invalid --action "approve": "approve" is now "allow"; must be one of: allow, deny, allow-all');
-    await expect(answer({ action: "reject" })).rejects.toThrow('"reject" is now "deny"');
-    await expect(answer({ action: "approve-all" })).rejects.toThrow('"approve-all" is now "allow-all"');
-    expect([confirms, grants]).toEqual([[], []]);
-  });
-
   it("grants the call's class for the rest of the turn with allow-all", async () => {
     expect(await answer({ runId: "aex_two", toolCallId: "aex_two.c2", action: "allow-all" })).toEqual({
       toolUseId: "aex_two.c2",

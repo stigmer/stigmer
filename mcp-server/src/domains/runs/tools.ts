@@ -79,29 +79,11 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
               "true). Pass false to run on the listed vaults only. Only when starting a new " +
               "conversation (no session_id).",
           ),
-        // Two former arguments, kept in the schema only so a caller still
-        // sending one is refused: the tool input is a non-strict object,
-        // which would otherwise drop it and start the run without the values.
-        secrets: z
-          .unknown()
-          .optional()
-          .describe("Not accepted: a run takes its keys from vaults. A call that passes it is refused."),
-        runtime_env: z
-          .unknown()
-          .optional()
-          .describe("Not accepted: a run takes its keys from vaults. A call that passes it is refused."),
       },
     },
     (args, extra) =>
-      textOrError(async () => {
-        const retired = args.secrets !== undefined ? "secrets" : args.runtime_env !== undefined ? "runtime_env" : "";
-        if (retired !== "") {
-          throw new Error(
-            `run_agent no longer takes ${retired}: a run takes its keys from vaults. Save each key in ` +
-              "a vault (`stigmer vault set-secret <NAME> --mine` for your own) and name shared ones in `vaults`.",
-          );
-        }
-        return runAgent(target.serverAddress, resolveToken(extra, target.apiKey), {
+      textOrError(async () =>
+        runAgent(target.serverAddress, resolveToken(extra, target.apiKey), {
           org: args.org,
           agent: args.agent,
           message: args.message,
@@ -109,8 +91,8 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           vaults: args.vaults,
           includeMyVault: args.include_my_vault,
           plugins: args.plugins,
-        });
-      }),
+        }),
+      ),
   );
 
   server.registerTool(

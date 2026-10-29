@@ -25,88 +25,6 @@ import {
 } from "./registry.js";
 import { toDesiredState } from "./serialize.js";
 
-/**
- * The way forward for a manifest written while an MCP server was its own
- * resource: a server now lives in an agent's own `mcp_servers`, which only
- * an organization's admins write, or in a plugin the agent uses. Shared
- * with the CLI's `apply` and `validate`, so every surface refusing such a
- * file says the same sentence. It follows "… is no longer read." and
- * "… is no longer a Stigmer resource.".
- */
-export const MCP_SERVER_WAY_FORWARD =
-  "An agent lists its own MCP servers under `mcp_servers`, written by an " +
-  "organization's admins, or uses a plugin that carries one: " +
-  "`stigmer mcp add <name> <url>` installs a one-off server as a plugin.";
-
-/**
- * {@link MCP_SERVER_WAY_FORWARD} when `document` (one parsed YAML document)
- * is a retired MCP server shape: `kind: McpServer`, or a spec listing
- * `mcp_server_usages`. Undefined for every other document.
- */
-export function mcpServerWayForward(document: unknown): string | undefined {
-  if (!isRecord(document)) return undefined;
-  if (document.kind === "McpServer") return MCP_SERVER_WAY_FORWARD;
-  const spec = document.spec;
-  if (isRecord(spec) && ("mcp_server_usages" in spec || "mcpServerUsages" in spec)) {
-    return MCP_SERVER_WAY_FORWARD;
-  }
-  return undefined;
-}
-
-/**
- * The way forward for an agent manifest written while a subagent was
- * written inside its agent: a subagent is now a saved agent the agent
- * lists. Shared with the CLI's `apply` and `validate`.
- */
-export const SUBAGENTS_WAY_FORWARD =
-  "A subagent is now a saved agent: write each subagent as an Agent of its own, " +
-  "then list it under the agent's `subagents` (`- kind: agent` with `slug: <its slug>`).";
-
-/**
- * {@link SUBAGENTS_WAY_FORWARD} when `document` is an agent whose spec still
- * writes subagents inside it (`sub_agents`). Undefined for every other
- * document.
- */
-export function subagentsWayForward(document: unknown): string | undefined {
-  if (!isRecord(document)) return undefined;
-  const spec = document.spec;
-  return isRecord(spec) && ("sub_agents" in spec || "subAgents" in spec) ? SUBAGENTS_WAY_FORWARD : undefined;
-}
-
-/**
- * The way forward for an Environment manifest written when an Environment
- * held logins and secrets (`spec.data`): an Environment now names a
- * sandbox's packages and network access, and secrets live in vaults.
- * Shared with the CLI's `apply`.
- */
-export const ENVIRONMENT_DATA_WAY_FORWARD =
-  "An Environment now names a sandbox's packages and network access; logins and secrets live in vaults, which are never written as files. " +
-  "Save each key with `stigmer vault set-secret <NAME> --mine` (or `--vault <ref>` for a shared vault), and remove `data` from this file.";
-
-/**
- * {@link ENVIRONMENT_DATA_WAY_FORWARD} when `document` is an Environment
- * whose spec still carries `data`. Undefined for every other document.
- */
-export function environmentDataWayForward(document: unknown): string | undefined {
-  if (!isRecord(document) || document.kind !== "Environment") return undefined;
-  const spec = document.spec;
-  return isRecord(spec) && "data" in spec ? ENVIRONMENT_DATA_WAY_FORWARD : undefined;
-}
-
-/**
- * The way forward for any retired shape a document still uses: an MCP
- * server resource or server usages ({@link mcpServerWayForward}),
- * subagents written inside an agent ({@link subagentsWayForward}), or an
- * Environment holding secrets ({@link environmentDataWayForward}).
- */
-export function retiredShapeWayForward(document: unknown): string | undefined {
-  return mcpServerWayForward(document) ?? subagentsWayForward(document) ?? environmentDataWayForward(document);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 /** Options for {@link parseManifest}. */
 export interface ParseManifestOptions {
   /**
@@ -234,8 +152,7 @@ function parseDocument(
       .join(", ");
     throw new Error(
       `Unsupported resource kind "${kind}" in ${where}. ` +
-        `Supported kinds: ${supported}.` +
-        wayForwardSuffix(value),
+        `Supported kinds: ${supported}.`,
     );
   }
 
@@ -249,8 +166,7 @@ function parseDocument(
     );
   } catch (err) {
     throw new Error(
-      `Invalid ${handler.displayName} in ${where}: ${(err as Error).message}` +
-        wayForwardSuffix(value),
+      `Invalid ${handler.displayName} in ${where}: ${(err as Error).message}`,
     );
   }
 
@@ -272,12 +188,6 @@ function parseDocument(
     org: metadata?.org ?? "",
     ...(warning !== undefined && { warning }),
   };
-}
-
-// The retired-shape sentence as a suffix to a refusal, or nothing.
-function wayForwardSuffix(document: Record<string, unknown>): string {
-  const hint = retiredShapeWayForward(document);
-  return hint === undefined ? "" : ` ${hint}`;
 }
 
 /** Read a resource message's metadata envelope, if present. */

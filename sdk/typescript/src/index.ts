@@ -113,7 +113,6 @@ export {
   iamRoleToString,
   iamRoleFromString,
   iamRoleDisplayName,
-  iamRoleDescription,
   grantableRoleDescription,
 } from "./iam-role.js";
 export { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
@@ -173,13 +172,6 @@ export {
   manifestHandlerForYamlKind,
   manifestHandlerForTypeName,
   metadataOf,
-  MCP_SERVER_WAY_FORWARD,
-  mcpServerWayForward,
-  SUBAGENTS_WAY_FORWARD,
-  subagentsWayForward,
-  ENVIRONMENT_DATA_WAY_FORWARD,
-  environmentDataWayForward,
-  retiredShapeWayForward,
   REDACTED_SECRET_MARKER,
   containsRedactedSecrets,
   type AppliedManifest,

@@ -239,10 +239,6 @@ describe("prepareAgentExec vaults", () => {
   it("refuses an unknown --approve-default before anything else", async () => {
     await expect(prepareAgentExec({ ...BASE_FLAGS, approveDefault: "maybe" }, STUB_CLIENT)).rejects.toThrow(/must be one of/);
   });
-
-  it("refuses a retired --approve-default word with the word that replaced it", async () => {
-    await expect(prepareAgentExec({ ...BASE_FLAGS, approveDefault: "skip" }, STUB_CLIENT)).rejects.toThrow('"skip" and "reject" are now "deny"');
-  });
 });
 
 describe("prepareAgentExec account-preference model fill (oss#293)", () => {
