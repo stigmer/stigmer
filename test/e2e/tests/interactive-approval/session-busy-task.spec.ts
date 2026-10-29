@@ -97,6 +97,8 @@ test.describe("A busy task in the session view (deterministic mock LLM)", () => 
     await expect(page.getByRole("status").filter({ hasText: "Waiting for you" })).toHaveCount(0);
     await outcome.getByRole("button", { name: new RegExp(REPORT.replace(".", "\\.")) }).click();
     await expect(page.getByRole("button", { name: "Hide panel" })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Travel is 12% over plan.")).toBeVisible({ timeout: 15_000 });
+    // The opened File renders its markdown; the write's card above shows the
+    // same text as raw source in a <pre>, so the check names the paragraph.
+    await expect(page.getByRole("paragraph").filter({ hasText: "Travel is 12% over plan." })).toBeVisible({ timeout: 15_000 });
   });
 });
