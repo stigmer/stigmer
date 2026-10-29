@@ -35,13 +35,19 @@
  *     installed declarations (test/install/lib/type-checker.mjs's compiler);
  *   - the installed terminal kit renders a scenario of the catalogue
  *     (@stigmer/react-sdk/test) through the installed `ink`'s
- *     `renderToString`.
+ *     `renderToString`;
+ *   - the React kit installed with only its required peers (a second
+ *     folder, the same tarballs, only the peers no package marks optional,
+ *     and no `mermaid`, which a host opts into) imports every entry under
+ *     Node, and an app importing the kit's root and `./headless` builds with
+ *     the Vite and the webpack the root lockfile pins. A bundler resolves
+ *     every import it can reach, `import()` included, so a package the kit
+ *     names anywhere and does not install fails the build (stigmer#2621).
  *
- * Three known breaks are not cases here; each is an open issue the bar lists
+ * Two known breaks are not cases here; each is an open issue the bar lists
  * as pending, and the change that fixes one adds its case: the kit's bin
- * needs `tsx` (stigmer#2617), its session view crashes off a terminal
- * (stigmer#2618), and the React kit imports its optional peers eagerly
- * (stigmer#2621), which is why every optional peer is installed.
+ * needs `tsx` (stigmer#2617), and its session view crashes off a terminal
+ * (stigmer#2618).
  *
  * Plain Node: `node:*`, test/install/lib, and scripts/publish-libs.mjs run
  * as a child process (the install layer's rule, test/README.md). The
@@ -91,6 +97,10 @@ const BROWSER_ONLY = new Map([
 const TYPE_PACKAGES = ["@types/react", "@types/react-dom"];
 /** A line of the completed scenario's reply (sdk/react/src/test/scenarios.ts), which the rendered frame must show. */
 const COMPLETED_REPLY = "Fixed: invoices now round once, at the total.";
+/** The React kit, which the second install takes with only its required peers. */
+const REACT_KIT = "@stigmer/react-sdk";
+/** What a host installs to draw the kit's diagrams; the kit names no import of it, so its app builds without it. */
+const HOST_OPT_IN = ["mermaid"];
 
 function log(step) {
   console.log(`smoke-libs: ${step}`);
@@ -131,12 +141,19 @@ function lowerBound(range) {
   return m === null ? [0, 0, 0] : [Number(m[1]), Number(m[2] ?? 0), Number(m[3] ?? 0)];
 }
 
-/** Every peer the manifests declare outside @stigmer/*, one range each: the one with the highest lower bound. */
-function peerSpecs(manifests) {
+/**
+ * Every peer the manifests declare outside @stigmer/*, one range each: the
+ * one with the highest lower bound. With `required`, only the peers some
+ * package does not mark optional.
+ */
+function peerSpecs(manifests, { required = false } = {}) {
+  const optionalEverywhere = (name) =>
+    manifests.every((m) => !(name in (m.peerDependencies ?? {})) || m.peerDependenciesMeta?.[name]?.optional === true);
   const chosen = new Map();
   for (const manifest of manifests) {
     for (const [name, range] of Object.entries(manifest.peerDependencies ?? {})) {
       if (name.startsWith("@stigmer/")) continue;
+      if (required && optionalEverywhere(name)) continue;
       const current = chosen.get(name);
       const higher = current === undefined || compare(lowerBound(range), lowerBound(current)) > 0;
       if (higher) chosen.set(name, range);
@@ -165,6 +182,8 @@ const consumer = join(scratch, "consumer");
 let failed = false;
 /** The installed @stigmer/* packages: name, folder, manifest, shipped files. */
 let installed = [];
+/** The tarballs and their manifests, which the install with only the required peers takes again. */
+let packed = { tarballs: [], manifests: [] };
 
 /** Runs a case's body, marking the run failed when it throws, so the folder is kept for debugging. */
 function step(body) {
@@ -220,6 +239,7 @@ before(
     });
     const missing = LIBRARIES.filter((name) => !manifests.some((m) => m.name === name));
     if (missing.length > 0) throw new Error(`the pack holds no tarball for ${missing.join(", ")}`);
+    packed = { tarballs, manifests };
 
     mkdirSync(consumer, { recursive: true });
     writeFileSync(join(consumer, "package.json"), `${JSON.stringify({ name: "libs-consumer", private: true, type: "module" }, null, 2)}\n`);
@@ -399,5 +419,88 @@ test(
     const frame = stripVTControlCharacters(node("render.mjs"));
     if (!frame.includes(COMPLETED_REPLY)) throw new Error(`the rendered thread does not show the reply "${COMPLETED_REPLY}":\n${frame}`);
     log(`rendered the completed scenario (${frame.split("\n").length} lines)`);
+  }),
+);
+
+// An app's module that embeds the chat from the root and reads a hook from
+// ./headless; every name is exported, so the bundler keeps them.
+const BARE_APP = `
+export { NewSessionViewer, SessionViewer, StigmerProvider } from "${REACT_KIT}";
+export { StigmerContext, useSessionConversation } from "${REACT_KIT}/headless";
+`;
+
+// The Vite config that builds it as an app does, React left to the app;
+// errors only, as smoke-budgets.mjs logs, because every "use client" module
+// draws a warning.
+const BARE_VITE_CONFIG = `
+export default {
+  logLevel: "error",
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    rollupOptions: {
+      input: "app.mjs",
+      external: ["react", "react-dom", "react/jsx-runtime", "react-dom/client"],
+      preserveEntrySignatures: "strict",
+      output: { format: "es" },
+    },
+  },
+};
+`;
+
+// The webpack build of the same module, run through webpack's Node API (the
+// root lockfile pins webpack, not its CLI), React left to the app.
+const BARE_WEBPACK_BUILD = `
+import webpack from "webpack";
+const root = process.cwd();
+webpack({
+  mode: "production",
+  context: root,
+  entry: "./app.mjs",
+  output: { path: root + "/webpack-dist", module: true, library: { type: "module" } },
+  experiments: { outputModule: true },
+  externalsType: "module",
+  externals: { react: "react", "react-dom": "react-dom", "react/jsx-runtime": "react/jsx-runtime", "react-dom/client": "react-dom/client" },
+}, (error, stats) => {
+  if (error) { console.error(error.stack ?? error); process.exit(1); }
+  if (stats.hasErrors()) { console.error(stats.toString({ all: false, errors: true })); process.exit(1); }
+});
+`;
+
+test(
+  "KIT-01 an app with only the React kit's required peers imports it and builds it with Vite and webpack",
+  () => guarded(() => {
+    const bare = join(scratch, "bare");
+    mkdirSync(bare, { recursive: true });
+    writeFileSync(join(bare, "package.json"), `${JSON.stringify({ name: "libs-bare-consumer", private: true, type: "module" }, null, 2)}\n`);
+    const peers = peerSpecs(packed.manifests, { required: true });
+    log(`installing ${packed.tarballs.length} tarballs and ${peers.length} required peers into ${bare}`);
+    run("npm", ["install", "--no-audit", "--no-fund", ...packed.tarballs, ...peers, lockedSpec(repoRoot, "vite"), lockedSpec(repoRoot, "webpack")], bare);
+
+    const kit = JSON.parse(readFileSync(join(bare, "node_modules", REACT_KIT, "package.json"), "utf8"));
+    const optional = Object.keys(kit.peerDependenciesMeta ?? {}).filter((name) => kit.peerDependenciesMeta[name].optional === true);
+    const absent = [...optional, ...HOST_OPT_IN];
+    // A package this install holds proves nothing about an app without it.
+    const present = absent.filter((name) => existsSync(join(bare, "node_modules", name, "package.json")));
+    if (present.length > 0) throw new Error(`the install meant to have only the required peers has ${present.join(", ")}`);
+
+    const specifiers = exportEntries(kit.exports)
+      .filter(({ targets }) => targets.some((target) => target.endsWith(".js")))
+      .map(({ key }) => (key === "." ? REACT_KIT : `${REACT_KIT}/${key.replace(/^\.\//, "")}`));
+    writeFileSync(join(bare, "import.mjs"), IMPORT_SCRIPT);
+    const result = spawnSync(process.execPath, ["import.mjs", JSON.stringify(specifiers)], { cwd: bare, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    if (result.status !== 0) throw new Error(`import.mjs exited ${result.status ?? result.signal}:\n${result.stderr}${result.stdout}`);
+    const imported = JSON.parse(result.stdout);
+    const problems = specifiers.filter((spec) => imported[spec].error !== undefined).map((spec) => `${spec} does not import without ${absent.join(", ")}:\n${imported[spec].error}`);
+    if (problems.length > 0) throw new Error(problems.join("\n\n"));
+    log(`imported ${specifiers.join(", ")} without ${absent.join(", ")}`);
+
+    writeFileSync(join(bare, "app.mjs"), BARE_APP);
+    writeFileSync(join(bare, "vite.config.mjs"), BARE_VITE_CONFIG);
+    run(join(bare, "node_modules", ".bin", "vite"), ["build", "--config", "vite.config.mjs"], bare);
+    log("vite built an app importing the root and ./headless");
+    writeFileSync(join(bare, "webpack-build.mjs"), BARE_WEBPACK_BUILD);
+    run(process.execPath, ["webpack-build.mjs"], bare);
+    log("webpack built the same app");
   }),
 );

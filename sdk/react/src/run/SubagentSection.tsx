@@ -39,15 +39,6 @@ export interface SubagentSectionProps {
 }
 
 /**
- * What a `task` call asked its subagent to do, in a few words: the call's
- * `description` input, or "" when it carries none.
- */
-export function subagentSubjectOf(toolUse: Pick<ToolUse, "input">): string {
-  const description = toolUse.input["description"];
-  return typeof description === "string" ? description : "";
-}
-
-/**
  * Renders a subagent's thread as a nested mini-thread inside the parent
  * conversation: its messages and tool uses, in the order it produced them.
  *

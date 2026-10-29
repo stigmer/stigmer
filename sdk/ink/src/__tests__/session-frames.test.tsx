@@ -22,7 +22,7 @@ import { stripVTControlCharacters } from "node:util";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { renderToString } from "ink";
 import { render, cleanup } from "ink-testing-library";
-import type { UseSessionConversationReturn, UseSessionUsageReturn } from "@stigmer/react-sdk";
+import type { UseSessionConversationReturn, UseSessionUsageReturn } from "@stigmer/react-sdk/headless";
 import {
   SCENARIO_CLOCK,
   SCENARIO_NAMES,
@@ -39,8 +39,8 @@ const GOLDENS = new URL("./__goldens__/", import.meta.url);
 let conversation: UseSessionConversationReturn = conversationOf(scenarios.empty);
 let usage: UseSessionUsageReturn = usageOf(scenarios.empty);
 
-vi.mock("@stigmer/react-sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@stigmer/react-sdk")>();
+vi.mock("@stigmer/react-sdk/headless", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/react-sdk/headless")>();
   return {
     ...actual,
     useSessionConversation: () => conversation,

@@ -6,13 +6,13 @@
 import React from "react";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, cleanup } from "ink-testing-library";
-import type { UseSessionUsageReturn } from "@stigmer/react-sdk";
+import type { UseSessionUsageReturn } from "@stigmer/react-sdk/headless";
 import { UsageWidget } from "../components/UsageWidget.js";
 
 let usage: Partial<UseSessionUsageReturn>;
 
-vi.mock("@stigmer/react-sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@stigmer/react-sdk")>();
+vi.mock("@stigmer/react-sdk/headless", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/react-sdk/headless")>();
   return {
     ...actual,
     useSessionUsage: () => usage as UseSessionUsageReturn,

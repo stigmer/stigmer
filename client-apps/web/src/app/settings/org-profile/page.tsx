@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { OrgProfileSection } from "@stigmer/react-sdk";
+import { OrgProfileSection } from "@stigmer/react-sdk/console";
 
 /**
  * Organization profile settings. Opening a child organization from the

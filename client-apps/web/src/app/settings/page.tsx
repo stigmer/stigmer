@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSettingsNavGroups } from "@stigmer/react-sdk";
+import { useSettingsNavGroups } from "@stigmer/react-sdk/console";
 
 export default function SettingsPage() {
   const navGroups = useSettingsNavGroups();

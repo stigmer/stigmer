@@ -32,6 +32,8 @@ vi.mock("@stigmer/react-sdk", () => ({
     shell.wantsHumanFor.push(org);
     return { count: org ? 3 : 0 };
   },
+}));
+vi.mock("@stigmer/react-sdk/console", () => ({
   WorkspaceSidebar: ({
     conversationsBadgeCount,
     renderEntryAccessory,

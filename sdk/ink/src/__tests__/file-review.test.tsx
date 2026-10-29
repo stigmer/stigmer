@@ -9,7 +9,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { create } from "@bufbuild/protobuf";
-import { FileReviewContext } from "@stigmer/react-sdk";
+import { FileReviewContext } from "@stigmer/react-sdk/headless";
 import { samples } from "@stigmer/react-sdk/test";
 import {
   FileContentSchema,

@@ -4,14 +4,14 @@ import { cn } from "@stigmer/design-tokens";
 import {
   useConversationsWantsHumanCount,
   useRecentActivity,
-  WorkspaceSidebar,
   useActiveOrgId,
 } from "@stigmer/react-sdk";
+import { WorkspaceSidebar } from "@stigmer/react-sdk/console";
+import type { RecentActivityEntry } from "@stigmer/react-sdk";
 import type {
-  RecentActivityEntry,
   SidebarLinkRenderProps,
   WorkspaceNavId,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/console";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 import { useRunner } from "../hooks/EmbeddedRunnerContext";

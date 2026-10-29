@@ -9,10 +9,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
-import type { NotificationsSectionProps } from "@stigmer/react-sdk";
+import type { NotificationsSectionProps } from "@stigmer/react-sdk/console";
 
 const section = vi.hoisted(() => ({ props: [] as NotificationsSectionProps[] }));
-vi.mock("@stigmer/react-sdk", () => ({
+vi.mock("@stigmer/react-sdk/console", () => ({
   NotificationsSection: (props: NotificationsSectionProps) => {
     section.props.push(props);
     return null;

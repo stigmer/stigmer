@@ -4,7 +4,7 @@ import {
   ORG_ADMIN_SETTINGS_NAV_ITEMS,
   PLATFORM_SETTINGS_NAV_GROUP,
   SETTINGS_NAV_GROUPS,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/console";
 
 // Every settings sidebar item has a desktop route (stigmer#1227). The sidebar
 // is SDK-owned (settings-nav.ts), so an item can be added there without the

@@ -171,7 +171,8 @@ export type {
 export { ToolCallItem } from "./ToolCallItem.js";
 export type { ToolCallItemProps } from "./ToolCallItem.js";
 
-export { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
+export { SubagentSection } from "./SubagentSection.js";
+export { subagentSubjectOf } from "./tool-categories.js";
 export type { SubagentSectionProps } from "./SubagentSection.js";
 
 export { MessageEntry } from "./MessageEntry.js";

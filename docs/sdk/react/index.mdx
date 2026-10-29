@@ -16,19 +16,25 @@ This package requires a configured `@stigmer/client` client. See
 ## Installation
 
 ```bash
-npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf
+npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf lucide-react
 ```
 
 `@stigmer/apis` provides the protocol buffer types that hooks and components
-use. `@bufbuild/protobuf` is its runtime dependency.
+use. `@bufbuild/protobuf` is its runtime dependency. `lucide-react` draws the
+components' icons.
 
 `react` and `react-dom` 19+ must already be installed.
 
 <Callout type="info">
-  `@base-ui/react` is an optional peer dependency used by components that
-  render overlays and dropdowns. Install it if your package manager reports a
-  missing peer dependency warning.
+  Diagrams in messages need `mermaid`, which the kit does not install because
+  it is large. To draw them, install it and pass its import to the provider:
+  `<StigmerProvider client={client} loadMermaid={() => import("mermaid")}>`.
+  Without it a diagram shows as its source.
 </Callout>
+
+The hooks alone, without the components, import from
+`@stigmer/react-sdk/headless`; the Stigmer console's own parts import from
+`@stigmer/react-sdk/console`. Each reference page names its entry.
 
 ## Setup
 

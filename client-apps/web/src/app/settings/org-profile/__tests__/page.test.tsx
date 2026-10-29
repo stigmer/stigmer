@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { OrgProfileSectionProps } from "@stigmer/react-sdk";
+import type { OrgProfileSectionProps } from "@stigmer/react-sdk/console";
 
 const push = vi.hoisted(() => vi.fn());
 
@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
 
-vi.mock("@stigmer/react-sdk", () => ({
+vi.mock("@stigmer/react-sdk/console", () => ({
   OrgProfileSection: ({ onOrgChanged }: OrgProfileSectionProps) => (
     <button type="button" onClick={() => onOrgChanged?.({} as never)}>
       open a child

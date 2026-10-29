@@ -17,6 +17,7 @@ import type { ResolvedColorMode } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth";
 import { getApiBaseUrl } from "@/config/env";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { loadMermaid } from "@/providers/load-mermaid";
 
 /**
  * Hosted chat page for an agent's chat link —
@@ -225,6 +226,7 @@ export default function ChatLinkPage() {
       <StigmerProvider
         client={memberClient}
         colorMode={colorMode}
+        loadMermaid={loadMermaid}
       >
         <div className="h-screen bg-background text-foreground">
           <VisitorChat channelId={channelId} linkAudience="org" />
@@ -244,6 +246,7 @@ export default function ChatLinkPage() {
     <StigmerProvider
       client={guestRuntime.client}
       colorMode={colorMode}
+      loadMermaid={loadMermaid}
     >
       <div className="h-screen bg-background text-foreground">
         <VisitorChat channelId={channelId} linkToken={linkToken} />

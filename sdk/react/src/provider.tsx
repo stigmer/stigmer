@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -23,6 +24,7 @@ import { RunnerAdapterContext } from "./runner-adapter.js";
 import type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 import { ColorModeContext, useSystemColorMode } from "./color-mode.js";
 import { PortalContainerContext } from "./portal-container.js";
+import { MermaidLoaderContext, type MermaidLoader } from "./mermaid-loader-context.js";
 import { ModelRegistryContext } from "./models/ModelRegistryContext.js";
 import type { ModelRegistryState } from "./models/ModelRegistryContext.js";
 import { fetchModelRegistryDocument } from "./models/registry.js";
@@ -141,6 +143,22 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly publicBaseUrl?: string;
+  /**
+   * Loads `mermaid`, so a ```mermaid fence in an agent's reply, a file or a
+   * skill draws as a diagram. The kit does not install `mermaid` (it is a
+   * large library); install it beside the kit and pass its import, which
+   * your bundler splits into a chunk fetched on the first diagram.
+   *
+   * Omit it and a diagram shows as its source, in a code block.
+   *
+   * @example
+   * ```tsx
+   * <StigmerProvider client={client} loadMermaid={() => import("mermaid")}>
+   *   <App />
+   * </StigmerProvider>
+   * ```
+   */
+  readonly loadMermaid?: MermaidLoader;
   /**
    * Built-in theme preset to apply.
    *
@@ -279,6 +297,7 @@ export function StigmerProvider({
   runnerAdapter,
   approvalDefaults,
   publicBaseUrl,
+  loadMermaid,
   preset,
   className,
   colorMode = "light",
@@ -292,6 +311,7 @@ export function StigmerProvider({
   const scope = useThemeScope(resolvedMode, presetClass, className);
   const portalContainer = usePortalContainer(scope);
   const registryState = useModelRegistryFetch(client);
+  const mermaidLoader = useStableLoader(loadMermaid);
 
   return (
     <StigmerContext.Provider value={client}>
@@ -303,22 +323,24 @@ export function StigmerProvider({
                 <ColorModeContext.Provider value={resolvedMode}>
                   <ModelRegistryContext.Provider value={registryState}>
                     <PortalContainerContext.Provider value={portalContainer}>
-                      {/*
-                        The in-tree scoping container. `data-stgm-root` is a
-                        stable public selector — the documented seam for hosts
-                        to style THIS element only (e.g. the fixed-height
-                        embedding recipe, #260). It must never be mirrored
-                        onto the portal container, whose own `data-stgm-portal`
-                        marker keeps host in-tree-only CSS away from the
-                        off-tree element.
-                      */}
-                      <div
-                        className={scope.className}
-                        data-stgm-root=""
-                        data-stgm-color-mode={scope.colorMode}
-                      >
-                        {children}
-                      </div>
+                      <MermaidLoaderContext.Provider value={mermaidLoader}>
+                        {/*
+                          The in-tree scoping container. `data-stgm-root` is a
+                          stable public selector — the documented seam for hosts
+                          to style THIS element only (e.g. the fixed-height
+                          embedding recipe, #260). It must never be mirrored
+                          onto the portal container, whose own `data-stgm-portal`
+                          marker keeps host in-tree-only CSS away from the
+                          off-tree element.
+                        */}
+                        <div
+                          className={scope.className}
+                          data-stgm-root=""
+                          data-stgm-color-mode={scope.colorMode}
+                        >
+                          {children}
+                        </div>
+                      </MermaidLoaderContext.Provider>
                     </PortalContainerContext.Provider>
                   </ModelRegistryContext.Provider>
                 </ColorModeContext.Provider>
@@ -328,6 +350,32 @@ export function StigmerProvider({
         </ExecutionTargetContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>
+  );
+}
+
+/**
+ * The host's `loadMermaid` as one loader for the provider's lifetime. Hosts
+ * pass an inline `() => import("mermaid")`, a new function every render; a
+ * diagram re-renders when its loader changes, so it sees one stable function
+ * that calls the latest, and changes only when a loader comes or goes.
+ *
+ * The latest is kept in a layout effect: a diagram loads in a passive
+ * effect, and a child's passive effects run before its parent's, so a
+ * passive update here would leave a loader that just arrived unset when the
+ * diagram already on screen calls it. Every layout effect runs first.
+ */
+function useStableLoader(loadMermaid: MermaidLoader | undefined): MermaidLoader | null {
+  const latest = useRef(loadMermaid);
+  useLayoutEffect(() => {
+    latest.current = loadMermaid;
+  });
+  const hasLoader = loadMermaid !== undefined;
+  return useMemo(
+    () =>
+      hasLoader
+        ? () => latest.current?.() ?? Promise.reject(new Error("StigmerProvider's loadMermaid was removed"))
+        : null,
+    [hasLoader],
   );
 }
 

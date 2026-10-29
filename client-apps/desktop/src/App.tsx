@@ -6,6 +6,7 @@ import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
 import { router } from "./routes";
+import { loadMermaid } from "./load-mermaid";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { IdentityAccountGate } from "./identity/IdentityAccountGate";
@@ -99,6 +100,7 @@ function RunnerAdapterBridge({
       executionTarget="local"
       runnerAdapter={runnerAdapter}
       colorMode={colorMode}
+      loadMermaid={loadMermaid}
     >
       <AppContent isInitialized={isInitialized} isAuthenticated={isAuthenticated} />
     </StigmerProvider>

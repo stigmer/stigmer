@@ -384,6 +384,15 @@ function extractArgValue(
 }
 
 /**
+ * What a `task` call asked its subagent to do, in a few words: the call's
+ * `description` input, or "" when it carries none.
+ */
+export function subagentSubjectOf(toolUse: Pick<ToolUse, "input">): string {
+  const description = toolUse.input["description"];
+  return typeof description === "string" ? description : "";
+}
+
+/**
  * Extracts the most relevant argument value from a tool use
  * based on its category (command for shell tools, path for file
  * tools, slug for MCP tools, etc.).

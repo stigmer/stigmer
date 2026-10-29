@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import type { SettingsNavGroup } from "@stigmer/react-sdk";
+import type { SettingsNavGroup } from "@stigmer/react-sdk/console";
 
 function icon(name: string) {
   function NavIcon({ className }: { className?: string }) {
@@ -20,7 +20,7 @@ function icon(name: string) {
 }
 
 const nav = vi.hoisted(() => ({ groups: [] as SettingsNavGroup[] }));
-vi.mock("@stigmer/react-sdk", () => ({
+vi.mock("@stigmer/react-sdk/console", () => ({
   useSettingsNavGroups: () => nav.groups,
 }));
 

@@ -3,7 +3,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { FileReviewFile, FileReviewSet } from "@stigmer/client";
-import { fileChangeKindOf } from "@stigmer/react-sdk";
+import { fileChangeKindOf } from "@stigmer/react-sdk/headless";
 import {
   changeSetLineStats,
   fileDisplayPath,

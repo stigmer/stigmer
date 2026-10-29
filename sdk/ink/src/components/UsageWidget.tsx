@@ -6,7 +6,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { useSessionUsage } from "@stigmer/react-sdk";
+import { useSessionUsage } from "@stigmer/react-sdk/headless";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {

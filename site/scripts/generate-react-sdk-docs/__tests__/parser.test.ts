@@ -7,7 +7,10 @@
  * a field typed by a message from `@stigmer/apis`, or an `{@link}` to one
  * in a comment, links to the resource page its root message names, while a
  * message with no resource page, or a type from any other package, carries
- * no link. The input is a minimal TypeDoc JSON written to a temporary file.
+ * no link. And for the package's entries: each domain names the entry its
+ * exports import from, and which of its hooks ./headless also carries; an
+ * entry the generator does not know, or a domain split across two, fails.
+ * The input is a minimal TypeDoc JSON written to a temporary file.
  */
 
 import * as fs from "node:fs/promises";
@@ -88,6 +91,94 @@ describe("parseTypeDocJson — domains", () => {
     ]);
 
     expect(domains).toEqual([]);
+  });
+});
+
+function hook(id: number, name: string, fileName: string): Reflection {
+  return {
+    id,
+    name,
+    variant: "declaration",
+    kind: ReflectionKind.Function,
+    flags: {},
+    sources: [{ fileName, line: 1, character: 0 }],
+    signatures: [
+      { id: id + 1000, name, variant: "signature", kind: ReflectionKind.CallSignature, flags: {}, type: { type: "intrinsic", name: "void" } },
+    ],
+  };
+}
+
+function entry(id: number, name: string, children: Reflection[]): Reflection {
+  return { id, name, variant: "declaration", kind: ReflectionKind.Module, flags: {}, children };
+}
+
+function reference(id: number, name: string, target: number): Reflection {
+  return { id, name, variant: "reference", kind: ReflectionKind.Reference, flags: {}, target };
+}
+
+describe("parseTypeDocJson — the package's entries", () => {
+  it("names each domain's entry, and the hooks ./headless leaves out", async () => {
+    const { domains } = await parse([
+      entry(100, "index", [
+        hook(1, "useSession", "sdk/react/src/session/useSession.ts"),
+        hook(2, "useExportTranscript", "sdk/react/src/session/useExportTranscript.ts"),
+        typeAlias(3, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx"),
+      ]),
+      entry(200, "headless", [reference(201, "useSession", 1)]),
+      entry(300, "console", [hook(4, "useSettingsNavGroups", "sdk/react/src/settings/nav.ts")]),
+    ]);
+
+    const bySlug = Object.fromEntries(domains.map((d) => [d.slug, d]));
+    expect(domains.map((d) => d.slug)).toEqual(["session", "settings", "skill"]);
+    expect(bySlug.session).toMatchObject({ importPath: "@stigmer/react-sdk", headless: { rootOnly: ["useExportTranscript"] } });
+    expect(bySlug.settings).toMatchObject({ importPath: "@stigmer/react-sdk/console", headless: null });
+    expect(bySlug.skill).toMatchObject({ importPath: "@stigmer/react-sdk", headless: null });
+  });
+
+  it("counts constants and contexts as behaviour, never a component a memo wraps, and sorts what ./headless leaves out", async () => {
+    const variable = (id: number, name: string): Reflection => ({
+      id,
+      name,
+      variant: "declaration",
+      kind: ReflectionKind.Variable,
+      flags: {},
+      sources: [{ fileName: "sdk/react/src/session/values.ts", line: 1, character: 0 }],
+      type: { type: "intrinsic", name: "unknown" },
+    });
+    const { domains } = await parse([
+      entry(100, "index", [
+        variable(1, "SESSION_PAGE_SIZE"),
+        variable(2, "SessionContext"),
+        variable(3, "SessionViewer"),
+        hook(4, "useSessionZeta", "sdk/react/src/session/useSessionZeta.ts"),
+        hook(5, "useSessionAlpha", "sdk/react/src/session/useSessionAlpha.ts"),
+      ]),
+      entry(200, "headless", [reference(201, "SESSION_PAGE_SIZE", 1)]),
+    ]);
+
+    // SessionViewer is a memo-wrapped component: never listed as left out.
+    expect(domains[0].headless).toEqual({ rootOnly: ["SessionContext", "useSessionAlpha", "useSessionZeta"] });
+  });
+
+  it("reads a single-entry run's top-level exports as the root's", async () => {
+    const { domains } = await parse([typeAlias(1, "SkillPickerProps", "sdk/react/src/skill/SkillPicker.tsx")]);
+
+    expect(domains[0]).toMatchObject({ importPath: "@stigmer/react-sdk", headless: null });
+  });
+
+  it("refuses an entry it has no import path for", async () => {
+    await expect(parse([entry(100, "chat", [typeAlias(1, "Zeta", "sdk/react/src/skill/zeta.ts")])])).rejects.toThrow(
+      /entry named "chat" that ENTRY_IMPORT_PATHS/,
+    );
+  });
+
+  it("refuses a domain whose exports import from two entries", async () => {
+    await expect(
+      parse([
+        entry(100, "index", [hook(1, "useSkill", "sdk/react/src/skill/useSkill.ts")]),
+        entry(300, "console", [hook(2, "useSkillAdmin", "sdk/react/src/skill/admin.ts")]),
+      ]),
+    ).rejects.toThrow(/skill domain's exports import from @stigmer\/react-sdk and @stigmer\/react-sdk\/console/);
   });
 });
 

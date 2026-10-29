@@ -73,7 +73,8 @@ type FlowState =
  *
  * The server serves an organization's invitations only to callers who
  * hold `can_grant_access` on it, so gate the mount on that permission,
- * as {@link InvitationsSection} does with {@link PermissionGate}.
+ * as the console's `InvitationsSection` (`@stigmer/react-sdk/console`)
+ * does with {@link PermissionGate}.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *

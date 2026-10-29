@@ -17,6 +17,7 @@ import { describe, it, afterEach, expect } from "vitest";
 import { render, cleanup, waitFor } from "@testing-library/react";
 import { ColorModeContext, type ResolvedColorMode } from "../../../color-mode.js";
 import { MermaidDiagram } from "../../MermaidDiagram.js";
+import { MermaidLoaderContext } from "../../../mermaid-loader-context.js";
 
 const CHART = "flowchart LR\n  A[Hello] --> B[World]";
 
@@ -48,11 +49,13 @@ async function mount(
   document.body.appendChild(container);
 
   render(
-    <ColorModeContext.Provider value={mode}>
-      <span data-probe="muted" style={{ color: "var(--stgm-muted)" }} />
-      <span data-probe="primary" style={{ color: "var(--stgm-primary)" }} />
-      <MermaidDiagram chart={CHART} />
-    </ColorModeContext.Provider>,
+    <MermaidLoaderContext.Provider value={() => import("mermaid")}>
+      <ColorModeContext.Provider value={mode}>
+        <span data-probe="muted" style={{ color: "var(--stgm-muted)" }} />
+        <span data-probe="primary" style={{ color: "var(--stgm-primary)" }} />
+        <MermaidDiagram chart={CHART} />
+      </ColorModeContext.Provider>
+    </MermaidLoaderContext.Provider>,
     { container },
   );
 
