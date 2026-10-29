@@ -5,8 +5,7 @@
  *     picker shows a role without saying what it means there;
  *   - one role reads differently on different kinds (a Viewer runs an
  *     agent but only reads a conversation);
- *   - a role the kind does not grant falls back to the kindless sentence,
- *     which the deprecated `iamRoleDescription` still returns;
+ *   - a role the kind does not grant falls back to the kindless sentence;
  *   - the display names are the enum's own (`role_meta.display_name`).
  */
 import { describe, expect, it } from "vitest";
@@ -16,7 +15,6 @@ import { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { GRANTABLE_ROLES } from "../gen/authorization-config.js";
 import {
   grantableRoleDescription,
-  iamRoleDescription,
   iamRoleDisplayName,
 } from "../iam-role.js";
 
@@ -43,9 +41,7 @@ describe("grantableRoleDescription", () => {
   });
 
   it("falls back to the kindless sentence for a role the kind does not grant", () => {
-    expect(grantableRoleDescription(ApiResourceKind.run, IamRole.viewer)).toBe(
-      iamRoleDescription(IamRole.viewer),
-    );
+    expect(grantableRoleDescription(ApiResourceKind.run, IamRole.viewer)).toBe("Read it; cannot change it");
     expect(grantableRoleDescription(ApiResourceKind.agent, IamRole.iam_role_unspecified)).toBe("");
   });
 });

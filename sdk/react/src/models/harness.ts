@@ -55,16 +55,6 @@ export const HARNESS_META: Readonly<Record<HarnessOption, HarnessDisplayInfo>> =
 };
 
 /**
- * User-facing labels for each harness option.
- *
- * @deprecated Use {@link HARNESS_META} instead for full display metadata.
- * Kept for backward compatibility with existing consumers.
- */
-export const HARNESS_LABELS: Readonly<Record<HarnessOption, string>> = Object.fromEntries(
-  Object.entries(HARNESS_META).map(([k, v]) => [k, v.label]),
-) as Record<HarnessOption, string>;
-
-/**
  * The harnesses the platform offers, in proto enum order: what every
  * picker lists. Kept by hand because offering a harness is a product
  * decision, not a fact of the proto: a harness is named before it is

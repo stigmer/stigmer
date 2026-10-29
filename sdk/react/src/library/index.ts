@@ -21,7 +21,6 @@ export {
   findPlanFile,
   findLatestSessionPlan,
   planFilesByRun,
-  PLAN_FILE_NAME,
   PLAN_FILE_SUFFIX,
 } from "./detect-plan-file.js";
 export type { SessionPlan } from "./detect-plan-file.js";

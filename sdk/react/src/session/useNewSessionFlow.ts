@@ -12,7 +12,6 @@ import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspac
 
 import type { SessionComposerSubmitContext } from "../composer/index.js";
 import { useCreateRun } from "../run/useCreateRun.js";
-import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
@@ -71,19 +70,6 @@ export interface UseNewSessionFlowOptions {
    * available via {@link UseNewSessionFlowReturn.submitError}.
    */
   readonly onError?: (message: string, error: Error) => void;
-  /**
-   * Where session activities should execute.
-   *
-   * @deprecated Prefer setting `executionTarget` on `StigmerProvider`
-   * instead. The provider-level value is inherited by all hooks in the
-   * tree automatically. This per-hook option is honored as an override
-   * for backward compatibility but will be removed in a future major.
-   *
-   * When omitted, the hook reads from `StigmerProvider`'s
-   * `executionTarget` prop via context. If that is also unset, the
-   * server decides based on deployment context.
-   */
-  readonly executionTarget?: ExecutionTargetOption;
   /**
    * Whether the created conversation includes its sender's own My vault,
    * read first, ahead of {@link vaults}. A pick the person makes in the
@@ -402,8 +388,9 @@ export function useNewSessionFlow(
   const pinnedModelName = runConfig?.modelName;
   const pinnedServiceTier = runConfig?.serviceTier;
   const pinnedThinkingMode = runConfig?.thinkingMode;
-  const contextTarget = useExecutionTarget();
-  const executionTarget = options.executionTarget ?? contextTarget;
+  // Where session activities execute: `StigmerProvider`'s `executionTarget`;
+  // unset, the server decides from its deployment.
+  const executionTarget = useExecutionTarget();
   const adapter = useRunnerAdapter();
   // Auto-approve for the session about to be created (#816): derived like
   // useSessionPageFlow's — the user's explicit flip wins, otherwise the

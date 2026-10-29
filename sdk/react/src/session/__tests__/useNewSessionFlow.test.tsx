@@ -851,19 +851,6 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("submit with executionTarget", () => {
-    it("passes executionTarget in the sessionSpec when provided", async () => {
-      const opts = { ...defaultOptions(), executionTarget: "local" as const };
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.submit("Hello");
-      });
-
-      expect(mockCreateExecution).toHaveBeenCalledOnce();
-      const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.executionTarget).toBe("local");
-    });
-
     it("does not include executionTarget when not provided", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
@@ -877,22 +864,9 @@ describe("useNewSessionFlow", () => {
       expect(execInput.sessionSpec.executionTarget).toBeUndefined();
     });
 
-    it("uses context executionTarget when per-hook option is omitted", async () => {
+    it("passes the provider's executionTarget in the sessionSpec", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper("local") });
-
-      await act(async () => {
-        await result.current.submit("Hello");
-      });
-
-      expect(mockCreateExecution).toHaveBeenCalledOnce();
-      const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.executionTarget).toBe("local");
-    });
-
-    it("per-hook executionTarget option overrides context", async () => {
-      const opts = { ...defaultOptions(), executionTarget: "local" as const };
-      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper("cloud") });
 
       await act(async () => {
         await result.current.submit("Hello");

@@ -69,20 +69,6 @@ export function iamRoleDisplayName(role: IamRole): string {
 }
 
 /**
- * What a role means when no resource kind is known.
- *
- * @deprecated A role means different things on different kinds (a Viewer
- * runs an agent but only reads a conversation). Use
- * `grantableRoleDescription(kind, role)`, which returns the kind's own
- * sentence.
- *
- * @example iamRoleDescription(IamRole.viewer) // "Read it; cannot change it"
- */
-export function iamRoleDescription(role: IamRole): string {
-  return ROLE_KINDLESS_DESCRIPTIONS.get(role) ?? "";
-}
-
-/**
  * What a role means on one resource kind, in the words a person picking
  * the role reads: what it lets them do there, and the nearest thing it
  * does not.

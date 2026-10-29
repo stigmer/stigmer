@@ -17,7 +17,6 @@ import {
   findPlanFile,
   findLatestSessionPlan,
   planFilesByRun,
-  PLAN_FILE_NAME,
 } from "../detect-plan-file";
 
 function file(id: string, filename: string, runId = ""): StigmerFile {
@@ -33,8 +32,7 @@ function run(id: string, mode: InteractionMode = InteractionMode.PLAN) {
 }
 
 describe("isPlanFileName", () => {
-  it("accepts the legacy exact name and any *.plan.md", () => {
-    expect(isPlanFileName(PLAN_FILE_NAME)).toBe(true);
+  it("accepts any *.plan.md", () => {
     expect(isPlanFileName("feature_x.plan.md")).toBe(true);
     // The runner's current shape: hyphenated slug + content-hash discriminator.
     expect(isPlanFileName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
@@ -43,6 +41,7 @@ describe("isPlanFileName", () => {
 
   it("rejects non-plan filenames", () => {
     expect(isPlanFileName("report.md")).toBe(false);
+    expect(isPlanFileName("plan.md")).toBe(false);
     expect(isPlanFileName("plan.txt")).toBe(false);
     expect(isPlanFileName("myplan.md")).toBe(false);
   });
