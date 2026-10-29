@@ -501,7 +501,7 @@ What [`resolveEnvironmentChoice`](#resolveenvironmentchoice) reads. Every refere
 <TypeTable
   type={{
     agent: { type: "ResourceRef | EnvironmentReference | null", description: "The agent's default (`AgentSpec.environment_ref`)." },
-    notApplying: { type: "EnvironmentsNotApplying", description: "Why no Environment governs this conversation, when none does (environmentsNotApplying); undefined when Environments govern it, or the server has not said (an older server).", typeDescriptionLink: "#environmentsnotapplying" },
+    notApplying: { type: "EnvironmentsNotApplying", description: "Why no Environment governs this conversation, when none does (environmentsNotApplying); undefined when Environments govern it, or the server has not said.", typeDescriptionLink: "#environmentsnotapplying" },
     organization: { type: "ResourceRef | EnvironmentReference | null", description: "The organization's default (`OrganizationPreferences.default_environment_ref`)." },
     own: { type: "ResourceRef | EnvironmentReference | null", description: "The conversation's own pick (the composer's), or the routine's own on a routine's form." },
     routine: { type: "ResourceRef | EnvironmentReference | null", description: "The routine's choice, for a conversation a routine starts." },

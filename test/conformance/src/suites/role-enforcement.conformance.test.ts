@@ -80,7 +80,7 @@
 //     this).
 //   - The platform: `checkMyPermission(can_manage_plans,
 //     platform:stigmer)` is false for an owner — no organization role holds
-//     a platform capability — and the retired public level is refused for
+//     a platform capability — and the public level is refused for
 //     an owner as an invalid level, gated for nobody.
 //   - An unprovisioned caller — admitted idp-shaped, no account — may not
 //     create a blueprint (the sign-in flow's first RPC is provisionMyAccount,

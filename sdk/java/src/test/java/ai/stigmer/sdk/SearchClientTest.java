@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Pins what SearchClient sends for the organization: a search that names
  * none sends an empty org, which searches every organization the caller can
  * see (a server that holds one organization fills its own), so the builder
- * no longer refuses it. A real gRPC server captures the request.
+ * does not refuse it. A real gRPC server captures the request.
  */
 @DisplayName("SearchClient organization")
 class SearchClientTest {

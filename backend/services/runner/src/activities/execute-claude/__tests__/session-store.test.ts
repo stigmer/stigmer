@@ -452,7 +452,7 @@ describe("the HTTP backing on the wire", () => {
     const http = new HttpTranscripts(platform.url, credential, { maxRetries: 0 });
     await http.load(THREAD, undefined);
     credential.current = "rotated-token";
-    await runWithExecutionContext("aex-1", () => http.load(THREAD, undefined), "turn-key-1");
+    await runWithExecutionContext("run_1", () => http.load(THREAD, undefined), "turn-key-1");
     credential.current = null;
     await http.load(THREAD, undefined);
 

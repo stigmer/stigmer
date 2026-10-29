@@ -28,7 +28,7 @@ import { useResolveRunSession } from "../useResolveRunSession";
 
 function turn(target: RunSpec["target"]): Run {
   return create(RunSchema, {
-    metadata: { id: "aex_1" },
+    metadata: { id: "run_1" },
     spec: { target, message: "go" },
   });
 }
@@ -47,11 +47,11 @@ describe("useResolveRunSession", () => {
     mockGet.mockResolvedValue(turn({ case: "sessionId", value: "ses_42" }));
 
     const { result } = renderHook(() =>
-      useResolveRunSession("aex_1"),
+      useResolveRunSession("run_1"),
     );
 
     await waitFor(() => expect(result.current.sessionId).toBe("ses_42"));
-    expect(mockGet).toHaveBeenCalledWith("aex_1");
+    expect(mockGet).toHaveBeenCalledWith("run_1");
     expect(result.current.error).toBeNull();
   });
 
@@ -66,7 +66,7 @@ describe("useResolveRunSession", () => {
     );
 
     const { result } = renderHook(() =>
-      useResolveRunSession("aex_1"),
+      useResolveRunSession("run_1"),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -81,7 +81,7 @@ describe("useResolveRunSession", () => {
   ] as const)("resolves no session, and no error, for a run the server answers %s", async (code, connectCode) => {
     mockGet.mockRejectedValue(new StigmerError(code, "no such run", connectCode));
 
-    const { result } = renderHook(() => useResolveRunSession("aex_gone"));
+    const { result } = renderHook(() => useResolveRunSession("run_gone"));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.sessionId).toBeNull();
@@ -92,7 +92,7 @@ describe("useResolveRunSession", () => {
     mockGet.mockRejectedValueOnce(new StigmerError("unavailable", "connection refused", 14));
     mockGet.mockResolvedValueOnce(turn({ case: "sessionId", value: "ses_7" }));
 
-    const { result } = renderHook(() => useResolveRunSession("aex_1"));
+    const { result } = renderHook(() => useResolveRunSession("run_1"));
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.sessionId).toBeNull();

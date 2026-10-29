@@ -77,26 +77,26 @@ describe("useLocalSessionWorker", () => {
   it("attaches for the session's creator", () => {
     whoAmI = signedInAs("ida_owner");
     const adapter = createMockAdapter();
-    renderHook(() => useLocalSessionWorker("ses-1", makeOwnedSession("ida_owner")), {
+    renderHook(() => useLocalSessionWorker("ses_1", makeOwnedSession("ida_owner")), {
       wrapper: wrapper(adapter, "local"),
     });
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_1");
   });
 
   it("attaches for a creator stamped with the account's identity-provider subject", () => {
     whoAmI = signedInAs("ida_owner", "email|owner@example.test");
     const adapter = createMockAdapter();
     renderHook(
-      () => useLocalSessionWorker("ses-1", makeOwnedSession("email|owner@example.test")),
+      () => useLocalSessionWorker("ses_1", makeOwnedSession("email|owner@example.test")),
       { wrapper: wrapper(adapter, "local") },
     );
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_1");
   });
 
   it("does not attach for a viewer who is not the session's creator", () => {
     whoAmI = signedInAs("ida_viewer", "email|viewer@example.test");
     const adapter = createMockAdapter();
-    renderHook(() => useLocalSessionWorker("ses-1", makeOwnedSession("ida_owner")), {
+    renderHook(() => useLocalSessionWorker("ses_1", makeOwnedSession("ida_owner")), {
       wrapper: wrapper(adapter, "local"),
     });
     expect(adapter.onSessionOpened).not.toHaveBeenCalled();
@@ -106,7 +106,7 @@ describe("useLocalSessionWorker", () => {
     whoAmI = { account: null, isLoading: true, error: null };
     const adapter = createMockAdapter();
     const { rerender } = renderHook(
-      () => useLocalSessionWorker("ses-1", makeOwnedSession("ida_owner")),
+      () => useLocalSessionWorker("ses_1", makeOwnedSession("ida_owner")),
       { wrapper: wrapper(adapter, "local") },
     );
     expect(adapter.onSessionOpened).not.toHaveBeenCalled();
@@ -119,42 +119,42 @@ describe("useLocalSessionWorker", () => {
   it("attaches when there is no account to compare (a single-user server)", () => {
     whoAmI = { account: null, isLoading: false, error: new Error("Identity account not found") };
     const adapter = createMockAdapter();
-    renderHook(() => useLocalSessionWorker("ses-1", makeOwnedSession("system")), {
+    renderHook(() => useLocalSessionWorker("ses_1", makeOwnedSession("system")), {
       wrapper: wrapper(adapter, "local"),
     });
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_1");
   });
 
   it("attaches the worker on mount for a loaded local session", () => {
     const adapter = createMockAdapter();
     renderHook(
-      () => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.LOCAL)),
+      () => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.LOCAL)),
       { wrapper: wrapper(adapter, "local") },
     );
 
     expect(adapter.onSessionOpened).toHaveBeenCalledTimes(1);
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_1");
     expect(adapter.onSessionClosed).not.toHaveBeenCalled();
   });
 
   it("detaches the worker on unmount", () => {
     const adapter = createMockAdapter();
     const { unmount } = renderHook(
-      () => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.LOCAL)),
+      () => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.LOCAL)),
       { wrapper: wrapper(adapter, "local") },
     );
 
     unmount();
 
     expect(adapter.onSessionClosed).toHaveBeenCalledTimes(1);
-    expect(adapter.onSessionClosed).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionClosed).toHaveBeenCalledWith("ses_1");
   });
 
   it("is a no-op when no adapter is configured", () => {
     // No adapter → nothing to assert beyond "does not throw".
     expect(() =>
       renderHook(
-        () => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.LOCAL)),
+        () => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.LOCAL)),
         { wrapper: wrapper(null, "local") },
       ),
     ).not.toThrow();
@@ -163,7 +163,7 @@ describe("useLocalSessionWorker", () => {
   it("does not attach for a cloud session", () => {
     const adapter = createMockAdapter();
     renderHook(
-      () => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.CLOUD)),
+      () => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.CLOUD)),
       { wrapper: wrapper(adapter, "local") },
     );
 
@@ -174,7 +174,7 @@ describe("useLocalSessionWorker", () => {
     const adapter = createMockAdapter();
     const { rerender } = renderHook(
       ({ session }: { session: Session | null }) =>
-        useLocalSessionWorker("ses-1", session),
+        useLocalSessionWorker("ses_1", session),
       {
         wrapper: wrapper(adapter, "local"),
         initialProps: { session: null } as { session: Session | null },
@@ -194,13 +194,13 @@ describe("useLocalSessionWorker", () => {
     renderHook(
       () =>
         useLocalSessionWorker(
-          "ses-1",
+          "ses_1",
           makeSession(ExecutionTarget.UNSPECIFIED),
         ),
       { wrapper: wrapper(adapter, "local") },
     );
 
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_1");
   });
 
   it("does not attach when spec is unspecified and provider target is not local", () => {
@@ -208,7 +208,7 @@ describe("useLocalSessionWorker", () => {
     renderHook(
       () =>
         useLocalSessionWorker(
-          "ses-1",
+          "ses_1",
           makeSession(ExecutionTarget.UNSPECIFIED),
         ),
       { wrapper: wrapper(adapter, "cloud") },
@@ -222,15 +222,15 @@ describe("useLocalSessionWorker", () => {
     const { rerender } = renderHook(
       ({ sessionId }: { sessionId: string }) =>
         useLocalSessionWorker(sessionId, makeSession(ExecutionTarget.LOCAL)),
-      { wrapper: wrapper(adapter, "local"), initialProps: { sessionId: "ses-1" } },
+      { wrapper: wrapper(adapter, "local"), initialProps: { sessionId: "ses_1" } },
     );
 
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_1");
 
-    rerender({ sessionId: "ses-2" });
+    rerender({ sessionId: "ses_2" });
 
-    expect(adapter.onSessionClosed).toHaveBeenCalledWith("ses-1");
-    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses-2");
+    expect(adapter.onSessionClosed).toHaveBeenCalledWith("ses_1");
+    expect(adapter.onSessionOpened).toHaveBeenCalledWith("ses_2");
   });
 
   // Reference-stability guard: useSessionConversation refetches the session
@@ -240,7 +240,7 @@ describe("useLocalSessionWorker", () => {
     const adapter = createMockAdapter();
     const { rerender } = renderHook(
       ({ session }: { session: Session }) =>
-        useLocalSessionWorker("ses-1", session),
+        useLocalSessionWorker("ses_1", session),
       {
         wrapper: wrapper(adapter, "local"),
         initialProps: { session: makeSession(ExecutionTarget.LOCAL) },
@@ -264,7 +264,7 @@ describe("useLocalSessionWorker", () => {
 
     expect(() =>
       renderHook(
-        () => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.LOCAL)),
+        () => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.LOCAL)),
         { wrapper: wrapper(adapter, "local") },
       ),
     ).not.toThrow();
@@ -272,12 +272,12 @@ describe("useLocalSessionWorker", () => {
 
   it("never asks who is looking on a page with no runner adapter: every web page, a chat link's guest (stigmer#1481)", () => {
     whoAmIAsked.length = 0;
-    renderHook(() => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.CLOUD)), { wrapper: wrapper(null) });
+    renderHook(() => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.CLOUD)), { wrapper: wrapper(null) });
     expect(whoAmIAsked.length).toBeGreaterThan(0);
     expect(whoAmIAsked.every((enabled) => enabled === false)).toBe(true);
 
     whoAmIAsked.length = 0;
-    renderHook(() => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.LOCAL)), {
+    renderHook(() => useLocalSessionWorker("ses_1", makeSession(ExecutionTarget.LOCAL)), {
       wrapper: wrapper(createMockAdapter(), "local"),
     });
     expect(whoAmIAsked.at(-1)).toBe(true);

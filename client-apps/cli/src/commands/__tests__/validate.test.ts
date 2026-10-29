@@ -2,9 +2,8 @@
 // against temp files and asserts the classified exit code and, for the plugin
 // route, the rendered output. The contract: 0 = valid (a plugin with warnings
 // is still 0), 2 = invalid input (bad path, bad YAML, unknown kind, schema
-// failure, a plugin the reader refuses), 1 = unexpected. This is a
-// deliberate, documented refinement over the Go CLI, which returned a
-// generic exit 1 for all validate failures. The YAML cases are unchanged by
+// failure, a plugin the reader refuses), 1 = unexpected, so a script tells a
+// bad input from a failure of the CLI itself. The YAML cases are unchanged by
 // the plugin route and pin that it stays out of their way.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m0",
+      "id": "run_hermetic_0001.root.m0",
       "content": [
         {
           "type": "text",
@@ -12,9 +12,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hermetic-edit-0001",
+      "id": "run_hermetic_0001.call-hermetic-edit-0001",
       "input": {
         "file_path": "/notes.md",
         "old_string": "first\n",
@@ -24,10 +24,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_result": {
-      "id": "aex_hermetic_0001.call-hermetic-edit-0001.r",
-      "tool_use_id": "aex_hermetic_0001.call-hermetic-edit-0001",
+      "id": "run_hermetic_0001.call-hermetic-edit-0001.r",
+      "tool_use_id": "run_hermetic_0001.call-hermetic-edit-0001",
       "content": [
         {
           "type": "text",
@@ -37,9 +37,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m1",
+      "id": "run_hermetic_0001.root.m1",
       "content": [
         {
           "type": "text",
@@ -49,13 +49,13 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "stigmer_file_review_changes": {
-      "id": "aex_hermetic_0001.fr0",
-      "change_set_id": "aex_hermetic_0001:0",
+      "id": "run_hermetic_0001.fr0",
+      "change_set_id": "run_hermetic_0001:0",
       "files": [
         {
-          "file_change_id": "aex_hermetic_0001:0:notes.md",
+          "file_change_id": "run_hermetic_0001:0:notes.md",
           "path": "notes.md",
           "change": "modified",
           "digest": "0022d817bdb1d67c2a0319307b8dc9e6c346d937d95ae9b3e3df46988059b489",

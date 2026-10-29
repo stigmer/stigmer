@@ -30,7 +30,7 @@
 //     rows; revokeOrgAccess empties one principal's rows on one
 //     organization;
 //   - get answers the row and the byte-pinned NOT_FOUND copy; delete of an
-//     absent triple answers the default instance (Java's contract);
+//     absent triple answers the default instance;
 //   - a grant on a kind whose kind_meta lists no roles is INVALID_ARGUMENT
 //     with the system-managed copy in EVERY edition — the proto is read
 //     before any edition scope;
@@ -191,7 +191,7 @@ const ABSENT_AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
 // The same for a run: an agent execution's type defines neither
 // can_grant_access nor can_view_access, so it is the target that asks the
 // model a question it does not define.
-const ABSENT_AGENT_EXECUTION = "aex_01hzzzzzzzzzzzzzzzzzzzzzzz";
+const ABSENT_AGENT_EXECUTION = "run_01hzzzzzzzzzzzzzzzzzzzzzzz";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -394,7 +394,7 @@ describe("Grant conformance — grants on the organization, the Members page's R
     );
   });
 
-  it("[rpc:GrantCommandController.delete] delete of an absent triple answers the default instance — Java's contract", async () => {
+  it("[rpc:GrantCommandController.delete] delete of an absent triple answers the default instance", async () => {
     const org = await createOwnedOrganization();
 
     // No row, no error, the empty message.
@@ -452,7 +452,7 @@ describe("Grant conformance — grants on the organization, the Members page's R
         resource: ref("organization", org),
         includeInherited: true,
       });
-    // A grant carries `ownerResource` only when inherited (the Java shape),
+    // A grant carries `ownerResource` only when inherited,
     // so "nothing inherited" is the whole proof that no parent was linked.
     expect(inherited.entries.length).toBeGreaterThan(0);
     for (const entry of inherited.entries) {
@@ -595,7 +595,7 @@ describe("Grant conformance — the principal-trust rule runs before any engine"
       NON_ACCOUNT_PRINCIPAL_MESSAGE,
     ],
     [
-      "the Java `_self` alias",
+      "the `_self` alias",
       (org: string) => organizationRole("_self", "admin", org),
       SELF_ALIAS_MESSAGE,
     ],

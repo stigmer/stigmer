@@ -13,8 +13,8 @@ afterEach(cleanup);
 const failedAt = new Date(Date.now() - 5 * 60_000);
 
 const runs: DashboardFailedRun[] = [
-  { id: "aex_1", name: "Triage inbox", error: "model refused", failedAt, resourceName: "triage" },
-  { id: "aex_2", name: "Nightly build", error: "", failedAt, resourceName: "build" },
+  { id: "run_1", name: "Triage inbox", error: "model refused", failedAt, resourceName: "triage" },
+  { id: "run_2", name: "Nightly build", error: "", failedAt, resourceName: "build" },
 ];
 
 describe("DashboardFailedRuns", () => {
@@ -39,7 +39,7 @@ describe("DashboardFailedRuns", () => {
     expect(within(secondRow!).getByText("Nightly build")).toBeTruthy();
 
     fireEvent.click(within(secondRow!).getByRole("button", { name: "View" }));
-    expect(onViewClick).toHaveBeenCalledWith("aex_2");
+    expect(onViewClick).toHaveBeenCalledWith("run_2");
   });
 
   it("renders no View button without a handler", () => {

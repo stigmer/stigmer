@@ -1,9 +1,6 @@
 // Algorithmic alias generation. Aliases are *derived* from proto kind metadata
 // (name/display_name/id_prefix/proto enum name), never hardcoded, so a new
 // resource kind picks up its full set of accepted spellings automatically.
-// The algorithm was ported from the Go CLI's types.GenerateAliases; the Go CLI
-// was removed in the TypeScript migration (stigmer/stigmer#203), so this is the
-// only alias implementation.
 
 /**
  * Generate every accepted input form for a resource kind.

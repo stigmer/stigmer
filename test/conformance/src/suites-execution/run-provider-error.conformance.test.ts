@@ -96,7 +96,7 @@ const ORGANIZATION_KEY_BILLING_BODY = {
 
 // How long a rejected turn may take to become RUN_FAILED. A 400 or a 401
 // fails in one round trip (LangChain's AsyncCaller retries neither); the
-// budget is the Go arm's (3 minutes), kept for a slow runner start.
+// three-minute budget is for a slow runner start.
 const FAILURE_BUDGET_MS = 180_000;
 const FAILURE_ARM_TIMEOUT_MS = FAILURE_BUDGET_MS + 30_000;
 
@@ -106,7 +106,7 @@ async function runToFailure(): Promise<Run> {
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex-provider-error"), agentRef: agentRefOf(agent) }),
+    makeAgentExecution({ org, name: uniqueName("run-provider-error"), agentRef: agentRefOf(agent) }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

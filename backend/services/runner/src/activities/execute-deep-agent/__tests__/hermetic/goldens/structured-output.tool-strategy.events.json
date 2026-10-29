@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m0",
+      "id": "run_hermetic_0001.root.m0",
       "content": [
         {
           "type": "text",
@@ -12,9 +12,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m1",
+      "id": "run_hermetic_0001.root.m1",
       "content": [
         {
           "type": "text",
@@ -24,9 +24,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "stigmer_agent_structured_output": {
-      "id": "aex_hermetic_0001.output",
+      "id": "run_hermetic_0001.output",
       "output": {
         "answer": "forty-two",
         "score": 42

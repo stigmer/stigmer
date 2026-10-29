@@ -116,7 +116,7 @@ describe("useShareFlow — revoke", () => {
     ];
     const { result } = renderHook(
       () =>
-        useShareFlow({ kind: "channel", id: "ach_1", resourceKind: ApiResourceKind.channel }),
+        useShareFlow({ kind: "channel", id: "chn_1", resourceKind: ApiResourceKind.channel }),
       { wrapper: wrapper("enterprise") },
     );
 
@@ -131,8 +131,8 @@ describe("useShareFlow — revoke", () => {
       spec.relation,
     ]);
     expect(sent).toEqual([
-      ["team", "tm_sre", "member", "channel", "ach_1", "participant"],
-      ["team", "tm_sre", "member", "channel", "ach_1", "viewer"],
+      ["team", "tm_sre", "member", "channel", "chn_1", "participant"],
+      ["team", "tm_sre", "member", "channel", "chn_1", "viewer"],
     ]);
     expect(stubs.refetch).toHaveBeenCalled();
   });

@@ -101,7 +101,7 @@ describe("Run run_config.max_tool_rounds", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-rounds"),
+        name: uniqueName("run-rounds"),
         agentRef: agentRefOf(agent),
         message: "Echo each round.",
         autoApproveAll: true,

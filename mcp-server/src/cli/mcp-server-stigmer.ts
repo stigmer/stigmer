@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // mcp-server-stigmer — the Model Context Protocol server for the Stigmer
-// platform. Mirrors Go cmd/mcp-server-stigmer/main.go.
+// platform.
 //
 // Usage:
 //   mcp-server-stigmer            Transport from STIGMER_MCP_TRANSPORT (default stdio)

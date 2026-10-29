@@ -7,8 +7,7 @@
 // replays canned Anthropic responses as Server-Sent Events that the runner's
 // @langchain/anthropic streaming parser accepts. No API keys, no network.
 //
-// Why long-lived + programmable (vs. the Go integration mock, which is built
-// per-test): the conformance runner boots ONCE per test file with a fixed proxy
+// Why long-lived + programmable (not built per test): the conformance runner boots ONCE per test file with a fixed proxy
 // URL, so the response source must be mutable at runtime. Each test enqueues the
 // turns it expects and resets in afterEach; Class B runs files serially
 // (fileParallelism:false) and tests within a file run serially, so the queue is
@@ -756,7 +755,7 @@ export class MockLlmProxy {
     this.embeddingsCaptured.push({ path, model, input });
 
     // The rough chars/4 token estimate keeps metering-shaped consumers honest
-    // without a tokenizer (the Go mock's convention).
+    // without a tokenizer.
     const promptTokens = Math.floor(input.reduce((sum, text) => sum + text.length, 0) / 4);
     const response: EmbeddingsResponseBody = {
       object: "list",

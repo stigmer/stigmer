@@ -9,8 +9,7 @@
  * Layering: `llm-proxy.ts` and `llm-backend.ts` stay pure routing utilities
  * (no LangChain dependency); this module is the LangChain-aware layer above
  * them that owns the resolve -> infer-provider -> strip-prefix ->
- * proxy-or-backend-wire -> construct sequence that used to be copy-pasted
- * across every LLM activity.
+ * proxy-or-backend-wire -> construct sequence once, for every LLM activity.
  *
  * In the agent host, a direct-mode client keeps its shape and swaps only
  * its transport: its base URL is a provider lane of the runner's local
@@ -388,7 +387,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
 
   // The two SDKs name the transport-override block differently (OpenAI:
   // `configuration`, Anthropic: `clientOptions`) — encapsulating that here is
-  // the whole point, since the shape mismatch is where bugs used to hide.
+  // the whole point, since the shape mismatch is where bugs hide.
   const model: BaseChatModel = provider === "openai"
     ? new ChatOpenAI({
         model: apiModelId,

@@ -6,8 +6,7 @@
  * resolution, idempotent reuse, and how a repository's token reaches git —
  * through the environment of the two network commands only, for a
  * github.com URL only, never in a remote URL, argv or a file — plus the
- * reuse scrub of what earlier runners stored, the git version floor, shell
- * quoting, error sanitization, multi-entry subdirectories and git excludes.
+ * git version floor, shell quoting, error sanitization, multi-entry subdirectories and git excludes.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
@@ -302,65 +301,6 @@ describe("provisionGit", () => {
       expect(run.env).toBeUndefined();
     }
     expect(result.gitMetadata!.writeBackReady).toBe(false);
-  });
-
-  // ── Reuse scrubs what earlier runners stored ──────────────────────
-
-  function reusing(origin: string, stored: { credFile?: boolean; helper?: string } = {}) {
-    return mockWorkspaceBackend({
-      exists: vi.fn(async (path: string) => path.endsWith(".git") || (stored.credFile === true && path.endsWith(".git-credentials"))),
-      execute: vi.fn(async (cmd: string) => {
-        if (cmd.includes("remote get-url origin")) return `${origin}\n`;
-        if (cmd.includes("--get-all credential.helper")) return stored.helper ? `${stored.helper}\n` : "";
-        if (cmd.includes("rev-parse --abbrev-ref")) return "main\n";
-        if (cmd.includes("rev-parse HEAD")) return "abc123\n";
-        return "";
-      }),
-    });
-  }
-
-  it("rewrites a token-bearing origin clean, deletes the stored file and unsets the store helper", async () => {
-    const backend = reusing(`https://x-access-token:${TOKEN}@github.com/org/repo.git`, {
-      credFile: true,
-      helper: "store --file=/tmp/test-workspace/.git/.git-credentials",
-    });
-
-    await provisionGit(makeOptions({ backend, token: TOKEN }));
-
-    const cmds = calls(backend);
-    expect(cmds).toContain("git remote set-url origin 'https://github.com/org/repo.git'");
-    expect(cmds).toContain("rm -f '/tmp/test-workspace/.git/.git-credentials'");
-    expect(cmds.some((c) => c.startsWith("git config --local --unset-all credential.helper"))).toBe(true);
-    expect(cmds.some((c) => c.includes("git fetch")), "reuse fetches nothing").toBe(false);
-  });
-
-  it("leaves a clean clone, and a helper the owner set, alone", async () => {
-    const backend = reusing("https://github.com/org/repo.git", { helper: "osxkeychain" });
-
-    await provisionGit(makeOptions({ backend }));
-
-    const cmds = calls(backend);
-    expect(cmds.some((c) => c.includes("set-url"))).toBe(false);
-    expect(cmds.some((c) => c.startsWith("rm "))).toBe(false);
-    expect(cmds.some((c) => c.includes("--unset-all"))).toBe(false);
-  });
-
-  it("keeps going when the scrub cannot read the clone", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const backend = mockWorkspaceBackend({
-      exists: vi.fn().mockResolvedValue(true),
-      execute: vi.fn(async (cmd: string) => {
-        if (cmd.includes("get-url") || cmd.startsWith("rm ")) throw new Error("locked");
-        if (cmd.includes("--get-all")) return "store --file=/x/.git/.git-credentials\n";
-        if (cmd.includes("--unset-all")) throw new Error("locked");
-        return "";
-      }),
-    });
-
-    const result = await provisionGit(makeOptions({ backend }));
-
-    expect(result.sourceType).toBe("git_repo");
-    expect(warn).toHaveBeenCalledTimes(3);
   });
 
   // ── Shell quoting ─────────────────────────────────────────────────

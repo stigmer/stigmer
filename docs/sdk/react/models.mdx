@@ -101,7 +101,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
 // Unified mode — flat picker with all models
 const { featured, models, getByKey, isLoading } = useModelRegistry();
 
-// Legacy single-harness mode
+// Single-harness mode
 const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
 ```
 
@@ -553,8 +553,8 @@ model data without npm package updates.
 
 Parsed model-registry document: the per-model list plus document-level
 platform metadata. `visionLimits` is `undefined` when the served document
-predates the `limits` block (older servers) — consumers must stay silent
-rather than assume a budget.
+carries no `limits` block — consumers must stay silent rather than assume
+a budget.
 
 <TypeTable
   type={{

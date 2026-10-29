@@ -88,7 +88,7 @@ export function loadDocuments(file: string, options: LoadOptions = {}): LoadedDo
 
 // The `yaml` Document exposes a [valueStart, valueEnd, nodeEnd] range into the
 // source. For multi-document files we slice per document; a single document is
-// just the whole file (matching Go's RawContent for the common case).
+// just the whole file.
 function rawText(source: string, doc: { range?: readonly [number, number, number] | null }, single: boolean): string {
   if (single) return source;
   const range = doc.range;

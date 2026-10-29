@@ -17,17 +17,14 @@
 //     its handler-owned NotFound copy for unknown ids, outsider or not — the
 //     load fires before the check (#224).
 //
-// Two arms below sit where the retired Java edition once diverged by
-// ruling (the per-method dispositions in docs/authorization-coverage.md);
-// each is plain contract now, enforced strictly so a regression to the old
-// gap turns the suite red:
+// One arm below is enforced strictly so a regression turns the suite red
+// (the per-method dispositions in docs/authorization-coverage.md):
 //
-//   - unknown ids on the authorize-first family answer the uniform NOT_FOUND
-//     (Java answered PERMISSION_DENIED, an artifact of its missing load steps).
+//   - unknown ids on the authorize-first family answer the uniform NOT_FOUND,
+//     never PERMISSION_DENIED (the load runs before the check).
 //
-// Until stigmer#1023 the suite selected a contract per implementation behind
-// the target (an env knob, stigmer#972, then TargetProfile.implementation,
-// stigmer#1014); with one implementation left there is nothing to select.
+// One contract holds on every target; nothing is selected per
+// implementation (stigmer#1023).
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): the
 // cloud's primary, and on the managed local targets an open-source sibling
@@ -257,7 +254,7 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
   it("[rpc:RunQueryController.getArtifactContent] [rpc:RunQueryController.getArtifactDownloadUrl] the authorize-first read lanes answer an outsider's unknown id with the uniform NOT_FOUND", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const outsider = await lane.provisionIdentity();
-    const missingAgentExecution = "aexec_01conformancemissing";
+    const missingAgentExecution = "run_01conformancemissing";
     const missingArtifactKey = `artifacts/${missingAgentExecution}/f.txt`;
 
     const lanes: ReadonlyArray<[string, () => Promise<unknown>]> = [

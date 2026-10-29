@@ -537,7 +537,7 @@ describe("ConversationTimelineView inbound media", () => {
   afterEach(() => cleanup());
 
   const identityProps = {
-    channelId: "ach-1",
+    channelId: "chn_1",
     conversationKey: "15551234567",
   };
 
@@ -584,7 +584,7 @@ describe("ConversationTimelineView inbound media", () => {
       expect(img?.getAttribute("src")).toBe("https://r2.example/presigned/photo");
     });
     const req = mint.mock.calls[0][0];
-    expect(req.channelId).toBe("ach-1");
+    expect(req.channelId).toBe("chn_1");
     expect(req.conversationKey).toBe("15551234567");
     expect(req.itemId).toBe("wa:1");
 
@@ -653,7 +653,7 @@ describe("ConversationTimelineView inbound media", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open lease-agreement.pdf" }));
     await waitFor(() => expect(anchorClick).toHaveBeenCalled());
     const req = mint.mock.calls[0][0];
-    expect(req.channelId).toBe("ach-1");
+    expect(req.channelId).toBe("chn_1");
     expect(req.conversationKey).toBe("15551234567");
     expect(req.itemId).toBe("wa:2");
     anchorClick.mockRestore();

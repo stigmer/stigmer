@@ -46,12 +46,12 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
   return {
     labels,
     deps: {
-      input: { executionId: `aex-${sessionId}`, threadId: "", turnSeq: 0 },
+      input: { executionId: `run_${sessionId}`, threadId: "", turnSeq: 0 },
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir, workspaceLockTimeoutMs: LOCK_TIMEOUT_MS }),
       status,
       rows,
-      transcript: new TranscriptBuilder(`aex-${sessionId}`, rows, status),
+      transcript: new TranscriptBuilder(`run_${sessionId}`, rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
@@ -87,7 +87,7 @@ describe("resolveReconcileTurn: the settlements before the undo", () => {
   });
 
   it("a tree another turn holds past the wait settles workspace-lock-timeout and reads no owed undo", async () => {
-    const sessionId = "ses-reconcile-lock";
+    const sessionId = "ses_reconcile-lock";
     const client = mockStigmerClient({ fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)) });
     const { deps } = depsWith(client, sessionId);
     const frame = emptyFrame();

@@ -13,10 +13,7 @@ import { compileSdkStylesheet } from "./helpers/compile-sdk-styles";
  * the cascade under test is the standalone build's own layer order: the reset
  * lives in `base`, the `stg:`-prefixed utilities live in `stgm`, and the
  * `@layer theme, base, components, utilities, stgm` declaration pins
- * `base` below `stgm`. (Pre-#454 this test compiled a simulated host context,
- * because hosts inlined the SDK source into their own Tailwind build and the
- * utilities landed in the HOST's `utilities` layer — that pipeline no longer
- * exists.)
+ * `base` below `stgm` (#454).
  */
 
 /** The nearest enclosing `@layer <name>` of a node, or null if unlayered. */

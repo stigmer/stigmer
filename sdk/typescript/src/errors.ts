@@ -286,7 +286,7 @@ export interface ErrorReason {
  * with the original chained as `cause`, so this walks the cause chain
  * to the ConnectError and reads its detail payloads.
  *
- * Absence is normal — older servers, transport failures, and refusals
+ * Absence is normal — servers that attach none, transport failures, and refusals
  * with no machine-readable reason all return `null`; callers fall back
  * to {@link getUserMessage}.
  */

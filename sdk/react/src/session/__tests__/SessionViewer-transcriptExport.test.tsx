@@ -1,7 +1,7 @@
 // SessionViewer's built-in transcript export (stigmer/stigmer#814): the
 // header's TranscriptExportMenu, for every audience and with or without the
 // host's inspector, so wherever a conversation is viewed its transcript
-// stays reachable. The inspector no longer carries a Config facet to hold it.
+// stays reachable.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

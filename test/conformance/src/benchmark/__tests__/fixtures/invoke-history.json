@@ -8,7 +8,7 @@
       "workflowExecutionStartedEventAttributes": {
         "workflowType": { "name": "InvokeAgentExecutionWorkflow" },
         "taskQueue": { "name": "stigmer_agent_execution", "kind": "TASK_QUEUE_KIND_NORMAL" },
-        "workflowId": "stigmer/agent-execution/invoke/aex_fixture"
+        "workflowId": "stigmer/agent-execution/invoke/run_fixture"
       }
     },
     {

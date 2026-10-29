@@ -41,18 +41,18 @@ const noop = () => {};
 
 const channels = [
   create(ChannelSchema, {
-    metadata: { id: "ach_wa", org: "acme", name: "support-line", slug: "support-line" },
+    metadata: { id: "chn_wa", org: "acme", name: "support-line", slug: "support-line" },
     spec: { type: { case: "whatsapp", value: {} } },
   }),
   create(ChannelSchema, {
-    metadata: { id: "ach_sl", org: "acme", name: "eng-help", slug: "eng-help" },
+    metadata: { id: "chn_sl", org: "acme", name: "eng-help", slug: "eng-help" },
     spec: { type: { case: "slack", value: {} } },
   }),
 ];
 
 const conversations = [
   create(ChannelConversationSchema, {
-    channelId: "ach_wa",
+    channelId: "chn_wa",
     conversationKey: "15550001111",
     org: "acme",
     displayName: "Pat",
@@ -63,7 +63,7 @@ const conversations = [
     lastActivityAt: timestampFromDate(new Date("2026-08-07T11:55:00Z")),
   }),
   create(ChannelConversationSchema, {
-    channelId: "ach_wa",
+    channelId: "chn_wa",
     conversationKey: "15550002222",
     org: "acme",
     control: ConversationControl.control_human,
@@ -205,7 +205,7 @@ describe("Conversation surfaces a11y", () => {
         {...listBaseProps}
         conversations={conversations}
         onFilterChange={noop}
-        selected={{ channelId: "ach_wa", conversationKey: "15550001111" }}
+        selected={{ channelId: "chn_wa", conversationKey: "15550001111" }}
       />,
       mode,
     );
@@ -258,7 +258,7 @@ describe("Conversation surfaces a11y", () => {
       <StigmerContext.Provider value={mediaClient}>
         <ConversationTimelineView
           {...timelineBaseProps}
-          channelId="ach_wa"
+          channelId="chn_wa"
           conversationKey="15550001111"
           items={mediaTimelineItems}
           hasOlder={false}

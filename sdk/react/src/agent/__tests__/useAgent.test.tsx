@@ -33,7 +33,7 @@ describe("useAgent", () => {
   });
 
   it("fetches agent by org and slug", async () => {
-    const agent = { metadata: { id: "agt-1", name: "Test Agent", slug: "test-agent", org: "acme" } };
+    const agent = { metadata: { id: "agt_1", name: "Test Agent", slug: "test-agent", org: "acme" } };
     const getByReference = vi.fn().mockResolvedValue(agent);
     const client = createMockStigmer({ getByReference });
 

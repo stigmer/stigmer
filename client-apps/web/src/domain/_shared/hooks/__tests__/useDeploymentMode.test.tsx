@@ -6,8 +6,8 @@
 // getServerInfo answers. Anything rendered on the first frame is rendered on
 // the guess. The hook says which it is returning, so a surface that must not
 // show the wrong shape can wait for `resolved` instead of
-// branching on the guess. A server that cannot answer (an older server
-// without the RPC, or no server at all) resolves to the guess: the fallback
+// branching on the guess. A server that cannot answer (the call fails, or
+// there is no server at all) resolves to the guess: the fallback
 // is the best answer there is, and a skeleton that never lifts would be worse
 // than a guess.
 // ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ describe("useDeploymentMode", () => {
     );
   });
 
-  it("resolves to the guess when the server cannot answer (older servers)", async () => {
+  it("resolves to the guess when the server cannot answer", async () => {
     const { result } = renderHook(() => useDeploymentMode(clientFailing()));
     await waitFor(() =>
       expect(result.current).toEqual({ mode: "cloud", resolved: true }),

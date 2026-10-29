@@ -67,10 +67,9 @@ describe("registry — alias resolution", () => {
     expect(registry.getByAlias("nope")).toBeUndefined();
   });
 
-  // An MCP server lives in a plugin or in an agent's own `mcp_servers`; the
-  // kind that held one alone is gone, so none of its spellings may still
-  // resolve to something else.
-  it("resolves no spelling of the retired MCP server kind", () => {
+  // An MCP server lives in a plugin or in an agent's own `mcp_servers`, never
+  // as a kind of its own, so none of these spellings resolves to a kind.
+  it("resolves no spelling of an MCP server kind", () => {
     for (const alias of ["mcp", "mcp-server", "mcp_server", "McpServer", "mcpservers"]) {
       expect(registry.getByAlias(alias), alias).toBeUndefined();
     }

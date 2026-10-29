@@ -4,8 +4,7 @@
 // check, the tar reader), which the runner shares for the Claude engine.
 //
 // The Temporal CLI downloader (`temporal/download.ts`) builds on this, and any
-// future release-binary downloader should too. (The `stigmer-server` Go binary
-// was its second consumer until the server became an npm artifact.)
+// future release-binary downloader should too.
 //
 // Retrying a transient failure is part of the contract. A connection that resets
 // before or during the body, a 5xx or a 429 is tried again with a doubling wait,

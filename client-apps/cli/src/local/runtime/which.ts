@@ -1,4 +1,4 @@
-// Minimal PATH lookup, the Node analogue of Go's exec.LookPath.
+// Minimal PATH lookup.
 //
 // Scans the PATH entries for an executable file. POSIX-focused (the local stack
 // targets macOS and Linux); on those platforms a name with no separator is

@@ -3,8 +3,7 @@
 // is_expression (90203) and discriminated_by (90205) on FieldOptions and
 // discriminator_value (90301) on MessageOptions; a descriptor written with
 // one of them must never read as a different option, so no extension the
-// generated TypeScript stubs define may take any of those numbers. Before
-// this, only a comment in that file held the rule.
+// generated TypeScript stubs define may take any of those numbers.
 //
 // The scan is every `*_pb.ts` module of the stubs package (`@stigmer/apis`,
 // located through its own export map), imported by its package path, and the

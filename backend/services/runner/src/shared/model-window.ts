@@ -11,7 +11,7 @@
  *     from. LangChain keys its table by the exact id a model is built with,
  *     so a model built under a provider's rewritten id (Vertex's `@` form of
  *     a dated id, Bedrock's `anthropic.` ids, Foundry's deployment names)
- *     misses on its own profile, and deepagents used to fall back to its
+ *     misses on its own profile, and deepagents would fall back to its
  *     fixed 170,000-token trigger for a model that takes a million.
  *  2. The registry row's `contextWindowTokens` (`model-registry.ts`): for a
  *     model the catalog lists before the library does, or an operator's own

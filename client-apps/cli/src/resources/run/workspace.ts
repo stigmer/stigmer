@@ -1,6 +1,6 @@
 // Workspace flag parsing for runs.
 //
-// Ports the Go CLI's run_workspace.go: turns repeatable `--workspace` values
+// Turns repeatable `--workspace` values
 // (plus `--branch`/`--commit`) into the conversation's resources. A workspace is
 // either an HTTPS git repository (branch/commit allowed) or a local directory
 // (branch/commit rejected). SSH git URLs are rejected with HTTPS guidance, and `--branch`/
@@ -21,8 +21,7 @@ import { UsageError } from "../../errors/index.js";
 /**
  * Convert `--workspace`/`--branch`/`--commit` flags into the conversation's
  * repository and folder resources. Returns an empty list when no workspace is
- * requested. Mirrors Go's parseWorkspaceEntries, including the
- * single-git-workspace rule for branch/commit and duplicate-name detection.
+ * requested. Enforces the single-git-workspace rule for branch/commit and duplicate-name detection.
  */
 export function parseWorkspaceResources(
   workspaces: readonly string[],
@@ -61,7 +60,7 @@ export function parseWorkspaceResources(
 /**
  * The absolute paths of any local (non-git) workspace roots. `--attach`
  * planning uses these to decide whether a file is workspace-relative (no
- * upload) versus an upload. Mirrors Go's localWorkspaceRoots.
+ * upload) versus an upload.
  */
 export function localWorkspaceRoots(resources: readonly SessionResource[]): string[] {
   const roots: string[] = [];
@@ -73,7 +72,7 @@ export function localWorkspaceRoots(resources: readonly SessionResource[]): stri
   return roots;
 }
 
-// Mirrors Go's parseWorkspaceSource: the resource arm (git vs local) plus the
+// The resource arm (git vs local) plus the
 // branch/commit applicability rules and SSH rejection.
 function parseWorkspaceSource(workspace: string, branch: string, commit: string): SessionResource["resource"] {
   if (isSshGitUrl(workspace)) {
@@ -97,7 +96,7 @@ function parseWorkspaceSource(workspace: string, branch: string, commit: string)
 }
 
 // Resolve a local path, verify it is an existing directory, and wrap it as a
-// local path resource. Mirrors Go's parseLocalWorkspace.
+// local path resource.
 function parseLocalWorkspace(path: string): SessionResource["resource"] {
   const resolved = resolveLocalPath(path);
   let isDir: boolean;
@@ -114,13 +113,13 @@ function parseLocalWorkspace(path: string): SessionResource["resource"] {
 }
 
 // A short identity for the entry: the repo name for git URLs, the directory
-// basename for local paths. Mirrors Go's deriveEntryName.
+// basename for local paths.
 function deriveEntryName(workspace: string): string {
   if (isGitUrl(workspace)) return deriveGitRepoName(workspace);
   return deriveLocalDirName(workspace);
 }
 
-// Last non-empty URL path segment, sans ".git". Mirrors Go's deriveGitRepoName.
+// Last non-empty URL path segment, sans ".git".
 function deriveGitRepoName(rawUrl: string): string {
   let path: string;
   try {
@@ -136,8 +135,7 @@ function deriveGitRepoName(rawUrl: string): string {
   throw new UsageError(`cannot derive workspace name from URL: ${rawUrl}`);
 }
 
-// Directory basename of the resolved absolute path. Mirrors Go's
-// deriveLocalDirName — "." resolves to the CWD basename, not ".".
+// Directory basename of the resolved absolute path — "." resolves to the CWD basename, not ".".
 function deriveLocalDirName(path: string): string {
   const resolved = resolveLocalPath(path);
   const name = basename(resolved);
@@ -147,7 +145,7 @@ function deriveLocalDirName(path: string): string {
   return name;
 }
 
-// Expand a leading "~/" and make the path absolute. Mirrors Go's resolveLocalPath.
+// Expand a leading "~/" and make the path absolute.
 function resolveLocalPath(path: string): string {
   let p = path;
   if (p.startsWith("~/")) p = resolve(homedir(), p.slice(2));

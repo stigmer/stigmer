@@ -102,7 +102,7 @@ describe("LocalArtifactStorage path containment", () => {
 
   // Keys that clean to a location outside the storage root. `join(base, key)`
   // silently resolves `..` segments, so without a containment check these would
-  // read or write outside the store — the runner-side mirror of the Go finding.
+  // read or write outside the store.
   const escapingKeys = [
     "../escape.txt",
     "../../escape.txt",

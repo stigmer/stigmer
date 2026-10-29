@@ -92,7 +92,7 @@ describe("desktop RoutineListPage", () => {
       viewModes: ["table"],
       refetchToken: 0,
     });
-    expect(page.workbench.at(-1)?.getItemId({ metadata: { id: "sch_1" } })).toBe("sch_1");
+    expect(page.workbench.at(-1)?.getItemId({ metadata: { id: "rtn_1" } })).toBe("rtn_1");
     expect(page.workbench.at(-1)?.getItemId({})).toBe("");
   });
 
@@ -112,8 +112,8 @@ describe("desktop RoutineListPage", () => {
     act(() => page.dialog.at(-1)?.onApplied());
     expect(page.workbench.at(-1)?.refetchToken).toBe(1);
 
-    const action = page.workbench.at(-1)!.renderItemAction({ metadata: { id: "sch_1" } });
-    expect(action.props.routine).toEqual({ metadata: { id: "sch_1" } });
+    const action = page.workbench.at(-1)!.renderItemAction({ metadata: { id: "rtn_1" } });
+    expect(action.props.routine).toEqual({ metadata: { id: "rtn_1" } });
     act(() => action.props.onChanged());
     expect(page.workbench.at(-1)?.refetchToken).toBe(2);
   });

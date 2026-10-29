@@ -10,10 +10,8 @@
 // stable-property contracts only — never BM25 scores or relative ranking,
 // which are implementation-tunable.
 //
-// Error arms are pinned by CODE only: the retired Go controller mapped
-// handler errors by string-matching and sanitized everything unmatched to a
-// generic Internal (#478), so message text is deliberately not part of the
-// wire contract here.
+// Error arms are pinned by CODE only: message text is deliberately not part
+// of the wire contract here (#478).
 //
 // Indexing is synchronous on resource writes in both editions' stores, so
 // create-then-search needs no polling — a deliberate property this suite

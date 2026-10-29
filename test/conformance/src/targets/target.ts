@@ -154,9 +154,8 @@ export interface CapabilityFlags {
   // local targets share the server's on-disk store (the #285 shared-dir
   // wiring), and cloud-execution presigns against the real service's
   // MinIO-backed artifact routes via the runner's
-  // STIGMER_ARTIFACT_PROXY_ENDPOINT override (stigmer#803). The flag that
-  // used to gate the input-file materialization assertions
-  // (sharedRunnerArtifactStore) was retired when that lane landed.
+  // STIGMER_ARTIFACT_PROXY_ENDPOINT override (stigmer#803), so the
+  // input-file materialization assertions run everywhere.
   // The conformance caller passes the Memory create RPC's strict
   // first-party-human-operator gate, which memory capture inherits.
   //
@@ -187,8 +186,8 @@ export interface CapabilityFlags {
   // hermetic target can provision — it stays covered by cloud's own
   // integration tests, the same coverage split ComposeDeclaredPreferences
   // has. What runs unconditionally on both editions: input validation
-  // (INVALID_ARGUMENT — the Go controllers deliberately validate before
-  // refusing so this contract matches cloud), the install lanes'
+  // (INVALID_ARGUMENT — validation runs before any refusal, so this contract
+  // matches cloud), the install lanes'
   // load-then-NOT_FOUND for unknown channels, and the discovery reads'
   // truthful-emptiness postures (empty lists / uniform NOT_FOUND), which
   // hold wherever no conversation traffic exists — exactly the state a
@@ -227,8 +226,7 @@ export interface CapabilityFlags {
   userTokens: boolean;
   // Every non-public RPC requires a credential: a request with NO bearer is
   // refused UNAUTHENTICATED "authentication token missing" (the copy both
-  // editions pin — the Java interceptor's, and the OSS chassis's byte-for-
-  // byte). What stays reachable tokenless on EVERY target regardless of
+  // editions pin byte for byte, the chassis's). What stays reachable tokenless on EVERY target regardless of
   // this flag: is_public methods (getServerInfo) and the standard gRPC
   // health service (Kubernetes grpc probes), which the authentication suite
   // asserts unconditionally.
@@ -718,11 +716,8 @@ export interface PrivilegedScope {
 // without an engine), and every shape is served by the one TypeScript server —
 // `@stigmer/server` alone on the local targets, the stigmer-cloud composition
 // that imports it on the cloud targets. There is deliberately no second axis
-// for "whose code answers": one existed (TargetProfile.implementation,
-// stigmer#1013) while the Java stigmer-service still served the cloud edition
-// and carried known bugs the suite had to tell apart from the composition's
-// behavior; it retired with that service (stigmer#1023).
-// A new implementation, should one ever exist, enters as a new TARGET.
+// for "whose code answers" (stigmer#1023): a new implementation, should one
+// ever exist, enters as a new TARGET.
 export interface TargetProfile {
   readonly name: string;
   // The edition the target's composition serves — what the server IS, not a

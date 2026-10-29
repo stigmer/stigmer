@@ -55,7 +55,7 @@ function makeWhatsAppApp(slug = "acme-meta-app", name = "Acme Meta App") {
 /** The channel as channel.get returns it after a completed install. */
 function installedChannel() {
   return {
-    metadata: { id: "ach_new", org: "acme", slug: "support-agent-whatsapp" },
+    metadata: { id: "chn_new", org: "acme", slug: "support-agent-whatsapp" },
     status: {
       installState: 2,
       typeStatus: {
@@ -86,7 +86,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       create:
         overrides.create ??
         vi.fn().mockResolvedValue({
-          metadata: { id: "ach_new", org: "acme", slug: "support-agent-whatsapp" },
+          metadata: { id: "chn_new", org: "acme", slug: "support-agent-whatsapp" },
         }),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
       initiateInstall:
@@ -136,7 +136,7 @@ function makeAgent() {
 /** A pending channel as the retry mode receives it. */
 function pendingChannel(overrides: { phoneNumberId?: string; appSlug?: string } = {}) {
   return {
-    metadata: { id: "ach_1", org: "acme", slug: "support-whatsapp", name: "Support WhatsApp" },
+    metadata: { id: "chn_1", org: "acme", slug: "support-whatsapp", name: "Support WhatsApp" },
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: true,
@@ -248,7 +248,7 @@ describe("ConnectWhatsAppDialog", () => {
 
   it("creates the channel, installs directly, and reports the verified number", async () => {
     const create = vi.fn().mockResolvedValue({
-      metadata: { id: "ach_new", org: "acme" },
+      metadata: { id: "chn_new", org: "acme" },
     });
     const initiateInstall = vi.fn().mockResolvedValue({ completed: true });
     const onChannelsChanged = vi.fn();
@@ -291,7 +291,7 @@ describe("ConnectWhatsAppDialog", () => {
 
     await waitFor(() =>
       expect(initiateInstall).toHaveBeenCalledWith(
-        expect.objectContaining({ resourceId: "ach_new" }),
+        expect.objectContaining({ resourceId: "chn_new" }),
       ),
     );
 
@@ -336,7 +336,7 @@ describe("ConnectWhatsAppDialog", () => {
 
     await waitFor(() =>
       expect(initiateInstall).toHaveBeenCalledWith(
-        expect.objectContaining({ resourceId: "ach_1" }),
+        expect.objectContaining({ resourceId: "chn_1" }),
       ),
     );
     // Nothing changed → a plain retry is one call, not a save + install.
@@ -470,7 +470,7 @@ describe("ConnectWhatsAppDialog", () => {
   it("warns before installing when the selected app already serves the number", async () => {
     const orgChannels = [
       {
-        metadata: { id: "ach_other" },
+        metadata: { id: "chn_other" },
         spec: { agentRef: { org: "acme", slug: "other-agent" } },
         status: {
           installState: 2, // installed

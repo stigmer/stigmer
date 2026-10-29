@@ -9,8 +9,7 @@
  *
  * The script stages the SLIM server artifact (dist-slim) as a server
  * package and launches it through the daemon's node+entry path — the exact
- * packaged entry users get from @stigmer/server-slim. (The script's second
- * arm — the STIGMER_SERVER_BIN Go rollback — retired with the Go server.)
+ * packaged entry users get from @stigmer/server-slim.
  *
  * The launch is verified, not assumed: after `up`, the server child's real
  * command line (via its PID file) must be a node+entry process.

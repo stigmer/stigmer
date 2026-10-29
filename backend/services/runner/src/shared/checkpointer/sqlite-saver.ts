@@ -2,8 +2,8 @@
  * SQLite-backed LangGraph checkpoint saver — the durable checkpointer for the
  * OSS / local edition.
  *
- * Why this exists: the OSS-local default used to be the ephemeral `MemorySaver`,
- * recreated empty on every `ExecuteDeepAgent` invocation. The Temporal workflow
+ * Why this exists: an ephemeral `MemorySaver` would be recreated empty on
+ * every `ExecuteDeepAgent` invocation. The Temporal workflow
  * re-invokes the activity with the SAME `thread_id` on HITL approval, pause/
  * resume, and transient recovery — but with an empty checkpointer the graph has
  * nothing to resume from, so it replays from the original user message instead

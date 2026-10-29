@@ -48,7 +48,7 @@ const MATRIX: ReadonlyArray<readonly [string, ReachEnv]> = [
   ["no environment", {}],
   ["an Anthropic key", { ANTHROPIC_API_KEY: KEY }],
   ["an OpenAI key", { OPENAI_API_KEY: KEY }],
-  ["an old Cursor key, which no engine reads", { CURSOR_API_KEY: KEY }],
+  ["a Cursor key, which no engine reads", { CURSOR_API_KEY: KEY }],
   ["both keys", { ANTHROPIC_API_KEY: KEY, OPENAI_API_KEY: KEY }],
   ["empty keys", { ANTHROPIC_API_KEY: "", OPENAI_API_KEY: "" }],
   ["blank keys", { ANTHROPIC_API_KEY: "  ", OPENAI_API_KEY: "  " }],
@@ -96,7 +96,7 @@ describe("providerReach — the arms", () => {
     expect(providerReach({ ANTHROPIC_API_KEY: " ", OPENAI_API_KEY: "\t" })).toEqual([]);
   });
 
-  it("reaches no provider on an old Cursor key, which no engine reads", () => {
+  it("reaches no provider on a Cursor key, which no engine reads", () => {
     expect(providerReach({ CURSOR_API_KEY: KEY })).toEqual([]);
   });
 

@@ -1,6 +1,5 @@
 // Skill read path: the single RPC the get_skill tool and both skill resource
 // templates (latest + versioned) delegate to.
-// Go parity: mcp-server/internal/domains/skills/fetch.go.
 //
 // Skills are versioned: an empty version string requests the latest version; a
 // tag name or SHA-256 hash requests a specific one.

@@ -36,7 +36,7 @@ function wrapper(client: unknown) {
   };
 }
 
-const CHANNEL_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+const CHANNEL_ID = "chn_01j9z3k8f2q4m6n7p8r9s0t1v2";
 
 const PROFILE = {
   org: "acme",
@@ -161,7 +161,7 @@ describe("useChannelAgentProfile", () => {
     const client = createMockStigmer({ getAgentProfile });
 
     const { result } = renderHook(
-      () => useChannelAgentProfile("ash_revoked"),
+      () => useChannelAgentProfile("chn_revoked"),
       { wrapper: wrapper(client) },
     );
 

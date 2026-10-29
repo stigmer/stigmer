@@ -236,8 +236,8 @@ export class StigmerClient {
         //    from a ref: one process serves many runs at once and a shared ref
         //    would be the wrong run's the moment two overlap — the same reason
         //    rule 1 exists. Absent outside an activity and when the dispatch
-        //    carried none (an older server; the cloud, whose runner credential
-        //    is provisioned), so the rules below are exactly what they were.
+        //    carried none (the cloud, whose runner credential is
+        //    provisioned), and then the rules below apply unchanged.
         //
         // 3. The runner credential (runnerTokenRef) authenticates the services
         //    that require a runner-class token_type claim: a value fetch
@@ -470,7 +470,7 @@ export class StigmerClient {
    * server minted it for this very execution at dispatch —
    * shared/run-credential.ts), that IS the scoped token: it is answered
    * without an RPC, and the exchange below serves only a dispatch that
-   * carried none — an older server, or the cloud's provisioned runner.
+   * carried none: the cloud's provisioned runner.
    *
    * Otherwise the gate is the credential itself:
    *

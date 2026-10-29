@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_rm",
+      "id": "run_claude_0001.toolu_rm",
       "input": {
         "command": "rm -rf build",
         "description": "toolu_rm"
@@ -11,10 +11,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_rm.r",
-      "tool_use_id": "aex_claude_0001.toolu_rm",
+      "id": "run_claude_0001.toolu_rm.r",
+      "tool_use_id": "run_claude_0001.toolu_rm",
       "content": [
         {
           "type": "text",
@@ -25,9 +25,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_ls",
+      "id": "run_claude_0001.toolu_ls",
       "input": {
         "command": "ls",
         "description": "toolu_ls"
@@ -36,10 +36,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_ls.r",
-      "tool_use_id": "aex_claude_0001.toolu_ls",
+      "id": "run_claude_0001.toolu_ls.r",
+      "tool_use_id": "run_claude_0001.toolu_ls",
       "content": [
         {
           "type": "text",
@@ -49,9 +49,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_draft",
+      "id": "run_claude_0001.toolu_draft",
       "input": {
         "command": "echo draft >> ledger.txt",
         "description": "toolu_draft"
@@ -60,10 +60,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_draft.r",
-      "tool_use_id": "aex_claude_0001.toolu_draft",
+      "id": "run_claude_0001.toolu_draft.r",
+      "tool_use_id": "run_claude_0001.toolu_draft",
       "content": [
         {
           "type": "text",
@@ -73,9 +73,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_sneaky",
+      "id": "run_claude_0001.toolu_sneaky",
       "input": {
         "command": "echo sneaky >> ledger.txt",
         "description": "toolu_sneaky"
@@ -84,10 +84,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_sneaky.r",
-      "tool_use_id": "aex_claude_0001.toolu_sneaky",
+      "id": "run_claude_0001.toolu_sneaky.r",
+      "tool_use_id": "run_claude_0001.toolu_sneaky",
       "content": [
         {
           "type": "text",
@@ -98,9 +98,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_publish",
+      "id": "run_claude_0001.toolu_publish",
       "input": {
         "command": "echo publish >> ledger.txt",
         "description": "toolu_publish"
@@ -110,10 +110,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "stigmer_permission_asked": {
-      "id": "aex_claude_0001.toolu_publish.ask",
-      "tool_use_id": "aex_claude_0001.toolu_publish",
+      "id": "run_claude_0001.toolu_publish.ask",
+      "tool_use_id": "run_claude_0001.toolu_publish",
       "message": "publishing needs a person",
       "args_preview": "{\"command\":\"echo publish >> ledger.txt\",\"description\":\"toolu_publish\"}",
       "policy_source": "hook"
@@ -121,18 +121,18 @@
   },
   {
     "session_id": "ses_claude_0001",
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "user_tool_confirmation": {
-      "id": "sevt_tc_1412f0f6602f4aafa64ac9e075fbfd9c83be488b",
+      "id": "sevt_tc_899c246567345e6c96986758e70431420de664c2",
       "result": "allow",
-      "tool_use_id": "aex_claude_0001.toolu_publish"
+      "tool_use_id": "run_claude_0001.toolu_publish"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_publish.r",
-      "tool_use_id": "aex_claude_0001.toolu_publish",
+      "id": "run_claude_0001.toolu_publish.r",
+      "tool_use_id": "run_claude_0001.toolu_publish",
       "content": [
         {
           "type": "text",
@@ -142,9 +142,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m0",
+      "id": "run_claude_0001.root.m0",
       "content": [
         {
           "type": "text",

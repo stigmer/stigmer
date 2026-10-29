@@ -27,12 +27,12 @@ describe("readRunCredentialFromInput", () => {
   });
 
   it("answers undefined for a positional string argument (EnsureThread's)", () => {
-    expect(readRunCredentialFromInput("aex_123")).toBeUndefined();
+    expect(readRunCredentialFromInput("run_123")).toBeUndefined();
   });
 
   it("answers undefined for a credential-less object — the cloud's dispatch", () => {
     expect(
-      readRunCredentialFromInput({ execution_id: "aex_123", thread_id: "" }),
+      readRunCredentialFromInput({ execution_id: "run_123", thread_id: "" }),
     ).toBeUndefined();
   });
 

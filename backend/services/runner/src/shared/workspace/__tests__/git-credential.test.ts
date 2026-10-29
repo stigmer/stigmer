@@ -390,14 +390,14 @@ env >> ${loot}
     await new WriteBackCoordinator({
       writeBacks: new TranscriptBuilder("exec-hook", create(TurnRowsSchema), create(RunStatusSchema, {})),
       executionId: "exec-hook",
-      sessionId: "ses-hook",
+      sessionId: "ses_hook",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
       provisionResults: [{ ...provisioned, entryName: "app" }],
       resources: [entry],
       workspaceBackend: backend,
     }).finalize();
 
-    expect(execFileSync("git", ["branch", "--list", "stigmer/ses-hook"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses-hook");
+    expect(execFileSync("git", ["branch", "--list", "stigmer/ses_hook"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses_hook");
     // Hooks of tokenless commands (the commit) may run; none ever saw the token.
     const seen = (() => {
       try {
@@ -426,22 +426,6 @@ env >> ${loot}
     expectNoTokenIn(workspace);
   }, GIT_TEST_TIMEOUT_MS);
 
-  it("scrubs a clone an earlier runner left holding the token", async () => {
-    const workspace = join(root, "ws");
-    execFileSync("git", ["clone", origin, workspace], { stdio: "pipe" });
-    // What the earlier runner wrote: the token in the origin URL (local
-    // mode), or a repo-local credential store and its helper (cloud mode).
-    execFileSync("git", ["remote", "set-url", "origin", `https://x-access-token:${TOKEN}@github.com/acme/app.git`], { cwd: workspace });
-    const store = join(workspace, ".git", ".git-credentials");
-    writeFileSync(store, `https://x-access-token:${TOKEN}@github.com\n`);
-    execFileSync("git", ["config", "credential.helper", `store --file=${store}`], { cwd: workspace });
-
-    await provisionGit({ url: REPO_URL, branch: "main", backend: new LocalWorkspaceBackend(workspace), token: TOKEN, isLocalMode: false, writeBack: true });
-
-    expectNoTokenIn(workspace);
-    expect(() => execFileSync("git", ["config", "--local", "--get-all", "credential.helper"], { cwd: workspace, stdio: "pipe" })).toThrow();
-  }, GIT_TEST_TIMEOUT_MS);
-
   it("a write-back pushes the session branch and leaves no byte of the token", async () => {
     const workspace = join(root, "ws");
     const backend = new LocalWorkspaceBackend(workspace);
@@ -457,14 +441,14 @@ env >> ${loot}
     await new WriteBackCoordinator({
       writeBacks: new TranscriptBuilder("exec-cred", create(TurnRowsSchema), create(RunStatusSchema, {})),
       executionId: "exec-cred",
-      sessionId: "ses-cred",
+      sessionId: "ses_cred",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
       provisionResults: [{ ...provisioned, entryName: "app" }],
       resources: [entry],
       workspaceBackend: backend,
     }).finalize();
 
-    expect(execFileSync("git", ["branch", "--list", "stigmer/ses-cred"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses-cred");
+    expect(execFileSync("git", ["branch", "--list", "stigmer/ses_cred"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses_cred");
     expectNoTokenIn(workspace);
   }, GIT_TEST_TIMEOUT_MS);
 });

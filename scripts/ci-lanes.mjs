@@ -9,12 +9,12 @@
  * (`uses: ./.github/workflows/ci.<lane>.yaml`); its last job, `Gate`, asks this
  * script for the verdict. `Gate` is the one required check on `main`.
  *
- * Why one workflow and one map. Each lane used to decide for itself, with
- * workflow-level `paths:` lists or an internal paths filter. A lane whose
- * filter did not match never created its check, so no single check could be
- * required: requiring one lane let every other lane be red at merge, and a
- * workflow that silently stopped matching looked the same as one with nothing
- * to do (#662 merged over a red docs lane that way, #688). Here the lane set
+ * Why one workflow and one map. A lane that decides for itself, with
+ * workflow-level `paths:` lists or an internal paths filter, creates no check
+ * when its filter does not match, so no single check can be required:
+ * requiring one lane lets every other lane be red at merge, and a workflow
+ * that silently stops matching looks the same as one with nothing to do
+ * (#662 merged over a red docs lane that way, #688). Here the lane set
  * is explicit: a lane the change needs either passes or fails `Gate`, and the
  * lists live in one place, guarded by scripts/lane-triggers.test.mjs (a list
  * that watches a standalone package must watch everything it links, a lane

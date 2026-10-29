@@ -115,11 +115,11 @@ describe("startup-config", () => {
     expect(loadStartupConfig(dir)).toBeNull();
   });
 
-  it("loads files written by older CLIs carrying since-removed fields (e.g. the llm_* trio)", () => {
-    // The lenient-load contract oss#314 leans on: no migration for on-disk
-    // files — extra keys simply come along and nothing consumes them.
+  it("loads a file carrying fields this CLI does not read (e.g. an llm_* trio)", () => {
+    // The lenient-load contract oss#314 leans on: extra keys simply come
+    // along and nothing consumes them.
     const dir = tempDir("stigmer-startup-");
-    const legacy = {
+    const onDisk = {
       data_dir: dir,
       log_dir: join(dir, "logs"),
       temporal_addr: "127.0.0.1:7233",
@@ -134,7 +134,7 @@ describe("startup-config", () => {
       stigmer_server_pid: 999,
       server_only: false,
     };
-    writeFileSync(join(dir, "startup-config.json"), JSON.stringify(legacy));
+    writeFileSync(join(dir, "startup-config.json"), JSON.stringify(onDisk));
     expect(loadStartupConfig(dir)).toMatchObject({ temporal_addr: "127.0.0.1:7233", stigmer_server_pid: 999 });
   });
 });

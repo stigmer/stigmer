@@ -5,7 +5,7 @@
  * emphasis on the sub-agent path: sub-agent edit
  * rows fold into the parent turn's change set, so they carry the parent change
  * set id, scoped to this turn by tool-call-id novelty (they lack the
- * already-stamped/hidden shields the top-level pass has). The `flowed`
+ * already-stamped shield the top-level pass has). The `flowed`
  * predicate is the one seam a deny-gate harness narrows the pass with.
  */
 
@@ -13,7 +13,6 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
   collectSubAgentToolCallIds,
-  hideToolCallRow,
   stampFlowedFileEditRows,
   stampFlowedSubAgentFileEditRows,
 } from "../tool-row.js";
@@ -77,15 +76,6 @@ describe("stampFlowedFileEditRows", () => {
     stampFlowedFileEditRows([row], CHANGE_SET_ID);
 
     expect(row.toolCalls[0].fileChangeSetId).toBe("exec-1:prior");
-  });
-
-  it("skips a legacy hidden row (a pre-stamping session's collapsed edit): it belongs to an earlier turn's set", () => {
-    const legacy = editMessage("tc-legacy", "src/old.ts");
-    hideToolCallRow(legacy.toolCalls[0]!);
-
-    stampFlowedFileEditRows([legacy], CHANGE_SET_ID);
-
-    expect(legacy.toolCalls[0]!.fileChangeSetId).toBe("");
   });
 
   it("leaves a row the caller's `flowed` predicate refuses (a denied identity, a non-terminal status) unstamped", () => {

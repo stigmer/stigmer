@@ -186,7 +186,7 @@ async function sendTurn(
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org: session.org,
-      name: uniqueName("aex-filereview"),
+      name: uniqueName("run-filereview"),
       sessionId: session.sessionId,
       message: opts.message ?? "Use the filesystem tools as instructed.",
       autoApproveAll: opts.autoApproveAll ?? false,
@@ -210,7 +210,7 @@ async function sendMessageTurn(
   const sent = await clients.agentExecutionCommand.sendMessage(
     makeAgentExecution({
       org: session.org,
-      name: uniqueName("aex-filereview"),
+      name: uniqueName("run-filereview"),
       sessionId: session.sessionId,
       message: opts.message ?? "Use the filesystem tools as instructed.",
     }),
@@ -1065,7 +1065,7 @@ describe("Run file review — on Claude", () => {
     fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId }));
     const task = uniqueName("Use the file tools as instructed");
     CLAUDE_ARM.script(mock, task, steps);
-    const execution = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-filereview-claude"), sessionId, message: task }));
+    const execution = await clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("run-filereview-claude"), sessionId, message: task }));
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
     const ended = await awaitFileReview(clients, executionId);

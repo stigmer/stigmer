@@ -164,8 +164,8 @@ export interface VisionLimits {
 /**
  * Parsed model-registry document: the per-model list plus document-level
  * platform metadata. `visionLimits` is `undefined` when the served document
- * predates the `limits` block (older servers) — consumers must stay silent
- * rather than assume a budget.
+ * carries no `limits` block — consumers must stay silent rather than assume
+ * a budget.
  */
 export interface ModelRegistryDocument {
   readonly models: readonly ModelInfo[];

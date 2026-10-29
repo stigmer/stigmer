@@ -92,7 +92,7 @@ async function agentWithDefaults(
 async function turn(options: Omit<AgentExecutionOptions, "name">): Promise<Run> {
   mock.enqueue(anthropicText("Done."));
   const created = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ name: uniqueName("aex-settings"), autoApproveAll: true, ...options }),
+    makeAgentExecution({ name: uniqueName("run-settings"), autoApproveAll: true, ...options }),
   );
   const id = created.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: id }));
@@ -193,7 +193,7 @@ describe("Run — the settings a turn runs with", () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, { runConfig: { maxCostUsd: 2 } });
     mock.enqueue(anthropicText("Done."));
-    const request = makeAgentExecution({ org, name: uniqueName("aex-forged"), agentRef: agentRefOf(agent), autoApproveAll: true });
+    const request = makeAgentExecution({ org, name: uniqueName("run-forged"), agentRef: agentRefOf(agent), autoApproveAll: true });
 
     const created = await clients.agentExecutionCommand.create({
       ...request,

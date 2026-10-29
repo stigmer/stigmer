@@ -57,7 +57,7 @@ import { laneUrl, vertexBase } from "../lanes.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-lanes";
-const EXECUTION = "aex-lanes-edges";
+const EXECUTION = "run_lanes-edges";
 const TURN_KEY = "turn-key-lanes";
 const asHost = { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY, "content-type": "application/json" };
 

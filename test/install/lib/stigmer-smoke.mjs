@@ -24,8 +24,8 @@ import { connect } from "node:net";
  * Thrown by a probe to end the wait at once: the state it read can never turn
  * into the one awaited (an execution that reached a terminal failure). Every
  * other error is transient to {@link pollUntil}, which retries it until the
- * deadline (#1514: a terminal failure used to be retried like a connection
- * refused, and reported as a timeout).
+ * deadline (#1514: a terminal failure retried like a connection refused
+ * would be reported as a timeout).
  */
 export class PollStop extends Error {}
 
@@ -520,7 +520,7 @@ export function streamedRunOutcome(ndjson) {
   return { phase, reply };
 }
 
-/** The release the server reports it is (getServerInfo, public): `3.41.0` for a release, `0.0.0-dev.<sha>` for a stamped source build. */
+/** The release the server reports it is (getServerInfo, public): `0.1.0` for a release, `0.0.0-dev.<sha>` for a stamped source build. */
 export async function serverVersion(baseUrl) {
   const info = await connectJson(baseUrl, "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo", {});
   if (typeof info.version !== "string" || info.version === "") {

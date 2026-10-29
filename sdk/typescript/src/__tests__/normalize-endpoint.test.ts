@@ -19,7 +19,7 @@ describe("normalizeEndpoint", () => {
   });
 
   it("strips a URL scheme and derives TLS from the port, not the scheme", () => {
-    // Mirrors the Go rule's quirk: the port is authoritative for TLS.
+    // The port is authoritative for TLS, whatever the scheme says.
     expect(normalizeEndpoint("https://api.stigmer.ai")).toBe("https://api.stigmer.ai:443");
     expect(normalizeEndpoint("http://internal:8080")).toBe("http://internal:8080");
     expect(normalizeEndpoint("https://internal:8080")).toBe("http://internal:8080");

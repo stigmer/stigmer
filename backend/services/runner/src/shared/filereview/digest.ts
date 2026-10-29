@@ -1,7 +1,6 @@
 /**
- * Canonical file-review digests — the runner-side mirror of the Go
- * {@code filereview/digest.go} and the Java {@code FileDigest}, locked
- * byte-for-byte by `apis/testdata/hitl/file-digest/vectors.json`.
+ * Canonical file-review digests — the runner's half of the digest the server
+ * checks, locked byte-for-byte by `apis/testdata/hitl/file-digest/vectors.json`.
  *
  * These are ENFORCEMENT digests, never correlation keys: the reconcile refuses
  * to apply content whose digest differs from what the user approved. The runner
@@ -16,9 +15,8 @@ import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb"
 
 /**
  * The proto enum value NAME for a {@link FileChangeKind}, e.g.
- * `FILE_CHANGE_KIND_MODIFY`. The digest is computed over this name (matching Go's
- * `kind.String()` and Java's `kind.name()`), NOT the TS member name, so all three
- * editions hash an identical string. The cross-edition digest corpus validates
+ * `FILE_CHANGE_KIND_MODIFY`. The digest is computed over this name, NOT the TS
+ * member name, so every implementation hashes an identical string. The cross-edition digest corpus validates
  * this map; a missing or wrong entry fails the parity test.
  */
 const FILE_CHANGE_KIND_NAME: Readonly<Record<FileChangeKind, string>> = {

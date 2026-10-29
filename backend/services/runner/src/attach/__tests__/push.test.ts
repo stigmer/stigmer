@@ -74,8 +74,8 @@ describe("sandboxNameForQueue", () => {
     expect(sandboxNameForQueue("sandbox:pm_1")).toBeUndefined();
     expect(sandboxNameForQueue("stigmer_runner")).toBeUndefined();
     expect(sandboxNameForQueue("session:")).toBeUndefined();
-    // The retired workflow run queue: no sandbox serves it any more.
-    expect(sandboxNameForQueue("wfexec:wex_01m3zkdb7wxbe2gx0ezmf8fmaq")).toBeUndefined();
+    // A queue under a prefix no sandbox kind names.
+    expect(sandboxNameForQueue("other:id_01m3zkdb7wxbe2gx0ezmf8fmaq")).toBeUndefined();
   });
 });
 
@@ -106,7 +106,7 @@ describe("verifyAttachPush", () => {
   it("refuses a queue that another sandbox serves, on every queue kind", () => {
     for (const taskQueue of [
       "session:ses_other",
-      "mcpconnect:aex_01m3zkdb6zbg983x4yvttsysyy",
+      "mcpconnect:run_01m3zkdb6zbg983x4yvttsysyy",
     ]) {
       const verdict = verifyAttachPush({ taskQueue, secrets: { STIGMER_TOKEN: token } }, SESSION_SANDBOX, NOW);
       expect(verdict).toMatchObject({ ok: false, status: 403, code: "binding" });

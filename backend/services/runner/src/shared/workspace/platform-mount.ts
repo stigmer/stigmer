@@ -11,8 +11,6 @@
  *
  * All functions in this module are **pure** — no I/O, no side effects.
  * They operate exclusively on strings.
- *
- * Ported from the retired Python runner's graphton/core/backends/platform_mount.py.
  */
 
 import { dirname } from "node:path";

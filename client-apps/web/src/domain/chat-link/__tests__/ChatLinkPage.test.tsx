@@ -32,9 +32,9 @@ vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://api.example.com",
 }));
 
-const SHARE_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+const SHARE_ID = "chn_01j9z3k8f2q4m6n7p8r9s0t1v2";
 const route = vi.hoisted(() => ({
-  channelId: "ash_01j9z3k8f2q4m6n7p8r9s0t1v2" as string | null,
+  channelId: "chn_01j9z3k8f2q4m6n7p8r9s0t1v2" as string | null,
   reads: [] as Array<[string, number]>,
 }));
 vi.mock("@/domain/_shared/hooks/useStaticRouteParam", () => ({

@@ -1,9 +1,8 @@
-// Interactive yes/no confirmation for destructive commands. Mirrors the Go
-// CLI's clioutput.Confirmer: a `--force` flag confirms without asking, and a
+// Interactive yes/no confirmation for destructive commands: a `--force` flag confirms without asking, and a
 // non-interactive stdin refuses, so scripts, pipes, and CI never hang waiting
 // on a TTY prompt and never destroy anything they did not force.
 //
-// Lives in `output/` to match Go's pkg/clioutput placement — the prompt is part
+// Lives in `output/` because the prompt is part
 // of the human output contract (it writes to stderr, alongside warning panels),
 // not part of any resource's transport logic.
 

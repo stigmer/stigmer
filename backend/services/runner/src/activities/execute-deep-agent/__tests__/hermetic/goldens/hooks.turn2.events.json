@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m0",
+      "id": "run_hermetic_0001.root.m0",
       "content": [
         {
           "type": "text",
@@ -12,9 +12,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hooks-delete",
+      "id": "run_hermetic_0001.call-hooks-delete",
       "input": {
         "command": "rm -rf build"
       },
@@ -22,10 +22,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_result": {
-      "id": "aex_hermetic_0001.call-hooks-delete.r",
-      "tool_use_id": "aex_hermetic_0001.call-hooks-delete",
+      "id": "run_hermetic_0001.call-hooks-delete.r",
+      "tool_use_id": "run_hermetic_0001.call-hooks-delete",
       "content": [
         {
           "type": "text",
@@ -36,9 +36,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m1",
+      "id": "run_hermetic_0001.root.m1",
       "content": [
         {
           "type": "text",
@@ -48,9 +48,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hooks-list",
+      "id": "run_hermetic_0001.call-hooks-list",
       "input": {
         "command": "ls"
       },
@@ -58,10 +58,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_result": {
-      "id": "aex_hermetic_0001.call-hooks-list.r",
-      "tool_use_id": "aex_hermetic_0001.call-hooks-list",
+      "id": "run_hermetic_0001.call-hooks-list.r",
+      "tool_use_id": "run_hermetic_0001.call-hooks-list",
       "content": [
         {
           "type": "text",
@@ -71,9 +71,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m2",
+      "id": "run_hermetic_0001.root.m2",
       "content": [
         {
           "type": "text",
@@ -83,9 +83,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hooks-publish",
+      "id": "run_hermetic_0001.call-hooks-publish",
       "input": {
         "command": "echo publish"
       },
@@ -94,10 +94,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "stigmer_permission_asked": {
-      "id": "aex_hermetic_0001.call-hooks-publish.ask",
-      "tool_use_id": "aex_hermetic_0001.call-hooks-publish",
+      "id": "run_hermetic_0001.call-hooks-publish.ask",
+      "tool_use_id": "run_hermetic_0001.call-hooks-publish",
       "message": "publishing needs a person",
       "args_preview": "{\"command\":\"echo publish\"}",
       "policy_source": "hook",
@@ -106,18 +106,18 @@
   },
   {
     "session_id": "ses_hermetic_0001",
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "user_tool_confirmation": {
-      "id": "sevt_tc_528bd17c6e52f2c5df845cce713bc305e8a57f67",
+      "id": "sevt_tc_fe0a34c0db3760b9c904cc36e301126e6fa28c3e",
       "result": "allow",
-      "tool_use_id": "aex_hermetic_0001.call-hooks-publish"
+      "tool_use_id": "run_hermetic_0001.call-hooks-publish"
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_result": {
-      "id": "aex_hermetic_0001.call-hooks-publish.r",
-      "tool_use_id": "aex_hermetic_0001.call-hooks-publish",
+      "id": "run_hermetic_0001.call-hooks-publish.r",
+      "tool_use_id": "run_hermetic_0001.call-hooks-publish",
       "content": [
         {
           "type": "text",
@@ -127,9 +127,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m3",
+      "id": "run_hermetic_0001.root.m3",
       "content": [
         {
           "type": "text",

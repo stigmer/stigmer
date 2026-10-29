@@ -95,13 +95,13 @@ describe("chatAgentMockModel", () => {
       input_token_details: { cache_read: 200_000, cache_creation: 300_000 },
     };
     built.reply = reply;
-    const answer = await chatAgentMockModel({ modelName: "judge", config, executionId: "aex_1" })(request);
+    const answer = await chatAgentMockModel({ modelName: "judge", config, executionId: "run_1" })(request);
     expect(built.calls).toEqual([
       {
         modelName: "judge",
         proxyEndpoint: "https://proxy.test",
         stigmerToken: "tok",
-        headerScope: { executionId: "aex_1" },
+        headerScope: { executionId: "run_1" },
         temperature: null,
         maxTokens: 4096,
       },
@@ -113,14 +113,14 @@ describe("chatAgentMockModel", () => {
   it("falls back to the runner's default model, reads text parts, and prices an answer without usage at 0", async () => {
     built.reply = new AIMessage({ content: [{ type: "text", text: "Created " }, { type: "image_url", image_url: "x" }, { type: "text", text: "#4" }] });
     const bare = { proxyEndpoint: null, stigmerTokenRef: { current: null } } as unknown as Config;
-    const answer = await chatAgentMockModel({ modelName: "", config: bare, executionId: "aex_2" })({ ...request, abortWhen: "" });
+    const answer = await chatAgentMockModel({ modelName: "", config: bare, executionId: "run_2" })({ ...request, abortWhen: "" });
     expect(built.calls).toEqual([expect.objectContaining({ modelName: "default-model", proxyEndpoint: undefined, stigmerToken: undefined })]);
     expect(answer).toEqual({ kind: "answer", text: "Created #4", costUsd: 0 });
   });
 
   it("reads content that is neither text nor parts as an empty answer", async () => {
     built.reply = { content: 7 };
-    const answer = await chatAgentMockModel({ modelName: "judge", config, executionId: "aex_3" })({ ...request, abortWhen: "" });
+    const answer = await chatAgentMockModel({ modelName: "judge", config, executionId: "run_3" })({ ...request, abortWhen: "" });
     expect(answer).toEqual({ kind: "answer", text: "", costUsd: 0 });
   });
 });

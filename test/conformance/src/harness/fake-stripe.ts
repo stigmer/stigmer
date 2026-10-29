@@ -9,10 +9,10 @@
 // request is captured with its form-encoded params and its Idempotency-Key
 // header (a carve-out: idempotency keys must be identical between the
 // editions). Ids are unique for the whole run — a run nonce plus a counter
-// that `reset()` deliberately does NOT rewind: Java pins stripe_customer_id
-// unique across billing accounts, so a fixture that re-minted `cus_..._0001`
-// after every test would make the second org's customer create fail on that
-// constraint (the first hermetic run found exactly this).
+// that `reset()` deliberately does NOT rewind: the billing store keeps
+// stripe_customer_id unique across billing accounts, so a fixture that
+// re-minted `cus_..._0001` after every test would make the second org's
+// customer create fail on that constraint.
 //
 // Inbound: `signedEvent` builds a Stripe event envelope and its
 // Stripe-Signature header exactly as Stripe would — `t=<unix>,v1=<hmac>` over
@@ -25,30 +25,24 @@
 // the account's unique customer id) and captures nothing (idempotency keys
 // unassertable).
 //
-// The api_version trap: the retired Java handlers read event data through
-// `getDataObjectDeserializer().getObject()`, which answered EMPTY unless the
-// event's `api_version` equalled the stripe-java pin — every handler then
-// logged "Failed to deserialize event data" and did nothing, with no pointer
-// at the cause. Events built here carry the pin. The
-// composition (stripe-node) parses regardless and must not copy the
-// strictness.
+// The api_version: events built here carry one fixed Stripe API version
+// (STRIPE_API_VERSION). The composition (stripe-node) parses an event
+// whatever its `api_version`, and must: a handler that answered nothing for
+// an event of another version would grant nothing and say nothing.
 import { createHmac, randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { readBody } from "@stigmer/test-support/fake-llm-upstream";
 import { writeJson } from "@stigmer/test-support/llm-wire";
 
-// The API version the retired Java service's stripe-java 32.1.0 pinned in
-// com.stripe.Stripe.API_VERSION — read from the published jar's class
-// constant pool on 2026-09-06, before the service left.
-export const STRIPE_JAVA_API_VERSION = "2026-04-22.dahlia";
+// The Stripe API version events built here carry by default.
+export const STRIPE_API_VERSION = "2026-04-22.dahlia";
 
 // The one card this fixture knows. Every payment method it answers carries
 // it, so the suite asserts the default-payment-method bookkeeping against the
 // same constant. The expiry fields are load-bearing: Stripe always returns
-// them for a card, and the Java `customer.updated` handler reads them
-// unguarded (`getExpMonth().intValue()`) — a fixture card without them turns
-// that webhook into a 500.
+// them for a card, and a `customer.updated` handler may read them unguarded —
+// a fixture card without them could turn that webhook into a 500.
 export const FAKE_CARD = { brand: "visa", last4: "4242", exp_month: 12, exp_year: 2030 } as const;
 
 export interface CapturedStripeRequest {
@@ -78,7 +72,7 @@ export class FakeStripeApi {
   private counter = 0;
   private readonly runNonce = randomBytes(3).toString("hex");
   // Customers this fixture created, so a retrieve/update answers the shape
-  // Java expects; payment methods are minted on first retrieve.
+  // Stripe answers; payment methods are minted on first retrieve.
   private readonly customers = new Map<string, Record<string, unknown>>();
 
   async start(): Promise<void> {
@@ -254,8 +248,8 @@ export interface StripeEventOptions {
   // Defaults to a fresh `evt_conf_<random>`; pass the same id twice for the
   // replay arm (dedup → 200, no second effect).
   id?: string;
-  // Defaults to the stripe-java pin; pass another value ONLY to demonstrate
-  // the Java-side strictness (the api_version trap above).
+  // Defaults to STRIPE_API_VERSION; pass another value to show an event
+  // of another version is handled the same (the api_version note above).
   apiVersion?: string;
   created?: number;
 }
@@ -273,12 +267,12 @@ export interface StripeEvent {
 }
 
 // The envelope Stripe posts. `dataObject` must carry its own `object` field
-// (`customer`, `payment_method`, ...) — stripe-java dispatches on it.
+// (`customer`, `payment_method`, ...) — Stripe's SDKs dispatch on it.
 export function stripeEvent(type: string, dataObject: Record<string, unknown>, options: StripeEventOptions = {}): StripeEvent {
   return {
     id: options.id ?? `evt_conf_${Math.random().toString(36).slice(2, 14)}`,
     object: "event",
-    api_version: options.apiVersion ?? STRIPE_JAVA_API_VERSION,
+    api_version: options.apiVersion ?? STRIPE_API_VERSION,
     created: options.created ?? Math.floor(Date.now() / 1000),
     type,
     livemode: false,
@@ -310,7 +304,7 @@ export interface SignedStripePayload {
 
 // Stripe-Signature as Stripe computes it: `t=<unix>,v1=<hex HMAC-SHA256 over
 // "<t>.<payload>">`. `timestamp` defaults to now; pass an old one for the
-// stale-timestamp arm (stripe-java's default tolerance is 300 s).
+// stale-timestamp arm (Stripe's SDKs default to a 300 s tolerance).
 export function signStripePayload(payload: string, secret: string, timestamp = Math.floor(Date.now() / 1000)): SignedStripePayload {
   const digest = createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
   return { payload, signature: `t=${timestamp},v1=${digest}` };

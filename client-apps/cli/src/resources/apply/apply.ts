@@ -377,8 +377,8 @@ function metaOf(message: Message): ApiResourceMetadata | undefined {
 }
 
 // Inject the resolved org into metadata.org when the document omitted it. When
-// the document specifies a *different* org, return a warning (Go warns but
-// honors the document's value — we do the same). An organization is named
+// the document specifies a *different* org, return a warning and honour the
+// document's value. An organization is named
 // by its id or its slug, so two different strings are asked about before
 // they are called different organizations, and the warning names each by
 // its slug where the caller can see it.

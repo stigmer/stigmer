@@ -42,7 +42,7 @@ function renderRoute(path: string): void {
 
 describe("desktop routes — the run address", () => {
   it("renders the run page at /runs/<id>", async () => {
-    renderRoute("/runs/aex_1");
+    renderRoute("/runs/run_1");
 
     expect(await screen.findByText("run page")).toBeTruthy();
   });
@@ -61,12 +61,12 @@ describe("desktop routes — routines in the Library", () => {
 
 describe("desktop routes — the route reopened at launch", () => {
   it("reopens a saved route the app still routes", () => {
-    expect(restorableRoute("/runs/aex_1")).toBe("/runs/aex_1");
+    expect(restorableRoute("/runs/run_1")).toBe("/runs/run_1");
     expect(restorableRoute("/sessions/ses_1")).toBe("/sessions/ses_1");
   });
 
   it("opens the home screen for a saved route the app no longer routes", () => {
-    expect(restorableRoute("/executions/aex_1")).toBeUndefined();
+    expect(restorableRoute("/executions/run_1")).toBeUndefined();
     expect(restorableRoute("/no-such-screen")).toBeUndefined();
   });
 

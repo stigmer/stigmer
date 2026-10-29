@@ -93,7 +93,7 @@ describe("the host sink's calls to the runner", () => {
     });
     expect(warned).toEqual([
       "[agent-host] persist request failed: turn=turn-1, the runner is gone",
-      "[agent-host] progress label not reported: execution=aex_fixture_0001, the runner is gone",
+      "[agent-host] progress label not reported: execution=run_fixture_0001, the runner is gone",
     ]);
   });
 });

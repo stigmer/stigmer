@@ -466,20 +466,20 @@ describe("WorkspaceSurface virtualDocuments", () => {
       virtualDocuments: [
         {
           entryId: TRANSCRIPT_ENTRY_ID,
-          path: "aex_1/first-call",
+          path: "run_1/first-call",
           content: <Probe id="first" />,
         },
         {
           entryId: TRANSCRIPT_ENTRY_ID,
-          path: "aex_2/second-call",
+          path: "run_2/second-call",
           content: <Probe id="second" />,
         },
       ],
       editors: [
-        { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_1/first-call", preview: false },
-        { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_2/second-call", preview: false },
+        { entryId: TRANSCRIPT_ENTRY_ID, path: "run_1/first-call", preview: false },
+        { entryId: TRANSCRIPT_ENTRY_ID, path: "run_2/second-call", preview: false },
       ],
-      selectedFile: { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_2/second-call" },
+      selectedFile: { entryId: TRANSCRIPT_ENTRY_ID, path: "run_2/second-call" },
     });
 
     expect(screen.getByTestId("doc-second")).toBeTruthy();

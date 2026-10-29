@@ -2,9 +2,8 @@
 //
 // The supervisor's restart/health policy is the part that must be exhaustively
 // testable, so every side effect it performs — spawning a process, reading the
-// clock — goes through an interface that tests can fake. The Go daemon's policy
-// is only reachable through a full integration run; this design makes it a pure
-// unit.
+// clock — goes through an interface that tests can fake, which makes the
+// policy a pure unit.
 
 /** How a child terminated. */
 export interface ExitInfo {
@@ -61,7 +60,7 @@ export interface Clock {
 /**
  * Declarative description of one managed component. `resolve` is called lazily
  * at (re)start time so binary resolution and env construction happen fresh on
- * every attempt — matching the Go daemon's per-start `startFn`.
+ * every attempt.
  */
 export interface ComponentSpec {
   name: string;

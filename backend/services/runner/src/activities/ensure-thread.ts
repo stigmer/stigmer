@@ -2,7 +2,7 @@
  * EnsureThread Temporal activity — resolves a LangGraph thread ID for an
  * agent execution.
  *
- * Called by the Java/Go InvokeAgentExecutionWorkflow as Step 1 of the
+ * Called by the server's InvokeAgentExecutionWorkflow as Step 1 of the
  * Stigmer harness flow, before ExecuteDeepAgent. The returned
  * thread ID keys the LangGraph checkpointer for conversation continuity.
  *

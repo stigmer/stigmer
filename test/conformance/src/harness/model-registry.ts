@@ -81,7 +81,7 @@ export function parseModelRegistryDocument(json: unknown, source = "(inline)"): 
 }
 
 // The row for a registry id, or a named failure — an arm that pins a model the
-// registry no longer carries must fail on the registry, not on the wire.
+// registry does not carry must fail on the registry, not on the wire.
 export function requireRegistryRow(document: ModelRegistryDocument, id: string): ModelRegistryRow {
   const row = document.models.find((model) => model.id === id);
   if (row === undefined) {

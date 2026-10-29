@@ -1,5 +1,5 @@
 
-  ID:    ses-2
+  ID:    ses_00000000000000000000000002
   Name:  demo-session
   Slug:  demo-session
   Org:   demo

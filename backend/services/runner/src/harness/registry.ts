@@ -90,7 +90,7 @@ export function adaptersOf(rows: readonly HarnessRow[]): HarnessAdapter[] {
 
 /**
  * One Temporal activity per row, under the row's byte-pinned name, over ONE
- * `StigmerClient` for all of them (each harness used to build its own). The
+ * `StigmerClient` for all of them. The
  * activity normalizes the wire input, brackets the turn with the idle
  * watchdog, and hands the turn runtime the adapter. The roots spread the
  * result into the worker's activity map beside the activities the runtime

@@ -6,14 +6,14 @@
  * edition rides beside it for callers that want the wire value.
  *
  * Also pins the authentication posture across the wire: a server's `true`
- * and `false` reach callers as they were sent, and a server that predates
- * the field answers `undefined`, never `false` — the difference between
+ * and `false` reach callers as they were sent, and a server that does not
+ * send the field answers `undefined`, never `false` — the difference between
  * "this server trusts every request" and "this server did not say", which
- * a console meeting an older server must not confuse. The single-organization
- * answer crosses the same way: `true` (fill-on, hide organizations), `false`,
- * and `undefined` from a server that predates it. So does what an
- * Environment does there: each of its three answers as sent, and
- * `undefined` from a server that predates the field.
+ * a console released apart from its server must not confuse. The
+ * single-organization answer crosses the same way: `true` (fill-on, hide
+ * organizations), `false`, and `undefined` from a server that does not send
+ * it. So does what an Environment does there: each of its three answers as
+ * sent, and `undefined` from a server that does not send the field.
  *
  * getModelReadiness sends the organization and the model to judge as asked,
  * returns the server's answer as it came, and wraps a refusal in the

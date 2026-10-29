@@ -53,18 +53,18 @@ describe("samples", () => {
       expect(ex.kind).toBe("Run");
       expect(ex.status?.phase).toBe(RunPhase.RUN_COMPLETED);
       expect(ex.spec?.message).toBe("Hello! Can you help me get started?");
-      expect(ex.spec?.target).toEqual({ case: "sessionId", value: "ses-00000000-0000-0000-0000-000000000001" });
+      expect(ex.spec?.target).toEqual({ case: "sessionId", value: "ses_00000000000000000000000001" });
     });
 
     it("uses the provided id, phase and message", () => {
       const ex = samples.run({
         id: "run_x",
-        sessionId: "ses-x",
+        sessionId: "ses_x",
         phase: RunPhase.RUN_IN_PROGRESS,
         message: "test input",
       });
       expect(ex.metadata?.id).toBe("run_x");
-      expect(ex.spec?.target.value).toBe("ses-x");
+      expect(ex.spec?.target.value).toBe("ses_x");
       expect(ex.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
       expect(ex.spec?.message).toBe("test input");
     });

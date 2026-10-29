@@ -65,17 +65,17 @@ beforeEach(() => {
 
 describe("desktop ConversationsPage", () => {
   it("selects the conversation its route names and mounts that channel's access dialog", () => {
-    renderAt(`/conversations/${encodeURIComponent("ach_1")}/${encodeURIComponent("wa:+15550100")}`);
+    renderAt(`/conversations/${encodeURIComponent("chn_1")}/${encodeURIComponent("wa:+15550100")}`);
 
     const props = page.workbench.at(-1);
     expect(props?.org).toBe("org_acme");
-    expect(props?.selected).toEqual({ channelId: "ach_1", conversationKey: "wa:+15550100" });
+    expect(props?.selected).toEqual({ channelId: "chn_1", conversationKey: "wa:+15550100" });
     expect(page.access.at(-1)).toMatchObject({
       label: "Channel access",
       resource: {
         kind: ApiResourceKind.channel,
         kindString: "channel",
-        id: "ach_1",
+        id: "chn_1",
         org: "org_acme",
         name: "Support line",
       },

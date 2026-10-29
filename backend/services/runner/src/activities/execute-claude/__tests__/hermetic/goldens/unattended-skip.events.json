@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_shell_skip",
+      "id": "run_claude_0001.toolu_shell_skip",
       "input": {
         "command": "echo ran > ran.txt",
         "description": "Clean up"
@@ -12,10 +12,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_shell_skip.r",
-      "tool_use_id": "aex_claude_0001.toolu_shell_skip",
+      "id": "run_claude_0001.toolu_shell_skip.r",
+      "tool_use_id": "run_claude_0001.toolu_shell_skip",
       "content": [
         {
           "type": "text",
@@ -26,9 +26,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m1",
+      "id": "run_claude_0001.root.m1",
       "content": [
         {
           "type": "text",

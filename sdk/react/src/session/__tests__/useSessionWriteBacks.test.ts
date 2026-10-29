@@ -30,8 +30,8 @@ describe("useSessionWriteBacks", () => {
 
   it("keeps the latest run's write-back per entry, sorted by entry name", () => {
     const runs = [
-      runWithWriteBacks("aex_1", ["web", "api"]),
-      runWithWriteBacks("aex_2", ["Docs", "api"]),
+      runWithWriteBacks("run_1", ["web", "api"]),
+      runWithWriteBacks("run_2", ["Docs", "api"]),
     ];
     const { result } = renderHook(() => useSessionWriteBacks(runs));
 
@@ -40,9 +40,9 @@ describe("useSessionWriteBacks", () => {
     expect(
       result.current.writeBacks.map((e) => [e.writeBack.workspaceEntryName, e.runId]),
     ).toEqual([
-      ["api", "aex_2"],
-      ["Docs", "aex_2"],
-      ["web", "aex_1"],
+      ["api", "run_2"],
+      ["Docs", "run_2"],
+      ["web", "run_1"],
     ]);
   });
 

@@ -29,7 +29,7 @@ configureLogger({ level: "error", format: "text" });
 const knownSkill = create(SkillSchema, {
   apiVersion: "v1",
   kind: "skill",
-  metadata: { name: "Code Review", slug: "code-review", org: "acme", id: "skl-1" },
+  metadata: { name: "Code Review", slug: "code-review", org: "acme", id: "skl_1" },
 });
 
 

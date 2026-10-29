@@ -45,7 +45,7 @@ function parseOrgSlug(ref: string, defaultOrg: string): [string, string] {
 }
 
 // The backend addresses versions by their full content hash; the CLI echoes a
-// 12-char prefix for readability, matching Go's truncateHash.
+// 12-char prefix for readability.
 function truncateHash(hash: string): string {
   return hash.length > 12 ? hash.slice(0, 12) : hash;
 }

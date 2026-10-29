@@ -2,8 +2,7 @@
 //
 // Each non-empty component log is renamed with a timestamp suffix so a fresh
 // run starts clean while the previous run's output is preserved for diagnosis.
-// Archived logs older than the retention window are then pruned. This mirrors
-// the Go CLI's `rotateLogsIfNeeded` + `cleanupOldLogs`.
+// Archived logs older than the retention window are then pruned.
 
 import { mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -102,7 +101,7 @@ function isArchivedLog(name: string): boolean {
   return /\.(log|err)\..+$/.test(name);
 }
 
-// Matches the Go layout "2006-01-02-150405" (local time): YYYY-MM-DD-HHmmss.
+// YYYY-MM-DD-HHmmss, local time.
 function timestampSuffix(date: Date): string {
   const p = (n: number, width = 2): string => String(n).padStart(width, "0");
   return (

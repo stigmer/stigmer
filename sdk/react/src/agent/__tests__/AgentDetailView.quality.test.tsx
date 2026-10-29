@@ -131,16 +131,16 @@ describe("AgentDetailView's Channels tab", () => {
   it("is the second tab and lists every channel of the agent, read by the agent's id in its own org", async () => {
     const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
     const chatLink = {
-      metadata: { id: "ash_1", org: ACME_ID, slug: "website-chat", name: "Website chat" },
+      metadata: { id: "chn_1", org: ACME_ID, slug: "website-chat", name: "Website chat" },
       spec: { enabled: true, type: { case: "web", value: {} } },
     };
     const slack = {
-      metadata: { id: "ach_1", org: ACME_ID, slug: "support-slack", name: "Support Slack" },
+      metadata: { id: "chn_1", org: ACME_ID, slug: "support-slack", name: "Support Slack" },
       spec: { enabled: true, type: { case: "slack", value: {} } },
       status: { installState: 2, typeStatus: { case: undefined } },
     };
     const whatsapp = {
-      metadata: { id: "ach_2", org: ACME_ID, slug: "support-whatsapp", name: "Support WhatsApp" },
+      metadata: { id: "chn_2", org: ACME_ID, slug: "support-whatsapp", name: "Support WhatsApp" },
       spec: { enabled: true, type: { case: "whatsapp", value: {} } },
       status: { installState: 2, typeStatus: { case: undefined } },
     };

@@ -3,8 +3,7 @@
 //
 // It is the single consistent view of every managed component. The supervisor
 // is the only writer; status (and any other reader) only reads. JSON keys are
-// snake_case to match the file the Go daemon writes, so the format is stable
-// across the migration.
+// snake_case, the file's stable format.
 
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 

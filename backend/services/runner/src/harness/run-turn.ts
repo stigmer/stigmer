@@ -655,9 +655,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // The stream is over, however it ended: nothing on the transcript is
     // still streaming. Here and not only in the adapters' settles, because
     // this is the one place that sees every path — a turn that failed before
-    // its settle, or ended on a thrown budget, used to persist its last
-    // message with the flag on, a spinner the console never stopped (the
-    // kit's settled-transcript fact caught it on both real adapters).
+    // its settle, or ended on a thrown budget, would otherwise persist its
+    // last message with the flag on, a spinner the console never stops (the
+    // kit's settled-transcript fact pins it on both real adapters).
     // Idempotent: an adapter that persists on the settled rows mid-settle
     // finalizes first.
     transcript.finalize();

@@ -58,9 +58,8 @@ export function RunProgress({
   //
   // CANCELLED is carved out: cancel is a quiet terminal state, not a failure
   // (stigmer#282). A CANCELLED run can still carry a non-empty error —
-  // cancel preserves a preexisting error by design, and an older server may
-  // have written a cancellation sentinel — so the phase, not the error field,
-  // decides whether to render the alert. The muted Cancelled badge suffices.
+  // cancel preserves a preexisting error by design — so the phase, not the
+  // error field, decides whether to render the alert. The muted Cancelled badge suffices.
   const error =
     phase === RunPhase.RUN_CANCELLED
       ? undefined

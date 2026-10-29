@@ -1,6 +1,6 @@
 // `stigmer runs {cancel,terminate,pause,resume} <run-id>` — lifecycle
 // control verbs. Thin handlers: resolve the client, call the control resource,
-// render the resulting phase. Mirrors Go's execution_cancel.go / execution_pause.go.
+// render the resulting phase.
 // cancel stops the run's whole conversation (resources/run-control.ts), takes
 // no reason, and names every turn it stopped.
 
@@ -37,7 +37,7 @@ export function registerRunsControl(runs: Command): void {
 
 type ControlVerb = "terminate" | "pause" | "resume";
 
-// Past-tense success wording per verb, matching Go's climsg.Success lines.
+// Past-tense success wording per verb.
 const PAST_TENSE: Record<ControlVerb, string> = {
   terminate: "terminated",
   pause: "paused",

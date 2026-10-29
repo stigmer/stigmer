@@ -705,7 +705,7 @@ describe("credential binding — a credential that names an organization works t
         person.agentExecutionCommand.create(
           makeAgentExecution({
             org: a.org,
-            name: uniqueName("binding-aex-cross"),
+            name: uniqueName("binding-run-cross"),
             sessionId,
             message: "Say hello.",
           }),

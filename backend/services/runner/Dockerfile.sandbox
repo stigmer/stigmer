@@ -71,8 +71,7 @@
 # the tool falls back to a substring search).
 #
 # Layers are cut by owner, so a node already holding one build pulls only
-# what the next one changed (stigmer/stigmer#1244: every build used to be
-# 372 of 400 MB new bytes): the base's layers change only when its tools do,
+# what the next one changed (stigmer/stigmer#1244): the base's layers change only when its tools do,
 # and a runner-only release changes the one runner layer.
 #
 # Platforms: linux/amd64 + linux/arm64. The runner's Node and the slim

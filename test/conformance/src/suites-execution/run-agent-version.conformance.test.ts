@@ -76,7 +76,7 @@ describe("Run — the agent version a turn runs", () => {
     mock.enqueue(anthropicText("Done."));
 
     const created = await clients.agentExecutionCommand.create({
-      ...makeAgentExecution({ org, name: uniqueName("aex-version"), agentRef: agentRefOf(agent) }),
+      ...makeAgentExecution({ org, name: uniqueName("run-version"), agentRef: agentRefOf(agent) }),
       status: { agentId: "agt_forged", agentVersionHash: "f".repeat(64) },
     });
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
@@ -96,7 +96,7 @@ describe("Run — the agent version a turn runs", () => {
 
     mock.enqueueError(400);
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-version-recover"), agentRef: agentRefOf(v1) }),
+      makeAgentExecution({ org, name: uniqueName("run-version-recover"), agentRef: agentRefOf(v1) }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -152,10 +152,10 @@ describe("Run — a conversation runs the version its session pinned", () => {
     const name = uniqueName("agent-pin-kept");
     const v1 = await clients.agentCommand.apply(makeAgent({ org, name, instructions: RECORDED }));
     fixtures.defer(() => clients.agentCommand.delete({ value: v1.metadata!.id }));
-    const first = await completedTurn(org, "aex-pin-first", { agentRef: agentRefOf(v1) });
+    const first = await completedTurn(org, "run-pin-first", { agentRef: agentRefOf(v1) });
 
     await clients.agentCommand.apply(makeAgent({ org, name, instructions: SAVED_LATER }));
-    const second = await completedTurn(org, "aex-pin-second", { sessionId: sessionIdOf(first) });
+    const second = await completedTurn(org, "run-pin-second", { sessionId: sessionIdOf(first) });
 
     expect(second.status?.agentVersionHash, "the second turn runs the pinned version").toBe(v1.status?.versionHash);
     expect(lastSystemPrompt(), "the model met the pinned instructions").toContain(RECORDED);
@@ -166,7 +166,7 @@ describe("Run — a conversation runs the version its session pinned", () => {
     const name = uniqueName("agent-pin-latest");
     const v1 = await clients.agentCommand.apply(makeAgent({ org, name, instructions: RECORDED }));
     fixtures.defer(() => clients.agentCommand.delete({ value: v1.metadata!.id }));
-    const first = await completedTurn(org, "aex-latest-first", { agentRef: agentRefOf(v1) });
+    const first = await completedTurn(org, "run-latest-first", { agentRef: agentRefOf(v1) });
     const v2 = await clients.agentCommand.apply(makeAgent({ org, name, instructions: SAVED_LATER }));
 
     const sessionId = sessionIdOf(first);
@@ -175,7 +175,7 @@ describe("Run — a conversation runs the version its session pinned", () => {
     const updated = await clients.sessionCommand.update({ resource: session, updateMask: { paths: ["*"] } });
     expect(updated.status?.agentVersionHash, "latest pins the agent's head").toBe(v2.status?.versionHash);
 
-    const next = await completedTurn(org, "aex-latest-next", { sessionId });
+    const next = await completedTurn(org, "run-latest-next", { sessionId });
     expect(next.status?.agentVersionHash, "the next turn runs the new head").toBe(v2.status?.versionHash);
     expect(lastSystemPrompt(), "the model met the head's instructions").toContain(SAVED_LATER);
   });
@@ -185,7 +185,7 @@ describe("Run — a conversation runs the version its session pinned", () => {
     const { v1 } = await agentSavedTwice(org);
     await clients.agentCommand.tagVersion({ agentId: v1.metadata!.id, versionHash: v1.status!.versionHash, tag: "stable" });
 
-    const turn = await completedTurn(org, "aex-pin-tag", { agentRef: agentRefOf(v1, "stable") });
+    const turn = await completedTurn(org, "run-pin-tag", { agentRef: agentRefOf(v1, "stable") });
 
     expect(turn.status?.agentVersionHash, "the turn runs the tagged version").toBe(v1.status?.versionHash);
     expect(lastSystemPrompt(), "the model met the tagged version's instructions").toContain(RECORDED);
@@ -199,7 +199,7 @@ describe("Run — a conversation runs the version its session pinned", () => {
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 
-    const turn = await completedTurn(org, "aex-pin-hash", { sessionId: session.metadata!.id });
+    const turn = await completedTurn(org, "run-pin-hash", { sessionId: session.metadata!.id });
 
     expect(turn.status?.agentVersionHash, "the turn runs the version the hash names").toBe(v1.status?.versionHash);
     expect(lastSystemPrompt(), "the model met that version's instructions").toContain(RECORDED);

@@ -7,7 +7,7 @@ import { createRoutineListFn, listRoutinesPage } from "../routineListFn";
 function routines(count: number): Routine[] {
   return Array.from({ length: count }, (_, i) =>
     create(RoutineSchema, {
-      metadata: { id: `sch_${i}`, name: `sched-${i}`, slug: `sched-${i}`, org: "acme" },
+      metadata: { id: `rtn_${i}`, name: `sched-${i}`, slug: `sched-${i}`, org: "acme" },
     }),
   );
 }

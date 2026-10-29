@@ -44,8 +44,8 @@ afterEach(() => {
 
 describe("SkillFileBrowser", () => {
   it("renders SKILL.md content without any click for a single-file package", async () => {
-    // Regression: the content lookup used to be memoized against a frozen
-    // getter, so a one-file package stayed stuck on the placeholder forever.
+    // A content lookup memoized against a frozen getter would leave a
+    // one-file package stuck on the placeholder forever.
     const stigmer = makeStigmerServing({
       "SKILL.md": strToU8("# Docs Skill\n\nAnswers questions about Stigmer."),
     });

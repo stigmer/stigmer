@@ -139,7 +139,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
     expect(screen.queryByText(/inline-image/)).toBeNull();
   });
 
-  it("stays silent when the server advertises no limits (older server, tri-state)", async () => {
+  it("stays silent when the server advertises no limits (tri-state)", async () => {
     render(<SessionComposer onSubmit={vi.fn()} />, {
       wrapper: createWrapper({ visionLimits: undefined }),
     });

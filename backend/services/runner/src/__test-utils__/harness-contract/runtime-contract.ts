@@ -176,7 +176,7 @@ export class RuntimeExecutionDriver {
       ...recordOptions,
       ids: {
         org: "kit-org",
-        executionId: `aex-${label}`,
+        executionId: `run_${label}`,
         sessionId: `ses-${label}`,
         agentId: `agt-${label}`,
         agentName: `agent-${label}`,

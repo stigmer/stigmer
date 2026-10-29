@@ -119,8 +119,8 @@ describe("ResourceWorkbench on a server that holds one organization", () => {
 
 describe("useResourceCollection row identity", () => {
   const protoRows: ProtoLikeRow[] = [
-    { metadata: { id: "sch_a", slug: "a" } },
-    { metadata: { id: "sch_b", slug: "b" } },
+    { metadata: { id: "rtn_a", slug: "a" } },
+    { metadata: { id: "rtn_b", slug: "b" } },
   ];
 
   const columns = [
@@ -147,7 +147,7 @@ describe("useResourceCollection row identity", () => {
 
     await waitFor(() => expect(result.current.items).toHaveLength(2));
     const rowIds = result.current.table!.getRowModel().rows.map((r) => r.id);
-    expect(rowIds).toEqual(["sch_a", "sch_b"]);
+    expect(rowIds).toEqual(["rtn_a", "rtn_b"]);
   });
 
   it("falls back to SearchResult.id, then the row index", async () => {

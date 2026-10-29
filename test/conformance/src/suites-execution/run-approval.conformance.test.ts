@@ -174,7 +174,7 @@ async function runToGate(
   if (opts.done ?? true) mock.enqueue(anthropicText("Done."));
 
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex-hitl"), agentRef, autoApproveAll: opts.autoApproveAll }),
+    makeAgentExecution({ org, name: uniqueName("run-hitl"), agentRef, autoApproveAll: opts.autoApproveAll }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -227,7 +227,7 @@ describe("Run approval — spec bypass and what an ask names", () => {
     mock.enqueue(anthropicToolUses([echoBlock(mcpSlug, "call_echo_bypass", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-bypass"), agentRef, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-bypass"), agentRef, autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -265,8 +265,7 @@ describe("Run approval — spec bypass and what an ask names", () => {
   });
 });
 
-// The two arms below came from the Go offline suite (hitl_offline_test.go)
-// and assert what the answer arms leave out: the lease a grant gives across
+// The two arms below assert what the answer arms leave out: the lease a grant gives across
 // the turn's model requests, and the resumed transcript under the runner's
 // durable checkpointer.
 describe("Run approval — the grant's lease, durable resume", () => {
@@ -302,7 +301,7 @@ describe("Run approval — the grant's lease, durable resume", () => {
     expect(mock.remaining(), "all three scripted requests were consumed").toBe(0);
   });
 
-  // Cancel AT THE GATE (the Go arm TestOffline_HITL_CancelAtGate) is the
+  // Cancel AT THE GATE is the
   // session's interrupt arm below: a parked gate is abandoned by stopping
   // the session's unfinished turns.
 
@@ -560,7 +559,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
     const { agentRef, mcpSlug } = await provisionGatedAgent(org);
     mock.enqueue(anthropicText("Held until paused."), { delayMs: 120_000 });
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-paused"), agentRef }),
+      makeAgentExecution({ org, name: uniqueName("run-paused"), agentRef }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -584,7 +583,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
     const sessionId = sessionIdOf(gated);
     await awaitRequiresAction(clients, sessionId, 1);
 
-    const message = makeAgentExecution({ org, name: uniqueName("aex-while-waiting"), sessionId, message: "and another thing" });
+    const message = makeAgentExecution({ org, name: uniqueName("run-while-waiting"), sessionId, message: "and another thing" });
     const refused = await expectGrpcCode(() => clients.agentExecutionCommand.sendMessage(message), Code.FailedPrecondition, "a message while the turn waits");
     expect(refused.rawMessage).toContain(executionId);
     await expectGrpcCode(() => clients.agentExecutionCommand.create(message), Code.FailedPrecondition, "a second turn while the first waits");
@@ -648,7 +647,7 @@ describe("Run — an agent's hooks decide at the gate", () => {
     mock.enqueue(anthropicToolUses([echoBlock(mcpSlug, "call_echo_hook_deny", "hello")]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-hook-deny"), agentRef }),
+      makeAgentExecution({ org, name: uniqueName("run-hook-deny"), agentRef }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -730,7 +729,7 @@ describe("Run — a pushed plugin's hooks decide at the gate", () => {
     mock.enqueue(anthropicToolUses([{ toolCallId: "call_hook_publish", toolName: "execute", toolInput: { command: "echo published" } }]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-plugin-hooks"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-plugin-hooks"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -805,7 +804,7 @@ describe("Run — a pushed Cursor-format plugin's hooks decide at the gate", () 
     mock.enqueue(anthropicToolUses([{ toolCallId: "call_cursor_hook_publish", toolName: "execute", toolInput: { command: "echo published" } }]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-cursor-plugin-hooks"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-cursor-plugin-hooks"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -899,7 +898,7 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
     mock.enqueue(anthropicToolUses([execute("call_hookify_restored", `git hash-object ${MOUNTED_RULE_ENGINE}`)]));
     mock.enqueue(anthropicText("Done."));
     const first = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-hookify-trusted"), agentRef: agentRefOf(agent), autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-hookify-trusted"), agentRef: agentRefOf(agent), autoApproveAll: true }),
     );
     const firstId = first.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: firstId }));
@@ -933,7 +932,7 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
     mock.enqueue(anthropicToolUses([execute("call_hookify_quiet", "echo built")]));
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-hookify-untrusted"), sessionId: sessionIdOf(trusted) }),
+      makeAgentExecution({ org, name: uniqueName("run-hookify-untrusted"), sessionId: sessionIdOf(trusted) }),
     );
     const secondId = second.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
@@ -987,7 +986,7 @@ describe("Run approval — on Claude", () => {
     const task = uniqueName("Clean the build directory");
     CLAUDE_ARM.script(mock, task, steps);
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-claude-gate"), agentRef: agentRefOf(agent), message: task, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-claude-gate"), agentRef: agentRefOf(agent), message: task, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const runId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

@@ -1,7 +1,6 @@
 // mcp-ts target: TypeScript MCP apply-input modules (zod schemas + toProto
-// bridges) for the apply-capable resources. Byte-parity port of mcp_ts.go —
-// the emitter consumes the shared McpGen model, so the flattened ergonomic
-// projection is computed once, exactly as the retired Go emitter did.
+// bridges) for the apply-capable resources. The emitter consumes the shared
+// McpGen model, so the flattened ergonomic projection is computed once.
 
 import * as fs from "node:fs";
 import * as path from "node:path";

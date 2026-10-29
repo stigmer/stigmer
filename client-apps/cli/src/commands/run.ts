@@ -1,6 +1,5 @@
 // `stigmer run [agent]` — run an agent and stream it. Thin handler: parse
-// flags, resolve the reference (0/1-arg dispatch mirroring Go's run.go +
-// run_picker.go), then delegate to the shared run stack. Heavy modules
+// flags, resolve the reference (0/1-arg dispatch), then delegate to the shared run stack. Heavy modules
 // (backend client, Ink, the session stream) load lazily inside the action so `--help`
 // stays fast.
 //
@@ -76,8 +75,7 @@ async function runRun(
   await runSmart(reference, options, org, outputMode, client);
 }
 
-// stigmer run <value>: classify the argument and dispatch (Go's
-// executeRunSmart). Session IDs belong to `resume`; complete agent IDs resolve
+// stigmer run <value>: classify the argument and dispatch. Session IDs belong to `resume`; complete agent IDs resolve
 // directly; other resource IDs are not runnable; bare text is resolved as an
 // agent slug.
 async function runSmart(

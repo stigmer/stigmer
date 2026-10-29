@@ -44,11 +44,11 @@ describe("<stigmer-agent>", () => {
 
   it("renders an iframe onto the hosted chat page for the channel", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ channel: "ash_support" });
+    const element = mount({ channel: "chn_support" });
 
     const iframe = iframeOf(element);
     expect(iframe).not.toBeNull();
-    expect(iframe!.src).toBe(`${APP_ORIGIN}/chat/ash_support`);
+    expect(iframe!.src).toBe(`${APP_ORIGIN}/chat/chn_support`);
     expect(iframe!.title).toBe("Chat with an agent");
   });
 
@@ -68,14 +68,14 @@ describe("<stigmer-agent>", () => {
 
   it("names the frame with the host's title when the element carries one", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ channel: "ash_support", title: "Chat with Support Bot" });
+    const element = mount({ channel: "chn_support", title: "Chat with Support Bot" });
 
     expect(iframeOf(element)!.title).toBe("Chat with Support Bot");
   });
 
   it("keeps the frame, and the conversation in it, when the host changes its title", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ channel: "ash_support", title: "Chat with Support Bot" });
+    const element = mount({ channel: "chn_support", title: "Chat with Support Bot" });
     const frame = iframeOf(element);
 
     element.setAttribute("title", "Renamed");
@@ -88,7 +88,7 @@ describe("<stigmer-agent>", () => {
   it("honors width/height (bare numbers become px) and explicit themes", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({
-      channel: "ash_support",
+      channel: "chn_support",
       width: "320",
       height: "80vh",
       theme: "dark",
@@ -97,14 +97,14 @@ describe("<stigmer-agent>", () => {
     expect(element.style.width).toBe("320px");
     expect(element.style.height).toBe("80vh");
     expect(iframeOf(element)!.src).toBe(
-      `${APP_ORIGIN}/chat/ash_support?theme=dark`,
+      `${APP_ORIGIN}/chat/chn_support?theme=dark`,
     );
   });
 
   it("forwards the token attribute as ?k= on the iframe URL (locked link)", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({
-      channel: "ash_support",
+      channel: "chn_support",
       token: "tok123",
       theme: "dark",
     });
@@ -112,19 +112,19 @@ describe("<stigmer-agent>", () => {
     // The hosted page reads ?k= and forwards it on its guest mint; the
     // token must ride BEFORE theme so the URL matches the SDK's shape.
     expect(iframeOf(element)!.src).toBe(
-      `${APP_ORIGIN}/chat/ash_support?k=tok123&theme=dark`,
+      `${APP_ORIGIN}/chat/chn_support?k=tok123&theme=dark`,
     );
   });
 
   it("prefers the app-origin attribute over the loader default", () => {
     setDefaultAppOrigin(APP_ORIGIN);
     const element = mount({
-      channel: "ash_support",
+      channel: "chn_support",
       "app-origin": "https://selfhosted.example",
     });
 
     expect(iframeOf(element)!.src).toBe(
-      "https://selfhosted.example/chat/ash_support",
+      "https://selfhosted.example/chat/chn_support",
     );
   });
 
@@ -144,7 +144,7 @@ describe("<stigmer-agent>", () => {
     expect(iframeOf(missingShare)).toBeNull();
 
     setDefaultAppOrigin("");
-    const missingOrigin = mount({ channel: "ash_support" });
+    const missingOrigin = mount({ channel: "chn_support" });
     expect(iframeOf(missingOrigin)).toBeNull();
 
     expect(consoleError).toHaveBeenCalled();
@@ -153,7 +153,7 @@ describe("<stigmer-agent>", () => {
 
   it("hides itself and dispatches stigmer:refused when the frame reports refusal", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ channel: "ash_support" });
+    const element = mount({ channel: "chn_support" });
     const refused = vi.fn();
     element.addEventListener("stigmer:refused", refused);
 
@@ -171,7 +171,7 @@ describe("<stigmer-agent>", () => {
 
   it("dispatches stigmer:ready when the frame reports readiness", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ channel: "ash_support" });
+    const element = mount({ channel: "chn_support" });
     const ready = vi.fn();
     element.addEventListener("stigmer:ready", ready);
 
@@ -189,7 +189,7 @@ describe("<stigmer-agent>", () => {
 
   it("tears down its iframe and bridge on disconnect", () => {
     setDefaultAppOrigin(APP_ORIGIN);
-    const element = mount({ channel: "ash_support" });
+    const element = mount({ channel: "chn_support" });
     const ready = vi.fn();
     element.addEventListener("stigmer:ready", ready);
     const frameWindow = iframeOf(element)!.contentWindow;

@@ -4,10 +4,8 @@
 // Domain: agentic / agentexecution and session — the transcript a console or
 // SDK renders, folded from the session's events (support/turn.ts).
 //
-// These are runner behaviors read through the session's log, and so contract;
-// they replace the Go offline suite's offline_test.go,
-// plain_chat_offline_test.go and the agent half of
-// model_resolution_offline_test.go. The MCP echo round-trip itself is the harness
+// These are runner behaviors read through the session's log, and so contract.
+// The MCP echo round-trip itself is the harness
 // smoke (mcp.harness.test.ts); this file asserts what the transcript
 // says about it and about a tool that fails.
 //
@@ -105,7 +103,7 @@ async function runAgent(opts: {
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-messages"),
+      name: uniqueName("run-messages"),
       agentRef: agentRefOf(agent),
       message: opts.message,
       autoApproveAll: true,

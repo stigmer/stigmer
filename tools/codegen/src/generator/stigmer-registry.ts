@@ -1,5 +1,5 @@
-// The full Stigmer proto registry for the docs YAML gate — the TS analogue
-// of docs_yaml_gate.go's blank stub imports. Every resource package whose
+// The full Stigmer proto registry for the docs YAML gate. Every resource
+// package whose
 // manifests may appear in docs must be listed; a missing entry means the
 // gate reports "unknown kind" for that resource. The gate's own registry
 // scan derives everything else (manifest kinds from protovalidate consts),

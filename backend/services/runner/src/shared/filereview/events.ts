@@ -58,9 +58,8 @@ const ACTOR_RUNNER = "runner";
 
 /**
  * The proto enum value NAME for a {@link FileReviewEventType}, e.g.
- * `FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED`. {@link eventId} hashes this name so
- * the runner's ids are byte-identical to the Go `author.EventID` / Java
- * `FileReviewStreamAuthor.eventId` (which use the proto name).
+ * `FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED`. {@link eventId} hashes this name,
+ * the proto name, so an id never depends on the TS member name.
  */
 const FILE_REVIEW_EVENT_TYPE_NAME: Readonly<Record<FileReviewEventType, string>> = {
   [FileReviewEventType.UNSPECIFIED]: "FILE_REVIEW_EVENT_TYPE_UNSPECIFIED",
@@ -75,7 +74,7 @@ const FILE_REVIEW_EVENT_TYPE_NAME: Readonly<Record<FileReviewEventType, string>>
  * The deterministic idempotency key for a file-review event:
  * `changeSetId:scopeId:eventTypeName`. Capture/reconcile/failure events are
  * change-set-scoped (scopeId == changeSetId); the per-file decision scope is the
- * server's concern. Identical to the Go/Java EventID.
+ * server's concern.
  */
 export function eventId(
   changeSetId: string,

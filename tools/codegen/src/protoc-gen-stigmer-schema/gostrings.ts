@@ -1,6 +1,5 @@
-// String helpers ported byte-for-byte from the Go extractor. Each mirrors a
-// specific Go function whose exact behavior is baked into the committed
-// schema bytes — do not "improve" them.
+// String helpers whose exact behavior is baked into the committed schema
+// bytes. Each mirrors a specific Go function — do not "improve" them.
 
 /**
  * Go's toCamelCase: split on "_", uppercase the first letter of each part

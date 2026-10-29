@@ -72,7 +72,7 @@ export function buildProgram(): Command {
     .configureOutput({ outputError: (message, write) => write(withoutOptionValue(message)) });
 
   // Capture global flags into process-global state before any command runs.
-  // Bridging --api-key to the env mirrors the Go CLI's PersistentPreRun so the
+  // Bridging --api-key to the env lets the
   // SDK auth interceptor and config layer pick it up uniformly.
   program.hook("preAction", () => {
     const globals = program.opts();

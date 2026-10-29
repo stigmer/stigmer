@@ -14,7 +14,7 @@ function makeChannel(overrides?: {
   proactiveMessagingEnabled?: boolean;
 }): Channel {
   return {
-    metadata: { id: "ach_1", org: "acme", slug: "wa-main", name: "WA Main" },
+    metadata: { id: "chn_1", org: "acme", slug: "wa-main", name: "WA Main" },
     spec: {
       enabled: overrides?.enabled ?? true,
       type: {

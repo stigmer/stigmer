@@ -38,7 +38,7 @@ const agent = create(AgentSchema, { metadata: { id: "agt_1", org: "org_acme", na
 
 function stored() {
   return create(ScoringRuleSchema, {
-    metadata: { id: "evl_1", name: "evl_1", org: "org_acme" },
+    metadata: { id: "srl_1", name: "srl_1", org: "org_acme" },
     spec: { agentId: "agt_1", enabled: true, sampleRate: 0.5, monthlyLimitUsd: 20 },
     status: {
       period: "2026-10",
@@ -108,7 +108,7 @@ describe("AgentQualityTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(mock.scoringrule.update).toHaveBeenCalledTimes(1));
     const sent = sentUpdate<ScoringRule>(mock.scoringrule.update);
-    expect(sent.id).toBe("evl_1");
+    expect(sent.id).toBe("srl_1");
     expect(sent.paths).toEqual(["spec.enabled", "spec.sample_rate", "spec.monthly_limit_usd", "spec.model_name"]);
     expect(sent.resource.spec).toMatchObject({ monthlyLimitUsd: 30, sampleRate: 0.5 });
   });

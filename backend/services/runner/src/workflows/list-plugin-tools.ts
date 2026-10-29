@@ -1,5 +1,5 @@
 /**
- * Temporal workflows for a plugin's tools listing.
+ * The Temporal workflow for a plugin's tools listing.
  *
  * "stigmer/mcp-server/connect": one step — list one plugin server's tools
  * now, with each tool's `destructiveHint` (true only for an explicit MCP
@@ -7,11 +7,7 @@
  * result, which the server hands to the person who asked. Nothing is
  * persisted; nothing here judges a tool.
  *
- * "stigmer/mcp-server/discover": the same listing under its older pinned
- * name, kept registered so a caller still starting it gets the same result.
- *
- * Both type names are pinned wire identifiers from before a server lived
- * inside a plugin.
+ * The type name is a pinned wire identifier.
  *
  * SANDBOX RULES: This file runs inside the Temporal deterministic V8
  * isolate. No Node.js built-ins (crypto, fs, net), no non-deterministic
@@ -62,9 +58,5 @@ function toWire(listing: ListPluginToolsOutput): ListPluginToolsWorkflowOutput {
 }
 
 export async function listPluginTools(input: ListPluginToolsWorkflowInput): Promise<ListPluginToolsWorkflowOutput> {
-  return toWire(await runListing(input));
-}
-
-export async function listPluginToolsLegacy(input: ListPluginToolsWorkflowInput): Promise<ListPluginToolsWorkflowOutput> {
   return toWire(await runListing(input));
 }

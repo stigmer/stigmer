@@ -7,8 +7,7 @@
 // asking the backend; no `--org` at all is a usage error. Only a lookup the
 // server refuses as NotFound or PermissionDenied reads as "not one you belong
 // to"; any other failure is reported as itself. And `context show` names the
-// active backend, not the legacy local/cloud switch the file also carries,
-// and says its slug is the one `set` stored. A real Connect backend over h2c serves listMine; the
+// active backend and says its slug is the one `set` stored. A real Connect backend over h2c serves listMine; the
 // config file (HOME redirected) points a selfhost backend at it.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -211,7 +210,7 @@ describe("config context set --org", () => {
 });
 
 describe("config context show", () => {
-  it("names the active backend, not the legacy local/cloud switch", async () => {
+  it("names the organization, its id and the active backend", async () => {
     await run("--org", "acme");
     const outcome = await runContext("show", "--json");
     expect(outcome.exitCode).toBe(ExitCode.Success);

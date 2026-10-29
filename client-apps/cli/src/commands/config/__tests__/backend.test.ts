@@ -111,7 +111,7 @@ describe("config backend add/use/list/remove", () => {
     expect(load().backends?.["staging"]).toBeUndefined();
   });
 
-  it("set cloud seeds and selects the reserved cloud entry (legacy sugar)", async () => {
+  it("set cloud seeds and selects the reserved cloud entry, and set local selects the daemon", async () => {
     expect((await run("set", "cloud")).exitCode).toBe(ExitCode.Success);
     const config = load();
     expect(config.current_backend).toBe("cloud");

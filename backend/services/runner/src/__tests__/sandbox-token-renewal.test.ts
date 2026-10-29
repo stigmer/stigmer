@@ -35,7 +35,7 @@ describe("isRenewableSandboxToken", () => {
 
   it("rejects every non-sandbox credential class", () => {
     expect(isRenewableSandboxToken(sandboxToken(3600, "embedded_runner"))).toBe(false);
-    // The retired workflow sandbox's class: no lane renews it any more.
+    // A class no sandbox lane holds.
     expect(isRenewableSandboxToken(sandboxToken(3600, "workflow_sandbox"))).toBe(false);
     expect(isRenewableSandboxToken(fakeJwt({ iat: 1, exp: 2 }))).toBe(false);
   });

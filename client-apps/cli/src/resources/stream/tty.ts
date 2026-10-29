@@ -2,7 +2,7 @@
 //
 // Deliberately free of any React/Ink imports so the command can decide whether
 // to take the interactive path *before* paying the dynamic-import cost of
-// ink.tsx. Mirrors Go's termctl.IsSupported.
+// ink.tsx.
 
 /**
  * Whether the terminal can host the interactive Ink renderer: stdout must be a

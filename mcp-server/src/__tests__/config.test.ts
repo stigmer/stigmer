@@ -35,7 +35,7 @@ describe("loadConfigFromEnv", () => {
     expect(c.httpAuthEnabled).toBe(false);
   });
 
-  it("only the exact string 'true' enables boolean flags (Go parity)", () => {
+  it("only the exact string 'true' enables boolean flags", () => {
     expect(fromEnv({ STIGMER_MCP_HTTP_AUTH_ENABLED: "TRUE" }).httpAuthEnabled).toBe(false);
     expect(fromEnv({ STIGMER_MCP_OAUTH_ENABLED: "1" }).oauth.enabled).toBe(false);
   });

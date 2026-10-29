@@ -34,13 +34,13 @@ describe("useSession", () => {
 
   it("fetches session by ID", async () => {
     const session = {
-      metadata: { id: "ses-1", name: "Test Session" },
+      metadata: { id: "ses_1", name: "Test Session" },
       status: { subject: "Hello world" },
     };
     const get = vi.fn().mockResolvedValue(session);
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useSession("ses-1"), {
+    const { result } = renderHook(() => useSession("ses_1"), {
       wrapper: wrapper(client),
     });
 
@@ -51,7 +51,7 @@ describe("useSession", () => {
 
     expect(result.current.session).toBe(session);
     expect(result.current.error).toBeNull();
-    expect(get).toHaveBeenCalledWith("ses-1");
+    expect(get).toHaveBeenCalledWith("ses_1");
   });
 
   it("skips fetching when id is null", () => {
@@ -84,11 +84,11 @@ describe("useSession", () => {
   });
 
   it("refetch triggers a new fetch", async () => {
-    const session = { metadata: { id: "ses-1" } };
+    const session = { metadata: { id: "ses_1" } };
     const get = vi.fn().mockResolvedValue(session);
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useSession("ses-1"), {
+    const { result } = renderHook(() => useSession("ses_1"), {
       wrapper: wrapper(client),
     });
 
@@ -102,8 +102,8 @@ describe("useSession", () => {
   });
 
   it("re-fetches when id changes", async () => {
-    const session1 = { metadata: { id: "ses-1" } };
-    const session2 = { metadata: { id: "ses-2" } };
+    const session1 = { metadata: { id: "ses_1" } };
+    const session2 = { metadata: { id: "ses_2" } };
     const get = vi.fn()
       .mockResolvedValueOnce(session1)
       .mockResolvedValueOnce(session2);
@@ -113,16 +113,16 @@ describe("useSession", () => {
       ({ id }: { id: string }) => useSession(id),
       {
         wrapper: wrapper(client),
-        initialProps: { id: "ses-1" },
+        initialProps: { id: "ses_1" },
       },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.session).toBe(session1);
 
-    rerender({ id: "ses-2" });
+    rerender({ id: "ses_2" });
 
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
-    expect(get).toHaveBeenLastCalledWith("ses-2");
+    expect(get).toHaveBeenLastCalledWith("ses_2");
   });
 });

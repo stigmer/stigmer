@@ -1,13 +1,10 @@
-// The session header shown before a headless stream starts (Go's
-// renderSessionHeader / sessionHeaderInfo in run_display_header.go).
+// The session header shown before a headless stream starts.
 //
-// Deliberate divergence (clean over chrome): Go renders a lipgloss bordered
-// panel with a side-by-side "recent sessions" column. That panel is TTY
-// eye-candy; the interactive path here is owned by Ink's SessionView, which
+// Clean over chrome: the interactive path is owned by Ink's SessionView, which
 // draws its own header. The only consumers of THIS header are the headless
 // (--json / non-TTY plaintext) paths, where the output target is stderr — a
 // bordered panel there would be noise. So we emit a compact, aligned key/value
-// block carrying the same fields (Agent, Session, Model, Mode, Workspaces).
+// block of the fields (Agent, Session, Model, Mode, Workspaces).
 
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { shouldColorize, styler } from "../../output/style.js";
@@ -36,8 +33,7 @@ export interface SessionHeaderInfo {
 const LABEL_WIDTH = 12;
 
 /**
- * Write the session header to `out` (stderr). Empty fields are omitted, exactly
- * like Go's formatMetadataSection. A header with no populated fields prints
+ * Write the session header to `out` (stderr). Empty fields are omitted. A header with no populated fields prints
  * nothing.
  */
 export function renderSessionHeader(out: { write(chunk: string): unknown; isTTY?: boolean }, info: SessionHeaderInfo): void {
@@ -68,8 +64,7 @@ function row(s: ReturnType<typeof styler>, label: string, value: string): string
 }
 
 /**
- * The names of the conversation's repositories and folders (Go's
- * workspaceNames). Files carry no name: they sit under .stigmer/uploads/,
+ * The names of the conversation's repositories and folders. Files carry no name: they sit under .stigmer/uploads/,
  * not in the workspace this row lists.
  */
 export function workspaceNames(resources: readonly SessionResource[]): string[] {

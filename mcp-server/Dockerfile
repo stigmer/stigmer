@@ -42,9 +42,8 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # install genuinely re-runs, and the recipe states exactly what prod runs.
 #
 # The bump is ENFORCED, not remembered: release.npm-libs refuses to publish
-# a version this pin does not match (added after the pin sat at 3.4.1 for
-# five releases and prod served a bridge with no /channels route,
-# 2026-08-05). Bump the pin in the same commit you tag.
+# a version this pin does not match, so prod never serves a bridge older than
+# the release. Bump the pin in the same commit you tag.
 ARG MCP_SERVER_VERSION=3.41.0
 ENV STIGMER_MCP_VERSION=$MCP_SERVER_VERSION
 ENV NODE_ENV=production
@@ -57,14 +56,11 @@ WORKDIR /app
 # The install RETRIES until the whole pinned tree is installable (up to 10
 # minutes). The prod deploy pipeline fires the moment the tag commit is
 # pushed — minutes before release.npm-libs finishes publishing that same
-# version — so a bare install raced npm and failed first-try on EVERY
-# release from 3.12.3 through 3.12.8, silently leaving prod on the previous
-# bridge until someone noticed and reran (the v3.12.8 /memory route sat
-# undeployed this way, 2026-08-22). Until v3.14.1 the wait polled only the
-# TOP package with `npm view`; the install then failed anyway with
-# ETARGET on @stigmer/client@3.14.1 — every @stigmer/* dependency is published
-# by the same run and each becomes visible on its own schedule, so the
-# only reliable signal is the install itself succeeding. Retrying the
+# version — so a bare install races npm, fails, and silently leaves prod on
+# the previous bridge. Polling only the TOP package with `npm view` is not
+# enough: every @stigmer/* dependency is published by the same run and each
+# becomes visible on its own schedule (an install then fails with ETARGET on
+# one of them), so the only reliable signal is the install itself succeeding. Retrying the
 # install (npm install is idempotent on failure: nothing is left half
 # installed under --global) fixes every builder of this file at once.
 RUN for i in $(seq 1 60); do \

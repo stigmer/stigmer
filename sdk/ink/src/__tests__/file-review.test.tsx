@@ -680,7 +680,7 @@ describe("FileDiffBody", () => {
   });
 
   it("shows a loading notice while an offloaded side is in flight", () => {
-    const change = changeWith({ id: "load", after: offloadedSide("artifacts/aex-1/after") });
+    const change = changeWith({ id: "load", after: offloadedSide("artifacts/run_1/after") });
     const client = fakeClient({
       run: { getArtifactContent: () => new Promise(() => {}) },
     });
@@ -689,7 +689,7 @@ describe("FileDiffBody", () => {
   });
 
   it("reports a server-truncated offloaded side as un-diffable inline", async () => {
-    const change = changeWith({ id: "trunc", after: offloadedSide("artifacts/aex-1/after") });
+    const change = changeWith({ id: "trunc", after: offloadedSide("artifacts/run_1/after") });
     const client = fakeClient({
       run: {
         getArtifactContent: async () => ({
@@ -710,7 +710,7 @@ describe("FileDiffBody", () => {
   });
 
   it("surfaces a fetch failure as an honest error notice", async () => {
-    const change = changeWith({ id: "err", after: offloadedSide("artifacts/aex-1/after") });
+    const change = changeWith({ id: "err", after: offloadedSide("artifacts/run_1/after") });
     const client = fakeClient({
       run: {
         getArtifactContent: async () => {

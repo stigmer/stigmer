@@ -12,11 +12,8 @@
  * A turn-runtime phase (`harness/turn-context.ts` `mountSkills`): it reads
  * the control plane, which only the runtime holds, and writes under the
  * platform dir the runtime owns; the harness renders the returned metadata
- * into its prompt in its own placement. The runtime's since #1070; the
- * Stigmer harness's twin
- * (`skill-writer.ts` `fetchSkillsByRefs` + `mountSkills`) retired in #1096,
- * and the module itself with it. This is the one skills path for every
- * harness.
+ * into its prompt in its own placement (#1070). This is the one skills path
+ * for every harness.
  *
  * The mount is cached by the skill's content-addressed version hash
  * (stigmer/stigmer#672): metadata is fetched on every execution (that keeps

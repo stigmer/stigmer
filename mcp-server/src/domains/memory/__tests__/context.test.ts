@@ -15,7 +15,7 @@ const startup: CaptureContext = {
   org: "env-org",
   agentId: "agt_env",
   sessionId: "ses_env",
-  runId: "aex_env",
+  runId: "run_env",
 };
 
 describe("loadCaptureContextFromEnv", () => {
@@ -24,13 +24,13 @@ describe("loadCaptureContextFromEnv", () => {
       STIGMER_MEMORY_ORG: "acme",
       STIGMER_MEMORY_AGENT_ID: "agt_1",
       STIGMER_MEMORY_SESSION_ID: "ses_1",
-      STIGMER_MEMORY_EXECUTION_ID: "aex_1",
+      STIGMER_MEMORY_EXECUTION_ID: "run_1",
     });
     expect(ctx).toEqual({
       org: "acme",
       agentId: "agt_1",
       sessionId: "ses_1",
-      runId: "aex_1",
+      runId: "run_1",
     });
   });
 
@@ -53,7 +53,7 @@ describe("resolveCaptureContext", () => {
             "x-stigmer-memory-org": "acme",
             "x-stigmer-memory-agent-id": "agt_http",
             "x-stigmer-memory-session-id": "ses_http",
-            "x-stigmer-memory-execution-id": "aex_http",
+            "x-stigmer-memory-execution-id": "run_http",
           },
         },
       },
@@ -63,7 +63,7 @@ describe("resolveCaptureContext", () => {
       org: "acme",
       agentId: "agt_http",
       sessionId: "ses_http",
-      runId: "aex_http",
+      runId: "run_http",
     });
   });
 

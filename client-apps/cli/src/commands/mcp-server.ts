@@ -2,8 +2,7 @@
 //
 // The server is the TypeScript `@stigmer/mcp-server` package, and the CLI runs it
 // IN-PROCESS via its `run(cfg, signal)` embed API — the module exists precisely
-// so a host like the CLI embeds it rather than shelling out (the Go CLI shelled
-// out only because Go cannot import TypeScript). This avoids a child process, an
+// so a host like the CLI embeds it rather than shelling out. This avoids a child process, an
 // npx/tsx resolution dance, and a second Node startup.
 //
 // MCP clients (Cursor, Claude Desktop, Windsurf) spawn `stigmer mcp-server` and
@@ -12,7 +11,7 @@
 // CLI owns the shutdown signal and aborts the server's AbortController on
 // SIGINT/SIGTERM.
 //
-// Configuration precedence (matches the Go CLI): flags > env > ~/.stigmer config
+// Configuration precedence: flags > env > ~/.stigmer config
 // > server defaults. We realize that precedence by bridging config into the
 // environment only where unset, then letting explicit flags override, and finally
 // letting the server read its Config from the environment.

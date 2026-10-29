@@ -1,10 +1,8 @@
 // Helpers for shaping MCP tool return values.
 //
-// Mirrors Go internal/domains/toolresult.go: every tool returns its payload as
-// a single text content block, and a failed call surfaces as an `isError`
-// result carrying the user-facing message (the Go SDK does this when a handler
-// returns an error; here we do it explicitly so behavior is identical and
-// every domain handler stays a one-liner).
+// Every tool returns its payload as a single text content block, and a failed
+// call surfaces as an `isError` result carrying the user-facing message, built
+// here so every domain handler stays a one-liner.
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 

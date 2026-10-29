@@ -88,12 +88,12 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
   return {
     labels,
     deps: {
-      input: { executionId: `aex-${sessionId}`, threadId: "", turnSeq: 0 },
+      input: { executionId: `run_${sessionId}`, threadId: "", turnSeq: 0 },
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
       status,
       rows,
-      transcript: new TranscriptBuilder(`aex-${sessionId}`, rows, status),
+      transcript: new TranscriptBuilder(`run_${sessionId}`, rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
@@ -135,7 +135,7 @@ describe("mountSkills: the root's skills", () => {
     mkdirSync(env.workspaceRootDir, { recursive: true });
   });
   beforeEach(() => {
-    sessionId = `ses-skills-${++n}`;
+    sessionId = `ses_skills-${++n}`;
     primaryDir = join(env.workspaceRootDir, sessionId);
     mkdirSync(primaryDir, { recursive: true });
   });
@@ -245,7 +245,7 @@ describe("mountSkills: a plugin's skills", () => {
   let primaryDir: string;
 
   beforeEach(() => {
-    sessionId = `ses-plugin-skills-${++n}`;
+    sessionId = `ses_plugin-skills-${++n}`;
     primaryDir = join(env.workspaceRootDir, sessionId);
     mkdirSync(primaryDir, { recursive: true });
   });

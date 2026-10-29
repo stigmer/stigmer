@@ -37,7 +37,7 @@ import {
  * Version tag prefixed to every fingerprint. Bumping it is the migration lever
  * if the canonical form or the MAC primitive ever changes: an old lease and a
  * new computation will not compare equal, so a version skew re-asks (safe) rather
- * than silently mismatching. Keep in lockstep with the Go/Java editions.
+ * than silently mismatching. Every implementation moves with it.
  */
 export const APPROVAL_FINGERPRINT_VERSION = "v1";
 

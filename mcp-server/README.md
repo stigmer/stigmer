@@ -10,8 +10,7 @@ Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
 The server is a **stateless protocol bridge**: it holds no per-user state and
 performs no business logic. Every request is translated into a gRPC call against
 `stigmer-server`, which remains the single source of truth and the sole authority
-for authentication and authorization. This package is the TypeScript successor to
-the retired Go `mcp-server/`.
+for authentication and authorization.
 
 ## Architecture
 
@@ -29,8 +28,8 @@ MCP client ──JSON-RPC──▶ stdio | HTTP (stateless) ──▶ tool handl
 
 - **Proto-first.** Tools call the generated `@stigmer/apis` `*Controller`
   clients directly and serialize responses with protojson (`toJson` with
-  `useProtoFieldName: true`), so output is byte-for-byte comparable with the Go
-  server.
+  `useProtoFieldName: true`), so output is byte-for-byte comparable with the
+  CLI's `-o json`.
 - **Credential passthrough.** In `http` mode each request carries its own
   `Authorization: Bearer` token, which is forwarded unchanged to
   `stigmer-server`; the MCP server never validates it. In `stdio`/`both` mode the
@@ -175,7 +174,7 @@ npm test            # vitest run
 Tests live in a `__tests__` directory beside the module each tests, as `*.test.ts`. Many run in-process against a
 `connectNodeAdapter` backend and an in-memory MCP client, asserting protojson
 parity: unit tests by the standard in `test/README.md`, which admits an
-in-process loopback server. A live-server slice that boots the real Go `stigmer-server`
+in-process loopback server. A live-server slice that boots the real `stigmer-server`
 lives in `test/conformance/src/suites/mcp.conformance.test.ts`.
 
 ## Code generation

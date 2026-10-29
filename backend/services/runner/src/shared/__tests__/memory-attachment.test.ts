@@ -33,7 +33,7 @@ const context: MemoryCaptureContext = {
   org: "acme",
   agentId: "agt_1",
   sessionId: "ses_1",
-  agentExecutionId: "aex_1",
+  agentExecutionId: "run_1",
 };
 
 const cloudOptions = {
@@ -87,7 +87,7 @@ describe("synthesizeMemoryAttachment", () => {
         [MEMORY_ORG_HEADER]: "acme",
         [MEMORY_AGENT_ID_HEADER]: "agt_1",
         [MEMORY_SESSION_ID_HEADER]: "ses_1",
-        [MEMORY_EXECUTION_ID_HEADER]: "aex_1",
+        [MEMORY_EXECUTION_ID_HEADER]: "run_1",
       },
     });
   });
@@ -104,7 +104,7 @@ describe("synthesizeMemoryAttachment", () => {
         [MEMORY_ORG_ENV]: "acme",
         [MEMORY_AGENT_ID_ENV]: "agt_1",
         [MEMORY_SESSION_ID_ENV]: "ses_1",
-        [MEMORY_EXECUTION_ID_ENV]: "aex_1",
+        [MEMORY_EXECUTION_ID_ENV]: "run_1",
       },
     });
   });

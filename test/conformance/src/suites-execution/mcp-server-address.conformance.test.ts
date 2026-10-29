@@ -131,7 +131,7 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → a plugin s
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-address"),
+        name: uniqueName("run-address"),
         sessionId: session.metadata!.id,
         autoApproveAll: true,
       }),
@@ -179,7 +179,7 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → a plugin s
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-address-fill"),
+        name: uniqueName("run-address-fill"),
         agentRef: agentRefOf(agent),
         autoApproveAll: true,
       }),

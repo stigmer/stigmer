@@ -31,12 +31,12 @@ describe("useAnswerToolUse", () => {
     const { result } = renderHook(() => useAnswerToolUse(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.answerToolUse("ses-1", "tu-1", "allow", "ignored");
+      await result.current.answerToolUse("ses_1", "tu-1", "allow", "ignored");
     });
 
     expect(grantPermission).not.toHaveBeenCalled();
     expect(confirmToolUse.mock.calls[0][0]).toMatchObject({
-      sessionId: "ses-1",
+      sessionId: "ses_1",
       toolUseId: "tu-1",
       result: "allow",
       denyMessage: "",
@@ -48,8 +48,8 @@ describe("useAnswerToolUse", () => {
     const { result } = renderHook(() => useAnswerToolUse(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.answerToolUse("ses-1", "tu-1", "deny", "use staging");
-      await result.current.answerToolUse("ses-1", "tu-2", "deny");
+      await result.current.answerToolUse("ses_1", "tu-1", "deny", "use staging");
+      await result.current.answerToolUse("ses_1", "tu-2", "deny");
     });
 
     expect(confirmToolUse.mock.calls[0][0]).toMatchObject({ result: "deny", denyMessage: "use staging" });
@@ -61,11 +61,11 @@ describe("useAnswerToolUse", () => {
     const { result } = renderHook(() => useAnswerToolUse(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.answerToolUse("ses-1", "tu-1", "grant");
+      await result.current.answerToolUse("ses_1", "tu-1", "grant");
     });
 
     expect(confirmToolUse).not.toHaveBeenCalled();
-    expect(grantPermission.mock.calls[0][0]).toMatchObject({ sessionId: "ses-1", toolUseId: "tu-1" });
+    expect(grantPermission.mock.calls[0][0]).toMatchObject({ sessionId: "ses_1", toolUseId: "tu-1" });
   });
 
   it("tracks the tool use in flight, then releases it", async () => {
@@ -75,7 +75,7 @@ describe("useAnswerToolUse", () => {
 
     let pending!: Promise<void>;
     act(() => {
-      pending = result.current.answerToolUse("ses-1", "tu-1", "allow");
+      pending = result.current.answerToolUse("ses_1", "tu-1", "allow");
     });
     expect(result.current.submittingToolUseIds.has("tu-1")).toBe(true);
 
@@ -91,7 +91,7 @@ describe("useAnswerToolUse", () => {
     const { result } = renderHook(() => useAnswerToolUse(), { wrapper: Wrapper });
 
     await act(async () => {
-      await expect(result.current.answerToolUse("ses-1", "tu-1", "allow")).rejects.toThrow(
+      await expect(result.current.answerToolUse("ses_1", "tu-1", "allow")).rejects.toThrow(
         "already answered",
       );
     });
@@ -113,13 +113,13 @@ describe("useAnswerToolUse", () => {
     const { result } = renderHook(() => useAnswerToolUse(), { wrapper: Wrapper });
 
     await act(async () => {
-      await expect(result.current.answerToolUse("ses-1", "tu-a", "allow")).rejects.toThrow("fail-a");
+      await expect(result.current.answerToolUse("ses_1", "tu-a", "allow")).rejects.toThrow("fail-a");
     });
     await act(async () => {
-      await expect(result.current.answerToolUse("ses-1", "tu-b", "deny")).rejects.toThrow("fail-b");
+      await expect(result.current.answerToolUse("ses_1", "tu-b", "deny")).rejects.toThrow("fail-b");
     });
     await act(async () => {
-      await result.current.answerToolUse("ses-1", "tu-a", "allow");
+      await result.current.answerToolUse("ses_1", "tu-a", "allow");
     });
 
     expect(result.current.errorsByToolUseId.has("tu-a")).toBe(false);

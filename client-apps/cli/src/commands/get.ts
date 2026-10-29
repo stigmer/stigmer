@@ -59,8 +59,8 @@ async function runGet(type: string, reference: string, options: GetFlags, comman
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
 
-  // Agents are the kind an apply versions (Go ignores the flags for other
-  // kinds, returning the current resource).
+  // Agents are the kind an apply versions; for other kinds the flags are
+  // ignored and the current resource is returned.
   const wantsVersion = options.versionHistory === true || (options.version ?? "") !== "";
   if (info.kind === ApiResourceKind.agent && wantsVersion) {
     const [refOrg, slug] = parseOrgSlug(reference, org);

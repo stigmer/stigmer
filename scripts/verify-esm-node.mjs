@@ -132,7 +132,7 @@ function listJsFiles(dir) {
       entry.name.endsWith(".js") &&
       !entry.name.endsWith(".test.js") &&
       !entry.name.endsWith(".spec.js") &&
-      // Legacy `*_connect.js` are dead output from protoc-gen-connect-es v1.6.1
+      // `*_connect.js` files are dead output from protoc-gen-connect-es v1.6.1
       // (its `import_extension=js` emitted malformed `./x_pbjs` specifiers). They
       // have zero consumers — the SDK uses @connectrpc/connect v2, which embeds
       // services in the `_pb` modules — and don't resolve under any bundler, so

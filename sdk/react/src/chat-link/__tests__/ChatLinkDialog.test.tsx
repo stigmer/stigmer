@@ -168,7 +168,7 @@ function makeChatLink(
 ) {
   return {
     metadata: {
-      id: "ash_1",
+      id: "chn_1",
       org: "acme",
       slug: "support-agent",
       name: "Support Agent",
@@ -242,7 +242,7 @@ describe("ChatLinkDialog", () => {
     expect(screen.getByText("Support Agent")).toBeTruthy();
     expect(screen.getByRole("switch", { hidden: true }).getAttribute("aria-checked")).toBe("true");
     expect(
-      screen.getByText("https://app.example.com/chat/ash_1"),
+      screen.getByText("https://app.example.com/chat/chn_1"),
     ).toBeTruthy();
   });
 
@@ -252,15 +252,15 @@ describe("ChatLinkDialog", () => {
     const buildChatLinkUrlSpy = vi.fn(buildChatLinkUrl);
     const renamed = {
       ...(makeChatLink({ enabled: true }) as Record<string, unknown>),
-      metadata: { id: "ash_9", org: "acme", slug: "help-desk", name: "Help Desk" },
+      metadata: { id: "chn_9", org: "acme", slug: "help-desk", name: "Help Desk" },
     } as never;
     renderOpenDialog(createMockStigmer(), {
       channel: renamed,
       buildChatLinkUrl: buildChatLinkUrlSpy,
     });
 
-    expect(screen.getByText("https://app.example.com/chat/ash_9")).toBeTruthy();
-    expect(buildChatLinkUrlSpy).toHaveBeenCalledWith("ash_9");
+    expect(screen.getByText("https://app.example.com/chat/chn_9")).toBeTruthy();
+    expect(buildChatLinkUrlSpy).toHaveBeenCalledWith("chn_9");
     expect(screen.queryByText(/chat\/acme|help-desk/)).toBeNull();
   });
 
@@ -270,7 +270,7 @@ describe("ChatLinkDialog", () => {
       buildChatLinkUrl: undefined,
     });
 
-    expect(screen.getByText("/chat/ash_1")).toBeTruthy();
+    expect(screen.getByText("/chat/chn_1")).toBeTruthy();
   });
 
   describe("create mode (no channel prop)", () => {
@@ -335,7 +335,7 @@ describe("ChatLinkDialog", () => {
       // The dialog transitions to the editor on the created chat link.
       await waitFor(() =>
         expect(
-          screen.getByText("https://app.example.com/chat/ash_1"),
+          screen.getByText("https://app.example.com/chat/chn_1"),
         ).toBeTruthy(),
       );
       expect(screen.getByText("Done")).toBeTruthy();
@@ -400,7 +400,7 @@ describe("ChatLinkDialog", () => {
     it("creates the chat link in the agent's own organization and names it as the paying org", async () => {
       const create = vi.fn().mockResolvedValue({
         metadata: {
-          id: "ash_new",
+          id: "chn_new",
           org: "acme",
           slug: "support-agent",
           name: "Support Agent",
@@ -426,7 +426,7 @@ describe("ChatLinkDialog", () => {
       // minted, and offers the audience choice.
       await waitFor(() =>
         expect(
-          screen.getByText("https://app.example.com/chat/ash_new"),
+          screen.getByText("https://app.example.com/chat/chn_new"),
         ).toBeTruthy(),
       );
       expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
@@ -534,7 +534,7 @@ describe("ChatLinkDialog", () => {
       expect(input.allowedOrigins).toEqual(["https://example.com"]);
       expect(input.messages?.rateLimited).toBe("Easy there.");
       // The edit addresses the existing chat link by its id — never a new row.
-      expect(input.id).toBe("ash_1");
+      expect(input.id).toBe("chn_1");
     });
 
     it("switching to Organization members drops the chat link's vaults (public-audience only)", async () => {
@@ -601,17 +601,16 @@ describe("ChatLinkDialog", () => {
       expect(screen.getByText("Support Agent")).toBeTruthy();
       expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
       expect(
-        screen.getByText("https://app.example.com/chat/ash_1"),
+        screen.getByText("https://app.example.com/chat/chn_1"),
       ).toBeTruthy();
     });
 
-    it("edits a chat link written in another organization before the retirement by its own identity", () => {
-      // Such a row no longer serves, but an edit must still address the
-      // row that exists rather than re-home it under the agent's org: its
-      // link names that row's own id.
-      const legacyChannel = {
+    it("edits a chat link that lives in another organization than its agent's by its own identity", () => {
+      // An edit addresses the row that exists rather than re-home it under
+      // the agent's org: its link names that row's own id.
+      const otherOrgChannel = {
         metadata: {
-          id: "ash_ext",
+          id: "chn_ext",
           org: "consumer-org",
           slug: "support-agent",
           name: "Support Agent",
@@ -621,10 +620,10 @@ describe("ChatLinkDialog", () => {
           enabled: true,
         },
       } as never;
-      renderOpenDialog(createMockStigmer(), { channel: legacyChannel });
+      renderOpenDialog(createMockStigmer(), { channel: otherOrgChannel });
 
       expect(
-        screen.getByText("https://app.example.com/chat/ash_ext"),
+        screen.getByText("https://app.example.com/chat/chn_ext"),
       ).toBeTruthy();
     });
   });
@@ -779,7 +778,7 @@ describe("ChatLinkDialog", () => {
       ).toBeTruthy();
       expect(
         screen.getByText(
-          /<stigmer-agent channel="ash_1"><\/stigmer-agent>/,
+          /<stigmer-agent channel="chn_1"><\/stigmer-agent>/,
         ),
       ).toBeTruthy();
     });
@@ -801,7 +800,7 @@ describe("ChatLinkDialog", () => {
       );
       expect(
         screen.getByText(
-          /src="https:\/\/app\.example\.com\/chat\/ash_1"/,
+          /src="https:\/\/app\.example\.com\/chat\/chn_1"/,
         ),
       ).toBeTruthy();
     });
@@ -1032,12 +1031,12 @@ describe("ChatLinkDialog", () => {
       });
 
       expect(
-        screen.getByText("https://app.example.com/chat/ash_1?k=tok123"),
+        screen.getByText("https://app.example.com/chat/chn_1?k=tok123"),
       ).toBeTruthy();
 
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
       expect(
-        screen.getByText(/<stigmer-agent channel="ash_1" token="tok123"><\/stigmer-agent>/),
+        screen.getByText(/<stigmer-agent channel="chn_1" token="tok123"><\/stigmer-agent>/),
       ).toBeTruthy();
     });
 
@@ -1053,7 +1052,7 @@ describe("ChatLinkDialog", () => {
 
       // A plain link shows no token before the reset.
       expect(
-        screen.getByText("https://app.example.com/chat/ash_1"),
+        screen.getByText("https://app.example.com/chat/chn_1"),
       ).toBeTruthy();
 
       fireEvent.click(screen.getByRole("button", { name: "Reset link", hidden: true }));
@@ -1061,7 +1060,7 @@ describe("ChatLinkDialog", () => {
       await waitFor(() =>
         expect(
           screen.getByText(
-            "https://app.example.com/chat/ash_1?k=fresh-token",
+            "https://app.example.com/chat/chn_1?k=fresh-token",
           ),
         ).toBeTruthy(),
       );
@@ -1069,7 +1068,7 @@ describe("ChatLinkDialog", () => {
       // The rotation targets the given chat link by its own id.
       expect(
         (rotateLink.mock.calls[0][0] as { resourceId: string }).resourceId,
-      ).toBe("ash_1");
+      ).toBe("chn_1");
       expect(onChannelsChanged).toHaveBeenCalled();
     });
 
@@ -1084,7 +1083,7 @@ describe("ChatLinkDialog", () => {
       // Org access is gated by membership, not the link token: the member
       // link stays clean and the Reset lever is not offered.
       expect(
-        screen.getByText("https://app.example.com/chat/ash_1"),
+        screen.getByText("https://app.example.com/chat/chn_1"),
       ).toBeTruthy();
       expect(
         screen.queryByRole("button", { name: "Reset link", hidden: true }),

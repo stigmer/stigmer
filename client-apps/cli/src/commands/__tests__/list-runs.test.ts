@@ -36,7 +36,7 @@ const agentRuns = {
   message: create(RunListSchema, {
     entries: [
       create(RunSchema, {
-        metadata: { id: "aex_1" },
+        metadata: { id: "run_1" },
         status: { agentId: "agt_1", phase: RunPhase.RUN_COMPLETED },
       }),
     ],
@@ -72,7 +72,7 @@ describe("stigmer list runs", () => {
     const out = await listRuns();
     expect(reads.listAgentRuns).toHaveBeenCalledWith(stigmer, 50, "acme", {});
     expect(out).toContain("AGENT");
-    expect(out).toContain("aex_1");
+    expect(out).toContain("run_1");
     expect(out).toContain("completed");
   });
 

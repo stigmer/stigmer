@@ -220,7 +220,7 @@ describe("executeResolvedAgent", () => {
 describe("executeResolvedAgent, attached", () => {
   /** The final run the stream returns. */
   function finalRun(): Run {
-    return create(RunSchema, { metadata: { id: "aex_final" } });
+    return create(RunSchema, { metadata: { id: "run_final" } });
   }
 
   it("streams the created run with the session the server returned", async () => {
@@ -257,7 +257,7 @@ describe("executeResolvedAgent, attached", () => {
 
     expect(download.downloadRunOutputs).toHaveBeenCalledWith(
       client.stigmer,
-      "aex_final",
+      "run_final",
       { outputPath: "", outputDir: "/tmp/out" },
       expect.any(Function),
     );

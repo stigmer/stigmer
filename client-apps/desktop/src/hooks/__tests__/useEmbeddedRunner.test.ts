@@ -308,8 +308,8 @@ describe("the runner lifecycle", () => {
   });
 
   it("starts the runner again once it has exited since it was started", async () => {
-    // The second half of stigmer/stigmer#1505: a start that succeeded used to
-    // be remembered forever, so a runner that later exited was never restarted.
+    // The second half of stigmer/stigmer#1505: a start that succeeded is not
+    // remembered forever, so a runner that later exited is started again.
     const { tauri, state } = runnerHost();
     const { result } = renderHook(() => useEmbeddedRunner());
     await act(async () => {

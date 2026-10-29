@@ -2,7 +2,7 @@
 //
 // All output goes to stderr: in stdio transport mode, stdout is reserved for
 // the MCP JSON-RPC stream, so any stray stdout write would corrupt the
-// protocol. This mirrors the Go server's `initLogger` (slog → stderr).
+// protocol.
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 export type LogFormat = "text" | "json";

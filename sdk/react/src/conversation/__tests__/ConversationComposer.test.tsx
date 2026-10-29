@@ -199,7 +199,7 @@ describe("ConversationComposer", () => {
     const user = userEvent.setup();
     const onSend = vi
       .fn()
-      .mockRejectedValue(new Error("no conversation with this key exists on channel ach_1"));
+      .mockRejectedValue(new Error("no conversation with this key exists on channel chn_1"));
     render(<ConversationComposer onSend={onSend} isSending={false} disabledReason={null} />);
 
     const input = screen.getByLabelText("Reply to the customer");
@@ -207,7 +207,7 @@ describe("ConversationComposer", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(/no conversation with this key exists on channel ach_1/),
+        screen.getByText(/no conversation with this key exists on channel chn_1/),
       ).toBeDefined(),
     );
     expect((input as HTMLTextAreaElement).value).toBe("hello?");

@@ -76,9 +76,9 @@ describe("withNetworkErrorCapture", () => {
   it("logs the network error of the server's request, naming the server and the execution", async () => {
     const url = `${await resettingServer()}/mcp`;
     const err = await rejectionOf(
-      runWithExecutionContext("aex-1", () => withNetworkErrorCapture(new Map([["docs", url]]), () => failingConnect("docs", url))),
+      runWithExecutionContext("run_1", () => withNetworkErrorCapture(new Map([["docs", url]]), () => failingConnect("docs", url))),
     );
-    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=aex-1, network=Error ECONNRESET: /)]);
+    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=run_1, network=Error ECONNRESET: /)]);
     expect(err.name).toBe("MCPClientError");
     expect(err.cause).toBeUndefined();
   });
@@ -92,13 +92,13 @@ describe("withNetworkErrorCapture", () => {
   it("logs, for two connects to one server at once, each its own request's error", async () => {
     const url = `${await resettingServer()}/mcp`;
     await Promise.all([
-      rejectionOf(runWithExecutionContext("aex-a", () => withNetworkErrorCapture(new Map([["docs", url]]), () => failingConnect("docs", url)))),
-      rejectionOf(runWithExecutionContext("aex-b", () => withNetworkErrorCapture(new Map([["docs", url]]), () => failingConnect("docs", url)))),
+      rejectionOf(runWithExecutionContext("run_a", () => withNetworkErrorCapture(new Map([["docs", url]]), () => failingConnect("docs", url)))),
+      rejectionOf(runWithExecutionContext("run_b", () => withNetworkErrorCapture(new Map([["docs", url]]), () => failingConnect("docs", url)))),
     ]);
     const lines = networkLines();
     expect(lines).toHaveLength(2);
-    expect(lines.some((line) => line.includes("execution=aex-a, network=Error ECONNRESET"))).toBe(true);
-    expect(lines.some((line) => line.includes("execution=aex-b, network=Error ECONNRESET"))).toBe(true);
+    expect(lines.some((line) => line.includes("execution=run_a, network=Error ECONNRESET"))).toBe(true);
+    expect(lines.some((line) => line.includes("execution=run_b, network=Error ECONNRESET"))).toBe(true);
   });
 
   it("never takes the error of another connect's request to the same server", async () => {
@@ -107,7 +107,7 @@ describe("withNetworkErrorCapture", () => {
     const fetched = new Promise<void>((resolve) => (otherFetched = resolve));
     await Promise.all([
       rejectionOf(
-        runWithExecutionContext("aex-quiet", () =>
+        runWithExecutionContext("run_quiet", () =>
           withNetworkErrorCapture(new Map([["docs", url]]), async () => {
             await fetched;
             throw adapterError("docs");
@@ -115,7 +115,7 @@ describe("withNetworkErrorCapture", () => {
         ),
       ),
       rejectionOf(
-        runWithExecutionContext("aex-fetching", () =>
+        runWithExecutionContext("run_fetching", () =>
           withNetworkErrorCapture(new Map([["docs", url]]), async () => {
             await fetch(url).catch(() => undefined);
             otherFetched();
@@ -124,7 +124,7 @@ describe("withNetworkErrorCapture", () => {
         ),
       ),
     ]);
-    expect(networkLines()).toEqual([expect.stringContaining("execution=aex-fetching, ")]);
+    expect(networkLines()).toEqual([expect.stringContaining("execution=run_fetching, ")]);
   });
 
   it("logs nothing for an error that already has a cause, and leaves it alone", async () => {
@@ -229,15 +229,15 @@ describe("a failed MCP connect, through the real adapter", () => {
 
   it("on the Stigmer harness's path logs the network error and words the adapter's error for the user", async () => {
     const url = `${await resettingServer()}/mcp`;
-    const err = await rejectionOf(runWithExecutionContext("aex-stigmer", () => connectMcpServers([httpServer(url)])));
-    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=aex-stigmer, network=Error ECONNRESET: /)]);
+    const err = await rejectionOf(runWithExecutionContext("run_stigmer", () => connectMcpServers([httpServer(url)])));
+    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=run_stigmer, network=Error ECONNRESET: /)]);
     expectWordedAsTheAdapters(err, url);
   });
 
   it("on the Claude bridge logs the network error and words the adapter's error for the user", async () => {
     const url = `${await resettingServer()}/mcp`;
-    const err = await rejectionOf(runWithExecutionContext("aex-claude", () => connectBridge([httpServer(url)], () => true, new Set())));
-    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=aex-claude, network=Error ECONNRESET: /)]);
+    const err = await rejectionOf(runWithExecutionContext("run_claude", () => connectBridge([httpServer(url)], () => true, new Set())));
+    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=run_claude, network=Error ECONNRESET: /)]);
     expectWordedAsTheAdapters(err, url);
   });
 });

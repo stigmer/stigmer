@@ -19,7 +19,7 @@ import { FilePreviewContent } from "../FilePreviewModal";
 const binaryFile = create(FileSchema, {
   metadata: { id: "file_report" },
   spec: { filename: "report.bin" },
-  status: { sizeBytes: 128n, runId: "aex_1", outputPath: "report.bin" },
+  status: { sizeBytes: 128n, runId: "run_1", outputPath: "report.bin" },
 });
 
 function withStigmer(children: ReactNode) {
@@ -108,7 +108,7 @@ describe("FilePreviewContent — read only", () => {
   const archive = create(FileSchema, {
     metadata: { id: "file_skill", org: "acme" },
     spec: { filename: "triage.zip" },
-    status: { sizeBytes: 2048n, runId: "aex_1", outputPath: "triage.zip" },
+    status: { sizeBytes: 2048n, runId: "run_1", outputPath: "triage.zip" },
   });
 
   function withPermission(checkMyPermission: () => Promise<{ isAuthorized: boolean }>, children: ReactNode) {

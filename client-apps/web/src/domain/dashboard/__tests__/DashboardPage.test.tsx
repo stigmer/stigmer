@@ -41,8 +41,8 @@ describe("web DashboardPage", () => {
   it("opens a failed run picked on the dashboard", () => {
     render(<DashboardPage />);
 
-    act(() => (page.dashboard.at(-1)?.onFailedRunClick as (id: string) => void)("aex_failed"));
+    act(() => (page.dashboard.at(-1)?.onFailedRunClick as (id: string) => void)("run_failed"));
 
-    expect(page.openedRuns).toEqual(["aex_failed"]);
+    expect(page.openedRuns).toEqual(["run_failed"]);
   });
 });

@@ -165,7 +165,7 @@ function PickerRow({ item, isActive }: { readonly item: PickerItem; readonly isA
   );
 }
 
-/** "1 result" / "N results" — matches the Go picker's footer wording. */
+/** The footer's count: "1 result" / "N results". */
 function countLabel(count: number): string {
   return `${count} result${count === 1 ? "" : "s"}`;
 }

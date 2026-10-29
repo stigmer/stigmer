@@ -54,9 +54,6 @@ export function isBuiltInAssistant(
  *
  * All display paths should call this before rendering a session subject so
  * the sentinel is never shown in the UI.
- *
- * Mirrors the Go CLI's `ResolvedSubject` in
- * `client-apps/cli/internal/cli/session/get.go`.
  */
 export function resolvedSubject(subject: string | undefined): string | null {
   if (!subject || subject === PENDING_SUBJECT) {

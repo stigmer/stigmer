@@ -75,7 +75,7 @@ describe("Organization purge with a live run", () => {
     );
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-purge"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-purge"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {

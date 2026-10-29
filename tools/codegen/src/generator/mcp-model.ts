@@ -1,5 +1,4 @@
-// Shared MCP apply-input model — the port of mcp_model.go's buildMcpGen and
-// its type-collection pass. The model resolves the flattened ergonomic
+// Shared MCP apply-input model — buildMcpGen and its type-collection pass. The model resolves the flattened ergonomic
 // projection (metadata hoist, enum→string, reference flattening with kind
 // injection, oneof flattening) exactly once;
 // the emitter consumes it. Field representations keep the Go-typed strings
@@ -269,8 +268,8 @@ export class McpGen {
     return hasApiVersion && hasKind && hasMetadata && hasSpec;
   }
 
-  // "Agent" → package name "agent" + input type "AgentInput" (the Go import
-  // path the Go emitter built is dead; only the projection survives).
+  // "Agent" → package name "agent" + input type "AgentInput" (the import
+  // path is unused; only the projection is read).
   resourceWrapperGenImport(messageName: string): [importPath: string, pkgName: string, inputType: string] {
     const ts = this.types.get(messageName);
     if (ts === undefined) return ["", "", ""];

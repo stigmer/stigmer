@@ -14,7 +14,7 @@ import type {
 
 function conversation(control: ConversationControl, controlledBy = "") {
   return create(ChannelConversationSchema, {
-    channelId: "ach_1",
+    channelId: "chn_1",
     conversationKey: "15550001111",
     org: "acme",
     control,

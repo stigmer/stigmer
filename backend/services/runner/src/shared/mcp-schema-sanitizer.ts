@@ -161,7 +161,7 @@ function walkSchema(
       droppedEntry = true;
     }
     if (droppedEntry) {
-      // Never-tighten: keys the dropped pattern used to match would now
+      // Never-tighten: keys the dropped pattern matched would now
       // fall through to these checks and could be falsely rejected.
       if (node.additionalProperties !== undefined && node.additionalProperties !== true) {
         delete node.additionalProperties;

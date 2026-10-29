@@ -1,6 +1,5 @@
 // Agent delete path: resolve org/slug → id via the Query controller, then
 // delete via the Command controller, both over a single shared transport.
-// Go parity: mcp-server/internal/domains/agents/delete.go.
 
 import { createClient } from "@connectrpc/connect";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";

@@ -51,7 +51,7 @@ const ROUTINE = create(RoutineSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Routine",
   metadata: {
-    id: "sch_01example",
+    id: "rtn_01example",
     name: "daily-fee-reminders",
     slug: "daily-fee-reminders",
     org: "isc",
@@ -184,10 +184,10 @@ describe("useResumeRoutine", () => {
       wrapper: wrapper(client),
     });
 
-    const resumed = await result.current.resumeRoutine("sch_01example");
+    const resumed = await result.current.resumeRoutine("rtn_01example");
 
     expect(resumed).toBe(ROUTINE);
-    expect(resume).toHaveBeenCalledWith("sch_01example");
+    expect(resume).toHaveBeenCalledWith("rtn_01example");
     expect(toast.success).toHaveBeenCalledWith("Routine resumed");
   });
 
@@ -199,7 +199,7 @@ describe("useResumeRoutine", () => {
       wrapper: wrapper(client),
     });
 
-    await expect(result.current.resumeRoutine("sch_x")).rejects.toThrow("boom");
+    await expect(result.current.resumeRoutine("rtn_x")).rejects.toThrow("boom");
     await waitFor(() => expect(result.current.error?.message).toBe("boom"));
     expect(toast.error).toHaveBeenCalled();
   });
@@ -209,7 +209,7 @@ describe("useFireRoutine", () => {
   it("resolves a STARTED result and toasts success", async () => {
     const started = create(RoutineFireResultSchema, {
       outcome: RoutineFireOutcome.STARTED,
-      runId: "aex_01run",
+      runId: "run_01run",
       routine: ROUTINE,
     });
     const trigger = vi.fn().mockResolvedValue(started);
@@ -219,11 +219,11 @@ describe("useFireRoutine", () => {
       wrapper: wrapper(client),
     });
 
-    const res = await result.current.fireRoutine("sch_01example");
+    const res = await result.current.fireRoutine("rtn_01example");
 
-    expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" }));
+    expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ id: "rtn_01example" }));
     expect(res.outcome).toBe(RoutineFireOutcome.STARTED);
-    expect(res.runId).toBe("aex_01run");
+    expect(res.runId).toBe("run_01run");
     expect(toast.success).toHaveBeenCalledWith("Run started");
   });
 
@@ -244,7 +244,7 @@ describe("useFireRoutine", () => {
       wrapper: wrapper(client),
     });
 
-    const res = await result.current.fireRoutine("sch_01example");
+    const res = await result.current.fireRoutine("rtn_01example");
 
     expect(res.outcome).toBe(RoutineFireOutcome.REFUSED);
     expect(toast.error).toHaveBeenCalledWith(
@@ -267,7 +267,7 @@ describe("useFireRoutine", () => {
       wrapper: wrapper(client),
     });
 
-    await expect(result.current.fireRoutine("sch_x")).rejects.toThrow();
+    await expect(result.current.fireRoutine("rtn_x")).rejects.toThrow();
     expect(toast.error).toHaveBeenCalledWith(
       "routine is disabled (spec.enabled=false) — enable it before firing",
     );
@@ -280,13 +280,13 @@ describe("useRoutineFires", () => {
       create(RoutineFireListSchema, {
         entries: [
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.MANUAL,
             outcome: RoutineFireOutcome.STARTED,
-            runId: "aex_01run",
+            runId: "run_01run",
           }),
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.SCHEDULE,
             outcome: RoutineFireOutcome.REFUSED,
             reason: "run refused: missing credential",
@@ -297,7 +297,7 @@ describe("useRoutineFires", () => {
     );
     const client = { routine: { listFires } };
 
-    const { result } = renderHook(() => useRoutineFires("sch_01example"), {
+    const { result } = renderHook(() => useRoutineFires("rtn_01example"), {
       wrapper: wrapper(client),
     });
 
@@ -310,7 +310,7 @@ describe("useRoutineFires", () => {
 
   it("pages next and previous by token", async () => {
     const fire = (reason: string) =>
-      create(RoutineFireSchema, { routineId: "sch_01example", reason });
+      create(RoutineFireSchema, { routineId: "rtn_01example", reason });
     const listFires = vi.fn((input: { pageToken: string }) =>
       Promise.resolve(
         input.pageToken === ""
@@ -320,7 +320,7 @@ describe("useRoutineFires", () => {
     );
     const client = { routine: { listFires } };
 
-    const { result } = renderHook(() => useRoutineFires("sch_01example", { pageSize: 1 }), {
+    const { result } = renderHook(() => useRoutineFires("rtn_01example", { pageSize: 1 }), {
       wrapper: wrapper(client),
     });
     await waitFor(() => expect(result.current.fires[0]?.reason).toBe("newest"));
@@ -374,7 +374,7 @@ describe("useSetRoutineEnabled", () => {
     const sent = sentUpdate<Routine>(update);
     expect(sent.paths).toEqual(["spec.enabled"]);
     expect(sent.resource.spec?.enabled).toBe(false);
-    expect(sent.id).toBe("sch_01example");
+    expect(sent.id).toBe("rtn_01example");
     expect(sent.etag).toBe("etag-at-load");
 
     // The caller's copy is never mutated.
@@ -433,7 +433,7 @@ describe("useUpdateRoutineSpec", () => {
     });
     const sent = sentUpdate<Routine>(update);
     expect(sent.paths).toEqual(["spec.cron"]);
-    expect(sent.resource.metadata?.id).toBe("sch_01example");
+    expect(sent.resource.metadata?.id).toBe("rtn_01example");
 
     await result.current.updateSpec(ROUTINE, () => {});
     expect(update).toHaveBeenCalledTimes(1);

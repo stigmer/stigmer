@@ -51,7 +51,7 @@ function wrapper(client: unknown) {
 
 const CREATED = create(RoutineSchema, {
   metadata: {
-    id: "sch_01new",
+    id: "rtn_01new",
     name: "daily-fee-reminders",
     slug: "daily-fee-reminders",
     org: "isc",

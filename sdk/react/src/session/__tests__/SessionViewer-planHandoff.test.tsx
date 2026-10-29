@@ -106,12 +106,12 @@ function completedRun(id: string, mode: InteractionMode) {
   });
 }
 
-const earlierPlanRun = completedRun("aex_early", InteractionMode.PLAN);
-const chatRun = completedRun("aex_chat", InteractionMode.AGENT);
-const latestPlanRun = completedRun("aex_latest", InteractionMode.PLAN);
+const earlierPlanRun = completedRun("run_early", InteractionMode.PLAN);
+const chatRun = completedRun("run_chat", InteractionMode.AGENT);
+const latestPlanRun = completedRun("run_latest", InteractionMode.PLAN);
 const runs = [earlierPlanRun, chatRun, latestPlanRun];
 // The conversation's Files, newest first: each Plan-mode turn's plan File.
-const sessionFiles = [planFile("aex_latest"), planFile("aex_early")];
+const sessionFiles = [planFile("run_latest"), planFile("run_early")];
 
 const stubConv = {
   org: "acme",
@@ -243,12 +243,12 @@ afterEach(() => {
 describe("SessionViewer — a plan being written", () => {
   it("renders the live turn's plan in the plan tab as it streams", () => {
     stubConv.activeTurn = samples.turn({
-      runId: "aex_live",
+      runId: "run_live",
       reply: "# Live plan\n\n1. First step",
       phase: "running",
     });
     stubConv.activeRun = create(RunSchema, {
-      metadata: { id: "aex_live" },
+      metadata: { id: "run_live" },
       spec: { interactionMode: InteractionMode.PLAN },
     });
     render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
@@ -280,12 +280,12 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
     const onOpenPlan = lastThread().onOpenPlan as (runId: string) => void;
-    act(() => onOpenPlan("aex_early"));
-    expect(planTabEditor().plan.runId).toBe("aex_early");
+    act(() => onOpenPlan("run_early"));
+    expect(planTabEditor().plan.runId).toBe("run_early");
     expect(planTabEditor().readOnly).toBe(true);
 
-    act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_latest"));
-    expect(planTabEditor().plan.runId).toBe("aex_latest");
+    act(() => (lastThread().onOpenPlan as (runId: string) => void)("run_latest"));
+    expect(planTabEditor().plan.runId).toBe("run_latest");
     expect(planTabEditor().readOnly).toBe(false);
   });
 
@@ -294,8 +294,8 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
-    act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_chat"));
-    expect(planTabEditor().plan.runId).toBe("aex_latest");
+    act(() => (lastThread().onOpenPlan as (runId: string) => void)("run_chat"));
+    expect(planTabEditor().plan.runId).toBe("run_latest");
     expect(planTabEditor().readOnly).toBe(false);
   });
 });
@@ -305,11 +305,11 @@ describe("SessionViewer — Open plan with no inspector", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     await plansLoaded();
 
-    act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_early"));
-    expect(previews.at(-1)).toMatchObject({ open: true, file: { status: { runId: "aex_early" } } });
+    act(() => (lastThread().onOpenPlan as (runId: string) => void)("run_early"));
+    expect(previews.at(-1)).toMatchObject({ open: true, file: { status: { runId: "run_early" } } });
 
-    act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_chat"));
-    expect(previews.at(-1)).toMatchObject({ open: true, file: { status: { runId: "aex_latest" } } });
+    act(() => (lastThread().onOpenPlan as (runId: string) => void)("run_chat"));
+    expect(previews.at(-1)).toMatchObject({ open: true, file: { status: { runId: "run_latest" } } });
 
     act(() => previews.at(-1)!.onClose());
     expect(previews.at(-1)!.open).toBe(false);
@@ -329,7 +329,7 @@ describe("SessionViewer — Build from plan hands the build turn the plan", () =
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,
-      fileIds: ["file_plan_aex_latest"],
+      fileIds: ["file_plan_run_latest"],
     });
   });
 

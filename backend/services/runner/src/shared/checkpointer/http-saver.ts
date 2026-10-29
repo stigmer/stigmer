@@ -1,18 +1,17 @@
 /**
  * HTTP-backed LangGraph checkpoint saver.
  *
- * Routes checkpoint persistence through the Stigmer Side-Channel Proxy
- * (api.stigmer.ai/v1/proxy) instead of connecting directly to MongoDB.
- * The runner never touches MongoDB — the Java CheckpointerProxyController
- * handles all database operations server-side.
+ * Routes checkpoint persistence through the platform's checkpoint lane
+ * (`/v1/proxy/checkpoints`): the runner never touches the store, the
+ * platform handles every database operation.
  *
  * Serialization uses the LangGraph JsonPlusSerializer. Binary payloads
  * are transported as MongoDB Extended JSON v2 $binary objects:
  *
  *   {"$binary": {"base64": "<base64-data>", "subType": "00"}}
  *
- * The Java proxy calls Document.parse(json) which handles $binary
- * natively, and doc.toJson() emits the same format on reads.
+ * The lane stores that shape and answers reads in it: it is the wire
+ * contract.
  *
  * Every request runs through the shared bounded-backoff loop
  * (http-retry.ts's fetchWithRetry, with this saver's policy: transient
@@ -354,9 +353,9 @@ export class HttpCheckpointSaver extends BaseCheckpointSaver {
       })}`,
       { headers: this.headers },
     );
-    // Fail loudly, never degrade: this used to map ANY non-ok response to "no
-    // pending writes", which silently stripped resume state on a transient
-    // 500 — a checkpoint would load without the writes recorded against it.
+    // Fail loudly, never degrade: reading ANY non-ok response as "no pending
+    // writes" would silently strip resume state on a transient 500 — a
+    // checkpoint would load without the writes recorded against it.
     if (!writesResp.ok) {
       throw new Error(`Checkpoint writes GET failed: ${writesResp.status} ${writesResp.statusText}`);
     }

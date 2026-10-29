@@ -52,7 +52,7 @@ class FakeBroadcastChannel {
   }
 }
 
-/** BroadcastChannel stub whose constructor throws (legacy browsers). */
+/** BroadcastChannel stub whose constructor throws (a browser without it). */
 class UnsupportedBroadcastChannel {
   constructor() {
     throw new Error("BroadcastChannel is not supported");

@@ -137,7 +137,7 @@ describe("resolveOrganization", () => {
 
   it("uses context organization when no flag/env is set", () => {
     const config = cloudConfig(
-      { org_id: "legacy" },
+      { org_id: "entry-org" },
       { org: "ctx-org" },
     );
     expect(resolveOrganization(config)).toBe("ctx-org");
@@ -145,8 +145,8 @@ describe("resolveOrganization", () => {
   });
 
   it("falls back to the entry's org_id", () => {
-    expect(resolveContextOrganization(cloudConfig({ org_id: "legacy" }))).toBe(
-      "legacy",
+    expect(resolveContextOrganization(cloudConfig({ org_id: "entry-org" }))).toBe(
+      "entry-org",
     );
   });
 

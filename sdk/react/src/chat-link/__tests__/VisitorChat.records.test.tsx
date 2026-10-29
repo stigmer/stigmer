@@ -63,7 +63,7 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { VisitorChat } from "../VisitorChat";
 
 const createExecution = vi.fn(async (_input: Record<string, unknown>) => ({
-  metadata: { id: "aex_1" },
+  metadata: { id: "run_1" },
   spec: { target: { case: "sessionId", value: "ses_1" } },
 }));
 
@@ -90,7 +90,7 @@ describe("VisitorChat — the records a visitor's first message writes", () => {
     const onSessionCreated = vi.fn();
     render(
       <Providers>
-        <VisitorChat channelId="ash_1" onSessionCreated={onSessionCreated} />
+        <VisitorChat channelId="chn_1" onSessionCreated={onSessionCreated} />
       </Providers>,
     );
 

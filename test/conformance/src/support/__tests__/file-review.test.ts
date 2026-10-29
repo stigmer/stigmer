@@ -145,14 +145,14 @@ function queryClient(answers: Array<ReturnType<typeof create<typeof RunSchema>>>
 
 describe("awaitFileReview", () => {
   it("answers the ended turn once its file record holds a captured set", async () => {
-    const working = create(RunSchema, { metadata: { id: "aex_unit" }, status: { phase: RunPhase.RUN_IN_PROGRESS } });
+    const working = create(RunSchema, { metadata: { id: "run_unit" }, status: { phase: RunPhase.RUN_IN_PROGRESS } });
     const ended = create(RunSchema, {
-      metadata: { id: "aex_unit" },
+      metadata: { id: "run_unit" },
       status: {
         phase: RunPhase.RUN_COMPLETED,
         fileChanges: [
           {
-            id: "aex_unit:1",
+            id: "run_unit:1",
             candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF },
             changes: [{ id: "fc_1", pathAfter: "a.txt" }],
           },
@@ -160,49 +160,49 @@ describe("awaitFileReview", () => {
       },
     });
     const q = queryClient([working, ended]);
-    expect(await awaitFileReview(q.clients, "aex_unit", { pollMs: 1 })).toBe(ended);
+    expect(await awaitFileReview(q.clients, "run_unit", { pollMs: 1 })).toBe(ended);
     expect(q.get).toHaveBeenCalledTimes(2);
   });
 
   it("is red naming the file record when the turn ended with nothing captured", async () => {
     const ended = create(RunSchema, {
-      metadata: { id: "aex_unit" },
+      metadata: { id: "run_unit" },
       status: {
         phase: RunPhase.RUN_COMPLETED,
-        fileChanges: [{ id: "aex_unit:1", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF } }],
+        fileChanges: [{ id: "run_unit:1", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF } }],
       },
     });
-    await expect(awaitFileReview(queryClient([ended]).clients, "aex_unit", { pollMs: 1 })).rejects.toThrow(
-      'execution aex_unit captured no change set (file record: [["aex_unit:1",true,0]])',
+    await expect(awaitFileReview(queryClient([ended]).clients, "run_unit", { pollMs: 1 })).rejects.toThrow(
+      'execution run_unit captured no change set (file record: [["run_unit:1",true,0]])',
     );
   });
 
   it("does not read a set the record only pinned (no candidate yet) as captured", async () => {
     const ended = create(RunSchema, {
-      metadata: { id: "aex_unit" },
+      metadata: { id: "run_unit" },
       status: {
         phase: RunPhase.RUN_COMPLETED,
-        fileChanges: [{ id: "aex_unit:1", changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
+        fileChanges: [{ id: "run_unit:1", changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
       },
     });
-    await expect(awaitFileReview(queryClient([ended]).clients, "aex_unit", { pollMs: 1 })).rejects.toThrow(
-      'execution aex_unit captured no change set (file record: [["aex_unit:1",false,1]])',
+    await expect(awaitFileReview(queryClient([ended]).clients, "run_unit", { pollMs: 1 })).rejects.toThrow(
+      'execution run_unit captured no change set (file record: [["run_unit:1",false,1]])',
     );
   });
 });
 
 describe("recordedSet", () => {
-  const pinned = { id: "aex_unit:1" };
-  const captured = { id: "aex_unit:2", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF } };
-  const run = create(RunSchema, { metadata: { id: "aex_unit" }, status: { fileChanges: [pinned, captured] } });
+  const pinned = { id: "run_unit:1" };
+  const captured = { id: "run_unit:2", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF } };
+  const run = create(RunSchema, { metadata: { id: "run_unit" }, status: { fileChanges: [pinned, captured] } });
 
   it("answers a captured set by its id", () => {
-    expect(recordedSet(run, "aex_unit:2").id).toBe("aex_unit:2");
+    expect(recordedSet(run, "run_unit:2").id).toBe("run_unit:2");
   });
 
   it("refuses a set still being captured, and an unknown id", () => {
-    expect(() => recordedSet(run, "aex_unit:1")).toThrow("change set aex_unit:1 is still being captured");
-    expect(() => recordedSet(run, "aex_unit:9")).toThrow("has no change set aex_unit:9");
+    expect(() => recordedSet(run, "run_unit:1")).toThrow("change set run_unit:1 is still being captured");
+    expect(() => recordedSet(run, "run_unit:9")).toThrow("has no change set run_unit:9");
   });
 });
 
@@ -211,7 +211,7 @@ describe("awaitProgressEntries", () => {
   const expected = [{ path: "a.txt", kind: FileChangeKind.ADD, linesAdded: 3, linesRemoved: 0 }];
   const working = (entries: Array<typeof row>) =>
     create(RunSchema, {
-      metadata: { id: "aex_unit" },
+      metadata: { id: "run_unit" },
       status: { phase: RunPhase.RUN_IN_PROGRESS, fileChangeProgress: { filesChanged: entries.length, entries } },
     });
 
@@ -219,22 +219,22 @@ describe("awaitProgressEntries", () => {
     const halfWritten = working([{ ...row, linesAdded: 1 }]);
     const converged = working([row]);
     const q = queryClient([create(RunSchema, { status: { phase: RunPhase.RUN_IN_PROGRESS } }), halfWritten, converged]);
-    expect(await awaitProgressEntries(q.clients, "aex_unit", expected, { pollMs: 1 })).toBe(converged);
+    expect(await awaitProgressEntries(q.clients, "run_unit", expected, { pollMs: 1 })).toBe(converged);
     expect(q.get).toHaveBeenCalledTimes(3);
   });
 
   it("is red, naming the snapshots it saw, when the record captured the set or the turn ended first", async () => {
     const captured = create(RunSchema, {
-      metadata: { id: "aex_unit" },
+      metadata: { id: "run_unit" },
       status: {
         phase: RunPhase.RUN_IN_PROGRESS,
         fileChangeProgress: { filesChanged: 1, entries: [row] },
-        fileChanges: [{ id: "aex_unit:1", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF }, changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
+        fileChanges: [{ id: "run_unit:1", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF }, changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
       },
     });
-    const ended = create(RunSchema, { metadata: { id: "aex_unit" }, status: { phase: RunPhase.RUN_COMPLETED } });
-    await expect(awaitProgressEntries(queryClient([captured, ended]).clients, "aex_unit", expected, { pollMs: 1 })).rejects.toThrow(
-      /execution aex_unit reached terminal phase before a mid-run file_change_progress snapshot satisfied the predicate; observed progress: \+\d+\.\ds files=1 \[a\.txt ADD \+3\/-0\] -> \+\d+\.\ds none/,
+    const ended = create(RunSchema, { metadata: { id: "run_unit" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    await expect(awaitProgressEntries(queryClient([captured, ended]).clients, "run_unit", expected, { pollMs: 1 })).rejects.toThrow(
+      /execution run_unit reached terminal phase before a mid-run file_change_progress snapshot satisfied the predicate; observed progress: \+\d+\.\ds files=1 \[a\.txt ADD \+3\/-0\] -> \+\d+\.\ds none/,
     );
   });
 });

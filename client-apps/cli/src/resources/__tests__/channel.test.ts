@@ -114,8 +114,9 @@ type ChannelFixture = ReturnType<typeof makeShare> | ReturnType<typeof makeSlack
 // with the channel re-stamped with `rotatedToken`, mirroring fresh entropy.
 const CONSUMER_ID = "org_01jcccccccccccccccccccccccc";
 
-// The organizations the fake server names: acme from an earlier release
-// (id == slug) and consumer-org with a minted id, by either value.
+// The organizations the fake server names, by either value: acme, whose
+// fixture id is its slug to keep the expectations short, and consumer-org
+// with a minted id.
 const ORGANIZATIONS: Record<string, { id: string; slug: string }> = {
   acme: { id: "acme", slug: "acme" },
   "consumer-org": { id: CONSUMER_ID, slug: "consumer-org" },
