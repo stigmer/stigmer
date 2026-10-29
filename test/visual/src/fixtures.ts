@@ -1,8 +1,8 @@
 // The gallery's fixed data beyond the scenario catalogue and `samples`
 // (`@stigmer/react-sdk/test`): the model registry the provider fetches,
-// which models can run (the server's readiness answer), provider keys, and
-// the dashboard's figures. Every time is stamped from the samples' instant,
-// so nothing reads the clock.
+// which models can run (the server's readiness answer), provider keys, the
+// person's account, and the dashboard's figures. Every time is stamped from
+// the samples' instant, so nothing reads the clock.
 //
 // The registry is a frozen excerpt of the server's own
 // (backend/services/stigmer-server/src/modelcatalog/data/model-registry.json,
@@ -14,6 +14,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import {
   ProviderKeyCheck,
   ProviderKeySchema,
@@ -74,6 +75,12 @@ function model(
 /** The samples' organization, the one every settings scene is in. */
 export const ORGANIZATION = samples.organization();
 const ORG_ID = ORGANIZATION.metadata?.id ?? "";
+
+/** The person's own account, with no default models chosen. */
+export const ACCOUNT = create(IdentityAccountSchema, {
+  metadata: { id: "ia-ada", name: "Ada Lovelace", slug: "ada", org: ORG_ID },
+  spec: { idpId: "auth0|ada", email: "ada@acme.example" },
+});
 
 /** The organization's own Anthropic key, checked with Anthropic, saved a week before the samples' instant and used a day before it. */
 export function ownAnthropicKey(): ProviderKey {

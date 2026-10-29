@@ -3,7 +3,8 @@
  * state its name claims, read from its fold and from the conversation the
  * adapter builds (one ask while an approval waits, an undecided review set,
  * a running and a finished subagent, a failed turn with its error, a usage
- * report only where usage is claimed); that the adapter's live turn, phase
+ * report only where usage is claimed, a long turn's to-dos and what it has
+ * open, a finished session's Files and origin); that the adapter's live turn, phase
  * and composer state follow the hook's rules; that its actions are inert;
  * and that no scenario carries a timestamp other than the frozen instant's.
  */
@@ -105,10 +106,11 @@ describe("the scenario catalogue", () => {
     expect(scenarios.failed.runs[0]!.status?.phase).toBe(RunPhase.RUN_FAILED);
   });
 
-  it("reports usage only on the completed turn, and empty usage elsewhere", () => {
+  it("reports usage only on the completed and finished turns, and empty usage elsewhere", () => {
     expect(onlyTurn("completed").status?.phase).toBe("completed");
     expect(usageOf(scenarios.completed)).toMatchObject({ hasUsage: true, totalTokens: 18_432, llmCallCount: 3, primaryModel: "claude-sonnet-4-5" });
-    for (const name of SCENARIO_NAMES.filter((n) => n !== "completed")) {
+    expect(usageOf(scenarios.finished)).toMatchObject({ hasUsage: true, totalTokens: 41_210, llmCallCount: 7, workingSeconds: 74 });
+    for (const name of SCENARIO_NAMES.filter((n) => n !== "completed" && n !== "finished")) {
       expect(scenarios[name].usage, name).toBeUndefined();
       expect(usageOf(scenarios[name]).hasUsage, name).toBe(false);
     }
@@ -121,6 +123,48 @@ describe("the scenario catalogue", () => {
     expect(text).toContain("1. `lineTotal`");
     expect(text).toContain("```ts");
     expect(text).toContain("| Case | Before | After |");
+  });
+
+  it("keeps a long turn at work: two of five to-dos done, settled calls, and a subagent and the suite open", () => {
+    const turn = onlyTurn("busy");
+    expect(turn.ended).toBe(false);
+    expect(turn.status?.phase).toBe("running");
+    expect(turn.todos.map((todo) => todo.status)).toEqual(["completed", "completed", "in_progress", "pending", "pending"]);
+    const tools = turn.items.filter((item): item is ToolUse => item.kind === "tool_use");
+    expect(tools.map((tool) => [tool.name, tool.result === undefined])).toEqual([
+      ["write_todos", false],
+      ["grep", false],
+      ["read_file", false],
+      ["edit_file", false],
+      ["execute", false],
+      ["task", true],
+      ["execute", true],
+    ]);
+    expect(taskOf("busy").thread?.state).toBe("running");
+    expect(turn.liveness?.operations.map((operation) => [operation.name, operation.elapsedMs])).toEqual([
+      ["task", 38_000],
+      ["execute", 30_000],
+    ]);
+    expect(conversationOf(scenarios.busy)).toMatchObject({ activePhase: "running", isStoppable: true });
+  });
+
+  it("holds a liveness preview only where a turn works, and Files only where a turn returned them", () => {
+    for (const name of SCENARIO_NAMES.filter((n) => n !== "busy")) expect(scenarios[name].liveness, name).toBeUndefined();
+    for (const name of SCENARIO_NAMES.filter((n) => n !== "finished")) expect(scenarios[name].files, name).toEqual([]);
+  });
+
+  it("finishes a session a routine started, with an edit and two Files from its one turn", () => {
+    const turn = onlyTurn("finished");
+    expect(turn.status?.phase).toBe("completed");
+    expect(turn.answer).toContain("rounds once, at the total");
+    expect(turn.items.some((item) => item.kind === "tool_use" && item.name === "edit_file")).toBe(true);
+    const { files, session } = scenarios.finished;
+    expect(files.map((file) => [file.spec?.filename, file.status?.runId])).toEqual([
+      ["invoice-audit.md", turn.runId],
+      ["rounding-cases.csv", turn.runId],
+    ]);
+    expect(session?.status?.routineId).not.toBe("");
+    expect(conversationOf(scenarios.finished)).toMatchObject({ activeTurn: null, isStoppable: false });
   });
 
   it("numbers each scenario's events from 1 and files one run per turn", () => {
