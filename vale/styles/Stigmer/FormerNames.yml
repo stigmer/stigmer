@@ -1,6 +1,6 @@
 extends: substitution
-message: "Use '%s': '%s' is a former name."
-# An error, not a warning: a former name in new writing fails `make lint-docs`
+message: "Write '%s', not '%s'."
+# An error, not a warning: one of these words in prose fails `make lint-docs`
 # and the pre-commit hook. Quote one in a code span (`Agent Share`) where a page
 # must name it, or fence a passage with <!-- vale Stigmer.FormerNames = NO -->.
 level: error
@@ -8,32 +8,31 @@ ignorecase: false
 action:
   name: replace
 swap:
-  # A run's former names; the engine's own words stay in code spans. A bare
-  # "run" gets no rule of its own: it is also a verb ("let the agent run").
+  # A run is a run; the engine's own words stay in code spans. A bare "run"
+  # gets no rule of its own: it is also a verb ("let the agent run").
   '\bAgent Run\b': run
   '\bAgent Runs\b': runs
   '\bagent execution\b': run
   '\bagent executions\b': runs
   '\bAgent Execution\b': run
   '\bAgent Executions\b': runs
-  # A Federation Issuer's former name. Lowercase "identity provider" keeps its
-  # everyday sense (the outside provider: Auth0, Okta), so it gets no rule.
+  # A Federation Issuer. Lowercase "identity provider" keeps its everyday sense
+  # (the outside provider: Auth0, Okta), so it gets no rule.
   '\bIdentity Provider\b': Federation Issuer
   '\bIdentity Providers\b': Federation Issuers
-  # A Grant's former name.
+  # A Grant.
   '\bIAM [Pp]olicy\b': Grant
   '\bIAM [Pp]olicies\b': Grants
-  # A channel's former names: a hosted chat link was an Agent Share, a Slack or
-  # WhatsApp connection an Agent Channel. Bare "share" gets no rule: it is the
-  # verb for giving people access.
+  # A hosted chat link is a chat link and a Slack or WhatsApp connection is a
+  # channel. Bare "share" gets no rule: it is the verb for giving people access.
   '\bAgent Share\b': chat link
   '\bAgent Shares\b': chat links
   '\bAgent Channel\b': channel
   '\bAgent Channels\b': channels
   '\bshare link\b': chat link
   '\bshare links\b': chat links
-  # A routine's former name. "Temporal Schedule" is the engine's object that
-  # backs a routine's schedule, and keeps its word, so the rule skips it.
+  # A Routine. "Temporal Schedule" is the engine's object that backs a
+  # routine's schedule, and keeps its word, so the rule skips it.
   # Lowercase "schedule" gets no rule: it is a routine's own timing and the
   # verb ("run on a schedule").
   '(?<!Temporal\s)\bSchedule\b': Routine

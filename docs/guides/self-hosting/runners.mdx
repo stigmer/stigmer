@@ -353,12 +353,10 @@ layer exits with code 78 as it starts, printing one line that names both
 releases (below). Development builds of the server or the layer name no release
 and are never refused; a released server over a development layer starts it with
 a warning. A release's build also moves the layer's `latest` tag, which names
-that release until the next development build replaces it. The check runs from
-the first release whose layer carries it: a layer from an earlier release has no
-check of its own. It runs when a sandbox starts, so a sandbox started before the
-upgrade keeps its runner until it is replaced. The layer is one image layer,
-about 78 MB compressed, so each node pulls it once per release, while your
-base's layers stay cached.
+that release until the next development build replaces it. The check runs when a
+sandbox starts, so a sandbox started before the upgrade keeps its runner until
+it is replaced. The layer is one image layer, about 78 MB compressed, so each
+node pulls it once per release, while your base's layers stay cached.
 
 **What the base image needs.** The runner refuses to start on an image that
 can't run it, and says why. The requirements:
@@ -396,7 +394,7 @@ it, in an entry labelled with the template's name
 ([stigmer#1848](https://github.com/stigmer/stigmer/issues/1848)):
 
 ```text
-stigmer runner: this runner layer is from release 3.42.0, but the server is 3.43.0: use the runner layer of release 3.43.0 (re-join your image at every server upgrade): https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
+stigmer runner: this runner layer is from release 0.1.0, but the server is 0.2.0: use the runner layer of release 0.2.0 (re-join your image at every server upgrade): https://stigmer.ai/docs/guides/self-hosting/runners#bring-your-own-base-image
 ```
 
 A glibc older than 2.28 isn't detected up front. The runner's Node refuses it
@@ -617,14 +615,13 @@ What the driver needs:
   process on each node, reads each actor's egress policy through a system role
   of its own. The server writes its binding into the atespace's access policy
   itself, when it creates the atespace and, for one that exists, when the
-  binding is missing; it never removes one, so a `viewer` binding for atelet
-  that an earlier release of the server wrote stays until an owner removes it.
-  That takes an owner: list the server among Substrate's bootstrap owners
-  (`ate-setup`'s `--ateapi-authz-bootstrap-owners`) and nothing else is needed.
-  If it is no owner, it logs once that the grant must be made and carries on;
-  then, as a global owner, create the atespace
-  (`kubectl ate create atespace <name>`) and give it an access policy binding
-  `editor` to `user:system:serviceaccount:<namespace>:<name>`
+  binding is missing; it never removes one. That takes an owner: list the server
+  among Substrate's bootstrap owners (`ate-setup`'s
+  `--ateapi-authz-bootstrap-owners`) and nothing else is needed. If it is no
+  owner, it logs once that the grant must be made and carries on; then, as a
+  global owner, create the atespace (`kubectl ate create atespace <name>`) and
+  give it an access policy binding `editor` to
+  `user:system:serviceaccount:<namespace>:<name>`
   (`kubectl ate create access-policy -a <atespace> -f <manifest>`). Without
   `editor` the first Session fails with a message naming it.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
