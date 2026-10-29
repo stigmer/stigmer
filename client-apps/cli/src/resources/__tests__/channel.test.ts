@@ -52,7 +52,7 @@ interface ShareFixture {
 
 // The fixture channel's id: the one identity its hosted link carries. It
 // carries the prefix chat links were minted with before they were channels.
-const SHARE_ID = "ash_01ARZ3NDEKTSV4RRFFQ69G5FAV";
+const SHARE_ID = "chn_01ARZ3NDEKTSV4RRFFQ69G5FAV";
 const CLOUD_LINK = `https://app.stigmer.ai/chat/${SHARE_ID}`;
 
 // Plain-object web Channel fixture: the CLI reads it structurally (metadata /
@@ -429,7 +429,7 @@ describe("linkAgent merge-preservation (fails closed)", () => {
 
 describe("linkAgent canonical web channel", () => {
   it("edits the channel named `<agent slug>-web` before one carrying the agent's slug", async () => {
-    const converted = makeShare({ id: "ash_01ARZ3NDEKTSV4RRFFQ69G5OLD", slug: "support-agent", enabled: false });
+    const converted = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5OLD", slug: "support-agent", enabled: false });
     const named = makeShare({ id: "chn_01ARZ3NDEKTSV4RRFFQ69G5WEB", slug: "support-agent-web", enabled: false });
     const { client, applies } = fakeClient(makeAgent(), [converted, named]);
 

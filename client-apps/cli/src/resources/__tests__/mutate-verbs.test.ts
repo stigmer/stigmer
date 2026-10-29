@@ -99,16 +99,16 @@ const knownPlugin = create(PluginSchema, {
 
 // Pending run (cancellable) vs. an already-terminal one.
 const pendingExecution = create(RunSchema, {
-  metadata: { id: "aex_run" },
+  metadata: { id: "run_run" },
   spec: { target: { case: "sessionId", value: "ses_run" } },
   status: { phase: RunPhase.RUN_PENDING },
 });
 const cancelledExecution = create(RunSchema, {
-  metadata: { id: "aex_run" },
+  metadata: { id: "run_run" },
   status: { phase: RunPhase.RUN_CANCELLED },
 });
 const completedExecution = create(RunSchema, {
-  metadata: { id: "aex_done" },
+  metadata: { id: "run_done" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
@@ -266,8 +266,8 @@ beforeAll(async () => {
 
     router.service(RunQueryController, {
       get: (req) => {
-        if (req.value === "aex_done") return completedExecution;
-        if (req.value === "aex_run" || req.value === "run_current") {
+        if (req.value === "run_done") return completedExecution;
+        if (req.value === "run_run" || req.value === "run_current") {
           return cancelCalls.length > 0 ? cancelledExecution : pendingExecution;
         }
         throw new ConnectError("execution not found", Code.NotFound);
@@ -276,7 +276,7 @@ beforeAll(async () => {
     router.service(SessionCommandController, {
       interrupt: (req) => {
         cancelCalls.push(req.sessionId);
-        return { stoppedRunIds: ["aex_run", "aex_other"] };
+        return { stoppedRunIds: ["run_run", "run_other"] };
       },
     });
   };
@@ -498,19 +498,19 @@ describe("delete (cutover kinds: vault, channel, channel app)", () => {
 
 describe("delete run (cancel special case)", () => {
   it("cancels a non-terminal run", async () => {
-    const plan = await planDelete(client, "run", "aex_run", "");
+    const plan = await planDelete(client, "run", "run_run", "");
     expect(plan.confirmPrompt).toContain("cancellation");
 
     const result = await plan.perform();
     expect(result.status).toBe("success");
     expect(result.message).toBe("Run cancelled successfully");
     expect(result.sections[0].fields).toContainEqual({ key: "Status", value: "cancelled" });
-    expect(result.sections[0].fields).toContainEqual({ key: "Stopped", value: "aex_run, aex_other" });
+    expect(result.sections[0].fields).toContainEqual({ key: "Stopped", value: "run_run, run_other" });
     expect(cancelCalls).toEqual(["ses_run"]);
   });
 
   it("reports an already-terminal run without issuing a cancel", async () => {
-    const plan = await planDelete(client, "run", "aex_done", "");
+    const plan = await planDelete(client, "run", "run_done", "");
     const result = await plan.perform();
     expect(result.status).toBe("warning");
     expect(result.message).toBe("Run was already in terminal state");
