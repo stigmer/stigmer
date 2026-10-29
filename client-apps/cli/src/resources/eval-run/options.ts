@@ -22,7 +22,7 @@
 // `--json`), so a command line moves between the two. Two differ.
 // `--model` names an engine and a model, `stigmer/claude-sonnet-4-6` or
 // `claude/claude-sonnet-5`, because Stigmer runs a model on one of its engines; a
-// bare model id is the native engine's. With no `--model` an eval run
+// bare model id is the Stigmer harness's. With no `--model` an eval run
 // about an agent runs each case on the agent as it runs: its own engine,
 // model and settings. `--max-cost-usd` is required by the API, so the CLI
 // fills 5 when it is omitted and says so. `--mocks off` (and its older
@@ -318,7 +318,7 @@ function sharedOptionsOf(flags: EvalRunFlags): Omit<EvalRunOptions, "subject" | 
   };
 }
 
-/** Reads `<harness>/<model>`; a bare model is the native engine's. */
+/** Reads `<harness>/<model>`; a bare model is the Stigmer harness's. */
 export function parseTarget(raw: string): EvalRunTargetInput {
   const trimmed = raw.trim();
   const slash = trimmed.indexOf("/");
