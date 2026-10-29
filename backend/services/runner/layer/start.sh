@@ -30,7 +30,7 @@
 #              tools an agent's hooks and commands rely on, missing from
 #              PATH (without them a repository workspace, the agent user or
 #              an agent's hooks break).
-#   warned   - rg (the Stigmer harness's agent's grep falls back to a substring
+#   warned   - rg (the Stigmer harness's grep falls back to a substring
 #              search): one feature degrades, so the runner starts.
 #
 # glibc's version is not checked: that needs a fork, and below 2.28 the
@@ -140,7 +140,7 @@ if [ -n "$server_release" ]; then
 fi
 
 if ! command -v rg >/dev/null 2>&1; then
-  printf 'stigmer runner: warning: rg is not on PATH, so the Stigmer harness's agent'"'"'s grep falls back to a substring search (%s)\n' "$GUIDE" >&2
+  printf 'stigmer runner: warning: rg is not on PATH, so the Stigmer harness'"'"'s grep falls back to a substring search (%s)\n' "$GUIDE" >&2
 fi
 
 unset NODE_OPTIONS NODE_PATH
