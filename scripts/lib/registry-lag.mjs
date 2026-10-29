@@ -74,7 +74,7 @@ export function registryLag(stderr, names, version) {
     .split("\n")
     .filter((line) => (etarget ? /No matching version found for /.test(line) : /\b404\b/.test(line)));
   for (const name of names) {
-    const spellings = [name, name.replace("/", "%2f"), name.replace("/", "%2F")];
+    const spellings = [name, name.replaceAll("/", "%2f"), name.replaceAll("/", "%2F")];
     if (lines.some((line) => spellings.some((spelling) => mentions(line, spelling)))) {
       return name;
     }

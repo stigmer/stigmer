@@ -57,7 +57,7 @@ npm error A complete log of this run can be found in: /home/runner/.npm/_logs/20
 /** npm 10's answer for a package whose document it does not serve, with the name swapped in. */
 function documentNotFound(name, version) {
   return `npm error code E404
-npm error 404 Not Found - GET https://registry.npmjs.org/${name.replace("/", "%2f")} - Not found
+npm error 404 Not Found - GET https://registry.npmjs.org/${name.replaceAll("/", "%2f")} - Not found
 npm error 404
 npm error 404  '${name}@${version}' is not in this registry.
 npm error 404
@@ -90,7 +90,7 @@ test("the races the releases hit read as lag on the pinned lib they name", () =>
   assert.equal(registryLag(V3_33_0_TARBALL_404, PINNED), "@stigmer/temporal-codecs");
   assert.equal(registryLag(documentNotFound("@stigmer/server", "3.41.0"), PINNED), "@stigmer/server");
   assert.equal(
-    registryLag(documentNotFound("@stigmer/server", "3.41.0").replace("%2f", "%2F"), PINNED),
+    registryLag(documentNotFound("@stigmer/server", "3.41.0").replaceAll("%2f", "%2F"), PINNED),
     "@stigmer/server",
     "a registry may spell the encoded slash in upper case",
   );
