@@ -9,10 +9,10 @@
 // compared. An arm is a harness on one model at one endpoint on one version
 // of the code: two codes are two arms, never pooled, and one code pools, a
 // later report's scenario replacing an earlier one's. The default reference
-// is native on the parity model; a reference resolves by a prefix ending
+// is the Stigmer arm on the parity model; a reference resolves by a prefix ending
 // where the label's endpoint or code begins, and one matching two codes is
 // refused naming both. Each report's runner marker counts are printed with
-// the arms it measured, and never gate a verdict. A native report taken with background commands off
+// the arms it measured, and never gate a verdict. A Stigmer-arm report taken with background commands off
 // is an arm of its own, and the input-token median and each side's
 // background readings are printed, never gated. Quality holds at the reference's mean minus 0.05 and misses
 // past it, over the cases graded on both arms only (a null score is left
@@ -23,7 +23,7 @@
 // a create failure is not a sample that ran; a cell the arm's report refused
 // by design is expected, and one refused for want of a key is not measured.
 // A Claude arm is `claude/<model>#<code>`, its side and its quality target
-// found under its own harness, and pools against the native reference like
+// found under its own harness, and pools against the Stigmer reference like
 // any other arm.
 import { describe, expect, it } from "vitest";
 import { PARITY_MODEL } from "../cells";
@@ -69,7 +69,7 @@ function samples(n: number, calls: ToolCallFact["outcome"][] = ["ok"], overrides
 }
 
 interface ArmSpec {
-  /** The harness whose side the cells and the quality target are; native by default. */
+  /** The harness whose side the cells and the quality target are; Stigmer by default. */
   harness?: BenchmarkHarness;
   model?: string;
   endpoint?: string;
@@ -202,7 +202,7 @@ describe("assertComparable", () => {
 });
 
 describe("compareReports: arms and pooling", () => {
-  it("labels an arm by harness, model, endpoint and code, and defaults the reference to native on the parity model", () => {
+  it("labels an arm by harness, model, endpoint and code, and defaults the reference to Stigmer on the parity model", () => {
     const comparison = compareReports([
       at("ref.json", report()),
       at("gemini.json", report({ model: "openai:gemini-3-pro", endpoint: "generativelanguage.googleapis.com" })),
@@ -245,7 +245,7 @@ describe("compareReports: arms and pooling", () => {
     const off = report({ shellBackground: "off", timestamp: "2026-10-23T09:00:00Z", cells: { "working-read-edit": samples(3, ["failed"]) } });
     const reports = [at("off.json", off), at("on.json", report())];
     expect(armLabel(off, "stigmer")).toBe(`stigmer/${REF}@api.anthropic.com${C}+background-off`);
-    expect(armLabel(off, "claude"), "the setting is native's alone").toBe(`claude/${PARITY_MODEL.claude}${C}`);
+    expect(armLabel(off, "claude"), "the setting is the Stigmer harness's alone").toBe(`claude/${PARITY_MODEL.claude}${C}`);
     const comparison = compareReports(reports, `stigmer/${REF}@api.anthropic.com${C}+background-off`);
     expect(comparison.arms).toEqual([`stigmer/${REF}@api.anthropic.com${C}+background-off`, `stigmer/${REF}@api.anthropic.com${C}`]);
     expect(comparison.readings[0]!.arm).toBe(`stigmer/${REF}@api.anthropic.com${C}`);
@@ -254,19 +254,19 @@ describe("compareReports: arms and pooling", () => {
     expect(() => compareReports(reports), "the bare model now names two arms").toThrow("matches several arms");
   });
 
-  it("reads a Claude arm against the native reference: its side and its quality target found under its own harness", () => {
+  it("reads a Claude arm against the Stigmer reference: its side and its quality target found under its own harness", () => {
     const quality = { a: { score: 1, passK: true }, b: { score: 0.9 }, c: { score: 0.5 } };
     const reports = [
-      at("native.json", report({ quality, cells: { "working-read-edit": samples(3) } })),
+      at("stigmer.json", report({ quality, cells: { "working-read-edit": samples(3) } })),
       at("claude.json", report({ harness: "claude", quality: GOOD_QUALITY, cells: { "working-read-edit": samples(3, ["failed"]) } })),
     ];
     const comparison = compareReports(reports);
-    expect(comparison.reference, "the default reference is native").toBe(`stigmer/${REF}@api.anthropic.com${C}`);
+    expect(comparison.reference, "the default reference is the Stigmer arm").toBe(`stigmer/${REF}@api.anthropic.com${C}`);
     expect(comparison.arms).toEqual([`stigmer/${REF}@api.anthropic.com${C}`, `claude/${PARITY_MODEL.claude}${C}`]);
     const reading = comparison.readings[0]!;
     expect(reading.arm).toBe(`claude/${PARITY_MODEL.claude}${C}`);
     expect(reading.quality.cases, "the Claude target's cases, graded on both arms").toBe(3);
-    expect(reading.cells[0]!.wasted, "the Claude side's samples against native's").toMatchObject({ arm: 1, reference: 0, status: "misses" });
+    expect(reading.cells[0]!.wasted, "the Claude side's samples against the Stigmer harness's").toMatchObject({ arm: 1, reference: 0, status: "misses" });
     expect(reading.verdict).toBe("misses the bar");
     expect(comparison.runnerLogs.map((log) => log.arms)).toEqual([[`stigmer/${REF}@api.anthropic.com${C}`], [`claude/${PARITY_MODEL.claude}${C}`]]);
   });
@@ -342,13 +342,13 @@ describe("the timing-cell clauses", () => {
       cells: {},
       quality: GOOD_QUALITY,
       refused: [
-        { cell: "report-simple/stigmer", reason: "the native model is pinned by --stigmer-model" },
+        { cell: "report-simple/stigmer", reason: "the Stigmer harness's model is pinned by --stigmer-model" },
         { cell: "working-read-edit/stigmer", reason: "missing OPENAI_API_KEY" },
         { cell: "working-cross-turn/claude", reason: "excluded by --only" },
       ],
     });
     expect(reading.cells.map((cell) => [cell.scenario, cell.status, cell.why])).toEqual([
-      ["report-simple", "expected refusal", "the native model is pinned by --stigmer-model"],
+      ["report-simple", "expected refusal", "the Stigmer harness's model is pinned by --stigmer-model"],
       ["working-read-edit", "not measured", "refused: missing OPENAI_API_KEY"],
       ["working-cross-turn", "not measured", "absent from the arm's reports"],
     ]);
@@ -366,7 +366,7 @@ describe("the verdict", () => {
   it("a cell refused by design does not stop an arm holding the bar", () => {
     const reading = readingOf(
       { cells: { "report-simple": samples(3), "working-read-edit": samples(3) }, quality: GOOD_QUALITY },
-      { cells: { "working-read-edit": samples(3) }, quality: GOOD_QUALITY, refused: [{ cell: "report-simple/stigmer", reason: "the native model is pinned by --stigmer-model" }] },
+      { cells: { "working-read-edit": samples(3) }, quality: GOOD_QUALITY, refused: [{ cell: "report-simple/stigmer", reason: "the Stigmer harness's model is pinned by --stigmer-model" }] },
     );
     expect(reading.verdict).toBe("holds the bar");
   });

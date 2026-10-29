@@ -36,7 +36,7 @@
  * transcript that returns the one turn to play now. The same rule, with the
  * indexing left to the caller — for a consumer whose plan is not "turn k on
  * round k" but "the first step the conversation does not yet show" (the
- * harness contract kit's native subject, whose one execution spans many
+ * harness contract kit's Stigmer subject, whose one execution spans many
  * kit turns on one sqlite thread).
  *
  * A turn may END the model call instead of finishing the message

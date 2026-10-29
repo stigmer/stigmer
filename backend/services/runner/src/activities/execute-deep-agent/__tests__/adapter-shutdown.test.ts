@@ -1,5 +1,5 @@
 /**
- * The native adapter's one reach across turns (`adapter.ts`): a host that
+ * The Stigmer harness's adapter's one reach across turns (`adapter.ts`): a host that
  * stops while a turn runs stops that turn's background commands. Each
  * `runTurn` hands its engine turn a registry of its own, and `shutdown`
  * stops every registry still live; a turn that has returned leaves none.
@@ -34,7 +34,7 @@ vi.mock("../turn.js", () => ({
     }),
 }));
 
-describe("the native adapter's shutdown", () => {
+describe("the Stigmer harness's adapter's shutdown", () => {
   it("stops the background commands of the turns still running, and of none that returned", async () => {
     const adapter = createDeepAgentAdapter();
     await adapter.boot({} as Config);

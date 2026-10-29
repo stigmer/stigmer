@@ -47,7 +47,7 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
-// Gives an org this file creates the provider keys a native run needs where
+// Gives an org this file creates the provider keys a Stigmer run needs where
 // the target has them (keyTenancy, targets/target.ts); elsewhere an org needs
 // none.
 async function withProviderKeys(org: string): Promise<void> {

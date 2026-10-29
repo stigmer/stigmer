@@ -1,6 +1,6 @@
 /**
  * Pin-validation tests — pin the Go pin_validation.go behavior: the
- * harness-name mapping (unset → native, the edition-honest posture), the
+ * harness-name mapping (unset → stigmer, the edition-honest posture), the
  * write-time existence rule's refusal copy with did-you-mean
  * (oss#774), the any-harness arm for surfaces without a serving harness,
  * the degrade-to-no-op postures, the explicit `<provider>:<name>` form an
@@ -41,7 +41,7 @@ const STORE = makeStore({
   ],
 });
 
-const NATIVE_ONLY = makeStore({ models: [{ id: "anthropic/claude-4", harness: "stigmer" }] });
+const STIGMER_ONLY = makeStore({ models: [{ id: "anthropic/claude-4", harness: "stigmer" }] });
 
 // docs/vocabulary.md, "Harness": a harness's one word is the first word of its label, in lower case.
 describe("the harness words", () => {
@@ -66,12 +66,12 @@ describe("harnessName", () => {
     expect(harnessName(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
-  it("gives a number no engine owns a word no section has, never native's", () => {
+  it("gives a number no engine owns a word no section has, never the Stigmer harness's", () => {
     expect(harnessName(7 as Harness)).toBe("harness-7");
   });
 
   it("judges a pin on an engine with no section yet as unverifiable", () => {
-    expect(unknownModelPinRefusal(NATIVE_ONLY, "f", harnessName(Harness.CLAUDE), "claude-sonnet-4-6")).toBe("");
+    expect(unknownModelPinRefusal(STIGMER_ONLY, "f", harnessName(Harness.CLAUDE), "claude-sonnet-4-6")).toBe("");
   });
 });
 
@@ -108,7 +108,7 @@ describe("unknownModelPinRefusal", () => {
     );
   });
 
-  it("accepts an explicit openai: or anthropic: model on the native harness and any harness", () => {
+  it("accepts an explicit openai: or anthropic: model on the Stigmer harness and any harness", () => {
     expect(unknownModelPinRefusal(STORE, "f", "stigmer", "openai:llama-3.3-70b")).toBe("");
     expect(unknownModelPinRefusal(STORE, "f", "stigmer", "Anthropic:my-claude")).toBe("");
     expect(unknownModelPinRefusal(STORE, "f", "", "openai:llama-3.3-70b")).toBe("");

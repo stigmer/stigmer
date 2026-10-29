@@ -1,5 +1,5 @@
 /**
- * CAS-capturing deepagents backends for the native harness.
+ * CAS-capturing deepagents backends for the Stigmer harness.
  *
  * WHY A BACKEND WRAPPER, NOT THE APPROVAL GATE
  * --------------------------------------------
@@ -34,7 +34,7 @@
  * and `edit` (modify), so this observes CREATE and MODIFY. An `edit` records
  * first, then runs the loose-edit path (`loose-edit.ts`), so an edit the model
  * quoted loosely lands as an ordinary edit with its before-bytes captured. deepagents 1.13
- * added a recursive backend `delete` and a `delete` tool over it; the native
+ * added a recursive backend `delete` and a `delete` tool over it; the Stigmer
  * harness does not expose that tool (`deepagents-profiles.ts`), and these
  * backends refuse a backend delete outright, so a graph whose model no profile
  * resolves cannot delete a subtree behind the observer's back. Deleting stays

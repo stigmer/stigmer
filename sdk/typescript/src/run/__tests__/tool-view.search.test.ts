@@ -20,7 +20,7 @@ function searchCall(args: Record<string, unknown>, result: string) {
 }
 
 describe("normalizeToolResult — search plain text and graceful degradation", () => {
-  it("keeps native grep line matches as content (unchanged behavior)", () => {
+  it("keeps Stigmer-harness grep line matches as content (unchanged behavior)", () => {
     const view = normalizeToolResult(
       searchCall(
         { pattern: "TODO" },
@@ -33,7 +33,7 @@ describe("normalizeToolResult — search plain text and graceful degradation", (
     expect(view.count).toBe(2);
   });
 
-  it("treats native path/name lines as file matches", () => {
+  it("treats Stigmer-harness path/name lines as file matches", () => {
     const view = normalizeToolResult(searchCall({ pattern: "*.go" }, "src/a.go\nsrc/b.go"));
     expect(view.type).toBe("search");
     if (view.type !== "search") return;

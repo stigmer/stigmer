@@ -4,8 +4,8 @@
 // Domain: conformance harness (execution engine).
 //
 // The harness reads only the fields the arms compare on — the id pair for
-// resolution, the three the runner's economy-tier pick keys on, the
-// native request facts a row states (its output ceiling and thinking form,
+// resolution, the three the runner's economy-tier pick keys on, the Stigmer
+// harness's request facts a row states (its output ceiling and thinking form,
 // runner shared/model-registry.ts getRequestProfile), and whether the
 // row carries pricing at all (the runner's pricing table is the rows that do,
 // runner shared/model-pricing-data.ts; a model with none is costed at its
@@ -90,13 +90,13 @@ export function requireRegistryRow(document: ModelRegistryDocument, id: string):
   return row;
 }
 
-// The native-harness row for a registry id, or a named failure. An id can
-// carry a row on each harness (claude-sonnet-5 does); the native request is
-// described by the native one only.
-export function requireNativeRow(document: ModelRegistryDocument, id: string): ModelRegistryRow {
+// The Stigmer-harness row for a registry id, or a named failure. An id can
+// carry a row on each harness (claude-sonnet-5 does); the Stigmer harness's
+// request is described by the Stigmer one only.
+export function requireStigmerRow(document: ModelRegistryDocument, id: string): ModelRegistryRow {
   const row = document.models.find((model) => model.harness === "stigmer" && model.id === id);
   if (row === undefined) {
-    throw new Error(`model registry has no native row with id ${JSON.stringify(id)} (${document.models.length} rows)`);
+    throw new Error(`model registry has no Stigmer row with id ${JSON.stringify(id)} (${document.models.length} rows)`);
   }
   return row;
 }
@@ -113,7 +113,7 @@ export function economyRowFor(document: ModelRegistryDocument, provider: string)
     document.models.find((model) => model.provider === provider && economy(model)) ??
     document.models.find(economy);
   if (row === undefined) {
-    throw new Error(`model registry has no economy-tier native row (provider ${JSON.stringify(provider)} or any)`);
+    throw new Error(`model registry has no economy-tier Stigmer row (provider ${JSON.stringify(provider)} or any)`);
   }
   return row;
 }

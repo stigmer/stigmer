@@ -2,7 +2,7 @@
  * Hermetic goldens: file review on a Claude turn keeps what git cannot,
  * on the real engine: the gate records a file's bytes before the engine
  * writes it (`gate.ts`), and the runtime captures the change from them, as
- * the native engine's backend lets it.
+ * the Stigmer harness's backend lets it.
  *
  *  - A write to a git-ignored path in a git workspace flows, and comes back
  *    in the turn's change set beside the tracked one.

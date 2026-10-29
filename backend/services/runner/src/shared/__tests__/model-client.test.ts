@@ -493,7 +493,7 @@ describe("buildChatModel", () => {
       .rejects.toThrow(/STIGMER_ANTHROPIC_BACKEND="verteks" is not a supported backend/);
   });
 
-  describe("thinking and streaming (the native execution turn)", () => {
+  describe("thinking and streaming (the Stigmer harness's execution turn)", () => {
     it("Anthropic: the mapped thinking parameter is the wrapper's own `thinking` field", async () => {
       mockRegistryResponse([
         { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic" },
@@ -560,13 +560,13 @@ describe("buildChatModel", () => {
 
       await expect(
         buildChatModel({ modelName: "gpt-4.1", thinking: { type: "adaptive" } }),
-      ).rejects.toThrow(/only Anthropic models have a native thinking mapping/);
+      ).rejects.toThrow(/only Anthropic models have a thinking mapping on the Stigmer harness/);
       expect(mockOpenAICtor).not.toHaveBeenCalled();
     });
   });
 
   describe("service tier (stigmer/stigmer#361)", () => {
-    // The #357 contract on the native harness: when the caller passes the
+    // The #357 contract on the Stigmer harness: when the caller passes the
     // execution's effective tier, every provider request pins it
     // explicitly, so the provider ACCOUNT's default can never pick the
     // price. Each provider has its own spelling; both are pinned here so

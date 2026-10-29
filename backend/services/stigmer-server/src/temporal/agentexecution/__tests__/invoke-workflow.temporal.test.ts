@@ -37,11 +37,11 @@
  *     stigmer#282);
  *   - a new run records the values-fetched patch and never calls the
  *     retired run-end cleanup, on any exit;
- *   - the engine switch: native and Claude share the deterministic-state
+ *   - the engine switch: Stigmer and Claude share the deterministic-state
  *     flow (EnsureThread's thread on every invocation), each on its own
  *     Execute* activity; a number no harness owns (the retired 2
  *     among them) fails the run naming it and runs nothing, never as
- *     native;
+ *     Stigmer;
  *   - every end of the workflow (completed, failed by the runner, broken,
  *     cancelled) calls StartQueuedTurn with the run's session as its last
  *     act; a run in no session calls nothing; a StartQueuedTurn that fails
@@ -931,7 +931,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   // 2 is the retired Cursor number the wire reserves; 7 was never assigned.
   for (const unowned of [2, 7]) {
-    it(`harness number ${unowned}, which no harness owns, fails the run naming it and never runs as native`, async (testCtx) => {    if (!envReady) return testCtx.skip();
+    it(`harness number ${unowned}, which no harness owns, fails the run naming it and never runs as Stigmer`, async (testCtx) => {    if (!envReady) return testCtx.skip();
       script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
 
       const handle = await startWorkflow(workflowInput({ harness: unowned }));

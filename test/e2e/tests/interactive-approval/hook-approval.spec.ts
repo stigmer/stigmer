@@ -5,10 +5,10 @@
 // the run and the hook are real and only the model is scripted.
 //
 // Two shapes:
-// - a hook that asks on Bash (the runner shows the native `execute` tool to a
-//   hook as Claude Code's `Bash`): the gate says the agent's hook decided it,
-//   and its approve-all offers to approve all of what the agent's hooks ask
-//   about;
+// - a hook that asks on Bash (the runner shows the Stigmer harness's
+//   `execute` tool to a hook as Claude Code's `Bash`): the gate says the
+//   agent's hook decided it, and its approve-all offers to approve all of
+//   what the agent's hooks ask about;
 // - a hook that refuses, under `auto_approve_all`: no gate opens, the run
 //   completes, and the settled call shows the hook's reason. A hook's refusal
 //   binds even when every approval is skipped.

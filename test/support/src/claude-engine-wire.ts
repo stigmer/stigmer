@@ -18,7 +18,7 @@
 //   - claudeEngineRoute: a router for MockLlmProxy (its constructor option,
 //     or routeWith for one test) that answers the engine's background calls
 //     out of band, a token count and its compaction summary, counted like
-//     the mock counts native's summaries and never handed to the script, and
+//     the mock counts the Stigmer harness's summaries and never handed to the script, and
 //     hands every agent-loop request to the script.
 //
 // A background call the router does not know reaches the script, which

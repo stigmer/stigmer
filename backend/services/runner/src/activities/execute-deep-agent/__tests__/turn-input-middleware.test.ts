@@ -1,5 +1,5 @@
 /**
- * Pins the native delivery of a message sent while the turn works
+ * Pins the Stigmer harness's delivery of a message sent while the turn works
  * (../turn-input-middleware.ts): the thread's delivered ids are read off its
  * state; a delivery appends each message the thread does not hold, once, as
  * a human message carrying the message's id, with its files listed and its

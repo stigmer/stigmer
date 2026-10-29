@@ -1,5 +1,5 @@
 /**
- * DeepAgentTranslator — the native harness's translator: LangGraph's v3
+ * DeepAgentTranslator — the Stigmer harness's translator: LangGraph's v3
  * protocol events in, the canonical `TranscriptEvent` union out
  * (`harness/transcript/events.ts`).
  *
@@ -38,7 +38,7 @@
  *     sub-agents' transcripts.
  *
  * What this translator deliberately does NOT answer: whether the gate holds
- * a call. On native it never has to. LangGraph's `interrupt()` runs inside
+ * a call. On the Stigmer harness it never has to. LangGraph's `interrupt()` runs inside
  * the gate middleware BEFORE the tool handler, so a held call emits no
  * `tool-started` at all; the `tool-started` that does arrive is the engine's
  * own word that the call was authorized — capture mode let the file write

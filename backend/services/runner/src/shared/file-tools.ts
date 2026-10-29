@@ -1,6 +1,6 @@
 /**
  * Introspection of file-modifying tools, shared by every runner surface that
- * reacts to a file edit: the native (deepagents) streaming side-effects (publish,
+ * reacts to a file edit: the Stigmer (deepagents) streaming side-effects (publish,
  * git writeback, post-exec file-change capture) and BOTH harnesses'
  * approval-gate pre-execution capture (shared/gate-file-change.ts).
  *
@@ -20,7 +20,7 @@
 /**
  * The file-modifying tools, across both harness taxonomies.
  *
- * - deepagents (native): `write_file`/`edit_file`/`create_file` (stream) and
+ * - deepagents (Stigmer): `write_file`/`edit_file`/`create_file` (stream) and
  *   `write`/`edit`/`create`/`str_replace_editor` (SDK names);
  * - Claude: `Write`, `Edit`, `NotebookEdit`.
  *
@@ -28,7 +28,7 @@
  * preview, so it is not "file-modifying" in the diff-capture sense.
  */
 export const FILE_MODIFYING_TOOLS: ReadonlySet<string> = new Set([
-  // deepagents (native) taxonomy
+  // deepagents (Stigmer) taxonomy
   "write_file", "edit_file", "create_file",
   "write", "edit", "create",
   "str_replace_editor",
@@ -96,7 +96,7 @@ export const EDIT_NEW_FIELDS = ["new_string", "new_text", "newText", "replacemen
 /**
  * Extract an edit-family tool's pre-edit fragment (`old_string` and its
  * variants). Returns `null` when absent; an empty string is preserved (an
- * insertion has an empty `old_string`), matching the native gate capture.
+ * insertion has an empty `old_string`), matching the Stigmer harness's gate capture.
  */
 export function extractEditOldString(args: Record<string, unknown>): string | null {
   for (const field of EDIT_OLD_FIELDS) {

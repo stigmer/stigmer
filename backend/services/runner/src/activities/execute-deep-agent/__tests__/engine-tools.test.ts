@@ -1,4 +1,4 @@
-// Covers the one table of built-in tool names the native prompts quote
+// Covers the one table of built-in tool names the Stigmer prompts quote
 // (`engine-tools.ts`) against what the engine actually binds, and the texts
 // this harness writes for the tools it installs:
 //  - every name in the table is on a shell-capable parent graph's surface,

@@ -283,9 +283,10 @@ export const SUMMARY_PROMPT_OPENING = "You are writing the checkpoint another ag
 // The canned summary every out-of-band summary call receives.
 export const MOCK_CONVERSATION_SUMMARY = "Summary (mock): the conversation so far, condensed.";
 
-// True when an Anthropic messages payload is native compaction's summary
-// call rather than an agent-loop turn: exactly one user message whose text
-// opens with the summary prompt. A content array is folded to its text.
+// True when an Anthropic messages payload is the Stigmer harness's compaction
+// summary call rather than an agent-loop turn: exactly one user message
+// whose text opens with the summary prompt. A content array is folded to
+// its text.
 function isSummaryRequest(body: unknown): boolean {
   if (typeof body !== "object" || body === null) {
     return false;
@@ -334,8 +335,9 @@ export class MockLlmProxy {
   // Background titling calls answered out-of-band (#690/#715) — an observation
   // point, deliberately NOT part of consumed()/remaining() queue accounting.
   private titleRequestCount = 0;
-  // Native compaction's summary calls, answered out of band the same way and
-  // for the same reason: a summary claiming a turn would derail the script.
+  // The Stigmer harness's compaction summary calls, answered out of band the
+  // same way and for the same reason: a summary claiming a turn would derail
+  // the script.
   private summaryRequestCount = 0;
   // Whether the embeddings path is answered (by computation) or fenced (the
   // default, the no-embedder posture). A per-file posture, so reset() leaves it.
@@ -565,8 +567,8 @@ export class MockLlmProxy {
     return this.titleRequestCount;
   }
 
-  // Native compaction's summary calls served out-of-band so far: the number
-  // of times the runner's engine compacted its conversation.
+  // The Stigmer harness's compaction summary calls served out-of-band so far:
+  // the number of times the runner's engine compacted its conversation.
   summaryRequests(): number {
     return this.summaryRequestCount;
   }

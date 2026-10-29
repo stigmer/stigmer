@@ -2,7 +2,7 @@
  * Shared configuration types for the middleware stack.
  *
  * Each middleware module reads its own slice of MiddlewareStackConfig.
- * The native harness's turn setup assembles the config from the turn's
+ * The Stigmer harness's turn setup assembles the config from the turn's
  * resolved settings (`status.run_config`) and passes it to
  * buildMiddlewareStack().
  */
@@ -160,7 +160,7 @@ export interface MiddlewareStackConfig {
   readonly toolScope?: ToolScopeConfig | null;
   /**
    * Virtual-dialect path normalization (issues #429/#754). Set on every
-   * native graph: the backends are virtual-rooted, so every graph carries
+   * Stigmer-harness graph: the backends are virtual-rooted, so every graph carries
    * the repair seam that keeps model-supplied paths canonical.
    */
   readonly pathNormalization?: PathNormalizationConfig | null;

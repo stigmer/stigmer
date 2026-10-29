@@ -37,7 +37,7 @@ skill" when it could be misread.
   authorization model every edition reads.
 - `ee/`: Stigmer Enterprise (`@stigmer/enterprise`), under `ee/LICENSE`.
 - `backend/services/runner/`: the Temporal worker that executes agent sessions
-  through two harnesses (native, Claude: `docs/vocabulary.md`). Own lockfile.
+  through two harnesses (Stigmer, Claude: `docs/vocabulary.md`). Own lockfile.
 - `backend/libs/ts/`: `temporal-codecs`, `zip-structure`, `plugin-package` (the
   Agent Plugins reader the CLI validates with and the server installs from),
   `outbound` (the egress address policy and the MCP OAuth rules the server, the

@@ -1,6 +1,6 @@
 /**
  * Hermetic goldens: STRUCTURED OUTPUT — an execution whose config carries a
- * JSON schema, through the three paths a native turn has:
+ * JSON schema, through the three paths a Stigmer turn has:
  *
  *  1. The engine's `structuredResponse`. langchain 1.4.1 turns a bare schema
  *     into `toolStrategy` when the model's profile does not declare native
@@ -16,7 +16,7 @@
  *  3. The LLM fallback (the runtime's tier 2): the final text carries
  *     no JSON at all, so the runtime asks a second model — the registry's
  *     economy tier for the primary's provider — to extract it through
- *     `withStructuredOutput` (`shared/extract-structured-output.ts`). Native
+ *     `withStructuredOutput` (`shared/extract-structured-output.ts`). Stigmer
  *     gained this arm in #1096, when the turn runtime took the epilogue
  *     over; it is pinned here, where every other alignment of that move
  *     is. Two facts the golden records: the extraction call is a
@@ -37,7 +37,7 @@
  * `extract` (`withStructuredOutput` with no name), bound on the extraction
  * model alone, which is how the script tells the two calls apart.
  *
- * Since #1096 the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the Stigmer harness's adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
  * thinking mode (one writer of the summary, the runtime). Nothing
@@ -72,7 +72,7 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
-import { FIXTURE_NATIVE_MODEL } from "../../../../__test-utils__/model-registry-fixture.js";
+import { FIXTURE_STIGMER_MODEL } from "../../../../__test-utils__/model-registry-fixture.js";
 import { DEFAULT_RECORD_IDS } from "../../../../__test-utils__/execution-record-fixture.js";
 
 const SCHEMA = {
@@ -230,7 +230,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
       expect(extractorBuilds[0]!.headerScope).toEqual({ executionId: DEFAULT_RECORD_IDS.executionId });
       // The fixture registry declares no economy row, so `getEconomyModel`
       // falls back to the primary (its last resort).
-      expect(extractorBuilds[0]!.modelName).toBe(FIXTURE_NATIVE_MODEL);
+      expect(extractorBuilds[0]!.modelName).toBe(FIXTURE_STIGMER_MODEL);
 
       await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/structured-output.tier2.status.json");
       await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/structured-output.tier2.status.json"));

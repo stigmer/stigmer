@@ -1,11 +1,11 @@
-// Covers read normalization over the native engine's read frame: deepagents
+// Covers read normalization over the Stigmer harness's read frame: deepagents
 // (1.12+) renders a text read as one-line bracketed notices, a status header
 // `@@ lines A-B[ of T][ | …] @@`, and then the file's lines unmodified. The view
 // shows the file, so the frame is dropped; a truncation the header reports is
 // kept. The Claude engine answers a read as numbered lines (`1\t# Notes`), each
 // number the next; the view drops the numbers. The cross-language fixture
 // (result-views.json) asserts the happy path; these cover the frames' variants
-// and the results that carry no frame (native rows recorded before the frame
+// and the results that carry no frame (Stigmer rows recorded before the frame
 // existed).
 
 import { describe, it, expect } from "vitest";
@@ -43,7 +43,7 @@ describe("normalizeToolResult — numbered read lines", () => {
   });
 });
 
-describe("normalizeToolResult — native read frame", () => {
+describe("normalizeToolResult — Stigmer-harness read frame", () => {
   it("drops the status header and shows the file's lines", () => {
     const view = fileView("@@ lines 1-2 of 2 @@\npackage main\n");
     expect(view.content).toBe("package main\n");

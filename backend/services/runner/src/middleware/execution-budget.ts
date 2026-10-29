@@ -7,7 +7,7 @@
  *   (parallel calls are one round), counted here as each response returns.
  *   Once N rounds have been proposed, the next model call does not happen:
  *   `wrapModelCall` throws `ToolRoundLimitError` in its place, the graph
- *   ends on round N's tool results, and the native turn reads the error as
+ *   ends on round N's tool results, and the Stigmer turn reads the error as
  *   the `tool_call_limit` outcome (`shared/tool-rounds.ts`
  *   `isToolCallBudgetStop`). Stopping before a model call, never between a
  *   model call and its tools, is what makes N exact and leaves no proposed

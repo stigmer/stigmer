@@ -78,7 +78,7 @@ import { useSessionPageFlow } from "../useSessionPageFlow";
 
 const OPTS = { sessionId: "ses_1", org: "acme" };
 
-const AGENT_ON_NATIVE = {
+const AGENT_ON_STIGMER = {
   harness: Harness.STIGMER,
   runConfig: { modelName: "claude-sonnet-4-6", thinkingMode: ThinkingMode.ENABLED },
 };
@@ -91,7 +91,7 @@ afterEach(() => {
 
 describe("useSessionPageFlow — the agent's run defaults and the model seed", () => {
   it("hands the composer the agent's defaults and seeds no remembered model", () => {
-    mockAgentSpec = AGENT_ON_NATIVE;
+    mockAgentSpec = AGENT_ON_STIGMER;
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     expect(result.current.agentRunDefaults).toEqual({
@@ -102,7 +102,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
   });
 
   it("seeds from the last message's requested model, never the resolved one", () => {
-    mockAgentSpec = AGENT_ON_NATIVE;
+    mockAgentSpec = AGENT_ON_STIGMER;
     mockConv.runs = [
       {
         spec: { runConfig: { modelName: "claude-haiku-4-5" } },
@@ -114,7 +114,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
   });
 
   it("choosing the agent's default back drops the last pick until the next pick", () => {
-    mockAgentSpec = AGENT_ON_NATIVE;
+    mockAgentSpec = AGENT_ON_STIGMER;
     mockConv.runs = [
       { spec: { runConfig: { modelName: "claude-haiku-4-5" } }, status: {} },
     ];
@@ -129,7 +129,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
   });
 
   it("never copies a resolved agent default into the seed", () => {
-    mockAgentSpec = AGENT_ON_NATIVE;
+    mockAgentSpec = AGENT_ON_STIGMER;
     mockConv.runs = [
       { spec: {}, status: { runConfig: { modelName: "claude-sonnet-4-6" } } },
     ];
@@ -138,7 +138,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
   });
 
   it("applies no agent default on another engine, and the remembered model seeds", () => {
-    mockAgentSpec = { ...AGENT_ON_NATIVE, harness: Harness.CLAUDE };
+    mockAgentSpec = { ...AGENT_ON_STIGMER, harness: Harness.CLAUDE };
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     expect(result.current.agentRunDefaults).toBeUndefined();

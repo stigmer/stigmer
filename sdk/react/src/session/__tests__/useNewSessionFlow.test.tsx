@@ -111,7 +111,7 @@ function createMockAdapter(): RunnerAdapter & {
 }
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
-const STORAGE_KEY_MODEL_NATIVE = "stigmer:session:model";
+const STORAGE_KEY_MODEL_STIGMER = "stigmer:session:model";
 const STORAGE_KEY_MODEL_CLAUDE = "stigmer:session:model:claude";
 const CLAUDE_MODEL_ID = "claude-haiku-4.5";
 
@@ -138,7 +138,7 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("harness state", () => {
-    it("defaults to native when localStorage is empty", () => {
+    it("defaults to Stigmer when localStorage is empty", () => {
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
       expect(result.current.harness).toBe("stigmer");
     });
@@ -149,7 +149,7 @@ describe("useNewSessionFlow", () => {
       expect(result.current.harness).toBe("claude");
     });
 
-    it("falls back to native for unknown localStorage values", () => {
+    it("falls back to Stigmer for unknown localStorage values", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "unknown-value");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
       expect(result.current.harness).toBe("stigmer");
@@ -164,7 +164,7 @@ describe("useNewSessionFlow", () => {
       expect(result.current.harness).toBe("claude");
     });
 
-    it("persists native harness to localStorage", () => {
+    it("persists Stigmer harness to localStorage", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "claude");
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
@@ -175,12 +175,12 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("per-harness model persistence", () => {
-    it("uses separate storage keys for native and claude models", () => {
+    it("uses separate storage keys for Stigmer and claude models", () => {
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
 
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBe(
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_STIGMER)).toBe(
         DEFAULT_MODEL_ID,
       );
       expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBeNull();
@@ -228,11 +228,11 @@ describe("useNewSessionFlow", () => {
     it("invalidates modelId when it is not in the active harness registry", () => {
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
-      // Set a native-only model
+      // Set a Stigmer-harness-only model
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
       expect(result.current.modelId).toBe(DEFAULT_MODEL_ID);
 
-      // Switch to claude → native model should be invalidated
+      // Switch to claude → Stigmer-harness model should be invalidated
       act(() => result.current.setHarness("claude"));
 
       // DEFAULT_MODEL_ID (anthropic) is not in the claude registry
@@ -264,7 +264,7 @@ describe("useNewSessionFlow", () => {
 
   describe("model validation timing", () => {
     it("does not restore model while registry is loading", () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_MODEL_STIGMER, DEFAULT_MODEL_ID);
       const loadingState: ModelRegistryState = { models: [], isLoading: true, error: null, refetch: () => {} };
 
       function LoadingWrapper({ children }: { children: ReactNode }) {
@@ -281,7 +281,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("restores model once registry has loaded", () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_MODEL_STIGMER, DEFAULT_MODEL_ID);
 
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
@@ -289,7 +289,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("discards model that no longer exists in the registry", () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, "removed-model-xyz");
+      localStorage.setItem(STORAGE_KEY_MODEL_STIGMER, "removed-model-xyz");
 
       const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
@@ -299,7 +299,7 @@ describe("useNewSessionFlow", () => {
 
   describe("submit — owner-pinned runConfig (#664)", () => {
     it("stamps the pinned model and fast tier over the composer's selection and the restored preference", async () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_MODEL_STIGMER, DEFAULT_MODEL_ID);
       const { result } = renderHook(
         () =>
           useNewSessionFlow({
@@ -825,7 +825,7 @@ describe("useNewSessionFlow", () => {
         result.current.setAgentRef({ org: "acme", slug: "reviewer" });
         result.current.setResolution({ mode: "direct" });
       });
-      // Picked on the native engine while the agent still loads...
+      // Picked on the Stigmer harness while the agent still loads...
       act(() => result.current.setModelId("claude-sonnet-4.6"));
       expect(result.current.harness).toBe("stigmer");
 
@@ -1066,7 +1066,7 @@ describe("useNewSessionFlow", () => {
   });
 
   describe("accountDefaults (the layered seed)", () => {
-    // Two native models so "stored pick outranks account default" is
+    // Two Stigmer-harness models so "stored pick outranks account default" is
     // distinguishable; the shared TEST_MODELS carries one per harness.
     const SEED_MODELS = parseRegistryJson({
       models: [
@@ -1148,15 +1148,15 @@ describe("useNewSessionFlow", () => {
     });
 
     it("seeds the model for the active harness when nothing is stored", () => {
-      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      const opts = { ...defaultOptions(), accountDefaults: { stigmerModel: "gpt-5.3" } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
       expect(result.current.modelId).toBe("gpt-5.3");
     });
 
     it("a stored model pick outranks the account default", async () => {
-      localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, "claude-sonnet-4.6");
-      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      localStorage.setItem(STORAGE_KEY_MODEL_STIGMER, "claude-sonnet-4.6");
+      const opts = { ...defaultOptions(), accountDefaults: { stigmerModel: "gpt-5.3" } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
       // The stored restore lands in a passive effect once the registry is
@@ -1166,23 +1166,23 @@ describe("useNewSessionFlow", () => {
     });
 
     it("self-heals a stale account model to the platform default (undefined)", () => {
-      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "retired-model" } };
+      const opts = { ...defaultOptions(), accountDefaults: { stigmerModel: "retired-model" } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
       expect(result.current.modelId).toBeUndefined();
     });
 
     it("never persists the seeded model — only explicit choices", () => {
-      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      const opts = { ...defaultOptions(), accountDefaults: { stigmerModel: "gpt-5.3" } };
       renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_STIGMER)).toBeNull();
     });
 
     it("follows the active harness: claudeModel seeds Claude sessions, a stored Claude pick outranks the account's engine", () => {
       const opts = {
         ...defaultOptions(),
-        accountDefaults: { harness: "claude" as const, nativeModel: "gpt-5.3", claudeModel: "claude-sonnet-5" },
+        accountDefaults: { harness: "claude" as const, stigmerModel: "gpt-5.3", claudeModel: "claude-sonnet-5" },
       };
       const { result, unmount } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
       expect(result.current.harness).toBe("claude");
@@ -1195,7 +1195,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("submits the seeded model explicitly — the pill promise (#663): the preference seeds, the execution spec records", async () => {
-      const opts = { ...defaultOptions(), accountDefaults: { nativeModel: "gpt-5.3" } };
+      const opts = { ...defaultOptions(), accountDefaults: { stigmerModel: "gpt-5.3" } };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
       await act(async () => {
@@ -1209,7 +1209,7 @@ describe("useNewSessionFlow", () => {
       const opts = {
         ...defaultOptions(),
         audience: "guest" as const,
-        accountDefaults: { harness: "claude" as const, nativeModel: "gpt-5.3", claudeModel: "claude-sonnet-5" },
+        accountDefaults: { harness: "claude" as const, stigmerModel: "gpt-5.3", claudeModel: "claude-sonnet-5" },
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
@@ -1372,7 +1372,7 @@ describe("useNewSessionFlow", () => {
       act(() => result.current.setModelId(CLAUDE_MODEL_ID));
 
       expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
-      expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_STIGMER)).toBeNull();
       expect(localStorage.getItem(STORAGE_KEY_MODEL_CLAUDE)).toBeNull();
     });
 
@@ -1392,7 +1392,7 @@ describe("useNewSessionFlow", () => {
       });
 
       const execInput = mockCreateExecution.mock.calls[0][0];
-      // Omitted engine = the engine the chat link's agent names, native when it
+      // Omitted engine = the engine the chat link's agent names, Stigmer when it
       // names none (the server's session-agent resolution).
       expect(execInput.sessionSpec.harness).toBeUndefined();
       // Omitted model = the agent's own default. If this ever carries a

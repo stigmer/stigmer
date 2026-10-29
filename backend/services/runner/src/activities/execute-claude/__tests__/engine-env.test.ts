@@ -92,7 +92,7 @@ describe("the engine's environment", () => {
     );
   });
 
-  it("caps concurrent sub-agents at the native engine's own number", () => {
+  it("caps concurrent sub-agents at the Stigmer harness's own number", () => {
     expect(ENGINE_SWITCHES.CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS).toBe(String(DEFAULT_MAX_CONCURRENT));
   });
 

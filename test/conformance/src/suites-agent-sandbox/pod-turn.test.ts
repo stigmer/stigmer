@@ -1,5 +1,5 @@
 // A turn outlives its sandbox pod: the open-source server, on the
-// agent-sandbox driver against a real cluster, runs a native turn whose shell
+// agent-sandbox driver against a real cluster, runs a Stigmer turn whose shell
 // step is held open inside the Session's pod, the pod is deleted, and the
 // turn completes on the pod the controller brings back, the model handed the
 // task once.
@@ -17,7 +17,7 @@
 //     once.
 //   - Forced (`--grace-period=0 --force`): the step is cut, the workflow
 //     recovers the turn once its heartbeat lapses, and the new pod resumes
-//     from the native checkpoint on the Session's home claim, so the cut step
+//     from the Stigmer harness's checkpoint on the Session's home claim, so the cut step
 //     runs once more and the task is still handed once. The kill waits for the
 //     step's start to reach the session's log, so the turn that picks it up
 //     says once why it paused.

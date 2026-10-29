@@ -14,7 +14,7 @@
 // opens even under the bypass), which the specs resolve through the real
 // file-review card ("Keep all") — making this file the e2e coverage of the
 // apply-then-review flow as well as of row persistence. Tool choice is the
-// native deep-agent built-ins (write_file / read_file); the shell/MCP
+// Stigmer harness's built-ins (write_file / read_file); the shell/MCP
 // *bounded-preview* rendering is covered exhaustively at the jsdom layer where
 // the result shape is controllable.
 //

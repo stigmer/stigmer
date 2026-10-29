@@ -17,15 +17,15 @@
  *   - a run with neither (no turn has ended yet) adds no tokens and is not
  *     estimated.
  *
- * The runner reports native's buckets, and Claude's normalized to them:
- * LangChain's usage metadata counts the cache inside input_tokens (runner
- * src/activities/execute-deep-agent/turn-stream.ts), so the report's
+ * The runner reports the Stigmer harness's buckets, and Claude's normalized
+ * to them: LangChain's usage metadata counts the cache inside input_tokens
+ * (runner src/activities/execute-deep-agent/turn-stream.ts), so the report's
  * non-cached input is input less both cache buckets, and the runner's total
  * (input + output) is already cache-inclusive.
  * A run records no harness of its own: it runs on its session's
  * (SessionSpec.harness, which dispatch reads, temporal/agentexecution/
  * dispatch.ts), so the caller resolves it and hands it in. An unknown or
- * unset harness is the native one (session/v1 Harness).
+ * unset harness is the Stigmer one (session/v1 Harness).
  *
  * Fold rules the tests pin (__tests__/usage-fold.test.ts):
  *   - served_by rows sum exactly to the aggregate's total_tokens and

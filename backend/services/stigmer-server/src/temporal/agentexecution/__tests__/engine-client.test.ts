@@ -198,7 +198,7 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
         execution_id: "aex_1",
         session_id: "",
         agent_id: "agt_1",
-        // Dispatch defaults: harness NATIVE (nonzero — Go's omitempty
+        // Dispatch defaults: harness STIGMER (nonzero — Go's omitempty
         // keeps it, so the wire carries it) and target resolved LOCAL.
         harness: Harness.STIGMER,
         execution_target: ExecutionTarget.LOCAL,

@@ -3,7 +3,7 @@
  * case-for-case: fail-closed create-time validation of the service tier a
  * turn resolved (#357; each case runs ResolveRunConfig first, as the chain
  * does, over a new conversation with no agent, on Claude unless a case
- * names native) against the bundled registry plus one test-local fast
+ * names Stigmer) against the bundled registry plus one test-local fast
  * price, on the engine the conversation runs (claude-opus-4.8 prices a
  * fast variant on the claude harness only; claude-sonnet-4.6 prices none
  * anywhere). Both editions must refuse the same request with the same
@@ -164,7 +164,7 @@ describe("ValidateServiceTier (#357, bundled registry)", () => {
   });
 
   it("FAST on a model priced fast only on the other engine fails closed, naming the engine", async () => {
-    // FAST_MODEL's fast price is listed under Claude only: on a native
+    // FAST_MODEL's fast price is listed under Claude only: on a Stigmer
     // conversation the tier would select a variant the turn never applies.
     const err = await refusal(
       { modelName: FAST_MODEL, serviceTier: ServiceTier.FAST },

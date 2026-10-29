@@ -2,7 +2,7 @@
  * Hermetic arm: two gated calls proposed in ONE model round, on the durable
  * (sqlite) checkpointer.
  *
- * The native prompt asks the model to make independent calls together
+ * The Stigmer harness's prompt asks the model to make independent calls together
  * (`prompt-builder.ts`, "Working with tools"), so with approvals on, several
  * calls wait in the same round more often than they used to. The resume path
  * was built for it: `hitl.ts` `resolveResumeInput` builds one

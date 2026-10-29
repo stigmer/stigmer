@@ -1,6 +1,6 @@
 /**
  * The agent shell's environment, and what an agent's hooks run with: the
- * native harness's `execute` tool, and both engines' hooks (`hooks/setup.ts`).
+ * Stigmer harness's `execute` tool, and both engines' hooks (`hooks/setup.ts`).
  *
  * Two halves. The base is the runner's own process env minus the runner's
  * credentials: since #508's boot capture, runner secrets never LIVE in

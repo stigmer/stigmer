@@ -1,6 +1,6 @@
 /**
  * The operations a contract subject's `open` steps start, as real shells the
- * kit drives: a subject whose engine runs a shell (the native engine's
+ * kit drives: a subject whose engine runs a shell (the Stigmer harness's
  * `execute`, the Claude engine's host-served `Bash`) runs the command this
  * module hands it, and the kit's long-turn controls (`types.ts`
  * `LongTurnControls`) reach it through here.

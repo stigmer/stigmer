@@ -65,7 +65,7 @@
  * a mount moves, a skill read stops reading as `Skill` and every
  * `tool_used: Skill` grader fails.
  *
- * Proven by __tests__/trace.test.ts, over a native and a Claude transcript,
+ * Proven by __tests__/trace.test.ts, over a Stigmer and a Claude transcript,
  * and ../__tests__/transcript-from-events.test.ts.
  */
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";

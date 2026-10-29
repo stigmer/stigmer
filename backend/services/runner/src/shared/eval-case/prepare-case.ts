@@ -28,13 +28,13 @@
  *
  * Reference folders (`add_dirs`) are written under the session's platform
  * `inputs/`, where both prompt builders list them in `<input_files>` and
- * native file tools refuse writes; the shell can still write there, a
+ * Stigmer file tools refuse writes; the shell can still write there, a
  * departure the guide states. They are rewritten every turn.
  *
- * The recorded conversation is parsed here and handed to the native
- * engine, which resumes it (`execute-deep-agent/turn-setup.ts`); the server
+ * The recorded conversation is parsed here and handed to the Stigmer
+ * harness, which resumes it (`execute-deep-agent/turn-setup.ts`); the server
  * never plans such a case on Claude. The variables overlay the
- * run's agent values, so the native and Claude shells and the plugin's
+ * run's agent values, so the Stigmer and Claude shells and the plugin's
  * hooks receive them through the one path every run value takes
  * (`shell-env.ts`).
  */
@@ -71,7 +71,7 @@ const FAILURE_OUTPUT_BYTES = 600;
 export interface PreparedEvalCase {
   /** The reference folders' files, listed to the agent after the conversation's Files. */
   readonly referenceInputs: readonly ListedFile[];
-  /** The recorded conversation the native engine resumes; absent when the case has none. */
+  /** The recorded conversation the Stigmer harness resumes; absent when the case has none. */
   readonly history: readonly TranscriptMessage[] | undefined;
   /** The case's `EVAL_*` variables. */
   readonly env: Readonly<Record<string, string>>;

@@ -24,7 +24,7 @@ function createWrapper() {
   };
 }
 
-const STORAGE_KEY_NATIVE = "stigmer:session:model";
+const STORAGE_KEY_STIGMER = "stigmer:session:model";
 const STORAGE_KEY_CLAUDE = "stigmer:session:model:claude";
 const CLAUDE_MODEL_ID = "claude-haiku-4.5";
 
@@ -44,13 +44,13 @@ describe("usePersistedModel", () => {
     });
 
     it("restores a valid model from localStorage", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_STIGMER, DEFAULT_MODEL_ID);
       const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
     });
 
     it("returns undefined for an invalid model in localStorage", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, "nonexistent-model-xyz");
+      localStorage.setItem(STORAGE_KEY_STIGMER, "nonexistent-model-xyz");
       const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBeUndefined();
     });
@@ -60,7 +60,7 @@ describe("usePersistedModel", () => {
 
       act(() => result.current[1](DEFAULT_MODEL_ID));
 
-      expect(localStorage.getItem(STORAGE_KEY_NATIVE)).toBe(DEFAULT_MODEL_ID);
+      expect(localStorage.getItem(STORAGE_KEY_STIGMER)).toBe(DEFAULT_MODEL_ID);
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
     });
 
@@ -73,7 +73,7 @@ describe("usePersistedModel", () => {
 
   describe("disabled mode (guest isolation)", () => {
     it("returns undefined even when a valid model is stored", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_STIGMER, DEFAULT_MODEL_ID);
       const { result } = renderHook(
         () => usePersistedModel({ harness: "stigmer", enabled: false }),
         { wrapper: createWrapper() },
@@ -89,7 +89,7 @@ describe("usePersistedModel", () => {
 
       act(() => result.current[1](DEFAULT_MODEL_ID));
 
-      expect(localStorage.getItem(STORAGE_KEY_NATIVE)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_STIGMER)).toBeNull();
       expect(result.current[0]).toBeUndefined();
     });
 
@@ -114,8 +114,8 @@ describe("usePersistedModel", () => {
       expect(result.current[0]).toBe(CLAUDE_MODEL_ID);
     });
 
-    it("extracts plain modelId from native compound key", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, `stigmer/${DEFAULT_MODEL_ID}`);
+    it("extracts plain modelId from Stigmer compound key", () => {
+      localStorage.setItem(STORAGE_KEY_STIGMER, `stigmer/${DEFAULT_MODEL_ID}`);
       const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
       expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
     });
@@ -129,7 +129,7 @@ describe("usePersistedModel", () => {
 
   describe("harness transition (key change re-sync)", () => {
     it("re-reads from new localStorage key when harness changes", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_STIGMER, DEFAULT_MODEL_ID);
       localStorage.setItem(STORAGE_KEY_CLAUDE, CLAUDE_MODEL_ID);
 
       const { result, rerender } = renderHook(
@@ -145,7 +145,7 @@ describe("usePersistedModel", () => {
     });
 
     it("returns undefined after harness change when new key has no stored value", () => {
-      localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
+      localStorage.setItem(STORAGE_KEY_STIGMER, DEFAULT_MODEL_ID);
 
       const { result, rerender } = renderHook(
         ({ harness }: { harness: "stigmer" | "claude" }) => usePersistedModel({ harness }),
@@ -175,7 +175,7 @@ describe("usePersistedModel", () => {
 });
 
 describe("modelStorageKey", () => {
-  it("keeps one key per engine, the native key as it always was", () => {
+  it("keeps one key per engine, the Stigmer harness's key as it always was", () => {
     expect([modelStorageKey("stigmer"), modelStorageKey("claude")]).toEqual([
       "stigmer:session:model",
       "stigmer:session:model:claude",

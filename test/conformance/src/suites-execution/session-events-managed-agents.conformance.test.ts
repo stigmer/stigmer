@@ -8,7 +8,7 @@
 // through the SDK (`client.beta.sessions.events.list`, `.stream`, `.send`),
 // against the server's unified port (TargetProfile.managedAgentsBaseUrl),
 // with a key the arm mints. Every value read is typed by the SDK's own
-// types, and every event the lane served must deep-equal the native log's
+// types, and every event the lane served must deep-equal the Stigmer harness's log's
 // event rendered as Managed Agents JSON (support/managed-agents.ts):
 //
 //   - a user.message sent the moment the stream opened starts a turn; the
@@ -19,7 +19,7 @@
 //     created_at bound select what the native read selects;
 //   - a tool that waits for a person shows as agent.mcp_tool_use with
 //     evaluated_permission ask and an idle requires_action naming it,
-//     answerable by a client that knows no Stigmer event (the native log's
+//     answerable by a client that knows no Stigmer event (the Stigmer harness's log's
 //     stigmer.permission.asked never reaches it); allow runs the call to
 //     end_turn, deny (with its message) ends the turn without it;
 //   - user.interrupt stops a held turn, which ends idle;
@@ -29,7 +29,7 @@
 //     request carries the image;
 //   - an agent that edits files reaches end_turn with the file written and
 //     no Stigmer event on the lane, and with file review on reaches it just
-//     the same, nothing to answer and the edit kept, while the native log
+//     the same, nothing to answer and the edit kept, while the Stigmer harness's log
 //     does carry its stigmer.file_review events: the lane drops them.
 //
 // Out of scope here: the refusals (bad key, outsider, unserved events and
@@ -63,7 +63,7 @@ import {
   isIdleWith,
   listAll,
   managedAgentsClient,
-  nativeAsManagedAgents,
+  stigmerAsManagedAgents,
   storedOf,
 } from "../support/managed-agents";
 import { uniqueName } from "../support/naming";
@@ -161,7 +161,7 @@ function sourceData(block: Record<string, unknown>): string {
   return typeof source?.data === "string" ? source.data : "";
 }
 
-/** The run the newest user.message started, from the native log (the SDK's events carry no run). */
+/** The run the newest user.message started, from the Stigmer harness's log (the SDK's events carry no run). */
 async function newestRunId(sessionId: string): Promise<string> {
   const { events } = await clients.sessionQuery.listEvents({ sessionId, order: "desc", types: ["user.message"], pageSize: 1 });
   const runId = events[0]?.runId ?? "";
@@ -183,7 +183,7 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
     });
     const seen: BetaManagedAgentsStreamSessionEvents[] = await reading;
 
-    const native = await nativeAsManagedAgents(clients, sessionId);
+    const native = await stigmerAsManagedAgents(clients, sessionId);
     expect(native.map((event) => event["type"])).toEqual([
       "user.message",
       "session.status_running",
@@ -211,7 +211,7 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
       await sdk.beta.sessions.events.send(sessionId, { events: [message(text)] });
       await awaitIdleWith(clients, sessionId, "end_turn");
     }
-    const native = await nativeAsManagedAgents(clients, sessionId);
+    const native = await stigmerAsManagedAgents(clients, sessionId);
     expect(native.length, "two turns of four events").toBe(8);
 
     const firstPage = await sdk.beta.sessions.events.list(sessionId, { limit: 3 });
@@ -229,13 +229,13 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
 
     const secondAt = String(messages[1]?.processed_at ?? "");
     const bounded = await listAll(sdk, sessionId, { "created_at[gte]": secondAt });
-    const { events: nativeBounded } = await clients.sessionQuery.listEvents({
+    const { events: stigmerBounded } = await clients.sessionQuery.listEvents({
       sessionId,
       createdAtGte: secondAt,
       types: native.map((event) => String(event["type"])).filter((type, i, all) => all.indexOf(type) === i),
       pageSize: 1000,
     });
-    expect(bounded.map((event) => event.id)).toEqual(nativeBounded.map((event) => (event.event.case === undefined ? "" : event.event.value.id)));
+    expect(bounded.map((event) => event.id)).toEqual(stigmerBounded.map((event) => (event.event.case === undefined ? "" : event.event.value.id)));
     expect(bounded[0]?.type, "the bound starts at the second turn").toBe("user.message");
   });
 
@@ -285,9 +285,9 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
       "agent.message",
       "session.status_idle",
     ]);
-    expect(storedOf(seen)).toEqual(await nativeAsManagedAgents(clients, sessionId));
-    const { events: nativeLog } = await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 });
-    expect(nativeLog.some((event) => event.event.case === "stigmerPermissionAsked"), "Stigmer's own record of the ask stays on its API").toBe(true);
+    expect(storedOf(seen)).toEqual(await stigmerAsManagedAgents(clients, sessionId));
+    const { events: stigmerLog } = await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 });
+    expect(stigmerLog.some((event) => event.event.case === "stigmerPermissionAsked"), "Stigmer's own record of the ask stays on its API").toBe(true);
 
     // Deny, with its message.
     mcp.resetCaptured();
@@ -327,7 +327,7 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
     await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
 
     const stopped = await sdk.beta.sessions.events.send(sessionId, { events: [{ type: "user.interrupt" }] });
-    const native = await nativeAsManagedAgents(clients, sessionId);
+    const native = await stigmerAsManagedAgents(clients, sessionId);
     expect(stopped.data).toEqual(native.filter((event) => event["type"] === "user.interrupt"));
     expect((await awaitTerminal(clients, runId)).status?.phase).toBe(RunPhase.RUN_CANCELLED);
     await awaitIdleWith(clients, sessionId, "end_turn");
@@ -443,10 +443,10 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
       expect(isIdleWith(seen[seen.length - 1]!, "end_turn"), "review never holds the turn").toBe(true);
       expect(await readFile(join(workspace.dir, "notes.txt"), "utf8")).toBe("one\ntwo\n");
       expect(listed.filter((event) => event.type.startsWith("stigmer."))).toEqual([]);
-      const { events: nativeLog } = await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 });
+      const { events: stigmerLog } = await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 });
       expect(
-        nativeLog.some((event) => event.event.case === "stigmerFileReviewChanges"),
-        "the native log carries the review's events, so the lane dropped them",
+        stigmerLog.some((event) => event.event.case === "stigmerFileReviewChanges"),
+        "the Stigmer harness's log carries the review's events, so the lane dropped them",
       ).toBe(true);
     });
   });

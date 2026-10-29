@@ -1,5 +1,5 @@
 // Conformance suite for Run file review (apply-then-review, never a wait):
-// a native-harness turn edits files in a git workspace of a session that asks
+// a Stigmer-harness turn edits files in a git workspace of a session that asks
 // for review, every edit lands, the turn ends, and its delta is offered as one
 // FileChangeSet; a person keeps or undoes it per file or as a set, and an undo
 // puts exactly the undone files back.
@@ -119,12 +119,12 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// The native harness's built-in file tools, the shape the runner binds them in
+// The Stigmer harness's built-in file tools, the shape the runner binds them in
 // (shared/file-tools.ts). Turn builders read as the sequence of model actions.
 const WRITE_FILE_TOOL = "write_file";
 const EDIT_FILE_TOOL = "edit_file";
 const READ_FILE_TOOL = "read_file";
-// The harness id the native runner stamps on a change set.
+// The harness id the Stigmer harness stamps on a change set.
 const STIGMER_HARNESS_ID = "stigmer";
 // The stop cause a reconcile turn settles with (the runner's terminal table).
 const REVIEW_RESOLVED = "review_resolved";
@@ -148,7 +148,7 @@ interface ReviewSession {
   readonly sessionId: string;
 }
 
-// A NATIVE session on an agent with the file tools whose primary workspace is
+// A Stigmer session on an agent with the file tools whose primary workspace is
 // the git work tree; file review is on unless the arm turns it off.
 async function startSession(workspace: GitWorkspace, opts: { fileReview?: boolean } = {}): Promise<ReviewSession> {
   const { org } = await target.provisionTenancy();
@@ -359,7 +359,7 @@ describe("Run file review — the session's choice", () => {
     ]);
     const { executionId, ended, set } = reviewed;
 
-    expect(set.harnessId, "the native harness stamps its id").toBe(STIGMER_HARNESS_ID);
+    expect(set.harnessId, "the Stigmer harness stamps its id").toBe(STIGMER_HARNESS_ID);
     expect(set.aggregateDigest).not.toBe("");
     const change = expectChange(set, path, FileChangeKind.ADD);
     expect(change.before, "an ADD has no before side").toBeUndefined();
@@ -380,7 +380,7 @@ describe("Run file review — the session's choice", () => {
     expect(use, "the flowed edit remains in the turn's log").toBeDefined();
     expect(use!.state).toBe("completed");
     // The input the tool ran with, which the log records as it was: the
-    // native harness's path normalization (runner middleware/path-normalization.ts)
+    // Stigmer harness's path normalization (runner middleware/path-normalization.ts)
     // rewrites the model's workspace-relative path to the virtual root's
     // absolute form before the tool starts, and the tool's start carries that.
     expect(use!.input, "an observational tool use keeps its input").toMatchObject({ file_path: `/${path}` });
@@ -1049,7 +1049,7 @@ describe.skipIf(!collectionTarget.capabilities.billingGates)(
 // File review on Claude: the engine's own `Write` and `Edit` flow into the
 // git workspace, the turn's delta is offered under the Claude harness's id,
 // and a keep and an undo settle Claude's edits exactly as they settle
-// native's. The turn is scripted by conversation (support/engine-arms.ts);
+// the Stigmer harness's. The turn is scripted by conversation (support/engine-arms.ts);
 // a relative path is the engine's workspace's.
 describe("Run file review — on Claude", () => {
   beforeEach(claudeTurnsOnly(collectionTarget.capabilities));

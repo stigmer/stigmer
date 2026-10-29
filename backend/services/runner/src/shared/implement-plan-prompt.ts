@@ -35,7 +35,7 @@ import { isPlanFileName } from "./plan-file.js";
  * extraction and the clients' todo renderers light up unchanged.
  *
  * Deliberately tool-agnostic ("your to-do list"): the Claude engine exposes
- * TodoWrite, the native harness write_todos, and each runtime already
+ * TodoWrite, the Stigmer harness write_todos, and each runtime already
  * teaches the model its own tool.
  *
  * Wording constraint: this block rides BOTH variants, and the conversation-only

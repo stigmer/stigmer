@@ -1,5 +1,5 @@
 /**
- * The names the native engine binds for its built-in tools, the one home
+ * The names the Stigmer harness binds for its built-in tools, the one home
  * every text of this harness quotes them from.
  *
  * The model can call only what is bound, so a prompt that names a tool by

@@ -6,7 +6,7 @@
  * that propose tools, whatever the middleware stack; parallel calls in one
  * response are one round; a response without tool calls, or a `Command`, is
  * not a round; the stop replaces round N+1's model call (the handler is never
- * called for it) and is the typed `ToolRoundLimitError` the native turn reads
+ * called for it) and is the typed `ToolRoundLimitError` the Stigmer turn reads
  * as `tool_call_limit`. The threshold advisory counts the same rounds, so it
  * lands at its percentage of the budget the stop enforces. Periodic mode (the
  * sub-agent stacks) keeps counting model calls and never stops. An advisory

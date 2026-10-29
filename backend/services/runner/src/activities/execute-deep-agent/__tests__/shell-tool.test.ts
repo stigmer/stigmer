@@ -1,5 +1,5 @@
 /**
- * The native `execute` tool (`../shell-tool.ts`) over a scripted backend:
+ * The Stigmer harness's `execute` tool (`../shell-tool.ts`) over a scripted backend:
  * the default bound, a raised one honoured, one above the ceiling clamped and
  * said so; the call's signal handed to the command; output yielded as it
  * arrives and coalesced to the floor; and the result in deepagents' words,
@@ -57,7 +57,7 @@ async function drive(tool: ReturnType<typeof createShellTool>, input: Record<str
   }
 }
 
-describe("the native execute tool", () => {
+describe("the Stigmer execute tool", () => {
   it("runs at deepagents' default bound unless the model raises it, and passes the call's signal", async () => {
     const { backend, runs } = scripted(["ok\n"]);
     const tool = createShellTool({ backend, maxTimeoutSeconds: 600, floorMs: 1 });
@@ -156,7 +156,7 @@ function contentOf(answer: unknown): string {
   return ToolMessage.isInstance(answer) ? String(answer.content) : String(answer);
 }
 
-describe("the native execute tool in the background", () => {
+describe("the Stigmer execute tool in the background", () => {
   it("answers at once with the id, the file and the artifact, and runs at the ceiling unless asked for less", async () => {
     const { backend, runs } = held();
     const commands = new BackgroundCommands();

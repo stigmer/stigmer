@@ -7,8 +7,8 @@
 // and naming neither is refused. The rest: the defaults (a spending limit
 // of 5, filled and flagged; the case's own runs; one at a time; with and
 // without the plugin; no target, so an agent runs its own engine and
-// model), `--model` as engine/model with a bare model on the native
-// engine, `--json` to stdout or to a .json path, `--no-wait`, and that
+// model), `--model` as engine/model with a bare model on the Stigmer
+// harness, `--json` to stdout or to a .json path, `--no-wait`, and that
 // every invalid option exits 1, the format's code, never the CLI's usage
 // code 2, which the format keeps for a partial run.
 
@@ -226,7 +226,7 @@ describe("parseAgentTarget", () => {
 });
 
 describe("parseTarget", () => {
-  it("reads a bare model as the native engine's, and default as the engine's default model", () => {
+  it("reads a bare model as the Stigmer harness's, and default as the engine's default model", () => {
     expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" });
     expect(parseTarget("claude/default")).toEqual({ harness: Harness.CLAUDE, modelName: "" });
     expect(parseTarget("claude/claude-sonnet-5")).toEqual({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" });

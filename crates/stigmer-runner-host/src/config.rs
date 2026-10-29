@@ -26,7 +26,7 @@ pub struct RunnerConfig {
     pub temporal_namespace: Option<String>,
     pub stigmer_token: Option<String>,
     /// Anthropic API key for BYOK direct mode (no `proxy_endpoint`), where the runner's
-    /// native harness calls the provider itself. Unused in proxy mode — the proxy
+    /// Stigmer harness calls the provider itself. Unused in proxy mode — the proxy
     /// injects provider keys server-side.
     pub anthropic_api_key: Option<String>,
     /// OpenAI API key for BYOK direct mode. Same contract as `anthropic_api_key`.

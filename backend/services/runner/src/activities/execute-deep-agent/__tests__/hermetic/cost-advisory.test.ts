@@ -3,7 +3,7 @@
  * `ExecuteDeepAgent` activity, its real cost guard and the scripted model's
  * provider rules (stigmer/stigmer#1354).
  *
- * What the arm does: `max_cost_usd = 1.00` on the fixture's native model,
+ * What the arm does: `max_cost_usd = 1.00` on the fixture's Stigmer-harness model,
  * priced by the stubbed registry at $1.00 per million input tokens
  * (`__test-utils__/model-registry-fixture.ts`). Three tool rounds of 300 000
  * input tokens each reach $0.90: past the advisory's 80% and short of the

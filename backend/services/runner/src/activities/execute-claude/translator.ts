@@ -29,8 +29,8 @@
  *    The gate's provenance for the call (`gate.ts`) is stamped first
  *    (`tool_policy`), with the hook that decided, so the row says which
  *    layer let it run or refused it. The hooks' feedback on the call
- *    (`hooks.ts` `HookFeedback`) is appended to its result, as the native
- *    engine's row carries it. A call a person refused on its card is the
+ *    (`hooks.ts` `HookFeedback`) is appended to its result, as the Stigmer
+ *    harness's row carries it. A call a person refused on its card is the
  *    runtime's to settle (`harness/approval-decisions.ts`, "Rejected by
  *    user"), so the engine's refusal of it is applied to nothing.
  *  - An `Agent` call opens and closes a sub-agent row around it, the
@@ -48,7 +48,7 @@
  * (`mcp__stigmer__bash`, `host-shell.ts`) is reported as `Bash` too, so the
  * aliased name never reaches a row. An MCP call's row is its tool, by the
  * bare name its server gave it, with the bridged server's slug
- * (`mcp-bridge.ts`), as the native engine names it, so every
+ * (`mcp-bridge.ts`), as the Stigmer harness names it, so every
  * reader of a row (the session's log, the eval trace, the views) reads one
  * spelling; the engine's own `mcp__<slug>__<tool>` never reaches a row.
  * Every other name is a built-in's.

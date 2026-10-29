@@ -91,7 +91,7 @@ export interface ConformanceClients {
   // `billingEngine` is false.
   billingCommand: Client<typeof BillingCommandController>;
   billingQuery: Client<typeof BillingQueryController>;
-  // An organization's own provider keys, which every native run on the
+  // An organization's own provider keys, which every Stigmer run on the
   // hosted edition needs. Cloud-only, like billing.
   providerKeyCommand: Client<typeof ProviderKeyCommandController>;
   // The plan catalog and subscriptions: cloud_only kinds, so the local OSS

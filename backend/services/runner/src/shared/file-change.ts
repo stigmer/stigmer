@@ -11,7 +11,7 @@ import { isAbsolute, join, relative } from "node:path";
 
 /**
  * Heuristic binary detection: a NUL byte never appears in valid UTF-8 text. This
- * is a safety net, not a feature — the native edit/write tools are string-based,
+ * is a safety net, not a feature — the Stigmer edit/write tools are string-based,
  * so captured content is text in practice.
  */
 export function looksBinary(content: string): boolean {
@@ -37,7 +37,7 @@ export function bytesLookBinary(bytes: Uint8Array): boolean {
  * for a file a tool touched.
  *
  * `virtualRoot` distinguishes the two harness path conventions:
- *  - native (deepagents) addresses files against a virtual root where a leading
+ *  - Stigmer (deepagents) addresses files against a virtual root where a leading
  *    "/" denotes the workspace root;
  *  - a caller holding real filesystem paths (which may be absolute) passes
  *    `false`.

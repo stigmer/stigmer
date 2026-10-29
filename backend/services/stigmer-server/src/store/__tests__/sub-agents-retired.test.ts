@@ -7,7 +7,7 @@
  *     Agent manifest: its name made a slug, its description and
  *     instructions, its skills, the parent's plugins and env declarations,
  *     its own tools else the parent's, the union of both disallowed lists,
- *     and a model override as `run_config.model_name` on the native engine;
+ *     and a model override as `run_config.model_name` on the Stigmer harness;
  *     the same line carries the `subagents` entry to add to the parent;
  *   - the changed agent heads a new version: the recomputed spec hash, the
  *     previous one named, the step's message; nothing else of it changes;

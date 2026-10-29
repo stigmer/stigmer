@@ -1,5 +1,5 @@
 /**
- * One native deep-agent engine turn — the LangGraph slice of the harness,
+ * One Stigmer-harness engine turn — the LangGraph slice of the harness,
  * behind the turn runtime's contract (`harness/types.ts`).
  *
  * `runDeepAgentTurn` is what `adapter.ts`'s `runTurn` delegates to: the

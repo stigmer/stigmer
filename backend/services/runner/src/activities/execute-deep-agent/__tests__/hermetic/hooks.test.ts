@@ -1,6 +1,6 @@
 /**
  * Hermetic golden: a plugin's tool hook denies, allows and asks on the
- * native engine — the real activity, two invocations on the durable (sqlite)
+ * Stigmer harness — the real activity, two invocations on the durable (sqlite)
  * checkpointer, a real command hook.
  *
  * The agent lists the `safety` plugin (`AgentSpec.plugins`). The blueprint

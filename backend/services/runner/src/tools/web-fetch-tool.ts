@@ -1,8 +1,8 @@
 /**
- * Native `web_fetch` tool — built-in URL retrieval for the deep-agent harness.
+ * The Stigmer harness's `web_fetch` tool — its built-in URL retrieval.
  *
  * Closes the harness parity gap of stigmer/stigmer#214: the Claude engine
- * ships WebFetch as a built-in, while native runs previously needed an MCP
+ * ships WebFetch as a built-in, while Stigmer runs previously needed an MCP
  * server (seedpack `fetch`) for the same capability. Both tool names
  * classify to TOOL_KIND_FETCH, so rendering is identical across harnesses.
  *
@@ -52,7 +52,7 @@ export interface WebFetchToolOptions {
   readonly posture: GuardPosture;
 }
 
-/** The tool's bound name; the tool lists' native table (`shared/tool-lists.ts`) maps it to Claude's `WebFetch`. */
+/** The tool's bound name; the tool lists' Stigmer table (`shared/tool-lists.ts`) maps it to Claude's `WebFetch`. */
 export const WEB_FETCH_TOOL_NAME = "web_fetch";
 
 export function createWebFetchTool(options: WebFetchToolOptions) {

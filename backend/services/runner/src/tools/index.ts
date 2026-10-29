@@ -1,5 +1,5 @@
 /**
- * Native built-in tools for the deep-agent harness.
+ * The Stigmer harness's built-in tools.
  *
  * These are Stigmer-authored capabilities appended to the agent's tool list
  * in execute-deep-agent/turn-setup.ts (and mirrored for sub-agents in
@@ -7,14 +7,14 @@
  * (ls/read_file/execute/…) and from MCP tools, which arrive via the
  * connection layer.
  *
- * Contract for adding a native tool (what keeps the two harnesses at parity):
+ * Contract for adding a Stigmer-harness tool (what keeps the two harnesses at parity):
  *
  * 1. Name it in snake_case (`web_fetch`, not `WebFetch` — PascalCase names
  *    are Claude Code's).
  * 2. Register the name in shared/tool-kind.ts `TOOL_NAME_TO_KIND` and its
  *    lockstep mirrors (test/fixtures/tool-view/classification.json, the SDK
  *    fallback resolver), and extend the ToolKind enum comment in
- *    run/v1/enum.proto with a `Native:` clause.
+ *    run/v1/enum.proto with a `Stigmer:` clause.
  * 3. Name the primary argument to match the SDK's presentation `primaryField`
  *    for the tool's kind (sdk/react tool-categories.ts) so both harnesses
  *    render identically.

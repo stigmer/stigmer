@@ -81,7 +81,7 @@ export interface ThinkingProfile {
 
 /**
  * The request facts a model's registry row states for its engine, read by
- * the native turn when it builds its model client and by the Claude turn for
+ * the Stigmer turn when it builds its model client and by the Claude turn for
  * its thinking form. One home for what the provider needs to be told about a
  * model (the runner never names models in code); a field is `undefined` when
  * the row does not state it.
@@ -225,8 +225,8 @@ export async function getSummarizationModel(primaryModel: string): Promise<strin
  *
  * Resolution order:
  * 1. Find the primary model's provider in the registry
- * 2. Find an economy-tier native model from that provider
- * 3. Cross-provider fallback: any economy-tier native model
+ * 2. Find an economy-tier Stigmer-harness model from that provider
+ * 3. Cross-provider fallback: any economy-tier Stigmer-harness model
  * 4. Last resort: return the primary model itself
  */
 export async function getEconomyModel(primaryModel: string): Promise<string> {
@@ -273,8 +273,8 @@ export async function getEconomyModel(primaryModel: string): Promise<string> {
  * same default per engine, `modelcatalog/document-catalog.ts`):
  * 1. Featured + standard (the platform's curated default)
  * 2. Any standard model
- * 3. Hardcoded fallback (registry unavailable), a model both the native and
- *    the Claude engine run
+ * 3. Hardcoded fallback (registry unavailable), a model both the Stigmer and
+ *    the Claude harness run
  */
 const FALLBACK_DEFAULT_MODEL = "claude-sonnet-4-6";
 

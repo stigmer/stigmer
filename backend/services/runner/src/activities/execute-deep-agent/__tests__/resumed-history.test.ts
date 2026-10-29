@@ -1,5 +1,5 @@
 /**
- * Pins a eval-run try's recorded conversation as the native graph's
+ * Pins a eval-run try's recorded conversation as the Stigmer harness's graph's
  * messages (`resumed-history.ts`): text to human and AI messages, an
  * assistant's tool calls on its AI message under Claude Code's names, a
  * user's tool results as tool messages answering them before any text,

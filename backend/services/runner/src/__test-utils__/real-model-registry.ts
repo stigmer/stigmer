@@ -66,12 +66,12 @@ export function parseRealRegistry(text: string, source: string): RealRegistryDoc
   return { models };
 }
 
-/** The id the runner sends the provider for a native row (`resolveToApiModelId`'s rule). */
+/** The id the runner sends the provider for a Stigmer row (`resolveToApiModelId`'s rule). */
 export function providerModelId(row: RealRegistryRow): string {
   return row.apiModelId ?? row.id;
 }
 
-/** The native harness's rows: every model a native turn may be sent to Anthropic as. */
-export function nativeRows(document: RealRegistryDocument): readonly RealRegistryRow[] {
+/** The Stigmer harness's rows: every model a Stigmer turn may be sent to Anthropic as. */
+export function stigmerRows(document: RealRegistryDocument): readonly RealRegistryRow[] {
   return document.models.filter((m) => m.harness === "stigmer");
 }

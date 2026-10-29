@@ -72,7 +72,7 @@ export interface BuildChatModelOptions {
   };
   /**
    * Defaults to 0. `null` sends no sampling override at all, so the
-   * provider's default applies: the native execution turn passes it,
+   * provider's default applies: the Stigmer harness's execution turn passes it,
    * because current Anthropic models refuse a temperature other than their
    * default (claude-opus-4.7 and later, claude-sonnet-5, claude-fable-5;
    * @langchain/anthropic throws before the request for some of them)
@@ -116,7 +116,7 @@ export interface BuildChatModelOptions {
    * UNSPECIFIED. When set, every provider request pins its tier explicitly
    * (OpenAI `service_tier`; Anthropic `service_tier` via invocationKwargs)
    * so the provider ACCOUNT's default can never pick the price — the #357
-   * contract, held on the native harness. Deliberately optional:
+   * contract, held on the Stigmer harness. Deliberately optional:
    * platform-internal utility calls (tool-approval classification, session
    * subjects, structured extraction) are not the
    * execution's own turns and send no tier — the provider treats an absent
@@ -126,12 +126,12 @@ export interface BuildChatModelOptions {
   readonly serviceTier?: EffectiveServiceTier;
   /**
    * Anthropic's `thinking` request parameter, already mapped by the caller
-   * from the execution's effective mode and the model's native registry row
+   * from the execution's effective mode and the model's Stigmer registry row
    * (thinking-mode.ts `toAnthropicThinking`). Unlike the tier it is sent on
    * every Anthropic backend: both thinking forms exist on the public API,
    * Vertex, Bedrock and Foundry alike. A value for a non-Anthropic model is
-   * refused rather than dropped: no other provider has a native thinking
-   * mapping, and a silently ignored mode is the #357 class of defect.
+   * refused rather than dropped: no other provider has a thinking mapping
+   * on the Stigmer harness, and a silently ignored mode is the #357 class of defect.
    * Omitted, the request carries no thinking parameter (utility calls).
    */
   readonly thinking?: ThinkingConfigParam;
@@ -341,7 +341,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   if (opts.thinking !== undefined && provider !== "anthropic") {
     throw new Error(
       `buildChatModel: a thinking parameter was passed for ${opts.modelName}, a ${provider} model; ` +
-        "only Anthropic models have a native thinking mapping",
+        "only Anthropic models have a thinking mapping on the Stigmer harness",
     );
   }
 

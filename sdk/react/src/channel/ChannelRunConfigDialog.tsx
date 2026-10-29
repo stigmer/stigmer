@@ -56,7 +56,7 @@ export interface ChannelRunConfigDialogProps {
  * preserved verbatim on save, never rendered.
  *
  * The harness dropdown is a browsing scope for the picker, initialized to
- * native (the platform's default harness): channels carry no
+ * Stigmer (the platform's default harness): channels carry no
  * per-channel harness — the serving harness is a platform property — and
  * the write-time model-pin validation judges the pin against any harness
  * section, so pinning under either scope is legitimate.

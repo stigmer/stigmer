@@ -122,10 +122,10 @@ export interface RunnerManagerOptions {
   /** How often a working turn says what it has open (ms): its `stigmer.run.liveness` interval. @default 30000 */
   readonly livenessIntervalMs?: number;
 
-  /** The most the native shell's model may raise one command's timeout to (seconds). @default 3300 */
+  /** The most the model may raise one command's timeout to in the Stigmer harness's shell (seconds). @default 3300 */
   readonly shellTimeoutMaxSeconds?: number;
 
-  /** Whether the native shell's model may start a command in the background. @default true */
+  /** Whether the model may start a command in the background in the Stigmer harness's shell. @default true */
   readonly shellBackgroundEnabled?: boolean;
 
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */

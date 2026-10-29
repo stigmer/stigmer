@@ -33,7 +33,7 @@ export interface SessionSpecOptions {
   subject?: string;
   // Execution engine. Omitted by default so the create-vs-get parity check stays
   // stable on the as-stored value (the server does not normalize harness at
-  // create — UNSPECIFIED is only resolved to NATIVE at execution dispatch).
+  // create — UNSPECIFIED is only resolved to STIGMER at execution dispatch).
   harness?: Harness;
   // Where activities run. Omitted by default for the same parity reason.
   executionTarget?: ExecutionTarget;

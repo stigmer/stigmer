@@ -6,7 +6,7 @@
  * substitute these words on that arm and frame them their own way (the
  * `prompt-sections.ts` doctrine: the framing is house style, the words are
  * shared), so a person who picks no agent meets the same assistant on the
- * native and the Claude harness, and a maintainer changes the assistant in
+ * Stigmer and the Claude harness, and a maintainer changes the assistant in
  * one place.
  *
  * A prompt is code: versioned here, pinned by the prompt goldens of both

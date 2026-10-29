@@ -64,7 +64,7 @@ spec:
     # `stigmer push skill ../skills/stigmer-docs` publishes it first.
     - kind: skill
       slug: stigmer-docs
-  # No mcp_server_usages, deliberately. Web retrieval is the native harness's
+  # No mcp_server_usages, deliberately. Web retrieval is the Stigmer harness's
   # built-in `web_fetch`, so this agent needs ZERO tool wiring: no MCP server
   # to resolve, no subprocess to spawn, no credentials to bind on the channel,
   # nothing to rotate. The built-in is auto-approved by design (see

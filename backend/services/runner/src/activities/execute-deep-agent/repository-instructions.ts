@@ -1,5 +1,5 @@
 /**
- * The native engine's reader of the workspace's own instruction files: the
+ * The Stigmer harness's reader of the workspace's own instruction files: the
  * shared rule (`shared/repository-instructions.ts`, which says which file is
  * read per directory, how it is bounded and how it is shown) over this
  * engine's file backend.

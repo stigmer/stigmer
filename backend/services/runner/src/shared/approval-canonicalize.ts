@@ -14,7 +14,7 @@ import { createHash } from "node:crypto";
 import { posix } from "node:path";
 
 export interface ToolActionInput {
-  // Engine tool name (Claude PascalCase or native snake_case). Identity is kept
+  // Engine tool name (Claude PascalCase or Stigmer snake_case). Identity is kept
   // as-given (only trimmed) because ToolKind already normalizes cross-harness
   // naming elsewhere; canonicalization must not silently merge distinct tools.
   toolName: string;

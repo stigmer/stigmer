@@ -3,7 +3,7 @@
  * `ExecuteDeepAgent` activity, and the turn's record of the tool as the
  * model was offered it (stigmer#2366).
  *
- * Invariant pinned: the native engine hands the transcript builder what it
+ * Invariant pinned: the Stigmer harness hands the transcript builder what it
  * offered the model of each MCP tool it loaded (`turn.ts`,
  * `listingOfLoadedTools`), and the builder records the called tool's
  * definition once (`rows.mcp_tool_definitions`): its description, and the

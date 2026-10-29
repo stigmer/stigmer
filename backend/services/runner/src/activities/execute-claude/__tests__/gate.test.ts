@@ -20,7 +20,7 @@
  *    compared on the head it kept), a hook's deny binds after an approval;
  *  - a call an earlier, stopped run left waiting, and one this run left
  *    pending without proposing it;
- *  - the agent's hooks in the native gate's order: deny, ask (with the
+ *  - the agent's hooks in the Stigmer harness's gate's order: deny, ask (with the
  *    hook named), allow (a lease on an ask included), a rewrite judged
  *    again and returned to the engine, an ask with a rewrite refused, under
  *    "trust this whole run" only the hooks, a sub-agent's own hooks and its

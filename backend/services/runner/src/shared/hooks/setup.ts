@@ -2,7 +2,7 @@
  * A turn's hooks, turned into the evaluator (`evaluate.ts`): the half of the
  * setup no engine owns. Each engine's adapter passes the runtime's resolved
  * sources (every plugin mounted and verified) with its own views of its
- * calls (`tool-view.ts` for the native engine, `execute-claude/
+ * calls (`tool-view.ts` for the Stigmer harness, `execute-claude/
  * hook-views.ts` for Claude), and gets the evaluator back, or `null` when
  * the agent has no hook either engine runs.
  *

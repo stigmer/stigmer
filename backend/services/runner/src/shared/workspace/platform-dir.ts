@@ -7,7 +7,7 @@
  *   agent sees via the `.stigmer/` virtual namespace (WorkspaceBackend routing).
  * - `displaced/` — a real `.stigmer` entry found in the workspace when the
  *   platform link takes the name, kept rather than deleted (stigmer-link.ts).
- * - `offload/` — what the native engine offloads from its own context: the
+ * - `offload/` — what the Stigmer harness offloads from its own context: the
  *   summarized conversation history and tool results too large to keep
  *   (`execute-deep-agent/platform-route.ts` routes deepagents' two roots
  *   here). Beside `platform/`, not under it, so the workspace's `.stigmer`

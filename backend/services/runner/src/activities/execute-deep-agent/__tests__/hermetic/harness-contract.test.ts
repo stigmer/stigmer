@@ -1,5 +1,5 @@
 /**
- * The harness contract kit, BOTH halves, against the REAL native deep-agent
+ * The harness contract kit, BOTH halves, against the REAL Stigmer
  * adapter under the sqlite checkpointer.
  *
  * The adapter-side half (`__test-utils__/harness-contract/contract.ts`) is the
@@ -9,12 +9,12 @@
  * real Claude adapter. The runtime-side
  * half (`runtime-contract.ts`) is what the turn runtime owes every harness,
  * through the real activity under `MockActivityEnvironment`. This file runs
- * BOTH against `createDeepAgentAdapter()` through the native subject
+ * BOTH against `createDeepAgentAdapter()` through the Stigmer subject
  * (`__test-utils__/contract-subject.ts`), which translates the kit's
  * scenarios onto the `ScriptedModel` double and lets deepagents' real
  * built-ins run over the real approval gate. Nothing of the adapter is
  * mocked; the model client and the control-plane client are the two doubles
- * every native hermetic golden already substitutes.
+ * every Stigmer hermetic golden already substitutes.
  *
  * The posture is sqlite, the production local default (`config.ts`): the
  * test-only memory saver re-interrupts on replay and duplicates the gated
@@ -35,14 +35,14 @@
  * summarizer, under the runner's compaction middleware, complete, each
  * marked once and billed, the summary never spoken as the agent; that arm is
  * an ordinary pass.
- * Stopping a native turn while its `execute` or its subagent runs forces the
+ * Stopping a Stigmer turn while its `execute` or its subagent runs forces the
  * graph's abort after the stop's grace, and that abort leaves orphaned
  * rejections (`turn-stream.ts` explains the one `@langchain/core` leaves; an
  * aborted subagent's own failure is the other). The long-turn arms stop turns
  * that way on purpose while their gaps hold, so this file declares exactly
  * those (`stopOrphans`), and any other orphan still fails the arm.
  *
- * Beside the kit, the native-only observations its vocabulary cannot
+ * Beside the kit, the Stigmer-only observations its vocabulary cannot
  * express — the interrupt primitive's own facts: an APPROVED pending action
  * executes at the resume, before the model is asked (the order the kit's
  * invariant 4 used to assert the other way round, until this adapter showed
@@ -83,19 +83,19 @@ import { getCheckpointDbPath, getOffloadDir } from "../../../../shared/workspace
 import { createDeepAgentContractSubject } from "../../__test-utils__/contract-subject.js";
 import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
-/** The abort reason the native stream loop stops a graph run with (`turn-stream.ts`), as the orphan carries it. */
-const NATIVE_STOP_REASON = "stopped by the runtime";
+/** The abort reason the Stigmer harness's stream loop stops a graph run with (`turn-stream.ts`), as the orphan carries it. */
+const STIGMER_STOP_REASON = "stopped by the runtime";
 
 /**
- * The orphan a native turn stopped mid-step leaves: the run's abort itself,
+ * The orphan a Stigmer turn stopped mid-step leaves: the run's abort itself,
  * which the backstop and drain arms cause on purpose. The kit helper no
  * longer fails when its parent is stopped: its work is a shell that stops
  * with the turn, so its failure is not an orphan any arm leaves.
  */
-function isNativeStopOrphan(reason: unknown): boolean {
-  if (reason === NATIVE_STOP_REASON) return true;
+function isStigmerStopOrphan(reason: unknown): boolean {
+  if (reason === STIGMER_STOP_REASON) return true;
   if (!(reason instanceof Error)) return false;
-  return reason.message === NATIVE_STOP_REASON;
+  return reason.message === STIGMER_STOP_REASON;
 }
 
 const env = createHermeticEnvironment();
@@ -120,10 +120,10 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
   describeHarnessContract(subject);
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["internal"],
-    stopOrphans: isNativeStopOrphan,
+    stopOrphans: isStigmerStopOrphan,
   });
 
-  describe("native-only observations", () => {
+  describe("Stigmer-only observations", () => {
     beforeAll(async () => {
       await subject.adapter.boot(subject.config);
     });

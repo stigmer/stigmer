@@ -254,7 +254,8 @@ function searchCountLabel(count: number, kind: SearchView["kind"]): string {
  *   full path on hover, opens on GitHub or copies locally).
  * - **Content search** (`kind: "content"` — grep): the matches are lines,
  *   grouped under their file with `line: text` rows; matches with no file
- *   association (the native grep shape) render as a flat monospace list.
+ *   association (the Stigmer harness's grep shape) render as a flat
+ *   monospace list.
  *
  * The count header uses the engine's authoritative `count` (which can exceed the
  * returned matches when `truncated`), and a "showing first N" note makes a
@@ -364,7 +365,7 @@ interface MatchGroup {
 /**
  * Groups consecutive matches that share a file into one group, preserving order.
  * Matches with no file association fall into their own file-less group so the
- * native grep shape (line text only) still renders as a flat list.
+ * Stigmer harness's grep shape (line text only) still renders as a flat list.
  */
 function groupMatchesByFile(matches: readonly ToolSearchMatch[]): MatchGroup[] {
   const groups: MatchGroup[] = [];

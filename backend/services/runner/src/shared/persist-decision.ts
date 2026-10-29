@@ -3,7 +3,7 @@
  *
  * Harness-agnostic, and both adapters' stream loops read it
  * (`execute-deep-agent/turn-stream.ts`, `execute-claude/turn.ts`; the
- * native orchestrator's own copy of the rule retired with it in #1096):
+ * Stigmer harness's orchestrator's own copy of the rule retired with it in #1096):
  * `shouldPersist = transcriptDirty || scheduler.shouldSendUpdate(eventCount)`.
  * Both harnesses thus share one cadence model — a discrete state change
  * flushes immediately, high-frequency token deltas ride a bounded time

@@ -23,7 +23,7 @@
  *
  * The full graph, its stream and the transcript are the contract kit's
  * (`__test-utils__/harness-contract/runtime-contract.ts`, the three
- * compactions arm, on the native subject).
+ * compactions arm, on the Stigmer subject).
  */
 
 import { mkdtemp, rm } from "node:fs/promises";

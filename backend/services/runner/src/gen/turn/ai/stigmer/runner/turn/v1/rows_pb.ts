@@ -496,7 +496,7 @@ export type ToolCall = Message<"ai.stigmer.runner.turn.v1.ToolCall"> & {
 
   /**
    * Harness-agnostic category of this tool, set by the runner so clients render
-   * the tool identically regardless of which engine produced it. The native and
+   * the tool identically regardless of which engine produced it. The Stigmer and
    * Claude harnesses use different tool-name conventions; tool_kind erases that
    * difference at the source.
    *

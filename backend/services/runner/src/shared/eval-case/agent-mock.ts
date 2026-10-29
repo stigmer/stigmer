@@ -9,7 +9,7 @@
  * model is the eval's judge model, or the runner's default when the eval
  * names none, the reading an empty model has everywhere on the runner. It
  * goes through the proxy with the try's execution scope, so the proxy bills
- * the try, and its cost is priced as the native engine prices its own
+ * the try, and its cost is priced as the Stigmer harness prices its own
  * (`computeTurnCost` on the model's pricing) for the try's estimate and
  * cap.
  *

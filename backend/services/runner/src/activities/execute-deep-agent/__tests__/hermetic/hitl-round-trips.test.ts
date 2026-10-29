@@ -39,10 +39,10 @@
  * superset assertion (the leased variant lives in `hitl-approve-all-lease`).
  *
  * The REJECT arm is what #1096 aligned the runtime to (REJECT continues on
- * both harnesses); this golden is the native truth it must reproduce.
+ * both harnesses); this golden is the Stigmer truth it must reproduce.
  *
  * What every reinvocation golden here shows since #1096 (the runtime over
- * the native adapter): `startedAt` is THIS turn's own,
+ * the Stigmer harness's adapter): `startedAt` is THIS turn's own,
  * not turn 1's carried by the orchestrator's whole-status clone; the
  * `fileReviewEventStream` carries only the events THIS turn authored (the
  * runtime seeds messages, sub-agents, artifacts, write-backs, todos, usage,

@@ -19,7 +19,7 @@
  *  - A table lists engine names in a fixed order and each name's covered
  *    Claude tools in a fixed order. The reverse reading takes the first
  *    covered tool, so the order is part of the contract, pinned by tests.
- *  - `Skill` is a Claude name no engine tool covers: native activates a
+ *  - `Skill` is a Claude name no engine tool covers: Stigmer activates a
  *    skill by reading its `SKILL.md`, which is a read, and the
  *    Claude engine's own `Skill` tool is itself. The runner gives `Skill` its
  *    own meaning (a deny hides skills); the tables never list it.
@@ -72,11 +72,11 @@ export function isClaudeTool(name: string): name is ClaudeTool {
 export const CLAUDE_TOOL_ALIASES: ReadonlyMap<string, ClaudeTool> = new Map([["Task", "Agent"]]);
 
 /**
- * The native engine's tool names and the Claude tools each covers. `delete`
+ * The Stigmer harness's tool names and the Claude tools each covers. `delete`
  * is listed for completeness: the runner never binds it (file review needs
  * every removal to go through a reviewable write).
  */
-export const NATIVE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
+export const STIGMER_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
   ["execute", ["Bash"]],
   ["read_file", ["Read"]],
   ["write_file", ["Write"]],
@@ -108,7 +108,7 @@ export type ToolEngine = "stigmer" | "claude";
 function recordedTable(engine: ToolEngine): ReadonlyMap<string, readonly ClaudeTool[]> {
   switch (engine) {
     case "stigmer":
-      return NATIVE_TOOL_COVERS;
+      return STIGMER_TOOL_COVERS;
     case "claude":
       return CLAUDE_TOOL_COVERS;
     /* v8 ignore start -- @preserve: the never arm; the compiler proves no engine reaches it */

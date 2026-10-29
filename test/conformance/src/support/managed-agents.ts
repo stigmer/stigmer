@@ -8,7 +8,7 @@
 // SDK is the outside spec's client: what it sends and parses IS the wire.
 // Every value the facets read is typed by the SDK's own types, so `tsc`
 // holds the suites to them, and every event the lane serves must deep-equal
-// the native log's event rendered by `toManagedAgentsJson`, which the
+// the Stigmer harness's log's event rendered by `toManagedAgentsJson`, which the
 // session-log shape test proves against the same types: lane = renderer =
 // SDK.
 import Anthropic from "@anthropic-ai/sdk";
@@ -35,7 +35,7 @@ export function managedAgentsClient(baseUrl: string, credential: ManagedAgentsCr
 
 // The session's whole log as the lane must serve it: the native events,
 // Managed Agents types only, each rendered as Managed Agents JSON.
-export async function nativeAsManagedAgents(
+export async function stigmerAsManagedAgents(
   clients: ConformanceClients,
   sessionId: string,
   runId?: string,

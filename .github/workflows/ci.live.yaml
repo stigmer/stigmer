@@ -6,7 +6,7 @@
 # against the real providers, on their cheapest models, so a retired model id,
 # a changed provider API or a price table that no longer knows a model is seen
 # the week it happens instead of by a user:
-#   runner-live  the runner's live suites: a native turn, a tool call and a
+#   runner-live  the runner's live suites: a Stigmer turn, a tool call and a
 #                cost-cap stop on Claude Haiku; a Claude engine turn through
 #                an approval; the workflow llm_call; every registry row's id
 #                at its provider.
@@ -25,7 +25,7 @@
 # Money: the case list is fixed; each execution runs under its own cost cap
 # (max_cost_usd) and each workflow call under a token cap. runner-live's step
 # summary lists the estimated spend of every case that has an estimate (the
-# native turns, the llm_call cases). The CLI's one turn has no product cap and
+# Stigmer turns, the llm_call cases). The CLI's one turn has no product cap and
 # no estimate; it takes at most one short turn.
 #
 # Key: ANTHROPIC_API_KEY from the `provider-integration` environment, which

@@ -555,13 +555,13 @@ export async function assertNonExecutingDecisionSettlesSkipped(
  * the next message), `error` starting with the cross-repo prefix Stigmer
  * Cloud's channel delivery matches on, the user copy as the one system row,
  * `completedAt` stamped, RETURNED (a retry would spend the same budget), and
- * the step after the limit never processed. Before #1096 the native harness
+ * the step after the limit never processed. Before #1096 the Stigmer harness
  * RETURNED this terminal without persisting it; the
  * runtime's arm is the one persisted terminal.
  *
  * The execution SETS the budget it exhausts: the record carries the smallest
  * valid `max_tool_rounds` (an unbounded execution has no limit to reach — on
- * native `resolveToolRoundLimit(0)` is unlimited, and the first run of this
+ * Stigmer `resolveToolRoundLimit(0)` is unlimited, and the first run of this
  * arm against it spun until the test timed out). The fake
  * exhausts whatever budget it is given; a real engine spins its cheapest
  * ungated tool until the graph stops it.
@@ -795,7 +795,7 @@ const STALL_CLOCK_INTERVAL_MS = 25;
  * park is reported while the chunks the engine produced before parking are
  * still in its event pipeline ahead of the adapter's loop, so activity marks
  * land AFTER a single tick and a frozen clock reads idle 0 from then on
- * (measured on the native adapter: 35 marks at the park, 37
+ * (measured on the Stigmer harness's adapter: 35 marks at the park, 37
  * within 10 ms). A pull-based double's park implies everything before it
  * was seen; a real stall is wall time passing while the engine is silent,
  * whichever shape the engine has. The interval advances a SCRIPTED clock —
@@ -1113,7 +1113,7 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
 // windows and lets one real watchdog poll pass, so "ten silent minutes" is
 // three windows and about a second. Every arm runs with the record's
 // whole-run trust (`autoApproveAll`), the product's own "trust this whole
-// run", because a native shell is gated in every other posture.
+// run", because a Stigmer-harness shell is gated in every other posture.
 
 /** How many stall windows an open operation lasts: the "ten silent minutes" of a long build, at three times the window. */
 export const LONG_OPERATION_WINDOWS = 3;
@@ -1783,7 +1783,7 @@ export async function assertFinishedEngineSettlesWithoutAModelCall(harness: Runt
  * task nor the decision handed again, and the approved call ran once. The
  * drain lands on the persist that carries the call's completion (the
  * platform-STOP arm's lever) rather than in an open operation: the arm keeps
- * the asking posture its approval needs, in which a native operation's
+ * the asking posture its approval needs, in which a Stigmer operation's
  * shell would be gated too.
  */
 export async function assertDrainAfterAnApprovedCallContinues(harness: RuntimeContractHarness, gap?: string, label = "rt-drain-after-approval"): Promise<RuntimeArmResult> {

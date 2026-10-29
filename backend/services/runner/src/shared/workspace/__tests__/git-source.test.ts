@@ -100,7 +100,7 @@ describe("provisionGit", () => {
     const result = await provisionGit(makeOptions({ backend }));
     expect(result.workspaceDescription).toContain("github.com/org/repo.git");
     expect(result.workspaceDescription).toContain("(branch: main)");
-    // The native system prompt carries this text on every turn; write-back
+    // The Stigmer harness's system prompt carries this text on every turn; write-back
     // commits move HEAD every approved turn, so a commit here would change it.
     expect(result.workspaceDescription).not.toContain("sha789");
     expect(result.gitMetadata?.baseCommit, "the commit stays in the metadata write-back reads").toBe("sha789");

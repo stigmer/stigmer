@@ -1,5 +1,5 @@
 /**
- * Pins the native turn's check of an agent's tool lists (`turn-setup.ts`):
+ * Pins the Stigmer turn's check of an agent's tool lists (`turn-setup.ts`):
  *  - what "the turn has it" means (`turnToolInventory`): the built-ins it
  *    binds, in Claude's names, and each connected server's live tools — the
  *    platform's own servers left out, since no list can name them;

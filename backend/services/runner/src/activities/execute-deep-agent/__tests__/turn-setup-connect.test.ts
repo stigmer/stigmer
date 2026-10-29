@@ -1,5 +1,5 @@
 /**
- * Pins the native turn's connect (`turn-setup.ts` `connectTools`) over a
+ * Pins the Stigmer turn's connect (`turn-setup.ts` `connectTools`) over a
  * turn with saved subagents: every server is connected once by slug, a
  * server the main agent and a subagent share included; the main agent binds
  * only its own servers' tools (`mcpTools`), never a server only a subagent

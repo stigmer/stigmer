@@ -1,4 +1,4 @@
-// Conformance suite for an agent's two tool lists on the native engine (Class B).
+// Conformance suite for an agent's two tool lists on the Stigmer harness (Class B).
 // Domain: agentic / agentexecution — AgentSpec.tools ("only these") and
 // AgentSpec.disallowed_tools ("never these"), read through execution status.
 //
@@ -62,8 +62,8 @@ import { FIXTURE_SERVER, oneServerPlugin, pluginToolName, pushPlugin } from "../
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
-// The native engine's shell tool, which Claude's `Bash` names.
-const NATIVE_SHELL_TOOL = "execute";
+// The Stigmer harness's shell tool, which Claude's `Bash` names.
+const STIGMER_SHELL_TOOL = "execute";
 
 // The words every out-of-scope refusal carries after the tool's name (the
 // runner's shared/tool-lists.ts outOfScopeMessage); this package cannot
@@ -119,7 +119,7 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
     mock.enqueue(
       anthropicToolUses([
         { toolCallId: "call_in_scope", toolName: ECHO_TOOL_NAME, toolInput: { text: "in scope" } },
-        { toolCallId: "call_denied_shell", toolName: NATIVE_SHELL_TOOL, toolInput: { command: "echo denied" } },
+        { toolCallId: "call_denied_shell", toolName: STIGMER_SHELL_TOOL, toolInput: { command: "echo denied" } },
         { toolCallId: "call_unlisted", toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text: "unlisted" } },
       ]),
     );
@@ -163,13 +163,13 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
     expect(scripted.length, "the tool round and the answer").toBe(2);
     const offered = (readAnthropicRequest(scripted[0]!.body).tools ?? []).map((t) => t.name);
     expect(offered, "the in-scope tool is offered").toContain(ECHO_TOOL_NAME);
-    expect(offered, "a tool disallowed_tools removes is not offered").not.toContain(NATIVE_SHELL_TOOL);
+    expect(offered, "a tool disallowed_tools removes is not offered").not.toContain(STIGMER_SHELL_TOOL);
     expect(offered, "a tool tools does not name is not offered").not.toContain(DESTRUCTIVE_ECHO_TOOL_NAME);
 
     // Refused: the model reads each refusal on its next request, and the
     // refused tools never ran (the fixture saw exactly the one in-scope call).
     const nextRequest = JSON.stringify(scripted[1]!.body);
-    expect(nextRequest, "the model reads the shell refusal").toContain(`${NATIVE_SHELL_TOOL} ${OUT_OF_SCOPE}`);
+    expect(nextRequest, "the model reads the shell refusal").toContain(`${STIGMER_SHELL_TOOL} ${OUT_OF_SCOPE}`);
     expect(nextRequest, "the model reads the unlisted tool's refusal").toContain(`${DESTRUCTIVE_ECHO_TOOL_NAME} ${OUT_OF_SCOPE}`);
 
     expect(
@@ -185,7 +185,7 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
     expect(inScope, "the in-scope echo is in the log").toBeDefined();
     expect(inScope!.state, "the in-scope echo ran").toBe("completed");
     expect(inScope!.result?.text).toContain("in scope");
-    for (const name of [NATIVE_SHELL_TOOL, DESTRUCTIVE_ECHO_TOOL_NAME]) {
+    for (const name of [STIGMER_SHELL_TOOL, DESTRUCTIVE_ECHO_TOOL_NAME]) {
       const refused = byName(name);
       expect(
         refused,
@@ -197,7 +197,7 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
   });
 });
 
-// The built-in delegation tool the native engine binds when the turn has
+// The built-in delegation tool the Stigmer harness binds when the turn has
 // sub-agents (a listed plugin's agents among them).
 const TASK_TOOL_NAME = "task";
 

@@ -263,7 +263,7 @@ export function resolveToolKindByName(name: string, mcpServerSlug?: string): Too
  * SHELL tools (stigmer#276) — a short human description of what the command
  * does and why, rendered as the row title with the command as secondary text.
  *
- * Two writers populate it, converged on one wire key by design: the native
+ * Two writers populate it, converged on one wire key by design: the Stigmer
  * harness's tool-intent middleware (`backend/services/runner/src/middleware/
  * tool-intent.ts`, `INTENT_ARG`) extends the shell tool's bind-time schema
  * with it, and the Claude harness's built-in Bash tool carries it natively.
@@ -454,7 +454,7 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
 function normalizeEdit(args: Args): ToolResultView {
   // The inline transcript diff for a file edit is reconstructed from the tool
   // args (there is no captured `file_changes` mirror — apply-then-review renders
-  // captured diffs via FileReviewCard/FileChangeDiff, not here). The native
+  // captured diffs via FileReviewCard/FileChangeDiff, not here). The Stigmer
   // and Claude engines return prose with no diff, so the presentation layer
   // computes the visual diff from the args fragments.
   const path = firstString(args, PATH_FIELDS) ?? "";
@@ -473,7 +473,7 @@ function normalizeWrite(args: Args): ToolResultView {
 
 function normalizeRead(args: Args, result: string): ToolResultView {
   const path = firstString(args, PATH_FIELDS) ?? "";
-  const framed = splitNativeReadFrame(result) ?? splitNumberedReadFrame(result);
+  const framed = splitStigmerReadFrame(result) ?? splitNumberedReadFrame(result);
   return {
     type: "file",
     path,
@@ -483,27 +483,27 @@ function normalizeRead(args: Args, result: string): ToolResultView {
   };
 }
 
-// The native engine (deepagents 1.12+) frames a text read as zero or more
+// The Stigmer harness (deepagents 1.12+) frames a text read as zero or more
 // one-line bracketed notices, one status header — `@@ lines A-B[ of T][ | next
 // offset N] @@`, with `truncated …` fields when it cut the window — and then the
 // file's lines unmodified. Format owned by the engine; covered by
 // test/fixtures/tool-view/result-views.json. The view shows the file, so the
 // frame is dropped and a truncation it reports is kept.
-const NATIVE_READ_NOTICE = /^\[.*\]$/;
-const NATIVE_READ_FIELDS = /^(?:lines \d+-\d+|truncated)/;
+const STIGMER_READ_NOTICE = /^\[.*\]$/;
+const STIGMER_READ_FIELDS = /^(?:lines \d+-\d+|truncated)/;
 
 /** The header's fields when `line` is the status header, read by position. */
-function nativeReadHeaderFields(line: string): string | undefined {
+function stigmerReadHeaderFields(line: string): string | undefined {
   if (!line.startsWith("@@ ") || !line.endsWith(" @@") || line.length < 7) return undefined;
   const fields = line.slice(3, -3);
-  return NATIVE_READ_FIELDS.test(fields) ? fields : undefined;
+  return STIGMER_READ_FIELDS.test(fields) ? fields : undefined;
 }
 
-function splitNativeReadFrame(result: string): { body: string; truncated: boolean } | undefined {
+function splitStigmerReadFrame(result: string): { body: string; truncated: boolean } | undefined {
   const lines = result.split("\n");
   let at = 0;
-  while (NATIVE_READ_NOTICE.test(lines[at] ?? "")) at += 1;
-  const fields = nativeReadHeaderFields(lines[at] ?? "");
+  while (STIGMER_READ_NOTICE.test(lines[at] ?? "")) at += 1;
+  const fields = stigmerReadHeaderFields(lines[at] ?? "");
   if (fields === undefined) return undefined;
   return { body: lines.slice(at + 1).join("\n"), truncated: fields.includes("truncated") };
 }
@@ -536,7 +536,7 @@ const SHELL_EXIT_MARKER = /\n?\[Command (?:succeeded|failed with exit code (\d+)
 
 // The exit line the runner's own shell formatter appends after a failed exit
 // (`shared/shell/run-command.ts` `formatCommandOutput`): the Claude engine's
-// shell and a native background command's output. Covered by
+// shell and a Stigmer-harness background command's output. Covered by
 // test/fixtures/tool-view/result-views.json.
 const SHELL_EXIT_LINE = /\n\nExit code: (\d+)$/;
 
@@ -556,11 +556,11 @@ function normalizeBackground(background: BackgroundCommandView, args: Args): Too
 
 function normalizeShell(result: string, args: Args): ToolResultView {
   // The command is the session's prompt line. "command" matches the shell
-  // primaryField shared with the runner/Go classifier and both native and
+  // primaryField shared with the runner/Go classifier and both Stigmer and
   // Claude args, so no fallback fields are needed.
   const command = firstString(args, ["command"]);
 
-  // Native subagent steps emit structured shell output, a
+  // Stigmer-harness subagent steps emit structured shell output, a
   // {stdout,stderr,exitCode} record; read it so the real output surfaces
   // instead of the raw JSON string. A failed shell never reaches here —
   // normalizeToolResult routes TOOL_CALL_FAILED to the error view first — so
@@ -605,7 +605,7 @@ function normalizeSearch(result: string): ToolResultView {
   return searchFromPlainText(result);
 }
 
-// The plain-text path for the native harness: grep emits "  12: match" lines;
+// The plain-text path for the Stigmer harness: grep emits "  12: match" lines;
 // glob/semantic search emit one path per line.
 function searchFromPlainText(result: string): ToolResultView {
   const lines = nonEmptyLines(result);
@@ -727,7 +727,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 // True when a record carries structured shell output (stdout/exitCode), the
-// shape native subagent steps emit (normalizeShell).
+// shape Stigmer-harness subagent steps emit (normalizeShell).
 function hasShellFields(v: unknown): v is Record<string, unknown> {
   return isRecord(v) && ("stdout" in v || "exitCode" in v);
 }

@@ -16,12 +16,12 @@
  *    values (`agents.ts`); the agent's skills load through the engine's own
  *    Skill tool, from plugins the harness writes (`skill-plugins.ts`).
  *  - Hooks: the agent's `PreToolUse` and `PostToolUse` hooks, in both
- *    formats, run in the gate in the native engine's order, a sub-agent's
+ *    formats, run in the gate in the Stigmer harness's order, a sub-agent's
  *    own after the conversation's (`hooks.ts`, `hook-views.ts`).
  *  - The host bridge lists every server's tools itself and reads each
- *    tool's destructive mark there (`mcp-bridge.ts`), as the native engine
+ *    tool's destructive mark there (`mcp-bridge.ts`), as the Stigmer harness
  *    does.
- *  - The native engine's vision profile: the same Anthropic Messages API
+ *  - The Stigmer harness's vision profile: the same Anthropic Messages API
  *    reads the same images.
  *  - File review under the `claude` harness id with nothing excluded: the
  *    engine's configuration and transcripts live in the session's directory,

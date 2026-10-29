@@ -52,7 +52,7 @@ import type { RunnableConfig } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
@@ -79,7 +79,7 @@ export interface SubagentRepositoryInstructions {
   /** The run's bound on each file. */
   readonly maxChars: number;
 }
-import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
+import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as STIGMER_OUTPUTS_FOLDER } from "./platform-route.js";
 import { outputsFolderInstruction } from "../../shared/prompt-sections.js";
 import type { CasCaptureObserver } from "../../shared/filereview/cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
@@ -191,14 +191,14 @@ export function compiledPrompt(spec: TransformedSubagent, writesAllowed: boolean
     readsWorkspace: readsWorkspace(spec),
     hasRepositoryInstructions: repositoryInstructionsSection !== "",
   });
-  const own = extras.outputsLine ? `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n` : spec.systemPrompt;
+  const own = extras.outputsLine ? `${spec.systemPrompt}- ${outputsFolderInstruction(STIGMER_OUTPUTS_FOLDER)}\n` : spec.systemPrompt;
   if (!extras.repositoryInstructions) return own;
   return `${trimTrailingLineEnds(own)}${repositoryInstructionsSection}\n`;
 }
 
 /** Whether a sub-agent's own scope lets `read_file` read the workspace, as its scope middleware judges a read (`middleware/tool-scope.ts`). */
 export function readsWorkspace(spec: TransformedSubagent): boolean {
-  return spec.scope.allowsEngineTool(ENGINE_TOOL.readFile, NATIVE_TOOL_COVERS);
+  return spec.scope.allowsEngineTool(ENGINE_TOOL.readFile, STIGMER_TOOL_COVERS);
 }
 
 // =========================================================================
@@ -283,7 +283,7 @@ export interface SubagentTransformOptions {
   /** Which MCP server each parent tool belongs to, for the sub-agents' tool spans (`middleware/otel-spans.ts`). */
   readonly toolServerMap?: ReadonlyMap<string, string>;
   /**
-   * URL-guard posture for the native `web_fetch` tool, inherited from the
+   * URL-guard posture for the Stigmer harness's `web_fetch` tool, inherited from the
    * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
    * fetch is bounded exactly like a parent fetch.
    */
@@ -385,7 +385,7 @@ export function createBuiltinSubagents(
         name: "general-purpose",
         description: GENERAL_PURPOSE_DESCRIPTION,
         systemPrompt: DEFAULT_SUBAGENT_PROMPT + RESPONSE_RULES,
-        // Parent-parity tool set: MCP tools plus the native web_fetch the
+        // Parent-parity tool set: MCP tools plus the Stigmer web_fetch the
         // parent always carries. explore/shell stay web-less on purpose —
         // their prompts scope them to the workspace, not the internet.
         tools: [

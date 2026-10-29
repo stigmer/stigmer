@@ -8,7 +8,7 @@
  * Pure decisions over a call's category, its arguments and the turn's
  * capture posture ({@link FileEditPosture}): what a gate does with the
  * answer (the message the model reads, the row, the blocked path's
- * recording) is the gate's. The native gate (`middleware/approval-gate.ts`)
+ * recording) is the gate's. The Stigmer harness's gate (`middleware/approval-gate.ts`)
  * and the Claude gate (`activities/execute-claude/gate.ts`) both call them,
  * so the two engines can never disagree on which edit flows or which secret
  * is kept out.
@@ -63,7 +63,7 @@ export interface FileEditPosture {
    * gitignored path stays on the interrupt gate exactly as before.
    *
    * True only for a gate whose engine observes the bytes it overwrites (the
-   * native engine's CAS-observing backend, on its parent and every sub-agent
+   * Stigmer harness's CAS-observing backend, on its parent and every sub-agent
    * gate). A gate over an UNOBSERVED engine must keep this false: flowing its
    * gitignored edits would apply unobserved, unreviewable bytes.
    */

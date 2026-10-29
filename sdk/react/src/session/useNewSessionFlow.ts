@@ -35,7 +35,7 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 /**
  * Platform policy for guest (share/embed) sessions: the session names no
  * engine and the run names no model, so the server starts the conversation
- * on the engine the chat link's agent names (native when it names none) and the
+ * on the engine the chat link's agent names (Stigmer when it names none) and the
  * run takes the agent's own defaults. A guest runs the agent as its owner
  * built it, on the organization's own provider keys; nothing a visitor's
  * browser holds shapes it.

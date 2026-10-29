@@ -91,7 +91,7 @@ const probe = createTarget();
 const hasReaders = probe.engineCoordinates !== undefined && probe.runnerLogFile !== undefined;
 const hasWorkingAgent = hasReaders && probe.mcpFixture !== undefined && probe.capabilities.firstPartyMemoryCapture;
 
-// The native harness's built-in file tool, as the runner binds it.
+// The Stigmer harness's built-in file tool, as the runner binds it.
 const WRITE_FILE_TOOL = "write_file";
 
 let target: TargetProfile;
@@ -303,7 +303,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(m.attachment_count, "memory is the one platform attachment").toBe(1);
       expect(m.skill_count).toBe(8);
       expect(m.workspace_entry_count).toBe(1);
-      expect(m.mcp_connect_ms, "native connects its servers inside setup").not.toBeNull();
+      expect(m.mcp_connect_ms, "the Stigmer harness connects its servers inside setup").not.toBeNull();
       expect(m.tool_calls).toBe(2);
       expect(m.sub_agent_calls).toBe(0);
 

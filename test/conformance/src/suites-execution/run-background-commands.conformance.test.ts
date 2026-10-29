@@ -3,7 +3,7 @@
 // stop of it.
 // Domain: agentic / session — a command that runs on after its call returned.
 //
-// Each arm runs the native harness against the wire mock, with a REAL
+// Each arm runs the Stigmer harness against the wire mock, with a REAL
 // `execute` the model asks for with `background: true`, under the whole-run
 // trust (spec.auto_approve_all), because a shell is gated in every other
 // posture. The model's script: start the command, end its reply (the turn

@@ -14,7 +14,7 @@
 import { RunnableLambda, type RunnableConfig } from "@langchain/core/runnables";
 
 /**
- * How many sub-agents run at once by default. The native prompt states this
+ * How many sub-agents run at once by default. The Stigmer harness's prompt states this
  * number to the model (`execute-deep-agent/prompt-builder.ts`), so it has one
  * home: this constant.
  */

@@ -6,7 +6,7 @@
  *     in plugin order, and writes each plugin's block of the skeleton (a
  *     plugin whose cases do not run keeps its reason and gets none);
  *   - with no targets named, a case's target is the agent as it runs: its
- *     engine (native for none) and its model as the label, and the try's
+ *     engine (Stigmer for none) and its model as the label, and the try's
  *     run names no model, so the agent's own tier and thinking apply;
  *   - a try's session runs the agent pinned to the stamped version and
  *     lists every plugin the agent attaches pinned to its stamped digest,

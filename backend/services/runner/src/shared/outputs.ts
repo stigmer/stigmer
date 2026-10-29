@@ -78,7 +78,7 @@ export const READ_CHUNK_BYTES = 8 * 1024 * 1024;
 export const PUT_TIMEOUT_MS = 15 * 60 * 1000;
 
 /**
- * Whether a native file tool's path (virtual-rooted at the workspace,
+ * Whether a Stigmer-harness file tool's path (virtual-rooted at the workspace,
  * `/.stigmer/outputs/…`) names something inside the outputs folder, the
  * folder itself excluded. A path with any `..` segment is not: text
  * normalization would drop `<link>/..` before the filesystem resolves the
@@ -90,7 +90,7 @@ export function isInOutputsFolder(virtualPath: string): boolean {
   return normalized.startsWith(OUTPUTS_VIRTUAL_PREFIX) && normalized.length > OUTPUTS_VIRTUAL_PREFIX.length;
 }
 
-/** The outputs folder as the native file tools name it. */
+/** The outputs folder as the Stigmer harness's file tools name it. */
 const OUTPUTS_VIRTUAL_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/${OUTPUTS_SUBDIR}/`;
 
 /**
@@ -98,7 +98,7 @@ const OUTPUTS_VIRTUAL_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/${OUTPUTS_SUBDIR}/`;
  * names platform content, which no turn writes: `.stigmer/` itself or
  * anything under it but the outputs folder's contents. Skills, plugins and
  * inputs are presented read-only, and a write there would reach the
- * session's platform folder unreviewed; the native engine mounts it so
+ * session's platform folder unreviewed; the Stigmer harness mounts it so
  * (`execute-deep-agent/platform-route.ts`), and every engine's gate that
  * judges paths reads this. Compared without regard to case: on a
  * case-insensitive filesystem `.Stigmer/skills` is the same folder.

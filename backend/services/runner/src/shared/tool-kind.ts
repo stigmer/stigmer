@@ -1,7 +1,7 @@
 /**
  * Harness-agnostic tool classification for the runner.
  *
- * Every harness emits engine-specific tool names — the native (deepagents)
+ * Every harness emits engine-specific tool names — the Stigmer (deepagents)
  * harness uses snake_case (edit_file, execute, grep) and the Claude harness
  * Claude Code's own (Edit, Bash, Agent). This module is the single place that
  * maps a tool name to the wire-level ToolKind, so every client renders a tool
@@ -132,7 +132,7 @@ export function toolApprovalCategory(name: string): ToolApprovalCategory | undef
     case ToolKind.SHELL:
       return "shell";
     // FETCH is deliberately uncategorized — i.e. auto-approved. This is what
-    // makes the native web_fetch usable in unattended runs, where a gated tool is
+    // makes the Stigmer web_fetch usable in unattended runs, where a gated tool is
     // silently skipped. The safety boundary for web_fetch is its URL guard
     // (tools/url-guard.ts), not the approval gate.
     default:

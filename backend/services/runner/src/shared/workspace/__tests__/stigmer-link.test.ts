@@ -35,7 +35,7 @@ import { LocalWorkspaceBackend } from "../local-backend.js";
  * readable at the same `.stigmer/…` path from inside the workspace once the
  * link exists, and not before (the "plan file doesn't exist" bug).
  *
- * The native harness's FILE tools do not read through the link — their
+ * The Stigmer harness's FILE tools do not read through the link — their
  * virtual-rooted backend refuses a path whose real location leaves the
  * workspace — so their side of the convergence is pinned on the production
  * backends in `activities/execute-deep-agent/__tests__/platform-route.test.ts`.

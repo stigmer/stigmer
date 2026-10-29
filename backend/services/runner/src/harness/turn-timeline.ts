@@ -20,7 +20,7 @@
  * transcript builder (`transcript/builder.ts`) is the one view the runtime
  * has of every harness's turn — model rounds, text, tools, sub-agents all
  * reach it as a translator's output on one union — so a fold over it is
- * written once and holds for the native adapter, the Claude adapter and
+ * written once and holds for the Stigmer harness's adapter, the Claude adapter and
  * the next one. `UsageAccumulator` (`usage-accumulator.ts`) is the same shape
  * for the usage deltas; this is that shape for the events.
  *
@@ -33,13 +33,13 @@
  *     `text_delta`. The two token instants are the cross-harness axes: with
  *     extended thinking on, the visible instant moves earlier and the text
  *     instant later, and a comparison needs both. `first_event_ms` is
- *     harness-relative — on native the first event is `message_start`, the
+ *     harness-relative — on Stigmer the first event is `message_start`, the
  *     model stream opening; on Claude it is whatever the engine's process
  *     delivered first — and is kept as a forensic (engine-ready to first model event), never as
  *     an axis. An instant that never happened is `null`.
  *   - One `model_round` span per `runId`, `message_start` to `message_finish`.
  *     What a `runId` is belongs to the translator: LangGraph's LLM-call run on
- *     native, one model round; the API message on Claude, one model call.
+ *     Stigmer, one model round; the API message on Claude, one model call.
  *     The line's `rounds` reads the same way.
  *   - One `tool:<name>` span per `callId` (`tool:<slug>/<name>` for an MCP
  *     tool, so the MCP phase the runner skill's law asks for is legible),

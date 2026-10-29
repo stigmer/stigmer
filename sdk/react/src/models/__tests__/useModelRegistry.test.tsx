@@ -258,7 +258,7 @@ describe("useModelRegistry", () => {
       }
     });
 
-    it("includes models from both native and claude harnesses", () => {
+    it("includes models from both stigmer and claude harnesses", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
       const harnesses = new Set(result.current.models.map((m) => m.harness));
       expect(harnesses.has("stigmer")).toBe(true);
@@ -357,8 +357,8 @@ describe("useModelRegistry", () => {
     });
   });
 
-  describe("native harness (explicit)", () => {
-    it("shows only native-harness models", () => {
+  describe("Stigmer harness (explicit)", () => {
+    it("shows only Stigmer-harness models", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "stigmer" }),
       { wrapper: createWrapper() });
@@ -377,7 +377,7 @@ describe("useModelRegistry", () => {
       expect(claudeModels).toHaveLength(0);
     });
 
-    it("resolves defaultModel to the featured standard-cost native model (what an unpinned execution runs, #663)", () => {
+    it("resolves defaultModel to the featured standard-cost Stigmer-harness model (what an unpinned execution runs, #663)", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "stigmer" }),
       { wrapper: createWrapper() });
@@ -411,7 +411,7 @@ describe("useModelRegistry", () => {
       expect(result.current.getModel("claude-opus-4.8")).toBeDefined();
     });
 
-    it("cannot look up native-only models via getModel", () => {
+    it("cannot look up Stigmer-harness-only models via getModel", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "claude" }),
       { wrapper: createWrapper() });

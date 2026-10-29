@@ -50,7 +50,7 @@
  * The first turn's stamps are `:01` (#1097, 2026-09-15): until then the
  * golden held `:02` for message 1, its row's `startedAt`/`completedAt`, and
  * the flip to `:01` in CI was a producer/consumer race, not a change of rule.
- * This is the one native scenario whose first mid-stream persist shells out
+ * This is the one Stigmer scenario whose first mid-stream persist shells out
  * (the capture substrate's `file_change_progress`), and while the loop awaited
  * it LangGraph's producer ran the tool and called the scripted model's second
  * turn, whose tick landed before message 1 was stamped — on a fast machine;

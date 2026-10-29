@@ -16,7 +16,7 @@
 // run's spec.run_config.max_cost_usd carries it, the server keeps the smallest
 // bound any layer sets (domain/run/resolve-run-config.ts), and the runtime
 // ends the turn `budget_reached` at the crossing (harness/cost-cap-watch.ts).
-// Defaults: $10 a run on native and on Claude.
+// Defaults: $10 a run on Stigmer and on Claude.
 //
 // On Claude (`--harness claude`) the agent lists one saved helper on Claude
 // for the `subagent` step, and the step names it with the engine's `Agent`
@@ -53,7 +53,7 @@
 // bundled steps, or that compacted fewer than three times, reads void.
 // `--profile retention --model claude-haiku-4.5` is the goal-retention probe.
 //
-// Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native and Claude;
+// Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for Stigmer and Claude;
 // the `stigmer` CLI (`make install-cli-shim`).
 //
 // Flags: those of the real-clock run (--profile, --minutes, --steps, --out),

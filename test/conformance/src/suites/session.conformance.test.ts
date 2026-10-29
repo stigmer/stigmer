@@ -293,11 +293,11 @@ describe("Session conformance — CRUD & identity", () => {
 });
 
 describe("Session conformance — configuration fields", () => {
-  it("[rpc:SessionCommandController.create] stores an omitted harness as UNSPECIFIED (resolved to NATIVE only at execution dispatch)", async () => {
+  it("[rpc:SessionCommandController.create] stores an omitted harness as UNSPECIFIED (resolved to STIGMER only at execution dispatch)", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionAgentRef(org);
 
-    // Session.create does not normalize harness; the "defaults to NATIVE" semantic
+    // Session.create does not normalize harness; the "defaults to STIGMER" semantic
     // is applied at dispatch time (out of scope here), so the stored value of an
     // omitted harness is UNSPECIFIED.
     const created = await createSession(org, uniqueName("session"), agentRef);

@@ -3,7 +3,7 @@
  *
  * Pins the proto contract's arithmetic (0/unset = unlimited, the 10–1000
  * clamp and its warnings), the backstop that must never bind before the
- * round count, and the classifier the native turn uses to read a thrown
+ * round count, and the classifier the Stigmer turn uses to read a thrown
  * error as the `tool_call_limit` outcome. The classifier cases use
  * LangChain's and LangGraph's own error classes, so an engine upgrade that
  * changes how a middleware's throw reaches the turn fails here, not in a

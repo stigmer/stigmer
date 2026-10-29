@@ -1,4 +1,4 @@
-// Conformance suite for the shape of the request the native harness sends the
+// Conformance suite for the shape of the request the Stigmer harness sends the
 // model: for a BARE agent (one instruction sentence; no skills, workspace
 // resources, files, channel, sub-agents or standing context), the bytes
 // the provider receives on the first model call, photographed as file
@@ -9,7 +9,7 @@
 // captured request bodies (test/support/src/mock-llm.ts), which are "everything the
 // model received over the wire".
 //
-// Why this facet exists: the native harness's latency and output quality are
+// Why this facet exists: the Stigmer harness's latency and output quality are
 // a function of what the model is sent — how many bytes of prompt precede
 // the user's message, which tools it may call and what their descriptions
 // nudge it to do, whether extended thinking is on, and whether the prompt is
@@ -41,7 +41,7 @@
 //   for it. An org that turns memory on adds one stdio MCP tool served by the
 //   `stigmer` command on PATH — a different photograph this facet does not
 //   take.
-// - The request posture a model's native registry row decides, asserted as
+// - The request posture a model's Stigmer registry row decides, asserted as
 //   values, not a golden: no temperature (current Anthropic models refuse
 //   one other than their default, stigmer/stigmer#1341); `max_tokens` at the
 //   row's output ceiling, on a streamed request (stigmer/stigmer#1343); and
@@ -66,7 +66,7 @@
 //
 // The goldens depend on two things the header names so a moved golden is
 // diagnosed, not guessed at: (1) the model the runner resolves for a bare
-// agent with no pin — the model registry's first featured standard native
+// agent with no pin — the model registry's first featured standard Stigmer
 // row (runner shared/model-registry.ts getDefaultModel) — because deepagents
 // appends a per-model prompt suffix; a reorder of the registry's featured
 // rows moves this golden; (2) the pinned deepagents version, whose
@@ -89,7 +89,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { readAnthropicRequest, readLastUserText, type AnthropicMessageBody, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
-import { requireNativeRow, wireModelIdOf, type ModelRegistryDocument } from "../harness/model-registry";
+import { requireStigmerRow, wireModelIdOf, type ModelRegistryDocument } from "../harness/model-registry";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, BARE_AGENT_INSTRUCTIONS, agentRefOf, makeAgent } from "../support/agents";
@@ -192,12 +192,12 @@ async function registry(): Promise<ModelRegistryDocument> {
   return target.modelRegistryDocument();
 }
 
-// The native row whose wire id the request carries (the bare agent's model
+// The Stigmer row whose wire id the request carries (the bare agent's model
 // is the registry's default, which arrives as its provider id).
-function nativeRowOnTheWire(document: ModelRegistryDocument, wireModel: string) {
+function stigmerRowOnTheWire(document: ModelRegistryDocument, wireModel: string) {
   const row = document.models.find((model) => model.harness === "stigmer" && wireModelIdOf(model) === wireModel);
   if (row === undefined) {
-    throw new Error(`no native registry row puts ${JSON.stringify(wireModel)} on the wire`);
+    throw new Error(`no Stigmer registry row puts ${JSON.stringify(wireModel)} on the wire`);
   }
   return row;
 }
@@ -206,13 +206,13 @@ function toolNames(request: AnthropicRequestBody): string[] {
   return (request.tools ?? []).map((tool) => tool.name);
 }
 
-// The registry rows the thinking arms pin, one per form a native row
+// The registry rows the thinking arms pin, one per form a Stigmer row
 // declares (the bundled registry the local execution server serves).
 const ADAPTIVE_MODEL = "claude-sonnet-5";
 const BUDGET_MODEL = "claude-haiku-4.5";
 const THINKING_REQUIRED_MODEL = "claude-fable-5";
 
-describe("Run request shape — what the native harness sends the model for a bare agent", () => {
+describe("Run request shape — what the Stigmer harness sends the model for a bare agent", () => {
   it("the system prompt blocks, as the provider receives them, match the golden", async () => {
     const { org, agentRef } = await createBareAgent();
     const { request } = await runAgentTurn(org, agentRef);
@@ -221,7 +221,7 @@ describe("Run request shape — what the native harness sends the model for a ba
       true,
     );
     await expect(renderSystemPrompt(request)).toMatchFileSnapshot(
-      "./goldens/run-request-shape.native-bare-agent.system-prompt.md",
+      "./goldens/run-request-shape.stigmer-bare-agent.system-prompt.md",
     );
   });
 
@@ -229,21 +229,21 @@ describe("Run request shape — what the native harness sends the model for a ba
     const { org, agentRef } = await createBareAgent();
     const { request } = await runAgentTurn(org, agentRef);
 
-    expect(request.tools?.length ?? 0, "a bare native agent still binds the engine's built-in tools").toBeGreaterThan(0);
+    expect(request.tools?.length ?? 0, "a bare Stigmer agent still binds the engine's built-in tools").toBeGreaterThan(0);
     await expect(renderToolSurface(request)).toMatchFileSnapshot(
-      "./goldens/run-request-shape.native-bare-agent.tool-surface.md",
+      "./goldens/run-request-shape.stigmer-bare-agent.tool-surface.md",
     );
   });
 
   it("an unpinned turn sends an explicit disabled, no temperature, and the row's ceiling on a streamed request", async () => {
     const { org, agentRef } = await createBareAgent();
     const { request } = await runAgentTurn(org, agentRef);
-    const row = nativeRowOnTheWire(await registry(), request.model);
+    const row = stigmerRowOnTheWire(await registry(), request.model);
 
     expect(row.thinkingRequired, "the bare agent's default model may turn thinking off").toBe(false);
     expect(request.thinking, "the model's default cannot turn thinking on").toEqual({ type: "disabled" });
     expect(request.temperature, "the provider's default sampling applies; the runner sends no override").toBeUndefined();
-    expect(request.max_tokens, "the output ceiling is the native row's, not the library's table").toBe(row.maxOutputTokens);
+    expect(request.max_tokens, "the output ceiling is the Stigmer harness's row's, not the library's table").toBe(row.maxOutputTokens);
     expect(request.stream, "a request at the full ceiling streams").toBe(true);
   });
 
@@ -264,7 +264,7 @@ describe("Run request shape — what the native harness sends the model for a ba
   });
 });
 
-// The cross-turn arm's skills: nine, one past the eight at which the native
+// The cross-turn arm's skills: nine, one past the eight at which the Stigmer
 // harness once chose which skills to describe by the turn's message. Each of
 // the arm's three messages reaches a different skill by its words (forecast,
 // invoices and on-call, glossary), so a system prompt that depended on the
@@ -346,9 +346,9 @@ describe("Run request shape — the system prompt is the session's, the payload 
   });
 });
 
-describe("Run request shape — thinking, per the model's native registry row", () => {
+describe("Run request shape — thinking, per the model's Stigmer registry row", () => {
   it("ENABLED on an adaptive row sends adaptive thinking with summarized display, and binds no think tool", async () => {
-    const row = requireNativeRow(await registry(), ADAPTIVE_MODEL);
+    const row = requireStigmerRow(await registry(), ADAPTIVE_MODEL);
     expect(row.thinkingForm, `${ADAPTIVE_MODEL} is the adaptive row this arm pins`).toBe("adaptive");
     const { org, agentRef } = await createBareAgent();
 
@@ -358,11 +358,11 @@ describe("Run request shape — thinking, per the model's native registry row", 
 
     expect(request.thinking).toEqual({ type: "adaptive", display: "summarized" });
     expect(request.max_tokens).toBe(row.maxOutputTokens);
-    expect(toolNames(request), "no native graph binds a think tool").not.toContain("think");
+    expect(toolNames(request), "no Stigmer graph binds a think tool").not.toContain("think");
   });
 
   it("ENABLED on a budget row sends the fixed budget below the row's ceiling", async () => {
-    const row = requireNativeRow(await registry(), BUDGET_MODEL);
+    const row = requireStigmerRow(await registry(), BUDGET_MODEL);
     expect(row.thinkingForm, `${BUDGET_MODEL} is the budget row this arm pins`).toBe("budget");
     const { org, agentRef } = await createBareAgent();
 
@@ -387,7 +387,7 @@ describe("Run request shape — thinking, per the model's native registry row", 
   });
 
   it("a model that requires thinking gets its thinking form when the execution names no mode", async () => {
-    const row = requireNativeRow(await registry(), THINKING_REQUIRED_MODEL);
+    const row = requireStigmerRow(await registry(), THINKING_REQUIRED_MODEL);
     expect(row.thinkingRequired, `${THINKING_REQUIRED_MODEL} is the row that requires thinking`).toBe(true);
     const { org, agentRef } = await createBareAgent();
 

@@ -56,7 +56,7 @@ const NOT_CAPABLE: ModelInfo = {
   thinkingCapable: false,
 };
 
-const NATIVE_ADAPTIVE: ModelInfo = {
+const STIGMER_ADAPTIVE: ModelInfo = {
   modelId: "claude-sonnet-5",
   provider: "anthropic",
   displayName: "Claude Sonnet 5",
@@ -70,7 +70,7 @@ const NATIVE_ADAPTIVE: ModelInfo = {
   thinkingRequired: false,
 };
 
-const NATIVE_ALWAYS_THINKS: ModelInfo = {
+const STIGMER_ALWAYS_THINKS: ModelInfo = {
   modelId: "claude-fable-5",
   provider: "anthropic",
   displayName: "Claude Fable 5",
@@ -103,7 +103,7 @@ function createWrapper(client: Stigmer) {
       <StigmerContext.Provider value={client}>
         <ModelRegistryContext.Provider
           value={{
-            models: [THINKING_CAPABLE, NOT_CAPABLE, NATIVE_ADAPTIVE, NATIVE_ALWAYS_THINKS],
+            models: [THINKING_CAPABLE, NOT_CAPABLE, STIGMER_ADAPTIVE, STIGMER_ALWAYS_THINKS],
             isLoading: false,
             error: null,
             refetch: vi.fn(),
@@ -206,8 +206,8 @@ describe("SessionComposer — thinking mode submit contract", () => {
   });
 });
 
-describe("SessionComposer — thinking mode on native models (stigmer/stigmer#1280)", () => {
-  it("renders the thinking switch for a native model that declares a thinking form", async () => {
+describe("SessionComposer — thinking mode on Stigmer-harness models (stigmer/stigmer#1280)", () => {
+  it("renders the thinking switch for a Stigmer-harness model that declares a thinking form", async () => {
     renderComposer("claude-sonnet-5", "stigmer");
 
     fireEvent.click(screen.getByRole("button", { name: /Claude Sonnet 5/ }));
@@ -215,7 +215,7 @@ describe("SessionComposer — thinking mode on native models (stigmer/stigmer#12
     expect(toggle.getAttribute("aria-checked")).toBe("false");
   });
 
-  it("carries thinkingMode 'enabled' for a native model after toggling", async () => {
+  it("carries thinkingMode 'enabled' for a Stigmer-harness model after toggling", async () => {
     const { onSubmit } = renderComposer("claude-sonnet-5", "stigmer");
 
     await toggleThinking(/Claude Sonnet 5/);

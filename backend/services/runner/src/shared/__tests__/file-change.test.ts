@@ -34,7 +34,7 @@ describe("bytesLookBinary", () => {
 describe("resolveWorkspacePath", () => {
   const root = "/work/space";
 
-  describe("native (virtualRoot=true)", () => {
+  describe("Stigmer (virtualRoot=true)", () => {
     it("strips a leading slash and joins under the root", () => {
       // "/src/app.ts" is the deepagents virtual-root convention; the display
       // path drops the leading slash and the absolute path lives under root.

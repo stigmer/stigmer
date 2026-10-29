@@ -1,5 +1,5 @@
 /**
- * Middleware stack factory for the native harness's root graph.
+ * Middleware stack factory for the Stigmer harness's root graph.
  *
  * Assembles the ordered middleware array from a MiddlewareStackConfig. The
  * order is load-bearing and reads top to bottom:

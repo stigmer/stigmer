@@ -13,7 +13,7 @@
  * harness answers them the same way or acts on its own row by construction,
  * so no runtime phase branches on them:
  *  - the approval pause: every harness stops at the gated call itself and,
- *    resumed, runs exactly that call with the decision (native: LangGraph
+ *    resumed, runs exactly that call with the decision (Stigmer: LangGraph
  *    `interrupt` at a checkpoint; Claude: `defer` from `PreToolUse`). An
  *    engine that offers no such gate cannot be built until the runtime can
  *    confine it to work a gated action never reaches (#1144);
@@ -31,7 +31,7 @@
  *    before the engine's next model call (`TurnSink.input`);
  *  - `systemPrompt` (does the engine take a system prompt) and
  *    `toolRestriction` (can the engine hide a tool, or must its approval
- *    hook refuse it): each adapter acts on its own row (the native prompt
+ *    hook refuse it): each adapter acts on its own row (the Stigmer harness's prompt
  *    builder renders a system prompt rebuilt every turn, and
  *    `shared/prompt-sections.ts` keeps that placement each adapter's)
  *    (#1135).
@@ -39,17 +39,17 @@
  * The matrix the contract was designed against (2026-09 survey; the Claude
  * column re-measured 2026-10 against SDK 0.3.310 and built,
  * `activities/execute-claude/claude-capabilities.ts`, then held against
- * native on the harness benchmark at SDK 0.3.311):
+ * the Stigmer harness on the harness benchmark at SDK 0.3.311):
  *
- * | Capability        | Native (LangGraph)          | Claude (`@anthropic-ai/claude-agent-sdk`)     |
+ * | Capability        | Stigmer (LangGraph)         | Claude (`@anthropic-ai/claude-agent-sdk`)     |
  * |-------------------|-----------------------------|-----------------------------------------------|
  * | approval pause    | `interrupt` (checkpoint)    | `interrupt` (`defer` from `PreToolUse`, one call a turn; the resumed session runs exactly that call, checked against the call the person saw) |
  * | state id          | runtime-derived (thread id) | runtime-derived (session id derived from the thread id) |
  * | system prompt     | yes                         | yes                                           |
- * | `subAgents`       | yes (compiled sub-graphs)   | yes (`AgentDefinition`, in the foreground, one level); a sub-agent's gated call cannot wait, so it is refused; none of native's built-in helpers, which no benchmark cell needed (#2589) |
+ * | `subAgents`       | yes (compiled sub-graphs)   | yes (`AgentDefinition`, in the foreground, one level); a sub-agent's gated call cannot wait, so it is refused; none of the Stigmer harness's built-in helpers, which no benchmark cell needed (#2589) |
  * | tool restriction  | yes (tool list)             | yes (`tools` is the session's pool; each definition's `tools`, `disallowedTools`; the gate per caller) |
- * | `runsHooks`       | yes (in the approval gate)  | yes (in the gate, the native order; an ask that rewrites the call is refused) |
- * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG, WebP, GIF (native's: the same Messages API) |
+ * | `runsHooks`       | yes (in the approval gate)  | yes (in the gate, the Stigmer harness's order; an ask that rewrites the call is refused) |
+ * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG, WebP, GIF (the Stigmer harness's: the same Messages API) |
  * | `fileReview`      | `stigmer`, no excludes      | `claude`, no excludes (its state is outside the workspace) |
  * | `boundaryRewritesRow` | none                    | a call until its gate lets it run, but a helper's start (the gate decides after the call streams) |
  * | sub-agent progress | streamed (sub-graph events) | streamed (`forwardSubagentText`)            |
@@ -88,7 +88,7 @@ import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js"
  * the agent), and no phase branches on it.
  *
  *  - `runner-summarizer`: a summarizer the runner runs in the engine's own
- *    graph, on the turn's model, billed to the turn (native:
+ *    graph, on the turn's model, billed to the turn (Stigmer:
  *    `middleware/compaction.ts` over deepagents').
  *  - `engine-cli`: the engine's own process compacts and reports a
  *    boundary (the Claude Agent SDK).

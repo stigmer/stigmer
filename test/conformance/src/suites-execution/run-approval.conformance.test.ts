@@ -65,7 +65,7 @@
 // alone while the call beside it runs.
 //
 // Out of scope: a server whose tool listing fails asks before every one of
-// its tools (fail closed). On the native engine, which every other arm here
+// its tools (fail closed). On the Stigmer harness, which every other arm here
 // runs on, that case does not arise: the engine reads the marks from the tools it
 // loads, and a server it could not load offers the model no tool to call.
 // The rule is the runner's unit contract (runner shared/mcp-tool-listing.ts,

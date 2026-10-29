@@ -2,8 +2,8 @@
  * The file-edit rules every engine's gate shares (`shared/file-edit-policy.ts`),
  * judged on their own.
  *
- * Why it matters: native's gate and Claude's call these same functions, so
- * a rule here is each engine's at once; native's gate tests reach them
+ * Why it matters: the Stigmer harness's gate and Claude's call these same functions, so
+ * a rule here is each engine's at once; the Stigmer harness's gate tests reach them
  * through LangChain's middleware and Claude's through its gate, and this
  * file pins the rules without either. The cases are the ones that decide
  * whether a person's review can be skipped: what capture lets flow, what it

@@ -570,7 +570,7 @@ describe("Channel conformance — create validation (Slack and WhatsApp)", () =>
     });
 
     // A channel names no engine: its conversations start on the engine its
-    // agent names, native when it names none, in both editions. A turn that
+    // agent names, Stigmer when it names none, in both editions. A turn that
     // names no model runs on Auto, so an unpinned channel is stored
     // (stigmer/stigmer#362).
     const created = await clients.channelCommand.create(unpinned);

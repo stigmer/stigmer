@@ -34,7 +34,7 @@ function middlewareWrap(inner: Error): Error {
 }
 
 /**
- * Wrap as a native turn does: LangChain adds one MiddlewareError per
+ * Wrap as a Stigmer turn does: LangChain adds one MiddlewareError per
  * middleware implementing `wrapModelCall`, and the production stack has
  * more than ten of them (stigmer/stigmer#1450).
  */
@@ -44,7 +44,7 @@ function wrapLikeMiddlewareStack(inner: Error, layers: number): Error {
   return wrapped;
 }
 
-/** A middleware stack deeper than any native turn's today. */
+/** A middleware stack deeper than any Stigmer turn's today. */
 const DEEP_STACK = 30;
 
 /** Mimic a provider SDK APIError: message + numeric `.status`. */
@@ -571,7 +571,7 @@ describe("classifyModelCallError on the organization's own provider key", () => 
     expect(classified?.message).not.toContain("Stigmer platform");
   });
 
-  it("words a rejected key as the organization's through a native turn's middleware stack", () => {
+  it("words a rejected key as the organization's through a Stigmer turn's middleware stack", () => {
     const rejected = sdkError(401, marked('401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'));
     const { errorType, errorMessage } = describeExecutionError(wrapLikeMiddlewareStack(rejected, DEEP_STACK), proxied);
     expect(errorType).toBe("LLM_AUTHENTICATION_ERROR");

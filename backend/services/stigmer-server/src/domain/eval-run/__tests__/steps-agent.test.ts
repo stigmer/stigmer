@@ -137,7 +137,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const ALLOW_ALL: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
 
 const catalog = newModelCatalogProviderFromDocument(
-  JSON.stringify({ models: [{ id: "native-model", harness: "stigmer" }] }),
+  JSON.stringify({ models: [{ id: "stigmer-model", harness: "stigmer" }] }),
 );
 
 let temp: TempStore;
@@ -629,7 +629,7 @@ describe("ValidateEvalRunTargets on an agent", () => {
   it("passes a target the catalog runs, and refuses one naming a model it does not, naming the target", async () => {
     const row = evalRow("", EvalRunPhase.unspecified);
     row.spec!.targets = [
-      create(EvalRunTargetSchema, { harness: Harness.STIGMER, modelName: "native-model" }),
+      create(EvalRunTargetSchema, { harness: Harness.STIGMER, modelName: "stigmer-model" }),
       create(EvalRunTargetSchema, { harness: Harness.STIGMER, modelName: "no-such-model" }),
     ];
     const refused = await failure(() => newValidateEvalRunTargetsStep(catalog).execute(createCtx(row)));

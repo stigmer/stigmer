@@ -103,7 +103,7 @@ export const PROVIDER_AVAILABILITY_UNAVAILABLE_COPY =
 /**
  * The provider the run being created needs, or undefined when it needs none
  * this rule judges: a turn that runs no model, a chain without a placement
- * (a step driven on its own), or a native model whose provider no key
+ * (a step driven on its own), or a Stigmer-harness model whose provider no key
  * serves. Exported so an edition's own gate on the create slot judges a run
  * exactly as this step does.
  */

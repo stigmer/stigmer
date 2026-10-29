@@ -181,7 +181,7 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
   }
 }
 
-/** The turn's capture observer: an ignored path's before-bytes in a git workspace, every path's in one with no git (the native engine's rule). */
+/** The turn's capture observer: an ignored path's before-bytes in a git workspace, every path's in one with no git (the Stigmer harness's rule). */
 function captureObserverOf(input: TurnInput): CasCaptureObserver {
   const { primaryDir, gitWorkspace } = input.workspace;
   return new CasCaptureObserver({
@@ -220,7 +220,7 @@ async function connectTools(input: TurnInput, sink: TurnSink, specs: readonly Su
   return bridge;
 }
 
-/** The backing the session's conversation is kept in, by the setting that places native's state (`session-store.ts`). */
+/** The backing the session's conversation is kept in, by the setting that places the Stigmer harness's state (`session-store.ts`). */
 const BACKINGS: Record<ClaudeAdapterConfig["checkpointerType"], (config: ClaudeAdapterConfig, sessionId: string) => TranscriptBacking> = {
   http: (config) => {
     if (config.checkpointerProxyEndpoint === null) throw new Error("the http checkpointer has no proxy endpoint on this runner");

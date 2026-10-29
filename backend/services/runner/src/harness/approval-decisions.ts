@@ -32,7 +32,7 @@
  * `approval_action` and by the answer in the session's log.
  *
  * This is the contract as of stigmer#197: REJECT denies the tool and the run
- * CONTINUES; it never fails the execution. The native harness proved it
+ * CONTINUES; it never fails the execution. The Stigmer harness proved it
  * (`hitl.ts` `reconcileNonExecutingDecisions`, moved here in #1096) and the
  * conformance suite (`run-approval.conformance.test.ts`) is its
  * arbiter for both harnesses.
@@ -41,7 +41,7 @@
 import type { AgentMessage, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
-/** The row's error for a REJECT; byte-pinned by the native goldens (`reject.turn2.status.json`) and the conformance suite. */
+/** The row's error for a REJECT; byte-pinned by the Stigmer goldens (`reject.turn2.status.json`) and the conformance suite. */
 export const REJECTED_BY_USER_ERROR = "Rejected by user";
 
 /**

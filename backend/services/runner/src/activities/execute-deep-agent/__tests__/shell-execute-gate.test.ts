@@ -24,7 +24,7 @@ import {
 import { compileSubagents, type TransformedSubagent } from "../subagent-transformer.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 
-describe("native harness shell execute approval", () => {
+describe("Stigmer harness shell execute approval", () => {
   let root: string;
 
   beforeEach(async () => {

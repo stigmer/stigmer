@@ -410,21 +410,21 @@ describe("hosting the table", () => {
       releaseSession: async () => {},
       runTurn: async () => ({ kind: "completed" }),
     });
-    const native = adapter("stigmer");
+    const stigmer = adapter("stigmer");
     const claude = adapter("claude");
     const hosted = await hostHarnesses(
       [
         { harness: "claude", adapter: claude },
-        { harness: "stigmer", adapter: native },
+        { harness: "stigmer", adapter: stigmer },
       ],
       testConfig(),
       { start: hosts.start },
     );
 
     expect(hosted.rows[0]!.adapter, "the Claude harness is hosted").not.toBe(claude);
-    expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
+    expect(hosted.rows[1]!.adapter, "the Stigmer harness is hosted").not.toBe(stigmer);
     expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["claude", "stigmer"]);
-    expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
+    expect(hosted.rows[1]!.adapter.capabilities).toBe(stigmer.capabilities);
     expect(hosts.hosts, "nothing booted, so no host is started").toEqual([]);
     await hosted.close();
   });

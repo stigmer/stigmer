@@ -265,10 +265,10 @@ function wireAvailability(report: ProviderAvailabilityReport): ProviderAvailabil
  *
  * Each provider is asked once; a model's availability is its provider's, by
  * the rule RequireModelProvider refuses with, so the answer and the refusal
- * agree by construction. A model the rule judges nothing for (a native model
- * whose provider no key serves) reports no provider and unknown. A provider
- * whose availability cannot be read fails the whole answer UNAVAILABLE,
- * as create would.
+ * agree by construction. A model the rule judges nothing for (a
+ * Stigmer-harness model whose provider no key serves) reports no provider
+ * and unknown. A provider whose availability cannot be read fails the whole
+ * answer UNAVAILABLE, as create would.
  */
 async function getModelReadiness(
   deps: PlatformControllerDeps,

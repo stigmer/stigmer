@@ -1,5 +1,5 @@
 /**
- * A paused native session, frozen as the checkpoint rows the engine of its day
+ * A paused Stigmer session, frozen as the checkpoint rows the engine of its day
  * wrote, and the means to write those rows back into a session's checkpoint
  * file. The resume nets share it: a session saved before a change to the
  * engine must resume after it, and the only honest saved session is one the

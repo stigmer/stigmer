@@ -1,6 +1,6 @@
 /**
  * Harness-neutral service-tier semantics (stigmer/stigmer#357, extended to
- * the native harness by #361).
+ * the Stigmer harness by #361).
  *
  * The platform contract: an execution's price-bearing tier is ALWAYS
  * explicit by the time a provider request leaves the runner. UNSPECIFIED
@@ -10,7 +10,7 @@
  *
  * Each harness owns its translation of the EFFECTIVE tier into provider
  * wire terms:
- *   - Native: the provider's own request parameter, mapped in
+ *   - Stigmer: the provider's own request parameter, mapped in
  *     `model-client.ts` (`toOpenAiServiceTier` / `toAnthropicServiceTier`
  *     below) so no construction site can invent a third mapping.
  */

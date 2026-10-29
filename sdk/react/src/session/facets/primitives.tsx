@@ -133,7 +133,7 @@ export function FacetEmptyHint({ children }: { readonly children: React.ReactNod
 }
 
 /**
- * A key→value config row ("Harness  Native"): muted label left, value
+ * A key→value config row ("Harness  Stigmer"): muted label left, value
  * right — the dense inverse of a definition list, sized like every other
  * facet row. `children` is the value; pass a control (e.g. a Switch) for
  * interactive config rows.

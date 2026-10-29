@@ -207,7 +207,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197)", async () => {
       // Until #1096 this arm pinned the opposite: the runtime FAILED a
       // reinvocation carrying any REJECT (`rejectedByUserArm`), against the proto's `APPROVAL_ACTION_REJECT` doc, the
-      // conformance suite and the native harness.
+      // conformance suite and the Stigmer harness.
       // The kit's runtime half now carries the contract for every subject;
       // what is the fake's own here is the persist cadence around it.
       clock.reset();
@@ -365,7 +365,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     it("finalizes the transcript once runTurn returns: an adapter that leaves its last message streaming still persists a settled one", async () => {
       // A harness that streams text and returns without closing the run —
       // the shape of a turn that fails or is cut off before its own settle
-      // (native's thrown recursion limit; either harness's internal failure
+      // (the Stigmer harness's thrown recursion limit; either harness's internal failure
       // before its settle ran). Before the runtime owned the close, that
       // message persisted `isStreaming: true` in a terminal execution: a
       // spinner the console never stopped, seen by the kit on both real

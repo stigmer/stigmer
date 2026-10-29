@@ -139,7 +139,7 @@ export function toolCallContent(name: string, args: Record<string, unknown>): { 
   return { arguments: boundedJson(exported.arguments, SPAN_CONTENT_BYTES / 2), withheld: exported.withheld };
 }
 
-// ─── LangChain messages, as the native engine's model calls carry them ────
+// ─── LangChain messages, as the Stigmer harness's model calls carry them ────
 
 interface LangChainToolCall {
   readonly id?: string;

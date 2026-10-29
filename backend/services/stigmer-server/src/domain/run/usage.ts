@@ -284,7 +284,7 @@ function scopeRuns(
  * The harness each of `runs`' sessions runs on, by session id: a run
  * records none of its own, and dispatch runs it on its session's
  * (temporal/agentexecution/dispatch.ts). One read per distinct session; a
- * session that is gone, or a run in none, is the native harness, as
+ * session that is gone, or a run in none, is the Stigmer harness, as
  * dispatch defaults it. Any other store fault fails the report: a guessed
  * harness would put a run's tokens under the wrong harness.
  */

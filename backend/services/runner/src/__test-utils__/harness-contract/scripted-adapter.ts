@@ -500,7 +500,7 @@ export interface ScriptedSubject extends HarnessContractSubject {
 
 /**
  * The fake declares the `stigmer` row: in #1070 the runtime served that row
- * through this fake alone; since #1096 the real native adapter takes it over
+ * through this fake alone; since #1096 the real Stigmer adapter takes it over
  * in the runtime half
  * (`execute-deep-agent/__test-utils__/contract-subject.ts`), and the fake
  * keeps declaring it so the kit's self-check runs a full subject under both

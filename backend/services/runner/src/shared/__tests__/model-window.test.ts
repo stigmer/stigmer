@@ -1,9 +1,9 @@
 /**
- * The window a native model's summarizer is sized by (`model-window.ts`):
+ * The window a Stigmer-harness model's summarizer is sized by (`model-window.ts`):
  * the model library's profile, on the model as built and then on the
  * first-party id; the registry row's window; else deepagents' fallback.
  *
- * The rows are the OSS bundle's native Claude rows
+ * The rows are the OSS bundle's Stigmer-harness Claude rows
  * (`backend/services/stigmer-server/src/modelcatalog/data/model-registry.json`),
  * copied as fixtures: the runner's tests cite the bundle and never read it.
  * Each row's real window was read from Anthropic's Models API
@@ -24,7 +24,7 @@ function built(maxInputTokens?: number): ModelWindowInput["model"] {
   return { profile: maxInputTokens === undefined ? {} : { maxInputTokens } };
 }
 
-/** The bundle's native Claude rows: API id, the row's window, and the window the library resolves. */
+/** The bundle's Stigmer-harness Claude rows: API id, the row's window, and the window the library resolves. */
 const BUNDLE_ROWS: ReadonlyArray<{ apiModelId: string; catalog: number; library: number }> = [
   { apiModelId: "claude-fable-5", catalog: 1_000_000, library: 1_000_000 },
   { apiModelId: "claude-haiku-4-5-20251001", catalog: 200_000, library: 200_000 },

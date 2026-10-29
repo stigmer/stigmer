@@ -363,7 +363,7 @@ describe("buildEnhancedSystemPrompt", () => {
       skillsPromptSection: "",
     };
 
-    it("appends the shared plan-mode directive plus the native-only read-boundary line as the final section", () => {
+    it("appends the shared plan-mode directive plus the Stigmer-only read-boundary line as the final section", () => {
       const prompt = buildEnhancedSystemPrompt({
         ...base,
         interactionMode: InteractionMode.PLAN,
@@ -371,7 +371,7 @@ describe("buildEnhancedSystemPrompt", () => {
 
       expect(prompt).toContain("## Plan mode");
       expect(prompt).toContain(PLAN_MODE_DIRECTIVE);
-      // The read boundary (issue #528) is enforced only on the native
+      // The read boundary (issue #528) is enforced only on the Stigmer
       // harness, so its sentence rides OUTSIDE the shared directive — after
       // it, still in the plan-mode section.
       expect(prompt.endsWith("paths outside it are refused.")).toBe(true);

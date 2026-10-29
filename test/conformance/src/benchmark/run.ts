@@ -9,9 +9,9 @@
 // target itself is not reused because it hard-wires the mock proxy into every
 // boot. The runner child inherits this process's environment, which is how
 // ANTHROPIC_API_KEY and OPENAI_API_KEY (with OPENAI_BASE_URL, when the
-// native model is served on another OpenAI-compatible address) reach it;
+// Stigmer-harness model is served on another OpenAI-compatible address) reach it;
 // nothing is written anywhere. So one run holds one OpenAI-slot
-// address, and measures one native model (cells.ts).
+// address, and measures one Stigmer-harness model (cells.ts).
 //
 // Every turn of every cell goes through one driver (session.ts), so a turn
 // means the same thing wherever it is measured. Per attempt, a cell gets a
@@ -86,7 +86,7 @@ import {
   SESSION_HARNESS,
   doneChecksHold,
   explicitProvider,
-  nativeApi,
+  stigmerApi,
   type BenchmarkCell,
   type CellPlan,
   type Scenario,
@@ -160,7 +160,7 @@ export function resolveStackRoot(
 }
 
 export interface BenchmarkStackOptions {
-  /** Whether the runner lets the native agent start commands in the background; on unless off. */
+  /** Whether the runner lets the Stigmer harness's agent start commands in the background; on unless off. */
   shellBackground?: ShellBackground;
 }
 
@@ -257,8 +257,8 @@ export interface RunOptions {
   titlingSuppressed: true;
   /** Every execution asks for thinking; the judge's never does. */
   thinking?: "enabled";
-  /** Where the runner serves the native model (cells.ts `nativeEndpoint`, read from the runner's environment). */
-  nativeEndpoint: string;
+  /** Where the runner serves the Stigmer harness's model (cells.ts `stigmerEndpoint`, read from the runner's environment). */
+  stigmerEndpoint: string;
   /** The arm the stack was booted on (`BenchmarkStackOptions.shellBackground`). */
   shellBackground: ShellBackground;
 }
@@ -266,7 +266,7 @@ export interface RunOptions {
 /**
  * Runs the plan against the stack and returns the report. Refuses, before
  * any call is paid for, a parity or judge model the registry does not carry
- * for its harness (an own-endpoint native model needs no row, as on the
+ * for its harness (an own-endpoint Stigmer-harness model needs no row, as on the
  * server); such cells join the plan's own refusals. The runner's marker
  * lines are counted last, when no execution is left running.
  */
@@ -343,12 +343,12 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
       shell_background: options.shellBackground,
     },
     models: {
-      parity: { ...PARITY_MODEL, stigmer: plan.nativeModel },
+      parity: { ...PARITY_MODEL, stigmer: plan.stigmerModel },
       judge_requested: JUDGE_MODEL,
-      stigmer_endpoint: options.nativeEndpoint,
-      // The planner refuses every native cell whose provider it cannot place, so an unknown API measured nothing.
-      stigmer_api: nativeApi(plan.nativeModel) ?? "chat-completions",
-      stigmer_cost_basis: registry.models.some((row) => row.id === plan.nativeModel && row.priced) ? "catalog" : "default-rate",
+      stigmer_endpoint: options.stigmerEndpoint,
+      // The planner refuses every Stigmer cell whose provider it cannot place, so an unknown API measured nothing.
+      stigmer_api: stigmerApi(plan.stigmerModel) ?? "chat-completions",
+      stigmer_cost_basis: registry.models.some((row) => row.id === plan.stigmerModel && row.priced) ? "catalog" : "default-rate",
     },
     comparisons,
     quality,
@@ -358,7 +358,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
 }
 
 /**
- * Whether `id` can run on `harness`: a registry row for it, or on native an
+ * Whether `id` can run on `harness`: a registry row for it, or on Stigmer an
  * explicit `openai:` / `anthropic:` model, which the server admits without a
  * row (server modelcatalog/pin-validation.ts `unknownModelPinRefusal`).
  */
@@ -549,7 +549,7 @@ export async function writeReport(dir: string, report: BenchmarkReport): Promise
 
 /**
  * One row per cell: the medians a reader wants at a glance, the quality
- * medians, and the refusals. Markdown, for stdout. A native cost the runner
+ * medians, and the refusals. Markdown, for stdout. A Stigmer cost the runner
  * took at its default rate is marked, with a line naming why, so it is never
  * read as a price. Then what the agent did with background commands, cell by
  * cell, over the samples that ran.
@@ -558,9 +558,9 @@ export function renderSummary(report: BenchmarkReport): string {
   const lines: string[] = [];
   const cell = (value: number | null | undefined): string => (value === null || value === undefined ? "n/a" : String(Math.round(value)));
   const defaultRate = report.models.stigmer_cost_basis === "default-rate";
-  let markedNative = false;
+  let markedStigmer = false;
   lines.push(
-    `Native arm: ${report.models.parity.stigmer} at ${report.models.stigmer_endpoint}, ${report.models.stigmer_api} API, cost basis ${report.models.stigmer_cost_basis}`,
+    `Stigmer arm: ${report.models.parity.stigmer} at ${report.models.stigmer_endpoint}, ${report.models.stigmer_api} API, cost basis ${report.models.stigmer_cost_basis}`,
     `Code: ${report.git.code_sha}${report.git.code_sha === report.git.head_sha ? " (the instrument's own)" : `, measured by the instrument at ${report.git.head_sha}`}`,
     `Runner log: ${renderRunnerLog(report.runner_log)}`,
     "",
@@ -575,14 +575,14 @@ export function renderSummary(report: BenchmarkReport): string {
       if (side === undefined) continue;
       const m = side.median;
       const marked = defaultRate && side.harness === "stigmer" && m !== null;
-      if (marked) markedNative = true;
+      if (marked) markedStigmer = true;
       const cost = `${cell(m?.estimated_cost_micros)}${marked ? "*" : ""}`;
       lines.push(
         `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.tool_calls)} | ${cell(m?.mcp_connect_ms)} | ${cost} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
       );
     }
   }
-  if (markedNative) {
+  if (markedStigmer) {
     lines.push(
       "",
       `* ${report.models.parity.stigmer} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,

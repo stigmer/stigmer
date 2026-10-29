@@ -1,5 +1,5 @@
 /**
- * The native harness's hooks for one turn: the runtime's resolved sources
+ * The Stigmer harness's hooks for one turn: the runtime's resolved sources
  * (`TurnInput.hooks`, every plugin mounted and verified) turned into the
  * evaluator the approval gate runs, through the setup both engines share
  * (`shared/hooks/setup.ts`, which says what a hook runs with and when the
@@ -7,8 +7,8 @@
  * conversation's sources, then the subagent's own, each of those in the
  * subagent's environment.
  *
- * What is this harness's here is how its calls look to a hook: the native
- * views (`shared/hooks/tool-view.ts` `NativeToolViews`), over the tools it
+ * What is this harness's here is how its calls look to a hook: the Stigmer
+ * views (`shared/hooks/tool-view.ts` `StigmerToolViews`), over the tools it
  * bound and the workspace's virtual paths.
  */
 
@@ -19,7 +19,7 @@ import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";
 import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.js";
 import type { HookEvaluator, HookPermissionMode } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator as buildEvaluator, hookPermissionMode } from "../../shared/hooks/setup.js";
-import { NativeToolViews } from "../../shared/hooks/tool-view.js";
+import { StigmerToolViews } from "../../shared/hooks/tool-view.js";
 import type { DeepAgentTools } from "./turn-setup.js";
 
 export { HookSetupError } from "../../shared/hooks/setup.js";
@@ -47,7 +47,7 @@ export async function buildHookEvaluator(
         ],
     runValues: input.values,
     mcpServers: subagent === undefined ? input.mcp.servers : [...input.mcp.servers, ...subagent.servers],
-    views: new NativeToolViews({
+    views: new StigmerToolViews({
       workspaceRoot: primaryDir,
       toVirtualPath: (path) => normalizeWorkspacePathArg(path, primaryDir),
       toolServerMap: tools.toolServerMap,

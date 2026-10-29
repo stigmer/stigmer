@@ -242,7 +242,7 @@ describe("toResultDocument", () => {
 });
 
 describe("evalRunTargetLabel", () => {
-  it("writes harness/model, the native engine for an unspecified one, default for no model", () => {
+  it("writes harness/model, the Stigmer harness for an unspecified one, default for no model", () => {
     expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" } as never)).toBe("claude/claude-sonnet-5");
     expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "" } as never)).toBe("claude/default");
     expect(evalRunTargetLabel(undefined)).toBe("stigmer/default");

@@ -121,8 +121,8 @@ function deps(overrides: Partial<UsageReportDeps> = {}): UsageReportDeps {
   };
 }
 
-/** A native run's report: input 18,432 including 15,000 cache read and 2,000 cache write. */
-const NATIVE_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
+/** A Stigmer run's report: input 18,432 including 15,000 cache read and 2,000 cache write. */
+const STIGMER_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
   inputTokens: 18_432n,
   outputTokens: 1_210n,
   cacheReadTokens: 15_000n,
@@ -232,8 +232,8 @@ async function refusal(call: () => Promise<unknown>): Promise<ConnectError> {
 
 describe("a run counted from its runner's report", () => {
   it("the run report carries the runner's tokens, estimated, input less both cache buckets, served by UNSPECIFIED", async () => {
-    await seedSession("ses_native_1", "org_runner", Harness.STIGMER);
-    const id = await seedRun("run_native_1", { org: "org_runner", sessionId: "ses_native_1", usage: NATIVE_USAGE });
+    await seedSession("ses_stigmer_1", "org_runner", Harness.STIGMER);
+    const id = await seedRun("run_stigmer_1", { org: "org_runner", sessionId: "ses_stigmer_1", usage: STIGMER_USAGE });
     const report = await getRunUsageReport(deps(), create(GetRunUsageReportInputSchema, { runId: id }), testCallerIdentity());
     expect(report.aggregate?.totalTokens).toBe(19_642n);
     expect(report.aggregate?.inputTokens).toBe(1_432n);
@@ -247,7 +247,7 @@ describe("a run counted from its runner's report", () => {
     expect(report.modelBreakdown.map((m) => [m.model, m.totalTokens])).toEqual([["claude-sonnet-4-5", 19_642n]]);
   });
 
-  it("a Claude session's run is counted by native's rule: input less the cache, the runner's total", async () => {
+  it("a Claude session's run is counted by the Stigmer harness's rule: input less the cache, the runner's total", async () => {
     await seedSession("ses_claude_1", "org_runner", Harness.CLAUDE);
     await seedRun("run_claude_1", { org: "org_runner", sessionId: "ses_claude_1", usage: CLAUDE_USAGE });
     const report = await getSessionUsageReport(
@@ -314,7 +314,7 @@ describe("working time", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
       await seedSession("ses_work", "org_work", Harness.STIGMER);
-      await seedRun("run_work_a", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", usage: NATIVE_USAGE, startedAt: "2026-10-14T09:00:00Z", createdAtMs: T0 });
+      await seedRun("run_work_a", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", usage: STIGMER_USAGE, startedAt: "2026-10-14T09:00:00Z", createdAtMs: T0 });
       await seedRun("run_work_b", { org: "org_work", sessionId: "ses_work", agentId: "agt_work", startedAt: "2026-10-14T09:10:00Z", createdAtMs: T0 + 600_000, phase: RunPhase.RUN_IN_PROGRESS });
       await statusAt("ses_work", "run_work_a", "running", T0);
       await statusAt("ses_work", "run_work_a", "idle", T0 + 3_400);
@@ -368,8 +368,8 @@ describe("working time", () => {
 describe("a run counted from the meter", () => {
   it("meter rows on two models sum per model, served by the organization, not estimated; a sibling with none falls back", async () => {
     await seedSession("ses_metered", "org_meter", Harness.STIGMER);
-    await seedRun("run_metered", { org: "org_meter", sessionId: "ses_metered", usage: NATIVE_USAGE, startedAt: "2026-10-13T09:00:00Z" });
-    await seedRun("run_unmetered", { org: "org_meter", sessionId: "ses_metered", usage: NATIVE_USAGE, startedAt: "2026-10-13T10:00:00Z" });
+    await seedRun("run_metered", { org: "org_meter", sessionId: "ses_metered", usage: STIGMER_USAGE, startedAt: "2026-10-13T09:00:00Z" });
+    await seedRun("run_unmetered", { org: "org_meter", sessionId: "ses_metered", usage: STIGMER_USAGE, startedAt: "2026-10-13T10:00:00Z" });
     const meter = fakeMeter(
       new Map([
         [
@@ -439,13 +439,13 @@ describe("the organization report", () => {
     );
     const day = Date.UTC(2026, 9, 13);
     await seedSession("ses_big", org, Harness.CLAUDE);
-    await seedRun("org_small_1", { org, agentId: "agt_small", usage: NATIVE_USAGE, createdAtMs: day - DAY + 3_600_000 });
+    await seedRun("org_small_1", { org, agentId: "agt_small", usage: STIGMER_USAGE, createdAtMs: day - DAY + 3_600_000 });
     await seedRun("org_small_2", { org, agentId: "agt_small", createdAtMs: day + 3_600_000, phase: RunPhase.RUN_PENDING });
     await seedRun("org_big_1", { org, agentId: "agt_big", sessionId: "ses_big", usage: CLAUDE_USAGE, createdAtMs: day + 9 * 3_600_000, startedAt: "2026-10-13T09:00:01Z" });
     // Created before the window, started inside it: out.
-    await seedRun("org_early", { org, agentId: "agt_small", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 1) - 3_600_000, startedAt: "2026-10-01T01:00:00Z" });
+    await seedRun("org_early", { org, agentId: "agt_small", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 1) - 3_600_000, startedAt: "2026-10-01T01:00:00Z" });
     // Another organization's run.
-    await seedRun("org_other", { org: "org_elsewhere", agentId: "agt_small", usage: NATIVE_USAGE, createdAtMs: day });
+    await seedRun("org_other", { org: "org_elsewhere", agentId: "agt_small", usage: STIGMER_USAGE, createdAtMs: day });
   });
 
   it("orders top agents by tokens, names them, and totals the sum of its runs", async () => {
@@ -564,7 +564,7 @@ describe("the organization report", () => {
 
   it("with a read scope composed, neither counts nor names a run the caller cannot read", async () => {
     const scopedOrg = "org_scoped";
-    await seedRun("scoped_visible", { org: scopedOrg, agentId: "agt_visible", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
+    await seedRun("scoped_visible", { org: scopedOrg, agentId: "agt_visible", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
     await seedRun("scoped_hidden", { org: scopedOrg, agentId: "agt_secret", usage: CLAUDE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
     const visible = new Set(["scoped_visible"]);
     const scope: ListReadScope = {
@@ -589,11 +589,11 @@ describe("the organization report", () => {
 describe("the agent report", () => {
   it("reads one agent's runs in the organization through the index, by creation instant", async () => {
     const org = "org_agent_report";
-    await seedRun("agent_in", { org, agentId: "agt_reported", sessionId: "ses_ar_1", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9) });
+    await seedRun("agent_in", { org, agentId: "agt_reported", sessionId: "ses_ar_1", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9) });
     await seedRun("agent_in_2", { org, agentId: "agt_reported", sessionId: "ses_ar_1", createdAtMs: Date.UTC(2026, 9, 13, 10) });
-    await seedRun("agent_other_agent", { org, agentId: "agt_unrelated", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9) });
-    await seedRun("agent_too_early", { org, agentId: "agt_reported", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 12, 23) });
-    await seedRun("agent_other_org", { org: "org_agent_elsewhere", agentId: "agt_reported", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9) });
+    await seedRun("agent_other_agent", { org, agentId: "agt_unrelated", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9) });
+    await seedRun("agent_too_early", { org, agentId: "agt_reported", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 12, 23) });
+    await seedRun("agent_other_org", { org: "org_agent_elsewhere", agentId: "agt_reported", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 13, 9) });
 
     const report = await getAgentUsageReport(
       deps(),
@@ -632,7 +632,7 @@ describe("store faults under the reports", () => {
 
   it("an index row that will not decode is skipped, and the rest are counted", async () => {
     const org = "org_undecodable";
-    await seedRun("undecodable_kept", { org, usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
+    await seedRun("undecodable_kept", { org, usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
     const withJunk = new Proxy(store, {
       get(target, member, receiver) {
         if (member === "queryResources") {
@@ -653,7 +653,7 @@ describe("store faults under the reports", () => {
 
   it("a fault reading a run's session, other than not found, fails the report as Internal", async () => {
     const org = "org_session_fault";
-    await seedRun("session_fault_run", { org, sessionId: "ses_session_fault", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
+    await seedRun("session_fault_run", { org, sessionId: "ses_session_fault", usage: STIGMER_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
     const faulty = new Proxy(store, {
       get(target, member, receiver) {
         if (member === "getResource") {

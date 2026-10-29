@@ -3,7 +3,7 @@
  * the folder walk, the bound and the rendering (`repository-instructions.ts`).
  *
  * Files are read through a real virtual-rooted `FilesystemBackend` over a
- * temporary tree, the backend every native graph reads through, so the
+ * temporary tree, the backend every Stigmer graph reads through, so the
  * confinement and the no-follow leaf are deepagents' own, not a double's.
  */
 

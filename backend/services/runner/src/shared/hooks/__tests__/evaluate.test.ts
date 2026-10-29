@@ -18,11 +18,11 @@ import { hookLeaseKey } from "../../approval-policy.js";
 import { HookEvaluator, type HookEvaluatorDeps } from "../evaluate.js";
 import { HookSet, type HookSource, type HookSourceGroups } from "../hook-set.js";
 import type { HookProcessRunner, HookProcessSpec, HookRunResult } from "../run.js";
-import { NativeToolViews } from "../tool-view.js";
+import { StigmerToolViews } from "../tool-view.js";
 
 const ROOT = "/ws";
 
-const views = new NativeToolViews({
+const views = new StigmerToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => (path.startsWith(`${ROOT}/`) ? path.slice(ROOT.length) : undefined),
   toolServerMap: new Map([["create_issue", "plugin_tracker_github"]]),

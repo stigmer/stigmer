@@ -195,7 +195,7 @@ export interface SharedRunFields {
    * JSON Schema that the agent's final output must conform to.
    *
    * When set, the runner enforces structured output:
-   * - Native harness: ToolStrategy adds an extract tool; agent must call it
+   * - Stigmer harness: ToolStrategy adds an extract tool; agent must call it
    *
    * The validated data is the turn's `stigmer.agent.structured_output`
    * event, folded as `Turn.structuredOutput` (see `useSessionEvents`).

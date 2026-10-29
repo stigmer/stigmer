@@ -1,6 +1,6 @@
 /**
  * Hermetic scenario: the catalogue's `format-on-edit` plugin formats what the
- * native engine's file tools write, through the whole `ExecuteDeepAgent`
+ * Stigmer harness's file tools write, through the whole `ExecuteDeepAgent`
  * activity on the real graph with the scripted model.
  *
  * The plugin is mounted exactly as installed: its archive is built from the

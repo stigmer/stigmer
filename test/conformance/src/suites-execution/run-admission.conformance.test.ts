@@ -71,7 +71,7 @@ let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
 describe.skipIf(!billingEnabled)(
-  "Run admission — a native run runs on the organization's own provider key (billingGates targets)",
+  "Run admission — a Stigmer run runs on the organization's own provider key (billingGates targets)",
   () => {
     beforeAll(async () => {
       target = createTarget();
@@ -310,7 +310,7 @@ describe.skipIf(!runnerProviderDeclaration)(
       const err = await expectGrpcCode(
         () => runOn(org, agentRef, Harness.STIGMER, model),
         Code.FailedPrecondition,
-        `a native run on ${model}`,
+        `a Stigmer run on ${model}`,
       );
       const [info] = err.findDetails(ErrorInfoSchema);
       expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");

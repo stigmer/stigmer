@@ -1,8 +1,9 @@
 /**
- * The native shell's bounds that the runner's configuration names, apart
- * from the command runner (`run-command.ts`) so `config.ts` can default them
- * without importing a module that starts processes: the turn runtime's own
- * graph opens no file and starts no process on the agent's behalf
+ * The Stigmer harness's shell's bounds that the runner's configuration
+ * names, apart from the command runner (`run-command.ts`) so `config.ts` can
+ * default them without importing a module that starts processes: the turn
+ * runtime's own graph opens no file and starts no process on the agent's
+ * behalf
  * (`harness/__tests__/runtime-touches-no-agent-path.test.ts`).
  */
 

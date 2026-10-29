@@ -1,7 +1,7 @@
 /**
  * Todo-list projection the one transcript builder applies for every harness.
  *
- * All harnesses expose an agent to-do tool — the native deepagents harness
+ * All harnesses expose an agent to-do tool — the Stigmer (deepagents) harness
  * emits `write_todos`, the Claude engine `TodoWrite` — and each writes the SAME `RunStatus.todos` proto map. The
  * rule itself (full replace or merge, index ids, which creation time is
  * kept, the status words) is `@stigmer/session-log`'s `applyTodoUpdate`,

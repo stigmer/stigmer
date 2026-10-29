@@ -1,6 +1,6 @@
 /**
- * HITL (human-in-the-loop) resume infrastructure for the native deep-agent
- * harness — the LangGraph side of an approval round trip.
+ * HITL (human-in-the-loop) resume infrastructure for the Stigmer harness —
+ * the LangGraph side of an approval round trip.
  *
  * The runtime reads the user's answers from the session's log
  * (`harness/approval-answers.ts`, on `TurnInput`) and settles the rows that

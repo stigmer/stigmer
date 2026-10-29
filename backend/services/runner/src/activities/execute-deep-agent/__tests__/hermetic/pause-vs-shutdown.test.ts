@@ -2,7 +2,7 @@
  * Hermetic goldens: the two ways a turn is INTERRUPTED from outside, and how
  * the activity tells them apart — the throw-vs-return table the control
  * plane's workflow keys on. Since #1096 the activity is the turn runtime
- * over the native adapter, and the shapes below are the runtime's terminal
+ * over the Stigmer harness's adapter, and the shapes below are the runtime's terminal
  * table (`harness/terminal-table.ts`) and stigmer#1071 ("persist a thrown
  * terminal once").
  *

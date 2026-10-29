@@ -11,11 +11,11 @@
  * queue or in-process (local activities).
  *
  * Shape preserved exactly from Go:
- *   - Harness dispatch, one exhaustive switch: NATIVE/UNSPECIFIED and
+ *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
  *     the thread id), each with its own Execute* activity. A number no
- *     harness owns fails the run, naming it, never runs as native.
+ *     harness owns fails the run, naming it, never runs as Stigmer.
  *   - Pause/resume: each attempt runs in a cancellable scope with a
  *     monitor that consumes ONE pause signal and cancels the scope; a
  *     pause queued while no attempt is running pauses the next attempt
@@ -435,7 +435,7 @@ export async function invokeAgentExecution(
         break;
       default: {
         // Admission refuses a number no harness owns; one that still
-        // arrives fails the run here rather than running as native.
+        // arrives fails the run here rather than running as Stigmer.
         const unknown: never = harness;
         throw ApplicationFailure.nonRetryable(
           `harness ${String(unknown)} names no harness this workflow runs`,
@@ -564,14 +564,14 @@ type DeterministicStateActivityName =
   | typeof EXECUTE_CLAUDE_ACTIVITY_NAME;
 
 /**
- * The deterministic-state flow, native's and Claude's: EnsureThread ONCE
- * (the thread is the conversation's identity — for native the LangGraph
- * checkpoint thread, for Claude the id its engine derives its session
- * from — stable across pause/recovery re-invocations), then the shared
- * pause/recovery loop around the HITL loop. The engines differ only in
- * the Execute* activity the loop calls; native's commands are the ones
- * this flow scheduled before Claude shared it, which the replay
- * histories pin.
+ * The deterministic-state flow, the Stigmer harness's and Claude's:
+ * EnsureThread ONCE (the thread is the conversation's identity — for
+ * Stigmer the LangGraph checkpoint thread, for Claude the id its engine
+ * derives its session from — stable across pause/recovery re-invocations),
+ * then the shared pause/recovery loop around the HITL loop. The engines
+ * differ only in the Execute* activity the loop calls; the Stigmer
+ * harness's commands are the ones this flow scheduled before Claude shared
+ * it, which the replay histories pin.
  */
 async function executeDeterministicStateFlow(
   input: InvokeAgentExecutionWorkflowInput,

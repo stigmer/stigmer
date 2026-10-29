@@ -137,7 +137,7 @@ export interface OrgWithConfirmedFacts {
 // Shared by the memory-retrieval (no-embedder) and memory-selection
 // (embedder) execution suites, which differ only in the mock's posture.
 // `prepare` is what the target needs before an org can start a run (its
-// keyTenancy on the hosted edition, where a native run needs the org's own
+// keyTenancy on the hosted edition, where a Stigmer run needs the org's own
 // provider key), absent elsewhere.
 export function provisionOrgWithConfirmedFacts(
   clients: ConformanceClients,

@@ -11,8 +11,8 @@
  * with no stored row an organization could edit to pass every run. What
  * keeps it from acting on the conversation it reads:
  *
- *   - `disallowed_tools` names every Claude tool the native engine has a
- *     tool for (NATIVE_TOOL_COVERS, @stigmer/tool-vocabulary, the one
+ *   - `disallowed_tools` names every Claude tool the Stigmer harness has a
+ *     tool for (STIGMER_TOOL_COVERS, @stigmer/tool-vocabulary, the one
  *     source), so the model is shown none of them; the one built-in the
  *     runner keeps bound, `read_file`, it confines to the platform's own
  *     content (middleware/tool-scope.ts);
@@ -35,15 +35,15 @@ import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 
 import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 /** The reserved label that marks a judge run. Wire contract with the server. */
 export const GRADES_RUN_LABEL = "stigmer.ai/grades-run";
 
 
-/** Every Claude tool the native engine binds, denied: the judge acts on nothing. */
+/** Every Claude tool the Stigmer harness binds, denied: the judge acts on nothing. */
 export const BUILT_IN_JUDGE_DISALLOWED_TOOLS: readonly string[] = [
-  ...new Set([...NATIVE_TOOL_COVERS.values()].flat()),
+  ...new Set([...STIGMER_TOOL_COVERS.values()].flat()),
 ];
 
 /** Whether a run's labels mark it as a judge run. */

@@ -1,6 +1,6 @@
 /**
- * Pins how hooks see a native call, in both formats (`tool-view.ts`):
- *  - every tool the native engine binds has exactly one Claude Code view, and
+ * Pins how hooks see a Stigmer call, in both formats (`tool-view.ts`):
+ *  - every tool the Stigmer harness binds has exactly one Claude Code view, and
  *    a view's inverse restores the call (view-then-inverse is the identity),
  *    in either format;
  *  - Cursor's view names a call as Cursor's own engine sends it to a hook
@@ -20,9 +20,9 @@
 import { describe, expect, it } from "vitest";
 import { EXCLUDED_BUILTIN_TOOLS } from "../../../activities/execute-deep-agent/deepagents-profiles.js";
 import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import type { HookFormatName } from "../hook-set.js";
-import { claudeToolResponse, hookServerNamesOf, NATIVE_VIEWED_TOOLS, NativeToolViews } from "../tool-view.js";
+import { claudeToolResponse, hookServerNamesOf, STIGMER_VIEWED_TOOLS, StigmerToolViews } from "../tool-view.js";
 
 const ROOT = "/work/repo";
 const SERVERS = new Map([
@@ -31,7 +31,7 @@ const SERVERS = new Map([
   ["send_message", "channel"],
   ["search_tickets", "zendesk"],
 ]);
-const views = new NativeToolViews({
+const views = new StigmerToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => normalizeWorkspacePathArg(path, ROOT),
   toolServerMap: SERVERS,
@@ -48,7 +48,7 @@ function back(name: string, input: Record<string, unknown>, format: HookFormatNa
   return views.argsFrom({ name, args: {}, serverSlug: SERVERS.get(name) ?? "" }, format, input);
 }
 
-/** One representative call per bound native tool. */
+/** One representative call per bound Stigmer tool. */
 const CALLS: Record<string, Record<string, unknown>> = {
   execute: { command: "git push origin main", intent: "Push the branch" },
   read_file: { file_path: "/src/a.ts", offset: 10, limit: 20 },
@@ -62,11 +62,11 @@ const CALLS: Record<string, Record<string, unknown>> = {
   web_fetch: { url: "https://example.com", max_length: 1000, start_index: 0 },
 };
 
-describe("the native views", () => {
-  const bound = [...NATIVE_TOOL_COVERS.keys()].filter((name) => !EXCLUDED_BUILTIN_TOOLS.includes(name));
+describe("the Stigmer views", () => {
+  const bound = [...STIGMER_TOOL_COVERS.keys()].filter((name) => !EXCLUDED_BUILTIN_TOOLS.includes(name));
 
-  it("cover exactly the tools the native engine binds", () => {
-    expect([...NATIVE_VIEWED_TOOLS["claude-code"]].sort()).toEqual([...bound].sort());
+  it("cover exactly the tools the Stigmer harness binds", () => {
+    expect([...STIGMER_VIEWED_TOOLS["claude-code"]].sort()).toEqual([...bound].sort());
   });
 
   it.each(bound)("%s: its view's inverse restores the call", (name) => {
@@ -151,11 +151,11 @@ describe("MCP and platform tools", () => {
   });
 });
 
-describe("Cursor's view of a native call", () => {
-  const cursorOf = (name: string): ReturnType<NativeToolViews["viewsOf"]>["cursor"] =>
+describe("Cursor's view of a Stigmer call", () => {
+  const cursorOf = (name: string): ReturnType<StigmerToolViews["viewsOf"]>["cursor"] =>
     views.viewsOf({ name, args: CALLS[name]!, serverSlug: SERVERS.get(name) ?? "" }).cursor;
 
-  it.each(NATIVE_VIEWED_TOOLS.cursor.filter((name) => name !== "execute"))("%s: its view's inverse restores the call", (name) => {
+  it.each(STIGMER_VIEWED_TOOLS.cursor.filter((name) => name !== "execute"))("%s: its view's inverse restores the call", (name) => {
     const view = cursorOf(name);
     expect(view).toBeDefined();
     expect(back(name, view!.toolInput, "cursor")).toEqual(CALLS[name]);

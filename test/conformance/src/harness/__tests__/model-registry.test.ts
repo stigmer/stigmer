@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   economyRowFor,
   parseModelRegistryDocument,
-  requireNativeRow,
+  requireStigmerRow,
   requireRegistryRow,
   wireModelIdOf,
   type ModelRegistryRow,
@@ -56,7 +56,7 @@ describe("parseModelRegistryDocument", () => {
     ]);
   });
 
-  it("reads the native request facts: the ceiling, the thinking form and the tri-state required flag", () => {
+  it("reads the Stigmer harness's request facts: the ceiling, the thinking form and the tri-state required flag", () => {
     const document = parseModelRegistryDocument({
       models: [
         { id: "adaptive", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: true } },
@@ -90,8 +90,8 @@ describe("requireRegistryRow", () => {
   });
 });
 
-describe("requireNativeRow", () => {
-  it("returns the native row of an id that has one on each harness, and names a missing one", () => {
+describe("requireStigmerRow", () => {
+  it("returns the Stigmer harness's row of an id that has one on each harness, and names a missing one", () => {
     const document = {
       models: [
         row("claude-sonnet-5", { harness: "claude" }),
@@ -99,8 +99,8 @@ describe("requireNativeRow", () => {
         row("claude-only-5", { harness: "claude" }),
       ],
     };
-    expect(requireNativeRow(document, "claude-sonnet-5").maxOutputTokens).toBe(128000);
-    expect(() => requireNativeRow(document, "claude-only-5")).toThrow(/no native row with id "claude-only-5"/);
+    expect(requireStigmerRow(document, "claude-sonnet-5").maxOutputTokens).toBe(128000);
+    expect(() => requireStigmerRow(document, "claude-only-5")).toThrow(/no Stigmer row with id "claude-only-5"/);
   });
 });
 
@@ -114,14 +114,14 @@ describe("economyRowFor", () => {
     ],
   };
 
-  it("picks the first native economy row of the same provider, in the runner's order", () => {
+  it("picks the first Stigmer economy row of the same provider, in the runner's order", () => {
     expect(economyRowFor(document, "anthropic").id).toBe("claude-haiku-4.5");
     expect(wireModelIdOf(economyRowFor(document, "anthropic"))).toBe("claude-haiku-4-5-20251001");
   });
 
-  it("falls back to any native economy row when the provider has none, and names an empty registry", () => {
+  it("falls back to any Stigmer economy row when the provider has none, and names an empty registry", () => {
     expect(economyRowFor(document, "vertex").id).toBe("gpt-4o-mini");
-    expect(() => economyRowFor({ models: [] }, "anthropic")).toThrow(/no economy-tier native row/);
+    expect(() => economyRowFor({ models: [] }, "anthropic")).toThrow(/no economy-tier Stigmer row/);
     expect(wireModelIdOf(row("bare"))).toBe("bare");
   });
 });

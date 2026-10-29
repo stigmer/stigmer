@@ -11,7 +11,7 @@
  *
  * The cloud composes the CONTENT; this module owns the PRESENTATION
  * framing. Each harness wraps {@link formatContextBridgeText} in its own
- * section syntax (a markdown heading in the native system prompt).
+ * section syntax (a markdown heading in the Stigmer harness's system prompt).
  */
 
 /**

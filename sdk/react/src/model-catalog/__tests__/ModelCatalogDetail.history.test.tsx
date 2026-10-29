@@ -32,7 +32,7 @@ function baseline(id: string, status: ModelPricingBaselineStatus, input: bigint,
 }
 
 const ROW: ModelCatalogRow = {
-  key: "claude-sonnet-4-6|anthropic|native",
+  key: "claude-sonnet-4-6|anthropic|stigmer",
   baseline: baseline("bl-3", ModelPricingBaselineStatus.pricing_baseline_active, 3_000_000n, "ops@acme", ""),
   history: [
     baseline("bl-2", ModelPricingBaselineStatus.pricing_baseline_superseded, 2_500_000n, "ops@acme", "vendor price rise"),

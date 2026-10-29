@@ -4,9 +4,10 @@
  * refused FailedPrecondition with copy for that scope and ErrorInfo
  * PROVIDER_KEY_REQUIRED naming org, provider and model; a visitor is refused
  * with copy that names no key and carries no ErrorInfo; served and unknown
- * pass, as do a model-less turn, a chain with no placement and a native
- * model whose provider no key serves; an availability that cannot be read
- * is Unavailable. The provider is a fake, so each arm reads one answer.
+ * pass, as do a model-less turn, a chain with no placement and a
+ * Stigmer-harness model whose provider no key serves; an availability that
+ * cannot be read is Unavailable. The provider is a fake, so each arm reads
+ * one answer.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";

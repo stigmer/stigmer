@@ -189,7 +189,8 @@ export interface ModelCostEntry {
  * Build a compound key that uniquely identifies a model across harnesses.
  *
  * The same model name (e.g. `claude-sonnet-5`) can exist in several
- * harnesses, native's and Claude's. The compound key disambiguates.
+ * harnesses, the Stigmer harness's and Claude's. The compound key
+ * disambiguates.
  */
 export function modelKey(harness: HarnessOption, modelId: string): string {
   return `${harness}/${modelId}`;
@@ -420,7 +421,7 @@ export async function fetchModelRegistry(
 }
 
 /**
- * Model ID used when no user preference is set (native harness).
+ * Model ID used when no user preference is set (Stigmer harness).
  *
  * @deprecated Use {@link resolveDefaultModelId} for dynamic resolution
  * based on the active harness and featured models. This constant is kept
@@ -447,7 +448,7 @@ export interface DefaultModelResolution {
   readonly source: DefaultModelSource;
 }
 
-/** Each engine's last-resort model, for a registry with no usable row: the native and Claude engines run the same Claude model. */
+/** Each engine's last-resort model, for a registry with no usable row: the Stigmer and Claude engines run the same Claude model. */
 const PLATFORM_FALLBACK_MODEL_IDS: Readonly<Record<HarnessOption, string>> = {
   stigmer: DEFAULT_MODEL_ID,
   claude: DEFAULT_MODEL_ID,

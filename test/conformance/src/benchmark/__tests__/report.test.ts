@@ -7,10 +7,10 @@
 // divides by cache-inclusive input tokens; failed samples are counted and kept
 // but excluded from every median; the reader accepts a report with or
 // without the quality eval and refuses a wrong version, a missing field, a
-// malformed side, a quality eval without its document object, a native
+// malformed side, a quality eval without its document object, a Stigmer
 // arm without its endpoint, API or cost basis, and a v8 report without the
 // measured code's SHA or the runner's marker counts by name. A cost ratio is
-// each side's warm median over native's, for every side but native; a v11
+// each side's warm median over the Stigmer harness's, for every other side; a v11
 // report is keyed by engine, and the reader refuses a v10 report, a
 // comparison without its sides or its ratios, and an arm with no parity
 // model, by name, and reads past an engine it does not know (one retired
@@ -107,13 +107,13 @@ describe("costRatios", () => {
   const priced = (harness: BenchmarkHarness, micros: number) =>
     summarize(harness, makeSample(), [makeSample({ measures: { ...makeSample().measures, estimated_cost_micros: micros } })], null);
 
-  it("is each side's warm median cost over native's, never native's own, and leaves out a side it cannot divide", () => {
+  it("is each side's warm median cost over the Stigmer harness's, never the Stigmer harness's own, and leaves out a side it cannot divide", () => {
     expect(costRatios({ stigmer: priced("stigmer", 200), claude: priced("claude", 500) })).toEqual({ claude: 2.5 });
-    expect(costRatios({ claude: priced("claude", 500) }), "no native side, nothing to divide by").toEqual({});
-    expect(costRatios({ stigmer: priced("stigmer", 0), claude: priced("claude", 500) }), "a native cost of 0").toEqual({});
+    expect(costRatios({ claude: priced("claude", 500) }), "no Stigmer side, nothing to divide by").toEqual({});
+    expect(costRatios({ stigmer: priced("stigmer", 0), claude: priced("claude", 500) }), "a Stigmer cost of 0").toEqual({});
   });
 
-  it("comparisonOf names the scenario, keeps the sides by harness and their ratios over native", () => {
+  it("comparisonOf names the scenario, keeps the sides by harness and their ratios over the Stigmer harness's", () => {
     const sides = { stigmer: priced("stigmer", 200), claude: priced("claude", 300) };
     const comparison = comparisonOf({ name: "s", prompts: ["p"], mode: "parity", sessionShape: "fresh-per-execution", agent: "bare" }, sides);
     expect([comparison.scenario, comparison.prompts, comparison.mode, comparison.session_shape, comparison.agent]).toEqual(["s", ["p"], "parity", "fresh-per-execution", "bare"]);
@@ -209,7 +209,7 @@ describe("readBenchmarkReport", () => {
     expect(() => readBenchmarkReport(badModels)).toThrow(/sides\.[a-z-]+\.models is not an array/);
   });
 
-  it("refuses a report without the native arm's endpoint, API or cost basis, the v7 reports before one arm per run", () => {
+  it("refuses a report without the Stigmer arm's endpoint, API or cost basis, the v7 reports before one arm per run", () => {
     for (const key of ["stigmer_endpoint", "stigmer_api", "stigmer_cost_basis"]) {
       const report = validReport();
       delete (report.models as unknown as Record<string, unknown>)[key];

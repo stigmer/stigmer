@@ -233,7 +233,7 @@ export const ToolCallStatusSchema: GenEnum<ToolCallStatus> = /*@__PURE__*/
  * ToolKind is the harness-agnostic category of a tool call.
  *
  * Every execution harness emits tool calls with engine-specific names — the
- * native (deepagents) harness uses snake_case (edit_file, execute, grep), while
+ * Stigmer (deepagents) harness uses snake_case (edit_file, execute, grep), while
  * the Claude harness uses PascalCase (Edit, Bash, Grep). ToolKind
  * normalizes that identity once, in the runner, so every client (web, desktop,
  * CLI, Ink) renders a tool the same way regardless of which harness produced it.
@@ -260,14 +260,14 @@ export enum ToolKind {
   UNSPECIFIED = 0,
 
   /**
-   * Read a file's contents. Native: read, read_file. Claude: Read.
+   * Read a file's contents. Stigmer: read, read_file. Claude: Read.
    *
    * @generated from enum value: TOOL_KIND_FILE_READ = 1;
    */
   FILE_READ = 1,
 
   /**
-   * Create or overwrite an entire file. Native: write_file, create_file.
+   * Create or overwrite an entire file. Stigmer: write_file, create_file.
    * Claude: Write.
    *
    * @generated from enum value: TOOL_KIND_FILE_WRITE = 2;
@@ -275,7 +275,7 @@ export enum ToolKind {
   FILE_WRITE = 2,
 
   /**
-   * Modify part of an existing file. Native: edit_file, str_replace_editor.
+   * Modify part of an existing file. Stigmer: edit_file, str_replace_editor.
    * Claude: Edit, NotebookEdit.
    *
    * @generated from enum value: TOOL_KIND_FILE_EDIT = 3;
@@ -283,35 +283,35 @@ export enum ToolKind {
   FILE_EDIT = 3,
 
   /**
-   * Delete a file. Native: delete_file, remove_file.
+   * Delete a file. Stigmer: delete_file, remove_file.
    *
    * @generated from enum value: TOOL_KIND_FILE_DELETE = 4;
    */
   FILE_DELETE = 4,
 
   /**
-   * Execute a shell command. Native: execute, shell. Claude: Bash.
+   * Execute a shell command. Stigmer: execute, shell. Claude: Bash.
    *
    * @generated from enum value: TOOL_KIND_SHELL = 5;
    */
   SHELL = 5,
 
   /**
-   * Search file contents or names. Native: grep, glob. Claude: Grep, Glob.
+   * Search file contents or names. Stigmer: grep, glob. Claude: Grep, Glob.
    *
    * @generated from enum value: TOOL_KIND_SEARCH = 6;
    */
   SEARCH = 6,
 
   /**
-   * List a directory. Native: ls, list_directory.
+   * List a directory. Stigmer: ls, list_directory.
    *
    * @generated from enum value: TOOL_KIND_LIST = 7;
    */
   LIST = 7,
 
   /**
-   * Fetch the contents of a URL. Native: web_fetch. Claude: WebFetch.
+   * Fetch the contents of a URL. Stigmer: web_fetch. Claude: WebFetch.
    *
    * @generated from enum value: TOOL_KIND_FETCH = 8;
    */
@@ -325,14 +325,14 @@ export enum ToolKind {
   WEB_SEARCH = 9,
 
   /**
-   * Record model reasoning via a think tool. Native: think.
+   * Record model reasoning via a think tool. Stigmer: think.
    *
    * @generated from enum value: TOOL_KIND_THINK = 10;
    */
   THINK = 10,
 
   /**
-   * Manage the agent's todo list. Native: write_todos. Claude: TodoWrite.
+   * Manage the agent's todo list. Stigmer: write_todos. Claude: TodoWrite.
    * Typically rendered through a dedicated todo surface, not the tool thread.
    *
    * @generated from enum value: TOOL_KIND_TODO = 11;
@@ -340,7 +340,7 @@ export enum ToolKind {
   TODO = 11,
 
   /**
-   * Delegate work to a sub-agent. Native: task. Claude: Agent.
+   * Delegate work to a sub-agent. Stigmer: task. Claude: Agent.
    * Rendered as a
    * nested thread, not via the standard tool result view.
    *
@@ -369,7 +369,7 @@ export enum ToolKind {
   MEMORY = 14,
 
   /**
-   * Stop a command the agent started in the background. Native:
+   * Stop a command the agent started in the background. Stigmer:
    * stop_background_command. Never gated: stopping what the agent started
    * asks no one.
    *
@@ -378,7 +378,7 @@ export enum ToolKind {
   BACKGROUND_STOP = 15,
 
   /**
-   * Load one of the agent's skills by its name. Claude: Skill. Native loads a
+   * Load one of the agent's skills by its name. Claude: Skill. Stigmer loads a
    * skill by reading its file, a TOOL_KIND_FILE_READ.
    * Rendered as the skill it loaded, not as the tool's raw result.
    *

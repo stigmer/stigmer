@@ -4,24 +4,24 @@
 // A suite names a turn once, in engine-neutral steps (a shell call, a file
 // write, a delegation, the closing text), and an arm turns it into what that
 // engine's model says:
-//   - native: the session's engine left unset (stored unspecified, run as
-//     native), and the steps queued on the mock in order, one model call
-//     each, under native's tool names;
+//   - Stigmer: the session's engine left unset (stored unspecified, run on
+//     Stigmer), and the steps queued on the mock in order, one model call
+//     each, under the Stigmer harness's tool names;
 //   - Claude: the session on Harness.CLAUDE, and the steps played by a router
 //     (@stigmer/test-support/claude-engine-wire) that answers each request
 //     from its conversation: the first step whose call has no result yet.
 //     The engine re-sends its history when it resumes or recovers, so a
 //     queue would answer a replay with the next step; a router answers the
 //     same conversation the same way however often it arrives.
-// A tool's name on Claude is the one the platform's vocabulary maps native's
+// A tool's name on Claude is the one the platform's vocabulary maps the Stigmer harness's
 // to (@stigmer/tool-vocabulary, claudeNameOf), and its input is the Claude
 // tool's shape.
 //
 // An arm is a seam, not a matrix: a suite that proves a case on Claude
 // writes that case in its own `describe("on Claude")` block from the arm,
-// beside its native cases, rather than running every native case on every
-// engine; most native cases assert native facts (its checkpoint, its
-// helpers) that have no Claude reading.
+// beside its Stigmer cases, rather than running every Stigmer case on every
+// engine; most Stigmer cases assert the Stigmer harness's facts (its
+// checkpoint, its helpers) that have no Claude reading.
 //
 // Which turn a request belongs to is the task text its user carries: every
 // scripted turn is keyed by a unique text (the run's message, or a helper's
@@ -49,7 +49,7 @@ export type ArmStep =
    * A shell command; `timeoutSeconds` raises its bound, as a model raises it
    * for a long command. `retryInterrupted`: the model asks for it again, under
    * a new id, when the engine hands back the call as interrupted (a lost
-   * runner cut it, and its outcome is unknown); native re-runs a cut step
+   * runner cut it, and its outcome is unknown); the Stigmer harness re-runs a cut step
    * from its checkpoint on its own.
    */
   | { readonly kind: "shell"; readonly id: string; readonly command: string; readonly timeoutSeconds?: number; readonly retryInterrupted?: boolean }
@@ -73,7 +73,7 @@ export type ArmWord = "stigmer" | "claude";
 
 export interface EngineArm {
   readonly word: ArmWord;
-  /** The session's engine (`sessionSpec.harness`); undefined leaves it unset, which runs native. */
+  /** The session's engine (`sessionSpec.harness`); undefined leaves it unset, which runs on Stigmer. */
   readonly harness: Harness | undefined;
   /** Script `steps` as the model's answers to the turn whose user carries `task`. */
   script(mock: MockLlmProxy, task: string, steps: readonly ArmStep[]): void;
@@ -94,13 +94,13 @@ export function claudeTurnsOnly(capabilities: Pick<CapabilityFlags, "claudeTurns
   };
 }
 
-/** The arms of the engines `capabilities` runs, native first. */
+/** The arms of the engines `capabilities` runs, Stigmer first. */
 export function engineArms(capabilities: Pick<CapabilityFlags, "claudeTurnsRun">): readonly EngineArm[] {
-  return capabilities.claudeTurnsRun ? [NATIVE_ARM, CLAUDE_ARM] : [NATIVE_ARM];
+  return capabilities.claudeTurnsRun ? [STIGMER_ARM, CLAUDE_ARM] : [STIGMER_ARM];
 }
 
-/** A step's call in native's words: its tool name and input. */
-function nativeCall(step: ArmCall): { readonly name: string; readonly input: Record<string, unknown> } {
+/** A step's call in the Stigmer harness's words: its tool name and input. */
+function stigmerCall(step: ArmCall): { readonly name: string; readonly input: Record<string, unknown> } {
   switch (step.kind) {
     case "shell":
       return { name: "execute", input: { command: step.command, ...(step.timeoutSeconds === undefined ? {} : { timeout: step.timeoutSeconds }) } };
@@ -117,7 +117,7 @@ function nativeCall(step: ArmCall): { readonly name: string; readonly input: Rec
   }
 }
 
-export const NATIVE_ARM: EngineArm = {
+export const STIGMER_ARM: EngineArm = {
   word: "stigmer",
   harness: undefined,
   script(mock, _task, steps) {
@@ -127,7 +127,7 @@ export const NATIVE_ARM: EngineArm = {
         continue;
       }
       const calls = step.kind === "batch" ? step.calls : [step];
-      mock.enqueue(anthropicToolUses(calls.map((call) => ({ toolCallId: call.id, toolName: nativeCall(call).name, toolInput: nativeCall(call).input }))));
+      mock.enqueue(anthropicToolUses(calls.map((call) => ({ toolCallId: call.id, toolName: stigmerCall(call).name, toolInput: stigmerCall(call).input }))));
     }
   },
   loopRequests: (mock) => mock.scriptedRequests(),
@@ -135,7 +135,7 @@ export const NATIVE_ARM: EngineArm = {
 };
 
 /**
- * A step's call in Claude's words: the tool native's maps to, with the
+ * A step's call in Claude's words: the tool the Stigmer harness's maps to, with the
  * Claude tool's input. A path is the workspace's own, which the engine
  * names in its environment block; a relative path is resolved against it.
  */

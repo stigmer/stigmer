@@ -75,7 +75,7 @@ export const LIST_RESULT_KEY = "listResult";
 // ---------------------------------------------------------------------------
 // ValidateHarnessImmutability — validate_harness_immutability.go: rejects
 // session updates that change the harness once the session has run. Each
-// harness owns its conversation state independently (native keeps it under
+// harness owns its conversation state independently (Stigmer keeps it under
 // the session's own LangGraph thread, Claude in its session store keyed by
 // the session); switching harness mid-session would silently discard
 // conversation history. A session counts as "used" once it has a run row,
@@ -110,7 +110,7 @@ export function newValidateHarnessImmutabilityStep(
         return;
       }
 
-      // Treat a stored UNSPECIFIED as NATIVE for comparison.
+      // Treat a stored UNSPECIFIED as STIGMER for comparison.
       let existingHarness = existingSpec.harness;
       const inputHarness = inputSpec.harness;
       if (existingHarness === Harness.UNSPECIFIED) {

@@ -7,7 +7,7 @@
  * Pins: the read view; one save carrying harness and run_config with the
  * tool bounds intact; switching the engine dropping the model; "No
  * engine" clearing both; "Choose an engine" starting an agent with no
- * engine on native; speed and thinking offered only once a model is
+ * engine on Stigmer; speed and thinking offered only once a model is
  * picked; Cancel leaving the edit unsaved; the refusal message shown.
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
@@ -161,7 +161,7 @@ describe("AgentRunDefaultsSection", () => {
     expect(onSave.mock.calls[0][0]).toEqual({ harness: undefined, runConfig: undefined });
   });
 
-  it("starts an agent with no engine on native when an engine is chosen", async () => {
+  it("starts an agent with no engine on Stigmer when an engine is chosen", async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     render(
       <AgentRunDefaultsSection

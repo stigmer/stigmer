@@ -4,7 +4,7 @@
  *
  * The middleware suites check the message a middleware adds; only the
  * provider's own conversion can say whether a request carrying it is one
- * Anthropic accepts. That conversion is what failed every native run that
+ * Anthropic accepts. That conversion is what failed every Stigmer run that
  * reached an advisory: a mid-conversation system message, which
  * `_convertMessagesToAnthropicPayload` refuses. The converter is not on the
  * package's public exports, so these tests reach it the way production does:

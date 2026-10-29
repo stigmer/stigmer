@@ -1,5 +1,5 @@
 /**
- * The native (deep-agent) slice of the hermetic activity driver: build the
+ * The Stigmer slice of the hermetic activity driver: build the
  * fixture record, bind the scripted model and the `Config`, run the REAL
  * `ExecuteDeepAgent` activity under `MockActivityEnvironment` with the REAL
  * deepagents graph, and hand back what it persisted.
@@ -9,9 +9,9 @@
  * activity environment, the execution record behind the client, the temp
  * `~/.stigmer`, the ticking clock, the shutdown signal) and its fixtures
  * (`execution-record-fixture.ts`, `model-registry-fixture.ts`,
- * `git-workspace-fixture.ts`). This module adds only what is native's: the
+ * `git-workspace-fixture.ts`). This module adds only what is the Stigmer harness's: the
  * scripted model as the one LLM (`scripted-model.ts`, reached through the
- * `shared/model-client.ts` double), the native `Config` slice with its
+ * `shared/model-client.ts` double), the Stigmer `Config` slice with its
  * checkpointer, the per-scenario reset of module caches and of the session's
  * durable state, and the production wire shape of the activity input.
  *
@@ -41,7 +41,7 @@
  *
  * The ONE knowledge of production this driver holds is `activityFactory`: how
  * to obtain the `ExecuteDeepAgent` function from a `Config`. Since #1096 it
- * is the harness registry's: the native adapter booted and bound to its
+ * is the harness registry's: the Stigmer harness's adapter booted and bound to its
  * byte-pinned activity name through `createHarnessActivities`, exactly the
  * way the composition roots bind it since #1096 through `harness-adapters.ts`
  * (and the way the Claude driver binds its own, `hermetic-claude.ts`). The
@@ -95,7 +95,7 @@ import {
   executionRecordFixture,
   type ExecutionRecordOptions,
 } from "../../../__test-utils__/execution-record-fixture.js";
-import { FIXTURE_NATIVE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
+import { FIXTURE_STIGMER_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import { ScriptedModel, type ScriptSelector, type ScriptedTurnInfo } from "./scripted-model.js";
 import { bindScriptedModel } from "./scripted-model-module.js";
 
@@ -113,8 +113,8 @@ export const FIXTURE = {
   agentName: "hermetic-agent",
   /** The agent version every fixture turn is stamped with. */
   agentVersionHash: DEFAULT_RECORD_IDS.agentVersionHash,
-  /** The pinned model; in the registry document as the native entry. */
-  model: FIXTURE_NATIVE_MODEL,
+  /** The pinned model; in the registry document as the Stigmer entry. */
+  model: FIXTURE_STIGMER_MODEL,
   /** The LangGraph thread id the control plane sends on every invocation (`ensure-thread.ts`). */
   threadId: `thread-${SESSION_ID}`,
 } as const;
@@ -132,7 +132,7 @@ export const FIXTURE = {
  */
 export type DeepAgentRecordOptions = Omit<ExecutionRecordOptions, "ids"> & { readonly executionId?: string };
 
-/** The three resources of one execution, wired by id, under the native fixture ids. */
+/** The three resources of one execution, wired by id, under the Stigmer fixture ids. */
 export function deepAgentExecutionRecord(options: DeepAgentRecordOptions): ExecutionRecord {
   return executionRecordFixture({
     ...options,

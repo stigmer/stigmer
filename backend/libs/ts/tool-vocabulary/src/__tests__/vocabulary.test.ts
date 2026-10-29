@@ -17,13 +17,13 @@ import {
   CLAUDE_TOOLS,
   CLAUDE_TOOL_ALIASES,
   CLAUDE_TOOL_COVERS,
-  NATIVE_TOOL_COVERS,
+  STIGMER_TOOL_COVERS,
   READ_ONLY_EVAL_TOOLS,
   claudeNameOf,
   isClaudeTool,
 } from "../index.js";
 
-describe("claudeNameOf on recorded native transcripts", () => {
+describe("claudeNameOf on recorded Stigmer transcripts", () => {
   it.each([
     ["execute", "Bash", "approve.turn2"],
     ["read_file", "Read", "tool-call"],
@@ -64,7 +64,7 @@ describe("claudeNameOf on recorded Claude transcripts", () => {
 
 describe("the tables", () => {
   it("cover only Claude tools, and never Skill, which no engine tool is", () => {
-    for (const table of [NATIVE_TOOL_COVERS, CLAUDE_TOOL_COVERS]) {
+    for (const table of [STIGMER_TOOL_COVERS, CLAUDE_TOOL_COVERS]) {
       for (const [name, covers] of table) {
         expect(covers.length, name).toBeGreaterThan(0);
         for (const t of covers) {

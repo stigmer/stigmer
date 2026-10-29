@@ -1,5 +1,5 @@
 /**
- * A native model's context window: how many input tokens it takes, which
+ * A Stigmer-harness model's context window: how many input tokens it takes, which
  * the turn's summarizer compacts the conversation at a fraction of
  * (`middleware/compaction.ts`, deepagents' own fractions).
  *

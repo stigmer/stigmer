@@ -2,14 +2,14 @@
 // Domain: agentic / session — the harness and execution_target immutability
 // validators.
 //
-// A Session's harness (native vs Claude) and execution_target (local vs
+// A Session's harness (Stigmer vs Claude) and execution_target (local vs
 // cloud) each own state that is not portable once a turn has run: the
 // harness its conversation, the target the workspace the turn wrote. The
 // server enforces this with two update-time validators that judge "this
 // session has run" by one fact every harness leaves, a run row in the
 // session (stigmer/stigmer#2566, #2598). A change past either lock is
 // rejected with FAILED_PRECONDITION. A harness left unset in the update
-// keeps the stored one, and a stored UNSPECIFIED compares as NATIVE; an
+// keeps the stored one, and a stored UNSPECIFIED compares as STIGMER; an
 // unset execution_target resolves to the deployment's default on both
 // sides, so a no-op "change" to the default is allowed.
 //
@@ -19,11 +19,11 @@
 // Asserted contract:
 // - harness and execution_target are freely mutable while the session has
 //   not run;
-// - once a turn has run, on native and on Claude, changing harness ->
+// - once a turn has run, on Stigmer and on Claude, changing harness ->
 //   FAILED_PRECONDITION, and changing execution_target ->
 //   FAILED_PRECONDITION, each with its validator's copy; re-applying the
 //   same values is accepted;
-// - an UNSPECIFIED harness compares as NATIVE: re-applying NATIVE after a
+// - an UNSPECIFIED harness compares as STIGMER: re-applying STIGMER after a
 //   turn is accepted, and CLAUDE is refused.
 import { Code } from "@connectrpc/connect";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -34,7 +34,7 @@ import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
-import { CLAUDE_ARM, claudeTurnsOnly, type EngineArm, NATIVE_ARM } from "../support/engine-arms";
+import { CLAUDE_ARM, claudeTurnsOnly, type EngineArm, STIGMER_ARM } from "../support/engine-arms";
 import { uniqueName } from "../support/naming";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { makeSession } from "../support/sessions";
@@ -105,8 +105,8 @@ describe("[rpc:SessionCommandController.apply] Session immutability — before t
     const toClaude = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.CLAUDE }));
     expect(toClaude.spec?.harness, "harness change is allowed before the first run").toBe(Harness.CLAUDE);
 
-    const backToNative = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
-    expect(backToNative.spec?.harness).toBe(Harness.STIGMER);
+    const backToStigmer = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
+    expect(backToStigmer.spec?.harness).toBe(Harness.STIGMER);
   });
 
   it("execution_target is freely mutable while the session has not run", async () => {
@@ -130,7 +130,7 @@ describe("[rpc:SessionCommandController.apply] Session immutability — before t
 
 /** Each engine a turn runs on, with the harness its session names and the one it would change to. */
 const ENGINES: readonly { readonly arm: EngineArm; readonly harness: Harness; readonly other: Harness }[] = [
-  { arm: NATIVE_ARM, harness: Harness.STIGMER, other: Harness.CLAUDE },
+  { arm: STIGMER_ARM, harness: Harness.STIGMER, other: Harness.CLAUDE },
   { arm: CLAUDE_ARM, harness: Harness.CLAUDE, other: Harness.STIGMER },
 ];
 
@@ -182,28 +182,28 @@ for (const { arm, harness, other } of ENGINES) {
 }
 
 describe("[rpc:SessionCommandController.apply] Session immutability — an unset harness", () => {
-  it("treats UNSPECIFIED harness as NATIVE for the immutability comparison", async () => {
+  it("treats UNSPECIFIED harness as STIGMER for the immutability comparison", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
-    // An unset harness is stored UNSPECIFIED (the server reads it as NATIVE
-    // at dispatch, not at rest), and the turn runs on native.
+    // An unset harness is stored UNSPECIFIED (the server reads it as STIGMER
+    // at dispatch, not at rest), and the turn runs on Stigmer.
     const session = await clients.sessionCommand.apply(makeSession({ org, name, agentRef }));
     const sessionId = session.metadata!.id;
     fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId }));
     expect(session.spec?.harness).toBe(Harness.UNSPECIFIED);
-    await runTurn(org, sessionId, NATIVE_ARM);
+    await runTurn(org, sessionId, STIGMER_ARM);
 
-    // Explicit NATIVE is the same logical value (UNSPECIFIED == NATIVE): accepted.
-    const toNative = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
-    expect(toNative.spec?.harness).toBe(Harness.STIGMER);
+    // Explicit STIGMER is the same logical value (UNSPECIFIED == STIGMER): accepted.
+    const toStigmer = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
+    expect(toStigmer.spec?.harness).toBe(Harness.STIGMER);
 
-    // CLAUDE is a real change from the NATIVE default: refused.
+    // CLAUDE is a real change from the STIGMER default: refused.
     const refused = await expectGrpcCode(
       () => clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.CLAUDE })),
       Code.FailedPrecondition,
-      "change UNSPECIFIED(==NATIVE) harness to CLAUDE after a turn has run",
+      "change UNSPECIFIED(==STIGMER) harness to CLAUDE after a turn has run",
     );
     expect(refused.rawMessage).toContain(HARNESS_LOCKED);
   });

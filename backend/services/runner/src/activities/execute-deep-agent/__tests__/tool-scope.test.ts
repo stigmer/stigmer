@@ -1,6 +1,6 @@
 /**
  * The tool-scope middleware (`middleware/tool-scope.ts`) on a real deepagents
- * graph driven by the scripted model: the native engine's enforcement of an
+ * graph driven by the scripted model: the Stigmer harness's enforcement of an
  * agent's two tool lists.
  *
  * Pinned, each on the graph the runner builds (`buildMiddlewareStack`, the
@@ -362,7 +362,7 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(await callRefused(config({ tools: ["mcp__a", "mcp__b"], disallowedTools: [] }), "search", undefined)).toBe(false);
   });
 
-  it("runs an in-scope built-in and refuses an out-of-scope one, by its native name", async () => {
+  it("runs an in-scope built-in and refuses an out-of-scope one, by its Stigmer name", async () => {
     const cfg = config({ tools: ["Read"], disallowedTools: [] });
     expect(await callRefused(cfg, "read_file", undefined)).toBe(false);
     expect(await callRefused(cfg, "execute", undefined)).toBe(true);

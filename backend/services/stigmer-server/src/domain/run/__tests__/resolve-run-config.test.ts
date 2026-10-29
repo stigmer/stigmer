@@ -30,7 +30,7 @@
  * layer" included. A surface's saved settings that set a tier or thinking
  * with no model of their own are refused; a live message may set either
  * alone. A new conversation whose turn names a model but no engine starts
- * on native (the engine the model was checked against); naming neither, it
+ * on Stigmer (the engine the model was checked against); naming neither, it
  * takes the agent's engine.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -249,9 +249,9 @@ describe("agentLayerFor: an agent's choices count only on its engine", () => {
     );
   });
 
-  it("an unset engine is native, and no defaults is no layer", () => {
-    const native = create(AgentSpecSchema, { runConfig: { maxCostUsd: 1 } });
-    expect(agentLayerFor(native, "stigmer")).toEqual(native.runConfig);
+  it("an unset engine is Stigmer, and no defaults is no layer", () => {
+    const stigmer = create(AgentSpecSchema, { runConfig: { maxCostUsd: 1 } });
+    expect(agentLayerFor(stigmer, "stigmer")).toEqual(stigmer.runConfig);
     expect(agentLayerFor(create(AgentSpecSchema), "stigmer")).toBeUndefined();
     expect(agentLayerFor(undefined, "stigmer")).toBeUndefined();
   });
@@ -303,7 +303,7 @@ describe("ResolveRunConfig over a real store", () => {
     store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
       listIndexes: LIST_INDEXES,
     });
-    // The pinned version: native, Sonnet, thinking on, a $2 cap. The head
+    // The pinned version: Stigmer, Sonnet, thinking on, a $2 cap. The head
     // has moved to another model since.
     await store.saveAudit(
       ApiResourceKind.agent,
@@ -476,7 +476,7 @@ describe("ResolveRunConfig over a real store", () => {
     expect(ctx.newState.status?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
-  it("a new conversation naming a model but no engine starts on native, never the agent's engine", async () => {
+  it("a new conversation naming a model but no engine starts on Stigmer, never the agent's engine", async () => {
     await store.saveResource(
       ApiResourceKind.agent,
       "agt_claude",
@@ -501,7 +501,7 @@ describe("ResolveRunConfig over a real store", () => {
     expect(target?.case === "sessionSpec" ? target.value.harness : undefined).toBe(Harness.STIGMER);
     expect(runConfigPlacementOf(ctx)?.harness).toBe("stigmer");
     expect(runConfigPlacementOf(ctx)?.engine).toBe(Harness.STIGMER);
-    // On native the Claude agent gives its cap alone.
+    // On Stigmer the Claude agent gives its cap alone.
     expect(ctx.newState.status?.runConfig).toEqual(rc({ modelName: "claude-haiku-4.5", maxCostUsd: 3 }));
 
     const neither = await resolve(

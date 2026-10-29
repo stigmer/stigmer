@@ -11,7 +11,7 @@
  * flat and the same on every read.
  *
  * The default target, on an agent with no target named, is the agent as
- * it runs: its engine (native when it names none, as a conversation runs
+ * it runs: its engine (Stigmer when it names none, as a conversation runs
  * it), and its model as the label, the try naming no model (matrix.ts
  * runsAgentModel). The matrix plans the without arm exactly when a plugin
  * is compared and the ablation is not none (domain/eval-run/steps.ts

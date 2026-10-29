@@ -1,6 +1,6 @@
 /**
  * The Claude engine's usage, reported as its model calls happen, priced the
- * way the native engine prices its own.
+ * way the Stigmer harness prices its own.
  *
  * Measured on the engine (SDK 0.3.310):
  *
@@ -24,11 +24,11 @@
  *    starts at zero with each invocation, which is one engine process, and
  *    so does this count.
  *
- * Counts are reported as the native engine reports them (`input` including
+ * Counts are reported as the Stigmer harness reports them (`input` including
  * the cache buckets, `execute-deep-agent/turn-stream.ts`) and priced over the
  * disjoint buckets by the shared table (`shared/model-pricing.ts`), keyed by
  * the model id the turn names; a sub-agent's calls are priced at the turn's
- * model, as the native engine prices them (stigmer#1121). The runtime
+ * model, as the Stigmer harness prices them (stigmer#1121). The runtime
  * accounts and enforces; this only reports (`harness/usage-accumulator.ts`).
  * The bill is the proxy's, from the wire.
  */

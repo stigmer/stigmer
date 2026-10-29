@@ -173,7 +173,7 @@ const DONE = "DONE: one line per change.";
 const INSTRUCTIONS = "AGENT-V1-MARKER: answer as the release desk, one line per change.";
 const SAVED_LATER = "AGENT-V2-MARKER: answer as the support desk, politely.";
 
-// Two native registry ids whose provider ids differ from them and from each
+// Two Stigmer registry ids whose provider ids differ from them and from each
 // other, so the model a try ran is read off the wire.
 const AGENT_MODEL = "claude-haiku-4.5";
 const TARGET_MODEL = "claude-sonnet-4.6";

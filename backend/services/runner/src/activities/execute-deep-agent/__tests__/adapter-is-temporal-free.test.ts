@@ -1,5 +1,5 @@
 /**
- * Pins that the native adapter is an engine slice and nothing more: no
+ * Pins that the Stigmer harness's adapter is an engine slice and nothing more: no
  * production module under `activities/execute-deep-agent/` imports
  * `@temporalio/*`.
  *
@@ -28,7 +28,7 @@ import { packageImports, readSource, typeScriptFilesUnder } from "../../../__tes
 const SRC_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const ADAPTER_ROOT = join(SRC_ROOT, "activities", "execute-deep-agent");
 
-describe("the native adapter never imports @temporalio", () => {
+describe("the Stigmer harness's adapter never imports @temporalio", () => {
   const files = typeScriptFilesUnder(ADAPTER_ROOT, new Set(["__tests__", "__test-utils__"]));
   const offences = files.flatMap((file) =>
     packageImports(file, readSource(file), "@temporalio").map((specifier) => `  ${relative(SRC_ROOT, file)} imports "${specifier}"`),
@@ -41,6 +41,6 @@ describe("the native adapter never imports @temporalio", () => {
   });
 
   it("finds no @temporalio import in any production module", () => {
-    expect(offences, `the native adapter must not import @temporalio/*:\n${offences.join("\n")}`).toEqual([]);
+    expect(offences, `the Stigmer harness's adapter must not import @temporalio/*:\n${offences.join("\n")}`).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Where a Claude session's conversation lives: the SDK's `SessionStore`,
- * over a backing chosen the way the native engine's state is placed.
+ * over a backing chosen the way the Stigmer harness's state is placed.
  *
  * The engine writes its transcript to its configuration directory and
  * mirrors every entry to this store as it goes; a turn that resumes loads
@@ -8,13 +8,13 @@
  * directory is the invocation's, removed when it ends, `engine-env.ts`), so
  * the store holds the only durable copy and a session resumes on any
  * runner. Three backings, by `Config.checkpointerType`, the setting that
- * already places the native engine's conversation (`shared/checkpointer/
+ * already places the Stigmer harness's conversation (`shared/checkpointer/
  * factory.ts`):
  *
  *  - `sqlite` (the local default): JSON-lines files in the session's
- *    directory (`file-store.ts`), beside the native engine's checkpoints;
+ *    directory (`file-store.ts`), beside the Stigmer harness's checkpoints;
  *  - `http` (cloud mode): the platform, through the runner's local proxy's
- *    engine-sessions lane (`http-store.ts`), as the native engine's
+ *    engine-sessions lane (`http-store.ts`), as the Stigmer harness's
  *    checkpoints go through its checkpoints lane;
  *  - `memory`: this process, for tests.
  *

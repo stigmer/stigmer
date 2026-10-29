@@ -1,6 +1,6 @@
 /**
  * The to-do rule: how one to-do tool call changes a to-do list. Every
- * engine exposes a to-do tool (the native harness's `write_todos`, the
+ * engine exposes a to-do tool (the Stigmer harness's `write_todos`, the
  * Claude engine's `TodoWrite`; each reads as Claude Code's `TodoWrite`,
  * `@stigmer/tool-vocabulary`), and the runner's
  * transcript builder and every client that folds a session's events apply
@@ -9,7 +9,7 @@
  *
  * The mapping is a superset of what any one engine sends: it reads a
  * per-item `id` and `created_at`, a `merge` flag and camelCase statuses
- * when a call carries them; the native harness sends only
+ * when a call carries them; the Stigmer harness sends only
  * `{ content, status }` (three statuses, no id, no merge), and the Claude
  * engine adds an `activeForm` the list does not keep.
  *
@@ -24,7 +24,7 @@
  *
  * Proven by __tests__/todos.test.ts.
  */
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import type { Todo } from "./types.js";
 
@@ -47,7 +47,7 @@ const STATUS_WORDS: Readonly<Record<string, Todo["status"]>> = {
 
 /** Whether a built-in tool call of this name writes the to-do list (it reads as `TodoWrite`). */
 export function isTodoTool(name: string): boolean {
-  const covers = NATIVE_TOOL_COVERS.get(name);
+  const covers = STIGMER_TOOL_COVERS.get(name);
   return covers?.includes("TodoWrite") ?? name === "TodoWrite";
 }
 

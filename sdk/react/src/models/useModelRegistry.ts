@@ -36,7 +36,7 @@ export interface UseModelRegistryReturn {
    * Look up a single model by its `modelId`.
    *
    * In unified mode the same modelId can exist under several harnesses
-   * (e.g. `claude-sonnet-5` on native and on claude).
+   * (e.g. `claude-sonnet-5` on Stigmer and on claude).
    * This returns the first match. Use {@link getByKey} with a compound key
    * for an unambiguous lookup.
    */

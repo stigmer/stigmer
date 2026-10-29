@@ -1,5 +1,5 @@
 /**
- * The native deep-agent harness as a `HarnessAdapter` — the worker- and
+ * the Stigmer harness as a `HarnessAdapter` — the worker- and
  * session-lifetime half of its LangGraph slice, behind the turn runtime's
  * contract (`harness/types.ts`). One engine turn is `turn.ts`'s
  * `runDeepAgentTurn`; this module boots and delegates.

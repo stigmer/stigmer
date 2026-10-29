@@ -15,7 +15,7 @@
  *   out of `process.env` at boot (issue #508 — a vendor engine's spawns
  *   inherit the environment they start from, so credentials must not LIVE
  *   there; see that module for custody rules).
- * - shared/shell-env.ts: SHELL_ENV_DENYLIST for the native harness `execute` tool
+ * - shared/shell-env.ts: SHELL_ENV_DENYLIST for the Stigmer harness `execute` tool
  *   (defense-in-depth behind the boot scrub).
  * - mcp-manager.test.ts: leak-tripwire canaries for MCP stdio subprocesses
  *   (that path passes NO runner env by construction; the test plants these
@@ -50,9 +50,9 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // deployment configured before the retirement may still set it, so it
   // stays in custody: an agent's process never sees it.
   "CURSOR_API_KEY",
-  // Direct-mode Anthropic key for the native harness (model-client.ts).
+  // Direct-mode Anthropic key for the Stigmer harness (model-client.ts).
   "ANTHROPIC_API_KEY",
-  // Direct-mode OpenAI key for the native harness (model-client.ts).
+  // Direct-mode OpenAI key for the Stigmer harness (model-client.ts).
   "OPENAI_API_KEY",
   // Azure AI Foundry backend key (model-client.ts).
   "ANTHROPIC_FOUNDRY_API_KEY",

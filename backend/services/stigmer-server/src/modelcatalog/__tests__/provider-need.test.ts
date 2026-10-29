@@ -1,7 +1,7 @@
 /**
  * The provider rule (provider-need.ts) over every engine: Claude needs
  * Anthropic whatever the model and names the engine's default when the
- * turn names none, native needs its model's provider from the catalog (an
+ * turn names none, Stigmer needs its model's provider from the catalog (an
  * entry's, or an explicit prefix) and nothing when that provider is no key
  * slot. The catalog is a fixed fake so each arm reads one answer.
  */
@@ -46,7 +46,7 @@ describe("providerNeededBy", () => {
     });
   });
 
-  it("a native turn needs its model's provider, or the default model's, on native and unspecified alike", () => {
+  it("a Stigmer turn needs its model's provider, or the default model's, on Stigmer and unspecified alike", () => {
     expect(providerNeededBy(Harness.STIGMER, "gpt-5.2", catalog)).toEqual({ provider: "openai", model: "gpt-5.2" });
     expect(providerNeededBy(Harness.UNSPECIFIED, "", catalog)).toEqual({
       provider: "anthropic",
@@ -58,7 +58,7 @@ describe("providerNeededBy", () => {
     });
   });
 
-  it("a native model whose provider is no key slot or is unknown needs nothing judged", () => {
+  it("a Stigmer-harness model whose provider is no key slot or is unknown needs nothing judged", () => {
     expect(providerNeededBy(Harness.STIGMER, "gemini-3-pro", catalog)).toBeUndefined();
     expect(providerNeededBy(Harness.STIGMER, "no-such-model", catalog)).toBeUndefined();
     expect(providerNeededBy(Harness.STIGMER, "", { ...catalog, defaultModel: () => undefined })).toBeUndefined();

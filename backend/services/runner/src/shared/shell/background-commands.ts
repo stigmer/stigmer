@@ -1,5 +1,5 @@
 /**
- * The commands the native agent started in the background during one
+ * The commands the Stigmer harness's agent started in the background during one
  * invocation of its turn: started, written to a file, stopped, and waited
  * for, here and nowhere else.
  *

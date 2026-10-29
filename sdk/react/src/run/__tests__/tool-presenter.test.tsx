@@ -1,5 +1,5 @@
 // Pins useToolPresentation over the session fold's tool uses: kind and
-// category classification (Claude and native names, MCP tools), labels,
+// category classification (Claude and Stigmer names, MCP tools), labels,
 // primary argument, result views and summaries, and the presenter
 // registry's overrides (label, summary, disclosure, chrome, run-grouping)
 // with their disposers.

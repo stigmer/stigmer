@@ -1,9 +1,9 @@
 /**
  * The operator's bounds on a turn, as both boot paths in `main.ts` hand them
  * to their root: the stall window, the open-operation backstop, the
- * liveness interval, the native shell's timeout ceiling and whether it may
- * run commands in the background and the workspace lock wait, read from the
- * environment by `loadConfig`.
+ * liveness interval, the Stigmer harness's shell's timeout ceiling and
+ * whether it may run commands in the background and the workspace lock
+ * wait, read from the environment by `loadConfig`.
  *
  * Why one function: each boot path builds its root's options field by
  * field, and both once left some out, so `CURSOR_STREAM_STALL_TIMEOUT_MS` and

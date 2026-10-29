@@ -29,7 +29,7 @@
  * A failed read is logged once per turn and tried again next interval; the
  * stop is not lost, only late. Timers are real and unref'd; nothing here
  * keeps the process alive. Proven by `__tests__/background-stops.test.ts`,
- * and end to end by the native background binding and the
+ * and end to end by the Stigmer background binding and the
  * background-command conformance suite.
  */
 

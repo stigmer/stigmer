@@ -10,9 +10,9 @@
  * stamps every tool row's preview through {@link buildElidedArgsPreview} over
  * {@link SALIENT_ARG_FIELDS}, as `message.proto` promises — sanitized,
  * redacted, at creation, for inline visibility. Until then there were two
- * rules: native stamped a whole-string-truncating `sanitizeArgsPreview` on
+ * rules: Stigmer stamped a whole-string-truncating `sanitizeArgsPreview` on
  * gated rows only (a preview that could truncate to invalid JSON, acceptable
- * only because native's resume never re-parsed it), and another stream path
+ * only because the Stigmer harness's resume never re-parsed it), and another stream path
  * stamped `JSON.stringify(args)` unredacted. Both are
  * gone; this module holds the one builder and the one salient list.
  *

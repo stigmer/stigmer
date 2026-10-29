@@ -1,10 +1,10 @@
 /**
  * The harness table and the offered-harness rule (harness.ts), pure: each
  * harness's label as people read it ("Stigmer", "Claude Agent"); every
- * harness the proto names is offered (native, Claude, and unspecified, the
+ * harness the proto names is offered (Stigmer, Claude, and unspecified, the
  * platform default), and a
  * number no harness owns, the retired 2 included, is refused naming the
- * number and the field that named it, never read as native. The
+ * number and the field that named it, never read as Stigmer. The
  * step refuses with FailedPrecondition at the first unoffered engine a
  * request names, in field order, and passes a request naming none.
  *

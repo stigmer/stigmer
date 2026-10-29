@@ -297,7 +297,7 @@ describe("createAgentRun", () => {
     // title activity generates a real one.
     expect(sessionSpecOf(exec)?.subject).toBe("");
     // No harness opinion: the field stays UNSPECIFIED so the server default
-    // (native) applies.
+    // (the Stigmer harness) applies.
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.UNSPECIFIED);
   });
 
@@ -402,7 +402,7 @@ describe("createAgentRun", () => {
     expect(sessionSpecOf(exec)?.resources).toEqual([]);
   });
 
-  it("stamps an explicit native harness rather than leaving it unspecified", async () => {
+  it("stamps an explicit Stigmer harness rather than leaving it unspecified", async () => {
     // "stigmer" may be a deliberate per-run escape from the account's
     // default_harness preference — it must survive on the wire so it beats
     // any future change to the server-side default.

@@ -1,5 +1,5 @@
 /**
- * Shell middleware: the native graph's `execute` calls run the runner's own
+ * Shell middleware: the Stigmer harness's graph's `execute` calls run the runner's own
  * shell tool (`execute-deep-agent/shell-tool.ts`), which streams, takes a
  * raisable timeout and stops with the turn, instead of deepagents' tool,
  * which does none of these.

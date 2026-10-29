@@ -11,18 +11,18 @@
  * is written under). The registry knows rows, never which adapters exist.
  *
  * Boot order is declaration order (`registry.ts` `bootHarnesses`), and
- * shutdown runs in reverse. The native deep-agent adapter boots first; its
+ * shutdown runs in reverse. The Stigmer harness's adapter boots first; its
  * `boot` registers the deepagents harness profiles and loads LangChain
  * (#1096). The Claude adapter boots second; its `boot` loads the Agent SDK
  * when the runner carries it and records its absence otherwise, so a runner
- * without the engine still serves native. Neither boot depends on the
+ * without the engine still serves the Stigmer harness. Neither boot depends on the
  * other's.
  *
  * THIS MODULE'S STATIC GRAPH MUST STAY SDK-FREE. The roots import it BEFORE
  * they boot the harnesses, and the runner's own process loads no engine:
  * every engine runs in the agent host (`HOSTED_HARNESSES` below). Every
  * adapter named here loads its vendor SDK inside `boot`
- * (`execute-deep-agent/adapter.ts` shows the shape; the native adapter's
+ * (`execute-deep-agent/adapter.ts` shows the shape; the Stigmer harness's adapter's
  * `__tests__/adapter-graph-is-sdk-free.test.ts` walks its static graph off
  * the syntax tree). `__tests__/harness-boot-order.test.ts` boots a fresh
  * process through this module — every row — and fails if the runner's

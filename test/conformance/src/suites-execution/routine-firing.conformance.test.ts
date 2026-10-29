@@ -31,7 +31,7 @@
 // copy stays byte-pinned in the server's unit tests.
 //
 // Every no-LLM fire here is the thinking refusal: a routine that turns
-// thinking off, on an agent whose native model always thinks, asks for a
+// thinking off, on an agent whose Stigmer-harness model always thinks, asks for a
 // turn its provider would refuse, so the run create refuses it before any
 // run exists. Gated on the routineFiring capability.
 //
@@ -102,8 +102,8 @@ describe.skipIf(!firingEnabled)("Routine fire contract (routineFiring targets)",
   });
 
   // A routine every fire of which the run create refuses deterministically
-  // (the module header): it turns thinking off, and its agent's native
-  // model always thinks. Each is valid alone, so both save.
+  // (the module header): it turns thinking off, and its agent's model,
+  // on the Stigmer harness, always thinks. Each is valid alone, so both save.
   async function createRefusedRoutine(org: string) {
     const agent = await clients.agentCommand.create(
       makeAgent({
@@ -414,16 +414,16 @@ describe.skipIf(!realRunProvable)("Routine real-run contract (routineFiring + mo
     await awaitCompleted(result.runId);
   });
 
-  it("[rpc:RoutineCommandController.fire] a routine naming a model but no engine fires on native, even on an agent whose engine is Claude", async () => {
+  it("[rpc:RoutineCommandController.fire] a routine naming a model but no engine fires on Stigmer, even on an agent whose engine is Claude", async () => {
     const { org } = await target.provisionTenancy();
-    // The routine's model was checked against native at save; the agent's
-    // author has since moved the agent to Claude. The fire runs on the
-    // engine the routine's model was judged on, not the agent's.
+    // The routine's model was checked against the Stigmer harness at save;
+    // the agent's author has since moved the agent to Claude. The fire runs
+    // on the engine the routine's model was judged on, not the agent's.
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("routine-native-model-target"), harness: Harness.CLAUDE }),
+      makeAgent({ org, name: uniqueName("routine-stigmer-model-target"), harness: Harness.CLAUDE }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
-    const input = create(RoutineSchema, makeRoutine(org, uniqueName("routine-native-model"), agent.metadata!.slug));
+    const input = create(RoutineSchema, makeRoutine(org, uniqueName("routine-stigmer-model"), agent.metadata!.slug));
     if (input.spec?.agent === undefined) {
       throw new Error("makeRoutine builds an agent invocation");
     }

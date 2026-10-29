@@ -1,11 +1,11 @@
 /**
- * The native deep-agent harness as a `HarnessContractSubject` — the REAL
+ * the Stigmer harness as a `HarnessContractSubject` — the REAL
  * `createDeepAgentAdapter()` driven through the harness contract kit, with
  * the kit's engine-neutral scenario vocabulary translated onto the
- * `ScriptedModel` double that every native hermetic golden already runs on.
+ * `ScriptedModel` double that every Stigmer hermetic golden already runs on.
  *
  * The sibling of `execute-claude/__test-utils__/contract-subject.ts` and of
- * `gateway-substrate.ts` (the native side of the approval contract kit): the kit owns the invariants and the runtime stand-in, this
+ * `gateway-substrate.ts` (the Stigmer side of the approval contract kit): the kit owns the invariants and the runtime stand-in, this
  * module owns the ENGINE — what the model will do on its next call — and
  * reports what really happened. The adapter under test is the production
  * one, untouched; the model client is the one module doubled
@@ -70,7 +70,7 @@
  *                       chunks (`ScriptedTurn.ends`); the park resolves
  *                       `whenHanging()`. Never a timer.
  *  - `fail(msg, s)`   → the turn throws `msg` after its chunks. `engine` and
- *                       `internal` are one act here: the native adapter has
+ *                       `internal` are one act here: the Stigmer harness's adapter has
  *                       ONE failure surface (`turn.ts` classifies every
  *                       escaped error `internal`); `actionable` is refused.
  *  - `limit`          → the neutral step under a fresh id on every model
@@ -288,7 +288,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   }
 
   inputOverrides(view: EngineView): SubjectInputOverrides {
-    // No model is named: the adapter resolves the registry's featured native
+    // No model is named: the adapter resolves the registry's featured Stigmer
     // model, which is the fixture's — the production "no model named" path.
     return { workspaceDir: this.workspaceDirOf(view.sessionId), message: KIT_USER_MESSAGE };
   }
@@ -363,7 +363,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         return;
       case "fail":
         if (step.surface === "actionable") {
-          throw new Error(`${this.name}: fail(..., "actionable") is not producible by this subject (the native adapter has one failure surface, internal); test bug`);
+          throw new Error(`${this.name}: fail(..., "actionable") is not producible by this subject (the Stigmer harness's adapter has one failure surface, internal); test bug`);
         }
         return;
       case "open":

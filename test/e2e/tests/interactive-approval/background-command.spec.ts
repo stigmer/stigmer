@@ -1,5 +1,5 @@
 // A command the agent runs in the background, end to end on the real stack
-// (stigmer-server + Temporal + the runner, the native harness in its agent
+// (stigmer-server + Temporal + the runner, the Stigmer harness in its agent
 // host) and the real web console. What only this layer proves: the runner's
 // registry reports the command's life, the session's log carries it as the
 // command's status beside the start's call, its output reaches the console

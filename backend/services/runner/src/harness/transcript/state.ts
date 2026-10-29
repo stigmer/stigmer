@@ -26,7 +26,7 @@
  *
  * The name says what it holds — the transcript's bookkeeping, not the
  * execution's state, which is the turn runtime's (`harness/turn-context.ts`);
- * it was `ExecutionState` in the native adapter (renamed in #1097).
+ * it was `ExecutionState` in the Stigmer harness's adapter (renamed in #1097).
  */
 
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";

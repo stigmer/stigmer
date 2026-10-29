@@ -108,7 +108,7 @@ function defaultDelay(ms: number): Promise<void> {
  * backend (e.g. STOP to abort the execution).
  *
  * This is the single, unforgeable chokepoint for status persistence across
- * every harness (streaming and terminal, native and Claude). Routing all
+ * every harness (streaming and terminal, Stigmer and Claude). Routing all
  * persistence through here guarantees three invariants that must never be
  * skipped by an individual call site:
  *

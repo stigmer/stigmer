@@ -4,7 +4,7 @@
  * the transcript half of the RunStatus proto.
  *
  * A runner-internal contract (not persisted, not exposed to clients). It was
- * born in the native adapter as `StigmerRunEvent`, the normalized form of
+ * born in the Stigmer harness's adapter as `StigmerRunEvent`, the normalized form of
  * LangGraph's v3 protocol, and promoted here on 2026-09-14 (#1097) because
  * its own header already called it the thing that isolates the builder from
  * the engine — the same move #1070 and #1096 made for the turn runtime. #1097
@@ -29,7 +29,7 @@
  *     translator says when a sub-agent opens and closes
  *     (`sub_agent_started/finished/failed`). LangGraph's namespace grammar
  *     (`tools:<uuid>|model_request:<uuid>`), the `task` tool's name and its
- *     depth rule are the native translator's alone now.
+ *     depth rule are the Stigmer harness's translator's alone now.
  *   - `approval_proposed`, the one post-stream fact every harness
  *     produces, and `system_note`, a line in the runtime's own voice.
  *   - `context_compacted`, a marker where the engine summarized the
@@ -51,11 +51,11 @@
  *
  * ID conventions:
  *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
- *     LLM-call run id on native; the API message id on Claude);
+ *     LLM-call run id on Stigmer; the API message id on Claude);
  *     shared across that message's events
  *   - `callId` — provider tool call ID (e.g. `toolu_...`); keys ToolCall records
  *   - `subAgentId` — the sub-agent row's id, which on every harness is the
- *     delegating call's id (native's `task`, Claude's `Agent`)
+ *     delegating call's id (the Stigmer harness's `task`, Claude's `Agent`)
  */
 
 import type { PolicySource } from "../../shared/approval-policy.js";
@@ -103,7 +103,7 @@ export interface MessageFinishEvent extends Scoped {
  * A tool call has started. It carries no approval fact, on any harness
  * (#1117): whether a call is HELD for a person's decision is known only after
  * the engine's own gate has run, and it reaches the transcript as
- * `approval_proposed` — native's post-stream seed after LangGraph's
+ * `approval_proposed` — the Stigmer harness's post-stream seed after LangGraph's
  * `interrupt()` (which fires before the tool handler, so a held call never
  * starts), Claude's gate when its `PreToolUse` callback defers the call. A
  * call that runs under a lease, a bypass or capture mode is therefore never
@@ -196,7 +196,7 @@ export interface ToolErrorEvent extends Scoped {
 export interface SubAgentStartedEvent {
   readonly kind: "sub_agent_started";
   readonly subAgentId: string;
-  /** The sub-agent's declared name (its `subagent_type`, on native and Claude). */
+  /** The sub-agent's declared name (its `subagent_type`, on Stigmer and Claude). */
   readonly name: string;
   /** What it was asked to do, as the card's title and as its input. */
   readonly subject: string;
@@ -220,7 +220,7 @@ export interface SubAgentFailedEvent {
 
 /**
  * A call the harness's gate parked for approval — the one post-stream fact
- * every harness produces: native's `seedPendingInterrupts` reads the graph
+ * every harness produces: the Stigmer harness's `seedPendingInterrupts` reads the graph
  * checkpoint's un-resumed interrupts (a held call never streamed a
  * `tool_started`, so no row exists yet); Claude's gate parks a call its
  * stream already showed (a row exists, PENDING). An UPSERT: a known `callId` REOPENS its row — WAITING, the
@@ -245,8 +245,8 @@ export interface ApprovalProposedEvent extends Scoped {
 
 /**
  * The engine compacted the scope's conversation at this point: the summarizer
- * ran, and the model reads a summary of what came before from now on. Native
- * deepagents' summarizer says so through the compaction middleware's
+ * ran, and the model reads a summary of what came before from now on. The
+ * Stigmer harness's deepagents summarizer says so through the compaction middleware's
  * custom-stream event, the Claude engine through its `compact_boundary`
  * message. A marker, never a message: the summary's text is the engine's and
  * never the agent's words. The builder appends a COMPACTED row in the scope,
@@ -268,7 +268,7 @@ export interface SystemNoteEvent extends Scoped {
 
 /**
  * The engine's agent ended its reply while commands it started in the
- * background still run, and the turn waits for them in the scope (native's
+ * background still run, and the turn waits for them in the scope (the Stigmer harness's
  * background middleware, `middleware/background-commands.ts`). The turn is
  * working, not stalled: the runtime's open-operations fold holds the stall
  * watchdog until the matching {@link BackgroundWaitFinishedEvent}. Not an
@@ -287,7 +287,7 @@ export interface BackgroundWaitFinishedEvent extends Scoped {
 /**
  * The engine's agent ended its reply while its background commands still
  * ran, and was sent back once with a reminder naming them instead of the
- * turn waiting (native's background middleware). The reminder is a user
+ * turn waiting (the Stigmer harness's background middleware). The reminder is a user
  * message the translator never shows, so this fact is its one trace: the
  * turn timeline counts it (`turn-timeline.ts`). No row, and no liveness.
  */

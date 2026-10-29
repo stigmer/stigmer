@@ -62,7 +62,7 @@ export async function provisionLocalPath(options: LocalPathProvisionOptions): Pr
   return {
     rootDir: path,
     sourceType: "local_path",
-    // No host path in the model's text: the native file tools see this
+    // No host path in the model's text: the Stigmer file tools see this
     // directory as `/` and its commands run in it, so the path would only be
     // echoed back where it cannot resolve (a glob pattern, a mistyped
     // prefix). The directory is `rootDir`'s to carry.

@@ -1,5 +1,5 @@
 /**
- * The native engine's barrier before it takes a person's messages: the
+ * The Stigmer harness's barrier before it takes a person's messages: the
  * stream loop has folded every event the graph produced before the take.
  *
  * LangGraph runs the graph ahead of the loop that reads its stream

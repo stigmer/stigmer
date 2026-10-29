@@ -15,7 +15,7 @@ import { parseModelKey } from "../registry";
 
 // The option set is the proto enum's, nothing more (stigmer/stigmer#1143): an
 // option the platform cannot run must not type-check, because the SDK would
-// start a native session under its name.
+// start a Stigmer session under its name.
 // @ts-expect-error "codex" is not a harness the platform runs
 const unsupported: HarnessOption = "codex";
 void unsupported;
@@ -48,10 +48,10 @@ describe("the option set is the proto's harness set", () => {
   it("recognises a stored string only when it names an offered engine", () => {
     expect(isHarnessOption("stigmer")).toBe(true);
     expect(isHarnessOption("claude")).toBe(true);
-    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE", "native", "deep-agent"]) {
+    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isHarnessOption(stored)).toBe(false);
     }
-    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE", "native", "deep-agent"]) {
+    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isNamedHarness(word)).toBe(false);
     }
   });
@@ -70,7 +70,7 @@ describe("parseModelKey", () => {
 });
 
 describe("harness constants", () => {
-  it("defaults to the Stigmer harness", () => {
+  it("defaults to Stigmer harness", () => {
     expect(DEFAULT_HARNESS).toBe("stigmer");
   });
 
@@ -107,7 +107,7 @@ describe("toProtoHarness", () => {
 });
 
 describe("fromProtoHarness", () => {
-  it("maps Harness.STIGMER to stigmer", () => {
+  it("maps Harness.STIGMER to Stigmer", () => {
     expect(fromProtoHarness(Harness.STIGMER)).toBe("stigmer");
   });
 
@@ -115,11 +115,11 @@ describe("fromProtoHarness", () => {
     expect(fromProtoHarness(Harness.CLAUDE)).toBe("claude");
   });
 
-  it("maps Harness.UNSPECIFIED to stigmer (safe default)", () => {
+  it("maps Harness.UNSPECIFIED to Stigmer (safe default)", () => {
     expect(fromProtoHarness(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
-  it("maps unknown numeric values to stigmer (safe default)", () => {
+  it("maps unknown numeric values to Stigmer (safe default)", () => {
     expect(fromProtoHarness(999 as Harness)).toBe("stigmer");
   });
 });

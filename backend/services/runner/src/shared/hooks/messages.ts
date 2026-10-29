@@ -4,7 +4,7 @@
  * message when a hook asks without a reason, the refusal of an ask that
  * also rewrote the call, the sentence a person's earlier refusal answers a
  * retried call with, and the section a hook's feedback is appended to a
- * tool result under. The native gate (`middleware/approval-gate.ts`) and the
+ * tool result under. The Stigmer harness's gate (`middleware/approval-gate.ts`) and the
  * Claude engine's gate (`execute-claude/gate.ts`) read them from here.
  */
 

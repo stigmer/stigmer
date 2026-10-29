@@ -9,7 +9,7 @@
  * this platform runs: a harness is named on the wire before its runner
  * exists, so the surfaces and stored resources can learn the word first.
  * Naming is not offering. Before this rule, a harness the server did not
- * map became native wherever the harness turned into behaviour, so a
+ * map became Stigmer wherever the harness turned into behaviour, so a
  * conversation someone believed ran on one harness ran on another, with its
  * tools and its bill. Refusing at the write keeps the mistake next to the
  * choice: a stored agent, conversation or schedule never holds a harness
@@ -54,7 +54,7 @@ export interface HarnessFacts {
 
 /**
  * Every harness the proto names, keyed so a new member is a compile error
- * here until it has a label and an offer. Unspecified is native, the
+ * here until it has a label and an offer. Unspecified is Stigmer, the
  * platform default, and is always offered.
  */
 export const HARNESSES: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, HarnessFacts>> = {
@@ -62,7 +62,7 @@ export const HARNESSES: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, H
   [Harness.CLAUDE]: { label: "Claude Agent", offered: true },
 };
 
-/** A harness's facts, unspecified read as native; undefined for a number the proto does not name. */
+/** A harness's facts, unspecified read as Stigmer; undefined for a number the proto does not name. */
 export function harnessFacts(harness: Harness): HarnessFacts | undefined {
   const named = harness === Harness.UNSPECIFIED ? Harness.STIGMER : harness;
   return (HARNESSES as Partial<Record<Harness, HarnessFacts>>)[named];

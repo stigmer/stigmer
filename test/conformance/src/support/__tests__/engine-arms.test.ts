@@ -3,10 +3,10 @@
 // with no runner.
 // Domain: conformance support (execution engine).
 //
-// Pinned here: native's arm queues each step as one model call under
-// native's tool names, a batch as one call; Claude's arm answers each request
+// Pinned here: the Stigmer harness's arm queues each step as one model call under
+// the Stigmer harness's tool names, a batch as one call; Claude's arm answers each request
 // from its conversation, under the names the platform's vocabulary maps
-// native's to, with Claude's input shapes (paths in the engine's workspace,
+// the Stigmer harness's to, with Claude's input shapes (paths in the engine's workspace,
 // the shell's bound in milliseconds), plays a batch's unsettled calls, asks
 // again for a call the engine handed back interrupted, keys a turn by the
 // task its user carries (the newest one), keeps the task and what is done
@@ -18,7 +18,7 @@ import { COMPACTION_PROMPT_MARK, readConversation } from "@stigmer/test-support/
 import { MockLlmProxy, type AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { CLAUDE_ARM, CLAUDE_TURNS_SKIP_REASON, NATIVE_ARM, claudeArm, claudeTurnsOnly, claudeWorkspaceOf, engineArms } from "../engine-arms";
+import { CLAUDE_ARM, CLAUDE_TURNS_SKIP_REASON, STIGMER_ARM, claudeArm, claudeTurnsOnly, claudeWorkspaceOf, engineArms } from "../engine-arms";
 
 const mock = new MockLlmProxy();
 const ANTHROPIC = "/v1/proxy/llm/anthropic/v1/messages";
@@ -43,10 +43,10 @@ const called = (body: AnthropicMessageBody): unknown[] => body.content.filter((b
 const said = (body: AnthropicMessageBody): string[] => body.content.flatMap((block) => (block.type === "text" ? [block.text] : []));
 
 describe("engineArms and claudeTurnsOnly", () => {
-  it("lists native, and Claude only where the target runs Claude turns; a Claude block skips elsewhere, naming why", () => {
+  it("lists Stigmer, and Claude only where the target runs Claude turns; a Claude block skips elsewhere, naming why", () => {
     expect(engineArms({ claudeTurnsRun: true }).map((arm) => arm.word)).toEqual(["stigmer", "claude"]);
     expect(engineArms({ claudeTurnsRun: false }).map((arm) => arm.word)).toEqual(["stigmer"]);
-    expect([NATIVE_ARM.harness, CLAUDE_ARM.harness]).toEqual([undefined, Harness.CLAUDE]);
+    expect([STIGMER_ARM.harness, CLAUDE_ARM.harness]).toEqual([undefined, Harness.CLAUDE]);
     const skipped: (string | undefined)[] = [];
     claudeTurnsOnly({ claudeTurnsRun: false })({ skip: (note) => void skipped.push(note) });
     claudeTurnsOnly({ claudeTurnsRun: true })({ skip: (note) => void skipped.push(note) });
@@ -54,9 +54,9 @@ describe("engineArms and claudeTurnsOnly", () => {
   });
 });
 
-describe("the native arm", () => {
-  it("queues each step as one model call under native's names, a batch as one call, then the closing text", async () => {
-    NATIVE_ARM.script(mock, "the task", [
+describe("the Stigmer arm", () => {
+  it("queues each step as one model call under the Stigmer harness's names, a batch as one call, then the closing text", async () => {
+    STIGMER_ARM.script(mock, "the task", [
       { kind: "shell", id: "c1", command: "make", timeoutSeconds: 700 },
       { kind: "write", id: "c2", path: "/a.txt", content: "x" },
       { kind: "edit", id: "c3", path: "/a.txt", oldString: "x", newString: "y" },
@@ -76,7 +76,7 @@ describe("the native arm", () => {
       [["c6", "execute", { command: "ls" }], ["c7", "remember", { fact: "f" }]],
     ]);
     expect(said((await ask([user("the task")])).body)).toEqual(["Done."]);
-    expect([NATIVE_ARM.loopRequests(mock).length, NATIVE_ARM.compactions(mock)]).toEqual([7, 0]);
+    expect([STIGMER_ARM.loopRequests(mock).length, STIGMER_ARM.compactions(mock)]).toEqual([7, 0]);
   });
 });
 

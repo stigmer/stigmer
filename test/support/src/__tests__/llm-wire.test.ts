@@ -14,7 +14,7 @@
 //
 // And for the canned responses: every one carries its own message id, as a
 // provider's do, whatever usage it states (stigmer#2437: a repeated id made
-// the native runner's reducer replace each round with the next).
+// the Stigmer harness's reducer replace each round with the next).
 import { describe, expect, it } from "vitest";
 import { anthropicText, anthropicToolUse, anthropicToolUses, readLastUserText, readTurnShapes } from "../llm-wire.ts";
 

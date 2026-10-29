@@ -61,7 +61,7 @@ export function invalidTimeZoneMessage(zone: string): string {
 
 // The deterministic launch-gate refusal the firing suite fires against with
 // no model behind it: a routine that turns thinking off, on an agent whose
-// native model always thinks, asks for a turn the provider would refuse, so
+// Stigmer-harness model always thinks, asks for a turn the provider would refuse, so
 // the run create refuses it before any run exists. Every fragment is part of
 // the pinned copy.
 export const ALWAYS_THINKING_MODEL = "claude-fable-5";

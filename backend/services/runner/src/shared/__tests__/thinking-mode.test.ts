@@ -1,6 +1,6 @@
 /**
- * The native thinking mapping, enumerated: every effective mode against
- * every form a native registry row can declare, including the tri-state
+ * The Stigmer harness's thinking mapping, enumerated: every effective mode
+ * against every form a Stigmer registry row can declare, including the tri-state
  * `required` flag. The table is the contract the wire and the
  * structured-output strategy both read, so it is pinned whole.
  */
@@ -41,8 +41,8 @@ const TABLE: readonly Row[] = [
   ["enabled, row that requires thinking", ThinkingMode.ENABLED, { shape: "adaptive", required: true }, ADAPTIVE, true],
   ["disabled, budget row that requires thinking", ThinkingMode.DISABLED, { shape: "budget", required: true }, BUDGET, true],
   ["disabled, row with no form stating required false: no parameter to pin", ThinkingMode.DISABLED, { shape: "none", required: false }, undefined, false],
-  ["enabled, no native row", ThinkingMode.ENABLED, undefined, undefined, false],
-  ["disabled, no native row", ThinkingMode.DISABLED, undefined, undefined, false],
+  ["enabled, no Stigmer row", ThinkingMode.ENABLED, undefined, undefined, false],
+  ["disabled, no Stigmer row", ThinkingMode.DISABLED, undefined, undefined, false],
 ];
 
 describe("toAnthropicThinking and graphThinks", () => {

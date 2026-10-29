@@ -27,7 +27,7 @@
  * The golden (`goldens/tool-call.status.json`) is the shape any later change
  * must move on purpose.
  *
- * Since #1096 the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the Stigmer harness's adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
  * thinking mode (one writer of the summary, the runtime). Nothing

@@ -5,13 +5,13 @@
  * reaches no hook (Stigmer's own tools, a tool one engine has and the other
  * format never shows a hook).
  *
- * This module holds the shared shapes and the NATIVE engine's views. The
+ * This module holds the shared shapes and the Stigmer harness's views. The
  * Claude engine's are its adapter's (`execute-claude/hook-views.ts`).
  *
- * One rule shapes every native row: a native argument keeps its value, a
+ * One rule shapes every Stigmer row: the engine's argument keeps its value, a
  * field is renamed only where the format's name differs, a path becomes real
- * and absolute (both formats promise hooks an absolute path; the native
- * engine speaks paths rooted at the workspace, `middleware/
+ * and absolute (both formats promise hooks an absolute path; the Stigmer
+ * harness speaks paths rooted at the workspace, `middleware/
  * path-normalization.ts`), and an argument the format does not have rides
  * along unchanged. The Claude Code rows:
  *
@@ -58,7 +58,7 @@
  * `stop_background_command`, which no format has: a hook saw the command's
  * start, and a command's end fires no hook.
  *
- * The inverse of each row restores the native call, so view-then-inverse is
+ * The inverse of each row restores the engine's call, so view-then-inverse is
  * the identity on what the engine binds (pinned by the module's test).
  */
 
@@ -174,8 +174,8 @@ export function mcpServerView(names: ReadonlyMap<string, HookServerName>, slug: 
   return names.get(slug) ?? { name: slug, source: "plugin" };
 }
 
-/** What the native views read from the turn. */
-export interface NativeViewContext {
+/** What the Stigmer views read from the turn. */
+export interface StigmerViewContext {
   /** The real directory the workspace's virtual `/` stands for. */
   readonly workspaceRoot: string;
   /** A real absolute path back to the engine's virtual one; `undefined` leaves it as written. */
@@ -196,33 +196,33 @@ interface PathMapping {
 interface Row {
   readonly name: string;
   readonly toView: (args: Args, paths: PathMapping) => Args;
-  /** The native arguments back, or why a rewrite cannot be taken back. */
-  readonly toNative: (input: Args, paths: PathMapping) => Args | string;
+  /** The engine's arguments back, or why a rewrite cannot be taken back. */
+  readonly toStigmer: (input: Args, paths: PathMapping) => Args | string;
 }
 
 /** A row whose only difference from the format's tool is the name of one argument. */
 function renamedArgRow(name: string, from: string, to: string): Row {
-  return { name, toView: (args) => renamed(args, from, to), toNative: (input) => renamed(input, to, from) };
+  return { name, toView: (args) => renamed(args, from, to), toStigmer: (input) => renamed(input, to, from) };
 }
 
 /** A row whose only difference from the format's tool is a path argument. */
 function pathRow(name: string, pathArg: string | undefined): Row {
   if (pathArg === undefined) {
-    return { name, toView: (args) => ({ ...args }), toNative: (input) => ({ ...input }) };
+    return { name, toView: (args) => ({ ...args }), toStigmer: (input) => ({ ...input }) };
   }
   return {
     name,
     toView: (args, paths) => withMapped(args, pathArg, paths.real),
-    toNative: (input, paths) => withMapped(input, pathArg, paths.virtual),
+    toStigmer: (input, paths) => withMapped(input, pathArg, paths.virtual),
   };
 }
 
-/** A row that renames the native path argument `from` to the format's `to`. */
+/** A row that renames the Stigmer harness's path argument `from` to the format's `to`. */
 function renamedPathRow(name: string, from: string, to: string): Row {
   return {
     name,
     toView: (args, paths) => renamed(withMapped(args, from, paths.real), from, to),
-    toNative: (input, paths) => withMapped(renamed(input, to, from), from, paths.virtual),
+    toStigmer: (input, paths) => withMapped(renamed(input, to, from), from, paths.virtual),
   };
 }
 
@@ -238,7 +238,7 @@ function renamed(args: Args, from: string, to: string): Args {
 
 const GLOB_EVERYTHING = "*";
 
-/** The native tools Claude Code has a name for, by their bound names. */
+/** The Stigmer tools Claude Code has a name for, by their bound names. */
 const CLAUDE_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
   ["execute", renamedArgRow("Bash", "background", "run_in_background")],
   ["read_file", pathRow("Read", "file_path")],
@@ -251,7 +251,7 @@ const CLAUDE_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
     {
       name: "Glob",
       toView: (args, paths) => ({ pattern: GLOB_EVERYTHING, ...withMapped(args, "path", paths.real) }),
-      toNative: (input, paths) => {
+      toStigmer: (input, paths) => {
         const { pattern: _pattern, ...rest } = input;
         return withMapped(rest, "path", paths.virtual);
       },
@@ -262,7 +262,7 @@ const CLAUDE_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
     {
       name: "Agent",
       toView: (args) => ({ prompt: args["description"], ...args }),
-      toNative: (input) => {
+      toStigmer: (input) => {
         const { prompt, ...rest } = input;
         return prompt === undefined ? rest : { ...rest, description: prompt };
       },
@@ -273,19 +273,19 @@ const CLAUDE_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
 ]);
 
 /** A Cursor listing: an empty search pattern over files matching a glob, from `path`. */
-function cursorListingRow(globOf: (args: Args) => unknown, toNativeArgs: (glob: unknown, rest: Args) => Args | string): Row {
+function cursorListingRow(globOf: (args: Args) => unknown, toStigmerArgs: (glob: unknown, rest: Args) => Args | string): Row {
   return {
     name: "Grep",
     toView: (args, paths) => {
       const { pattern: _pattern, path, ...rest } = args;
       return { ...rest, pattern: "", glob: globOf(args), file_path: paths.real(path ?? "/"), output_mode: "files_with_matches" };
     },
-    toNative: (input, paths) => {
+    toStigmer: (input, paths) => {
       const { pattern, glob, file_path, output_mode: _mode, ...rest } = input;
       if (typeof pattern === "string" && pattern !== "") {
         return "the hook gave a file listing a search pattern, which the listing tool cannot take";
       }
-      return toNativeArgs(glob, { ...rest, ...(file_path !== undefined ? { path: paths.virtual(file_path) } : {}) });
+      return toStigmerArgs(glob, { ...rest, ...(file_path !== undefined ? { path: paths.virtual(file_path) } : {}) });
     },
   };
 }
@@ -296,7 +296,7 @@ const WRITE_FIELDS_NOT_TAKEN: ReadonlyMap<string, ReadonlySet<string>> = new Map
   ["write_file", new Set(["old_string", "new_string", "replace_all"])],
 ]);
 
-/** The native tools Cursor's hooks have a name for, by their bound names. */
+/** The Stigmer tools Cursor's hooks have a name for, by their bound names. */
 const CURSOR_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
   ["read_file", pathRow("Read", "file_path")],
   ["write_file", pathRow("Write", "file_path")],
@@ -313,17 +313,17 @@ const CURSOR_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
   ["web_fetch", pathRow("WebFetch", undefined)],
 ]);
 
-/** The native names a view exists for, per format, for the module's test. */
-export const NATIVE_VIEWED_TOOLS: Readonly<Record<HookFormatName, readonly string[]>> = {
+/** The Stigmer names a view exists for, per format, for the module's test. */
+export const STIGMER_VIEWED_TOOLS: Readonly<Record<HookFormatName, readonly string[]>> = {
   "claude-code": [...CLAUDE_ROWS.keys()],
   cursor: ["execute", ...CURSOR_ROWS.keys()],
 };
 
-/** The hooks' views of the native engine's calls for one turn, in both formats. */
-export class NativeToolViews implements HookToolViews {
+/** The hooks' views of the Stigmer harness's calls for one turn, in both formats. */
+export class StigmerToolViews implements HookToolViews {
   private readonly paths: PathMapping;
 
-  constructor(private readonly ctx: NativeViewContext) {
+  constructor(private readonly ctx: StigmerViewContext) {
     this.paths = {
       real: (value) => {
         if (typeof value !== "string" || !value.startsWith("/")) return value;
@@ -378,7 +378,7 @@ export class NativeToolViews implements HookToolViews {
       return rest;
     }
     const row = (format === "cursor" ? CURSOR_ROWS : CLAUDE_ROWS).get(call.name);
-    return row === undefined ? { ...input } : row.toNative(input, this.paths);
+    return row === undefined ? { ...input } : row.toStigmer(input, this.paths);
   }
 
   private cursorViewOf(call: ViewedCall): { cursor: CursorToolView } | undefined {

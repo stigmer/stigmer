@@ -7,7 +7,7 @@
  * external server's configuration, its login header included, on the
  * engine's command line, which every user of the machine can read, and a
  * stdio server it started would be its child, able to read its environment.
- * So the host connects each server exactly as the native engine does (the
+ * So the host connects each server exactly as the Stigmer harness does (the
  * shared connection config, `shared/mcp-manager.ts` `toMcpClientConfig`: a
  * stdio server's declared environment and nothing else, an HTTP server's
  * headers, reconnects), and the engine sees each one as a server the host

@@ -28,7 +28,7 @@ function model(overrides: Partial<ModelInfo> & { modelId: string }): ModelInfo {
   };
 }
 
-describe("resolveDefaultModelId — native harness", () => {
+describe("resolveDefaultModelId — Stigmer harness", () => {
   it("skips a featured premium model for the featured standard-cost one (the runner's own rule)", () => {
     const models = [
       model({ modelId: "claude-opus-4.6", featured: true, costTier: "premium" }),
@@ -56,14 +56,14 @@ describe("resolveDefaultModelId — native harness", () => {
     expect(resolveDefaultModelId("stigmer", models).modelId).toBe("claude-opus-4.6");
   });
 
-  it("falls back to the hardcoded native id on an empty registry", () => {
+  it("falls back to the hardcoded Stigmer-harness id on an empty registry", () => {
     expect(resolveDefaultModelId("stigmer", [])).toEqual({
       modelId: DEFAULT_MODEL_ID,
       source: "platform_fallback",
     });
   });
 
-  it("never resolves across harnesses (a Claude-harness row is invisible to native)", () => {
+  it("never resolves across harnesses (a Claude-harness row is invisible to Stigmer)", () => {
     const models = [
       model({ modelId: "claude-haiku-4.5", harness: "claude", featured: true, costTier: "standard" }),
       model({ modelId: "claude-sonnet-4.6", featured: true, costTier: "standard" }),

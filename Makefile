@@ -491,13 +491,13 @@ test-conformance-execution: build-runner ## Run gRPC conformance execution suite
 # the same way. Flags pass through BENCHMARK_ARGS
 # (e.g. BENCHMARK_ARGS="--reps 3 --only stigmer").
 .PHONY: benchmark-harnesses
-benchmark-harnesses: build-runner ## Measure the native and Claude harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs and ANTHROPIC_API_KEY; spends money)
+benchmark-harnesses: build-runner ## Measure the Stigmer and Claude harnesses on real providers and write the internal benchmark report (needs the `temporal` and `stigmer` CLIs and ANTHROPIC_API_KEY; spends money)
 	@command -v temporal >/dev/null 2>&1 || { \
 		echo "error: temporal CLI not found — the dev server backs the benchmark stack"; \
 		echo "  install: make install-temporal-cli   (writes ~/bin/temporal, the version stigmer up runs)"; \
 		exit 1; \
 	}
-	@echo "=== benchmark: native vs claude on real providers (an experiment, not a test) ==="
+	@echo "=== benchmark: stigmer vs claude on real providers (an experiment, not a test) ==="
 	npm run benchmark:harnesses -w @stigmer/conformance -- $(BENCHMARK_ARGS)
 
 .PHONY: postgres-dev
@@ -722,7 +722,7 @@ test-helm: node_modules ## Run the chart's render, compose-parity and schema tes
 	node --test $(HELM_CHART_DIR)/__tests__/*.test.mjs
 
 .PHONY: test-agent-sandbox
-test-agent-sandbox: build-server ## Run the agent-sandbox driver's live test and the turn proof (a native turn outliving its pod) on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image; both reach the script through the environment, which checks them)
+test-agent-sandbox: build-server ## Run the agent-sandbox driver's live test and the turn proof (a Stigmer turn outliving its pod) on a kind cluster of its own with agent-sandbox installed (needs Docker, kind, kubectl, temporal; AGENT_SANDBOX_VERSION=latest tests upstream's newest release, RUNNER_IMAGE a local image; both reach the script through the environment, which checks them)
 	@for tool in docker kind kubectl temporal; do command -v $$tool >/dev/null 2>&1 || { echo "error: $$tool not found — the agent-sandbox live test needs it"; exit 1; }; done
 	node scripts/agent-sandbox-live.mjs
 

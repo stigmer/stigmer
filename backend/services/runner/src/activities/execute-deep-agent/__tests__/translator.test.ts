@@ -1,5 +1,5 @@
 /**
- * The native translator's own arms (`execute-deep-agent/translator.ts`): one
+ * The Stigmer harness's translator's own arms (`execute-deep-agent/translator.ts`): one
  * raw LangGraph v3 protocol event in, the `TranscriptEvent`s out. Two layers,
  * tested apart: `normalize`, the stateless core that reads the wire's shape
  * (root-scoped, unattributed), and `DeepAgentTranslator`, which lays scope

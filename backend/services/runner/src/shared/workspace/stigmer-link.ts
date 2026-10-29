@@ -9,7 +9,7 @@
  * the workspace: the Claude engine resolves paths against the workspace CWD,
  * and shell commands on both harnesses run there. The symlink is what makes the
  * `.stigmer/…` paths those agents are prompted with (skill locations,
- * `.stigmer/uploads/…` Files) actually resolve. The native harness's
+ * `.stigmer/uploads/…` Files) actually resolve. The Stigmer harness's
  * FILE tools are the exception: their virtual-rooted backend refuses a path
  * whose real location leaves the workspace, so they reach `.stigmer/` through
  * a route instead (`activities/execute-deep-agent/platform-route.ts`),
@@ -21,7 +21,7 @@
  *   working-tree mutation, and re-pointing it while another session's turn is
  *   running on a shared tree would redirect that turn's reads mid-flight.
  *   the turn runtime creates it in its skill and File phases (which
- *   run after lock acquisition), for both harnesses; until #1096 the native
+ *   run after lock acquisition), for both harnesses; until #1096 the Stigmer
  *   orchestrator created it unconditionally right after the lock.
  * - Removed at turn end ({@link removeStigmerSymlink} in the activity's
  *   cleanup), so a real repo is left untouched once the turn ends; a
@@ -192,7 +192,7 @@ function errnoCode(err: unknown): string | undefined {
  * Whether the workspace's `.stigmer` is, right now, the link
  * {@link ensureStigmerSymlink} makes to `platformDir`. A turn that mounts no
  * skill and no File creates no link, so this is also "does this turn
- * expose platform content at all" — the native harness mounts its read-only
+ * expose platform content at all" — the Stigmer harness mounts its read-only
  * `.stigmer/` route on exactly the turns where the link would resolve.
  */
 export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: string): Promise<boolean> {
@@ -209,8 +209,8 @@ export async function stigmerSymlinkPointsAt(workspaceDir: string, platformDir: 
  * ({@link stigmerSymlinkPointsAt}), else "". A turn that mounted no skill and
  * no File made no link and has no platform content, so a `.stigmer` there is
  * the repository's own and admits nothing. Read once per turn by the engines
- * that read real paths (Claude's gate, `execute-claude/gate.ts`); the native
- * engine admits the platform's content by its own route instead
+ * that read real paths (Claude's gate, `execute-claude/gate.ts`); the Stigmer
+ * harness admits the platform's content by its own route instead
  * (`execute-deep-agent/platform-route.ts` `admitsRoutedRead`).
  */
 export async function platformReadRoot(workspaceDir: string, platformDir: string): Promise<string> {

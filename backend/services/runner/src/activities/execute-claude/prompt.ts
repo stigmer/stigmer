@@ -5,7 +5,7 @@
  * The system prompt is the engine's own preset (`claude_code`), so the
  * engine keeps the loop guidance it was built with, which is what choosing
  * Claude buys, and this module writes what it appends: what every engine's
- * system prompt carries, from the shared pieces the native builder uses
+ * system prompt carries, from the shared pieces the Stigmer harness's builder uses
  * (`execute-deep-agent/prompt-builder.ts`), in the same order:
  *
  *  1. the agent's instructions (the built-in assistant's when it has none);
@@ -19,7 +19,7 @@
  *     name exactly them ({@link skillsSection});
  *  5. the channel templates an agent serving a channel may send;
  *  6. the standing context in the shared order
- *     (`shared/prompt-sections.ts`), framed as the native builder frames it;
+ *     (`shared/prompt-sections.ts`), framed as the Stigmer harness's builder frames it;
  *  7. where files for the person go (the outputs folder), outside plan mode;
  *  8. the plan-mode or build-from-plan directive, the freshest instruction;
  *  9. the turn's own `appendSystemPrompt`, last.
@@ -38,7 +38,7 @@
  * The person's message is never in the system prompt. The turn's message
  * carries this turn's files and highlighted paths and the conversation
  * catchup, then what the person typed, each set off by a rule, as the
- * native engine composes it; the message's images ride the same message,
+ * Stigmer harness composes it; the message's images ride the same message,
  * first, as content blocks (`turn.ts`).
  *
  * Pure but for the reader. Pinned by `__tests__/prompt.test.ts`.
@@ -73,7 +73,7 @@ import type { ProvisionResult } from "../../shared/workspace/types.js";
 import type { SubagentWorld } from "./agents.js";
 import type { EngineSkill } from "./skill-plugins.js";
 
-/** Each standing section's heading, as the native builder frames it. */
+/** Each standing section's heading, as the Stigmer harness's builder frames it. */
 const STANDING_SECTION_HEADINGS: Record<StandingSectionKind, string> = {
   "conversation-sender": "Conversation sender",
   "declared-preferences": "Declared preferences",

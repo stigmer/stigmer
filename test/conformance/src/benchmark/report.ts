@@ -35,7 +35,7 @@
 //   present on the one cell that paid the cache write and `null` elsewhere.
 // - `rounds` and `tool_calls` are the runtime's fold of each harness's own
 //   events (runner harness/turn-timeline.ts) and are NOT one unit across
-//   harnesses: both count a sub-agent's work, a native round is a provider
+//   harnesses: both count a sub-agent's work, a Stigmer round is a provider
 //   call, and each other engine folds its rounds from its own events.
 //   Compare a harness with itself across runs; across harnesses, read them as
 //   shape.
@@ -67,8 +67,8 @@
 //   plugin author reads theirs. The document is kept as JSON, not typed
 //   here, because this module stays a leaf. Grades from v5 and earlier came
 //   from another judge on another scale and are not compared.
-// - The native arm runs on any model (`--stigmer-model` since v12), one per run, so a
-//   report says which arm it measured (schema v8): the native parity model
+// - The Stigmer arm runs on any model (`--stigmer-model` since v12), one per run, so a
+//   report says which arm it measured (schema v8): the Stigmer parity model
 //   (`models.parity.stigmer` since v11) is that model, `stigmer_endpoint` the host its calls went to (never a key or
 //   a path), `stigmer_api` the API they were made on, and `stigmer_cost_basis`
 //   whether the runner priced them from a catalog row or at its default rate
@@ -86,7 +86,7 @@
 //   repaired, a result cut, a model call retried or a repository's own
 //   instructions read; and a tool call's fact says when it asked for a
 //   background command.
-// - A native agent can run a shell command in the background, and an
+// - A Stigmer agent can run a shell command in the background, and an
 //   operator can turn that off (runner STIGMER_SHELL_BACKGROUND_ENABLED), so
 //   a report says which arm it measured (schema v10):
 //   `methodology.shell_background`. Every sample that ran carries what the
@@ -127,7 +127,7 @@ export type ComparisonMode = "parity" | "default" | "turn-2" | "working-agent";
 
 export type SessionShape = "fresh-per-execution" | "one-session-three-turns";
 
-/** Whether the runner let the native agent start shell commands in the background (STIGMER_SHELL_BACKGROUND_ENABLED). */
+/** Whether the runner let the Stigmer harness's agent start shell commands in the background (STIGMER_SHELL_BACKGROUND_ENABLED). */
 export type ShellBackground = "on" | "off";
 
 /**
@@ -142,7 +142,7 @@ export type RefusalReason =
   | "missing ANTHROPIC_API_KEY"
   | "missing OPENAI_API_KEY"
   | "model provider unknown"
-  | "the native model is pinned by --stigmer-model"
+  | "the Stigmer harness's model is pinned by --stigmer-model"
   | "thinking needs a catalog Claude model"
   | "excluded by --only"
   | "excluded by --cells"
@@ -151,11 +151,11 @@ export type RefusalReason =
   | "thinking needs a pinned model"
   | "runs only when --cells names it";
 
-/** The API a native model's calls were made on. */
-export type NativeApi = "messages" | "chat-completions" | "responses";
+/** The API a Stigmer-harness model's calls were made on. */
+export type StigmerApi = "messages" | "chat-completions" | "responses";
 
-/** Whether the runner priced the native model from a catalog row, or at its default rate. */
-export type NativeCostBasis = "catalog" | "default-rate";
+/** Whether the runner priced the Stigmer harness's model from a catalog row, or at its default rate. */
+export type StigmerCostBasis = "catalog" | "default-rate";
 
 /** Where an attempt failed: creating it, running it, or grading it. */
 export type FailureStage = "create" | "execution";
@@ -198,7 +198,7 @@ export interface BenchmarkAxes {
   /**
    * Temporal's clock: the EnsureThread activity's ActivityTaskScheduled to its
    * ActivityTaskCompleted. Null on every Claude sample by construction: only
-   * the native flow schedules EnsureThread (the LangGraph thread).
+   * the Stigmer harness's flow schedules EnsureThread (the LangGraph thread).
    */
   ensure_thread_ms: number | null;
   /** Runner clock (the activity's start): `turn_phases.first_visible_token_ms`. */
@@ -225,7 +225,7 @@ export interface BenchmarkAxes {
   review_ready_ms: number | null;
   /**
    * Runner clock: the `connect_mcp` segment of `execution_setup`. Null on a
-   * turn whose setup line names no such segment, as a native turn with no
+   * turn whose setup line names no such segment, as a Stigmer turn with no
    * server to connect.
    */
   mcp_connect_ms: number | null;
@@ -254,8 +254,8 @@ export interface BenchmarkMeasures extends BenchmarkAxes {
 }
 
 /**
- * How one tool call ended. `not_found` and `not_unique` are the native
- * engine's failed edits, which it returns as a result rather than an error;
+ * How one tool call ended. `not_found` and `not_unique` are the Stigmer
+ * harness's failed edits, which it returns as a result rather than an error;
  * `failed` is any other error; `skipped` a call the approval gate or a
  * reviewer declined; `unsettled` a call the turn left pending or interrupted.
  */
@@ -425,7 +425,7 @@ export interface BenchmarkComparison {
   agent: AgentShape;
   /** Each harness the cell ran on, by harness. */
   sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>;
-  /** Each side's warm median cost over native's, by harness; native itself is never listed, and a side without a median is left out. */
+  /** Each side's warm median cost over the Stigmer harness's, by harness; the Stigmer harness itself is never listed, and a side without a median is left out. */
   cost_ratio: Partial<Record<BenchmarkHarness, number>>;
 }
 
@@ -504,17 +504,17 @@ export interface BenchmarkReport {
      * written before the field read the same.
      */
     thinking_mode?: "enabled";
-    /** Whether the runner let the native agent start commands in the background: the arm (`--shell-background`). */
+    /** Whether the runner let the Stigmer harness's agent start commands in the background: the arm (`--shell-background`). */
     shell_background: ShellBackground;
   };
   models: {
-    /** Each arm's model, by harness; native's is `--stigmer-model`, else its parity pin. */
+    /** Each arm's model, by harness; the Stigmer harness's is `--stigmer-model`, else its parity pin. */
     parity: Record<BenchmarkHarness, string>;
     judge_requested: string;
-    /** The host the native model's calls went to, or the Anthropic backend's name; never a key or a path. */
+    /** The host the Stigmer harness's model's calls went to, or the Anthropic backend's name; never a key or a path. */
     stigmer_endpoint: string;
-    stigmer_api: NativeApi;
-    stigmer_cost_basis: NativeCostBasis;
+    stigmer_api: StigmerApi;
+    stigmer_cost_basis: StigmerCostBasis;
   };
   comparisons: BenchmarkComparison[];
   /** The quality arm's eval; `null` when no quality target was planned. */
@@ -645,15 +645,15 @@ export function summarize(
   };
 }
 
-/** A side's warm median cost over native's; `undefined` when either has no median or native's cost is 0. */
-export function costRatio(side: BenchmarkStat | undefined, native: BenchmarkStat | undefined): number | undefined {
+/** A side's warm median cost over the Stigmer harness's; `undefined` when either has no median or the Stigmer harness's cost is 0. */
+export function costRatio(side: BenchmarkStat | undefined, stigmer: BenchmarkStat | undefined): number | undefined {
   if (side?.median === null || side?.median === undefined) return undefined;
-  if (native?.median === null || native?.median === undefined) return undefined;
-  if (native.median.estimated_cost_micros === 0) return undefined;
-  return side.median.estimated_cost_micros / native.median.estimated_cost_micros;
+  if (stigmer?.median === null || stigmer?.median === undefined) return undefined;
+  if (stigmer.median.estimated_cost_micros === 0) return undefined;
+  return side.median.estimated_cost_micros / stigmer.median.estimated_cost_micros;
 }
 
-/** Every side's cost over native's, for the sides that are not native and have one (`costRatio`). */
+/** Every side's cost over the Stigmer harness's, for the sides that are not the Stigmer harness's and have one (`costRatio`). */
 export function costRatios(sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>): Partial<Record<BenchmarkHarness, number>> {
   const ratios: Partial<Record<BenchmarkHarness, number>> = {};
   for (const harness of HARNESSES) {
@@ -673,7 +673,7 @@ export interface ComparedScenario {
   readonly agent: AgentShape;
 }
 
-/** One scenario's comparison: each harness it ran on, and each side's cost over native's (`costRatios`). */
+/** One scenario's comparison: each harness it ran on, and each side's cost over the Stigmer harness's (`costRatios`). */
 export function comparisonOf(scenario: ComparedScenario, sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>): BenchmarkComparison {
   return {
     scenario: scenario.name,
@@ -688,15 +688,15 @@ export function comparisonOf(scenario: ComparedScenario, sides: Partial<Record<B
 
 // ─── The reader ─────────────────────────────────────────────────────────────
 
-const NATIVE_APIS: readonly NativeApi[] = ["messages", "chat-completions", "responses"];
-const NATIVE_COST_BASES: readonly NativeCostBasis[] = ["catalog", "default-rate"];
+const STIGMER_APIS: readonly StigmerApi[] = ["messages", "chat-completions", "responses"];
+const STIGMER_COST_BASES: readonly StigmerCostBasis[] = ["catalog", "default-rate"];
 const SHELL_BACKGROUNDS: readonly ShellBackground[] = ["on", "off"];
 
 /**
  * Refuses, by naming the field, a body that is not a current benchmark report. It
  * checks the discriminating fields and the shape every consumer walks
  * (`comparisons[].sides.<harness>.median`, `git.head_sha` and `git.code_sha`,
- * `methodology.reps` and `shell_background`, the native arm in `models`,
+ * `methodology.reps` and `shell_background`, the Stigmer arm in `models`,
  * `runner_log`) and trusts the rest to the producer: a full
  * structural check would be a second copy of the types above.
  */
@@ -721,8 +721,8 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   const parity = asRecord(models["parity"], "report.models.parity");
   for (const harness of HARNESSES) requireString(parity, harness, "report.models.parity");
   requireString(models, "stigmer_endpoint", "report.models");
-  requireOneOf(models, "stigmer_api", NATIVE_APIS, "report.models");
-  requireOneOf(models, "stigmer_cost_basis", NATIVE_COST_BASES, "report.models");
+  requireOneOf(models, "stigmer_api", STIGMER_APIS, "report.models");
+  requireOneOf(models, "stigmer_cost_basis", STIGMER_COST_BASES, "report.models");
   const comparisons = root["comparisons"];
   if (!Array.isArray(comparisons)) throw new Error("not a benchmark report: comparisons is not an array");
   comparisons.forEach((entry, index) => {

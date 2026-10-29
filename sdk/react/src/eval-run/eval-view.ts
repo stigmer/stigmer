@@ -113,7 +113,7 @@ export interface EvalFormSettings extends EvalRunSettings {
 }
 
 /**
- * The form's starting settings: each case's own model and runs (one native
+ * The form's starting settings: each case's own model and runs (one Stigmer
  * target on its default model ready for when the person picks models),
  * compared, $5, one at a time, every case, no extra tools. On an agent,
  * {@link evalFormForAgent} adds whose cases run.

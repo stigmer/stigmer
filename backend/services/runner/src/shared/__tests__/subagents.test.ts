@@ -6,9 +6,9 @@
  *     that denies a tool does not take it from the agent it lists.
  *   - A plugin subagent's scope is the main scope narrowed by its plugin's
  *     lists, with `Agent` denied.
- *   - Either way the native `task` tool is out of scope (one level).
+ *   - Either way the Stigmer harness's `task` tool is out of scope (one level).
  *   - `subagentModel`: a model counts only when it was chosen for this
- *     engine (an unset engine is the native one) and that engine's registry
+ *     engine (an unset engine is the Stigmer one) and that engine's registry
  *     section lists it by id; an alias, `inherit`, an empty name, an
  *     unlisted id or another engine's choice runs the turn's model.
  */
@@ -18,7 +18,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import { _resetRegistryCache } from "../model-registry.js";
 import { pluginSubagentScope, savedSubagentScope, subagentModel, subagentOwner, subagentPromptExtras } from "../subagents.js";
@@ -49,7 +49,7 @@ describe("savedSubagentScope", () => {
     const scope = savedSubagentScope("release-notes", create(AgentSpecSchema), undefined);
 
     expect(scope.allowsClaudeTool("Agent")).toBe(false);
-    expect(scope.allowsEngineTool("task", NATIVE_TOOL_COVERS)).toBe(false);
+    expect(scope.allowsEngineTool("task", STIGMER_TOOL_COVERS)).toBe(false);
     expect(scope.allowsClaudeTool("Write"), "otherwise unrestricted").toBe(true);
   });
 });
@@ -63,7 +63,7 @@ describe("pluginSubagentScope", () => {
     expect(scope.allowsClaudeTool("Read")).toBe(true);
     expect(scope.allowsClaudeTool("Write"), "the main agent's deny still holds").toBe(false);
     expect(scope.allowsClaudeTool("Bash"), "outside the plugin's allow-list").toBe(false);
-    expect(scope.allowsEngineTool("task", NATIVE_TOOL_COVERS)).toBe(false);
+    expect(scope.allowsEngineTool("task", STIGMER_TOOL_COVERS)).toBe(false);
   });
 
   it("denies Agent even when the plugin writes no lists", () => {
@@ -100,17 +100,17 @@ describe("subagentModel", () => {
     expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.STIGMER)).toBe("claude-sonnet-4-5");
   });
 
-  it("reads Claude's own section, never native's", async () => {
+  it("reads Claude's own section, never the Stigmer harness's", async () => {
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.CLAUDE)).toBe("claude-opus-5");
-    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.CLAUDE), "listed only for native").toBeUndefined();
+    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.CLAUDE), "listed only for Stigmer").toBeUndefined();
     expect(await subagentModel("claude-opus-5", Harness.STIGMER, Harness.CLAUDE)).toBeUndefined();
   });
 
-  it("names a number no engine owns rather than reading native's section", async () => {
+  it("names a number no engine owns rather than reading the Stigmer harness's section", async () => {
     await expect(subagentModel("claude-opus-5", 7 as Harness.CLAUDE)).rejects.toThrow("model registry: harness 7 names no engine");
   });
 
-  it("counts an unspecified engine as the native one", async () => {
+  it("counts an unspecified engine as the Stigmer one", async () => {
     expect(await subagentModel("claude-sonnet-4-5", Harness.STIGMER, Harness.UNSPECIFIED)).toBe("claude-sonnet-4-5");
     expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.UNSPECIFIED)).toBeUndefined();
   });

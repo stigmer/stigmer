@@ -9,7 +9,7 @@
  * contract kit runs an adapter outside any activity context
  * (`__test-utils__/harness-contract/`), and the agent host runs it in a
  * process with no worker at all (`agent-host/host.ts`), so a
- * `Context.current()` anywhere in the adapter would throw there. Native's
+ * `Context.current()` anywhere in the adapter would throw there. The Stigmer harness's
  * fence is the precedent; this is its Claude twin.
  */
 

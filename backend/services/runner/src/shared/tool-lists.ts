@@ -26,7 +26,7 @@
  *    non-empty `tools` in which nothing resolves refuses the turn.
  *
  * Three Stigmer readings, each a trade-off stated once:
- *  - An engine tool covers the Claude tools whose work it does (native's
+ *  - An engine tool covers the Claude tools whose work it does (the Stigmer harness's
  *    `glob` and `ls` both cover Glob; a tool that removed a file would cover
  *    Write). Such a tool is available when any Claude tool it covers is in
  *    scope and none is denied, so "never Write" also means "never delete".
@@ -89,7 +89,7 @@ export function parseToolListEntry(raw: string): ToolListEntry {
  * A sub-agent type in the one form both sides of an `Agent(type, …)`
  * comparison take: lower-cased, with `-` and `_` dropped, so a list that
  * spells a built-in type `generalPurpose` or `general_purpose` means the
- * same as Claude Code's and the native engine's `general-purpose`.
+ * same as Claude Code's and the Stigmer harness's `general-purpose`.
  */
 export function normalizeSubAgentType(type: string): string {
   return type.toLowerCase().replace(/[-_]/g, "");

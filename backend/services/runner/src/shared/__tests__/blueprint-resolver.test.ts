@@ -36,7 +36,7 @@
  *     its agents are not the turn's; the plugins kept keep their order.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
- * native orchestrator's byte-twin of this function was deleted with its
+ * Stigmer orchestrator's byte-twin of this function was deleted with its
  * module; until then the runtime's copy was tested only through the twin.
  */
 

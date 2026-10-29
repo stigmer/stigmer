@@ -1,5 +1,5 @@
 // A running shell command's output reaches the console while it runs, end to
-// end on the real stack (stigmer-server + Temporal + the runner, the native
+// end on the real stack (stigmer-server + Temporal + the runner, the Stigmer
 // harness in its agent host) and the real web console. What only this layer
 // proves: the runner's shell streams what the command prints, the runtime
 // sends it to the session as tool-output previews between status writes, the

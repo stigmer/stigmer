@@ -91,7 +91,7 @@ describe("getSummarizationModel", () => {
     expect(result).toBe("gpt-4o-mini");
   });
 
-  it("only selects native harness models for extraction", async () => {
+  it("only selects Stigmer harness models for extraction", async () => {
     mockRegistryResponse([
       { id: "claude-sonnet-4", provider: "anthropic", costTier: "standard", harness: "claude" },
       { id: "claude-haiku-4-5", provider: "anthropic", costTier: "economy", harness: "claude" },
@@ -113,7 +113,7 @@ describe("getDefaultModel", () => {
     _resetRegistryCache();
   });
 
-  it("returns apiModelId of featured+standard+native model", async () => {
+  it("returns apiModelId of featured+standard+Stigmer-harness model", async () => {
     mockRegistryResponse([
       { id: "claude-opus-4.6", provider: "anthropic", costTier: "premium", harness: "stigmer", featured: true },
       { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", featured: true },
@@ -124,7 +124,7 @@ describe("getDefaultModel", () => {
     expect(result).toBe("claude-sonnet-4-6");
   });
 
-  it("falls back to non-featured standard+native when no featured model", async () => {
+  it("falls back to non-featured standard+stigmer when no featured model", async () => {
     mockRegistryResponse([
       { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", costTier: "standard", harness: "stigmer" },
       { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
@@ -148,7 +148,7 @@ describe("getDefaultModel", () => {
     expect(result).toBe("claude-sonnet-4-6");
   });
 
-  it("respects registry ordering (first featured+standard+native wins)", async () => {
+  it("respects registry ordering (first featured+standard+stigmer wins)", async () => {
     mockRegistryResponse([
       { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", featured: true },
       { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer", featured: true },
@@ -368,7 +368,7 @@ describe("getRequestProfile", () => {
 
   const NO_THINKING = { shape: "none", required: undefined } as const;
 
-  it("reads the native row, never the same id's claude row", async () => {
+  it("reads the Stigmer harness's row, never the same id's claude row", async () => {
     mockRegistryResponse([
       { id: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "claude", maxOutputTokens: 64000, capabilities: { thinking: true, adaptiveThinking: false } },
       { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "stigmer", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: false } },
@@ -384,12 +384,12 @@ describe("getRequestProfile", () => {
     mockRegistryResponse([
       { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "stigmer", capabilities: { thinking: true, adaptiveThinking: false, thinkingRequired: false } },
       { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "claude", capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: true } },
-      { id: "native-only", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { adaptiveThinking: true } },
+      { id: "stigmer-only", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { adaptiveThinking: true } },
     ]);
 
     expect((await getRequestProfile("claude-opus-4.5", "claude"))?.thinking).toEqual({ shape: "adaptive", required: true });
     expect((await getRequestProfile("claude-opus-4.5", "stigmer"))?.thinking).toEqual({ shape: "budget", required: false });
-    expect(await getRequestProfile("native-only", "claude")).toBeUndefined();
+    expect(await getRequestProfile("stigmer-only", "claude")).toBeUndefined();
   });
 
   it("matches the provider api id as well as the registry id", async () => {

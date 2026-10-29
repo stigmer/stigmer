@@ -1,6 +1,6 @@
 /**
  * Hermetic: a command the agent runs in the background, through the whole
- * `ExecuteDeepAgent` activity (the turn runtime over the native adapter).
+ * `ExecuteDeepAgent` activity (the turn runtime over the Stigmer harness's adapter).
  *
  * Invariants pinned:
  *  - One turn: the agent starts `sleep 2; echo done` in the background, the

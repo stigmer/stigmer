@@ -69,7 +69,7 @@ function anthropicUsage(usage: TokenUsageOptions): AnthropicUsage {
 // Each canned response's message id, unique as a provider's are. A repeated id
 // is not cosmetic: LangGraph's message reducer replaces a message whose id it
 // already holds, so a mock that answered every turn as `msg_mock_10` made the
-// native runner's conversation forget each round as the next arrived
+// Stigmer harness's conversation forget each round as the next arrived
 // (stigmer#2437).
 let messageSeq = 0;
 function nextMessageId(): string {
