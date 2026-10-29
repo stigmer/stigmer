@@ -41,7 +41,13 @@
  *   5. `npm run verify:consumer` — the package's consumer-install smoke
  *      (scripts/verify-consumer-install.mjs) over the REAL published
  *      manifest: version stamped, libs pinned to the registry versions the
- *      wait just confirmed. The exact resolution consumers will get.
+ *      wait just confirmed. The exact resolution consumers will get. One
+ *      good read is not proof that the next agrees: npm has answered the
+ *      install "no such version" seconds after the wait saw a lib
+ *      (stigmer#1367). The smoke exits 75 when that is why it failed
+ *      (scripts/lib/registry-lag.mjs), and the smoke runs again on the
+ *      wait's schedule until the wait's own deadline (`retryConsumerSmoke`).
+ *      Any other failure stops the publish at once.
  *   6. `npm publish --access public --tag <tag>`.
  *
  * The dist-tag follows publish-libs.mjs: an explicit `--tag` wins (the dev
@@ -82,7 +88,7 @@
  * Needs a prior build of the package and of the workspace libs it links.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -93,6 +99,8 @@ import {
 } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { REGISTRY_LAG_EXIT } from "./lib/registry-lag.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -114,11 +122,21 @@ export const STANDALONE_PACKAGES = [
  * @stigmer/plugin-package about 7 minutes after it was published (18:58:35Z
  * published, 19:05:43Z in its packument), and @stigmer/server about 4.5
  * minutes after its own publish. The old fixed 5-minute window failed one
- * second before the lib appeared. 20 minutes is almost three times the
- * worst lag seen. The poll starts at 10 s and doubles to a 60 s cap, so a
- * fast registry is noticed at once and a slow one is not hammered.
+ * second before the lib appeared. Then v3.41.0 (run 36717678532,
+ * stigmer#1367): npm answered the libs' publish at 12:55Z with "being
+ * processed" and served them from about 13:17Z, 22 minutes later, and the
+ * 20-minute budget set from v3.28.0 ran out first. 35 minutes is the worst
+ * lag seen with half as much again to spare. The publish jobs that run this
+ * wait set no job timeout below it. Two jobs that wait on the CLI's
+ * packages through test/install do: release.npm-libs.yaml's rehearse-cli
+ * (30 minutes) and ci.live.yaml's cli-live (20). Both start only after the
+ * standalone publishes are green, when npm already serves the release, so
+ * their cap ends only a lag this wait has already outlasted once, and it
+ * ends it as a job timeout rather than this refusal. The poll starts at
+ * 10 s and doubles to a 60 s cap, so a fast registry is noticed at once and
+ * a slow one is not hammered.
  */
-export const WAIT_BUDGET_MS = 20 * 60_000;
+export const WAIT_BUDGET_MS = 35 * 60_000;
 export const WAIT_FIRST_INTERVAL_MS = 10_000;
 export const WAIT_MAX_INTERVAL_MS = 60_000;
 
@@ -212,6 +230,14 @@ export function parseArgs(argv) {
 function run(cmd, args, cwd) {
   console.log(`  $ ${cmd} ${args.join(" ")}`);
   execFileSync(cmd, args, { cwd, stdio: "inherit" });
+}
+
+/** `run`, returning the exit code instead of throwing on a failure. */
+function runForExitCode(cmd, args, cwd) {
+  console.log(`  $ ${cmd} ${args.join(" ")}`);
+  const result = spawnSync(cmd, args, { cwd, stdio: "inherit" });
+  if (result.error) throw result.error;
+  return result.status ?? 1;
 }
 
 /** The Accept header npm's installer sends for a package's metadata. */
@@ -329,23 +355,70 @@ function describeGaps(gaps, version) {
  * in place.
  */
 export function registryLagMessage(gaps, version, budgetMs, runId) {
-  const rerun = `gh run rerun ${runId ?? "<run-id>"} --failed`;
   return (
     `${describeGaps(gaps, version)} published by the libs job but not ` +
-    `installable from npm after ${budgetMs / 60_000} minutes; the registry is lagging. ` +
-    `Rerun the failed job once npm serves ${gaps.length === 1 ? "it" : "them"}: ${rerun}`
+    `installable from npm after ${budgetMs / 60_000} minutes; ` +
+    lagRecovery(gaps.length === 1 ? "it" : "them", runId)
   );
 }
 
 /**
+ * The smoke retry's refusal: every attempt until the deadline failed on a
+ * pinned lib npm does not serve yet. The last attempt's output, just above
+ * in the log, names the lib.
+ */
+export function smokeLagMessage(budgetMs, runId) {
+  return (
+    `the consumer install still finds a pinned lib missing from npm after ${budgetMs / 60_000} minutes ` +
+    `(the last attempt above names it); ${lagRecovery("it", runId)}`
+  );
+}
+
+/** What both refusals end with: the cause, and rerunning only the failed job. */
+function lagRecovery(pronoun, runId) {
+  return (
+    `the registry is lagging. Rerun the failed job once npm serves ${pronoun}: ` +
+    `gh run rerun ${runId ?? "<run-id>"} --failed`
+  );
+}
+
+/**
+ * The registry wait's sleeps: each call returns the next sleep and the time
+ * left before `deadline`, or `null` once the deadline has passed. The sleep
+ * doubles from `firstIntervalMs` to `maxIntervalMs`, and the last one is
+ * cut to the deadline. The wait and the smoke's retry each draw from one,
+ * so both keep the same schedule under the same deadline.
+ */
+export function pollSchedule({
+  deadline,
+  now = () => Date.now(),
+  firstIntervalMs = WAIT_FIRST_INTERVAL_MS,
+  maxIntervalMs = WAIT_MAX_INTERVAL_MS,
+}) {
+  let interval = firstIntervalMs;
+  return () => {
+    const remaining = deadline - now();
+    if (remaining <= 0) return null;
+    const wait = Math.min(interval, remaining);
+    interval = Math.min(interval * 2, maxIntervalMs);
+    return { wait, remaining };
+  };
+}
+
+/** A schedule step as the log line's tail: `next check in 10s (35 min left)`. */
+function describeStep({ wait, remaining }, what) {
+  return `next ${what} in ${Math.ceil(wait / 1000)}s (${Math.ceil(remaining / 60_000)} min left)`;
+}
+
+/**
  * Polls until every name at `version` is installable from npm or the
- * budget is spent. `gapOf(name, version)` answers what an install still
+ * deadline passes. `gapOf(name, version)` answers what an install still
  * lacks, or `null` (`installGap` in the release). All names share one
- * deadline and each round asks only about the ones still missing. The
- * interval doubles from `firstIntervalMs` to `maxIntervalMs`, and the last
- * sleep is cut to the deadline. The clock, the sleep and the registry query
- * are parameters, so the schedule is tested without a registry or real
- * time.
+ * deadline and each round asks only about the ones still missing, on
+ * `pollSchedule`'s sleeps. The deadline defaults to `budgetMs` from now; the
+ * release passes its own, which the smoke's retry then shares. The clock,
+ * the sleep and the registry query are parameters, so the schedule is
+ * tested without a registry or real time.
  */
 export async function waitForRegistry(
   names,
@@ -356,14 +429,14 @@ export async function waitForRegistry(
     now = () => Date.now(),
     log = (line) => console.log(line),
     budgetMs = WAIT_BUDGET_MS,
+    deadline = now() + budgetMs,
     firstIntervalMs = WAIT_FIRST_INTERVAL_MS,
     maxIntervalMs = WAIT_MAX_INTERVAL_MS,
     runId = process.env.GITHUB_RUN_ID,
   } = {},
 ) {
-  const deadline = now() + budgetMs;
+  const next = pollSchedule({ deadline, now, firstIntervalMs, maxIntervalMs });
   let pending = [...names];
-  let interval = firstIntervalMs;
   for (;;) {
     const answers = await Promise.all(
       pending.map((name) => gapOf(name, version)),
@@ -375,17 +448,53 @@ export async function waitForRegistry(
     });
     if (gaps.length === 0) return;
     pending = gaps.map(({ name }) => name);
-    const remaining = deadline - now();
-    if (remaining <= 0) {
+    const step = next();
+    if (step === null) {
       throw new Error(registryLagMessage(gaps, version, budgetMs, runId));
     }
-    const wait = Math.min(interval, remaining);
     log(
-      `  not yet installable: ${describeGaps(gaps, version)}; ` +
-        `next check in ${Math.ceil(wait / 1000)}s (${Math.ceil(remaining / 60_000)} min left)`,
+      `  not yet installable: ${describeGaps(gaps, version)}; ${describeStep(step, "check")}`,
     );
-    await sleep(wait);
-    interval = Math.min(interval * 2, maxIntervalMs);
+    await sleep(step.wait);
+  }
+}
+
+/**
+ * Runs the consumer-install smoke until it passes, again on
+ * `pollSchedule`'s sleeps while it exits REGISTRY_LAG_EXIT (npm does not
+ * serve a pinned lib yet), up to the deadline the registry wait used.
+ * `runSmoke()` runs it once and returns its exit code. Any other failure
+ * throws at once, and a lag still there at the deadline throws the wait's
+ * kind of refusal: the registry is lagging, rerun the failed job.
+ */
+export async function retryConsumerSmoke(
+  runSmoke,
+  {
+    deadline,
+    sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+    now = () => Date.now(),
+    log = (line) => console.log(line),
+    budgetMs = WAIT_BUDGET_MS,
+    firstIntervalMs = WAIT_FIRST_INTERVAL_MS,
+    maxIntervalMs = WAIT_MAX_INTERVAL_MS,
+    runId = process.env.GITHUB_RUN_ID,
+  },
+) {
+  const next = pollSchedule({ deadline, now, firstIntervalMs, maxIntervalMs });
+  for (;;) {
+    const code = runSmoke();
+    if (code === 0) return;
+    if (code !== REGISTRY_LAG_EXIT) {
+      throw new Error(`the consumer-install smoke failed (exit ${code})`);
+    }
+    const step = next();
+    if (step === null) {
+      throw new Error(smokeLagMessage(budgetMs, runId));
+    }
+    log(
+      `  npm does not serve a pinned lib to the install yet; ${describeStep(step, "attempt")}`,
+    );
+    await sleep(step.wait);
   }
 }
 
@@ -445,6 +554,8 @@ async function main() {
     run("npm", ["pack", "--dry-run"], packageDir);
 
     if (!dryRun) {
+      // The wait and the smoke's retry share one deadline (step 5).
+      const deadline = Date.now() + WAIT_BUDGET_MS;
       if (pinned.length > 0) {
         console.log(
           "\n=== Waiting until the pinned libs are installable from npm ===",
@@ -452,12 +563,16 @@ async function main() {
         const registry = configuredRegistry();
         await waitForRegistry(pinned, version, {
           gapOf: (name, v) => installGap(name, v, { registry }),
+          deadline,
         });
       }
       console.log(
         "\n=== Consumer-install smoke (over the stamped manifest) ===",
       );
-      run("npm", ["run", "verify:consumer"], packageDir);
+      await retryConsumerSmoke(
+        () => runForExitCode("npm", ["run", "verify:consumer"], packageDir),
+        { deadline },
+      );
     }
 
     console.log("\n=== Publish ===");

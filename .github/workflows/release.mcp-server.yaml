@@ -1,67 +1,82 @@
 name: release.mcp-server
+# The version in every run's title, so `gh run list` finds a release's image
+# by it (a workflow_run's branch is main, not the tag).
+run-name: release.mcp-server ${{ inputs.version || github.event.workflow_run.head_branch }}
 
-on:
-  push:
-    tags:
-      - 'v*'
+# =============================================================================
+# Build the MCP server's Docker image for a release
+# =============================================================================
+# The MCP server ships only as a Docker image, ghcr.io/stigmer/mcp-server-stigmer.
+# The image installs the published @stigmer/mcp-server npm package, which
+# release.npm-libs publishes, so it runs byte-for-byte what
+# `npx @stigmer/mcp-server` runs.
+#
+# Triggers:
+#   - workflow_run, when release.npm-libs completes successfully for a v* tag
+#     push: the tagged commit is checked out, and the package the image
+#     installs is already published. This lane once ran on the tag push
+#     itself, beside release.npm-libs, and gave npm a fixed ten minutes from
+#     its own start; a busy queue or npm's own processing delay outlasted that
+#     on v3.37.1 and v3.41.0, and the image waited for a person to rerun it
+#     (stigmer#1361). A separate run, not a job inside the release lane, so a
+#     failed image build never turns the release red (ci.live and the npm
+#     mirror run only after a green release.npm-libs).
+#   - workflow_dispatch with a version: build the image of an existing
+#     release (a release dispatched rather than tagged, one tagged before
+#     this trigger existed, or a re-run after a failed build). Dispatch it
+#     from main: the Dockerfile takes the version as a build argument.
+#
+# Every build also moves the :latest tag, as it always has.
+# =============================================================================
+
+# workflow_run is safe here: the job admits only a successful release run of a
+# v* tag push, checks out that tag (which only maintainers push) with
+# persist-credentials off, and reads nothing from the triggering run but its
+# tag name, which scripts/wait-for-npm.mjs refuses unless it is a release
+# version before anything is built.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows:
+      - "release.npm-libs"
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.0.0) - used as the image tag for manual builds'
-        required: false
+        description: 'The release version to build (X.Y.Z or vX.Y.Z); also the image tag'
+        required: true
         type: string
 
 permissions:
   contents: read
 
 jobs:
-  determine-version:
-    runs-on: ubuntu-24.04
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Determine version
-        id: version
-        run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            VERSION="${GITHUB_REF_NAME}"
-            echo "Triggered by tag: $VERSION"
-          elif [ -n "${GITHUB_EVENT_INPUTS_VERSION}" ]; then
-            VERSION="v${GITHUB_EVENT_INPUTS_VERSION}"
-          else
-            VERSION="test-$(git rev-parse --short HEAD)"
-          fi
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building mcp-server-stigmer image version: $VERSION"
-        env:
-          GITHUB_EVENT_INPUTS_VERSION: ${{ github.event.inputs.version }}
-
-  # The MCP server ships only as a Docker image. The image installs the
-  # published @stigmer/mcp-server npm package (published by release.npm-libs),
-  # so it runs byte-for-byte what `npx @stigmer/mcp-server` runs. This build
-  # therefore waits for the npm package to appear before building.
   build-docker-image:
-    needs: determine-version
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-24.04
     # Pushes the image to ghcr.io.
     permissions:
       contents: read
       packages: write
-    # A healthy build finishes in ~5 minutes. Cap the job so a stalled buildx /
-    # QEMU / cache-export step fails fast instead of hanging near the default
-    # 6-hour limit (see the ~1h hang on the v3.1.11 release).
-    timeout-minutes: 25
+    # A healthy build finishes in ~5 minutes, and after a green release the
+    # npm wait returns at once. Cap the job so a stalled buildx / QEMU /
+    # cache-export step fails fast instead of hanging near the default 6-hour
+    # limit (see the ~1h hang on the v3.1.11 release); a dispatch whose
+    # version npm does not serve yet still gets the wait's full budget.
+    timeout-minutes: 60
+    env:
+      # The release's tag (vX.Y.Z), or the dispatched version with or without
+      # its v. npm's version drops the v; the image tag keeps it.
+      VERSION: ${{ inputs.version || github.event.workflow_run.head_branch }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          # The released commit on a release run; main on a dispatch.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           persist-credentials: false
 
       - name: Set up Node.js
@@ -69,26 +84,14 @@ jobs:
         with:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
-          node-version: '20'
+          node-version-file: ".nvmrc"
 
+      # The release's own registry wait (scripts/publish-standalone.mjs): the
+      # version the image installs must be installable, document and tarball,
+      # before the build asks for it. It also refuses a version that is not a
+      # release version.
       - name: Wait for @stigmer/mcp-server on npm
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          # Strip the leading 'v' for the npm version (tag v1.2.3 -> npm 1.2.3).
-          NPM_VERSION="${VERSION#v}"
-          echo "Waiting for @stigmer/mcp-server@$NPM_VERSION on npm..."
-          for i in $(seq 1 60); do
-            if npm view "@stigmer/mcp-server@$NPM_VERSION" version 2>/dev/null; then
-              echo "Found @stigmer/mcp-server@$NPM_VERSION on npm"
-              exit 0
-            fi
-            echo "Attempt $i/60: not yet available, waiting 10s..."
-            sleep 10
-          done
-          echo "ERROR: @stigmer/mcp-server@$NPM_VERSION not found on npm after 10 minutes"
-          echo "The Docker image installs this package. Check the release.npm-libs workflow."
-          exit 1
+        run: node scripts/wait-for-npm.mjs @stigmer/mcp-server --version "${VERSION#v}"
 
       # Register QEMU binfmt handlers so the emulated linux/arm64 leg builds
       # reliably on the amd64 runner (do not rely on preinstalled binfmt).
@@ -110,20 +113,19 @@ jobs:
       # (type=gha) buys nothing. Worse, `cache-to type=gha,mode=max` has hung the
       # export for up to an hour (see the v3.1.11 release), so we omit it entirely.
       - name: Build and push Docker image
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           NPM_VERSION="${VERSION#v}"
+          IMAGE_TAG="v${NPM_VERSION}"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             --file mcp-server/Dockerfile \
             --build-arg NODE_IMAGE=node:22-alpine \
-            --build-arg MCP_SERVER_VERSION=$NPM_VERSION \
-            --tag ghcr.io/stigmer/mcp-server-stigmer:$VERSION \
+            --build-arg MCP_SERVER_VERSION="$NPM_VERSION" \
+            --tag "ghcr.io/stigmer/mcp-server-stigmer:$IMAGE_TAG" \
             --tag ghcr.io/stigmer/mcp-server-stigmer:latest \
             --push \
             .
 
           echo "Docker image built and pushed:"
-          echo "  - ghcr.io/stigmer/mcp-server-stigmer:$VERSION"
+          echo "  - ghcr.io/stigmer/mcp-server-stigmer:$IMAGE_TAG"
           echo "  - ghcr.io/stigmer/mcp-server-stigmer:latest"

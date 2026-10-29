@@ -290,6 +290,19 @@ jobs:
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
             --tag dev
 
+      # npm's debug log, kept when the job fails: a failed install or publish
+      # names its log file but the runner is gone before anyone can read it
+      # (stigmer#1367). A failure before npm runs leaves no log, so none is
+      # not an error.
+      - name: Upload npm's debug log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-logs-runner
+          path: ~/.npm/_logs/
+          retention-days: 3
+          if-no-files-found: ignore
+
       # The slim embedding artifact (stigmer/stigmer#170), mirroring the
       # production publish in release.npm-libs.yaml. Self-contained — its bundle
       # does not pin @stigmer/apis — so it just needs the version already
@@ -423,6 +436,19 @@ jobs:
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
             --tag dev
 
+      # npm's debug log, kept when the job fails: a failed install or publish
+      # names its log file but the runner is gone before anyone can read it
+      # (stigmer#1367). A failure before npm runs leaves no log, so none is
+      # not an error.
+      - name: Upload npm's debug log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-logs-server
+          path: ~/.npm/_logs/
+          retention-days: 3
+          if-no-files-found: ignore
+
   # @stigmer/enterprise (ee/server) — the dev twin of release.npm-libs.yaml's
   # publish-enterprise, at the same version as the server it links, so a
   # composition pins every @stigmer/* package at the one build this run
@@ -493,6 +519,19 @@ jobs:
             --package ee/server \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
             --tag dev
+
+      # npm's debug log, kept when the job fails: a failed install or publish
+      # names its log file but the runner is gone before anyone can read it
+      # (stigmer#1367). A failure before npm runs leaves no log, so none is
+      # not an error.
+      - name: Upload npm's debug log
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-logs-enterprise
+          path: ~/.npm/_logs/
+          retention-days: 3
+          if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------
   # Print what a composition pins: the version, where it lives, and the scope

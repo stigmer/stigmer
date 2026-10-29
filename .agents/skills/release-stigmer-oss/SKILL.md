@@ -218,16 +218,18 @@ installers as a draft; the `@stigmer/*` npm packages including `@stigmer/server`
 that run is green, a copy of the release's packages into Stigmer's own npm
 repository (`release.npm-mirror.yaml`, its own run, where compositions install
 `@stigmer/*` from; a failed copy is re-run by dispatching that workflow with the
-version, and a release dispatched rather than tagged is copied that way), with
+version, and a release dispatched rather than tagged is copied that way), and
+the MCP server image, after that same green run (`release.mcp-server.yaml`, its
+own run; a failed build, a release dispatched rather than tagged, or one tagged
+before this trigger is built by dispatching it from main with the version), with
 the server, Enterprise server, runner and all-in-one images pushed to GHCR and
 the Helm chart to its OCI registry, each smoked before promotion; the Go SDK
 through the module proxy; the Python packages to PyPI; the Java SDK to Maven;
-the MCP server image; the Rust crate; the sandbox cloud image, whose
-`runner:v<version>` tag and `prod` appear only after its smoke test passes. When
-the npm release succeeds for a release tag (a prerelease tag ends the run green
-with nothing run), `ci.live.yaml` runs the tagged commit's live suites and the
-published CLI against the real model providers. A red run files a `live-failure`
-issue: a broken provider path is fixed like any defect, an outage is waited out,
-and a person closes the issue once a dispatch of the workflow runs green. A
-dispatch installs a published CLI, so a fix on the CLI's side needs a release
-first.
+the Rust crate; the sandbox cloud image, whose `runner:v<version>` tag and
+`prod` appear only after its smoke test passes. When the npm release succeeds
+for a release tag (a prerelease tag ends the run green with nothing run),
+`ci.live.yaml` runs the tagged commit's live suites and the published CLI
+against the real model providers. A red run files a `live-failure` issue: a
+broken provider path is fixed like any defect, an outage is waited out, and a
+person closes the issue once a dispatch of the workflow runs green. A dispatch
+installs a published CLI, so a fix on the CLI's side needs a release first.

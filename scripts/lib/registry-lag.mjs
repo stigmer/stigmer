@@ -1,0 +1,84 @@
+/**
+ * Tells a consumer install that failed because npm does not serve a pinned
+ * @stigmer/* version YET apart from one that failed for any other reason,
+ * and names the exit code that carries the answer from
+ * scripts/verify-consumer-install.mjs to scripts/publish-standalone.mjs.
+ *
+ * A release publishes its libs and then installs a package pinned to them.
+ * npm can accept a version and still answer an install of it with "no such
+ * version" for minutes: ETARGET when the document the install resolves
+ * against does not list it yet (v3.38.0, and the dev lane, stigmer#1367), or
+ * E404 when its tarball or its whole document is not served yet (v3.33.0,
+ * stigmer#1325). For a version this release just published, those answers
+ * mean "not yet", and the release script retries the install within the
+ * registry wait's deadline. The same answer about another @stigmer/*
+ * package at the release's own version is lag too: Enterprise installs the
+ * server, and with it the libs the server pins to that version, which the
+ * release published in the same train. Any other failure, or the same
+ * answer about any other package, is a real break and fails at once.
+ *
+ * The smoke owns its installs, so it classifies its own failure and reports
+ * the answer as an exit code: one number is the whole contract between the
+ * two scripts, and `npm run` hands a script's exit code back unchanged.
+ */
+
+/** The smoke's exit code for "npm does not serve a pinned version yet": EX_TEMPFAIL. */
+export const REGISTRY_LAG_EXIT = 75;
+
+const NAME_CHAR = /[A-Za-z0-9._-]/;
+
+/** Whether `text` mentions `name` as a whole package name, not as the prefix of a longer one. */
+function mentions(text, name) {
+  for (let at = text.indexOf(name); at !== -1; at = text.indexOf(name, at + 1)) {
+    const next = text[at + name.length];
+    if (next === undefined || !NAME_CHAR.test(next)) return true;
+  }
+  return false;
+}
+
+/**
+ * Each @stigmer/* package and version a failure line names: ETARGET's
+ * "No matching version found for <name>@<version>.", a tarball URL's
+ * "<name>/-/<base>-<version>.tgz", and E404's "'<name>@<version>' is not
+ * in this registry".
+ */
+function stigmerVersionsNamed(lines) {
+  const named = [];
+  for (const line of lines) {
+    const etarget = line.match(/No matching version found for (@stigmer\/[A-Za-z0-9._-]+)@(\S+?)\.?$/);
+    if (etarget) named.push({ name: etarget[1], version: etarget[2] });
+    const tarball = line.match(/@stigmer(?:\/|%2[fF])([A-Za-z0-9._-]+)\/-\/\1-(\S+?)\.tgz/);
+    if (tarball) named.push({ name: `@stigmer/${tarball[1]}`, version: tarball[2] });
+    const document = line.match(/'(@stigmer\/[A-Za-z0-9._-]+)@([^'\s]+)' is not in this registry/);
+    if (document) named.push({ name: document[1], version: document[2] });
+  }
+  return named;
+}
+
+/**
+ * The package an install's stderr says npm does not serve yet, or `null`
+ * when the failure is anything else. `names` are the @stigmer/* packages
+ * the release pinned to registry versions, and `version` the release's own
+ * version; with neither, nothing is lag. A pinned name counts wherever the
+ * failure names it: ETARGET in its "No matching version found for
+ * <name>@<version>" line, E404 in the request URL, with the scope's slash
+ * kept for a tarball and encoded as `%2f` (either case) for a document.
+ * Any other @stigmer/* package counts when the failure names it at
+ * `version`.
+ */
+export function registryLag(stderr, names, version) {
+  const etarget = /\bcode ETARGET\b/.test(stderr);
+  const e404 = /\bcode E404\b/.test(stderr);
+  if (!etarget && !e404) return null;
+  const lines = stderr
+    .split("\n")
+    .filter((line) => (etarget ? /No matching version found for /.test(line) : /\b404\b/.test(line)));
+  for (const name of names) {
+    const spellings = [name, name.replaceAll("/", "%2f"), name.replaceAll("/", "%2F")];
+    if (lines.some((line) => spellings.some((spelling) => mentions(line, spelling)))) {
+      return name;
+    }
+  }
+  if (version === undefined) return null;
+  return stigmerVersionsNamed(lines).find((named) => named.version === version)?.name ?? null;
+}
