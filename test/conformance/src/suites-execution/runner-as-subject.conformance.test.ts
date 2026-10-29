@@ -131,7 +131,7 @@ import {
   enableOrganizationMemory,
   MEMORY_CAP,
 } from "../support/memories";
-import { uniqueName } from "../support/naming";
+import { foreignId, uniqueName } from "../support/naming";
 import {
   createTarget,
   enforcingLaneOf,
@@ -452,7 +452,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
           people.member.platformQuery.getRunnerScopedToken({
             scope: {
               case: "runId",
-              value: `aex_${uniqueName("missing")}`,
+              value: foreignId("run"),
             },
           }),
         Code.NotFound,

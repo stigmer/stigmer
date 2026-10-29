@@ -88,12 +88,12 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
   return {
     labels,
     deps: {
-      input: { executionId: `aex-${sessionId}`, threadId: "", turnSeq: 0 },
+      input: { executionId: `run_${sessionId}`, threadId: "", turnSeq: 0 },
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
       status,
       rows,
-      transcript: new TranscriptBuilder(`aex-${sessionId}`, rows, status),
+      transcript: new TranscriptBuilder(`run_${sessionId}`, rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
