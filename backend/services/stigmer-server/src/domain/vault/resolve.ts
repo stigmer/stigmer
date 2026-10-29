@@ -6,9 +6,8 @@
  *
  * What a run needs (requirements), each with its declarer:
  *   - every key its agent declares (`AgentSpec.env`), except a key any
- *     tool or plugin of the run declares: an agent saved before plugins were
- *     whole may hold copies of its tools' keys, and a tool's key never
- *     reaches the agent's shell;
+ *     tool or plugin of the run declares: a tool's key never reaches the
+ *     agent's shell, even when the agent declares the same name;
  *   - every key each subagent declares, by the same rule, for that
  *     subagent's shell and hooks only (its own declarer, matched on its
  *     own);

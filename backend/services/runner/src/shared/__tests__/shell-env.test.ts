@@ -35,12 +35,6 @@ describe("buildShellEnv", () => {
     }
   });
 
-  it("keeps a retired harness's key from the shell: a deployment may still set CURSOR_API_KEY", () => {
-    expect(RUNNER_CREDENTIAL_ENV_KEYS).toContain("CURSOR_API_KEY");
-    expect(SHELL_ENV_DENYLIST).toContain("CURSOR_API_KEY");
-    expect(buildShellEnv({}, { PATH: "/usr/bin", CURSOR_API_KEY: "key_live" }).CURSOR_API_KEY).toBeUndefined();
-  });
-
   it("overlays the run values on top of the base env", () => {
     const base = { PATH: "/usr/bin", PLATFORM_CLI: "old" };
     const env = buildShellEnv({ PLATFORM_CLI: "planton", API_URL: "https://api.test" }, base);

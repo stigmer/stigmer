@@ -82,7 +82,6 @@ import {
   RENAMED_SLUG_HOLD_MS,
   nameHolderIsGone,
   newClaimOrganizationSlugStep,
-  organizationIdReservedMessage,
   settleOrganizationSlug,
   newRetireOrganizationSlugStep,
   organizationNameKey,
@@ -324,26 +323,6 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(stored.spec?.description).toBe("an update between the move and the row write");
   });
 
-  it("deleting an organization from an earlier release keeps its slug, its id, reserved", async () => {
-    await server.store.saveResource(
-      ApiResourceKind.organization,
-      "veteran",
-      OrganizationSchema,
-      create(OrganizationSchema, {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { id: "veteran", slug: "veteran", name: "Veteran" },
-      }),
-    );
-    await server.store.resourceNames.claim(organizationNameKey("veteran"), "veteran", new Date().toISOString());
-    await organizations.delete({ value: "veteran" });
-
-    const refused = await grpcError(() => organizations.create(organizationInput("veteran")));
-    expect(refused.code).toBe(Code.AlreadyExists);
-    expect(reasonOf(refused)).toBe(ORGANIZATION_SLUG_RESERVED);
-    expect(refused.rawMessage).toBe(organizationIdReservedMessage("veteran"));
-  });
-
   it("of two concurrent creates of one slug, exactly one succeeds and the other is a duplicate", async () => {
     const results = await Promise.allSettled([
       organizations.create(organizationInput("contended")),
@@ -455,51 +434,6 @@ describe("organization names (composed server, trusted-local posture)", () => {
     );
     expect(taken.code).toBe(Code.AlreadyExists);
     expect(reasonOf(taken)).toBe(ORGANIZATION_SLUG_RESERVED);
-  });
-
-  it("an organization from an earlier release keeps its old slug, its id, for good after a rename; a minted one's lapses", async () => {
-    // An earlier release filed the organization under its slug: id == slug,
-    // and the migration recorded that slug as its current name.
-    const seededAt = new Date().toISOString();
-    await server.store.saveResource(
-      ApiResourceKind.organization,
-      "wayne",
-      OrganizationSchema,
-      create(OrganizationSchema, {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { id: "wayne", slug: "wayne", name: "Wayne" },
-      }),
-    );
-    expect(
-      (await server.store.resourceNames.claim(organizationNameKey("wayne"), "wayne", seededAt)).claimed,
-    ).toBe(true);
-    const minted = await organizations.create(organizationInput("stark"));
-
-    await organizations.rename(create(RenameInputSchema, { resourceId: "wayne", slug: "wayne-corp" }));
-    await organizations.rename(create(RenameInputSchema, { resourceId: "stark", slug: "stark-industries" }));
-
-    const kept = await resolve("wayne");
-    expect(kept).toMatchObject({ id: "wayne", state: "previous", expiresAt: "" });
-
-    // Past the hold, the old slug still names the earlier release's
-    // organization, so every row filed under it keeps resolving, and nobody
-    // else can take it; the minted organization's old slug is free.
-    const pastTheHold = new Date(Date.now() + RENAMED_SLUG_HOLD_MS + 86_400_000).toISOString();
-    expect(
-      (await server.store.resourceNames.resolve(organizationNameKey("wayne"), pastTheHold))?.id,
-    ).toBe("wayne");
-    const contested = await server.store.resourceNames.claim(
-      organizationNameKey("wayne"),
-      "org_01jzzzzzzzzzzzzzzzzzzzzzzz",
-      pastTheHold,
-    );
-    expect(contested.claimed).toBe(false);
-    expect(contested.entry.id).toBe("wayne");
-    expect(
-      await server.store.resourceNames.resolve(organizationNameKey("stark"), pastTheHold),
-    ).toBeUndefined();
-    expect(minted.metadata?.id).toMatch(MINTED_ID);
   });
 
   it("a rename takes back its own old slug, is refused another's slug, and changes nothing for its own", async () => {
@@ -958,13 +892,6 @@ describe("nameHolderIsGone", () => {
     expect(
       await nameHolderIsGone(rowStore(async () => create(OrganizationSchema)), old, now),
     ).toBe(false);
-  });
-
-  it("never counts a name equal to its id gone: an earlier release filed an organization under it", async () => {
-    const store = rowStore(rowMissing);
-    const reserved: ResourceNameEntry = { ...old, name: "veteran", id: "veteran", state: "previous" };
-    expect(await nameHolderIsGone(store, reserved, now)).toBe(false);
-    expect(store.getResource).not.toHaveBeenCalled();
   });
 
   it("rejects with a store fault rather than guessing, so a name is never freed on a failed read", async () => {

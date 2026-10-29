@@ -14,9 +14,9 @@
  * agent is a duplicate; a named channel takes its own slug.
  *
  * A channel's agent lives in the channel's own organization. A stored chat
- * link whose agent is in another organization (a row from before sharing
- * across organizations was retired) fails closed at the profile like a
- * dangling reference.
+ * link whose agent is in another organization fails closed at the profile
+ * like a dangling reference: the anonymous page never shows another
+ * organization's agent, whatever the stored reference says.
  *
  * Proven by channel.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/channel.test.ts and __tests__/web-channel.test.ts.
@@ -664,9 +664,9 @@ export function generateLinkToken(): string {
  * included); display fields from the agent. Two misses fail closed with
  * the uniform refusal, naming the channel's id as every other miss does,
  * indistinguishable from absence: a dangling agent_ref, and an agent in
- * another organization (a link written before the same-organization
- * invariant). The stored reference holds the agent's id, so it never names
- * a later agent of the same name.
+ * another organization (the same-organization invariant, held here too).
+ * The stored reference holds the agent's id, so it never names a later
+ * agent of the same name.
  */
 export async function buildChannelAgentProfile(
   store: Store,

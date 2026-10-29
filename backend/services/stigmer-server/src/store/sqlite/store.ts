@@ -2090,11 +2090,10 @@ class SqliteResourceNameStore implements ResourceNameStore {
       }
       // Every other current name, not only `from`: a concurrent rename that
       // moved `from` first leaves its own new name current, and this one
-      // demotes it too. A name equal to the id is never given an expiry.
+      // demotes it too.
       db.prepare(
         `UPDATE resource_names
-         SET state = 'previous', claimed_at = ?,
-             expires_at = CASE WHEN name = id THEN '' ELSE ? END
+         SET state = 'previous', claimed_at = ?, expires_at = ?
          WHERE kind = ? AND org = ? AND id = ?
            AND state = 'current' AND name <> ?`,
       ).run(
@@ -2149,16 +2148,9 @@ class SqliteResourceNameStore implements ResourceNameStore {
   }
 
   async release(kind: string, org: string, id: string): Promise<void> {
-    this.transaction((db) => {
-      db.prepare(
-        `DELETE FROM resource_names
-         WHERE kind = ? AND org = ? AND id = ? AND name <> id`,
-      ).run(kind, org, id);
-      db.prepare(
-        `UPDATE resource_names SET state = 'previous', expires_at = ''
-         WHERE kind = ? AND org = ? AND id = ? AND name = id`,
-      ).run(kind, org, id);
-    });
+    this.open()
+      .prepare(`DELETE FROM resource_names WHERE kind = ? AND org = ? AND id = ?`)
+      .run(kind, org, id);
   }
 
   async releaseName(key: ResourceNameKey, id: string): Promise<void> {

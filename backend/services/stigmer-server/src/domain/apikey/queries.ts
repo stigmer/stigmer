@@ -23,22 +23,20 @@ import { apiKeyListIndex } from "./list-index.js";
 
 /**
  * The names an account's keys are stamped with: its id, and its subject
- * only when the subject is the platform's own (a direct account, or a
- * legacy row from before provisioning modes were recorded), the stamp a
- * key minted before the account existed carries. Any other mode's subject
- * was chosen by someone else (a federation issuer, a mint, the
- * server for a service account), so it names no key: a provider that
- * asserted another person's subject must not reach that person's keys.
+ * only when the subject is the platform's own (a direct account), the
+ * stamp a key minted before the account existed carries. Any other mode's
+ * subject was chosen by someone else (a federation issuer, a mint, the
+ * server for a service account or a system account that records no
+ * mode), so it names no key: a provider that asserted another person's
+ * subject must not reach that person's keys.
  */
 export function ownerNamesOf(
   accountId: string,
   account: IdentityAccount | undefined,
 ): string[] {
-  const mode = account?.spec?.provisioningMode;
-  const ownSubject =
-    mode === IdentityAccountProvisioningMode.direct ||
-    mode === IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified;
-  return ownSubject ? [accountId, account?.spec?.idpId ?? ""] : [accountId];
+  return account?.spec?.provisioningMode === IdentityAccountProvisioningMode.direct
+    ? [accountId, account.spec.idpId]
+    : [accountId];
 }
 
 /** The stamp the key speaks for: its creator's id, "" when it carries none. */

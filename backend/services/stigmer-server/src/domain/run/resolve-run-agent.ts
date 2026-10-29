@@ -28,8 +28,9 @@
  * that refusal, with its own NotFound. A store fault is Internal.
  *
  * The recover chain runs newResolveRecoveredRunAgentStep under the same
- * name: a turn created before turns recorded their agent carries no stamp,
- * and recovering it takes the session's pin as what the recovery runs.
+ * name: a turn that carries no agent (the built-in assistant's) in a
+ * session that pins one by the time it is recovered takes the session's
+ * pin as what the recovery runs.
  * Its AuthorizeRunAgent (newAuthorizeRecoveredRunAgentStep) then asks
  * whether the caller may still run that agent, as every turn's create
  * does, before the previous workflow is terminated or anything is

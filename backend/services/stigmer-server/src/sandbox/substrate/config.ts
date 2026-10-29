@@ -18,13 +18,8 @@
  *
  * A sandbox sleeps once, after 5 idle minutes: Substrate suspends it on
  * its node and copies its workspace to storage in the background
- * (gateway.ts), so one window does what a pause and a later suspend did
- * before Substrate 0.6. The sweep runs every 30 s, which bounds how late
- * past its window a sandbox sleeps.
- *
- * Settings that Substrate 0.6 left with nothing to do are refused at boot
- * with where their job went (RETIRED_SETTINGS): a setting that silently
- * did nothing would leave an operator believing it in force.
+ * (gateway.ts). The sweep runs every 30 s, which bounds how late past its
+ * window a sandbox sleeps.
  */
 
 /** Whether every actor may reach any HTTPS host through the egress gateway. */
@@ -95,32 +90,9 @@ export interface SubstrateDriverSettings {
 
 const PREFIX = "STIGMER_SANDBOX_SUBSTRATE_";
 
-/** Settings Substrate 0.6 left with nothing to do, each with where its job went (module header). */
-const RETIRED_SETTINGS: ReadonlyMap<string, string> = new Map([
-  [
-    "PAUSE_AFTER_SECONDS",
-    `a sandbox now sleeps once, suspended on its node and copied to storage in the background, after ${PREFIX}SUSPEND_AFTER_SECONDS (300 by default)`,
-  ],
-  [
-    "SANDBOX_CONFIG",
-    "since Substrate 0.6 the WorkerPool's sandboxClasses entry chooses a sandbox's configuration; set it there",
-  ],
-  [
-    "NODE_AGENT_PRINCIPAL",
-    "since Substrate 0.6 the node agent reads each actor's egress policy through a system role of its own, so the server grants it nothing",
-  ],
-]);
-
 export function newSubstrateSettingsFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): SubstrateDriverSettings {
-  for (const [name, home] of RETIRED_SETTINGS) {
-    if ((env[PREFIX + name] ?? "").trim() !== "") {
-      throw new Error(
-        `${PREFIX}${name} is retired and nothing reads it: ${home}. Remove it from the environment.`,
-      );
-    }
-  }
   const required = (name: string): string => {
     const value = (env[PREFIX + name] ?? "").trim();
     if (value === "") {

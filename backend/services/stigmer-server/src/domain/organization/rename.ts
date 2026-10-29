@@ -9,8 +9,7 @@
  *
  *   1. the name table moves in one transaction: the new slug becomes the
  *      organization's current name and the old one a previous name, held
- *      for RENAMED_SLUG_HOLD_MS (for good when the old name is the id an
- *      organization made before ids were minted carries);
+ *      for RENAMED_SLUG_HOLD_MS;
  *   2. the new slug and the spec audit are written onto the live row,
  *      inside the store's atomic write, and nothing else, so an update
  *      that landed since the load stays; when that fails, the names move
@@ -127,8 +126,6 @@ export function newRenameOrganizationSlugStep(
         id: metadata.id,
         from,
         to: ctx.input.slug,
-        // The store holds a name equal to the id for good (an organization
-        // from an earlier release, filed under its first slug).
         fromExpiresAt: new Date(now.getTime() + RENAMED_SLUG_HOLD_MS).toISOString(),
         now: now.toISOString(),
       };
