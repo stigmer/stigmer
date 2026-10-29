@@ -11,7 +11,9 @@
  *    The wrappers are Claude's (`timeout`, `time`, `nice`, `nohup`,
  *    `stdbuf`, `command`, `builtin`, `noglob`, `xargs`) and a few more that
  *    run their arguments (`exec`, `env`, `sudo`, `doas`, `setsid`,
- *    `ionice`, `chrt`, `taskset`, `watch`, `busybox`); since their options
+ *    `ionice`, `chrt`, `taskset`, `watch`, `busybox`, `flock`,
+ *    `caffeinate`, `chroot`, `unshare`, `nsenter`, `strace`, `parallel`,
+ *    `runuser -u`, and BSD `script [file [command …]]`); since their options
  *    may take arguments, every word after one is tried as the command's
  *    start, as is the word after `find`'s `-exec`, `-execdir`, `-ok` and
  *    `-okdir`. A command named by path (`/bin/rm`) is also tried by its
@@ -126,6 +128,7 @@ function toolMatches(tool: string, toolName: string): boolean {
 const WRAPPERS = new Set([
   "timeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "xargs",
   "exec", "env", "sudo", "doas", "setsid", "ionice", "chrt", "taskset", "watch", "busybox",
+  "flock", "caffeinate", "chroot", "unshare", "nsenter", "strace", "parallel", "runuser", "script",
 ]);
 
 /** `find`'s actions that run the words after them as a command. */
