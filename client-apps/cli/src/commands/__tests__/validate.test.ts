@@ -42,9 +42,9 @@ beforeAll(() => {
   writeFileSync(join(dir, "bad-schema.yaml"), ["kind: Agent", "metadata: not-an-object", ""].join("\n"));
   writeFileSync(join(dir, "unknown.yaml"), ["kind: Banana", "metadata:", "  name: x", ""].join("\n"));
 
-  // A Cursor plugin with a header token the manifest does not declare and an
-  // ai.stigmer/ folder Stigmer does not read: valid, with those two warnings,
-  // and the folder's document never validated as a loose resource.
+  // A Cursor plugin with a header token the manifest does not declare and a
+  // YAML file of its own: valid, with the one warning, and the plugin's
+  // document never validated as a loose resource.
   plugin = mkdtempSync(join(tmpdir(), "stigmer-validate-plugin-"));
   write(plugin, ".cursor-plugin/plugin.json", JSON.stringify({ name: "github", version: "1.0.0", mcpServers: "./mcp.json", logo: "assets/logo.svg" }));
   write(plugin, "mcp.json", JSON.stringify({ mcpServers: { github: { type: "http", url: "https://api.example.com/mcp/", headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } } } }));
@@ -143,7 +143,7 @@ describe("validate on a plugin directory", () => {
       mcpServers: [{ name: "github", transport: "http", env: ["GITHUB_TOKEN"] }],
       variables: [{ name: "GITHUB_TOKEN", isSecret: true, optional: false, declaredBy: "inferred" }],
     });
-    expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred", "stigmer-folder-ignored"]);
+    expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred"]);
   });
 
   it("prints only the status line with --quiet", async () => {

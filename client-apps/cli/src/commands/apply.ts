@@ -45,8 +45,7 @@ async function runApply(options: ApplyFlags, command: Command): Promise<void> {
 
   // A plugin manifest at the given directory's root selects the plugin
   // track before any YAML scan: a repository holding both is applied as a
-  // plugin, and its `ai.stigmer/*.yaml` documents are the plugin's, not
-  // loose resources.
+  // plugin, and its YAML documents are the plugin's, not loose resources.
   const target =
     options.file !== undefined && options.file !== ""
       ? options.file

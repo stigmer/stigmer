@@ -16,7 +16,8 @@
 //     is an ordinary plugin agent with a warning, and its agents' tool lists
 //     keep Claude Code's names (`mcp__plugin_<plugin>_<server>__<tool>`,
 //     `Agent(<plugin>:<agent>)`);
-//   - an `ai.stigmer/` folder is warned about and never read;
+//   - an `ai.stigmer/` folder is ordinary plugin content: no warning, and
+//     nothing is composed from it;
 //   - a re-push of the same archive is a no-op (one version, the row
 //     untouched); an upgrade replaces the lists and grows the history;
 //   - the version ladder (latest, digest, manifest-version tag) and the
@@ -282,7 +283,7 @@ describe("Plugin conformance — install writes one row", () => {
     expect(plugin.status?.env["NOTES_TOKEN"]).toMatchObject({ isSecret: true, optional: false });
   });
 
-  it("[rpc:PluginCommandController.push] warns about an ai.stigmer/ folder and does not read it", async () => {
+  it("[rpc:PluginCommandController.push] treats an ai.stigmer/ folder as plugin content: no warning, and no agent composed from it", async () => {
     const name = uniqueName("plg-folder");
     const plugin = await install(
       pluginArchive(
@@ -293,7 +294,7 @@ describe("Plugin conformance — install writes one row", () => {
         ),
       ),
     );
-    expect(plugin.status?.warnings.map((w) => `${w.kind}:${w.path}`)).toContain("stigmer-folder-ignored:ai.stigmer/");
+    expect(plugin.status?.warnings).toEqual([]);
     expect(plugin.status?.agents).toEqual([]);
     await expectGrpcCode(
       () => clients.agentQuery.getByReference(ref(ApiResourceKind.agent, name)),

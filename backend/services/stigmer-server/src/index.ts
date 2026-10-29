@@ -371,10 +371,7 @@ export type {
   AccountsBySubject,
   SubjectPrincipal,
 } from "./domain/identityaccount/resolve.js";
-export {
-  identityIdForSubject,
-  principalForSubject,
-} from "./domain/identityaccount/resolve.js";
+export { principalForSubject } from "./domain/identityaccount/resolve.js";
 // The derived id of the account under a subject. An edition's own per-org
 // system accounts take the id of their own subject, so the primary key holds
 // one row per subject there as it does for every account the library mints.

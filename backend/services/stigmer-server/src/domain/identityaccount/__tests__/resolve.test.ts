@@ -17,9 +17,7 @@
  *     subject, never a `""` principal — the one deliberate divergence
  *     from the cloud's inline `?? ""`.
  *
- * `identityIdForSubject` is now the deprecated id view of
- * `principalForSubject`, so the block above also pins that the view moved
- * no behaviour. The principal itself (stigmer/stigmer#1226):
+ * The principal itself (stigmer/stigmer#1226):
  *
  *   - a hit is the account id with the row's email and display name, the
  *     credential's claims filling only a field the row leaves empty, so a
@@ -81,7 +79,6 @@ import type { CallerIdentity } from "../../../extensions/identity.js";
 import { accountIdFor, localIdpIdFor } from "../constants.js";
 import {
   accountForCaller,
-  identityIdForSubject,
   isPreSignInOperatorStamp,
   mayProvisionDirectAccount,
   principalForSubject,
@@ -104,17 +101,17 @@ function seeded(sub: string, id: string = accountIdFor(sub)) {
   return accounts;
 }
 
-describe("identityIdForSubject", () => {
+describe("principalForSubject: the id it stamps", () => {
   it("a subject with an account resolves to the account's id", async () => {
     const accounts = seeded("auth0|known");
-    expect(await identityIdForSubject(accounts, "auth0|known")).toBe(
+    expect((await principalForSubject(accounts, "auth0|known")).identityId).toBe(
       accountIdFor("auth0|known"),
     );
   });
 
   it("a subject without an account is returned unchanged — the caller stays idp-shaped", async () => {
     const accounts = seeded("auth0|someone-else");
-    expect(await identityIdForSubject(accounts, "auth0|unknown")).toBe(
+    expect((await principalForSubject(accounts, "auth0|unknown")).identityId).toBe(
       "auth0|unknown",
     );
   });
@@ -123,7 +120,7 @@ describe("identityIdForSubject", () => {
     const accounts = fakeIdentityAccountStore();
     const lookup = vi.spyOn(accounts, "findDirectByIdpId");
 
-    expect(await identityIdForSubject(accounts, "auth0|late")).toBe(
+    expect((await principalForSubject(accounts, "auth0|late")).identityId).toBe(
       "auth0|late",
     );
     accounts.rows.set(
@@ -136,7 +133,7 @@ describe("identityIdForSubject", () => {
         },
       }),
     );
-    expect(await identityIdForSubject(accounts, "auth0|late")).toBe(
+    expect((await principalForSubject(accounts, "auth0|late")).identityId).toBe(
       accountIdFor("auth0|late"),
     );
     expect(lookup).toHaveBeenCalledTimes(2);
@@ -149,7 +146,7 @@ describe("identityIdForSubject", () => {
     const broken: AccountsBySubject = {
       findDirectByIdpId: () => Promise.reject(fault),
     };
-    const error = await identityIdForSubject(broken, "auth0|anyone").then(
+    const error = await principalForSubject(broken, "auth0|anyone").then(
       () => {
         throw new Error("expected rejection");
       },
@@ -161,7 +158,7 @@ describe("identityIdForSubject", () => {
 
   it("a hit whose row carries no id is an infrastructure fault naming the subject — never a '' principal", async () => {
     const accounts = seeded("auth0|corrupt", "");
-    const error = await identityIdForSubject(accounts, "auth0|corrupt").then(
+    const error = await principalForSubject(accounts, "auth0|corrupt").then(
       () => {
         throw new Error("expected rejection");
       },
@@ -249,7 +246,7 @@ describe("principalForSubject", () => {
     ).toEqual({ identityId: "auth0|unknown", email: "unknown@example.com" });
   });
 
-  it("is the one read identityIdForSubject makes, and a store fault propagates as the same error", async () => {
+  it("is one read per call, and a store fault propagates as the same error", async () => {
     const accounts = seeded("auth0|known");
     const lookup = vi.spyOn(accounts, "findDirectByIdpId");
     await principalForSubject(accounts, "auth0|known");
