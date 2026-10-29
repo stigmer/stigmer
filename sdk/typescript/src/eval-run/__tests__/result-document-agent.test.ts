@@ -31,7 +31,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apir
 
 import { toResultDocument } from "../result-document.js";
 
-const target = create(EvalRunTargetSchema, { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" });
+const target = create(EvalRunTargetSchema, { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" });
 
 function graded(score: number, costUsd: number) {
   return create(EvalRunTrySchema, { index: 1, state: EvalRunTryState.graded, score, costUsd, runId: `run_${score}` });
@@ -134,7 +134,7 @@ describe("toResultDocument", () => {
         },
       },
     ]);
-    expect(refunds?.targets.map((t) => t.label)).toEqual(["native/claude-sonnet-4-6"]);
+    expect(refunds?.targets.map((t) => t.label)).toEqual(["stigmer/claude-sonnet-4-6"]);
     expect(tracker?.cases[0]).toMatchObject({ name: "files-ticket", passed: false, aggregates: { score: 0.5 } });
   });
 

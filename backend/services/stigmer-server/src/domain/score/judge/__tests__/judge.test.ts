@@ -255,7 +255,7 @@ describe("the judge run", () => {
     expect(target?.case).toBe("sessionSpec");
     if (target?.case === "sessionSpec") {
       expect(target.value.subject).toBe(JUDGE_SESSION_SUBJECT);
-      expect(target.value.harness).toBe(Harness.NATIVE);
+      expect(target.value.harness).toBe(Harness.STIGMER);
       expect(target.value.agentRef, "a judge runs no agent of the organization's").toBeUndefined();
     }
   });

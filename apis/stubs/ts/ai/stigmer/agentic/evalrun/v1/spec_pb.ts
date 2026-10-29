@@ -277,7 +277,7 @@ export const EvalRunCaseSourceSchema: GenMessage<EvalRunCaseSource> = /*@__PURE_
  */
 export type EvalRunTarget = Message<"ai.stigmer.agentic.evalrun.v1.EvalRunTarget"> & {
   /**
-   * The harness. Unspecified is native (Stigmer's own harness).
+   * The harness. Unspecified is the Stigmer harness.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 1;
    */

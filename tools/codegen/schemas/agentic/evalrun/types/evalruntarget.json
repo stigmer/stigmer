@@ -12,11 +12,11 @@
         "kind": "string",
         "enumType": "ai.stigmer.agentic.session.v1.Harness",
         "enumValues": [
-          "HARNESS_NATIVE",
+          "HARNESS_STIGMER",
           "HARNESS_CLAUDE"
         ]
       },
-      "description": "The harness. Unspecified is native (Stigmer's own harness).",
+      "description": "The harness. Unspecified is the Stigmer harness.",
       "required": false
     },
     {

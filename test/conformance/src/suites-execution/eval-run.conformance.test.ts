@@ -710,7 +710,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
     mock.enqueue(anthropicText("Short: getUser is fetchUser."));
 
     const { ended, attempt } = await onlyTry(installation, {
-      targets: [{ harness: Harness.NATIVE }, { harness: Harness.CLAUDE }],
+      targets: [{ harness: Harness.STIGMER }, { harness: Harness.CLAUDE }],
     });
     expect(attempt.score).toBe(1);
     const [request] = mock.scriptedRequests();

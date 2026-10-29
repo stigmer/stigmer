@@ -53,7 +53,7 @@ message FileChangeSet {
   // Id of the turn that produced this change set.
   string turn_id = 2;
 
-  // Harness that produced the edits: "deep-agent" | "claude".
+  // Harness that produced the edits: "stigmer" | "claude".
   // Carried for audit and so the reconcile adapter knows which harness
   // lifecycle authored the set.
   string harness_id = 3;

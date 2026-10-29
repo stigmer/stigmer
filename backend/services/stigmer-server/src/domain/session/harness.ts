@@ -58,13 +58,13 @@ export interface HarnessFacts {
  * platform default, and is always offered.
  */
 export const HARNESSES: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, HarnessFacts>> = {
-  [Harness.NATIVE]: { label: "Stigmer", offered: true },
+  [Harness.STIGMER]: { label: "Stigmer", offered: true },
   [Harness.CLAUDE]: { label: "Claude Agent", offered: true },
 };
 
 /** A harness's facts, unspecified read as native; undefined for a number the proto does not name. */
 export function harnessFacts(harness: Harness): HarnessFacts | undefined {
-  const named = harness === Harness.UNSPECIFIED ? Harness.NATIVE : harness;
+  const named = harness === Harness.UNSPECIFIED ? Harness.STIGMER : harness;
   return (HARNESSES as Partial<Record<Harness, HarnessFacts>>)[named];
 }
 

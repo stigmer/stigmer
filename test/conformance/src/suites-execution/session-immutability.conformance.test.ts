@@ -99,14 +99,14 @@ describe("[rpc:SessionCommandController.apply] Session immutability — before t
     const agentRef = await provisionAgentRef(org);
     const name = uniqueName("session-imm");
 
-    const created = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.NATIVE }));
+    const created = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
     fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
 
     const toClaude = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.CLAUDE }));
     expect(toClaude.spec?.harness, "harness change is allowed before the first run").toBe(Harness.CLAUDE);
 
-    const backToNative = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.NATIVE }));
-    expect(backToNative.spec?.harness).toBe(Harness.NATIVE);
+    const backToNative = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
+    expect(backToNative.spec?.harness).toBe(Harness.STIGMER);
   });
 
   it("execution_target is freely mutable while the session has not run", async () => {
@@ -130,8 +130,8 @@ describe("[rpc:SessionCommandController.apply] Session immutability — before t
 
 /** Each engine a turn runs on, with the harness its session names and the one it would change to. */
 const ENGINES: readonly { readonly arm: EngineArm; readonly harness: Harness; readonly other: Harness }[] = [
-  { arm: NATIVE_ARM, harness: Harness.NATIVE, other: Harness.CLAUDE },
-  { arm: CLAUDE_ARM, harness: Harness.CLAUDE, other: Harness.NATIVE },
+  { arm: NATIVE_ARM, harness: Harness.STIGMER, other: Harness.CLAUDE },
+  { arm: CLAUDE_ARM, harness: Harness.CLAUDE, other: Harness.STIGMER },
 ];
 
 for (const { arm, harness, other } of ENGINES) {
@@ -196,8 +196,8 @@ describe("[rpc:SessionCommandController.apply] Session immutability — an unset
     await runTurn(org, sessionId, NATIVE_ARM);
 
     // Explicit NATIVE is the same logical value (UNSPECIFIED == NATIVE): accepted.
-    const toNative = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.NATIVE }));
-    expect(toNative.spec?.harness).toBe(Harness.NATIVE);
+    const toNative = await clients.sessionCommand.apply(makeSession({ org, name, agentRef, harness: Harness.STIGMER }));
+    expect(toNative.spec?.harness).toBe(Harness.STIGMER);
 
     // CLAUDE is a real change from the NATIVE default: refused.
     const refused = await expectGrpcCode(

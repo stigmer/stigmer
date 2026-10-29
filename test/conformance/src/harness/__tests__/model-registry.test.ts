@@ -95,7 +95,7 @@ describe("requireNativeRow", () => {
     const document = {
       models: [
         row("claude-sonnet-5", { harness: "claude" }),
-        row("claude-sonnet-5", { harness: "native", maxOutputTokens: 128000 }),
+        row("claude-sonnet-5", { harness: "stigmer", maxOutputTokens: 128000 }),
         row("claude-only-5", { harness: "claude" }),
       ],
     };
@@ -107,10 +107,10 @@ describe("requireNativeRow", () => {
 describe("economyRowFor", () => {
   const document = {
     models: [
-      row("claude-sonnet-4.6", { provider: "anthropic", costTier: "standard", harness: "native" }),
-      row("gpt-4o-mini", { provider: "openai", costTier: "economy", harness: "native", apiModelId: "gpt-4o-mini" }),
+      row("claude-sonnet-4.6", { provider: "anthropic", costTier: "standard", harness: "stigmer" }),
+      row("gpt-4o-mini", { provider: "openai", costTier: "economy", harness: "stigmer", apiModelId: "gpt-4o-mini" }),
       row("claude-haiku-engine", { provider: "anthropic", costTier: "economy", harness: "claude" }),
-      row("claude-haiku-4.5", { provider: "anthropic", costTier: "economy", harness: "native", apiModelId: "claude-haiku-4-5-20251001" }),
+      row("claude-haiku-4.5", { provider: "anthropic", costTier: "economy", harness: "stigmer", apiModelId: "claude-haiku-4-5-20251001" }),
     ],
   };
 

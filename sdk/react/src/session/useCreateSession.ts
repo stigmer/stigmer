@@ -74,7 +74,7 @@ export interface SharedSessionFields {
    * Run harness for this session.
    *
    * Determines which harness processes agent activities.
-   * Immutable after the first run runs. Defaults to `"native"`.
+   * Immutable after the first run runs. Defaults to `"stigmer"`.
    */
   readonly harness?: HarnessOption;
   /**

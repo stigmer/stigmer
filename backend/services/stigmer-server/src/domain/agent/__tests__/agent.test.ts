@@ -387,8 +387,8 @@ describe("agent engine — the offered-engine rule", () => {
     const created = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } });
     expect(created.spec?.harness).toBe(Harness.CLAUDE);
 
-    const native = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.NATIVE } });
-    expect(native.spec?.harness).toBe(Harness.NATIVE);
+    const native = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.STIGMER } });
+    expect(native.spec?.harness).toBe(Harness.STIGMER);
     const moved = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } });
     const stored = await query.get({ value: moved.metadata!.id });
     expect(stored.spec?.harness).toBe(Harness.CLAUDE);

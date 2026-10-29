@@ -25,7 +25,7 @@ function serveRegistry(document: string): void {
   );
 }
 
-async function bothDefaults(document: string, engine: RegistryHarness = "native"): Promise<{ runner: string; server: string | undefined }> {
+async function bothDefaults(document: string, engine: RegistryHarness = "stigmer"): Promise<{ runner: string; server: string | undefined }> {
   _resetRegistryCache();
   serveRegistry(document);
   const runner = await getDefaultModel(engine);
@@ -48,7 +48,7 @@ describe("the default model, runner and server", () => {
     const { runner, server } = await bothDefaults(document);
     expect(server).toBe(runner);
     const catalog = newModelCatalogProviderFromDocument(document);
-    expect(catalog.providerOf("native", runner)).toBe(inferProvider(runner));
+    expect(catalog.providerOf("stigmer", runner)).toBe(inferProvider(runner));
   });
 
   it("agree on the Claude engine's own default in the server's committed registry", async () => {
@@ -61,9 +61,9 @@ describe("the default model, runner and server", () => {
   it("agree when the first featured standard entry comes after a plain one", async () => {
     const document = JSON.stringify({
       models: [
-        { id: "cheap", provider: "anthropic", harness: "native", costTier: "economy", featured: true },
-        { id: "gpt-plain", provider: "openai", harness: "native", costTier: "standard" },
-        { id: "claude-star", apiModelId: "claude-star-1", provider: "anthropic", harness: "native", costTier: "standard", featured: true },
+        { id: "cheap", provider: "anthropic", harness: "stigmer", costTier: "economy", featured: true },
+        { id: "gpt-plain", provider: "openai", harness: "stigmer", costTier: "standard" },
+        { id: "claude-star", apiModelId: "claude-star-1", provider: "anthropic", harness: "stigmer", costTier: "standard", featured: true },
       ],
     });
     expect(await bothDefaults(document)).toEqual({ runner: "claude-star-1", server: "claude-star-1" });
@@ -72,8 +72,8 @@ describe("the default model, runner and server", () => {
   it("agree when no entry is featured, reading a missing cost tier as standard", async () => {
     const document = JSON.stringify({
       models: [
-        { id: "cheap", provider: "anthropic", harness: "native", costTier: "economy" },
-        { id: "gpt-untiered", provider: "openai", harness: "native" },
+        { id: "cheap", provider: "anthropic", harness: "stigmer", costTier: "economy" },
+        { id: "gpt-untiered", provider: "openai", harness: "stigmer" },
         { id: "claude-only", provider: "anthropic", harness: "claude", costTier: "standard", featured: true },
       ],
     });

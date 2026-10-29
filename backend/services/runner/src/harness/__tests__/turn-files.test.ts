@@ -156,7 +156,7 @@ function execution(opts: { readonly messageFiles?: readonly [string, string][]; 
   });
 }
 
-async function run(client: StigmerClient, session: Session, exec: Run, harness: Exclude<Harness, Harness.UNSPECIFIED> = Harness.NATIVE) {
+async function run(client: StigmerClient, session: Session, exec: Run, harness: Exclude<Harness, Harness.UNSPECIFIED> = Harness.STIGMER) {
   return mountTurnFiles(deps(client), {
     execution: exec,
     session,
@@ -250,7 +250,7 @@ describe("mountTurnFiles", () => {
     await run(client, sessionHolding(["file_img"]), execution({ requested: "requested-model", messageFiles: [["image", "file_img"]] }));
 
     expect(getDefaultModel).toHaveBeenCalledTimes(1);
-    expect(getDefaultModel).toHaveBeenCalledWith("native");
+    expect(getDefaultModel).toHaveBeenCalledWith("stigmer");
     expect(getModelVisionCapability).toHaveBeenCalledWith("registry-default-model");
     expect(getModelVisionCapability).not.toHaveBeenCalledWith("requested-model");
   });
@@ -260,8 +260,8 @@ describe("mountTurnFiles", () => {
 
     await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.CLAUDE);
     expect(getDefaultModel).toHaveBeenLastCalledWith("claude");
-    await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.NATIVE);
-    expect(getDefaultModel).toHaveBeenLastCalledWith("native");
+    await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.STIGMER);
+    expect(getDefaultModel).toHaveBeenLastCalledWith("stigmer");
   });
 
   it("asks nothing of the registry when the message carries no image", async () => {
@@ -289,7 +289,7 @@ describe("mountMessageFiles", () => {
     const shown = await mountMessageFiles(
       client,
       { executionId: "aex_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
-      { harness: Harness.NATIVE, visionProfile: DEEP_AGENT_VISION_PROFILE },
+      { harness: Harness.STIGMER, visionProfile: DEEP_AGENT_VISION_PROFILE },
       blocks,
     );
 

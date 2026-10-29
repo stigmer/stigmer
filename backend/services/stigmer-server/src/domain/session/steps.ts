@@ -114,7 +114,7 @@ export function newValidateHarnessImmutabilityStep(
       let existingHarness = existingSpec.harness;
       const inputHarness = inputSpec.harness;
       if (existingHarness === Harness.UNSPECIFIED) {
-        existingHarness = Harness.NATIVE;
+        existingHarness = Harness.STIGMER;
       }
       if (inputHarness === existingHarness) {
         return;

@@ -13,7 +13,7 @@ import { EvalRunAblation } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/spe
 import { EvalRunPhase, EvalRunTryState, type EvalRunCase } from "@stigmer/apis/ai/stigmer/agentic/evalrun/v1/status_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
-export const SONNET = { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" };
+export const SONNET = { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" };
 
 export const THERMOS_DIGEST = "d1".padEnd(64, "0");
 
@@ -99,7 +99,7 @@ export function casesOf(evalRun: EvalRun): EvalRunCase[] {
 }
 
 /** The agent's own engine and model, as the server labels a case run on it. */
-export const AGENT_MODEL = { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" };
+export const AGENT_MODEL = { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" };
 
 export const VERSION_HASH = "0123456789abcdef".repeat(4);
 export const REFUND_DIGEST = "c0ffee".padEnd(64, "1");

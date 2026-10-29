@@ -20,9 +20,9 @@
 // Stigmer has the same idea (`--case`, `--tag`, `--runs`, `--ablation`,
 // `--threshold`, `--max-cost-usd`, `-j`, `--allow-tools`, `--judge-model`,
 // `--json`), so a command line moves between the two. Two differ.
-// `--model` names an engine and a model, `native/claude-sonnet-4-6` or
+// `--model` names an engine and a model, `stigmer/claude-sonnet-4-6` or
 // `claude/claude-sonnet-5`, because Stigmer runs a model on one of its engines; a
-// bare model id is the native engine's. With no `--model` an eval run
+// bare model id is the Stigmer harness's. With no `--model` an eval run
 // about an agent runs each case on the agent as it runs: its own engine,
 // model and settings. `--max-cost-usd` is required by the API, so the CLI
 // fills 5 when it is omitted and says so. `--mocks off` (and its older
@@ -318,18 +318,18 @@ function sharedOptionsOf(flags: EvalRunFlags): Omit<EvalRunOptions, "subject" | 
   };
 }
 
-/** Reads `<harness>/<model>`; a bare model is the native engine's. */
+/** Reads `<harness>/<model>`; a bare model is the Stigmer harness's. */
 export function parseTarget(raw: string): EvalRunTargetInput {
   const trimmed = raw.trim();
   const slash = trimmed.indexOf("/");
-  const engine = slash < 0 ? "native" : trimmed.slice(0, slash).toLowerCase();
+  const engine = slash < 0 ? "stigmer" : trimmed.slice(0, slash).toLowerCase();
   const model = slash < 0 ? trimmed : trimmed.slice(slash + 1);
   if (!isEngineWord(engine)) {
     throw invalid(`--model '${raw}' names no harness Stigmer runs: write ${ENGINE_WORDS.map((word) => `${word}/<model> for ${engineChoice(word)}`).join(", ")}`);
   }
   const { harness } = ENGINES[engine];
   if (model === "" || model.length > 128 || /\s/.test(model)) {
-    throw invalid(`--model '${raw}' names no model: write ${engine}/<model id>, as in native/claude-sonnet-4-6`);
+    throw invalid(`--model '${raw}' names no model: write ${engine}/<model id>, as in stigmer/claude-sonnet-4-6`);
   }
   return { harness, modelName: model === "default" ? "" : model };
 }

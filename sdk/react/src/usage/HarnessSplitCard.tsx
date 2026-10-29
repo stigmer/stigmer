@@ -26,7 +26,7 @@ export interface HarnessSplitCardProps {
 }
 
 const HARNESS_COLORS: Readonly<Record<HarnessOption, string>> = {
-  native: "stg:bg-chart-1",
+  stigmer: "stg:bg-chart-1",
   claude: "stg:bg-chart-2",
 };
 

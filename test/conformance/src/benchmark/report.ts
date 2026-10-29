@@ -67,10 +67,10 @@
 //   plugin author reads theirs. The document is kept as JSON, not typed
 //   here, because this module stays a leaf. Grades from v5 and earlier came
 //   from another judge on another scale and are not compared.
-// - The native arm runs on any model (`--native-model`), one per run, so a
+// - The native arm runs on any model (`--stigmer-model` since v12), one per run, so a
 //   report says which arm it measured (schema v8): the native parity model
-//   (`models.parity["deep-agent"]` since v11) is that model, `native_endpoint` the host its calls went to (never a key or
-//   a path), `native_api` the API they were made on, and `native_cost_basis`
+//   (`models.parity.stigmer` since v11) is that model, `stigmer_endpoint` the host its calls went to (never a key or
+//   a path), `stigmer_api` the API they were made on, and `stigmer_cost_basis`
 //   whether the runner priced them from a catalog row or at its default rate
 //   (runner shared/model-pricing.ts `getModelPricing`: a model with no priced
 //   registry row is costed at one fixed invented rate). A default-rate arm's
@@ -103,21 +103,25 @@
 //   branched on it, and the axes only its samples carried leave with it. A
 //   v11 report written while an engine since retired still reads: the
 //   reader checks the engines it knows and ignores the rest.
+// - Every harness is keyed by its one word, the first word of its label in
+//   lower case (schema v12): `stigmer` and `claude` in `sides`, `models.parity`, an
+//   arm's label (`stigmer/<model>`) and the cell ids, and the Stigmer arm's
+//   endpoint, API and cost basis are `models.stigmer_endpoint`,
+//   `stigmer_api` and `stigmer_cost_basis`. v11 keyed the same arm
+//   `deep-agent` and `native`.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 11;
-
-/** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
-export type BenchmarkHarness = "deep-agent" | "claude";
-
-/** Each harness's word in an arm's label (`<word>/<model>`), a quality target and the CLI's flags. */
-export const ARM_WORD: Record<BenchmarkHarness, string> = { "deep-agent": "native", claude: "claude" };
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 12;
 
 /**
- * Every harness the benchmark measures, in the order a report lists them:
- * native first, the reference. Read off {@link ARM_WORD}'s keys, so the
- * compiler holds the list whole.
+ * Every harness the benchmark measures, by its one word, in the order a
+ * report lists them: Stigmer first, the reference. The word is the same in
+ * the runner's `turn_phases` line, an arm's label (`<word>/<model>`), a
+ * quality target and the script's flags.
  */
-export const HARNESSES: readonly BenchmarkHarness[] = Object.keys(ARM_WORD) as BenchmarkHarness[];
+export const HARNESSES = ["stigmer", "claude"] as const;
+
+/** A harness the benchmark measures. */
+export type BenchmarkHarness = (typeof HARNESSES)[number];
 
 export type ComparisonMode = "parity" | "default" | "turn-2" | "working-agent";
 
@@ -138,7 +142,7 @@ export type RefusalReason =
   | "missing ANTHROPIC_API_KEY"
   | "missing OPENAI_API_KEY"
   | "model provider unknown"
-  | "the native model is pinned by --native-model"
+  | "the native model is pinned by --stigmer-model"
   | "thinking needs a catalog Claude model"
   | "excluded by --only"
   | "excluded by --cells"
@@ -504,13 +508,13 @@ export interface BenchmarkReport {
     shell_background: ShellBackground;
   };
   models: {
-    /** Each arm's model, by harness; native's is `--native-model`, else its parity pin. */
+    /** Each arm's model, by harness; native's is `--stigmer-model`, else its parity pin. */
     parity: Record<BenchmarkHarness, string>;
     judge_requested: string;
     /** The host the native model's calls went to, or the Anthropic backend's name; never a key or a path. */
-    native_endpoint: string;
-    native_api: NativeApi;
-    native_cost_basis: NativeCostBasis;
+    stigmer_endpoint: string;
+    stigmer_api: NativeApi;
+    stigmer_cost_basis: NativeCostBasis;
   };
   comparisons: BenchmarkComparison[];
   /** The quality arm's eval; `null` when no quality target was planned. */
@@ -653,8 +657,8 @@ export function costRatio(side: BenchmarkStat | undefined, native: BenchmarkStat
 export function costRatios(sides: Partial<Record<BenchmarkHarness, BenchmarkStat>>): Partial<Record<BenchmarkHarness, number>> {
   const ratios: Partial<Record<BenchmarkHarness, number>> = {};
   for (const harness of HARNESSES) {
-    if (harness === "deep-agent") continue;
-    const ratio = costRatio(sides[harness], sides["deep-agent"]);
+    if (harness === "stigmer") continue;
+    const ratio = costRatio(sides[harness], sides.stigmer);
     if (ratio !== undefined) ratios[harness] = ratio;
   }
   return ratios;
@@ -716,9 +720,9 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   const models = asRecord(root["models"], "report.models");
   const parity = asRecord(models["parity"], "report.models.parity");
   for (const harness of HARNESSES) requireString(parity, harness, "report.models.parity");
-  requireString(models, "native_endpoint", "report.models");
-  requireOneOf(models, "native_api", NATIVE_APIS, "report.models");
-  requireOneOf(models, "native_cost_basis", NATIVE_COST_BASES, "report.models");
+  requireString(models, "stigmer_endpoint", "report.models");
+  requireOneOf(models, "stigmer_api", NATIVE_APIS, "report.models");
+  requireOneOf(models, "stigmer_cost_basis", NATIVE_COST_BASES, "report.models");
   const comparisons = root["comparisons"];
   if (!Array.isArray(comparisons)) throw new Error("not a benchmark report: comparisons is not an array");
   comparisons.forEach((entry, index) => {

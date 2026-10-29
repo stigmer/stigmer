@@ -787,9 +787,9 @@ describe("RunStarter.startRun — against a real store", () => {
       seen = run;
       return create(RunSchema, { metadata: { id: "run_01native", org: "acme" } });
     });
-    await runStarter.startRun(routineWith({ harness: Harness.NATIVE }), manualFire(ROUTINE_ID, NOMINAL, ""));
+    await runStarter.startRun(routineWith({ harness: Harness.STIGMER }), manualFire(ROUTINE_ID, NOMINAL, ""));
     const sessionSpec = seen?.spec?.target.case === "sessionSpec" ? seen.spec.target.value : undefined;
-    expect(sessionSpec?.harness).toBe(Harness.NATIVE);
+    expect(sessionSpec?.harness).toBe(Harness.STIGMER);
   });
 
   it("copies the routine's Environment into the fire's session spec, and names none when the routine names none", async () => {

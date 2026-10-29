@@ -41,11 +41,11 @@
         "kind": "string",
         "enumType": "ai.stigmer.agentic.session.v1.Harness",
         "enumValues": [
-          "HARNESS_NATIVE",
+          "HARNESS_STIGMER",
           "HARNESS_CLAUDE"
         ]
       },
-      "description": "Harness for the run's session. Unspecified: native (Stigmer) when\n run_config names a model (the harness the model was checked against at\n save), else the agent's own harness (AgentSpec.harness), else the\n embedding surface's platform default.",
+      "description": "Harness for the run's session. Unspecified: Stigmer when\n run_config names a model (the harness the model was checked against at\n save), else the agent's own harness (AgentSpec.harness), else the\n embedding surface's platform default.",
       "required": false
     },
     {

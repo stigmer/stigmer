@@ -30,7 +30,7 @@ describe("measureSession", () => {
       {
         org: "org_1",
         agentRef: { org: "org_1", slug: "agent" },
-        harness: "deep-agent",
+        harness: "stigmer",
         modelRequested: "claude-sonnet-4.6",
         sessionSpec: { subject: "refused" },
         prompts: ["one", "two", "three"],

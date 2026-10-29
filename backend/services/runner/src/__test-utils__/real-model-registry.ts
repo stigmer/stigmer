@@ -73,5 +73,5 @@ export function providerModelId(row: RealRegistryRow): string {
 
 /** The native harness's rows: every model a native turn may be sent to Anthropic as. */
 export function nativeRows(document: RealRegistryDocument): readonly RealRegistryRow[] {
-  return document.models.filter((m) => m.harness === "native");
+  return document.models.filter((m) => m.harness === "stigmer");
 }

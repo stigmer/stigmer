@@ -21,7 +21,7 @@ function model(overrides: Partial<ModelInfo> & { modelId: string }): ModelInfo {
     shortDescription: "",
     speedTier: "fast",
     costTier: "standard",
-    harness: "native",
+    harness: "stigmer",
     featured: false,
     serviceTiers: [],
     ...overrides,
@@ -34,7 +34,7 @@ describe("resolveDefaultModelId — native harness", () => {
       model({ modelId: "claude-opus-4.6", featured: true, costTier: "premium" }),
       model({ modelId: "claude-sonnet-4.6", featured: true, costTier: "standard" }),
     ];
-    expect(resolveDefaultModelId("native", models)).toEqual({
+    expect(resolveDefaultModelId("stigmer", models)).toEqual({
       modelId: "claude-sonnet-4.6",
       source: "harness_default",
     });
@@ -45,7 +45,7 @@ describe("resolveDefaultModelId — native harness", () => {
       model({ modelId: "claude-opus-4.6", featured: true, costTier: "premium" }),
       model({ modelId: "gpt-4o", featured: false, costTier: "standard" }),
     ];
-    expect(resolveDefaultModelId("native", models).modelId).toBe("gpt-4o");
+    expect(resolveDefaultModelId("stigmer", models).modelId).toBe("gpt-4o");
   });
 
   it("falls back to the first featured model when the registry lists no standard-cost model at all", () => {
@@ -53,11 +53,11 @@ describe("resolveDefaultModelId — native harness", () => {
       model({ modelId: "claude-opus-4.6", featured: true, costTier: "premium" }),
       model({ modelId: "ollama-local", featured: false, costTier: "economy" }),
     ];
-    expect(resolveDefaultModelId("native", models).modelId).toBe("claude-opus-4.6");
+    expect(resolveDefaultModelId("stigmer", models).modelId).toBe("claude-opus-4.6");
   });
 
   it("falls back to the hardcoded native id on an empty registry", () => {
-    expect(resolveDefaultModelId("native", [])).toEqual({
+    expect(resolveDefaultModelId("stigmer", [])).toEqual({
       modelId: DEFAULT_MODEL_ID,
       source: "platform_fallback",
     });
@@ -68,7 +68,7 @@ describe("resolveDefaultModelId — native harness", () => {
       model({ modelId: "claude-haiku-4.5", harness: "claude", featured: true, costTier: "standard" }),
       model({ modelId: "claude-sonnet-4.6", featured: true, costTier: "standard" }),
     ];
-    expect(resolveDefaultModelId("native", models).modelId).toBe("claude-sonnet-4.6");
+    expect(resolveDefaultModelId("stigmer", models).modelId).toBe("claude-sonnet-4.6");
   });
 });
 

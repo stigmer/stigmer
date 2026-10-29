@@ -151,7 +151,7 @@ async function gradeOnce(
     makeAgentExecution({
       org,
       name: uniqueName("judge-example"),
-      sessionSpec: { subject: JUDGE_SESSION_SUBJECT, harness: Harness.NATIVE },
+      sessionSpec: { subject: JUDGE_SESSION_SUBJECT, harness: Harness.STIGMER },
       message: judgeMessage(renderSubject(example.parts)),
       runConfig: { modelName: "", maxCostUsd: PER_GRADE_CAP_USD },
       structuredOutputSchema: VERDICT_SCHEMA,

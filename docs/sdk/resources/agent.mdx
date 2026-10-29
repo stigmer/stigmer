@@ -37,7 +37,7 @@ spec:
       slug: variance-report
   tools: [Read, Grep, Glob, mcp__plugin_ledger_ledger]
   disallowed_tools: [mcp__plugin_ledger_ledger__post_adjustment]
-  harness: HARNESS_NATIVE
+  harness: HARNESS_STIGMER
   run_config:
     model_name: claude-sonnet-4.5
     max_cost_usd: 2
@@ -806,7 +806,7 @@ Input for creating or updating an Agent.
     disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
     hooks: { type: "HookSourceInput[]", description: "Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists.", typeDescriptionLink: "#hooksourceinput" },
     runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message, or the routine or channel it came through, sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
-    harness: { type: "Harness", description: "The harness this agent's run defaults were chosen for, and the harness a new conversation on this agent starts on when the person, routine or channel starting it names neither a harness nor a model (a turn that names a model but no harness starts on native, the harness its name was checked against).", typeDescriptionLink: "#harness" },
+    harness: { type: "Harness", description: "The harness this agent's run defaults were chosen for, and the harness a new conversation on this agent starts on when the person, routine or channel starting it names neither a harness nor a model (a turn that names a model but no harness starts on Stigmer, the harness its name was checked against).", typeDescriptionLink: "#harness" },
     plugins: { type: "ResourceRef[]", description: "Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
     subagents: { type: "ResourceRef[]", description: "Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values.", typeDescriptionLink: "#resourceref" },
     mcpServers: { type: "AgentMcpServerInput[]", description: "MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists.", typeDescriptionLink: "#agentmcpserverinput" },
@@ -1066,7 +1066,7 @@ Harness identifies the harness, the agent loop that processes a session's turns.
 
 | Value | Description |
 |-------|-------------|
-| `HARNESS_NATIVE` | Stigmer: Stigmer's own harness. |
+| `HARNESS_STIGMER` | Stigmer: Stigmer's own harness. |
 | `HARNESS_CLAUDE` | Claude Agent: Anthropic's Claude Agent SDK. |
 
 ### HookFormat

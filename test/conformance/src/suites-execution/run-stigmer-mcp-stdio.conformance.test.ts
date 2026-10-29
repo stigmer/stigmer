@@ -90,7 +90,7 @@ async function provisionStdioAgent(): Promise<StdioAgent> {
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   const session = await clients.sessionCommand.create(
-    makeSession({ org, name: uniqueName("ses-reader"), agentRef: agentRefOf(agent), harness: Harness.NATIVE }),
+    makeSession({ org, name: uniqueName("ses-reader"), agentRef: agentRefOf(agent), harness: Harness.STIGMER }),
   );
   fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 

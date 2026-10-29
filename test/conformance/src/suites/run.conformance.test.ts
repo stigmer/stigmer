@@ -123,7 +123,7 @@ describe("Run conformance — service-tier fail-closed validation (#357)", () =>
     // agent's model. The refusal says which layer chose each.
     const message = await refusedWith(
       org,
-      await tierAgent(org, { harness: Harness.NATIVE, runConfig: { modelName: "claude-sonnet-5" } }),
+      await tierAgent(org, { harness: Harness.STIGMER, runConfig: { modelName: "claude-sonnet-5" } }),
       "aex-tier-agent-model",
       { serviceTier: ServiceTier.FAST },
       "create with service_tier fast on the agent's default model, which prices none",
@@ -192,7 +192,7 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
     await expectRefused(
       "aex-thinking-no-native-entry",
       { modelName: "openai/gpt-5.5", thinkingMode: ThinkingMode.ENABLED },
-      Harness.NATIVE,
+      Harness.STIGMER,
       "create with thinking_mode enabled on a native session for a model with no native entry",
     );
   });
@@ -204,7 +204,7 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
     await expectRefused(
       "aex-thinking-required",
       { modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED },
-      Harness.NATIVE,
+      Harness.STIGMER,
       "create with thinking_mode disabled on a model that requires thinking",
     );
   });

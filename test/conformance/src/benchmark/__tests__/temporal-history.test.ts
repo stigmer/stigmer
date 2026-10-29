@@ -25,13 +25,13 @@ const fixture = readWorkflowHistory(
 
 describe("historyAxes", () => {
   it("measures the workflow's start to the execute activity's start, skipping the EnsureThread hop", () => {
-    const axes = historyAxes(fixture, executeActivityNameFor("deep-agent"));
+    const axes = historyAxes(fixture, executeActivityNameFor("stigmer"));
     // 18:00:00.000 -> 18:00:00.900: the execute activity, not EnsureThread's 0.120 start.
     expect(axes.before_activity_ms).toBe(900);
   });
 
   it("reads EnsureThread scheduled-to-completed as its own segment, at millisecond grain", () => {
-    const axes = historyAxes(fixture, executeActivityNameFor("deep-agent"));
+    const axes = historyAxes(fixture, executeActivityNameFor("stigmer"));
     // 18:00:00.0505 -> 18:00:00.350; the CLI prints microseconds, the reader keeps milliseconds.
     expect(axes.ensure_thread_ms).toBe(300);
   });
@@ -49,7 +49,7 @@ describe("the wire names", () => {
   });
 
   it("maps each harness label to its runner activity", () => {
-    expect(executeActivityNameFor("deep-agent")).toBe("ExecuteDeepAgent");
+    expect(executeActivityNameFor("stigmer")).toBe("ExecuteDeepAgent");
     expect(executeActivityNameFor("claude")).toBe("ExecuteClaude");
   });
 });

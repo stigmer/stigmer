@@ -163,7 +163,7 @@ func (x *GetModelReadinessInput) GetModel() *ModelOnEngine {
 // A model on the engine that runs it.
 type ModelOnEngine struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The engine; unspecified is the platform default, native.
+	// The engine; unspecified is the platform default, Stigmer.
 	Harness v1.Harness `protobuf:"varint,1,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	// The model reference as a run names it.
 	Model         string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
@@ -287,7 +287,7 @@ type ModelReadiness struct {
 	// The model's canonical id, or the reference the input named.
 	Model string `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
 	// The provider a run of this model on this engine needs. Empty when the
-	// server judges none (a native model whose provider no key serves, which
+	// server judges none (a Stigmer-harness model whose provider no key serves, which
 	// the runner reaches on its own); availability is then
 	// availability_unknown.
 	Provider string `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`

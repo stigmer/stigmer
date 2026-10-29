@@ -89,10 +89,10 @@ describe("the agent host process", () => {
     resetRegistryRouteForTests();
     resetModelLanesForTests();
     const events: string[] = [];
-    const { runner, runnerEnd, done } = hostProcess([{ harness: "deep-agent", adapter: probe("native", events) }]);
+    const { runner, runnerEnd, done } = hostProcess([{ harness: "stigmer", adapter: probe("stigmer", events) }]);
 
     expect(await runner.receivedHello(1_000)).toBe(AGENT_HOST_PROTOCOL_VERSION);
-    await runner.call("boot", { harness: "deep-agent", config: CONFIG });
+    await runner.call("boot", { harness: "stigmer", config: CONFIG });
 
     expect(resolveRegistryBaseUrl()).toBe(CONFIG.proxyEndpoint);
     expect(modelLanes()).toEqual({ endpoint: CONFIG.proxyEndpoint, token: CONFIG.token });
@@ -104,9 +104,9 @@ describe("the agent host process", () => {
 
   it("installs no lanes on a runner behind the platform's proxy", async () => {
     resetModelLanesForTests();
-    const { runner, runnerEnd, done } = hostProcess([{ harness: "deep-agent", adapter: probe("native", []) }]);
+    const { runner, runnerEnd, done } = hostProcess([{ harness: "stigmer", adapter: probe("stigmer", []) }]);
     await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "deep-agent", config: { ...CONFIG, platformProxied: true } });
+    await runner.call("boot", { harness: "stigmer", config: { ...CONFIG, platformProxied: true } });
 
     expect(modelLanes()).toBeUndefined();
     runnerEnd.close();
@@ -117,18 +117,18 @@ describe("the agent host process", () => {
   it("signs a running turn's receipts with the key the runner handed", async () => {
     const handed = Buffer.from("k".repeat(32));
     let seen: Buffer | undefined;
-    const adapter = probe("native", [], {
+    const adapter = probe("stigmer", [], {
       runTurn: async (input) => {
         seen = executionFingerprintKey(input.executionId);
         return { kind: "completed" };
       },
     });
-    const { runner, runnerEnd, done } = hostProcess([{ harness: "deep-agent", adapter }]);
+    const { runner, runnerEnd, done } = hostProcess([{ harness: "stigmer", adapter }]);
     await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "deep-agent", config: CONFIG });
+    await runner.call("boot", { harness: "stigmer", config: CONFIG });
     await runner.call("runTurn", {
       turnId: "t1",
-      harness: "deep-agent",
+      harness: "stigmer",
       input: encodeTurnInput(turnInputFixture()),
       status: encodeMessage(RunStatusSchema, create(RunStatusSchema)),
       rows: encodeMessage(TurnRowsSchema, create(TurnRowsSchema)),
@@ -157,17 +157,17 @@ describe("the agent host process", () => {
       },
     });
     const { runner, runnerEnd, log, exits, done, flushed } = hostProcess([
-      { harness: "deep-agent", adapter: probe("native", events) },
+      { harness: "stigmer", adapter: probe("stigmer", events) },
       { harness: "claude", adapter: failing },
     ]);
     await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "deep-agent", config: CONFIG });
+    await runner.call("boot", { harness: "stigmer", config: CONFIG });
     await runner.call("boot", { harness: "claude", config: CONFIG });
 
     runnerEnd.close(new Error("the runner is gone"));
     await done;
 
-    expect(events).toEqual(["boot native", "boot claude-probe", "shutdown claude-probe", "shutdown native"]);
+    expect(events).toEqual(["boot stigmer", "boot claude-probe", "shutdown claude-probe", "shutdown stigmer"]);
     expect(log).toEqual([
       "[agent-host] channel closed (the runner is gone); shutting down",
       "[agent-host] claude-probe shutdown failed: would not let go",
@@ -179,10 +179,10 @@ describe("the agent host process", () => {
   });
 
   it("exits within the grace when an adapter's shutdown hangs", async () => {
-    const hanging = probe("native", [], { shutdown: () => new Promise<void>(() => {}) });
-    const { runner, runnerEnd, exits, done } = hostProcess([{ harness: "deep-agent", adapter: hanging }], 20);
+    const hanging = probe("stigmer", [], { shutdown: () => new Promise<void>(() => {}) });
+    const { runner, runnerEnd, exits, done } = hostProcess([{ harness: "stigmer", adapter: hanging }], 20);
     await runner.receivedHello(1_000);
-    await runner.call("boot", { harness: "deep-agent", config: CONFIG });
+    await runner.call("boot", { harness: "stigmer", config: CONFIG });
 
     runnerEnd.close();
     await done;

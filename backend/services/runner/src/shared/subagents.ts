@@ -87,7 +87,7 @@ export async function subagentModel(
 ): Promise<string | undefined> {
   const name = model.trim();
   if (name === "" || name === "inherit") return undefined;
-  if (chosenFor !== undefined && (chosenFor === Harness.UNSPECIFIED ? Harness.NATIVE : chosenFor) !== engine) {
+  if (chosenFor !== undefined && (chosenFor === Harness.UNSPECIFIED ? Harness.STIGMER : chosenFor) !== engine) {
     return undefined;
   }
   return (await isModelListedFor(name, registrySectionOf(engine))) ? name : undefined;

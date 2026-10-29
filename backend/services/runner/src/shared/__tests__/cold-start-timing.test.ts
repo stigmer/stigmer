@@ -226,11 +226,11 @@ describe("timing metrics mirror", () => {
     const recorder = new TimingRecorder();
     recorder.mark("only_segment");
 
-    emitTimingLog("execution_setup", { harness: "native", execution_id: "exe_1" }, recorder);
+    emitTimingLog("execution_setup", { harness: "stigmer", execution_id: "exe_1" }, recorder);
 
     await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(1));
     expect(metricsMock.recorded[0]!.instrument).toBe("execution_setup");
-    expect(metricsMock.recorded[0]!.attrs).toEqual({ harness: "native" });
+    expect(metricsMock.recorded[0]!.attrs).toEqual({ harness: "stigmer" });
   });
 
   it("records nothing for unmapped events (control-plane timelines)", async () => {

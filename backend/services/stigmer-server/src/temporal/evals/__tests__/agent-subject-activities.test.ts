@@ -201,7 +201,7 @@ describe("an eval run about an agent through the activities", () => {
     expect(style?.cases).toEqual([]);
     expect(style?.notRunReason).toBe("not selected");
     const target = thermos?.cases[0]?.targets[0];
-    expect(target?.target).toMatchObject({ harness: Harness.NATIVE, modelName: MODEL });
+    expect(target?.target).toMatchObject({ harness: Harness.STIGMER, modelName: MODEL });
     expect(target?.withPlugin?.tries).toHaveLength(1);
     expect(target?.withoutPlugin).toBeUndefined();
   });
@@ -270,7 +270,7 @@ describe("an eval run about an agent through the activities", () => {
   });
 
   it("sends a named target's model on the run", async () => {
-    await seeded({ targets: [{ harness: Harness.NATIVE, modelName: MODEL }] });
+    await seeded({ targets: [{ harness: Harness.STIGMER, modelName: MODEL }] });
     const { suite, cases, record } = build();
     await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID);
     await cases[START_TRY_ACTIVITY_NAME]({

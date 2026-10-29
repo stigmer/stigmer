@@ -78,7 +78,7 @@ function fullIdentityAccount(): IdentityAccount {
       preferences: {
         standingContext: "Keep answers terse.",
         defaultHarness: "claude",
-        defaultNativeModel: "claude-sonnet-4.6",
+        defaultStigmerModel: "claude-sonnet-4.6",
         defaultClaudeModel: "claude-sonnet-5",
       },
     },
@@ -223,7 +223,7 @@ describe("toIdentityAccountInput", () => {
 
     expect(built.spec?.preferences?.standingContext).toBe("Terser still.");
     expect(built.spec?.preferences?.defaultHarness).toBe("claude");
-    expect(built.spec?.preferences?.defaultNativeModel).toBe("claude-sonnet-4.6");
+    expect(built.spec?.preferences?.defaultStigmerModel).toBe("claude-sonnet-4.6");
     expect(built.spec?.preferences?.defaultClaudeModel).toBe("claude-sonnet-5");
   });
 

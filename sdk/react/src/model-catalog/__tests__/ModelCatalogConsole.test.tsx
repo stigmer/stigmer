@@ -54,7 +54,7 @@ function sonnetBaseline(overrides: Record<string, unknown> = {}) {
     baselineId: "bl-1",
     modelId: "claude-sonnet-4-6",
     provider: "anthropic",
-    harness: "native",
+    harness: "stigmer",
     displayName: "Claude Sonnet",
     apiModelId: "claude-sonnet-4-6",
     costTier: "standard",
@@ -188,7 +188,7 @@ describe("ModelCatalogConsole — detail view", () => {
         expect.objectContaining({
           modelId: "claude-sonnet-4-6",
           provider: "anthropic",
-          harness: "native",
+          harness: "stigmer",
         }),
       ),
     );

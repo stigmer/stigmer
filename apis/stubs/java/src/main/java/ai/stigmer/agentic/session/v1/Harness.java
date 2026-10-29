@@ -8,8 +8,10 @@ package ai.stigmer.agentic.session.v1;
 /**
  * <pre>
  * Harness identifies the harness, the agent loop that processes a session's
- * turns. Each value has one label, the same on every surface: HARNESS_NATIVE
- * is "Stigmer" and HARNESS_CLAUDE is "Claude Agent".
+ * turns. Each value has one label, the same on every surface: HARNESS_STIGMER
+ * is "Stigmer" and HARNESS_CLAUDE is "Claude Agent". Every string that names a
+ * harness (the CLI flag, the account default, the model registry, usage) uses
+ * the first word of its label, in lower case: "stigmer", "claude".
  *
  * Each harness corresponds to a different Temporal activity type registered
  * by the runner daemon. The harness determines:
@@ -18,7 +20,7 @@ package ai.stigmer.agentic.session.v1;
  * - Which LLM models are available
  * - Billing tier and cost structure
  *
- * HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
+ * HARNESS_UNSPECIFIED defaults to HARNESS_STIGMER.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.session.v1.Harness}
@@ -28,7 +30,7 @@ public enum Harness
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Platform default — resolves to HARNESS_NATIVE.
+   * Platform default — resolves to HARNESS_STIGMER.
    * </pre>
    *
    * <code>HARNESS_UNSPECIFIED = 0;</code>
@@ -43,9 +45,9 @@ public enum Harness
    * pause/resume, and full HITL approval flow.
    * </pre>
    *
-   * <code>HARNESS_NATIVE = 1;</code>
+   * <code>HARNESS_STIGMER = 1;</code>
    */
-  HARNESS_NATIVE(1),
+  HARNESS_STIGMER(1),
   /**
    * <pre>
    * Claude Agent: Anthropic's Claude Agent SDK. Claude models on the
@@ -73,7 +75,7 @@ public enum Harness
   }
   /**
    * <pre>
-   * Platform default — resolves to HARNESS_NATIVE.
+   * Platform default — resolves to HARNESS_STIGMER.
    * </pre>
    *
    * <code>HARNESS_UNSPECIFIED = 0;</code>
@@ -88,9 +90,9 @@ public enum Harness
    * pause/resume, and full HITL approval flow.
    * </pre>
    *
-   * <code>HARNESS_NATIVE = 1;</code>
+   * <code>HARNESS_STIGMER = 1;</code>
    */
-  public static final int HARNESS_NATIVE_VALUE = 1;
+  public static final int HARNESS_STIGMER_VALUE = 1;
   /**
    * <pre>
    * Claude Agent: Anthropic's Claude Agent SDK. Claude models on the
@@ -131,7 +133,7 @@ public enum Harness
   public static Harness forNumber(int value) {
     switch (value) {
       case 0: return HARNESS_UNSPECIFIED;
-      case 1: return HARNESS_NATIVE;
+      case 1: return HARNESS_STIGMER;
       case 3: return HARNESS_CLAUDE;
       default: return null;
     }

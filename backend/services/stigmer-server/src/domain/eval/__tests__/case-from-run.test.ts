@@ -95,7 +95,7 @@ function runRow(id: string, message: string, session = SESSION, fileIds: string[
   });
 }
 
-async function seedSession(harness = Harness.NATIVE): Promise<void> {
+async function seedSession(harness = Harness.STIGMER): Promise<void> {
   await temp.store.saveResource(ApiResourceKind.session, SESSION, SessionSchema, create(SessionSchema, { metadata: { id: SESSION, org: ORG }, spec: { harness } }));
 }
 
@@ -327,7 +327,7 @@ describe("a case from a single turn", () => {
 });
 
 describe("a case from a turn that continues a conversation", () => {
-  async function seedConversation(harness = Harness.NATIVE): Promise<Run> {
+  async function seedConversation(harness = Harness.STIGMER): Promise<Run> {
     await seedSession(harness);
     await seedRun(
       runRow("run_1", "Add a changelog entry."),

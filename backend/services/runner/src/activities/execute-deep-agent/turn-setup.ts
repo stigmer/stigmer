@@ -204,7 +204,7 @@ export type DeepAgentGraphInput =
  * read the spec field beside the runtime's resolved copy.)
  */
 export async function resolveModelName(input: TurnInput): Promise<string> {
-  return input.model.requested === "default" ? await getDefaultModel("native") : input.model.requested;
+  return input.model.requested === "default" ? await getDefaultModel("stigmer") : input.model.requested;
 }
 
 /**
@@ -500,7 +500,7 @@ export async function buildEngine(
   // row's `contextWindowTokens`), and said once per model in the turn's log.
   const windowLines = new Set<string>();
   const buildModelFor = async (name: string) => {
-    const profile = await getRequestProfile(name, "native");
+    const profile = await getRequestProfile(name, "stigmer");
     const built = await buildChatModel({
       modelName: name,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
@@ -525,7 +525,7 @@ export async function buildEngine(
   // Whether this graph reasons natively, derived from the same mapping the
   // request carries: it decides the structured-output strategy below, so the
   // strategy cannot disagree with the wire.
-  const parentThinks = graphThinks(input.model.thinkingMode, (await getRequestProfile(modelName, "native"))?.thinking);
+  const parentThinks = graphThinks(input.model.thinkingMode, (await getRequestProfile(modelName, "stigmer"))?.thinking);
   sink.setupTiming.mark("build_model");
 
   await ensurePricingLoaded();
@@ -818,7 +818,7 @@ export async function buildEngine(
   emitTimingLog("execution_setup", {
     execution_id: executionId,
     session_id: sessionId,
-    harness: "native",
+    harness: "stigmer",
     mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
     workspace_entry_count: workspaceResourcesOf(input.session.spec?.resources ?? []).length,

@@ -416,7 +416,7 @@ function pinModelEngine(execution: Run, lane: PlacedLane): void {
     sessionSpec.harness === Harness.UNSPECIFIED &&
     (lane.turn?.modelName ?? "").trim() !== ""
   ) {
-    sessionSpec.harness = Harness.NATIVE;
+    sessionSpec.harness = Harness.STIGMER;
   }
 }
 

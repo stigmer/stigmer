@@ -139,7 +139,7 @@ describe("Platform conformance — getLicenseStatus", () => {
 const READINESS_PROVIDERS = ["anthropic", "openai"];
 
 // The engines a readiness answer lists models for, in the order it lists them.
-const READINESS_ENGINES = [Harness.NATIVE, Harness.CLAUDE];
+const READINESS_ENGINES = [Harness.STIGMER, Harness.CLAUDE];
 
 // Every availability a provider can be reported at; unspecified is a broken
 // server.
@@ -223,9 +223,9 @@ describe("Platform conformance — getModelReadiness", () => {
     expect(unnamed.judged, "no model named, none judged").toBeUndefined();
 
     const model = `openai:${uniqueName("conformance-model")}`;
-    const named = await clients.platformQuery.getModelReadiness({ org, model: { harness: Harness.NATIVE, model } });
+    const named = await clients.platformQuery.getModelReadiness({ org, model: { harness: Harness.STIGMER, model } });
     expect(named.judged, "the named model is judged").toBeDefined();
-    expect(named.judged?.harness).toBe(Harness.NATIVE);
+    expect(named.judged?.harness).toBe(Harness.STIGMER);
     expect(named.judged?.model, "the judged model is the reference the input named").toBe(model);
     expect(named.judged?.provider, "an openai: reference needs openai").toBe("openai");
     expect(named.judged?.availability, "judged at openai's availability").toBe(

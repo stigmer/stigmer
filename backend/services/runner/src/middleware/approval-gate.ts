@@ -601,7 +601,7 @@ function emitExecutionReceipt(
       policySource: policySource ?? "",
       policyEngineVersion: POLICY_ENGINE_VERSION,
       fingerprint,
-      substrate: "deep-agent",
+      substrate: "stigmer",
     }),
   );
 }

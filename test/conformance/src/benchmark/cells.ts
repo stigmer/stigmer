@@ -61,10 +61,10 @@
 // `RefusedCell` in the report, so a reader has one question to ask ("is the
 // side present") and one place to see why not.
 //
-// The native arm's model is a flag (`--native-model`): a catalog id, or the
+// The native arm's model is a flag (`--stigmer-model`): a catalog id, or the
 // own-endpoint form `openai:<name>` / `anthropic:<name>` the server and the
 // runner accept on native without a catalog row (server modelcatalog/
-// pin-validation.ts). It replaces PARITY_MODEL["deep-agent"] in the native
+// pin-validation.ts). It replaces PARITY_MODEL.stigmer in the native
 // parity, turn-2 and working cells and the native quality target; the
 // Claude arm, the judge and every prompt stay as they are, so the grader
 // is the same in every arm.
@@ -87,13 +87,13 @@ export { HARNESSES };
 
 /** The registry ids the parity cells pin, per harness: one served model, a registry row per engine. */
 export const PARITY_MODEL: Record<BenchmarkHarness, string> = {
-  "deep-agent": "claude-sonnet-4.6",
+  stigmer: "claude-sonnet-4.6",
   claude: "claude-sonnet-4.6",
 };
 
 /** The engine a harness's sessions are created on (`SessionSpec.harness`, an eval run's target). */
 export const SESSION_HARNESS: Record<BenchmarkHarness, Harness> = {
-  "deep-agent": Harness.NATIVE,
+  stigmer: Harness.STIGMER,
   claude: Harness.CLAUDE,
 };
 
@@ -274,7 +274,7 @@ export interface QualityTarget {
 
 export interface PlanFlags {
   only?: BenchmarkHarness;
-  /** The native arm's model, in place of PARITY_MODEL["deep-agent"]; the native `default` cells are then refused. */
+  /** The native arm's model, in place of PARITY_MODEL.stigmer; the native `default` cells are then refused. */
   nativeModel?: string;
   /** A glob over cell ids (`*` matches any run of characters). */
   cells?: string;
@@ -298,7 +298,7 @@ export interface PlanEnvironment {
 export const JUDGE_CALIBRATION_CELL = "judge/calibration";
 
 export interface CellPlan {
-  /** The native arm's model: `--native-model`, else PARITY_MODEL["deep-agent"]. */
+  /** The native arm's model: `--stigmer-model`, else PARITY_MODEL.stigmer. */
   nativeModel: string;
   cells: BenchmarkCell[];
   quality: QualityTarget[];
@@ -308,7 +308,7 @@ export interface CellPlan {
 }
 
 /** Every cell, the native pinned cells on `nativeModel`. */
-export function benchmarkCells(nativeModel: string = PARITY_MODEL["deep-agent"]): BenchmarkCell[] {
+export function benchmarkCells(nativeModel: string = PARITY_MODEL.stigmer): BenchmarkCell[] {
   return SCENARIOS.flatMap((scenario) =>
     HARNESSES.map((harness) => ({
       id: `${scenario.name}/${harness}`,
@@ -320,12 +320,12 @@ export function benchmarkCells(nativeModel: string = PARITY_MODEL["deep-agent"])
 }
 
 /** One quality target per harness, the native one on `nativeModel`. */
-export function qualityTargets(nativeModel: string = PARITY_MODEL["deep-agent"]): QualityTarget[] {
+export function qualityTargets(nativeModel: string = PARITY_MODEL.stigmer): QualityTarget[] {
   return HARNESSES.map((harness) => ({ id: `quality/${harness}`, harness, modelRequested: armModel(harness, nativeModel) }));
 }
 
 function armModel(harness: BenchmarkHarness, nativeModel: string): string {
-  return harness === "deep-agent" ? nativeModel : PARITY_MODEL[harness];
+  return harness === "stigmer" ? nativeModel : PARITY_MODEL[harness];
 }
 
 /** The providers native serves a model through. */
@@ -423,7 +423,7 @@ function hostOf(raw: string | undefined, variable: string, fallback: string): st
  * key, because the judge runs on the native path. Every working-agent
  * timing cell also needs the `stigmer` CLI. The judge cell runs
  * only when `--cells` names it, and needs the Anthropic key. Under
- * `--native-model` the native `default` cells are refused: their point is
+ * `--stigmer-model` the native `default` cells are refused: their point is
  * that each harness picks its own model. A thinking run refuses the cells on
  * a harness's default model, and the native cells when the native model is
  * not a catalog Claude model (the runner maps thinking for Anthropic models
@@ -432,11 +432,11 @@ function hostOf(raw: string | undefined, variable: string, fallback: string): st
  * CLI.
  */
 export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
-  const nativeModel = flags.nativeModel ?? PARITY_MODEL["deep-agent"];
+  const nativeModel = flags.nativeModel ?? PARITY_MODEL.stigmer;
   const refused: RefusedCell[] = [];
   // One rule per harness, so a harness the benchmark gains cannot run with no key rule.
   const keyRules: Record<BenchmarkHarness, (model: string | null) => RefusedCell["reason"] | undefined> = {
-    "deep-agent": (model) => {
+    stigmer: (model) => {
       // A default cell names no model; the harness's default is a catalog Claude model.
       const provider = model === null ? "anthropic" : nativeProvider(model);
       if (provider === undefined) return "model provider unknown";
@@ -454,7 +454,7 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
   const thinkingRefusal = (cell: BenchmarkCell): RefusedCell["reason"] | undefined => {
     if (flags.thinking === undefined) return undefined;
     if (cell.modelRequested === null) return "thinking needs a pinned model";
-    if (cell.harness === "deep-agent" && (explicitProvider(cell.modelRequested) !== undefined || nativeProvider(cell.modelRequested) !== "anthropic")) {
+    if (cell.harness === "stigmer" && (explicitProvider(cell.modelRequested) !== undefined || nativeProvider(cell.modelRequested) !== "anthropic")) {
       return "thinking needs a catalog Claude model";
     }
     return undefined;
@@ -466,8 +466,8 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
       refused.push({ cell: cell.id, reason: flagReason });
       return false;
     }
-    if (flags.nativeModel !== undefined && cell.harness === "deep-agent" && cell.modelRequested === null) {
-      refused.push({ cell: cell.id, reason: "the native model is pinned by --native-model" });
+    if (flags.nativeModel !== undefined && cell.harness === "stigmer" && cell.modelRequested === null) {
+      refused.push({ cell: cell.id, reason: "the native model is pinned by --stigmer-model" });
       return false;
     }
     const thinking = thinkingRefusal(cell);
@@ -506,7 +506,7 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
   });
 
   let judge = false;
-  const judgeFlagReason = excludedByFlags(JUDGE_CALIBRATION_CELL, "deep-agent");
+  const judgeFlagReason = excludedByFlags(JUDGE_CALIBRATION_CELL, "stigmer");
   if (judgeFlagReason !== undefined) {
     refused.push({ cell: JUDGE_CALIBRATION_CELL, reason: judgeFlagReason });
   } else if (flags.cells === undefined) {

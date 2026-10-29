@@ -106,7 +106,7 @@ function contextOf(compared: boolean): EvalContext {
     sources: [{ kind: "eval", eval: evalRow, digest: DIGEST, files: { entries: [], read: () => new Uint8Array() }, suite: suite([evalCaseRow]), evalIndex: 0 }],
     caseSources: [0],
     matrix: {
-      cases: [{ evalCase: evalCaseRow, targets: [{ target: { harness: Harness.NATIVE, modelName: "" }, runs: 1 }] }],
+      cases: [{ evalCase: evalCaseRow, targets: [{ target: { harness: Harness.STIGMER, modelName: "" }, runs: 1 }] }],
       cells: [{ caseIndex: 0, targetIndex: 0, arm: "with", tryIndex: 0 }],
     },
     twoArms: compared,

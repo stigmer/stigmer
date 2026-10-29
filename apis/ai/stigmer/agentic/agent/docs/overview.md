@@ -31,7 +31,7 @@ spec:
       slug: variance-report
   tools: [Read, Grep, Glob, mcp__plugin_ledger_ledger]
   disallowed_tools: [mcp__plugin_ledger_ledger__post_adjustment]
-  harness: HARNESS_NATIVE
+  harness: HARNESS_STIGMER
   run_config:
     model_name: claude-sonnet-4.5
     max_cost_usd: 2

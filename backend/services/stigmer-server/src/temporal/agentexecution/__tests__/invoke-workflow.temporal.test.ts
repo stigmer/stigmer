@@ -904,7 +904,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   }, 60_000);
 
   for (const [engine, activity] of [
-    [Harness.NATIVE, "ExecuteDeepAgent"],
+    [Harness.STIGMER, "ExecuteDeepAgent"],
     [Harness.UNSPECIFIED, "ExecuteDeepAgent"],
     [Harness.CLAUDE, "ExecuteClaude"],
   ] as const) {

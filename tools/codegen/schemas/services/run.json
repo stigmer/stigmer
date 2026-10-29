@@ -1219,7 +1219,7 @@
               "messageType": "HarnessUsage"
             }
           },
-          "description": "Usage split by execution harness (e.g., \"native\" vs \"claude\").",
+          "description": "Usage split by execution harness (e.g., \"stigmer\" vs \"claude\").",
           "required": false
         },
         {
@@ -1890,11 +1890,11 @@
     },
     {
       "name": "Harness",
-      "description": "Harness identifies the harness, the agent loop that processes a session's\n turns. Each value has one label, the same on every surface: HARNESS_NATIVE\n is \"Stigmer\" and HARNESS_CLAUDE is \"Claude Agent\".\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs the harness's own)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "description": "Harness identifies the harness, the agent loop that processes a session's\n turns. Each value has one label, the same on every surface: HARNESS_STIGMER\n is \"Stigmer\" and HARNESS_CLAUDE is \"Claude Agent\". Every string that names a\n harness (the CLI flag, the account default, the model registry, usage) uses\n the first word of its label, in lower case: \"stigmer\", \"claude\".\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs the harness's own)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_STIGMER.",
       "protoType": "ai.stigmer.agentic.session.v1.Harness",
       "values": [
         {
-          "name": "HARNESS_NATIVE",
+          "name": "HARNESS_STIGMER",
           "number": 1,
           "description": "Stigmer: Stigmer's own harness. Runs any catalog model, open source end\n to end.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
         },
@@ -3125,7 +3125,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Harness that produced the edits: \"deep-agent\" | \"claude\".\n Carried for audit and so the reconcile adapter knows which harness\n lifecycle authored the set.",
+          "description": "Harness that produced the edits: \"stigmer\" | \"claude\".\n Carried for audit and so the reconcile adapter knows which harness\n lifecycle authored the set.",
           "required": false
         },
         {

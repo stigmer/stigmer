@@ -176,7 +176,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | Flag | Purpose |
 |------|---------|
 | `--model` | Override the LLM model (e.g., `claude-sonnet-4-6`) |
-| `--harness` | Choose the harness for the new session: `"native"` (Stigmer) or `"claude"` (Claude Agent) |
+| `--harness` | Choose the harness for the new session: `"stigmer"` or `"claude"` (Claude Agent) |
 | `--auto-approve` | Approve all tool executions without prompting (bypasses approval policies) |
 | `--approve-default` | Answer every tool call that asks, in non-interactive mode: `allow`, `deny`, or `allow-all` (allow it and every waiting call of its kind for the rest of the turn); unset denies each one, and the agent carries on without it |
 | `--verbose`, `-v` | Show run IDs and phase transitions in the TUI transcript |
@@ -191,7 +191,7 @@ stigmer run my-agent --auto-approve -m "Deploy to staging"
 
 ### Choosing a harness
 
-The harness is the agent loop that runs your session: `"native"` (Stigmer:
+The harness is the agent loop that runs your session: `"stigmer"` (Stigmer:
 Stigmer's own harness, the default; it runs any catalog model, open source end
 to end) or `"claude"` (Claude Agent: Anthropic's Claude Agent SDK; it runs
 Claude models on your organization's own Anthropic key). A session keeps its
@@ -208,8 +208,8 @@ The flag is the per-run override:
 # Start a Claude Agent session explicitly
 stigmer run variance-reporter --harness claude -w . -m "Report Q3's variances"
 
-# Force one native run without changing your account's claude default
-stigmer run my-agent --harness native -m "Quick question"
+# Force one Stigmer run without changing your account's claude default
+stigmer run my-agent --harness stigmer -m "Quick question"
 ```
 
 When a session starts on the Claude Agent harness, the session header says so

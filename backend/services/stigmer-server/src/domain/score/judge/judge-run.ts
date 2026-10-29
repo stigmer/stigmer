@@ -105,7 +105,7 @@ export function judgeRunRequest(request: JudgeRunRequest): Run {
         case: "sessionSpec",
         value: create(SessionSpecSchema, {
           subject: JUDGE_SESSION_SUBJECT,
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
         }),
       },
       message: request.message,

@@ -251,12 +251,12 @@ function targetsOf(
 }
 
 /**
- * Each harness as an eval case's limits name it (unspecified is native),
+ * Each harness as an eval case's limits name it (unspecified is stigmer),
  * with the label its not-run copy reads (domain/session/harness.ts).
  */
 export const EVAL_ENGINES: Readonly<Record<Harness, { readonly word: EvalEngine; readonly label: string }>> = {
-  [Harness.UNSPECIFIED]: { word: "native", label: HARNESSES[Harness.NATIVE].label },
-  [Harness.NATIVE]: { word: "native", label: HARNESSES[Harness.NATIVE].label },
+  [Harness.UNSPECIFIED]: { word: "stigmer", label: HARNESSES[Harness.STIGMER].label },
+  [Harness.STIGMER]: { word: "stigmer", label: HARNESSES[Harness.STIGMER].label },
   [Harness.CLAUDE]: { word: "claude", label: HARNESSES[Harness.CLAUDE].label },
 };
 
@@ -287,23 +287,23 @@ function candidateTargets(
     return [
       {
         target: {
-          harness: Harness.NATIVE,
-          modelName: catalog.defaultModel(Harness.NATIVE),
+          harness: Harness.STIGMER,
+          modelName: catalog.defaultModel(Harness.STIGMER),
         },
         runs,
       },
     ];
   }
-  if (!catalog.isCatalogModel(Harness.NATIVE, model)) {
+  if (!catalog.isCatalogModel(Harness.STIGMER, model)) {
     return [
       {
-        target: { harness: Harness.NATIVE, modelName: model },
+        target: { harness: Harness.STIGMER, modelName: model },
         notRunReason: modelNotInCatalogReason(model),
         runs,
       },
     ];
   }
-  return [{ target: { harness: Harness.NATIVE, modelName: model }, runs }];
+  return [{ target: { harness: Harness.STIGMER, modelName: model }, runs }];
 }
 
 /**

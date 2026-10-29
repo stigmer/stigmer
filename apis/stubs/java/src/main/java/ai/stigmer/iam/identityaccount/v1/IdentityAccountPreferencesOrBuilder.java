@@ -34,7 +34,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
 
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "claude".
+   * Default harness for new sessions: "stigmer" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -44,7 +44,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
   java.lang.String getDefaultHarness();
   /**
    * <pre>
-   * Default harness for new sessions: "native" or "claude".
+   * Default harness for new sessions: "stigmer" or "claude".
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -56,25 +56,25 @@ public interface IdentityAccountPreferencesOrBuilder extends
 
   /**
    * <pre>
-   * Default model (registry model ID) for native-harness sessions.
+   * Default model (registry model ID) for Stigmer-harness sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
-   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-   * @return The defaultNativeModel.
+   * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+   * @return The defaultStigmerModel.
    */
-  java.lang.String getDefaultNativeModel();
+  java.lang.String getDefaultStigmerModel();
   /**
    * <pre>
-   * Default model (registry model ID) for native-harness sessions.
+   * Default model (registry model ID) for Stigmer-harness sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
-   * <code>string default_native_model = 3 [json_name = "defaultNativeModel", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for defaultNativeModel.
+   * <code>string default_stigmer_model = 3 [json_name = "defaultStigmerModel", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for defaultStigmerModel.
    */
   com.google.protobuf.ByteString
-      getDefaultNativeModelBytes();
+      getDefaultStigmerModelBytes();
 
   /**
    * <pre>
@@ -101,7 +101,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
 
   /**
    * <pre>
-   * Default model (registry model ID) for claude-harness sessions.
+   * Default model (registry model ID) for Claude Agent sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *
@@ -111,7 +111,7 @@ public interface IdentityAccountPreferencesOrBuilder extends
   java.lang.String getDefaultClaudeModel();
   /**
    * <pre>
-   * Default model (registry model ID) for claude-harness sessions.
+   * Default model (registry model ID) for Claude Agent sessions.
    * Empty means no preference — the platform default applies.
    * </pre>
    *

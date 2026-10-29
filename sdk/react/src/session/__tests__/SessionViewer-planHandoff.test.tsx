@@ -141,7 +141,7 @@ const stubConv = {
 
 const stubSessionPageFlow = {
   conv: stubConv,
-  harness: "native" as const,
+  harness: "stigmer" as const,
   executionTarget: undefined,
   model: [undefined, vi.fn()] as const,
   interactionMode: ["plan" as const, vi.fn()] as const,

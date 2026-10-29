@@ -130,7 +130,7 @@ function ChannelRunConfigDialogBody({
   const { update, isPending, error, clearError } = useSaveChannel();
 
   const [modelName, setModelName] = useState(stored?.modelName ?? "");
-  const [harness, setHarness] = useState<HarnessOption>("native");
+  const [harness, setHarness] = useState<HarnessOption>("stigmer");
   const [serviceTier, setServiceTier] = useState<ServiceTierOption>(
     fromProtoServiceTier(stored?.serviceTier) ?? "standard",
   );

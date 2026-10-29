@@ -52,7 +52,7 @@ vi.mock("../../composer", async (importOriginal) => {
 vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null }));
 
 const flow = {
-  harness: "native" as const,
+  harness: "stigmer" as const,
   setHarness: vi.fn(),
   modelId: undefined as string | undefined,
   setModelId: vi.fn(),
@@ -202,15 +202,15 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     expect(screen.getByTestId("composer-probe")).toBeTruthy();
     expect(lastComposer()?.sendBlockedReason).toBe("Connect Anthropic to run Claude Sonnet 4.6.");
     // The picker gets the same answer, to mark the model it shows.
-    expect(lastComposer()?.modelReadinessOf?.("native", "claude-sonnet-4.6")?.availability.state).toBe("missing");
-    expect(lastComposer()?.modelReadinessOf?.("native", "gpt-5")?.availability.state).toBe("served");
+    expect(lastComposer()?.modelReadinessOf?.("stigmer", "claude-sonnet-4.6")?.availability.state).toBe("missing");
+    expect(lastComposer()?.modelReadinessOf?.("stigmer", "gpt-5")?.availability.state).toBe("served");
   });
 
   it("judges the model the person picked, not the engine's default", async () => {
     mockFlow = { ...flow, modelId: "gpt-5" };
     renderLauncher(server({ readiness: OPENAI_ONLY }));
 
-    await waitFor(() => expect(lastComposer()?.modelReadinessOf?.("native", "gpt-5")).toBeTruthy());
+    await waitFor(() => expect(lastComposer()?.modelReadinessOf?.("stigmer", "gpt-5")).toBeTruthy());
     expect(lastComposer()?.sendBlockedReason).toBeUndefined();
     expect(screen.queryByText(/Connect Anthropic to run/)).toBeNull();
   });
@@ -235,7 +235,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     const calls = renderLauncher(server({ readiness: ANTHROPIC_CONNECTED }));
 
     await waitFor(() => expect(calls.getModelReadiness).toHaveBeenCalled());
-    await waitFor(() => expect(lastComposer()?.modelReadinessOf?.("native", "claude-sonnet-4.6")).toBeTruthy());
+    await waitFor(() => expect(lastComposer()?.modelReadinessOf?.("stigmer", "claude-sonnet-4.6")).toBeTruthy());
     expect(lastComposer()?.sendBlockedReason).toBeUndefined();
     expect(screen.getByRole("heading", { level: 1, name: "What would you like to work on?" })).toBeTruthy();
     expect(screen.queryByText(/Connect Anthropic/)).toBeNull();
@@ -252,7 +252,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
       { mode: "local" },
     );
 
-    await waitFor(() => expect(lastComposer()?.modelReadinessOf?.("native", "claude-sonnet-4.6")).toBeTruthy());
+    await waitFor(() => expect(lastComposer()?.modelReadinessOf?.("stigmer", "claude-sonnet-4.6")).toBeTruthy());
     expect(lastComposer()?.sendBlockedReason).toBeUndefined();
     expect(screen.queryByText("Connect a model provider to start")).toBeNull();
   });

@@ -43,7 +43,7 @@
         "baselineCaptured": {
           "changeSetId": "aex_hermetic_0001:0",
           "turnId": "aex_hermetic_0001:0",
-          "harnessId": "deep-agent",
+          "harnessId": "stigmer",
           "baselineSnapshot": {
             "kind": "SNAPSHOT_KIND_GIT_TREE_REF",
             "git": {

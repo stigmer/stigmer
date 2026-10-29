@@ -21,8 +21,8 @@ describe("getSummarizationModel", () => {
 
   it("returns gpt-4o-mini for an OpenAI model", async () => {
     mockRegistryResponse([
-      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
-      { id: "gpt-4o-mini", provider: "openai", costTier: "economy", harness: "native" },
+      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer" },
+      { id: "gpt-4o-mini", provider: "openai", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getSummarizationModel("gpt-4.1");
@@ -31,8 +31,8 @@ describe("getSummarizationModel", () => {
 
   it("returns claude-haiku-4.5 for an Anthropic model", async () => {
     mockRegistryResponse([
-      { id: "claude-opus-4", provider: "anthropic", costTier: "premium", harness: "native" },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "claude-opus-4", provider: "anthropic", costTier: "premium", harness: "stigmer" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getSummarizationModel("claude-opus-4");
@@ -43,7 +43,7 @@ describe("getSummarizationModel", () => {
     // Fabricated provider: exercises generic same-provider economy resolution
     // for providers with exactly one (economy) model.
     mockRegistryResponse([
-      { id: "solo-model-1", provider: "someprovider", costTier: "economy", harness: "native" },
+      { id: "solo-model-1", provider: "someprovider", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getSummarizationModel("solo-model-1");
@@ -52,8 +52,8 @@ describe("getSummarizationModel", () => {
 
   it("falls back to cross-provider economy model when primary not found", async () => {
     mockRegistryResponse([
-      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getSummarizationModel("unknown-model-xyz");
@@ -69,8 +69,8 @@ describe("getSummarizationModel", () => {
 
   it("caches registry data across multiple calls", async () => {
     const fetchSpy = mockRegistryResponse([
-      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
-      { id: "gpt-4o-mini", provider: "openai", costTier: "economy", harness: "native" },
+      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer" },
+      { id: "gpt-4o-mini", provider: "openai", costTier: "economy", harness: "stigmer" },
     ]);
 
     await getSummarizationModel("gpt-4.1");
@@ -82,9 +82,9 @@ describe("getSummarizationModel", () => {
 
   it("prefers same-provider economy model over cross-provider", async () => {
     mockRegistryResponse([
-      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
-      { id: "gpt-4o-mini", provider: "openai", costTier: "economy", harness: "native" },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer" },
+      { id: "gpt-4o-mini", provider: "openai", costTier: "economy", harness: "stigmer" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getEconomyModel("gpt-4.1");
@@ -95,7 +95,7 @@ describe("getSummarizationModel", () => {
     mockRegistryResponse([
       { id: "claude-sonnet-4", provider: "anthropic", costTier: "standard", harness: "claude" },
       { id: "claude-haiku-4-5", provider: "anthropic", costTier: "economy", harness: "claude" },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await getEconomyModel("claude-sonnet-4");
@@ -115,85 +115,85 @@ describe("getDefaultModel", () => {
 
   it("returns apiModelId of featured+standard+native model", async () => {
     mockRegistryResponse([
-      { id: "claude-opus-4.6", provider: "anthropic", costTier: "premium", harness: "native", featured: true },
-      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", featured: true },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native", featured: true },
+      { id: "claude-opus-4.6", provider: "anthropic", costTier: "premium", harness: "stigmer", featured: true },
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", featured: true },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer", featured: true },
     ]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
   it("falls back to non-featured standard+native when no featured model", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", costTier: "standard", harness: "native" },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "claude-sonnet-4.5", apiModelId: "claude-sonnet-4-5-20250929", provider: "anthropic", costTier: "standard", harness: "stigmer" },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("claude-sonnet-4-5-20250929");
   });
 
   it("returns hardcoded fallback when registry is empty", async () => {
     mockRegistryResponse([]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
   it("returns hardcoded fallback when fetch fails", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
   it("respects registry ordering (first featured+standard+native wins)", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", featured: true },
-      { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native", featured: true },
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", featured: true },
+      { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer", featured: true },
     ]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("claude-sonnet-4-6");
   });
 
   it("skips another harness's models", async () => {
     mockRegistryResponse([
       { id: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "claude", featured: true },
-      { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "native" },
+      { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai", costTier: "standard", harness: "stigmer" },
     ]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("gpt-4.1");
   });
 
   it("reads each engine's own section: the Claude engine's default is its own row's", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", featured: true },
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", featured: true },
       { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "claude", featured: true },
     ]);
 
     expect(await getDefaultModel("claude")).toBe("claude-sonnet-5");
-    expect(await getDefaultModel("native")).toBe("claude-sonnet-4-6");
+    expect(await getDefaultModel("stigmer")).toBe("claude-sonnet-4-6");
   });
 
   it("falls back to id when apiModelId is absent", async () => {
     mockRegistryResponse([
-      { id: "gpt-4o-mini", provider: "openai", costTier: "standard", harness: "native", featured: true },
+      { id: "gpt-4o-mini", provider: "openai", costTier: "standard", harness: "stigmer", featured: true },
     ]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("gpt-4o-mini");
   });
 
   it("returns fallback when only economy and premium models exist", async () => {
     mockRegistryResponse([
-      { id: "claude-opus-4.6", provider: "anthropic", costTier: "premium", harness: "native", featured: true },
-      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native", featured: true },
+      { id: "claude-opus-4.6", provider: "anthropic", costTier: "premium", harness: "stigmer", featured: true },
+      { id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "stigmer", featured: true },
     ]);
 
-    const result = await getDefaultModel("native");
+    const result = await getDefaultModel("stigmer");
     expect(result).toBe("claude-sonnet-4-6");
   });
 });
@@ -211,7 +211,7 @@ describe("resolveToApiModelId", () => {
 
   it("resolves a canonical registry id to the provider api id", async () => {
     mockRegistryResponse([
-      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await resolveToApiModelId("claude-haiku-4.5");
@@ -220,7 +220,7 @@ describe("resolveToApiModelId", () => {
 
   it("passes unknown ids through unchanged (provider api ids stay verbatim)", async () => {
     mockRegistryResponse([
-      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     const result = await resolveToApiModelId("claude-haiku-4-5-20251001");
@@ -245,7 +245,7 @@ describe("resolveToApiModelId", () => {
         new Response(
           JSON.stringify({
             models: [
-              { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+              { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "stigmer" },
             ],
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -265,7 +265,7 @@ describe("resolveToApiModelId", () => {
         new Response(
           JSON.stringify({
             models: [
-              { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+              { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "stigmer" },
             ],
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -299,14 +299,14 @@ describe("getModelVisionCapability", () => {
 
   it("returns the explicit vision flag when the capabilities block is present", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true, toolUse: true } },
-      { id: "llama3.1", provider: "ollama", costTier: "economy", harness: "native", capabilities: { vision: false, toolUse: true } },
+      { id: "claude-sonnet-4.6", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { vision: true, toolUse: true } },
+      { id: "llama3.1", provider: "ollama", costTier: "economy", harness: "stigmer", capabilities: { vision: false, toolUse: true } },
     ]);
 
     expect(await getModelVisionCapability("claude-sonnet-4.6")).toBe(true);
     _resetRegistryCache();
     mockRegistryResponse([
-      { id: "llama3.1", provider: "ollama", costTier: "economy", harness: "native", capabilities: { vision: false } },
+      { id: "llama3.1", provider: "ollama", costTier: "economy", harness: "stigmer", capabilities: { vision: false } },
     ]);
     expect(await getModelVisionCapability("llama3.1")).toBe(false);
   });
@@ -315,17 +315,17 @@ describe("getModelVisionCapability", () => {
     // A row with pricing and UI fields and no capabilities block must stay
     // undefined, never coerce to false.
     mockRegistryResponse([
-      { id: "claude-unassessed", provider: "anthropic", costTier: "economy", harness: "native" },
+      { id: "claude-unassessed", provider: "anthropic", costTier: "economy", harness: "stigmer" },
     ]);
 
     expect(await getModelVisionCapability("claude-unassessed")).toBeUndefined();
   });
 
   it("matches by apiModelId as well as registry id", async () => {
-    // getDefaultModel("native") hands the deep-agent harness the provider API id, so
+    // getDefaultModel("stigmer") hands the deep-agent harness the provider API id, so
     // both identifier forms must resolve to the same capability.
     mockRegistryResponse([
-      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true } },
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { vision: true } },
     ]);
 
     expect(await getModelVisionCapability("claude-sonnet-4-6")).toBe(true);
@@ -333,7 +333,7 @@ describe("getModelVisionCapability", () => {
 
   it("returns undefined for unknown names, the empty string, and the Auto pool", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.6", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { vision: true } },
+      { id: "claude-sonnet-4.6", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { vision: true } },
     ]);
 
     expect(await getModelVisionCapability("never-heard-of-it")).toBeUndefined();
@@ -349,7 +349,7 @@ describe("getModelVisionCapability", () => {
 
   it("treats a malformed capabilities value as undefined", async () => {
     mockRegistryResponse([
-      { id: "weird-model", provider: "anthropic", costTier: "standard", harness: "native", capabilities: "yes" as unknown as { vision?: boolean } },
+      { id: "weird-model", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: "yes" as unknown as { vision?: boolean } },
     ]);
 
     expect(await getModelVisionCapability("weird-model")).toBeUndefined();
@@ -371,10 +371,10 @@ describe("getRequestProfile", () => {
   it("reads the native row, never the same id's claude row", async () => {
     mockRegistryResponse([
       { id: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "claude", maxOutputTokens: 64000, capabilities: { thinking: true, adaptiveThinking: false } },
-      { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: false } },
+      { id: "claude-sonnet-5", apiModelId: "claude-sonnet-5", provider: "anthropic", costTier: "standard", harness: "stigmer", maxOutputTokens: 128000, capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: false } },
     ]);
 
-    expect(await getRequestProfile("claude-sonnet-5", "native")).toEqual({
+    expect(await getRequestProfile("claude-sonnet-5", "stigmer")).toEqual({
       maxOutputTokens: 128000,
       thinking: { shape: "adaptive", required: false },
     });
@@ -382,78 +382,78 @@ describe("getRequestProfile", () => {
 
   it("reads the asked engine's own row: the Claude row for the Claude engine, none on an engine that does not list the model", async () => {
     mockRegistryResponse([
-      { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "native", capabilities: { thinking: true, adaptiveThinking: false, thinkingRequired: false } },
+      { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "stigmer", capabilities: { thinking: true, adaptiveThinking: false, thinkingRequired: false } },
       { id: "claude-opus-4.5", provider: "anthropic", costTier: "premium", harness: "claude", capabilities: { thinking: false, adaptiveThinking: true, thinkingRequired: true } },
-      { id: "native-only", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true } },
+      { id: "native-only", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { adaptiveThinking: true } },
     ]);
 
     expect((await getRequestProfile("claude-opus-4.5", "claude"))?.thinking).toEqual({ shape: "adaptive", required: true });
-    expect((await getRequestProfile("claude-opus-4.5", "native"))?.thinking).toEqual({ shape: "budget", required: false });
+    expect((await getRequestProfile("claude-opus-4.5", "stigmer"))?.thinking).toEqual({ shape: "budget", required: false });
     expect(await getRequestProfile("native-only", "claude")).toBeUndefined();
   });
 
   it("matches the provider api id as well as the registry id", async () => {
     mockRegistryResponse([
-      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 65536 },
+      { id: "claude-sonnet-4.6", apiModelId: "claude-sonnet-4-6", provider: "anthropic", costTier: "standard", harness: "stigmer", maxOutputTokens: 65536 },
     ]);
 
-    expect(await getRequestProfile("claude-sonnet-4-6", "native")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
-    expect(await getRequestProfile("claude-sonnet-4.6", "native")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
+    expect(await getRequestProfile("claude-sonnet-4-6", "stigmer")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
+    expect(await getRequestProfile("claude-sonnet-4.6", "stigmer")).toEqual({ maxOutputTokens: 65536, thinking: NO_THINKING });
   });
 
   it("derives the thinking shape from the capability flags, adaptive winning over budget", async () => {
     mockRegistryResponse([
-      { id: "budget", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: true, adaptiveThinking: false } },
-      { id: "adaptive", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: false, adaptiveThinking: true } },
-      { id: "both", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: true, adaptiveThinking: true } },
-      { id: "neither", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { thinking: false, adaptiveThinking: false } },
+      { id: "budget", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { thinking: true, adaptiveThinking: false } },
+      { id: "adaptive", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { thinking: false, adaptiveThinking: true } },
+      { id: "both", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { thinking: true, adaptiveThinking: true } },
+      { id: "neither", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { thinking: false, adaptiveThinking: false } },
     ]);
 
-    expect((await getRequestProfile("budget", "native"))?.thinking.shape).toBe("budget");
-    expect((await getRequestProfile("adaptive", "native"))?.thinking.shape).toBe("adaptive");
-    expect((await getRequestProfile("both", "native"))?.thinking.shape).toBe("adaptive");
-    expect((await getRequestProfile("neither", "native"))?.thinking.shape).toBe("none");
+    expect((await getRequestProfile("budget", "stigmer"))?.thinking.shape).toBe("budget");
+    expect((await getRequestProfile("adaptive", "stigmer"))?.thinking.shape).toBe("adaptive");
+    expect((await getRequestProfile("both", "stigmer"))?.thinking.shape).toBe("adaptive");
+    expect((await getRequestProfile("neither", "stigmer"))?.thinking.shape).toBe("none");
   });
 
   it("keeps thinkingRequired tri-state: stated true, stated false, and never assessed", async () => {
     mockRegistryResponse([
-      { id: "always", provider: "anthropic", costTier: "premium", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: true } },
-      { id: "optional", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: false } },
-      { id: "unassessed", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true } },
-      { id: "malformed", provider: "anthropic", costTier: "standard", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: "yes" } },
-      { id: "no-block", provider: "anthropic", costTier: "standard", harness: "native" },
+      { id: "always", provider: "anthropic", costTier: "premium", harness: "stigmer", capabilities: { adaptiveThinking: true, thinkingRequired: true } },
+      { id: "optional", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { adaptiveThinking: true, thinkingRequired: false } },
+      { id: "unassessed", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { adaptiveThinking: true } },
+      { id: "malformed", provider: "anthropic", costTier: "standard", harness: "stigmer", capabilities: { adaptiveThinking: true, thinkingRequired: "yes" } },
+      { id: "no-block", provider: "anthropic", costTier: "standard", harness: "stigmer" },
     ]);
 
-    expect((await getRequestProfile("always", "native"))?.thinking.required).toBe(true);
-    expect((await getRequestProfile("optional", "native"))?.thinking.required).toBe(false);
-    expect((await getRequestProfile("unassessed", "native"))?.thinking.required).toBeUndefined();
-    expect((await getRequestProfile("malformed", "native"))?.thinking.required).toBeUndefined();
-    expect((await getRequestProfile("no-block", "native"))?.thinking).toEqual(NO_THINKING);
+    expect((await getRequestProfile("always", "stigmer"))?.thinking.required).toBe(true);
+    expect((await getRequestProfile("optional", "stigmer"))?.thinking.required).toBe(false);
+    expect((await getRequestProfile("unassessed", "stigmer"))?.thinking.required).toBeUndefined();
+    expect((await getRequestProfile("malformed", "stigmer"))?.thinking.required).toBeUndefined();
+    expect((await getRequestProfile("no-block", "stigmer"))?.thinking).toEqual(NO_THINKING);
   });
 
   it("states no ceiling when the row's value is absent or not a positive integer", async () => {
     mockRegistryResponse([
-      { id: "a", provider: "anthropic", costTier: "standard", harness: "native" },
-      { id: "b", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: "128000" },
-      { id: "c", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 0 },
-      { id: "d", provider: "anthropic", costTier: "standard", harness: "native", maxOutputTokens: 1.5 },
+      { id: "a", provider: "anthropic", costTier: "standard", harness: "stigmer" },
+      { id: "b", provider: "anthropic", costTier: "standard", harness: "stigmer", maxOutputTokens: "128000" },
+      { id: "c", provider: "anthropic", costTier: "standard", harness: "stigmer", maxOutputTokens: 0 },
+      { id: "d", provider: "anthropic", costTier: "standard", harness: "stigmer", maxOutputTokens: 1.5 },
     ]);
 
     for (const id of ["a", "b", "c", "d"]) {
-      expect((await getRequestProfile(id, "native"))?.maxOutputTokens).toBeUndefined();
+      expect((await getRequestProfile(id, "stigmer"))?.maxOutputTokens).toBeUndefined();
     }
   });
 
   it("reads the row's context window, and states none when it is absent or not a positive integer", async () => {
     mockRegistryResponse([
-      { id: "sized", provider: "anthropic", costTier: "standard", harness: "native", contextWindowTokens: 1_000_000 },
-      { id: "unsized", provider: "anthropic", costTier: "standard", harness: "native" },
-      { id: "malformed", provider: "anthropic", costTier: "standard", harness: "native", contextWindowTokens: "200000" },
+      { id: "sized", provider: "anthropic", costTier: "standard", harness: "stigmer", contextWindowTokens: 1_000_000 },
+      { id: "unsized", provider: "anthropic", costTier: "standard", harness: "stigmer" },
+      { id: "malformed", provider: "anthropic", costTier: "standard", harness: "stigmer", contextWindowTokens: "200000" },
     ]);
 
-    expect((await getRequestProfile("sized", "native"))?.contextWindowTokens).toBe(1_000_000);
-    expect((await getRequestProfile("unsized", "native"))?.contextWindowTokens).toBeUndefined();
-    expect((await getRequestProfile("malformed", "native"))?.contextWindowTokens).toBeUndefined();
+    expect((await getRequestProfile("sized", "stigmer"))?.contextWindowTokens).toBe(1_000_000);
+    expect((await getRequestProfile("unsized", "stigmer"))?.contextWindowTokens).toBeUndefined();
+    expect((await getRequestProfile("malformed", "stigmer"))?.contextWindowTokens).toBeUndefined();
   });
 
   it("returns undefined for no concrete model, an unknown model, another harness's model, and an unreachable registry", async () => {
@@ -461,15 +461,15 @@ describe("getRequestProfile", () => {
       { id: "claude-only", provider: "anthropic", costTier: "economy", harness: "claude", maxOutputTokens: 64000 },
     ]);
 
-    expect(await getRequestProfile("default", "native")).toBeUndefined();
-    expect(await getRequestProfile("", "native")).toBeUndefined();
-    expect(await getRequestProfile("claude-only", "native")).toBeUndefined();
-    expect(await getRequestProfile("no-such-model", "native")).toBeUndefined();
+    expect(await getRequestProfile("default", "stigmer")).toBeUndefined();
+    expect(await getRequestProfile("", "stigmer")).toBeUndefined();
+    expect(await getRequestProfile("claude-only", "stigmer")).toBeUndefined();
+    expect(await getRequestProfile("no-such-model", "stigmer")).toBeUndefined();
 
     _resetRegistryCache();
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network down"));
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(await getRequestProfile("claude-sonnet-5", "native")).toBeUndefined();
+    expect(await getRequestProfile("claude-sonnet-5", "stigmer")).toBeUndefined();
   });
 });
 

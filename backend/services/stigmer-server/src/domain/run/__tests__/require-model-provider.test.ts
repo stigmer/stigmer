@@ -90,7 +90,7 @@ describe("RequireModelProvider", () => {
   it("refuses a provider missing from the organization, naming the place an admin adds one", async () => {
     const refused = await refusal(
       stepAnswering({ state: "missing", scope: "organization" }),
-      turn({ engine: Harness.NATIVE, model: "claude-sonnet-4.6" }),
+      turn({ engine: Harness.STIGMER, model: "claude-sonnet-4.6" }),
     );
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toBe(
@@ -115,7 +115,7 @@ describe("RequireModelProvider", () => {
   it("tells a laptop to set OPENAI_API_KEY for OpenAI, which stigmer setup does not save", async () => {
     const refused = await refusal(
       stepAnswering({ state: "missing", scope: "runners" }),
-      turn({ engine: Harness.NATIVE, model: "gpt-5.2" }),
+      turn({ engine: Harness.STIGMER, model: "gpt-5.2" }),
     );
     expect(refused.rawMessage).toBe(
       "This server's runners have no OpenAI key for model 'gpt-5.2', so the run was not started. On your own machine, set OPENAI_API_KEY in the shell you start Stigmer from, then `stigmer down && stigmer up`.",
@@ -132,7 +132,7 @@ describe("RequireModelProvider", () => {
     );
     const runners = await refusal(
       stepAnswering({ state: "missing", scope: "runners" }),
-      turn({ engine: Harness.NATIVE, model: "claude-sonnet-4.6" }),
+      turn({ engine: Harness.STIGMER, model: "claude-sonnet-4.6" }),
     );
     expect(runners.rawMessage).toBe(
       "This server's runners have no Anthropic key for model 'claude-sonnet-4.6', so the run was not started. On your own machine, run `stigmer setup`, then `stigmer down && stigmer up`.",
@@ -144,7 +144,7 @@ describe("RequireModelProvider", () => {
     expect(step.name).toBe("RequireModelProvider");
     const run = create(RunSchema, { status: { runConfig: { modelName: "claude-sonnet-4.6" } } });
     const ctx = new RequestContext(RunSchema, run, testCallerIdentity(), ApiResourceKind.run);
-    ctx.set(RUN_CONFIG_PLACEMENT_KEY, { engine: Harness.NATIVE } as Partial<RunConfigPlacement>);
+    ctx.set(RUN_CONFIG_PLACEMENT_KEY, { engine: Harness.STIGMER } as Partial<RunConfigPlacement>);
     await expect(step.execute(ctx)).resolves.toBeUndefined();
   });
 
@@ -165,7 +165,7 @@ describe("RequireModelProvider", () => {
       { state: "served", source: "runners" },
       { state: "unknown" },
     ] as const) {
-      await expect(stepAnswering(report).execute(turn({ engine: Harness.NATIVE }))).resolves.toBeUndefined();
+      await expect(stepAnswering(report).execute(turn({ engine: Harness.STIGMER }))).resolves.toBeUndefined();
     }
   });
 
@@ -173,11 +173,11 @@ describe("RequireModelProvider", () => {
     const step = stepAnswering({ state: "missing", scope: "organization" });
     await expect(step.execute(turn({ engine: Harness.CLAUDE, reconcile: true }))).resolves.toBeUndefined();
     await expect(step.execute(turn({}))).resolves.toBeUndefined();
-    await expect(step.execute(turn({ engine: Harness.NATIVE, model: "gemini-3-pro" }))).resolves.toBeUndefined();
+    await expect(step.execute(turn({ engine: Harness.STIGMER, model: "gemini-3-pro" }))).resolves.toBeUndefined();
   });
 
   it("answers Unavailable when the availability cannot be read", async () => {
-    const refused = await refusal(stepAnswering(new Error("store down")), turn({ engine: Harness.NATIVE }));
+    const refused = await refusal(stepAnswering(new Error("store down")), turn({ engine: Harness.STIGMER }));
     expect(refused.code).toBe(Code.Unavailable);
     expect(refused.rawMessage).toBe(PROVIDER_AVAILABILITY_UNAVAILABLE_COPY);
   });

@@ -49,12 +49,12 @@ function served(runTurn: HarnessAdapter["runTurn"], yielded = false, inputPendin
     releaseSession: async () => {},
     runTurn,
   };
-  serveAgentHost(hostEnd, [{ harness: "deep-agent", adapter }]);
+  serveAgentHost(hostEnd, [{ harness: "stigmer", adapter }]);
   const runner = new Peer<HostCalls, RunnerCalls, RunnerNotices, HostNotices>(runnerEnd, "runner");
   const call = () =>
     runner.call("runTurn", {
       turnId: "t1",
-      harness: "deep-agent",
+      harness: "stigmer",
       input: encodeTurnInput(turnInputFixture({ artifactStorage: STORE })),
       status: encodeMessage(RunStatusSchema, create(RunStatusSchema)),
       rows: encodeMessage(TurnRowsSchema, create(TurnRowsSchema)),

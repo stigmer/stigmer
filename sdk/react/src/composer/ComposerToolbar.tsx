@@ -176,7 +176,7 @@ export function ComposerToolbar({
 
         {showHarnessSeparate && (
           <HarnessSelector
-            value={harness ?? "native"}
+            value={harness ?? "stigmer"}
             onValueChange={onHarnessChange}
             disabled={disabled}
           />

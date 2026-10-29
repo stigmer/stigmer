@@ -86,7 +86,7 @@ describe("ModelNeedsProvider", () => {
 describe("ConnectProviderPanel", () => {
   it("draws nothing for a provider the server did not report", () => {
     const { container } = render(
-      <ConnectProviderPanel hub={hub([ANTHROPIC_MISSING])} harness="native" provider="mistral" modelName="Mistral Large" />,
+      <ConnectProviderPanel hub={hub([ANTHROPIC_MISSING])} harness="stigmer" provider="mistral" modelName="Mistral Large" />,
     );
 
     expect(container.childElementCount).toBe(0);
@@ -96,7 +96,7 @@ describe("ConnectProviderPanel", () => {
     const { container } = render(
       <ConnectProviderPanel
         hub={hub([ANTHROPIC_MISSING], { models: null })}
-        harness="native"
+        harness="stigmer"
         provider="anthropic"
         modelName="Claude Sonnet 4.6"
       />,

@@ -50,7 +50,7 @@ const SONNET: ModelInfo = {
   shortDescription: "Balanced Claude",
   speedTier: "balanced",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
   thinkingCapable: true,
@@ -63,7 +63,7 @@ const HAIKU: ModelInfo = {
   shortDescription: "Fast Claude",
   speedTier: "fast",
   costTier: "economy",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   thinkingCapable: true,
@@ -76,7 +76,7 @@ const OPUS: ModelInfo = {
   shortDescription: "Deep Claude",
   speedTier: "slow",
   costTier: "premium",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
   thinkingCapable: true,
@@ -140,7 +140,7 @@ function renderComposer(props: ComposerProps = {}) {
   const element = (p: ComposerProps) => (
     <SessionComposer
       onSubmit={onSubmit}
-      harness="native"
+      harness="stigmer"
       agentRunDefaults={AGENT_DEFAULTS}
       {...p}
     />

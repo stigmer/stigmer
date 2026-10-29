@@ -65,7 +65,7 @@ function hostedProbe(arm: "serve" | "stale" = "serve"): { readonly adapter: Harn
     releaseSession: async () => {},
     runTurn: async () => ({ kind: "completed" }),
   };
-  return { adapter: createRemoteAdapter("deep-agent", local, supervisor, proxy), supervisor };
+  return { adapter: createRemoteAdapter("stigmer", local, supervisor, proxy), supervisor };
 }
 
 function startTurn(adapter: HarnessAdapter, message: string): { readonly sink: RecordingTurnSink; readonly settled: Promise<TurnOutcome> } {

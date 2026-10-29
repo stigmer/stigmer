@@ -79,6 +79,7 @@ import type {
   MeteredRunUsage,
   MeteredUsageRow,
 } from "../../extensions/metered-usage.js";
+import { HARNESS_WORDS, harnessName } from "../../modelcatalog/pin-validation.js";
 import { sessionIdOf } from "./target.js";
 
 /** One run with the rows it is counted from. */
@@ -97,24 +98,17 @@ export interface CountedRun {
 // ---------------------------------------------------------------------------
 
 /**
- * A harness as the report names it ("native", "claude"). Claude
- * counts with native's arithmetic: its runner reports normalized usage,
- * as native's does. A number no engine owns is never written (every
- * `harness` field is `enum.defined_only`), so one here is a defect, named
- * rather than counted as another engine's.
+ * A harness as the report names it, its word (harnessName). Claude counts
+ * with the Stigmer harness's arithmetic: its runner reports normalized
+ * usage, as the Stigmer harness's does. A number no engine owns is never
+ * written (every `harness` field is `enum.defined_only`), so one here is a
+ * defect, named rather than counted under a made-up word.
  */
-export function harnessName(harness: Harness): string {
-  switch (harness) {
-    case Harness.CLAUDE:
-      return "claude";
-    case Harness.NATIVE:
-    case Harness.UNSPECIFIED:
-      return "native";
-    default: {
-      const unknown: never = harness;
-      throw new Error(`usage report: harness ${String(unknown)} is not one the proto names`);
-    }
+export function usageHarnessWord(harness: Harness): string {
+  if (harness !== Harness.UNSPECIFIED && !Object.hasOwn(HARNESS_WORDS, harness)) {
+    throw new Error(`usage report: harness ${String(harness)} is not one the proto names`);
   }
+  return harnessName(harness);
 }
 
 /**
@@ -150,7 +144,7 @@ export function runnerReportRows(
     {
       model: usage.model,
       provider: "",
-      harness: harnessName(harness),
+      harness: usageHarnessWord(harness),
       providerKeySource: ProviderKeySource.UNSPECIFIED,
       inputTokens: input,
       outputTokens: output,
@@ -177,7 +171,7 @@ export function countRun(
   workingMillis: number,
 ): CountedRun {
   if (metered !== undefined && metered.rows.length > 0) {
-    const runHarness = harnessName(harness);
+    const runHarness = usageHarnessWord(harness);
     return {
       run,
       rows: metered.rows.map((row) =>

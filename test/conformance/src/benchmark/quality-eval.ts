@@ -30,7 +30,7 @@ import { awaitEvalRunEnd, makeEvalRun } from "../support/eval-runs";
 import { pluginArchive, type PluginFixture } from "../support/plugins";
 import { WORKING_AGENT_FIXTURE_DIR } from "../support/working-agent";
 import { SESSION_HARNESS, type QualityTarget } from "./cells";
-import { ARM_WORD, type QualityEval } from "./report";
+import type { QualityEval } from "./report";
 
 /** The tools every quality try may use beyond its case's read-only list: what a working session edits and runs with. */
 export const QUALITY_ALLOW_TOOLS: readonly string[] = ["Bash", "Edit", "Write", "Task"];
@@ -79,7 +79,7 @@ export async function runQualityEval(
   const quality: QualityEval = {
     plugin: "",
     eval_id: "",
-    targets: targets.map((target) => `${ARM_WORD[target.harness]}/${target.modelRequested}`),
+    targets: targets.map((target) => `${target.harness}/${target.modelRequested}`),
     judge_model: options.judgeModel,
     runs: options.runs,
     document: null,

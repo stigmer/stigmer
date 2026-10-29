@@ -91,7 +91,7 @@ export const STIGMER_RUN_TURN = "stigmer.run.turn";
 /** What started the run, one of {@link RunKind}. */
 export const STIGMER_RUN_KIND = "stigmer.run.kind";
 export const STIGMER_ORGANIZATION = "stigmer.organization";
-/** The engine that ran the turn (`deep-agent`, `claude`). */
+/** The engine that ran the turn (`stigmer`, `claude`). */
 export const STIGMER_HARNESS = "stigmer.harness";
 /** The MCP server a tool belongs to, by its slug in the run. */
 export const STIGMER_MCP_SERVER_NAME = "stigmer.mcp.server_name";

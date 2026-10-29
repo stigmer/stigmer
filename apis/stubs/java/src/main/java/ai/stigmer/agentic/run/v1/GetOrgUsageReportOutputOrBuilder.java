@@ -199,7 +199,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -208,7 +208,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
       getHarnessUsageList();
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -216,7 +216,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
   ai.stigmer.agentic.run.v1.HarnessUsage getHarnessUsage(int index);
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -224,7 +224,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
   int getHarnessUsageCount();
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -233,7 +233,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
       getHarnessUsageOrBuilderList();
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>

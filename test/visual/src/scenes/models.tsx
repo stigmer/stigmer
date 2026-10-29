@@ -143,6 +143,6 @@ export function modelSelectorNotReadyScene(): Drawing {
 function PickerWithReadiness() {
   const { readinessOf } = useModelReadiness(ORG_ID);
   return (
-    <ModelSelector value="claude-sonnet-4.6" onValueChange={inert} initialHarness="native" readinessOf={readinessOf} />
+    <ModelSelector value="claude-sonnet-4.6" onValueChange={inert} initialHarness="stigmer" readinessOf={readinessOf} />
   );
 }

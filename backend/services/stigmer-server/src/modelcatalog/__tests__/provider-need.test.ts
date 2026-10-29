@@ -16,7 +16,7 @@ import {
 } from "../provider-need.js";
 
 const PROVIDERS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  native: {
+  stigmer: {
     "claude-sonnet-4.6": "anthropic",
     "gpt-5.2": "openai",
     "gemini-3-pro": "google",
@@ -29,7 +29,7 @@ const catalog: ProviderNeedCatalog = {
     if (model.startsWith("anthropic:")) return "anthropic";
     return PROVIDERS[harness]?.[model];
   },
-  defaultModel: (harness) => ({ native: "claude-sonnet-4.6", claude: "claude-opus-4.8" })[harness],
+  defaultModel: (harness) => ({ stigmer: "claude-sonnet-4.6", claude: "claude-opus-4.8" })[harness],
 };
 
 describe("providerNeededBy", () => {
@@ -47,21 +47,21 @@ describe("providerNeededBy", () => {
   });
 
   it("a native turn needs its model's provider, or the default model's, on native and unspecified alike", () => {
-    expect(providerNeededBy(Harness.NATIVE, "gpt-5.2", catalog)).toEqual({ provider: "openai", model: "gpt-5.2" });
+    expect(providerNeededBy(Harness.STIGMER, "gpt-5.2", catalog)).toEqual({ provider: "openai", model: "gpt-5.2" });
     expect(providerNeededBy(Harness.UNSPECIFIED, "", catalog)).toEqual({
       provider: "anthropic",
       model: "claude-sonnet-4.6",
     });
-    expect(providerNeededBy(Harness.NATIVE, "openai:my-model", catalog)).toEqual({
+    expect(providerNeededBy(Harness.STIGMER, "openai:my-model", catalog)).toEqual({
       provider: "openai",
       model: "openai:my-model",
     });
   });
 
   it("a native model whose provider is no key slot or is unknown needs nothing judged", () => {
-    expect(providerNeededBy(Harness.NATIVE, "gemini-3-pro", catalog)).toBeUndefined();
-    expect(providerNeededBy(Harness.NATIVE, "no-such-model", catalog)).toBeUndefined();
-    expect(providerNeededBy(Harness.NATIVE, "", { ...catalog, defaultModel: () => undefined })).toBeUndefined();
+    expect(providerNeededBy(Harness.STIGMER, "gemini-3-pro", catalog)).toBeUndefined();
+    expect(providerNeededBy(Harness.STIGMER, "no-such-model", catalog)).toBeUndefined();
+    expect(providerNeededBy(Harness.STIGMER, "", { ...catalog, defaultModel: () => undefined })).toBeUndefined();
   });
 });
 

@@ -35,7 +35,7 @@ const BLIND: ModelInfo = {
   shortDescription: "Text-only economy model",
   speedTier: "fast",
   costTier: "economy",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   visionCapability: false,
@@ -48,7 +48,7 @@ const SIGHTED: ModelInfo = {
   shortDescription: "Fast agentic model",
   speedTier: "fastest",
   costTier: "economy",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   visionCapability: true,
@@ -61,7 +61,7 @@ const UNASSESSED: ModelInfo = {
   shortDescription: "Never capability-assessed",
   speedTier: "fast",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
 };
@@ -79,7 +79,7 @@ function renderSelector() {
       <ModelSelector
         value="claude-sonnet-4-6"
         onValueChange={vi.fn()}
-        harness="native"
+        harness="stigmer"
       />
     </ModelRegistryContext.Provider>,
   );

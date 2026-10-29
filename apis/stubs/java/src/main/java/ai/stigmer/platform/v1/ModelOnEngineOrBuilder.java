@@ -12,7 +12,7 @@ public interface ModelOnEngineOrBuilder extends
 
   /**
    * <pre>
-   * The engine; unspecified is the platform default, native.
+   * The engine; unspecified is the platform default, Stigmer.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -21,7 +21,7 @@ public interface ModelOnEngineOrBuilder extends
   int getHarnessValue();
   /**
    * <pre>
-   * The engine; unspecified is the platform default, native.
+   * The engine; unspecified is the platform default, Stigmer.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>

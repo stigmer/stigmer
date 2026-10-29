@@ -449,7 +449,7 @@ export interface DefaultModelResolution {
 
 /** Each engine's last-resort model, for a registry with no usable row: the native and Claude engines run the same Claude model. */
 const PLATFORM_FALLBACK_MODEL_IDS: Readonly<Record<HarnessOption, string>> = {
-  native: DEFAULT_MODEL_ID,
+  stigmer: DEFAULT_MODEL_ID,
   claude: DEFAULT_MODEL_ID,
 };
 

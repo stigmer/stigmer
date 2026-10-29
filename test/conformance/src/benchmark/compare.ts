@@ -3,8 +3,8 @@
 // script over this module). Domain: conformance benchmark (the readout).
 //
 // An arm is a harness on one model at one endpoint, on one version of the
-// code: native on the report's `models.parity["deep-agent"]` at its
-// `models.native_endpoint`, or Claude on its own entry of `models.parity`,
+// code: native on the report's `models.parity.stigmer` at its
+// `models.stigmer_endpoint`, or Claude on its own entry of `models.parity`,
 // each on the report's `git.code_sha` (the server and runner it booted; the
 // script's `--stack`). One run measures one native model on one version of the code
 // (cells.ts, run.ts), so another model or another version is another report,
@@ -56,7 +56,6 @@ import { summarizeBackground, type BackgroundSummary } from "./background-readin
 import { PARITY_MODEL } from "./cells";
 import { renderRunnerLog } from "./log-markers";
 import {
-  ARM_WORD,
   HARNESSES,
   type BenchmarkComparison,
   type BenchmarkHarness,
@@ -81,7 +80,7 @@ export const COMPARABLE_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const EXPECTED_REFUSALS: ReadonlySet<RefusalReason> = new Set<RefusalReason>([
   "excluded by --only",
   "excluded by --cells",
-  "the native model is pinned by --native-model",
+  "the native model is pinned by --stigmer-model",
   "thinking needs a pinned model",
   "thinking needs a catalog Claude model",
   "runs only when --cells names it",
@@ -168,7 +167,7 @@ interface QualityCase {
 }
 
 /**
- * `native/<model>@<endpoint>#<code>`, with `+background-off` when the
+ * `stigmer/<model>@<endpoint>#<code>`, with `+background-off` when the
  * runner's background commands were off, or `claude/<model>#<code>`; the
  * code as the first ten characters of `git.code_sha`. The endpoint and the
  * background setting are native's alone.
@@ -177,12 +176,12 @@ export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): st
   const code = `#${shortSha(report.git.code_sha)}`;
   const model = report.models.parity[harness];
   switch (harness) {
-    case "deep-agent": {
+    case "stigmer": {
       const off = report.methodology.shell_background === "off" ? "+background-off" : "";
-      return `${ARM_WORD[harness]}/${model}@${report.models.native_endpoint}${code}${off}`;
+      return `${harness}/${model}@${report.models.stigmer_endpoint}${code}${off}`;
     }
     case "claude":
-      return `${ARM_WORD[harness]}/${model}${code}`;
+      return `${harness}/${model}${code}`;
   }
 }
 
@@ -238,13 +237,13 @@ export function assertComparable(reports: readonly ComparedReport[]): void {
 /**
  * Reads every arm against `reference` (an arm label, or a prefix of one that
  * ends where the label's endpoint or code begins or inside its code, when one
- * arm matches; default native on PARITY_MODEL["deep-agent"]).
+ * arm matches; default native on PARITY_MODEL.stigmer).
  */
 export function compareReports(reports: readonly ComparedReport[], reference?: string): ReportComparison {
   assertComparable(reports);
   const arms = poolArms(reports);
   const labels = [...arms.keys()];
-  const referenceLabel = resolveReference(labels, reference ?? `native/${PARITY_MODEL["deep-agent"]}`);
+  const referenceLabel = resolveReference(labels, reference ?? `stigmer/${PARITY_MODEL.stigmer}`);
   const referenceArm = arms.get(referenceLabel)!;
   const readings = labels
     .filter((label) => label !== referenceLabel)
@@ -312,7 +311,7 @@ function sideOf(comparison: BenchmarkComparison, harness: BenchmarkHarness): Ben
 function qualityCases(report: BenchmarkReport, harness: BenchmarkHarness): QualityCase[] | null {
   const document = report.quality?.document;
   if (document === null || document === undefined) return null;
-  const wanted = `${ARM_WORD[harness]}/${report.models.parity[harness]}`;
+  const wanted = `${harness}/${report.models.parity[harness]}`;
   const block = recordOf(arrayOf(document["plugins"])[0]);
   const target = arrayOf(block["targets"]).map(recordOf).find((entry) => entry["label"] === wanted);
   if (target === undefined) return null;
@@ -462,7 +461,7 @@ export function renderComparison(comparison: ReportComparison, reports: readonly
     `Reference: ${comparison.reference}; instrument ${first.git.head_sha.slice(0, 10)}, ${first.methodology.reps} reps, ${first.methodology.quality_reps} quality tries, ${first.host.platform} ${first.host.node}`,
   );
   const costBasis = new Map<string, string>();
-  for (const { report } of reports) costBasis.set(armLabel(report, "deep-agent"), report.models.native_cost_basis);
+  for (const { report } of reports) costBasis.set(armLabel(report, "stigmer"), report.models.stigmer_cost_basis);
   const cost = (label: string, value: number | null): string => {
     if (value === null) return "n/a";
     return `${Math.round(value)}${costBasis.get(label) === "default-rate" ? "*" : ""}`;

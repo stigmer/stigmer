@@ -159,7 +159,7 @@ A run's status carries no transcript. The agent's messages and thinking, its too
 |---|---|---|
 | `id` | `string` | Stable id of the change set, unique per turn; the id the session's `stigmer.file_review.*` events name. |
 | `turn_id` | `string` | The turn that produced the change set. |
-| `harness_id` | `string` | The harness that made the edits: `deep-agent` (Stigmer) or `claude` (Claude Agent). |
+| `harness_id` | `string` | The harness that made the edits: `stigmer` (Stigmer) or `claude` (Claude Agent). |
 | `baseline_snapshot` | `SnapshotRef` | Workspace state at turn start, the "before" of the diff. |
 | `candidate_snapshot` | `SnapshotRef` | Workspace state at the turn boundary, the "after". The diff is computed between the two snapshots. |
 | `changes` | `repeated CapturedFileChange` | One entry per file: `path_before`, `path_after`, `kind`, the contents `before` and `after` (inline, or by storage key when large), their SHA-256 digests, the `unified_diff`, whether the diff is complete, and lines added and removed. |

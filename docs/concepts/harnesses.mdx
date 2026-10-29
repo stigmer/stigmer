@@ -12,7 +12,7 @@ runtime is called a **Harness**.
 
 Stigmer supports two harnesses:
 
-- **Stigmer** (`native`) — Stigmer's own harness: runs any catalog model, open
+- **Stigmer** (`stigmer`) — Stigmer's own harness: runs any catalog model, open
   source end to end, in TypeScript inside the Stigmer runner.
 - **Claude Agent** (`claude`) — Anthropic's Claude Agent SDK, Powered by Claude,
   running Claude models on your Organization's own Anthropic key.
@@ -100,7 +100,7 @@ word is `claude`.
 
 The Harness you choose depends on what your Agent needs to do.
 
-|                              | Stigmer (`native`)                                                                          | Claude Agent (`claude`)                                              |
+|                              | Stigmer (`stigmer`)                                                                         | Claude Agent (`claude`)                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | **Default**                  | Yes                                                                                         | No — must be explicitly selected                                     |
 | **Model availability**       | The catalog's Stigmer models, and your own endpoint's (`openai:<name>`, `anthropic:<name>`) | Claude models only                                                   |
@@ -133,7 +133,7 @@ approval flows, usage tracking, cost caps) works the same regardless of Harness.
 flowchart LR
   S["Session"] --> R["run"]
   R --> D{Harness?}
-  D -->|native| EG["Stigmer harness"]
+  D -->|stigmer| EG["Stigmer harness"]
   D -->|claude| EA["Claude Agent SDK"]
   EG --> P["Streaming / HITL / Usage"]
   EA --> P
@@ -160,7 +160,7 @@ const session = await client.session.create({
   org: "acme",
   subject: "Q3 variance review",
   agentRef: { org: "acme", slug: "variance-reporter" },
-  harness: Harness.CLAUDE, // or Harness.NATIVE
+  harness: Harness.CLAUDE, // or Harness.STIGMER
 });
 ```
 
@@ -173,7 +173,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
     Org:      "acme",
     Subject:  "Q3 variance review",
     AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"},
-    Harness:  sessionv1.Harness_HARNESS_CLAUDE, // or Harness_HARNESS_NATIVE
+    Harness:  sessionv1.Harness_HARNESS_CLAUDE, // or Harness_HARNESS_STIGMER
 })
 ```
 
@@ -182,7 +182,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
 
 In the web console, the model picker names the Harness beside the model: choose
 Claude Agent there and the picker lists its Claude models. On the CLI,
-`--harness claude` starts a Session on Claude Agent, and `--harness native` on
+`--harness claude` starts a Session on Claude Agent, and `--harness stigmer` on
 Stigmer's own harness.
 
 ## Cost considerations

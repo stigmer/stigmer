@@ -347,7 +347,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage> harnessUsage_;
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -358,7 +358,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -370,7 +370,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -381,7 +381,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -392,7 +392,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Usage split by execution harness (e.g., "native" vs "claude").
+   * Usage split by execution harness (e.g., "stigmer" vs "claude").
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2349,7 +2349,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2363,7 +2363,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2377,7 +2377,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2391,7 +2391,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2412,7 +2412,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2430,7 +2430,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2450,7 +2450,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2471,7 +2471,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2489,7 +2489,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2507,7 +2507,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2526,7 +2526,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2543,7 +2543,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2560,7 +2560,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2571,7 +2571,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2585,7 +2585,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2600,7 +2600,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2611,7 +2611,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
@@ -2623,7 +2623,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Usage split by execution harness (e.g., "native" vs "claude").
+     * Usage split by execution harness (e.g., "stigmer" vs "claude").
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>

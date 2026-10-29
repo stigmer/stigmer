@@ -44,7 +44,7 @@ export type ThinkingFlag = "" | "disabled" | "enabled";
 /**
  * The `--harness` flag's value space (oss#293): empty means unset — the
  * account preference may fill it (see {@link prepareAgentExec}), and when
- * nothing resolves the server defaults the session to native. Exactly the
+ * nothing resolves the server defaults the session to stigmer. Exactly the
  * engines the platform offers (`engines.ts`), mirroring the proto
  * validation on `IdentityAccountPreferences.default_harness`.
  */
@@ -106,10 +106,10 @@ export interface PreparedRun {
   readonly thinking: ThinkingFlag;
   /**
    * The RESOLVED harness for the new session: the explicit flag; else ""
-   * when `--model` names a model alone (the server reads it on native);
+   * when `--model` names a model alone (the server reads it on stigmer);
    * else the engine the agent names, else the account preference (when the
    * caller opted in), else "" — which stays off the wire so the server
-   * default (native) applies. Also drives the header's
+   * default (stigmer) applies. Also drives the header's
    * visibility row: a Claude session is never entered silently.
    */
   readonly harness: HarnessFlag;
@@ -166,7 +166,7 @@ export async function prepareAgentExec(
   // account preference (where the server serves identity accounts) >
   // platform default. Harness resolves first because the model
   // fill is harness-aware: a session fills from its engine's own default
-  // model (native's when no engine resolves). `run` always creates a NEW
+  // model (stigmer's when no engine resolves). `run` always creates a NEW
   // session (threading lives in `resume`, which does not pass through
   // here), so neither fill can ever contradict an existing session's
   // immutable harness. One whoAmI round trip serves both fills, and it is
@@ -179,7 +179,7 @@ export async function prepareAgentExec(
     (flags.harness === "" || flags.harness === agentHarness) &&
     (options?.agentSpec?.runConfig?.modelName ?? "") !== "";
   // A --model with no --harness names no engine: the server starts the
-  // conversation on native, the engine a model named alone is read on, so
+  // conversation on stigmer, the engine a model named alone is read on, so
   // neither the agent's engine nor the account's is filled in under it.
   const modelNamesEngine = flags.model !== "" && flags.harness === "";
   const wantsHarnessFill =
@@ -198,7 +198,7 @@ export async function prepareAgentExec(
         : agentHarness !== ""
           ? agentHarness
           : accountDefaults.harness;
-  const model = wantsModelFill ? accountDefaults.models[harness === "" ? "native" : harness] : flags.model;
+  const model = wantsModelFill ? accountDefaults.models[harness === "" ? "stigmer" : harness] : flags.model;
 
   const resources = parseWorkspaceResources(
     flags.workspace,
@@ -246,7 +246,7 @@ interface AccountExecutionDefaults {
 
 const NO_ACCOUNT_DEFAULTS: AccountExecutionDefaults = {
   harness: "",
-  models: { native: "", claude: "" },
+  models: { stigmer: "", claude: "" },
 };
 
 /**
@@ -327,7 +327,7 @@ export function validateThinking(mode: string): asserts mode is ThinkingFlag {
 
 /**
  * Validate the `--harness` flag. Empty means "use default": the account
- * preference when the caller opted in, else the platform default (native).
+ * preference when the caller opted in, else the platform default (stigmer).
  * Only the offered engines are accepted (`engines.ts`): another name has no
  * proto mapping, so rejecting it here is honest, and this check catches
  * spelling errors before a network round trip.

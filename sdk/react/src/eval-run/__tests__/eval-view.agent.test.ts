@@ -114,7 +114,7 @@ describe("the Run evals form on an agent", () => {
         ...evalFormForAgent(ATTACHED),
         caseSources: ["linter"],
         caseModels: false,
-        targets: [{ harness: "native", modelName: "gpt-5" }],
+        targets: [{ harness: "stigmer", modelName: "gpt-5" }],
         caseGlob: " review-* ",
         caseTags: parseCaseTags("smoke, , fast"),
       },
@@ -122,7 +122,7 @@ describe("the Run evals form on an agent", () => {
     );
     expect(input).toMatchObject({
       cases: [{ plugin: { org: "org_acme", slug: "linter" } }],
-      targets: [{ harness: Harness.NATIVE, modelName: "gpt-5" }],
+      targets: [{ harness: Harness.STIGMER, modelName: "gpt-5" }],
       caseGlob: "review-*",
       caseTags: ["smoke", "fast"],
     });
@@ -212,7 +212,7 @@ describe("an eval run about an agent: its label and sections", () => {
       ["linter", "no eval cases at this version"],
     ]);
     const [thermos] = sections;
-    expect(thermos!.labels).toEqual(["native/claude-sonnet-4-6"]);
+    expect(thermos!.labels).toEqual(["stigmer/claude-sonnet-4-6"]);
     expect(thermos!.rows[0]!.cells[0]).toMatchObject({
       withScore: 1,
       withoutScore: undefined,
@@ -249,7 +249,7 @@ describe("an eval run with Evals about an agent", () => {
       compared: false,
       casesPassed: 0,
       casesTotal: 1,
-      labels: ["native/claude-sonnet-4-6"],
+      labels: ["stigmer/claude-sonnet-4-6"],
     });
     expect(sections[1]!.rows.map((row) => row.name)).toEqual(["refund-window"]);
   });

@@ -107,8 +107,8 @@ function mockRegistry(): void {
     ok: true,
     json: () => Promise.resolve({
       models: [
-        { id: "claude-sonnet-4-6", provider: "anthropic", harness: "native" },
-        { id: "claude-haiku-4.5", provider: "anthropic", harness: "native" },
+        { id: "claude-sonnet-4-6", provider: "anthropic", harness: "stigmer" },
+        { id: "claude-haiku-4.5", provider: "anthropic", harness: "stigmer" },
         { id: "claude-opus-5", provider: "anthropic", harness: "claude" },
       ],
     }),

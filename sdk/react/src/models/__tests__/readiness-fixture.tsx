@@ -65,8 +65,8 @@ function registryModel(id: string, displayName: string, provider: string, harnes
 export const REGISTRY: ModelRegistryState = {
   models: parseRegistryJson({
     models: [
-      registryModel("claude-sonnet-4.6", "Claude Sonnet 4.6", "anthropic", "native"),
-      registryModel("gpt-5", "GPT-5", "openai", "native"),
+      registryModel("claude-sonnet-4.6", "Claude Sonnet 4.6", "anthropic", "stigmer"),
+      registryModel("gpt-5", "GPT-5", "openai", "stigmer"),
       registryModel("claude-sonnet-5", "Claude Sonnet 5", "anthropic", "claude"),
     ],
   }),
@@ -77,8 +77,8 @@ export const REGISTRY: ModelRegistryState = {
 
 /** Every model the registry lists, with the provider it needs, as the server judges them. */
 const CATALOG = [
-  { harness: Harness.NATIVE, model: "claude-sonnet-4.6", provider: "anthropic" },
-  { harness: Harness.NATIVE, model: "gpt-5", provider: "openai" },
+  { harness: Harness.STIGMER, model: "claude-sonnet-4.6", provider: "anthropic" },
+  { harness: Harness.STIGMER, model: "gpt-5", provider: "openai" },
   { harness: Harness.CLAUDE, model: "claude-sonnet-5", provider: "anthropic" },
 ] as const;
 
@@ -121,7 +121,7 @@ export const NOTHING_CONNECTED_BESIDE_UNJUDGED = create(GetModelReadinessOutputS
   models: [
     ...NOTHING_CONNECTED.models,
     create(ModelReadinessSchema, {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       model: "qwen2.5-coder:7b",
       provider: "",
       availability: ProviderAvailability.availability_unknown,
@@ -169,7 +169,7 @@ export function storedKey(
 
 export const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
   metadata: { id: "ia-1", name: "Ada", slug: "ada", org: ORG_ID, etag: "e1" },
-  spec: { idpId: "auth0|ada", preferences: { defaultNativeModel: "", defaultClaudeModel: "" } },
+  spec: { idpId: "auth0|ada", preferences: { defaultStigmerModel: "", defaultClaudeModel: "" } },
 });
 
 /** What the fake server answers; a test changes `readiness` (and `keys`) to say what a save changed. */

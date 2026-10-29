@@ -400,7 +400,7 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
       const workspace = await GitWorkspace.create();
       fixtures.defer(() => workspace.cleanup());
       const sessionId = await newSession(org, {
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         localWorkspaces: [{ name: "repo", path: workspace.dir }],
         fileReview,
       });

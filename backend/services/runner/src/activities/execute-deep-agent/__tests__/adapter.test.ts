@@ -50,9 +50,9 @@ const CONFIG: Config = {
 describe("createDeepAgentAdapter", () => {
   it("declares its identity and the native capability flags", () => {
     const adapter = createDeepAgentAdapter();
-    expect(adapter.name).toBe("deep-agent");
+    expect(adapter.name).toBe("stigmer");
     expect(adapter.capabilities).toBe(DEEP_AGENT_CAPABILITIES);
-    expect(adapter.capabilities.harness).toBe(Harness.NATIVE);
+    expect(adapter.capabilities.harness).toBe(Harness.STIGMER);
   });
 
   it("refuses a turn before boot, loudly", async () => {

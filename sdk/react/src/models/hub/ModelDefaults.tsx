@@ -33,7 +33,7 @@ export interface ModelDefaultsProps {
 
 /**
  * The person's default model on each engine, saved to their account
- * (`default_native_model`, `default_claude_model`) the moment a row
+ * (`default_stigmer_model`, `default_claude_model`) the moment a row
  * changes, with whether each model can run here. A new conversation starts
  * on the default of the engine it runs; a pick in the composer wins for
  * that conversation.

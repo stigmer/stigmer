@@ -859,11 +859,11 @@ IdentityAccountPreferences holds user-declared defaults that apply to the user's
 <TypeTable
   type={{
     standingContext: { type: "string", description: "Free-text standing context injected into this user's eligible agent runs." },
-    defaultHarness: { type: "string", description: "Default harness for new sessions: \"native\" or \"claude\"." },
-    defaultNativeModel: { type: "string", description: "Default model (registry model ID) for native-harness sessions." },
+    defaultHarness: { type: "string", description: "Default harness for new sessions: \"stigmer\" or \"claude\"." },
+    defaultStigmerModel: { type: "string", description: "Default model (registry model ID) for Stigmer-harness sessions." },
     memoryEnabled: { type: "boolean", description: "Whether the platform may remember confirmed facts about this account." },
     defaultAutoApprove: { type: "boolean", description: "Whether new interactive sessions start with \"auto-approve tool calls\" armed." },
-    defaultClaudeModel: { type: "string", description: "Default model (registry model ID) for claude-harness sessions." },
+    defaultClaudeModel: { type: "string", description: "Default model (registry model ID) for Claude Agent sessions." },
   }}
 />
 

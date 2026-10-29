@@ -108,7 +108,7 @@ describe("Run — the settings a turn runs with", () => {
   it("[rpc:RunCommandController.create] runs the agent's default model when the message names none, and records it", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: { modelName: AGENT_MODEL, maxCostUsd: 2 },
     });
 
@@ -124,7 +124,7 @@ describe("Run — the settings a turn runs with", () => {
   it("[rpc:RunCommandController.create] a message's model wins for that message, and a message cannot raise the agent's cap", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: { modelName: AGENT_MODEL, maxCostUsd: 2 },
     });
 
@@ -142,7 +142,7 @@ describe("Run — the settings a turn runs with", () => {
   it("[rpc:RunCommandController.create] a message turns the agent's thinking off for the agent's model", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
@@ -163,7 +163,7 @@ describe("Run — the settings a turn runs with", () => {
       runConfig: { modelName: "claude-sonnet-5", maxCostUsd: 1 },
     });
 
-    const final = await turn({ org, agentRef: agentRefOf(agent), sessionSpec: { harness: Harness.NATIVE } });
+    const final = await turn({ org, agentRef: agentRefOf(agent), sessionSpec: { harness: Harness.STIGMER } });
 
     expect(final.status?.runConfig?.modelName).toBe("");
     expect(final.status?.runConfig?.maxCostUsd).toBe(1);
@@ -172,7 +172,7 @@ describe("Run — the settings a turn runs with", () => {
   it("[rpc:RunCommandController.create] a conversation keeps its version's defaults after the author saves another", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await agentWithDefaults(org, {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: { modelName: AGENT_MODEL },
     });
     const first = await turn({ org, agentRef: agentRefOf(agent) });
@@ -182,7 +182,7 @@ describe("Run — the settings a turn runs with", () => {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id, name, slug, org },
-      spec: makeAgentSpec({ harness: Harness.NATIVE, runConfig: { modelName: MESSAGE_MODEL } }),
+      spec: makeAgentSpec({ harness: Harness.STIGMER, runConfig: { modelName: MESSAGE_MODEL } }),
     }, updateMask: { paths: ["*"] } });
     const second = await turn({ org, sessionId: sessionIdOf(first) });
 

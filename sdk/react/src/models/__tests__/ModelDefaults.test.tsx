@@ -72,7 +72,7 @@ describe("ModelDefaults", () => {
   it("keeps a saved model the registry no longer lists legible as an unavailable option", async () => {
     const stale = create(IdentityAccountSchema, {
       metadata: { id: "ia-1", etag: "e1" },
-      spec: { preferences: { defaultNativeModel: "retired-model" } },
+      spec: { preferences: { defaultStigmerModel: "retired-model" } },
     });
     renderDefaults(stale);
 

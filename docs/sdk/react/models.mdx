@@ -46,7 +46,7 @@ function useModelReadiness(org: string | null): UseModelReadinessReturn
 
 ```tsx
 const { readinessOf } = useModelReadiness(org);
-const needsKey = readinessOf("native", "claude-sonnet-4-6")?.availability.state === "missing";
+const needsKey = readinessOf("stigmer", "claude-sonnet-4-6")?.availability.state === "missing";
 ```
 
 
@@ -87,7 +87,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
     defaultModel: { type: "ModelInfo | undefined", description: "The platform default model for the current mode. `undefined` while the registry is loading." },
     error: { type: "Error | null", description: "Non-null if the API fetch failed. Models will be empty in this case." },
     featured: { type: "readonly ModelInfo[]", description: "Curated subset of models marked as `featured` in the registry." },
-    getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"native/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
+    getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"stigmer/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
     getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under several harnesses (e.g. `claude-sonnet-5` on native and on claude). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
     isLoading: { type: "boolean", description: "`true` while the model registry is being fetched from the API." },
     models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
@@ -102,7 +102,7 @@ function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryRe
 const { featured, models, getByKey, isLoading } = useModelRegistry();
 
 // Legacy single-harness mode
-const { models, defaultModel } = useModelRegistry({ harness: "native" });
+const { models, defaultModel } = useModelRegistry({ harness: "stigmer" });
 ```
 
 
@@ -157,7 +157,7 @@ composer comes back with Send enabled.
 Compact segmented control for choosing the session harness.
 
 Renders one mutually exclusive option per offered harness — "Stigmer"
-(`native`) and "Claude Agent" (`claude`) — as adjacent pill segments.
+(`stigmer`) and "Claude Agent" (`claude`) — as adjacent pill segments.
 
 Built as a `radiogroup` with full arrow-key navigation and ARIA
 semantics. All visual properties flow through `--stgm-*` tokens.
@@ -178,7 +178,7 @@ Platform builders who need different rendering use
 
 ```tsx
 function LauncherToolbar() {
-  const [harness, setHarness] = useState<HarnessOption>("native");
+  const [harness, setHarness] = useState<HarnessOption>("stigmer");
 
   return <HarnessSelector value={harness} onValueChange={setHarness} />;
 }
@@ -188,7 +188,7 @@ function LauncherToolbar() {
 ### ModelDefaults
 
 The person's default model on each engine, saved to their account
-(`default_native_model`, `default_claude_model`) the moment a row
+(`default_stigmer_model`, `default_claude_model`) the moment a row
 changes, with whether each model can run here. A new conversation starts
 on the default of the engine it runs; a pick in the composer wins for
 that conversation.
@@ -392,7 +392,7 @@ Pricing bracket for a model.
 
 ### DEFAULT_HARNESS
 
-Platform default — resolves to the Stigmer harness (`"native"`).
+Platform default — resolves to the Stigmer harness (`"stigmer"`).
 
 
 ### DEFAULT_MODEL_ID
@@ -437,7 +437,7 @@ function fetchModelRegistryDocument(apiUrl: string, token: string | null, custom
 
 Convert a proto `Harness` enum to a [`HarnessOption`](#harnessoption) string.
 
-`UNSPECIFIED` and any unknown values map to `"native"`.
+`UNSPECIFIED` and any unknown values map to `"stigmer"`.
 
 ```tsx
 function fromProtoHarness(h: Harness): HarnessOption
@@ -769,7 +769,7 @@ Options for [`useModelRegistry`](#usemodelregistry).
 
 <TypeTable
   type={{
-    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"native\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
+    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"stigmer\"`, `\"claude\"` — only that harness's models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from every harness", typeDescriptionLink: "#harnessoption" },
   }}
 />
 

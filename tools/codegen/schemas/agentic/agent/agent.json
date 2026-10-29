@@ -128,11 +128,11 @@
         "kind": "string",
         "enumType": "ai.stigmer.agentic.session.v1.Harness",
         "enumValues": [
-          "HARNESS_NATIVE",
+          "HARNESS_STIGMER",
           "HARNESS_CLAUDE"
         ]
       },
-      "description": "The harness this agent's run defaults were chosen for, and the harness a\n new conversation on this agent starts on when the person, routine or\n channel starting it names neither a harness nor a model (a turn that names\n a model but no harness starts on native, the harness its name was checked\n against). Unspecified: the platform's default harness (native, Stigmer).\n\n Model names belong to a harness (each lists its own), so run_config's\n model, tier and thinking count only on this harness. A conversation keeps\n the harness it started on; a later version naming another harness changes\n only new conversations.",
+      "description": "The harness this agent's run defaults were chosen for, and the harness a\n new conversation on this agent starts on when the person, routine or\n channel starting it names neither a harness nor a model (a turn that names\n a model but no harness starts on Stigmer, the harness its name was checked\n against). Unspecified: the platform's default harness, Stigmer.\n\n Model names belong to a harness (each lists its own), so run_config's\n model, tier and thinking count only on this harness. A conversation keeps\n the harness it started on; a later version naming another harness changes\n only new conversations.",
       "required": false
     },
     {

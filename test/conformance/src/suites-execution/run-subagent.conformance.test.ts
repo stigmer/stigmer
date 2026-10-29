@@ -247,12 +247,12 @@ describe("Run — a subagent runs its own definition", () => {
         {
           name: uniqueName("researcher"),
           instructions: "You research what you are asked with your tools and report in one sentence.",
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
           runConfig: { modelName: SUBAGENT_MODEL },
           plugins: [plugin.metadata!.slug],
         },
       ],
-      { harness: Harness.NATIVE, runConfig: { modelName: PARENT_MODEL }, disallowedTools: ["Bash"] },
+      { harness: Harness.STIGMER, runConfig: { modelName: PARENT_MODEL }, disallowedTools: ["Bash"] },
     );
     const name = subagents[0]!.metadata!.slug;
 
@@ -348,7 +348,7 @@ describe("Run — a subagent runs its own definition", () => {
         org,
         name: uniqueName("parent-desk"),
         plugins: [plugin.metadata!.slug],
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: { modelName: PARENT_MODEL },
       }),
     );

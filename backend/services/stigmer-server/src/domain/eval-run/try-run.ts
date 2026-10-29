@@ -459,7 +459,7 @@ export function trySessionRequest(input: {
     spec: create(SessionSpecSchema, {
       subject: input.caseName,
       harness:
-        input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
+        input.harness === Harness.UNSPECIFIED ? Harness.STIGMER : input.harness,
       ...(input.attachment.agentRef === undefined ? {} : { agentRef: input.attachment.agentRef }),
       plugins: [...input.attachment.plugins],
     }),
@@ -552,7 +552,7 @@ export function voteSessionRequest(input: {
     }),
     spec: create(SessionSpecSchema, {
       subject: JUDGE_SESSION_SUBJECT,
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
     }),
   });
 }

@@ -20,7 +20,7 @@ describe("renderResource — run settings in the human view", () => {
     const agent = create(AgentSchema, {
       metadata: { id: "agt_1", name: "Reviewer", slug: "reviewer" },
       spec: {
-        harness: Harness.NATIVE,
+        harness: Harness.STIGMER,
         runConfig: {
           modelName: "claude-sonnet-4-6",
           serviceTier: ServiceTier.FAST,
@@ -33,7 +33,7 @@ describe("renderResource — run settings in the human view", () => {
     });
 
     const out = renderResource(AgentSchema, agent, "table", { hideOrg: true });
-    expect(out).toMatch(/Harness:\s+native/);
+    expect(out).toMatch(/Harness:\s+stigmer/);
     expect(out).toMatch(/Model:\s+claude-sonnet-4-6/);
     expect(out).toMatch(/Speed tier:\s+fast/);
     expect(out).toMatch(/Thinking:\s+enabled/);

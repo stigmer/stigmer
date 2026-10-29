@@ -26,7 +26,7 @@ spec:
   subagents: []
   hooks: []
   env: {}
-  harness: HARNESS_NATIVE
+  harness: HARNESS_STIGMER
   run_config: {}
 status: {}  # System-managed, never set by users
 ```
@@ -106,7 +106,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
 | `spec.env` | No | The keys the agent needs, each with a description and whether it is secret; values come from vaults at run time. See [Declared Keys](#declared-keys). |
-| `spec.harness` | No | The harness (`HARNESS_NATIVE`, Stigmer, or `HARNESS_CLAUDE`, Claude Agent) the run defaults were chosen for, and the harness a new conversation on this agent starts on when nobody names a harness or a model (a turn naming a model but no harness starts on Stigmer). Unspecified: Stigmer. See [Run Defaults](#run-defaults). |
+| `spec.harness` | No | The harness (`HARNESS_STIGMER`, Stigmer, or `HARNESS_CLAUDE`, Claude Agent) the run defaults were chosen for, and the harness a new conversation on this agent starts on when nobody names a harness or a model (a turn naming a model but no harness starts on Stigmer). Unspecified: Stigmer. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
 ## Hooks
@@ -184,7 +184,7 @@ Which vaults a run reads: the My vault of the person sending the turn when the c
 
 ```yaml
 spec:
-  harness: HARNESS_NATIVE
+  harness: HARNESS_STIGMER
   run_config:
     model_name: claude-sonnet-4.5
     thinking_mode: THINKING_MODE_ENABLED

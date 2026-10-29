@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private int harness_ = 0;
   /**
    * <pre>
-   * The engine; unspecified is the platform default, native.
+   * The engine; unspecified is the platform default, Stigmer.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -69,7 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The engine; unspecified is the platform default, native.
+   * The engine; unspecified is the platform default, Stigmer.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -450,7 +450,7 @@ private static final long serialVersionUID = 0L;
     private int harness_ = 0;
     /**
      * <pre>
-     * The engine; unspecified is the platform default, native.
+     * The engine; unspecified is the platform default, Stigmer.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -461,7 +461,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine; unspecified is the platform default, native.
+     * The engine; unspecified is the platform default, Stigmer.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -477,7 +477,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine; unspecified is the platform default, native.
+     * The engine; unspecified is the platform default, Stigmer.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -490,7 +490,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine; unspecified is the platform default, native.
+     * The engine; unspecified is the platform default, Stigmer.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>
@@ -506,7 +506,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The engine; unspecified is the platform default, native.
+     * The engine; unspecified is the platform default, Stigmer.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness"];</code>

@@ -172,6 +172,8 @@ import {
   SCHEMA_VERSION_39,
   SCHEMA_VERSION_40,
   SCHEMA_VERSION_41,
+  SCHEMA_VERSION_44,
+  SCHEMA_VERSION_45,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -194,6 +196,7 @@ import {
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
+import { HARNESS_WORD_PAGE_SIZE } from "../../harness-word-renamed.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
 import { etagOf, stampEtag, storedEtagOf } from "../../etag.js";
 import { EVAL_KINDS_RETIRED_PAGE_SIZE } from "../../eval-kinds-retired.js";
@@ -5287,6 +5290,125 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             `SELECT run_id FROM output_conversions WHERE run_id LIKE 'run_page%' ORDER BY run_id COLLATE "C"`,
           );
           expect(lifted.rows.map((row) => row.run_id)).toEqual(ids);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v45: an account's stored default harness takes the word the platform takes now", () => {
+      const storedAt = new Date("2026-10-29T00:00:00Z");
+
+      /** A stored identity account whose default harness is `word`, stamped as a write stamps it. */
+      function accountRow(id: string, word: string): Buffer {
+        const account = create(IdentityAccountSchema, {
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "IdentityAccount",
+          metadata: { id, org: "org_1", slug: id, name: id },
+          spec: { idpId: `auth0|${id}`, preferences: { defaultHarness: word, memoryEnabled: true } },
+        });
+        stampEtag(IdentityAccountSchema, account);
+        return Buffer.from(toBinary(IdentityAccountSchema, account));
+      }
+
+      /** A v44 database holding one account per stored word, and a client on it. */
+      async function v44Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_44);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        for (const [id, word] of [
+          ["ida_native", "native"],
+          ["ida_cursor", "cursor"],
+          ["ida_stigmer", "stigmer"],
+          ["ida_claude", "claude"],
+          ["ida_none", ""],
+        ] as const) {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', $1, $2, $3)`, [
+            id,
+            accountRow(id, word),
+            storedAt,
+          ]);
+        }
+        return client;
+      }
+
+      async function stored(client: pg.Client, id: string): Promise<{ data: Uint8Array; updatedAt: number }> {
+        const row = (
+          await client.query<{ data: Buffer; updated_at: Date }>(`SELECT data, updated_at FROM resources WHERE id = $1`, [id])
+        ).rows[0]!;
+        return { data: new Uint8Array(row.data), updatedAt: row.updated_at.getTime() };
+      }
+
+      async function defaultOf(client: pg.Client, id: string): Promise<{ word: string; etagFresh: boolean; updatedAt: number }> {
+        const row = await stored(client, id);
+        const account = fromBinary(IdentityAccountSchema, row.data);
+        return {
+          word: account.spec?.preferences?.defaultHarness ?? "",
+          etagFresh: storedEtagOf(IdentityAccountSchema, account) === etagOf(IdentityAccountSchema, account),
+          updatedAt: row.updatedAt,
+        };
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      it("rewrites native to stigmer and clears cursor, stamps them again, and leaves every other account and updated_at alone", async () => {
+        const client = await v44Client();
+        try {
+          const before = new Map<string, Uint8Array>();
+          for (const id of ["ida_stigmer", "ida_claude", "ida_none"]) {
+            before.set(id, (await stored(client, id)).data);
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_45);
+          expect(await version(client)).toBe(SCHEMA_VERSION_45);
+
+          expect(await defaultOf(client, "ida_native")).toEqual({ word: "stigmer", etagFresh: true, updatedAt: storedAt.getTime() });
+          expect(await defaultOf(client, "ida_cursor")).toEqual({ word: "", etagFresh: true, updatedAt: storedAt.getTime() });
+          for (const [id, bytes] of before) {
+            expect((await stored(client, id)).data, id).toEqual(bytes);
+          }
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("an account that does not decode fails the step, names the row, and leaves the database at v44", async () => {
+        const client = await v44Client();
+        try {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', 'ida_broken', $1, now())`, [
+            Buffer.from([0xff, 0xff, 0xff]),
+          ]);
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_45)).rejects.toThrow(
+            "identity_account 'ida_broken' cannot be read to rewrite its default harness",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_44);
+          expect((await defaultOf(client, "ida_native")).word).toBe("native");
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads accounts across keyset pages, missing none past the first page", async () => {
+        const client = await v44Client();
+        try {
+          const ids: string[] = [];
+          for (let i = 0; i <= HARNESS_WORD_PAGE_SIZE; i++) {
+            const id = `ida_page${String(i).padStart(4, "0")}`;
+            ids.push(id);
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('identity_account', $1, $2, $3)`, [
+              id,
+              accountRow(id, "native"),
+              storedAt,
+            ]);
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_45);
+          const missed: string[] = [];
+          for (const id of ids) {
+            if ((await defaultOf(client, id)).word !== "stigmer") missed.push(id);
+          }
+          expect(missed).toEqual([]);
         } finally {
           await client.end();
         }

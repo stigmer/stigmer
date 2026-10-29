@@ -51,7 +51,7 @@ import { runTurnActivity } from "./run-turn.js";
 import type { HarnessAdapter } from "./types.js";
 
 /** The harnesses the control plane can dispatch to, as the registry knows them. */
-export type HarnessName = "deep-agent" | "claude";
+export type HarnessName = "stigmer" | "claude";
 
 /**
  * The Temporal activity name each harness answers to. The names are
@@ -61,7 +61,7 @@ export type HarnessName = "deep-agent" | "claude";
  * with its adapter row, since only a row is ever looked up.
  */
 export const HARNESS_ACTIVITY_NAMES = {
-  "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  stigmer: EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
   claude: EXECUTE_CLAUDE_ACTIVITY_NAME,
 } as const satisfies Record<HarnessName, string>;
 

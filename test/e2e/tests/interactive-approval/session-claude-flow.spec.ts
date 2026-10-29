@@ -81,7 +81,7 @@ test.describe("A conversation on Claude (deterministic mock LLM)", () => {
 
       // A conversation that has run keeps its engine.
       const ran = await stigmerClient.session.get(sessionId);
-      ran.spec!.harness = Harness.NATIVE;
+      ran.spec!.harness = Harness.STIGMER;
       const moved = await stigmerClient.session.update(ran, ["spec.harness"]).then(
         () => undefined,
         (error: unknown) => error,

@@ -134,7 +134,7 @@ export async function seedGatedSession(
     name: `e2e-approval-session-${stamp}`,
     org,
     agentRef: { org, slug: agent.metadata!.slug },
-    harness: Harness.NATIVE,
+    harness: Harness.STIGMER,
     fileReview: true,
   });
   const sessionId = session.metadata!.id;
@@ -260,7 +260,7 @@ export async function seedToolRunSession(
     name: `e2e-toolrun-session-${stamp}`,
     org,
     agentRef: { org, slug: agent.metadata!.slug },
-    harness: Harness.NATIVE,
+    harness: Harness.STIGMER,
     fileReview: true,
   });
   const sessionId = session.metadata!.id;

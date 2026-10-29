@@ -99,7 +99,7 @@ export interface ResultCase {
 
 /** One engine and model, with its cases. */
 export interface ResultTarget {
-  /** `native` or `claude`. */
+  /** `stigmer` or `claude`. */
   readonly harness: string;
   /** The catalog model id; empty for the engine's default model. */
   readonly model: string;
@@ -333,19 +333,19 @@ export function resultBlockOf(
   };
 }
 
-/** A target as the CLI's `--model` takes it: `native/claude-sonnet-4-6`, or `native/default`. */
+/** A target as the CLI's `--model` takes it: `stigmer/claude-sonnet-4-6`, or `stigmer/default`. */
 export function evalRunTargetLabel(target: EvalRunTarget | undefined): string {
   return `${harnessName(target?.harness ?? Harness.UNSPECIFIED)}/${target?.modelName || "default"}`;
 }
 
-/** The engine's word: `native` (also for unspecified, the platform's default) or `claude`. */
+/** The engine's word: `stigmer` (also for unspecified, the platform's default) or `claude`. */
 function harnessName(harness: Harness): string {
   switch (harness) {
     case Harness.CLAUDE:
       return "claude";
-    case Harness.NATIVE:
+    case Harness.STIGMER:
     case Harness.UNSPECIFIED:
-      return "native";
+      return "stigmer";
     default: {
       const exhaustive: never = harness;
       return String(exhaustive);

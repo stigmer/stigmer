@@ -398,7 +398,7 @@ describe("start-try", () => {
       [EVAL_RUN_LABEL]: EVAL_ID,
     });
     expect(session.session.spec?.subject).toBe("first-case");
-    expect(session.session.spec?.harness).toBe(Harness.NATIVE);
+    expect(session.session.spec?.harness).toBe(Harness.STIGMER);
     expect(session.session.spec?.agentRef).toBeUndefined();
     expect(session.session.spec?.plugins).toHaveLength(1);
     expect(session.session.spec?.plugins[0]).toMatchObject({

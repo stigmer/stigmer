@@ -415,7 +415,7 @@ export async function invokeAgentExecution(
     const harness: Harness = input.harness ?? Harness.UNSPECIFIED;
     switch (harness) {
       case Harness.UNSPECIFIED:
-      case Harness.NATIVE:
+      case Harness.STIGMER:
         await executeDeterministicStateFlow(
           input,
           EXECUTE_DEEP_AGENT_ACTIVITY_NAME,

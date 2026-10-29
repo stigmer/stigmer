@@ -403,7 +403,7 @@ describe("createAgentRun", () => {
   });
 
   it("stamps an explicit native harness rather than leaving it unspecified", async () => {
-    // "native" may be a deliberate per-run escape from the account's
+    // "stigmer" may be a deliberate per-run escape from the account's
     // default_harness preference — it must survive on the wire so it beats
     // any future change to the server-side default.
     const { fn } = fakeController();
@@ -422,9 +422,9 @@ describe("createAgentRun", () => {
       serviceTier: "",
       thinking: "",
       autoApproveAll: false,
-      harness: "native",
+      harness: "stigmer",
     });
-    expect(sessionSpecOf(exec)?.harness).toBe(Harness.NATIVE);
+    expect(sessionSpecOf(exec)?.harness).toBe(Harness.STIGMER);
   });
 
   it("carries harness and resources together on one session_spec", async () => {

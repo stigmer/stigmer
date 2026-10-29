@@ -152,7 +152,7 @@ export type FileReviewBaselineCaptured = Message<"ai.stigmer.runner.turn.v1.File
   turnId: string;
 
   /**
-   * The harness that produced it ("deep-agent" | "claude").
+   * The harness that produced it ("stigmer" | "claude").
    *
    * @generated from field: string harness_id = 3;
    */

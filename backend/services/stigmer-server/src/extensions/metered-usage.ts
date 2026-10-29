@@ -38,7 +38,7 @@ export interface MeteredUsageRow {
   readonly model: string;
   /** The provider (e.g. "anthropic", "openai"). */
   readonly provider: string;
-  /** The execution harness (e.g. "native", "claude"); empty when the record names none. */
+  /** The execution harness (e.g. "stigmer", "claude"); empty when the record names none. */
   readonly harness: string;
   /** Whose credential served the calls; UNSPECIFIED for a record that does not say. */
   readonly providerKeySource: ProviderKeySource;

@@ -63,7 +63,7 @@ const NATIVE_ADAPTIVE: ModelInfo = {
   shortDescription: "Latest Sonnet",
   speedTier: "fast",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   thinkingCapable: true,
@@ -77,7 +77,7 @@ const NATIVE_ALWAYS_THINKS: ModelInfo = {
   shortDescription: "Always reasons",
   speedTier: "slow",
   costTier: "premium",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
   thinkingCapable: true,
@@ -116,7 +116,7 @@ function createWrapper(client: Stigmer) {
   };
 }
 
-function renderComposer(defaultModelId = "claude-haiku-4-5", harness: "claude" | "native" = "claude") {
+function renderComposer(defaultModelId = "claude-haiku-4-5", harness: "claude" | "stigmer" = "claude") {
   const client = createMinimalStigmerMock();
   const onSubmit = vi.fn();
 
@@ -208,7 +208,7 @@ describe("SessionComposer — thinking mode submit contract", () => {
 
 describe("SessionComposer — thinking mode on native models (stigmer/stigmer#1280)", () => {
   it("renders the thinking switch for a native model that declares a thinking form", async () => {
-    renderComposer("claude-sonnet-5", "native");
+    renderComposer("claude-sonnet-5", "stigmer");
 
     fireEvent.click(screen.getByRole("button", { name: /Claude Sonnet 5/ }));
     const toggle = await screen.findByRole("switch", { name: "Thinking" });
@@ -216,7 +216,7 @@ describe("SessionComposer — thinking mode on native models (stigmer/stigmer#12
   });
 
   it("carries thinkingMode 'enabled' for a native model after toggling", async () => {
-    const { onSubmit } = renderComposer("claude-sonnet-5", "native");
+    const { onSubmit } = renderComposer("claude-sonnet-5", "stigmer");
 
     await toggleThinking(/Claude Sonnet 5/);
     submitMessage("Think this through");
@@ -226,7 +226,7 @@ describe("SessionComposer — thinking mode on native models (stigmer/stigmer#12
   });
 
   it("shows a model that always thinks with the switch on and locked", async () => {
-    renderComposer("claude-fable-5", "native");
+    renderComposer("claude-fable-5", "stigmer");
 
     fireEvent.click(screen.getByRole("button", { name: /Claude Fable 5/ }));
     const toggle = await screen.findByRole("switch", { name: "Thinking" });
@@ -235,7 +235,7 @@ describe("SessionComposer — thinking mode on native models (stigmer/stigmer#12
   });
 
   it("submits 'enabled' for a model that always thinks, never 'disabled'", async () => {
-    const { onSubmit } = renderComposer("claude-fable-5", "native");
+    const { onSubmit } = renderComposer("claude-fable-5", "stigmer");
 
     submitMessage("Answer this");
 

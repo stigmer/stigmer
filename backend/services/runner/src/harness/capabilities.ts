@@ -50,7 +50,7 @@
  * | tool restriction  | yes (tool list)             | yes (`tools` is the session's pool; each definition's `tools`, `disallowedTools`; the gate per caller) |
  * | `runsHooks`       | yes (in the approval gate)  | yes (in the gate, the native order; an ask that rewrites the call is refused) |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG, WebP, GIF (native's: the same Messages API) |
- * | `fileReview`      | `deep-agent`, no excludes   | `claude`, no excludes (its state is outside the workspace) |
+ * | `fileReview`      | `stigmer`, no excludes      | `claude`, no excludes (its state is outside the workspace) |
  * | `boundaryRewritesRow` | none                    | a call until its gate lets it run, but a helper's start (the gate decides after the call streams) |
  * | sub-agent progress | streamed (sub-graph events) | streamed (`forwardSubagentText`)            |
  * | continuation      | the thread's saved step     | the session store's transcript, which keeps every entry across compactions (#2654) |

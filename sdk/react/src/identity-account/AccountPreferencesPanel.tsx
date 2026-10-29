@@ -12,11 +12,12 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import { saveErrorMessage } from "../internal/maskedEdit.js";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccountPreferences } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
 import { DEFAULT_MODELS_HUB_HREF } from "../billing/ProviderKeyNotice.js";
 import { useServerInfo } from "../server-info.js";
-import { HARNESS_META, HARNESS_OPTIONS } from "../models/harness.js";
+import { HARNESS_META, HARNESS_OPTIONS, isHarnessOption, type HarnessOption } from "../models/harness.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -47,6 +48,18 @@ const PREFERENCES_FORM_PATHS = [
   "spec.preferences.default_harness",
   "spec.preferences.default_auto_approve",
 ];
+
+/**
+ * The default harness `prefs` declares, "" for none: a stored word the
+ * platform does not offer (one a retired harness or an older build wrote)
+ * reads as no preference, as the execution defaults read it
+ * (useAccountExecutionDefaults), so the form never shows it unselected
+ * and never writes it back for the server to refuse.
+ */
+function defaultHarnessOf(prefs: IdentityAccountPreferences | undefined): HarnessOption | "" {
+  const stored = prefs?.defaultHarness ?? "";
+  return isHarnessOption(stored) ? stored : "";
+}
 
 /**
  * Self-contained editor for the current user's declared preferences
@@ -121,7 +134,7 @@ export function AccountPreferencesPanel({
 
   const serverPreferences = account?.spec?.preferences;
   const serverStandingContext = serverPreferences?.standingContext ?? "";
-  const serverDefaultHarness = serverPreferences?.defaultHarness ?? "";
+  const serverDefaultHarness = defaultHarnessOf(serverPreferences);
   const serverDefaultAutoApprove = serverPreferences?.defaultAutoApprove ?? false;
 
   // Sync the form fields when server data changes.
@@ -129,7 +142,7 @@ export function AccountPreferencesPanel({
     if (!account) return;
     const prefs = account.spec?.preferences;
     setStandingContext(prefs?.standingContext ?? "");
-    setDefaultHarness(prefs?.defaultHarness ?? "");
+    setDefaultHarness(defaultHarnessOf(prefs));
     setDefaultAutoApprove(prefs?.defaultAutoApprove ?? false);
   }, [account]);
 
@@ -424,7 +437,7 @@ export function AccountPreferencesPanel({
  *
  * The rows are the offered engines (`HARNESS_OPTIONS`), and must stay in
  * lockstep with the proto's `default_harness` in-list validation
- * (`["native", "claude"]`).
+ * (`["stigmer", "claude"]`).
  */
 function HarnessOptionRow({
   radioName,

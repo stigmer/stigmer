@@ -84,8 +84,8 @@ describe("stigmer run seeds the run from the resolved agent's run defaults", () 
   });
 
   it("an explicit --harness outranks the agent's engine", async () => {
-    const started = await run("reviewer", "-m", "review this", "--harness", "native");
-    expect(started?.harness).toBe("native");
+    const started = await run("reviewer", "-m", "review this", "--harness", "stigmer");
+    expect(started?.harness).toBe("stigmer");
   });
 
   it("the built-in assistant names no agent, so nothing seeds the engine", async () => {

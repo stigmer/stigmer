@@ -150,7 +150,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   constructor(options: ScriptedHarnessOptions) {
     this.name = options.name ?? "scripted";
     this.capabilities = {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       subAgents: false,
       runsHooks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
@@ -499,7 +499,7 @@ export interface ScriptedSubject extends HarnessContractSubject {
 }
 
 /**
- * The fake declares the `deep-agent` row: in #1070 the runtime served that row
+ * The fake declares the `stigmer` row: in #1070 the runtime served that row
  * through this fake alone; since #1096 the real native adapter takes it over
  * in the runtime half
  * (`execute-deep-agent/__test-utils__/contract-subject.ts`), and the fake
@@ -510,7 +510,7 @@ export function scriptedSubject(options: ScriptedHarnessOptions): ScriptedSubjec
   const adapter = new ScriptedHarnessAdapter(options);
   return {
     name: adapter.name,
-    harness: "deep-agent",
+    harness: "stigmer",
     adapter,
     config: testConfig(options.config),
     arrange: (turn, view) => adapter.arrange(turn, view),

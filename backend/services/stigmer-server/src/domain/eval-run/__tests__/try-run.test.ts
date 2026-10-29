@@ -161,7 +161,7 @@ describe("a try's session and run", () => {
     });
     expect(session.metadata?.labels).toEqual({ [EVAL_RUN_LABEL]: "evr_1" });
     expect(session.spec?.subject).toBe("first-case");
-    expect(session.spec?.harness).toBe(Harness.NATIVE);
+    expect(session.spec?.harness).toBe(Harness.STIGMER);
     expect(session.spec?.plugins).toHaveLength(1);
     expect(session.spec?.plugins[0]).toMatchObject({
       org: "acme",
@@ -207,7 +207,7 @@ describe("a try's session and run", () => {
           cell,
           attempt,
           caseName: "first-case",
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
           attachment,
         }).metadata?.name,
     );

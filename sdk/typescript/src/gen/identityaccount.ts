@@ -161,7 +161,7 @@ export interface IdentityAccountInput {
 export interface IdentityAccountPreferencesInput {
   standingContext?: string;
   defaultHarness?: string;
-  defaultNativeModel?: string;
+  defaultStigmerModel?: string;
   memoryEnabled?: boolean;
   defaultAutoApprove?: boolean;
   defaultClaudeModel?: string;
@@ -171,7 +171,7 @@ function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesI
   return Object.assign(create(IdentityAccountPreferencesSchema), stripUndefined({
     standingContext: input.standingContext,
     defaultHarness: input.defaultHarness,
-    defaultNativeModel: input.defaultNativeModel,
+    defaultStigmerModel: input.defaultStigmerModel,
     memoryEnabled: input.memoryEnabled,
     defaultAutoApprove: input.defaultAutoApprove,
     defaultClaudeModel: input.defaultClaudeModel,
@@ -210,7 +210,7 @@ function toIdentityAccountPreferencesInput(msg: IdentityAccountPreferences): Ide
   return {
     standingContext: msg.standingContext || undefined,
     defaultHarness: msg.defaultHarness || undefined,
-    defaultNativeModel: msg.defaultNativeModel || undefined,
+    defaultStigmerModel: msg.defaultStigmerModel || undefined,
     memoryEnabled: msg.memoryEnabled || undefined,
     defaultAutoApprove: msg.defaultAutoApprove || undefined,
     defaultClaudeModel: msg.defaultClaudeModel || undefined,

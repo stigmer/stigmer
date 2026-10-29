@@ -78,7 +78,7 @@ message PricingVariant {
   repeated string wire_ids = 2 [(buf.validate.field).repeated.items.string.max_len = 128];
 }
 
-// SummarizationConfig is the context-summarization tuning for a native
+// SummarizationConfig is the context-summarization tuning for a Stigmer-harness
 // model. Catalog metadata: carried for documentation and future runtime
 // use; no consumer currently reads it from the registry at runtime.
 message SummarizationConfig {
@@ -125,13 +125,13 @@ message ModelCapabilities {
 
   // Whether thinking depth adapts to the request instead of a fixed
   // budget (Anthropic `{type: "adaptive"}`). Where both flags are set, the
-  // native runner asks for the adaptive form.
+  // Stigmer harness asks for the adaptive form.
   bool adaptive_thinking = 5;
 
   // Whether the model always thinks and refuses a request to turn thinking
   // off (Anthropic returns a 400 for `{type: "disabled"}`). When true, an
-  // explicit THINKING_MODE_DISABLED is refused at create and the native
-  // runner always sends the model's thinking form; when false, a disabled
+  // explicit THINKING_MODE_DISABLED is refused at create and the Stigmer
+  // harness always sends the model's thinking form; when false, a disabled
   // run on a model with a thinking form sends `{type: "disabled"}`
   // explicitly; when absent (a row never assessed for it), the runner sends
   // no thinking parameter for a disabled run and the model's own
@@ -171,7 +171,7 @@ message ModelPricingBaseline {
     (buf.validate.field).string.max_len = 64
   ];
 
-  // Execution harness ("native" or "claude").
+  // Execution harness ("stigmer" or "claude").
   string harness = 5 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.max_len = 64
@@ -232,7 +232,7 @@ message ModelPricingBaseline {
   // must never appear in pickers or dispatch requests.
   repeated string wire_ids = 24 [(buf.validate.field).repeated.items.string.max_len = 128];
 
-  // ── runtime metadata (native models; catalog documentation) ─────────
+  // ── runtime metadata (Stigmer-harness models; catalog documentation) ─────────
 
   int32 context_window_tokens = 13 [(buf.validate.field).int32.gte = 0];
   int32 max_output_tokens = 14 [(buf.validate.field).int32.gte = 0];

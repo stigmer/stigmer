@@ -16,19 +16,31 @@ import { explicitProvider } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /**
- * Harness section names as the registry document spells them. Exported so
- * every consumer (schedule/channel pin validation and the rest)
- * shares one vocabulary instead of re-declaring string literals.
+ * Each harness's one word: the first word of its label, in lower case
+ * (docs/vocabulary.md, Harness). The word is what the registry document names a harness's
+ * section, what usage reports and the account default store, and what
+ * people type; this table is the server's one statement of it, read by
+ * every consumer here and exported to the editions so none re-declares
+ * string literals. Typed over every harness the proto names, so a harness
+ * the proto adds is a compile error here until it has its word.
  */
-export const HARNESS_NAME_NATIVE = "native";
-export const HARNESS_NAME_CLAUDE = "claude";
+export const HARNESS_WORDS = {
+  [Harness.STIGMER]: "stigmer",
+  [Harness.CLAUDE]: "claude",
+} as const satisfies Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, string>>;
+
+/** A harness's word. */
+export type HarnessWord = (typeof HARNESS_WORDS)[keyof typeof HARNESS_WORDS];
+
+/** Every harness's word, in the proto's order. */
+export const HARNESS_WORD_LIST: readonly HarnessWord[] = Object.values(HARNESS_WORDS);
 
 const MAX_MODEL_SUGGESTIONS = 3;
 const MAX_MODEL_EDIT_DISTANCE = 5;
 
 /**
- * Maps the session harness enum to its registry section name. Unset
- * resolves to native — this edition's platform default harness (the
+ * Maps the session harness enum to its word, the registry section name.
+ * Unset resolves to stigmer — this edition's platform default harness (the
  * edition-honest posture: each edition judges pins against the harness ITS
  * runs would actually use; the cloud edition resolves its own configured
  * default).
@@ -42,16 +54,34 @@ const MAX_MODEL_EDIT_DISTANCE = 5;
 export function harnessName(h: Harness): string {
   switch (h) {
     case Harness.CLAUDE:
-      return HARNESS_NAME_CLAUDE;
-    case Harness.NATIVE:
+    case Harness.STIGMER:
+      return HARNESS_WORDS[h];
     case Harness.UNSPECIFIED:
-      return HARNESS_NAME_NATIVE;
+      return HARNESS_WORDS[Harness.STIGMER];
     default: {
       const unknown: never = h;
       return `harness-${String(unknown)}`;
     }
   }
 }
+
+/**
+ * The harness a word names, or undefined for a string that names none (a
+ * typo, or a word this build does not know). The inverse of
+ * {@link HARNESS_WORDS}; unspecified has no word, so it is never returned.
+ */
+export function harnessOfWord(word: string): Exclude<Harness, Harness.UNSPECIFIED> | undefined {
+  return HARNESS_OF_WORD.get(word);
+}
+
+// Object keys are strings; each is a key of HARNESS_WORDS, so the number is a
+// harness the table names.
+const HARNESS_OF_WORD: ReadonlyMap<string, Exclude<Harness, Harness.UNSPECIFIED>> = new Map(
+  Object.entries(HARNESS_WORDS).map(([harness, word]) => [
+    word,
+    Number(harness) as Exclude<Harness, Harness.UNSPECIFIED>,
+  ]),
+);
 
 /**
  * This edition's one statement of the write-time model-pin EXISTENCE rule
@@ -96,7 +126,7 @@ export function unknownModelPinRefusal(
   }
 
   if (
-    (harness === "" || harness === HARNESS_NAME_NATIVE) &&
+    (harness === "" || harness === HARNESS_WORDS[Harness.STIGMER]) &&
     explicitProvider(model) !== undefined
   ) {
     return "";

@@ -794,7 +794,7 @@ describe("extension composition (require-authentication posture)", () => {
  * blob driver by its configured name.
  */
 describe("extension composition (driver substitution)", () => {
-  const FAKE_DOCUMENT = `{"models":[{"id":"fake/model","harness":"native"}]}`;
+  const FAKE_DOCUMENT = `{"models":[{"id":"fake/model","harness":"stigmer"}]}`;
   let server: ComposedServer;
   let dir: string;
   let port: number;

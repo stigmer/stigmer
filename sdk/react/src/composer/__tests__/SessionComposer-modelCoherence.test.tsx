@@ -39,7 +39,7 @@ const DEFAULT: ModelInfo = {
   shortDescription: "Balanced default",
   speedTier: "fast",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
 };
@@ -51,7 +51,7 @@ const FAST_CAPABLE: ModelInfo = {
   shortDescription: "Frontier model with a fast tier",
   speedTier: "slow",
   costTier: "premium",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: ["fast"],
 };
@@ -63,7 +63,7 @@ const NO_FAST: ModelInfo = {
   shortDescription: "No fast variant",
   speedTier: "fast",
   costTier: "standard",
-  harness: "native",
+  harness: "stigmer",
   featured: true,
   serviceTiers: [],
 };
@@ -124,7 +124,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("adopts the displayed harness default when no model is selected", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="native" />,
+      <SessionComposer onSubmit={onSubmit} harness="stigmer" />,
       { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
@@ -140,7 +140,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
 
   it("renders no fast-tier switch for a fresh composer whose default prices no fast variant", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} harness="native" />,
+      <SessionComposer onSubmit={vi.fn()} harness="stigmer" />,
       { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
@@ -156,7 +156,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
       models: [FAST_CAPABLE, DEFAULT, NO_FAST],
     });
     const { rerender } = render(
-      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="claude-opus-4-8" />,
+      <SessionComposer onSubmit={onSubmit} harness="stigmer" defaultModelId="claude-opus-4-8" />,
       { wrapper },
     );
 
@@ -165,7 +165,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
     // path that bypasses ModelSelector's user-pick reset.
     await toggleFastTier(/Opus 4\.8/);
     rerender(
-      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="gpt-5.3-codex" />,
+      <SessionComposer onSubmit={onSubmit} harness="stigmer" defaultModelId="gpt-5.3-codex" />,
     );
 
     submitMessage("resynced");
@@ -180,7 +180,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("never adopts a default while the model selector is hidden (the hider owns the model)", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="native" showModelSelector={false} />,
+      <SessionComposer onSubmit={onSubmit} harness="stigmer" showModelSelector={false} />,
       { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
@@ -195,7 +195,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("adopts the displayed default over a model id the registry no longer lists", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="retired-model" />,
+      <SessionComposer onSubmit={onSubmit} harness="stigmer" defaultModelId="retired-model" />,
       { wrapper: createWrapper(createMinimalStigmerMock(), { models: [FAST_CAPABLE, DEFAULT, NO_FAST] }) },
     );
 
@@ -210,7 +210,7 @@ describe("SessionComposer — effective run selection (#663)", () => {
   it("passes the raw model id through while the registry is still loading", async () => {
     const onSubmit = vi.fn();
     render(
-      <SessionComposer onSubmit={onSubmit} harness="native" defaultModelId="claude-opus-4-8" />,
+      <SessionComposer onSubmit={onSubmit} harness="stigmer" defaultModelId="claude-opus-4-8" />,
       { wrapper: createWrapper(createMinimalStigmerMock(), { models: [], isLoading: true }) },
     );
 

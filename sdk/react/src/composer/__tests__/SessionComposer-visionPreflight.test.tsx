@@ -33,7 +33,7 @@ const REGISTRY_DOCUMENT = parseRegistryDocument({
       id: "claude-sonnet-4.6",
       displayName: "Claude Sonnet 4.6",
       provider: "anthropic",
-      harness: "native",
+      harness: "stigmer",
       costTier: "standard",
       featured: true,
       capabilities: { toolUse: true, vision: true, streaming: true, thinking: true, adaptiveThinking: false },
@@ -43,7 +43,7 @@ const REGISTRY_DOCUMENT = parseRegistryDocument({
       id: "kimi-k3",
       displayName: "Kimi K3",
       provider: "moonshot",
-      harness: "native",
+      harness: "stigmer",
       costTier: "economy",
       featured: false,
       capabilities: { toolUse: true, vision: false, streaming: true, thinking: false, adaptiveThinking: false },
@@ -171,7 +171,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("leads with the model when the selected model is explicitly blind", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} defaultModelId="native/kimi-k3" />,
+      <SessionComposer onSubmit={vi.fn()} defaultModelId="stigmer/kimi-k3" />,
       { wrapper: createWrapper() },
     );
     const textarea = screen.getByRole("textbox");
@@ -189,7 +189,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("never warns about non-image files on a blind model", async () => {
     render(
-      <SessionComposer onSubmit={vi.fn()} defaultModelId="native/kimi-k3" />,
+      <SessionComposer onSubmit={vi.fn()} defaultModelId="stigmer/kimi-k3" />,
       { wrapper: createWrapper() },
     );
     const textarea = screen.getByRole("textbox");

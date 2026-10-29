@@ -125,7 +125,7 @@ const WRITE_FILE_TOOL = "write_file";
 const EDIT_FILE_TOOL = "edit_file";
 const READ_FILE_TOOL = "read_file";
 // The harness id the native runner stamps on a change set.
-const DEEP_AGENT_HARNESS_ID = "deep-agent";
+const STIGMER_HARNESS_ID = "stigmer";
 // The stop cause a reconcile turn settles with (the runner's terminal table).
 const REVIEW_RESOLVED = "review_resolved";
 // Keeps a turn mid-flight while an arm acts; released as soon as it has.
@@ -166,7 +166,7 @@ async function startSession(workspace: GitWorkspace, opts: { fileReview?: boolea
       org,
       name: uniqueName("ses-filereview"),
       agentRef: agentRefOf(agent),
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       localWorkspaces: [{ name: "repo", path: workspace.dir }],
       fileReview: opts.fileReview ?? true,
     }),
@@ -359,7 +359,7 @@ describe("Run file review — the session's choice", () => {
     ]);
     const { executionId, ended, set } = reviewed;
 
-    expect(set.harnessId, "the native harness stamps its id").toBe(DEEP_AGENT_HARNESS_ID);
+    expect(set.harnessId, "the native harness stamps its id").toBe(STIGMER_HARNESS_ID);
     expect(set.aggregateDigest).not.toBe("");
     const change = expectChange(set, path, FileChangeKind.ADD);
     expect(change.before, "an ADD has no before side").toBeUndefined();

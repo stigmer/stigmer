@@ -48,7 +48,7 @@ vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null }));
 
 vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: (options: UseNewSessionFlowOptions) => ({
-    harness: "native" as const,
+    harness: "stigmer" as const,
     setHarness: vi.fn(),
     modelId: undefined,
     setModelId: vi.fn(),

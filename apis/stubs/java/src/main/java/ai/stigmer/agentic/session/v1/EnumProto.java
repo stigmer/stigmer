@@ -39,21 +39,21 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "to\022\035ai.stigmer.agentic.session.v1*Y\n\020Git" +
       "WriteBackMode\022#\n\037GIT_WRITE_BACK_MODE_UNS" +
       "PECIFIED\020\000\022 \n\034GIT_WRITE_BACK_BRANCH_AND_" +
-      "PR\020\001*`\n\007Harness\022\027\n\023HARNESS_UNSPECIFIED\020\000" +
-      "\022\022\n\016HARNESS_NATIVE\020\001\022\022\n\016HARNESS_CLAUDE\020\003" +
-      "\"\004\010\002\020\002*\016HARNESS_CURSOR*\272\001\n\021EnvironmentSo" +
-      "urce\022\"\n\036ENVIRONMENT_SOURCE_UNSPECIFIED\020\000" +
-      "\022\036\n\032ENVIRONMENT_SOURCE_SESSION\020\001\022\036\n\032ENVI" +
-      "RONMENT_SOURCE_ROUTINE\020\002\022\034\n\030ENVIRONMENT_" +
-      "SOURCE_AGENT\020\003\022#\n\037ENVIRONMENT_SOURCE_ORG" +
-      "ANIZATION\020\004*k\n\017ExecutionTarget\022 \n\034EXECUT" +
-      "ION_TARGET_UNSPECIFIED\020\000\022\032\n\026EXECUTION_TA" +
-      "RGET_LOCAL\020\001\022\032\n\026EXECUTION_TARGET_CLOUD\020\002" +
-      "B\244\001B\tEnumProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Age" +
-      "ntic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Ses" +
-      "sion\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\" +
-      "GPBMetadata\352\002!Ai::Stigmer::Agentic::Sess" +
-      "ion::V1b\006proto3"
+      "PR\020\001*q\n\007Harness\022\027\n\023HARNESS_UNSPECIFIED\020\000" +
+      "\022\023\n\017HARNESS_STIGMER\020\001\022\022\n\016HARNESS_CLAUDE\020" +
+      "\003\"\004\010\002\020\002*\016HARNESS_NATIVE*\016HARNESS_CURSOR*" +
+      "\272\001\n\021EnvironmentSource\022\"\n\036ENVIRONMENT_SOU" +
+      "RCE_UNSPECIFIED\020\000\022\036\n\032ENVIRONMENT_SOURCE_" +
+      "SESSION\020\001\022\036\n\032ENVIRONMENT_SOURCE_ROUTINE\020" +
+      "\002\022\034\n\030ENVIRONMENT_SOURCE_AGENT\020\003\022#\n\037ENVIR" +
+      "ONMENT_SOURCE_ORGANIZATION\020\004*k\n\017Executio" +
+      "nTarget\022 \n\034EXECUTION_TARGET_UNSPECIFIED\020" +
+      "\000\022\032\n\026EXECUTION_TARGET_LOCAL\020\001\022\032\n\026EXECUTI" +
+      "ON_TARGET_CLOUD\020\002B\244\001B\tEnumProtoP\001\242\002\004ASAS" +
+      "\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\St" +
+      "igmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Ag" +
+      "entic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigm" +
+      "er::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

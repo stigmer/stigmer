@@ -34,7 +34,7 @@ import { createDeepAgentAdapter } from "./activities/execute-deep-agent/adapter.
 import type { HarnessName, HarnessRow } from "./harness/registry.js";
 
 export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
-  { harness: "deep-agent", adapter: createDeepAgentAdapter() },
+  { harness: "stigmer", adapter: createDeepAgentAdapter() },
   { harness: "claude", adapter: createClaudeAdapter() },
 ];
 
@@ -45,4 +45,4 @@ export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
  * server run there, and the runner's own process loads no engine
  * (`__tests__/harness-boot-order.test.ts`).
  */
-export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["deep-agent", "claude"]);
+export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["stigmer", "claude"]);

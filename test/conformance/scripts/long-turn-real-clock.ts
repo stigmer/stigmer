@@ -58,7 +58,7 @@
 //   --minutes N                endurance's length (default 180)
 //   --steps a,b                play only these steps of the profile, in its order
 //   --target <name>            local-execution (default, SQLite) or local-postgres-execution
-//   --harness <name>           deep-agent (default, native) or claude
+//   --harness <name>           stigmer (default) or claude
 //   --out <dir>                where the report lands (default .test-output/long-turn-real-clock/<profile>-<stamp>)
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -148,7 +148,7 @@ function claudeEngine(profile: LongTurnProfile, files: StepFiles): RealClockEngi
 
 async function main(): Promise<void> {
   const flags = parseLongTurnFlags(process.argv.slice(2));
-  if (flags.harness !== "deep-agent" && flags.harness !== "claude") throw new Error(`--harness must be deep-agent or claude, not '${flags.harness}'`);
+  if (flags.harness !== "stigmer" && flags.harness !== "claude") throw new Error(`--harness must be stigmer or claude, not '${flags.harness}'`);
   const profile = profileOf(flags.profile, { minutes: flags.minutes, steps: flags.steps });
   if (profile.liveOnly) throw new Error(`profile '${profile.name}' is live only: the mock plays its commands literally and keeps no goal to measure (npm run long-turn:live)`);
   const startedAt = new Date();
@@ -157,7 +157,7 @@ async function main(): Promise<void> {
   const files: StepFiles = { markers: join(out, "markers.log"), keys: join(out, "keys.log"), releaseOf: (id) => join(out, `release-${id}`) };
   writeFileSync(files.markers, "");
   const report: LongTurnReport = {
-    profile: flags.harness === "deep-agent" ? profile.name : `${profile.name} (${flags.harness})`,
+    profile: flags.harness === "stigmer" ? profile.name : `${profile.name} (${flags.harness})`,
     model: profile.model,
     startedAt: startedAt.toISOString(),
     steps: profile.steps.map((s) => s.id),

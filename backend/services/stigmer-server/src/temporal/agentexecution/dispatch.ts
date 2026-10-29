@@ -56,7 +56,7 @@ export async function resolveActivityTaskQueue(
   config: AgentExecutionTemporalConfig,
   logger: Logger,
 ): Promise<DispatchResult> {
-  let harness = Harness.NATIVE;
+  let harness = Harness.STIGMER;
   let executionTarget = ExecutionTarget.UNSPECIFIED;
 
   if (sessionId !== "") {

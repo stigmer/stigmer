@@ -55,7 +55,7 @@ stigmer eval run --agent variance-reporter --plugin payroll
 stigmer eval run --agent variance-reporter@v3 --cases-from ledger --runs 5
 
 # Compare two models, with a CI-friendly threshold and spending limit
-stigmer eval run --plugin thermos --model native/claude-sonnet-4-6 --model claude/claude-sonnet-5 \
+stigmer eval run --plugin thermos --model stigmer/claude-sonnet-4-6 --model claude/claude-sonnet-5 \
   --threshold 0.8 --max-cost-usd 20
 
 # Iterate on one case: one try, no comparison
@@ -101,8 +101,8 @@ code.
 
 ### How it differs from `claude plugin eval`
 
-`--model` names a harness and a model (`native/<model>` for `"native"`
-(Stigmer) or `claude/<model>` for `"claude"` (Claude Agent)), because Stigmer
+`--model` names a harness and a model (`stigmer/<model>` for `"stigmer"` or
+`claude/<model>` for `"claude"` (Claude Agent)), because Stigmer
 runs a model on one of its harnesses; a bare model ID is the Stigmer harness's.
 `--max-cost-usd` is always set: 5 when you omit it. A try the
 platform could not grade, such as one refused for a missing provider key, is

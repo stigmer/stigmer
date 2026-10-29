@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private int harness_ = 0;
   /**
    * <pre>
-   * The harness. Unspecified is native (Stigmer's own harness).
+   * The harness. Unspecified is the Stigmer harness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -69,7 +69,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The harness. Unspecified is native (Stigmer's own harness).
+   * The harness. Unspecified is the Stigmer harness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -452,7 +452,7 @@ private static final long serialVersionUID = 0L;
     private int harness_ = 0;
     /**
      * <pre>
-     * The harness. Unspecified is native (Stigmer's own harness).
+     * The harness. Unspecified is the Stigmer harness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -463,7 +463,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness. Unspecified is native (Stigmer's own harness).
+     * The harness. Unspecified is the Stigmer harness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -479,7 +479,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness. Unspecified is native (Stigmer's own harness).
+     * The harness. Unspecified is the Stigmer harness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -492,7 +492,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness. Unspecified is native (Stigmer's own harness).
+     * The harness. Unspecified is the Stigmer harness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -508,7 +508,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The harness. Unspecified is native (Stigmer's own harness).
+     * The harness. Unspecified is the Stigmer harness.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>

@@ -60,10 +60,10 @@ const EVERY_AVAILABILITY = create(GetModelReadinessOutputSchema, {
     { provider: "h", availability: 99 as ProviderAvailability },
   ].map((entry) => create(ProviderReadinessSchema, entry)),
   models: [
-    create(ModelReadinessSchema, { harness: Harness.NATIVE, model: "m1", provider: "d", availability: ProviderAvailability.missing_from_organization }),
+    create(ModelReadinessSchema, { harness: Harness.STIGMER, model: "m1", provider: "d", availability: ProviderAvailability.missing_from_organization }),
     create(ModelReadinessSchema, { harness: Harness.CLAUDE, model: "m2", provider: "a", availability: ProviderAvailability.served_by_organization }),
     create(ModelReadinessSchema, { harness: 42 as Harness, model: "m3", provider: "a", availability: ProviderAvailability.served_by_organization }),
-    create(ModelReadinessSchema, { harness: Harness.NATIVE, model: "m4", provider: "b", availability: ProviderAvailability.served_by_parent_organization }),
+    create(ModelReadinessSchema, { harness: Harness.STIGMER, model: "m4", provider: "b", availability: ProviderAvailability.served_by_parent_organization }),
   ],
 });
 
@@ -92,14 +92,14 @@ describe("useModelReadiness", () => {
 
     await waitFor(() => expect(result.current.models).not.toBeNull());
     expect(result.current.models).toEqual([
-      { harness: "native", modelId: "m1", provider: "d", availability: { state: "missing", scope: "organization" } },
+      { harness: "stigmer", modelId: "m1", provider: "d", availability: { state: "missing", scope: "organization" } },
       { harness: "claude", modelId: "m2", provider: "a", availability: { state: "served", source: "organization", parentOrg: "" } },
       // A model names no parent: the provider's report does.
-      { harness: "native", modelId: "m4", provider: "b", availability: { state: "served", source: "parent", parentOrg: "" } },
+      { harness: "stigmer", modelId: "m4", provider: "b", availability: { state: "served", source: "parent", parentOrg: "" } },
     ]);
-    expect(result.current.readinessOf("native", "m1")?.provider).toBe("d");
+    expect(result.current.readinessOf("stigmer", "m1")?.provider).toBe("d");
     expect(result.current.readinessOf("claude", "m1")).toBeUndefined();
-    expect(result.current.readinessOf("native", "unlisted")).toBeUndefined();
+    expect(result.current.readinessOf("stigmer", "unlisted")).toBeUndefined();
   });
 
   it("asks for the organization it is given, under that organization's cache key", async () => {
@@ -120,7 +120,7 @@ describe("useModelReadiness", () => {
     const { result } = renderHook(() => useModelReadiness(ORG_ID), { wrapper: wrapperFor(client, cache) });
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.readinessOf("native", "claude-sonnet-4.6")?.availability.state).toBe("served");
+    expect(result.current.readinessOf("stigmer", "claude-sonnet-4.6")?.availability.state).toBe("served");
   });
 
   it("asks again in every face mounted on the organization when one face refetches after a save", async () => {
@@ -153,7 +153,7 @@ describe("useModelReadiness", () => {
     answer = ANTHROPIC_CONNECTED;
     act(() => result.current.refetch());
 
-    await waitFor(() => expect(result.current.readinessOf("native", "claude-sonnet-4.6")?.availability.state).toBe("served"));
+    await waitFor(() => expect(result.current.readinessOf("stigmer", "claude-sonnet-4.6")?.availability.state).toBe("served"));
     expect(getModelReadiness).toHaveBeenCalledTimes(2);
   });
 
@@ -198,7 +198,7 @@ describe("useModelReadiness", () => {
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.models).toBeNull();
-    expect(result.current.readinessOf("native", "claude-sonnet-4.6")).toBeUndefined();
+    expect(result.current.readinessOf("stigmer", "claude-sonnet-4.6")).toBeUndefined();
   });
 });
 
@@ -208,20 +208,20 @@ describe("nothingRuns", () => {
     const unknown = { state: "unknown" } as const;
     expect(nothingRuns(null)).toBe(false);
     expect(nothingRuns([])).toBe(false);
-    expect(nothingRuns([{ harness: "native", modelId: "a", provider: "anthropic", availability: missing }])).toBe(true);
+    expect(nothingRuns([{ harness: "stigmer", modelId: "a", provider: "anthropic", availability: missing }])).toBe(true);
     expect(
       nothingRuns([
-        { harness: "native", modelId: "a", provider: "anthropic", availability: missing },
-        { harness: "native", modelId: "b", provider: "openai", availability: unknown },
+        { harness: "stigmer", modelId: "a", provider: "anthropic", availability: missing },
+        { harness: "stigmer", modelId: "b", provider: "openai", availability: unknown },
       ]),
     ).toBe(false);
     // A model the server judged no provider for says nothing either way.
     expect(
       nothingRuns([
-        { harness: "native", modelId: "a", provider: "anthropic", availability: missing },
-        { harness: "native", modelId: "local", provider: "", availability: unknown },
+        { harness: "stigmer", modelId: "a", provider: "anthropic", availability: missing },
+        { harness: "stigmer", modelId: "local", provider: "", availability: unknown },
       ]),
     ).toBe(true);
-    expect(nothingRuns([{ harness: "native", modelId: "local", provider: "", availability: unknown }])).toBe(false);
+    expect(nothingRuns([{ harness: "stigmer", modelId: "local", provider: "", availability: unknown }])).toBe(false);
   });
 });

@@ -57,7 +57,7 @@
 // the `stigmer` CLI (`make install-cli-shim`).
 //
 // Flags: those of the real-clock run (--profile, --minutes, --steps, --out),
-// plus --harness deep-agent|claude (default deep-agent), --model <registry id>
+// plus --harness stigmer|claude (default stigmer), --model <registry id>
 // (default the harness's parity model) and --max-cost-usd N.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -74,11 +74,11 @@ import { createUniqueOrganization } from "../src/support/organizations";
 import { makeAgentExecution } from "../src/support/runs";
 
 /** The product cost cap each harness's run carries unless --max-cost-usd says otherwise. */
-const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { "deep-agent": 10, claude: 10 };
-const KEY_OF: Record<BenchmarkHarness, string> = { "deep-agent": "ANTHROPIC_API_KEY", claude: "ANTHROPIC_API_KEY" };
+const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { stigmer: 10, claude: 10 };
+const KEY_OF: Record<BenchmarkHarness, string> = { stigmer: "ANTHROPIC_API_KEY", claude: "ANTHROPIC_API_KEY" };
 
 /** Whether the harness's `subagent` step needs a saved helper: its engine has no general-purpose one. */
-const NEEDS_SAVED_HELPER: Record<BenchmarkHarness, boolean> = { "deep-agent": false, claude: true };
+const NEEDS_SAVED_HELPER: Record<BenchmarkHarness, boolean> = { stigmer: false, claude: true };
 
 /**
  * The live agent says what the run is. Without it a model reads a list of

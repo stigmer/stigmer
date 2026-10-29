@@ -67,7 +67,7 @@ describe("readEvalRunOptions", () => {
       case: "review-*",
       tag: ["smoke", " fast "],
       runs: "5",
-      model: ["native/claude-sonnet-4-6", "claude/claude-sonnet-5"],
+      model: ["stigmer/claude-sonnet-4-6", "claude/claude-sonnet-5"],
       ablation: "none",
       threshold: "0.8",
       maxCostUsd: "20",
@@ -83,7 +83,7 @@ describe("readEvalRunOptions", () => {
       caseTags: ["smoke", "fast"],
       runs: 5,
       targets: [
-        { harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" },
+        { harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" },
         { harness: Harness.CLAUDE, modelName: "claude-sonnet-5" },
       ],
       ablation: EvalRunAblation.none,
@@ -129,7 +129,7 @@ describe("readEvalRunOptions", () => {
     [{ allowTools: ["mcp__plugin__github__*"] }, "is not a tool name"],
     [{ model: ["codex/gpt-5"] }, "names no harness Stigmer runs"],
     [{ judgeModel: "m".repeat(129) }, "--judge-model is longer than 128 characters"],
-    [{ model: Array.from({ length: 7 }, () => "native/claude-sonnet-4-6") }, "at most 6 times"],
+    [{ model: Array.from({ length: 7 }, () => "stigmer/claude-sonnet-4-6") }, "at most 6 times"],
   ])("refuses %o with exit 1", (flags, message) => {
     const error = refusal(() => readPluginSubjectOptions(flags));
     expect(error.exitCode).toBe(1);
@@ -227,7 +227,7 @@ describe("parseAgentTarget", () => {
 
 describe("parseTarget", () => {
   it("reads a bare model as the native engine's, and default as the engine's default model", () => {
-    expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.NATIVE, modelName: "claude-sonnet-4-6" });
+    expect(parseTarget("claude-sonnet-4-6")).toEqual({ harness: Harness.STIGMER, modelName: "claude-sonnet-4-6" });
     expect(parseTarget("claude/default")).toEqual({ harness: Harness.CLAUDE, modelName: "" });
     expect(parseTarget("claude/claude-sonnet-5")).toEqual({ harness: Harness.CLAUDE, modelName: "claude-sonnet-5" });
   });

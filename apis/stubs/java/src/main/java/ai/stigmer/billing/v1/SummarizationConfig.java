@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * SummarizationConfig is the context-summarization tuning for a native
+ * SummarizationConfig is the context-summarization tuning for a Stigmer-harness
  * model. Catalog metadata: carried for documentation and future runtime
  * use; no consumer currently reads it from the registry at runtime.
  * </pre>
@@ -280,7 +280,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * SummarizationConfig is the context-summarization tuning for a native
+   * SummarizationConfig is the context-summarization tuning for a Stigmer-harness
    * model. Catalog metadata: carried for documentation and future runtime
    * use; no consumer currently reads it from the registry at runtime.
    * </pre>

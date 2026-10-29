@@ -82,7 +82,7 @@ test.describe("a laptop whose runner reaches no model provider", () => {
     const session = await stigmerClient.session.create({
       name: `e2e-no-providers-${Date.now()}`,
       org: "",
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
     });
     const org = session.metadata?.org ?? "";
     try {

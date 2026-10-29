@@ -99,7 +99,7 @@ const EMPTY_FORM: CatalogForm = {
   modelId: "",
   apiModelId: "",
   provider: "",
-  harness: "native",
+  harness: "stigmer",
   displayName: "",
   shortDescription: "",
   speedTier: "fast",

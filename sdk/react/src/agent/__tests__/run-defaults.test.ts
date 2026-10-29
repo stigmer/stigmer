@@ -23,7 +23,7 @@ describe("agentRunDefaultsFor", () => {
     expect(
       agentRunDefaultsFor(
         spec({
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
           runConfig: {
             modelName: "claude-sonnet-4-6",
             serviceTier: ServiceTier.FAST,
@@ -31,7 +31,7 @@ describe("agentRunDefaultsFor", () => {
             maxCostUsd: 2,
           },
         }),
-        "native",
+        "stigmer",
       ),
     ).toEqual({ modelName: "claude-sonnet-4-6", serviceTier: "fast", thinkingMode: "enabled" });
   });
@@ -40,20 +40,20 @@ describe("agentRunDefaultsFor", () => {
     expect(
       agentRunDefaultsFor(
         spec({ harness: Harness.CLAUDE, runConfig: { modelName: "claude-sonnet-4-6" } }),
-        "native",
+        "stigmer",
       ),
     ).toBeUndefined();
   });
 
   it("returns nothing when the agent names an engine but no model", () => {
     expect(
-      agentRunDefaultsFor(spec({ harness: Harness.NATIVE, runConfig: { maxCostUsd: 2 } }), "native"),
+      agentRunDefaultsFor(spec({ harness: Harness.STIGMER, runConfig: { maxCostUsd: 2 } }), "stigmer"),
     ).toBeUndefined();
   });
 
   it("returns nothing for an agent with no run defaults", () => {
-    expect(agentRunDefaultsFor(spec({}), "native")).toBeUndefined();
-    expect(agentRunDefaultsFor(undefined, "native")).toBeUndefined();
+    expect(agentRunDefaultsFor(spec({}), "stigmer")).toBeUndefined();
+    expect(agentRunDefaultsFor(undefined, "stigmer")).toBeUndefined();
   });
 });
 

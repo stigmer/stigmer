@@ -73,7 +73,7 @@ describe("the runtime's offload through the agent host", () => {
   it("uploads each large output once over many persists, and the host's copy takes the ref", async () => {
     const seen: { readonly text: string; readonly hasRef: boolean }[] = [];
     const row = loopbackHostedRow({
-      harness: "deep-agent",
+      harness: "stigmer",
       adapter: adapterThat(async (_input, sink) => {
         sink.rows.messages.push(
           create(AgentMessageSchema, {
@@ -104,7 +104,7 @@ describe("the runtime's offload through the agent host", () => {
 
   it("offloads an output again once the adapter has changed it", async () => {
     const row = loopbackHostedRow({
-      harness: "deep-agent",
+      harness: "stigmer",
       adapter: adapterThat(async (_input, sink) => {
         sink.rows.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT })] }));
         await sink.requestPersist();

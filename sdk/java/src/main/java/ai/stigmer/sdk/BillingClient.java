@@ -400,7 +400,7 @@ public final class BillingClient {
                 return this;
             }
 
-            /** Execution harness of the entry, "native" or "claude" (required). */
+            /** Execution harness of the entry, "stigmer" or "claude" (required). */
             public Builder harness(String harness) {
                 this.harness = Objects.requireNonNull(harness);
                 return this;

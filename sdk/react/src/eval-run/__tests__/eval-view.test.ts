@@ -90,7 +90,7 @@ describe("the Run evals form", () => {
   it("starts from each case's own model and runs, compared, $5, one at a time", () => {
     expect(DEFAULT_EVAL_FORM).toEqual({
       caseModels: true,
-      targets: [{ harness: "native", modelName: "" }],
+      targets: [{ harness: "stigmer", modelName: "" }],
       runs: 0,
       compare: true,
       maxCostUsd: 5,
@@ -150,8 +150,8 @@ describe("the Run evals form", () => {
         caseModels: false,
         runs: 3,
         targets: [
-          { harness: "native", modelName: "" },
-          { harness: "native", modelName: "gpt-5" },
+          { harness: "stigmer", modelName: "" },
+          { harness: "stigmer", modelName: "gpt-5" },
         ],
         compare: false,
         maxCostUsd: 2.5,
@@ -162,8 +162,8 @@ describe("the Run evals form", () => {
       org: "org_acme",
       pluginId: "plg_1",
       targets: [
-        { harness: Harness.NATIVE },
-        { harness: Harness.NATIVE, modelName: "gpt-5" },
+        { harness: Harness.STIGMER },
+        { harness: Harness.STIGMER, modelName: "gpt-5" },
       ],
       runs: 3,
       ablation: EvalRunAblation.none,
@@ -208,8 +208,8 @@ describe("an eval run's rows", () => {
       [SONNET, GPT],
     );
     expect(labelsOf(evalRun)).toEqual([
-      "native/claude-sonnet-4-6",
-      "native/gpt-5",
+      "stigmer/claude-sonnet-4-6",
+      "stigmer/gpt-5",
     ]);
     const [row] = rowsOf(evalRun);
     expect(
@@ -221,8 +221,8 @@ describe("an eval run's rows", () => {
         cell.passed,
       ]),
     ).toEqual([
-      ["native/claude-sonnet-4-6", 1, 0.33, 0.67, true],
-      ["native/gpt-5", 1, 0.33, 0.67, true],
+      ["stigmer/claude-sonnet-4-6", 1, 0.33, 0.67, true],
+      ["stigmer/gpt-5", 1, 0.33, 0.67, true],
     ]);
     expect(
       row?.cells[0]?.tries.map(
@@ -326,12 +326,12 @@ describe("an eval run's rows", () => {
     const evalRun = evalWith([{ name: "a", score: 1 }], [SONNET, GPT]);
     casesOf(evalRun)[0]!.targets.pop();
     expect(labelsOf(evalRun)).toEqual([
-      "native/claude-sonnet-4-6",
-      "native/gpt-5",
+      "stigmer/claude-sonnet-4-6",
+      "stigmer/gpt-5",
     ]);
     expect(
       rowsOf(evalRun)[0]?.cells.map((cell) => cell.target),
-    ).toEqual(["native/claude-sonnet-4-6"]);
+    ).toEqual(["stigmer/claude-sonnet-4-6"]);
   });
 
   it("names every phase, and one this client does not know in words with its number", () => {
@@ -409,7 +409,7 @@ describe("compareEvals", () => {
     expect(compareRows(before, after)).toEqual([
       {
         name: "a",
-        target: "native/claude-sonnet-4-6",
+        target: "stigmer/claude-sonnet-4-6",
         before: { score: 1, delta: 0.5 },
         after: null,
         changed: true,
@@ -439,13 +439,13 @@ describe("the pieces every subject shares", () => {
         ...DEFAULT_EVAL_FORM,
         caseModels: false,
         targets: [
-          { harness: "native", modelName: "" },
-          { harness: "native", modelName: "gpt-5" },
+          { harness: "stigmer", modelName: "" },
+          { harness: "stigmer", modelName: "gpt-5" },
         ],
       }),
     ).toEqual([
-      { harness: Harness.NATIVE },
-      { harness: Harness.NATIVE, modelName: "gpt-5" },
+      { harness: Harness.STIGMER },
+      { harness: Harness.STIGMER, modelName: "gpt-5" },
     ]);
   });
 

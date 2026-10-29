@@ -58,7 +58,7 @@ function renderSelector(
 ) {
   render(
     <ModelRegistryContext.Provider value={registry}>
-      <ModelSelector value={value} onValueChange={onValueChange} harness="native" readinessOf={readinessOf} />
+      <ModelSelector value={value} onValueChange={onValueChange} harness="stigmer" readinessOf={readinessOf} />
     </ModelRegistryContext.Provider>,
   );
   return { onValueChange };

@@ -24,7 +24,7 @@ import {
 
 vi.mock("../useNewSessionFlow", () => ({
   useNewSessionFlow: () => ({
-    harness: "native" as const,
+    harness: "stigmer" as const,
     setHarness: () => {},
     modelId: undefined,
     setModelId: () => {},

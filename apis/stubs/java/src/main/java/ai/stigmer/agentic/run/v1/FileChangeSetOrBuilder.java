@@ -54,7 +54,7 @@ public interface FileChangeSetOrBuilder extends
 
   /**
    * <pre>
-   * Harness that produced the edits: "deep-agent" | "claude".
+   * Harness that produced the edits: "stigmer" | "claude".
    * Carried for audit and so the reconcile adapter knows which harness
    * lifecycle authored the set.
    * </pre>
@@ -65,7 +65,7 @@ public interface FileChangeSetOrBuilder extends
   java.lang.String getHarnessId();
   /**
    * <pre>
-   * Harness that produced the edits: "deep-agent" | "claude".
+   * Harness that produced the edits: "stigmer" | "claude".
    * Carried for audit and so the reconcile adapter knows which harness
    * lifecycle authored the set.
    * </pre>

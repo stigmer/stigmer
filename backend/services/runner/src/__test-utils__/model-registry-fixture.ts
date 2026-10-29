@@ -16,7 +16,7 @@
  * read as they do in production. The document itself is the control plane's,
  * read by every harness's runtime: `parsePricingTable` keeps every entry with
  * `pricing`; `parseRegistry` wants `id` + `provider` and reads
- * `capabilities.vision`; `getDefaultModel` selects only `harness: "native"`.
+ * `capabilities.vision`; `getDefaultModel` selects only `harness: "stigmer"`.
  * Every fixture NAMES its model on the execution, so the list's order is
  * never consulted and adding an entry is byte-invisible to the other
  * harness's goldens.
@@ -49,7 +49,7 @@ export const REGISTRY_DOCUMENT = {
       id: FIXTURE_NATIVE_MODEL,
       displayName: "Claude Haiku 4.5 (hermetic fixture)",
       provider: "anthropic",
-      harness: "native",
+      harness: "stigmer",
       costTier: "standard",
       featured: true,
       capabilities: { vision: true },

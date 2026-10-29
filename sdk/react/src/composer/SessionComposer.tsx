@@ -315,7 +315,7 @@ export interface SessionComposerProps {
    * Currently selected run harness.
    *
    * Controls which models appear in the model selector and flows
-   * through to session creation. When omitted, defaults to `"native"`.
+   * through to session creation. When omitted, defaults to `"stigmer"`.
    */
   readonly harness?: HarnessOption;
   /**
@@ -854,7 +854,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // prop stale — the mirror keeps the effective-model resolution scoped
   // to the harness the picker is actually showing.
   const [activeHarness, setActiveHarness] = useState<HarnessOption>(
-    harness ?? "native",
+    harness ?? "stigmer",
   );
   useEffect(() => {
     if (harness !== undefined) setActiveHarness(harness);

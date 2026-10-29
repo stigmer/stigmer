@@ -70,7 +70,7 @@ stigmer eval run --agent variance-reporter --plugin payroll
 stigmer eval run --agent variance-reporter@v3 --cases-from ledger --runs 5
 
 # Compare two models, with a CI-friendly threshold and spending limit
-stigmer eval run --plugin thermos --model native/claude-sonnet-4-6 --model claude/claude-sonnet-5 \
+stigmer eval run --plugin thermos --model stigmer/claude-sonnet-4-6 --model claude/claude-sonnet-5 \
   --threshold 0.8 --max-cost-usd 20
 
 # Iterate on one case: one try, no comparison
@@ -113,14 +113,13 @@ listed under "Not run" with the reason, and does not change the exit code.
 
 ### How it differs from `claude plugin eval`
 
-`--model` names a harness and a model (`native/<model>` for `"native"` (Stigmer)
-or `claude/<model>` for `"claude"` (Claude Agent)), because Stigmer runs a model
-on one of its harnesses; a bare model ID is the Stigmer harness's.
-`--max-cost-usd` is always set: 5 when you omit it. A try the platform could not
-grade, such as one refused for a missing provider key, is shown as not graded
-and left out of every score instead of scoring 0. A scaffold runs without
-`--scaffold`, inside the try's own sandbox; `--scaffold` is accepted and changes
-nothing. See
+`--model` names a harness and a model (`stigmer/<model>` for `"stigmer"` or
+`claude/<model>` for `"claude"` (Claude Agent)), because Stigmer runs a model on
+one of its harnesses; a bare model ID is the Stigmer harness's. `--max-cost-usd`
+is always set: 5 when you omit it. A try the platform could not grade, such as
+one refused for a missing provider key, is shown as not graded and left out of
+every score instead of scoring 0. A scaffold runs without `--scaffold`, inside
+the try's own sandbox; `--scaffold` is accepted and changes nothing. See
 [Test agents and plugins with evals](/docs/guides/evals/test-with-evals) for the
 result file, the support table and every difference, the versions that run and
 the tools a try may use.
@@ -158,7 +157,7 @@ stigmer eval run [flags]
 | `--judge-model`        | `string`      |         | the model AI-graded checks use (default: the platform's judge model)                                                                                                                                 |
 | `--max-cost-usd`       | `string`      |         | the most the eval run may spend, in estimated US dollars (default 5)                                                                                                                                 |
 | `--mocks`              | `string`      |         | record answers MCP calls from the suites' mocks (the default); off runs every server for real                                                                                                        |
-| `--model`              | `string`      |         | a harness and model to run on: native/`<model>` for "native" (Stigmer) or claude/`<model>` for "claude" (Claude Agent), as native/claude-sonnet-4-6 (repeatable, up to 6)                            |
+| `--model`              | `string`      |         | a harness and model to run on: stigmer/`<model>` for "stigmer" or claude/`<model>` for "claude" (Claude Agent), as stigmer/claude-sonnet-4-6 (repeatable, up to 6)                                   |
 | `--no-scaffold`        | `bool`        |         | skip each case's scaffold script, listing such a case as not run                                                                                                                                     |
 | `--no-wait`            | `bool`        |         | start the eval run, print its id, and return                                                                                                                                                         |
 | `--plugin`             | `string`      |         | alone: the plugin whose own cases run on the built-in assistant, with and without it (`<plugin>`@`<digest>` must be its installed version); with --agent: the plugin each case runs with and without |

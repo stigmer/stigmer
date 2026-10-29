@@ -287,7 +287,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object harness_ = "";
   /**
    * <pre>
-   * Execution harness ("native" or "claude").
+   * Execution harness ("stigmer" or "claude").
    * </pre>
    *
    * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -308,7 +308,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Execution harness ("native" or "claude").
+   * Execution harness ("stigmer" or "claude").
    * </pre>
    *
    * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -2462,7 +2462,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     private java.lang.Object harness_ = "";
     /**
      * <pre>
-     * Execution harness ("native" or "claude").
+     * Execution harness ("stigmer" or "claude").
      * </pre>
      *
      * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -2482,7 +2482,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Execution harness ("native" or "claude").
+     * Execution harness ("stigmer" or "claude").
      * </pre>
      *
      * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -2503,7 +2503,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Execution harness ("native" or "claude").
+     * Execution harness ("stigmer" or "claude").
      * </pre>
      *
      * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -2520,7 +2520,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Execution harness ("native" or "claude").
+     * Execution harness ("stigmer" or "claude").
      * </pre>
      *
      * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -2534,7 +2534,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Execution harness ("native" or "claude").
+     * Execution harness ("stigmer" or "claude").
      * </pre>
      *
      * <code>string harness = 5 [json_name = "harness", (.buf.validate.field) = { ... }</code>

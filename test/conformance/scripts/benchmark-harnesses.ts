@@ -21,7 +21,7 @@
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
 // ANTHROPIC_API_KEY for the judge, a Claude native model and the Claude cells
 // (the runner's own key, in this direct mode); OPENAI_API_KEY for
-// an OpenAI-provider native model (`--native-model openai:<name>`, or a `gpt*`
+// an OpenAI-provider native model (`--stigmer-model openai:<name>`, or a `gpt*`
 // catalog id), with OPENAI_BASE_URL when that model is served on another
 // OpenAI-compatible address (Google's, a router's); the `stigmer` CLI on
 // PATH for every timing cell on the working agent (its memory spawns
@@ -38,8 +38,8 @@
 //   --reps N                 warm samples per cell (default 5; odd keeps the median an observed sample)
 //   --quality-reps N         tries per quality case per harness (default 3)
 //   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/claude`)
-//   --only native|claude     one harness
-//   --native-model <id>      the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
+//   --only stigmer|claude    one harness
+//   --stigmer-model <id>     the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
 //                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
 //                            report records the host, API and cost basis it ran on. Not with --only claude.
 //   --stack <checkout>       boot that stigmer checkout's server and runner (built there first: `npm ci`,
@@ -74,7 +74,7 @@ import { runJudgeCalibration } from "../src/benchmark/judge/calibrate";
 import { renderCalibrationModule, shortfallsOf } from "../src/benchmark/judge/calibration-tally";
 import { JUDGE_EXAMPLES } from "../src/benchmark/judge/examples";
 import { bootBenchmarkStack, renderSummary, resolveStackRoot, runBenchmark, writeReport } from "../src/benchmark/run";
-import { ARM_WORD, HARNESSES, type BenchmarkReport, type ShellBackground } from "../src/benchmark/report";
+import { HARNESSES, type BenchmarkReport, type ShellBackground } from "../src/benchmark/report";
 
 const execFileAsync = promisify(execFile);
 const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
@@ -140,14 +140,14 @@ function parseFlags(argv: readonly string[]): Flags {
         break;
       case "--only": {
         const only = value();
-        const harness = HARNESSES.find((candidate) => ARM_WORD[candidate] === only);
-        if (harness === undefined) throw new Error(`--only needs ${HARNESSES.map((candidate) => ARM_WORD[candidate]).join(", ")}`);
+        const harness = HARNESSES.find((candidate) => candidate === only);
+        if (harness === undefined) throw new Error(`--only needs ${HARNESSES.join(", ")}`);
         flags.only = harness;
         break;
       }
-      case "--native-model": {
+      case "--stigmer-model": {
         const model = value().trim();
-        if (model === "") throw new Error("--native-model needs a model id");
+        if (model === "") throw new Error("--stigmer-model needs a model id");
         flags.nativeModel = model;
         break;
       }
@@ -200,8 +200,8 @@ function parseFlags(argv: readonly string[]): Flags {
         throw new Error(`unknown flag ${String(flag)}`);
     }
   }
-  if (flags.nativeModel !== undefined && flags.only !== undefined && flags.only !== "deep-agent") {
-    throw new Error(`--native-model names the native arm's model, and --only ${ARM_WORD[flags.only]} runs no native cell`);
+  if (flags.nativeModel !== undefined && flags.only !== undefined && flags.only !== "stigmer") {
+    throw new Error(`--stigmer-model names the native arm's model, and --only ${flags.only} runs no native cell`);
   }
   return flags;
 }

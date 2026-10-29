@@ -175,9 +175,9 @@ function toolEngineOf(harness: Harness): ToolEngine {
   switch (harness) {
     case Harness.CLAUDE:
       return "claude";
-    case Harness.NATIVE:
+    case Harness.STIGMER:
     case Harness.UNSPECIFIED:
-      return "native";
+      return "stigmer";
     default: {
       const unknown: never = harness;
       throw new Error(`eval trace: harness ${String(unknown)} is not one the proto names`);

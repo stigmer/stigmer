@@ -167,7 +167,7 @@ describe("the eval run's skeleton", () => {
   });
 
   it("carries no such note once the eval names a target", async () => {
-    await seeded({ targets: [{ harness: Harness.NATIVE, modelName: MODEL }] });
+    await seeded({ targets: [{ harness: Harness.STIGMER, modelName: MODEL }] });
     const context = await contextOf(NAMES_A_MODEL);
     await evalRunStatusBook.write(temp.store, EVAL_RUN_ON_AGENT_ID, (view) => view.skeleton(context));
     const cases = (await readEvalRunOnAgent(temp.store)).status?.plugins[0]?.cases ?? [];

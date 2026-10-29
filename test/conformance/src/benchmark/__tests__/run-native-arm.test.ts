@@ -57,7 +57,7 @@ function qualityPlan(nativeModel: string): CellPlan {
     nativeModel,
     cells: [],
     judge: false,
-    quality: [{ id: "quality/deep-agent", harness: "deep-agent", modelRequested: nativeModel }],
+    quality: [{ id: "quality/stigmer", harness: "stigmer", modelRequested: nativeModel }],
     refused: [],
   };
 }
@@ -68,26 +68,26 @@ afterEach(() => {
 
 describe("runBenchmark's native arm", () => {
   it("admits an own-endpoint model without a registry row, and records its endpoint, API and default-rate basis", async () => {
-    stubRegistry([{ id: PARITY_MODEL["deep-agent"], harness: "native", pricing: { inputPricePerMillion: 3 } }]);
+    stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer", pricing: { inputPricePerMillion: 3 } }]);
     const report = await runBenchmark(refusingStack(), qualityPlan("openai:gemini-3-pro"), OPTIONS, io);
     expect(report.refused).toEqual([]);
-    expect(report.quality?.targets).toEqual(["native/openai:gemini-3-pro"]);
+    expect(report.quality?.targets).toEqual(["stigmer/openai:gemini-3-pro"]);
     expect(report.models).toEqual({
-      parity: { "deep-agent": "openai:gemini-3-pro", claude: PARITY_MODEL.claude },
-      judge_requested: PARITY_MODEL["deep-agent"],
-      native_endpoint: "generativelanguage.googleapis.com",
-      native_api: "chat-completions",
-      native_cost_basis: "default-rate",
+      parity: { stigmer: "openai:gemini-3-pro", claude: PARITY_MODEL.claude },
+      judge_requested: PARITY_MODEL.stigmer,
+      stigmer_endpoint: "generativelanguage.googleapis.com",
+      stigmer_api: "chat-completions",
+      stigmer_cost_basis: "default-rate",
     });
   });
 
   it("checks a Claude target against the registry's Claude row, and names it claude/<model>", async () => {
-    const plan: CellPlan = { ...qualityPlan(PARITY_MODEL["deep-agent"]), quality: [{ id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude }] };
-    stubRegistry([{ id: PARITY_MODEL["deep-agent"], harness: "native" }]);
+    const plan: CellPlan = { ...qualityPlan(PARITY_MODEL.stigmer), quality: [{ id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude }] };
+    stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer" }]);
     const nativeRowOnly = await runBenchmark(refusingStack(), plan, OPTIONS, io);
     expect(nativeRowOnly.refused, "a native row is not the Claude engine's").toEqual([{ cell: "quality/claude", reason: "model not in registry for harness" }]);
     stubRegistry([
-      { id: PARITY_MODEL["deep-agent"], harness: "native" },
+      { id: PARITY_MODEL.stigmer, harness: "stigmer" },
       { id: PARITY_MODEL.claude, harness: "claude" },
     ]);
     const report = await runBenchmark(refusingStack(), plan, OPTIONS, io);
@@ -96,29 +96,29 @@ describe("runBenchmark's native arm", () => {
   });
 
   it("still refuses a catalog id the registry does not carry for native", async () => {
-    stubRegistry([{ id: PARITY_MODEL["deep-agent"], harness: "native" }]);
+    stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer" }]);
     const report = await runBenchmark(refusingStack(), qualityPlan("gpt-4o"), OPTIONS, io);
-    expect(report.refused).toEqual([{ cell: "quality/deep-agent", reason: "model not in registry for harness" }]);
+    expect(report.refused).toEqual([{ cell: "quality/stigmer", reason: "model not in registry for harness" }]);
     expect(report.quality).toBeNull();
   });
 
   it("reads the cost basis from a priced row only: a catalog row without pricing is default-rate too", async () => {
-    stubRegistry([{ id: PARITY_MODEL["deep-agent"], harness: "native", pricing: { inputPricePerMillion: 3 } }]);
-    const priced = await runBenchmark(refusingStack(), { ...qualityPlan(PARITY_MODEL["deep-agent"]), quality: [] }, OPTIONS, io);
-    expect(priced.models.native_cost_basis).toBe("catalog");
-    expect(priced.models.native_api).toBe("messages");
-    stubRegistry([{ id: PARITY_MODEL["deep-agent"], harness: "native" }]);
-    const unpriced = await runBenchmark(refusingStack(), { ...qualityPlan(PARITY_MODEL["deep-agent"]), quality: [] }, OPTIONS, io);
-    expect(unpriced.models.native_cost_basis).toBe("default-rate");
+    stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer", pricing: { inputPricePerMillion: 3 } }]);
+    const priced = await runBenchmark(refusingStack(), { ...qualityPlan(PARITY_MODEL.stigmer), quality: [] }, OPTIONS, io);
+    expect(priced.models.stigmer_cost_basis).toBe("catalog");
+    expect(priced.models.stigmer_api).toBe("messages");
+    stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer" }]);
+    const unpriced = await runBenchmark(refusingStack(), { ...qualityPlan(PARITY_MODEL.stigmer), quality: [] }, OPTIONS, io);
+    expect(unpriced.models.stigmer_cost_basis).toBe("default-rate");
   });
 
   it("counts the runner's markers over every runner log of the run, and records the measured code", async () => {
-    stubRegistry([{ id: PARITY_MODEL["deep-agent"], harness: "native" }]);
+    stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer" }]);
     const stack = refusingStack({
       "runner.log": "[REPO-INSTRUCTIONS] root=1 chars=171 cut=0\n[TRUNCATED] tool=read_file original_chars=49434 limit=30000 chars_truncated=19434 kept=yes\n",
       "runner-2.log": "[REPO-INSTRUCTIONS] root=1 chars=171 cut=0\n",
     });
-    const report = await runBenchmark(stack, { ...qualityPlan(PARITY_MODEL["deep-agent"]), quality: [] }, OPTIONS, io);
+    const report = await runBenchmark(stack, { ...qualityPlan(PARITY_MODEL.stigmer), quality: [] }, OPTIONS, io);
     expect(report.git.code_sha).toBe("def5678");
     expect(report.runner_log.files).toEqual(["runner.log", "runner-2.log"]);
     expect(report.runner_log.repo_instructions).toEqual({ root: 2, nested: 0 });
@@ -154,7 +154,7 @@ describe("resolveStackRoot", () => {
 describe("renderSummary's native arm", () => {
   function report(basis: "catalog" | "default-rate"): BenchmarkReport {
     return {
-      schema_version: 11,
+      schema_version: 12,
       timestamp: "2026-10-23T00:00:00Z",
       git: { head_sha: "abc", main_sha: "abc", code_sha: "abc" },
       host: { platform: "darwin/arm64", node: "v22.22.1" },
@@ -168,11 +168,11 @@ describe("renderSummary's native arm", () => {
         shell_background: "on",
       },
       models: {
-        parity: { ...PARITY_MODEL, "deep-agent": "openai:gpt-5.5" },
-        judge_requested: PARITY_MODEL["deep-agent"],
-        native_endpoint: "api.openai.com",
-        native_api: "chat-completions",
-        native_cost_basis: basis,
+        parity: { ...PARITY_MODEL, stigmer: "openai:gpt-5.5" },
+        judge_requested: PARITY_MODEL.stigmer,
+        stigmer_endpoint: "api.openai.com",
+        stigmer_api: "chat-completions",
+        stigmer_cost_basis: basis,
       },
       comparisons: [
         {
@@ -182,7 +182,7 @@ describe("renderSummary's native arm", () => {
           session_shape: "fresh-per-execution",
           agent: "bare",
           sides: {
-            "deep-agent": summarize("deep-agent", makeSample(), [makeSample({ measures: { estimated_cost_micros: 1234 } })], null),
+            stigmer: summarize("stigmer", makeSample(), [makeSample({ measures: { estimated_cost_micros: 1234 } })], null),
             claude: summarize("claude", makeSample(), [makeSample({ measures: { estimated_cost_micros: 2468 } })], null),
           },
           cost_ratio: { claude: 2 },
@@ -193,7 +193,7 @@ describe("renderSummary's native arm", () => {
           mode: "parity",
           session_shape: "fresh-per-execution",
           agent: "bare",
-          sides: { "deep-agent": summarize("deep-agent", makeSample(), [makeSample({ outcome: "failed" })], null) },
+          sides: { stigmer: summarize("stigmer", makeSample(), [makeSample({ outcome: "failed" })], null) },
           cost_ratio: {},
         },
       ],
@@ -208,9 +208,9 @@ describe("renderSummary's native arm", () => {
     expect(lines[0]).toBe("Native arm: openai:gpt-5.5 at api.openai.com, chat-completions API, cost basis default-rate");
     expect(lines[1]).toBe("Code: abc (the instrument's own)");
     expect(lines[2]).toMatch(/^Runner log: edits repaired 0; .*; hook failures 2; from runner\.log$/);
-    expect(lines.find((line) => line.startsWith("| report-parity-simple | deep-agent"))).toContain("| 1234* |");
+    expect(lines.find((line) => line.startsWith("| report-parity-simple | stigmer"))).toContain("| 1234* |");
     expect(lines.find((line) => line.startsWith("| report-parity-simple | claude")), "Claude's cost is the runner's catalog price, unmarked").toContain("| 2468 |");
-    expect(lines.find((line) => line.startsWith("| report-parity-medium | deep-agent")), "no cost observed, nothing to mark").toContain("| n/a |");
+    expect(lines.find((line) => line.startsWith("| report-parity-medium | stigmer")), "no cost observed, nothing to mark").toContain("| n/a |");
     expect(lines).toContain(
       "* openai:gpt-5.5 has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.",
     );
@@ -240,16 +240,16 @@ describe("renderSummary's native arm", () => {
     });
     const off = report("catalog");
     off.methodology.shell_background = "off";
-    off.comparisons[0]!.sides["deep-agent"] = summarize(
-      "deep-agent",
+    off.comparisons[0]!.sides.stigmer = summarize(
+      "stigmer",
       makeSample(),
       [makeSample({ background: readings(1, 0, 0), task_done: true }), makeSample({ background: readings(0, 1, 1), task_done: false }), makeSample({ background: null, outcome: "failed" })],
       null,
     );
     const lines = renderSummary(off).split("\n");
     expect(lines).toContain("Background commands (off), over the samples that ran:");
-    expect(lines).toContain("| report-parity-simple | deep-agent | 1/2 | 1 | 1 (max 1) | 12000 | 1 | 1 | 1 | 0 | 0 | 1 | 1/2 |");
-    expect(lines.filter((line) => line.startsWith("| report-parity-medium | deep-agent")), "a cell without readings has its main row alone").toHaveLength(1);
+    expect(lines).toContain("| report-parity-simple | stigmer | 1/2 | 1 | 1 (max 1) | 12000 | 1 | 1 | 1 | 0 | 0 | 1 | 1/2 |");
+    expect(lines.filter((line) => line.startsWith("| report-parity-medium | stigmer")), "a cell without readings has its main row alone").toHaveLength(1);
   });
 
   it("marks nothing on a catalog-priced arm", () => {

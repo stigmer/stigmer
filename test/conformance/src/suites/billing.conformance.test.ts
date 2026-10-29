@@ -418,7 +418,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
             baseline: {
               modelId: "conf-model",
               provider: "anthropic",
-              harness: "native",
+              harness: "stigmer",
               displayName: "Conformance",
               speedTier: "balanced",
               costTier: "standard",
@@ -427,7 +427,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
           }),
         COPY.pricingEdit,
       ],
-      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "conf-model", provider: "anthropic", harness: "native" }), COPY.pricingEdit],
+      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "conf-model", provider: "anthropic", harness: "stigmer" }), COPY.pricingEdit],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({}), COPY.pricingBaselineView],
     ];
     for (const [name, op, copy] of cases) {
@@ -440,7 +440,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     const op = await operator();
     const { org } = await keyedOrg();
     const runId = await ownedExecution(org);
-    const onOrgKey = { providerKeySource: ProviderKeySource.ORGANIZATION, harness: "native", provider: "anthropic" } as const;
+    const onOrgKey = { providerKeySource: ProviderKeySource.ORGANIZATION, harness: "stigmer", provider: "anthropic" } as const;
     const first = await op.clients.billingCommand.recordLlmCallUsage({
       runId,
       sequence: 1,
@@ -490,7 +490,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     return {
       modelId,
       provider: "anthropic",
-      harness: "native",
+      harness: "stigmer",
       displayName: `Conformance ${modelId}`,
       speedTier: "balanced",
       costTier: "standard",
@@ -500,7 +500,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
 
   async function upsertBaseline(op: PrivilegedScope, modelId: string, inputMicros?: bigint, outputMicros?: bigint) {
     const revision = await op.clients.billingCommand.upsertModelPricingBaseline({ baseline: conformanceBaseline(modelId, inputMicros, outputMicros), revisionNote: "conformance" });
-    fixtures.defer(() => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }).then(() => undefined, () => undefined));
+    fixtures.defer(() => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "stigmer" }).then(() => undefined, () => undefined));
     return revision;
   }
 
@@ -553,15 +553,15 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     const op = await operator();
     const unknown = uniqueName("conf-never-upserted");
     const missing = await expectGrpcCode(
-      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId: unknown, provider: "anthropic", harness: "native" }),
+      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId: unknown, provider: "anthropic", harness: "stigmer" }),
       Code.NotFound,
       "retire an unknown key",
     );
-    expect(missing.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(unknown, "anthropic", "native"));
+    expect(missing.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(unknown, "anthropic", "stigmer"));
 
     const modelId = uniqueName("conf-model");
     const upserted = await upsertBaseline(op, modelId);
-    const retired = await op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native", revisionNote: "conformance retire" });
+    const retired = await op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "stigmer", revisionNote: "conformance retire" });
     expect(retired.baselineId).toBe(upserted.baselineId);
     expect(retired.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
     const active = await everyBaseline(op);
@@ -570,11 +570,11 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     expect(history.find((b) => b.baselineId === upserted.baselineId)?.status).toBe(ModelPricingBaselineStatus.pricing_baseline_retired);
 
     const again = await expectGrpcCode(
-      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "native" }),
+      () => op.clients.billingCommand.retireModelPricingBaseline({ modelId, provider: "anthropic", harness: "stigmer" }),
       Code.NotFound,
       "retire an already-retired key",
     );
-    expect(again.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(modelId, "anthropic", "native"));
+    expect(again.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(modelId, "anthropic", "stigmer"));
   });
 });
 
@@ -587,8 +587,8 @@ describe.skipIf(engineServed)("Billing engine conformance — the OSS boundary (
       ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x/back" })],
       ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
-      ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
-      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "native" })],
+      ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "stigmer", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
+      ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "stigmer" })],
       ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ org })],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
     ];

@@ -12,7 +12,7 @@ public interface EvalRunTargetOrBuilder extends
 
   /**
    * <pre>
-   * The harness. Unspecified is native (Stigmer's own harness).
+   * The harness. Unspecified is the Stigmer harness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface EvalRunTargetOrBuilder extends
   int getHarnessValue();
   /**
    * <pre>
-   * The harness. Unspecified is native (Stigmer's own harness).
+   * The harness. Unspecified is the Stigmer harness.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 1 [json_name = "harness", (.buf.validate.field) = { ... }</code>

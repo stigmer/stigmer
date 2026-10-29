@@ -816,7 +816,7 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
         sessionSpec: {
           subject: "Bootstrap conformance",
           resources: [{ name: "project", resource: { case: "localPath", value: { path: workspaceDir } } }],
-          harness: Harness.NATIVE,
+          harness: Harness.STIGMER,
         },
       }),
     );
@@ -843,7 +843,7 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
     expect(session.spec?.subject, "a caller-provided subject survives (no sentinel override)").toBe(
       "Bootstrap conformance",
     );
-    expect(session.spec?.harness).toBe(Harness.NATIVE);
+    expect(session.spec?.harness).toBe(Harness.STIGMER);
     expect(session.spec?.resources).toHaveLength(1);
     expect(session.spec?.resources?.[0]?.name).toBe("project");
     expect(session.spec?.resources?.[0]?.resource).toEqual({

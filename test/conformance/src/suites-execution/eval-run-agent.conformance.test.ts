@@ -776,7 +776,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about an agent — what a try is gi
   it("[rpc:EvalRunCommandController.create] [rpc:EvalRunQueryController.get] a try with no targets runs the agent's own model and thinking setting, labelled with its model; a named target runs the named model", async () => {
     const notes = await installed("evr-notes", () => [doneCase("notes-case")]);
     const agent = await agentWith([notes.plugin], {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED },
     });
 
@@ -795,7 +795,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about an agent — what a try is gi
     mock.reset();
 
     mock.enqueue(anthropicText(DONE));
-    const named = await startEval(agent, { targets: [{ harness: Harness.NATIVE, modelName: TARGET_MODEL }] });
+    const named = await startEval(agent, { targets: [{ harness: Harness.STIGMER, modelName: TARGET_MODEL }] });
     const endedNamed = await awaitEvalRunEnd(clients, named.metadata!.id, 180_000);
     expect(endedNamed.status?.phase, describeTries(endedNamed)).toBe(EvalRunPhase.completed);
     expect(endedNamed.status!.plugins[0]!.cases[0]!.targets.map((t) => t.target?.modelName)).toEqual([TARGET_MODEL]);

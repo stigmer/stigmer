@@ -501,7 +501,7 @@ describe("RoutineForm", () => {
       shortDescription: "Frontier model with a fast tier",
       speedTier: "slow",
       costTier: "premium",
-      harness: "native",
+      harness: "stigmer",
       featured: true,
       serviceTiers: ["fast"],
     };

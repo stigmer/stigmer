@@ -137,7 +137,7 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
             { name: "site", localPath: { path: "/repos/site" } },
             { file: { fileId: "file_brief" } },
           ],
-          harness: "native",
+          harness: "stigmer",
           executionTarget: "local",
         },
       });
@@ -148,7 +148,7 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
     expect(input.sessionId).toBeUndefined();
     expect(input.sessionSpec).toMatchObject({
       agentRef: { org: "acme", slug: "site-builder" },
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       executionTarget: ExecutionTarget.LOCAL,
     });
     expect(input.sessionSpec.resources).toEqual([

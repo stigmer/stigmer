@@ -445,7 +445,7 @@ describe("platform domain (model readiness, declared runners)", () => {
 
   it("judges every catalog model on every engine by its provider", async () => {
     const out = await client.getModelReadiness({ org });
-    const sonnet = out.models.find((m) => m.harness === Harness.NATIVE && m.model === "claude-sonnet-4.6");
+    const sonnet = out.models.find((m) => m.harness === Harness.STIGMER && m.model === "claude-sonnet-4.6");
     expect(sonnet).toMatchObject({ provider: "anthropic", availability: ProviderAvailability.served_by_runners });
     const claude = out.models.filter((m) => m.harness === Harness.CLAUDE);
     expect(claude.length).toBeGreaterThan(0);
@@ -458,7 +458,7 @@ describe("platform domain (model readiness, declared runners)", () => {
           : m.availability === ProviderAvailability.missing_from_runners,
       ),
     ).toBe(true);
-    expect(new Set(out.models.map((m) => m.harness))).toEqual(new Set([Harness.NATIVE, Harness.CLAUDE]));
+    expect(new Set(out.models.map((m) => m.harness))).toEqual(new Set([Harness.STIGMER, Harness.CLAUDE]));
     expect(out.judged).toBeUndefined();
   });
 
@@ -468,7 +468,7 @@ describe("platform domain (model readiness, declared runners)", () => {
       model: { harness: Harness.UNSPECIFIED, model: "openai:house-model" },
     });
     expect(out.judged).toMatchObject({
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       model: "openai:house-model",
       provider: "openai",
       availability: ProviderAvailability.missing_from_runners,

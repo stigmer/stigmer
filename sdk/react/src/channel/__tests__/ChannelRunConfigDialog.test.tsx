@@ -55,7 +55,7 @@ const MODELS: ModelInfo[] = [
     shortDescription: "Fast Claude with optional thinking",
     speedTier: "fast",
     costTier: "economy",
-    harness: "native",
+    harness: "stigmer",
     featured: true,
     serviceTiers: [],
     thinkingCapable: true,

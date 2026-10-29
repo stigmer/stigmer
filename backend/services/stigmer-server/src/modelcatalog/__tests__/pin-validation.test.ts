@@ -14,9 +14,10 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { createLogger } from "../../boot/logger.js";
 import { ModelRegistryStore } from "../model-registry-store.js";
 import {
-  HARNESS_NAME_CLAUDE,
-  HARNESS_NAME_NATIVE,
+  HARNESS_WORD_LIST,
+  HARNESS_WORDS,
   harnessName,
+  harnessOfWord,
   suggestSimilarModels,
   unknownModelPinRefusal,
 } from "../pin-validation.js";
@@ -34,19 +35,35 @@ function makeStore(document: object): ModelRegistryStore {
 
 const STORE = makeStore({
   models: [
-    { id: "anthropic/claude-4", harness: "native" },
-    { id: "anthropic/claude-4-mini", harness: "native" },
+    { id: "anthropic/claude-4", harness: "stigmer" },
+    { id: "anthropic/claude-4-mini", harness: "stigmer" },
     { id: "anthropic/claude-opus-9", harness: "claude" },
   ],
 });
 
-const NATIVE_ONLY = makeStore({ models: [{ id: "anthropic/claude-4", harness: "native" }] });
+const NATIVE_ONLY = makeStore({ models: [{ id: "anthropic/claude-4", harness: "stigmer" }] });
+
+// docs/vocabulary.md, "Harness": a harness's one word is the first word of its label, in lower case.
+describe("the harness words", () => {
+  it("names each harness by the first word of its label, in lower case, in the proto's order", () => {
+    expect(HARNESS_WORDS).toEqual({ [Harness.STIGMER]: "stigmer", [Harness.CLAUDE]: "claude" });
+    expect(HARNESS_WORD_LIST).toEqual(["stigmer", "claude"]);
+  });
+
+  it("reads each word back to its harness, and no other string", () => {
+    expect(harnessOfWord("stigmer")).toBe(Harness.STIGMER);
+    expect(harnessOfWord("claude")).toBe(Harness.CLAUDE);
+    for (const word of ["native", "deep-agent", "cursor", "", "Stigmer"]) {
+      expect(harnessOfWord(word), word).toBeUndefined();
+    }
+  });
+});
 
 describe("harnessName", () => {
-  it("maps each engine to its own section, unspecified to native", () => {
-    expect(harnessName(Harness.CLAUDE)).toBe(HARNESS_NAME_CLAUDE);
-    expect(harnessName(Harness.NATIVE)).toBe(HARNESS_NAME_NATIVE);
-    expect(harnessName(Harness.UNSPECIFIED)).toBe(HARNESS_NAME_NATIVE);
+  it("maps each engine to its own section, unspecified to stigmer", () => {
+    expect(harnessName(Harness.CLAUDE)).toBe("claude");
+    expect(harnessName(Harness.STIGMER)).toBe("stigmer");
+    expect(harnessName(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
   it("gives a number no engine owns a word no section has, never native's", () => {
@@ -60,8 +77,8 @@ describe("harnessName", () => {
 
 describe("unknownModelPinRefusal", () => {
   it("accepts valid pins, blank pins, and unknown-harness pins (unverifiable)", () => {
-    expect(unknownModelPinRefusal(STORE, "f", "native", "anthropic/claude-4")).toBe("");
-    expect(unknownModelPinRefusal(STORE, "f", "native", "  ")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "anthropic/claude-4")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "  ")).toBe("");
     expect(unknownModelPinRefusal(STORE, "f", "cli", "whatever")).toBe("");
   });
 
@@ -69,17 +86,17 @@ describe("unknownModelPinRefusal", () => {
     // claude-4-mini sits at edit distance 6 from claude-5 — beyond the cap
     // of 5 — so only claude-4 is suggested.
     expect(
-      unknownModelPinRefusal(STORE, "spec.model_name", "native", "anthropic/claude-5"),
+      unknownModelPinRefusal(STORE, "spec.model_name", "stigmer", "anthropic/claude-5"),
     ).toBe(
       "spec.model_name: model 'anthropic/claude-5' is not in the model registry " +
-        "(native harness); did you mean 'anthropic/claude-4'?",
+        "(stigmer harness); did you mean 'anthropic/claude-4'?",
     );
     // Both candidates within the cap: distance-ascending order.
     expect(
-      unknownModelPinRefusal(STORE, "f", "native", "anthropic/claude-4x"),
+      unknownModelPinRefusal(STORE, "f", "stigmer", "anthropic/claude-4x"),
     ).toBe(
       "f: model 'anthropic/claude-4x' is not in the model registry " +
-        "(native harness); did you mean 'anthropic/claude-4', 'anthropic/claude-4-mini'?",
+        "(stigmer harness); did you mean 'anthropic/claude-4', 'anthropic/claude-4-mini'?",
     );
   });
 
@@ -92,8 +109,8 @@ describe("unknownModelPinRefusal", () => {
   });
 
   it("accepts an explicit openai: or anthropic: model on the native harness and any harness", () => {
-    expect(unknownModelPinRefusal(STORE, "f", "native", "openai:llama-3.3-70b")).toBe("");
-    expect(unknownModelPinRefusal(STORE, "f", "native", "Anthropic:my-claude")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "openai:llama-3.3-70b")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "Anthropic:my-claude")).toBe("");
     expect(unknownModelPinRefusal(STORE, "f", "", "openai:llama-3.3-70b")).toBe("");
   });
 
@@ -102,15 +119,15 @@ describe("unknownModelPinRefusal", () => {
       "f: model 'anthropic:claude-opus-9' is not in the model registry (claude harness); " +
         "did you mean 'anthropic/claude-opus-9'?",
     );
-    expect(unknownModelPinRefusal(STORE, "f", "native", "openai:")).not.toBe("");
-    expect(unknownModelPinRefusal(STORE, "f", "native", "ollama:llama3")).not.toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "openai:")).not.toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "stigmer", "ollama:llama3")).not.toBe("");
   });
 
   it("omits the suggestion tail when nothing is within the distance cap", () => {
     expect(
-      unknownModelPinRefusal(STORE, "f", "native", "totally/unrelated-thing"),
+      unknownModelPinRefusal(STORE, "f", "stigmer", "totally/unrelated-thing"),
     ).toBe(
-      "f: model 'totally/unrelated-thing' is not in the model registry (native harness)",
+      "f: model 'totally/unrelated-thing' is not in the model registry (stigmer harness)",
     );
   });
 });

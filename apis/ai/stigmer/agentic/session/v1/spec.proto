@@ -87,7 +87,7 @@ message SessionSpec {
   // Execution harness for this session.
   //
   // Determines which harness runs every turn in this session:
-  // - NATIVE (default): Stigmer's own runner
+  // - STIGMER (default): Stigmer's own harness
   // - CLAUDE: Anthropic's Claude Agent SDK
   //
   // The harness affects which tools the agent has, how conversation state
@@ -95,12 +95,12 @@ message SessionSpec {
   // has run, the harness is immutable — changing it would break conversation
   // continuity since each harness owns its own state.
   //
-  // When unspecified, defaults to HARNESS_NATIVE.
+  // When unspecified, defaults to HARNESS_STIGMER.
   //
   // @internal
   // The harness picks the Temporal activity type dispatched when a Run is
   // created in this session:
-  // - NATIVE: ExecuteDeepAgent activity -> Stigmer unified runner
+  // - STIGMER: ExecuteDeepAgent activity -> Stigmer unified runner
   // - CLAUDE: ExecuteClaude activity -> Stigmer unified runner
   Harness harness = 10 [(buf.validate.field).enum.defined_only = true];
 

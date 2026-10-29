@@ -19,7 +19,7 @@ const BASE_PROPS: SetupTabProps = {
   agentRef: null,
   pluginRefs: [],
   skillRefs: [],
-  harness: "native",
+  harness: "stigmer",
   executionTarget: undefined,
   modelId: undefined,
 };

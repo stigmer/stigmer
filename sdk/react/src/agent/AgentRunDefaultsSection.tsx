@@ -264,7 +264,7 @@ function RunDefaultsEditor({
           <div>
             <button
               type="button"
-              onClick={() => changeEngine("native")}
+              onClick={() => changeEngine("stigmer")}
               disabled={isSaving}
               className={cn(
                 "stg:rounded-md stg:border stg:border-dashed stg:border-border stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-muted-foreground",

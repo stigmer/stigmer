@@ -54,13 +54,13 @@ vi.mock("../bootstrap.js", () => ({
 
 vi.mock("../preflight.js", () => ({ assertLlmBackendsPreflight: () => {} }));
 
-vi.mock("../harness-adapters.js", () => ({ HARNESS_ADAPTERS: [{ harness: "deep-agent", adapter: { name: "table" } }] }));
+vi.mock("../harness-adapters.js", () => ({ HARNESS_ADAPTERS: [{ harness: "stigmer", adapter: { name: "table" } }] }));
 
 vi.mock("../agent-host/hosting.js", () => ({
   hostHarnesses: async (rows: unknown) => {
     fakes.hostedArgs.push(rows);
     return {
-      rows: [{ harness: "deep-agent", adapter: { name: "remote" } }],
+      rows: [{ harness: "stigmer", adapter: { name: "remote" } }],
       close: async () => void fakes.order.push("proxy closed"),
     };
   },
@@ -95,9 +95,9 @@ describe("the static root runs the hosted table", () => {
       workspaceRootDir: join(tmpdir(), "stigmer-runner-hosting-test"),
     });
 
-    expect(fakes.hostedArgs).toEqual([[{ harness: "deep-agent", adapter: { name: "table" } }]]);
+    expect(fakes.hostedArgs).toEqual([[{ harness: "stigmer", adapter: { name: "table" } }]]);
     expect(fakes.booted, "the hosted rows are what boots").toEqual([[{ name: "remote" }]]);
-    expect(fakes.bound, "and what the activities bind").toEqual([[{ harness: "deep-agent", adapter: { name: "remote" } }]]);
+    expect(fakes.bound, "and what the activities bind").toEqual([[{ harness: "stigmer", adapter: { name: "remote" } }]]);
 
     const started = runner.start();
     runner.shutdown();

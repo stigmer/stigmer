@@ -97,7 +97,7 @@ describe("ExecuteDeepAgent hermetic — a saved subagent's own context", () => {
     const notes = savedAgentFixture("notes", {
       description: "Writes notes.",
       instructions: NOTES_INSTRUCTIONS,
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       runConfig: { modelName: NOTES_MODEL },
       hooks: [envWritingHook("subagent-hook.txt")],
     });

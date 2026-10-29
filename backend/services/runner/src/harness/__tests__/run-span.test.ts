@@ -82,7 +82,7 @@ function facts(execution: Run, s: Session, agent?: { id: string; versionHash: st
   return { execution, session: s, sessionId: "ses_1", blueprint: blueprint(s, agent) };
 }
 
-const TURN = { executionId: RUN_ID, turnSeq: 0, harness: "deep-agent" };
+const TURN = { executionId: RUN_ID, turnSeq: 0, harness: "stigmer" };
 
 function onlySpan(): ReadableSpan {
   const finished = exporter.getFinishedSpans().filter((span) => span.name.startsWith("invoke_agent"));
@@ -111,7 +111,7 @@ describe("withRunSpan", () => {
       "gen_ai.operation.name": "invoke_agent",
       "stigmer.run.id": RUN_ID,
       "stigmer.run.turn": 0,
-      "stigmer.harness": "deep-agent",
+      "stigmer.harness": "stigmer",
     });
   });
 

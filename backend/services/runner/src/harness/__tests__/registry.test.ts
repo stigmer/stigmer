@@ -34,7 +34,7 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
   return {
     name,
     capabilities: {
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       subAgents: false,
       runsHooks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
@@ -61,9 +61,9 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
 
 describe("HARNESS_ACTIVITY_NAMES", () => {
   it("reads the activity names the server's workflow schedules (@stigmer/temporal-codecs/activity-names)", () => {
-    expect(HARNESS_ACTIVITY_NAMES["deep-agent"]).toBe(EXECUTE_DEEP_AGENT_ACTIVITY_NAME);
+    expect(HARNESS_ACTIVITY_NAMES.stigmer).toBe(EXECUTE_DEEP_AGENT_ACTIVITY_NAME);
     expect(HARNESS_ACTIVITY_NAMES.claude).toBe(EXECUTE_CLAUDE_ACTIVITY_NAME);
-    expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["claude", "deep-agent"]);
+    expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["claude", "stigmer"]);
   });
 });
 

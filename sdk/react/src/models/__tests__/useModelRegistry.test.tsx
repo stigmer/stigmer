@@ -25,7 +25,7 @@ const TEST_REGISTRY_JSON = {
       shortDescription: "Balanced capability",
       speedTier: "fast",
       provider: "anthropic",
-      harness: "native",
+      harness: "stigmer",
       costTier: "standard",
       featured: true,
       pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 },
@@ -36,7 +36,7 @@ const TEST_REGISTRY_JSON = {
       shortDescription: "Complex reasoning",
       speedTier: "slow",
       provider: "anthropic",
-      harness: "native",
+      harness: "stigmer",
       costTier: "premium",
       featured: true,
       pricing: { inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.5 },
@@ -47,7 +47,7 @@ const TEST_REGISTRY_JSON = {
       shortDescription: "Fast reasoning",
       speedTier: "fast",
       provider: "openai",
-      harness: "native",
+      harness: "stigmer",
       costTier: "standard",
       featured: true,
       pricing: { inputPricePerMillion: 2.5, outputPricePerMillion: 10, cacheWritePricePerMillion: 2.5, cacheReadPricePerMillion: 1.25 },
@@ -83,7 +83,7 @@ const TEST_REGISTRY_JSON = {
       shortDescription: "Local model",
       speedTier: "fast",
       provider: "ollama",
-      harness: "native",
+      harness: "stigmer",
       costTier: "economy",
       featured: false,
       pricing: { inputPricePerMillion: 0, outputPricePerMillion: 0, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0 },
@@ -111,7 +111,7 @@ describe("parseRegistryDocument thinking data (#772, #1280)", () => {
     id: "m",
     displayName: "M",
     provider: "anthropic",
-    harness: "native",
+    harness: "stigmer",
     costTier: "standard",
     pricing: { inputPricePerMillion: 1, outputPricePerMillion: 2, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0 },
     ...(capabilities === undefined ? {} : { capabilities }),
@@ -147,7 +147,7 @@ describe("parseRegistryDocument vision data (#365, #386)", () => {
     id: "m",
     displayName: "M",
     provider: "anthropic",
-    harness: "native",
+    harness: "stigmer",
     costTier: "standard",
     pricing: { inputPricePerMillion: 1, outputPricePerMillion: 2, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0 },
     ...overrides,
@@ -261,7 +261,7 @@ describe("useModelRegistry", () => {
     it("includes models from both native and claude harnesses", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
       const harnesses = new Set(result.current.models.map((m) => m.harness));
-      expect(harnesses.has("native")).toBe(true);
+      expect(harnesses.has("stigmer")).toBe(true);
       expect(harnesses.has("claude")).toBe(true);
     });
 
@@ -335,11 +335,11 @@ describe("useModelRegistry", () => {
 
     it("resolves models by compound key via getByKey", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
-      const key = modelKey("native", DEFAULT_MODEL_ID);
+      const key = modelKey("stigmer", DEFAULT_MODEL_ID);
       const model = result.current.getByKey(key);
       expect(model).toBeDefined();
       expect(model!.modelId).toBe(DEFAULT_MODEL_ID);
-      expect(model!.harness).toBe("native");
+      expect(model!.harness).toBe("stigmer");
     });
 
     it("resolves claude models by compound key via getByKey", () => {
@@ -353,23 +353,23 @@ describe("useModelRegistry", () => {
 
     it("returns undefined for unknown compound keys via getByKey", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
-      expect(result.current.getByKey("native/nonexistent")).toBeUndefined();
+      expect(result.current.getByKey("stigmer/nonexistent")).toBeUndefined();
     });
   });
 
   describe("native harness (explicit)", () => {
     it("shows only native-harness models", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "native" }),
+        useModelRegistry({ harness: "stigmer" }),
       { wrapper: createWrapper() });
       for (const model of result.current.models) {
-        expect(model.harness).toBe("native");
+        expect(model.harness).toBe("stigmer");
       }
     });
 
     it("excludes claude-harness models", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "native" }),
+        useModelRegistry({ harness: "stigmer" }),
       { wrapper: createWrapper() });
       const claudeModels = result.current.models.filter(
         (m) => m.harness === "claude",
@@ -379,7 +379,7 @@ describe("useModelRegistry", () => {
 
     it("resolves defaultModel to the featured standard-cost native model (what an unpinned execution runs, #663)", () => {
       const { result } = renderHook(() =>
-        useModelRegistry({ harness: "native" }),
+        useModelRegistry({ harness: "stigmer" }),
       { wrapper: createWrapper() });
       expect(result.current.defaultModel!.modelId).toBe("claude-sonnet-4.6");
       expect(result.current.defaultModel!.costTier).toBe("standard");

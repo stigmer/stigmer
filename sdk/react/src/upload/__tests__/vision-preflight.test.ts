@@ -25,7 +25,7 @@ function model(overrides?: Partial<ModelInfo>): ModelInfo {
     shortDescription: "",
     speedTier: "fast",
     costTier: "standard",
-    harness: "native",
+    harness: "stigmer",
     featured: false,
     serviceTiers: [],
     ...overrides,

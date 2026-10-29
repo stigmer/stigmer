@@ -84,7 +84,7 @@ describe("an eval run's context about an agent", () => {
     if (context === undefined) throw new Error("no context");
     expect(context.agent).toEqual({ org: ORG, id: "agt_1", slug: "support-desk", versionHash: AGENT_HASH });
     expect(context.sources.map((entry) => [entry.digest, entry.kind === "plugin" ? entry.pluginIndex : -1])).toEqual([[DIGEST, 0]]);
-    expect(context.matrix.cases[0]?.targets[0]?.target).toMatchObject({ harness: Harness.NATIVE, modelName: MODEL });
+    expect(context.matrix.cases[0]?.targets[0]?.target).toMatchObject({ harness: Harness.STIGMER, modelName: MODEL });
     expect([context.comparedPluginId, context.twoArms]).toEqual([undefined, false]);
     expect(context.matrix.cells.every((cell) => cell.arm === "with")).toBe(true);
     expect(attachmentOf(context, "with").excludedPluginIds).toEqual([]);

@@ -121,7 +121,7 @@ export function EvalModelsField<S extends EvalRunSettings>({
                     ...settings,
                     targets: [
                       ...settings.targets,
-                      { harness: "native", modelName: "" },
+                      { harness: "stigmer", modelName: "" },
                     ],
                   })
                 }

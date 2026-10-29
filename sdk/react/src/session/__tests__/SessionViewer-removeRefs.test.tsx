@@ -94,7 +94,7 @@ const skillRefs: ResourceRef[] = [
 
 const stubSessionPageFlow = {
   conv: stubConv,
-  harness: "native" as const,
+  harness: "stigmer" as const,
   executionTarget: undefined,
   model: [undefined, vi.fn()] as const,
   interactionMode: ["agent" as const, vi.fn()] as const,

@@ -39,7 +39,7 @@ function hostedFs() {
   const [runnerEnd, hostEnd] = loopbackChannels();
   serveAgentHost(hostEnd, [
     {
-      harness: "deep-agent",
+      harness: "stigmer",
       adapter: {
         name: "probe",
         capabilities: DEEP_AGENT_CAPABILITIES,

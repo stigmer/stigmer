@@ -299,14 +299,14 @@ describe("TurnTimeline — settle and the line's shape", () => {
       execution_id: "exe_1",
       session_id: "ses_1",
       turn_seq: 2,
-      harness: "deep-agent",
+      harness: "stigmer",
       outcome: "completed",
     });
     expect(line.stigmer_timing).toBe(TURN_PHASES_EVENT);
     expect(line.execution_id).toBe("exe_1");
     expect(line.session_id).toBe("ses_1");
     expect(line.turn_seq).toBe(2);
-    expect(line.harness).toBe("deep-agent");
+    expect(line.harness).toBe("stigmer");
     expect(line.outcome).toBe("completed");
     expect(Object.keys(line).sort()).toEqual([
       "background_commands", "background_reminders", "execution_id", "first_event_ms", "first_text_ms", "first_visible_token_ms",

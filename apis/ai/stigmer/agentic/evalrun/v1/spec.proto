@@ -244,7 +244,7 @@ message EvalRunCaseSource {
 
 // EvalRunTarget is one harness and model a case runs on.
 message EvalRunTarget {
-  // The harness. Unspecified is native (Stigmer's own harness).
+  // The harness. Unspecified is the Stigmer harness.
   ai.stigmer.agentic.session.v1.Harness harness = 1 [(buf.validate.field).enum.defined_only = true];
 
   // A model id from the model catalog for that harness, as in

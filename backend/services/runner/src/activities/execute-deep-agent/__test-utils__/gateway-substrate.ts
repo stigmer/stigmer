@@ -461,7 +461,7 @@ async function runHooksProbe(
 
 export function createDeepAgentSubstrate(): GatewaySubstrate {
   return {
-    name: "deep-agent",
+    name: "stigmer",
     available: true,
     capabilities: {
       observesExecution: true,

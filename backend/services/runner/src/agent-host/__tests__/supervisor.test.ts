@@ -89,7 +89,7 @@ describe("the supervisor's restarts", () => {
     vi.spyOn(console, "warn").mockImplementation((message: string) => void warned.push(message));
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 5, maxRestartDelayMs: 40 });
-    await supervisor.boot("deep-agent", testConfig());
+    await supervisor.boot("stigmer", testConfig());
 
     hosts.failNext = 1;
     hosts.hosts[0]!.close(new Error("crashed"));
@@ -99,14 +99,14 @@ describe("the supervisor's restarts", () => {
       "[agent-host] the agent host exited (crashed); restarting in 5ms",
       "[agent-host] the agent host could not be started (no host for you); restarting in 10ms",
     ]);
-    await supervisor.shutdown("deep-agent");
+    await supervisor.shutdown("stigmer");
   });
 
   it("restarts a host that served longer than the longest delay after the first delay again", async () => {
     const log: string[] = [];
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 5, maxRestartDelayMs: 40, log: (m) => void log.push(m) });
-    await supervisor.boot("deep-agent", testConfig());
+    await supervisor.boot("stigmer", testConfig());
 
     hosts.hosts[0]!.close(new Error("first"));
     await until(() => hosts.hosts.length === 2, "the second host");
@@ -118,7 +118,7 @@ describe("the supervisor's restarts", () => {
       "[agent-host] the agent host exited (first); restarting in 5ms",
       "[agent-host] the agent host exited (second); restarting in 5ms",
     ]);
-    await supervisor.shutdown("deep-agent");
+    await supervisor.shutdown("stigmer");
   });
 });
 
@@ -126,7 +126,7 @@ describe("the supervisor's edges", () => {
   it("cancels the pending restart when a turn starts the host first", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, firstRestartDelayMs: 20, log: () => {} });
-    await supervisor.boot("deep-agent", testConfig());
+    await supervisor.boot("stigmer", testConfig());
 
     hosts.hosts[0]!.close(new Error("crashed"));
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -134,7 +134,7 @@ describe("the supervisor's edges", () => {
     await new Promise((resolve) => setTimeout(resolve, 40));
 
     expect(hosts.hosts, "the turn's start, and no second one from the timer").toHaveLength(2);
-    await supervisor.shutdown("deep-agent");
+    await supervisor.shutdown("stigmer");
   });
 
   it("ends a host whose start was under way when the last harness shut down, and restarts nothing", async () => {
@@ -150,11 +150,11 @@ describe("the supervisor's edges", () => {
       return started;
     };
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, firstRestartDelayMs: 5, log: (m) => void log.push(m) });
-    await supervisor.boot("deep-agent", testConfig());
+    await supervisor.boot("stigmer", testConfig());
 
     hosts.hosts[0]!.close(new Error("crashed"));
     await until(() => hosts.hosts.length === 2, "the restart's host");
-    await supervisor.shutdown("deep-agent");
+    await supervisor.shutdown("stigmer");
     release();
 
     await until(() => hosts.hosts[1]!.closed, "the late host to be ended");
@@ -185,21 +185,21 @@ describe("the supervisor's edges", () => {
     };
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start, log: () => {} });
 
-    await Promise.all([supervisor.boot("claude", testConfig()), supervisor.boot("deep-agent", testConfig())]);
+    await Promise.all([supervisor.boot("claude", testConfig()), supervisor.boot("stigmer", testConfig())]);
 
-    expect(booted.sort()).toEqual(["claude", "deep-agent"]);
+    expect(booted.sort()).toEqual(["claude", "stigmer"]);
     expect(hosts.hosts).toHaveLength(1);
     await supervisor.shutdown("claude");
-    await supervisor.shutdown("deep-agent");
+    await supervisor.shutdown("stigmer");
   });
 
   it("refuses a host's call for a turn the runner is not running", async () => {
     const hosts = inProcessHosts();
     const supervisor = new AgentHostSupervisor({ proxy: PROXY, start: hosts.start, log: () => {} });
-    await supervisor.boot("deep-agent", testConfig());
+    await supervisor.boot("stigmer", testConfig());
 
     await expect(hosts.hosts[0]!.call("reportProgress", { turnId: "nobody", label: "x" })).rejects.toThrow("no turn nobody is running on this runner");
-    await supervisor.shutdown("deep-agent");
+    await supervisor.shutdown("stigmer");
   });
 });
 
@@ -362,7 +362,7 @@ describe("the production starter", () => {
 
   it("starts a real host by default, with the lane's trust file, and boots a harness in it", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
-    const hosted = await hostHarnesses([{ harness: "deep-agent", adapter: probeAdapter("native") }], testConfig());
+    const hosted = await hostHarnesses([{ harness: "stigmer", adapter: probeAdapter("stigmer") }], testConfig());
     await hosted.rows[0]!.adapter.boot(testConfig());
     await hosted.rows[0]!.adapter.shutdown();
     await hosted.close();
@@ -410,12 +410,12 @@ describe("hosting the table", () => {
       releaseSession: async () => {},
       runTurn: async () => ({ kind: "completed" }),
     });
-    const native = adapter("native");
+    const native = adapter("stigmer");
     const claude = adapter("claude");
     const hosted = await hostHarnesses(
       [
         { harness: "claude", adapter: claude },
-        { harness: "deep-agent", adapter: native },
+        { harness: "stigmer", adapter: native },
       ],
       testConfig(),
       { start: hosts.start },
@@ -423,7 +423,7 @@ describe("hosting the table", () => {
 
     expect(hosted.rows[0]!.adapter, "the Claude harness is hosted").not.toBe(claude);
     expect(hosted.rows[1]!.adapter, "the native harness is hosted").not.toBe(native);
-    expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["claude", "native"]);
+    expect(hosted.rows.map((row) => row.adapter.name)).toEqual(["claude", "stigmer"]);
     expect(hosted.rows[1]!.adapter.capabilities).toBe(native.capabilities);
     expect(hosts.hosts, "nothing booted, so no host is started").toEqual([]);
     await hosted.close();

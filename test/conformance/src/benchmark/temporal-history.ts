@@ -35,7 +35,7 @@ export { invokeWorkflowIdFor };
 
 /** The runner activity each harness's turn runs as, by the runtime's harness label. */
 const EXECUTE_ACTIVITY_NAME: Record<BenchmarkHarness, string> = {
-  "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  stigmer: EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
   claude: EXECUTE_CLAUDE_ACTIVITY_NAME,
 };
 

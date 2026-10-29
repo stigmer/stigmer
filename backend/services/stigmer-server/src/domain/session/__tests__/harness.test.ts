@@ -30,7 +30,7 @@ import {
 
 describe("offeredHarnessRefusal", () => {
   it("passes the engines this platform runs, and the platform default", () => {
-    for (const harness of [Harness.UNSPECIFIED, Harness.NATIVE, Harness.CLAUDE]) {
+    for (const harness of [Harness.UNSPECIFIED, Harness.STIGMER, Harness.CLAUDE]) {
       expect(offeredHarnessRefusal(harness, "spec.harness")).toBe("");
     }
   });
@@ -45,7 +45,7 @@ describe("offeredHarnessRefusal", () => {
 
   it("names and offers Stigmer and Claude Agent, unspecified read as Stigmer", () => {
     expect(HARNESSES).toEqual({
-      [Harness.NATIVE]: { label: "Stigmer", offered: true },
+      [Harness.STIGMER]: { label: "Stigmer", offered: true },
       [Harness.CLAUDE]: { label: "Claude Agent", offered: true },
     });
     expect(harnessFacts(Harness.UNSPECIFIED)?.label).toBe("Stigmer");
@@ -73,13 +73,13 @@ describe("RefuseUnofferedHarness", () => {
   }
 
   it("passes a request naming only offered engines", () => {
-    expect(() => step.execute(contextFor([Harness.NATIVE, Harness.CLAUDE]))).not.toThrow();
+    expect(() => step.execute(contextFor([Harness.STIGMER, Harness.CLAUDE]))).not.toThrow();
   });
 
   it("refuses the first unoffered engine with FailedPrecondition", () => {
     let thrown: unknown;
     try {
-      step.execute(contextFor([Harness.NATIVE, 2 as Harness]));
+      step.execute(contextFor([Harness.STIGMER, 2 as Harness]));
     } catch (error) {
       thrown = error;
     }

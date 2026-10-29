@@ -61,7 +61,7 @@ export function modelReadinessCacheKey(org: string): string {
  * @example
  * ```tsx
  * const { readinessOf } = useModelReadiness(org);
- * const needsKey = readinessOf("native", "claude-sonnet-4-6")?.availability.state === "missing";
+ * const needsKey = readinessOf("stigmer", "claude-sonnet-4-6")?.availability.state === "missing";
  * ```
  */
 export function useModelReadiness(org: string | null): UseModelReadinessReturn {
@@ -116,7 +116,7 @@ export function useModelReadiness(org: string | null): UseModelReadinessReturn {
 
 /** The engines this build names, by their wire value. */
 const HARNESS_OF_WIRE: Partial<Record<Harness, HarnessOption>> = {
-  [Harness.NATIVE]: "native",
+  [Harness.STIGMER]: "stigmer",
   [Harness.CLAUDE]: "claude",
 };
 

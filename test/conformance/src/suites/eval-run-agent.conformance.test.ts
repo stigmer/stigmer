@@ -588,7 +588,7 @@ describe("EvalRun about an agent — create refusals", () => {
           smallestEval({
             org: tenancy.org,
             agentId: agent.metadata!.id,
-            targets: [{ harness: Harness.NATIVE, modelName: "surely-not-a-real-model-xyz" }],
+            targets: [{ harness: Harness.STIGMER, modelName: "surely-not-a-real-model-xyz" }],
           }),
         ),
       Code.InvalidArgument,
@@ -611,7 +611,7 @@ describe("EvalRun about an agent — create refusals", () => {
             org: tenancy.org,
             agentId: agent.metadata!.id,
             runs: 50,
-            targets: Array.from({ length: 6 }, () => ({ harness: Harness.NATIVE, modelName: "" })),
+            targets: Array.from({ length: 6 }, () => ({ harness: Harness.STIGMER, modelName: "" })),
           }),
         ),
       Code.FailedPrecondition,

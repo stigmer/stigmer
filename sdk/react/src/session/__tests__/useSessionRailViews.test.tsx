@@ -51,7 +51,7 @@ const sessionConfig = {
   pluginRefs: [],
   skillRefs: [],
   sessionVariables: null,
-  harness: "native",
+  harness: "stigmer",
   executionTarget: undefined,
   modelId: undefined,
 } as SetupTabProps;

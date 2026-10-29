@@ -80,7 +80,7 @@ enum RunPhase {
   //
   // Trigger paths:
   // - Internal (activity-level): stall timeout (agent unresponsive),
-  //   tool-call budget exhausted (the native harness's GraphRecursionError).
+  //   tool-call budget exhausted (the Stigmer harness's GraphRecursionError).
   //   The LangGraph checkpoint is valid; the user can continue via follow-up
   //   message.
   // - External (Terminate RPC): user or system force-kills the Temporal
@@ -121,12 +121,12 @@ enum RunPhase {
   //
   // When this phase is reached:
   // - Running activities are gracefully cancelled
-  // - On the native harness, LangGraph checkpoints are saved (thread_id
+  // - On the Stigmer harness, LangGraph checkpoints are saved (thread_id
   //   preserved)
   //
   // Resume behavior:
   // - Activity is re-invoked with same thread_id
-  // - On the native harness, LangGraph loads from checkpoint automatically
+  // - On the Stigmer harness, LangGraph loads from checkpoint automatically
   // - Run continues from where it was paused
   RUN_PAUSED = 7;
 }
@@ -251,7 +251,7 @@ enum ApprovalMode {
 // "user explicitly chose standard" stays distinguishable from "platform
 // default". FAST on a model without a registry fast variant is refused at
 // create time (INVALID_ARGUMENT). No registry entry carries a fast variant
-// today, so no harness offers FAST; native's service-tier mapping is
+// today, so no harness offers FAST; the Stigmer harness's service-tier mapping is
 // stigmer/stigmer#361.
 enum ServiceTier {
   // Default — resolves to SERVICE_TIER_STANDARD, never the provider account
@@ -298,8 +298,8 @@ enum ServiceTier {
 // Resolution of UNSPECIFIED → DISABLED happens exactly once, in the
 // runner's translation layer; every upstream layer preserves the caller's
 // raw value so "user explicitly chose disabled" stays distinguishable from
-// "platform default". The native harness maps it to Anthropic's `thinking`
-// parameter in the form the model's native registry entry declares.
+// "platform default". The Stigmer harness maps it to Anthropic's `thinking`
+// parameter in the form the model's Stigmer-harness registry entry declares.
 // Thinking combines freely with ServiceTier: the combined variant bills at
 // the fast rate (the only price-bearing dimension).
 enum ThinkingMode {

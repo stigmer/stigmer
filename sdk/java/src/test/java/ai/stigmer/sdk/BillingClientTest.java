@@ -64,7 +64,7 @@ class BillingClientTest {
         ModelPricingBaseline baseline = ModelPricingBaseline.newBuilder()
                 .setModelId("claude-fable-5")
                 .setProvider("anthropic")
-                .setHarness("native")
+                .setHarness("stigmer")
                 .build();
 
         UpsertModelPricingBaselineInput proto =
@@ -90,13 +90,13 @@ class BillingClientTest {
                 BillingClient.RetireModelPricingBaselineParams.builder()
                         .modelId("legacy-model")
                         .provider("openai")
-                        .harness("native")
+                        .harness("stigmer")
                         .build()
                         .toProto();
 
         assertEquals("legacy-model", proto.getModelId());
         assertEquals("openai", proto.getProvider());
-        assertEquals("native", proto.getHarness());
+        assertEquals("stigmer", proto.getHarness());
         assertEquals("", proto.getRevisionNote());
     }
 

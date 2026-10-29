@@ -138,7 +138,7 @@ async function startEditTurn(workspace: GitWorkspace, edits: [Edit, Edit]): Prom
       org,
       name: uniqueName("ses-progress"),
       agentRef: agentRefOf(agent),
-      harness: Harness.NATIVE,
+      harness: Harness.STIGMER,
       localWorkspaces: [{ name: "repo", path: workspace.dir }],
       fileReview: true,
     }),
