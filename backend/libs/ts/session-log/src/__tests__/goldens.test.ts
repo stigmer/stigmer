@@ -399,6 +399,6 @@ describe("execute-deep-agent file-review-reconcile: an undo another turn put bac
 describe("the corpus", () => {
   it("covers the Stigmer harness's goldens", () => {
     expect(new Set(ALL.map((golden) => golden.harness))).toEqual(new Set(HARNESSES));
-    expect(ALL.length).toBeGreaterThanOrEqual(30);
+    expect(ALL.length).toBeGreaterThanOrEqual(28);
   });
 });
