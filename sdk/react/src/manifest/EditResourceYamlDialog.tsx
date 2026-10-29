@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import type { Message } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
@@ -8,11 +8,8 @@ import { getUserMessage, type AppliedManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";
+import { YamlEditor } from "./YamlEditor.js";
 
-// CodeMirror loads only when an editor dialog actually opens.
-const LazyYamlEditor = lazy(() =>
-  import("./YamlEditor.js").then((m) => ({ default: m.YamlEditor })),
-);
 
 /** Props for {@link EditResourceYamlDialog}. */
 export interface EditResourceYamlDialogProps {
@@ -106,13 +103,12 @@ export function EditResourceYamlDialog({
 
         {/* Editor */}
         {resource ? (
-          <Suspense fallback={<EditorLoading />}>
-            <LazyYamlEditor
-              value={edit.yaml}
-              onChange={edit.setYaml}
-              className="stg:h-80"
-            />
-          </Suspense>
+          // CodeMirror loads when the editor first renders, so only once the dialog opens.
+          <YamlEditor
+            value={edit.yaml}
+            onChange={edit.setYaml}
+            className="stg:h-80"
+          />
         ) : (
           <EditorLoading label="Loading resource…" />
         )}
@@ -238,7 +234,7 @@ function targetSummary(
   }
 }
 
-function EditorLoading({ label = "Loading editor…" }: { readonly label?: string }) {
+function EditorLoading({ label }: { readonly label: string }) {
   return (
     <div className="stg:flex stg:h-80 stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:text-sm stg:text-muted-foreground">
       {label}

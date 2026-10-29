@@ -18,15 +18,15 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import type { UseSessionConversationReturn } from "@stigmer/react-sdk";
+import type { UseSessionConversationReturn } from "@stigmer/react-sdk/headless";
 import { samples } from "@stigmer/react-sdk/test";
 import { SessionView } from "../app/SessionView.js";
 import { reviewSet, waitingToolUse } from "./session-events.js";
 
 let conversation: UseSessionConversationReturn;
 
-vi.mock("@stigmer/react-sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@stigmer/react-sdk")>();
+vi.mock("@stigmer/react-sdk/headless", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@stigmer/react-sdk/headless")>();
   return {
     ...actual,
     useSessionConversation: () => conversation,

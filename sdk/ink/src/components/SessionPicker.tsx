@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { useSessionList } from "@stigmer/react-sdk";
+import { useSessionList } from "@stigmer/react-sdk/headless";
 import { type PickerItem, ResourcePicker } from "./ResourcePicker.js";
 
 /** Props for {@link SessionPicker}. */

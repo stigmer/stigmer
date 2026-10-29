@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -11,11 +11,8 @@ import {
   type ManifestPreviewEntry,
 } from "./useApplyManifest.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { YamlEditor } from "./YamlEditor.js";
 
-// CodeMirror loads only when the dialog actually opens.
-const LazyYamlEditor = lazy(() =>
-  import("./YamlEditor.js").then((m) => ({ default: m.YamlEditor })),
-);
 
 /** Props for {@link ApplyManifestDialog}. */
 export interface ApplyManifestDialogProps {
@@ -170,13 +167,12 @@ export function ApplyManifestDialog({
         />
 
         {/* Manifest editor */}
-        <Suspense fallback={<EditorLoading />}>
-          <LazyYamlEditor
-            value={manifest.content}
-            onChange={manifest.setContent}
-            className="stg:h-56"
-          />
-        </Suspense>
+        {/* CodeMirror loads when the editor first renders, so only once the dialog opens. */}
+        <YamlEditor
+          value={manifest.content}
+          onChange={manifest.setContent}
+          className="stg:h-56"
+        />
 
         {manifest.hasRedactedSecrets && <RedactedSecretsNotice />}
 
@@ -244,14 +240,6 @@ export function ApplyManifestDialog({
 function applyLabel(count: number): string {
   if (count <= 1) return "Apply";
   return `Apply ${count} resources`;
-}
-
-function EditorLoading() {
-  return (
-    <div className="stg:flex stg:h-56 stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:text-sm stg:text-muted-foreground">
-      Loading editor…
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------

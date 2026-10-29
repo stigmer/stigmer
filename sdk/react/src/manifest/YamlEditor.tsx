@@ -1,20 +1,25 @@
 "use client";
 
-import {
-  useRef,
-  useEffect,
-  memo,
-  type CSSProperties,
-} from "react";
+import { memo, useEffect, useState, type ComponentType, type CSSProperties } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { EditorState, Compartment } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection, highlightSpecialChars } from "@codemirror/view";
-import { yaml } from "@codemirror/lang-yaml";
-import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter } from "@codemirror/language";
-import { tags } from "@lezer/highlight";
-import { lintGutter, type Diagnostic, setDiagnostics } from "@codemirror/lint";
-import { defaultKeymap, indentWithTab, history, historyKeymap } from "@codemirror/commands";
-import { autocompletion } from "@codemirror/autocomplete";
+
+/**
+ * One inline marker in a {@link YamlEditor}: a character range and what is
+ * wrong there. CodeMirror's own `Diagnostic` objects fit it, so validation
+ * written against `@codemirror/lint` passes its results straight through.
+ */
+export interface YamlEditorDiagnostic {
+  /** Start offset in the document. */
+  readonly from: number;
+  /** End offset in the document. */
+  readonly to: number;
+  /** How the marker is drawn. */
+  readonly severity: "hint" | "info" | "warning" | "error";
+  /** What is wrong, shown on hover. */
+  readonly message: string;
+  /** Who reported it (a linter's name), shown beside the message. */
+  readonly source?: string;
+}
 
 /** Props for {@link YamlEditor}. */
 export interface YamlEditorProps {
@@ -23,7 +28,7 @@ export interface YamlEditorProps {
   /** Called when the editor content changes. */
   readonly onChange?: (value: string) => void;
   /** Validation diagnostics to display as inline markers. */
-  readonly diagnostics?: readonly Diagnostic[];
+  readonly diagnostics?: readonly YamlEditorDiagnostic[];
   /** Whether the editor is read-only. @default false */
   readonly readOnly?: boolean;
   /** Additional CSS class names for the root container. */
@@ -32,21 +37,52 @@ export interface YamlEditorProps {
   readonly style?: CSSProperties;
 }
 
+/** The CodeMirror packages the editor needs, as the install line names them. */
+const YAML_EDITOR_PACKAGES = [
+  "@codemirror/autocomplete",
+  "@codemirror/commands",
+  "@codemirror/lang-yaml",
+  "@codemirror/language",
+  "@codemirror/lint",
+  "@codemirror/state",
+  "@codemirror/view",
+  "@lezer/highlight",
+] as const;
+
+type EditorComponent = ComponentType<YamlEditorProps>;
+
 /**
- * YAML editor built on CodeMirror 6, shared by every YAML surface in the
- * SDK (the resource manifest dialogs).
- *
- * Provides syntax highlighting, line numbers, bracket matching,
+ * One import of the CodeMirror editor, shared by every mounted editor. A
+ * failed import clears it, as `loadMermaid` does: a chunk that failed to
+ * load mid-deploy loads on the next mount.
+ */
+let editorImport: Promise<EditorComponent> | null = null;
+
+function loadEditor(): Promise<EditorComponent> {
+  editorImport ??= import("./CodeMirrorYamlEditor.js").then(
+    (module) => module.CodeMirrorYamlEditor,
+    (error: unknown) => {
+      editorImport = null;
+      throw error;
+    },
+  );
+  return editorImport;
+}
+
+const BOX = "stg:flex stg:items-center stg:justify-center stg:rounded-md stg:border stg:border-border stg:bg-muted stg:text-sm stg:text-muted-foreground";
+
+/**
+ * YAML editor, shared by every YAML surface in the SDK (the resource
+ * manifest dialogs): syntax highlighting, line numbers, bracket matching,
  * code folding, undo/redo, and inline diagnostic markers driven by
- * external validation (via the `diagnostics` prop).
+ * external validation (via the `diagnostics` prop). Themed via `--stgm-*`
+ * CSS custom properties to respect the host application's design tokens.
  *
- * Themed via `--stgm-*` CSS custom properties to respect the host
- * application's design tokens.
- *
- * This is an optional SDK component — it requires CodeMirror peer
- * dependencies. Consumers that render it conditionally should load it
- * via `React.lazy` so the CodeMirror bundle stays out of paths that
- * never open an editor.
+ * Built on CodeMirror 6, an optional peer dependency: the editor loads it
+ * on first render, so an app that never opens an editor never downloads it,
+ * and an app that has not installed it can still import the kit. Until it
+ * arrives the editor's box says it is loading; if it cannot load, the box
+ * names the packages to install.
  *
  * @example
  * ```tsx
@@ -57,216 +93,38 @@ export interface YamlEditorProps {
  * />
  * ```
  */
-export const YamlEditor = memo(function YamlEditor({
-  value,
-  onChange,
-  diagnostics,
-  readOnly = false,
-  className,
-  style,
-}: YamlEditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  const readOnlyCompartment = useRef(new Compartment());
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  const isInternalUpdate = useRef(false);
+export const YamlEditor = memo(function YamlEditor(props: YamlEditorProps) {
+  const [state, setState] = useState<{ readonly editor?: EditorComponent; readonly failed?: boolean }>({});
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    const updateListener = EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
-        isInternalUpdate.current = true;
-        onChangeRef.current?.(update.state.doc.toString());
-      }
-    });
-
-    const state = EditorState.create({
-      doc: value,
-      extensions: [
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightSpecialChars(),
-        drawSelection(),
-        bracketMatching(),
-        indentOnInput(),
-        foldGutter(),
-        history(),
-        yaml(),
-        syntaxHighlighting(stigmerHighlightStyle, { fallback: true }),
-        autocompletion(),
-        lintGutter(),
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-        readOnlyCompartment.current.of(EditorState.readOnly.of(readOnly)),
-        stigmerTheme,
-        updateListener,
-      ],
-    });
-
-    const view = new EditorView({
-      state,
-      parent: containerRef.current,
-    });
-
-    viewRef.current = view;
-
+    let live = true;
+    loadEditor().then(
+      (editor) => live && setState({ editor }),
+      () => live && setState({ failed: true }),
+    );
     return () => {
-      view.destroy();
-      viewRef.current = null;
+      live = false;
     };
   }, []);
 
-  // Sync external value changes into the editor
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    if (isInternalUpdate.current) {
-      isInternalUpdate.current = false;
-      return;
-    }
-
-    const currentDoc = view.state.doc.toString();
-    if (currentDoc !== value) {
-      view.dispatch({
-        changes: {
-          from: 0,
-          to: currentDoc.length,
-          insert: value,
-        },
-      });
-    }
-  }, [value]);
-
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    view.dispatch({
-      effects: readOnlyCompartment.current.reconfigure(
-        EditorState.readOnly.of(readOnly),
-      ),
-    });
-  }, [readOnly]);
-
-  // Sync diagnostics into CodeMirror's lint system
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    const cmDiags: Diagnostic[] = diagnostics
-      ? diagnostics.map((d) => ({
-          ...d,
-          from: Math.min(d.from, view.state.doc.length),
-          to: Math.min(d.to, view.state.doc.length),
-        }))
-      : [];
-
-    view.dispatch(setDiagnostics(view.state, cmDiags));
-  }, [diagnostics]);
-
+  if (state.editor) {
+    const Editor = state.editor;
+    return <Editor {...props} />;
+  }
+  if (state.failed) {
+    return (
+      <div role="alert" className={cn(BOX, "stg:flex-col stg:gap-1 stg:p-4 stg:text-center", props.className)} style={props.style}>
+        <span>The YAML editor could not load.</span>
+        <span>
+          It needs CodeMirror installed beside the kit:{" "}
+          <code className="stg:font-mono">npm install {YAML_EDITOR_PACKAGES.join(" ")}</code>
+        </span>
+      </div>
+    );
+  }
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "stgm-yaml-editor stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-background stg:font-mono stg:text-sm",
-        className,
-      )}
-      style={style}
-    />
+    <div aria-busy="true" className={cn(BOX, props.className)} style={props.style}>
+      Loading editor…
+    </div>
   );
-});
-
-// ---------------------------------------------------------------------------
-// Syntax highlighting: maps lezer tags to --stgm-syntax-* CSS variables
-// ---------------------------------------------------------------------------
-
-const stigmerHighlightStyle = HighlightStyle.define([
-  { tag: tags.propertyName, color: "var(--stgm-syntax-property, #0550ae)" },
-  { tag: tags.tagName, color: "var(--stgm-syntax-tag, #cf222e)" },
-  { tag: tags.keyword, color: "var(--stgm-syntax-keyword, #8250df)", fontWeight: "bold" },
-  { tag: tags.string, color: "var(--stgm-syntax-string, #0a3069)" },
-  { tag: tags.number, color: "var(--stgm-syntax-number, #953800)" },
-  { tag: [tags.bool, tags.null], color: "var(--stgm-syntax-bool, #8250df)" },
-  { tag: tags.atom, color: "var(--stgm-syntax-atom, #cf222e)" },
-  { tag: tags.comment, color: "var(--stgm-syntax-comment, #6e7781)", fontStyle: "italic" },
-  { tag: tags.meta, color: "var(--stgm-syntax-meta, #8250df)" },
-  { tag: tags.name, color: "var(--stgm-foreground, #1a1a2e)" },
-  { tag: tags.definition(tags.name), color: "var(--stgm-syntax-property, #0550ae)" },
-  { tag: tags.separator, color: "var(--stgm-muted-foreground, #737373)" },
-  { tag: tags.punctuation, color: "var(--stgm-muted-foreground, #737373)" },
-]);
-
-// ---------------------------------------------------------------------------
-// CodeMirror theme bridge: maps --stgm-* tokens to editor styles
-// ---------------------------------------------------------------------------
-
-const stigmerTheme = EditorView.theme({
-  "&": {
-    height: "100%",
-    backgroundColor: "var(--stgm-background, #fff)",
-    color: "var(--stgm-foreground, #1a1a2e)",
-    fontSize: "var(--stgm-text-sm)",
-  },
-  ".cm-content": {
-    caretColor: "var(--stgm-foreground, #1a1a2e)",
-    fontFamily: "var(--stgm-font-mono, ui-monospace, monospace)",
-    padding: "8px 0",
-  },
-  ".cm-cursor, .cm-dropCursor": {
-    borderLeftColor: "var(--stgm-foreground, #1a1a2e)",
-  },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-    {
-      backgroundColor: "var(--stgm-accent, #e0e7ff)",
-    },
-  ".cm-gutters": {
-    backgroundColor: "var(--stgm-muted, #f5f5f5)",
-    color: "var(--stgm-muted-foreground, #737373)",
-    border: "none",
-    borderRight: "1px solid var(--stgm-border, #e5e5e5)",
-  },
-  ".cm-activeLineGutter": {
-    backgroundColor: "var(--stgm-accent, #e0e7ff)",
-  },
-  ".cm-activeLine": {
-    backgroundColor: "color-mix(in srgb, var(--stgm-accent, #e0e7ff) 30%, transparent)",
-  },
-  ".cm-foldPlaceholder": {
-    backgroundColor: "var(--stgm-muted, #f5f5f5)",
-    border: "1px solid var(--stgm-border, #e5e5e5)",
-    color: "var(--stgm-muted-foreground, #737373)",
-  },
-  ".cm-tooltip": {
-    backgroundColor: "var(--stgm-popover, #fff)",
-    color: "var(--stgm-popover-foreground, #1a1a2e)",
-    border: "1px solid var(--stgm-border, #e5e5e5)",
-    borderRadius: "6px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-  },
-  ".cm-tooltip-autocomplete": {
-    "& > ul > li[aria-selected]": {
-      backgroundColor: "var(--stgm-accent, #e0e7ff)",
-      color: "var(--stgm-accent-foreground, #1a1a2e)",
-    },
-  },
-  ".cm-diagnostic-error": {
-    borderLeft: "3px solid var(--stgm-destructive, #ef4444)",
-  },
-  ".cm-diagnostic-warning": {
-    borderLeft: "3px solid var(--stgm-warning, #f59e0b)",
-  },
-  ".cm-diagnostic-info": {
-    borderLeft: "3px solid var(--stgm-primary, #6366f1)",
-  },
-  ".cm-lint-marker-error": {
-    content: "'●'",
-    color: "var(--stgm-destructive, #ef4444)",
-  },
-  ".cm-lint-marker-warning": {
-    content: "'●'",
-    color: "var(--stgm-warning, #f59e0b)",
-  },
 });

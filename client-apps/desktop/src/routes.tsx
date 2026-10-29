@@ -22,7 +22,7 @@ import {
   ServiceAccountsSection,
   TeamsSection,
   UsageSection,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/console";
 import { AppShell } from "./shell/AppShell";
 import { requestDesktopNotificationPermission } from "./hooks/useDesktopAttentionNotifications";
 import { SessionLauncher } from "./pages/SessionLauncher";

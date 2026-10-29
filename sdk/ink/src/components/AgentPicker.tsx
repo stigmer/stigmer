@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
-import { BUILT_IN_ASSISTANT_NAME, useAgentSearch } from "@stigmer/react-sdk";
+import { BUILT_IN_ASSISTANT_NAME, useAgentSearch } from "@stigmer/react-sdk/headless";
 import { type PickerItem, ResourcePicker } from "./ResourcePicker.js";
 
 /** Props for {@link AgentPicker}. */

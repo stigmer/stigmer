@@ -24,8 +24,8 @@ vi.mock("@tauri-apps/api/window", () => ({
 }));
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }));
 
-vi.mock("@stigmer/react-sdk", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@stigmer/react-sdk")>()),
+vi.mock("@stigmer/react-sdk/console", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@stigmer/react-sdk/console")>()),
   ModelCatalogConsole: () => <p>model catalog console</p>,
 }));
 

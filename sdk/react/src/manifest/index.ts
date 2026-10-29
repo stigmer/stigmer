@@ -6,7 +6,7 @@
 // dialogs compose them with the shared YamlEditor.
 
 export { YamlEditor } from "./YamlEditor.js";
-export type { YamlEditorProps } from "./YamlEditor.js";
+export type { YamlEditorDiagnostic, YamlEditorProps } from "./YamlEditor.js";
 
 export { useEditResourceYaml } from "./useEditResourceYaml.js";
 export type {

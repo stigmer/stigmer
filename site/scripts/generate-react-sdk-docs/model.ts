@@ -13,6 +13,14 @@ export interface Domain {
   slug: string;
   title: string;
   description: string;
+  /** The package entry this domain's exports import from: `@stigmer/react-sdk` or a subpath. */
+  importPath: string;
+  /**
+   * Set when some of the page's hooks and helpers also import from
+   * `@stigmer/react-sdk/headless`: the ones that do not, by name. Null when
+   * none does.
+   */
+  headless: { rootOnly: string[] } | null;
   hooks: Hook[];
   components: Component[];
   /** Standalone types not associated with a specific hook or component. */

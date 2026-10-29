@@ -57,7 +57,9 @@ machines), styled components (hooks composed with `@stigmer/design-tokens`
 tokens). A platform builder adopts at the layer that fits: full control with
 hooks only, partial control with hooks and their own rendering, zero effort with
 the styled components. `useSession()` without `<SessionViewer />` must be a
-valid import.
+valid import, and the hooks layer is an entry of its own,
+`@stigmer/react-sdk/headless` (`sdk/react/src/headless.ts`), which the root
+re-exports and nothing that draws may enter.
 
 **No framework dependencies in the SDK.** `@stigmer/react-sdk` has no `next/*`,
 no `@tauri-apps/*`, no routing, no app-shell auth, no framework assumption; it
@@ -117,7 +119,11 @@ blocker.
 will not use (`react-virtuoso` is the case in the tree,
 `sdk/react/src/internal/VirtualizedThread.tsx`) is imported through `React.lazy`
 and `Suspense` and declared as an optional peer dependency, so it is never
-bundled when the feature is unused.
+bundled when the feature is unused. No module imports an optional peer
+statically, the public export included: `YamlEditor`
+(`sdk/react/src/manifest/YamlEditor.tsx`) is the loading boundary and
+`CodeMirrorYamlEditor.tsx` the implementation it imports. An app with no
+optional peer imports and builds the kit (`test/install/smoke-libs.mjs`).
 
 **Cache across mounts, reset by key.** `key={id}` remounts are the correct React
 pattern for a clean state reset; `useFetch` consumers pass a `cacheKey` for
@@ -186,10 +192,10 @@ must never become a layout channel.
 layout in a real browser.
 
 **Console chrome is SDK-owned.** `WorkspaceSidebar` and `SettingsSidebar` are
-public `@stigmer/react-sdk` surfaces rendered by the web console and the desktop
-app, so the hosts' chrome cannot drift apart (stigmer/stigmer#317). Per-host
-differences enter only through named seams: `renderLink` (the host's router
-link, or an inert row), the `footer` slot (each host's user menu),
+public `@stigmer/react-sdk/console` surfaces rendered by the web console and the
+desktop app, so the hosts' chrome cannot drift apart (stigmer/stigmer#317).
+Per-host differences enter only through named seams: `renderLink` (the host's
+router link, or an inert row), the `footer` slot (each host's user menu),
 `renderEntryAccessory` (the desktop's background-run indicator), and data as
 props (`useRecentActivity` output or frozen fixtures, plus a `now` instant for
 deterministic hosts). The app-shell frame (column width, collapse state, zone

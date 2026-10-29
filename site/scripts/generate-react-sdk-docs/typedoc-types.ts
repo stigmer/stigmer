@@ -13,6 +13,8 @@ export const ReflectionKind = {
   Interface: 256,
   Property: 1024,
   TypeAlias: 2097152,
+  /** A name an entry re-exports from another entry: `target` is the declaration. */
+  Reference: 4194304,
   CallSignature: 4096,
   Parameter: 32768,
 } as const;
@@ -46,6 +48,8 @@ export interface Reflection {
   comment?: Comment;
   type?: TypeDocType;
   defaultValue?: string;
+  /** On a reference: the id of the reflection it names. */
+  target?: number;
 }
 
 export interface ReflectionFlags {

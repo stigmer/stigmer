@@ -11,7 +11,9 @@ truth.
 
 - `README.md` and `CONTRIBUTING.md`: what each SDK is for and how each is built.
 - `typescript/src/index.ts` and `react/src/index.ts`: the barrels are the public
-  contract; `react/README.md` for the provider, theming, style isolation and
+  contract, with the React kit's other entries beside the root
+  (`react/src/headless.ts`, `react/src/console.ts`, the tiers its header
+  describes); `react/README.md` for the provider, theming, style isolation and
   local execution.
 - `theme/README.md`, `theme/src/tokens.css`, `theme/src/presets/` and
   `theme/src/contract/`: the `--stgm-*` tokens, the presets, and the audit that

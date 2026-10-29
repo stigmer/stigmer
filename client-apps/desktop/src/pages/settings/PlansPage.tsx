@@ -1,4 +1,4 @@
-import { PlanCatalogConsole } from "@stigmer/react-sdk";
+import { PlanCatalogConsole } from "@stigmer/react-sdk/console";
 
 /**
  * Platform-operator console for the Stigmer Cloud plan catalog: every plan

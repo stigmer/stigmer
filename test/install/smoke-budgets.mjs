@@ -39,9 +39,16 @@
  * so the entry resolves the kit as an app in this workspace does; the
  * config's plugin writes the chunk report the budgets are judged from.
  *
- * Its one case is titled with the promise it holds on the UX bar
+ * Its budget case is titled with the promise it holds on the UX bar
  * (test/ux-bar.json), so the bar's check reads it from source and the
  * scorecard reads its result through test/install/lib/json-reporter.mjs.
+ *
+ * A second case holds the React kit's `./headless` entry to what its header
+ * (sdk/react/src/headless.ts) says: the entry is bundled the same way, and
+ * no chunk of it may hold a module of react-dom, lucide-react,
+ * @base-ui/react or sonner, import react-dom, or carry a stylesheet. The
+ * terminal kit and any host drawing its own chat stand on that boundary; a
+ * hook that starts drawing breaks it here, naming the module.
  *
  * A ceiling is the figure it was set from and 2% (`ceilingFor`), and is
  * raised by editing test/bundle-budgets.json, a gate file (test/README.md,
@@ -68,7 +75,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
-import { ceilingFor, eagerChunks, formatBytes, heaviest, judgeBudgets, readBudgets } from "./lib/bundle-budget.mjs";
+import { ceilingFor, eagerChunks, formatBytes, heaviest, judgeBudgets, ownerOf, readBudgets } from "./lib/bundle-budget.mjs";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const BUDGETS = join(repoRoot, "test", "bundle-budgets.json");
@@ -88,6 +95,10 @@ const FILE_ENTRIES = [
 ];
 /** What the app provides itself: React is every kit's peer. */
 const EXTERNAL = ["react", "react-dom", "react/jsx-runtime", "react-dom/client"];
+/** The kit's hooks-only entry, bundled whole to read what it reaches. */
+const HEADLESS_ENTRY = { name: "react-sdk/headless", source: 'export * from "@stigmer/react-sdk/headless";\n' };
+/** The packages that draw, which nothing `./headless` reaches may contain. */
+const DRAWING_PACKAGES = ["react-dom", "lucide-react", "@base-ui/react", "sonner"];
 
 const args = process.argv.slice(2);
 const unknown = args.filter((arg) => arg !== "--keep" && arg !== "--skip-build");
@@ -176,6 +187,7 @@ function bundle({ name, source }) {
     eager: sum([...eager]),
     lazy: sum(chunks.map((chunk) => chunk.file).filter((file) => !eager.has(file))),
     heaviest: heaviest(chunks, eager),
+    chunks,
   };
 }
 
@@ -217,6 +229,33 @@ test("LIB-03 every library entry stays within its size budget", () => {
       ...judged.unmeasured.map((entry) => `${entry} has a budget but nothing measures it: remove it from test/bundle-budgets.json`),
     ];
     if (problems.length > 0) throw new Error(`over budget, or a budget without its entry:\n${problems.join("\n")}`);
+  } catch (error) {
+    failed = true;
+    throw error;
+  }
+});
+
+test("the React kit's ./headless entry reaches no drawing package and no stylesheet", () => {
+  try {
+    const { chunks } = bundle(HEADLESS_ENTRY);
+    const problems = [];
+    for (const chunk of chunks) {
+      for (const id of Object.keys(chunk.modules)) {
+        const owner = ownerOf(id);
+        if (DRAWING_PACKAGES.includes(owner)) problems.push(`${id} (${owner})`);
+        else if (/\.css$/.test(id)) problems.push(`${id} (a stylesheet)`);
+      }
+      for (const imported of [...chunk.imports, ...chunk.dynamicImports]) {
+        if (DRAWING_PACKAGES.some((name) => imported === name || imported.startsWith(`${name}/`))) problems.push(`an import of ${imported}`);
+      }
+    }
+    log(`react-sdk/headless: ${chunks.reduce((n, chunk) => n + Object.keys(chunk.modules).length, 0)} modules in ${chunks.length} chunks`);
+    if (problems.length > 0) {
+      throw new Error(
+        `@stigmer/react-sdk/headless reaches what draws (sdk/react/src/headless.ts says it never does); ` +
+          `move the export that pulls it in to the root entry, or the import out of its module:\n${[...new Set(problems)].join("\n")}`,
+      );
+    }
   } catch (error) {
     failed = true;
     throw error;

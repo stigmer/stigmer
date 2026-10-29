@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { Download, Monitor } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { UserMenu as SdkUserMenu } from "@stigmer/react-sdk";
+import { UserMenu as SdkUserMenu } from "@stigmer/react-sdk/console";
 import type { ColorMode } from "@stigmer/react-sdk";
 import { useAuth } from "@/auth";
 import { triggerDesktopDownload } from "@/lib/desktop-download";

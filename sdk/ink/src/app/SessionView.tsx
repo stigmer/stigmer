@@ -10,7 +10,7 @@ import {
   resolvedSubject,
   runPhaseOf,
   PENDING_SUBJECT,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/headless";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";

@@ -55,8 +55,9 @@ names are the truth.
   changeset. Divergence without a platform reason is a defect.
 - Code is grouped by domain (`web/src/domain/`, `desktop/src/pages/`), never by
   technical role.
-- Console chrome (`WorkspaceSidebar`, `SettingsSidebar`) is an SDK component
-  extended through its seams; never re-transcribe it into a client or a demo.
+- Console chrome (`WorkspaceSidebar`, `SettingsSidebar`, from
+  `@stigmer/react-sdk/console`) is an SDK component extended through its seams;
+  never re-transcribe it into a client or a demo.
 - The web console's Turbopack loader (`web/turbopack-js-to-ts-loader.js`) strips
   the `.js` the SDK's specifiers carry; re-check it when Next.js or Turbopack
   changes.

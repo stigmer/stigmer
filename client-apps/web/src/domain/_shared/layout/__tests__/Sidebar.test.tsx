@@ -9,7 +9,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import type { RecentActivityEntry, RenderSidebarLink } from "@stigmer/react-sdk";
+import type { RecentActivityEntry } from "@stigmer/react-sdk";
+import type { RenderSidebarLink } from "@stigmer/react-sdk/console";
 
 const page = vi.hoisted(() => ({
   countedOrg: [] as Array<string | null>,
@@ -19,10 +20,6 @@ const page = vi.hoisted(() => ({
 }));
 
 vi.mock("@stigmer/react-sdk", () => ({
-  WorkspaceSidebar: (props: Record<string, unknown>) => {
-    page.sidebar.push(props);
-    return null;
-  },
   useActiveOrgId: () => "org_acme",
   useConversationsWantsHumanCount: (org: string | null) => {
     page.countedOrg.push(org);
@@ -32,6 +29,12 @@ vi.mock("@stigmer/react-sdk", () => ({
     entries: [],
     refetch: () => undefined,
   }),
+}));
+vi.mock("@stigmer/react-sdk/console", () => ({
+  WorkspaceSidebar: (props: Record<string, unknown>) => {
+    page.sidebar.push(props);
+    return null;
+  },
 }));
 
 vi.mock("next/navigation", () => ({

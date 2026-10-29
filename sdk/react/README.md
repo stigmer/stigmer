@@ -5,18 +5,26 @@ React components and hooks for [Stigmer](https://stigmer.ai), the open-source ba
 ## Install
 
 ```bash
-npm install @stigmer/react-sdk @stigmer/client @stigmer/apis
+npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf lucide-react
 ```
 
-Peer dependencies (install alongside):
+`react` and `react-dom` 19 must already be installed. Every other package the
+kit needs to draw comes with it.
 
-| Package | Version |
-|---------|---------|
-| `react` | `^19.0.0` |
-| `react-dom` | `^19.0.0` |
-| `@stigmer/client` | `*` |
-| `@stigmer/apis` | `*` |
-| `@bufbuild/protobuf` | `^2.0.0` |
+Peer dependencies: the required ones are on the install line. An optional one
+is needed only by the feature the table names, which loads it on first use, so
+the kit imports and draws without it.
+
+| Package | Version | Needed by |
+|---------|---------|-----------|
+| `react`, `react-dom` | `^19.0.0` | everything |
+| `@stigmer/client` | `*` | everything: the client the provider takes |
+| `@stigmer/apis` | `*` | everything: the API's message types |
+| `@bufbuild/protobuf` | `^2.8.0` | everything: the runtime of those types |
+| `lucide-react` | `>=0.400.0` | every component: the icons |
+| `mermaid` (optional) | `^11.0.0` | diagrams in messages; without it a diagram shows as its source |
+| `react-virtuoso` (optional) | `^4.0.0` | `MessageThread`'s `virtualized` mode for very long threads; install it before turning the mode on |
+| `@codemirror/autocomplete`, `@codemirror/commands`, `@codemirror/lang-yaml`, `@codemirror/language`, `@codemirror/lint`, `@codemirror/state`, `@codemirror/view` and `@lezer/highlight` (optional) | `^6.0.0`, `@lezer/highlight` `^1.0.0` | `YamlEditor` and the YAML dialogs (`ApplyManifestDialog`, `EditResourceYamlDialog`); without them the editor names the packages to install |
 
 ## Quick Start
 
@@ -271,11 +279,19 @@ If your runner backend already exposes `addSession` / `removeSession` (a `Runner
 
 ## Exports
 
+The package's entries are tiers over one set of modules, so a context or a
+cache is the same whichever entry it is imported from.
+
 | Import path | Content |
 |-------------|---------|
-| `@stigmer/react-sdk` | `StigmerProvider`, `StigmerContext`, `useStigmer`, `useColorMode`, `ColorModeContext`, `useRunnerAdapter`, `createRunnerAdapter` |
-| `@stigmer/react-sdk` (types) | `StigmerProviderProps`, `ColorMode`, `ResolvedColorMode`, `RunnerAdapter`, `RunnerWorkerHost` |
+| `@stigmer/react-sdk` | What a product embeds: `StigmerProvider` and every component, with every hook and helper of `./headless` |
+| `@stigmer/react-sdk/headless` | The hooks, helpers, contexts and their types alone: no component, and nothing that imports `react-dom`, `lucide-react`, `@base-ui/react` or a stylesheet. For a host that draws its own chat; the terminal kit (`@stigmer/ink-ui`) builds on it |
+| `@stigmer/react-sdk/console` | The Stigmer console's own parts: the platform operator's consoles, the settings navigation and sections, the user menu and the sidebars. Versioned with the kit, shaped by the console's needs rather than an embedder's |
 | `@stigmer/react-sdk/styles.css` | Compiled stylesheet (import once at app root) |
+| `@stigmer/react-sdk/test` | Test builders and the scenario catalogue of named conversation states |
+
+The [React SDK reference](https://stigmer.ai/docs/sdk/react) names, on each
+page, the entry its exports import from.
 
 ## License
 

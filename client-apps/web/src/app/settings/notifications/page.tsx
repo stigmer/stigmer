@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { NotificationsSection } from "@stigmer/react-sdk";
+import { NotificationsSection } from "@stigmer/react-sdk/console";
 import {
   browserNotificationsSupported,
   requestBrowserNotificationPermission,

@@ -8,7 +8,7 @@ import {
   FileReviewContext,
   fileReviewRowState,
   type FileReviewRowState,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/headless";
 import { editedPath } from "../file-review.js";
 import { ToolCallItem } from "./ToolCallItem.js";
 

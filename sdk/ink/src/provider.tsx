@@ -1,5 +1,5 @@
 import React, { type ReactNode } from "react";
-import { StigmerContext, DeploymentModeContext } from "@stigmer/react-sdk";
+import { StigmerContext, DeploymentModeContext } from "@stigmer/react-sdk/headless";
 import type { Stigmer, DeploymentMode } from "@stigmer/client";
 
 /**

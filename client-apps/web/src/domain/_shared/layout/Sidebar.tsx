@@ -7,9 +7,9 @@ import {
   useActiveOrgId,
   useConversationsWantsHumanCount,
   useRecentActivity,
-  WorkspaceSidebar,
 } from "@stigmer/react-sdk";
-import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react-sdk";
+import { WorkspaceSidebar } from "@stigmer/react-sdk/console";
+import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react-sdk/console";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { UserMenu } from "./UserMenu";

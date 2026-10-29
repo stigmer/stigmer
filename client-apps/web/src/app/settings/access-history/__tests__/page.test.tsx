@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@stigmer/react-sdk", () => ({
+vi.mock("@stigmer/react-sdk/console", () => ({
   AccessHistorySection: () => <p>access history section</p>,
 }));
 

@@ -13,7 +13,7 @@ import {
   fileReviewability,
   type FileReviewAction,
   type ReviewFileChangesOptions,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/headless";
 import {
   blockReasonNote,
   changeSetLineStats,

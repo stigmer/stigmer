@@ -2,7 +2,7 @@
  * Parser: TypeDoc JSON → Domain model.
  *
  * Three-phase pipeline:
- *   1. Classify — walk project children, assign each to a domain and category
+ *   1. Classify — walk each entry's exports, assign each to a domain and category
  *   2. Parse    — extract hooks, components, interfaces, types with full detail
  *   3. Link     — associate Props/Return interfaces with their hook/component
  */
@@ -347,6 +347,20 @@ const BUILTIN_TYPES = new Set([
   "Ref",
 ]);
 
+/**
+ * The import path of each entry sdk/react/typedoc.json documents, by the
+ * module name TypeDoc gives it. A name two entries export is declared in one
+ * and a reference in the other: the root re-exports everything ./headless
+ * does, so ./headless holds only references.
+ */
+const ENTRY_IMPORT_PATHS: Readonly<Record<string, string>> = {
+  index: "@stigmer/react-sdk",
+  headless: "@stigmer/react-sdk/headless",
+  console: "@stigmer/react-sdk/console",
+};
+const ROOT_IMPORT_PATH = "@stigmer/react-sdk";
+const HEADLESS_MODULE = "headless";
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -368,9 +382,9 @@ export async function parseTypeDocJson(
   const reflectionById = new Map<number, Reflection>();
   indexReflections(project.children, reflectionById);
 
-  // Unwrap Module containers (kind 2) — TypeDoc may wrap all exports in
-  // one or more Module reflections instead of placing them at the top level.
-  const topLevelExports = flattenModules(project.children);
+  // Unwrap the entries' Module containers (kind 2); a single-entry run
+  // places the exports at the top level instead.
+  const { exports: topLevelExports, headlessIds } = readEntries(project.children);
 
   const classified = classifyExports(topLevelExports, warnings);
 
@@ -397,7 +411,7 @@ export async function parseTypeDocJson(
   const domains: Domain[] = [];
   for (const [slug, items] of classified) {
     domains.push(
-      parseDomain(slug, items, reflectionById, exportDomainMap, warnings),
+      parseDomain(slug, items, reflectionById, exportDomainMap, headlessIds, warnings),
     );
   }
 
@@ -411,6 +425,8 @@ export async function parseTypeDocJson(
 // ---------------------------------------------------------------------------
 
 interface ClassifiedExports {
+  /** The entries the domain's exports import from; one, or the page cannot say. */
+  importPaths: Set<string>;
   hooks: Reflection[];
   components: Reflection[];
   interfaces: Reflection[];
@@ -418,16 +434,42 @@ interface ClassifiedExports {
   variables: Reflection[];
 }
 
-function flattenModules(children: Reflection[]): Reflection[] {
-  const result: Reflection[] = [];
+/** An export with the entry it imports from. */
+interface EntryExport {
+  reflection: Reflection;
+  importPath: string;
+}
+
+/**
+ * The declared exports of every entry, each with its import path, and the
+ * ids of the declarations ./headless re-exports. Throws on an entry this
+ * generator does not know, so a new entry in typedoc.json is never
+ * documented under the wrong import path.
+ */
+function readEntries(children: Reflection[]): { exports: EntryExport[]; headlessIds: Set<number> } {
+  const exports: EntryExport[] = [];
+  const headlessIds = new Set<number>();
   for (const child of children) {
-    if (child.kind === ReflectionKind.Module && child.children) {
-      result.push(...child.children);
-    } else {
-      result.push(child);
+    if (child.kind !== ReflectionKind.Module) {
+      exports.push({ reflection: child, importPath: ROOT_IMPORT_PATH });
+      continue;
+    }
+    const importPath = ENTRY_IMPORT_PATHS[child.name];
+    if (importPath === undefined) {
+      throw new Error(
+        `TypeDoc documented an entry named "${child.name}" that ENTRY_IMPORT_PATHS ` +
+          `(site/scripts/generate-react-sdk-docs/parser.ts) does not name: add its import path.`,
+      );
+    }
+    for (const reflection of child.children ?? []) {
+      if (reflection.kind === ReflectionKind.Reference) {
+        if (child.name === HEADLESS_MODULE && reflection.target !== undefined) headlessIds.add(reflection.target);
+        continue;
+      }
+      exports.push({ reflection, importPath });
     }
   }
-  return result;
+  return { exports, headlessIds };
 }
 
 function indexReflections(
@@ -444,17 +486,18 @@ function indexReflections(
 }
 
 function classifyExports(
-  children: Reflection[],
+  children: EntryExport[],
   warnings: string[],
 ): Map<string, ClassifiedExports> {
   const result = new Map<string, ClassifiedExports>();
 
-  for (const child of children) {
+  for (const { reflection: child, importPath } of children) {
     const domain = getDomain(child);
     if (domain === "external") continue;
 
     if (!result.has(domain)) {
       result.set(domain, {
+        importPaths: new Set(),
         hooks: [],
         components: [],
         interfaces: [],
@@ -463,6 +506,7 @@ function classifyExports(
       });
     }
     const bucket = result.get(domain)!;
+    bucket.importPaths.add(importPath);
 
     switch (child.kind) {
       case ReflectionKind.Function:
@@ -537,9 +581,32 @@ function parseDomain(
   items: ClassifiedExports,
   reflectionById: Map<number, Reflection>,
   exportDomainMap: Map<string, string>,
+  headlessIds: Set<number>,
   warnings: string[],
 ): Domain {
   const meta = DOMAIN_META[slug] ?? { title: slug, description: "" };
+  if (items.importPaths.size !== 1) {
+    throw new Error(
+      `The ${slug} domain's exports import from ${[...items.importPaths].join(" and ")}: ` +
+        `a page names one entry, so the domain's folder belongs to one.`,
+    );
+  }
+  const [importPath] = items.importPaths;
+
+  // The page's hooks and helpers that ./headless also exports; a domain with
+  // none of them says nothing about it. Its components are never there, and a
+  // component a `memo` or `forwardRef` wraps is a variable, so a PascalCase
+  // variable counts as one unless it is a context.
+  const isComponent = (name: string) => /^[A-Z]/.test(name) && !/^[A-Z0-9_]+$/.test(name) && !name.endsWith("Context");
+  const behaviour = [...items.hooks, ...items.variables.filter((r) => !isComponent(r.name))];
+  const headless = behaviour.some((r) => headlessIds.has(r.id))
+    ? {
+        rootOnly: behaviour
+          .filter((r) => !headlessIds.has(r.id))
+          .map((r) => r.name)
+          .sort((a, b) => a.localeCompare(b)),
+      }
+    : null;
 
   const hooks = items.hooks
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -573,6 +640,8 @@ function parseDomain(
     slug,
     title: meta.title,
     description: meta.description,
+    importPath,
+    headless,
     hooks,
     components,
     types: standaloneTypes,

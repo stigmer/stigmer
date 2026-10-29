@@ -26,7 +26,7 @@ import {
   type FileReviewContextValue,
   type ThreadMessage,
   type ToolUseAnswer,
-} from "@stigmer/react-sdk";
+} from "@stigmer/react-sdk/headless";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubagentBlock } from "./SubagentBlock.js";

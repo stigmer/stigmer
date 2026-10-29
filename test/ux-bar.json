@@ -185,10 +185,7 @@
     },
     {
       "id": "KIT-01",
-      "promise": "An app without the optional peers imports the React kit.",
-      "pending": [
-        "stigmer#2621"
-      ]
+      "promise": "An app without the optional peers imports the React kit."
     },
     {
       "id": "KIT-02",

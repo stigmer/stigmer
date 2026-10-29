@@ -36,7 +36,7 @@ import { ToolCallGroup } from "./ToolCallGroup.js";
 import { backgroundCommandsHolding, hasStartedResponding, hasVisiblyRunningActivity } from "./turn-tail.js";
 import { SettledStepsRow } from "./SettledStepsRow.js";
 import { ThreadPresentationContext, useThreadPresentation, type ThreadPresentation } from "./ThreadPresentationContext.js";
-import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
+import { SubagentSection } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
 import { RecalledMemoriesCard, type RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
@@ -54,7 +54,7 @@ import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingC
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
-import { extractPrimaryArg, isInternalTool, resolveToolCategoryFromCall } from "./tool-categories.js";
+import { extractPrimaryArg, isInternalTool, resolveToolCategoryFromCall, subagentSubjectOf } from "./tool-categories.js";
 import { fileForRowPath } from "./file-review-status.js";
 import type { ToolUseAnswer } from "./useAnswerToolUse.js";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js";

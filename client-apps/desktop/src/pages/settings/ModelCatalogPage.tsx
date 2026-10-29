@@ -1,4 +1,4 @@
-import { ModelCatalogConsole } from "@stigmer/react-sdk";
+import { ModelCatalogConsole } from "@stigmer/react-sdk/console";
 
 /**
  * Platform-operator console for the model catalog: the models the
