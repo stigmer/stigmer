@@ -175,10 +175,6 @@ export class InMemoryGrantStore implements GrantStore {
     return rows[0];
   }
 
-  async findByResourceKindAndRelation(resourceKind: string, relation: string): Promise<ReadonlyArray<Grant>> {
-    return this.where((spec) => spec.resource?.kind === resourceKind && spec.relation === relation);
-  }
-
   private async where(
     matches: (spec: NonNullable<Grant["spec"]>) => boolean,
   ): Promise<ReadonlyArray<Grant>> {

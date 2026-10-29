@@ -69,14 +69,14 @@ export interface ComposedIdentityAccounts {
 /**
  * The grant store as a unit's own lanes read it: the composition's one
  * binding (a unit's registered driver, or open source's adapter), reads
- * only. A unit's repair finds a resource's rows or every row granting a
- * relation on a kind; its grant gate finds a resource's structural link.
+ * only. A unit's repair finds a resource's rows; its grant gate finds a
+ * resource's structural link.
  * A write goes through the domain's grant path (an RPC over the in-process
  * transport), never through this store, so no second write path exists.
  */
 export type ComposedGrants = Pick<
   GrantStore,
-  "findByResource" | "findScopeTuple" | "findByResourceKindAndRelation"
+  "findByResource" | "findScopeTuple"
 >;
 
 /**

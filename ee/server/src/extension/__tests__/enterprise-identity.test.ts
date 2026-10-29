@@ -514,7 +514,6 @@ function repairRig(rows: {
   const grants: ComposedGrants = {
       findScopeTuple: () => Promise.resolve(undefined),
       findByResource: (_kind: string, id: string) => Promise.resolve(rows.grantsOn?.get(id) ?? []),
-      findByResourceKindAndRelation: () => Promise.resolve([]),
   };
   unit.onComposed?.(refusingComposition({ inProcessTransport: transport, grants }));
   /** The unit's boot work, as the server's start runs it. */

@@ -374,47 +374,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
     },
   ],
   [
-    "findByResourceKindAndRelation answers every row granting the relation on the kind, and nothing on another kind or relation",
-    async ({ store }) => {
-      const providerA = spec({ kind: "identity_account", id: ALICE }, "owner", {
-        kind: "federation_issuer",
-        id: "fis_01hzaaaaaaaaaaaaaaaaaaaaaa",
-      });
-      const providerB = spec({ kind: "identity_account", id: BOB }, "owner", {
-        kind: "federation_issuer",
-        id: "fis_01hzbbbbbbbbbbbbbbbbbbbbbb",
-      });
-      const providerViewer = spec(
-        { kind: "identity_account", id: BOB },
-        "viewer",
-        { kind: "federation_issuer", id: "fis_01hzaaaaaaaaaaaaaaaaaaaaaa" },
-      );
-      await saveAll(store, [
-        grantRow(providerA),
-        grantRow(providerB),
-        grantRow(providerViewer),
-        grantRow(orgRole(ALICE, "owner", "acme")),
-      ]);
-      assert.deepEqual(
-        (
-          await store.findByResourceKindAndRelation(
-            "federation_issuer",
-            "owner",
-          )
-        )
-          .map(idOf)
-          .sort(),
-        [grantIdFor(providerA), grantIdFor(providerB)].sort(),
-        "every owner row on the kind, on any resource, and no other relation's or kind's",
-      );
-      assert.deepEqual(
-        await store.findByResourceKindAndRelation("invitation", "owner"),
-        [],
-        "a kind with no such rows answers an empty list",
-      );
-    },
-  ],
-  [
     "deleteById removes the row; the triple is free to be granted again",
     async ({ store }) => {
       const grant = grantRow(orgRole(ALICE, "admin", "acme"));
@@ -498,13 +457,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<GrantStore>> = [
           "acme",
         ),
         "a pair read on a disconnected store must reject, never read as an empty list",
-      );
-      await assert.rejects(
-        fixture.store.findByResourceKindAndRelation(
-          "federation_issuer",
-          "owner",
-        ),
-        "a kind read on a disconnected store must reject: a reconcile that read no rows would leave every one standing",
       );
       await assert.rejects(
         fixture.store.listChanges("acme", { limit: 10 }),

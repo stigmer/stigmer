@@ -282,8 +282,6 @@ export function newEnterpriseIdentityExtension(
   const grantStore: ComposedGrants = {
     findByResource: (kind, id) => composed().grants.findByResource(kind, id),
     findScopeTuple: (kind, id) => composed().grants.findScopeTuple(kind, id),
-    findByResourceKindAndRelation: (kind, relation) =>
-      composed().grants.findByResourceKindAndRelation(kind, relation),
   };
   // Which organization a shared resource belongs to, for the grant gate
   // where no scope link is stored (the built-in posture stores none).
