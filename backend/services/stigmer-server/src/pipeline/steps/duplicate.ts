@@ -61,7 +61,7 @@ export function newCheckDuplicateStep<Desc extends DescMessage>(
       }
 
       if (held !== undefined) {
-        throw nameTakenError(ctx.apiResourceKind, held);
+        throw await nameTakenError(store, ctx.apiResourceKind, held);
       }
     },
   };

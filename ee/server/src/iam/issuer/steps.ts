@@ -39,7 +39,6 @@ import type {
   RequestContext,
 } from "@stigmer/server";
 import {
-  alreadyExistsError,
   EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
   failedPreconditionError,
@@ -83,9 +82,9 @@ export function providerNameHolder(
 
 /**
  * The org-scoped slug check, before a create persists; ClaimName is the
- * guarantee. A slug a renamed provider still answers to is refused with
- * the library's SLUG_RESERVED (`nameTakenError`); a current holder keeps
- * the duplicate copy.
+ * guarantee. A slug a provider holds, or a renamed provider still answers
+ * to, is refused with the library's copy (`nameTakenError`): the
+ * duplicate copy naming the organization by its slug, or SLUG_RESERVED.
  */
 export function newCheckDuplicateIssuerStep(
   names: NameTable,
@@ -102,21 +101,10 @@ export function newCheckDuplicateIssuerStep(
       const entry = await resolveNameEntry(names, ApiResourceKind.federation_issuer, metadata?.org ?? "", slug);
       const existing = entry === undefined ? undefined : await providers.findById(entry.id);
       if (entry !== undefined && existing !== undefined) {
-        throw entry.state === "previous"
-          ? nameTakenError(ApiResourceKind.federation_issuer, entry)
-          : duplicateIssuerError(existing);
+        throw await nameTakenError(names, ApiResourceKind.federation_issuer, entry);
       }
     },
   };
-}
-
-/** The provider's duplicate copy, naming the held slug and organization. */
-export function duplicateIssuerError(existing: FederationIssuer): Error {
-  const metadata = existing.metadata;
-  return alreadyExistsError(
-    ISSUER_DISPLAY_NAME,
-    `slug '${metadata?.slug ?? ""}' in org '${metadata?.org ?? ""}'`,
-  );
 }
 
 /**

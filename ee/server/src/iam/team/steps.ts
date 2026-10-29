@@ -31,7 +31,6 @@ import type {
   RequestContext,
 } from "@stigmer/server";
 import {
-  alreadyExistsError,
   EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
   internalError,
@@ -71,9 +70,9 @@ export function teamNameHolder(teams: Pick<TeamStore, "findById">): NameHolder {
 
 /**
  * The org-scoped slug check, before a create persists; ClaimName is the
- * guarantee. A slug a renamed team still answers to is refused with the
- * library's SLUG_RESERVED (`nameTakenError`); a current holder keeps the
- * duplicate copy.
+ * guarantee. A slug a team holds, or a renamed team still answers to, is
+ * refused with the library's copy (`nameTakenError`): the duplicate copy
+ * naming the organization by its slug, or SLUG_RESERVED.
  */
 export function newCheckDuplicateTeamStep(
   names: NameTable,
@@ -93,19 +92,10 @@ export function newCheckDuplicateTeamStep(
       const entry = await resolveNameEntry(names, ApiResourceKind.team, metadata?.org ?? "", slug);
       const existing = entry === undefined ? undefined : await teams.findById(entry.id);
       if (entry !== undefined && existing !== undefined) {
-        throw entry.state === "previous" ? nameTakenError(ApiResourceKind.team, entry) : duplicateTeamError(existing);
+        throw await nameTakenError(names, ApiResourceKind.team, entry);
       }
     },
   };
-}
-
-/** The OSS org-scoped duplicate copy, naming the held team. */
-export function duplicateTeamError(existing: Team): Error {
-  const metadata = existing.metadata;
-  return alreadyExistsError(
-    TEAM_DISPLAY_NAME,
-    `slug '${metadata?.slug ?? ""}' in org '${metadata?.org ?? ""}' (id: ${metadata?.id ?? ""})`,
-  );
 }
 
 /** The update's stored row, for the OSS BuildUpdateState. */
