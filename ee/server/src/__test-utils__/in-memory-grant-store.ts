@@ -1,9 +1,6 @@
 /**
  * A Grant store held in memory: the library's GrantStore port
- * (`@stigmer/server`) plus the one read the Enterprise identity unit's
- * owner-row reconcile adds, `findByResourceKindAndRelation` (the unit's
- * `OwnerRowReads`, which this file matches by shape rather than import,
- * so it stays neutral). A host
+ * (`@stigmer/server`). A host
  * that composes the unit on open source's own authorization registers one
  * store as the library's `drivers.grantStore` and hands the same one
  * to the unit, so the grant path's writes are the rows the unit reads;

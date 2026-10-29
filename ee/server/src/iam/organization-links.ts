@@ -12,13 +12,10 @@
  * (`federation_issuer.fga`, `invitation.fga`, `team.fga`; the kinds record
  * no owner), and a service account's admins reach it and its keys through
  * it (`identity_account.fga`; its self-owner row is its own), so the link
- * is all a row needs to stay manageable. The owner rows an older server wrote are the
- * owner-row reconcile's to revoke (owner-rows.ts), never this one's to
- * write. The holes it repairs are
- * real: providers created before the create handler wrote any tuple, and
- * any row whose creation event failed after the row was written (the
- * lifecycle contract every create chain follows answers INTERNAL with the
- * row in place).
+ * is all a row needs to stay manageable; it never writes an owner row. The
+ * hole it repairs is a row whose creation event failed after the row was
+ * written (the lifecycle contract every create chain follows answers
+ * INTERNAL with the row in place).
  *
  * The check is the exact triple, read from the row's grants as
  * resource (`findByResource`), never "any structural row": a lookup
@@ -32,10 +29,10 @@
  * could take again, and rows from then remain. A row whose link is missing
  * because its organization is gone, or because its organization was
  * created after the row, is reported and left alone: re-linking it would
- * hand a stranger's row to whoever holds that organization now. An organization with no recorded creation time
- * predates the TypeScript server (every organization it creates carries
- * one), so it cannot be a re-creation, and it is linked. A row with no
- * creation time cannot be told apart, and is reported.
+ * hand a stranger's row to whoever holds that organization now. Every
+ * organization carries its creation time (the create chain stamps it), and
+ * the lookup refuses one that does not as a fault. A row with no creation
+ * time cannot be told apart, and is reported.
  *
  * Posture: the tuple backfill's. The write goes through the grant path's
  * structural lane (`bootstrapGrant`), which is safe to repeat; one row's
@@ -66,6 +63,7 @@ import {
   ApiResourceRefSchema,
   GrantSpecSchema,
 } from "@stigmer/apis/ai/stigmer/iam/grant/v1/spec_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationIdSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/query_pb";
 import type { GrantStore } from "@stigmer/server";
@@ -89,8 +87,7 @@ export interface OrganizationScopedRow {
 
 /** What the IAM lanes read about an organization, from one read of it. */
 export interface OrganizationFacts {
-  /** Undefined when the organization predates recorded creation times. */
-  readonly createdAt: Date | undefined;
+  readonly createdAt: Date;
   readonly name: string;
   readonly slug: string;
   readonly logoUrl: string;
@@ -194,18 +191,11 @@ export function newInProcessOrganizationLookup(transportRef: TransportRef): Orga
       if (transport === undefined) {
         throw new Error("organization lookup used before the in-process transport was wired");
       }
+      let organization: Organization;
       try {
-        const organization = await createClient(OrganizationQueryController, transport).get(
+        organization = await createClient(OrganizationQueryController, transport).get(
           create(OrganizationIdSchema, { value: orgId }),
         );
-        const createdAt = organization.status?.audit?.specAudit?.createdAt;
-        return {
-          createdAt: createdAt === undefined ? undefined : timestampDate(createdAt),
-          name: organization.metadata?.name ?? "",
-          slug: organization.metadata?.slug ?? "",
-          logoUrl: organization.spec?.logoUrl ?? "",
-          parentOrg: organization.spec?.parentOrg ?? "",
-        };
       } catch (error) {
         const refusal = ConnectError.from(error);
         if (refusal.code === Code.NotFound) {
@@ -215,6 +205,17 @@ export function newInProcessOrganizationLookup(transportRef: TransportRef): Orga
         // metadata, which corrupts a serving handler's framing.
         throw rethrownStatusError(refusal);
       }
+      const createdAt = organization.status?.audit?.specAudit?.createdAt;
+      if (createdAt === undefined) {
+        throw new Error(`organization ${orgId} carries no creation time`);
+      }
+      return {
+        createdAt: timestampDate(createdAt),
+        name: organization.metadata?.name ?? "",
+        slug: organization.metadata?.slug ?? "",
+        logoUrl: organization.spec?.logoUrl ?? "",
+        parentOrg: organization.spec?.parentOrg ?? "",
+      };
     },
   };
 }
@@ -253,10 +254,7 @@ export function orphanReason(
   if (rowCreatedAt === undefined) {
     return "row-has-no-creation-time";
   }
-  if (
-    organization.createdAt !== undefined &&
-    organization.createdAt.getTime() > timestampDate(rowCreatedAt).getTime()
-  ) {
+  if (organization.createdAt.getTime() > timestampDate(rowCreatedAt).getTime()) {
     return "organization-recreated";
   }
   return undefined;

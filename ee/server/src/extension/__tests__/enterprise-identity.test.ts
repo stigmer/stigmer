@@ -25,9 +25,6 @@
  * through the in-memory store's `findAll`), each kind on its own, so a
  * failed read of one never skips the next, and the provider's log lines
  * keep their words.
- * The owner-row reconcile beside it runs the same way, one read of the
- * grant rows per kind, and logs every owner row it revokes with the
- * account the row named.
  *
  * The unit's authorization inventory,
  * docs/enterprise-authorization-coverage.md, is held to the services it
@@ -443,8 +440,6 @@ function repairRig(rows: {
   failGrantFor?: ReadonlySet<string>;
   /** The grant rows each row holds as resource, by id. */
   grantsOn?: ReadonlyMap<string, ReadonlyArray<Grant>>;
-  /** Kinds whose read by kind and relation fails. */
-  failKindReadFor?: ReadonlySet<string>;
   /** The schema chain fails. */
   failSchema?: boolean;
 }) {
@@ -519,14 +514,7 @@ function repairRig(rows: {
   const grants: ComposedGrants = {
       findScopeTuple: () => Promise.resolve(undefined),
       findByResource: (_kind: string, id: string) => Promise.resolve(rows.grantsOn?.get(id) ?? []),
-      findByResourceKindAndRelation: (kind: string, relation: string) =>
-        rows.failKindReadFor?.has(kind) === true
-          ? Promise.reject(new Error("store down"))
-          : Promise.resolve(
-              [...(rows.grantsOn?.values() ?? [])]
-                .flat()
-                .filter((p) => p.spec?.resource?.kind === kind && p.spec?.relation === relation),
-            ),
+      findByResourceKindAndRelation: () => Promise.resolve([]),
   };
   unit.onComposed?.(refusingComposition({ inProcessTransport: transport, grants }));
   /** The unit's boot work, as the server's start runs it. */
@@ -539,88 +527,18 @@ function repairRig(rows: {
   return { start, granted, revoked, logged };
 }
 
-/** A direct owner row, as the creation event wrote one before the kinds recorded no owner. */
-function ownerRow(kind: string, id: string, accountId: string): Grant {
-  return create(GrantSchema, {
-    spec: create(GrantSpecSchema, {
-      principal: create(ApiResourceRefSchema, { kind: "identity_account", id: accountId }),
-      relation: "owner",
-      resource: create(ApiResourceRefSchema, { kind, id }),
-    }),
-  });
-}
-
 describe("the unit's start", () => {
   it("makes its schema current first, and a schema that fails stops the start before any repair", async () => {
     const r = repairRig({
       providers: () =>
         Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
       invitations: [],
-      grantsOn: new Map([["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]]]),
       failSchema: true,
     });
 
     await expect(r.start()).rejects.toThrow("schema down");
     expect(r.granted).toEqual([]);
     expect(r.revoked).toEqual([]);
-  });
-});
-
-describe("the owner-row reconcile", () => {
-  it("revokes every provider's, then every invitation's, direct owner row, and logs each with its account", async () => {
-    const r = repairRig({
-      providers: () =>
-        Promise.resolve([storedIssuer({ id: "fis_acme", org: "acme", slug: "acme-idp" })]),
-      invitations: [storedInvitation({ id: "inv_acme", org: "acme", token: "AcmeToken" })],
-      grantsOn: new Map([
-        ["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]],
-        ["inv_acme", [ownerRow("invitation", "inv_acme", "ida_carl")]],
-      ]),
-    });
-
-    await r.start();
-
-    expect(r.revoked).toEqual([
-      "federation_issuer:fis_acme#owner@ida_carol",
-      "invitation:inv_acme#owner@ida_carl",
-    ]);
-    expect(r.logged).toContainEqual(
-      expect.objectContaining({
-        message: "federation-issuer owner row revoked; its organization's admins manage it",
-        provider: "fis_acme",
-        account: "ida_carol",
-      }),
-    );
-    expect(r.logged).toContainEqual(
-      expect.objectContaining({
-        message: "invitation owner row revoked; its organization's admins manage it",
-        invitation: "inv_acme",
-        account: "ida_carl",
-      }),
-    );
-  });
-
-  it("still revokes the invitations' rows when the providers' owner rows cannot be read", async () => {
-    const r = repairRig({
-      providers: () => Promise.resolve([]),
-      invitations: [],
-      grantsOn: new Map([
-        ["fis_acme", [ownerRow("federation_issuer", "fis_acme", "ida_carol")]],
-        ["inv_acme", [ownerRow("invitation", "inv_acme", "ida_carl")]],
-      ]),
-      failKindReadFor: new Set(["federation_issuer"]),
-    });
-
-    await r.start();
-
-    expect(r.revoked).toEqual(["invitation:inv_acme#owner@ida_carl"]);
-    expect(r.logged).toContainEqual(
-      expect.objectContaining({
-        level: "error",
-        message: "federation-issuer owner-row reconcile failed",
-        error: "store down",
-      }),
-    );
   });
 });
 
