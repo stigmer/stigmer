@@ -8,7 +8,7 @@
  * This is the fake's home in the net. A real adapter joins by implementing
  * `HarnessContractSubject` over its own SDK double and registering both
  * halves in its own hermetic file, where the mocks its double needs can be
- * hoisted: the native adapter does so in
+ * hoisted: the Stigmer harness's adapter does so in
  * `activities/execute-deep-agent/__tests__/hermetic/harness-contract.test.ts`,
  * the Claude adapter in
  * `activities/execute-claude/__tests__/hermetic/harness-contract.test.ts`,

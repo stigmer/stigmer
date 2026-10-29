@@ -4,7 +4,7 @@
  * asked for, and the provider API id it resolved to.
  *
  * `buildChatModel` (`model-client.ts`) records each model it builds, by the
- * model instance; the native engine's span middleware reads them from the
+ * model instance; the Stigmer harness's span middleware reads them from the
  * request's model (`middleware/otel-spans.ts`). So one middleware serves the
  * parent's graph and every sub-agent's, each on the model it runs, with no
  * per-stack configuration and no guess from a model's name. A module of its

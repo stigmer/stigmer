@@ -1,6 +1,6 @@
 /**
  * A Claude session's conversation on this machine's disk: the session
- * store's backing on a runner that keeps the native engine's conversation
+ * store's backing on a runner that keeps the Stigmer harness's conversation
  * locally too (`session-store.ts`).
  *
  * One directory per thread under the session's Claude directory

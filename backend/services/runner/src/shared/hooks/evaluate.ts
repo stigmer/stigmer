@@ -20,7 +20,7 @@
  * ({@link HookEvaluator.postToolUse}) runs after a call succeeded and
  * returns what its hooks hand back to the model.
  *
- * It holds no engine state and imports no engine: the native gate
+ * It holds no engine state and imports no engine: the Stigmer harness's gate
  * (`middleware/approval-gate.ts`) and the Claude engine's gate
  * (`execute-claude/gate.ts`) decide what an answer does to the call,
  * and each injects its engine's views. Its one effect on the world is
@@ -67,7 +67,7 @@ export type HookPermissionMode = "default" | "plan" | "bypassPermissions";
 /** The call a hook is asked about, as the engine made it. */
 export interface HookToolCall {
   readonly id: string;
-  /** The engine's name for the tool (the bound name on native; Claude Code's on Claude). */
+  /** The engine's name for the tool (the bound name on Stigmer; Claude Code's on Claude). */
   readonly name: string;
   readonly args: Record<string, unknown>;
   /** The MCP server the tool belongs to; `""` for a built-in. */

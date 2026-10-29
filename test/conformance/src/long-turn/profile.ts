@@ -13,7 +13,7 @@
 //     a runner killed mid-tool and a runner drained mid-tool. The report says
 //     how far the turn got.
 //   - `endurance` avoids every killer known on 2026-10-18 (stigmer#2414,
-//     #2415, #2416, #2417, #2428, #2429, and the native shell's 120 s
+//     #2415, #2416, #2417, #2428, #2429, and the Stigmer harness's 120 s shell
 //     timeout, #2432):
 //     100-second commands that print every 20 s, nothing killed, for three
 //     hours, so what it finds is what only hours show. Its tool output is
@@ -34,12 +34,12 @@
 //
 // Every step's shell appends `start <id>` and `end <id>` to the run's marker
 // file, so the run reads which step is open from disk, never from a guess.
-// The subagent's step is a shell too, which the subagent runs: on the native
+// The subagent's step is a shell too, which the subagent runs: on the Stigmer
 // harness a subagent's work is its own tool calls, streamed into the parent,
 // and a subagent whose model sat silent for minutes with nothing open would
 // be a hung model call, which the stall window stops by design. Each shell
 // step names its timeout, as a model raises it for a long command
-// (`timeoutSecondsOf`): the native shell's default bound is 120 s.
+// (`timeoutSecondsOf`): the Stigmer harness's shell bounds a call at 120 s by default.
 // A held step (`server-restart`, `kill`, `drain`, `message`) waits for its
 // release file, so the run replaces the server, ends the runner, or sends
 // the person's message while the step is provably running. A `message` step
@@ -145,15 +145,15 @@ export function retentionProfile(): LongTurnProfile {
 
 /**
  * Each endurance command's length, and how often it prints: under every
- * stall window known today, and under the native shell's own 120 s timeout
+ * stall window known today, and under the Stigmer harness's own 120 s shell timeout
  * with room to spare (#2432; a first endurance run at 6 × 20 s was cut off
  * there, every step, on 2026-10-18).
  */
 export const ENDURANCE_STEP_SECONDS = 100;
 export const ENDURANCE_EVERY_SECONDS = 20;
 
-/** The native shell's default bound, which a call raises with `timeout` (the runner's command runner keeps deepagents' 120 s). */
-export const NATIVE_SHELL_TIMEOUT_SECONDS = 120;
+/** The default bound of the Stigmer harness's shell, which a call raises with `timeout` (the runner's command runner keeps deepagents' 120 s). */
+export const STIGMER_SHELL_TIMEOUT_SECONDS = 120;
 
 /** The `endurance` profile: `minutes` of 100-second commands that print, paced for three compactions or more. */
 export function enduranceProfile(minutes: number): LongTurnProfile {
@@ -199,7 +199,7 @@ export interface StepFiles {
 /** Room a step's timeout leaves past its own length. */
 const TIMEOUT_MARGIN_SECONDS = 120;
 
-/** How long a held step may wait for its release: under the native shell's 55-minute ceiling. */
+/** How long a held step may wait for its release: under the Stigmer harness's 55-minute shell ceiling. */
 const HELD_TIMEOUT_SECONDS = 3_000;
 
 /**
@@ -291,7 +291,7 @@ export interface StepHelper {
   readonly saved: boolean;
 }
 
-/** Native's built-in helper: `task` to `general-purpose`, the wording every live run before Claude's read. */
+/** The Stigmer harness's built-in helper: `task` to `general-purpose`, the wording every live run before Claude's read. */
 export const GENERAL_PURPOSE_HELPER: StepHelper = { tool: "task", name: "general-purpose", saved: false };
 
 /**

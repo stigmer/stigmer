@@ -1,6 +1,6 @@
 /**
  * The bundled registry document's own contents: the Claude engine's rows
- * mirror the native engine's Anthropic rows.
+ * mirror the Stigmer harness's Anthropic rows.
  *
  * Why it matters: both engines call the same Anthropic API on the
  * organization's own key, so a model's id, provider id, prices and
@@ -12,8 +12,8 @@
  * Claude section, or one whose rows drifted apart, fails here instead of
  * shipping a Claude picker with no models or a price that differs by engine.
  *
- * The rows native alone reads (`tokenCounterMethod`, `summarization`, its
- * own runtime's compaction) are not mirrored.
+ * The rows the Stigmer harness alone reads (`tokenCounterMethod`,
+ * `summarization`, its own runtime's compaction) are not mirrored.
  */
 import { readFileSync } from "node:fs";
 
@@ -28,48 +28,48 @@ interface Row {
   readonly [field: string]: unknown;
 }
 
-/** The fields a Claude row carries from its native twin. */
+/** The fields a Claude row carries from its Stigmer twin. */
 const MIRRORED = ["apiModelId", "displayName", "shortDescription", "speedTier", "provider", "costTier", "featured", "pricing", "pricingVariants", "contextWindowTokens", "maxOutputTokens", "capabilities"] as const;
 
-/** The fields only native's runtime reads. */
-const NATIVE_ONLY = ["tokenCounterMethod", "summarization"] as const;
+/** The fields only the Stigmer harness's runtime reads. */
+const STIGMER_ONLY = ["tokenCounterMethod", "summarization"] as const;
 
 function rowsOf(document: string): Row[] {
   return (JSON.parse(document) as { models: Row[] }).models;
 }
 
-/** Each disagreement between the Claude rows and the native Anthropic rows, as a sentence; empty when they mirror. */
+/** Each disagreement between the Claude rows and the Stigmer harness's Anthropic rows, as a sentence; empty when they mirror. */
 function mirrorFindings(rows: readonly Row[]): string[] {
   const findings: string[] = [];
-  const native = new Map(rows.filter((row) => row.harness === "stigmer" && row.provider === "anthropic").map((row) => [row.id, row]));
+  const stigmer = new Map(rows.filter((row) => row.harness === "stigmer" && row.provider === "anthropic").map((row) => [row.id, row]));
   const claude = new Map(rows.filter((row) => row.harness === "claude").map((row) => [row.id, row]));
-  for (const id of native.keys()) if (!claude.has(id)) findings.push(`native row ${id} has no claude twin`);
+  for (const id of stigmer.keys()) if (!claude.has(id)) findings.push(`stigmer row ${id} has no claude twin`);
   for (const [id, row] of claude) {
-    const twin = native.get(id);
+    const twin = stigmer.get(id);
     if (twin === undefined) {
-      findings.push(`claude row ${id} has no native Anthropic twin`);
+      findings.push(`claude row ${id} has no Stigmer Anthropic twin`);
       continue;
     }
     for (const field of MIRRORED) {
-      if (JSON.stringify(row[field]) !== JSON.stringify(twin[field])) findings.push(`claude row ${id} differs from native on ${field}`);
+      if (JSON.stringify(row[field]) !== JSON.stringify(twin[field])) findings.push(`claude row ${id} differs from stigmer on ${field}`);
     }
-    for (const field of NATIVE_ONLY) if (row[field] !== undefined) findings.push(`claude row ${id} carries native's ${field}`);
+    for (const field of STIGMER_ONLY) if (row[field] !== undefined) findings.push(`claude row ${id} carries the Stigmer harness's ${field}`);
   }
   return findings;
 }
 
 describe("the bundled model registry", () => {
-  it("holds a Claude row for every native Anthropic row, each agreeing with its twin", () => {
+  it("holds a Claude row for every Stigmer-harness Anthropic row, each agreeing with its twin", () => {
     const rows = rowsOf(bundledModelRegistryDocument());
     expect(rows.some((row) => row.harness === "claude"), "the Claude section is present").toBe(true);
     expect(mirrorFindings(rows)).toEqual([]);
   });
 
-  it("names each drift: a missing twin, a changed price, a native-only field", () => {
+  it("names each drift: a missing twin, a changed price, a Stigmer-only field", () => {
     const rows = rowsOf(readFileSync(new URL("../data/model-registry.json", import.meta.url), "utf8"));
     const twin = rows.find((row) => row.harness === "claude")!;
     const drifted = rows.map((row) => (row === twin ? { ...row, pricing: { inputPricePerMillion: 0 }, summarization: {} } : row));
-    expect(mirrorFindings(drifted)).toEqual([`claude row ${twin.id} differs from native on pricing`, `claude row ${twin.id} carries native's summarization`]);
-    expect(mirrorFindings(rows.filter((row) => row !== twin))).toEqual([`native row ${twin.id} has no claude twin`]);
+    expect(mirrorFindings(drifted)).toEqual([`claude row ${twin.id} differs from stigmer on pricing`, `claude row ${twin.id} carries the Stigmer harness's summarization`]);
+    expect(mirrorFindings(rows.filter((row) => row !== twin))).toEqual([`stigmer row ${twin.id} has no claude twin`]);
   });
 });

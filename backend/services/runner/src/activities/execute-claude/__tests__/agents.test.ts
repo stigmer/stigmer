@@ -7,8 +7,8 @@
  * 0.3.310), so the engine is handed the union and the gate holds each agent
  * to its own reach. A reach computed too wide is a sub-agent calling the
  * main agent's servers or skills (or the reverse); too narrow, a tool its
- * lists allow that it cannot call. Each case below is a world the native
- * engine gives the same agent (`execute-deep-agent/subagent-transformer.ts`):
+ * lists allow that it cannot call. Each case below is a world the Stigmer
+ * harness gives the same agent (`execute-deep-agent/subagent-transformer.ts`):
  * a saved sub-agent its own servers and none of the main agent's or the
  * platform's, its own shell values; a plugin agent the main agent's servers
  * under its narrowed lists; nobody `Agent`.
@@ -88,7 +88,7 @@ describe("subagentSpecsOf", () => {
       ["test-runner", "saved"],
     ]);
     const [helper, runner] = specs as [SubagentSpec, SubagentSpec];
-    expect(helper.description, "native's fallback for an empty description").toBe("Sub-agent: acme:helper");
+    expect(helper.description, "the Stigmer harness's fallback for an empty description").toBe("Sub-agent: acme:helper");
     expect(helper.servers.map((s) => s.slug), "a plugin agent has the main agent's servers").toEqual(["docs", "chan"]);
     expect(helper.shellValues).toEqual({ MAIN_ONLY: "1" });
     expect(helper.scope.allowsClaudeTool("Write"), "its plugin's lists narrow the main agent's").toBe(false);
@@ -123,7 +123,7 @@ describe("bridgeServersOf", () => {
 });
 
 describe("turnAgentsOf", () => {
-  it("hands the shell an eval case's env, which the try overlays on the run's agent values, as the native shell gets it", () => {
+  it("hands the shell an eval case's env, which the try overlays on the run's agent values, as the Stigmer harness's shell gets it", () => {
     const base = input({ subagents: [], pluginAgents: [] });
     const caseTurn: TurnInput = { ...base, values: { ...base.values, agent: { ...base.values.agent, EVAL_LEVEL: "2" } } };
     const agents = turnAgentsOf(caseTurn, [], BRIDGE, { planMode: false, structuredOutput: false });

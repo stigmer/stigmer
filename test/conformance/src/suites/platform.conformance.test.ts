@@ -32,8 +32,8 @@
 //     organization: the two providers (anthropic, openai) in the server's
 //     order, each with a specified availability and a parent organization
 //     exactly when one serves it; every catalog model on every offered
-//     engine (native, claude), each at its provider's availability by the
-//     one rule (Claude needs anthropic, native needs its model's provider,
+//     engine (stigmer, claude), each at its provider's availability by the
+//     one rule (Claude needs anthropic, Stigmer needs its model's provider,
 //     else no provider and unknown); the input's model judged exactly when
 //     named. Whose keys
 //     the answer reads differs by edition (the organization's own on the
@@ -182,7 +182,7 @@ describe("Platform conformance — getModelReadiness", () => {
     expect(new Set(engines), "every offered engine lists its models").toEqual(new Set(READINESS_ENGINES));
     expect(
       engines,
-      "engine order: native, then claude",
+      "engine order: stigmer, then claude",
     ).toEqual([...engines].sort((a, b) => READINESS_ENGINES.indexOf(a) - READINESS_ENGINES.indexOf(b)));
     for (const model of answer.models) {
       expect(model.model, "a listed model names itself").not.toBe("");
@@ -199,7 +199,7 @@ describe("Platform conformance — getModelReadiness", () => {
     }
   });
 
-  it("[rpc:PlatformQueryController.getModelReadiness] a Claude model needs anthropic, and a native model its own provider", async () => {
+  it("[rpc:PlatformQueryController.getModelReadiness] a Claude model needs anthropic, and a Stigmer-harness model its own provider", async () => {
     const { org } = await target.provisionTenancy();
     const answer = await clients.platformQuery.getModelReadiness({ org });
 
@@ -209,14 +209,14 @@ describe("Platform conformance — getModelReadiness", () => {
           expect(model.provider, `the Claude engine runs ${model.model} on Anthropic`).toBe("anthropic");
           break;
         default:
-          expect(["anthropic", "openai", ""], `native ${model.model} needs its own provider`).toContain(
+          expect(["anthropic", "openai", ""], `${model.model} on the Stigmer harness needs its own provider`).toContain(
             model.provider,
           );
       }
     }
   });
 
-  it("[rpc:PlatformQueryController.getModelReadiness] judges nothing when the input names no model, and judges an openai: model on the native engine as needing openai", async () => {
+  it("[rpc:PlatformQueryController.getModelReadiness] judges nothing when the input names no model, and judges an openai: model on the Stigmer harness as needing openai", async () => {
     const { org } = await target.provisionTenancy();
 
     const unnamed = await clients.platformQuery.getModelReadiness({ org });

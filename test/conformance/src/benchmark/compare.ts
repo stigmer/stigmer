@@ -3,10 +3,10 @@
 // script over this module). Domain: conformance benchmark (the readout).
 //
 // An arm is a harness on one model at one endpoint, on one version of the
-// code: native on the report's `models.parity.stigmer` at its
+// code: Stigmer on the report's `models.parity.stigmer` at its
 // `models.stigmer_endpoint`, or Claude on its own entry of `models.parity`,
 // each on the report's `git.code_sha` (the server and runner it booted; the
-// script's `--stack`). One run measures one native model on one version of the code
+// script's `--stack`). One run measures one Stigmer-harness model on one version of the code
 // (cells.ts, run.ts), so another model or another version is another report,
 // and the comparison is across reports. Reports are compared only when one
 // instrument measured them on the same ground: one clean `git.head_sha` (the
@@ -19,7 +19,7 @@
 // commit names what measured. Reports of one arm pool: a scenario measured in
 // more than one is read from the latest (a re-run replaces), and so is the
 // arm's quality target. Two versions of the code are two arms, never one,
-// and so is a native report taken with the runner's background commands
+// and so is a Stigmer-arm report taken with the runner's background commands
 // turned off (`methodology.shell_background`): `+background-off`, read beside
 // the arm with them on rather than pooled into it.
 //
@@ -47,7 +47,7 @@
 // benchmark's stack, not the arm, and is left out of both clauses), or a
 // quality reading over fewer than MIN_SAMPLES cases graded on both arms,
 // reads "not measured". A cell the reference measured and the arm's own
-// report refused by design (a flag, or the pinned native model) is expected,
+// report refused by design (a flag, or the pinned Stigmer-harness model) is expected,
 // not unmeasured. An arm holds the bar when no clause misses and every
 // clause was measured.
 //
@@ -80,7 +80,7 @@ export const COMPARABLE_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const EXPECTED_REFUSALS: ReadonlySet<RefusalReason> = new Set<RefusalReason>([
   "excluded by --only",
   "excluded by --cells",
-  "the native model is pinned by --stigmer-model",
+  "the Stigmer harness's model is pinned by --stigmer-model",
   "thinking needs a pinned model",
   "thinking needs a catalog Claude model",
   "runs only when --cells names it",
@@ -170,7 +170,7 @@ interface QualityCase {
  * `stigmer/<model>@<endpoint>#<code>`, with `+background-off` when the
  * runner's background commands were off, or `claude/<model>#<code>`; the
  * code as the first ten characters of `git.code_sha`. The endpoint and the
- * background setting are native's alone.
+ * background setting are the Stigmer harness's alone.
  */
 export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): string {
   const code = `#${shortSha(report.git.code_sha)}`;
@@ -237,7 +237,7 @@ export function assertComparable(reports: readonly ComparedReport[]): void {
 /**
  * Reads every arm against `reference` (an arm label, or a prefix of one that
  * ends where the label's endpoint or code begins or inside its code, when one
- * arm matches; default native on PARITY_MODEL.stigmer).
+ * arm matches; default Stigmer on PARITY_MODEL.stigmer).
  */
 export function compareReports(reports: readonly ComparedReport[], reference?: string): ReportComparison {
   assertComparable(reports);

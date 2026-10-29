@@ -4,14 +4,14 @@
  * in the order it lists them. These are the arms a third harness's author
  * reads to learn what a translator's events do to the transcript; the arms
  * that drive the builder through a real translator over a real wire are
- * the translator's own (`execute-deep-agent/__tests__/`, the native
+ * the translator's own (`execute-deep-agent/__tests__/`, the Stigmer
  * translator's integration arms).
  *
  * Fence-clean by construction: this file names the proto runtime, the
  * generated protos, `vitest` and the builder — nothing of any engine
  * (`harness/__tests__/transcript-is-engine-free.test.ts`).
  *
- * Opened in #1097 with the row rules that are byte-identical on native
+ * Opened in #1097 with the row rules that are byte-identical on Stigmer
  * and therefore have no golden (the upsert, the output stream, the gated
  * `tool_error` stamp); `approval_proposed` and `system_note`, the every-row
  * preview, the todo projection, and the rest of the header's rules —

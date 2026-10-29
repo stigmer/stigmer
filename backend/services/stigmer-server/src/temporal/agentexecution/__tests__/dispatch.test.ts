@@ -113,7 +113,7 @@ describe("formatSessionTaskQueue", () => {
 });
 
 describe("resolveActivityTaskQueue — global routing", () => {
-  it("no session ID — returns default queue with NATIVE harness", async () => {
+  it("no session ID — returns default queue with STIGMER harness", async () => {
     const store = newStore();
     const result = await resolveActivityTaskQueue(store, "", globalConfig(), silentLogger);
     expect(result.taskQueue).toBe(DEFAULT_ACTIVITY_TASK_QUEUE);
@@ -169,7 +169,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
     expect(result.harness).toBe(Harness.STIGMER);
   });
 
-  it("session not found — still returns per-session queue with NATIVE default", async () => {
+  it("session not found — still returns per-session queue with STIGMER default", async () => {
     const store = newStore();
     const sessionId = "ses_nonexistent";
     const result = await resolveActivityTaskQueue(
@@ -179,7 +179,7 @@ describe("resolveActivityTaskQueue — session routing", () => {
       silentLogger,
     );
     expect(result.taskQueue).toBe(`session:${sessionId}`);
-    expect(result.harness, "NATIVE default when session not found").toBe(Harness.STIGMER);
+    expect(result.harness, "STIGMER default when session not found").toBe(Harness.STIGMER);
   });
 
   it("CLAUDE harness — returns per-session queue with correct harness", async () => {

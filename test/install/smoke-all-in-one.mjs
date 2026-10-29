@@ -8,7 +8,7 @@
  *   - PR CI:            ci.all-in-one.yaml (both native arches, from the
  *                       PR's own sources)
  *   - the release lane: release.npm-libs.yaml smoke jobs run the PUSHED tag
- *                       on native runners before `latest` is promoted
+ *                       on Stigmer runners before `latest` is promoted
  *
  * What one pass proves, in order:
  *   1. the container reaches Docker `healthy` — this executes the

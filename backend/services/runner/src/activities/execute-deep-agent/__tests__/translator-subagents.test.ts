@@ -1,9 +1,9 @@
 /**
- * Sub-agent transcripts, end to end through the native translator and the
+ * Sub-agent transcripts, end to end through the Stigmer harness's translator and the
  * builder: raw LangGraph v3 events with nested namespaces, the translator
  * scoping them and speaking each sub-agent's lifecycle, the builder folding
  * them into the row's own transcript (since #1097). These are the
- * native translator's integration arms for delegation — the sub-agent
+ * Stigmer translator's integration arms for delegation — the sub-agent
  * tracker they once tested (`subagent-tracker.ts`, the second copy of the
  * folding handlers) is gone; the builder's own scoped-handler arms live in
  * `harness/transcript/__tests__/builder.test.ts`, the translator's scope

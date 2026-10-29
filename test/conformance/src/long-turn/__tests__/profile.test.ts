@@ -1,7 +1,7 @@
 // The long turn's plan (../profile.ts): the three profiles' shapes, the
 // bulk reads that cross three compactions, a step subset, each step's shell
 // and what its markers say (a chained step's key among them), run for real
-// through `sh`, and the live narration of a subagent step, to native's
+// through `sh`, and the live narration of a subagent step, to the Stigmer harness's
 // built-in helper or to a saved one by name.
 // Domain: conformance long turn (pure, plus one real shell per step kind).
 import { execFileSync } from "node:child_process";
@@ -17,7 +17,7 @@ import {
   GOAL_MESSAGE,
   ENDURANCE_STEP_SECONDS,
   LONG_TURN_MODEL,
-  NATIVE_SHELL_TIMEOUT_SECONDS,
+  STIGMER_SHELL_TIMEOUT_SECONDS,
   bulkReadsFor,
   enduranceProfile,
   goalProfile,
@@ -69,7 +69,7 @@ describe("the profiles", () => {
     for (const step of endurance.steps) expect(step).toMatchObject({ kind: "streamed", seconds: ENDURANCE_STEP_SECONDS, everySeconds: ENDURANCE_EVERY_SECONDS });
     // The shell's own sleeps (lines × every) end well inside its 120 s limit.
     const lines = Math.round(ENDURANCE_STEP_SECONDS / ENDURANCE_EVERY_SECONDS);
-    expect(lines * ENDURANCE_EVERY_SECONDS).toBeLessThanOrEqual(NATIVE_SHELL_TIMEOUT_SECONDS - 15);
+    expect(lines * ENDURANCE_EVERY_SECONDS).toBeLessThanOrEqual(STIGMER_SHELL_TIMEOUT_SECONDS - 15);
     const bytes = endurance.steps.reduce((sum, s) => sum + (s.kind === "streamed" ? s.bytesPerLine * (s.seconds / s.everySeconds) : 0), 0);
     expect(bytes).toBeGreaterThan(bulkReadsFor(3) * BULK_BYTES);
     expect(endurance.budgetMs).toBe(210 * 60_000);

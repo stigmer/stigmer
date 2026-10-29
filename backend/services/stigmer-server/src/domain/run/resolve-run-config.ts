@@ -45,7 +45,7 @@
  * set either alone. CreateSessionIfNeeded resolves again (reResolveRunConfig) when the
  * session it creates pins another version than the stamp did, and judges
  * the result by the same checks. A new conversation whose turn names a
- * model but no engine starts on native, the engine that name was judged on
+ * model but no engine starts on Stigmer, the engine that name was judged on
  * (pinModelEngine); the agent's engine applies when the turn names neither.
  *
  * Proven by __tests__/resolve-run-config.test.ts (the rule's table, the
@@ -186,7 +186,7 @@ export function agentLayerFor(
 /**
  * The engine the conversation runs on: the stored session's for a turn in
  * an existing session; for a new conversation the engine its session will
- * take (session_spec.harness — native already written there when the turn
+ * take (session_spec.harness — Stigmer already written there when the turn
  * names a model, pinModelEngine — else the agent's engine, else
  * unspecified, the platform default: ResolveSessionAgent's rule). A session
  * id naming no row is the loading steps' refusal and is judged on the
@@ -340,7 +340,7 @@ export async function reResolveRunConfig(
   if (
     agentId === before.agentId &&
     agentVersionHash === before.agentVersionHash &&
-    // The registry word: unspecified and native place alike.
+    // The registry word: unspecified and stigmer place alike.
     harnessName(engine) === before.harness
   ) {
     return undefined;
@@ -401,12 +401,12 @@ export function savedChoiceRefusal(placement: RunConfigPlacement): string {
 
 /**
  * A new conversation whose turn names a model but no engine starts on
- * native: a model name belongs to an engine, and every save-time check
+ * Stigmer: a model name belongs to an engine, and every save-time check
  * (a schedule's, a message's own) reads an unset engine
- * as native, so that is the engine the name was judged on. Written onto
+ * as Stigmer, so that is the engine the name was judged on. Written onto
  * the new session's spec before its session exists, so the agent's engine
  * (ResolveSessionAgent) applies only to a turn naming neither, and a
- * schedule saved with a native model never fires it on another engine
+ * schedule saved with a Stigmer-harness model never fires it on another engine
  * because its agent's author moved the agent's engine.
  */
 function pinModelEngine(execution: Run, lane: PlacedLane): void {

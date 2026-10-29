@@ -137,7 +137,7 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
   // The tier suite's twin: thinking is capability-gated (it bills at base
   // per-token rates, so no priced variant exists to key on) and validated
   // at create, judged on the harness the execution will run on (the
-  // bootstrap session_spec's here; UNSPECIFIED is native). The validation
+  // bootstrap session_spec's here; UNSPECIFIED is Stigmer). The validation
   // runs behind the run gate, so each arm creates a real agent: an
   // enforcing edition would refuse a fake one as PermissionDenied first.
   // Every arm is a refusal, before any side effect, so no execution runs.
@@ -184,21 +184,21 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
     );
   });
 
-  it("[rpc:RunCommandController.create] rejects enabled on a native session for a model with no native registry entry (InvalidArgument)", async () => {
-    // The harness decides which entry is read: native runs a model named
+  it("[rpc:RunCommandController.create] rejects enabled on a Stigmer session for a model with no Stigmer registry entry (InvalidArgument)", async () => {
+    // The harness decides which entry is read: Stigmer runs a model named
     // with its provider (`openai/…`) with no registry entry, and so with no
-    // thinking capability declared, so a native session cannot ask it to
+    // thinking capability declared, so a Stigmer session cannot ask it to
     // think.
     await expectRefused(
-      "aex-thinking-no-native-entry",
+      "aex-thinking-no-stigmer-entry",
       { modelName: "openai/gpt-5.5", thinkingMode: ThinkingMode.ENABLED },
       Harness.STIGMER,
-      "create with thinking_mode enabled on a native session for a model with no native entry",
+      "create with thinking_mode enabled on a Stigmer session for a model with no Stigmer entry",
     );
   });
 
   it("[rpc:RunCommandController.create] rejects an explicit disabled on a model that always thinks (InvalidArgument)", async () => {
-    // claude-fable-5's native entry declares thinkingRequired: the provider
+    // claude-fable-5's Stigmer entry declares thinkingRequired: the provider
     // refuses a request to turn its thinking off, so the platform refuses the
     // execution that asks for it rather than fail the turn.
     await expectRefused(

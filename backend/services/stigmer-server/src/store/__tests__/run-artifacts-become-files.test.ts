@@ -1,6 +1,6 @@
 /**
  * Pins run-artifacts-become-files.ts: what one stored run becomes when the
- * files the native engine uploaded for it leave its status to become Files.
+ * files the Stigmer harness uploaded for it leave its status to become Files.
  *
  *   - each file entry is lifted as a conversion record naming the run's
  *     conversation, its position among the stored entries, its name and key

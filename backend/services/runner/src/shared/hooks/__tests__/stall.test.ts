@@ -15,7 +15,7 @@ import { startStallWatchdog } from "../../stall-watchdog.js";
 import { HookEvaluator } from "../evaluate.js";
 import { HookSet } from "../hook-set.js";
 import { activityPulseFor } from "../run.js";
-import { NativeToolViews } from "../tool-view.js";
+import { StigmerToolViews } from "../tool-view.js";
 
 const STALL_MS = 600;
 
@@ -29,7 +29,7 @@ function slowHooks(onActivity: ((detail: string) => void) | undefined): HookEval
         handlers: [create(HookHandlerSchema, { command: "sleep 1.5; printf '%s' '{\"hookSpecificOutput\":{\"permissionDecision\":\"allow\"}}'" })],
       })],
     }]),
-    views: new NativeToolViews({
+    views: new StigmerToolViews({
       workspaceRoot: process.cwd(),
       toVirtualPath: () => undefined,
       toolServerMap: new Map(),

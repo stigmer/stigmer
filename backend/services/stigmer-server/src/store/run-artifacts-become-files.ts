@@ -1,5 +1,5 @@
 /**
- * The data migration that lifts the files the native engine uploaded for a
+ * The data migration that lifts the files the Stigmer harness uploaded for a
  * run off the run's status, to become Files of the run (SQLite v45,
  * Postgres v41): what one row becomes, said once for both drivers, which
  * own the SQL, the pages and the transaction.

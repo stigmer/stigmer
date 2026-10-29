@@ -1,8 +1,8 @@
 /**
- * Hermetic proof: the native harness gets the runtime's `turn_phases` timing
+ * Hermetic proof: the Stigmer harness gets the runtime's `turn_phases` timing
  * line without a line of its own.
  *
- * Invariant pinned: driving the REAL deepagents graph through the real native
+ * Invariant pinned: driving the REAL deepagents graph through the real Stigmer
  * translator, the turn runtime writes exactly one `turn_phases` line for the
  * turn, and the line reads what the translator's events said — one model
  * round per LangGraph run (two here: the proposal and the closing text), one
@@ -10,7 +10,7 @@
  * adapter's own name as `harness`. The fold and its rules are
  * `harness/__tests__/turn-timeline.test.ts`'s; the runtime's act of writing
  * the line is `harness/__tests__/run-turn.test.ts`'s against the fake. What
- * only this file can prove is that the native translator emits the events the
+ * only this file can prove is that the Stigmer harness's translator emits the events the
  * fold needs (`message_start`/`message_finish` per run, `tool_started`/
  * `tool_finished` per call) in the order it needs them, on a real graph.
  *

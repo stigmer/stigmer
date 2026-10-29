@@ -285,7 +285,7 @@ describe("agent tool lists at apply", () => {
 
   // Each one breaks the shape the pattern admits: an MCP entry with no
   // server slug, an unclosed specifier, surrounding whitespace, and a
-  // native engine name where Claude Code's name belongs.
+  // Stigmer harness name where Claude Code's name belongs.
   const MALFORMED = ["mcp__", "Bash(git push *", " Read", "read_file"];
 
   it.each(MALFORMED)(
@@ -387,8 +387,8 @@ describe("agent engine — the offered-engine rule", () => {
     const created = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } });
     expect(created.spec?.harness).toBe(Harness.CLAUDE);
 
-    const native = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.STIGMER } });
-    expect(native.spec?.harness).toBe(Harness.STIGMER);
+    const stigmer = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.STIGMER } });
+    expect(stigmer.spec?.harness).toBe(Harness.STIGMER);
     const moved = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } });
     const stored = await query.get({ value: moved.metadata!.id });
     expect(stored.spec?.harness).toBe(Harness.CLAUDE);

@@ -2,8 +2,8 @@
 // to a turn whose runner dies, is drained, or is sent a message while it works.
 // Domain: agentic / agentexecution — a turn's survival across its runner's life.
 //
-// Each arm runs against the wire mock, on native and on Claude
-// (support/engine-arms.ts: native's model on the queue, Claude's answered
+// Each arm runs against the wire mock, on Stigmer and on Claude
+// (support/engine-arms.ts: the Stigmer harness's model on the queue, Claude's answered
 // from each request's conversation, since the engine re-sends its history
 // when a replacement resumes it), with a REAL
 // `execute` the model asks for: a shell that records each start in a marker
@@ -75,7 +75,7 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { managedAgentsClient } from "../support/managed-agents";
 import { uniqueName } from "../support/naming";
 import { awaitPhase, awaitRunThatReadMessage, awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
-import { CLAUDE_ARM, NATIVE_ARM, claudeTurnsOnly, type EngineArm } from "../support/engine-arms";
+import { CLAUDE_ARM, STIGMER_ARM, claudeTurnsOnly, type EngineArm } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 import type { RunnerRestartOptions } from "../targets/target";
 
@@ -165,7 +165,7 @@ class HeldStep {
 }
 
 /** A run of a fresh agent on `arm`'s engine, trusted for the whole run, whose model asks for `step` then says `closing`. */
-async function startHeldRun(task: string, step: HeldStep, closing: string, arm: EngineArm = NATIVE_ARM): Promise<{ readonly id: string; readonly org: string }> {
+async function startHeldRun(task: string, step: HeldStep, closing: string, arm: EngineArm = STIGMER_ARM): Promise<{ readonly id: string; readonly org: string }> {
   const { org } = await target.provisionTenancy();
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
@@ -217,7 +217,7 @@ async function followToTheEnd(id: string, budgetMs: number, settleMs = 15_000): 
 }
 
 /** How many user messages carrying `task` the newest model request on `arm` handed the provider. */
-function taskHandedInLastRequest(task: string, arm: EngineArm = NATIVE_ARM): number {
+function taskHandedInLastRequest(task: string, arm: EngineArm = STIGMER_ARM): number {
   const last = arm.loopRequests(mock).at(-1);
   const messages = (last?.body as { messages?: Array<{ role?: string; content?: unknown }> } | undefined)?.messages ?? [];
   return messages.filter((m) => m.role === "user" && JSON.stringify(m.content ?? "").includes(task)).length;
@@ -383,7 +383,7 @@ describe("a long turn on a real runner", () => {
 });
 
 /**
- * A watcher of a session's log over the native stream, as a client resumes
+ * A watcher of a session's log over the Stigmer harness's stream, as a client resumes
  * one: from the last seq it holds, again whenever its stream ends with a
  * code a client retries. Records every event's seq in arrival order. A
  * pinned watcher does not resume: its stream ending is the finding.
@@ -472,7 +472,7 @@ async function runIdsOf(sessionId: string): Promise<string[]> {
 // replacement runner resumes it from there. One difference is written into
 // the kill arm: a call the kill cut is not run again. The engine hands the
 // model the call's result as interrupted, its outcome unknown, and the model
-// decides; native re-runs the step from its last checkpoint.
+// decides; the Stigmer harness re-runs the step from its last checkpoint.
 describe("a long turn on a real runner, on Claude", () => {
   beforeEach(claudeTurnsOnly(capabilities));
   it(

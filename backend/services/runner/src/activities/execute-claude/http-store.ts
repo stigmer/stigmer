@@ -3,7 +3,7 @@
  * backing in cloud mode (`session-store.ts`), through the runner's local
  * proxy's engine-sessions lane (`agent-proxy/server.ts`), which checks that
  * every call names its live turn's own thread and forwards it to the
- * platform with the runner's credential, as the native engine's checkpoints
+ * platform with the runner's credential, as the Stigmer harness's checkpoints
  * travel (`shared/checkpointer/http-saver.ts`).
  *
  * The wire, one home for the runner's half ({@link ENGINE_SESSIONS_LANE}):

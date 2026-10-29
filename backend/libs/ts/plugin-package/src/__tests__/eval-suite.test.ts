@@ -910,7 +910,7 @@ describe("unsupported", () => {
   it.each([
     ["resumed conversations", { ...yamlCase("context:\n  history_file: h.jsonl\n"), "evals/c/h.jsonl": HISTORY, "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
     [undefined, { "evals/c/prompt.md": "---\nenv:\n  EVAL_X: 1\n---\nHi." }],
-  ])("is not run on Claude for %s, and runs there with env, and on native with both", (feature, files) => {
+  ])("is not run on Claude for %s, and runs there with env, and on Stigmer with both", (feature, files) => {
     const evalCase = oneCase(files).cases[0];
     if (evalCase === undefined) throw new Error("expected the case to load");
     expect(evalCase.unsupported).toBeUndefined();

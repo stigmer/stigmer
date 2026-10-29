@@ -594,7 +594,7 @@ export const VISITOR_APPENDED_PROMPT_MESSAGE =
 /**
  * RefuseVisitorAppendedPrompt: a caller the composed classifier names a
  * visitor (a chat-link guest, a Slack or WhatsApp sender) may not set
- * `spec.append_system_prompt`. On the native engine that text lands in the
+ * `spec.append_system_prompt`. On the Stigmer harness that text lands in the
  * system prompt after the agent owner's instructions, which is the owner's
  * to steer, as the organization's standing context is withheld from
  * visitors (ComposeDeclaredPreferences). The server's own in-process

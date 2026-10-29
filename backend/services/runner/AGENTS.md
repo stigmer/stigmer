@@ -2,9 +2,8 @@
 
 The Temporal worker that runs agent turns, published as `@stigmer/runner` and
 embedded by `stigmer up`, the cloud provisioner and the desktop app. One turn
-runtime serves every harness (native deep-agent, Claude); a harness is a
-registry row and an SDK slice. This guide is an index; the headers it names are
-the truth.
+runtime serves every harness (Stigmer, Claude); a harness is a registry row and
+an SDK slice. This guide is an index; the headers it names are the truth.
 
 ## Read in this order
 

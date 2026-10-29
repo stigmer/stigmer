@@ -11,19 +11,19 @@
  * the five standing sections read in, with the same doctrine comments written
  * twice; the input-files bullet and disclosure lines. This module is that
  * glue, written once. It also chose which skills a prompt highlighted when
- * there were many, until the native harness stopped choosing skills by the
+ * there were many, until the Stigmer harness stopped choosing skills by the
  * turn's message: a system prompt that follows the message misses the
  * provider's prompt cache on every turn, so every harness now describes every
  * mounted skill.
  *
  * What stays with each harness, on purpose:
- *  - Framing and placement. The native harness renders `## Heading` sections
+ *  - Framing and placement. The Stigmer harness renders `## Heading` sections
  *    into a system prompt rebuilt on every turn; the Claude harness appends
  *    its sections to the engine's own system prompt. Each builder maps a
  *    section `kind` to its own label (`Record<StandingSectionKind, string>`,
  *    exhaustive by the compiler) and wraps the body itself. This module never
  *    learns a heading or a tag.
- *  - Words that quote an engine's tools: the native `## Skills` activation
+ *  - Words that quote an engine's tools: the Stigmer `## Skills` activation
  *    protocol (`read`, `execute(...)`); the response rules; the sub-agent
  *    rules; the structured-output directives.
  *
@@ -97,7 +97,7 @@ export interface StandingPromptContext {
  *     conversation (bridge): the bridge may refer back to them.
  *
  * Where the block sits in a prompt, and on which turns, is the builder's
- * (native: every turn, the system prompt is rebuilt).
+ * (Stigmer: every turn, the system prompt is rebuilt).
  */
 export function standingContextSections(standing: StandingPromptContext): readonly StandingSection[] {
   const sections: StandingSection[] = [];

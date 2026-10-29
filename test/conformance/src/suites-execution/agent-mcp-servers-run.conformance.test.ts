@@ -7,7 +7,7 @@
 // written straight into the agent, never pushed as a plugin: each arm's
 // agent writes exactly one server, named SERVER, at one of the fixture's
 // tool surfaces, and no plugin of the fixture rides the same turn (the
-// native engine binds MCP tools by bare name, so one turn holds one fixture
+// Stigmer harness binds MCP tools by bare name, so one turn holds one fixture
 // server). The fixture records each JSON-RPC request with its headers, so
 // what reached the server is read where it arrived.
 //
@@ -155,7 +155,7 @@ async function saveConnection(org: string, address: string, token: string): Prom
   fixtures.defer(() => clients.vaultCommand.delete({ resourceId: mine.metadata!.id }).catch(() => undefined));
 }
 
-// Scripts one `echo` call (the native engine binds the tool by its bare
+// Scripts one `echo` call (the Stigmer harness binds the tool by its bare
 // name) and a closing text turn, runs the turn on `agentRef` to its end,
 // and asserts it completed. Answers the run and its turn.
 async function completedEchoRun(

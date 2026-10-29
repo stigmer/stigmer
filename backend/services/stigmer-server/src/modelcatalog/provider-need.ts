@@ -12,13 +12,13 @@
  * The provider follows the engine the turn runs on:
  *   - a Claude turn needs Anthropic, whatever its model: the engine runs
  *     Claude models only;
- *   - a native turn needs its model's provider, read from the catalog
+ *   - a Stigmer turn needs its model's provider, read from the catalog
  *     (`providerOf`: a catalog entry's provider, or an `anthropic:` or
  *     `openai:` prefix), the model being the one the turn names, else the
- *     one the runner will default to. A native model whose provider is no
- *     key slot (or that the catalog cannot place) needs nothing this rule
- *     can judge: the runner, and on the cloud the metered proxy, answer for
- *     it.
+ *     one the runner will default to. A Stigmer-harness model whose
+ *     provider is no key slot (or that the catalog cannot place) needs
+ *     nothing this rule can judge: the runner, and on the cloud the metered
+ *     proxy, answer for it.
  * A turn that runs no model (a file review's Undo, `reconcile_file_review`)
  * needs nothing; the run step asks that before the rule.
  *

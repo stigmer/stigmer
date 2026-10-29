@@ -1,5 +1,5 @@
 /**
- * Tool-scope middleware — the native engine's enforcement of an agent's two
+ * Tool-scope middleware — the Stigmer harness's enforcement of an agent's two
  * tool lists (`tools`, `disallowed_tools`; resolved by `shared/tool-lists.ts`).
  *
  * The shape is deepagents' own `createToolExclusionMiddleware` (1.14.1): the
@@ -20,7 +20,7 @@
  * How a refusal reaches the timeline: a call that never runs its handler
  * fires no tool events, so the middleware says so itself, on the graph's
  * custom stream ({@link TOOL_REFUSED_EVENT}, through the runtime's `writer`),
- * and the native translator folds it into the call's row as a failure with
+ * and the Stigmer harness's translator folds it into the call's row as a failure with
  * this message — no approval card, no provenance, the row settled as the
  * refusal happens rather than at the end of the turn.
  *
@@ -35,8 +35,8 @@
  *    memory attachments, `TurnMcp.platformServerSlugs`) is always in scope:
  *    no plugin can name them and an agent without them cannot answer its
  *    channel.
- *  - Every other tool is the engine's, judged by its native name
- *    (`NATIVE_TOOL_COVERS`): a name the table does not carry is an engine
+ *  - Every other tool is the engine's, judged by its Stigmer-harness name
+ *    (`STIGMER_TOOL_COVERS`): a name the table does not carry is an engine
  *    extra (hidden only by an allow-list).
  *  - `stop_background_command` is judged as `execute`: it exists only
  *    beside the shell (`shell.ts`) and can only end a command the shell
@@ -70,7 +70,7 @@
  */
 
 import { ToolMessage } from "@langchain/core/messages";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import { outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
 import { SHELL_TOOL_NAME, STOP_BACKGROUND_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
@@ -114,7 +114,7 @@ function scopeNameOf(name: string): string {
   return name === STOP_BACKGROUND_TOOL_NAME ? SHELL_TOOL_NAME : name;
 }
 
-/** The native file-read tool and the argument that names its file. */
+/** The Stigmer harness's file-read tool and the argument that names its file. */
 const READ_TOOL = "read_file";
 const READ_PATH_ARG = "file_path";
 
@@ -174,7 +174,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     const slug = serverOfTool.get(tool);
     if (slug !== undefined) return mcpToolInScope(slug, name);
     if (name === READ_TOOL) return true;
-    return scope.allowsEngineTool(scopeNameOf(name), NATIVE_TOOL_COVERS);
+    return scope.allowsEngineTool(scopeNameOf(name), STIGMER_TOOL_COVERS);
   };
 
   /** Whether a call may run, from the tool object when the tool node supplies it, else from the name. */
@@ -188,7 +188,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     const read = name === READ_TOOL && typeof path === "string";
     // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
     if (read && scope.hidesSkills && (await readsSkillContent(path))) return false;
-    if (scope.allowsEngineTool(scopeNameOf(name), NATIVE_TOOL_COVERS)) return true;
+    if (scope.allowsEngineTool(scopeNameOf(name), STIGMER_TOOL_COVERS)) return true;
     return read && (await admitsRoutedRead(path));
   };
 

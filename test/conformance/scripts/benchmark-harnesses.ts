@@ -1,4 +1,4 @@
-// Measures the native and Claude harnesses against REAL providers and writes
+// Measures the Stigmer and Claude harnesses against REAL providers and writes
 // the report the harness work is judged on
 // (`make benchmark-harnesses`; `npm run benchmark:harnesses -- <flags>`).
 // Domain: conformance benchmark (the live instrument's entrypoint).
@@ -19,9 +19,9 @@
 // rule under "What to refuse").
 //
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
-// ANTHROPIC_API_KEY for the judge, a Claude native model and the Claude cells
+// ANTHROPIC_API_KEY for the judge, a Claude Stigmer-harness model and the Claude cells
 // (the runner's own key, in this direct mode); OPENAI_API_KEY for
-// an OpenAI-provider native model (`--stigmer-model openai:<name>`, or a `gpt*`
+// an OpenAI-provider Stigmer-harness model (`--stigmer-model openai:<name>`, or a `gpt*`
 // catalog id), with OPENAI_BASE_URL when that model is served on another
 // OpenAI-compatible address (Google's, a router's); the `stigmer` CLI on
 // PATH for every timing cell on the working agent (its memory spawns
@@ -39,14 +39,14 @@
 //   --quality-reps N         tries per quality case per harness (default 3)
 //   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/claude`)
 //   --only stigmer|claude    one harness
-//   --stigmer-model <id>     the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
-//                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
+//   --stigmer-model <id>      the Stigmer arm's model instead of the parity pin: a catalog id, or the own-endpoint
+//                            form openai:<name> / anthropic:<name>; the Stigmer default cells are refused, and the
 //                            report records the host, API and cost basis it ran on. Not with --only claude.
 //   --stack <checkout>       boot that stigmer checkout's server and runner (built there first: `npm ci`,
 //                            `make build-runner build-server`) instead of this tree's; this tree stays the
 //                            instrument, so its clients and readers measure both alike. The report records
 //                            the checkout's HEAD as `git.code_sha`. Refused when the path is no checkout.
-//   --shell-background on|off  whether the runner lets the native agent start commands in the background (default
+//   --shell-background on|off  whether the runner lets the Stigmer harness's agent start commands in the background (default
 //                            on; off sets the runner's STIGMER_SHELL_BACKGROUND_ENABLED=false): the arm, recorded on
 //                            the report, which benchmark-compare reads as an arm of its own
 //   --pr N                   the pull request the measuring checkout belongs to, recorded on the report
@@ -69,7 +69,7 @@ import { accessSync, constants } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { delimiter, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { nativeApi, nativeEndpoint, planCells, type PlanFlags } from "../src/benchmark/cells";
+import { stigmerApi, stigmerEndpoint, planCells, type PlanFlags } from "../src/benchmark/cells";
 import { runJudgeCalibration } from "../src/benchmark/judge/calibrate";
 import { renderCalibrationModule, shortfallsOf } from "../src/benchmark/judge/calibration-tally";
 import { JUDGE_EXAMPLES } from "../src/benchmark/judge/examples";
@@ -148,7 +148,7 @@ function parseFlags(argv: readonly string[]): Flags {
       case "--stigmer-model": {
         const model = value().trim();
         if (model === "") throw new Error("--stigmer-model needs a model id");
-        flags.nativeModel = model;
+        flags.stigmerModel = model;
         break;
       }
       case "--thinking": {
@@ -200,8 +200,8 @@ function parseFlags(argv: readonly string[]): Flags {
         throw new Error(`unknown flag ${String(flag)}`);
     }
   }
-  if (flags.nativeModel !== undefined && flags.only !== undefined && flags.only !== "stigmer") {
-    throw new Error(`--stigmer-model names the native arm's model, and --only ${flags.only} runs no native cell`);
+  if (flags.stigmerModel !== undefined && flags.only !== undefined && flags.only !== "stigmer") {
+    throw new Error(`--stigmer-model names the Stigmer arm's model, and --only ${flags.only} runs no Stigmer cell`);
   }
   return flags;
 }
@@ -264,9 +264,9 @@ async function main(): Promise<void> {
     `benchmark: ${plan.cells.length} cells (${executions} executions) and the quality eval on ${plan.quality.length} ` +
       `target(s), ${flags.qualityReps} tries per case, on real providers; this spends money`,
   );
-  const endpoint = nativeEndpoint(plan.nativeModel, process.env);
+  const endpoint = stigmerEndpoint(plan.stigmerModel, process.env);
   console.error(
-    `native arm: ${plan.nativeModel} at ${endpoint}, ${nativeApi(plan.nativeModel) ?? "unknown"} API, background commands ${flags.shellBackground}`,
+    `Stigmer arm: ${plan.stigmerModel} at ${endpoint}, ${stigmerApi(plan.stigmerModel) ?? "unknown"} API, background commands ${flags.shellBackground}`,
   );
   if (plan.judge) {
     console.error(
@@ -290,7 +290,7 @@ async function main(): Promise<void> {
         qualityReps: flags.qualityReps,
         git,
         titlingSuppressed: true,
-        nativeEndpoint: endpoint,
+        stigmerEndpoint: endpoint,
         shellBackground: flags.shellBackground,
         ...(flags.thinking !== undefined ? { thinking: flags.thinking } : {}),
       }, {

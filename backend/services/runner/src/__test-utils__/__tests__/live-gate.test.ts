@@ -46,10 +46,10 @@ describe("recordLiveSpend", () => {
     const dir = mkdtempSync(join(tmpdir(), "live-gate-"));
     try {
       const summary = join(dir, "summary.md");
-      recordLiveSpend("native plain turn", 0.01234, { GITHUB_STEP_SUMMARY: summary });
-      recordLiveSpend("native tool call", 0.02, { GITHUB_STEP_SUMMARY: summary });
+      recordLiveSpend("Stigmer plain turn", 0.01234, { GITHUB_STEP_SUMMARY: summary });
+      recordLiveSpend("Stigmer tool call", 0.02, { GITHUB_STEP_SUMMARY: summary });
       expect(readFileSync(summary, "utf-8")).toBe(
-        "- native plain turn: $0.0123 estimated\n- native tool call: $0.0200 estimated\n",
+        "- Stigmer plain turn: $0.0123 estimated\n- Stigmer tool call: $0.0200 estimated\n",
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -66,9 +66,9 @@ describe("recordLiveSpend", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     recordLiveSpend("claude transcript", undefined, {});
     // A proto3 double reads 0 when nothing was priced; a real call never costs nothing.
-    recordLiveSpend("native turn", 0, {});
+    recordLiveSpend("Stigmer turn", 0, {});
     expect(log.mock.calls.flat().join(" ")).toMatch(/claude transcript: no estimate reported/);
-    expect(log.mock.calls.flat().join(" ")).toMatch(/native turn: no estimate reported/);
+    expect(log.mock.calls.flat().join(" ")).toMatch(/Stigmer turn: no estimate reported/);
     expect(log.mock.calls.flat().join(" ")).not.toMatch(/\$0\.0000/);
   });
 });

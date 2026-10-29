@@ -1,4 +1,4 @@
-// Counts the native runner's marker lines in a run's log: the one-line
+// Counts the Stigmer harness's marker lines in a run's log: the one-line
 // records the runner writes when it repairs an edit, cuts a long tool result,
 // retries a failed model call, reads the repository's own instructions, or
 // sees a PostToolUse hook fail. They say whether each of those paths fired

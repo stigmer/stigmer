@@ -219,7 +219,7 @@ export interface ToolCategoryInfo {
    * JSON argument key carrying a model-authored intent phrase for this kind
    * (stigmer#276), or `undefined` for kinds without one. Shell is the only
    * carrier today: every harness converges on `description` — the Claude
-   * harness's built-in shell tool ships it natively, and the native
+   * harness's built-in shell tool ships it natively, and the Stigmer
    * harness's tool-intent middleware adds it to the `execute` schema at bind
    * time.
    */

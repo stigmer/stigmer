@@ -12,7 +12,7 @@
  *
  * One entry per harness, each priced at round numbers so a golden's usage and
  * cost are legible (600 000 input tokens = $0.60). `claude-haiku-4.5` is
- * the native harness's, an Anthropic id so the native error arms' provider label (`tryInferProvider`) and the thinking heuristic
+ * the Stigmer harness's, an Anthropic id so its error arms' provider label (`tryInferProvider`) and the thinking heuristic
  * read as they do in production. The document itself is the control plane's,
  * read by every harness's runtime: `parsePricingTable` keeps every entry with
  * `pricing`; `parseRegistry` wants `id` + `provider` and reads
@@ -24,16 +24,16 @@
  * The live posture (`stubRegistryFetch({ live: true })`): a live instrument
  * runs the real activity against a real provider, and every URL that is not
  * the registry reaches the network through the `fetch` that was global
- * before the stub. A native live run serves the control plane's real
+ * before the stub. A Stigmer live run serves the control plane's real
  * document (`document`), because the Anthropic API is sent the registry's
- * `apiModelId`, which this document's native row does not carry. The refusal stays the default: a hermetic run
+ * `apiModelId`, which this document's Stigmer row does not carry. The refusal stays the default: a hermetic run
  * that grows a network dependency must still fail.
  */
 
 import { vi } from "vitest";
 
-/** The pinned model of every native (deep-agent) hermetic run. */
-export const FIXTURE_NATIVE_MODEL = "claude-haiku-4.5";
+/** The pinned model of every Stigmer hermetic run. */
+export const FIXTURE_STIGMER_MODEL = "claude-haiku-4.5";
 
 /**
  * The pinned model of every Claude hermetic run, and the provider's id the
@@ -46,7 +46,7 @@ export const FIXTURE_CLAUDE_API_MODEL = "claude-sonnet-4-6";
 export const REGISTRY_DOCUMENT = {
   models: [
     {
-      id: FIXTURE_NATIVE_MODEL,
+      id: FIXTURE_STIGMER_MODEL,
       displayName: "Claude Haiku 4.5 (hermetic fixture)",
       provider: "anthropic",
       harness: "stigmer",
@@ -88,8 +88,8 @@ export interface StubRegistryFetchOptions {
   readonly live?: boolean;
   /**
    * The registry document to serve instead of {@link REGISTRY_DOCUMENT}. A
-   * native live run needs the control plane's real one
-   * (`real-model-registry.ts`): the fixture's native row carries no
+   * Stigmer live run needs the control plane's real one
+   * (`real-model-registry.ts`): the fixture's Stigmer row carries no
    * `apiModelId` and round-number prices, so a real provider would be sent an
    * id it does not know and a cost cap would count invented prices.
    */

@@ -111,17 +111,17 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     const { org } = await target.provisionTenancy();
     const slug = await agentIn(org);
 
-    // A routine reads an unset engine as native; a channel is judged
-    // against every engine's list, so the web channel names native's id and
+    // A routine reads an unset engine as Stigmer; a channel is judged
+    // against every engine's list, so the web channel names the Stigmer harness's id and
     // the Slack channel another, and both are known.
-    const onNative = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
+    const onStigmer = create(RunConfigSchema, { modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED });
     const onAnyEngine = create(RunConfigSchema, { modelName: "claude-sonnet-4.5", thinkingMode: ThinkingMode.ENABLED });
 
     const routine = create(RoutineSchema, makeRoutine(org, uniqueName("sched-saved-ok"), slug));
     if (routine.spec?.agent === undefined) {
       throw new Error("makeRoutine builds an agent invocation");
     }
-    routine.spec.agent.runConfig = onNative;
+    routine.spec.agent.runConfig = onStigmer;
     const savedRoutine = await clients.routineCommand.create(routine);
     fixtures.defer(() => clients.routineCommand.delete({ value: savedRoutine.metadata!.id }));
     expect(
@@ -129,7 +129,7 @@ describe("Saved run settings name the model their tier or thinking is for", () =
     ).toBe(ThinkingMode.ENABLED);
 
     const web = create(ChannelSchema, makeWebChannel(org, slug, { name: uniqueName("web-saved-ok") }));
-    web.spec!.runConfig = onNative;
+    web.spec!.runConfig = onStigmer;
     const savedWeb = await clients.channelCommand.create(web);
     fixtures.defer(() => clients.channelCommand.delete({ value: savedWeb.metadata!.id }));
     expect(savedWeb.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);

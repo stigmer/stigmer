@@ -3,7 +3,7 @@
  * and what a harness owns.
  *
  * Stigmer runs an agent turn through one of several engines ("harnesses"):
- * the native LangGraph deep-agent and the Claude Agent SDK, and in future
+ * Stigmer's own (LangGraph, on deepagents) and the Claude Agent SDK, and in future
  * the Codex SDK. Everything about a turn that does NOT touch a
  * vendor SDK — fetching the execution, resolving the blueprint, fetching the
  * run's values, provisioning and locking the workspace, mounting skills,
@@ -483,7 +483,7 @@ export interface TurnInput extends NormalizedActivityInput {
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
   /**
-   * A eval-run try's recorded conversation, which the native engine
+   * A eval-run try's recorded conversation, which the Stigmer harness
    * resumes ahead of this turn's message on a thread that holds none
    * (`shared/eval-case/prepare-case.ts`); absent on every other turn. The
    * server never plans such a try on an engine that cannot resume one.
@@ -526,7 +526,7 @@ export interface BackgroundStopChannel {
  *    `harness/approval-decisions.ts` (a SKIP or REJECT settles its row),
  *    `harness/capture.ts` (the change-set stamp on a flowed edit row),
  *    `shared/subagent-rows.ts` (a stopped turn's
- *    sub-agents CANCELLED); the native settle (`execute-deep-agent/hitl.ts`: the
+ *    sub-agents CANCELLED); the Stigmer settle (`execute-deep-agent/hitl.ts`: the
  *    gate's unattended skips). A harness that amends says so in its settle's
  *    header.
  *  - The runtime alone writes the phase, `startedAt`, `completedAt`,
@@ -590,7 +590,7 @@ export interface TurnSink {
    * so a build in flight is not cut and repeated. When it aborts, settle
    * `interrupted` at the first boundary where everything the engine did so
    * far is saved where its next invocation resumes from, and never cut a
-   * running tool to get there; the native engine yields at its next model
+   * running tool to get there; the Stigmer harness yields at its next model
    * call, refused inside the graph (its steps are saved synchronously,
    * `middleware/turn-boundary.ts`). Abort before `runTurn` is entered means no work.
    * If the grace runs out first, `stopSignal` aborts too, and stopping is

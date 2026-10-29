@@ -28,7 +28,7 @@
  * sub-agent written inside an agent is gone), the helper is a saved agent
  * served by reference; the golden is byte-identical through that change.
  *
- * Since #1096 the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the Stigmer harness's adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
  * thinking mode (one writer of the summary, the runtime). Nothing

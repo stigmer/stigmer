@@ -163,7 +163,7 @@ async function agentIn(org: string): Promise<{ id: string; slug: string; ref: Ag
   return { id: agent.metadata!.id, slug: agent.metadata!.slug, ref: agentRefOf(agent) };
 }
 
-// A native run needs a key for its model's provider where provider keys
+// A Stigmer run needs a key for its model's provider where provider keys
 // exist (the hosted edition), so the org saves the fixture keys there first.
 async function withProviderKeys(org: string): Promise<void> {
   await target.keyTenancy?.(org);

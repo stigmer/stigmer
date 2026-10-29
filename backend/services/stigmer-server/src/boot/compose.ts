@@ -1532,7 +1532,7 @@ export async function composeServer(
     lifecycle: authorizationLifecycle,
     logger,
   });
-  // The same for the files the native engine uploaded for a run before
+  // The same for the files the Stigmer harness uploaded for a run before
   // what a turn returns became Files (domain/file/convert-outputs.ts): each
   // becomes an output File of its run, over the bytes where they are.
   await convertStoredOutputs({

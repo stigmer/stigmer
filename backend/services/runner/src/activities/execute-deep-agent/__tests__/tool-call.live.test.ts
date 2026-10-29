@@ -1,5 +1,5 @@
 /**
- * Live: one native (deep-agent) turn on Claude Haiku that must call a
+ * Live: one Stigmer turn on Claude Haiku that must call a
  * built-in tool, through the REAL `ExecuteDeepAgent` activity and the real
  * model client against Anthropic.
  *
@@ -66,7 +66,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a b
 
     const final = record.lastFullStatus;
     const cost = final?.streamingUsage?.estimatedCostUsd ?? 0;
-    recordLiveSpend("native tool call (claude-haiku-4.5)", cost);
+    recordLiveSpend("Stigmer tool call (claude-haiku-4.5)", cost);
     const rows = record.toolCalls();
     const seen = rows.map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
 

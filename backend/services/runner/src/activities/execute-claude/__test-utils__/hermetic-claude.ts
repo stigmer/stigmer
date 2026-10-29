@@ -21,7 +21,7 @@
  * the store as a runner on another machine would from the platform's.
  *
  * The thread id is `thread-{sessionId}` on every invocation, the first
- * included: Claude's state id is derived, as native's is
+ * included: Claude's state id is derived, as the Stigmer harness's is
  * (`invoke-agent-execution.ts` runs `EnsureThread` once).
  */
 
@@ -199,7 +199,7 @@ export function claudeScenarioFile(
   let wire: ClaudeWire | undefined;
   let registry: ReturnType<typeof stubRegistryFetch> | undefined;
   const invoke = async (record: ExecutionRecord, script: WireScript, options: ClaudeTurnOptions, overrides: Partial<Config> = {}): Promise<ActivityInvocation> => {
-    // The clock moves one step per model call, as native's scripted model
+    // The clock moves one step per model call, as the Stigmer harness's scripted model
     // moves it, so the runtime's time-paced writes (persists, file-change
     // progress) happen on the same steps every run.
     wire!.script((conversation) => {

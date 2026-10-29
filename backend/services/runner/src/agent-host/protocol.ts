@@ -113,9 +113,9 @@ export interface HostConfigWire {
    * timeout (`execute-claude/loopback-mcp.ts`).
    */
   readonly openOperationMaxMs: number;
-  /** The native shell's timeout ceiling: the shell runs in the host. */
+  /** The Stigmer harness's shell's timeout ceiling: the shell runs in the host. */
   readonly shellTimeoutMaxSeconds: number;
-  /** Whether the native shell may run commands in the background: the shell runs in the host. */
+  /** Whether the Stigmer harness's shell may run commands in the background: the shell runs in the host. */
   readonly shellBackgroundEnabled: boolean;
   readonly workspaceLockTimeoutMs: number;
   /** The runner's local proxy, `http://127.0.0.1:<port>`. */

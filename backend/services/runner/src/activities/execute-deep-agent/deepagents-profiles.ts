@@ -27,7 +27,7 @@ import { registerHarnessProfile } from "deepagents";
 
 const PROVIDERS_WITH_STIGMER_PROFILE = ["anthropic", "openai"] as const;
 
-/** Built-in tools the native harness never exposes; see the header. */
+/** Built-in tools the Stigmer harness never exposes; see the header. */
 export const EXCLUDED_BUILTIN_TOOLS: readonly string[] = ["delete"];
 
 let registered = false;

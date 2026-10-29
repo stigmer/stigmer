@@ -1,9 +1,9 @@
 /**
  * The module-boundary double for `shared/model-client.ts` — how a
- * `ScriptedModel` reaches the REAL native engine build.
+ * `ScriptedModel` reaches the REAL Stigmer harness build.
  *
  * `buildChatModel` is the runner's single construction point for LangChain
- * chat models, and a native turn reaches it three ways: the primary model
+ * chat models, and a Stigmer turn reaches it three ways: the primary model
  * (`turn-setup.ts` `buildEngine`), every sub-agent's `modelFactory` (the same
  * `buildModelFor`), and the runtime's tier-2 structured-output extractor
  * (`shared/extract-structured-output.ts`). None of them takes a model as an

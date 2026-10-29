@@ -1,5 +1,5 @@
 /**
- * Pins that the native adapter's lifecycle module loads no engine: nothing
+ * Pins that the Stigmer harness's adapter's lifecycle module loads no engine: nothing
  * on `adapter.ts`'s STATIC graph — the module and every relative module it
  * loads at import time, transitively — names `deepagents`, `@langchain/*`
  * or `@temporalio/*`.
@@ -54,7 +54,7 @@ function walkStaticGraph(entry: string): { files: string[]; packages: string[] }
   return { files, packages };
 }
 
-describe("the native adapter's static graph is SDK-free", () => {
+describe("the Stigmer harness's adapter's static graph is SDK-free", () => {
   const graph = walkStaticGraph(ADAPTER);
 
   it("walked the lifecycle module and stayed out of the engine slice", () => {

@@ -5,7 +5,7 @@
  * Plan mode's policy is: reads anywhere in the workspace, writes nowhere.
  * Only the write half needs a RULE. The read boundary that issue #528 built
  * out of rules (workspace read-allow + read-deny, glob-escaped real root) is
- * now STRUCTURAL: every native-harness backend is virtual-rooted
+ * now STRUCTURAL: every Stigmer-harness backend is virtual-rooted
  * (`virtualMode: true` — see cas-capture-backend.ts, issue #754), so every
  * path a tool can express resolves inside the workspace root and traversal
  * is rejected at resolution. A rule cannot widen that, and no workspace-root

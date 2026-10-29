@@ -1,5 +1,5 @@
 /**
- * URL guard for the native `web_fetch` tool — the SSRF boundary.
+ * URL guard for the Stigmer harness's `web_fetch` tool — the SSRF boundary.
  *
  * Why this is load-bearing: `web_fetch` is deliberately auto-approved (see
  * shared/tool-kind.ts `toolApprovalCategory`), so in unattended runs it is

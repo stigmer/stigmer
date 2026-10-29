@@ -343,7 +343,7 @@ export const SCHEMA_VERSION_43 = 43;
 /** v44: a conversation's workspace entries become its resources, and a run's attachments wait to become Files. */
 export const SCHEMA_VERSION_44 = 44;
 
-/** v45: the files the native engine uploaded for a run wait to become Files of the run. */
+/** v45: the files the Stigmer harness uploaded for a run wait to become Files of the run. */
 export const SCHEMA_VERSION_45 = 45;
 
 /** v46: a session's queue: the side row of each message waiting for a turn. */
@@ -2769,7 +2769,7 @@ function migrateToV44(db: DatabaseSync): void {
 }
 
 /**
- * v45: the files the native engine uploaded for a run are lifted off its
+ * v45: the files the Stigmer harness uploaded for a run are lifted off its
  * status to become Files of the run; the Postgres driver's v41 in this
  * engine's terms (../run-artifacts-become-files.ts says what each row
  * becomes). `output_conversions` holds one row per lifted file, read oldest

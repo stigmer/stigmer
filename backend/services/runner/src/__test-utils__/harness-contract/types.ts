@@ -13,7 +13,7 @@
  * The scenario vocabulary is deliberately small and engine-neutral: it says
  * what the kit needs to PROVOKE, never how an engine behaves. The scripted
  * fake consumes it directly; a real harness's subject translates it onto that
- * harness's own double (the native subject onto a scripted model,
+ * harness's own double (the Stigmer subject onto a scripted model,
  * `execute-deep-agent/__test-utils__/contract-subject.ts`). One vocabulary, not one per
  * engine, so the kit cannot drift from what the fake can do.
  *

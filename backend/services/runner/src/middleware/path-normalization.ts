@@ -1,8 +1,8 @@
 /**
- * Canonical virtual-path normalization for the native harness's built-in
+ * Canonical virtual-path normalization for the Stigmer harness's built-in
  * filesystem tools (issues #429, #528, #754).
  *
- * The native harness speaks ONE path dialect end to end: the VIRTUAL ROOT,
+ * The Stigmer harness speaks ONE path dialect end to end: the VIRTUAL ROOT,
  * where "/" denotes the workspace root (backends are constructed with
  * `virtualMode: true` — see execute-deep-agent/cas-capture-backend.ts). This
  * middleware is the dialect-repair seam at the model boundary. It rewrites,
@@ -33,7 +33,7 @@
  * regardless. The middleware converts false errors into correct behavior —
  * never a refusal into an allowance.
  *
- * Installed on EVERY native graph (parent and sub-agent, act and plan mode)
+ * Installed on EVERY Stigmer-harness graph (parent and sub-agent, act and plan mode)
  * so all downstream consumers — the approval gate's capturability checks,
  * the CAS observer, otel spans — observe one canonical dialect. The pre-#754
  * version was installed only beside permission rules and also injected the

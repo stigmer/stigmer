@@ -31,7 +31,7 @@
  * Then it runs `npm run test:live` in the server package with those
  * addresses (the driver's live class), and, when that passes, the turn proof
  * (`npm run test:agent-sandbox` in test/conformance): the open-source server
- * on the agent-sandbox driver, a native turn held open in a pod, the pod
+ * on the agent-sandbox driver, a Stigmer turn held open in a pod, the pod
  * deleted, the turn completed on the next one. The proof boots the built
  * server and a mock LLM of its own; it is handed the address a pod names the
  * host by (STIGMER_AGENT_SANDBOX_LIVE_POD_HOST) and the one to listen on so

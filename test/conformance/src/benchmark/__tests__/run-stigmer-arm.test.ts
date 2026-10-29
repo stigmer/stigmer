@@ -1,19 +1,19 @@
-// Unit arms for the run's native arm, with no stack: the registry is a stubbed
+// Unit arms for the run's Stigmer arm, with no stack: the registry is a stubbed
 // fetch and the API clients a fake whose organization create refuses.
-// Domain: conformance benchmark (one native model per run).
+// Domain: conformance benchmark (one Stigmer-harness model per run).
 //
-// Pinned: an own-endpoint native model (`openai:<name>`) passes the registry
+// Pinned: an own-endpoint Stigmer-harness model (`openai:<name>`) passes the registry
 // pre-check without a row, as on the server, while a catalog id the registry
-// does not carry is still refused; the report records the native arm's
+// does not carry is still refused; the report records the Stigmer arm's
 // model, the endpoint the run read, the API its name selects, and a cost
 // basis of "catalog" only when the registry has a priced row for it, and the
 // runner's marker counts from every runner log in the run's directory. The
 // summary names the arm, the measured code beside the instrument and the
-// marker counts, and marks a default-rate native cost with a line saying it
+// marker counts, and marks a default-rate Stigmer cost with a line saying it
 // is not a price, leaving Claude's and an unobserved cost unmarked,
 // and lists every side a cell ran on. A Claude target passes the registry
 // pre-check only on a Claude row, and its eval target is `claude/<model>`;
-// the report records every arm's model, native's from the plan. A stack
+// the report records every arm's model, the Stigmer harness's from the plan. A stack
 // root is the instrument's own unless `--stack` names a stigmer checkout, and
 // a path that is none is refused by name.
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -32,7 +32,7 @@ const OPTIONS: RunOptions = {
   qualityReps: 1,
   git: { head_sha: "abc1234", main_sha: "abc1234", code_sha: "def5678" },
   titlingSuppressed: true,
-  nativeEndpoint: "generativelanguage.googleapis.com",
+  stigmerEndpoint: "generativelanguage.googleapis.com",
   shellBackground: "on",
 };
 
@@ -41,7 +41,7 @@ function refusingStack(logs: Record<string, string> = {}): BenchmarkStack {
   const clients = {
     organizationCommand: { create: () => Promise.reject(new Error("organizations are closed")) },
   } as unknown as ConformanceClients;
-  const runDir = mkdtempSync(join(tmpdir(), "run-native-arm-"));
+  const runDir = mkdtempSync(join(tmpdir(), "run-stigmer-arm-"));
   for (const [name, text] of Object.entries(logs)) writeFileSync(join(runDir, name), text);
   return { clients, serverBaseUrl: "http://stack.invalid", runDir } as unknown as BenchmarkStack;
 }
@@ -52,12 +52,12 @@ function stubRegistry(models: Record<string, unknown>[]): void {
   vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify({ models }))));
 }
 
-function qualityPlan(nativeModel: string): CellPlan {
+function qualityPlan(stigmerModel: string): CellPlan {
   return {
-    nativeModel,
+    stigmerModel,
     cells: [],
     judge: false,
-    quality: [{ id: "quality/stigmer", harness: "stigmer", modelRequested: nativeModel }],
+    quality: [{ id: "quality/stigmer", harness: "stigmer", modelRequested: stigmerModel }],
     refused: [],
   };
 }
@@ -66,7 +66,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("runBenchmark's native arm", () => {
+describe("runBenchmark's Stigmer arm", () => {
   it("admits an own-endpoint model without a registry row, and records its endpoint, API and default-rate basis", async () => {
     stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer", pricing: { inputPricePerMillion: 3 } }]);
     const report = await runBenchmark(refusingStack(), qualityPlan("openai:gemini-3-pro"), OPTIONS, io);
@@ -84,8 +84,8 @@ describe("runBenchmark's native arm", () => {
   it("checks a Claude target against the registry's Claude row, and names it claude/<model>", async () => {
     const plan: CellPlan = { ...qualityPlan(PARITY_MODEL.stigmer), quality: [{ id: "quality/claude", harness: "claude", modelRequested: PARITY_MODEL.claude }] };
     stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer" }]);
-    const nativeRowOnly = await runBenchmark(refusingStack(), plan, OPTIONS, io);
-    expect(nativeRowOnly.refused, "a native row is not the Claude engine's").toEqual([{ cell: "quality/claude", reason: "model not in registry for harness" }]);
+    const stigmerRowOnly = await runBenchmark(refusingStack(), plan, OPTIONS, io);
+    expect(stigmerRowOnly.refused, "a Stigmer row is not the Claude engine's").toEqual([{ cell: "quality/claude", reason: "model not in registry for harness" }]);
     stubRegistry([
       { id: PARITY_MODEL.stigmer, harness: "stigmer" },
       { id: PARITY_MODEL.claude, harness: "claude" },
@@ -95,7 +95,7 @@ describe("runBenchmark's native arm", () => {
     expect(report.quality?.targets).toEqual([`claude/${PARITY_MODEL.claude}`]);
   });
 
-  it("still refuses a catalog id the registry does not carry for native", async () => {
+  it("still refuses a catalog id the registry does not carry for Stigmer", async () => {
     stubRegistry([{ id: PARITY_MODEL.stigmer, harness: "stigmer" }]);
     const report = await runBenchmark(refusingStack(), qualityPlan("gpt-4o"), OPTIONS, io);
     expect(report.refused).toEqual([{ cell: "quality/stigmer", reason: "model not in registry for harness" }]);
@@ -151,7 +151,7 @@ describe("resolveStackRoot", () => {
   });
 });
 
-describe("renderSummary's native arm", () => {
+describe("renderSummary's Stigmer arm", () => {
   function report(basis: "catalog" | "default-rate"): BenchmarkReport {
     return {
       schema_version: 12,
@@ -203,9 +203,9 @@ describe("renderSummary's native arm", () => {
     };
   }
 
-  it("names the arm, the code and the runner log, and marks a default-rate native cost and only that, with the line that says why", () => {
+  it("names the arm, the code and the runner log, and marks a default-rate Stigmer cost and only that, with the line that says why", () => {
     const lines = renderSummary(report("default-rate")).split("\n");
-    expect(lines[0]).toBe("Native arm: openai:gpt-5.5 at api.openai.com, chat-completions API, cost basis default-rate");
+    expect(lines[0]).toBe("Stigmer arm: openai:gpt-5.5 at api.openai.com, chat-completions API, cost basis default-rate");
     expect(lines[1]).toBe("Code: abc (the instrument's own)");
     expect(lines[2]).toMatch(/^Runner log: edits repaired 0; .*; hook failures 2; from runner\.log$/);
     expect(lines.find((line) => line.startsWith("| report-parity-simple | stigmer"))).toContain("| 1234* |");

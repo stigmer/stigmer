@@ -7,7 +7,7 @@
  * they read there, and the persist-time size backstop would replace an
  * oversized preview with an unparseable marker. These pin those invariants
  * so a large write can never silently lose its path.
- * (The native harness's whole-string-truncating `sanitizeArgsPreview` and its
+ * (The Stigmer harness's whole-string-truncating `sanitizeArgsPreview` and its
  * two arms went with it: a preview that could truncate to invalid JSON has no
  * caller left.)
  */
@@ -78,7 +78,7 @@ describe("secret keys never overlap the fields a row's args are acted on by", ()
 describe("buildElidedArgsPreview", () => {
   const SALIENT = SALIENT_ARG_FIELDS;
 
-  it("is exactly JSON.stringify(args) for short, secret-free args (what every native row now carries)", () => {
+  it("is exactly JSON.stringify(args) for short, secret-free args (what every Stigmer row now carries)", () => {
     expect(buildElidedArgsPreview({ path: "/x", n: 2 }, SALIENT)).toBe(JSON.stringify({ path: "/x", n: 2 }));
   });
 

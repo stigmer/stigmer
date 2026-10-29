@@ -48,7 +48,7 @@ are graded against them:
 `policies/returns.md`, `data/signups.csv` and `CHANGELOG.md` are the sources
 the support, data and changelog tasks answer from.
 
-Two files are there for what the native runner does with a repository, and
+Two files are there for what the Stigmer harness does with a repository, and
 are planted the same way:
 
 - `AGENTS.md` holds the working rules the repository gives its agents. Its one
@@ -79,7 +79,7 @@ under their own names. Five serve a task: `repo-conventions`, `code-review`,
 `customer-support`, `data-analysis`, `changelog`. Three are distractors:
 `brand-voice`, `incident-postmortem`, `sql-migrations`.
 
-Eight is deliberate. It is the count at which the native harness once began
+Eight is deliberate. It is the count at which the Stigmer harness once began
 choosing skills by relevance to the message, describing only the ones a
 message's words reached. It now describes every mounted skill on every turn,
 and the count stays so that the benchmark's baselines stay comparable.
@@ -100,7 +100,7 @@ a file, `tool_used`, `mock_calls`) and an `llm` rubric only for judgement.
 They are the quality tasks the benchmark judged before schema v6, moved
 here: `memory-recall` left (a try loads no memory), and `refine-over-turns`
 is a resumed conversation (`history.jsonl`, one recorded turn; its scaffold
-puts the changelog in that turn's state), so it runs on native only.
+puts the changelog in that turn's state), so it runs on Stigmer only.
 `follows-repo-instructions` and `diagnose-sync-log` were added with the two
 files above, each a case of its own: a case's score is what the report
 keeps, so a check added to an existing case could not be read apart from

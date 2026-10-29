@@ -76,7 +76,7 @@ export function subagentPromptExtras(opts: { readonly writesAllowed: boolean; re
 /**
  * The model a subagent runs on: `model` when it was chosen for this
  * conversation's engine (`chosenFor`, an agent's `harness`; unset is the
- * native engine, as everywhere) and that engine's registry section lists
+ * Stigmer harness, as everywhere) and that engine's registry section lists
  * it by id; otherwise undefined, the turn's model. A plugin subagent's
  * file names no engine, so its model counts on whichever engine lists it.
  */

@@ -1,5 +1,5 @@
 /**
- * The native harness's prompt: the system prompt `createDeepAgent` receives
+ * The Stigmer harness's prompt: the system prompt `createDeepAgent` receives
  * as `systemPrompt`, and the turn's user message.
  *
  * The system prompt is rebuilt on EVERY invocation (never checkpointed with
@@ -64,7 +64,7 @@ import {
   type StandingSectionKind,
   type VisionPromptInfo,
 } from "../../shared/prompt-sections.js";
-import { OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
+import { OUTPUTS_ROUTE_PREFIX as STIGMER_OUTPUTS_FOLDER } from "./platform-route.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import { buildImplementPlanDirective } from "../../shared/implement-plan-prompt.js";
@@ -122,7 +122,7 @@ explain the issue and propose options before proceeding.`;
 function workingRules(interactionMode: InteractionMode | undefined): string {
   const plan = interactionMode === InteractionMode.PLAN;
   const commands = plan ? "" : ` Commands run in the workspace, so \`${ENGINE_TOOL.execute}\` needs no \`cd\`.`;
-  const outputs = plan ? "" : `\n- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}`;
+  const outputs = plan ? "" : `\n- ${outputsFolderInstruction(STIGMER_OUTPUTS_FOLDER)}`;
   return `
 
 ## Working with tools
@@ -186,7 +186,7 @@ export interface PromptBuilderInput {
   /**
    * Rollover context bridge: a digest of the previous
    * session's conversation, read from `SessionSpec.metadata`. Injected on
-   * EVERY turn by design: the native system prompt is rebuilt per
+   * EVERY turn by design: the Stigmer harness's system prompt is rebuilt per
    * invocation (never checkpointed with the message history), so a
    * first-turn-only injection would vanish from turn 2 onward. The bridge
    * is standing session context, like skills.
@@ -196,7 +196,7 @@ export interface PromptBuilderInput {
    * Channel sender identity (attribution, not authorization): the
    * provider-verified identifier of the person on the channel, read from
    * `SessionSpec.metadata`. Injected on EVERY turn like the bridge — the
-   * native system prompt is rebuilt per invocation, and the sender is
+   * Stigmer system prompt is rebuilt per invocation, and the sender is
    * constant for the session's lifetime (channel sessions are keyed
    * per-sender).
    */
@@ -205,7 +205,7 @@ export interface PromptBuilderInput {
    * Embedder-supplied session context (personalization, not
    * authorization): standing free-text context about the user/session,
    * read from `SessionSpec.metadata`. Injected on EVERY turn like the
-   * bridge — the native system prompt is rebuilt per invocation, and the
+   * bridge — the Stigmer harness's system prompt is rebuilt per invocation, and the
    * context is standing session state, like skills.
    */
   sessionContext?: string;
@@ -213,7 +213,7 @@ export interface PromptBuilderInput {
    * Platform-declared standing preferences (stigmer/stigmer#293): the org's
    * and user's standing context, server-snapshotted onto the execution
    * status's `declared_preferences` at create. Injected on EVERY turn like
-   * the bridge — the native system prompt is rebuilt per invocation, so an
+   * the bridge — the Stigmer harness's system prompt is rebuilt per invocation, so an
    * edited preference reaches the very next turn.
    */
   declaredPreferences?: DeclaredPreferencesContent;
@@ -221,7 +221,7 @@ export interface PromptBuilderInput {
    * The subject's confirmed memories (stigmer/stigmer#293):
    * consent-gated facts server-snapshotted onto the execution status's
    * `recalled_memories` at create. Injected on EVERY turn like the
-   * preferences — the native system prompt is rebuilt per invocation, so a
+   * preferences — the Stigmer harness's system prompt is rebuilt per invocation, so a
    * deleted memory is gone from the very next turn.
    */
   recalledMemories?: RecalledMemoriesContent;
@@ -298,7 +298,7 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   // reads. (PLAN and build_from_plan are mutually exclusive in practice —
   // the build turn is always an Agent-mode execution.)
   if (input.interactionMode === InteractionMode.PLAN) {
-    // The read-boundary sentence is native-harness-only, appended OUTSIDE the
+    // The read-boundary sentence is Stigmer-harness-only, appended OUTSIDE the
     // shared directive: PLAN_MODE_DIRECTIVE also serves the Claude harness,
     // whose plan-mode boundary is its own. Here it is enforced fact (shared/plan-mode-permissions.ts,
     // issue #528), stated so the model doesn't burn rounds probing paths the

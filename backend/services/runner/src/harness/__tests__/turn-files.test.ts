@@ -255,7 +255,7 @@ describe("mountTurnFiles", () => {
     expect(getModelVisionCapability).not.toHaveBeenCalledWith("requested-model");
   });
 
-  it("asks about the turn's own engine's default: Claude's on Claude, native's on native", async () => {
+  it("asks about the turn's own engine's default: Claude's on Claude, the Stigmer harness's on Stigmer", async () => {
     const client = mockStigmerClient({ mountRunFiles: vi.fn().mockResolvedValue([file("file_img", "shot.png", PNG, "image/png")]) });
 
     await run(client, sessionHolding(["file_img"]), execution({ messageFiles: [["image", "file_img"]] }), Harness.CLAUDE);

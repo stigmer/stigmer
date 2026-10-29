@@ -13,11 +13,11 @@
  * rather than pricing-gated, and the estimate/billing paths need no
  * thinking-specific rates.
  *
- * Each harness translates the mode in its own dialect: the native harness
- * as Anthropic's
- * `thinking` request parameter in the form the model's native registry row
- * declares ({@link toAnthropicThinking}). ENABLED means "the model reasons
- * before it answers", whichever form the row takes.
+ * Each harness translates the mode in its own dialect: the Stigmer harness
+ * as Anthropic's `thinking` request parameter in the form the model's
+ * Stigmer-harness registry row declares ({@link toAnthropicThinking}).
+ * ENABLED means "the model reasons before it answers", whichever form the
+ * row takes.
  *
  * One model family breaks the "always explicit" rule on purpose: a row
  * that states `thinkingRequired` names a model that always thinks and
@@ -72,8 +72,8 @@ export function thinkingModeLabel(mode: ThinkingMode): string {
 export const BUDGET_THINKING_TOKENS = 16_000;
 
 /**
- * The native request's `thinking` parameter for an execution's effective
- * mode on a model's native row, or `undefined` to send none.
+ * The Stigmer harness's request `thinking` parameter for an execution's
+ * effective mode on a model's Stigmer row, or `undefined` to send none.
  *
  * - A row that requires thinking gets its thinking form whatever the mode;
  *   the model thinks either way, and `display: "summarized"` is what makes

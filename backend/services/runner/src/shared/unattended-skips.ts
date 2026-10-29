@@ -1,7 +1,7 @@
 /**
  * The settlement of a gated call an unattended turn skipped: the one row
  * amendment every harness whose gate skips in-process makes after its
- * stream (the native settle, `execute-deep-agent/turn-settle.ts`; the
+ * stream (the Stigmer settle, `execute-deep-agent/turn-settle.ts`; the
  * Claude settle, `execute-claude/settle.ts`).
  */
 
@@ -37,7 +37,7 @@ import { ApprovalPolicySource, ToolCallStatus } from "../gen/turn/ai/stigmer/run
  * identically. Covers sub-agent transcripts because sub-agent gates inherit
  * the parent's registry instance.
  *
- * The registry is each harness's own evidence (the native gate's, the
+ * The registry is each harness's own evidence (the Stigmer harness's gate's, the
  * Claude gate's), so each harness's settle calls this after its stream; the
  * fold itself is one rule for both.
  */

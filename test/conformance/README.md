@@ -89,7 +89,7 @@ Covered against the `local` target:
   client-sent status never survives); the reference rule on create and
   update (another organization's agent or skill only at platform
   visibility, an update judged on what it introduces); the configuration
-  fields (an omitted `harness` is stored as `UNSPECIFIED` — the "defaults to NATIVE"
+  fields (an omitted `harness` is stored as `UNSPECIFIED` — the "defaults to STIGMER"
   semantic is applied at execution dispatch, not at create — while an explicit
   `harness`/`execution_target` round-trips); the field-level **`updateSubject`**
   contract (only `spec.subject` changes, every other field is preserved); the
@@ -101,7 +101,7 @@ Covered against the `local` target:
   `harness`/`execution_target` immutability that holds once the session has
   run, plus the runtime merge of session-level `plugins`/`skill_refs` into the
   agent graph — are out of scope here and belong to the execution-lifecycle
-  slice (`session-immutability`, which drives a real turn on native and on
+  slice (`session-immutability`, which drives a real turn on Stigmer and on
   Claude first).
 
 Note: `mcp.conformance.test.ts` exercises the `@stigmer/mcp-server`
@@ -177,7 +177,7 @@ their failure message, so a reproduced failure says what the runner published
 ### Benchmarking the harnesses (an experiment, not a test)
 
 `make benchmark-harnesses` (or `npm run benchmark:harnesses -w @stigmer/conformance -- <flags>`)
-drives the native and Claude harnesses against **real providers** and writes
+drives the Stigmer and Claude harnesses against **real providers** and writes
 the report the harness work is judged on. It boots the same
 MCP fixture + Temporal + server + runner stack the execution suites use, but
 with the runner in **direct mode** (no mock proxy) reading
@@ -211,30 +211,30 @@ The Claude arm (`--only claude`) runs Anthropic's engine, the runner's own
 install of it, on the runner's `ANTHROPIC_API_KEY` in this direct mode, so a
 Claude cell needs the Anthropic key and nothing else. Its parity model is
 Claude Sonnet 4.6 under the Claude engine's own catalog row, the served model
-the native arm's parity cells pin, so a parity cell measures the engine and
+the Stigmer arm's parity cells pin, so a parity cell measures the engine and
 not the model; its `default` cells run the Claude engine's catalog default.
 
-The native arm runs on Claude Sonnet 4.6 unless `--stigmer-model <id>` names
+The Stigmer arm runs on Claude Sonnet 4.6 unless `--stigmer-model <id>` names
 another model: a catalog id, or the own-endpoint form `openai:<name>` /
 `anthropic:<name>` the platform serves without a catalog row. Gemini runs
 this way through Google's OpenAI-compatible address:
 `OPENAI_API_KEY=<a Gemini key>
 OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 npm run benchmark:harnesses -- --only stigmer --stigmer-model openai:<gemini id>`.
-The model replaces the parity pin in every native parity, turn-2 and working
-cell and in the native quality target; the native `default` cells are refused,
-and the Claude arm, the judge and the prompts stay as they are. A native cell
-needs the key of its model's provider. One run measures one native model,
+The model replaces the parity pin in every Stigmer parity, turn-2 and working
+cell and in the Stigmer harness's quality target; the Stigmer `default` cells are refused,
+and the Claude arm, the judge and the prompts stay as they are. A Stigmer cell
+needs the key of its model's provider. One run measures one Stigmer-harness model,
 because the runner holds one OpenAI-slot key and address for the whole run.
 The report records every arm's model in `models.parity`, by harness, and the
-native arm's in full: the model, the host its
+Stigmer arm's in full: the model, the host its
 calls went to (`stigmer_endpoint`, never a key or a path), the API they were
 made on (`stigmer_api`) and whether the runner priced them from a catalog row
 or at its default rate (`stigmer_cost_basis`). A default-rate cost is marked in
 the summary and is not a price; a readout prices such an arm from the
 samples' tokens at the provider's published rate.
 
-`--shell-background off` runs the native agent with background shell
+`--shell-background off` runs the Stigmer harness's agent with background shell
 commands turned off, through the runner's own setting
 (`STIGMER_SHELL_BACKGROUND_ENABLED=false`, the runner README): the engine as
 an operator who turned them off runs it, on the same commit, so an on and an
@@ -242,7 +242,7 @@ off report differ in that alone. The report records the arm as
 `methodology.shell_background`.
 
 The report is keyed by engine (schema v11): each comparison's `sides` and
-`cost_ratio` (a side's warm median cost over native's), and `models.parity`,
+`cost_ratio` (a side's warm median cost over the Stigmer harness's), and `models.parity`,
 are records over the harnesses, so an engine joins or leaves the benchmark
 without a schema change.
 
@@ -263,8 +263,8 @@ It runs three timing scenarios, each three turns in one session with the
 second sampled:
 - `working-read-edit`: read, edit, follow up;
 - `working-cross-turn`: three read-only questions, each reaching a different
-  skill, so its later turns' cache writes show whether the native system
-  prompt held from one message to the next;
+  skill, so its later turns' cache writes show whether the Stigmer
+  harness's system prompt held from one message to the next;
 - `working-long-log`: why last night's sync failed, from a log longer than
   the runner's bound on a tool result whose cause is in its last lines, so the
   sampled turn shows what the agent sees of a result past the bound.
@@ -300,13 +300,14 @@ Per execution it reads its sources and joins them by execution id:
 - the session's event stream (`streamEvents`, folded with `SessionLog`): when
   the user first saw a token, when the work was offered for review, when the
   turn ended; and from the folded turn, each primary-thread tool call's target
-  and outcome (a failed native edit is a returned string, so the outcome is
-  read from the result), the final to-do list by state, and the final reply;
+  and outcome (a failed edit on the Stigmer harness is a returned string, so
+  the outcome is read from the result), the final to-do list by state, and
+  the final reply;
 - the terminal status: `streaming_usage` (tokens and the runner's rate-card
   cost ESTIMATE), `status.error` on a failure, and memory on the spec as the
   platform attachment;
 - the runner's `turn_phases` and `execution_setup` timing lines, from its
-  tee'd log (rounds, tool calls, MCP connect on native, the declared counts;
+  tee'd log (rounds, tool calls, MCP connect on Stigmer, the declared counts;
   each tool call is placed on the model round that issued it from the
   timeline's spans, `src/benchmark/tool-call-facts.ts`);
 - the Temporal history, through the `temporal` CLI (the wait before the
@@ -322,7 +323,7 @@ Per execution it reads its sources and joins them by execution id:
   approves everything).
 
 Once every execution has ended, the run's runner logs (`runner.log`, and
-`runner-<n>.log` after a restart) are read for the native runner's marker
+`runner-<n>.log` after a restart) are read for the Stigmer harness's marker
 lines: edits repaired, tool results cut (and whether each was kept whole),
 model calls retried, turns that read the repository's own instruction files,
 and failed PostToolUse hooks (`src/benchmark/log-markers.ts` names each
@@ -337,7 +338,7 @@ model, one arm (the benchmark compares engines, not the plugin's worth). The
 cases are the plugin-eval format's, graded deterministically first (a regex
 over the reply or a file, `tool_used`, `mock_calls`) and by an `llm` rubric
 only for judgement; each scaffolds the shared workspace, the order lookup is
-answered by the suite's own mock, and the resumed case runs on native only.
+answered by the suite's own mock, and the resumed case runs on Stigmer only.
 The eval run's result document, whose plugin block is the format's
 `schemaVersion: 1` file, is the report's `quality` (schema v7); grades from v5 and earlier came from another
 judge and are not compared. `src/benchmark/__tests__/quality-suite.test.ts`
@@ -362,11 +363,11 @@ through the driver as well as single turns.
 
 `npm run benchmark:compare -w @stigmer/conformance -- [--reference <arm>] <report.json> ...`
 reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
-whether each arm holds the bar the reference arm sets (default: native on
-the parity model). An arm is a harness on one model at one endpoint,
+whether each arm holds the bar the reference arm sets (default: the Stigmer
+arm on the parity model). An arm is a harness on one model at one endpoint,
 on one version of the code (`stigmer/<model>@<host>#<code>`,
 `claude/<model>#<code>`, the code being the first ten characters of
-`git.code_sha`); a native report taken with background commands off is an
+`git.code_sha`); a Stigmer-arm report taken with background commands off is an
 arm of its own, `+background-off` after the code, so name the reference in
 full when reading it beside the arm with them on. `--reference` takes a label, or a prefix of one ending
 where its `@` or `#` begins or inside its code, when one arm matches. Reports are compared only when one
@@ -874,7 +875,7 @@ don't boot multiple Temporal+runner stacks at once.
 
 **Claude arms.** Where the engine meets the server, the workflow or a real
 runner process, a suite proves its case on Claude too, in a
-`describe("… on Claude")` block of its own beside its native cases:
+`describe("… on Claude")` block of its own beside its Stigmer cases:
 `run` (one turn end to end on the workflow's Claude arm), `run-long-turn`
 (kill, drain, server rollout, a message mid-turn), `run-approval` (allow,
 deny, a deny's reason, a batch's gated call), `run-subagent` (a saved helper
@@ -883,11 +884,11 @@ through the engine's `Agent` tool, a helper's gated call refused),
 `run-structured-output` (the engine's own answer tool) and `run-file-review`
 (keep and undo on the engine's `Write` and `Edit`). A case is written once,
 in engine-neutral steps (`src/support/engine-arms.ts`): a shell call, a file
-write, a delegation, the closing text. Native's arm queues them on the mock,
-one model call each, under native's tool names. Claude's arm answers each
+write, a delegation, the closing text. The Stigmer harness's arm queues them on the mock,
+one model call each, under the Stigmer harness's tool names. Claude's arm answers each
 request from its conversation (`@stigmer/test-support/claude-engine-wire`,
 installed on the target's mock with `routeWith`), under the names
-`@stigmer/tool-vocabulary` maps native's to, because the engine re-sends its
+`@stigmer/tool-vocabulary` maps the Stigmer harness's to, because the engine re-sends its
 history when it resumes or recovers and a queue would answer a replay with
 the next step. The engine is the runner's own install (the runner's dev
 dependencies carry it), so no lane needs a new step. The arms run where
@@ -967,7 +968,7 @@ answers in the session's log, a grant's lease across the turn, durable
 resume, the stop at the gate) and
 `plugin-tools` (`listTools`: each tool of a plugin's server with its
 destructive mark, read as the caller, storing nothing, and asking no model). `run-tool-lists` pins an agent's `tools` and
-`disallowed_tools` on the native engine: a tool outside them is never
+`disallowed_tools` on the Stigmer harness: a tool outside them is never
 offered, a call to it anyway is a failed tool call with the out-of-scope
 message, and no approval is requested for it, under the default and under
 `auto_approve_all` alike.
@@ -975,7 +976,7 @@ message, and no approval is requested for it, under the default and under
 end.
 
 `run-request-shape` reads the other direction of the wire: not
-what the client sees on status but what the MODEL receives from the native
+what the client sees on status but what the MODEL receives from the Stigmer
 harness for a bare agent, photographed as two readable file goldens under
 `suites-execution/goldens/` (the system prompt as the provider gets it — the
 engine's blocks with the prompt-cache breakpoint — and the tool surface with

@@ -12,7 +12,7 @@
 # workspace and one in its agent's home survive a suspend and a wake, and
 # deprovision leaves nothing behind. Then the turn proof
 # (test/conformance/src/suites-agent-sandbox): the open-source server on the
-# driver runs a native turn whose step is held open in the pod, the pod is
+# driver runs a Stigmer turn whose step is held open in the pod, the pod is
 # deleted gracefully and then by force, and the turn completes on the next
 # pod each time with the model handed the task once.
 #

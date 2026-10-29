@@ -1,5 +1,5 @@
 /**
- * The native translator's integration arms: raw LangGraph v3 protocol events
+ * The Stigmer harness's translator's integration arms: raw LangGraph v3 protocol events
  * through `DeepAgentTranslator` and then `TranscriptBuilder`, end to end —
  * the exact path `turn-stream.ts`'s loop takes — asserting the transcript
  * that comes out. Every sequence here is the wire's real shape (the fixtures
@@ -11,7 +11,7 @@
  * `TranscriptEvent`s directly, live in
  * `harness/transcript/__tests__/builder.test.ts`; the translator's own
  * reading of the wire in `translator.test.ts`. This file began as the
- * builder's unit suite when the builder was the native adapter's
+ * builder's unit suite when the builder was the Stigmer harness's adapter's
  * (`v3-status-builder.test.ts`, #1096) and became what it always was in
  * truth in #1097.
  *
@@ -84,7 +84,7 @@ function feedAll(sb: TranscriptBuilder, events: V3ProtocolEvent[], gate: DeepAge
 
 beforeEach(() => resetSeq());
 
-describe("the native translator through the builder", () => {
+describe("the Stigmer harness's translator through the builder", () => {
 
   // ── Initialization ───────────────────────────────────────────────
 
@@ -290,7 +290,7 @@ describe("the native translator through the builder", () => {
     });
 
     describe("a gated MCP tool that STARTED", () => {
-      // On native a held call never starts: LangGraph's interrupt() runs
+      // On Stigmer a held call never starts: LangGraph's interrupt() runs
       // before the tool handler, so no tool_started arrives and the gate's
       // hold reaches the transcript as approval_proposed from the post-stream
       // seed. A tool_started that does arrive is the engine's word that
@@ -459,7 +459,7 @@ describe("the native translator through the builder", () => {
 
   // ── Todo extraction (write_todos → status.todos) ─────────────────
   //
-  // The native harness emits write_todos; projecting it into status.todos is
+  // The Stigmer harness emits write_todos; projecting it into status.todos is
   // what lights up the client TodoCard, as on every harness.
 
   describe("todo extraction", () => {
@@ -618,7 +618,7 @@ describe("the native translator through the builder", () => {
   describe("attribution and provenance on tool_started", () => {
     // The translator answers WHICH server a tool belongs to and WHAT reason
     // the default gives; it never answers whether the gate holds the call —
-    // on native a held call never starts (the interrupt precedes the
+    // on Stigmer a held call never starts (the interrupt precedes the
     // handler), so every started call is RUNNING and nothing here waits.
     // The decision itself, `resolveToolApproval`, has its own arms in
     // `shared/__tests__/approval-policy.test.ts`; the gate's use of it in

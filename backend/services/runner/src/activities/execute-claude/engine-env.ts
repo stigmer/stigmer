@@ -26,8 +26,8 @@
  *    engine left running would outlive the turn, and every sub-agent runs
  *    to its end before the main agent goes on), no forked sub-agents (a
  *    fork copies the conversation with the main agent's tools), no
- *    sub-agent below the first, no more sub-agents at once than the native
- *    engine runs (`shared/subagent-gate.ts`; a call past the cap is refused
+ *    sub-agent below the first, no more sub-agents at once than the Stigmer
+ *    harness runs (`shared/subagent-gate.ts`; a call past the cap is refused
  *    at once on both), no bundled skills (only the turn's own load,
  *    `skill-plugins.ts`), no auto memory, no
  *    `CLAUDE.md` of its own reading (the repository's instructions reach it

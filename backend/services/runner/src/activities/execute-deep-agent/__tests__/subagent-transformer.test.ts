@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { StructuredTool } from "@langchain/core/tools";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import {
   BUILTIN_SUBAGENT_TYPES,
@@ -101,7 +101,7 @@ function savedGraph(subagent: TurnSubagent, mcpTools: StructuredTool[] = [], app
   return { subagent, mcpTools, approvalGate, shellEnv: undefined };
 }
 
-/** A registry with two native models and one Claude model. */
+/** A registry with two Stigmer-harness models and one Claude model. */
 function mockRegistry(): void {
   vi.spyOn(global, "fetch").mockResolvedValue({
     ok: true,
@@ -202,7 +202,7 @@ describe("createBuiltinSubagents", () => {
       expect(sa.scope.allowsClaudeTool("Read"), sa.name).toBe(true);
       expect(sa.scope.allowsClaudeTool("Write"), sa.name).toBe(false);
       expect(sa.scope.allowsClaudeTool("Agent"), sa.name).toBe(false);
-      expect(sa.scope.allowsEngineTool("task", NATIVE_TOOL_COVERS), sa.name).toBe(false);
+      expect(sa.scope.allowsEngineTool("task", STIGMER_TOOL_COVERS), sa.name).toBe(false);
     }
   });
 
@@ -281,7 +281,7 @@ describe("transformPluginSubagent", () => {
     expect(result.scope.allowsClaudeTool("Read")).toBe(true);
     expect(result.scope.allowsClaudeTool("Bash"), "narrowed by its tools").toBe(false);
     expect(result.scope.allowsClaudeTool("Write"), "the parent excludes it").toBe(false);
-    expect(result.scope.allowsEngineTool("task", NATIVE_TOOL_COVERS), "one level").toBe(false);
+    expect(result.scope.allowsEngineTool("task", STIGMER_TOOL_COVERS), "one level").toBe(false);
   });
 });
 
@@ -619,7 +619,7 @@ describe("transformAndCompileSubagents", () => {
       expect([...scopes.keys()].sort()).toEqual(["explore", "general-purpose", "kit:reviewer", "release-notes", "shell"]);
       for (const [name, scope] of scopes) {
         expect(scope!.allowsClaudeTool("Agent"), name).toBe(false);
-        expect(scope!.allowsEngineTool("task", NATIVE_TOOL_COVERS), name).toBe(false);
+        expect(scope!.allowsEngineTool("task", STIGMER_TOOL_COVERS), name).toBe(false);
       }
     });
 

@@ -46,7 +46,7 @@ import {
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
-// Two native registry ids whose provider ids differ from them and from each
+// Two Stigmer registry ids whose provider ids differ from them and from each
 // other, so the model a turn ran is read off the wire.
 const AGENT_MODEL = "claude-haiku-4.5";
 const MESSAGE_MODEL = "claude-sonnet-4.6";

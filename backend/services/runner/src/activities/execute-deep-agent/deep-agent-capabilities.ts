@@ -1,5 +1,5 @@
 /**
- * The native deep-agent harness's capability flags — the facts about the
+ * the Stigmer harness's capability flags — the facts about the
  * LangGraph engine the turn runtime branches on, declared once, and the
  * facts every harness shares, as this one meets them
  * (`harness/capabilities.ts` has the matrix and the meaning of each).

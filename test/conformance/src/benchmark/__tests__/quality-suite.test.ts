@@ -5,7 +5,7 @@
 //
 // Pinned: the plugin installs and its suite loads eleven cases with no
 // finding, each scaffolded from the one shared workspace, only the resumed
-// case native-only; the order mock answers what the order tool's table
+// case Stigmer-only; the order mock answers what the order tool's table
 // holds; the facts the rubrics state are the workspace's (the config's
 // retry limit and typo, the store's two defects, the signup totals, the
 // return policy); the resumed case's scaffold leaves the workspace as its

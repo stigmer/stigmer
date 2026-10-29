@@ -45,7 +45,7 @@ const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; color?: strin
 // Harness-agnostic labels per kind. Classification is shared with the runner,
 // React, and the CLI's headless renderers via @stigmer/client's resolveToolKind,
 // so the Claude harness's PascalCase tools render with the same labels as
-// native tools here.
+// the Stigmer harness's tools here.
 const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   file_read: "Read",
   file_write: "Write",

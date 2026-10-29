@@ -4,7 +4,7 @@
  * The engine keeps its own `Bash` tool, the one its model was trained on,
  * name and schema, and the SDK's `toolAliases` sends every `Bash` call to
  * this server's `bash` tool instead (`engine-options.ts`). So the command is
- * started by the host, as the native engine's is, never by the engine: it is
+ * started by the host, as the Stigmer harness's is, never by the engine: it is
  * no child of the process that holds the turn's key, and it runs with the
  * environment every engine's shell gets (`shared/shell-env.ts`
  * `buildShellEnv`), the agent's own run values and nothing of the runner's.
@@ -16,7 +16,7 @@
  *  - the workspace's primary directory as its working directory;
  *  - its caller's environment: the main agent's run values, or a saved
  *    sub-agent's own, never the main agent's (the gate's verdict names the
- *    caller, `gate.ts`), as the native engine gives each its own shell;
+ *    caller, `gate.ts`), as the Stigmer harness gives each its own shell;
  *  - the engine's `timeout` (milliseconds, its default two minutes) clamped
  *    to the runner's ceiling (`Config.shellTimeoutMaxSeconds`), the result
  *    saying so when it was;

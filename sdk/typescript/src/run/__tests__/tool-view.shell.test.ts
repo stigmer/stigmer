@@ -1,6 +1,6 @@
 // Covers shell normalization's `command` capture and result-shape handling: a
 // terminal view models the whole session (prompt + output), so the command is
-// echoed from args onto the view across every result shape — a native
+// echoed from args onto the view across every result shape — a Stigmer
 // subagent's structured {stdout,stderr,exitCode} JSON, the exit-marker form, the
 // runner shell's exit line, and plain text. The cross-language fixture
 // (result-views.json) asserts the happy path; these cover the branch matrix and

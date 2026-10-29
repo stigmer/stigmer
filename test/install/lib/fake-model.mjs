@@ -59,7 +59,7 @@ export function fakeModelEnv(fake, host = "127.0.0.1") {
   return { ANTHROPIC_API_KEY: FAKE_MODEL_API_KEY, ANTHROPIC_BASE_URL: `http://${host}:${fake.port}` };
 }
 
-/** The model a `--live-model` run pins: the cheapest native model in the registry. */
+/** The model a `--live-model` run pins: the cheapest Stigmer-harness model in the registry. */
 export const LIVE_MODEL = "claude-haiku-4.5";
 
 /**

@@ -3,10 +3,10 @@
 This folder is the turn runtime, the code that runs one agent turn for every
 harness, and the contract a harness implements to run behind it
 (`harness/types.ts`). A harness is one engine the runner can drive: today the
-native LangGraph deep-agent and the Claude Agent SDK; the contract was designed
-against the Codex SDK as well (`harness/capabilities.ts`). An adapter is the
-`HarnessAdapter` object a harness's factory returns; a harness is that adapter
-plus its registry row.
+Stigmer harness (LangGraph, on deepagents) and the Claude Agent SDK; the
+contract was designed against the Codex SDK as well (`harness/capabilities.ts`).
+An adapter is the `HarnessAdapter` object a harness's factory returns; a harness
+is that adapter plus its registry row.
 
 This file is an index for someone adding a harness. To add one: read the modules
 below in order, write the adapter files, touch the sites, prove it with the kit.
@@ -185,8 +185,8 @@ What the contract requires:
   `activities/execute-claude/translator.ts`.
 
 Everything else in an adapter's folder is the engine's business and is not a
-template: 24 of the native adapter's 27 modules and 23 of the Claude adapter's
-26, counted as the footprint below counts files. That business is:
+template: 24 of the Stigmer harness's adapter's 27 modules and 23 of the Claude
+adapter's 26, counted as the footprint below counts files. That business is:
 
 - how the engine is created or resumed,
 - how the prompt is placed,
@@ -247,7 +247,7 @@ and nothing per harness; there is nothing to touch there.
   is ever looked up.
 - `harness/capabilities.ts` — the harness matrix in the header gains a column.
 - `config.ts` — the harness's own settings, if it has any (`checkpointerType` is
-  the native adapter's today).
+  the Stigmer harness's adapter's today).
 - `shared/filereview/events.ts` — a comment stating the closed set of
   file-review ids.
 - `__tests__/harness-boot-order.test.ts` — the header states the row count; its
@@ -291,7 +291,7 @@ Every hit falls into one of five classes:
   offer is refused where a request names it. A harness joins the offered set
   when it is offered.
 - **Passes through** — reads, forwards or types by the value, defaults an
-  unspecified engine to native, or a fixture that carries it. Nothing to touch.
+  unspecified engine to Stigmer, or a fixture that carries it. Nothing to touch.
 - **Generated** — rebuilt from the proto or the registry by `make codegen` (the
   CLI pages by `make gen-cli-docs`). Never edited by hand.
 - **Another vocabulary** — a word that only looks like the harness: a plugin's
@@ -385,7 +385,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `backend/services/stigmer-server/src/temporal/agentexecution/activities.ts`,
   `backend/services/stigmer-server/src/extensions/metered-usage.ts`,
   `backend/services/stigmer-server/src/store/sub-agents-retired.ts` (read the
-  session's harness, or default an unspecified one to native).
+  session's harness, or default an unspecified one to Stigmer).
 - The React SDK: `sdk/react/src/index.ts`, `sdk/react/src/models/index.ts`,
   `sdk/react/src/models/ModelSelector.tsx`,
   `sdk/react/src/models/service-tier.ts`,
@@ -437,7 +437,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `test/conformance/src/benchmark/tool-call-facts.ts`,
   `test/conformance/src/long-turn/profile.ts`.
 - Inside the runner: comments across `shared/` and the composition roots that
-  name both activities or the native engine's tool names as examples;
+  name both activities or the Stigmer harness's tool names as examples;
   `__test-utils__/hermetic-activity.ts` and
   `__test-utils__/model-registry-fixture.ts`; the kit's
   `__test-utils__/harness-contract/runtime-contract.ts` and
@@ -542,10 +542,10 @@ done
 | What                                                                                                          | Lines  | Files |
 | ------------------------------------------------------------------------------------------------------------- | ------ | ----- |
 | The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator      | 609    | 1     |
-| The native adapter, `activities/execute-deep-agent/`                                                          | 6,273  | 27    |
+| The Stigmer harness's adapter, `activities/execute-deep-agent/`                                               | 6,273  | 27    |
 | The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate            | 5,357  | 26    |
 | The runtime, `harness/`, for scale: written once                                                              | 11,415 | 29    |
-| The test side the native adapter adds: its subject, its hermetic kit file, its two fences                     | 935    | 4     |
+| The test side the Stigmer harness's adapter adds: its subject, its hermetic kit file, its two fences          | 935    | 4     |
 | The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences     | 791    | 5     |
 | The engine reader that wire stack shares with the conformance suite, `test/support/src/claude-engine-wire.ts` | 190    | 1     |
 
@@ -560,7 +560,7 @@ carry the reasoning.
   registry.
 - #1070 — the turn runtime extracted from the first harness's activity, which
   became an adapter.
-- #1096 — the native deep-agent harness as an adapter over the same runtime.
+- #1096 — the Stigmer harness as an adapter over the same runtime.
 - #1097 — one transcript builder over one canonical event for every harness.
 - #1136 — the headers made readable to a stranger; every citation public.
 

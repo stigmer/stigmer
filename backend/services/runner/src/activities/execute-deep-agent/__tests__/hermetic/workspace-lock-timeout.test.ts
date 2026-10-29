@@ -21,7 +21,7 @@
  * appear, because the turn ends before the adapter runs.
  *
  * Why this is the one terminal arm WITHOUT a file golden (owner ruling,
- * 2026-09-11, #1070; carried for native): the wire copy embeds
+ * 2026-09-11, #1070; carried for Stigmer): the wire copy embeds
  * the absolute workspace path, a per-run temp directory. The hermetic rule (#1048) is to
  * control a volatile source at its origin or escalate — never redact — so
  * this scenario pins every byte the path does not touch with explicit

@@ -40,10 +40,10 @@ describe("renderSessionHeader", () => {
     expect(claude.text()).toContain("Harness:");
     expect(claude.text()).toContain("Claude Agent");
 
-    // Native (explicit or defaulted) stays implicit, like agent mode.
-    const native = capture();
-    renderSessionHeader(native.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "stigmer", workspaces: [] });
-    expect(native.text()).not.toContain("Harness:");
+    // Stigmer (explicit or defaulted) stays implicit, like agent mode.
+    const stigmer = capture();
+    renderSessionHeader(stigmer.out, { agentName: "", sessionId: "s", model: "", mode: "", harness: "stigmer", workspaces: [] });
+    expect(stigmer.text()).not.toContain("Harness:");
 
     const unset = capture();
     renderSessionHeader(unset.out, { agentName: "", sessionId: "s", model: "", mode: "", workspaces: [] });

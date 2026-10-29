@@ -1,5 +1,5 @@
 /**
- * What the person sees of the native agent's background commands: the
+ * What the person sees of the Stigmer harness's agent's background commands: the
  * registry's reports (`shared/shell/background-commands.ts`
  * `BackgroundListeners`) turned into the turn's transcript facts
  * (`harness/transcript/events.ts`), applied through `sink.transcript`, the

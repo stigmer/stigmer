@@ -98,7 +98,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
 
 /**
  * The model's description of a cloned workspace, the same on the turn that
- * clones and on every turn that reuses the clone: the native system prompt
+ * clones and on every turn that reuses the clone: the Stigmer harness's system prompt
  * carries it and must not change from one message to the next. So it names
  * the repository and the branch, never the commit (write-back commits move
  * `HEAD` on every approved turn) and never whether the clone was reused. The

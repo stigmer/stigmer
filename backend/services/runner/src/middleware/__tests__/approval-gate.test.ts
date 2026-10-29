@@ -1,5 +1,5 @@
 /**
- * Pins the native approval gate: what interrupts (mutating built-ins, MCP
+ * Pins the Stigmer harness's approval gate: what interrupts (mutating built-ins, MCP
  * tools their server marks destructive), what a lease clears, the user's
  * approve/skip/reject arms (a denied call never runs its handler), capture
  * mode's flows and secret blocks, unattended skips, the outputs folder's

@@ -1,5 +1,5 @@
 /**
- * The native deep-agent harness's setup — what the LangGraph engine needs
+ * the Stigmer harness's setup — what the LangGraph engine needs
  * before it can run a turn, as small named steps over the runtime's resolved
  * `TurnInput`, each returning a typed slice (never one long function).
  *
@@ -69,7 +69,7 @@ import { createCompactionMiddleware } from "../../middleware/compaction.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
 import { definitionOf, type McpToolListing, type OfferedTool } from "../../shared/mcp-tool-listing.js";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
   checkMainToolListResolution,
   checkToolListResolution,
@@ -480,7 +480,7 @@ export async function buildEngine(
   // this is the freshest a turn's model can be.
   //
   // What the request tells the provider about a model comes from the
-  // model's native registry row, never from a model name or a library's
+  // model's Stigmer registry row, never from a model name or a library's
   // table, and is read here, the one place the execution's choices meet the
   // row. The same factory builds every sub-agent's model, so each graph
   // follows the row of the model it runs on:
@@ -492,7 +492,7 @@ export async function buildEngine(
   //   request at that ceiling;
   // - the execution's thinking mode in the form the row declares
   //   (thinking-mode.ts toAnthropicThinking).
-  // A model with no native row (an unreachable registry) keeps the library
+  // A model with no Stigmer row (an unreachable registry) keeps the library
   // defaults and sends no thinking parameter, as before.
   //
   // Each model's context window is recorded on it for the summarizer
@@ -658,7 +658,7 @@ export async function buildEngine(
     roots: repositoryRoots,
     maxChars: maxToolResultChars,
   };
-  const parentReadsWorkspace = toolScope.allowsEngineTool(ENGINE_TOOL.readFile, NATIVE_TOOL_COVERS);
+  const parentReadsWorkspace = toolScope.allowsEngineTool(ENGINE_TOOL.readFile, STIGMER_TOOL_COVERS);
   if (parentReadsWorkspace && rootInstructions.length > 0) {
     console.log(
       `[REPO-INSTRUCTIONS] root=${rootInstructions.length} ` +
@@ -704,12 +704,12 @@ export async function buildEngine(
   });
   sink.setupTiming.mark("build_middleware");
 
-  // web_fetch is always-on for every native run (issue #214 parity with the
+  // web_fetch is always-on for every Stigmer run (issue #214 parity with the
   // Claude engine's WebFetch); its URL guard posture — strict on managed cloud runners,
   // relaxed on user-owned machines — is derived from the runner mode.
   const webFetchPosture = resolveGuardPosture(config.mode);
   // No tool stands in for reasoning: a graph reasons before it acts through
-  // its thinking mode, which every native row supports (#1976).
+  // its thinking mode, which every Stigmer row supports (#1976).
   const graphTools = [...tools.mcpTools, createWebFetchTool({ posture: webFetchPosture })];
 
   await sink.reportProgress("Configuring sub-agents…");
@@ -838,11 +838,11 @@ export async function buildEngine(
 }
 
 /**
- * The native built-ins a graph of this turn binds, by their engine names: the
+ * The Stigmer built-ins a graph of this turn binds, by their engine names: the
  * filesystem tools and `task` on every graph, `execute` on a shell-capable
  * one, the parent's to-do list, and the runner's own `web_fetch`.
  */
-function nativeBoundToolNames(options: { readonly shellCapable: boolean; readonly todos: boolean }): string[] {
+function stigmerBoundToolNames(options: { readonly shellCapable: boolean; readonly todos: boolean }): string[] {
   return [
     ENGINE_TOOL.ls,
     ENGINE_TOOL.readFile,
@@ -859,7 +859,7 @@ function nativeBoundToolNames(options: { readonly shellCapable: boolean; readonl
 
 /**
  * What one graph of this turn has, for deciding whether a list entry names
- * anything: its native built-ins and the live tools of the servers it binds
+ * anything: its Stigmer built-ins and the live tools of the servers it binds
  * (`boundServers`; every connected server when absent). The platform's own
  * servers are left out: no list can name them.
  */
@@ -876,7 +876,7 @@ export function turnToolInventory(
     servers.set(slug, new Set(serverTools.map((t) => t.name)));
   }
   return {
-    claudeTools: claudeToolsOf(boundNames, NATIVE_TOOL_COVERS),
+    claudeTools: claudeToolsOf(boundNames, STIGMER_TOOL_COVERS),
     hasMcp: (server, tool) => {
       const names = servers.get(server);
       return names !== undefined && (tool === null || names.has(tool));
@@ -912,9 +912,9 @@ export function checkTurnToolLists(
 ): void {
   const log = (line: string): void => console.warn(`[turn-setup] ${line}`);
   const { platformServerSlugs } = input.mcp;
-  const parentNames = nativeBoundToolNames({ shellCapable, todos: true });
+  const parentNames = stigmerBoundToolNames({ shellCapable, todos: true });
   checkMainToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs, input.mcp.servers), log);
-  const subagentNames = nativeBoundToolNames({ shellCapable, todos: false });
+  const subagentNames = stigmerBoundToolNames({ shellCapable, todos: false });
   const pluginAgentInventory = turnToolInventory(subagentNames, tools, platformServerSlugs, input.mcp.servers);
   const agentSpec = input.blueprint.agent?.spec;
   const agentHasLists = agentSpec !== undefined && (agentSpec.tools.length > 0 || agentSpec.disallowedTools.length > 0);

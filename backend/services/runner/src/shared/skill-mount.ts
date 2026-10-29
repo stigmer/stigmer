@@ -4,7 +4,7 @@
  * A skill "mount" is the on-disk materialization of a skill inside the
  * session's platform directory: `{platformDir}/skills/{name}/` holding
  * SKILL.md plus the artifact's supporting files. Every harness reads from
- * that same physical location — the native (deep-agent) harness through the
+ * that same physical location — the Stigmer harness through the
  * `.stigmer/` virtual namespace that LocalWorkspaceBackend routes there —
  * so they MUST share one cache shape
  * (issues #337/#672). This module owns that shape:
@@ -59,20 +59,20 @@ export const SKILLS_SUBDIR = "skills";
  */
 export const SKILL_CONTENT_PATTERN = /^(?:skills|plugins)(?:\/|$)/i;
 
-/** The native engine's virtual prefix for the platform dir. */
+/** The Stigmer harness's virtual prefix for the platform dir. */
 const PLATFORM_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
 
-/** Whether a canonical virtual path (`/.stigmer/…`, the native engine's) names a skill's files. */
+/** Whether a canonical virtual path (`/.stigmer/…`, the Stigmer harness's) names a skill's files. */
 export function isSkillContentPath(virtualPath: string): boolean {
   const normalized = posix.normalize(virtualPath);
   return normalized.toLowerCase().startsWith(PLATFORM_PREFIX) && SKILL_CONTENT_PATTERN.test(normalized.slice(PLATFORM_PREFIX.length));
 }
 
 /**
- * Whether a native `read_file` of this canonical virtual path would open a
+ * Whether a Stigmer-harness `read_file` of this canonical virtual path would open a
  * skill's files: by its text ({@link isSkillContentPath}), or, for a path
  * under `.stigmer/`, by the real path it resolves to inside the platform
- * dir. The native route follows a link that stays inside the platform dir
+ * dir. The Stigmer harness's route follows a link that stays inside the platform dir
  * (`execute-deep-agent/platform-route.ts`), so a link a plugin's hook leaves
  * under `plugin-data/` pointing into `skills/` reads the skill unless its
  * real path is judged.

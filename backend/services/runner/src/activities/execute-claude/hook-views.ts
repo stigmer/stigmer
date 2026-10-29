@@ -1,18 +1,18 @@
 /**
  * How an agent's hooks see a call on the Claude engine, in both hook
- * formats (`shared/hooks/tool-view.ts` has the shared shapes and the native
- * engine's views).
+ * formats (`shared/hooks/tool-view.ts` has the shared shapes and the Stigmer
+ * harness's views).
  *
  * To a Claude Code hook a call is itself: this engine is Claude Code's, so
  * a built-in keeps its name and its input as the model wrote it, the host's
  * shell is `Bash` (the name the model called; the aliased name,
  * `host-shell.ts`, reaches only the gate), and an MCP tool is
- * `mcp__<slug>__<tool>` with its server as the native views show it (a
+ * `mcp__<slug>__<tool>` with its server as the Stigmer views show it (a
  * plugin's as `plugin:<plugin>:<server>`, an agent's own by its name). The
  * platform's own servers reach no hook.
  *
  * To a Cursor hook, the rows follow what Cursor's own engine sends a hook,
- * as the native rows do:
+ * as the Stigmer rows do:
  *
  *   Bash          -> Shell {command, cwd}
  *   Read          -> Read

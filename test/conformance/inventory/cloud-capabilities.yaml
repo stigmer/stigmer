@@ -399,7 +399,7 @@ rows:
     lane: >-
       gate.providerKey
     behavior: >-
-      A native agent-execution create in an org holding no provider key for the run's model's provider (the agent's model, or the catalog's default model when none is named) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org, provider and model, the copy "This organization has no <Anthropic|OpenAI> key for model '<model>', so the run was not started. An admin can add one in Models & providers.", and nothing reaches a model.
+      A Stigmer-harness agent-execution create in an org holding no provider key for the run's model's provider (the agent's model, or the catalog's default model when none is named) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org, provider and model, the copy "This organization has no <Anthropic|OpenAI> key for model '<model>', so the run was not started. An admin can add one in Models & providers.", and nothing reaches a model.
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -425,7 +425,7 @@ rows:
     lane: >-
       gate.providerKey
     behavior: >-
-      The same org, once it saves its provider keys, runs a native execution to completion: the provider bills the organization directly.
+      The same org, once it saves its provider keys, runs a Stigmer-harness execution to completion: the provider bills the organization directly.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1361,7 +1361,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      A model call on the LLM lane is recorded under the engine of the session behind its execution (native or Claude), read with the run and cached with the execution, so a Claude call is priced by the Claude engine's catalog rows.
+      A model call on the LLM lane is recorded under the engine of the session behind its execution (Stigmer or Claude), read with the run and cached with the execution, so a Claude call is priced by the Claude engine's catalog rows.
     class: behavior
     disposition: unit
     observability: none

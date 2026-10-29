@@ -225,7 +225,7 @@ describe("ModelRegistryStore catalog indexes", () => {
     expect(
       s.hasPricingVariantForHarness("stigmer", "anthropic/claude-4", FAST_VARIANT_KEY),
     ).toBe(true);
-    // Priced under native only — the claude section must not validate it
+    // Priced under stigmer only — the claude section must not validate it
     // (the #357 silent-no-op class).
     expect(
       s.hasPricingVariantForHarness("claude", "anthropic/claude-4", FAST_VARIANT_KEY),

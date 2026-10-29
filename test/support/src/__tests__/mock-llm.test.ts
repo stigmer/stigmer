@@ -11,7 +11,7 @@
 // and every captured request carries the disposition the answering branch
 // decided, so scriptedRequests() is exactly the agent loop's calls; a mock
 // bound to another address answers there, and urlAt() names it as the
-// runner's side does; native compaction's summary call is recognized by the
+// runner's side does; the Stigmer harness's compaction call is recognized by the
 // runner's own prompt opening, read from the runner's source; a router
 // answers from the request's content before the queue, an error or a token
 // count as it says, and falls through to the queue when it answers nothing;
@@ -191,7 +191,7 @@ describe("MockLlmProxy request disposition", () => {
     expect(mock.titleRequests(), "and with the out-of-band count").toBe(1);
   });
 
-  it("answers native compaction's summary call out of band and counts it; the queue is never touched", async () => {
+  it("answers the Stigmer harness's compaction summary call out of band and counts it; the queue is never touched", async () => {
     mock.enqueue(anthropicText("the agent's turn"));
     const summary = await post(ANTHROPIC_PATH, {
       model: "claude-haiku-4-5-20251001",

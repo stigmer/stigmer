@@ -51,7 +51,7 @@
  *   --fake-model=error   the fake answers every model call with an error,
  *       so the agent run must fail (its red-first check).
  *   --live-model   no fake: the install is handed the shell's ANTHROPIC_API_KEY
- *       and no base URL, the agent runs on the cheapest native model
+ *       and no base URL, the agent runs on the cheapest Stigmer-harness model
  *       (`LIVE_MODEL`), and the stream's `done` event must report `completed`
  *       with a non-empty reply; the words are never compared. The live lane runs it
  *       against the published CLI after a release. It spends real money (one

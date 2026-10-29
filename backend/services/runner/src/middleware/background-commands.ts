@@ -49,7 +49,7 @@
  *
  * While it waits the turn is working, not stalled: it writes
  * {@link BACKGROUND_WAIT_EVENT} on the graph's custom stream at the start
- * and the end of the wait, which the native translator turns into the
+ * and the end of the wait, which the Stigmer harness's translator turns into the
  * `background_wait_started` and `background_wait_finished` facts, and the
  * runtime's open-operations fold holds the stall watchdog between them
  * (`harness/open-operations.ts`). The reminder writes

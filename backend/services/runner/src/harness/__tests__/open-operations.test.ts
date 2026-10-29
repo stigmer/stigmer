@@ -82,7 +82,7 @@ describe("OpenOperations", () => {
   });
 
   describe("a delegating call", () => {
-    it("does not count (native announces the sub-agent first); the sub-agent's own call does", () => {
+    it("does not count (Stigmer announces the sub-agent first); the sub-agent's own call does", () => {
       const { operations } = fold();
       operations.observe(delegated("task-1"));
       operations.observe(started("task-1", "task"));

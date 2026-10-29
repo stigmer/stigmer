@@ -1,5 +1,5 @@
 /**
- * How the native harness runs one shell command: the one place that spawns
+ * How the Stigmer harness runs one shell command: the one place that spawns
  * it, bounds it, streams what it prints and stops it. Both doors to the
  * shell use it: the agent's `execute` tool (`execute-deep-agent/shell-tool.ts`)
  * and the backend's own `execute` (`execute-deep-agent/cas-capture-backend.ts`),

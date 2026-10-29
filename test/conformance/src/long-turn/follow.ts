@@ -1,4 +1,4 @@
-// Follows one session's log over the native stream for the whole of a long
+// Follows one session's log over the Stigmer harness's stream for the whole of a long
 // turn, as a client that never gives up does, and records every seq it is
 // sent; and follows what needs the run's person in its organization, as the
 // console's notifier does, and records every attention it is told.

@@ -3,7 +3,7 @@
  * hand work to, each with what it may reach, and the definitions the engine
  * runs the sub-agents from (`agents`, in the foreground).
  *
- * Who the sub-agents are, as on the native engine
+ * Who the sub-agents are, as on the Stigmer harness
  * (`execute-deep-agent/subagent-transformer.ts`): every saved agent the
  * agent lists and every agent of the turn's plugins, each kept only when
  * the main agent's lists name its type (`Agent(type, …)`). Each brings its
@@ -275,8 +275,8 @@ export async function agentDefinitionsOf(agents: TurnAgents, promptOf: (world: S
 }
 
 /**
- * Every agent's tool lists checked against what it binds, as the native
- * engine checks them: the main agent's layer by layer, a plugin agent's
+ * Every agent's tool lists checked against what it binds, as the Stigmer
+ * harness checks them: the main agent's layer by layer, a plugin agent's
  * with lists over the agent's own layer, a saved sub-agent's with lists
  * against its own servers alone. Each entry naming nothing is logged; a
  * `tools` that resolves to nothing refuses the turn

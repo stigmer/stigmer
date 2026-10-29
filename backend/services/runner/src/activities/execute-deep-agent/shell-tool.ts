@@ -1,5 +1,5 @@
 /**
- * The native harness's `execute` tool: a shell command run by the runner's
+ * The Stigmer harness's `execute` tool: a shell command run by the runner's
  * command runner (`shared/shell/run-command.ts`) through the graph's own
  * backend, whose output streams into the turn while it runs, whose timeout
  * the model can raise for a slow build, and which stops with the turn.
@@ -14,7 +14,7 @@
  * registered but never runs.
  *
  * Streaming: the tool is an async generator. LangChain sends each yielded
- * chunk to the graph's stream as a `tool-output-delta`, which the native
+ * chunk to the graph's stream as a `tool-output-delta`, which the Stigmer
  * translator maps to `tool_output_delta`, which the runtime's preview pump
  * sends to the session. Chunks are coalesced to the streaming floor
  * (`shared/streaming-scheduler.ts`, 500 ms by default), so a chatty build

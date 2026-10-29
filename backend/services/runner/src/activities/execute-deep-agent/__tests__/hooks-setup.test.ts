@@ -1,5 +1,5 @@
 /**
- * Pins the native harness's hook setup (`hooks-setup.ts`): no evaluator for
+ * Pins the Stigmer harness's hook setup (`hooks-setup.ts`): no evaluator for
  * a turn without hooks this engine runs; a plugin hook's
  * `${user_config.KEY}` resolved from that plugin's own values
  * (`RunValues.plugins`) and never another plugin's or the agent's, the

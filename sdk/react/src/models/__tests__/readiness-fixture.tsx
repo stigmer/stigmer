@@ -61,7 +61,7 @@ function registryModel(id: string, displayName: string, provider: string, harnes
   };
 }
 
-/** The registry: two native models on two providers, and one Claude Agent model. The native default is the first. */
+/** The registry: two Stigmer-harness models on two providers, and one Claude Agent model. The Stigmer harness's default is the first. */
 export const REGISTRY: ModelRegistryState = {
   models: parseRegistryJson({
     models: [

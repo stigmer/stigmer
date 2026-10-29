@@ -1,4 +1,4 @@
-// Covers the native file tools' read of platform content (skills, attached
+// Covers the Stigmer file tools' read of platform content (skills, attached
 // inputs, the approved plan) at `.stigmer/…`, on the backends production
 // builds (`createCasCaptureBackend` + `mountPlatformRoute`, parent and
 // sub-agents alike). The stock virtual-rooted backend refuses to follow the

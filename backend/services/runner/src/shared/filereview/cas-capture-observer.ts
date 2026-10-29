@@ -1,7 +1,7 @@
 /**
  * The single owner of one turn's CAS (content-addressed) capture state — the
  * `.gitignored` half of apply-then-review — for every engine that observes
- * a write before it lands: the native engine's filesystem backend
+ * a write before it lands: the Stigmer harness's filesystem backend
  * (`execute-deep-agent/cas-capture-backend.ts`) and the Claude engine's gate
  * (`execute-claude/gate.ts`), which records before it lets a file tool run.
  *

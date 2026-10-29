@@ -1,5 +1,5 @@
 /**
- * Pins what the native gate does with an agent's hooks beyond what the
+ * Pins what the Stigmer harness's gate does with an agent's hooks beyond what the
  * gateway contract observes from outside: the custom-stream events it
  * writes (a hook's refusal, and which hook decided a call that runs), the
  * card's payload for a hook's ask, the hook recorded beside an unattended
@@ -17,7 +17,7 @@ import { hookLeaseKey } from "../../shared/approval-policy.js";
 import { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { HookSet } from "../../shared/hooks/hook-set.js";
 import type { HookProcessRunner, HookRunResult } from "../../shared/hooks/run.js";
-import { NativeToolViews } from "../../shared/hooks/tool-view.js";
+import { StigmerToolViews } from "../../shared/hooks/tool-view.js";
 import { createApprovalGateMiddleware, HOOK_FEEDBACK_HEADING, TOOL_POLICY_EVENT, type ApprovalGateConfig } from "../approval-gate.js";
 import { TOOL_REFUSED_EVENT } from "../tool-scope.js";
 import type { ToolCallRequest } from "../types.js";
@@ -37,7 +37,7 @@ function hooksAnswering(pre: Partial<HookRunResult>, post: Partial<HookRunResult
       source: { plugin: "safety", root: "/p", data: "/d", options: new Map() },
       groups: [group("PreToolUse", "pre"), group("PostToolUse", "post")],
     }]),
-    views: new NativeToolViews({
+    views: new StigmerToolViews({
       workspaceRoot: "/ws",
       toVirtualPath: (path) => (path.startsWith("/ws/") ? path.slice(3) : undefined),
       toolServerMap: new Map(),

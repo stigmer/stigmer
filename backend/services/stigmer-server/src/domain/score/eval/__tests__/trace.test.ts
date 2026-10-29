@@ -1,5 +1,5 @@
 /**
- * Pins the eval's reader of a try (trace.ts) over a native and a Claude
+ * Pins the eval's reader of a try (trace.ts) over a Stigmer and a Claude
  * turn, read from the turn's session events and the files on its run: engine names read as Claude's, an MCP call as
  * `mcp__<server>__<tool>`, its server slug read as written since a turn
  * already names a plugin's server `plugin_<plugin>_<server>`; a read of a
@@ -23,7 +23,7 @@
  * change set's content winning where both have one. A Claude run's calls
  * already carry Claude Code's names, and an MCP call its bare tool beside
  * its server, so they read as they were made; a number no engine owns fails
- * loudly rather than being read as native's.
+ * loudly rather than being read as the Stigmer harness's.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -126,8 +126,8 @@ const created = create(CapturedFileChangeSchema, {
   after: { body: { case: "inline", value: "## 1.0.0" } },
 });
 
-describe("the eval trace, native transcript", () => {
-  const native = runOf(
+describe("the eval trace, Stigmer transcript", () => {
+  const stigmer = runOf(
     [
       call("c1", "read_file", {
         file_path: "/work/.stigmer/skills/commit-message/SKILL.md",
@@ -143,7 +143,7 @@ describe("the eval trace, native transcript", () => {
   );
 
   it("names every call as Claude Code does", async () => {
-    const trace = await evalTraceOf(native, deps(Harness.STIGMER));
+    const trace = await evalTraceOf(stigmer, deps(Harness.STIGMER));
     expect(trace.toolCalls.map((c) => c.name)).toEqual([
       "Skill",
       "Read",
@@ -202,7 +202,7 @@ describe("the eval trace, native transcript", () => {
   });
 
   it("writes the trace as Claude Code's JSON lines and keeps the final message", async () => {
-    const trace = await evalTraceOf(native, deps(Harness.STIGMER));
+    const trace = await evalTraceOf(stigmer, deps(Harness.STIGMER));
     expect(trace.lastMessage).toBe("All done.");
     const lines = trace.traceLines.map(
       (line) => JSON.parse(line) as Record<string, unknown>,
@@ -220,7 +220,7 @@ describe("the eval trace, native transcript", () => {
 
   it("reads the created paths and the wanted contents", async () => {
     const trace = await evalTraceOf(
-      native,
+      stigmer,
       deps(Harness.STIGMER, { wantedFiles: ["./CHANGELOG.md", "missing.md"] }),
     );
     expect(trace.files).toEqual({
@@ -357,7 +357,7 @@ describe("the eval trace, by the engine that made the calls", () => {
     expect(trace.toolCalls.map((c) => c.name)).toEqual(["Bash", "Skill", "ToolSearch", "mcp__docs__lookup"]);
   });
 
-  it("names a number no engine owns, the retired 2 included, rather than reading its calls as native's", async () => {
+  it("names a number no engine owns, the retired 2 included, rather than reading its calls as the Stigmer harness's", async () => {
     const run = runOf([call("k1", "Bash", { command: "ls" })], []);
     for (const number of [2, 7]) {
       await expect(evalTraceOf(run, deps(number as Harness))).rejects.toThrow(

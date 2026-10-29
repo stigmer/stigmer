@@ -326,7 +326,7 @@ function createdAtMs(run: Run): number | undefined {
   return at === undefined ? undefined : timestampMs(at);
 }
 
-/** The engine the session runs on; native when its row is gone. */
+/** The engine the session runs on; Stigmer when its row is gone. */
 async function harnessOf(store: Store, sessionId: string): Promise<Harness> {
   try {
     return (await store.getResource(ApiResourceKind.session, sessionId, SessionSchema)).spec?.harness ?? Harness.UNSPECIFIED;

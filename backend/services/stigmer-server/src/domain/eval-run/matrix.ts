@@ -19,8 +19,8 @@
  *     one target is the agent as it runs (`agentTarget`: its engine, its
  *     model as the label, and no model on the run, so its own tier and
  *     thinking apply), and an eval run about a plugin's is the case's own
- *     `model` on the native harness
- *     when the catalog knows it there, else the native harness's default.
+ *     `model` on the Stigmer harness
+ *     when the catalog knows it there, else the Stigmer harness's default.
  *     A `model` the catalog does not know is that target's `not run: model
  *     '<name>' is not in Stigmer's catalog`: no alias is guessed, since
  *     "sonnet" names nothing Stigmer runs;

@@ -7,14 +7,14 @@
  * are the wire contract the control plane's workflow keys on — the phases they
  * persist, the copy they write, whether they RETURN a slim status or THROW
  * `CancelledFailure`. Refactoring them safely needs goldens recorded through the
- * activity whole, not through its modules one at a time. The native harness's
+ * activity whole, not through its modules one at a time. The Stigmer harness's
  * earlier activity tests ran their activity hermetically by mocking three
  * modules at the boundary with a hand-written `Context` stand-in and a scripted
  * graph object; this module is that convention made reusable, harness-agnostic,
  * and driven by the framework's own activity environment. Both harnesses
  * run on it (`execute-deep-agent/__test-utils__/hermetic-deep-agent.ts`,
  * `execute-claude/__test-utils__/hermetic-claude.ts`), and the earlier
- * native tests were re-homed onto the native driver (#1096), their assertions
+ * Stigmer-harness tests were re-homed onto its driver (#1096), their assertions
  * carried into `execute-deep-agent/__tests__/hermetic/`.
  *
  * What is generic here and what is not: everything an activity touches that is
@@ -31,7 +31,7 @@
  *  1. `Context.current()` — `MockActivityEnvironment` from `@temporalio/testing`,
  *     ONE PER INVOCATION. It gives the activity a real `Context` (real
  *     `cancellationSignal`, real `heartbeat()` surfaced as events, real
- *     `CancelledFailure` on throw). The native tests' stand-in mints a fresh
+ *     `CancelledFailure` on throw). The Stigmer tests' stand-in mints a fresh
  *     `AbortController` on every `Context.current()` call and so cannot drive a
  *     pause; production hands each attempt one `Context`, and so does this. The
  *     environment's documented caveat — once cancelled it stays cancelled — is
@@ -1000,7 +1000,7 @@ export function createHermeticEnvironment(): HermeticEnvironment {
  * Why both (since #1096): until then only `Date` was faked, so the
  * scheduler paced persists on REAL elapsed time and `fileChangeProgress`,
  * which rides persists, could gain or lose a capture under load — a golden
- * flake seen twice while the native adapter moved onto the runtime. One clock,
+ * flake seen twice while the Stigmer harness's adapter moved onto the runtime. One clock,
  * two faces: `tick` advances through
  * the fake clock's own `tick` (`vi.advanceTimersByTime`), which moves both
  * `Date` and `performance.now()`; `vi.setSystemTime` would move `Date` alone

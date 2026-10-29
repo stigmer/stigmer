@@ -289,8 +289,8 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
 /**
  * The MCP half of the default for one turn: which MCP tools ask, and which
  * servers a lease has cleared. Built by the engine that binds the tools,
- * from the marks it read live ({@link buildMcpApprovalDefault}): the native
- * engine from the tools it loads, the Claude engine from the tools the
+ * from the marks it read live ({@link buildMcpApprovalDefault}): the Stigmer
+ * harness from the tools it loads, the Claude engine from the tools the
  * host's bridge loads. Read by the gate and the provenance stamp alike.
  */
 export interface McpApprovalDefault {
@@ -375,7 +375,7 @@ export function resolveApprovalProvenance(
  * - A secret-keyed field ({@link SENSITIVE_ARG_KEYS}) is replaced with
  *   "[REDACTED]" (stigmer#1119): the message is stored on the row and shown on
  *   the approval card, which must carry no more than the redacted preview.
- *   Every approval message in the runner, native and Claude alike, resolves
+ *   Every approval message in the runner, Stigmer and Claude alike, resolves
  *   here, so this is the one place the rule applies to it.
  */
 export function resolveApprovalMessage(
@@ -419,7 +419,7 @@ export const CATEGORY_APPROVAL_MESSAGE: Record<ToolApprovalCategory, string> = {
  * (`file-tools.ts`), the one home of "which argument names the file" across
  * both taxonomies: deepagents' and Claude's file tools send `file_path`;
  * `path` is read too. Resolving the raw args instead
- * rendered a gated native write as "Write file: <unknown>" (#1112). The
+ * rendered a gated Stigmer-harness write as "Write file: <unknown>" (#1112). The
  * template keeps its one placeholder, so the table stays harness-neutral.
  */
 export function resolveBuiltInApprovalMessage(
@@ -464,7 +464,7 @@ export interface ApprovalRequirement {
 }
 
 /**
- * THE approval decision for one tool call — the function the native gate
+ * THE approval decision for one tool call — the function the Stigmer harness's gate
  * (`middleware/approval-gate.ts`) interrupts on. A held call reaches the
  * transcript only through that interrupt (`approval_proposed`), so the row can
  * never disagree with the gate about whether a call waits (since #1097). Its

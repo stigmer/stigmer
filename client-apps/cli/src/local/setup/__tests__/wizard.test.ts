@@ -15,10 +15,10 @@ function config(local?: unknown): Config {
 }
 
 // Regression pin: every provider offered by `stigmer setup` promises an
-// execution path the native runner must actually serve. The runner constructs
-// Anthropic clients only and the registry's native-harness entries are all
+// execution path the Stigmer harness must actually serve. The runner constructs
+// Anthropic clients only and the registry's Stigmer-harness entries are all
 // Anthropic — so this list is anthropic + skip, full stop. If this test fails
-// because a provider was added, the native runner and model registry must gain
+// because a provider was added, the Stigmer harness and model registry must gain
 // real support for it first (see sdk/react DISABLED_PROVIDERS for the same
 // decision on the UI side).
 describe("PROVIDER_CHOICES", () => {

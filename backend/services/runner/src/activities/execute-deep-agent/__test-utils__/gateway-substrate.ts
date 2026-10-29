@@ -46,7 +46,7 @@ import { deriveLeaseScope, hookLeaseKey, mcpToolKey, type McpApprovalDefault } f
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { HookSet, type HookSourceGroups } from "../../../shared/hooks/hook-set.js";
 import { contractHookSources } from "../../../__test-utils__/approval-contract/hook-commands.js";
-import { NativeToolViews } from "../../../shared/hooks/tool-view.js";
+import { StigmerToolViews } from "../../../shared/hooks/tool-view.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { PLATFORM_ROUTE_PREFIX, admitsRoutedRead } from "../platform-route.js";
@@ -197,8 +197,8 @@ function seedWorkspace(root: string): void {
   }
 }
 
-/** An action as the native engine's own built-in call, or an MCP tool call. */
-function toNativeCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
+/** An action as the Stigmer harness's own built-in call, or an MCP tool call. */
+function toStigmerCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
   switch (action.kind) {
     case "write":
       return { name: "write_file", args: { file_path: action.resource, content: action.content ?? "x" }, serverSlug: "" };
@@ -209,12 +209,12 @@ function toNativeCall(action: ProposedAction): { name: string; args: Record<stri
       return { name: "read_file", args: { file_path: path }, serverSlug: "" };
     }
     case "delete":
-      throw new Error("toNativeCall: the native engine binds no delete tool (deepagents-profiles.ts)");
+      throw new Error("toStigmerCall: the Stigmer harness binds no delete tool (deepagents-profiles.ts)");
     case "mcp":
       return { name: action.mcpToolName ?? "mcp_tool", args: {}, serverSlug: action.mcpServerSlug ?? "srv" };
     default: {
       const exhaustive: never = action.kind;
-      throw new Error(`toNativeCall: unknown action kind ${String(exhaustive)}`);
+      throw new Error(`toStigmerCall: unknown action kind ${String(exhaustive)}`);
     }
   }
 }
@@ -228,7 +228,7 @@ async function runListsProbe(
   const root = mkdtempSync(join(tmpdir(), "contract-lists-"));
   try {
     seedWorkspace(root);
-    const { name, args, serverSlug } = toNativeCall(action);
+    const { name, args, serverSlug } = toStigmerCall(action);
 
     let mcpCount = 0;
     const mcpTools =
@@ -301,12 +301,12 @@ function shellWord(text: string): string {
 /** The marker file a shell probe appends to when it runs, one line per run. */
 const SHELL_RAN = ".contract-ran";
 
-/** The native call for a hooks probe: a shell leaves a mark, a write and a read touch the workspace. */
+/** The Stigmer call for a hooks probe: a shell leaves a mark, a write and a read touch the workspace. */
 function toHooksCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
   if (action.kind === "shell") {
     return { name: "execute", args: { command: `${action.resource}; echo ran >> ${SHELL_RAN}` }, serverSlug: "" };
   }
-  return toNativeCall(action);
+  return toStigmerCall(action);
 }
 
 /** Claude Code's input for an action a hook rewrites a call into, as the hook would write it. */
@@ -360,7 +360,7 @@ async function runHooksProbe(
     const leased = options.hookLease;
     const evaluator = new HookEvaluator({
       set: HookSet.of(sources),
-      views: new NativeToolViews({
+      views: new StigmerToolViews({
         workspaceRoot: root,
         toVirtualPath: (path) => normalizeWorkspacePathArg(path, root),
         toolServerMap,

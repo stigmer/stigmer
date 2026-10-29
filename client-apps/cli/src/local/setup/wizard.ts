@@ -4,7 +4,7 @@
 // non-interactive flag path and the interactive prompt, so both produce
 // identical config and the rules are unit-testable in isolation.
 //
-// Setup saves the one key the native and Claude engines run the catalog's
+// Setup saves the one key the Stigmer and Claude engines run the catalog's
 // models on, Anthropic's, so the interactive flow is a single API-key prompt
 // rather than a provider menu, followed by the skippable operator-identity
 // prompt (oss#796). The runner reaches the other providers (OpenAI, and
@@ -27,7 +27,7 @@ import { promptLine, promptSecret } from "./prompt.js";
  * The providers `stigmer setup` accepts. This is the single source of truth
  * for the CLI's local-provider surface — `setup --provider` validates against
  * it and a regression test pins it, because every entry here promises an
- * execution path the native runner must actually serve.
+ * execution path the Stigmer harness must actually serve.
  */
 export const PROVIDER_CHOICES = ["anthropic", "skip"] as const;
 

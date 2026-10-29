@@ -5,7 +5,7 @@
  *
  * Its reader: a tools listing a person asks for from a plugin's page
  * (activities/list-plugin-tools.ts, the connect workflow's one step). The
- * engines read the same marks from the tools they load (native from its own
+ * engines read the same marks from the tools they load (Stigmer from its own
  * MCP client, Claude from the host's bridge), so a turn never lists twice.
  *
  * Annotations are untrusted (the MCP spec says so), so they are read only in
@@ -26,7 +26,7 @@
  * A turn's listing also carries what the model is offered of each listed
  * tool (`McpToolListing.offered`): its description and input schema, as
  * {@link definitionOf} caps them. Each engine builds it from its own source
- * (native from the tools it loaded, Claude from its bridge's listing) and
+ * (Stigmer from the tools it loaded, Claude from its bridge's listing) and
  * hands it to the
  * turn's transcript builder, which records the definition of each tool
  * the turn calls (`harness/transcript/builder.ts` `offerTools`), so an
@@ -180,7 +180,7 @@ export async function listServerTools(server: ResolvedMcpServer): Promise<Listed
           throw new Error(`Failed to get MCP client for server '${slug}' after initialization`);
         }
         // Every page the server answers: a destructive tool on a later page
-        // must ask as one on the first does. The native engine's loader
+        // must ask as one on the first does. The Stigmer harness's loader
         // follows the cursor the same way.
         let cursor: string | undefined;
         let pages = 0;

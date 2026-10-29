@@ -27,7 +27,7 @@ beforeAll(() => {
  * think, where the selection would be refused at create time.
  */
 
-const NATIVE_ADAPTIVE: ModelInfo = {
+const STIGMER_ADAPTIVE: ModelInfo = {
   modelId: "claude-sonnet-5",
   provider: "anthropic",
   displayName: "Claude Sonnet 5",
@@ -41,7 +41,7 @@ const NATIVE_ADAPTIVE: ModelInfo = {
   thinkingRequired: false,
 };
 
-const NATIVE_ALWAYS_THINKS: ModelInfo = {
+const STIGMER_ALWAYS_THINKS: ModelInfo = {
   modelId: "claude-fable-5",
   provider: "anthropic",
   displayName: "Claude Fable 5",
@@ -55,7 +55,7 @@ const NATIVE_ALWAYS_THINKS: ModelInfo = {
   thinkingRequired: true,
 };
 
-const NATIVE_UNASSESSED: ModelInfo = {
+const STIGMER_UNASSESSED: ModelInfo = {
   modelId: "claude-unassessed",
   provider: "anthropic",
   displayName: "Local Model",
@@ -74,7 +74,7 @@ function renderSelector(props?: Partial<React.ComponentProps<typeof ModelSelecto
   const result = render(
     <ModelRegistryContext.Provider
       value={{
-        models: [NATIVE_ADAPTIVE, NATIVE_ALWAYS_THINKS, NATIVE_UNASSESSED],
+        models: [STIGMER_ADAPTIVE, STIGMER_ALWAYS_THINKS, STIGMER_UNASSESSED],
         isLoading: false,
         error: null,
         refetch: vi.fn(),
@@ -112,18 +112,18 @@ afterEach(cleanup);
 
 describe("thinkingSelectable and thinkingLocked", () => {
   it("read the entry's own flags, with no harness check", () => {
-    expect(thinkingSelectable(NATIVE_ADAPTIVE)).toBe(true);
-    expect(thinkingSelectable({ ...NATIVE_ADAPTIVE, harness: "claude" })).toBe(true);
-    expect(thinkingSelectable(NATIVE_UNASSESSED)).toBe(false);
-    expect(thinkingSelectable({ ...NATIVE_ADAPTIVE, thinkingCapable: false })).toBe(false);
-    expect(thinkingLocked(NATIVE_ALWAYS_THINKS)).toBe(true);
-    expect(thinkingLocked(NATIVE_ADAPTIVE)).toBe(false);
-    expect(thinkingLocked(NATIVE_UNASSESSED)).toBe(false);
+    expect(thinkingSelectable(STIGMER_ADAPTIVE)).toBe(true);
+    expect(thinkingSelectable({ ...STIGMER_ADAPTIVE, harness: "claude" })).toBe(true);
+    expect(thinkingSelectable(STIGMER_UNASSESSED)).toBe(false);
+    expect(thinkingSelectable({ ...STIGMER_ADAPTIVE, thinkingCapable: false })).toBe(false);
+    expect(thinkingLocked(STIGMER_ALWAYS_THINKS)).toBe(true);
+    expect(thinkingLocked(STIGMER_ADAPTIVE)).toBe(false);
+    expect(thinkingLocked(STIGMER_UNASSESSED)).toBe(false);
   });
 });
 
 describe("ModelSelector — thinking switch", () => {
-  it("renders the switch for a native model that declares a thinking form, and toggles it", async () => {
+  it("renders the switch for a Stigmer-harness model that declares a thinking form, and toggles it", async () => {
     const { onThinkingModeChange } = renderSelector();
     await openPopover("Claude Sonnet 5");
 

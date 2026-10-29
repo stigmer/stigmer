@@ -5,7 +5,7 @@
  * arms pass their tests while a real dropped connection read as
  * `[TypeError] fetch failed`.
  *
- * Each case is also checked wrapped as a native turn wraps it (one
+ * Each case is also checked wrapped as a Stigmer turn wraps it (one
  * `MiddlewareError` per middleware that wraps the model call), where the
  * wrapper copies its cause's name and message onto itself.
  *
@@ -51,7 +51,7 @@ function streamError(type: ProviderErrorType, message: string = type): APIError 
   return new APIError(undefined, { type: "error", error: { type, message } }, undefined, new Headers(), type);
 }
 
-/** Wrapped as a native turn wraps a model call's failure: once per wrapping middleware. */
+/** Wrapped as a Stigmer turn wraps a model call's failure: once per wrapping middleware. */
 function wrapped(err: Error, layers = 3): Error {
   let current = err;
   for (let layer = 0; layer < layers; layer++) current = MiddlewareError.wrap(current, `layer${layer}`) as Error;

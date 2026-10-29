@@ -70,7 +70,8 @@ describe("validateHarness", () => {
 
   it("rejects UI-only harness names that have no proto mapping", () => {
     // copilot/codex/etc. exist in display metadata but not on the wire —
-    // accepting them here would stamp UNSPECIFIED and silently run native.
+    // accepting them here would stamp UNSPECIFIED and silently run on the
+    // Stigmer harness.
     expect(() => validateHarness("copilot")).toThrow(/must be "stigmer" or "claude" \(Claude Agent\)/);
   });
 });
@@ -118,7 +119,7 @@ function clientWithPreferences(preferences: StubPreferences): Stigmer {
   } as unknown as Stigmer;
 }
 
-/** Back-compat shorthand for the original native-model-only stub. */
+/** Back-compat shorthand for the original Stigmer-harness-model-only stub. */
 function clientWithPreference(defaultStigmerModel: string): Stigmer {
   return clientWithPreferences({ defaultStigmerModel });
 }
@@ -289,7 +290,7 @@ describe("prepareAgentExec account-preference model fill (oss#293)", () => {
     expect(prepared.model).toBe("");
   });
 
-  it("stays empty when the account declares no native default", async () => {
+  it("stays empty when the account declares no Stigmer-harness default", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreference(""),
@@ -313,7 +314,7 @@ describe("prepareAgentExec harness resolution (oss#293)", () => {
 
   it("an explicit --harness always outranks the account preference", async () => {
     // The per-run escape hatch: a claude-preference user can still force a
-    // native run without touching their settings.
+    // Stigmer run without touching their settings.
     const prepared = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "stigmer" },
       clientWithPreferences({ defaultHarness: "claude" }),
@@ -434,7 +435,7 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
       { ...SERVED_RUN_OPTIONS, agentSpec: AGENT_ON_CLAUDE },
     );
     expect(prepared.model).toBe("default");
-    // The server reads a model named alone on native.
+    // The server reads a model named alone on Stigmer.
     expect(prepared.harness).toBe("");
   });
 
@@ -449,7 +450,7 @@ describe("prepareAgentExec — the agent's run defaults come before the account'
     expect(prepared.model).toBe("claude-opus-4-7");
   });
 
-  it("an agent naming the native engine outranks an account that prefers claude", async () => {
+  it("an agent naming the Stigmer harness outranks an account that prefers claude", async () => {
     const prepared = await prepareAgentExec(
       BASE_FLAGS,
       clientWithPreferences({ ...ACCOUNT, defaultHarness: "claude" }),
@@ -494,7 +495,7 @@ describe("prepareAgentExec harness-aware model fill (oss#293)", () => {
     expect(prepared.model).toBe("claude-opus-4-7");
   });
 
-  it("fills the native model when the harness resolves native or empty", async () => {
+  it("fills the Stigmer harness's model when the harness resolves stigmer or empty", async () => {
     const explicit = await prepareAgentExec(
       { ...BASE_FLAGS, harness: "stigmer" },
       clientWithPreferences(BOTH_MODELS),

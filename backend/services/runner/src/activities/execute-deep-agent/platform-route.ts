@@ -1,5 +1,5 @@
 /**
- * The platform's read-only `.stigmer/` mount inside the native agent's
+ * The platform's read-only `.stigmer/` mount inside the Stigmer harness's agent's
  * virtual filesystem.
  *
  * WHY A ROUTE, NOT THE SYMLINK
@@ -7,11 +7,11 @@
  * Platform content — resolved skills, attached inputs, the approved plan —
  * lives in the session's platform dir, outside the workspace, and reaches the
  * agent at `.stigmer/…` (`shared/workspace/stigmer-link.ts`). The Claude engine
- * and the shell follow the workspace's `.stigmer` symlink to it. The native
- * file tools cannot: deepagents (since 1.14) resolves every path of a
+ * and the shell follow the workspace's `.stigmer` symlink to it. The Stigmer
+ * harness's file tools cannot: deepagents (since 1.14) resolves every path of a
  * `virtualMode` backend to its REAL location and refuses one that lands
  * outside the root ("Path '…' resolves outside root directory",
- * `FilesystemBackend.assertRealPathWithinRoot`), and every backend the native
+ * `FilesystemBackend.assertRealPathWithinRoot`), and every backend the Stigmer
  * harness builds is virtual-rooted (`cas-capture-backend.ts`, issue #754).
  * Turning that confinement off would reopen the escape it closes, so the
  * platform dir is mounted instead through deepagents' own router,
@@ -166,7 +166,7 @@ function noPlatformContent(routedPath: string): string {
   );
 }
 
-/** The platform dir, virtual-rooted like every native backend, refusing every mutation. */
+/** The platform dir, virtual-rooted like every Stigmer backend, refusing every mutation. */
 export class PlatformContentBackend extends FilesystemBackend {
   constructor(platformDir: string) {
     super({ rootDir: platformDir, virtualMode: true });
@@ -190,7 +190,7 @@ export class PlatformContentBackend extends FilesystemBackend {
 }
 
 /**
- * The outputs folder, virtual-rooted like every native backend: the agent
+ * The outputs folder, virtual-rooted like every Stigmer backend: the agent
  * writes, edits and deletes inside it as in the workspace, an edit quoted
  * loosely landing as it does there (`loose-edit.ts`), and the folder itself is
  * never deleted (the module header).
@@ -225,7 +225,7 @@ export class OutputsBackend extends FilesystemBackend {
 
 /**
  * One of deepagents' offload roots, in the session's offload directory:
- * virtual-rooted like every native backend, writable, and never deleted
+ * virtual-rooted like every Stigmer backend, writable, and never deleted
  * whole (the outputs folder's rule), so a fan-out delete of `/` never
  * empties it.
  */

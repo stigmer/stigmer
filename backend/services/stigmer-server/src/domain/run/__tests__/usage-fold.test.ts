@@ -41,8 +41,8 @@ import {
   totalTokensOf,
 } from "../usage-fold.js";
 
-/** A native run's report: input 18,432 of which 15,000 cache read and 2,000 cache write. */
-const NATIVE_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
+/** A Stigmer run's report: input 18,432 of which 15,000 cache read and 2,000 cache write. */
+const STIGMER_USAGE: MessageInitShape<typeof StreamingUsageSummarySchema> = {
   inputTokens: 18_432n,
   outputTokens: 1_210n,
   cacheReadTokens: 15_000n,
@@ -110,8 +110,8 @@ function meterRow(overrides: Partial<MeteredUsageRow>): MeteredUsageRow {
 }
 
 describe("a run counted from its runner's report", () => {
-  it("native: input less both cache buckets, the runner's total, no provider", () => {
-    const [row] = runnerReportRows(makeRun("r1", { usage: NATIVE_USAGE }), Harness.STIGMER);
+  it("Stigmer: input less both cache buckets, the runner's total, no provider", () => {
+    const [row] = runnerReportRows(makeRun("r1", { usage: STIGMER_USAGE }), Harness.STIGMER);
     expect(row).toEqual({
       model: "claude-sonnet-4-5",
       provider: "",
@@ -127,13 +127,13 @@ describe("a run counted from its runner's report", () => {
     });
   });
 
-  it("an unset harness is the native one", () => {
-    const [row] = runnerReportRows(makeRun("r1", { usage: NATIVE_USAGE }), Harness.UNSPECIFIED);
+  it("an unset harness is the Stigmer one", () => {
+    const [row] = runnerReportRows(makeRun("r1", { usage: STIGMER_USAGE }), Harness.UNSPECIFIED);
     expect(row?.harness).toBe("stigmer");
     expect(row?.inputTokens).toBe(1_432n);
   });
 
-  it("Claude: native's arithmetic under its own harness name, no provider", () => {
+  it("Claude: the Stigmer harness's arithmetic under its own harness name, no provider", () => {
     const [row] = runnerReportRows(makeRun("r1", { usage: CLAUDE_USAGE }), Harness.CLAUDE);
     expect(row?.inputTokens, "input less the cache").toBe(3_120n);
     expect(row?.cacheReadInputTokens).toBe(41_800n);
@@ -152,7 +152,7 @@ describe("a run counted from its runner's report", () => {
     expect(row?.totalTokens).toBe(46_965n);
   });
 
-  it("native input never goes below zero", () => {
+  it("a Stigmer run's input never goes below zero", () => {
     const [row] = runnerReportRows(
       makeRun("r1", { usage: { inputTokens: 10n, cacheReadTokens: 30n, outputTokens: 5n, totalTokens: 15n } }),
       Harness.STIGMER,
@@ -161,7 +161,7 @@ describe("a run counted from its runner's report", () => {
   });
 
   it("is estimated, with served_by summing to the total under UNSPECIFIED", () => {
-    const counted = countRun(makeRun("r1", { usage: NATIVE_USAGE }), undefined, Harness.STIGMER, 0);
+    const counted = countRun(makeRun("r1", { usage: STIGMER_USAGE }), undefined, Harness.STIGMER, 0);
     expect(counted.estimated).toBe(true);
     const aggregate = aggregateOf([counted]);
     expect(aggregate.totalTokens).toBe(19_642n);
@@ -254,7 +254,7 @@ describe("folding several runs", () => {
     Harness.STIGMER,
     0,
   );
-  const noStamp = countRun(makeRun("n1", { sessionId: "ses_b", agentId: "", usage: NATIVE_USAGE }), undefined, Harness.STIGMER, 800);
+  const noStamp = countRun(makeRun("n1", { sessionId: "ses_b", agentId: "", usage: STIGMER_USAGE }), undefined, Harness.STIGMER, 800);
   const all = [metered, estimated, empty, noStamp];
 
   it("working_seconds sums each row's runs' milliseconds and floors once per row, whichever source counts the tokens", () => {
@@ -328,7 +328,7 @@ describe("folding several runs", () => {
     expect(usageHarnessWord(Harness.UNSPECIFIED)).toBe("stigmer");
   });
 
-  it.each([2, 99])("harness %i, a value no engine owns, is a defect, named rather than counted as native", (harness) => {
+  it.each([2, 99])("harness %i, a value no engine owns, is a defect, named rather than counted as Stigmer", (harness) => {
     expect(() => usageHarnessWord(harness as Harness)).toThrow(new RegExp(`harness ${harness} is not one the proto names`));
   });
 

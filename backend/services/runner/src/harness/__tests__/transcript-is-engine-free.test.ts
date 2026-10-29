@@ -10,7 +10,7 @@
  * reaches it as a translator's output, never as an import. A Codex adapter
  * is then a translator and nothing else. `@temporalio/*` is refused
  * for the same reason the adapters refuse it: the builder runs under the
- * contract kit outside any activity, and it moved out from under the native
+ * contract kit outside any activity, and it moved out from under the Stigmer
  * adapter's Temporal-free fence when it moved into `harness/` (the runtime
  * itself is not Temporal-free — `run-turn.ts` heartbeats).
  *
@@ -19,7 +19,7 @@
  * edit here with a reason, not an absence someone forgot to extend. Tests are
  * swept too, on the direction fence's precedent (`import-direction.test.ts`):
  * a test that imported `@langchain/core` to build a fixture would be exactly
- * the coupling that keeps the builder's own tests in the native adapter's
+ * the coupling that keeps the builder's own tests in the Stigmer harness's adapter's
  * folder until #1097 re-keyed them to the canonical union.
  *
  * Landed in #1097, the day the folder was created.

@@ -81,7 +81,7 @@ export interface ModelErrorContext {
  *
  * The chain is as long as the agent's middleware stack: LangChain wraps a
  * model call's failure once per middleware that implements `wrapModelCall`
- * (`MiddlewareError.wrap` in its AgentNode), and a native turn stacks
+ * (`MiddlewareError.wrap` in its AgentNode), and a Stigmer turn stacks
  * deepagents' own middleware, the to-do list and Stigmer's, well past ten
  * layers. So the walk has no depth bound; a cause cycle ends it instead, at
  * the first error seen twice.

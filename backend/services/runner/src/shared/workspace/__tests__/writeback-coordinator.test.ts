@@ -202,7 +202,7 @@ describe("WriteBackCoordinator", () => {
 
   // Every cycle below runs through `finalize()`, the coordinator's one entry
   // point since #1096 (the per-file `onFileModified` went with the
-  // native stream loop that called it). The mechanics it pins are the same.
+  // Stigmer stream loop that called it). The mechanics it pins are the same.
   it("performs full cycle on the SESSION branch: branch -> commit -> push -> PR", async () => {
     const backend = mockWorkspaceBackend();
     const coord = makeCoordinator({ sb, backend });

@@ -1,7 +1,7 @@
 /**
  * Pins how hooks see a Claude call, in both formats (`hook-views.ts`):
  *  - to a Claude Code hook a call is itself, the host's shell `Bash`, an MCP
- *    tool `mcp__<server>__<tool>` with its server as the native views show
+ *    tool `mcp__<server>__<tool>` with its server as the Stigmer views show
  *    it, the platform's servers never shown;
  *  - to a Cursor hook a call is what Cursor's own engine sends a hook (a
  *    command `Shell` with its directory, a create and an edit `Write`, a

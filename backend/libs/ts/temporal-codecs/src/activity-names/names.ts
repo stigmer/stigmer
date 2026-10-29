@@ -17,7 +17,7 @@
 /** Opens (or names) the conversation a turn runs in; no I/O for an engine whose state id is derived. */
 export const ENSURE_THREAD_ACTIVITY_NAME = "EnsureThread";
 
-/** One turn on Stigmer's native engine. */
+/** One turn on Stigmer's Stigmer harness. */
 export const EXECUTE_DEEP_AGENT_ACTIVITY_NAME = "ExecuteDeepAgent";
 
 /** One turn on Anthropic's Claude Agent SDK engine. */

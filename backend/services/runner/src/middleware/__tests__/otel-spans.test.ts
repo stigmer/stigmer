@@ -1,5 +1,5 @@
 /**
- * The native engine's spans (`otel-spans.ts`), read back from a real tracer
+ * The Stigmer harness's spans (`otel-spans.ts`), read back from a real tracer
  * provider into an in-memory exporter: a `chat {model}` CLIENT span per
  * model call and an `execute_tool {tool}` INTERNAL span per tool call, in
  * OpenTelemetry's GenAI conventions, and `withSubAgentSpan`'s

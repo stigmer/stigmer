@@ -1,6 +1,6 @@
 /**
- * The turn boundary: where a native graph stops when the runtime asks it to,
- * taken at the model call, inside the engine.
+ * The turn boundary: where a Stigmer-harness graph stops when the runtime
+ * asks it to, taken at the model call, inside the engine.
  *
  * Why inside the engine: the loop that reads the graph's events
  * (`execute-deep-agent/turn-stream.ts`) is not the graph. LangGraph buffers

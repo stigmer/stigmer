@@ -1,5 +1,5 @@
 /**
- * Hermetic golden: the agent's TO-DO LIST on the native harness — the model
+ * Hermetic golden: the agent's TO-DO LIST on the Stigmer harness — the model
  * proposes deepagents' built-in `write_todos`, the tools node runs it for
  * real, and the builder projects the list into `status.todos`.
  *
@@ -9,7 +9,7 @@
  * (deepagents' schema has no `merge`), keyed `todo-<i>`, and KEEPS the row in
  * the transcript — the clients filter `ToolKind.TODO` from the thread. As an
  * ungated built-in it carries `argsPreview` like every row since #1097
- * (until then native stamped a preview on gated rows only).
+ * (until then Stigmer stamped a preview on gated rows only).
  *
  * What the golden shows:
  *  - The row sits on the AI message whose text proposed it, "Planning the two
@@ -18,7 +18,7 @@
  *  - The row's `result` is the tool's confirmation text, "Updated todo list
  *    to [...]" (since #1097). deepagents' `write_todos` returns a
  *    LangGraph `Command` (`{ lg_name: "Command", update: { todos, messages:
- *    [ToolMessage] } }`); until then the native extractor unwrapped a
+ *    [ToolMessage] } }`); until then the Stigmer extractor unwrapped a
  *    LangChain `ToolMessage` envelope but not a `Command`, so the row carried
  *    the whole serialized Command — the todos array a second time and the
  *    text nested inside it (pinned as found when this net opened,
@@ -27,11 +27,11 @@
  * The #1097 moves, as landed (2026-09-14): the
  * row joined `messages[0]` ("Planning the two steps.") and the empty message
  * went; the row gained `argsPreview`, the elided preview of
- * its `args`. `todos` is byte-identical (the builder keeps native's
+ * its `args`. `todos` is byte-identical (the builder keeps the Stigmer harness's
  * full-replace: `write_todos` never sends `merge`). Any other hunk is a pause.
  *
- * Why this net exists: none of the twenty-three earlier native goldens
- * carried a todo, and #1097 moved the projection from the native builder
+ * Why this net exists: none of the twenty-three earlier Stigmer goldens
+ * carried a todo, and #1097 moved the projection from the Stigmer harness's builder
  * into the canonical one.
  *
  * Regenerate ONLY after a deliberate behavior change:

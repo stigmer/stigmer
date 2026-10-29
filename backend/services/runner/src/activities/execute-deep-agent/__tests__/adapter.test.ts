@@ -1,5 +1,5 @@
 /**
- * The native adapter's lifecycle half (`adapter.ts`), outside any activity
+ * The Stigmer harness's adapter's lifecycle half (`adapter.ts`), outside any activity
  * context: what `boot` does and in what order, that the two no-op lifetimes
  * resolve, that a turn before boot is refused loudly, and that the config
  * slice is exactly the five fields the engine slice reads. The engine turn
@@ -48,7 +48,7 @@ const CONFIG: Config = {
 };
 
 describe("createDeepAgentAdapter", () => {
-  it("declares its identity and the native capability flags", () => {
+  it("declares its identity and the Stigmer capability flags", () => {
     const adapter = createDeepAgentAdapter();
     expect(adapter.name).toBe("stigmer");
     expect(adapter.capabilities).toBe(DEEP_AGENT_CAPABILITIES);

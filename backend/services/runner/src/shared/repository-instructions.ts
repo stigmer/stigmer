@@ -1,7 +1,7 @@
 /**
  * The workspace's own instruction files (`AGENTS.md`, else `CLAUDE.md`): which
  * are read, and the words they are shown to the model in, for every engine
- * that shows them in its own prompt (the native engine,
+ * that shows them in its own prompt (the Stigmer harness,
  * `execute-deep-agent/repository-instructions.ts`, and the Claude engine,
  * `execute-claude/prompt.ts`).
  *
@@ -9,7 +9,7 @@
  * project builds, tests and is laid out. The roots' files (the workspace
  * root and each entry's root directory) go in the system prompt, beneath
  * the agent's instructions, read once per turn at setup, so an edit reaches
- * the next turn and the prompt is constant within one. The native engine
+ * the next turn and the prompt is constant within one. The Stigmer harness
  * also shows a deeper folder's file with the first read beneath it
  * (`middleware/folder-instructions.ts`).
  *
@@ -25,11 +25,11 @@
  *
  * HOW A FILE IS READ
  * ------------------
- * Through the engine's own reader ({@link InstructionReader}): the native
- * engine's file backend, the Claude engine's confined read of the
+ * Through the engine's own reader ({@link InstructionReader}): the Stigmer
+ * harness's file backend, the Claude engine's confined read of the
  * workspace. Either answers "not there" for a file it will not read, so
  * nothing the agent could not already read is shown to it. Paths are in the
- * engine's own dialect (`/` the workspace root for the native engine, real
+ * engine's own dialect (`/` the workspace root for the Stigmer harness, real
  * paths for Claude), the dialect the closing line tells the model to read
  * the rest in.
  *
@@ -123,9 +123,9 @@ export async function readRootInstructionsWith(
 /**
  * The directories whose files are the roots' (the header): the workspace
  * root `/`, then each entry's root directory as the file tools name it,
- * derived from its `rootDir` as the native workspace section derives an
- * entry's place (`execute-deep-agent/prompt-builder.ts`). The native
- * engine's dialect. An entry outside the workspace is left out;
+ * derived from its `rootDir` as the Stigmer harness's workspace section
+ * derives an entry's place (`execute-deep-agent/prompt-builder.ts`). The
+ * Stigmer harness's dialect. An entry outside the workspace is left out;
  * each directory appears once.
  */
 export function workspaceRoots(primaryDir: string, entryRootDirs: readonly string[]): string[] {

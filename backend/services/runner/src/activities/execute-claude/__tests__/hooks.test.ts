@@ -5,13 +5,13 @@
  *    conversation's then its own, a plugin's helper on the main agent's;
  *  - the hooks' feedback on a call the gate let run: what its `PreToolUse`
  *    hooks handed back, then, when it succeeded, what its `PostToolUse`
- *    hooks hand back, as native's "Hook feedback:" section, returned to the
+ *    hooks hand back, as the Stigmer harness's "Hook feedback:" section, returned to the
  *    engine as `additionalContext` and kept for the call's row; nothing for
  *    a call the gate did not let run, or one no hook said anything about;
  *  - a tool's response read as the text a hook reads.
  *
  * Why it matters: a hook's policy must bind each caller exactly as on the
- * native engine, and its feedback must reach the model and the row alike.
+ * Stigmer harness, and its feedback must reach the model and the row alike.
  */
 
 import { mkdtempSync } from "node:fs";

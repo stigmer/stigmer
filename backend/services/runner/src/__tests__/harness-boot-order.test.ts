@@ -12,7 +12,7 @@
  * (the host is spawned without it), so a runner that booted an engine
  * in-process, or imported one anywhere on its boot path, fails the first
  * arm; the refusal arms import an SDK on purpose to prove the refusal is
- * live, native's and Claude's.
+ * live, the Stigmer harness's and Claude's.
  *
  * `HOME` points at a temp dir so an SDK import-time side effect cannot touch
  * the developer's home; the proxy endpoint is an inert loopback; nothing is
@@ -67,7 +67,7 @@ describe("harness boot order (fresh process)", () => {
     expect(verdict.exitCode).toBe(0);
   });
 
-  it("refuses the native engine's SDK in the runner's process (the fence is live)", async () => {
+  it("refuses the Stigmer harness's SDK in the runner's process (the fence is live)", async () => {
     const verdict = await runChild("import-engine");
     expect(verdict.exitCode).toBe(1);
     expect(verdict.line).toBe("harness-boot-order: the runner process imported deepagents, an engine SDK that belongs to the agent host");

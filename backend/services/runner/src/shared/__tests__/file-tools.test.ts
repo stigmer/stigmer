@@ -18,7 +18,7 @@ import {
 } from "../file-tools.js";
 
 describe("isFileModifyingTool", () => {
-  it("recognizes the native (deepagents) taxonomy", () => {
+  it("recognizes the Stigmer (deepagents) taxonomy", () => {
     for (const name of ["write_file", "edit_file", "create_file", "write", "edit", "create", "str_replace_editor"]) {
       expect(isFileModifyingTool(name), name).toBe(true);
     }

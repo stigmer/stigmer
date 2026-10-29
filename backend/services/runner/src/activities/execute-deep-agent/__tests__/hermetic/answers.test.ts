@@ -1,5 +1,5 @@
 /**
- * Hermetic: asking before an edit on the native engine.
+ * Hermetic: asking before an edit on the Stigmer harness.
  *
  * The agent's own hook asks on `Write` with file review off. The model's
  * `write_file` waits for a person (WAITING_FOR_APPROVAL); between turns the
@@ -81,7 +81,7 @@ describe("ExecuteDeepAgent hermetic — asking before an edit", () => {
       checkpointer: "sqlite",
       script: () => ({
         turns: [
-          { text: "Changing the notes.", toolCalls: [{ id: "call-native-edit", name: "write_file", args: { file_path: "/notes.md", content: "# Notes\nchanged\n" } }] },
+          { text: "Changing the notes.", toolCalls: [{ id: "call-stigmer-edit", name: "write_file", args: { file_path: "/notes.md", content: "# Notes\nchanged\n" } }] },
           CLOSING_TURN,
         ],
       }),

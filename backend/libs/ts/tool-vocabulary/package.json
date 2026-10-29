@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/tool-vocabulary",
   "version": "0.0.0-dev",
-  "description": "Claude Code's tool names as Stigmer reads them, shared by the runner and the control plane: the built-in names a tool list may carry, the tables of which Claude tools each engine tool covers (native, Claude), the reverse reading a grader uses to name a recorded engine call in Claude's words, and the MCP server names both sides agree on (the platform's own servers, the name grammar, the login variable)",
+  "description": "Claude Code's tool names as Stigmer reads them, shared by the runner and the control plane: the built-in names a tool list may carry, the tables of which Claude tools each engine tool covers (Stigmer, Claude), the reverse reading a grader uses to name a recorded engine call in Claude's words, and the MCP server names both sides agree on (the platform's own servers, the name grammar, the login variable)",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,

@@ -1,7 +1,7 @@
 /**
  * Convert a JSON Schema object to a Zod schema.
  *
- * Used by the runtime's structured-output extraction and the native
+ * Used by the runtime's structured-output extraction and the Stigmer
  * harness's responseFormat to produce Zod schemas for
  * `withStructuredOutput()` / function-calling APIs.
  *

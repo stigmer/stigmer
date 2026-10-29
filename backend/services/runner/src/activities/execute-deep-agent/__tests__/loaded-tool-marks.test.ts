@@ -1,5 +1,5 @@
 /**
- * Pins how the native engine completes the turn's approval default from the
+ * Pins how the Stigmer harness completes the turn's approval default from the
  * tools it loaded (`turn-setup.ts`): `listingOfLoadedTools` reads each
  * tool's own MCP annotation as `@langchain/mcp-adapters` keeps it on the
  * tool's `metadata`, marking a tool destructive only for an explicit

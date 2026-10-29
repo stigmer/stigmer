@@ -8,7 +8,7 @@
  *     lists none when the engine offers none (an engine the registry does
  *     not know);
  *   - the adaptive thinking form counts as able to think (claude-sonnet-5's
- *     native entry), as at execution create;
+ *     Stigmer entry), as at execution create;
  *   - the model-presence rule alone refuses a fast tier or thinking with no
  *     model, and passes either with one, or neither.
  */
@@ -42,7 +42,7 @@ function storeOf(bundledDocument: string): ModelRegistryStore {
 
 const models = storeOf(bundledModelRegistryDocument());
 
-/** One native model priced fast: the bundle prices no fast variant. */
+/** One Stigmer-harness model priced fast: the bundle prices no fast variant. */
 const fastModels = storeOf(
   JSON.stringify({
     models: [

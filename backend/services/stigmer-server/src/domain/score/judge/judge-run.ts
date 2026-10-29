@@ -85,7 +85,7 @@ export interface JudgeRunRequest {
 }
 
 /**
- * The judge run's create request: a new session of its own on the native
+ * The judge run's create request: a new session of its own on the Stigmer
  * harness, in the judged run's organization (so that organization's own
  * provider key serves it, and admission refuses it when the organization
  * has none for the judge's model), capped at one grade's cost.

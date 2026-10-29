@@ -559,7 +559,7 @@ describe("the create's question and its faults", () => {
 
   it("passes a suite source's own refusal through, and makes any other fault INTERNAL", async () => {
     const catalog = newModelCatalogProviderFromDocument(
-      JSON.stringify({ models: [{ id: "native-model", harness: "stigmer" }] }),
+      JSON.stringify({ models: [{ id: "stigmer-model", harness: "stigmer" }] }),
     );
     const row = evalRow("evr_1", EvalRunPhase.unspecified);
     row.spec!.pluginDigest = "a".repeat(64);
@@ -579,7 +579,7 @@ describe("the create's question and its faults", () => {
 
   it("refuses a suite past the limits with its counts, planning no cell", async () => {
     const catalog = newModelCatalogProviderFromDocument(
-      JSON.stringify({ models: [{ id: "native-model", harness: "stigmer" }] }),
+      JSON.stringify({ models: [{ id: "stigmer-model", harness: "stigmer" }] }),
     );
     const files = claudePlugin({
       files: Object.fromEntries(
@@ -753,7 +753,7 @@ describe("a chain built wrong", () => {
 
   it("refuses a plan with no spec, and answers a store fault listing a plugin's evals INTERNAL", async () => {
     const catalog = newModelCatalogProviderFromDocument(
-      JSON.stringify({ models: [{ id: "native-model", harness: "stigmer" }] }),
+      JSON.stringify({ models: [{ id: "stigmer-model", harness: "stigmer" }] }),
     );
     const row = evalRow("evr_1", EvalRunPhase.unspecified);
     row.spec = undefined;

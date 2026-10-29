@@ -19,7 +19,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { NATIVE_TOOL_COVERS, type ClaudeTool } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS, type ClaudeTool } from "@stigmer/tool-vocabulary";
 import {
   ToolListResolutionError,
   ToolScope,
@@ -254,23 +254,23 @@ describe("engine tools", () => {
     expect(scopeOf(["Read"]).allowsCovering(edit), "none allowed").toBe(false);
   });
 
-  it("native names map to Claude's: ls counts as Glob, delete as Write", () => {
+  it("Stigmer names map to Claude's: ls counts as Glob, delete as Write", () => {
     const scope = scopeOf(["Glob"]);
-    expect(scope.allowsEngineTool("ls", NATIVE_TOOL_COVERS)).toBe(true);
-    expect(scope.allowsEngineTool("glob", NATIVE_TOOL_COVERS)).toBe(true);
-    expect(scope.allowsEngineTool("grep", NATIVE_TOOL_COVERS)).toBe(false);
-    expect(scopeOf([], ["Write"]).allowsEngineTool("delete", NATIVE_TOOL_COVERS)).toBe(false);
-    expect(scopeOf(["WebFetch"]).allowsEngineTool("web_fetch", NATIVE_TOOL_COVERS)).toBe(true);
+    expect(scope.allowsEngineTool("ls", STIGMER_TOOL_COVERS)).toBe(true);
+    expect(scope.allowsEngineTool("glob", STIGMER_TOOL_COVERS)).toBe(true);
+    expect(scope.allowsEngineTool("grep", STIGMER_TOOL_COVERS)).toBe(false);
+    expect(scopeOf([], ["Write"]).allowsEngineTool("delete", STIGMER_TOOL_COVERS)).toBe(false);
+    expect(scopeOf(["WebFetch"]).allowsEngineTool("web_fetch", STIGMER_TOOL_COVERS)).toBe(true);
   });
 
   it("an engine extra is hidden only by an allow-list", () => {
-    expect(scopeOf(["Read"]).allowsEngineTool("readLints", NATIVE_TOOL_COVERS)).toBe(false);
-    expect(scopeOf([], ["Bash"]).allowsEngineTool("readLints", NATIVE_TOOL_COVERS)).toBe(true);
+    expect(scopeOf(["Read"]).allowsEngineTool("readLints", STIGMER_TOOL_COVERS)).toBe(false);
+    expect(scopeOf([], ["Bash"]).allowsEngineTool("readLints", STIGMER_TOOL_COVERS)).toBe(true);
     expect(scopeOf(["Read"]).allowsCovering([])).toBe(false);
   });
 
   it("claudeToolsOf reads the Claude tools an engine binds", () => {
-    expect([...claudeToolsOf(["read_file", "ls", "execute"], NATIVE_TOOL_COVERS)].sort()).toEqual([
+    expect([...claudeToolsOf(["read_file", "ls", "execute"], STIGMER_TOOL_COVERS)].sort()).toEqual([
       "Bash",
       "Glob",
       "Read",

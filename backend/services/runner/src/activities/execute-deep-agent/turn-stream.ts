@@ -1,5 +1,5 @@
 /**
- * The native deep-agent harness's stream phase — the single per-event
+ * the Stigmer harness's stream phase — the single per-event
  * consumption loop that turns a live LangGraph v3 event stream into the
  * streamed transcript and the one fact that decides how
  * the turn goes on (the graph paused at a gate).

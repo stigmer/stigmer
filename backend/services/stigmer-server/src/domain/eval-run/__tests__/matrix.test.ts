@@ -3,9 +3,9 @@
  * arm, try), the case filter by glob and tags, the runs ladder (spec, then
  * case, then 3), ablation `none`, an unsupported case planned with no
  * cells, a scaffolded case not run when the eval skips scaffolds, a Claude
- * target not run for a resumed conversation while native runs and a case's
+ * target not run for a resumed conversation while Stigmer runs and a case's
  * `env` run on both, the target rules when the spec names none (the case's catalog
- * model, never an alias; the native default with no model), and a
+ * model, never an alias; the Stigmer default with no model), and a
  * case_glob that is not a glob keeping no case (the grammar itself is
  * glob.test.ts's); and sizeOfMatrix counting what planMatrix plans, with
  * no cell built, so a suite of millions of tries is counted at once.
@@ -73,7 +73,7 @@ function specOf(
 const catalog: EvalModelCatalog = {
   isCatalogModel: (harness, model) =>
     harness === Harness.STIGMER && model === "claude-sonnet-4.6",
-  defaultModel: (harness) => (harness === Harness.CLAUDE ? "claude-default" : "native-default"),
+  defaultModel: (harness) => (harness === Harness.CLAUDE ? "claude-default" : "stigmer-default"),
 };
 
 describe("planMatrix", () => {
@@ -215,7 +215,7 @@ describe("planMatrix", () => {
     ]);
   });
 
-  it("runs a case's catalog model on the native harness when the spec names no target", () => {
+  it("runs a case's catalog model on the Stigmer harness when the spec names no target", () => {
     const matrix = planMatrix(
       suiteOf(
         evalCase("pinned", { model: "claude-sonnet-4.6", runs: 1 }),
@@ -234,7 +234,7 @@ describe("planMatrix", () => {
           runs: 1,
         },
       ],
-      [{ target: { harness: Harness.STIGMER, modelName: "native-default" }, runs: 1 }],
+      [{ target: { harness: Harness.STIGMER, modelName: "stigmer-default" }, runs: 1 }],
     ]);
     expect(matrix.cells.map((c) => c.caseIndex)).toEqual([0, 0, 2, 2]);
     expect(modelNotInCatalogReason("sonnet")).toBe(
@@ -260,14 +260,14 @@ describe("evalModelCatalogOf", () => {
     const provider = newModelCatalogProviderFromDocument(
       JSON.stringify({
         models: [
-          { id: "native-model", harness: "stigmer" },
+          { id: "stigmer-model", harness: "stigmer" },
           { id: "claude-model", harness: "claude" },
         ],
       }),
     );
     const evalCatalog = evalModelCatalogOf(provider);
-    expect(evalCatalog.isCatalogModel(Harness.STIGMER, "native-model")).toBe(true);
-    expect(evalCatalog.isCatalogModel(Harness.UNSPECIFIED, "native-model")).toBe(true);
+    expect(evalCatalog.isCatalogModel(Harness.STIGMER, "stigmer-model")).toBe(true);
+    expect(evalCatalog.isCatalogModel(Harness.UNSPECIFIED, "stigmer-model")).toBe(true);
     expect(evalCatalog.isCatalogModel(Harness.STIGMER, "claude-model")).toBe(false);
     expect(evalCatalog.isCatalogModel(Harness.CLAUDE, "claude-model")).toBe(true);
     expect(evalCatalog.defaultModel(Harness.STIGMER)).toBe("");

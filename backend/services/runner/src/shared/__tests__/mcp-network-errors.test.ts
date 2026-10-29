@@ -227,10 +227,10 @@ describe("a failed MCP connect, through the real adapter", () => {
     expect(described.errorMessage).toContain(url);
   }
 
-  it("on the native path logs the network error and words the adapter's error for the user", async () => {
+  it("on the Stigmer harness's path logs the network error and words the adapter's error for the user", async () => {
     const url = `${await resettingServer()}/mcp`;
-    const err = await rejectionOf(runWithExecutionContext("aex-native", () => connectMcpServers([httpServer(url)])));
-    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=aex-native, network=Error ECONNRESET: /)]);
+    const err = await rejectionOf(runWithExecutionContext("aex-stigmer", () => connectMcpServers([httpServer(url)])));
+    expect(networkLines()).toEqual([expect.stringMatching(/^\[MCP\] Server 'docs' did not connect: execution=aex-stigmer, network=Error ECONNRESET: /)]);
     expectWordedAsTheAdapters(err, url);
   });
 

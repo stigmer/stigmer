@@ -31,7 +31,7 @@
  *     (Claude included); a number no harness owns, the retired 2 included,
  *     is refused by proto validation;
  *   - harness immutability locks once the session has a run row
- *     (stigmer/stigmer#2566), with a stored UNSPECIFIED read as NATIVE and
+ *     (stigmer/stigmer#2566), with a stored UNSPECIFIED read as STIGMER and
  *     the exact FAILED_PRECONDITION copy; an update that names no harness
  *     keeps the stored one, run or not (a caller re-applying a session it
  *     created never resets the harness);
@@ -682,20 +682,20 @@ describe("session — the offered-engine rule", () => {
     expect(updated.spec?.harness).toBe(Harness.CLAUDE);
   });
 
-  it("keeps a native conversation that has run off Claude, by the engine lock, and a Claude one off native", async () => {
-    const native = await createSession({ harness: Harness.STIGMER });
-    await seedExecution(native.metadata!.id, RunPhase.RUN_COMPLETED);
+  it("keeps a Stigmer conversation that has run off Claude, by the engine lock, and a Claude one off Stigmer", async () => {
+    const stigmer = await createSession({ harness: Harness.STIGMER });
+    await seedExecution(stigmer.metadata!.id, RunPhase.RUN_COMPLETED);
     const toClaude = await grpcError(() =>
-      command.update({ resource: updateInput(native, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
+      command.update({ resource: updateInput(stigmer, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
     );
     expect([toClaude.code, toClaude.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
 
     const claude = await createSession({ harness: Harness.CLAUDE });
     await seedExecution(claude.metadata!.id, RunPhase.RUN_COMPLETED);
-    const toNative = await grpcError(() =>
+    const toStigmer = await grpcError(() =>
       command.update({ resource: updateInput(claude, { harness: Harness.STIGMER }), updateMask: { paths: ["*"] } }),
     );
-    expect([toNative.code, toNative.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
+    expect([toStigmer.code, toStigmer.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
   });
 
   it("refuses a number no harness owns by validation, the retired 2 included", async () => {
@@ -714,7 +714,7 @@ describe("session update — harness immutability", () => {
     expect(updated.spec?.harness).toBe(Harness.CLAUDE);
   });
 
-  it("rejects a native session's move once it has a run (stigmer/stigmer#2566)", async () => {
+  it("rejects a Stigmer session's move once it has a run (stigmer/stigmer#2566)", async () => {
     const session = await createSession({ harness: Harness.STIGMER });
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
@@ -760,7 +760,7 @@ describe("session update — harness immutability", () => {
     expect(used.spec?.harness).toBe(Harness.CLAUDE);
   });
 
-  it("treats UNSPECIFIED as NATIVE once run: input NATIVE passes; CLAUDE is refused", async () => {
+  it("treats UNSPECIFIED as STIGMER once run: input STIGMER passes; CLAUDE is refused", async () => {
     const session = await createSession({});
     await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);
 
@@ -812,7 +812,7 @@ describe("session update — execution-target immutability (oss#397, stigmer/sti
     }
   });
 
-  it("refuses unset→CLOUD once a native or Claude session has run, with the exact copy", async () => {
+  it("refuses unset→CLOUD once a Stigmer or Claude session has run, with the exact copy", async () => {
     for (const harness of [Harness.STIGMER, Harness.CLAUDE]) {
       const session = await createSession({ harness });
       await seedExecution(session.metadata!.id, RunPhase.RUN_COMPLETED);

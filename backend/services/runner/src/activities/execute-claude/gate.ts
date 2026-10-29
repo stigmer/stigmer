@@ -25,7 +25,7 @@
  * for the session (measured on SDK 0.3.310), and the gate holds each caller
  * to its own.
  *
- * The decision, in the native gate's order (`middleware/approval-gate.ts`):
+ * The decision, in the Stigmer harness's gate's order (`middleware/approval-gate.ts`):
  *
  *  0. A turn that is stopping or yielding runs no further call: its
  *     boundary is taken here, in the engine, before the call, never where
@@ -43,14 +43,14 @@
  *     sets a model, an effort, an isolation or the background is refused,
  *     never repaired. A file tool writes no platform content (`.stigmer/`
  *     but its outputs folder, the session's platform folder by any path)
- *     and nothing in the engine's own home, as the native engine's
+ *     and nothing in the engine's own home, as the Stigmer harness's
  *     read-only mount holds (`shared/outputs.ts` `isReadOnlyPlatformPath`).
  *     A caller whose lists deny `Skill` reads no skill's files. A caller
      whose lists exclude `Read` is still offered it, for the platform's
      own content alone: a file whose real path lies inside the platform
      folder, on a turn whose `.stigmer` is the link to it
      (`shared/workspace/stigmer-link.ts` `readsPlatformContent`), as the
-     native engine admits it by its route.
+     Stigmer harness admits it by its route.
  *  3. The secret-like write block (`shared/file-edit-policy.ts`), ahead of
  *     any hook, its path recorded for the turn's review.
  *  4. The agent's `PreToolUse` hooks (`hooks.ts`): a deny refuses, naming
@@ -88,7 +88,7 @@
  * A file tool's write the gate lets run is observed first when review
  * captures what git cannot (an ignored path, a workspace with no git): its
  * before-bytes are recorded ({@link GateFacts.observer}), whatever let it
- * run, as the native engine's backend records them.
+ * run, as the Stigmer harness's backend records them.
  *
  * The engine's shell reaches the gate under its aliased name
  * (`mcp__stigmer__bash`, `host-shell.ts`), and the model may name that tool
@@ -96,7 +96,7 @@
  * resolved against the workspace's primary directory, relative or
  * absolute, `..` included, and judged in the workspace's own dialect (`/`
  * its root), so the outputs folder and the capture substrate read it as
- * they read the native engine's. A path that resolves outside the
+ * they read the Stigmer harness's. A path that resolves outside the
  * workspace takes none of the file-edit flows: the default decides it.
  * The engine works in its directories' real paths, so a root (the
  * workspace, the engine's home, the platform folder) is matched in the
@@ -635,7 +635,7 @@ export class ClaudeGate {
    * A call's file path: in the workspace's dialect (`/` its root) when it
    * resolves inside the workspace, relative or absolute, `..` included, so
    * the outputs folder and the capture substrate read it as they read the
-   * native engine's; resolved and kept whole when it does not (the header).
+   * Stigmer harness's; resolved and kept whole when it does not (the header).
    */
   private judgedPath(input: Record<string, unknown>): JudgedPath {
     const path = extractFilePath(input);

@@ -22,7 +22,7 @@
  * a commit-and-push per file-modifying tool call on non-capture turns — and
  * was reachable in no supported posture (every git workspace with artifact
  * storage is a capture workspace, `shared/filereview/capture.ts`
- * `deriveCaptureMode`); it went with the native stream loop that called it.
+ * `deriveCaptureMode`); it went with the Stigmer harness's stream loop that called it.
  *
  * Entries are written back in sequence, one cycle each; nothing here runs
  * concurrently with itself.

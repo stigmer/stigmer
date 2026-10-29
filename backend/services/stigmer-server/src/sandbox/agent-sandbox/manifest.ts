@@ -21,7 +21,7 @@
  * Sandbox, which the controller mounts as a volume of the template's name
  * (ReadWriteOnce, the cluster's default class): `workspace` (10Gi) at
  * `/workspace`, and `agent-home` (5Gi) at the agent's home, where the
- * Session's agent state lives (the native harness's checkpoints, the
+ * Session's agent state lives (the Stigmer harness's checkpoints, the
  * platform directory, the approval gates), so a sleep or a replaced pod
  * keeps the agent's memory as well as its files (stigmer#2484). The home is
  * its own claim, not a folder of the workspace's: a Session that clones its

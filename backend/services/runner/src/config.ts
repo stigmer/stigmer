@@ -75,7 +75,7 @@ import { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
 // And the liveness interval, whose owner is the runtime's liveness pump.
 export { DEFAULT_LIVENESS_INTERVAL_MS } from "./harness/liveness-pump.js";
 import { DEFAULT_LIVENESS_INTERVAL_MS } from "./harness/liveness-pump.js";
-// And the native shell's timeout ceiling, which the shell's bounds own.
+// And the Stigmer harness's shell's timeout ceiling, which the shell's bounds own.
 export { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
@@ -188,18 +188,20 @@ export interface Config {
    */
   readonly livenessIntervalMs: number;
   /**
-   * The most the native shell's model may raise one command's timeout to
-   * (seconds, STIGMER_SHELL_TIMEOUT_MAX_SECONDS, the `shellTimeoutMaxSeconds`
-   * option); a larger request is clamped and the result says so
+   * The most the model may raise one command's timeout to in the Stigmer
+   * harness's shell (seconds, STIGMER_SHELL_TIMEOUT_MAX_SECONDS, the
+   * `shellTimeoutMaxSeconds` option); a larger request is clamped and the
+   * result says so
    * (`activities/execute-deep-agent/shell-tool.ts`). Crosses to the agent
    * host, where the shell runs.
    */
   readonly shellTimeoutMaxSeconds: number;
   /**
-   * Whether the native shell's model may start a command in the background
-   * (STIGMER_SHELL_BACKGROUND_ENABLED, the `shellBackgroundEnabled` option;
-   * on by default). Off, `execute` is declared without `background`, no
-   * `stop_background_command` is bound, and no round-end wait is installed
+   * Whether the model may start a command in the background on the Stigmer
+   * harness's shell (STIGMER_SHELL_BACKGROUND_ENABLED, the
+   * `shellBackgroundEnabled` option; on by default). Off, `execute` is
+   * declared without `background`, no `stop_background_command` is bound,
+   * and no round-end wait is installed
    * (`turn-setup.ts`): every command runs in the foreground, so a turn never
    * waits on one and a sandbox never stays awake for one. Crosses to the
    * agent host, where the shell runs.

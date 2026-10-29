@@ -9,7 +9,7 @@
  * bounded by a budget, delivered as vision payload alongside the user's turn
  * message. The runtime's File phase offers each image the message carried to
  * {@link VisionBudget.offer} (`file-mount.ts` `offerMountedImage`), and the
- * harnesses adapt the accepted images to their transport shape (the native
+ * harnesses adapt the accepted images to their transport shape (the Stigmer
  * harness via {@link toLangChainImageBlocks}). No eligibility or
  * budget rule lives anywhere else.
  *
@@ -118,7 +118,7 @@ export type VisionOutcome =
 /**
  * What a harness can actually display inline: a transport that recognizes
  * fewer image types than the sniff does declares the ones it reads, and the
- * rest degrade as `unsupported_format`. The native and Claude harnesses both
+ * rest degrade as `unsupported_format`. The Stigmer and Claude harnesses both
  * reach the Messages API, which reads all four types.
  */
 export interface VisionProfile {

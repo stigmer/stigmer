@@ -20,7 +20,7 @@
 //   guessed. A placed call also keeps its span's start (`start_ms`), on the
 //   runner's clock, so a reader can tell which calls ran while a background
 //   command did (`background-readings.ts`).
-// - The outcome is read from the result, because the native engine RETURNS a
+// - The outcome is read from the result, because the Stigmer harness RETURNS a
 //   failed edit as a plain result string ("Error: String not found in
 //   file: ..."), so a call can complete and have done nothing (deepagents
 //   backends/utils.ts `performStringReplacement`; its sandbox twin words the
@@ -32,15 +32,15 @@
 //   to tell a re-read from a new read.
 // - A shell call that asked to run its command in the background says so
 //   (`background`), because its result is the command's start, not its
-//   output: the native shell tool's `background: true` argument (runner
-//   middleware/shell.ts `BACKGROUND_ARG`, since #2562).
+//   output: the `background: true` argument of the Stigmer harness's shell
+//   tool (runner middleware/shell.ts `BACKGROUND_ARG`, since #2562).
 import type { ToolUse, Turn } from "@stigmer/session-log";
 import type { TimingLine, TodoCounts, ToolCallFact, ToolCallOutcome } from "./report";
 
 /** The longest command head a fact keeps: enough to tell `go test ./...` from `ls -la`. */
 export const COMMAND_TARGET_CHARS = 80;
 
-/** The native engine's shell tool, the one call that can run in the background. */
+/** The Stigmer harness's shell tool, the one call that can run in the background. */
 export const SHELL_TOOL = "execute";
 
 const MODEL_ROUND_SEGMENT = "model_round";
@@ -48,12 +48,12 @@ const TOOL_SEGMENT_PREFIX = "tool:";
 const SUB_AGENT_SEGMENT_PREFIX = "sub_agent:";
 
 // The argument that names what a call points at, in the order a call is read:
-// the file tools' `file_path` (native `read_file`, `edit_file`, `write_file`),
-// a listing's or a search's `path`, a search's `pattern`. `command` is read
-// last and cut to its head.
+// the file tools' `file_path` (the Stigmer harness's `read_file`,
+// `edit_file`, `write_file`), a listing's or a search's `path`, a search's
+// `pattern`. `command` is read last and cut to its head.
 const TARGET_ARGS = ["file_path", "path", "pattern"] as const;
 
-// Failed edits the native engine returns as a result rather than an error,
+// Failed edits the Stigmer harness returns as a result rather than an error,
 // in both of its backends' words.
 const NOT_FOUND_RESULTS = [/^Error: String not found in file/, /^String not found in file/];
 const NOT_UNIQUE_RESULTS = [/has multiple occurrences/, /^Multiple occurrences found in/];

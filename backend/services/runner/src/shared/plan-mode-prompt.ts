@@ -15,7 +15,7 @@
  * markdown heading today) — the framing is house style; the words are
  * shared.
  *
- * Enforcement is separate from instruction: the native harness ALSO denies
+ * Enforcement is separate from instruction: the Stigmer harness ALSO denies
  * filesystem writes at the tool layer (see execute-deep-agent/turn-setup.ts), so
  * for it this directive is guidance toward a well-formed plan, not the
  * enforcement mechanism; the Claude harness likewise leaves the writing

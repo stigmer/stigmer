@@ -31,7 +31,7 @@
  *     a call held for a person's decision is not running.
  *   - A call is DELEGATING when a `sub_agent_started` names its id (the
  *     sub-agent's id is the delegating call's on every harness,
- *     `transcript/events.ts`), in either order: native announces the
+ *     `transcript/events.ts`), in either order: Stigmer announces the
  *     sub-agent before the `task` call starts. A delegating call never counts
  *     as open: every harness streams its sub-agents' work, so the
  *     sub-agent's own calls are what count, and a sub-agent whose model

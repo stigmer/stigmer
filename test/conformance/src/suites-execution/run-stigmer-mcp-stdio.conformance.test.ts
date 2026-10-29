@@ -77,7 +77,7 @@ interface StdioAgent {
   sessionId: string;
 }
 
-// The fixture agent on the real stigmer mcp-server, with a NATIVE session the
+// The fixture agent on the real stigmer mcp-server, with a Stigmer session the
 // arms run one or more runs in. Its description is a fresh marker, the answer
 // a read through the stdio server must return.
 async function provisionStdioAgent(): Promise<StdioAgent> {

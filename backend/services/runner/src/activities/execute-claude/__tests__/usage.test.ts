@@ -9,7 +9,7 @@
  * Why it matters: the runtime enforces the cost cap from these reports, so a
  * call counted twice overcharges, a call never counted escapes the cap, and
  * a sub-agent's stream folded into the main loop's would double its spend.
- * The counts follow the native engine's convention (`input` includes both
+ * The counts follow the Stigmer harness's convention (`input` includes both
  * cache buckets) and the price is the shared table's over the disjoint ones.
  */
 

@@ -103,7 +103,7 @@ const HARNESS_OF_WORD: ReadonlyMap<string, Exclude<Harness, Harness.UNSPECIFIED>
  * drift must never break a previously-valid schedule at its 3 AM fire.
  *
  * An explicit `openai:<name>` or `anthropic:<name>` reference passes on the
- * native harness (and on "", any harness) without a registry entry: it names
+ * Stigmer harness (and on "", any harness) without a registry entry: it names
  * a model the organization serves on its own endpoint, which the runner
  * routes by the prefix and no catalog lists. The Claude harness runs only
  * catalog models, so the form is judged like any other name there.

@@ -3,12 +3,12 @@
  * knows today. Costs no tokens: it reads the provider's model catalog.
  *
  * The registry's rows decide what id a turn sends (`resolveToApiModelId` in
- * `../model-registry.ts`: a native row's `apiModelId`, else its id). A
+ * `../model-registry.ts`: a Stigmer row's `apiModelId`, else its id). A
  * provider retiring a model fails every user of that row at their first
  * message, while every test here stays green on the fixture. This case reads
  * the control plane's real registry (`real-model-registry.ts`) and asks
- * Anthropic, one id at a time (`GET /v1/models/{id}`), for every native row.
- * Six native ids are undated aliases; the per-id read is used because the
+ * Anthropic, one id at a time (`GET /v1/models/{id}`), for every Stigmer row.
+ * Six of those ids are undated aliases; the per-id read is used because the
  * list endpoint names dated models. If an alias is not resolved there, the
  * failure names it, and the reading is a design question, not a retry.
  *
@@ -20,7 +20,7 @@
 import { describe, expect, it } from "vitest";
 
 import { liveSecret } from "../../__test-utils__/live-gate.js";
-import { nativeRows, providerModelId, realModelRegistry } from "../../__test-utils__/real-model-registry.js";
+import { stigmerRows, providerModelId, realModelRegistry } from "../../__test-utils__/real-model-registry.js";
 
 const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
 /** The API version every Anthropic request names. */
@@ -28,11 +28,11 @@ const ANTHROPIC_VERSION = "2023-06-01";
 
 const registry = realModelRegistry();
 
-describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("the registry's native ids at Anthropic", () => {
-  it("every native row's provider id resolves at Anthropic", async () => {
+describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("the registry's Stigmer ids at Anthropic", () => {
+  it("every Stigmer row's provider id resolves at Anthropic", async () => {
     const key = liveSecret("ANTHROPIC_API_KEY") ?? "";
     const unknown: string[] = [];
-    for (const row of nativeRows(registry)) {
+    for (const row of stigmerRows(registry)) {
       const id = providerModelId(row);
       const response = await fetch(`${ANTHROPIC_MODELS_URL}/${encodeURIComponent(id)}`, {
         headers: { "x-api-key": key, "anthropic-version": ANTHROPIC_VERSION },
@@ -42,6 +42,6 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("the registry's native ids at 
       }
       if (!response.ok) unknown.push(`${row.id} -> ${id} (${response.status})`);
     }
-    expect(unknown, "native rows whose provider id Anthropic does not know").toEqual([]);
+    expect(unknown, "Stigmer rows whose provider id Anthropic does not know").toEqual([]);
   });
 });

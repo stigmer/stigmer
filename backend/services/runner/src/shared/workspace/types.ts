@@ -65,7 +65,7 @@ export interface ExecuteOptions {
  * platform files (skills, inputs) physically separate from the user's
  * workspace. The routing covers the RUNNER's own reads/writes through
  * this interface; the agent sees the same files through the per-turn
- * `.stigmer` symlink (see stigmer-link.ts), and the native file tools
+ * `.stigmer` symlink (see stigmer-link.ts), and the Stigmer file tools
  * through their read-only `.stigmer/` route over the same dir
  * (`activities/execute-deep-agent/platform-route.ts`).
  */

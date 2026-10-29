@@ -15,7 +15,7 @@
  * sequences them, and the adapter runs its own harness-specific steps after
  * the whole record exists.
  *
- * Shape, chosen against the native orchestrator's `setup.ts` (deleted in
+ * Shape, chosen against the Stigmer orchestrator's `setup.ts` (deleted in
  * #1096): a typed record built from small functions (the `SetupResult` mold),
  * never one 775-line `performSetup`. The record is the adapter contract's `TurnInput`
  * (`types.ts`): every phase returns a named slice of it, and
@@ -721,7 +721,7 @@ export type EvalCaseOutcome =
  * capture substrate is derived again; the capture baseline is pinned after
  * every phase (`run-turn.ts`), so what the scaffold made is baseline, never
  * the try's change. The case's variables join the agent's run values, the
- * one path to the native shell and the plugin's hooks.
+ * one path to the Stigmer harness's shell and the plugin's hooks.
  */
 export async function prepareEvalCasePhase(
   deps: ResolutionDeps,
@@ -823,7 +823,7 @@ export async function startEvalMocks(
  * the run continues without it (the row is settled SKIPPED after the turn,
  * `approval-decisions.ts`). Until #1096 a REJECT failed the turn here with
  * its own FAILED arm; the proto (`APPROVAL_ACTION_REJECT`:
- * "does NOT fail the run"), the conformance suite and the native harness
+ * "does NOT fail the run"), the conformance suite and the Stigmer harness
  * said otherwise since stigmer#197, and the runtime agrees.
  *
  * File review is not here: a turn never waits on it, and the undos a person
@@ -948,7 +948,7 @@ export const PLATFORM_TOOLS_OFF_NOTICE =
  * unlike the env read, where secrets are load-bearing.
  *
  * The approval default's MCP half is built last (which tools their servers
- * mark destructive, read live), with two bypasses shared with the native
+ * mark destructive, read live), with two bypasses shared with the Stigmer
  * harness (`shared/approval-policy.ts` `ActiveLeases`): the pre-armed
  * spec.auto_approve_all is the one whole-run global bypass; an interactive
  * APPROVE_ALL grants a run-lifetime lease scoped to that action's class,
@@ -1162,7 +1162,7 @@ export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | unde
  *
  * The `.stigmer` link this and the File mount create is removed in
  * the runtime's finally, after the harness's own teardown. Until #1096 the
- * native orchestrator fetched and mounted sub-agent skills itself
+ * Stigmer orchestrator fetched and mounted sub-agent skills itself
  * (`subagent-transformer.ts` with a client); this phase is where that read
  * lives now.
  *
@@ -1593,7 +1593,7 @@ export async function holdPlatformToTurnPhase(
  * capability of the model the turn will run on: the one the turn's resolved
  * settings name (`status.run_config`, which the control plane resolved once
  * at create), or the engine's own registry default when they name none —
- * the model the native and Claude engines build in that case, so the budget
+ * the model the Stigmer and Claude engines build in that case, so the budget
  * asks about the model that will actually see the image. The registry is
  * asked only when the message carries an image. The vision
  * profile and the engine are the harness's (each engine accepts different

@@ -20,7 +20,7 @@ import type { BenchmarkAxes, TimingLine, TimingSegment } from "./report";
 export const TURN_PHASES_EVENT = "turn_phases";
 export const EXECUTION_SETUP_EVENT = "execution_setup";
 
-/** The native `execution_setup` segment that spans connecting the MCP servers. */
+/** The Stigmer harness's `execution_setup` segment that spans connecting the MCP servers. */
 export const CONNECT_MCP_SEGMENT = "connect_mcp";
 
 // How long a reader waits for an execution's `turn_phases` line to land in

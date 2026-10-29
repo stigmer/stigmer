@@ -1,5 +1,5 @@
 /**
- * The checkpoint prompt the native engine's summarizer is given
+ * The checkpoint prompt the Stigmer harness's summarizer is given
  * (`compaction.ts` passes it to deepagents' `createSummarizationMiddleware`
  * as `summaryPrompt`): the one source of truth for what a model is told when
  * its conversation is compacted.

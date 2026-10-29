@@ -15,7 +15,7 @@ export type HarnessOption = "stigmer" | "claude";
  * The proto {@link Harness} member for each option — the one table the
  * option set is read from, so the SDK can never offer an engine the proto
  * does not name (stigmer/stigmer#1143: four extra options once mapped
- * silently to NATIVE). Listed in proto enum order.
+ * silently to the Stigmer harness). Listed in proto enum order.
  */
 const HARNESS_BY_OPTION = {
   stigmer: Harness.STIGMER,

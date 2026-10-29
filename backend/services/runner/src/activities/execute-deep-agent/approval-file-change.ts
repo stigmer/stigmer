@@ -1,9 +1,9 @@
 /**
- * Pre-execution args capture for the HITL approval gate (native harness).
+ * Pre-execution args capture for the HITL approval gate (Stigmer harness).
  *
  * When the graph pauses for approval — before the tool runs — this recovers
  * the proposed call's arguments so the gate can show the proposed change. It
- * owns only the native-specific seam: correlating a gated `tool_call_id` to
+ * owns only the Stigmer-specific seam: correlating a gated `tool_call_id` to
  * its arguments from graph state (the authoritative single source of truth at
  * the interrupt, since the streamed input cache is empty and the interrupt
  * value carries only a few fields). The approval card renders the proposed

@@ -529,7 +529,7 @@ export class RunStarter {
     // the agent's current version when the fire starts), and harness and
     // resources come from the owner's spec. An unspecified harness stays
     // unset — the agent's engine applies, else the platform default (OSS:
-    // native). Resources are Files and git repositories (the contract
+    // Stigmer). Resources are Files and git repositories (the contract
     // refuses a folder); each File becomes the new conversation's own copy
     // when its session is created, asked again of the owner the fire acts
     // as. Credentials, when a repo is private, ride a vault the routine

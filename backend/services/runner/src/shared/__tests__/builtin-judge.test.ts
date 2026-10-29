@@ -2,8 +2,8 @@
  * `shared/builtin-judge.ts`: the built-in judge a judge-labelled run runs.
  *
  * What these pin:
- *   - the judge's deny-list leaves the native engine no built-in tool: every
- *     tool NATIVE_TOOL_COVERS names is out of scope under the judge's lists,
+ *   - the judge's deny-list leaves the Stigmer harness no built-in tool: every
+ *     tool STIGMER_TOOL_COVERS names is out of scope under the judge's lists,
  *     from that one source and not a copy;
  *   - the spec carries the instruction and the deny-list, and no MCP usage,
  *     skill ref, sub-agent, hook or env;
@@ -21,18 +21,18 @@ import {
   builtInJudgeSpec,
   isJudgeRunLabels,
 } from "../builtin-judge.js";
-import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import { ToolScope } from "../tool-lists.js";
 
 describe("the built-in judge", () => {
-  it("leaves the native engine no built-in tool", () => {
+  it("leaves the Stigmer harness no built-in tool", () => {
     const spec = builtInJudgeSpec();
     const scope = ToolScope.of("The judge", {
       tools: spec.tools,
       disallowedTools: spec.disallowedTools,
     });
-    for (const name of NATIVE_TOOL_COVERS.keys()) {
-      expect(scope.allowsEngineTool(name, NATIVE_TOOL_COVERS), name).toBe(false);
+    for (const name of STIGMER_TOOL_COVERS.keys()) {
+      expect(scope.allowsEngineTool(name, STIGMER_TOOL_COVERS), name).toBe(false);
     }
   });
 

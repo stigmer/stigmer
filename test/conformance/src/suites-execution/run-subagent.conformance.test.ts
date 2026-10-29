@@ -93,17 +93,17 @@ import { readConversation } from "@stigmer/test-support/claude-engine-wire";
 import { CLAUDE_ARM, type ArmStep, claudeTurnsOnly } from "../support/engine-arms";
 import { createTarget, type TargetProfile } from "../targets";
 
-// The built-in delegation tool the native engine binds when a turn has
+// The built-in delegation tool the Stigmer harness binds when a turn has
 // subagents.
 const TASK_TOOL_NAME = "task";
-// The native engine's shell tool, which Claude's `Bash` names.
-const NATIVE_SHELL_TOOL = "execute";
+// The Stigmer harness's shell tool, which Claude's `Bash` names.
+const STIGMER_SHELL_TOOL = "execute";
 // The platform's own tools a subagent is never given: memory capture, and a
 // channel's send tool.
 const MEMORY_TOOL_NAME = "remember";
 const CHANNEL_SEND_TOOL_NAME = "send_channel_message";
 
-// Two native registry ids whose provider ids differ from them and from each
+// Two Stigmer registry ids whose provider ids differ from them and from each
 // other, so the model each request ran on is read off the wire.
 const PARENT_MODEL = "claude-sonnet-4.6";
 const SUBAGENT_MODEL = "claude-haiku-4.5";
@@ -234,7 +234,7 @@ async function subagentRecordOf(final: Run, name: string) {
 }
 
 describe("Run — a subagent runs its own definition", () => {
-  it("a native turn hands off to a saved agent, which runs on its own model with its own plugin's tool the parent lacks and a tool the parent disallows; its record carries the delegation", async () => {
+  it("a Stigmer turn hands off to a saved agent, which runs on its own model with its own plugin's tool the parent lacks and a tool the parent disallows; its record carries the delegation", async () => {
     const { org } = await target.provisionTenancy();
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
       org,
@@ -262,7 +262,7 @@ describe("Run — a subagent runs its own definition", () => {
     mock.enqueue(
       anthropicToolUses([
         { toolCallId: "call_sub_echo", toolName: ECHO_TOOL_NAME, toolInput: { text: "from the subagent" } },
-        { toolCallId: "call_sub_shell", toolName: NATIVE_SHELL_TOOL, toolInput: { command: "echo shell-ran-in-subagent" } },
+        { toolCallId: "call_sub_shell", toolName: STIGMER_SHELL_TOOL, toolInput: { command: "echo shell-ran-in-subagent" } },
       ]),
     );
     mock.enqueue(anthropicText(SUBAGENT_ANSWER));
@@ -287,10 +287,10 @@ describe("Run — a subagent runs its own definition", () => {
     const parentOffered = offeredAt(0);
     expect(parentOffered, "the parent is offered the hand-off").toContain(TASK_TOOL_NAME);
     expect(parentOffered, "the subagent's plugin tool is not the parent's").not.toContain(ECHO_TOOL_NAME);
-    expect(parentOffered, "the parent's lists remove its shell").not.toContain(NATIVE_SHELL_TOOL);
+    expect(parentOffered, "the parent's lists remove its shell").not.toContain(STIGMER_SHELL_TOOL);
     const subagentOffered = offeredAt(1);
     expect(subagentOffered, "the subagent is offered its own plugin's tool").toContain(ECHO_TOOL_NAME);
-    expect(subagentOffered, "the parent's lists do not reach the subagent").toContain(NATIVE_SHELL_TOOL);
+    expect(subagentOffered, "the parent's lists do not reach the subagent").toContain(STIGMER_SHELL_TOOL);
     expect(subagentOffered, "one level: a subagent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
 
     const turn = await turnOfRun(clients, final);
@@ -395,9 +395,9 @@ describe("Run — a subagent runs its own definition", () => {
 
     // `env | grep`, not `printenv A B`: BSD printenv prints one name.
     const printKeys = { command: "env | grep '_ONLY_KEY=' ; true" };
-    mock.enqueue(anthropicToolUse("call_parent_env", NATIVE_SHELL_TOOL, printKeys));
+    mock.enqueue(anthropicToolUse("call_parent_env", STIGMER_SHELL_TOOL, printKeys));
     mock.enqueue(handOff("toolu_task_env", name));
-    mock.enqueue(anthropicToolUse("call_subagent_env", NATIVE_SHELL_TOOL, printKeys));
+    mock.enqueue(anthropicToolUse("call_subagent_env", STIGMER_SHELL_TOOL, printKeys));
     mock.enqueue(anthropicText(SUBAGENT_ANSWER));
     mock.enqueue(anthropicText("Done."));
 
@@ -455,7 +455,7 @@ describe("Run — a subagent runs its own definition", () => {
     const name = subagents[0]!.metadata!.slug;
 
     mock.enqueue(handOff("toolu_task_clean", name));
-    mock.enqueue(anthropicToolUse("call_subagent_rm", NATIVE_SHELL_TOOL, { command: "rm -rf build" }));
+    mock.enqueue(anthropicToolUse("call_subagent_rm", STIGMER_SHELL_TOOL, { command: "rm -rf build" }));
     mock.enqueue(anthropicText(SUBAGENT_ANSWER));
     mock.enqueue(anthropicText("Done."));
 
@@ -627,7 +627,7 @@ describe("Run — a subagent's local program runs where a person's own runner ru
   );
 });
 
-// A hand-off on Claude: the engine's own `Agent` tool (native's `task`,
+// A hand-off on Claude: the engine's own `Agent` tool (the Stigmer harness's `task`,
 // @stigmer/tool-vocabulary) starts a saved agent the conversation's agent
 // lists, which the engine runs from the definition the runner gave it, in
 // the foreground, on its own thread; and a helper never waits for a person:

@@ -1,5 +1,5 @@
 /**
- * The fold (../fold.ts) over every hermetic event golden of the native
+ * The fold (../fold.ts) over every hermetic event golden of the Stigmer
  * harness (backend/services/runner/src/activities/execute-deep-agent/
  * __tests__/hermetic/goldens): each golden's fold names the same items as
  * the rows golden the same turn wrote beside it. The runner writes its
@@ -397,7 +397,7 @@ describe("execute-deep-agent file-review-reconcile: an undo another turn put bac
 });
 
 describe("the corpus", () => {
-  it("covers the native harness's goldens", () => {
+  it("covers the Stigmer harness's goldens", () => {
     expect(new Set(ALL.map((golden) => golden.harness))).toEqual(new Set(HARNESSES));
     expect(ALL.length).toBeGreaterThanOrEqual(30);
   });

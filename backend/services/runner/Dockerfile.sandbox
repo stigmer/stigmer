@@ -67,8 +67,8 @@
 # The runtimes stay because agents legitimately shell out to node/python/go
 # in their workspaces. The compose runner runs MODE=local, where stdio MCP
 # IS allowed — its subprocesses spawn inside this container. ripgrep is the
-# native agent's grep tool's engine (deepagents spawns `rg`; without it the
-# tool falls back to a substring search).
+# Stigmer harness's grep tool's engine (deepagents spawns `rg`; without it
+# the tool falls back to a substring search).
 #
 # Layers are cut by owner, so a node already holding one build pulls only
 # what the next one changed (stigmer/stigmer#1244: every build used to be

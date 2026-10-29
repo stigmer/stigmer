@@ -6,7 +6,7 @@
 // THIS IS A MEASUREMENT, NOT A TEST. No vitest config collects it, it costs no
 // tokens (the model is the mock), and it takes as long as its profile: about
 // an hour for `goal` at most, three hours for `endurance`. It boots the
-// execution target's own stack (Temporal, the server, the native runner and
+// execution target's own stack (Temporal, the server, the Stigmer harness and
 // the mock, src/targets/local-execution.ts), creates one run trusted for the
 // whole run (spec.auto_approve_all, since a shell is gated in every other
 // posture), scripts the mock with one tool call per step of the profile, and
@@ -47,7 +47,7 @@
 // compacts its own conversation where a real one would; the summary keeps
 // the task and the steps done, as a model's would. A step a kill cut comes
 // back to the model as interrupted, its outcome unknown, and the model asks
-// for it again; native re-runs it from its checkpoint.
+// for it again; the Stigmer harness re-runs it from its checkpoint.
 //
 // Needs: the `temporal` CLI on PATH, and the `stigmer` CLI (`make
 // install-cli-shim`), as the execution lane does; CONFORMANCE_POSTGRES_URL for
@@ -91,11 +91,11 @@ function shellStepOf(id: string, step: LongTurnStep, files: StepFiles): ArmStep 
 }
 
 /**
- * Native: one scripted model turn per step, then the closing answer, on the
+ * Stigmer: one scripted model turn per step, then the closing answer, on the
  * queue. A subagent's own model calls are the next queued turns: its shell
  * (the step's work, its timeout raised as a model raises it), then its answer.
  */
-function nativeEngine(profile: LongTurnProfile, files: StepFiles): RealClockEngine {
+function stigmerEngine(profile: LongTurnProfile, files: StepFiles): RealClockEngine {
   return {
     harness: undefined,
     async prepare(clients, mock, org) {
@@ -180,7 +180,7 @@ async function main(): Promise<void> {
     // Opened before the run, as a person's console is open before they start one.
     attention = new AttentionFollower(clients, org);
 
-    const engine = flags.harness === "claude" ? claudeEngine(profile, files) : nativeEngine(profile, files);
+    const engine = flags.harness === "claude" ? claudeEngine(profile, files) : stigmerEngine(profile, files);
     const task = `Play the ${profile.name} long turn.`;
     const agentRef = await engine.prepare(clients, mock, org, task);
     const created = await clients.agentExecutionCommand.create(

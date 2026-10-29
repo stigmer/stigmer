@@ -3,7 +3,7 @@
  * tries by and the eval run's workflow plans them by (temporal/evals/
  * context.ts), so
  * the two always agree: with no target named, a try runs the agent as a
- * conversation runs it, on its engine (native when it names none), with its
+ * conversation runs it, on its engine (Stigmer when it names none), with its
  * model as the label; the try names no model (domain/eval-run/matrix.ts
  * runsAgentModel), so the agent's own tier and thinking apply.
  *

@@ -17,7 +17,7 @@
  * PRESENTATION framing; the digest is prepended to the TURN'S USER MESSAGE on
  * both harnesses — never the system prompt — because it is per-turn
  * conversation content that must persist in the conversation history: the
- * native system prompt is rebuilt per invocation and would forget the digest
+ * Stigmer system prompt is rebuilt per invocation and would forget the digest
  * one turn later, while a message rides the checkpointer/agent store forever.
  *
  * Unlike its metadata-keyed siblings (context-bridge, sender-identity,

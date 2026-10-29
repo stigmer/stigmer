@@ -40,7 +40,7 @@ export const AGENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENT_KIND = "Agent";
 
 // The BARE agent's one instruction: the only agent-authored bytes in what the
-// native harness sends the model when nothing else is attached. One home, so
+// Stigmer harness sends the model when nothing else is attached. One home, so
 // the request-shape goldens (which photograph this agent's wire) and the live
 // benchmark (which measures it) are the same agent by construction, not by
 // copy. Changing it moves the goldens and the benchmark's baseline together.

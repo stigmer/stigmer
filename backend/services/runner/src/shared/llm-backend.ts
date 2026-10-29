@@ -30,7 +30,7 @@ export const BACKEND_DOC_URL = "https://stigmer.ai/docs/guides/runners/model-bac
  * service that hosts Claude — "azure" would collide with the unrelated
  * Azure OpenAI service). The design vocabulary also reserves `azure`
  * (OpenAI); until that adapter lands — contingent on OpenAI models
- * entering the native catalog — selecting it is a distinct "recognized
+ * entering the Stigmer harness's catalog — selecting it is a distinct "recognized
  * but not implemented" failure, never a silent fallback to the public
  * API, which would quietly route traffic outside the compliance boundary
  * the operator asked for.
@@ -596,7 +596,7 @@ export function toBedrockModelId(
  *    Foundry's DEFAULT deployment names are the dateless Claude ids
  *    (claude-sonnet-4-5-20250929 -> claude-sonnet-4-5; dateless ids pass
  *    through unchanged). Verified against Anthropic's published Foundry
- *    model table: every native-catalog id maps onto a real default
+ *    model table: every Stigmer-catalog id maps onto a real default
  *    deployment name. Note this is the INVERSE of toVertexModelId, which
  *    keeps the date and reseparates it with `@`.
  *

@@ -8,7 +8,7 @@
  * is closed — since #1097 the settle finalizes every streaming flag
  * however the stream ended; until then this row persisted
  * `isStreaming: true` in both goldens, the one rendered defect that PR's
- * review found on native.
+ * review found on Stigmer.
  *
  * Between turns: APPROVE_ALL on the WAITING row. `deriveActiveLeases`
  * reduces it to the scope of the tool it was made on — for a built-in, its
@@ -32,7 +32,7 @@
  * tests and the conformance execution class.
  *
  * What every reinvocation golden here shows since #1096 (the runtime over
- * the native adapter): `startedAt` is THIS turn's own,
+ * the Stigmer harness's adapter): `startedAt` is THIS turn's own,
  * not turn 1's carried by the orchestrator's whole-status clone; the
  * `fileReviewEventStream` carries only the events THIS turn authored (the
  * runtime seeds messages, sub-agents, artifacts, write-backs, todos, usage,

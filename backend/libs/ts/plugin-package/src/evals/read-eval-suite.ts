@@ -132,9 +132,9 @@ export type EvalEngineUnsupportedFeature = "resumed conversations";
 
 /**
  * The features each engine cannot run, in the order a case is checked for
- * them. The native engine runs every one. The Claude engine's conversation
+ * them. The Stigmer harness runs every one. The Claude engine's conversation
  * lives in its own transcript, which no recorded history seeds yet; its
- * shell is the runner's, so `env` reaches it as on native.
+ * shell is the runner's, so `env` reaches it as on Stigmer.
  */
 export const EVAL_ENGINE_UNSUPPORTED_FEATURES: Readonly<Record<EvalEngine, readonly EvalEngineUnsupportedFeature[]>> = {
   stigmer: [],

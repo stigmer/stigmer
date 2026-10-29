@@ -11,8 +11,8 @@ export interface UsePersistedModelOptions {
    * Filter the model registry by harness before validating the stored model.
    *
    * The persisted model is read from that harness's own localStorage key
-   * and validated against its models. When omitted, the native key and the
-   * unified registry apply.
+   * and validated against its models. When omitted, the Stigmer harness's
+   * key and the unified registry apply.
    */
   readonly harness?: HarnessOption;
   /**
@@ -36,7 +36,7 @@ export type UsePersistedModelReturn = readonly [
 
 /**
  * Where each engine's last model pick is kept on this device: one key per
- * engine, so a pick on one engine never replaces another's. The native key
+ * engine, so a pick on one engine never replaces another's. The Stigmer key
  * predates the table and keeps its string, so no stored pick is lost.
  */
 const MODEL_STORAGE_KEYS: Readonly<Record<HarnessOption, string>> = {

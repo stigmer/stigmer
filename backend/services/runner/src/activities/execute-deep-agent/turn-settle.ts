@@ -1,5 +1,5 @@
 /**
- * The native deep-agent harness's settle — from a consumed stream to a
+ * the Stigmer harness's settle — from a consumed stream to a
  * `TurnOutcome`.
  *
  * In order: settle the gate's unattended skips

@@ -25,7 +25,7 @@
  *     that does (Claude, the `boundaryRewritesRow` capability) once the row
  *     is beyond the boundary's reach or the turn's terminal write proves
  *     the boundary ran. A call an unattended turn skipped carries
- *     `evaluated_permission: "deny"` ({@link permissionOf}): native's gate
+ *     `evaluated_permission: "deny"` ({@link permissionOf}): the Stigmer harness's gate
  *     opens its row already saying so, and Claude's settle stamps it
  *     before the row's use is written;
  *   - a tool result, once its row settles, with the same boundary rule;

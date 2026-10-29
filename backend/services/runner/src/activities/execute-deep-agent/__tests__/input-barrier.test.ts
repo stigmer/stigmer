@@ -1,5 +1,5 @@
 /**
- * Pins the native engine's barrier before a take (../input-barrier.ts): a
+ * Pins the Stigmer harness's barrier before a take (../input-barrier.ts): a
  * crossing writes one barrier and waits until the loop reaches it, goes on
  * after its wait when the loop never does, and goes on at once with no
  * writer; the loop reads a barrier's id from its custom-stream event only.

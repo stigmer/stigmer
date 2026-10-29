@@ -967,7 +967,7 @@ describe("usage reports over the wire", () => {
     expect(quiet.aggregate?.totalTokens).toBe(0n);
     expect(quiet.aggregate?.servedBy).toEqual([]);
 
-    // No session row and no meter: the native rule, counted under the
+    // No session row and no meter: the Stigmer rule, counted under the
     // unknown server (input less both cache buckets).
     const reported = await query.getRunUsageReport({
       runId: await seed(

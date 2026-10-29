@@ -2,7 +2,7 @@
 
 /**
  * Harness split: the organization's tokens and calls per run harness
- * (native, Claude) as a segmented bar with labelled shares, each
+ * (Stigmer, Claude) as a segmented bar with labelled shares, each
  * engine named as the pickers name it (`HARNESS_META`).
  *
  * Segments are sized by tokens, the one measure every run has (a run

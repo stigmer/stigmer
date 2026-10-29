@@ -1,5 +1,5 @@
 /**
- * The native engine's delivery of the messages a person sends while its
+ * The Stigmer harness's delivery of the messages a person sends while its
  * turn works (`harness/turn-input.ts`): read at the next step, as a user
  * message after the step's tool results, inside the same turn.
  *

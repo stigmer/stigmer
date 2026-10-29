@@ -1,5 +1,5 @@
 /**
- * Live: one native (deep-agent) turn on Claude Haiku, the cheapest native
+ * Live: one Stigmer turn on Claude Haiku, the cheapest Stigmer
  * model, through the REAL `ExecuteDeepAgent` activity and the real model
  * client against Anthropic, and the execution's own cost cap ending a turn
  * that crosses it.
@@ -33,7 +33,7 @@ import { COST_LIMIT_ERROR_PREFIX } from "../../../shared/cost-guard.js";
 import { beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
 import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
-/** The cheapest native model in the registry; the record names it, so the default model is never consulted. */
+/** The cheapest Stigmer-harness model in the registry; the record names it, so the default model is never consulted. */
 const LIVE_MODEL = "claude-haiku-4.5";
 /** The execution's own cost cap: a turn that would spend more is ended TERMINATED by the runtime. */
 const MAX_COST_USD = 0.05;
@@ -72,7 +72,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
 
     const final = record.lastFullStatus;
     const cost = final?.streamingUsage?.estimatedCostUsd ?? 0;
-    recordLiveSpend("native plain turn (claude-haiku-4.5)", cost);
+    recordLiveSpend("Stigmer plain turn (claude-haiku-4.5)", cost);
 
     const rows = record.toolCalls().map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
     expect(invocation.outcome.kind, final?.error).toBe("returned");
@@ -95,7 +95,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
     await runDeepAgentTurn(beginLiveDeepAgentScenario({ env, record }));
 
     const final = record.lastFullStatus;
-    recordLiveSpend("native cost-cap stop (claude-haiku-4.5)", final?.streamingUsage?.estimatedCostUsd);
+    recordLiveSpend("Stigmer cost-cap stop (claude-haiku-4.5)", final?.streamingUsage?.estimatedCostUsd);
 
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
     expect(final?.error.startsWith(COST_LIMIT_ERROR_PREFIX), final?.error).toBe(true);

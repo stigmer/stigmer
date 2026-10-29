@@ -11,7 +11,7 @@
 // (`stigmer/<model>@<endpoint>#<code>`, `claude/<model>#<code>`), or a prefix
 // of one ending where its endpoint or code begins, or inside its code, when
 // one arm matches (`stigmer/<model>`, `stigmer/<model>@<endpoint>#1a2b`); the
-// default is native on the parity model.
+// default is the Stigmer arm on the parity model.
 //
 // Exit 0 when every arm holds the bar, 1 when any misses it or is not
 // measured, 2 when the reports cannot be read or compared together.

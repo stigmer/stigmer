@@ -15,7 +15,7 @@
  *
  * Stigmer reads hooks on tool calls only, and only command handlers that
  * can decide a call: `PreToolUse` and `PostToolUse` in Claude Code's
- * format (the native engine runs them), and Cursor's `preToolUse`, `beforeShellExecution`,
+ * format (the Stigmer harness runs them), and Cursor's `preToolUse`, `beforeShellExecution`,
  * `beforeMCPExecution`, `postToolUse` and `afterMCPExecution`. Everything
  * else is named, never dropped silently: an event once per file
  * (`hook-event-not-run`), a handler that is not a command, runs in the

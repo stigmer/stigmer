@@ -458,13 +458,13 @@ describe("resolveSubagents: what a subagent runs with", () => {
 
   it("runs its own model only when chosen for this engine and listed by it", async () => {
     const { result } = await run([
-      saved("native-pick", { harness: Harness.STIGMER, runConfig: { modelName: "claude-sonnet-4-5" } }),
+      saved("stigmer-pick", { harness: Harness.STIGMER, runConfig: { modelName: "claude-sonnet-4-5" } }),
       saved("unset-pick", { runConfig: { modelName: "claude-sonnet-4-5" } }),
       saved("claude-pick", { harness: Harness.CLAUDE, runConfig: { modelName: "claude-opus-4-5" } }),
       saved("unlisted", { harness: Harness.STIGMER, runConfig: { modelName: "gpt-9" } }),
     ]);
     expect(ready(result).map((s) => [s.name, s.model])).toEqual([
-      ["native-pick", "claude-sonnet-4-5"],
+      ["stigmer-pick", "claude-sonnet-4-5"],
       ["unset-pick", "claude-sonnet-4-5"],
       ["claude-pick", undefined],
       ["unlisted", undefined],

@@ -80,7 +80,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a s
 
     const final = record.lastFullStatus;
     const cost = final?.streamingUsage?.estimatedCostUsd ?? 0;
-    recordLiveSpend("native resume across the think retirement (claude-haiku-4.5)", cost);
+    recordLiveSpend("Stigmer resume across the think retirement (claude-haiku-4.5)", cost);
     const rows = record.toolCalls();
     const seen = rows.map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
 

@@ -9,7 +9,7 @@
  *  - the id of the message a run opens with, from the run's execution id:
  *    the engine keeps a user message's id as its transcript entry's own
  *    (measured on SDK 0.3.310), so the transcript says whether this run's
- *    message was already taken, the way the native engine's run stamp does
+ *    message was already taken, the way the Stigmer harness's run stamp does
  *    (`execute-deep-agent/run-stamp.ts`);
  *  - the id of a message a person sent while the turn worked, from its
  *    `user.message` id: the engine reports each pushed message's progress

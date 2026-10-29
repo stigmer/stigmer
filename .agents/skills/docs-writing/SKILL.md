@@ -139,7 +139,7 @@ sections already say.
 - An example from coding work (pull-request review, code generation).
 - Filler ("it should be noted that", "it is important to understand").
 - Two Diátaxis types on one page.
-- A measured native-versus-Claude comparison, in a table, in prose or through a
+- A measured Stigmer-versus-Claude comparison, in a table, in prose or through a
   fixture. The harness benchmark (`make benchmark-harnesses`,
   `test/conformance`) is an internal instrument and this refusal is its rule's
   home: an Agent performs best in the harness and models built for it, so a

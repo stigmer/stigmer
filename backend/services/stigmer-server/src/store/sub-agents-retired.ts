@@ -22,7 +22,7 @@
  *     could not use: an entry neither list provably admits is left out,
  *     and when no entry is left the manifest lists only `Skill`, the one
  *     name that grants no tool;
- *   - its model override as `run_config.model_name` on the native engine,
+ *   - its model override as `run_config.model_name` on the Stigmer harness,
  *     the registry it was checked against.
  * The same line carries the `subagents` entry to add to the parent once
  * the manifest is applied. The parent's own hooks need no copy: a

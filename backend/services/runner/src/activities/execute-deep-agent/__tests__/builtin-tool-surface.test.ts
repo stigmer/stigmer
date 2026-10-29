@@ -1,4 +1,4 @@
-// Covers the built-in tools a native graph binds under the runner's deepagents
+// Covers the built-in tools a Stigmer graph binds under the runner's deepagents
 // profile, through the exact production resolution path (the profile is
 // resolved from the model's provider, so the scripted model masquerades as
 // ChatAnthropic — `shell-execute-gate.test.ts` explains why):
@@ -10,7 +10,7 @@
 //  - a capture backend refuses a backend delete outright, the net for a graph
 //    whose model no profile resolves.
 // The parent's own surface is the request-shape conformance facet's
-// (`test/conformance/…/run-request-shape.native-bare-agent.tool-surface.md`),
+// (`test/conformance/…/run-request-shape.stigmer-bare-agent.tool-surface.md`),
 // which drives the real model client.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -36,7 +36,7 @@ class ScriptedAnthropicModel extends ScriptedModel {
   }
 }
 
-describe("native built-in tool surface", () => {
+describe("Stigmer built-in tool surface", () => {
   let root: string;
 
   beforeEach(async () => {

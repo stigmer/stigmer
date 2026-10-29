@@ -422,7 +422,7 @@ describe("a case from a turn that continues a conversation", () => {
     }
   });
 
-  it("writes the history when the session's row is gone, as a native conversation", async () => {
+  it("writes the history when the session's row is gone, as a Stigmer conversation", async () => {
     const run = await seedConversation();
     await temp.store.deleteResource(ApiResourceKind.session, SESSION);
     const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "cite-the-bug", skill: "", callerId: CALLER });

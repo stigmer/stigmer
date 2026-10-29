@@ -3,7 +3,7 @@
  * pkg/domain/agentexecution/temporal/dispatch.go.
  *
  * Decides which Temporal task queue an execution's runner activities route
- * to, and resolves the session's harness (NATIVE vs CLAUDE — which
+ * to, and resolves the session's harness (STIGMER vs CLAUDE — which
  * activity type the workflow invokes) and execution target (LOCAL vs
  * CLOUD — cloud uses it for sandbox provisioning; the OSS workflow
  * ignores it).
@@ -67,7 +67,7 @@ export async function resolveActivityTaskQueue(
         SessionSchema,
       );
       // A LOADED session with a nil spec resolves UNSPECIFIED (Go's
-      // GetSpec().GetHarness() nil-chain); NATIVE is only the pre-load
+      // GetSpec().GetHarness() nil-chain); STIGMER is only the pre-load
       // default.
       harness = session.spec?.harness ?? Harness.UNSPECIFIED;
       executionTarget = session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED;

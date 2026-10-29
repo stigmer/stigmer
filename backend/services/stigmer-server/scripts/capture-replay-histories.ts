@@ -45,8 +45,8 @@ const activities = {
     if (!behavior) throw new Error("capture script exhausted");
     return behavior();
   },
-  // The Claude engine shares native's deterministic-state flow and its
-  // scripted turns.
+  // The Claude engine shares the Stigmer harness's deterministic-state flow
+  // and its scripted turns.
   ExecuteClaude: async () => {
     const behavior = executeBehaviors.shift();
     if (!behavior) throw new Error("capture script exhausted");

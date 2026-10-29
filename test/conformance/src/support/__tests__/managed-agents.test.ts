@@ -2,7 +2,7 @@
 // - the client presents its credential the one way asked (apiKey sends
 //   X-Api-Key and no bearer, authToken the reverse), so an arm proves the
 //   option it names;
-// - the native log as the lane must serve it keeps only Managed Agents
+// - the Stigmer harness's log as the lane must serve it keeps only Managed Agents
 //   events, rendered, and asks for one run when given one;
 // - the pager helper walks every page the SDK follows;
 // - a stream is read until done (and closed), and is red, naming what it
@@ -18,7 +18,7 @@ import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/
 import { SessionEventListSchema, type ListSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
-import { collectUntil, isIdleWith, listAll, managedAgentsClient, nativeAsManagedAgents, storedOf } from "../managed-agents";
+import { collectUntil, isIdleWith, listAll, managedAgentsClient, stigmerAsManagedAgents, storedOf } from "../managed-agents";
 
 const idle = (type: string): BetaManagedAgentsStreamSessionEvents =>
   ({ type: "session.status_idle", id: `i-${type}`, processed_at: "t", stop_reason: { type } }) as BetaManagedAgentsStreamSessionEvents;
@@ -48,7 +48,7 @@ describe("managedAgentsClient", () => {
   });
 });
 
-describe("nativeAsManagedAgents", () => {
+describe("stigmerAsManagedAgents", () => {
   it("keeps the Managed Agents events, rendered, for the run asked", async () => {
     const asked: ListSessionEventsRequest[] = [];
     const clients = {
@@ -64,11 +64,11 @@ describe("nativeAsManagedAgents", () => {
         },
       },
     } as unknown as ConformanceClients;
-    expect(await nativeAsManagedAgents(clients, "ses_1", "run_1")).toEqual([
+    expect(await stigmerAsManagedAgents(clients, "ses_1", "run_1")).toEqual([
       { type: "session.status_running", id: "r", processed_at: "t" },
     ]);
     expect(asked[0]).toMatchObject({ sessionId: "ses_1", runId: "run_1", pageSize: 1000 });
-    await nativeAsManagedAgents(clients, "ses_1");
+    await stigmerAsManagedAgents(clients, "ses_1");
     expect(asked[1]).not.toHaveProperty("runId");
   });
 });

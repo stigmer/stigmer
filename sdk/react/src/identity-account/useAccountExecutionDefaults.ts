@@ -12,8 +12,8 @@ import { isHarnessOption, type HarnessOption } from "../models/harness.js";
 export interface AccountExecutionDefaults {
   /** Preferred harness for new sessions, when declared. */
   readonly harness?: HarnessOption;
-  /** Preferred model for native-harness sessions, when declared. */
-  readonly nativeModel?: string;
+  /** Preferred model for Stigmer-harness sessions, when declared. */
+  readonly stigmerModel?: string;
   /** Preferred model for claude-harness sessions, when declared. */
   readonly claudeModel?: string;
   /**
@@ -33,7 +33,7 @@ export interface AccountExecutionDefaults {
  * {@link HarnessOption} is a compile error here until it has all three.
  */
 export const ACCOUNT_DEFAULT_MODELS = {
-  stigmer: { defaults: "nativeModel", preference: "defaultStigmerModel", path: "spec.preferences.default_stigmer_model" },
+  stigmer: { defaults: "stigmerModel", preference: "defaultStigmerModel", path: "spec.preferences.default_stigmer_model" },
   claude: { defaults: "claudeModel", preference: "defaultClaudeModel", path: "spec.preferences.default_claude_model" },
 } as const satisfies Record<
   HarnessOption,
@@ -81,7 +81,7 @@ export function useAccountExecutionDefaults(): AccountExecutionDefaults | undefi
     const harness = isHarnessOption(prefs.defaultHarness) ? prefs.defaultHarness : undefined;
     const models = Object.fromEntries(
       Object.values(ACCOUNT_DEFAULT_MODELS).flatMap(({ defaults, preference }) => (prefs[preference] ? [[defaults, prefs[preference]]] : [])),
-    ) as Pick<AccountExecutionDefaults, "nativeModel" | "claudeModel">;
+    ) as Pick<AccountExecutionDefaults, "stigmerModel" | "claudeModel">;
     // Only a declared `true` travels — an unset bool is "no preference",
     // matching the empty-string convention of the fields above.
     const autoApprove = prefs.defaultAutoApprove || undefined;

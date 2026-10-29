@@ -5,7 +5,7 @@
  * shares (`shared/hooks/setup.ts`, which says what a hook runs with and
  * when the turn is refused).
  *
- * One evaluator per caller, as the native engine builds them
+ * One evaluator per caller, as the Stigmer harness builds them
  * (`execute-deep-agent/hooks-setup.ts`): the main agent's over the
  * conversation's sources; a saved sub-agent's over the conversation's, then
  * its own, each of its own in its own environment, with its servers' names;
@@ -16,13 +16,13 @@
  * The hooks' feedback ({@link HookFeedback}): after a call the gate let run,
  * what its `PreToolUse` hooks handed back, then, when it succeeded, what
  * its `PostToolUse` hooks hand back (their reasons for blocking, then their
- * context), as native's "Hook feedback:" section
+ * context), as the Stigmer harness's "Hook feedback:" section
  * (`shared/hooks/messages.ts`). The model reads it through the engine's
  * `additionalContext`, inside the call's result for every tool (measured on
  * SDK 0.3.310: a built-in's output cannot carry it, `updatedToolOutput`
  * reaching the model for an MCP tool alone); the stream's result does not
  * carry it, so the translator appends the same section to the call's row
- * (`translator.ts`), which reads as native's.
+ * (`translator.ts`), which reads as the Stigmer harness's.
  */
 
 import type { HookCallback, HookCallbackMatcher, HookEvent } from "@anthropic-ai/claude-agent-sdk";

@@ -1,5 +1,5 @@
 // Seeds the approval and tool-disclosure specs' runs over the node SDK: an
-// agent, a native session that names it by reference, and a turn scripted on
+// agent, a Stigmer session that names it by reference, and a turn scripted on
 // the mock LLM, so the browser only renders and resolves what was seeded.
 import type { Page, Locator } from "@playwright/test";
 import { create } from "@bufbuild/protobuf";
@@ -38,8 +38,8 @@ export interface SeedGatedSessionOptions {
   readonly org?: string;
   /**
    * The gated tool_use turn's blocks. Defaults to a single `write_file` call
-   * (built-in, approval category `write`), which gates fail-closed in the native
-   * runner with no MCP fixture or agent override. Pass two blocks to exercise
+   * (built-in, approval category `write`), which gates fail-closed in the Stigmer
+   * harness with no MCP fixture or agent override. Pass two blocks to exercise
    * co-pending APPROVE_ALL.
    *
    * Shorthand for a single gated turn; mutually exclusive with `gateTurns`.
@@ -82,7 +82,7 @@ export function shellBlock(toolCallId: string, command: string, options: { reado
 }
 
 /**
- * Seeds an agent + a NATIVE-harness session + a gated Run via the
+ * Seeds an agent + a Stigmer-harness session + a gated Run via the
  * node SDK client, and programs the mock LLM to drive the run to its gate.
  *
  * The browser is then used only to render and resolve the gate, so the test
@@ -97,7 +97,7 @@ export function shellBlock(toolCallId: string, command: string, options: { reado
  * turn (served after the LAST gate resolves and its tool executes).
  *
  * `runConfig` is intentionally left unset to mirror the proven conformance
- * path: the runner's default native model is anthropic, so traffic routes through
+ * path: the runner's default Stigmer-harness model is anthropic, so traffic routes through
  * the mock proxy's `/v1/messages` path. Pinning a model id here would risk an
  * unresolved-registry id (the user-facing id is `claude-sonnet-4.6`, the api id
  * `claude-sonnet-4-6`) for no determinism gain.
@@ -201,7 +201,7 @@ export interface SeedToolRunSessionOptions {
    * `RUN_COMPLETED` with no approval interrupt — the deterministic shape a
    * disclosure spec needs to assert that *settled* rows persist.
    *
-   * NOTE on tool choice: the native deep-agent harness exposes the `deepagents`
+   * NOTE on tool choice: the Stigmer harness exposes the `deepagents`
    * built-ins (write_file / read_file / ls / edit_file / task); `shell` is a
    * sub-agent type, not a directly-callable tool. So the e2e exercises a
    * write/read row (the persistence guarantee is category-agnostic); the
@@ -223,7 +223,7 @@ export interface SeedToolRunSessionOptions {
 }
 
 /**
- * Seeds an agent + native session + an `auto_approve_all` Run that
+ * Seeds an agent + Stigmer session + an `auto_approve_all` Run that
  * runs the given tool turns to completion, then a terminating text turn. Sibling
  * of {@link seedGatedSession} (the seeding shape is deliberately parallel; the
  * one difference is `autoApproveAll: true` + no gate), kept separate so the

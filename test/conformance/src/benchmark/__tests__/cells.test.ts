@@ -4,18 +4,18 @@
 //
 // Pinned: the matrix is twelve scenarios (seven on the bare agent, five on the
 // working agent, two of them the single-turn background cells over their
-// overlay, with checks of their work) by two harnesses (native and Claude),
+// overlay, with checks of their work) by two harnesses (Stigmer and Claude),
 // and the quality arm is one target per harness on its parity model,
-// Claude's the native arm's served model under the Claude engine's row; a
-// missing Anthropic key refuses every native and Claude cell and every
+// Claude's the Stigmer arm's served model under the Claude engine's row; a
+// missing Anthropic key refuses every Stigmer and Claude cell and every
 // quality target; a missing `stigmer` CLI refuses the
 // working-agent timing cells and nothing else (an eval run's try loads no
 // memory); --only and --cells refuse with their own reasons; parity and
 // working cells carry their harness's registry id and default cells none.
-// --stigmer-model moves every native pinned cell and the native quality target
-// to its model and refuses the native default cells; a native cell asks for
+// --stigmer-model moves every Stigmer pinned cell and the Stigmer harness's quality target
+// to its model and refuses the Stigmer default cells; a Stigmer cell asks for
 // the key of its model's provider, derived in the runner's order, and a name
-// the runner cannot place is refused; a thinking run refuses a native model
+// the runner cannot place is refused; a thinking run refuses a Stigmer-harness model
 // that is not a catalog Claude model; the endpoint a report records is a
 // host, never a key or a path.
 import { describe, expect, it } from "vitest";
@@ -29,9 +29,9 @@ import {
   doneChecksHold,
   explicitProvider,
   globMatches,
-  nativeApi,
-  nativeEndpoint,
-  nativeProvider,
+  stigmerApi,
+  stigmerEndpoint,
+  stigmerProvider,
   planCells,
   qualityTargets,
 } from "../cells";
@@ -46,7 +46,7 @@ describe("benchmarkCells", () => {
   it("is twelve scenarios on two harnesses, parity and working cells pinned per harness", () => {
     const cells = benchmarkCells();
     expect(cells).toHaveLength(24);
-    expect(cells.find((cell) => cell.id === "report-parity-simple/claude")?.modelRequested, "the native arm's model under the Claude engine's row").toBe("claude-sonnet-4.6");
+    expect(cells.find((cell) => cell.id === "report-parity-simple/claude")?.modelRequested, "the Stigmer arm's model under the Claude engine's row").toBe("claude-sonnet-4.6");
     expect(cells.find((cell) => cell.id === "report-simple/claude")?.modelRequested, "Claude's default cells run its catalog default").toBeNull();
     expect(cells.find((cell) => cell.id === "working-read-edit/claude")?.modelRequested).toBe(PARITY_MODEL.claude);
     expect(cells.find((cell) => cell.id === "report-parity-simple/stigmer")?.modelRequested).toBe("claude-sonnet-4.6");
@@ -141,7 +141,7 @@ describe("planCells", () => {
     });
   });
 
-  it("without the Anthropic key refuses every native and Claude cell and every quality cell by name", () => {
+  it("without the Anthropic key refuses every Stigmer and Claude cell and every quality cell by name", () => {
     const plan = planCells({ ...ALL, anthropicKey: false }, {});
     expect(plan.cells).toEqual([]);
     expect(plan.quality).toEqual([]);
@@ -203,7 +203,7 @@ describe("planCells", () => {
 });
 
 describe("--stigmer-model", () => {
-  it("moves every native pinned cell and the native quality target to its model, and leaves Claude and the default cells as they are", () => {
+  it("moves every Stigmer pinned cell and the Stigmer harness's quality target to its model, and leaves Claude and the default cells as they are", () => {
     const cells = benchmarkCells("openai:gpt-5.5");
     expect(cells.filter((cell) => cell.harness === "stigmer" && cell.scenario.mode !== "default").map((cell) => cell.modelRequested)).toEqual(
       Array(9).fill("openai:gpt-5.5"),
@@ -217,9 +217,9 @@ describe("--stigmer-model", () => {
     expect(benchmarkCells()).toEqual(benchmarkCells(PARITY_MODEL.stigmer));
   });
 
-  it("refuses the native default cells by name, and plans the rest on the pinned model", () => {
-    const plan = planCells(ALL, { nativeModel: "openai:gpt-5.5", only: "stigmer" });
-    expect(plan.nativeModel).toBe("openai:gpt-5.5");
+  it("refuses the Stigmer default cells by name, and plans the rest on the pinned model", () => {
+    const plan = planCells(ALL, { stigmerModel: "openai:gpt-5.5", only: "stigmer" });
+    expect(plan.stigmerModel).toBe("openai:gpt-5.5");
     expect(plan.cells.map((cell) => cell.id)).toEqual([
       "report-parity-simple/stigmer",
       "report-parity-medium/stigmer",
@@ -233,19 +233,19 @@ describe("--stigmer-model", () => {
     ]);
     expect(plan.cells.every((cell) => cell.modelRequested === "openai:gpt-5.5")).toBe(true);
     expect(plan.quality).toEqual([{ id: "quality/stigmer", harness: "stigmer", modelRequested: "openai:gpt-5.5" }]);
-    expect(plan.refused.filter((r) => r.reason === "the native model is pinned by --stigmer-model").map((r) => r.cell)).toEqual([
+    expect(plan.refused.filter((r) => r.reason === "the Stigmer harness's model is pinned by --stigmer-model").map((r) => r.cell)).toEqual([
       "report-simple/stigmer",
       "report-medium/stigmer",
       "report-codegen/stigmer",
     ]);
   });
 
-  it("without a flag the native arm is the parity pin", () => {
-    expect(planCells(ALL, {}).nativeModel).toBe(PARITY_MODEL.stigmer);
+  it("without a flag the Stigmer arm is the parity pin", () => {
+    expect(planCells(ALL, {}).stigmerModel).toBe(PARITY_MODEL.stigmer);
   });
 
   it("an OpenAI-provider model needs OPENAI_API_KEY, and its quality target the Anthropic key too, for the judge", () => {
-    const noOpenai = planCells({ ...ALL, openaiKey: false }, { nativeModel: "openai:gemini-3-pro", only: "stigmer" });
+    const noOpenai = planCells({ ...ALL, openaiKey: false }, { stigmerModel: "openai:gemini-3-pro", only: "stigmer" });
     expect(noOpenai.cells).toEqual([]);
     expect(noOpenai.quality).toEqual([]);
     expect(noOpenai.refused.filter((r) => r.reason === "missing OPENAI_API_KEY").map((r) => r.cell)).toEqual([
@@ -260,32 +260,32 @@ describe("--stigmer-model", () => {
       "background-dev-server/stigmer",
       "quality/stigmer",
     ]);
-    const noAnthropic = planCells({ ...ALL, anthropicKey: false }, { nativeModel: "openai:gemini-3-pro", only: "stigmer" });
+    const noAnthropic = planCells({ ...ALL, anthropicKey: false }, { stigmerModel: "openai:gemini-3-pro", only: "stigmer" });
     expect(noAnthropic.cells, "the timing cells need no Anthropic key").toHaveLength(9);
     expect(noAnthropic.refused).toContainEqual({ cell: "quality/stigmer", reason: "missing ANTHROPIC_API_KEY" });
   });
 
   it("a Claude model needs the Anthropic key alone, and a name the runner cannot place is refused as unknown", () => {
-    const claude = planCells({ ...ALL, openaiKey: false }, { nativeModel: "anthropic:claude-x", only: "stigmer" });
+    const claude = planCells({ ...ALL, openaiKey: false }, { stigmerModel: "anthropic:claude-x", only: "stigmer" });
     expect(claude.cells).toHaveLength(9);
-    const unknown = planCells(ALL, { nativeModel: "gemini-3-pro", only: "stigmer" });
+    const unknown = planCells(ALL, { stigmerModel: "gemini-3-pro", only: "stigmer" });
     expect(unknown.cells).toEqual([]);
     expect(unknown.quality).toEqual([]);
     expect(unknown.refused.filter((r) => r.reason === "model provider unknown")).toHaveLength(10);
   });
 
-  it("a thinking run refuses a native model that is not a catalog Claude model, and keeps a catalog Claude one", () => {
+  it("a thinking run refuses a Stigmer-harness model that is not a catalog Claude model, and keeps a catalog Claude one", () => {
     for (const model of ["openai:gpt-5.5", "anthropic:claude-sonnet-4-6", "gpt-4o"]) {
-      const plan = planCells(ALL, { nativeModel: model, only: "stigmer", thinking: "enabled" });
+      const plan = planCells(ALL, { stigmerModel: model, only: "stigmer", thinking: "enabled" });
       expect(plan.cells, model).toEqual([]);
       expect(plan.refused.filter((r) => r.reason === "thinking needs a catalog Claude model"), model).toHaveLength(9);
       expect(plan.quality, "the eval run asks for no thinking").toHaveLength(1);
     }
-    expect(planCells(ALL, { nativeModel: "claude-opus-4.7", only: "stigmer", thinking: "enabled" }).cells).toHaveLength(9);
+    expect(planCells(ALL, { stigmerModel: "claude-opus-4.7", only: "stigmer", thinking: "enabled" }).cells).toHaveLength(9);
   });
 });
 
-describe("nativeProvider", () => {
+describe("stigmerProvider", () => {
   // The runner's order (shared/llm-proxy.ts inferProvider), row for row.
   it.each([
     ["openai:claude-in-disguise", "openai"],
@@ -304,7 +304,7 @@ describe("nativeProvider", () => {
     [":gpt", undefined],
     ["", undefined],
   ] as const)("%s -> %s", (model, provider) => {
-    expect(nativeProvider(model)).toBe(provider);
+    expect(stigmerProvider(model)).toBe(provider);
   });
 
   it("only the two explicit prefixes, with a name after the colon, count as explicit", () => {
@@ -316,40 +316,40 @@ describe("nativeProvider", () => {
   });
 });
 
-describe("nativeApi", () => {
+describe("stigmerApi", () => {
   it("is Messages for Claude, the Responses API for the names LangChain sends there, and Chat Completions otherwise", () => {
-    expect(nativeApi("claude-sonnet-4.6")).toBe("messages");
-    expect(nativeApi("anthropic:claude-x")).toBe("messages");
-    expect(nativeApi("openai:gpt-5.5")).toBe("chat-completions");
-    expect(nativeApi("openai:gemini-3-pro")).toBe("chat-completions");
-    expect(nativeApi("openai:gpt-5.5-pro")).toBe("responses");
-    expect(nativeApi("openai:gpt-5.2-pro")).toBe("responses");
-    expect(nativeApi("openai:gpt-5.4-pro-2026")).toBe("responses");
-    expect(nativeApi("openai:gpt-5.3-codex")).toBe("responses");
-    expect(nativeApi("openai:gpt-5-pro"), "a -pro name LangChain does not list").toBe("chat-completions");
-    expect(nativeApi("gemini-3-pro")).toBeUndefined();
+    expect(stigmerApi("claude-sonnet-4.6")).toBe("messages");
+    expect(stigmerApi("anthropic:claude-x")).toBe("messages");
+    expect(stigmerApi("openai:gpt-5.5")).toBe("chat-completions");
+    expect(stigmerApi("openai:gemini-3-pro")).toBe("chat-completions");
+    expect(stigmerApi("openai:gpt-5.5-pro")).toBe("responses");
+    expect(stigmerApi("openai:gpt-5.2-pro")).toBe("responses");
+    expect(stigmerApi("openai:gpt-5.4-pro-2026")).toBe("responses");
+    expect(stigmerApi("openai:gpt-5.3-codex")).toBe("responses");
+    expect(stigmerApi("openai:gpt-5-pro"), "a -pro name LangChain does not list").toBe("chat-completions");
+    expect(stigmerApi("gemini-3-pro")).toBeUndefined();
   });
 });
 
-describe("nativeEndpoint", () => {
+describe("stigmerEndpoint", () => {
   it("records OPENAI_BASE_URL's host for an OpenAI-provider model, never its path or a key", () => {
-    expect(nativeEndpoint("openai:gemini-3-pro", { OPENAI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/openai/" })).toBe(
+    expect(stigmerEndpoint("openai:gemini-3-pro", { OPENAI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/openai/" })).toBe(
       "generativelanguage.googleapis.com",
     );
-    expect(nativeEndpoint("openai:x", { OPENAI_BASE_URL: "http://127.0.0.1:8080/v1" })).toBe("127.0.0.1:8080");
-    expect(nativeEndpoint("openai:gpt-5.5", {})).toBe("api.openai.com");
-    expect(nativeEndpoint("gpt-5.5", { OPENAI_BASE_URL: "  " })).toBe("api.openai.com");
-    expect(nativeEndpoint("openai:x", { OPENAI_BASE_URL: "not a url" })).toBe("invalid OPENAI_BASE_URL");
+    expect(stigmerEndpoint("openai:x", { OPENAI_BASE_URL: "http://127.0.0.1:8080/v1" })).toBe("127.0.0.1:8080");
+    expect(stigmerEndpoint("openai:gpt-5.5", {})).toBe("api.openai.com");
+    expect(stigmerEndpoint("gpt-5.5", { OPENAI_BASE_URL: "  " })).toBe("api.openai.com");
+    expect(stigmerEndpoint("openai:x", { OPENAI_BASE_URL: "not a url" })).toBe("invalid OPENAI_BASE_URL");
   });
 
   it("records the Anthropic backend's name when it is not public, else ANTHROPIC_BASE_URL's host", () => {
-    expect(nativeEndpoint("claude-sonnet-4.6", {})).toBe("api.anthropic.com");
-    expect(nativeEndpoint("claude-sonnet-4.6", { STIGMER_ANTHROPIC_BACKEND: "public", ANTHROPIC_BASE_URL: "https://gw.example/anthropic" })).toBe(
+    expect(stigmerEndpoint("claude-sonnet-4.6", {})).toBe("api.anthropic.com");
+    expect(stigmerEndpoint("claude-sonnet-4.6", { STIGMER_ANTHROPIC_BACKEND: "public", ANTHROPIC_BASE_URL: "https://gw.example/anthropic" })).toBe(
       "gw.example",
     );
-    expect(nativeEndpoint("claude-sonnet-4.6", { STIGMER_ANTHROPIC_BACKEND: "vertex", ANTHROPIC_BASE_URL: "https://gw.example" })).toBe("vertex");
-    expect(nativeEndpoint("anthropic:claude-x", { OPENAI_BASE_URL: "https://elsewhere.example" })).toBe("api.anthropic.com");
-    expect(nativeEndpoint("gemini-3-pro", {})).toBe("unknown");
+    expect(stigmerEndpoint("claude-sonnet-4.6", { STIGMER_ANTHROPIC_BACKEND: "vertex", ANTHROPIC_BASE_URL: "https://gw.example" })).toBe("vertex");
+    expect(stigmerEndpoint("anthropic:claude-x", { OPENAI_BASE_URL: "https://elsewhere.example" })).toBe("api.anthropic.com");
+    expect(stigmerEndpoint("gemini-3-pro", {})).toBe("unknown");
   });
 });
 

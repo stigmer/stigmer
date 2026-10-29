@@ -1,7 +1,7 @@
 /**
  * Pins the live tests' one cross-package read (`real-model-registry.ts`):
  * the server's committed registry is where the helper looks, it parses to
- * the shape the live tests read, the native live model is there with a
+ * the shape the live tests read, the Stigmer live model is there with a
  * provider id of its own, and `parseRealRegistry` refuses each malformed shape, naming the file.
  *
  * Runs in the ordinary suite, so the day the server moves or reshapes the
@@ -10,18 +10,18 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { nativeRows, parseRealRegistry, providerModelId, realModelRegistry } from "../real-model-registry.js";
+import { stigmerRows, parseRealRegistry, providerModelId, realModelRegistry } from "../real-model-registry.js";
 
 describe("realModelRegistry", () => {
   const document = realModelRegistry();
 
-  it("reads the server's committed registry, native rows present", () => {
-    expect(nativeRows(document).length).toBeGreaterThan(0);
+  it("reads the server's committed registry, Stigmer rows present", () => {
+    expect(stigmerRows(document).length).toBeGreaterThan(0);
   });
 
-  it("carries the native live model with a provider id that is not its registry id", () => {
-    const haiku = nativeRows(document).find((m) => m.id === "claude-haiku-4.5");
-    expect(haiku, "the native live cases run on claude-haiku-4.5").toBeDefined();
+  it("carries the Stigmer live model with a provider id that is not its registry id", () => {
+    const haiku = stigmerRows(document).find((m) => m.id === "claude-haiku-4.5");
+    expect(haiku, "the Stigmer live cases run on claude-haiku-4.5").toBeDefined();
     expect(providerModelId(haiku!)).not.toBe("claude-haiku-4.5");
   });
 });

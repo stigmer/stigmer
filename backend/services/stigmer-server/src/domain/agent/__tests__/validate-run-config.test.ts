@@ -9,15 +9,15 @@
  *   - a model with no engine is refused, naming spec.harness;
  *   - a model the engine does not list is refused with a did-you-mean, even
  *     when the other engine lists it (the local claude-sonnet-4.6 is
- *     native-only);
+ *     Stigmer-only);
  *   - FAST needs a model the engine prices fast (the local claude-opus-4.8
  *     on claude), and is refused without a model or on one the engine
  *     prices no fast variant for;
  *   - ENABLED needs a model the engine marks able to think, in either form
- *     (claude-sonnet-5's native entry is adaptive), and is refused without
+ *     (claude-sonnet-5's Stigmer entry is adaptive), and is refused without
  *     a model or on one that cannot think there (the local claude-plain);
  *   - DISABLED is refused on a model whose entry always thinks
- *     (claude-fable-5 on native), since every turn would be refused.
+ *     (claude-fable-5 on Stigmer), since every turn would be refused.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -102,7 +102,7 @@ describe("ValidateAgentRunConfig: what passes", () => {
     ["bounds alone, no engine", { runConfig: { maxCostUsd: 2, maxToolRounds: 30 } }],
     ["an engine with no model", { harness: Harness.CLAUDE }],
     [
-      "a native model, thinking on in the adaptive form",
+      "a Stigmer-harness model, thinking on in the adaptive form",
       {
         harness: Harness.STIGMER,
         runConfig: { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED },

@@ -1,5 +1,5 @@
 /**
- * The boot pass that turns the files the native engine uploaded for a run,
+ * The boot pass that turns the files the Stigmer harness uploaded for a run,
  * before what a turn returns became Files, into Files of that run. The
  * store's migration (store/run-artifacts-become-files.ts) took each file
  * entry off its run's status and left one conversion row each; this pass,

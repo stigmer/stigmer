@@ -179,7 +179,7 @@ export function engineOptions(inputs: EngineOptionsInputs): Options {
 export const BUILT_IN_PLUGINS: readonly string[] = ["cc-plugin-agents-md@builtin", "cc-plugin-plugin-authoring@builtin"];
 
 /**
- * The turn's thinking in the engine's form: the native engine's one mapping
+ * The turn's thinking in the engine's form: the Stigmer harness's one mapping
  * for the model's own Claude row (`shared/thinking-mode.ts`
  * `toAnthropicThinking`), translated to the SDK's type. A row that requires
  * thinking gets its form whatever the mode, adaptive reasoning arrives

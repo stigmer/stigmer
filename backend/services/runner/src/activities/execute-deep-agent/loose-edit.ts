@@ -1,11 +1,11 @@
 /**
- * The native harness's `edit` path: an edit the model quoted loosely still
+ * The Stigmer harness's `edit` path: an edit the model quoted loosely still
  * lands (the matcher is `shared/edit-match.ts`, whose header has the tiers and
  * the refusals).
  *
  * WHY AT THE BACKEND, UNDER THE APPROVAL GATE
  * -------------------------------------------
- * Every native graph (the parent, every sub-agent, plugin agents) edits
+ * Every Stigmer graph (the parent, every sub-agent, plugin agents) edits
  * through a Stigmer backend subclass, so one call here in each `edit`
  * override covers them all, with no middleware stack plumbed three times. And
  * the gate stays whole: it fingerprints the model's own arguments at approve

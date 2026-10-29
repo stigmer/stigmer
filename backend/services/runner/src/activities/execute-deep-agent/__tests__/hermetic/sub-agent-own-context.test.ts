@@ -3,7 +3,7 @@
  * `ExecuteDeepAgent` activity.
  *
  * The root agent lists the saved agent `notes` and hands it a task. Pinned:
- *  - its model: its own run defaults name a native model the registry lists,
+ *  - its model: its own run defaults name a Stigmer-harness model the registry lists,
  *    so its graph is built on that model, not the turn's;
  *  - its shell: the command it runs sees its own value (`ExecutionValues.subagents`)
  *    and never the agent's;

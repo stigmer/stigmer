@@ -333,7 +333,7 @@ describe("Run scores", () => {
     const laneMock = lane.llmProxy?.() ?? mock;
     const tenancy = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy(tenancy));
-    // A native run needs a key for its model's provider where provider keys
+    // A Stigmer run needs a key for its model's provider where provider keys
     // exist (the hosted edition), so the organization saves the fixture keys
     // there first.
     await target.keyTenancy?.(tenancy.org);

@@ -1,6 +1,6 @@
 /**
  * The environment the agent host starts with — and so the base environment
- * of every process the agent's turn starts there: the native shell
+ * of every process the agent's turn starts there: the Stigmer shell
  * (`shared/shell-env.ts` builds it from the host's `process.env`), the
  * hooks, the MCP servers' base.
  *

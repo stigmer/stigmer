@@ -8,14 +8,14 @@
  * stored session for a turn on an existing session — the row
  * ValidateSessionOrganization recorded under STORED_SESSION_KEY, so neither
  * step reads the store for it — else the new conversation's session_spec,
- * UNSPECIFIED read as native; a session id with no recorded row (a dangling
+ * UNSPECIFIED read as Stigmer; a session id with no recorded row (a dangling
  * id) is judged on the default harness. The bundled rows it leans on:
  * claude-opus-4.6 and claude-sonnet-5 are adaptive on both entries,
  * claude-haiku-4.5 is budget-shaped, and claude-fable-5 requires thinking.
  * Every bundled model thinks on both harnesses, so the test-local rows
- * carry the harness scoping: split-thinker requires thinking on its native
+ * carry the harness scoping: split-thinker requires thinking on its stigmer
  * entry and declares no thinking on its claude entry, and claude-only has
- * an adaptive claude entry and no native one.
+ * an adaptive claude entry and no stigmer one.
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { create } from "@bufbuild/protobuf";
@@ -106,7 +106,7 @@ const onClaude: TargetInit = {
   case: "sessionSpec",
   value: { harness: Harness.CLAUDE },
 };
-const onNative: TargetInit = {
+const onStigmer: TargetInit = {
   case: "sessionSpec",
   value: { harness: Harness.STIGMER },
 };
@@ -191,35 +191,35 @@ describe("ValidateThinkingMode on the claude harness", () => {
     expect(err.rawMessage).toContain("claude harness");
   });
 
-  it("DISABLED passes on claude when only the model's native entry requires thinking", async () => {
+  it("DISABLED passes on claude when only the model's stigmer entry requires thinking", async () => {
     await expect(
       passes({ modelName: "split-thinker", thinkingMode: ThinkingMode.DISABLED }, onClaude),
     ).resolves.toBeUndefined();
   });
 });
 
-describe("ValidateThinkingMode on the native harness (#1280)", () => {
-  it("ENABLED on an adaptive native model passes — the #1280 case, claude-sonnet-5 on a native session", async () => {
+describe("ValidateThinkingMode on the Stigmer harness (#1280)", () => {
+  it("ENABLED on an adaptive Stigmer-harness model passes — the #1280 case, claude-sonnet-5 on a Stigmer session", async () => {
     await expect(
-      passes({ modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED }, onNative),
+      passes({ modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED }, onStigmer),
     ).resolves.toBeUndefined();
   });
 
-  it("ENABLED on a budget-shaped native model passes", async () => {
+  it("ENABLED on a budget-shaped Stigmer-harness model passes", async () => {
     await expect(
-      passes({ modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED }, onNative),
+      passes({ modelName: "claude-haiku-4.5", thinkingMode: ThinkingMode.ENABLED }, onStigmer),
     ).resolves.toBeUndefined();
   });
 
-  it("an UNSPECIFIED harness is native", async () => {
+  it("an UNSPECIFIED harness is Stigmer", async () => {
     await expect(
       passes({ modelName: "claude-sonnet-4.6", thinkingMode: ThinkingMode.ENABLED }, { case: "sessionSpec", value: {} }),
     ).resolves.toBeUndefined();
     await expect(passes({ modelName: "claude-sonnet-4.6", thinkingMode: ThinkingMode.ENABLED })).resolves.toBeUndefined();
   });
 
-  it("ENABLED on a model with no native entry fails closed, naming the native models that think", async () => {
-    const err = await refusal({ modelName: "claude-only", thinkingMode: ThinkingMode.ENABLED }, onNative);
+  it("ENABLED on a model with no Stigmer entry fails closed, naming the Stigmer-harness models that think", async () => {
+    const err = await refusal({ modelName: "claude-only", thinkingMode: ThinkingMode.ENABLED }, onStigmer);
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("stigmer harness");
     expect(err.rawMessage).toContain("claude-sonnet-5");
@@ -227,29 +227,29 @@ describe("ValidateThinkingMode on the native harness (#1280)", () => {
   });
 
   it("ENABLED on an unknown model fails closed", async () => {
-    const err = await refusal({ modelName: "not-a-model", thinkingMode: ThinkingMode.ENABLED }, onNative);
+    const err = await refusal({ modelName: "not-a-model", thinkingMode: ThinkingMode.ENABLED }, onStigmer);
     expect(err.code).toBe(Code.InvalidArgument);
   });
 
   it("an explicit DISABLED on a model that requires thinking fails closed", async () => {
-    const err = await refusal({ modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED }, onNative);
+    const err = await refusal({ modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED }, onStigmer);
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("always thinks");
     expect(err.rawMessage).toContain("claude-fable-5");
-    const split = await refusal({ modelName: "split-thinker", thinkingMode: ThinkingMode.DISABLED }, onNative);
+    const split = await refusal({ modelName: "split-thinker", thinkingMode: ThinkingMode.DISABLED }, onStigmer);
     expect(split.rawMessage).toContain("always thinks");
   });
 
   it("UNSPECIFIED and ENABLED pass on a model that requires thinking", async () => {
-    await expect(passes({ modelName: "claude-fable-5" }, onNative)).resolves.toBeUndefined();
+    await expect(passes({ modelName: "claude-fable-5" }, onStigmer)).resolves.toBeUndefined();
     await expect(
-      passes({ modelName: "claude-fable-5", thinkingMode: ThinkingMode.ENABLED }, onNative),
+      passes({ modelName: "claude-fable-5", thinkingMode: ThinkingMode.ENABLED }, onStigmer),
     ).resolves.toBeUndefined();
   });
 
   it("an explicit DISABLED passes on a model that may turn thinking off", async () => {
     await expect(
-      passes({ modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.DISABLED }, onNative),
+      passes({ modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.DISABLED }, onStigmer),
     ).resolves.toBeUndefined();
   });
 });
@@ -273,17 +273,17 @@ describe("ValidateThinkingMode reads the recorded session's harness", () => {
     expect(err.rawMessage).toContain("claude harness");
   });
 
-  it("a turn on a stored native session is judged on native", async () => {
+  it("a turn on a stored Stigmer session is judged on Stigmer", async () => {
     await expect(
       passes(
         { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED },
-        inSession("ses_native"),
-        storedSession("ses_native", Harness.STIGMER),
+        inSession("ses_stigmer"),
+        storedSession("ses_stigmer", Harness.STIGMER),
       ),
     ).resolves.toBeUndefined();
   });
 
-  it("a session id with no recorded session (a dangling id) is judged on the default native harness", async () => {
+  it("a session id with no recorded session (a dangling id) is judged on the default Stigmer harness", async () => {
     await expect(
       passes(
         { modelName: "claude-sonnet-5", thinkingMode: ThinkingMode.ENABLED },

@@ -1,5 +1,5 @@
 /**
- * The native system prompt and the turn's user message, whole, as goldens.
+ * The Stigmer harness's system prompt and the turn's user message, whole, as goldens.
  *
  * Every other prompt test in this directory asserts with `toContain`; the
  * hermetic goldens are status JSON and never see a prompt. So until #1096 no
@@ -35,14 +35,14 @@
  * `-u`. Regenerate with `npx vitest run -u <this file>` once ruled.
  *
  * Rulings:
- * - 2026-09-28 (#1127 and the native prompt's own words, PR #1323): every
+ * - 2026-09-28 (#1127 and the Stigmer harness's prompt's own words, PR #1323): every
  *   tool name the prompt quotes is the engine's bound name; the sub-agent
  *   delegation rules become the working rules (the path model, batching,
  *   one edit per nearby change, checks once) and a short sub-agent block;
  *   a local-path entry names no host path; the multi-entry path sentence
  *   names the virtual root; an entry's tree and the Input Files section end
  *   with one blank line before the next heading.
- * - 2026-09-29 (the native system prompt is the session's, never the turn's):
+ * - 2026-09-29 (the Stigmer harness's system prompt is the session's, never the turn's):
  *   every mounted skill is described whatever the count, so the relevance
  *   filter's `### Also Available` note and the below-threshold golden are
  *   gone; the Referenced Files and Input Files sections leave the system
@@ -101,7 +101,7 @@ function skill(name: string, description: string): SkillMetadata {
   return { name, description, path: `.stigmer/skills/${name}/SKILL.md` };
 }
 
-/** Nine skills, past the eight at which the native harness once described only those the message reached: every one is described. */
+/** Nine skills, past the eight at which the Stigmer harness once described only those the message reached: every one is described. */
 const NINE_SKILLS: readonly SkillMetadata[] = [
   skill("k8s-deploy", "Deploy services to kubernetes clusters with helm charts"),
   skill("release-notes", "Draft release notes from the merged pull requests"),
@@ -268,7 +268,7 @@ const REPOSITORY_FILES: readonly InstructionFile[] = [
 // Goldens
 // ---------------------------------------------------------------------------
 
-describe("native system prompt goldens", () => {
+describe("Stigmer system prompt goldens", () => {
   it("everything at once, nine skills, every one described", async () => {
     const prompt = await systemPromptOf(everythingInput({ skills: NINE_SKILLS }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.everything.prompt.md");
@@ -279,7 +279,7 @@ describe("native system prompt goldens", () => {
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.repository-instructions.prompt.md");
   });
 
-  it("plan mode appends the shared directive plus the native read-boundary sentence, last", async () => {
+  it("plan mode appends the shared directive plus the Stigmer read-boundary sentence, last", async () => {
     const prompt = await systemPromptOf(everythingInput({ skills: THREE_SKILLS, interactionMode: InteractionMode.PLAN }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.plan-mode.prompt.md");
   });

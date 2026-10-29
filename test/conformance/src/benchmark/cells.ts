@@ -61,27 +61,27 @@
 // `RefusedCell` in the report, so a reader has one question to ask ("is the
 // side present") and one place to see why not.
 //
-// The native arm's model is a flag (`--stigmer-model`): a catalog id, or the
+// The Stigmer arm's model is a flag (`--stigmer-model`): a catalog id, or the
 // own-endpoint form `openai:<name>` / `anthropic:<name>` the server and the
-// runner accept on native without a catalog row (server modelcatalog/
-// pin-validation.ts). It replaces PARITY_MODEL.stigmer in the native
-// parity, turn-2 and working cells and the native quality target; the
+// runner accept on Stigmer without a catalog row (server modelcatalog/
+// pin-validation.ts). It replaces PARITY_MODEL.stigmer in the Stigmer
+// parity, turn-2 and working cells and the Stigmer harness's quality target; the
 // Claude arm, the judge and every prompt stay as they are, so the grader
 // is the same in every arm.
 //
 // The Claude arm runs Anthropic's engine on the organization's Anthropic key
 // (in the benchmark's direct mode, the runner's own ANTHROPIC_API_KEY), so a
-// Claude cell needs the Anthropic key; its parity model is the native arm's
+// Claude cell needs the Anthropic key; its parity model is the Stigmer arm's
 // served model under the Claude engine's catalog row, so a parity cell
 // measures the engine and not the model.
 //
-// One run measures one native model, because the runner the
+// One run measures one Stigmer-harness model, because the runner the
 // benchmark spawns holds one OpenAI-slot key and address (its environment's
-// OPENAI_API_KEY and OPENAI_BASE_URL) for the whole run. Which key a native
+// OPENAI_API_KEY and OPENAI_BASE_URL) for the whole run. Which key a Stigmer
 // cell needs follows the model's provider, derived here the way the runner
-// derives it (`nativeProvider`).
+// derives it (`stigmerProvider`).
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { HARNESSES, type AgentShape, type BenchmarkHarness, type ComparisonMode, type NativeApi, type RefusedCell, type SessionShape } from "./report";
+import { HARNESSES, type AgentShape, type BenchmarkHarness, type ComparisonMode, type StigmerApi, type RefusedCell, type SessionShape } from "./report";
 
 export { HARNESSES };
 
@@ -128,7 +128,7 @@ export const WORKING_READ_EDIT_PROMPTS: readonly string[] = [
 /**
  * The working agent's cross-turn session: three read-only questions, each
  * reaching a different one of the fixture's skills by its words (an order and
- * a customer, a data summary, the Go tests), so a native system prompt that
+ * a customer, a data summary, the Go tests), so a Stigmer system prompt that
  * chose skills by the message would change on every turn. The sampled second
  * turn and its siblings record their cache writes; a turn whose system prompt
  * held writes only its own new tokens.
@@ -274,8 +274,8 @@ export interface QualityTarget {
 
 export interface PlanFlags {
   only?: BenchmarkHarness;
-  /** The native arm's model, in place of PARITY_MODEL.stigmer; the native `default` cells are then refused. */
-  nativeModel?: string;
+  /** The Stigmer arm's model, in place of PARITY_MODEL.stigmer; the Stigmer `default` cells are then refused. */
+  stigmerModel?: string;
   /** A glob over cell ids (`*` matches any run of characters). */
   cells?: string;
   /**
@@ -288,18 +288,18 @@ export interface PlanFlags {
 
 export interface PlanEnvironment {
   anthropicKey: boolean;
-  /** OPENAI_API_KEY, the key an OpenAI-provider native model is served with (whatever OPENAI_BASE_URL names). */
+  /** OPENAI_API_KEY, the key an OpenAI-provider Stigmer-harness model is served with (whatever OPENAI_BASE_URL names). */
   openaiKey: boolean;
   /** `stigmer` is on PATH (the working agent's memory spawns `stigmer mcp-server`). */
   stigmerCli: boolean;
 }
 
-/** The judge's calibration over its example set; it runs on the native path. */
+/** The judge's calibration over its example set; it runs on the Stigmer harness's path. */
 export const JUDGE_CALIBRATION_CELL = "judge/calibration";
 
 export interface CellPlan {
-  /** The native arm's model: `--stigmer-model`, else PARITY_MODEL.stigmer. */
-  nativeModel: string;
+  /** The Stigmer arm's model: `--stigmer-model`, else PARITY_MODEL.stigmer. */
+  stigmerModel: string;
   cells: BenchmarkCell[];
   quality: QualityTarget[];
   /** Whether the judge cell runs. */
@@ -307,29 +307,29 @@ export interface CellPlan {
   refused: RefusedCell[];
 }
 
-/** Every cell, the native pinned cells on `nativeModel`. */
-export function benchmarkCells(nativeModel: string = PARITY_MODEL.stigmer): BenchmarkCell[] {
+/** Every cell, the Stigmer pinned cells on `stigmerModel`. */
+export function benchmarkCells(stigmerModel: string = PARITY_MODEL.stigmer): BenchmarkCell[] {
   return SCENARIOS.flatMap((scenario) =>
     HARNESSES.map((harness) => ({
       id: `${scenario.name}/${harness}`,
       scenario,
       harness,
-      modelRequested: scenario.mode === "default" ? null : armModel(harness, nativeModel),
+      modelRequested: scenario.mode === "default" ? null : armModel(harness, stigmerModel),
     })),
   );
 }
 
-/** One quality target per harness, the native one on `nativeModel`. */
-export function qualityTargets(nativeModel: string = PARITY_MODEL.stigmer): QualityTarget[] {
-  return HARNESSES.map((harness) => ({ id: `quality/${harness}`, harness, modelRequested: armModel(harness, nativeModel) }));
+/** One quality target per harness, the Stigmer one on `stigmerModel`. */
+export function qualityTargets(stigmerModel: string = PARITY_MODEL.stigmer): QualityTarget[] {
+  return HARNESSES.map((harness) => ({ id: `quality/${harness}`, harness, modelRequested: armModel(harness, stigmerModel) }));
 }
 
-function armModel(harness: BenchmarkHarness, nativeModel: string): string {
-  return harness === "stigmer" ? nativeModel : PARITY_MODEL[harness];
+function armModel(harness: BenchmarkHarness, stigmerModel: string): string {
+  return harness === "stigmer" ? stigmerModel : PARITY_MODEL[harness];
 }
 
-/** The providers native serves a model through. */
-export type NativeProvider = "anthropic" | "openai";
+/** The providers the Stigmer harness serves a model through. */
+export type StigmerProvider = "anthropic" | "openai";
 
 const OPENAI_NAME_PREFIXES = ["gpt", "o1", "o3", "o4", "chatgpt"] as const;
 
@@ -340,7 +340,7 @@ const OPENAI_NAME_PREFIXES = ["gpt", "o1", "o3", "o4", "chatgpt"] as const;
  * `explicitProvider`), copied rather than imported: this suite never imports
  * server or runner internals.
  */
-export function explicitProvider(model: string): NativeProvider | undefined {
+export function explicitProvider(model: string): StigmerProvider | undefined {
   const colon = model.indexOf(":");
   if (colon <= 0 || colon === model.length - 1) return undefined;
   const prefix = model.slice(0, colon).toLowerCase();
@@ -353,7 +353,7 @@ export function explicitProvider(model: string): NativeProvider | undefined {
  * name starting `claude`, then one starting `gpt`, `o1`, `o3`, `o4` or
  * `chatgpt`; `undefined` where the runner would refuse the name.
  */
-export function nativeProvider(model: string): NativeProvider | undefined {
+export function stigmerProvider(model: string): StigmerProvider | undefined {
   const explicit = explicitProvider(model);
   if (explicit !== undefined) return explicit;
   const lower = model.toLowerCase();
@@ -362,22 +362,22 @@ export function nativeProvider(model: string): NativeProvider | undefined {
 }
 
 /**
- * The API a native model is called on: Anthropic's Messages API, or for an
+ * The API a Stigmer-harness model is called on: Anthropic's Messages API, or for an
  * OpenAI-provider model the one LangChain's ChatOpenAI picks by the name
  * (@langchain/openai utils/misc.js `_modelPrefersResponsesAPI`: a name
  * containing `gpt-5.2-pro`, `gpt-5.4-pro`, `gpt-5.5-pro` or `codex` goes to
  * the Responses API, every other to Chat Completions; the runner never sets
  * `useResponsesApi`). `undefined` where the provider is unknown.
  */
-export function nativeApi(model: string): NativeApi | undefined {
-  const provider = nativeProvider(model);
+export function stigmerApi(model: string): StigmerApi | undefined {
+  const provider = stigmerProvider(model);
   if (provider === undefined) return undefined;
   if (provider === "anthropic") return "messages";
   const prefersResponses = ["gpt-5.2-pro", "gpt-5.4-pro", "gpt-5.5-pro", "codex"].some((marker) => model.includes(marker));
   return prefersResponses ? "responses" : "chat-completions";
 }
 
-/** The runner environment variables that decide where a native model is served. */
+/** The runner environment variables that decide where a Stigmer-harness model is served. */
 export interface EndpointEnvironment {
   OPENAI_BASE_URL?: string | undefined;
   ANTHROPIC_BASE_URL?: string | undefined;
@@ -385,7 +385,7 @@ export interface EndpointEnvironment {
 }
 
 /**
- * Where the runner the benchmark spawns sends a native model's calls, as a
+ * Where the runner the benchmark spawns sends a Stigmer-harness model's calls, as a
  * host and never a key or a path: OPENAI_BASE_URL's host for an OpenAI-provider
  * model (the OpenAI SDK reads it when the runner passes no base URL, which in
  * direct mode it never does; default api.openai.com); for an Anthropic model,
@@ -395,8 +395,8 @@ export interface EndpointEnvironment {
  * <variable>"; the runner refuses it at boot. "unknown" for a model whose
  * provider is unknown.
  */
-export function nativeEndpoint(model: string, env: EndpointEnvironment): string {
-  const provider = nativeProvider(model);
+export function stigmerEndpoint(model: string, env: EndpointEnvironment): string {
+  const provider = stigmerProvider(model);
   if (provider === undefined) return "unknown";
   if (provider === "openai") return hostOf(env.OPENAI_BASE_URL, "OPENAI_BASE_URL", "api.openai.com");
   const backend = env.STIGMER_ANTHROPIC_BACKEND?.trim() ?? "";
@@ -416,29 +416,29 @@ function hostOf(raw: string | undefined, variable: string, fallback: string): st
 
 /**
  * What the environment and the flags allow, decided before the stack boots.
- * A native cell needs the key of its model's provider (`nativeProvider`;
+ * A Stigmer cell needs the key of its model's provider (`stigmerProvider`;
  * a model it cannot place is refused as the runner would refuse it); a
  * Claude cell the Anthropic key, whatever its model, since the engine runs
  * Claude only; a quality target needs its harness's key AND the Anthropic
- * key, because the judge runs on the native path. Every working-agent
+ * key, because the judge runs on the Stigmer harness's path. Every working-agent
  * timing cell also needs the `stigmer` CLI. The judge cell runs
  * only when `--cells` names it, and needs the Anthropic key. Under
- * `--stigmer-model` the native `default` cells are refused: their point is
+ * `--stigmer-model` the Stigmer `default` cells are refused: their point is
  * that each harness picks its own model. A thinking run refuses the cells on
- * a harness's default model, and the native cells when the native model is
+ * a harness's default model, and the Stigmer cells when the Stigmer harness's model is
  * not a catalog Claude model (the runner maps thinking for Anthropic models
  * only, and an own-endpoint model has no catalog row to state its form). The
  * first reason that applies is the one recorded: flags, then keys, then the
  * CLI.
  */
 export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
-  const nativeModel = flags.nativeModel ?? PARITY_MODEL.stigmer;
+  const stigmerModel = flags.stigmerModel ?? PARITY_MODEL.stigmer;
   const refused: RefusedCell[] = [];
   // One rule per harness, so a harness the benchmark gains cannot run with no key rule.
   const keyRules: Record<BenchmarkHarness, (model: string | null) => RefusedCell["reason"] | undefined> = {
     stigmer: (model) => {
       // A default cell names no model; the harness's default is a catalog Claude model.
-      const provider = model === null ? "anthropic" : nativeProvider(model);
+      const provider = model === null ? "anthropic" : stigmerProvider(model);
       if (provider === undefined) return "model provider unknown";
       if (provider === "openai") return env.openaiKey ? undefined : "missing OPENAI_API_KEY";
       return env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY";
@@ -454,20 +454,20 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
   const thinkingRefusal = (cell: BenchmarkCell): RefusedCell["reason"] | undefined => {
     if (flags.thinking === undefined) return undefined;
     if (cell.modelRequested === null) return "thinking needs a pinned model";
-    if (cell.harness === "stigmer" && (explicitProvider(cell.modelRequested) !== undefined || nativeProvider(cell.modelRequested) !== "anthropic")) {
+    if (cell.harness === "stigmer" && (explicitProvider(cell.modelRequested) !== undefined || stigmerProvider(cell.modelRequested) !== "anthropic")) {
       return "thinking needs a catalog Claude model";
     }
     return undefined;
   };
 
-  const cells = benchmarkCells(nativeModel).filter((cell) => {
+  const cells = benchmarkCells(stigmerModel).filter((cell) => {
     const flagReason = excludedByFlags(cell.id, cell.harness);
     if (flagReason !== undefined) {
       refused.push({ cell: cell.id, reason: flagReason });
       return false;
     }
-    if (flags.nativeModel !== undefined && cell.harness === "stigmer" && cell.modelRequested === null) {
-      refused.push({ cell: cell.id, reason: "the native model is pinned by --stigmer-model" });
+    if (flags.stigmerModel !== undefined && cell.harness === "stigmer" && cell.modelRequested === null) {
+      refused.push({ cell: cell.id, reason: "the Stigmer harness's model is pinned by --stigmer-model" });
       return false;
     }
     const thinking = thinkingRefusal(cell);
@@ -487,7 +487,7 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
     return true;
   });
 
-  const quality = qualityTargets(nativeModel).filter((cell) => {
+  const quality = qualityTargets(stigmerModel).filter((cell) => {
     const flagReason = excludedByFlags(cell.id, cell.harness);
     if (flagReason !== undefined) {
       refused.push({ cell: cell.id, reason: flagReason });
@@ -517,7 +517,7 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
     judge = true;
   }
 
-  return { nativeModel, cells, quality, judge, refused };
+  return { stigmerModel, cells, quality, judge, refused };
 }
 
 /** `*` matches any run of characters; everything else is literal. */

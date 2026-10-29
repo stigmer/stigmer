@@ -1,5 +1,5 @@
 // Conformance suite for the runner's advisories to the model (Class B).
-// Domain: agentic / agentexecution — how the native harness warns the model
+// Domain: agentic / agentexecution — how the Stigmer harness warns the model
 // mid-run, read at the one place it is observable: the requests the mock
 // provider captured (test/support/src/mock-llm.ts), "everything the model
 // received over the wire".

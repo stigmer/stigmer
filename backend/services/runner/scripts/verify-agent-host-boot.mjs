@@ -10,7 +10,7 @@
  * — an import-time crash only plain Node shows (the class
  * verify-dist-boot.mjs guards for the runner's other modes), a bundle that
  * dropped the mode, a platform whose extra stdio pipe does not reach the
- * child — boots a runner that can serve no native turn. vitest's spawned
+ * child — boots a runner that can serve no Stigmer turn. vitest's spawned
  * hosts run from source under tsx; this runs the artifact.
  *
  * Usage:

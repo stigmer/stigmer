@@ -46,7 +46,7 @@ import {
 } from "../support/runs";
 import { createTarget, type TargetProfile } from "../targets";
 
-// The built-in delegation tool the native engine binds when a turn has subagents.
+// The built-in delegation tool the Stigmer harness binds when a turn has subagents.
 const TASK_TOOL_NAME = "task";
 const REQUEST = "Look the order up with the researcher and tell me what it found.";
 const SUBAGENT_ANSWER = "The order shipped yesterday.";

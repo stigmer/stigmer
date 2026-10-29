@@ -1,8 +1,8 @@
 /**
- * The native execution turn's request against the REAL @langchain/anthropic
+ * The Stigmer harness's execution turn's request against the REAL @langchain/anthropic
  * (stigmer/stigmer#1341): the unit suite in model-client.test.ts mocks the
  * wrapper, so it cannot see the wrapper's own parameter validation. That
- * validation is what failed every native turn on claude-opus-4.7,
+ * validation is what failed every Stigmer turn on claude-opus-4.7,
  * claude-opus-4.8 and claude-fable-5 while the runner pinned temperature 0.
  * These tests build the client the way the execution turn does and read the
  * request parameters offline; no request leaves the process. The same holds
@@ -34,7 +34,7 @@ async function executionTurnParams(modelName: string, temperature: number | null
   return (model as ChatAnthropic).invocationParams({});
 }
 
-describe("the native execution turn's sampling parameters (real @langchain/anthropic)", () => {
+describe("the Stigmer harness's execution turn's sampling parameters (real @langchain/anthropic)", () => {
   beforeEach(() => {
     _resetRegistryCache();
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("registry unreachable in this test"));
@@ -59,7 +59,7 @@ describe("the native execution turn's sampling parameters (real @langchain/anthr
   );
 });
 
-describe("the native execution turn's thinking and ceiling (real @langchain/anthropic)", () => {
+describe("the Stigmer harness's execution turn's thinking and ceiling (real @langchain/anthropic)", () => {
   beforeEach(() => {
     _resetRegistryCache();
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("registry unreachable in this test"));

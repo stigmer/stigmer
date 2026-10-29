@@ -347,7 +347,7 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
     });
   });
 
-  it("a gated native file write waits with the file named on its card (#1112)", () => {
+  it("a gated Stigmer-harness file write waits with the file named on its card (#1112)", () => {
     expect(
       resolveToolApproval("write_file", "", { file_path: "/workspace/src/app.ts", content: "x" }, mcpDefaultOf(), NO_CATEGORIES),
     ).toEqual({
@@ -374,7 +374,7 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
 });
 
 describe("resolveBuiltInApprovalMessage — the one card wording for a gated built-in, either harness", () => {
-  it("names the file a native write or edit touches: deepagents' file tools send file_path (#1112)", () => {
+  it("names the file a Stigmer-harness write or edit touches: deepagents' file tools send file_path (#1112)", () => {
     expect(resolveBuiltInApprovalMessage("write_file", { file_path: "/workspace/src/app.ts", content: "x" })).toBe("Write file: /workspace/src/app.ts");
     expect(resolveBuiltInApprovalMessage("edit_file", { file_path: "/workspace/README.md", old_string: "a", new_string: "b" })).toBe("Write file: /workspace/README.md");
   });

@@ -119,7 +119,7 @@ export async function startMockEndpoint(args: {
     if (report === undefined) return toolError("the mock is not ready");
     // The stopping call answers with plain text, not a tool error: the turn
     // is already being stopped, and a tool error raced against that stop
-    // escapes the native engine's stream as an unhandled rejection.
+    // escapes the Stigmer harness's stream as an unhandled rejection.
     const stop = (reason: string): CallToolResult => {
       report.onAbort({ server: standIn.server.server, tool: name, reason });
       return { content: [{ type: "text", text: `This call stopped the test: ${reason}` }] };

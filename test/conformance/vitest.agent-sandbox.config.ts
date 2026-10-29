@@ -1,5 +1,5 @@
 // Vitest configuration for the agent-sandbox lane's turn proof
-// (src/suites-agent-sandbox): a native turn that outlives its sandbox pod on a
+// (src/suites-agent-sandbox): a Stigmer turn that outlives its sandbox pod on a
 // real cluster. Run only by scripts/agent-sandbox-live.mjs (`make
 // test-agent-sandbox`, the ci.agent-sandbox lane), after the driver's own live
 // test and on its kind cluster, with the addresses that script hands it; no

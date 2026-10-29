@@ -3,7 +3,7 @@
  *
  * Harness-agnostic, and called from one place: the turn runtime's epilogue
  * (`harness/run-turn.ts` `extractStructuredOutputFromText`), so both
- * harnesses have it (pinned by the native hermetic `structured-output`
+ * harnesses have it (pinned by the Stigmer hermetic `structured-output`
  * tier-2 arm).
  *
  * When tier-1 text extraction (shared/extract-json.ts) cannot find JSON in

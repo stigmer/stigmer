@@ -17,7 +17,7 @@
  *     run, another session's or another organization's, each with its own
  *     answer events;
  *   - the judge run carries the reserved label, the grade's cap, the
- *     verdict schema, a session subject and the native harness, in the
+ *     verdict schema, a session subject and the Stigmer harness, in the
  *     judged run's organization, under a name fixed by the judged run.
  */
 import { create } from "@bufbuild/protobuf";

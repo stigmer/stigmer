@@ -529,7 +529,7 @@ export function voteRunName(
   return `vote-${slugOf(tryRunId)}-${graderIndex + 1}-${voteIndex + 1}`;
 }
 
-/** The session a vote runs in: named after its run, the judge's subject, the native engine. */
+/** The session a vote runs in: named after its run, the judge's subject, the Stigmer harness. */
 export function voteSessionRequest(input: {
   readonly org: string;
   readonly evalId: string;

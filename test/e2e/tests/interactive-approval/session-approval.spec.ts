@@ -5,7 +5,7 @@
 // — plus genuine browser concerns (the orphan-vs-inline DOM split, scroll-driven
 // peek bar). Determinism is from the mock, not a live model.
 //
-// The run is SEEDED via the node SDK client (agent + native session +
+// The run is SEEDED via the node SDK client (agent + Stigmer session +
 // gated run); the browser is used only to render and resolve the gate. The
 // gated tool is the built-in `execute` (approval category `shell`), which gates
 // fail-closed in EVERY stack shape with no MCP fixture or agent override. It
@@ -175,7 +175,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
   // session's event log: a resumed invocation seeds only the asks still open
   // from the log (runner harness/transcript/resume-seed.ts) and numbers its own
   // events on from the log's highest index, so gate B is a new ask beside gate
-  // A's answered one. Pinned by the native hermetic golden
+  // A's answered one. Pinned by the Stigmer harness's hermetic golden
   // execute-deep-agent/__tests__/hermetic/hitl-sequential-gates.test.ts.
   test("Multi-step: approve gate A, then a fresh gate B, then the run completes", async ({
     page,
@@ -185,7 +185,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // it resumes the run, which then calls command B and pauses again. This is
     // the resume-to-next-gate chain — the exact shape the runner's transcript
     // guard + workflow watchdog coordinate on. Scope note: this drives the
-    // NATIVE deep-agent harness; it is a cross-stack runner->guard->watchdog->UI
+    // Stigmer harness; it is a cross-stack runner->guard->watchdog->UI
     // contract backstop.
     //
     // A plain APPROVE (not approve-all) is deliberate: it must NOT flip the

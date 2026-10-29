@@ -55,7 +55,7 @@
 
     { "name": "stop_background_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_BACKGROUND_STOP" },
 
-    { "name": "Skill", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SKILL", "note": "the Claude engine loads a skill by name; native reads its file" },
+    { "name": "Skill", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SKILL", "note": "the Claude engine loads a skill by name; the Stigmer harness reads its file" },
     { "name": "ToolSearch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED", "note": "the Claude engine's way to its deferred tools stays a generic row" },
     { "name": "lookup", "mcpServerSlug": "docs", "toolKind": "TOOL_KIND_MCP", "note": "a Claude MCP row is its bare tool beside its server, as on every engine" },
 

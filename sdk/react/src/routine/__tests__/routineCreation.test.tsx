@@ -473,7 +473,7 @@ describe("RoutineForm", () => {
     await pickAgent();
 
     // Nothing pinned yet: the trigger shows the placeholder. The picker
-    // browses the native engine first; switch it to Claude to list the model.
+    // browses the Stigmer harness first; switch it to Claude to list the model.
     fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Select harness" }));
     fireEvent.click(await screen.findByRole("option", { name: "Claude Agent" }));

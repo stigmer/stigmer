@@ -1,5 +1,5 @@
 /**
- * The native adapter's stream loop (`turn-stream.ts` `consumeDeepAgentStream`)
+ * The Stigmer harness's adapter's stream loop (`turn-stream.ts` `consumeDeepAgentStream`)
  * over a SCRIPTED v3 run and the kit's recording sink — no graph, no model,
  * no runtime. What the hermetic goldens prove end to end, this file pins one
  * rule at a time, where a failure names the rule:
@@ -14,7 +14,7 @@
  *    the runtime stops it — taken at the NEXT event, the engine's own step
  *    boundary, and before the first if the stop came
  *    earlier. (`awaiting_approval` from the stream itself has no producer
- *    on native since #1097: a held call never emits a
+ *    on Stigmer since #1097: a held call never emits a
  *    `tool_started`, so the builder never leaves a row WAITING during the
  *    stream; the gate's hold reaches the transcript at the settle. The arm
  *    that pinned that path went with it.)

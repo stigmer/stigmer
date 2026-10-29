@@ -9,12 +9,13 @@
  * (absolute) and `tool_response.output`, the tool's own result text, and the
  * environment's `CLAUDE_PROJECT_DIR`, the workspace root.
  *
- *  1. A call that did not land formats nothing. A failed native edit reaches
- *     PostToolUse as a plain result text, not as an error (deepagents returns
- *     the failure as the tool's output), so the text decides: deepagents'
- *     file-tool failures open with `Error`, `Cannot write` or
- *     `Failed to write`. A missing `output` counts as landed; the file's own
- *     bytes decide below. A missing or deleted file is nothing to format.
+ *  1. A call that did not land formats nothing. A failed Stigmer-harness
+ *     edit reaches PostToolUse as a plain result text, not as an error
+ *     (deepagents returns the failure as the tool's output), so the text
+ *     decides: deepagents' file-tool failures open with `Error`,
+ *     `Cannot write` or `Failed to write`. A missing `output` counts as
+ *     landed; the file's own bytes decide below. A missing or deleted file
+ *     is nothing to format.
  *  2. Only a file whose real path lies under the workspace root is formatted,
  *     and every walk for the project's evidence stops at that root.
  *  3. The file's formatters are the entries of {@link FORMATTERS} whose

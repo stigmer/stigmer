@@ -350,7 +350,7 @@ export const SCHEMA_VERSION_39 = 39;
 /** v40: a conversation's workspace entries become its resources, and a run's attachments wait to become Files. */
 export const SCHEMA_VERSION_40 = 40;
 
-/** v41: the files the native engine uploaded for a run wait to become Files of the run. */
+/** v41: the files the Stigmer harness uploaded for a run wait to become Files of the run. */
 export const SCHEMA_VERSION_41 = 41;
 
 /** v42: a session's queue: the side row of each message waiting for a turn. */
@@ -2960,7 +2960,7 @@ async function migrateToV40(client: PoolClient): Promise<void> {
 }
 
 /**
- * v41: the files the native engine uploaded for a run are lifted off its
+ * v41: the files the Stigmer harness uploaded for a run are lifted off its
  * status to become Files of the run (../run-artifacts-become-files.ts says
  * what each row becomes).
  *

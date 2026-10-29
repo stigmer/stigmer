@@ -10,7 +10,7 @@
  *    result, which deepagents' tool never writes), and the approval gate
  *    still holds it before it runs.
  *  - What the command prints while it runs reaches the graph's stream, and
- *    the native translator, as `tool_output_delta` under the call's own id,
+ *    the Stigmer harness's translator, as `tool_output_delta` under the call's own id,
  *    before the call finishes.
  *  - A graph whose backend cannot run a shell (plan mode) binds no
  *    `execute`, gets no shell middleware, and so no stop tool either.

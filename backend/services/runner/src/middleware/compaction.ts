@@ -1,5 +1,5 @@
 /**
- * Compaction middleware — the native engine's summarizer, deepagents' own
+ * Compaction middleware — the Stigmer harness's summarizer, deepagents' own
  * (`createSummarizationMiddleware`, 1.14.1) with three things it never did:
  * the person is told, the summary never speaks as the agent, and the summary
  * is a checkpoint that carries the goal.
@@ -26,7 +26,7 @@
  *    request's own model. Its summary call carries LangGraph's `nostream`
  *    tag, so the graph's messages stream never registers it
  *    (`@langchain/langgraph` `pregel/messages-v2.js`). Before, the stream
- *    emitted the summary's final message and the native translator wrote it
+ *    emitted the summary's final message and the Stigmer harness's translator wrote it
  *    as an `agent.message`: in long runs the turn's "reply" was the
  *    summarizer's text. The handler deepagents calls next is handed the
  *    request's model back, so only the summary runs untagged from the stream.
@@ -42,7 +42,7 @@
  *    just before deepagents' next call to the model, so the marker lands
  *    ahead of the first reply that read the summary. It carries the
  *    summary's token usage: the stream no longer shows the call, and the
- *    native loop's one usage writer reads it from this event instead
+ *    Stigmer harness's loop's one usage writer reads it from this event instead
  *    (`execute-deep-agent/translator.ts` `usageOf`). One event per summary
  *    call: deepagents' re-summary after an overflow is a second one.
  *
@@ -63,7 +63,7 @@ import { windowOf } from "../shared/model-window.js";
 import { SUMMARY_PROMPT } from "./compaction-prompt.js";
 import { customStreamWriterOf } from "./tool-scope.js";
 
-/** The custom-stream event of one summary: the native translator folds it into a compaction row, the loop prices its usage. */
+/** The custom-stream event of one summary: the Stigmer harness's translator folds it into a compaction row, the loop prices its usage. */
 export const CONTEXT_COMPACTED_EVENT = "stigmer.context_compacted";
 
 /** What {@link CONTEXT_COMPACTED_EVENT} carries: the summary call's usage, when the model reported one. */

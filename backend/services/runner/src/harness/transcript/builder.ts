@@ -5,7 +5,7 @@
  * artifacts and write-backs on the run's status it is handed beside them.
  *
  * The one transcript builder, for every harness (#1097). It
- * was the native harness's `V3StatusBuilder` (the one builder there since
+ * was the Stigmer harness's `V3StatusBuilder` (the one builder there since
  * #1096 retired the v2 `StatusBuilder`), promoted here on 2026-09-14
  * unchanged and then cut engine-neutral one rule per commit:
  * it reads no engine envelope, decides nothing about approval,
@@ -25,7 +25,7 @@
  * memo's third copy of the folding rule, and the one whose namespace filter
  * differed from the root's by one segment (found in #1096: the root
  * filed text under `model_request:<uuid>` and looked the tool's parent up
- * under `""`, so every native tool row sat on an empty message after its
+ * under `""`, so every Stigmer tool row sat on an empty message after its
  * text). With scope a single value per transcript, that class of miss
  * cannot exist.
  *
@@ -37,7 +37,7 @@
  *     {@link seed} appends (a reinvocation's asks, indexed by the same
  *     routine, so a builder born before the seed is no different from one
  *     born after it), reconciled in place on a re-emitted start — an UNSETTLED row becomes
- *     RUNNING (a WAITING row on native's durable-checkpoint resume; an
+ *     RUNNING (a WAITING row on the Stigmer harness's durable-checkpoint resume; an
  *     INTERRUPTED row on a recovery replay, the enum's supersede rule) and
  *     takes the args and preview it lacked — never duplicated. Every row
  *     with args carries them with secret-keyed values redacted
@@ -48,7 +48,7 @@
  *     changes nothing forces no persist; an output chunk for a
  *     settled row is stale and dropped — the completion's result is
  *     the whole output. Every stamp is the fold's instant.
- *   - The AI-message boundary (native's own rule, made correct by
+ *   - The AI-message boundary (the Stigmer harness's own rule, made correct by
  *     scoping): a tool row attaches to the scope's current AI message — the
  *     latest with text, the seed's last AI message over a seeded transcript
  *     — and to a new empty one only when the scope has none.
@@ -66,7 +66,7 @@
  *     `approvalRequestedAt` stamped once, the proposal's args and preview
  *     taken when carried (Claude's gate parks a call its stream already
  *     showed); an unknown call gets a WAITING row on the scope's current AI message,
- *     the text that proposed it (native's post-stream seed, before #1097 a new
+ *     the text that proposed it (the Stigmer harness's post-stream seed, before #1097 a new
  *     empty message of its own). Either way {@link awaitingApproval} is set.
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
  *     voice; it hosts no rows and moves no boundary.
@@ -570,7 +570,7 @@ export class TranscriptBuilder {
     // never a second gate. Keyed by the provider's tool_call_id, so this is an
     // exact match (no name heuristics). Two shapes reach here: the durable
     // checkpoint re-emitting a seeded WAITING call now that approval is granted
-    // (native's resume; the runtime's seed from the log, `transcript/resume-seed.ts`), and a
+    // (the Stigmer harness's resume; the runtime's seed from the log, `transcript/resume-seed.ts`), and a
     // recovery replaying a call the server had marked INTERRUPTED when the
     // execution terminalized with it in flight (the enum's supersede rule).
     // Either way an UNSETTLED row becomes RUNNING
@@ -600,7 +600,7 @@ export class TranscriptBuilder {
     // carries no approval fact: whether it is held is known only after the
     // engine's gate has run, and a held call reaches the transcript as
     // `approval_proposed` (Claude's gate, on a call its stream already
-    // showed; native's post-stream seed, where a held call never starts at
+    // showed; the Stigmer harness's post-stream seed, where a held call never starts at
     // all).
     // The builder decides nothing about approval.
     const tc = create(ToolCallSchema, {
@@ -717,7 +717,7 @@ export class TranscriptBuilder {
     // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
     // tool-start) and fed by the same shared mapper every harness uses; the
     // call's own `merge` flag decides replace-or-merge (deepagents never
-    // sets it, so native stays a full replace);
+    // sets it, so Stigmer stays a full replace);
     // a sub-agent's list is its own, never the execution's. The tool
     // call itself stays in messages (the client filters ToolKind.TODO from the
     // thread).
@@ -813,7 +813,7 @@ export class TranscriptBuilder {
       return;
     }
 
-    // A call the stream never showed (native: the engine interrupted before
+    // A call the stream never showed (Stigmer: the engine interrupted before
     // the tool started). Its row lands on the text that proposed it, like
     // any other row (before #1097 the seed pushed a new empty message).
     const parentMsg = scope.currentAiMessage ?? this.ensureAiMessageForToolCall(scope);

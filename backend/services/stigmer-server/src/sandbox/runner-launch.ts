@@ -108,7 +108,7 @@ export const RUNNER_HOME = "/root";
  * The agent's home in a driver's sandbox: where the runner puts it when the
  * deployment names none (the runner's `shared/agent-identity.ts`,
  * `DEFAULT_AGENT_HOME`), and so where the Session's agent state lives
- * (`~/.stigmer/sessions`: the native harness's checkpoints, the platform
+ * (`~/.stigmer/sessions`: the Stigmer harness's checkpoints, the platform
  * directory, the approval gates).
  */
 export const AGENT_HOME = "/home/stigmer-agent";

@@ -7,10 +7,10 @@
  * REAL deepagents graph, streams it through the v3 protocol into
  * `TranscriptBuilder`, persists IN_PROGRESS then COMPLETED, and returns the slim
  * status. The golden (`goldens/plain-turn.status.json`) is the smallest
- * status the native harness produces: one AI message with the scripted text
+ * status the Stigmer harness produces: one AI message with the scripted text
  * and the scripted usage, `startedAt` / `completedAt` on the scripted clock.
  *
- * This file is also the PROBE the native net opened with (#1096): no earlier test drove the
+ * This file is also the PROBE the Stigmer net opened with (#1096): no earlier test drove the
  * real graph through `streamEvents(..., { version: "v3" })`. The scripted
  * model streams, so the events under this golden are the ones a provider
  * produces (`scripted-model.ts` header).
@@ -26,12 +26,12 @@
  * An empty `thread_id` rode here too (carried from `index.test.ts`: "handles
  * empty threadId gracefully") until @langchain/langgraph-checkpoint 1.1's
  * memory saver started refusing an empty key. That arm was only ever true of
- * the test-only memory saver: the native thread id is runtime-minted
+ * the test-only memory saver: the Stigmer thread id is runtime-minted
  * (`EnsureThread` sends `thread-{sessionId}` on every invocation), and the
  * sqlite saver the runner ships has always refused an empty one
  * (`shared/checkpointer/sqlite-saver.ts`), so no saver left to prove it on.
  *
- * Since #1096 the activity is the turn runtime over the native adapter, and
+ * Since #1096 the activity is the turn runtime over the Stigmer harness's adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
  * `estimatedCostUsd` priced at the registry's rates, the requested tier and
  * thinking mode (one writer of the summary, the runtime). Nothing

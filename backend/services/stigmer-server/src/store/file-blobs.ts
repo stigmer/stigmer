@@ -40,8 +40,8 @@
  * (workspace-becomes-resources.ts), for the file domain to make into a
  * File of the run's conversation and then forget.
  *
- * A fourth, `output_conversions`, does the same for the files the native
- * engine uploaded for a run before what a turn returns became Files,
+ * A fourth, `output_conversions`, does the same for the files the Stigmer
+ * harness uploaded for a run before what a turn returns became Files,
  * lifted by the step that retired them (run-artifacts-become-files.ts).
  * It is its own table because its rows are trusted by another key shape
  * and become a run's outputs, not a message's files.
@@ -86,7 +86,7 @@ export interface AttachmentConversion {
 }
 
 /**
- * One file the native engine uploaded for a run before what a turn returns
+ * One file the Stigmer harness uploaded for a run before what a turn returns
  * became Files, waiting to become a File of the run. Only a file's entry
  * is kept: the engine stored each one flat, at `artifacts/<run id>/<name>`.
  */

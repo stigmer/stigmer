@@ -66,7 +66,7 @@ describe("useAccountExecutionDefaults", () => {
     await waitFor(() =>
       expect(result.current).toEqual({
         harness: "claude",
-        nativeModel: "claude-sonnet-4.6",
+        stigmerModel: "claude-sonnet-4.6",
         claudeModel: "claude-sonnet-5",
       }),
     );
@@ -107,7 +107,7 @@ describe("useAccountExecutionDefaults", () => {
     await waitFor(() =>
       expect(result.current).toEqual({
         harness: undefined,
-        nativeModel: "claude-sonnet-4.6",
+        stigmerModel: "claude-sonnet-4.6",
       }),
     );
   });
@@ -123,7 +123,7 @@ describe("useAccountExecutionDefaults", () => {
     await waitFor(() =>
       expect(result.current).toEqual({
         harness: undefined,
-        nativeModel: undefined,
+        stigmerModel: undefined,
         autoApprove: true,
       }),
     );

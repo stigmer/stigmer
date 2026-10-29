@@ -1,6 +1,6 @@
 /**
  * Hermetic goldens: the agent's own hooks on a Claude turn, on the real
- * engine, run in the gate in the native engine's order (`gate.ts`,
+ * engine, run in the gate in the Stigmer harness's order (`gate.ts`,
  * `hooks.ts`), each a real command.
  *
  * One turn, one call per step, under the shell default (which would ask
