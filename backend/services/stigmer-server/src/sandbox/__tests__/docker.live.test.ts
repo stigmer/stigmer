@@ -50,7 +50,10 @@ describe("docker driver against a Docker daemon", () => {
   const config: SandboxDriverConfig = {
     // host.docker.internal: reachable-from-container on Docker Desktop;
     // the test only needs the vars INJECTED, not a live server behind
-    // them (the runner tolerates an unreachable backend at boot).
+    // them. With no Temporal to reach, the runner exits within seconds
+    // (on Linux, where the name does not resolve, too), so the probes
+    // below read the container in its first moments (stigmer#2722); the
+    // ensure state machine itself is pinned by docker-ensure.test.ts.
     backendEndpoint: "http://host.docker.internal:7234",
     mcpPublicEndpoint: "https://api.example.com",
     temporalAddress: "host.docker.internal:7233",

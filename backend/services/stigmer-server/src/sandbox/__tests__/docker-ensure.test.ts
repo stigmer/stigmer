@@ -6,7 +6,7 @@
  * original env, and an absent one is created (a connect sandbox on its
  * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
- * image are the opt-in smoke's (docker.test.ts).
+ * image are the live test's (docker.live.test.ts).
  */
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

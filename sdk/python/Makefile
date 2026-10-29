@@ -42,13 +42,15 @@ codegen-verify: codegen ## Generate code and verify syntax
 # The tests run in a virtual environment (the system Python on Homebrew and
 # Ubuntu 24.04 refuses a global pip install, PEP 668) against the in-tree
 # proto stubs, never PyPI's stigmer-apis, which lags the tree. VENV may sit
-# outside the package (the release does), so a build here never packs it.
+# outside the package, where a build here can never pack it.
 VENV ?= .venv
 PYTHON ?= python3
 
 .PHONY: test
 test: ## Run the SDK's tests against the in-tree proto stubs
 	@test -x $(VENV)/bin/python || $(PYTHON) -m venv $(VENV)
+	@# A .venv made by uv has no pip.
+	@$(VENV)/bin/python -m pip --version >/dev/null 2>&1 || $(VENV)/bin/python -m ensurepip --default-pip >/dev/null
 	@$(VENV)/bin/python -m pip install --quiet --disable-pip-version-check ../../apis/stubs/python/stigmer
 	@$(VENV)/bin/python -m pip install --quiet --disable-pip-version-check -e '.[test]'
 	@$(VENV)/bin/python -m pytest tests
