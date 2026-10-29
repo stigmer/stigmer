@@ -126,6 +126,26 @@ test("readMakefile refuses every construct it does not model, wherever it sits",
   assert.deepEqual(twice.rules.get("x").recipe, [{ line: 2, text: "echo one" }], "the second recipe is not merged in");
 });
 
+test("readMakefile ends a non-recipe line at its first unescaped # outside a reference, as make does", () => {
+  const { rules, variables, refusals } = readMakefile(
+    mk("U := scripts/a.mjs#note", "Z := a\\#b # c", "B := a\\\\#b", "C := a\\\\\\#b", "t: dep#c", ">echo x#y"),
+  );
+  assert.deepEqual(refusals, []);
+  assert.deepEqual(
+    Object.fromEntries(variables),
+    { U: "scripts/a.mjs", Z: "a#b", B: "a\\", C: "a\\#b" },
+    "a # needs no space before it; an odd run of backslashes escapes it, and each pair reads as one",
+  );
+  assert.deepEqual(rules.get("t").prerequisites, ["dep"], "a prerequisite list ends at a # too");
+  assert.deepEqual(rules.get("t").recipe, [{ line: 6, text: "echo x#y" }], "a recipe line's # is the shell's");
+  for (const line of ["Y := $(shell echo 1 #2)", "Y := ${X#y} # c", "t: $(X#y)"]) {
+    const read = readMakefile(mk(line));
+    assert.deepEqual(read.refusals.length, 1, line);
+    assert.match(read.refusals[0], /^line 1: a `#` inside a reference ends the line in make 3\.81 and is text in make 4\.3/, line);
+  }
+  assert.deepEqual(readMakefile(mk("Y := a # see $(X#y)")).refusals, [], "a # inside a reference that is already comment is comment");
+});
+
 test("expand substitutes variables as text, recursively, and never evaluates a function", () => {
   const variables = new Map([
     ["SERVER_DIR", "backend/services/stigmer-server"],
@@ -144,6 +164,10 @@ test("expand substitutes variables as text, recursively, and never evaluates a f
     ["ARTIFACT", null],
   ]);
   assert.equal(expand("$(SERVER_DIR) up-$(ARTIFACT)", variables, { overrides }), "elsewhere up-$(ARTIFACT)", "an override wins; an unknown one stays");
+  assert.equal(expand("cd $(CURDIR) && node $(CURDIR)/x.mjs", variables), "cd / && node /x.mjs", "a bare $(CURDIR) in the root reads /");
+  const viaVariable = new Map([["ROOT", "$(CURDIR)"]]);
+  assert.equal(expand("$(ROOT) $(ROOT)/x.mjs ${ROOT}", viaVariable), "/ /x.mjs /", "and through a variable");
+  assert.equal(expand("$(ROOT) $(ROOT)/x.mjs", viaVariable, { curdir: "/sdk/go" }), "/sdk/go /sdk/go/x.mjs");
   assert.equal(curdirOf("."), "");
   assert.equal(curdirOf("sdk/go"), "/sdk/go");
   assert.equal(makefileIn("."), "Makefile");
@@ -294,8 +318,47 @@ test("targetClosure reaches every rule a variable target's prefix starts, and re
   );
   assert.deepEqual(
     inherited.lines.filter(({ target }) => target === "(read)").map(({ text }) => text),
-    ["$(shell node a.mjs --version)"],
-    "what the sub-make runs when it reads its file sees the override it inherited",
+    ["$(shell node a.mjs --version)", "$(shell node b.mjs --version)"],
+    "what the sub-make runs when it reads its file sees each override it inherited",
+  );
+  const rereads = targetClosure({
+    read: files({
+      Makefile: mk("all:", ">$(MAKE) -C sub gen V=1", ">$(MAKE) -C sub gen V=2", ">$(MAKE) -C sub gen V=1 OTHER=x"),
+      "sub/Makefile": mk("S := $(shell node v$(V).mjs)", "gen:", ">echo"),
+    }),
+    dir: ".",
+    targets: ["all"],
+  });
+  assert.deepEqual(rereads.refusals, []);
+  assert.deepEqual(rereads.makefiles, ["Makefile", "sub/Makefile"]);
+  assert.deepEqual(
+    rereads.lines.filter(({ target }) => target === "(read)").map(({ text }) => text),
+    ["$(shell node v1.mjs)", "$(shell node v2.mjs)"],
+    "a file read twice adds each distinct line it runs once; an override the line never uses adds nothing",
+  );
+  const bare = targetClosure({
+    read: files({
+      Makefile: mk(
+        "ROOT = $(CURDIR)",
+        "t:",
+        ">cd $(CURDIR) && node scripts/x.mjs",
+        ">cd $(ROOT) && node scripts/y.mjs",
+        ">$(MAKE) -C $(CURDIR) a b",
+        "a:",
+        ">node scripts/a.mjs",
+        "b:",
+        ">echo b",
+      ),
+    }),
+    dir: ".",
+    targets: ["t"],
+  });
+  assert.deepEqual(bare.refusals, []);
+  assert.deepEqual(bare.targets.map(({ target }) => target), ["t", "a", "b"], "make -C $(CURDIR) in the root reads the root");
+  assert.deepEqual(
+    bare.lines.flatMap(({ dir, text }) => placeWords(text, dir, SCRIPT).words.map(({ path }) => path)),
+    ["scripts/x.mjs", "scripts/y.mjs", "scripts/a.mjs"],
+    "a cd to the root's bare $(CURDIR), directly or through a variable, places the line at the root",
   );
   const onRead = targetClosure({
     read: files({ Makefile: mk("VERSION := $(shell node $(CURDIR)/scripts/version.mjs)", "LATER = $(shell node lazy.mjs)", "t:", ">echo") }),
@@ -363,7 +426,28 @@ test("placeWords places a recipe line's words where they run", () => {
   }
   assert.deepEqual(paths("echo 'cd elsewhere' && node a.mjs").words.map(({ path }) => path), ["a.mjs"], "a quoted cd changes nothing");
   assert.deepEqual(paths("node $(TOOLS)/x.mjs ${DIR}/y.mjs").refusals, [
-    '"/x.mjs" follows a reference this reader could not expand, so its directory cannot be named',
+    '"$(TOOLS)/x.mjs" is built from a reference this reader could not expand',
   ], "a brace reference stays inside the word, for the caller to judge");
+  assert.deepEqual(paths("node $(TOOLS)/x.mjs ${DIR}/y.mjs").words, [{ word: "${DIR}/y.mjs", path: "${DIR}/y.mjs" }]);
+  for (const [text, word] of [
+    ["node scripts/rehearse-$(ARTIFACT).mjs --all", "scripts/rehearse-$(ARTIFACT).mjs"],
+    ["bash /tmp/x-$(date +%s).sh", "/tmp/x-$(date +%s).sh"],
+    ["cd sub && node $(A)$(B).mjs", "$(A)$(B).mjs"],
+    ['node "$(DIR)/a.mjs"', "$(DIR)/a.mjs"],
+  ]) {
+    assert.deepEqual(paths(text), { words: [], refusals: [`"${word}" is built from a reference this reader could not expand`] }, text);
+  }
+  assert.deepEqual(
+    paths("V=$(shell node scripts/x.mjs) && node $(node /scripts/lib/v.mjs) b.mjs"),
+    {
+      words: [
+        { word: "scripts/x.mjs", path: "scripts/x.mjs" },
+        { word: "/scripts/lib/v.mjs", path: "scripts/lib/v.mjs" },
+        { word: "b.mjs", path: "b.mjs" },
+      ],
+      refusals: [],
+    },
+    "a word inside a reference is still placed; only one a reference builds is refused",
+  );
   assert.deepEqual(paths("cd sub && node /abs.mjs; cd other").words, [{ word: "/abs.mjs", path: "abs.mjs" }], "an absolute word needs no directory");
 });
