@@ -25,11 +25,8 @@
           "kind": "string",
           "enumType": "ai.stigmer.platform.v1.Feature",
           "enumValues": [
-            "sso_enforcement",
-            "platform_client",
-            "byo_provider_keys",
             "channels",
-            "sharing",
+            "chat_links",
             "teams",
             "child_orgs",
             "access_history"

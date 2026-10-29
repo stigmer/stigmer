@@ -221,7 +221,7 @@ var File_ai_stigmer_billing_v1_billing_account_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/v1/billing_account.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xed\x03\n" +
+	"+ai/stigmer/billing/v1/billing_account.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfe\x02\n" +
 	"\x0eBillingAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12C\n" +
@@ -232,7 +232,7 @@ const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\a\x10\bJ\x04\b\b\x10\tR\abalanceR\rauto_rechargeR\x1fallowed_negative_balance_microsR\x1clow_balance_threshold_micros\"\xa6\x01\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xa6\x01\n" +
 	"\x14PaymentMethodSummary\x12*\n" +
 	"\x11payment_method_id\x18\x01 \x01(\tR\x0fpaymentMethodId\x12\x14\n" +
 	"\x05brand\x18\x02 \x01(\tR\x05brand\x12\x14\n" +

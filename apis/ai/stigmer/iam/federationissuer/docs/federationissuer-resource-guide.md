@@ -37,7 +37,7 @@ status: {}  # System-managed, never set by users
 |---|---|---|
 | `metadata.name` | Yes | Human-readable name (e.g., `Planton`). Used in UI and audit logs. |
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter. Changed only by `rename`; the old slug reads for 30 days, and sign-in does not name it. |
-| `metadata.id` | No | System-generated unique identifier (prefix `idp_`). Never set by users. |
+| `metadata.id` | No | System-generated unique identifier (prefix `fis_`). Never set by users. |
 | `metadata.org` | Yes | Organization that owns this federation issuer. All federated accounts created via this provider are associated with this org. |
 
 ## Spec Fields

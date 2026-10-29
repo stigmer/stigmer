@@ -590,7 +590,7 @@ private static final long serialVersionUID = 0L;
    * enforcement input and never folded into file_digest/aggregate_digest (the
    * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
    * counting was not possible or meaningful: binary changes, secret-withheld
-   * entries, oversized sides, and records captured before this field existed.
+   * entries and oversized sides.
    * Consumers hide the stat in that case rather than showing "+0 -0".
    * </pre>
    *
@@ -2655,7 +2655,7 @@ private static final long serialVersionUID = 0L;
      * enforcement input and never folded into file_digest/aggregate_digest (the
      * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
      * counting was not possible or meaningful: binary changes, secret-withheld
-     * entries, oversized sides, and records captured before this field existed.
+     * entries and oversized sides.
      * Consumers hide the stat in that case rather than showing "+0 -0".
      * </pre>
      *
@@ -2674,7 +2674,7 @@ private static final long serialVersionUID = 0L;
      * enforcement input and never folded into file_digest/aggregate_digest (the
      * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
      * counting was not possible or meaningful: binary changes, secret-withheld
-     * entries, oversized sides, and records captured before this field existed.
+     * entries and oversized sides.
      * Consumers hide the stat in that case rather than showing "+0 -0".
      * </pre>
      *
@@ -2697,7 +2697,7 @@ private static final long serialVersionUID = 0L;
      * enforcement input and never folded into file_digest/aggregate_digest (the
      * same contract as blocked_reason). Zero (alongside lines_removed == 0) when
      * counting was not possible or meaningful: binary changes, secret-withheld
-     * entries, oversized sides, and records captured before this field existed.
+     * entries and oversized sides.
      * Consumers hide the stat in that case rather than showing "+0 -0".
      * </pre>
      *

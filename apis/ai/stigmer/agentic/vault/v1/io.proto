@@ -142,9 +142,6 @@ message ListVaultsRequest {
   // Organization, by slug or id.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  reserved 2;
-  reserved "page_info";
-
   // The most entries to return: 0 asks for the default page of 50, and a
   // size above 100 is read as 100.
   int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
@@ -161,9 +158,6 @@ message ListVaultsRequest {
 
 // VaultList contains a paginated list of vaults.
 message VaultList {
-  reserved 1;
-  reserved "total_count";
-
   // Vaults in the current page.
   repeated Vault entries = 2;
 

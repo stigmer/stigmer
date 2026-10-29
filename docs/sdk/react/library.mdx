@@ -722,7 +722,7 @@ private < org < child organizations); [`VisibilitySelector`](#visibilityselector
     description: { type: "string", description: "One-line explanation shown under the selector for the current level.", required: true },
     label: { type: "string", description: "", required: true },
     lockedReason: { type: "string", description: "When present, the level cannot be selected by the current caller and the row renders locked (disabled, lock affordance) with this copy explaining why and what to do instead. The component stays free of per-level branching, exactly like the confirmation ladder: a consumer that builds its own option list decides which levels its caller may enter." },
-    tone: { type: "\"org\" | \"private\" | \"public\" | \"childOrgs\"", description: "Color treatment for the selected segment and the confirmation prompt. `\"public\"` is the tone of the retired level: never offered, rendered only for a stored value from before the retirement (see visibilityOption).", required: true },
+    tone: { type: "\"org\" | \"private\" | \"childOrgs\"", description: "Color treatment for the selected segment and the confirmation prompt.", required: true },
     value: { type: "ApiResourceVisibility", description: "", required: true },
   }}
 />

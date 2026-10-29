@@ -45,12 +45,6 @@ message PricingBlock {
   // Micro-USD per million cache-read tokens.
   int64 cache_read_price_micros_per_million = 4 [(buf.validate.field).int64.gte = 0];
 
-  // Field 5 held cursor_token_rate_micros_per_million, the retired Cursor
-  // harness's per-token surcharge. The number and the name are reserved so
-  // neither is ever reused for a different field.
-  reserved 5;
-  reserved "cursor_token_rate_micros_per_million";
-
   // Where these rates came from (e.g. "anthropic_api",
   // "openai_pricing_page", "derived_from_notes"). Provenance, not
   // approval — see the update-model-registry rule for the sign-off

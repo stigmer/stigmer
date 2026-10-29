@@ -46,7 +46,7 @@ status: {}  # System-managed, never set by users
 | `spec.last_name` | No | Yes | Last name, used in UI and audit logs. |
 | `spec.picture_url` | No | Yes | URL to the account holder's profile picture. |
 | `spec.is_machine_account` | Never | Never | Computed. `true` when `idp_id` ends with `@clients`. Assigned by the backend. |
-| `spec.provisioning_mode` | Never | Never | Computed. One of `direct`, `federated`, or `machine`. Assigned by the backend based on `idp_id`. |
+| `spec.provisioning_mode` | Never | Never | Computed. One of `direct`, `federated`, `app_user` or `service_account`. Assigned by the backend by the path that creates the account. |
 | `spec.federation_issuer_ref` | Never | Never | Computed. Set only for `federated` accounts — identifies the FederationIssuer that owns this account. Together with `idp_id`, forms the unique federated identity. |
 
 ## Status Fields
@@ -99,6 +99,6 @@ stigmer identity-account delete ia-01HQUSER123
 ## Related Documentation
 
 - [README.md](README.md) — Overview and key concepts
-- [provisioning-modes.md](provisioning-modes.md) — Direct, federated, and machine provisioning flows
+- [provisioning-modes.md](provisioning-modes.md) — The flow behind each provisioning mode
 - [examples.md](examples.md) — Complete examples
 - [validation-checklist.md](validation-checklist.md) — Pre-update checklist and common pitfalls

@@ -223,9 +223,8 @@ func (UsageCompletionStatus) EnumDescriptor() ([]byte, []int) {
 type ProviderKeySource int32
 
 const (
+	// The meter did not report whose credential served the call.
 	ProviderKeySource_PROVIDER_KEY_SOURCE_UNSPECIFIED ProviderKeySource = 0
-	// A connection the platform provides served the call.
-	ProviderKeySource_PROVIDER_KEY_SOURCE_PLATFORM ProviderKeySource = 1
 	// The organization's own provider key served the call (bring-your-own
 	// provider keys): the provider bills the organization directly.
 	ProviderKeySource_PROVIDER_KEY_SOURCE_ORGANIZATION ProviderKeySource = 2
@@ -235,12 +234,10 @@ const (
 var (
 	ProviderKeySource_name = map[int32]string{
 		0: "PROVIDER_KEY_SOURCE_UNSPECIFIED",
-		1: "PROVIDER_KEY_SOURCE_PLATFORM",
 		2: "PROVIDER_KEY_SOURCE_ORGANIZATION",
 	}
 	ProviderKeySource_value = map[string]int32{
 		"PROVIDER_KEY_SOURCE_UNSPECIFIED":  0,
-		"PROVIDER_KEY_SOURCE_PLATFORM":     1,
 		"PROVIDER_KEY_SOURCE_ORGANIZATION": 2,
 	}
 )
@@ -595,8 +592,7 @@ type LlmCallUsageRecord struct {
 	ErrorCode         string `protobuf:"bytes,42,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
 	// Whose provider credential served this call. ORGANIZATION marks a call on
 	// the organization's own key, which is metered and never charged;
-	// PLATFORM marks a call served by a connection the platform provides.
-	// UNSPECIFIED marks a record written before this field existed.
+	// UNSPECIFIED marks a call whose meter did not report it.
 	ProviderKeySource ProviderKeySource `protobuf:"varint,45,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.run.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
 	// Billed thinking mode derived from wire evidence ("enabled"/"disabled"),
 	// mirroring service_tier's convention; empty when the wire carries no
@@ -1022,7 +1018,7 @@ type ServedByUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whose credential served the calls. UNSPECIFIED counts the tokens whose
 	// server is not known: a run counted from its runner's own report, or a
-	// metered record written before the meter recorded the credential.
+	// metered call whose meter did not report the credential.
 	ProviderKeySource ProviderKeySource `protobuf:"varint,1,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.run.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
 	// Total tokens served this way (cache-inclusive, as the aggregate's).
 	TotalTokens int64 `protobuf:"varint,2,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
@@ -1384,7 +1380,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x12stream_duration_ms\x18\f \x01(\x03R\x10streamDurationMs\x125\n" +
 	"\x17proxy_total_duration_ms\x18\r \x01(\x03R\x14proxyTotalDurationMs\x12#\n" +
 	"\rrequest_bytes\x18\x14 \x01(\x03R\frequestBytes\x12%\n" +
-	"\x0eresponse_bytes\x18\x15 \x01(\x03R\rresponseBytes\"\xe3\f\n" +
+	"\x0eresponse_bytes\x18\x15 \x01(\x03R\rresponseBytes\"\xee\v\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12\x1e\n" +
@@ -1425,7 +1421,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x06labels\x18Z \x03(\v29.ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x17\x10\x18J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,J\x04\b3\x104J\x04\bP\x10QR\vis_billableR\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_sourceR\x04costR\abilling\"\xc0\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x88\x04\n" +
 	"\x14UsageReportAggregate\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12!\n" +
@@ -1438,11 +1434,11 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	" \x01(\x05R\fllmCallCount\x12#\n" +
 	"\rprimary_model\x18\x1e \x01(\tR\fprimaryModel\x12)\n" +
 	"\x10primary_provider\x18\x1f \x01(\tR\x0fprimaryProvider\x12E\n" +
-	"\tserved_by\x18( \x03(\v2(.ai.stigmer.agentic.run.v1.ServedByUsageR\bservedByJ\x04\b\x14\x10\x15J\x04\b\x15\x10\x16R\x14billable_cost_microsR\x14provider_cost_micros\"\xb6\x01\n" +
+	"\tserved_by\x18( \x03(\v2(.ai.stigmer.agentic.run.v1.ServedByUsageR\bservedBy\"\xb6\x01\n" +
 	"\rServedByUsage\x12\\\n" +
 	"\x13provider_key_source\x18\x01 \x01(\x0e2,.ai.stigmer.agentic.run.v1.ProviderKeySourceR\x11providerKeySource\x12!\n" +
 	"\ftotal_tokens\x18\x02 \x01(\x03R\vtotalTokens\x12$\n" +
-	"\x0ellm_call_count\x18\x03 \x01(\x05R\fllmCallCount\"\xf6\x02\n" +
+	"\x0ellm_call_count\x18\x03 \x01(\x05R\fllmCallCount\"\xbe\x02\n" +
 	"\n" +
 	"ModelUsage\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12\x1a\n" +
@@ -1454,8 +1450,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"call_count\x18\a \x01(\x05R\tcallCount\x12!\n" +
 	"\ftotal_tokens\x18\n" +
-	" \x01(\x03R\vtotalTokensJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"R\x14billable_cost_microsR\x14provider_cost_micros\"\xd5\x04\n" +
+	" \x01(\x03R\vtotalTokens\"\xd5\x04\n" +
 	"\x15StreamingUsageSummary\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12*\n" +
@@ -1492,10 +1487,9 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"/USAGE_COMPLETION_STATUS_PROVIDER_ERROR_NO_USAGE\x10\x04\x12*\n" +
 	"&USAGE_COMPLETION_STATUS_ESTIMATED_ONLY\x10\x05\x12&\n" +
 	"\"USAGE_COMPLETION_STATUS_RECONCILED\x10\x06\x12$\n" +
-	" USAGE_COMPLETION_STATUS_CONFLICT\x10\a*\x80\x01\n" +
+	" USAGE_COMPLETION_STATUS_CONFLICT\x10\a*^\n" +
 	"\x11ProviderKeySource\x12#\n" +
-	"\x1fPROVIDER_KEY_SOURCE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cPROVIDER_KEY_SOURCE_PLATFORM\x10\x01\x12$\n" +
+	"\x1fPROVIDER_KEY_SOURCE_UNSPECIFIED\x10\x00\x12$\n" +
 	" PROVIDER_KEY_SOURCE_ORGANIZATION\x10\x02B\xfe\x01\n" +
 	"\x1dcom.ai.stigmer.agentic.run.v1B\n" +
 	"UsageProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1;runv1\xa2\x02\x04ASAR\xaa\x02\x19Ai.Stigmer.Agentic.Run.V1\xca\x02\x19Ai\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1dAi::Stigmer::Agentic::Run::V1b\x06proto3"

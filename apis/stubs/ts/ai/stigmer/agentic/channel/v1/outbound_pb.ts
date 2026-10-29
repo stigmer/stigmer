@@ -173,9 +173,8 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.channel.v1.Chan
    * The message body as rendered for the external recipient, recorded at
    * send time. For template sends this is the registry's body text with
    * the payload's parameter values substituted; empty for text sends
-   * (the body lives in the payload's text arm), for rows written before
-   * this field existed, and for sends whose registry was unreachable at
-   * send time.
+   * (the body lives in the payload's text arm) and for sends whose registry
+   * was unreachable at send time.
    *
    * @generated from field: string rendered_body = 20;
    */
@@ -183,8 +182,8 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.channel.v1.Chan
 
   /**
    * Why the send FAILED, in the platform's classification. Unspecified
-   * unless status is failed (and on rows terminal before this field
-   * existed). A third axis fact beside status and the receipt pair.
+   * unless status is failed. A third axis fact beside status and the
+   * receipt pair.
    *
    * @generated from field: ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind failure_kind = 21;
    */

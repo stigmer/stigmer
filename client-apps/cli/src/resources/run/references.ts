@@ -19,7 +19,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { UsageError } from "../../errors/index.js";
-import { idPrefixesFor, parseReference } from "../reference.js";
+import { idPrefixOf, parseReference } from "../reference.js";
 
 /** One run flag naming resources of one kind. */
 export interface RunReferenceKind {
@@ -53,7 +53,7 @@ export async function resolveRunReferences(
     if (parts.length > 2 || parts.some((part) => part === "")) {
       throw new UsageError(`invalid ${of.flag} value '${raw}': name ${aNoun} by id, org/slug or slug`);
     }
-    const parsed = parseReference(raw, org, idPrefixesFor(of.kind));
+    const parsed = parseReference(raw, org, idPrefixOf(of.kind));
     let refOrg: string;
     let slug: string;
     if (parsed.kind === "id") {

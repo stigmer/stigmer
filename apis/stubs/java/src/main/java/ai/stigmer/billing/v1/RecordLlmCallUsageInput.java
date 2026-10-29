@@ -780,9 +780,8 @@ private static final long serialVersionUID = 0L;
    * Whose provider credential the proxy injected upstream for this call,
    * stamped verbatim onto the usage record (the proxy holds the fact).
    * ORGANIZATION means the organization's own provider key served the
-   * call, which is recorded and never charged.
-   * PLATFORM means a connection the platform provides served it.
-   * UNSPECIFIED from a proxy that predates the field.
+   * call, which is recorded and never charged. UNSPECIFIED means the proxy
+   * did not say.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -796,9 +795,8 @@ private static final long serialVersionUID = 0L;
    * Whose provider credential the proxy injected upstream for this call,
    * stamped verbatim onto the usage record (the proxy holds the fact).
    * ORGANIZATION means the organization's own provider key served the
-   * call, which is recorded and never charged.
-   * PLATFORM means a connection the platform provides served it.
-   * UNSPECIFIED from a proxy that predates the field.
+   * call, which is recorded and never charged. UNSPECIFIED means the proxy
+   * did not say.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3293,9 +3291,8 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call, which is recorded and never charged.
-     * PLATFORM means a connection the platform provides served it.
-     * UNSPECIFIED from a proxy that predates the field.
+     * call, which is recorded and never charged. UNSPECIFIED means the proxy
+     * did not say.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3309,9 +3306,8 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call, which is recorded and never charged.
-     * PLATFORM means a connection the platform provides served it.
-     * UNSPECIFIED from a proxy that predates the field.
+     * call, which is recorded and never charged. UNSPECIFIED means the proxy
+     * did not say.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3330,9 +3326,8 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call, which is recorded and never charged.
-     * PLATFORM means a connection the platform provides served it.
-     * UNSPECIFIED from a proxy that predates the field.
+     * call, which is recorded and never charged. UNSPECIFIED means the proxy
+     * did not say.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3348,9 +3343,8 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call, which is recorded and never charged.
-     * PLATFORM means a connection the platform provides served it.
-     * UNSPECIFIED from a proxy that predates the field.
+     * call, which is recorded and never charged. UNSPECIFIED means the proxy
+     * did not say.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3369,9 +3363,8 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call, which is recorded and never charged.
-     * PLATFORM means a connection the platform provides served it.
-     * UNSPECIFIED from a proxy that predates the field.
+     * call, which is recorded and never charged. UNSPECIFIED means the proxy
+     * did not say.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>

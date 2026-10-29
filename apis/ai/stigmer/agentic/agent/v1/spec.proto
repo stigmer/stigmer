@@ -26,38 +26,14 @@ message AgentSpec {
   // System prompt defining the agent's behavior and personality.
   string instructions = 3 [(buf.validate.field).string.min_len = 10];
 
-  // Field 4 named MCP server resources this agent used, a kind that no
-  // longer exists. An agent's MCP servers are written in mcp_servers or
-  // come with the plugins it lists.
-  reserved 4;
-  reserved "mcp_server_usages";
-
   // Skill resources providing additional knowledge to the agent.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(ai.stigmer.commons.apiresource.reference_kind) = skill];
-
-  // Field 6 held subagents written inside this agent, which narrowed its
-  // tools, until a subagent became a saved agent this agent lists in
-  // subagents.
-  reserved 6;
-  reserved "sub_agents";
 
   // Environment variable declarations for this agent.
   // Keys are variable names; values describe their metadata and optionality.
   // A secret is found by its name in a vault when a run starts; a plain
   // setting may carry its value in the declaration.
   map<string, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env = 7;
-
-  // Field 8 held the embedded sharing configuration (AgentSharing) until
-  // the chat link became a resource of its own, today a web Channel
-  // (ai.stigmer.agentic.channel.v1): a channel has its own writer and
-  // lifecycle, so applying an agent manifest can never touch one.
-  reserved 8;
-  reserved "sharing";
-
-  // Field 9 held datastore_usages (repeated DatastoreUsage) until the
-  // Datastore domain was removed platform-wide.
-  reserved 9;
-  reserved "datastore_usages";
 
   // Tools this agent may use; empty means every tool it has.
   //
@@ -146,11 +122,6 @@ message AgentSpec {
   // the harness it started on; a later version naming another harness changes
   // only new conversations.
   ai.stigmer.agentic.session.v1.Harness harness = 14 [(buf.validate.field).enum.defined_only = true];
-
-  // Field 15 named shared vaults this agent's conversations used; an agent
-  // is a blueprint and carries no vaults: each conversation names its own.
-  reserved 15;
-  reserved "vaults";
 
   // Plugins this agent uses, each whole: its skills, agents, hooks and MCP
   // servers. A server written in the agent itself goes in mcp_servers.
@@ -266,11 +237,6 @@ message AgentMcpServer {
 
 // HookSource is a hooks block written in the agent.
 message HookSource {
-  // Field 1 named a plugin whose hooks applied to the agent until an agent
-  // came to list its plugins whole in AgentSpec.plugins, hooks included.
-  reserved 1;
-  reserved "plugin";
-
   oneof source {
     option (buf.validate.oneof).required = true;
 

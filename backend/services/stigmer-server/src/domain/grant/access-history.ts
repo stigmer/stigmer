@@ -134,7 +134,6 @@ export const CAUSE_ON_WIRE: Readonly<Record<GrantChangeCause, AccessChangeCause>
   first_sign_in: AccessChangeCause.first_sign_in,
   role_reconciliation: AccessChangeCause.role_reconciliation,
   operator_ownership: AccessChangeCause.operator_ownership,
-  platform_client_grant: AccessChangeCause.platform_client_grant,
   service_account_created: AccessChangeCause.service_account_created,
 };
 

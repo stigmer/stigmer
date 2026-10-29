@@ -29,10 +29,6 @@ public interface VisibilityConfigOrBuilder extends
    * <pre>
    * Whether resources of this kind can be set to visibility_org.
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
-   *
-   * Historically org support was inferred from supports_public, which made
-   * it impossible to declare "org but not public" and silently skipped org
-   * tuples for kinds with no visibility config.
    * </pre>
    *
    * <code>bool supports_org = 3 [json_name = "supportsOrg"];</code>
@@ -46,12 +42,9 @@ public interface VisibilityConfigOrBuilder extends
    * with unspecified visibility. When false (or when no visibility config
    * is declared), unspecified visibility defaults to visibility_private.
    *
-   * Set on blueprint kinds (agent, skill, plugin): blueprints
-   * are shared org assets, and before private visibility became real (the
-   * unconditional `viewer from organization` FGA grant was removed) every
-   * blueprint was effectively org-visible regardless of its enum value.
-   * Defaulting to org preserves that collaborative behavior — Private is an
-   * explicit opt-in, never a surprise.
+   * Set on blueprint kinds (agent, skill, plugin): blueprints are shared
+   * org assets, so a new one is visible to its organization and Private is
+   * an explicit opt-in, never a surprise.
    *
    * The flag carries a second, coupled semantic for the same kinds — the
    * ORG FLOOR: when visibility is child_orgs, the org viewer tuple is written

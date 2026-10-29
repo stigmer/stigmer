@@ -22,9 +22,8 @@ public enum TokenEndpointAuthMethod
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
-   * compatibility — every OAuthApp created before this field existed
-   * authenticated via HTTP Basic.
+   * Default / unset. Treated as CLIENT_SECRET_BASIC (HTTP Basic), the
+   * method RFC 6749 requires every authorization server to support.
    * </pre>
    *
    * <code>TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;</code>
@@ -63,9 +62,8 @@ public enum TokenEndpointAuthMethod
   }
   /**
    * <pre>
-   * Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
-   * compatibility — every OAuthApp created before this field existed
-   * authenticated via HTTP Basic.
+   * Default / unset. Treated as CLIENT_SECRET_BASIC (HTTP Basic), the
+   * method RFC 6749 requires every authorization server to support.
    * </pre>
    *
    * <code>TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;</code>

@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/entitlement.proto.
  */
 export const file_ai_stigmer_platform_v1_entitlement: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAi0AMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESKQoTaW5jbHVkZWRfY2hpbGRfb3JncxgDIAEoBUIHukgEGgIgAEgCiAEBEjIKHG1heF9hY3RpdmVfc2Vzc2lvbl9zYW5kYm94ZXMYBCABKAVCB7pIBBoCIABIA4gBARI3CiFhcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXMYBiABKAVCB7pIBBoCIABIBIgBARIqChRpbmNsdWRlZF9hZ2VudF9ob3VycxgHIAEoBUIHukgEGgIgAEgFiAEBQgsKCV9tYXhfb3Jnc0IMCgpfbWF4X3VzZXJzQhYKFF9pbmNsdWRlZF9jaGlsZF9vcmdzQh8KHV9tYXhfYWN0aXZlX3Nlc3Npb25fc2FuZGJveGVzQiQKIl9hcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXNCFwoVX2luY2x1ZGVkX2FnZW50X2hvdXJzSgQIBRAGUh1tYXhfYWN0aXZlX3dvcmtmbG93X3NhbmRib3hlcyqtAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEg4KCmNoaWxkX29yZ3MQBxISCg5hY2Nlc3NfaGlzdG9yeRAIQhJCEEVudGl0bGVtZW50UHJvdG9iBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAiqwMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESKQoTaW5jbHVkZWRfY2hpbGRfb3JncxgDIAEoBUIHukgEGgIgAEgCiAEBEjIKHG1heF9hY3RpdmVfc2Vzc2lvbl9zYW5kYm94ZXMYBCABKAVCB7pIBBoCIABIA4gBARI3CiFhcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXMYBiABKAVCB7pIBBoCIABIBIgBARIqChRpbmNsdWRlZF9hZ2VudF9ob3VycxgHIAEoBUIHukgEGgIgAEgFiAEBQgsKCV9tYXhfb3Jnc0IMCgpfbWF4X3VzZXJzQhYKFF9pbmNsdWRlZF9jaGlsZF9vcmdzQh8KHV9tYXhfYWN0aXZlX3Nlc3Npb25fc2FuZGJveGVzQiQKIl9hcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXNCFwoVX2luY2x1ZGVkX2FnZW50X2hvdXJzKm8KB0ZlYXR1cmUSFwoTZmVhdHVyZV91bnNwZWNpZmllZBAAEgwKCGNoYW5uZWxzEAQSDgoKY2hhdF9saW5rcxAFEgkKBXRlYW1zEAYSDgoKY2hpbGRfb3JncxAHEhIKDmFjY2Vzc19oaXN0b3J5EAhCEkIQRW50aXRsZW1lbnRQcm90b2IGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * What an edition permits its customer: a set of limits and a set of features.
@@ -140,9 +140,10 @@ export const EntitlementLimitsSchema: GenMessage<EntitlementLimits> = /*@__PURE_
  * A capability an entitlement can unlock.
  *
  * The vocabulary is closed and grows one value at a time, each landing with
- * the gate that reads it: an enum value is a wire identifier that can never
- * be removed, so a feature is named here only once something in the
- * platform can be gated on it. Values are added, never renamed or reused.
+ * the gate that reads it, so a feature is named here only once something in
+ * the platform can be gated on it. A value is a wire identifier: once
+ * released it is never renamed, and a value that leaves keeps its number
+ * and name reserved so neither is reused.
  *
  * @generated from enum ai.stigmer.platform.v1.Feature
  */
@@ -151,38 +152,6 @@ export enum Feature {
    * @generated from enum value: feature_unspecified = 0;
    */
   feature_unspecified = 0,
-
-  /**
-   * No longer used: gates nothing. It enforced sign-in through an
-   * organization's single sign-on provider, and Stigmer has no single
-   * sign-on of its own. It stays because plans and licenses already issued
-   * carry it and an enum value is a wire identifier. A new plan or license
-   * does not list it.
-   *
-   * @generated from enum value: sso_enforcement = 1;
-   */
-  sso_enforcement = 1,
-
-  /**
-   * No longer used: gates nothing. It named the platform client credential,
-   * which Stigmer no longer has; a product mints its users' tokens with a
-   * service account's key in every edition. It stays
-   * because licenses already issued carry it and an enum value is a wire
-   * identifier. A new plan or license does not list it.
-   *
-   * @generated from enum value: platform_client = 2;
-   */
-  platform_client = 2,
-
-  /**
-   * No longer used: gates nothing. Every plan serves model calls on the
-   * organization's own provider keys, and no edition reads this value. It
-   * stays because plans and licenses already issued carry it and an enum
-   * value is a wire identifier. A new plan or license does not list it.
-   *
-   * @generated from enum value: byo_provider_keys = 3;
-   */
-  byo_provider_keys = 3,
 
   /**
    * Serving an agent's Slack and WhatsApp channels through the Cloud's
@@ -203,12 +172,11 @@ export enum Feature {
    * hosted lane inside Cloud plans. It is not an edition gate, and a
    * license never lists it: the open-source server stores chat links
    * freely, and whether a self-hosted server serves them to guests is its
-   * edition's to decide, never its license's. The name is older than chat
-   * links becoming channels and stays: an enum value is a wire identifier.
+   * edition's to decide, never its license's.
    *
-   * @generated from enum value: sharing = 5;
+   * @generated from enum value: chat_links = 5;
    */
-  sharing = 5,
+  chat_links = 5,
 
   /**
    * Creating teams and adding members to them. The team kind is Enterprise

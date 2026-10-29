@@ -201,9 +201,6 @@ message ListPluginVersionsResponse {
   // Set when more entries may follow: pass it as page_token to continue.
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
-
-  reserved 3;
-  reserved "total_count";
 }
 
 // Input for listing an organization's plugins, newest first.

@@ -11,11 +11,11 @@
  * - names retired by the rename of the agent run to a run (the kind string
  *   `AgentRun`, the kind value `agent_run`) read as their current names in
  *   one hop;
- * - a field the contract reserved since (the run's transcript, which the
- *   workflow's own stop and failure writes once carried, and the files a
- *   status write once carried by storage key) is dropped, under its
+ * - a field the message reserves (a release removed it while a status
+ *   write recorded before the deploy still names it) is dropped, under its
  *   current or its retired spelling, while a status write's other unknown
- *   fields are refused;
+ *   fields are refused; a message built here reserves the names, so the
+ *   rule stays proven while the contract reserves none;
  * - a field set under both its retired and its current name is refused,
  *   not decided by its place in the payload;
  * - the runner result's phase lookup reads a retired phase name;
@@ -29,7 +29,12 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
-import type { DescMessage } from "@bufbuild/protobuf";
+import { create, createFileRegistry, type DescMessage } from "@bufbuild/protobuf";
+import {
+  FieldDescriptorProto_Label,
+  FieldDescriptorProto_Type,
+  FileDescriptorProtoSchema,
+} from "@bufbuild/protobuf/wkt";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 import {
@@ -40,21 +45,46 @@ import {
 } from "../execution-json.js";
 import { getPhaseFromResult } from "../runner-result.js";
 
+/**
+ * A status message that reserves two field names, as a release that removes
+ * a field leaves its message: `transcript_lines`, and `supersedes_run_id`,
+ * whose retired spelling (`supersedes_execution_id`) the tables still map.
+ */
+const RESERVING_STATUS: DescMessage = createFileRegistry(
+  create(FileDescriptorProtoSchema, {
+    name: "reserving_status_fixture.proto",
+    package: "executionjson.fixture.v1",
+    syntax: "proto3",
+    messageType: [
+      {
+        name: "Status",
+        field: [
+          {
+            name: "phase",
+            number: 1,
+            type: FieldDescriptorProto_Type.STRING,
+            label: FieldDescriptorProto_Label.OPTIONAL,
+            jsonName: "phase",
+          },
+        ],
+        reservedRange: [{ start: 2, end: 4 }],
+        reservedName: ["transcript_lines", "supersedes_run_id"],
+      },
+    ],
+  }),
+  () => undefined,
+).getMessage("executionjson.fixture.v1.Status")!;
+
 describe("the run JSON recorded before a release", () => {
-  it("renames what a replay history records, written before the run rename, and drops the transcript the contract reserved", () => {
+  it("renames what a replay history records, written before the run rename", () => {
     // hitl-approval.json's LoadAgentExecution marker result, with the kind
-    // string and two renamed fields an older server also wrote.
+    // string and a renamed field an older server also wrote.
     expect(
       renameRetiredRunJson(RunSchema, {
         kind: "AgentExecution",
         metadata: { id: "exec-replay" },
         spec: { supersedesExecutionId: "aex_prev" },
-        status: {
-          phase: "EXECUTION_WAITING_FOR_APPROVAL",
-          pendingApprovals: [{ toolCallId: "tc-1", toolName: "echo" }],
-          subAgentExecutions: [{ id: "sub_1", name: "researcher" }],
-          messages: [{ content: "EXECUTION_COMPLETED is a phase name" }],
-        },
+        status: { phase: "EXECUTION_WAITING_FOR_APPROVAL" },
       }),
     ).toEqual({
       kind: "Run",
@@ -76,16 +106,19 @@ describe("the run JSON recorded before a release", () => {
     ).toEqual({ spec: { sessionSpec: { agentRef: { kind: "run" } } } });
   });
 
-  it("decodes a status write recorded with the transcript lines the workflow once sent, the lines dropped", () => {
-    // The pause write a run in flight across the deploy recorded.
-    const status = decodeRunStatusJson(RunStatusSchema, {
-      phase: "RUN_PAUSED",
-      stopCause: "user",
-      messages: [{ type: "MESSAGE_SYSTEM", content: "Paused by user" }],
-      file_review_event_stream: { events: [] },
-    });
-    expect(status.phase).toBe(RunPhase.RUN_PAUSED);
-    expect(status.stopCause).toBe("user");
+  it("decodes a status write that names a field the message reserves, the field dropped under its JSON or its proto name", () => {
+    for (const json of [
+      { phase: "paused", transcriptLines: [{ content: "Paused by user" }] },
+      { phase: "paused", transcript_lines: [] },
+    ]) {
+      expect(decodeRunStatusJson(RESERVING_STATUS, json), JSON.stringify(json)).toMatchObject({ phase: "paused" });
+    }
+  });
+
+  it("drops a reserved field under its retired spelling too", () => {
+    expect(
+      renameRetiredRunJson(RESERVING_STATUS, { phase: "done", supersedesExecutionId: "run_a" }),
+    ).toEqual({ phase: "done" });
   });
 
   it("refuses any other field a status write does not know", () => {
@@ -122,14 +155,6 @@ describe("the run JSON recorded before a release", () => {
         status: { loadedVersions: { skills: [{ kind: "AgentExecution" }] } },
       }),
     ).toEqual({ kind: "Run", status: { loadedVersions: { skills: [{ kind: "AgentExecution" }] } } });
-  });
-
-  it("drops the files a status write once carried by storage key, now a reserved field", () => {
-    const status = decodeRunStatusJson(RunStatusSchema, {
-      phase: "RUN_COMPLETED",
-      artifacts: [{ name: "notes.md", storageKey: "artifacts/run_a/notes.md", kind: "RUN_ARTIFACT_KIND_FILE" }],
-    });
-    expect(status.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("refuses a field set under its retired and its current name, whichever comes first", () => {

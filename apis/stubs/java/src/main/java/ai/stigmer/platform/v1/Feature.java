@@ -10,9 +10,10 @@ package ai.stigmer.platform.v1;
  * A capability an entitlement can unlock.
  *
  * The vocabulary is closed and grows one value at a time, each landing with
- * the gate that reads it: an enum value is a wire identifier that can never
- * be removed, so a feature is named here only once something in the
- * platform can be gated on it. Values are added, never renamed or reused.
+ * the gate that reads it, so a feature is named here only once something in
+ * the platform can be gated on it. A value is a wire identifier: once
+ * released it is never renamed, and a value that leaves keeps its number
+ * and name reserved so neither is reused.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.platform.v1.Feature}
@@ -24,41 +25,6 @@ public enum Feature
    * <code>feature_unspecified = 0;</code>
    */
   feature_unspecified(0),
-  /**
-   * <pre>
-   * No longer used: gates nothing. It enforced sign-in through an
-   * organization's single sign-on provider, and Stigmer has no single
-   * sign-on of its own. It stays because plans and licenses already issued
-   * carry it and an enum value is a wire identifier. A new plan or license
-   * does not list it.
-   * </pre>
-   *
-   * <code>sso_enforcement = 1;</code>
-   */
-  sso_enforcement(1),
-  /**
-   * <pre>
-   * No longer used: gates nothing. It named the platform client credential,
-   * which Stigmer no longer has; a product mints its users' tokens with a
-   * service account's key in every edition. It stays
-   * because licenses already issued carry it and an enum value is a wire
-   * identifier. A new plan or license does not list it.
-   * </pre>
-   *
-   * <code>platform_client = 2;</code>
-   */
-  platform_client(2),
-  /**
-   * <pre>
-   * No longer used: gates nothing. Every plan serves model calls on the
-   * organization's own provider keys, and no edition reads this value. It
-   * stays because plans and licenses already issued carry it and an enum
-   * value is a wire identifier. A new plan or license does not list it.
-   * </pre>
-   *
-   * <code>byo_provider_keys = 3;</code>
-   */
-  byo_provider_keys(3),
   /**
    * <pre>
    * Serving an agent's Slack and WhatsApp channels through the Cloud's
@@ -80,13 +46,12 @@ public enum Feature
    * hosted lane inside Cloud plans. It is not an edition gate, and a
    * license never lists it: the open-source server stores chat links
    * freely, and whether a self-hosted server serves them to guests is its
-   * edition's to decide, never its license's. The name is older than chat
-   * links becoming channels and stays: an enum value is a wire identifier.
+   * edition's to decide, never its license's.
    * </pre>
    *
-   * <code>sharing = 5;</code>
+   * <code>chat_links = 5;</code>
    */
-  sharing(5),
+  chat_links(5),
   /**
    * <pre>
    * Creating teams and adding members to them. The team kind is Enterprise
@@ -144,41 +109,6 @@ public enum Feature
   public static final int feature_unspecified_VALUE = 0;
   /**
    * <pre>
-   * No longer used: gates nothing. It enforced sign-in through an
-   * organization's single sign-on provider, and Stigmer has no single
-   * sign-on of its own. It stays because plans and licenses already issued
-   * carry it and an enum value is a wire identifier. A new plan or license
-   * does not list it.
-   * </pre>
-   *
-   * <code>sso_enforcement = 1;</code>
-   */
-  public static final int sso_enforcement_VALUE = 1;
-  /**
-   * <pre>
-   * No longer used: gates nothing. It named the platform client credential,
-   * which Stigmer no longer has; a product mints its users' tokens with a
-   * service account's key in every edition. It stays
-   * because licenses already issued carry it and an enum value is a wire
-   * identifier. A new plan or license does not list it.
-   * </pre>
-   *
-   * <code>platform_client = 2;</code>
-   */
-  public static final int platform_client_VALUE = 2;
-  /**
-   * <pre>
-   * No longer used: gates nothing. Every plan serves model calls on the
-   * organization's own provider keys, and no edition reads this value. It
-   * stays because plans and licenses already issued carry it and an enum
-   * value is a wire identifier. A new plan or license does not list it.
-   * </pre>
-   *
-   * <code>byo_provider_keys = 3;</code>
-   */
-  public static final int byo_provider_keys_VALUE = 3;
-  /**
-   * <pre>
    * Serving an agent's Slack and WhatsApp channels through the Cloud's
    * hosted channel runtime. The Channel kind itself is open source; this
    * feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
@@ -198,13 +128,12 @@ public enum Feature
    * hosted lane inside Cloud plans. It is not an edition gate, and a
    * license never lists it: the open-source server stores chat links
    * freely, and whether a self-hosted server serves them to guests is its
-   * edition's to decide, never its license's. The name is older than chat
-   * links becoming channels and stays: an enum value is a wire identifier.
+   * edition's to decide, never its license's.
    * </pre>
    *
-   * <code>sharing = 5;</code>
+   * <code>chat_links = 5;</code>
    */
-  public static final int sharing_VALUE = 5;
+  public static final int chat_links_VALUE = 5;
   /**
    * <pre>
    * Creating teams and adding members to them. The team kind is Enterprise
@@ -271,11 +200,8 @@ public enum Feature
   public static Feature forNumber(int value) {
     switch (value) {
       case 0: return feature_unspecified;
-      case 1: return sso_enforcement;
-      case 2: return platform_client;
-      case 3: return byo_provider_keys;
       case 4: return channels;
-      case 5: return sharing;
+      case 5: return chat_links;
       case 6: return teams;
       case 7: return child_orgs;
       case 8: return access_history;

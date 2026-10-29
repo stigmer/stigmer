@@ -17,8 +17,6 @@
 // caller's name and a reason from outside the CLI cannot break the table or
 // reach the terminal as escape codes, an empty history says so, and yaml and
 // json print the rows. The client is a double recording what it was asked.
-// The routine here keeps the `sch_` id a stored schedule was minted with,
-// which still names it.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -43,7 +41,7 @@ import { fireRoutine, renderFiresTable, resumeRoutine, showRoutineFires } from "
 const NEXT_FIRE = new Date("2026-10-07T09:00:00.000Z");
 
 const nightly = create(RoutineSchema, {
-  metadata: { id: "sch_1", slug: "nightly", name: "Nightly digest" },
+  metadata: { id: "rtn_1", slug: "nightly", name: "Nightly digest" },
   status: { nextFireAt: timestampFromDate(NEXT_FIRE) },
 });
 
@@ -83,9 +81,9 @@ describe("fireRoutine", () => {
       }),
     );
 
-    const result = await fireRoutine(client, "sch_1", "acme");
+    const result = await fireRoutine(client, "rtn_1", "acme");
 
-    expect(fired).toEqual(["sch_1"]);
+    expect(fired).toEqual(["rtn_1"]);
     expect(result.status).toBe("success");
     expect(result.message).toBe("Routine 'Nightly digest' fired — run started");
     expect(fields(result)).toEqual({
@@ -102,10 +100,10 @@ describe("fireRoutine", () => {
       create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
     );
 
-    await fireRoutine(client, "sch_1", "acme", "Sentry alert SEN-4521 fired");
+    await fireRoutine(client, "rtn_1", "acme", "Sentry alert SEN-4521 fired");
 
     expect(inputs.map((input) => ({ id: input.id, text: input.text }))).toEqual([
-      { id: "sch_1", text: "Sentry alert SEN-4521 fired" },
+      { id: "rtn_1", text: "Sentry alert SEN-4521 fired" },
     ]);
   });
 
@@ -115,20 +113,20 @@ describe("fireRoutine", () => {
       create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
     );
 
-    await fireRoutine(client, "sch_1", "acme");
+    await fireRoutine(client, "rtn_1", "acme");
 
     expect(inputs).toHaveLength(1);
     expect(inputs[0]?.text).toBe("");
   });
 
   it("names the routine read before the fire when the result carries none, by slug when unnamed", async () => {
-    const unnamed = create(RoutineSchema, { metadata: { id: "sch_1", slug: "nightly" } });
+    const unnamed = create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" } });
     const { client } = double(
       unnamed,
       create(RoutineFireResultSchema, { outcome: RoutineFireOutcome.STARTED, runId: "aex_8" }),
     );
 
-    const result = await fireRoutine(client, "sch_1", "acme");
+    const result = await fireRoutine(client, "rtn_1", "acme");
 
     expect(result.message).toBe("Routine 'nightly' fired — run started");
     expect(fields(result)).toEqual({ Run: "aex_8", Fire: "", "Watch it": "stigmer get run aex_8" });
@@ -144,13 +142,13 @@ describe("fireRoutine", () => {
       }),
     );
 
-    const result = await fireRoutine(client, "sch_1", "acme");
+    const result = await fireRoutine(client, "rtn_1", "acme");
 
     expect(result.status).toBe("error");
     expect(result.message).toBe("Routine 'Nightly digest' fired, but a launch gate refused the run");
     expect(fields(result)).toEqual({ Reason: "monthly spend cap reached" });
     expect(result.hints).toEqual([
-      "The fire is recorded in the routine's fire history (stigmer routine fires sch_1); fix the cause and fire it again.",
+      "The fire is recorded in the routine's fire history (stigmer routine fires rtn_1); fix the cause and fire it again.",
     ]);
   });
 
@@ -164,7 +162,7 @@ describe("fireRoutine", () => {
       }),
     );
 
-    const result = await fireRoutine(client, "sch_1", "acme");
+    const result = await fireRoutine(client, "rtn_1", "acme");
 
     expect(result.status).toBe("error");
     expect(result.message).toBe("Routine 'Nightly digest' fired, but the target agent was not found");
@@ -177,8 +175,8 @@ describe("fireRoutine", () => {
       create(RoutineFireResultSchema, {}),
     );
 
-    await expect(fireRoutine(client, "sch_1", "acme")).rejects.toThrow(
-      new UsageError("Routine 'sch_1' has no id — cannot fire"),
+    await expect(fireRoutine(client, "rtn_1", "acme")).rejects.toThrow(
+      new UsageError("Routine 'rtn_1' has no id — cannot fire"),
     );
     expect(fired).toEqual([]);
   });
@@ -201,22 +199,22 @@ describe("resumeRoutine", () => {
   }
 
   const cleared = create(RoutineSchema, {
-    metadata: { id: "sch_1", slug: "nightly", name: "Nightly digest" },
+    metadata: { id: "rtn_1", slug: "nightly", name: "Nightly digest" },
     spec: { enabled: true },
     status: { nextFireAt: timestampFromDate(NEXT_FIRE) },
   });
 
   it("names the pause it cleared and the failures it reset", async () => {
     const paused = create(RoutineSchema, {
-      metadata: { id: "sch_1", slug: "nightly", name: "Nightly digest" },
+      metadata: { id: "rtn_1", slug: "nightly", name: "Nightly digest" },
       spec: { enabled: true },
       status: { pausedReason: "Paused after 2 consecutive failed runs", consecutiveFailures: 2 },
     });
     const { client, resumed } = resumable(paused, cleared);
 
-    const result = await resumeRoutine(client, "sch_1", "acme");
+    const result = await resumeRoutine(client, "rtn_1", "acme");
 
-    expect(resumed).toEqual(["sch_1"]);
+    expect(resumed).toEqual(["rtn_1"]);
     expect(result.message).toBe("Routine 'Nightly digest' resumed");
     expect(fields(result)).toEqual({
       "Pause reason": "Paused after 2 consecutive failed runs",
@@ -228,17 +226,17 @@ describe("resumeRoutine", () => {
   it("says there was nothing to clear for a routine that was not paused", async () => {
     const { client } = resumable(cleared, cleared);
 
-    const result = await resumeRoutine(client, "sch_1", "acme");
+    const result = await resumeRoutine(client, "rtn_1", "acme");
 
     expect(result.message).toBe("Routine 'Nightly digest' was not paused — nothing to clear");
     expect(fields(result)).toEqual({ "Next fire": NEXT_FIRE.toISOString() });
   });
 
   it("tells a disabled routine's owner it will not run until enabled", async () => {
-    const disabled = create(RoutineSchema, { metadata: { id: "sch_1", slug: "nightly" }, spec: { enabled: false } });
+    const disabled = create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" }, spec: { enabled: false } });
     const { client } = resumable(disabled, disabled);
 
-    const result = await resumeRoutine(client, "sch_1", "acme");
+    const result = await resumeRoutine(client, "rtn_1", "acme");
 
     expect(result.message).toBe("Routine 'nightly' was not paused — nothing to clear");
     expect(result.hints[0]).toBe("This routine is disabled (enabled: false) — it will not run until you enable it:");
@@ -247,8 +245,8 @@ describe("resumeRoutine", () => {
   it("refuses a routine with no id and resumes nothing", async () => {
     const { client, resumed } = resumable(create(RoutineSchema, { metadata: { slug: "nightly" } }), cleared);
 
-    await expect(resumeRoutine(client, "sch_1", "acme")).rejects.toThrow(
-      new UsageError("Routine 'sch_1' has no id — cannot resume"),
+    await expect(resumeRoutine(client, "rtn_1", "acme")).rejects.toThrow(
+      new UsageError("Routine 'rtn_1' has no id — cannot resume"),
     );
     expect(resumed).toEqual([]);
   });
@@ -258,7 +256,7 @@ describe("showRoutineFires", () => {
   const RECORDED = new Date("2026-10-18T08:30:00.000Z");
 
   const scheduled = create(RoutineFireSchema, {
-    routineId: "sch_1",
+    routineId: "rtn_1",
     origin: RoutineFireOrigin.SCHEDULE,
     outcome: RoutineFireOutcome.COMPLETED,
     runId: "aex_1",
@@ -266,7 +264,7 @@ describe("showRoutineFires", () => {
   });
 
   const byPerson = create(RoutineFireSchema, {
-    routineId: "sch_1",
+    routineId: "rtn_1",
     origin: RoutineFireOrigin.MANUAL,
     outcome: RoutineFireOutcome.STARTED,
     runId: "aex_2",
@@ -275,7 +273,7 @@ describe("showRoutineFires", () => {
   });
 
   const byAlerting = create(RoutineFireSchema, {
-    routineId: "sch_1",
+    routineId: "rtn_1",
     origin: RoutineFireOrigin.MANUAL,
     outcome: RoutineFireOutcome.REFUSED,
     reason: "monthly spend cap reached",
@@ -311,9 +309,9 @@ describe("showRoutineFires", () => {
     const { client, asked } = history([[byPerson, byAlerting, scheduled]]);
     const streams = captured();
 
-    await showRoutineFires(client, "sch_1", "acme", 50, "table", streams);
+    await showRoutineFires(client, "rtn_1", "acme", 50, "table", streams);
 
-    expect(asked.map((request) => request.routineId)).toEqual(["sch_1"]);
+    expect(asked.map((request) => request.routineId)).toEqual(["rtn_1"]);
     const lines = streams.text().trim().split("\n");
     expect(lines[0]).toMatch(/^FIRED\s+ORIGIN\s+STARTED BY\s+OUTCOME\s+RUN\s+REASON$/);
     expect(lines[2]).toMatch(/Manual\s+Ana\s+started\s+aex_2/);
@@ -328,7 +326,7 @@ describe("showRoutineFires", () => {
     const { client, asked } = history([[byPerson, byAlerting], [scheduled, byPerson]]);
     const streams = captured();
 
-    await showRoutineFires(client, "sch_1", "acme", 3, "json", streams);
+    await showRoutineFires(client, "rtn_1", "acme", 3, "json", streams);
 
     expect(asked.map((request) => [request.pageSize, request.pageToken])).toEqual([
       [3, ""],
@@ -345,7 +343,7 @@ describe("showRoutineFires", () => {
       return true;
     });
     try {
-      await showRoutineFires(client, "sch_1", "acme", 50, "json");
+      await showRoutineFires(client, "rtn_1", "acme", 50, "json");
     } finally {
       write.mockRestore();
     }
@@ -356,7 +354,7 @@ describe("showRoutineFires", () => {
     const { client, asked } = history([[byPerson], [byAlerting], [scheduled]]);
     const streams = captured();
 
-    await showRoutineFires(client, "sch_1", "acme", 0, "yaml", streams);
+    await showRoutineFires(client, "rtn_1", "acme", 0, "yaml", streams);
 
     expect(asked).toHaveLength(3);
     expect(streams.text()).toContain("monthly spend cap reached");
@@ -395,8 +393,8 @@ describe("showRoutineFires", () => {
       },
     } as unknown as Stigmer;
 
-    await expect(showRoutineFires(client, "sch_1", "acme", 50, "table", captured())).rejects.toThrow(
-      new UsageError("Routine 'sch_1' has no id — cannot list its fires"),
+    await expect(showRoutineFires(client, "rtn_1", "acme", 50, "table", captured())).rejects.toThrow(
+      new UsageError("Routine 'rtn_1' has no id — cannot list its fires"),
     );
     expect(asked).toEqual([]);
   });

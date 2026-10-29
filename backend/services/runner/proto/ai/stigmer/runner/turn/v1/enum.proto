@@ -4,13 +4,7 @@ package ai.stigmer.runner.turn.v1;
 
 // The runner's own enums for the rows it keeps for one turn. Runner-private:
 // never part of the public contract (apis/), compiled only for the runner and
-// its in-process agent host. Names and values are the ones the public
-// contract once carried, so stored JSON and the runner's code read them
-// unchanged.
-//
-// Field comments are carried over from the public contract these types came
-// from; where one names a retired run method or server projection, the
-// session's events now carry that role.
+// its in-process agent host.
 
 // MessageType defines the type of message in the conversation.
 enum MessageType {
@@ -163,13 +157,11 @@ enum ToolCallStatus {
 // orthogonal streaming capability. Result formatting is a client concern and is
 // intentionally not encoded here.
 //
-// TOOL_KIND_UNSPECIFIED means the runner did not classify the tool — either the
-// run predates this field, or the tool does not fit a known kind. Clients
-// fall back to a tool-name lookup in that case, so legacy runs still
-// render correctly.
+// TOOL_KIND_UNSPECIFIED means the runner did not classify the tool: it does
+// not fit a known kind. Clients fall back to a tool-name lookup in that case.
 enum ToolKind {
-  // Not classified. Legacy runs (persisted before this field existed) and
-  // tools with no known kind. Clients fall back to a name-based resolver.
+  // Not classified: a tool with no known kind. Clients fall back to a
+  // name-based resolver.
   TOOL_KIND_UNSPECIFIED = 0;
 
   // Read a file's contents. Stigmer: read, read_file. Claude: Read.
@@ -523,11 +515,9 @@ enum FileDecisionAction {
 // reviewer, or a platform policy acting on consent the human already gave.
 // Audit provenance carried on the decision so the record always shows WHO
 // decided — it is never an enforcement input, never a correlation key, and
-// never folded into any digest. UNSPECIFIED (decisions authored before this
-// field existed) reads as a human decision, the only author that existed then.
+// never folded into any digest. UNSPECIFIED reads as a human decision.
 enum FileDecisionOrigin {
-  // Default value: a decision recorded before origins existed. Treated as
-  // USER by every consumer (the only author that existed before origins).
+  // Not set. Treated as USER by every consumer.
   FILE_DECISION_ORIGIN_UNSPECIFIED = 0;
 
   // A human reviewer decided via SubmitFileDecision.
@@ -611,19 +601,12 @@ enum FileReviewFailureKind {
 // ToolCall.approval_policy_hook); otherwise the default decides
 // (BUILTIN_CATEGORY for a built-in, ANNOTATION_DESTRUCTIVE_TIGHTEN for a
 // destructive MCP tool). A lease, the global bypass or the unattended skip
-// then records how a required approval was resolved. Values 1 to 3 belonged to the removed per-tool approval
-// policies; they are reserved, and no value is ever renumbered.
+// then records how a required approval was resolved. Numbers 1 to 3 are
+// unused.
 enum ApprovalPolicySource {
-  // Default — the run predates this field, or no approval was required
-  // (a read-only built-in, or an MCP tool its server does not mark
-  // destructive). Clients show no provenance.
+  // Default — no approval was required (a read-only built-in, or an MCP
+  // tool its server does not mark destructive). Clients show no provenance.
   APPROVAL_POLICY_SOURCE_UNSPECIFIED = 0;
-
-  // Values 1 to 3 recorded the removed per-tool approval policies: the
-  // connect-time classifier's default, a server-level pin and an agent-level
-  // override.
-  reserved 1, 2, 3;
-  reserved "APPROVAL_POLICY_SOURCE_CLASSIFIER_DEFAULT", "APPROVAL_POLICY_SOURCE_PINNED_OVERRIDE", "APPROVAL_POLICY_SOURCE_AGENT_OVERRIDE";
 
   // Layer 4: the pre-armed RunSpec.auto_approve_all whole-run global
   // bypass cleared this call.

@@ -101,33 +101,32 @@ public final class ValuesProto extends com.google.protobuf.GeneratedFile {
       "uesR\007plugins\022I\n\tsubagents\030\005 \003(\0132+.ai.sti" +
       "gmer.agentic.vault.v1.SubagentValuesR\tsu" +
       "bagents\0328\n\nAgentEntry\022\020\n\003key\030\001 \001(\tR\003key\022" +
-      "\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\213\002\n\nToolValues" +
+      "\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\366\001\n\nToolValues" +
       "\022\033\n\tplugin_id\030\004 \001(\tR\010pluginId\022\031\n\010agent_i" +
       "d\030\006 \001(\tR\007agentId\022\026\n\006server\030\005 \001(\tR\006server" +
       "\022\020\n\003url\030\002 \001(\tR\003url\022K\n\006values\030\003 \003(\01323.ai." +
       "stigmer.agentic.vault.v1.ToolValues.Valu" +
       "esEntryR\006values\0329\n\013ValuesEntry\022\020\n\003key\030\001 " +
-      "\001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001J\004\010\001\020\002" +
-      "R\rmcp_server_id\"\265\001\n\014PluginValues\022\033\n\tplug" +
-      "in_id\030\001 \001(\tR\010pluginId\022M\n\006values\030\002 \003(\01325." +
-      "ai.stigmer.agentic.vault.v1.PluginValues" +
-      ".ValuesEntryR\006values\0329\n\013ValuesEntry\022\020\n\003k" +
-      "ey\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"" +
-      "\260\001\n\016SubagentValues\022\022\n\004name\030\001 \001(\tR\004name\022O" +
-      "\n\006values\030\002 \003(\01327.ai.stigmer.agentic.vaul" +
-      "t.v1.SubagentValues.ValuesEntryR\006values\032" +
+      "\001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"\265\001\n\014P" +
+      "luginValues\022\033\n\tplugin_id\030\001 \001(\tR\010pluginId" +
+      "\022M\n\006values\030\002 \003(\01325.ai.stigmer.agentic.va" +
+      "ult.v1.PluginValues.ValuesEntryR\006values\032" +
       "9\n\013ValuesEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005valu" +
-      "e\030\002 \001(\tR\005value:\0028\001\"N\n\020RepositoryValues\022\022" +
-      "\n\004name\030\001 \001(\tR\004name\022\020\n\003url\030\002 \001(\tR\003url\022\024\n\005" +
-      "token\030\003 \001(\tR\005token2\221\001\n\024VaultValueControl" +
-      "ler\022y\n\013fetchValues\0226.ai.stigmer.agentic." +
-      "vault.v1.FetchExecutionValuesInput\032,.ai." +
-      "stigmer.agentic.vault.v1.ExecutionValues" +
-      "\"\004\320\270\030\001B\236\001B\013ValuesProtoP\001\242\002\004ASAV\252\002\033Ai.Sti" +
-      "gmer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agent" +
-      "ic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\V" +
-      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Va" +
-      "ult::V1b\006proto3"
+      "e\030\002 \001(\tR\005value:\0028\001\"\260\001\n\016SubagentValues\022\022\n" +
+      "\004name\030\001 \001(\tR\004name\022O\n\006values\030\002 \003(\01327.ai.s" +
+      "tigmer.agentic.vault.v1.SubagentValues.V" +
+      "aluesEntryR\006values\0329\n\013ValuesEntry\022\020\n\003key" +
+      "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"N\n" +
+      "\020RepositoryValues\022\022\n\004name\030\001 \001(\tR\004name\022\020\n" +
+      "\003url\030\002 \001(\tR\003url\022\024\n\005token\030\003 \001(\tR\005token2\221\001" +
+      "\n\024VaultValueController\022y\n\013fetchValues\0226." +
+      "ai.stigmer.agentic.vault.v1.FetchExecuti" +
+      "onValuesInput\032,.ai.stigmer.agentic.vault" +
+      ".v1.ExecutionValues\"\004\320\270\030\001B\236\001B\013ValuesProt" +
+      "oP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic.Vault.V1" +
+      "\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002\'Ai\\Stig" +
+      "mer\\Agentic\\Vault\\V1\\GPBMetadata\352\002\037Ai::S" +
+      "tigmer::Agentic::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

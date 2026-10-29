@@ -116,7 +116,8 @@ describe("renderSessionUsage", () => {
 
 describe("formatServedBy", () => {
   const org = ProviderKeySource.ORGANIZATION;
-  const platform = ProviderKeySource.PLATFORM;
+  // A source a newer server may report that this build does not name.
+  const newer = 7 as ProviderKeySource;
   const unrecorded = ProviderKeySource.UNSPECIFIED;
   const aggregate = (rows: { source: ProviderKeySource; tokens: bigint }[]) =>
     create(UsageReportAggregateSchema, {
@@ -131,7 +132,6 @@ describe("formatServedBy", () => {
 
   it("names a single known source, noting tokens whose server was not recorded", () => {
     expect(formatServedBy(aggregate([{ source: org, tokens: 5000n }]))).toBe("your keys");
-    expect(formatServedBy(aggregate([{ source: platform, tokens: 5000n }]))).toBe("the platform's connection");
     expect(
       formatServedBy(
         aggregate([
@@ -147,7 +147,7 @@ describe("formatServedBy", () => {
       formatServedBy(
         aggregate([
           { source: org, tokens: 5000n },
-          { source: platform, tokens: 0n },
+          { source: newer, tokens: 0n },
         ]),
       ),
     ).toBe("your keys");
@@ -158,11 +158,11 @@ describe("formatServedBy", () => {
       formatServedBy(
         aggregate([
           { source: org, tokens: 6000n },
-          { source: platform, tokens: 3000n },
+          { source: newer, tokens: 3000n },
           { source: unrecorded, tokens: 1000n },
         ]),
       ),
-    ).toBe("your keys 6.0k (60.0%) · the platform's connection 3.0k (30.0%) · not recorded 1.0k (10.0%)");
+    ).toBe("your keys 6.0k (60.0%) · source 7 3.0k (30.0%) · not recorded 1.0k (10.0%)");
   });
 
   it("names a source this build does not know by its number", () => {
@@ -170,7 +170,7 @@ describe("formatServedBy", () => {
       formatServedBy(
         aggregate([
           { source: org, tokens: 3000n },
-          { source: 7 as ProviderKeySource, tokens: 1000n },
+          { source: newer, tokens: 1000n },
         ]),
       ),
     ).toBe("your keys 3.0k (75.0%) · source 7 1.0k (25.0%)");
@@ -233,7 +233,7 @@ const orgReport = create(GetOrgUsageReportOutputSchema, {
     totalTokens: 10_000n,
     servedBy: [
       { providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 8000n },
-      { providerKeySource: ProviderKeySource.PLATFORM, totalTokens: 2000n },
+      { providerKeySource: ProviderKeySource.UNSPECIFIED, totalTokens: 2000n },
     ],
     workingSeconds: 1_123_500n,
   },
@@ -253,7 +253,7 @@ describe("renderOrgUsage", () => {
     expect(out).toContain("Agents:       3");
     expect(out).toContain("Runs:         10");
     expect(out).toContain("Total tokens: 10.0k");
-    expect(out).toContain("Served by:    your keys 8.0k (80.0%) · the platform's connection 2.0k (20.0%)");
+    expect(out).toContain("Served by:    your keys (2.0k tokens not recorded)");
     expect(out).toContain("Working time: 312h 5m"); // never days
     expect(out).toMatch(/AGENT\s+RUNS\s+TOKENS\s+SHARE\s+WORKING/);
     expect(out).toMatch(/Reviewer\s+6\s+6\.0k\s+60\.0%\s+42s/);

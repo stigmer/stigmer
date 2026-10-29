@@ -70,7 +70,7 @@ function headImage() {
       {
         name: "ai/x/kind.proto",
         package: "ai.x",
-        messageType: [{ name: "Meta", field: [field("id_prefix", 1), field("retired_id_prefixes", 10)] }],
+        messageType: [{ name: "Meta", field: [field("id_prefix", 1), field("display_name", 10)] }],
         enumType: [
           {
             name: "Kind",
@@ -185,7 +185,7 @@ test("messages, fields, oneofs, enums, values, services and methods pair and map
 
 test("an added field is listed, not refused, and is not a rename", () => {
   const t = computeRenameTable(baseImage(), headImage());
-  assert.deepEqual(t.added, [{ kind: "field", name: "ai.x.Meta.retired_id_prefixes" }]);
+  assert.deepEqual(t.added, [{ kind: "field", name: "ai.x.Meta.display_name" }]);
   assert.equal(t.ts.identifiers.idPrefix, undefined);
   assert.ok(!t.renamed.some((r) => r.from.startsWith("ai.x.Meta")));
 });

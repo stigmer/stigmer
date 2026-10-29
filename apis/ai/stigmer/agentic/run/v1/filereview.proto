@@ -58,12 +58,6 @@ message FileChangeSet {
   // lifecycle authored the set.
   string harness_id = 3;
 
-  // Field 4 held the change set's review state, folded from a ledger the run
-  // no longer keeps: the session's stigmer.file_review.* events say what is
-  // decided. Reserved so the number and name are never reused.
-  reserved 4;
-  reserved "status";
-
   // Workspace state captured at turn start — the "before" the authoritative
   // diff is computed against.
   SnapshotRef baseline_snapshot = 5;
@@ -72,12 +66,6 @@ message FileChangeSet {
   // diff is diff(baseline_snapshot, candidate_snapshot); no streamed args, no
   // pre-execution proposal is ever authoritative.
   SnapshotRef candidate_snapshot = 6;
-
-  // Field 7 held the workspace state after an undo put files back. An undo's
-  // outcome is the session's stigmer.file_review.reconciled event. Reserved
-  // so the number and name are never reused.
-  reserved 7;
-  reserved "approved_snapshot";
 
   // The per-file deltas in this change set (the rendered review surface).
   repeated CapturedFileChange changes = 8;
@@ -94,12 +82,6 @@ message FileChangeSet {
   // An honest UI/audit signal — the backend gate re-derives keep-all from the
   // per-file changes, never trusting this value. See DiffCompleteness.
   DiffCompleteness diff_completeness = 10 [(buf.validate.field).enum.defined_only = true];
-
-  // Field 11 held the decisions on this change set. Decisions are the
-  // session's stigmer.file_review.decided events. Reserved so the number and
-  // name are never reused.
-  reserved 11;
-  reserved "decisions";
 
   // The consent the turn's commands ran under, when every change in the set
   // came from a command a person had allowed. Absent otherwise.
@@ -175,7 +157,7 @@ message CapturedFileChange {
   // enforcement input and never folded into file_digest/aggregate_digest (the
   // same contract as blocked_reason). Zero (alongside lines_removed == 0) when
   // counting was not possible or meaningful: binary changes, secret-withheld
-  // entries, oversized sides, and records captured before this field existed.
+  // entries and oversized sides.
   // Consumers hide the stat in that case rather than showing "+0 -0".
   int32 lines_added = 14;
 

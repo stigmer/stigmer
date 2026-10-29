@@ -322,10 +322,7 @@ function tierRank(tier: ResourceTier): number {
  * PRIVATE and UNSPECIFIED are always supported (no visibility grant is
  * written for them); ORG and CHILD_ORGS require the matching supports_* flag
  * on the kind's VisibilityConfig, so kinds with no config are private-only.
- * PUBLIC is refused for every kind: the level is retired (it made a row
- * readable to every account on the server), no config may declare it, and
- * the answer is fixed here rather than read from a flag that no longer
- * exists. Every level is named so a level added to the enum must be taught
+ * Every level is named so a level added to the enum must be taught
  * here before any row can hold it; the closing arm is unreachable by wire
  * input, because both doors validate the field `defined_only` first.
  */
@@ -342,8 +339,6 @@ export function supportsVisibility(
       return config?.supportsOrg === true;
     case ApiResourceVisibility.visibility_child_orgs:
       return config?.supportsChildOrgs === true;
-    case ApiResourceVisibility.visibility_public:
-      return false;
     default: {
       const exhaustive: never = visibility;
       throw new Error(`unknown visibility level: ${String(exhaustive)}`);
@@ -420,14 +415,11 @@ function kindsByEnumName(): Map<string, ApiResourceKind> {
  * runner-credential lane, whose token binds an execution by id and must
  * know whether that id names a run without a second claim or a guess, and
  * the evals, whose try label and workflows carry an eval's id alone
- * (domain/eval-run/run-label.ts evalRunOfRun). A kind's retired prefixes (`retired_id_prefixes`) name it too:
- * ids are identities and are never rewritten, so a store keeps the ids it
- * minted before a kind's prefix changed (a run's `aex_…`). Anything that
- * is not `<known prefix>_<rest>` — no underscore, an unknown prefix, the
+ * (domain/eval-run/run-label.ts evalRunOfRun). Anything that is not
+ * `<known prefix>_<rest>` — no underscore, an unknown prefix, the
  * empty string — is `api_resource_kind_unknown`; never a throw, because
  * the id arrived inside a credential and the caller refuses with its own
- * sentence. Every prefix in the contract, current and retired, is unique;
- * the table pin in __tests__ makes a future duplicate a reviewed change,
+ * sentence. Every prefix in the contract is unique; the table pin in __tests__ makes a future duplicate a reviewed change,
  * since this lookup would otherwise resolve it silently to one of the two.
  */
 export function kindByIdPrefix(id: string): ApiResourceKind {
@@ -448,12 +440,13 @@ function kindsByIdPrefix(): Map<string, ApiResourceKind> {
     idPrefixCache = new Map(
       ApiResourceKindSchema.values
         .filter((value) => hasOption(value, kind_meta))
-        .flatMap((value) => {
-          const meta = getOption(value, kind_meta);
-          return [meta.idPrefix, ...meta.retiredIdPrefixes].map(
-            (prefix) => [prefix, value.number as ApiResourceKind] as const,
-          );
-        }),
+        .map(
+          (value) =>
+            [
+              getOption(value, kind_meta).idPrefix,
+              value.number as ApiResourceKind,
+            ] as const,
+        ),
     );
   }
   return idPrefixCache;

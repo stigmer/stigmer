@@ -56,11 +56,6 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
  *     accounts the roles the membership rules would have.
  *   - `operator_ownership`: the trusted-local operator made owner of an
  *     organization nobody owns.
- *   - `platform_client_grant`: a platform client's sign-in role on the
- *     account its mint created. No longer written: a minted user's
- *     sign-in role is an ordinary `grant` acting for the minting service
- *     account (domain/token/mint.ts). Kept because history entries hold
- *     it, and the reader names every stored cause.
  *   - `service_account_created`: a service account's organization role,
  *     granted by the admin who created it.
  */
@@ -75,7 +70,6 @@ export type GrantChangeCause =
   | "first_sign_in"
   | "role_reconciliation"
   | "operator_ownership"
-  | "platform_client_grant"
   | "service_account_created";
 
 /** Who made a change: the caller's id and class, nothing that identifies a person beyond the id. */

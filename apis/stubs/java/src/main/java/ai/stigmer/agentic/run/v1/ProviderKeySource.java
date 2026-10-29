@@ -20,17 +20,13 @@ package ai.stigmer.agentic.run.v1;
 public enum ProviderKeySource
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * The meter did not report whose credential served the call.
+   * </pre>
+   *
    * <code>PROVIDER_KEY_SOURCE_UNSPECIFIED = 0;</code>
    */
   PROVIDER_KEY_SOURCE_UNSPECIFIED(0),
-  /**
-   * <pre>
-   * A connection the platform provides served the call.
-   * </pre>
-   *
-   * <code>PROVIDER_KEY_SOURCE_PLATFORM = 1;</code>
-   */
-  PROVIDER_KEY_SOURCE_PLATFORM(1),
   /**
    * <pre>
    * The organization's own provider key served the call (bring-your-own
@@ -53,17 +49,13 @@ public enum ProviderKeySource
       "ProviderKeySource");
   }
   /**
+   * <pre>
+   * The meter did not report whose credential served the call.
+   * </pre>
+   *
    * <code>PROVIDER_KEY_SOURCE_UNSPECIFIED = 0;</code>
    */
   public static final int PROVIDER_KEY_SOURCE_UNSPECIFIED_VALUE = 0;
-  /**
-   * <pre>
-   * A connection the platform provides served the call.
-   * </pre>
-   *
-   * <code>PROVIDER_KEY_SOURCE_PLATFORM = 1;</code>
-   */
-  public static final int PROVIDER_KEY_SOURCE_PLATFORM_VALUE = 1;
   /**
    * <pre>
    * The organization's own provider key served the call (bring-your-own
@@ -100,7 +92,6 @@ public enum ProviderKeySource
   public static ProviderKeySource forNumber(int value) {
     switch (value) {
       case 0: return PROVIDER_KEY_SOURCE_UNSPECIFIED;
-      case 1: return PROVIDER_KEY_SOURCE_PLATFORM;
       case 2: return PROVIDER_KEY_SOURCE_ORGANIZATION;
       default: return null;
     }

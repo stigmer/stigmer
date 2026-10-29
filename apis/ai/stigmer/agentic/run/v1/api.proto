@@ -51,16 +51,6 @@ message RunStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // Fields 1 (messages), 4 (sub_agent_runs), 9 (todos), 14 (context_info),
-  // 16 (pending_approvals), 21 (structured_output), 22
-  // (approval_event_stream), 23 (file_change_sets), 24
-  // (file_review_event_stream) and 26 (recalled_memories_report) held the
-  // run's own transcript and ledgers. Every client and the platform read a
-  // conversation from the session's events, so they left the contract.
-  // Reserved so the numbers and names are never reused.
-  reserved 1, 4, 9, 14, 16, 21, 22, 23, 24, 26;
-  reserved "messages", "sub_agent_runs", "todos", "context_info", "pending_approvals", "structured_output", "approval_event_stream", "file_change_sets", "file_review_event_stream", "recalled_memories_report";
-
   // Current run lifecycle phase.
   // Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
   // to terminal states (COMPLETED/FAILED/CANCELLED).
@@ -77,30 +67,6 @@ message RunStatus {
   // ISO 8601 timestamp when the run completed, failed, or was cancelled.
   // Only populated for terminal states.
   string completed_at = 8;
-
-  // Field 10 held the task token of the workflow step waiting on this run,
-  // which the runner used to complete that step when the run finished. It
-  // went with the workflow product. Reserved so the number and name are
-  // never reused for a different field.
-  reserved 10;
-  reserved "callback_token";
-
-  // Field 12 held `ResolvedExecutionContext resolved_context` — a snapshot of
-  // the resources the agent had access to at run start. The contract was
-  // retired (2026-08, issue #600): its only producer was an earlier runner,
-  // long deleted, so the field never carried data in any deployment. Reserved
-  // so a future, deliberately designed observability surface cannot collide
-  // with stale clients.
-  reserved 12;
-  reserved "resolved_context";
-
-  // Field 15 held the files Stigmer's own harness uploaded as the agent wrote
-  // them, each named by its storage key. What a turn returns is now a File:
-  // whatever the agent saves in its outputs folder, listed by the File's
-  // run_id. Stored entries become Files of their run when the server
-  // starts. Reserved so the number and name are never reused.
-  reserved 15;
-  reserved "artifacts";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Workspace Write-Backs (Platform-Owned Git Workflow)
@@ -210,9 +176,8 @@ message RunStatus {
   // agent_id).
   //
   // Empty when agent_id is empty, or when the agent had no recorded version
-  // at create (an agent last written before agents were versioned, or one
-  // whose last version failed to archive); such a turn runs the agent as
-  // it is when the turn starts.
+  // at create (its last version failed to archive); such a turn runs the
+  // agent as it is when the turn starts.
   string agent_version_hash = 28;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -229,8 +194,7 @@ message RunStatus {
   // Every skill and plugin a turn of this run loaded, for the agent and its
   // subagents, at the version it loaded. A turn that resumes after a pause
   // and loads a newer version adds an entry, so a run that ran two versions
-  // of one skill lists both. Empty for a run that loaded none, and for runs
-  // that predate this field.
+  // of one skill lists both. Empty for a run that loaded none.
   //
   // @internal
   // Written by the runner once per turn attempt and merged by union over
@@ -441,11 +405,6 @@ message RunValueSource {
   // the vault records it then.
   bool login = 6;
 
-  // Field 7 held whether a login was a sign-in, which nothing read: the
-  // fetch renews a login by what the vault holds when it is opened.
-  reserved 7;
-  reserved "sign_in";
-
   // A declaration's own plain default, the one value a manifest holds: it
   // is a fixed setting of the agent or tool, never a secret.
   string plain_value = 8;
@@ -460,11 +419,6 @@ message RunValueDeclarer {
   // plugin's server or the server's own name for one written in an agent;
   // the plugin's name; or the repository entry's name.
   string name = 2;
-
-  // Field 3 held a tool's MCP server id, from a kind that no longer exists;
-  // a tool is named by server and by plugin_id or agent_id.
-  reserved 3;
-  reserved "mcp_server_id";
 
   // The repository's URL; empty for an agent, a tool or a plugin.
   string repository_url = 4;

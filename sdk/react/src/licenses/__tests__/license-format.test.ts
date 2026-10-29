@@ -40,7 +40,7 @@ describe("entitlementParts", () => {
 
   it("names the limits only, even for a license issued with features", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { features: [Feature.sso_enforcement, Feature.channels] })),
+      entitlementParts(create(EntitlementsSchema, { features: [Feature.channels] })),
     ).toEqual(["Unlimited users", "Unlimited organizations"]);
   });
 });

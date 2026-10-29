@@ -227,7 +227,7 @@ var File_ai_stigmer_iam_federationissuer_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_iam_federationissuer_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/iam/federationissuer/v1/spec.proto\x12\"ai.stigmer.iam.federationissuer.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb4\a\n" +
+	"-ai/stigmer/iam/federationissuer/v1/spec.proto\x12\"ai.stigmer.iam.federationissuer.v1\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x8b\x06\n" +
 	"\x14FederationIssuerSpec\x12+\n" +
 	"\fdisplay_name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\x01R\vdisplayName\x12#\n" +
 	"\bjwks_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\ajwksUri\x12:\n" +
@@ -241,9 +241,7 @@ const file_ai_stigmer_iam_federationissuer_v1_spec_proto_rawDesc = "" +
 	"\fsign_in_role\x18\x0e \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
 	"signInRole:\xc4\x02\xbaH\xc0\x02\x1a\x94\x01\n" +
 	"(federation_issuer.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\x1a\xa6\x01\n" +
-	"0federation_issuer.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''J\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
-	"J\x04\b\n" +
-	"\x10\vJ\x04\b\v\x10\fJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\x0f\x10\x10R\x11rate_limit_budgetR\x17auto_provision_accountsR\x11auto_grant_on_orgR\x0fauto_grant_roleR\x0fis_sso_providerR\x0eoidc_client_idR\fsso_requiredB\xaf\x02\n" +
+	"0federation_issuer.jwks_uri_required_with_issuers\x129jwks_uri is required when allowed_issuers names an issuer\x1a7this.allowed_issuers.size() == 0 || this.jwks_uri != ''B\xaf\x02\n" +
 	"&com.ai.stigmer.iam.federationissuer.v1B\tSpecProtoP\x01ZMgo.stigmer.ai/sdk/proto/ai/stigmer/iam/federationissuer/v1;federationissuerv1\xa2\x02\x04ASIF\xaa\x02\"Ai.Stigmer.Iam.Federationissuer.V1\xca\x02\"Ai\\Stigmer\\Iam\\Federationissuer\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Federationissuer\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Federationissuer::V1b\x06proto3"
 
 var (

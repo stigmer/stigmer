@@ -843,7 +843,7 @@ var File_ai_stigmer_agentic_plugin_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x06\n" +
+	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x06\n" +
 	"\fPluginStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x120\n" +
 	"\x06digest\x18\x01 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\x06digest\x120\n" +
@@ -859,7 +859,7 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\x03env\x18\f \x03(\v23.ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntryR\x03env\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
-	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x05stateR\x05errorR\fmaterialized\"W\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01\"W\n" +
 	"\vPluginSkill\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x12\n" +

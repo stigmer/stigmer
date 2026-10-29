@@ -498,7 +498,7 @@ const file_ai_stigmer_agentic_vault_v1_spec_proto_rawDesc = "" +
 	"\asign_in\x18\x03 \x01(\v22.ai.stigmer.agentic.vault.v1.VaultConnectionSignInR\x06signIn\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x19\n" +
 	"\bsaved_by\x18\x05 \x01(\tR\asavedBy\x125\n" +
-	"\bsaved_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\asavedAt\"\x87\x02\n" +
+	"\bsaved_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\asavedAt\"\xdd\x01\n" +
 	"\x15VaultConnectionSignIn\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x01 \x01(\x03R\texpiresAt\x12\x1b\n" +
@@ -507,7 +507,7 @@ const file_ai_stigmer_agentic_vault_v1_spec_proto_rawDesc = "" +
 	"authMethod\x12%\n" +
 	"\x0etoken_endpoint\x18\x04 \x01(\tR\rtokenEndpoint\x12#\n" +
 	"\rrefresh_token\x18\x05 \x01(\tR\frefreshToken\x12\x1b\n" +
-	"\tlogin_app\x18\b \x01(\tR\bloginAppJ\x04\b\x06\x10\aJ\x04\b\a\x10\bR\rmcp_server_idR\rlocal_program*Y\n" +
+	"\tlogin_app\x18\b \x01(\tR\bloginApp*Y\n" +
 	"\x15VaultConnectionSource\x12'\n" +
 	"#vault_connection_source_unspecified\x10\x00\x12\n" +
 	"\n" +

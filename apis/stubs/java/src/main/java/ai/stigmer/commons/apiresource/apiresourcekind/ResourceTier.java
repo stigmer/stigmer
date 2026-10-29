@@ -19,11 +19,10 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * kind's tier changes in the same change that makes the edition serve it,
  * so a client never offers a surface the server answers UNIMPLEMENTED to.
  *
- * Value names are JSON wire and the conformance suite pins them, so
- * `cloud_only` keeps its pre-Enterprise name beside `open_source` and
- * `enterprise`. Value numbers are wire identifiers, not ranks —
- * `enterprise` was added after `cloud_only` and sits at 3; compare tiers
- * to editions through an explicit rank, never through these numbers.
+ * Value names are JSON wire and the conformance suite pins them. Value
+ * numbers are wire identifiers, not ranks (`enterprise` sits at 3, after
+ * `cloud_only`): compare tiers to editions through an explicit rank, never
+ * through these numbers.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.apiresourcekind.ResourceTier}

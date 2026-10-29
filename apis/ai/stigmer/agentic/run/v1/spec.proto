@@ -19,33 +19,6 @@ message RunSpec {
     expression: "this.reconcile_file_review || size(this.message) > 0 || size(this.file_ids) > 0"
   };
 
-  // Field 2 named an agent whose default instance a new conversation ran
-  // against until the instance kind was removed; a new conversation names
-  // its agent in session_spec.agent_ref.
-  reserved 2;
-  reserved "agent_id";
-
-  // Fields 6, 8, 11 and 17 linked a turn to the workflow run whose step
-  // started it: a callback token, a signal target and a dispatch queue
-  // override, which field 17 (`parent`) later carried together. They went
-  // with the workflow product. Reserved so the numbers and names are never
-  // reused for different fields.
-  reserved 6, 8, 11, 17;
-  reserved "callback_token", "parent_workflow_id", "activity_task_queue", "parent";
-
-  // Fields 15 and 16 held the preference and memory snapshots the server
-  // composes for each turn; they are RunStatus fields 29 and 30.
-  reserved 15, 16;
-  reserved "declared_preferences", "recalled_memories";
-
-  // Field 4 held a retired config message that mixed this message's settings with
-  // its per-message intents and the lane's approval mode. The settings are
-  // run_config (a RunConfig, the message routines and channels save), the intents
-  // are interaction_mode, build_from_plan and structured_output_schema, and
-  // the approval mode is the server's (RunStatus.approval_mode).
-  reserved 4;
-  reserved "execution_config";
-
   // The conversation this turn belongs to: an existing session, or a new
   // one. Neither set starts a new conversation with the built-in
   // assistant: a person starts a conversation without choosing an agent.
@@ -214,12 +187,6 @@ message RunSpec {
   // Eval runs set it from a case's append_system_prompt.
   string append_system_prompt = 24 [(buf.validate.field).string.max_len = 32768];
 
-  // Field 5 held runtime_env, a turn's own variables and secrets, until a
-  // run's values moved to vaults: a key is saved in a vault, and the
-  // conversation names the vaults it uses on session_spec.
-  reserved 5;
-  reserved "runtime_env";
-
   // ─────────────────────────────────────────────────────────────────────────────
   // Approval Configuration
   //
@@ -244,11 +211,6 @@ message RunSpec {
   //
   // Default: false (approvals required as configured in policies)
   bool auto_approve_all = 7;
-
-  // Field 9 held the run's attachments, each named by a storage key, until
-  // a turn's files became Files named by id (file_ids).
-  reserved 9;
-  reserved "attachments";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Workspace File References

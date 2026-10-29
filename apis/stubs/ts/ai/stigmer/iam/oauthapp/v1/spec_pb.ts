@@ -101,8 +101,8 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
    * process before a third-party OAuth app can be used publicly. This
    * field tracks where Stigmer's registration stands with the vendor.
    *
-   * UNSPECIFIED is treated as approved for backwards compatibility — only
-   * apps explicitly marked PENDING are gated in the UI.
+   * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+   * are gated in the UI.
    *
    * @generated from field: ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9;
    */
@@ -131,8 +131,8 @@ export type OAuthAppSpec = Message<"ai.stigmer.iam.oauthapp.v1.OAuthAppSpec"> & 
    * RFC 6749 §2.3 forbids presenting credentials through more than one
    * channel at once, and some servers reject requests that do.
    *
-   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-   * compatibility, preserving the historical behavior byte-for-byte.
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+   * requires every authorization server to support.
    *
    * @generated from field: ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11;
    */
@@ -167,8 +167,7 @@ export const OAuthAppSpecSchema: GenMessage<OAuthAppSpec> = /*@__PURE__*/
  */
 export enum VendorApprovalStatus {
   /**
-   * Default / unset. Treated as approved for backwards compatibility.
-   * OAuth apps that do not go through a vendor approval process
+   * Default / unset. Treated as approved: OAuth apps that do not go through a vendor approval process
    * (e.g., self-hosted or private vendor integrations) leave this unset.
    *
    * @generated from enum value: VENDOR_APPROVAL_STATUS_UNSPECIFIED = 0;
@@ -216,9 +215,8 @@ export const VendorApprovalStatusSchema: GenEnum<VendorApprovalStatus> = /*@__PU
  */
 export enum TokenEndpointAuthMethod {
   /**
-   * Default / unset. Treated as CLIENT_SECRET_BASIC for backwards
-   * compatibility — every OAuthApp created before this field existed
-   * authenticated via HTTP Basic.
+   * Default / unset. Treated as CLIENT_SECRET_BASIC (HTTP Basic), the
+   * method RFC 6749 requires every authorization server to support.
    *
    * @generated from enum value: TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;
    */

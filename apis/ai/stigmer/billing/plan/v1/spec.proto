@@ -103,13 +103,6 @@ message PlanTerms {
   // micro-USD. Absent on a license plan.
   optional int64 monthly_minimum_micros = 1 [(buf.validate.field).int64.gte = 0];
 
-  // 2 held usage_share_basis_points, a share of the month's provider cost a
-  // subscription plan billed when it exceeded the monthly fee. Token usage
-  // is never part of a plan's price, so the number and the name are
-  // reserved so neither is ever reused for a different field.
-  reserved 2;
-  reserved "usage_share_basis_points";
-
   // What a subscription plan bills per month for each child organization
   // beyond the ones its entitlements include, in micro-USD. Absent when the
   // plan includes no child organizations.

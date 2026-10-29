@@ -102,28 +102,6 @@ describe("VisibilitySelector — create mode (inline list)", () => {
     expect(childOrgsRow?.getAttribute("aria-checked")).toBe("true");
   });
 
-  it("renders a row still carrying the retired public level truthfully, and lets it move to an offered level", () => {
-    // A server not yet upgraded can still answer with the retired level; the
-    // selector shows it as what it is rather than falling through to Private.
-    const onChange = vi.fn();
-    render(
-      <VisibilitySelector
-        mode="create"
-        visibility={ApiResourceVisibility.visibility_public}
-        options={TWO_LEVELS}
-        onVisibilityChange={onChange}
-      />,
-    );
-
-    const group = screen.getByRole("radiogroup", { name: "Resource visibility" });
-    const publicRow = within(group).getByText("Public").closest("button");
-    expect(publicRow?.getAttribute("aria-checked")).toBe("true");
-    expect(publicRow?.textContent).toContain("Retired");
-
-    fireEvent.click(screen.getByRole("radio", { name: /^Organization/i }));
-    expect(onChange).toHaveBeenCalledWith(ApiResourceVisibility.visibility_org);
-  });
-
   it("disables interaction when disabled", () => {
     const onChange = vi.fn();
     render(
@@ -317,12 +295,6 @@ describe("VisibilityBadge", () => {
   it("renders the human label for a visibility value", () => {
     render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_child_orgs} />);
     expect(screen.getByText("Child organizations")).toBeTruthy();
-  });
-
-  it("renders the retired public level by its own name, never as Private", () => {
-    render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_public} />);
-    expect(screen.getByText("Public")).toBeTruthy();
-    expect(screen.queryByText("Private")).toBeNull();
   });
 
   it("is non-interactive without onClick — a plain badge, not a button", () => {

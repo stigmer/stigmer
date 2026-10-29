@@ -53,7 +53,7 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
       "i/stigmer/commons/apiresource/field_opti" +
       "ons.proto\032\'ai/stigmer/commons/apiresourc" +
       "e/io.proto\032\033buf/validate/validate.proto\"" +
-      "\300\007\n\017AgentInvocation\022]\n\tagent_ref\030\001 \001(\01324" +
+      "\217\007\n\017AgentInvocation\022]\n\tagent_ref\030\001 \001(\01324" +
       ".ai.stigmer.commons.apiresource.ApiResou" +
       "rceReferenceB\n\272H\003\310\001\001\340\205,(R\010agentRef\022$\n\007me" +
       "ssage\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022J\n\007harn" +
@@ -75,22 +75,21 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
       "re cannot carry a token: save it as a co" +
       "nnection in a vault the invocation names" +
       "\032<!has(this.git_repository) || this.git_" +
-      "repository.token == \'\'R\tresourcesJ\004\010\004\020\005J" +
-      "\004\010\005\020\006R\021workspace_entriesR\020environment_re" +
-      "fs\"\366\002\n\tRunConfig\022\035\n\nmodel_name\030\001 \001(\tR\tmo" +
-      "delName\0220\n\014max_cost_usd\030\002 \001(\001B\016\272H\013\022\t)\000\000\000" +
-      "\000\000\000\000\000R\nmaxCostUsd\022/\n\017max_tool_rounds\030\003 \001" +
-      "(\005B\007\272H\004\032\002(\000R\rmaxToolRounds\022S\n\014service_ti" +
-      "er\030\004 \001(\0162&.ai.stigmer.agentic.run.v1.Ser" +
-      "viceTierB\010\272H\005\202\001\002\020\001R\013serviceTier\022V\n\rthink" +
-      "ing_mode\030\005 \001(\0162\'.ai.stigmer.agentic.run." +
-      "v1.ThinkingModeB\010\272H\005\202\001\002\020\001R\014thinkingMode\022" +
-      ":\n\025max_tool_result_chars\030\006 \001(\005B\007\272H\004\032\002(\000R" +
-      "\022maxToolResultCharsB\232\001B\017InvocationProtoP" +
-      "\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031A" +
-      "i\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Ag" +
-      "entic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::" +
-      "Agentic::Run::V1b\006proto3"
+      "repository.token == \'\'R\tresources\"\366\002\n\tRu" +
+      "nConfig\022\035\n\nmodel_name\030\001 \001(\tR\tmodelName\0220" +
+      "\n\014max_cost_usd\030\002 \001(\001B\016\272H\013\022\t)\000\000\000\000\000\000\000\000R\nma" +
+      "xCostUsd\022/\n\017max_tool_rounds\030\003 \001(\005B\007\272H\004\032\002" +
+      "(\000R\rmaxToolRounds\022S\n\014service_tier\030\004 \001(\0162" +
+      "&.ai.stigmer.agentic.run.v1.ServiceTierB" +
+      "\010\272H\005\202\001\002\020\001R\013serviceTier\022V\n\rthinking_mode\030" +
+      "\005 \001(\0162\'.ai.stigmer.agentic.run.v1.Thinki" +
+      "ngModeB\010\272H\005\202\001\002\020\001R\014thinkingMode\022:\n\025max_to" +
+      "ol_result_chars\030\006 \001(\005B\007\272H\004\032\002(\000R\022maxToolR" +
+      "esultCharsB\232\001B\017InvocationProtoP\001\242\002\004ASAR\252" +
+      "\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer" +
+      "\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run" +
+      "\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::" +
+      "Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

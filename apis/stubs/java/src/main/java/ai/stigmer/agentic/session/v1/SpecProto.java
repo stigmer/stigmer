@@ -52,7 +52,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "o\0322ai/stigmer/commons/apiresource/field_" +
       "options.proto\032\'ai/stigmer/commons/apires" +
       "ource/io.proto\032\033buf/validate/validate.pr" +
-      "oto\"\210\t\n\013SessionSpec\022W\n\tagent_ref\030\016 \001(\01324" +
+      "oto\"\320\007\n\013SessionSpec\022W\n\tagent_ref\030\016 \001(\01324" +
       ".ai.stigmer.commons.apiresource.ApiResou" +
       "rceReferenceB\004\340\205,(R\010agentRef\022\030\n\007subject\030" +
       "\002 \001(\tR\007subject\022T\n\010metadata\030\005 \003(\01328.ai.st" +
@@ -76,16 +76,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "urces\030\026 \003(\0132..ai.stigmer.agentic.session" +
       ".v1.SessionResourceB\t\272H\006\222\001\003\020\350\007R\tresource" +
       "s\032;\n\rMetadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005" +
-      "value\030\002 \001(\tR\005value:\0028\001J\004\010\001\020\002J\004\010\003\020\004J\004\010\r\020\016" +
-      "J\004\010\006\020\007J\004\010\007\020\010J\004\010\013\020\014J\004\010\020\020\021J\004\010\021\020\022R\021agent_in" +
-      "stance_idR\020harness_state_idR\030harness_sta" +
-      "te_id_historyR\021workspace_entriesR\021mcp_se" +
-      "rver_usagesR\013cursor_modeR\007secretsR\013conne" +
-      "ctionsB\244\001B\tSpecProtoP\001\242\002\004ASAS\252\002\035Ai.Stigm" +
-      "er.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessi" +
-      "on\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic" +
-      "::Session::V1b\006proto3"
+      "value\030\002 \001(\tR\005value:\0028\001B\244\001B\tSpecProtoP\001\242\002" +
+      "\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035" +
+      "Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigm" +
+      "er\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::" +
+      "Stigmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

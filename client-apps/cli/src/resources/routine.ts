@@ -46,15 +46,15 @@ import {
   renderTable,
 } from "../output/index.js";
 import { readCursorPages } from "./cursor-pages.js";
-import { idPrefixesFor, parseReference } from "./reference.js";
+import { idPrefixOf, parseReference } from "./reference.js";
 import { oneLine } from "./run-scores.js";
 import { requireOrganization } from "../client/single-org.js";
 
-/** The routine kind's id prefixes (proto kind_meta): `rtn`, and `sch` for one stored while the kind was Schedule. */
-const ROUTINE_ID_PREFIXES = idPrefixesFor(ApiResourceKind.routine);
+/** The routine kind's id prefix (proto kind_meta): `rtn`. */
+const ROUTINE_ID_PREFIX = idPrefixOf(ApiResourceKind.routine);
 
 /**
- * Resolve `ref` (an `rtn_…` or `sch_…` id, `org/slug`, or bare slug against `org`),
+ * Resolve `ref` (an `rtn_…` id, `org/slug`, or bare slug against `org`),
  * clear its platform pause, and describe the outcome.
  */
 export async function resumeRoutine(stigmer: Stigmer, ref: string, org: string): Promise<CommandResult> {
@@ -73,7 +73,7 @@ export async function resumeRoutine(stigmer: Stigmer, ref: string, org: string):
 }
 
 async function loadRoutine(stigmer: Stigmer, ref: string, org: string): Promise<Routine> {
-  const parsed = parseReference(ref, org, ROUTINE_ID_PREFIXES);
+  const parsed = parseReference(ref, org, ROUTINE_ID_PREFIX);
   if (parsed.kind === "id") {
     return stigmer.routine.get(parsed.id);
   }
@@ -85,7 +85,7 @@ async function loadRoutine(stigmer: Stigmer, ref: string, org: string): Promise<
 }
 
 /**
- * Resolve `ref` (an `rtn_…` or `sch_…` id, `org/slug`, or bare slug
+ * Resolve `ref` (an `rtn_…` id, `org/slug`, or bare slug
  * against `org`) and fire it once, immediately, with `text` as the run's
  * note when one is given.
  *

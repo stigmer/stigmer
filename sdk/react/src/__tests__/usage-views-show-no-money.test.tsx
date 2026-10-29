@@ -43,8 +43,7 @@ import { SummarizationCard } from "../run/SummarizationCard.js";
 afterEach(cleanup);
 
 const servedBy = [
-  { providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 12_000n, llmCallCount: 10 },
-  { providerKeySource: ProviderKeySource.PLATFORM, totalTokens: 4_000n, llmCallCount: 2 },
+  { providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 16_000n, llmCallCount: 12 },
   { providerKeySource: ProviderKeySource.UNSPECIFIED, totalTokens: 2_400n, llmCallCount: 0 },
 ];
 

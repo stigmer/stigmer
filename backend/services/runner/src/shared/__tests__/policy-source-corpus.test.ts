@@ -8,9 +8,8 @@
  * generated enum resolves the same name to the same number, so a drift in the
  * runner mapping or a renumbering of the enum in any edition fails one of the
  * three suites — the guarantee that a persisted approval_policy_source means the
- * same thing everywhere. Values 1 to 3 are reserved (the per-tool policy layers
- * were removed); the corpus and the enum both leave them out, and a number is
- * never reused.
+ * same thing everywhere. Numbers 1 to 3 are unused: the corpus and the enum
+ * both leave them out.
  */
 
 import { describe, it, expect } from "vitest";
@@ -45,10 +44,10 @@ describe("policy-source mapping vector corpus", () => {
     expect(corpus.vectors.length).toBe(enumValueCount);
   });
 
-  it("carries no reserved value: 1 to 3 are gone from the enum, the corpus and the runner's union", () => {
-    for (const reserved of [1, 2, 3]) {
-      expect(ApprovalPolicySource[reserved], `enum value ${reserved}`).toBeUndefined();
-      expect(corpus.vectors.some((v) => v.number === reserved), `corpus value ${reserved}`).toBe(false);
+  it("leaves numbers 1 to 3 unused in the enum, the corpus and the runner's union", () => {
+    for (const unused of [1, 2, 3]) {
+      expect(ApprovalPolicySource[unused], `enum value ${unused}`).toBeUndefined();
+      expect(corpus.vectors.some((v) => v.number === unused), `corpus value ${unused}`).toBe(false);
     }
     const runnerSources = corpus.vectors.map((v) => v.policySource).filter((s): s is PolicySource => s !== null);
     expect(new Set(runnerSources.map((s) => toProtoPolicySource(s))).size).toBe(runnerSources.length);

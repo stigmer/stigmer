@@ -121,8 +121,8 @@ export const ApiResourceByOrgBySlugRequestSchema: GenMessage<ApiResourceByOrgByS
  * - Org-only kinds (vault):
  *     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)
  *
- * visibility_public is refused for every kind (INVALID_ARGUMENT naming the
- * supported levels); the level is retired.
+ * A level the kind does not support is refused with INVALID_ARGUMENT naming
+ * the supported levels.
  *
  * @generated from message ai.stigmer.commons.apiresource.UpdateVisibilityInput
  */

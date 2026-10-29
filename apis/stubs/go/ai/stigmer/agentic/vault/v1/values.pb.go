@@ -430,7 +430,7 @@ const file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc = "" +
 	"\n" +
 	"AgentEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8b\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf6\x01\n" +
 	"\n" +
 	"ToolValues\x12\x1b\n" +
 	"\tplugin_id\x18\x04 \x01(\tR\bpluginId\x12\x19\n" +
@@ -440,7 +440,7 @@ const file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc = "" +
 	"\x06values\x18\x03 \x03(\v23.ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntryR\x06values\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02R\rmcp_server_id\"\xb5\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb5\x01\n" +
 	"\fPluginValues\x12\x1b\n" +
 	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12M\n" +
 	"\x06values\x18\x02 \x03(\v25.ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntryR\x06values\x1a9\n" +

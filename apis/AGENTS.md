@@ -59,6 +59,8 @@ generator are the truth.
 - Proto field names, enum values and service names are wire bytes.
   `buf breaking` runs in CI; a rename is a protocol break with a migration plan,
   never a cleanup.
+- A field or enum value that leaves the contract keeps its number and name
+  `reserved`; neither is reused.
 - After any `.proto` change, `make codegen` from the repository root, and the
   generated output is committed. Hand edits under `stubs/` or any `gen`
   directory are defects.

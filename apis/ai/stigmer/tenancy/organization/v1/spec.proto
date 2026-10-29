@@ -26,13 +26,6 @@ message OrganizationSpec {
   // Public URL for the organization logo.
   string logo_url = 2 [(buf.validate.field).string.max_len = 2048];
 
-  // 3 was management_mode and 4 identity_provider_ref: a child organization
-  // once hung off the identity provider that managed it. It now names its
-  // parent organization directly (parent_org), and the ManagementMode enum
-  // is gone.
-  reserved 3, 4;
-  reserved "management_mode", "identity_provider_ref";
-
   // The parent's own identifier for this organization, such as the
   // customer id an integrator keeps for it ("cust-4411").
   //
@@ -43,12 +36,6 @@ message OrganizationSpec {
   // sign-in through the parent's identity provider whose external_id_claim
   // carries this value is bound to the child.
   string external_id = 5 [(buf.validate.field).string.max_len = 256];
-
-  // 6 was is_personal, a mark on the organization Stigmer Cloud created when
-  // someone signed up. That organization is now an ordinary organization,
-  // so there is one kind of organization and nothing to mark.
-  reserved 6;
-  reserved "is_personal";
 
   // Standing preferences declared by the organization.
   OrganizationPreferences preferences = 7;

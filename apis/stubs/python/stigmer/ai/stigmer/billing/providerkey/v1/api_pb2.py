@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcb\x03\n\x0bProviderKey\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n\x08provider\x18\x02 \x01(\tR\x08provider\x12\x19\n\x08key_hint\x18\x03 \x01(\tR\x07keyHint\x12\x1d\n\ncreated_by\x18\x04 \x01(\tR\tcreatedBy\x12\x39\n\ncreated_at\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x39\n\nupdated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\x12<\n\x0clast_used_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nlastUsedAt\x12,\n\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n\x08\x62\x61se_url\x18\n \x01(\tR\x07\x62\x61seUrl\x12I\n\x05\x63heck\x18\x0b \x01(\x0e\x32\x33.ai.stigmer.billing.providerkey.v1.ProviderKeyCheckR\x05\x63heckJ\x04\x08\x08\x10\tR\x06in_use*R\n\x10ProviderKeyCheck\x12\"\n\x1eprovider_key_check_unspecified\x10\x00\x12\x0b\n\x07\x63hecked\x10\x01\x12\r\n\tunchecked\x10\x02\x42\xda\x01\n%com.ai.stigmer.billing.providerkey.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbd\x03\n\x0bProviderKey\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n\x08provider\x18\x02 \x01(\tR\x08provider\x12\x19\n\x08key_hint\x18\x03 \x01(\tR\x07keyHint\x12\x1d\n\ncreated_by\x18\x04 \x01(\tR\tcreatedBy\x12\x39\n\ncreated_at\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x39\n\nupdated_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\x12<\n\x0clast_used_at\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nlastUsedAt\x12,\n\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n\x08\x62\x61se_url\x18\n \x01(\tR\x07\x62\x61seUrl\x12I\n\x05\x63heck\x18\x0b \x01(\x0e\x32\x33.ai.stigmer.billing.providerkey.v1.ProviderKeyCheckR\x05\x63heck*R\n\x10ProviderKeyCheck\x12\"\n\x1eprovider_key_check_unspecified\x10\x00\x12\x0b\n\x07\x63hecked\x10\x01\x12\r\n\tunchecked\x10\x02\x42\xda\x01\n%com.ai.stigmer.billing.providerkey.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,8 +33,8 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.billing.provider
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n%com.ai.stigmer.billing.providerkey.v1B\010ApiProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Billing.Providerkey.V1\312\002!Ai\\Stigmer\\Billing\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::Billing::Providerkey::V1'
-  _globals['_PROVIDERKEYCHECK']._serialized_start=577
-  _globals['_PROVIDERKEYCHECK']._serialized_end=659
+  _globals['_PROVIDERKEYCHECK']._serialized_start=563
+  _globals['_PROVIDERKEYCHECK']._serialized_end=645
   _globals['_PROVIDERKEY']._serialized_start=116
-  _globals['_PROVIDERKEY']._serialized_end=575
+  _globals['_PROVIDERKEY']._serialized_end=561
 # @@protoc_insertion_point(module_scope)

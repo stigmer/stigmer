@@ -80,16 +80,6 @@ message AgentInvocation {
   // posture.
   ai.stigmer.agentic.session.v1.Harness harness = 3 [(buf.validate.field).enum.defined_only = true];
 
-  // Field 4 held the invocation's workspace entries until a conversation's
-  // files, repositories and folders became one list (resources).
-  reserved 4;
-  reserved "workspace_entries";
-
-  // Value 5 held environment_refs, the environments whose values a
-  // run received, until vaults replaced environments.
-  reserved 5;
-  reserved "environment_refs";
-
   // Vaults whose logins and secrets the runs this invocation creates use, in
   // order: the first vault holding a match wins. At most 20.
   //

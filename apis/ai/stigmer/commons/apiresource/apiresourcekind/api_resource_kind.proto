@@ -33,11 +33,10 @@ enum ApiResourceVersion {
 // kind's tier changes in the same change that makes the edition serve it,
 // so a client never offers a surface the server answers UNIMPLEMENTED to.
 //
-// Value names are JSON wire and the conformance suite pins them, so
-// `cloud_only` keeps its pre-Enterprise name beside `open_source` and
-// `enterprise`. Value numbers are wire identifiers, not ranks —
-// `enterprise` was added after `cloud_only` and sits at 3; compare tiers
-// to editions through an explicit rank, never through these numbers.
+// Value names are JSON wire and the conformance suite pins them. Value
+// numbers are wire identifiers, not ranks (`enterprise` sits at 3, after
+// `cloud_only`): compare tiers to editions through an explicit rank, never
+// through these numbers.
 enum ResourceTier {
   resource_tier_unspecified = 0;
   // Served by every edition.
@@ -78,14 +77,6 @@ message ApiResourceKindMeta {
   ResourceTier tier = 8;
   // FGA authorization configuration - defines how FGA tuples are created for this resource
   AuthorizationConfig authorization = 9;
-  // Prefixes this kind's ids were minted with before `id_prefix`. Ids are
-  // identities and are never rewritten, so a store keeps the ids it minted
-  // under an earlier prefix: readers that tell a kind from an id read these
-  // too. Never minted. A kind whose ids are derived from their content (a
-  // Grant's from its triple) moves its stored ids to the new prefix when it
-  // is renamed, and lists the old prefix here so the prefix stays reserved
-  // and an id held outside the store still names its kind.
-  repeated string retired_id_prefixes = 10;
 }
 
 // API resource kinds for Stigmer.
@@ -124,13 +115,10 @@ enum ApiResourceKind {
     name: "Grant"
     display_name: "Grant"
     id_prefix: "grt"
-    // Minted as iamp_ while the kind was IamPolicy.
-    retired_id_prefixes: ["iamp"]
     is_versioned: false
     not_search_indexed: true
     // The ROW half of the Grant contract — the recorded grants, all
-    // fourteen RPCs — is served by every edition since the organization
-    // roles moved into open source: who holds which role on
+    // fourteen RPCs — is served by every edition: who holds which role on
     // an organization is a fact every edition records and shows. What
     // differs per edition is not the kind but the GRANT SCOPE a
     // composition registers: open source grants roles on organizations
@@ -219,8 +207,6 @@ enum ApiResourceKind {
     name: "FederationIssuer"
     display_name: "Federation Issuer"
     id_prefix: "fis"
-    // Minted as idp_ while the kind was IdentityProvider.
-    retired_id_prefixes: ["idp"]
     is_versioned: false
     not_search_indexed: true
     // Registering the platforms whose tokens Stigmer trusts, and federating
@@ -259,10 +245,9 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     // The open-source server serves this kind (its own domain; the MCP
-    // OAuth connect lane depends on it). It was tiered cloud_only by drift,
-    // which hid in the console a kind the server answered. The hosted-only
-    // org-override surface on top of it degrades by probe (UNIMPLEMENTED),
-    // not by this tier.
+    // OAuth connect lane depends on it). The hosted-only org-override
+    // surface on top of it degrades by probe (UNIMPLEMENTED), not by this
+    // tier.
     tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
@@ -282,13 +267,6 @@ enum ApiResourceKind {
       ]
     }
   }];
-
-  // Value 23 was the platform client (id prefix "pcl"), a credential a
-  // product's backend minted its users' tokens with, removed when a
-  // service account's key became the way to mint them. Stored rows of the
-  // retired kind are removed by the store migration that retired it.
-  reserved 23;
-  reserved "platform_client";
 
   // IAM - Teams
 
@@ -445,7 +423,6 @@ enum ApiResourceKind {
     name: "Run"
     display_name: "Run"
     id_prefix: "run"
-    retired_id_prefixes: ["aex"]
     is_versioned: false
     not_search_indexed: false
     tier: open_source
@@ -545,27 +522,6 @@ enum ApiResourceKind {
     }
   }];
 
-  // Value 44 was the MCP server (id prefix "mcp"), a saved connection to a
-  // tool server, removed when an MCP server became configuration inside a
-  // plugin. Stored rows of the retired kind are removed by the store
-  // migration that retired it.
-  reserved 44;
-  reserved "mcp_server";
-
-  // Value 45 was the agent instance, a configured deployment of an agent,
-  // removed when conversations came to name their agent directly. Stored
-  // rows of the retired kind are moved off by the store migration that
-  // removed it.
-  reserved 45;
-  reserved "agent_instance";
-
-  // Value 46 was the agent share, an agent's hosted chat link, merged into
-  // the channel (value 47) as its web type. Stored shares are converted to
-  // channels with their ids by the store migration that merged them; "ash"
-  // stays reserved as the channel's retired id prefix.
-  reserved 46;
-  reserved "agent_share";
-
   // A way people reach an agent: a chat link or website widget, a Slack
   // workspace, or a WhatsApp number.
   channel = 47 [(kind_meta) = {
@@ -574,12 +530,6 @@ enum ApiResourceKind {
     name: "Channel"
     display_name: "Channel"
     id_prefix: "chn"
-    // Minted as ash_ (chat links) and ach_ (Slack and WhatsApp connections)
-    // while they were two kinds.
-    retired_id_prefixes: [
-      "ash",
-      "ach"
-    ]
     is_versioned: false
     // Not searchable by design: a channel is configuration reached through
     // its agent's surfaces, not a library artifact. Skips the Go
@@ -651,57 +601,6 @@ enum ApiResourceKind {
     }
   }];
 
-  // Value 49 held the Datastore kind (id prefix "dst" — declared
-  // collections of typed business records) until the domain was removed
-  // platform-wide. Reserved so the number is never reused for a
-  // different kind.
-  reserved 49;
-  reserved "datastore";
-
-  // Value 50 held the Workflow kind (id prefix "wfl": a user-authored
-  // multi-step definition run by the step engine) until the workflow
-  // product was removed platform-wide. Reserved so the number is never
-  // reused for a different kind.
-  reserved 50;
-  reserved "workflow";
-
-  // Value 51 was the workflow instance, a configured deployment of a
-  // workflow, removed when runs came to name their workflow directly and run
-  // visibility moved onto the workflow. Stored rows of the retired kind are
-  // moved off by the store migration that removed it.
-  reserved 51;
-  reserved "workflow_instance";
-
-  // Value 52 held the WorkflowRun kind (id prefix "wex": one run of a
-  // Workflow) until the workflow product was removed platform-wide.
-  // Reserved so the number is never reused for a different kind.
-  reserved 52;
-  reserved "workflow_run";
-
-  // Agentic - Retired run kinds (the old Environment, ExecutionContext, Artifact)
-
-  // Value 53 held the old Environment kind (id prefix "env": a named set of
-  // variables and secrets for a run) until vaults replaced it. Reserved so
-  // the number is never reused for a different kind; the name is today's
-  // Environment's, at 67, whose ids reuse the prefix (the old kind's rows
-  // were removed by the store migration that retired it).
-  reserved 53;
-
-  // Value 54 held the ExecutionContext kind (id prefix "ectx": a sealed copy
-  // of the values one run or tool connect used) until a run's values were
-  // fetched from their vaults when its work starts. Reserved so the number
-  // is never reused for a different kind.
-  reserved 54;
-  reserved "execution_context";
-
-  // Value 55 held the Artifact kind (id prefix "art": a blob a workflow
-  // step promoted from its output) until the workflow product, its only
-  // producer, was removed platform-wide. What a run returns is a File,
-  // never this kind. Reserved so the number is never reused for a
-  // different kind.
-  reserved 55;
-  reserved "artifact";
-
   // Agentic - Routines
 
   // A saved agent invocation, run on an optional schedule or fired by Run now
@@ -712,8 +611,6 @@ enum ApiResourceKind {
     name: "Routine"
     display_name: "Routine"
     id_prefix: "rtn"
-    // Minted as sch_ while the kind was Schedule.
-    retired_id_prefixes: ["sch"]
     is_versioned: false
     // Not searchable by design: a routine is operational configuration
     // reached through its agent's surfaces, not a library artifact.
@@ -879,14 +776,6 @@ enum ApiResourceKind {
     }
   }];
 
-  // Value 60 held the Project kind (id prefix "prj": an aggregate of member
-  // references reconciled from a stigmer.yaml by the CLI) until plugins
-  // became the one way resources are grouped and it was removed
-  // platform-wide. Reserved so the number is never reused for a different
-  // kind.
-  reserved 60;
-  reserved "project";
-
   // Agentic - Scores (how good a finished run was)
 
   // One grade of a finished run: a person's thumbs or a free run-health
@@ -926,8 +815,6 @@ enum ApiResourceKind {
     name: "ScoringRule"
     display_name: "Scoring Rule"
     id_prefix: "srl"
-    // Minted as evl_ while the kind was Evaluator.
-    retired_id_prefixes: ["evl"]
     is_versioned: false
     // Not searchable by design: a scoring rule is a setting reached through
     // its agent's Quality tab, not a library artifact.
@@ -949,15 +836,6 @@ enum ApiResourceKind {
       // reached through its agent, never shared on its own.
     }
   }];
-
-  // Values 63 and 64 held the PluginEval (id prefix "pev") and AgentEval
-  // (id prefix "aev") kinds, one run of a plugin's own eval cases and one
-  // run of an agent's plugins' cases, until one EvalRun kind replaced both.
-  // Stored rows of the retired kinds are removed by the store migration
-  // that retired them. Reserved so neither number is reused for a
-  // different kind.
-  reserved 63, 64;
-  reserved "plugin_eval", "agent_eval";
 
   // One run of test cases on an agent, or on a plugin on the built-in
   // assistant, optionally with and without a plugin.

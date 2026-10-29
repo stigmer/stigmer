@@ -328,8 +328,7 @@ public interface ConversationTimelineItemOrBuilder extends
   /**
    * <pre>
    * Why a FAILED send attempt failed, in the platform's classification.
-   * Unspecified on non-failed items and on rows written before the
-   * classification existed.
+   * Unspecified on non-failed items.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>
@@ -339,8 +338,7 @@ public interface ConversationTimelineItemOrBuilder extends
   /**
    * <pre>
    * Why a FAILED send attempt failed, in the platform's classification.
-   * Unspecified on non-failed items and on rows written before the
-   * classification existed.
+   * Unspecified on non-failed items.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.channel.v1.ChannelAttemptFailureKind attempt_failure_kind = 15 [json_name = "attemptFailureKind"];</code>

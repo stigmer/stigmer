@@ -958,8 +958,7 @@ const (
 	// A vault the conversation lists.
 	RunValueOrigin_RUN_VALUE_ORIGIN_VAULT RunValueOrigin = 3
 	// A vault of the routine, channel or embedding settings a turn with no
-	// person came through. The value's name is older than this wording and
-	// stays: an enum value is a wire identifier.
+	// person came through.
 	RunValueOrigin_RUN_VALUE_ORIGIN_SURFACE_VAULT RunValueOrigin = 4
 	// The declaration's own plain default.
 	RunValueOrigin_RUN_VALUE_ORIGIN_DECLARATION RunValueOrigin = 5

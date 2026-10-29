@@ -79,7 +79,7 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       "roto\022\031ai.stigmer.agentic.run.v1\032$ai/stig" +
       "mer/agentic/run/v1/enum.proto\032\'ai/stigme" +
       "r/agentic/run/v1/message.proto\032\033buf/vali" +
-      "date/validate.proto\"\364\004\n\rFileChangeSet\022\016\n" +
+      "date/validate.proto\"\274\004\n\rFileChangeSet\022\016\n" +
       "\002id\030\001 \001(\tR\002id\022\027\n\007turn_id\030\002 \001(\tR\006turnId\022\035" +
       "\n\nharness_id\030\003 \001(\tR\tharnessId\022S\n\021baselin" +
       "e_snapshot\030\005 \001(\0132&.ai.stigmer.agentic.ru" +
@@ -93,58 +93,56 @@ public final class FilereviewProto extends com.google.protobuf.GeneratedFile {
       "entic.run.v1.DiffCompletenessB\010\272H\005\202\001\002\020\001R" +
       "\020diffCompleteness\022_\n\022command_provenance\030" +
       "\014 \001(\01320.ai.stigmer.agentic.run.v1.TurnCo" +
-      "mmandProvenanceR\021commandProvenanceJ\004\010\004\020\005" +
-      "J\004\010\007\020\010J\004\010\013\020\014R\006statusR\021approved_snapshotR" +
-      "\tdecisions\"\217\006\n\022CapturedFileChange\022\016\n\002id\030" +
-      "\001 \001(\tR\002id\022\037\n\013path_before\030\002 \001(\tR\npathBefo" +
-      "re\022\035\n\npath_after\030\003 \001(\tR\tpathAfter\022G\n\004kin" +
-      "d\030\004 \001(\0162).ai.stigmer.agentic.run.v1.File" +
-      "ChangeKindB\010\272H\005\202\001\002\020\001R\004kind\022Z\n\rcapture_cl" +
-      "ass\030\005 \001(\0162+.ai.stigmer.agentic.run.v1.Fi" +
-      "leCaptureClassB\010\272H\005\202\001\002\020\001R\014captureClass\022>" +
-      "\n\006before\030\006 \001(\0132&.ai.stigmer.agentic.run." +
-      "v1.FileContentR\006before\022<\n\005after\030\007 \001(\0132&." +
-      "ai.stigmer.agentic.run.v1.FileContentR\005a" +
-      "fter\022#\n\rbefore_sha256\030\010 \001(\tR\014beforeSha25" +
-      "6\022!\n\014after_sha256\030\t \001(\tR\013afterSha256\022O\n\014" +
-      "unified_diff\030\n \001(\0132,.ai.stigmer.agentic." +
-      "run.v1.ToolCallOutputRefR\013unifiedDiff\022#\n" +
-      "\rdiff_complete\030\013 \001(\010R\014diffComplete\022\037\n\013fi" +
-      "le_digest\030\014 \001(\tR\nfileDigest\022a\n\016blocked_r" +
-      "eason\030\r \001(\01620.ai.stigmer.agentic.run.v1." +
-      "FileReviewBlockReasonB\010\272H\005\202\001\002\020\001R\rblocked" +
-      "Reason\022\037\n\013lines_added\030\016 \001(\005R\nlinesAdded\022" +
-      "#\n\rlines_removed\030\017 \001(\005R\014linesRemoved\"\312\001\n" +
-      "\013SnapshotRef\022E\n\004kind\030\001 \001(\0162\'.ai.stigmer." +
-      "agentic.run.v1.SnapshotKindB\010\272H\005\202\001\002\020\001R\004k" +
-      "ind\0227\n\003git\030\002 \001(\0132%.ai.stigmer.agentic.ru" +
-      "n.v1.GitTreeRefR\003git\022;\n\003cas\030\003 \001(\0132).ai.s" +
-      "tigmer.agentic.run.v1.CasManifestRefR\003ca" +
-      "s\"9\n\nGitTreeRef\022\031\n\010tree_oid\030\001 \001(\tR\007treeO" +
-      "id\022\020\n\003ref\030\002 \001(\tR\003ref\"\\\n\016CasManifestRef\022\'" +
-      "\n\017manifest_digest\030\001 \001(\tR\016manifestDigest\022" +
-      "!\n\014artifact_uri\030\002 \001(\tR\013artifactUri\"\216\001\n\025T" +
-      "urnCommandProvenance\0221\n\025consent_tool_cal" +
-      "l_ids\030\001 \003(\tR\022consentToolCallIds\022B\n\036autho" +
-      "rized_by_auto_approve_all\030\002 \001(\010R\032authori" +
-      "zedByAutoApproveAll\"\222\002\n\022FileChangeProgre" +
-      "ss\022\"\n\rchange_set_id\030\001 \001(\tR\013changeSetId\022#" +
-      "\n\rfiles_changed\030\002 \001(\005R\014filesChanged\022\037\n\013l" +
-      "ines_added\030\003 \001(\005R\nlinesAdded\022#\n\rlines_re" +
-      "moved\030\004 \001(\005R\014linesRemoved\022L\n\007entries\030\005 \003" +
-      "(\01322.ai.stigmer.agentic.run.v1.FileChang" +
-      "eProgressEntryR\007entries\022\037\n\013captured_at\030\006" +
-      " \001(\tR\ncapturedAt\"\350\001\n\027FileChangeProgressE" +
-      "ntry\022\037\n\013path_before\030\001 \001(\tR\npathBefore\022\035\n" +
-      "\npath_after\030\002 \001(\tR\tpathAfter\022G\n\004kind\030\003 \001" +
-      "(\0162).ai.stigmer.agentic.run.v1.FileChang" +
-      "eKindB\010\272H\005\202\001\002\020\001R\004kind\022\037\n\013lines_added\030\004 \001" +
-      "(\005R\nlinesAdded\022#\n\rlines_removed\030\005 \001(\005R\014l" +
-      "inesRemovedB\232\001B\017FilereviewProtoP\001\242\002\004ASAR" +
-      "\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigme" +
-      "r\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Ru" +
-      "n\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic:" +
-      ":Run::V1b\006proto3"
+      "mmandProvenanceR\021commandProvenance\"\217\006\n\022C" +
+      "apturedFileChange\022\016\n\002id\030\001 \001(\tR\002id\022\037\n\013pat" +
+      "h_before\030\002 \001(\tR\npathBefore\022\035\n\npath_after" +
+      "\030\003 \001(\tR\tpathAfter\022G\n\004kind\030\004 \001(\0162).ai.sti" +
+      "gmer.agentic.run.v1.FileChangeKindB\010\272H\005\202" +
+      "\001\002\020\001R\004kind\022Z\n\rcapture_class\030\005 \001(\0162+.ai.s" +
+      "tigmer.agentic.run.v1.FileCaptureClassB\010" +
+      "\272H\005\202\001\002\020\001R\014captureClass\022>\n\006before\030\006 \001(\0132&" +
+      ".ai.stigmer.agentic.run.v1.FileContentR\006" +
+      "before\022<\n\005after\030\007 \001(\0132&.ai.stigmer.agent" +
+      "ic.run.v1.FileContentR\005after\022#\n\rbefore_s" +
+      "ha256\030\010 \001(\tR\014beforeSha256\022!\n\014after_sha25" +
+      "6\030\t \001(\tR\013afterSha256\022O\n\014unified_diff\030\n \001" +
+      "(\0132,.ai.stigmer.agentic.run.v1.ToolCallO" +
+      "utputRefR\013unifiedDiff\022#\n\rdiff_complete\030\013" +
+      " \001(\010R\014diffComplete\022\037\n\013file_digest\030\014 \001(\tR" +
+      "\nfileDigest\022a\n\016blocked_reason\030\r \001(\01620.ai" +
+      ".stigmer.agentic.run.v1.FileReviewBlockR" +
+      "easonB\010\272H\005\202\001\002\020\001R\rblockedReason\022\037\n\013lines_" +
+      "added\030\016 \001(\005R\nlinesAdded\022#\n\rlines_removed" +
+      "\030\017 \001(\005R\014linesRemoved\"\312\001\n\013SnapshotRef\022E\n\004" +
+      "kind\030\001 \001(\0162\'.ai.stigmer.agentic.run.v1.S" +
+      "napshotKindB\010\272H\005\202\001\002\020\001R\004kind\0227\n\003git\030\002 \001(\013" +
+      "2%.ai.stigmer.agentic.run.v1.GitTreeRefR" +
+      "\003git\022;\n\003cas\030\003 \001(\0132).ai.stigmer.agentic.r" +
+      "un.v1.CasManifestRefR\003cas\"9\n\nGitTreeRef\022" +
+      "\031\n\010tree_oid\030\001 \001(\tR\007treeOid\022\020\n\003ref\030\002 \001(\tR" +
+      "\003ref\"\\\n\016CasManifestRef\022\'\n\017manifest_diges" +
+      "t\030\001 \001(\tR\016manifestDigest\022!\n\014artifact_uri\030" +
+      "\002 \001(\tR\013artifactUri\"\216\001\n\025TurnCommandProven" +
+      "ance\0221\n\025consent_tool_call_ids\030\001 \003(\tR\022con" +
+      "sentToolCallIds\022B\n\036authorized_by_auto_ap" +
+      "prove_all\030\002 \001(\010R\032authorizedByAutoApprove" +
+      "All\"\222\002\n\022FileChangeProgress\022\"\n\rchange_set" +
+      "_id\030\001 \001(\tR\013changeSetId\022#\n\rfiles_changed\030" +
+      "\002 \001(\005R\014filesChanged\022\037\n\013lines_added\030\003 \001(\005" +
+      "R\nlinesAdded\022#\n\rlines_removed\030\004 \001(\005R\014lin" +
+      "esRemoved\022L\n\007entries\030\005 \003(\01322.ai.stigmer." +
+      "agentic.run.v1.FileChangeProgressEntryR\007" +
+      "entries\022\037\n\013captured_at\030\006 \001(\tR\ncapturedAt" +
+      "\"\350\001\n\027FileChangeProgressEntry\022\037\n\013path_bef" +
+      "ore\030\001 \001(\tR\npathBefore\022\035\n\npath_after\030\002 \001(" +
+      "\tR\tpathAfter\022G\n\004kind\030\003 \001(\0162).ai.stigmer." +
+      "agentic.run.v1.FileChangeKindB\010\272H\005\202\001\002\020\001R" +
+      "\004kind\022\037\n\013lines_added\030\004 \001(\005R\nlinesAdded\022#" +
+      "\n\rlines_removed\030\005 \001(\005R\014linesRemovedB\232\001B\017" +
+      "FilereviewProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Ag" +
+      "entic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1" +
+      "\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata" +
+      "\352\002\035Ai::Stigmer::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

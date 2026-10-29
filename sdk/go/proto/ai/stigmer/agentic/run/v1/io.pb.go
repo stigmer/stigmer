@@ -620,10 +620,10 @@ func (x *SendMessageResponse) GetRun() *Run {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456",
-//	  "reason": "Agent stuck in infinite loop, not responding to cancel"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456",
+// 	  "reason": "Agent stuck in infinite loop, not responding to cancel"
+// 	}
 type TerminateRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to terminate.
@@ -720,9 +720,9 @@ func (x *TerminateRunInput) GetReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 type RecoverRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to recover.
@@ -796,10 +796,10 @@ func (x *RecoverRunInput) GetId() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456",
-//	  "reason": "Pausing to review progress before continuing"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456",
+// 	  "reason": "Pausing to review progress before continuing"
+// 	}
 type PauseRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to pause.
@@ -889,13 +889,13 @@ func (x *PauseRunInput) GetReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 type ResumeRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to resume.
@@ -2802,10 +2802,10 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\x05RunId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n" +
 	"\tSessionId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"~\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"k\n" +
 	"\aRunList\x128\n" +
 	"\aentries\x18\x02 \x03(\v2\x1e.ai.stigmer.agentic.run.v1.RunR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_pages\"\xc4\x02\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xb8\x02\n" +
 	"\x0fListRunsRequest\x12$\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
@@ -2815,7 +2815,7 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x06 \x03(\v26.ai.stigmer.agentic.run.v1.ListRunsRequest.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x04\x10\x05R\x04tags\"\xa4\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa4\x02\n" +
 	"\x18ListRunsBySessionRequest\x12%\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12$\n" +
@@ -2886,13 +2886,12 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\ffirst_run_at\x18\x06 \x01(\tR\n" +
 	"firstRunAt\x12\x1e\n" +
 	"\vlast_run_at\x18\a \x01(\tR\tlastRunAt\x12!\n" +
-	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\xb2\x01\n" +
+	"\fis_estimated\x18\b \x01(\bR\visEstimated\"\x8f\x01\n" +
 	"\x18GetAgentUsageReportInput\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x03 \x01(\tR\x06toDate\x12\x19\n" +
-	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03orgJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\tpage_sizeR\n" +
-	"page_token\"\xc2\x03\n" +
+	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x89\x03\n" +
 	"\x19GetAgentUsageReportOutput\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
@@ -2903,12 +2902,11 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\bsessions\x18\x05 \x03(\v2..ai.stigmer.agentic.run.v1.SessionUsageSummaryR\bsessions\x12%\n" +
 	"\x0etotal_sessions\x18\x06 \x01(\x05R\rtotalSessions\x12\x1d\n" +
 	"\n" +
-	"total_runs\x18\a \x01(\x05R\ttotalRunsJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"R\x1atotal_billable_cost_microsR\x0fnext_page_token\"{\n" +
+	"total_runs\x18\a \x01(\x05R\ttotalRuns\"{\n" +
 	"\x16GetOrgUsageReportInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tfrom_date\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfromDate\x12 \n" +
-	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\x81\x05\n" +
+	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\x99\x04\n" +
 	"\x17GetOrgUsageReportOutput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12!\n" +
 	"\ftotal_agents\x18\x02 \x01(\x05R\vtotalAgents\x12%\n" +
@@ -2923,8 +2921,7 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"dailyUsage\x12L\n" +
 	"\rharness_usage\x18\f \x03(\v2'.ai.stigmer.agentic.run.v1.HarnessUsageR\fharnessUsage\x12P\n" +
 	"\vtotal_usage\x18\r \x01(\v2/.ai.stigmer.agentic.run.v1.UsageReportAggregateR\n" +
-	"totalUsageJ\x04\b\x05\x10\x06J\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"R\x1atotal_billable_cost_microsR\x12top_agents_by_costR\vdaily_costsR\x11harness_breakdown\"\xfc\x03\n" +
+	"totalUsage\"\xe0\x03\n" +
 	"\x0fRunUsageSummary\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
@@ -2939,7 +2936,7 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	" \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseR\x05phase\x12!\n" +
 	"\fis_estimated\x18\v \x01(\bR\visEstimated\x12!\n" +
 	"\ftotal_tokens\x18\f \x01(\x03R\vtotalTokens\x12'\n" +
-	"\x0fworking_seconds\x18\r \x01(\x03R\x0eworkingSecondsJ\x04\b\a\x10\bR\x14billable_cost_micros\"\xfb\x01\n" +
+	"\x0fworking_seconds\x18\r \x01(\x03R\x0eworkingSeconds\"\xdf\x01\n" +
 	"\x13SessionUsageSummary\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
@@ -2948,14 +2945,14 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\ffirst_run_at\x18\x05 \x01(\tR\n" +
 	"firstRunAt\x12\x1e\n" +
 	"\vlast_run_at\x18\x06 \x01(\tR\tlastRunAt\x12'\n" +
-	"\x0fworking_seconds\x18\a \x01(\x03R\x0eworkingSecondsJ\x04\b\x04\x10\x05R\x14billable_cost_micros\"\xd2\x01\n" +
+	"\x0fworking_seconds\x18\a \x01(\x03R\x0eworkingSeconds\"\xb6\x01\n" +
 	"\x11AgentUsageSummary\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12\x1b\n" +
 	"\trun_count\x18\x03 \x01(\x05R\brunCount\x12!\n" +
 	"\ftotal_tokens\x18\x04 \x01(\x03R\vtotalTokens\x12'\n" +
-	"\x0fworking_seconds\x18\x06 \x01(\x03R\x0eworkingSecondsJ\x04\b\x05\x10\x06R\x14billable_cost_micros\"\x86\x01\n" +
+	"\x0fworking_seconds\x18\x06 \x01(\x03R\x0eworkingSeconds\"\x86\x01\n" +
 	"\n" +
 	"DailyUsage\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x1b\n" +

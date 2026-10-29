@@ -435,7 +435,7 @@
     },
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
@@ -444,14 +444,9 @@
           "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, channel,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
-          "name": "visibility_public",
-          "number": 2,
-          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
-        },
-        {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer"
         },
         {
           "name": "visibility_child_orgs",
@@ -462,33 +457,18 @@
     },
     {
       "name": "Feature",
-      "description": "A capability an entitlement can unlock.\n\n The vocabulary is closed and grows one value at a time, each landing with\n the gate that reads it: an enum value is a wire identifier that can never\n be removed, so a feature is named here only once something in the\n platform can be gated on it. Values are added, never renamed or reused.",
+      "description": "A capability an entitlement can unlock.\n\n The vocabulary is closed and grows one value at a time, each landing with\n the gate that reads it, so a feature is named here only once something in\n the platform can be gated on it. A value is a wire identifier: once\n released it is never renamed, and a value that leaves keeps its number\n and name reserved so neither is reused.",
       "protoType": "ai.stigmer.platform.v1.Feature",
       "values": [
-        {
-          "name": "sso_enforcement",
-          "number": 1,
-          "description": "No longer used: gates nothing. It enforced sign-in through an\n organization's single sign-on provider, and Stigmer has no single\n sign-on of its own. It stays because plans and licenses already issued\n carry it and an enum value is a wire identifier. A new plan or license\n does not list it."
-        },
-        {
-          "name": "platform_client",
-          "number": 2,
-          "description": "No longer used: gates nothing. It named the platform client credential,\n which Stigmer no longer has; a product mints its users' tokens with a\n service account's key in every edition. It stays\n because licenses already issued carry it and an enum value is a wire\n identifier. A new plan or license does not list it."
-        },
-        {
-          "name": "byo_provider_keys",
-          "number": 3,
-          "description": "No longer used: gates nothing. Every plan serves model calls on the\n organization's own provider keys, and no edition reads this value. It\n stays because plans and licenses already issued carry it and an enum\n value is a wire identifier. A new plan or license does not list it."
-        },
         {
           "name": "channels",
           "number": 4,
           "description": "Serving an agent's Slack and WhatsApp channels through the Cloud's\n hosted channel runtime. The Channel kind itself is open source; this\n feature tiers the Cloud's hosted runtime inside Cloud plans. It is not\n an edition gate, and a license never lists it: the open-source server\n stores channels freely, and whether a self-hosted server delivers them\n is its edition's to decide, never its license's."
         },
         {
-          "name": "sharing",
+          "name": "chat_links",
           "number": 5,
-          "description": "Serving an agent's chat links (web channels) through the Cloud's hosted\n lane, to the organization's members or to anyone who has the link. The\n Channel kind itself is open source; this feature tiers the Cloud's\n hosted lane inside Cloud plans. It is not an edition gate, and a\n license never lists it: the open-source server stores chat links\n freely, and whether a self-hosted server serves them to guests is its\n edition's to decide, never its license's. The name is older than chat\n links becoming channels and stays: an enum value is a wire identifier."
+          "description": "Serving an agent's chat links (web channels) through the Cloud's hosted\n lane, to the organization's members or to anyone who has the link. The\n Channel kind itself is open source; this feature tiers the Cloud's\n hosted lane inside Cloud plans. It is not an edition gate, and a\n license never lists it: the open-source server stores chat links\n freely, and whether a self-hosted server serves them to guests is its\n edition's to decide, never its license's."
         },
         {
           "name": "teams",

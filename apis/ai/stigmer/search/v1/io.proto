@@ -64,18 +64,6 @@ message SearchRequest {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$"
   ];
 
-  // 4 was exclude_public and 6 was cross_org_public, the two switches of
-  // the retired visibility_public level: one dropped public rows from a
-  // result, the other admitted other organizations' public rows beside
-  // the org filter. Results are always the caller's authorized rows within
-  // the org filter, so neither switch has a meaning left; the numbers and
-  // names are reserved so no later field inherits them.
-  reserved 4, 6;
-  reserved "exclude_public", "cross_org_public";
-
-  reserved 5;
-  reserved "page";
-
   // The most entries to return: 0 asks for the default page of 50, and a
   // size above 100 is read as 100.
   int32 page_size = 7 [(buf.validate.field).int32.gte = 0];
@@ -111,12 +99,6 @@ message SearchResponse {
   // Useful for rendering UI tabs or filter badges showing counts.
   // Example: {"agent": 5, "skill": 12, "plugin": 3}
   map<string, int32> counts_by_kind = 2;
-
-  reserved 3;
-  reserved "total_count";
-
-  reserved 4;
-  reserved "total_pages";
 
   // Set when more entries may follow: pass it as page_token to continue.
   // A page may be short, even empty, and still carry a token.

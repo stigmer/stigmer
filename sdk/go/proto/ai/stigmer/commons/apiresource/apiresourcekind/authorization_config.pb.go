@@ -210,21 +210,14 @@ type VisibilityConfig struct {
 	SupportsChildOrgs bool `protobuf:"varint,2,opt,name=supports_child_orgs,json=supportsChildOrgs,proto3" json:"supports_child_orgs,omitempty"`
 	// Whether resources of this kind can be set to visibility_org.
 	// FGA tuple: resource#viewer@organization:<org>#viewer
-	//
-	// Historically org support was inferred from supports_public, which made
-	// it impossible to declare "org but not public" and silently skipped org
-	// tuples for kinds with no visibility config.
 	SupportsOrg bool `protobuf:"varint,3,opt,name=supports_org,json=supportsOrg,proto3" json:"supports_org,omitempty"`
 	// Whether resources of this kind default to visibility_org when created
 	// with unspecified visibility. When false (or when no visibility config
 	// is declared), unspecified visibility defaults to visibility_private.
 	//
-	// Set on blueprint kinds (agent, skill, plugin): blueprints
-	// are shared org assets, and before private visibility became real (the
-	// unconditional `viewer from organization` FGA grant was removed) every
-	// blueprint was effectively org-visible regardless of its enum value.
-	// Defaulting to org preserves that collaborative behavior — Private is an
-	// explicit opt-in, never a surprise.
+	// Set on blueprint kinds (agent, skill, plugin): blueprints are shared
+	// org assets, so a new one is visible to its organization and Private is
+	// an explicit opt-in, never a surprise.
 	//
 	// The flag carries a second, coupled semantic for the same kinds — the
 	// ORG FLOOR: when visibility is child_orgs, the org viewer tuple is written
@@ -667,11 +660,11 @@ var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
 	"\n" +
-	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xb9\x01\n" +
+	"Iai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto\x12.ai.stigmer.commons.apiresource.apiresourcekind\x1a\x1cai/stigmer/iam/v1/enum.proto\"\xa2\x01\n" +
 	"\x10VisibilityConfig\x12.\n" +
 	"\x13supports_child_orgs\x18\x02 \x01(\bR\x11supportsChildOrgs\x12!\n" +
 	"\fsupports_org\x18\x03 \x01(\bR\vsupportsOrg\x12;\n" +
-	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibilityJ\x04\b\x01\x10\x02R\x0fsupports_public\"\xa4\x01\n" +
+	"\x1adefaults_to_org_visibility\x18\x04 \x01(\bR\x17defaultsToOrgVisibility\"\xa4\x01\n" +
 	"\x14ParentRelationConfig\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +

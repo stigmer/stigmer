@@ -347,7 +347,7 @@ var File_ai_stigmer_agentic_session_v1_resource_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_session_v1_resource_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/session/v1/resource.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xcc\x03\n" +
+	",ai/stigmer/agentic/session/v1/resource.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xc6\x03\n" +
 	"\x0fSessionResource\x12\x1c\n" +
 	"\x04name\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\x12A\n" +
 	"\x04file\x18\x03 \x01(\v2+.ai.stigmer.agentic.session.v1.FileResourceH\x00R\x04file\x12]\n" +
@@ -355,19 +355,19 @@ const file_ai_stigmer_agentic_session_v1_resource_proto_rawDesc = "" +
 	"\n" +
 	"local_path\x18\x05 \x01(\v20.ai.stigmer.agentic.session.v1.LocalPathResourceH\x00R\tlocalPath:\x8c\x01\xbaH\x88\x01\x1a\x85\x01\n" +
 	"\x15session_resource.name\x128a repository or a folder needs a name; a file takes none\x1a2has(this.file) ? this.name == '' : this.name != ''B\x11\n" +
-	"\bresource\x12\x05\xbaH\x02\b\x01J\x04\b\x02\x10\x03\"\xa5\x02\n" +
+	"\bresource\x12\x05\xbaH\x02\b\x01\"\xa5\x02\n" +
 	"\fFileResource\x12 \n" +
 	"\afile_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06fileId\x12\xf2\x01\n" +
 	"\n" +
 	"mount_path\x18\x02 \x01(\tB\xd2\x01\xbaH\xce\x01\xba\x01\xc5\x01\n" +
-	"!file_resource.mount_path.relative\x12Hmount_path is relative to .stigmer/uploads/: no leading /, no .. segment\x1aV!this.startsWith('/') && !this.contains('\\\\') && !this.split('/').exists(s, s == '..')r\x03\x18\x80\bR\tmountPath\"\x83\x03\n" +
+	"!file_resource.mount_path.relative\x12Hmount_path is relative to .stigmer/uploads/: no leading /, no .. segment\x1aV!this.startsWith('/') && !this.contains('\\\\') && !this.split('/').exists(s, s == '..')r\x03\x18\x80\bR\tmountPath\"\xf6\x02\n" +
 	"\x15GitRepositoryResource\x12\xb2\x01\n" +
 	"\x03url\x18\x01 \x01(\tB\x9f\x01\xbaH\x9b\x01\xba\x01\x94\x01\n" +
 	"!git_repository_resource.url.https\x12Rurl must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.\x1a\x1bthis.startsWith('https://')\xc8\x01\x01R\x03url\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x16\n" +
 	"\x06commit\x18\x03 \x01(\tR\x06commit\x12W\n" +
 	"\x0fwrite_back_mode\x18\x05 \x01(\x0e2/.ai.stigmer.agentic.session.v1.GitWriteBackModeR\rwriteBackMode\x12\x1f\n" +
-	"\x05token\x18\x06 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x04R\x05tokenJ\x04\b\x04\x10\x05R\x05depth\"0\n" +
+	"\x05token\x18\x06 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x04R\x05token\"0\n" +
 	"\x11LocalPathResource\x12\x1b\n" +
 	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04pathB\x8c\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\rResourceProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"

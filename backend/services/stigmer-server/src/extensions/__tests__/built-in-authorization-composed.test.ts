@@ -153,15 +153,6 @@ function organizationInput(slug: string) {
   };
 }
 
-/**
- * The one sentence for a level a kind does not support, as the agent chain
- * answers it (pipeline/steps/validate-visibility.ts builds it from the
- * kind's config); pinned as bytes because clients render it.
- */
-const PUBLIC_LEVEL_REFUSED_FOR_AGENT =
-  "agent resources cannot be set to visibility_public. " +
-  "Supported visibility levels: visibility_private, visibility_org, visibility_child_orgs.";
-
 function agentInput(
   name: string,
   visibility: ApiResourceVisibility,
@@ -463,16 +454,6 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     }
   });
 
-  it("the retired public level is refused for the founder as an invalid level, before any permission question", async () => {
-    const failure = await failureOf(
-      createClient(AgentCommandController, asFounder()).create(
-        agentInput("Public Agent", ApiResourceVisibility.visibility_public),
-      ),
-    );
-    expect(failure.code).toBe(Code.InvalidArgument);
-    expect(failure.rawMessage).toBe(PUBLIC_LEVEL_REFUSED_FOR_AGENT);
-  });
-
   describe("the list lanes (the built-in ListReadScope)", () => {
     let founderKey: string;
     let memberKey: string;
@@ -716,18 +697,8 @@ describe("built-in authorizer (composed server, trusted-local: the permissive de
     expect(read.metadata?.id).toBe(created.metadata!.id);
   });
 
-  it("the laptop lists every organization as its own and refuses the retired public level like every posture — the level is gone, not gated", async () => {
+  it("the laptop lists every organization as its own", async () => {
     const anonymous = transportFor(port);
-    const failure = await failureOf(
-      createClient(AgentCommandController, anonymous).create(
-        agentInput(
-          "Public Laptop Agent",
-          ApiResourceVisibility.visibility_public,
-        ),
-      ),
-    );
-    expect(failure.code).toBe(Code.InvalidArgument);
-    expect(failure.rawMessage).toBe(PUBLIC_LEVEL_REFUSED_FOR_AGENT);
     const all = await createClient(
       OrganizationQueryController,
       anonymous,

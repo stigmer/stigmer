@@ -34,7 +34,6 @@ class AccessChangeCause(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     first_sign_in: _ClassVar[AccessChangeCause]
     role_reconciliation: _ClassVar[AccessChangeCause]
     operator_ownership: _ClassVar[AccessChangeCause]
-    platform_client_grant: _ClassVar[AccessChangeCause]
     service_account_created: _ClassVar[AccessChangeCause]
 access_change_unspecified: AccessChange
 granted: AccessChange
@@ -50,7 +49,6 @@ organization_created: AccessChangeCause
 first_sign_in: AccessChangeCause
 role_reconciliation: AccessChangeCause
 operator_ownership: AccessChangeCause
-platform_client_grant: AccessChangeCause
 service_account_created: AccessChangeCause
 
 class ApiResourceRefView(_message.Message):

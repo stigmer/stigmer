@@ -22,9 +22,9 @@ describe("planUpgradeFeature", () => {
     expect(
       planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "child_orgs", org: "p" })),
     ).toBe(Feature.child_orgs);
-    // Provider keys are on every plan: a refusal naming the retired feature names nothing.
+    // A refusal naming a feature this build does not know names nothing.
     expect(
-      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org: "acme" })),
+      planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "a_newer_feature", org: "acme" })),
     ).toBeNull();
     expect(planUpgradeFeature(new StigmerError("failed-precondition", TEAMS_COPY, 9))).toBeNull();
     expect(planUpgradeFeature(refusal("x", "PAYMENT_METHOD_REQUIRED", { org: "acme" }))).toBeNull();
@@ -54,10 +54,10 @@ describe("UpgradeNotice", () => {
     render(<UpgradeNotice feature={Feature.access_history} unlockingPlanName="Enterprise Cloud" />);
     expect(screen.getByText("Access history needs the Enterprise Cloud plan or above.")).toBeTruthy();
     cleanup();
-    render(<UpgradeNotice feature={Feature.sharing} unlockingPlanName="Team" />);
+    render(<UpgradeNotice feature={Feature.chat_links} unlockingPlanName="Team" />);
     expect(screen.getByText("Chat links need the Team plan or above.")).toBeTruthy();
     cleanup();
-    render(<UpgradeNotice feature={Feature.sso_enforcement} />);
+    render(<UpgradeNotice feature={99 as Feature} />);
     expect(screen.getByText("This feature is not included in this organization's plan.")).toBeTruthy();
   });
 });

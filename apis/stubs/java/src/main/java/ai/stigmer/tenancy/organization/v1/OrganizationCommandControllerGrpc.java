@@ -330,9 +330,7 @@ public final class OrganizationCommandControllerGrpc {
      * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
      * (domain "stigmer.ai"):
      *   - ORGANIZATION_SLUG_RESERVED — another organization held the slug
-     *     until a recent rename, and it still resolves there; or an
-     *     organization from an earlier release was filed under it, which keeps
-     *     it reserved for good, deleted or not. Metadata: slug.
+     *     until a recent rename, and it still resolves there. Metadata: slug.
      * A child organization names its parent in spec.parent_org, and may carry
      * the parent's own identifier for it in spec.external_id. Creating one
      * needs can_manage_child_orgs on the parent; a parent the caller may not
@@ -556,9 +554,7 @@ public final class OrganizationCommandControllerGrpc {
      * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
      * (domain "stigmer.ai"):
      *   - ORGANIZATION_SLUG_RESERVED — another organization held the slug
-     *     until a recent rename, and it still resolves there; or an
-     *     organization from an earlier release was filed under it, which keeps
-     *     it reserved for good, deleted or not. Metadata: slug.
+     *     until a recent rename, and it still resolves there. Metadata: slug.
      * A child organization names its parent in spec.parent_org, and may carry
      * the parent's own identifier for it in spec.external_id. Creating one
      * needs can_manage_child_orgs on the parent; a parent the caller may not
@@ -773,9 +769,7 @@ public final class OrganizationCommandControllerGrpc {
      * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
      * (domain "stigmer.ai"):
      *   - ORGANIZATION_SLUG_RESERVED — another organization held the slug
-     *     until a recent rename, and it still resolves there; or an
-     *     organization from an earlier release was filed under it, which keeps
-     *     it reserved for good, deleted or not. Metadata: slug.
+     *     until a recent rename, and it still resolves there. Metadata: slug.
      * A child organization names its parent in spec.parent_org, and may carry
      * the parent's own identifier for it in spec.external_id. Creating one
      * needs can_manage_child_orgs on the parent; a parent the caller may not
@@ -984,9 +978,7 @@ public final class OrganizationCommandControllerGrpc {
      * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
      * (domain "stigmer.ai"):
      *   - ORGANIZATION_SLUG_RESERVED — another organization held the slug
-     *     until a recent rename, and it still resolves there; or an
-     *     organization from an earlier release was filed under it, which keeps
-     *     it reserved for good, deleted or not. Metadata: slug.
+     *     until a recent rename, and it still resolves there. Metadata: slug.
      * A child organization names its parent in spec.parent_org, and may carry
      * the parent's own identifier for it in spec.external_id. Creating one
      * needs can_manage_child_orgs on the parent; a parent the caller may not
@@ -1196,9 +1188,7 @@ public final class OrganizationCommandControllerGrpc {
      * refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail
      * (domain "stigmer.ai"):
      *   - ORGANIZATION_SLUG_RESERVED — another organization held the slug
-     *     until a recent rename, and it still resolves there; or an
-     *     organization from an earlier release was filed under it, which keeps
-     *     it reserved for good, deleted or not. Metadata: slug.
+     *     until a recent rename, and it still resolves there. Metadata: slug.
      * A child organization names its parent in spec.parent_org, and may carry
      * the parent's own identifier for it in spec.external_id. Creating one
      * needs can_manage_child_orgs on the parent; a parent the caller may not

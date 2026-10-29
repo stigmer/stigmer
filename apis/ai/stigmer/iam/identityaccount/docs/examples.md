@@ -92,7 +92,7 @@ metadata:
 spec:
   idp_id: "HqKdZn9xyzABC@clients"
   is_machine_account: true
-  provisioning_mode: machine
+  provisioning_mode: direct
 ```
 
 ## Recover a Missing Account (Simulate Signup Webhook)

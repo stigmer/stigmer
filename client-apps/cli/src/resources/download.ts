@@ -24,7 +24,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { Stigmer } from "@stigmer/client";
 import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import type { CommandResult } from "../output/index.js";
-import { idPrefixesFor, isSessionId, parseReference } from "./reference.js";
+import { idPrefixOf, isSessionId, parseReference } from "./reference.js";
 import { formatBytes } from "./skill.js";
 
 export interface DownloadParams {
@@ -298,7 +298,7 @@ export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = 
         // own download (imported by `run`) never needs.
         const evals = await import("./eval.js");
         const { ref, version } = evals.splitEvalVersion(request.ref);
-        const parsed = parseReference(ref, request.org, idPrefixesFor(ApiResourceKind.eval));
+        const parsed = parseReference(ref, request.org, idPrefixOf(ApiResourceKind.eval));
         return evals.renderEvalDownload(await evals.downloadEval(client, parsed, version, request.outputDir));
       },
     },
@@ -332,7 +332,7 @@ export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = 
         if (request.outputPath !== "") {
           throw new UsageError("--path picks among a run's or a session's outputs; a File is one file");
         }
-        const parsed = parseReference(request.ref, request.org, idPrefixesFor(ApiResourceKind.file));
+        const parsed = parseReference(request.ref, request.org, idPrefixOf(ApiResourceKind.file));
         if (parsed.kind !== "id") {
           throw new UsageError(`a File is named by its ID (e.g., file_01abc123), not '${request.ref}'`);
         }

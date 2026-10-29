@@ -213,7 +213,7 @@ type CapturedFileChange struct {
 	// enforcement input and never folded into file_digest/aggregate_digest (the
 	// same contract as blocked_reason). Zero (alongside lines_removed == 0) when
 	// counting was not possible or meaningful: binary changes, secret-withheld
-	// entries, oversized sides, and records captured before this field existed.
+	// entries and oversized sides.
 	// Consumers hide the stat in that case rather than showing "+0 -0".
 	LinesAdded int32 `protobuf:"varint,14,opt,name=lines_added,json=linesAdded,proto3" json:"lines_added,omitempty"`
 	// Lines removed by this change. See lines_added for the contract.
@@ -788,7 +788,7 @@ var File_ai_stigmer_agentic_run_v1_filereview_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_filereview_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/filereview.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a'ai/stigmer/agentic/run/v1/message.proto\x1a\x1bbuf/validate/validate.proto\"\xf4\x04\n" +
+	"*ai/stigmer/agentic/run/v1/filereview.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a'ai/stigmer/agentic/run/v1/message.proto\x1a\x1bbuf/validate/validate.proto\"\xbc\x04\n" +
 	"\rFileChangeSet\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\aturn_id\x18\x02 \x01(\tR\x06turnId\x12\x1d\n" +
@@ -800,7 +800,7 @@ const file_ai_stigmer_agentic_run_v1_filereview_proto_rawDesc = "" +
 	"\x10aggregate_digest\x18\t \x01(\tR\x0faggregateDigest\x12b\n" +
 	"\x11diff_completeness\x18\n" +
 	" \x01(\x0e2+.ai.stigmer.agentic.run.v1.DiffCompletenessB\b\xbaH\x05\x82\x01\x02\x10\x01R\x10diffCompleteness\x12_\n" +
-	"\x12command_provenance\x18\f \x01(\v20.ai.stigmer.agentic.run.v1.TurnCommandProvenanceR\x11commandProvenanceJ\x04\b\x04\x10\x05J\x04\b\a\x10\bJ\x04\b\v\x10\fR\x06statusR\x11approved_snapshotR\tdecisions\"\x8f\x06\n" +
+	"\x12command_provenance\x18\f \x01(\v20.ai.stigmer.agentic.run.v1.TurnCommandProvenanceR\x11commandProvenance\"\x8f\x06\n" +
 	"\x12CapturedFileChange\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vpath_before\x18\x02 \x01(\tR\n" +

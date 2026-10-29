@@ -939,8 +939,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Whose provider credential served this call. ORGANIZATION marks a call on
    * the organization's own key, which is metered and never charged;
-   * PLATFORM marks a call served by a connection the platform provides.
-   * UNSPECIFIED marks a record written before this field existed.
+   * UNSPECIFIED marks a call whose meter did not report it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -953,8 +952,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Whose provider credential served this call. ORGANIZATION marks a call on
    * the organization's own key, which is metered and never charged;
-   * PLATFORM marks a call served by a connection the platform provides.
-   * UNSPECIFIED marks a record written before this field existed.
+   * UNSPECIFIED marks a call whose meter did not report it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -4325,8 +4323,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
      * the organization's own key, which is metered and never charged;
-     * PLATFORM marks a call served by a connection the platform provides.
-     * UNSPECIFIED marks a record written before this field existed.
+     * UNSPECIFIED marks a call whose meter did not report it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -4339,8 +4336,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
      * the organization's own key, which is metered and never charged;
-     * PLATFORM marks a call served by a connection the platform provides.
-     * UNSPECIFIED marks a record written before this field existed.
+     * UNSPECIFIED marks a call whose meter did not report it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -4358,8 +4354,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
      * the organization's own key, which is metered and never charged;
-     * PLATFORM marks a call served by a connection the platform provides.
-     * UNSPECIFIED marks a record written before this field existed.
+     * UNSPECIFIED marks a call whose meter did not report it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -4374,8 +4369,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
      * the organization's own key, which is metered and never charged;
-     * PLATFORM marks a call served by a connection the platform provides.
-     * UNSPECIFIED marks a record written before this field existed.
+     * UNSPECIFIED marks a call whose meter did not report it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -4393,8 +4387,7 @@ java.lang.String defaultValue) {
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
      * the organization's own key, which is metered and never charged;
-     * PLATFORM marks a call served by a connection the platform provides.
-     * UNSPECIFIED marks a record written before this field existed.
+     * UNSPECIFIED marks a call whose meter did not report it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>

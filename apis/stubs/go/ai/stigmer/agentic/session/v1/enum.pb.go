@@ -277,11 +277,11 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/session/v1/enum.proto\x12\x1dai.stigmer.agentic.session.v1*Y\n" +
 	"\x10GitWriteBackMode\x12#\n" +
 	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*q\n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*K\n" +
 	"\aHarness\x12\x17\n" +
 	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fHARNESS_STIGMER\x10\x01\x12\x12\n" +
-	"\x0eHARNESS_CLAUDE\x10\x03\"\x04\b\x02\x10\x02*\x0eHARNESS_NATIVE*\x0eHARNESS_CURSOR*\xba\x01\n" +
+	"\x0eHARNESS_CLAUDE\x10\x03*\xba\x01\n" +
 	"\x11EnvironmentSource\x12\"\n" +
 	"\x1eENVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aENVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n" +

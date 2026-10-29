@@ -426,7 +426,7 @@ var File_ai_stigmer_search_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1dai/stigmer/search/v1/io.proto\x12\x14ai.stigmer.search.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe2\x02\n" +
+	"\x1dai/stigmer/search/v1/io.proto\x12\x14ai.stigmer.search.v1\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\x02\n" +
 	"\rSearchRequest\x12d\n" +
 	"\x05kinds\x18\x01 \x03(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindB\r\xbaH\n" +
 	"\x92\x01\a\"\x05\x82\x01\x02\x10\x01R\x05kinds\x12\x1e\n" +
@@ -434,14 +434,14 @@ const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x03 \x01(\tB0\xbaH-r+\x18?2'^$|^[a-z][a-z0-9-]*$|^org_[0-9a-z]{26}$R\x03org\x12$\n" +
 	"\tpage_size\x18\a \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x04\x10\x05J\x04\b\x06\x10\aJ\x04\b\x05\x10\x06R\x0eexclude_publicR\x10cross_org_publicR\x04page\"\xbb\x02\n" +
+	"page_token\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x95\x02\n" +
 	"\x0eSearchResponse\x12<\n" +
 	"\aentries\x18\x01 \x03(\v2\".ai.stigmer.search.v1.SearchResultR\aentries\x12\\\n" +
 	"\x0ecounts_by_kind\x18\x02 \x03(\v26.ai.stigmer.search.v1.SearchResponse.CountsByKindEntryR\fcountsByKind\x12&\n" +
 	"\x0fnext_page_token\x18\x05 \x01(\tR\rnextPageToken\x1a?\n" +
 	"\x11CountsByKindEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\vtotal_countR\vtotal_pages\"\x88\x04\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x88\x04\n" +
 	"\fSearchResult\x12S\n" +
 	"\x04kind\x18\x01 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +

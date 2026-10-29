@@ -395,7 +395,7 @@ var File_ai_stigmer_agentic_agent_v1_version_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agent/v1/version.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf5\x02\n" +
+	")ai/stigmer/agentic/agent/v1/version.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdf\x02\n" +
 	"\x11AgentVersionEntry\x12!\n" +
 	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x129\n" +
 	"\n" +
@@ -406,16 +406,16 @@ const file_ai_stigmer_agentic_agent_v1_version_proto_rawDesc = "" +
 	"\n" +
 	"is_current\x18\x05 \x01(\bR\tisCurrent\x12\x18\n" +
 	"\amessage\x18\x06 \x01(\tR\amessage\x12K\n" +
-	"\rspec_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\fspecSnapshotJ\x04\b\b\x10\tR\x0egit_provenance\"\x9d\x01\n" +
+	"\rspec_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.agent.v1.AgentSpecR\fspecSnapshot\"\x9d\x01\n" +
 	"\x16ListAgentVersionsInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
 	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12'\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12$\n" +
-	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\"\xa0\x01\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\"\x8d\x01\n" +
 	"\x19ListAgentVersionsResponse\x12H\n" +
 	"\aentries\x18\x01 \x03(\v2..ai.stigmer.agentic.agent.v1.AgentVersionEntryR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenJ\x04\b\x03\x10\x04R\vtotal_count\"s\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"s\n" +
 	"\x14GetAgentVersionInput\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x128\n" +
 	"\fversion_hash\x18\x02 \x01(\tB\x15\xbaH\x12r\x102\x0e^[a-f0-9]{64}$R\vversionHash\"\xa1\x01\n" +

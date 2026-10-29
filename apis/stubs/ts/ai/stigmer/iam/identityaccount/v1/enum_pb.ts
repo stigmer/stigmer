@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/identityaccount/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKqABCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhILCgdtYWNoaW5lEAMSDAoIYXBwX3VzZXIQBBITCg9zZXJ2aWNlX2FjY291bnQQBWIGcHJvdG8z");
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKpMBCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhIMCghhcHBfdXNlchAEEhMKD3NlcnZpY2VfYWNjb3VudBAFYgZwcm90bzM");
 
 /**
  * IdentityAccountProvisioningMode defines how an identity account was created.
@@ -18,7 +18,8 @@ export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*
  */
 export enum IdentityAccountProvisioningMode {
   /**
-   * Default value for legacy accounts created before provisioning mode tracking.
+   * Not set. The server sets a mode on every account it creates, and a
+   * reader treats an unset mode as direct.
    *
    * @generated from enum value: identity_account_provisioning_mode_unspecified = 0;
    */
@@ -37,13 +38,6 @@ export enum IdentityAccountProvisioningMode {
    * @generated from enum value: federated = 2;
    */
   federated = 2,
-
-  /**
-   * Machine-to-machine client credentials account for inter-service communication.
-   *
-   * @generated from enum value: machine = 3;
-   */
-  machine = 3,
 
   /**
    * A person who signs in from an organization's own product: the

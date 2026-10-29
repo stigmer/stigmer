@@ -26,7 +26,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { splitEvalVersion } from "./eval.js";
-import { idPrefixesFor, parseReference } from "./reference.js";
+import { idPrefixOf, parseReference } from "./reference.js";
 import { shortHash } from "./skill.js";
 
 /** The options as commander hands them over. */
@@ -114,7 +114,7 @@ async function addToEval(
   if (version !== "") {
     throw new UsageError(`--eval '${input}' names a version: a case joins the eval's current version, so name the eval alone`);
   }
-  const parsed = parseReference(ref, org, idPrefixesFor(ApiResourceKind.eval));
+  const parsed = parseReference(ref, org, idPrefixOf(ApiResourceKind.eval));
   const reference =
     parsed.kind === "id"
       ? { kind: ApiResourceKind.eval, id: parsed.id }

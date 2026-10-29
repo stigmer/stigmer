@@ -6,10 +6,8 @@
  * candidate carries — no candidate row is read twice.
  *
  * The adversarial cells come first, because they prove that a
- * member's list is a member's list: the outsider sees nothing (a row
- * still carrying the retired public level included); the viewer rung sees
- * the org-visible blueprints
- * and nothing personal; the founder — an admin — sees the organization's
+ * member's list is a member's list: the outsider sees nothing; the viewer
+ * rung sees the org-visible blueprints and nothing personal; the founder — an admin — sees the organization's
  * blueprints and NOT its members' sessions, keys, My vaults or
  * memories (the model's own line, now list-visible); an execution is its session's and
  * an orphaned execution is nobody's; a memory with no
@@ -268,10 +266,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           await grant(orgRole(VIEWER, "viewer", ORG));
 
           // Blueprints: the founder's private and org-visible agents, a
-          // member's private one, one still carrying the retired public
-          // level (a row no door writes, which derives no viewer grant and
-          // so reads as its owner's alone), and one
-          // stamped by the 3.14 verifiers' raw subject.
+          // member's private one, and one stamped by the 3.14 verifiers' raw
+          // subject.
           await save("agent", {
             id: "agt_private",
             org: ORG,
@@ -289,12 +285,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             org: ORG,
             visibility: ApiResourceVisibility.visibility_private,
             createdBy: MEMBER,
-          });
-          await save("agent", {
-            id: "agt_public",
-            org: ORG,
-            visibility: ApiResourceVisibility.visibility_public,
-            createdBy: FOUNDER,
           });
           await save("agent", {
             id: "agt_legacy",
@@ -378,7 +368,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         });
 
         describe("the adversarial cells", () => {
-          it("an OUTSIDER lists nothing of the organization's — a row still carrying the retired public level included", async () => {
+          it("an OUTSIDER lists nothing of the organization's", async () => {
             for (const kind of SEEDED_KINDS.filter(
               (k) =>
                 k !== ApiResourceKind.grant &&
@@ -392,7 +382,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             }
           });
 
-          it("a VIEWER lists the org-visible blueprint and nothing private; a MEMBER adds their own private one; the retired level grants neither anything", async () => {
+          it("a VIEWER lists the org-visible blueprint and nothing private; a MEMBER adds their own private one", async () => {
             expect(
               await listAs(resolved(VIEWER), ApiResourceKind.agent),
             ).toEqual(["agt_org"]);
@@ -406,7 +396,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
               "agt_private",
               "agt_org",
               "agt_member_private",
-              "agt_public",
               "agt_legacy",
             ];
             expect(

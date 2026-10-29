@@ -15,10 +15,9 @@ import "buf/validate/validate.proto";
 // default. It holds no secret, no variable and no image.
 //
 // @internal
-// Organization-scoped kind (67, prefix env; number 53 and the old
-// Environment's variables-and-secrets shape stay retired). Only a sandbox
-// the server starts can honour one: the server resolves it once per
-// conversation (SessionStatus.environment), re-reads its contents at every
+// Organization-scoped kind (67, prefix env). Only a sandbox the server
+// starts can honour one: the server resolves it once per conversation
+// (SessionStatus.environment), re-reads its contents at every
 // sandbox start, and each sandbox driver states whether it can install
 // packages and limit networking (SandboxProvisioner.environmentSupport), so
 // an Environment a driver cannot serve is refused when saved, at session

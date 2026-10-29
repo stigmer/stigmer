@@ -106,19 +106,6 @@ public enum AccessChangeCause
   operator_ownership(10),
   /**
    * <pre>
-   * A person who signed in through a platform client was given the
-   * organization role that client granted. No longer written: a minted
-   * user's sign-in role is an ordinary grant made by the service account
-   * whose key minted the token, as federation records its own. It stays
-   * because history entries hold it, and an entry's cause is what
-   * happened then.
-   * </pre>
-   *
-   * <code>platform_client_grant = 11;</code>
-   */
-  platform_client_grant(11),
-  /**
-   * <pre>
    * An administrator created a service account with its role in the
    * organization.
    * </pre>
@@ -228,19 +215,6 @@ public enum AccessChangeCause
   public static final int operator_ownership_VALUE = 10;
   /**
    * <pre>
-   * A person who signed in through a platform client was given the
-   * organization role that client granted. No longer written: a minted
-   * user's sign-in role is an ordinary grant made by the service account
-   * whose key minted the token, as federation records its own. It stays
-   * because history entries hold it, and an entry's cause is what
-   * happened then.
-   * </pre>
-   *
-   * <code>platform_client_grant = 11;</code>
-   */
-  public static final int platform_client_grant_VALUE = 11;
-  /**
-   * <pre>
    * An administrator created a service account with its role in the
    * organization.
    * </pre>
@@ -285,7 +259,6 @@ public enum AccessChangeCause
       case 8: return first_sign_in;
       case 9: return role_reconciliation;
       case 10: return operator_ownership;
-      case 11: return platform_client_grant;
       case 12: return service_account_created;
       default: return null;
     }

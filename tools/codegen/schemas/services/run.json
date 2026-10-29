@@ -1786,7 +1786,7 @@
         {
           "name": "RUN_VALUE_ORIGIN_SURFACE_VAULT",
           "number": 4,
-          "description": "A vault of the routine, channel or embedding settings a turn with no\n person came through. The value's name is older than this wording and\n stays: an enum value is a wire identifier."
+          "description": "A vault of the routine, channel or embedding settings a turn with no\n person came through."
         },
         {
           "name": "RUN_VALUE_ORIGIN_DECLARATION",
@@ -1846,7 +1846,7 @@
     },
     {
       "name": "ApiResourceVisibility",
-      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
       "values": [
         {
@@ -1855,14 +1855,9 @@
           "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, channel,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
-          "name": "visibility_public",
-          "number": 2,
-          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
-        },
-        {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer"
         },
         {
           "name": "visibility_child_orgs",
@@ -1956,11 +1951,6 @@
       "description": "Whose provider credential served a proxied LLM call.\n\n The proxy picks the key, injects it upstream, and reports the same source\n with the usage payload, so the record never disagrees with what was sent\n on the wire.",
       "protoType": "ai.stigmer.agentic.run.v1.ProviderKeySource",
       "values": [
-        {
-          "name": "PROVIDER_KEY_SOURCE_PLATFORM",
-          "number": 1,
-          "description": "A connection the platform provides served the call."
-        },
         {
           "name": "PROVIDER_KEY_SOURCE_ORGANIZATION",
           "number": 2,
@@ -2116,7 +2106,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Content hash of the agent version this turn ran (AgentStatus.version_hash\n at create; resolvable through AgentQueryController.getVersion with\n agent_id).\n\n Empty when agent_id is empty, or when the agent had no recorded version\n at create (an agent last written before agents were versioned, or one\n whose last version failed to archive); such a turn runs the agent as\n it is when the turn starts.",
+        "description": "Content hash of the agent version this turn ran (AgentStatus.version_hash\n at create; resolvable through AgentQueryController.getVersion with\n agent_id).\n\n Empty when agent_id is empty, or when the agent had no recorded version\n at create (its last version failed to archive); such a turn runs the\n agent as it is when the turn starts.",
         "required": false
       },
       {
@@ -2127,7 +2117,7 @@
           "kind": "message",
           "messageType": "LoadedVersions"
         },
-        "description": "Every skill and plugin a turn of this run loaded, for the agent and its\n subagents, at the version it loaded. A turn that resumes after a pause\n and loads a newer version adds an entry, so a run that ran two versions\n of one skill lists both. Empty for a run that loaded none, and for runs\n that predate this field.",
+        "description": "Every skill and plugin a turn of this run loaded, for the agent and its\n subagents, at the version it loaded. A turn that resumes after a pause\n and loads a newer version adds an entry, so a run that ran two versions\n of one skill lists both. Empty for a run that loaded none.",
         "required": false
       },
       {
@@ -2660,7 +2650,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "Lines added by this change, computed at capture time by the runner with the\n SAME diff algorithm the SDK renders with, so the list stat and the rendered\n diff can never disagree. INFORMATIONAL display counts only — never an\n enforcement input and never folded into file_digest/aggregate_digest (the\n same contract as blocked_reason). Zero (alongside lines_removed == 0) when\n counting was not possible or meaningful: binary changes, secret-withheld\n entries, oversized sides, and records captured before this field existed.\n Consumers hide the stat in that case rather than showing \"+0 -0\".",
+          "description": "Lines added by this change, computed at capture time by the runner with the\n SAME diff algorithm the SDK renders with, so the list stat and the rendered\n diff can never disagree. INFORMATIONAL display counts only — never an\n enforcement input and never folded into file_digest/aggregate_digest (the\n same contract as blocked_reason). Zero (alongside lines_removed == 0) when\n counting was not possible or meaningful: binary changes, secret-withheld\n entries and oversized sides.\n Consumers hide the stat in that case rather than showing \"+0 -0\".",
           "required": false
         },
         {

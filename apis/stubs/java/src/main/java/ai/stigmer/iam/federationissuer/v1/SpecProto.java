@@ -43,7 +43,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/iam/federationissuer/v1/spe" +
       "c.proto\022\"ai.stigmer.iam.federationissuer" +
       ".v1\032\034ai/stigmer/iam/v1/enum.proto\032\033buf/v" +
-      "alidate/validate.proto\"\264\007\n\024FederationIss" +
+      "alidate/validate.proto\"\213\006\n\024FederationIss" +
       "uerSpec\022+\n\014display_name\030\001 \001(\tB\010\272H\005r\003\030\310\001R" +
       "\013displayName\022#\n\010jwks_uri\030\002 \001(\tB\010\272H\005r\003\030\200\020" +
       "R\007jwksUri\022:\n\017allowed_issuers\030\003 \003(\tB\021\272H\016\222" +
@@ -63,16 +63,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "_issuers\0229jwks_uri is required when allo" +
       "wed_issuers names an issuer\0327this.allowe" +
       "d_issuers.size() == 0 || this.jwks_uri !" +
-      "= \'\'J\004\010\005\020\006J\004\010\t\020\nJ\004\010\n\020\013J\004\010\013\020\014J\004\010\007\020\010J\004\010\010\020\t" +
-      "J\004\010\017\020\020R\021rate_limit_budgetR\027auto_provisio" +
-      "n_accountsR\021auto_grant_on_orgR\017auto_gran" +
-      "t_roleR\017is_sso_providerR\016oidc_client_idR" +
-      "\014sso_requiredB\270\001B\tSpecProtoP\001\242\002\004ASIF\252\002\"A" +
-      "i.Stigmer.Iam.Federationissuer.V1\312\002\"Ai\\S" +
-      "tigmer\\Iam\\Federationissuer\\V1\342\002.Ai\\Stig" +
-      "mer\\Iam\\Federationissuer\\V1\\GPBMetadata\352" +
-      "\002&Ai::Stigmer::Iam::Federationissuer::V1" +
-      "b\006proto3"
+      "= \'\'B\270\001B\tSpecProtoP\001\242\002\004ASIF\252\002\"Ai.Stigmer" +
+      ".Iam.Federationissuer.V1\312\002\"Ai\\Stigmer\\Ia" +
+      "m\\Federationissuer\\V1\342\002.Ai\\Stigmer\\Iam\\F" +
+      "ederationissuer\\V1\\GPBMetadata\352\002&Ai::Sti" +
+      "gmer::Iam::Federationissuer::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

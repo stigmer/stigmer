@@ -83,7 +83,6 @@ function providerLabelOf(
 ): string {
   switch (mode) {
     case IdentityAccountProvisioningMode.direct:
-    case IdentityAccountProvisioningMode.machine:
       return STIGMER_PROVIDER_LABEL;
     default:
       // federated / app_user / service_account / unspecified carry no external

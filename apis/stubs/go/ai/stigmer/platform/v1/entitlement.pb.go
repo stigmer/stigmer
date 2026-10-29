@@ -25,30 +25,14 @@ const (
 // A capability an entitlement can unlock.
 //
 // The vocabulary is closed and grows one value at a time, each landing with
-// the gate that reads it: an enum value is a wire identifier that can never
-// be removed, so a feature is named here only once something in the
-// platform can be gated on it. Values are added, never renamed or reused.
+// the gate that reads it, so a feature is named here only once something in
+// the platform can be gated on it. A value is a wire identifier: once
+// released it is never renamed, and a value that leaves keeps its number
+// and name reserved so neither is reused.
 type Feature int32
 
 const (
 	Feature_feature_unspecified Feature = 0
-	// No longer used: gates nothing. It enforced sign-in through an
-	// organization's single sign-on provider, and Stigmer has no single
-	// sign-on of its own. It stays because plans and licenses already issued
-	// carry it and an enum value is a wire identifier. A new plan or license
-	// does not list it.
-	Feature_sso_enforcement Feature = 1
-	// No longer used: gates nothing. It named the platform client credential,
-	// which Stigmer no longer has; a product mints its users' tokens with a
-	// service account's key in every edition. It stays
-	// because licenses already issued carry it and an enum value is a wire
-	// identifier. A new plan or license does not list it.
-	Feature_platform_client Feature = 2
-	// No longer used: gates nothing. Every plan serves model calls on the
-	// organization's own provider keys, and no edition reads this value. It
-	// stays because plans and licenses already issued carry it and an enum
-	// value is a wire identifier. A new plan or license does not list it.
-	Feature_byo_provider_keys Feature = 3
 	// Serving an agent's Slack and WhatsApp channels through the Cloud's
 	// hosted channel runtime. The Channel kind itself is open source; this
 	// feature tiers the Cloud's hosted runtime inside Cloud plans. It is not
@@ -62,9 +46,8 @@ const (
 	// hosted lane inside Cloud plans. It is not an edition gate, and a
 	// license never lists it: the open-source server stores chat links
 	// freely, and whether a self-hosted server serves them to guests is its
-	// edition's to decide, never its license's. The name is older than chat
-	// links becoming channels and stays: an enum value is a wire identifier.
-	Feature_sharing Feature = 5
+	// edition's to decide, never its license's.
+	Feature_chat_links Feature = 5
 	// Creating teams and adding members to them. The team kind is Enterprise
 	// and Cloud; this feature tiers it inside Cloud plans, so an organization
 	// on a plan without it keeps its existing teams but cannot create one or
@@ -92,22 +75,16 @@ const (
 var (
 	Feature_name = map[int32]string{
 		0: "feature_unspecified",
-		1: "sso_enforcement",
-		2: "platform_client",
-		3: "byo_provider_keys",
 		4: "channels",
-		5: "sharing",
+		5: "chat_links",
 		6: "teams",
 		7: "child_orgs",
 		8: "access_history",
 	}
 	Feature_value = map[string]int32{
 		"feature_unspecified": 0,
-		"sso_enforcement":     1,
-		"platform_client":     2,
-		"byo_provider_keys":   3,
 		"channels":            4,
-		"sharing":             5,
+		"chat_links":          5,
 		"teams":               6,
 		"child_orgs":          7,
 		"access_history":      8,
@@ -333,7 +310,7 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"(ai/stigmer/platform/v1/entitlement.proto\x12\x16ai.stigmer.platform.v1\x1a\x1bbuf/validate/validate.proto\"\xa1\x01\n" +
 	"\fEntitlements\x12A\n" +
 	"\x06limits\x18\x01 \x01(\v2).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n" +
-	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xc5\x04\n" +
+	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xa0\x04\n" +
 	"\x11EntitlementLimits\x12'\n" +
 	"\bmax_orgs\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x00R\amaxOrgs\x88\x01\x01\x12)\n" +
 	"\tmax_users\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x01R\bmaxUsers\x88\x01\x01\x12<\n" +
@@ -347,14 +324,12 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"\x14_included_child_orgsB\x1f\n" +
 	"\x1d_max_active_session_sandboxesB$\n" +
 	"\"_archived_workspace_retention_daysB\x17\n" +
-	"\x15_included_agent_hoursJ\x04\b\x05\x10\x06R\x1dmax_active_workflow_sandboxes*\xad\x01\n" +
+	"\x15_included_agent_hours*o\n" +
 	"\aFeature\x12\x17\n" +
-	"\x13feature_unspecified\x10\x00\x12\x13\n" +
-	"\x0fsso_enforcement\x10\x01\x12\x13\n" +
-	"\x0fplatform_client\x10\x02\x12\x15\n" +
-	"\x11byo_provider_keys\x10\x03\x12\f\n" +
-	"\bchannels\x10\x04\x12\v\n" +
-	"\asharing\x10\x05\x12\t\n" +
+	"\x13feature_unspecified\x10\x00\x12\f\n" +
+	"\bchannels\x10\x04\x12\x0e\n" +
+	"\n" +
+	"chat_links\x10\x05\x12\t\n" +
 	"\x05teams\x10\x06\x12\x0e\n" +
 	"\n" +
 	"child_orgs\x10\a\x12\x12\n" +

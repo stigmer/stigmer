@@ -66,7 +66,7 @@ const PAID_RENEWAL: LicenseFixture = {
   expiresAt: "2027-10-01T00:00:00Z",
   graceUntil: "2027-10-31T00:00:00Z",
   maxUsers: 50,
-  features: [Feature.sso_enforcement, Feature.platform_client, Feature.channels],
+  features: [Feature.channels],
   notes: "PO 4411",
 };
 const paidRenewal = license(PAID_RENEWAL);
@@ -158,10 +158,9 @@ describe("LicensesConsole detail", () => {
     expect(client.license.get).toHaveBeenCalledWith("lic_paid");
     expect(screen.getByText("Paid")).toBeTruthy();
     expect(screen.getByText("PO 4411")).toBeTruthy();
-    // The license was issued when licenses listed features: no server reads
-    // them any more, so the detail names none of them.
+    // No server reads a license's features, so the detail names none of the
+    // ones this license lists.
     expect(screen.queryByText("Features")).toBeNull();
-    expect(screen.queryByText("SSO enforcement")).toBeNull();
     expect(screen.queryByText("Slack and WhatsApp")).toBeNull();
     expect(screen.queryByText(/eyJhbGciOiJFZERTQSJ9/)).toBeNull();
 
@@ -278,8 +277,8 @@ describe("LicensesConsole issue", () => {
 
   it("renews from the customer's current license with its terms and continued coverage", async () => {
     const user = userEvent.setup();
-    // Issued when licenses listed features: the renewal carries none of
-    // them forward, since no server reads a license's features.
+    // The renewal carries none of the license's features forward, since no
+    // server reads a license's features.
     const current = license({
       id: "lic_globex",
       customerId: "cus_globex",
@@ -287,7 +286,7 @@ describe("LicensesConsole issue", () => {
       contactEmail: "it@globex.test",
       issuedAt: "2025-10-01T00:00:00Z",
       expiresAt: "2026-10-01T00:00:00Z",
-      features: [Feature.sso_enforcement, Feature.channels],
+      features: [Feature.channels],
     });
     const client = mockClient({
       list: vi.fn().mockResolvedValue({ entries: [current], nextPageToken: "" }),

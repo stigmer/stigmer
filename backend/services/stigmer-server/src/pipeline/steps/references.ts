@@ -649,9 +649,7 @@ function sameReference(a: SpecReference, b: SpecReference): boolean {
 
 /**
  * The order the floor compares on: private < org < child_orgs, an unset
- * level reading as private (the level a row with no config holds). The
- * retired public level is unreachable here — refused at every door and
- * held by no stored row — so meeting it is a fault, not a rank.
+ * level reading as private (the level a row with no config holds).
  */
 function visibilityRank(level: ApiResourceVisibility): number {
   switch (level) {
@@ -662,8 +660,6 @@ function visibilityRank(level: ApiResourceVisibility): number {
       return 1;
     case ApiResourceVisibility.visibility_child_orgs:
       return 2;
-    case ApiResourceVisibility.visibility_public:
-      throw new Error("the retired public level has no rank");
     default: {
       const exhaustive: never = level;
       throw new Error(`unknown visibility level: ${String(exhaustive)}`);

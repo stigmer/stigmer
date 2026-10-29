@@ -60,7 +60,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       ".v1\0322ai/stigmer/commons/apiresource/fiel" +
       "d_options.proto\032\'ai/stigmer/commons/apir" +
       "esource/io.proto\032\034ai/stigmer/iam/v1/enum" +
-      ".proto\032\033buf/validate/validate.proto\"\272\005\n\020" +
+      ".proto\032\033buf/validate/validate.proto\"\363\004\n\020" +
       "OrganizationSpec\022*\n\013description\030\001 \001(\tB\010\272" +
       "H\005r\003\030\364\003R\013description\022#\n\010logo_url\030\002 \001(\tB\010" +
       "\272H\005r\003\030\200\020R\007logoUrl\022)\n\013external_id\030\005 \001(\tB\010" +
@@ -76,39 +76,37 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "nal_id_requires_parent_org\022Dexternal_id " +
       "is set only on a child organization: nam" +
       "e its parent_org\032/this.external_id == \'\'" +
-      " || this.parent_org != \'\'J\004\010\003\020\004J\004\010\004\020\005J\004\010" +
-      "\006\020\007R\017management_modeR\025identity_provider_" +
-      "refR\013is_personal\"\237\005\n\025OrganizationEmbeddi" +
-      "ng\022\'\n\017allowed_origins\030\001 \003(\tR\016allowedOrig" +
-      "ins\022:\n\032create_accounts_on_sign_in\030\002 \001(\010R" +
-      "\026createAccountsOnSignIn\022<\n\014sign_in_role\030" +
-      "\003 \001(\0162\032.ai.stigmer.iam.v1.IamRoleR\nsignI" +
-      "nRole\022Z\n\006vaults\030\004 \003(\01324.ai.stigmer.commo" +
-      "ns.apiresource.ApiResourceReferenceB\014\272H\005" +
-      "\222\001\002\020\024\340\205,;R\006vaults:\206\003\272H\202\003\032\343\001\n=organizatio" +
-      "n_embedding.sign_in_role_requires_accoun" +
-      "t_creation\022gsign_in_role requires create" +
-      "_accounts_on_sign_in: only an account th" +
-      "e sign-in creates receives the role\0329thi" +
-      "s.sign_in_role == 0 || this.create_accou" +
-      "nts_on_sign_in\032\231\001\n-organization_embeddin" +
-      "g.sign_in_role_not_owner\022Psign_in_role c" +
-      "annot be owner; organization ownership m" +
-      "ust be assigned explicitly\032\026this.sign_in" +
-      "_role != 1\"\351\001\n\027OrganizationPreferences\0223" +
-      "\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017stan" +
-      "dingContext\022%\n\016memory_enabled\030\002 \001(\010R\rmem" +
-      "oryEnabled\022r\n\027default_environment_ref\030\003 " +
-      "\001(\01324.ai.stigmer.commons.apiresource.Api" +
-      "ResourceReferenceB\004\340\205,CR\025defaultEnvironm" +
-      "entRef\"Q\n\024OrganizationPolicies\0229\n\031member" +
-      "s_can_create_agents\030\001 \001(\010R\026membersCanCre" +
-      "ateAgentsB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai.St" +
-      "igmer.Tenancy.Organization.V1\312\002\"Ai\\Stigm" +
-      "er\\Tenancy\\Organization\\V1\342\002.Ai\\Stigmer\\" +
-      "Tenancy\\Organization\\V1\\GPBMetadata\352\002&Ai" +
-      "::Stigmer::Tenancy::Organization::V1b\006pr" +
-      "oto3"
+      " || this.parent_org != \'\'\"\237\005\n\025Organizati" +
+      "onEmbedding\022\'\n\017allowed_origins\030\001 \003(\tR\016al" +
+      "lowedOrigins\022:\n\032create_accounts_on_sign_" +
+      "in\030\002 \001(\010R\026createAccountsOnSignIn\022<\n\014sign" +
+      "_in_role\030\003 \001(\0162\032.ai.stigmer.iam.v1.IamRo" +
+      "leR\nsignInRole\022Z\n\006vaults\030\004 \003(\01324.ai.stig" +
+      "mer.commons.apiresource.ApiResourceRefer" +
+      "enceB\014\272H\005\222\001\002\020\024\340\205,;R\006vaults:\206\003\272H\202\003\032\343\001\n=or" +
+      "ganization_embedding.sign_in_role_requir" +
+      "es_account_creation\022gsign_in_role requir" +
+      "es create_accounts_on_sign_in: only an a" +
+      "ccount the sign-in creates receives the " +
+      "role\0329this.sign_in_role == 0 || this.cre" +
+      "ate_accounts_on_sign_in\032\231\001\n-organization" +
+      "_embedding.sign_in_role_not_owner\022Psign_" +
+      "in_role cannot be owner; organization ow" +
+      "nership must be assigned explicitly\032\026thi" +
+      "s.sign_in_role != 1\"\351\001\n\027OrganizationPref" +
+      "erences\0223\n\020standing_context\030\001 \001(\tB\010\272H\005r\003" +
+      "\030\320\017R\017standingContext\022%\n\016memory_enabled\030\002" +
+      " \001(\010R\rmemoryEnabled\022r\n\027default_environme" +
+      "nt_ref\030\003 \001(\01324.ai.stigmer.commons.apires" +
+      "ource.ApiResourceReferenceB\004\340\205,CR\025defaul" +
+      "tEnvironmentRef\"Q\n\024OrganizationPolicies\022" +
+      "9\n\031members_can_create_agents\030\001 \001(\010R\026memb" +
+      "ersCanCreateAgentsB\270\001B\tSpecProtoP\001\242\002\004AST" +
+      "O\252\002\"Ai.Stigmer.Tenancy.Organization.V1\312\002" +
+      "\"Ai\\Stigmer\\Tenancy\\Organization\\V1\342\002.Ai" +
+      "\\Stigmer\\Tenancy\\Organization\\V1\\GPBMeta" +
+      "data\352\002&Ai::Stigmer::Tenancy::Organizatio" +
+      "n::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

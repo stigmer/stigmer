@@ -73,16 +73,15 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "tigmer.commons.apiresource.ApiResourceAu" +
       "ditActorR\tupdatedBy\0229\n\nupdated_at\030\004 \001(\0132" +
       "\032.google.protobuf.TimestampR\tupdatedAt\022\024" +
-      "\n\005event\030\005 \001(\tR\005event\"\257\001\n\025ApiResourceAudi" +
+      "\n\005event\030\005 \001(\tR\005event\"\225\001\n\025ApiResourceAudi" +
       "tActor\022\016\n\002id\030\001 \001(\tR\002id\022\026\n\006avatar\030\002 \001(\tR\006" +
       "avatar\022!\n\014display_name\030\003 \001(\tR\013displayNam" +
       "e\022\024\n\005email\030\004 \001(\tR\005email\022\033\n\tminted_by\030\006 \001" +
-      "(\tR\010mintedByJ\004\010\005\020\006R\022platform_client_idB\251" +
-      "\001B\013StatusProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Com" +
-      "mons.Apiresource\312\002\036Ai\\Stigmer\\Commons\\Ap" +
-      "iresource\342\002*Ai\\Stigmer\\Commons\\Apiresour" +
-      "ce\\GPBMetadata\352\002!Ai::Stigmer::Commons::A" +
-      "piresourceb\006proto3"
+      "(\tR\010mintedByB\251\001B\013StatusProtoP\001\242\002\004ASCA\252\002\036" +
+      "Ai.Stigmer.Commons.Apiresource\312\002\036Ai\\Stig" +
+      "mer\\Commons\\Apiresource\342\002*Ai\\Stigmer\\Com" +
+      "mons\\Apiresource\\GPBMetadata\352\002!Ai::Stigm" +
+      "er::Commons::Apiresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

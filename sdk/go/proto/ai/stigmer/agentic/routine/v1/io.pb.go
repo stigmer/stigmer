@@ -902,7 +902,7 @@ const file_ai_stigmer_agentic_routine_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"I\n" +
 	"\x10FireRoutineInput\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x1d\n" +
-	"\x04text\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x04R\x04text\"\xcb\x02\n" +
+	"\x04text\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x04R\x04text\"\xba\x02\n" +
 	"\x1aListRoutinesByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12\x10\n" +
 	"\x03org\x18\x03 \x01(\tR\x03org\x12$\n" +
@@ -912,10 +912,10 @@ const file_ai_stigmer_agentic_routine_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x06 \x03(\v2E.ai.stigmer.agentic.routine.v1.ListRoutinesByAgentRequest.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x02\x10\x03R\tpage_info\"\x8a\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"w\n" +
 	"\vRoutineList\x12@\n" +
 	"\aentries\x18\x02 \x03(\v2&.ai.stigmer.agentic.routine.v1.RoutineR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xa3\x02\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\x92\x02\n" +
 	"\x13ListRoutinesRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12V\n" +
 	"\x06labels\x18\x02 \x03(\v2>.ai.stigmer.agentic.routine.v1.ListRoutinesRequest.LabelsEntryR\x06labels\x12$\n" +
@@ -924,7 +924,7 @@ const file_ai_stigmer_agentic_routine_v1_io_proto_rawDesc = "" +
 	"page_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x03\x10\x04R\tpage_info\"\xf9\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf9\x01\n" +
 	"\x11RoutineFireResult\x12@\n" +
 	"\aroutine\x18\x01 \x01(\v2&.ai.stigmer.agentic.routine.v1.RoutineR\aroutine\x12K\n" +
 	"\aoutcome\x18\x02 \x01(\x0e21.ai.stigmer.agentic.routine.v1.RoutineFireOutcomeR\aoutcome\x12\x15\n" +
@@ -945,16 +945,16 @@ const file_ai_stigmer_agentic_routine_v1_io_proto_rawDesc = "" +
 	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x17\n" +
 	"\afire_id\x18\n" +
 	" \x01(\tR\x06fireId\x12P\n" +
-	"\bfired_by\x18\v \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\afiredBy\"\xa0\x01\n" +
+	"\bfired_by\x18\v \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\afiredBy\"\x8f\x01\n" +
 	"\x17ListRoutineFiresRequest\x12%\n" +
 	"\n" +
 	"routine_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\troutineId\x12$\n" +
 	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageTokenJ\x04\b\x02\x10\x03R\tpage_info\"\x92\x01\n" +
+	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x7f\n" +
 	"\x0fRoutineFireList\x12D\n" +
 	"\aentries\x18\x02 \x03(\v2*.ai.stigmer.agentic.routine.v1.RoutineFireR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xe7\x02\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xe7\x02\n" +
 	"\x12UpdateRoutineInput\x12J\n" +
 	"\bresource\x18\x01 \x01(\v2&.ai.stigmer.agentic.routine.v1.RoutineB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +

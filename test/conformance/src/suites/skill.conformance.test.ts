@@ -972,36 +972,6 @@ describe("[rpc:SkillCommandController.updateVisibility] Skill conformance — up
     );
   });
 
-  it("refuses the retired public level (InvalidArgument, the levels named) and leaves the stored level untouched", async () => {
-    // The level is gone, not gated: both editions refuse it from the kind's
-    // proto config with the same sentence, for every caller.
-    const { org } = await target.provisionTenancy();
-    const pushed = await pushSkill(
-      org,
-      makeSkillArtifact({ name: uniqueName("skill") }),
-    );
-
-    const err = await expectGrpcCode(
-      () =>
-        clients.skillCommand.updateVisibility({
-          resourceId: pushed.metadata!.id,
-          visibility: ApiResourceVisibility.visibility_public,
-        }),
-      Code.InvalidArgument,
-      "update skill visibility to the retired public level",
-    );
-    expect(err.message, "both editions emit the same rejection text").toContain(
-      "skill resources cannot be set to visibility_public. " +
-        "Supported visibility levels: visibility_private, visibility_org, visibility_child_orgs.",
-    );
-
-    const stored = await clients.skillQuery.get({ value: pushed.metadata!.id });
-    expect(
-      stored.metadata?.visibility,
-      "the refused level must not change the stored one",
-    ).toBe(ApiResourceVisibility.visibility_org);
-  });
-
   it("returns NotFound for an unknown skill", async () => {
     await expectGrpcCode(
       () =>

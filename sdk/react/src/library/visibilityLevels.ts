@@ -41,13 +41,8 @@ export interface VisibilityLevelOption {
     /** Body copy that names the exact audience and the consequence. */
     readonly description: string;
   };
-  /**
-   * Color treatment for the selected segment and the confirmation prompt.
-   * `"public"` is the tone of the retired level: never offered, rendered
-   * only for a stored value from before the retirement (see
-   * {@link visibilityOption}).
-   */
-  readonly tone: "private" | "org" | "childOrgs" | "public";
+  /** Color treatment for the selected segment and the confirmation prompt. */
+  readonly tone: "private" | "org" | "childOrgs";
   /**
    * When present, the level cannot be selected by the current caller and the
    * row renders locked (disabled, lock affordance) with this copy explaining
@@ -83,23 +78,6 @@ const CHILD_ORGS_OPTION: VisibilityLevelOption = {
       "Everyone in every child organization of this organization, including child organizations created later, will be able to view and use this resource. You can return it to a narrower visibility at any time.",
   },
   tone: "childOrgs",
-};
-
-/**
- * The retired public level, rendered for a stored value and never offered.
- *
- * The server refuses `visibility_public` at every door and moves every
- * stored row that held it to `visibility_org` on upgrade, so a live row
- * carries this value only on a server not yet upgraded. A badge that met
- * it and fell through to "Private" would lie, so the value keeps a
- * truthful rendering; no level list returns it.
- */
-const RETIRED_PUBLIC_OPTION: VisibilityLevelOption = {
-  value: ApiResourceVisibility.visibility_public,
-  label: "Public",
-  description:
-    "Retired level — this resource becomes visible to your organization on upgrade",
-  tone: "public",
 };
 
 /**
@@ -174,8 +152,7 @@ export function orgVisibilityLevels(): readonly VisibilityLevelOption[] {
  * Canonical option for a visibility value, independent of any kind's offered
  * list. Used to render the current level even when it is not offerable in
  * the current context (e.g. a blueprint shared with child organizations,
- * shown to a viewer who cannot change it, or a row still carrying the
- * retired public level) — the state must stay legible.
+ * shown to a viewer who cannot change it) — the state must stay legible.
  */
 export function visibilityOption(
   visibility: ApiResourceVisibility,
@@ -185,8 +162,6 @@ export function visibilityOption(
       return ORG_OPTION;
     case ApiResourceVisibility.visibility_child_orgs:
       return CHILD_ORGS_OPTION;
-    case ApiResourceVisibility.visibility_public:
-      return RETIRED_PUBLIC_OPTION;
     default:
       return PRIVATE_OPTION;
   }

@@ -1131,30 +1131,6 @@ describe("role enforcement — the platform: no organization role holds a platfo
     });
     expect(result.isAuthorized).toBe(false);
   });
-
-  it("[rpc:AgentCommandController.create] the retired public level is refused for an owner as an invalid level — gated for nobody", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const tenancy = await lane.provisionTenancy();
-    fixtures.defer(() => lane.cleanupTenancy(tenancy).catch(() => undefined));
-
-    const input = makeAgent({
-      org: tenancy.org,
-      name: uniqueName("role-public-agent"),
-    });
-    input.metadata = {
-      ...input.metadata,
-      visibility: ApiResourceVisibility.visibility_public,
-    };
-    const err = await expectGrpcCode(
-      () => lane.clients.agentCommand.create(input),
-      Code.InvalidArgument,
-      "an owner creating an agent at the retired public level",
-    );
-    expect(err.message).toContain(
-      "agent resources cannot be set to visibility_public. " +
-        "Supported visibility levels: visibility_private, visibility_org, visibility_child_orgs.",
-    );
-  });
 });
 
 describe("role enforcement — an unprovisioned caller writes nothing", () => {

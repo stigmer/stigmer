@@ -128,7 +128,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "the run uses came from, never a value. Use view=full for every event of the run as " +
         "Claude Managed Agents JSON.",
       inputSchema: {
-        run_id: z.string().describe("Run ID (run_*, or aex_* for a run created before the rename)."),
+        run_id: z.string().describe("Run ID (run_*)."),
         view: z
           .enum(["compact", "full"])
           .optional()
@@ -163,7 +163,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
         "your reason back to the agent, which then continues; to stop the conversation use " +
         "cancel_run instead.",
       inputSchema: {
-        run_id: z.string().describe("Run ID (run_*, or aex_* for a run created before the rename)."),
+        run_id: z.string().describe("Run ID (run_*)."),
         tool_use_id: z
           .string()
           .describe("The waiting tool use to answer (get_run's turn.asks[].tool_use_id)."),
@@ -201,14 +201,14 @@ export function registerRunControlTools(server: McpServer, target: BackendTarget
     "cancel_run",
     {
       description:
-        "Cancel a run in progress (run_*, or aex_* from before the rename) by interrupting " +
+        "Cancel a run in progress (run_*) by interrupting " +
         "its conversation: every unfinished turn of the conversation stops (queued, working, " +
         "waiting for an answer or paused), not this run alone, and each ends cancelled. " +
         "Cancellation is terminal: a stopped turn cannot be resumed. The response names the " +
         "runs stopped (stopped_run_ids). A run already in a terminal phase is returned with " +
         "already_terminal=true and nothing is stopped.",
       inputSchema: {
-        run_id: z.string().describe("Run ID to cancel (run_*, or aex_* for a run created before the rename)."),
+        run_id: z.string().describe("Run ID to cancel (run_*)."),
       },
     },
     (args, extra) =>

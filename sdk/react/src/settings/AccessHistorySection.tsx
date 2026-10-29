@@ -237,7 +237,6 @@ const CAUSE_WORDS: Readonly<Record<AccessChangeCause, string>> = {
   [AccessChangeCause.first_sign_in]: "First sign-in",
   [AccessChangeCause.role_reconciliation]: "Membership rules applied",
   [AccessChangeCause.operator_ownership]: "The server's operator took ownership",
-  [AccessChangeCause.platform_client_grant]: "Signed in from your product",
   [AccessChangeCause.service_account_created]: "Service account created",
 };
 

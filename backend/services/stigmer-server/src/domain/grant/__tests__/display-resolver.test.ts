@@ -100,19 +100,19 @@ describe("the display name precedence", () => {
 });
 
 describe("the view's other fields", () => {
-  it("carries kind, id, avatar and the identity origin with the Stigmer label for direct and machine accounts", async () => {
+  it("carries kind, id, avatar and the identity origin with the Stigmer label for a direct account", async () => {
     const view = await resolveOne(
       account("ida_7", {
         name: "Ada",
         pictureUrl: "https://img/ada",
-        mode: IdentityAccountProvisioningMode.machine,
+        mode: IdentityAccountProvisioningMode.direct,
       }),
     );
     expect(view?.kind).toBe("identity_account");
     expect(view?.id).toBe("ida_7");
     expect(view?.avatar).toBe("https://img/ada");
     expect(view?.identityOrigin?.provisioningMode).toBe(
-      IdentityAccountProvisioningMode.machine,
+      IdentityAccountProvisioningMode.direct,
     );
     expect(view?.identityOrigin?.providerDisplayName).toBe("Stigmer");
   });

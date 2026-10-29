@@ -1,9 +1,8 @@
 // Pins the CLI's hand-kept kind table (registry/metadata.ts) to the contract
-// it copies: every row's name, display name, id prefix and retired id
-// prefixes equal the `kind_meta` option on its ApiResourceKind value, read
-// at runtime the way the server reads it. A row that drifts from the proto
-// (a renamed kind, a changed or retired prefix) fails here instead of
-// misclassifying ids in the field.
+// it copies: every row's name, display name and id prefix equal the
+// `kind_meta` option on its ApiResourceKind value, read at runtime the way
+// the server reads it. A row that drifts from the proto (a renamed kind, a
+// changed prefix) fails here instead of misclassifying ids in the field.
 
 import { getOption } from "@bufbuild/protobuf";
 import {
@@ -26,12 +25,10 @@ describe("the CLI's kind table", () => {
         name: meta.name,
         displayName: meta.displayName,
         idPrefix: meta.idPrefix,
-        retiredIdPrefixes: meta.retiredIdPrefixes ?? [],
       }).toEqual({
         name: contract.name,
         displayName: contract.displayName,
         idPrefix: contract.idPrefix,
-        retiredIdPrefixes: contract.retiredIdPrefixes,
       });
     },
   );

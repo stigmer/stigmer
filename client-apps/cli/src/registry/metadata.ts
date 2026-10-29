@@ -18,12 +18,6 @@ export interface KindMeta {
   readonly displayName: string;
   /** Proto kind_meta.id_prefix (e.g. "chn"): what new ids are minted with. */
   readonly idPrefix: string;
-  /**
-   * Proto kind_meta.retired_id_prefixes: what this kind's ids were minted
-   * with before. Ids are never rewritten, so a stored id may still carry one
-   * (a run's `aex_…`); readers that tell a kind from an id read these too.
-   */
-  readonly retiredIdPrefixes?: readonly string[];
 }
 
 export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
@@ -49,12 +43,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.federation_issuer,
-    {
-      name: "FederationIssuer",
-      displayName: "Federation Issuer",
-      idPrefix: "fis",
-      retiredIdPrefixes: ["idp"],
-    },
+    { name: "FederationIssuer", displayName: "Federation Issuer", idPrefix: "fis" },
   ],
   [
     ApiResourceKind.oauth_app,
@@ -66,12 +55,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.channel,
-    {
-      name: "Channel",
-      displayName: "Channel",
-      idPrefix: "chn",
-      retiredIdPrefixes: ["ash", "ach"],
-    },
+    { name: "Channel", displayName: "Channel", idPrefix: "chn" },
   ],
   [
     ApiResourceKind.channel_app,
@@ -79,7 +63,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.routine,
-    { name: "Routine", displayName: "Routine", idPrefix: "rtn", retiredIdPrefixes: ["sch"] },
+    { name: "Routine", displayName: "Routine", idPrefix: "rtn" },
   ],
   [
     ApiResourceKind.environment,
@@ -95,7 +79,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.run,
-    { name: "Run", displayName: "Run", idPrefix: "run", retiredIdPrefixes: ["aex"] },
+    { name: "Run", displayName: "Run", idPrefix: "run" },
   ],
   [
     ApiResourceKind.score,
@@ -103,7 +87,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.scoring_rule,
-    { name: "ScoringRule", displayName: "Scoring Rule", idPrefix: "srl", retiredIdPrefixes: ["evl"] },
+    { name: "ScoringRule", displayName: "Scoring Rule", idPrefix: "srl" },
   ],
   [
     ApiResourceKind.eval,

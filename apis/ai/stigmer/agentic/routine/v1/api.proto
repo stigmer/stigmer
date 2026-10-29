@@ -20,9 +20,9 @@ import "buf/validate/validate.proto";
 // routine and its history.
 //
 // @internal
-// Standalone kind (56, minted as sch_ while the kind was Schedule; those ids
-// still name it). One agent may have many routines with different messages;
-// metadata.org is the billing organization for every run. Calendar
+// Standalone kind (56, prefix rtn). One agent may have many routines with
+// different messages; metadata.org is the billing organization for every
+// run. Calendar
 // semantics live in the Temporal server: the platform parses no cron in
 // either edition. The defaults resolver does NOT default the slug to the
 // agent slug (routines are N-per-agent, the Channel rule); standard

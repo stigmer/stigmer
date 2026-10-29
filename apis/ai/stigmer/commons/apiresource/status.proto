@@ -47,10 +47,9 @@ message ApiResourceAuditActor {
   // Unique identifier of the actor.
   //
   // @internal
-  // Historically, some writers populate this with the actor's email address
-  // rather than the identity-account ID. New writers should use the
-  // identity-account ID and carry the email in the dedicated field below;
-  // renderers must treat this value as an opaque last-resort label.
+  // Writers set the identity-account ID and carry the email in the
+  // dedicated field below; renderers treat this value as an opaque
+  // last-resort label.
   string id = 1;
 
   // URL to the actor's avatar image.
@@ -63,12 +62,6 @@ message ApiResourceAuditActor {
   // Email address of the actor. Empty when unknown or not applicable
   // (e.g. machine accounts).
   string email = 4;
-
-  // Value 5 named the platform client whose minted user token the actor
-  // acted through, removed with the kind. Reserved so a stored actor never
-  // reads an old client id as something else.
-  reserved 5;
-  reserved "platform_client_id";
 
   // The service account whose key minted the user token the actor acted
   // through. Empty for every other credential, and on an actor that records

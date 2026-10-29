@@ -11,17 +11,10 @@ import "google/protobuf/struct.proto";
 // todos, the approvals it waits on and the memories it injected. They are the
 // runner's working memory, and its event emitter writes the session's events
 // from them. Runner-private: never part of the public contract (apis/),
-// compiled only for the runner and its in-process agent host. Message, field
-// and enum value names and numbers are the ones the public contract once
-// carried, so stored JSON and the runner's code read them unchanged.
-//
-// Field comments are carried over from the public contract these types came
-// from; where one names a retired run method or server projection, the
-// session's events now carry that role.
+// compiled only for the runner and its in-process agent host.
 
 // TurnRows is what the runner holds for one turn beside the run's public
-// status: the transcript half RunStatus once carried. Field numbers are the
-// RunStatus numbers each field came from.
+// status: its transcript and ledgers.
 message TurnRows {
   // The turn's messages, in order: the person's message, the agent's
   // replies and thinking, and the tool calls on them.
@@ -301,12 +294,8 @@ message ToolCall {
   // Claude harnesses use different tool-name conventions; tool_kind erases that
   // difference at the source.
   //
-  // TOOL_KIND_UNSPECIFIED means unclassified — either the run predates this
-  // field or the tool has no known kind. Clients fall back to a name-based
-  // lookup in that case. See ToolKind.
-  //
-  // Field 20: field 6 is a historical gap and 19 (streaming_source) is the prior
-  // maximum, so this is appended at 20.
+  // TOOL_KIND_UNSPECIFIED means the tool has no known kind. Clients fall back
+  // to a name-based lookup in that case. See ToolKind.
   ToolKind tool_kind = 20;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -324,15 +313,7 @@ message ToolCall {
   // output_ref points at the full content. Empty for the overwhelming majority
   // of tool calls — only populated when output crosses the offload threshold.
   // See ToolCallOutputRef.
-  //
-  // Field 21: appended after tool_kind (20), the prior maximum.
   ai.stigmer.agentic.run.v1.ToolCallOutputRef output_ref = 21;
-
-  // Field 22 (file_changes) was removed: file review moved to
-  // the apply-then-review FileChangeSet ledger (RunStatus.
-  // file_change_sets + file_review_event_stream), so the tool-call-coupled
-  // FileChange copy is obsolete.
-  reserved 22;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Authorization Provenance (HITL)
@@ -347,11 +328,8 @@ message ToolCall {
   // runner's approval gate so clients can explain "why was this gated or
   // auto-approved?".
   //
-  // APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,
-  // or a run that predates this field (clients fall back to no provenance,
-  // exactly as for an unset tool_kind). See ApprovalPolicySource.
-  //
-  // Field 23: appended after file_changes (22), the prior maximum.
+  // APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated, as for a read-only
+  // built-in: clients show no provenance. See ApprovalPolicySource.
   ApprovalPolicySource approval_policy_source = 23;
 
   // Identifier of the policy-engine logic that produced approval_policy_source,
@@ -360,15 +338,7 @@ message ToolCall {
   //
   // @internal
   // Mirrors the runner's POLICY_ENGINE_VERSION constant (approval-policy.ts).
-  //
-  // Field 24: appended after approval_policy_source (23), the prior maximum.
   string policy_engine_version = 24;
-
-  // Field 25 (approval_content_digest) was removed: every gate answers a call
-  // by its id and runs only the call the person saw, so no content digest is
-  // carried.
-  reserved 25;
-  reserved "approval_content_digest";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // File-Review Reference (observational transcript rows)
@@ -389,11 +359,9 @@ message ToolCall {
   // reconcile identity is digest-gated (see filereview.proto's identity rule).
   //
   // Empty for: non-file tools, denied edits (the deny-gate reconcile path owns
-  // those rows), rows from runs that predate this field, and turns whose
-  // edits netted no captured change (no CANDIDATE_CAPTURED event was authored,
-  // so there is no change set to reference).
-  //
-  // Field 26: appended after field 25, the prior maximum.
+  // those rows) and turns whose edits netted no captured change (no
+  // CANDIDATE_CAPTURED event was authored, so there is no change set to
+  // reference).
   string file_change_set_id = 26;
 
   // Slug of the plugin whose hook decided this call; empty when no hook
@@ -404,8 +372,6 @@ message ToolCall {
   // source is HOOK, or when a hook asked and a lease, the run-wide bypass or
   // the unattended skip resolved its ask. The lease scope of an APPROVE_ALL
   // row reads it: a hook's lease clears only that hook's asks on that tool.
-  //
-  // Field 27: appended after file_change_set_id (26), the prior maximum.
   string approval_policy_hook = 27;
 }
 
@@ -594,22 +560,11 @@ message PendingApproval {
   // Empty when from_sub_agent is false or subject is not available.
   string sub_agent_subject = 9;
 
-  // Fields 10-12 (agent_rationale, branch_at_deny, head_sha_at_deny) were
-  // removed: no harness captures continuation diagnostics at deny time.
-  reserved 10, 11, 12;
-  reserved "agent_rationale", "branch_at_deny", "head_sha_at_deny";
-
   // Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the
   // server-side projection (exactly as mcp_server_slug above is). Lets approval
   // surfaces classify and render the tool without a client-side lookup. See
   // ToolKind.
   ToolKind tool_kind = 13;
-
-  // Field 14 (file_changes) was removed. The pre-execution
-  // deny-gate no longer carries a captured diff: file review moved to the
-  // apply-then-review FileChangeSet ledger, and the no-storage deny-gate renders
-  // the proposed change from the tool args instead.
-  reserved 14;
 
   // Policy layer that gated this tool call, copied from
   // ToolCall.approval_policy_source by the server-side projection (exactly as

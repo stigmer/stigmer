@@ -9,17 +9,6 @@ message AgentStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // Field 1 held the id of the agent's default instance until the instance
-  // kind was removed; a conversation names its agent directly.
-  reserved 1;
-  reserved "default_instance_id";
-
-  // Field 2 held the rotatable chat-link token until the chat link became a
-  // resource of its own; the token now lives in a web Channel's
-  // status.web.link_token.
-  reserved 2;
-  reserved "share_link_token";
-
   // Content hash of the agent's current version: the SHA-256 of the
   // canonical JSON rendering of the stored AgentSpec (unset and default
   // fields omitted, object keys sorted at every depth, enums as numbers).
@@ -30,7 +19,7 @@ message AgentStatus {
   // records none. The history is read through AgentQueryController's
   // listVersions and getVersion.
   //
-  // Empty for an agent last written before agents were versioned, and when
-  // the version could not be recorded (the write still succeeds).
+  // Empty when the version could not be recorded (the write still
+  // succeeds).
   string version_hash = 3;
 }

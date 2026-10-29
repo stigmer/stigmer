@@ -34,10 +34,6 @@ message SkillSpec {
   // Examples: "calculator", "web-scraper", "math-utils", "platform.planton-architecture"
   string name = 3 [(buf.validate.field).string.pattern = "^[a-z0-9]+([.-][a-z0-9]+)*$"];
 
-  // Field 4 was previously SkillSource - now removed.
-  // Provenance is tracked in SkillStatus.git_provenance instead.
-  reserved 4;
-
   // Human-readable description extracted from SKILL.md YAML frontmatter.
   // Provides a concise summary of what this skill does for marketplace display
   // and system prompt injection into AI agents.

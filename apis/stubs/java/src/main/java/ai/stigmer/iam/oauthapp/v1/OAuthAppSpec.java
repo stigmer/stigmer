@@ -502,8 +502,8 @@ private static final long serialVersionUID = 0L;
    * process before a third-party OAuth app can be used publicly. This
    * field tracks where Stigmer's registration stands with the vendor.
    *
-   * UNSPECIFIED is treated as approved for backwards compatibility — only
-   * apps explicitly marked PENDING are gated in the UI.
+   * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+   * are gated in the UI.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -520,8 +520,8 @@ private static final long serialVersionUID = 0L;
    * process before a third-party OAuth app can be used publicly. This
    * field tracks where Stigmer's registration stands with the vendor.
    *
-   * UNSPECIFIED is treated as approved for backwards compatibility — only
-   * apps explicitly marked PENDING are gated in the UI.
+   * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+   * are gated in the UI.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -603,8 +603,8 @@ private static final long serialVersionUID = 0L;
    * RFC 6749 §2.3 forbids presenting credentials through more than one
    * channel at once, and some servers reject requests that do.
    *
-   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-   * compatibility, preserving the historical behavior byte-for-byte.
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+   * requires every authorization server to support.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
@@ -625,8 +625,8 @@ private static final long serialVersionUID = 0L;
    * RFC 6749 §2.3 forbids presenting credentials through more than one
    * channel at once, and some servers reject requests that do.
    *
-   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-   * compatibility, preserving the historical behavior byte-for-byte.
+   * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+   * requires every authorization server to support.
    * </pre>
    *
    * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
@@ -2195,8 +2195,8 @@ private static final long serialVersionUID = 0L;
      * process before a third-party OAuth app can be used publicly. This
      * field tracks where Stigmer's registration stands with the vendor.
      *
-     * UNSPECIFIED is treated as approved for backwards compatibility — only
-     * apps explicitly marked PENDING are gated in the UI.
+     * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+     * are gated in the UI.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -2213,8 +2213,8 @@ private static final long serialVersionUID = 0L;
      * process before a third-party OAuth app can be used publicly. This
      * field tracks where Stigmer's registration stands with the vendor.
      *
-     * UNSPECIFIED is treated as approved for backwards compatibility — only
-     * apps explicitly marked PENDING are gated in the UI.
+     * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+     * are gated in the UI.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -2236,8 +2236,8 @@ private static final long serialVersionUID = 0L;
      * process before a third-party OAuth app can be used publicly. This
      * field tracks where Stigmer's registration stands with the vendor.
      *
-     * UNSPECIFIED is treated as approved for backwards compatibility — only
-     * apps explicitly marked PENDING are gated in the UI.
+     * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+     * are gated in the UI.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -2256,8 +2256,8 @@ private static final long serialVersionUID = 0L;
      * process before a third-party OAuth app can be used publicly. This
      * field tracks where Stigmer's registration stands with the vendor.
      *
-     * UNSPECIFIED is treated as approved for backwards compatibility — only
-     * apps explicitly marked PENDING are gated in the UI.
+     * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+     * are gated in the UI.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -2279,8 +2279,8 @@ private static final long serialVersionUID = 0L;
      * process before a third-party OAuth app can be used publicly. This
      * field tracks where Stigmer's registration stands with the vendor.
      *
-     * UNSPECIFIED is treated as approved for backwards compatibility — only
-     * apps explicitly marked PENDING are gated in the UI.
+     * UNSPECIFIED is treated as approved: only apps explicitly marked PENDING
+     * are gated in the UI.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus vendor_approval_status = 9 [json_name = "vendorApprovalStatus"];</code>
@@ -2423,8 +2423,8 @@ private static final long serialVersionUID = 0L;
      * RFC 6749 §2.3 forbids presenting credentials through more than one
      * channel at once, and some servers reject requests that do.
      *
-     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-     * compatibility, preserving the historical behavior byte-for-byte.
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+     * requires every authorization server to support.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
@@ -2445,8 +2445,8 @@ private static final long serialVersionUID = 0L;
      * RFC 6749 §2.3 forbids presenting credentials through more than one
      * channel at once, and some servers reject requests that do.
      *
-     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-     * compatibility, preserving the historical behavior byte-for-byte.
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+     * requires every authorization server to support.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
@@ -2472,8 +2472,8 @@ private static final long serialVersionUID = 0L;
      * RFC 6749 §2.3 forbids presenting credentials through more than one
      * channel at once, and some servers reject requests that do.
      *
-     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-     * compatibility, preserving the historical behavior byte-for-byte.
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+     * requires every authorization server to support.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
@@ -2496,8 +2496,8 @@ private static final long serialVersionUID = 0L;
      * RFC 6749 §2.3 forbids presenting credentials through more than one
      * channel at once, and some servers reject requests that do.
      *
-     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-     * compatibility, preserving the historical behavior byte-for-byte.
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+     * requires every authorization server to support.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>
@@ -2523,8 +2523,8 @@ private static final long serialVersionUID = 0L;
      * RFC 6749 §2.3 forbids presenting credentials through more than one
      * channel at once, and some servers reject requests that do.
      *
-     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC for backwards
-     * compatibility, preserving the historical behavior byte-for-byte.
+     * UNSPECIFIED is treated as CLIENT_SECRET_BASIC, the method RFC 6749
+     * requires every authorization server to support.
      * </pre>
      *
      * <code>.ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod token_endpoint_auth_method = 11 [json_name = "tokenEndpointAuthMethod"];</code>

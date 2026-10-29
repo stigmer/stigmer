@@ -280,7 +280,7 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"&plan_spec.license_has_no_monthly_terms\x12Aa license plan carries no monthly_minimum_micros, the monthly fee\x1a?this.instrument != 2 || !has(this.terms.monthly_minimum_micros)\x1a\x9e\x01\n" +
 	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\x1a\x9c\x01\n" +
 	")plan_spec.license_has_no_agent_hour_price\x12/a license plan carries no per_agent_hour_micros\x1a>this.instrument != 2 || !has(this.terms.per_agent_hour_micros)\x1a\xee\x01\n" +
-	"*plan_spec.agent_hour_price_needs_allowance\x12bper_agent_hour_micros needs entitlements.limits.included_agent_hours, the hours it is charged past\x1a\\!has(this.terms.per_agent_hour_micros) || has(this.entitlements.limits.included_agent_hours)\"\x93\x03\n" +
+	"*plan_spec.agent_hour_price_needs_allowance\x12bper_agent_hour_micros needs entitlements.limits.included_agent_hours, the hours it is charged past\x1a\\!has(this.terms.per_agent_hour_micros) || has(this.entitlements.limits.included_agent_hours)\"\xf3\x02\n" +
 	"\tPlanTerms\x12B\n" +
 	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12=\n" +
 	"\x14per_extra_org_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x01R\x11perExtraOrgMicros\x88\x01\x01\x12<\n" +
@@ -289,7 +289,7 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\x17_monthly_minimum_microsB\x17\n" +
 	"\x15_per_extra_org_microsB\x16\n" +
 	"\x14_annual_price_microsB\x18\n" +
-	"\x16_per_agent_hour_microsJ\x04\b\x02\x10\x03R\x18usage_share_basis_points*P\n" +
+	"\x16_per_agent_hour_micros*P\n" +
 	"\x0ePlanInstrument\x12\x1f\n" +
 	"\x1bplan_instrument_unspecified\x10\x00\x12\x10\n" +
 	"\fsubscription\x10\x01\x12\v\n" +

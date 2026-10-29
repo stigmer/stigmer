@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEilwEKC0FnZW50U3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSFAoMdmVyc2lvbl9oYXNoGAMgASgJSgQIARACSgQIAhADUhNkZWZhdWx0X2luc3RhbmNlX2lkUhBzaGFyZV9saW5rX3Rva2VuYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEiZAoLQWdlbnRTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIUCgx2ZXJzaW9uX2hhc2gYAyABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentStatus contains system-managed state for an agent.
@@ -38,8 +38,8 @@ export type AgentStatus = Message<"ai.stigmer.agentic.agent.v1.AgentStatus"> & {
    * records none. The history is read through AgentQueryController's
    * listVersions and getVersion.
    *
-   * Empty for an agent last written before agents were versioned, and when
-   * the version could not be recorded (the write still succeeds).
+   * Empty when the version could not be recorded (the write still
+   * succeeds).
    *
    * @generated from field: string version_hash = 3;
    */

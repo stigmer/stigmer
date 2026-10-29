@@ -226,7 +226,7 @@ describe("Vault conformance — shared vaults", () => {
     });
     expect(widened.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
-    await expectGrpcCode(
+    const err = await expectGrpcCode(
       () =>
         clients.vaultCommand.updateVisibility({
           resourceId: created.metadata!.id,
@@ -235,6 +235,15 @@ describe("Vault conformance — shared vaults", () => {
       Code.InvalidArgument,
       "share a vault with child organizations",
     );
+    expect(err.message, "both editions emit the same rejection text").toContain(
+      "vault resources cannot be set to visibility_child_orgs. " +
+        "Supported visibility levels: visibility_private, visibility_org.",
+    );
+    const stored = await clients.vaultQuery.get({ value: created.metadata!.id });
+    expect(
+      stored.metadata?.visibility,
+      "the refused level must not change the stored one",
+    ).toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("[rpc:VaultQueryController.getByExternalId] getByExternalId finds the vault; an id is unique per organization and freed by delete", async () => {

@@ -27,7 +27,6 @@ package ai.stigmer.commons.apiresource;
  * AND read-only viewers all satisfy the organization#viewer userset)
  * - CHILD_ORGS: resource#child_org_viewer&#64;organization:&lt;org&gt;#child_org_viewer
  * (everyone in every child organization of the owning organization)
- * - PUBLIC: retired; see the value's own comment.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.commons.apiresource.ApiResourceVisibility}
@@ -63,19 +62,6 @@ public enum ApiResourceVisibility
   visibility_private(1),
   /**
    * <pre>
-   * Retired. This level made a resource readable to every account on the
-   * server; it is refused at create and at updateVisibility for every kind,
-   * and every stored row that held it has been moved to visibility_org.
-   * Sharing across organizations happens through plugins (a copy is
-   * installed and owned) or, from a parent organization to its children,
-   * through visibility_child_orgs.
-   * </pre>
-   *
-   * <code>visibility_public = 2;</code>
-   */
-  visibility_public(2),
-  /**
-   * <pre>
    * Everyone in the owning organization can access (read) this resource —
    * all org roles including read-only viewers (the role just-in-time provisioning
    * grants by default). Running or otherwise spending against the resource
@@ -84,9 +70,6 @@ public enum ApiResourceVisibility
    * read, never spend.
    *
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
-   * (The tuple once targeted organization#member, which
-   * excluded viewer-role users; the authorization model no longer admits
-   * that shape.)
    * </pre>
    *
    * <code>visibility_org = 3;</code>
@@ -150,19 +133,6 @@ public enum ApiResourceVisibility
   public static final int visibility_private_VALUE = 1;
   /**
    * <pre>
-   * Retired. This level made a resource readable to every account on the
-   * server; it is refused at create and at updateVisibility for every kind,
-   * and every stored row that held it has been moved to visibility_org.
-   * Sharing across organizations happens through plugins (a copy is
-   * installed and owned) or, from a parent organization to its children,
-   * through visibility_child_orgs.
-   * </pre>
-   *
-   * <code>visibility_public = 2;</code>
-   */
-  public static final int visibility_public_VALUE = 2;
-  /**
-   * <pre>
    * Everyone in the owning organization can access (read) this resource —
    * all org roles including read-only viewers (the role just-in-time provisioning
    * grants by default). Running or otherwise spending against the resource
@@ -171,9 +141,6 @@ public enum ApiResourceVisibility
    * read, never spend.
    *
    * FGA tuple: resource#viewer&#64;organization:&lt;org&gt;#viewer
-   * (The tuple once targeted organization#member, which
-   * excluded viewer-role users; the authorization model no longer admits
-   * that shape.)
    * </pre>
    *
    * <code>visibility_org = 3;</code>
@@ -225,7 +192,6 @@ public enum ApiResourceVisibility
     switch (value) {
       case 0: return api_resource_visibility_unspecified;
       case 1: return visibility_private;
-      case 2: return visibility_public;
       case 3: return visibility_org;
       case 4: return visibility_child_orgs;
       default: return null;

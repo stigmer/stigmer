@@ -763,7 +763,7 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x17CancelSubscriptionInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"2\n" +
 	"\x16GetPeriodEstimateInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xa4\x03\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xe5\x02\n" +
 	"\x0ePeriodEstimate\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12=\n" +
 	"\fperiod_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
@@ -772,7 +772,7 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x0fchild_org_count\x18\x06 \x01(\x05R\rchildOrgCount\x12L\n" +
 	"\x05lines\x18\a \x03(\v26.ai.stigmer.billing.subscription.v1.PeriodEstimateLineR\x05lines\x12!\n" +
 	"\ftotal_micros\x18\b \x01(\x03R\vtotalMicros\x12'\n" +
-	"\x0fworking_seconds\x18\t \x01(\x03R\x0eworkingSecondsJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x14provider_cost_microsR\x1bcommission_collected_micros\".\n" +
+	"\x0fworking_seconds\x18\t \x01(\x03R\x0eworkingSeconds\".\n" +
 	"\x12GetAgentHoursInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\x8e\x03\n" +
 	"\n" +
@@ -792,13 +792,13 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x10AgentHoursWindow\x12\"\n" +
 	"\x1eagent_hours_window_unspecified\x10\x00\x12\x12\n" +
 	"\x0ecalendar_month\x10\x01\x12\x12\n" +
-	"\x0ebilling_period\x10\x02*\x87\x01\n" +
+	"\x0ebilling_period\x10\x02*n\n" +
 	"\x16PeriodEstimateLineKind\x12)\n" +
 	"%period_estimate_line_kind_unspecified\x10\x00\x12\b\n" +
 	"\x04plan\x10\x01\x12\x0e\n" +
 	"\n" +
 	"child_orgs\x10\x03\x12\x0f\n" +
-	"\vagent_hours\x10\x04\"\x04\b\x02\x10\x02*\x11commission_creditB\xba\x02\n" +
+	"\vagent_hours\x10\x04B\xba\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (

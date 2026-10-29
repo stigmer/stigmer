@@ -290,19 +290,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "urce\030\t \001(\01324.ai.stigmer.commons.apiresou" +
       "rce.ApiResourceReferenceR\010resource*G\n\014Ac" +
       "cessChange\022\035\n\031access_change_unspecified\020" +
-      "\000\022\013\n\007granted\020\001\022\013\n\007revoked\020\002*\303\002\n\021AccessCh" +
+      "\000\022\013\n\007granted\020\001\022\013\n\007revoked\020\002*\250\002\n\021AccessCh" +
       "angeCause\022#\n\037access_change_cause_unspeci" +
       "fied\020\000\022\t\n\005grant\020\001\022\n\n\006revoke\020\002\022\016\n\nstructu" +
       "ral\020\003\022\037\n\033organization_access_revoked\020\004\022\025" +
       "\n\021left_organization\020\005\022\024\n\020resource_delete" +
       "d\020\006\022\030\n\024organization_created\020\007\022\021\n\rfirst_s" +
       "ign_in\020\010\022\027\n\023role_reconciliation\020\t\022\026\n\022ope" +
-      "rator_ownership\020\n\022\031\n\025platform_client_gra" +
-      "nt\020\013\022\033\n\027service_account_created\020\014B\212\001B\007Io" +
-      "ProtoP\001\242\002\004ASIG\252\002\027Ai.Stigmer.Iam.Grant.V1" +
-      "\312\002\027Ai\\Stigmer\\Iam\\Grant\\V1\342\002#Ai\\Stigmer\\" +
-      "Iam\\Grant\\V1\\GPBMetadata\352\002\033Ai::Stigmer::" +
-      "Iam::Grant::V1b\006proto3"
+      "rator_ownership\020\n\022\033\n\027service_account_cre" +
+      "ated\020\014B\212\001B\007IoProtoP\001\242\002\004ASIG\252\002\027Ai.Stigmer" +
+      ".Iam.Grant.V1\312\002\027Ai\\Stigmer\\Iam\\Grant\\V1\342" +
+      "\002#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\352\002\033" +
+      "Ai::Stigmer::Iam::Grant::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

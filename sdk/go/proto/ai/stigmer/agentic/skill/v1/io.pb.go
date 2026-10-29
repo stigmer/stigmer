@@ -951,7 +951,7 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xba\a\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xb4\a\n" +
 	"\x10PushSkillRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
 	"\bartifact\x18\x02 \x01(\fR\bartifact\x12-\n" +
@@ -964,7 +964,7 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\xb6\x01\xbaH\xb2\x01\x1a\xaf\x01\n" +
-	"\"push_skill_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != '')J\x04\b\x05\x10\x06\"g\n" +
+	"\"push_skill_request.artifact_source\x12Iexactly one of artifact (inline bytes) or artifact_upload_ref must be set\x1a>(this.artifact.size() > 0) != (this.artifact_upload_ref != '')\"g\n" +
 	"#CreateSkillArtifactUploadUrlRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12&\n" +
 	"\n" +
@@ -1003,10 +1003,10 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"is_current\x18\x05 \x01(\bR\tisCurrent\x12Q\n" +
 	"\x0egit_provenance\x18\x06 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n" +
 	"\amessage\x18\a \x01(\tR\amessage\x120\n" +
-	"\x14artifact_storage_key\x18\b \x01(\tR\x12artifactStorageKey\"\xa0\x01\n" +
+	"\x14artifact_storage_key\x18\b \x01(\tR\x12artifactStorageKey\"\x8d\x01\n" +
 	"\x19ListSkillVersionsResponse\x12H\n" +
 	"\aentries\x18\x01 \x03(\v2..ai.stigmer.agentic.skill.v1.SkillVersionEntryR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageTokenJ\x04\b\x03\x10\x04R\vtotal_count\"\x8c\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8c\x02\n" +
 	"\x11ListSkillsRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +

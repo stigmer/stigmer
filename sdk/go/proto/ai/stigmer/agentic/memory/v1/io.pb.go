@@ -268,7 +268,7 @@ const file_ai_stigmer_agentic_memory_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"%ai/stigmer/agentic/memory/v1/io.proto\x12\x1cai.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"(\n" +
 	"\bMemoryId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xa2\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x91\x02\n" +
 	"\x13ListMemoriesRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
@@ -277,11 +277,11 @@ const file_ai_stigmer_agentic_memory_v1_io_proto_rawDesc = "" +
 	"\x06labels\x18\x05 \x03(\v2=.ai.stigmer.agentic.memory.v1.ListMemoriesRequest.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x02\x10\x03R\tpage_info\"\x87\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"t\n" +
 	"\n" +
 	"MemoryList\x12>\n" +
 	"\aentries\x18\x02 \x03(\v2$.ai.stigmer.agentic.memory.v1.MemoryR\aentries\x12&\n" +
-	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageTokenJ\x04\b\x01\x10\x02R\vtotal_count\"\xe3\x02\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"\xe3\x02\n" +
 	"\x11UpdateMemoryInput\x12H\n" +
 	"\bresource\x18\x01 \x01(\v2$.ai.stigmer.agentic.memory.v1.MemoryB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +

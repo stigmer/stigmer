@@ -25,14 +25,13 @@ const (
 type IdentityAccountProvisioningMode int32
 
 const (
-	// Default value for legacy accounts created before provisioning mode tracking.
+	// Not set. The server sets a mode on every account it creates, and a
+	// reader treats an unset mode as direct.
 	IdentityAccountProvisioningMode_identity_account_provisioning_mode_unspecified IdentityAccountProvisioningMode = 0
 	// User signed up directly via Stigmer's own authentication tenant.
 	IdentityAccountProvisioningMode_direct IdentityAccountProvisioningMode = 1
 	// Account was created by the platform for federated authentication via a FederationIssuer.
 	IdentityAccountProvisioningMode_federated IdentityAccountProvisioningMode = 2
-	// Machine-to-machine client credentials account for inter-service communication.
-	IdentityAccountProvisioningMode_machine IdentityAccountProvisioningMode = 3
 	// A person who signs in from an organization's own product: the
 	// product's backend asks for their token with TokenService.mintUserToken,
 	// and Stigmer signs it. The console calls them App users.
@@ -72,7 +71,6 @@ var (
 		0: "identity_account_provisioning_mode_unspecified",
 		1: "direct",
 		2: "federated",
-		3: "machine",
 		4: "app_user",
 		5: "service_account",
 	}
@@ -80,7 +78,6 @@ var (
 		"identity_account_provisioning_mode_unspecified": 0,
 		"direct":          1,
 		"federated":       2,
-		"machine":         3,
 		"app_user":        4,
 		"service_account": 5,
 	}
@@ -117,13 +114,12 @@ var File_ai_stigmer_iam_identityaccount_v1_enum_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_identityaccount_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\xa0\x01\n" +
+	",ai/stigmer/iam/identityaccount/v1/enum.proto\x12!ai.stigmer.iam.identityaccount.v1*\x93\x01\n" +
 	"\x1fIdentityAccountProvisioningMode\x122\n" +
 	".identity_account_provisioning_mode_unspecified\x10\x00\x12\n" +
 	"\n" +
 	"\x06direct\x10\x01\x12\r\n" +
-	"\tfederated\x10\x02\x12\v\n" +
-	"\amachine\x10\x03\x12\f\n" +
+	"\tfederated\x10\x02\x12\f\n" +
 	"\bapp_user\x10\x04\x12\x13\n" +
 	"\x0fservice_account\x10\x05B\xa8\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01ZKgo.stigmer.ai/sdk/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"

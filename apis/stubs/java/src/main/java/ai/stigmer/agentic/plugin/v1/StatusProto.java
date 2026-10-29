@@ -100,7 +100,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "igmer/agentic/plugin/v1/hooks.proto\032-ai/" +
       "stigmer/agentic/vault/v1/declaration.pro" +
       "to\032+ai/stigmer/commons/apiresource/statu" +
-      "s.proto\032\033buf/validate/validate.proto\"\272\006\n" +
+      "s.proto\032\033buf/validate/validate.proto\"\214\006\n" +
       "\014PluginStatus\022F\n\005audit\030c \001(\01320.ai.stigme" +
       "r.commons.apiresource.ApiResourceAuditR\005" +
       "audit\0220\n\006digest\030\001 \001(\tB\030\272H\025r\0232\021^$|^[a-f0-" +
@@ -120,47 +120,46 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "lugin.v1.PluginStatus.EnvEntryR\003env\032f\n\010E" +
       "nvEntry\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002 \001(\013" +
       "2..ai.stigmer.agentic.vault.v1.EnvVarDec" +
-      "larationR\005value:\0028\001J\004\010\003\020\004J\004\010\004\020\005J\004\010\005\020\006R\005s" +
-      "tateR\005errorR\014materialized\"W\n\013PluginSkill" +
-      "\022\022\n\004name\030\001 \001(\tR\004name\022 \n\013description\030\002 \001(" +
-      "\tR\013description\022\022\n\004path\030\003 \001(\tR\004path\"\326\001\n\013P" +
-      "luginAgent\022\022\n\004name\030\001 \001(\tR\004name\022 \n\013descri" +
-      "ption\030\002 \001(\tR\013description\022\"\n\014instructions" +
-      "\030\003 \001(\tR\014instructions\022\024\n\005tools\030\004 \003(\tR\005too" +
-      "ls\022)\n\020disallowed_tools\030\005 \003(\tR\017disallowed" +
-      "Tools\022\026\n\006skills\030\006 \003(\tR\006skills\022\024\n\005model\030\007" +
-      " \001(\tR\005model\"\224\002\n\016McpServerEntry\022\022\n\004name\030\001" +
-      " \001(\tR\004name\022D\n\005stdio\030\002 \001(\0132,.ai.stigmer.a" +
-      "gentic.plugin.v1.StdioMcpServerH\000R\005stdio" +
-      "\022A\n\004http\030\003 \001(\0132+.ai.stigmer.agentic.plug" +
-      "in.v1.HttpMcpServerH\000R\004http\022\020\n\003env\030\004 \003(\t" +
-      "R\003env\022F\n\007sign_in\030\005 \001(\0132-.ai.stigmer.agen" +
-      "tic.plugin.v1.McpServerSignInR\006signInB\013\n" +
-      "\ttransport\">\n\016StdioMcpServer\022\030\n\007command\030" +
-      "\001 \001(\tR\007command\022\022\n\004args\030\002 \003(\tR\004args\"\332\001\n\rH" +
-      "ttpMcpServer\022\020\n\003url\030\001 \001(\tR\003url\022R\n\007header" +
-      "s\030\002 \003(\01328.ai.stigmer.agentic.plugin.v1.H" +
-      "ttpMcpServer.HeadersEntryR\007headers\022\'\n\017ti" +
-      "meout_seconds\030\003 \001(\005R\016timeoutSeconds\032:\n\014H" +
-      "eadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
-      " \001(\tR\005value:\0028\001\"0\n\017McpServerSignIn\022\035\n\noa" +
-      "uth_only\030\001 \001(\010R\toauthOnly\"Q\n\rPluginWarni" +
-      "ng\022\022\n\004kind\030\001 \001(\tR\004kind\022\030\n\007message\030\002 \001(\tR" +
-      "\007message\022\022\n\004path\030\003 \001(\tR\004path\"\361\001\n\017PluginE" +
-      "valSuite\022\020\n\003dir\030\001 \001(\tR\003dir\022\035\n\ncase_count" +
-      "\030\002 \001(\005R\tcaseCount\022\033\n\tcase_tags\030\003 \003(\tR\010ca" +
-      "seTags\022G\n\005cases\030\004 \003(\01321.ai.stigmer.agent" +
-      "ic.plugin.v1.PluginEvalSuiteCaseR\005cases\022" +
-      "G\n\010findings\030\005 \003(\0132+.ai.stigmer.agentic.p" +
-      "lugin.v1.PluginWarningR\010findings\"\205\001\n\023Plu" +
-      "ginEvalSuiteCase\022\033\n\tcase_name\030\001 \001(\tR\010cas" +
-      "eName\022\022\n\004path\030\002 \001(\tR\004path\022\033\n\tcase_tags\030\003" +
-      " \003(\tR\010caseTags\022 \n\013unsupported\030\004 \001(\tR\013uns" +
-      "upportedB\242\001B\013StatusProtoP\001\242\002\004ASAP\252\002\034Ai.S" +
-      "tigmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Ag" +
-      "entic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plu" +
-      "gin\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agenti" +
-      "c::Plugin::V1b\006proto3"
+      "larationR\005value:\0028\001\"W\n\013PluginSkill\022\022\n\004na" +
+      "me\030\001 \001(\tR\004name\022 \n\013description\030\002 \001(\tR\013des" +
+      "cription\022\022\n\004path\030\003 \001(\tR\004path\"\326\001\n\013PluginA" +
+      "gent\022\022\n\004name\030\001 \001(\tR\004name\022 \n\013description\030" +
+      "\002 \001(\tR\013description\022\"\n\014instructions\030\003 \001(\t" +
+      "R\014instructions\022\024\n\005tools\030\004 \003(\tR\005tools\022)\n\020" +
+      "disallowed_tools\030\005 \003(\tR\017disallowedTools\022" +
+      "\026\n\006skills\030\006 \003(\tR\006skills\022\024\n\005model\030\007 \001(\tR\005" +
+      "model\"\224\002\n\016McpServerEntry\022\022\n\004name\030\001 \001(\tR\004" +
+      "name\022D\n\005stdio\030\002 \001(\0132,.ai.stigmer.agentic" +
+      ".plugin.v1.StdioMcpServerH\000R\005stdio\022A\n\004ht" +
+      "tp\030\003 \001(\0132+.ai.stigmer.agentic.plugin.v1." +
+      "HttpMcpServerH\000R\004http\022\020\n\003env\030\004 \003(\tR\003env\022" +
+      "F\n\007sign_in\030\005 \001(\0132-.ai.stigmer.agentic.pl" +
+      "ugin.v1.McpServerSignInR\006signInB\013\n\ttrans" +
+      "port\">\n\016StdioMcpServer\022\030\n\007command\030\001 \001(\tR" +
+      "\007command\022\022\n\004args\030\002 \003(\tR\004args\"\332\001\n\rHttpMcp" +
+      "Server\022\020\n\003url\030\001 \001(\tR\003url\022R\n\007headers\030\002 \003(" +
+      "\01328.ai.stigmer.agentic.plugin.v1.HttpMcp" +
+      "Server.HeadersEntryR\007headers\022\'\n\017timeout_" +
+      "seconds\030\003 \001(\005R\016timeoutSeconds\032:\n\014Headers" +
+      "Entry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005" +
+      "value:\0028\001\"0\n\017McpServerSignIn\022\035\n\noauth_on" +
+      "ly\030\001 \001(\010R\toauthOnly\"Q\n\rPluginWarning\022\022\n\004" +
+      "kind\030\001 \001(\tR\004kind\022\030\n\007message\030\002 \001(\tR\007messa" +
+      "ge\022\022\n\004path\030\003 \001(\tR\004path\"\361\001\n\017PluginEvalSui" +
+      "te\022\020\n\003dir\030\001 \001(\tR\003dir\022\035\n\ncase_count\030\002 \001(\005" +
+      "R\tcaseCount\022\033\n\tcase_tags\030\003 \003(\tR\010caseTags" +
+      "\022G\n\005cases\030\004 \003(\01321.ai.stigmer.agentic.plu" +
+      "gin.v1.PluginEvalSuiteCaseR\005cases\022G\n\010fin" +
+      "dings\030\005 \003(\0132+.ai.stigmer.agentic.plugin." +
+      "v1.PluginWarningR\010findings\"\205\001\n\023PluginEva" +
+      "lSuiteCase\022\033\n\tcase_name\030\001 \001(\tR\010caseName\022" +
+      "\022\n\004path\030\002 \001(\tR\004path\022\033\n\tcase_tags\030\003 \003(\tR\010" +
+      "caseTags\022 \n\013unsupported\030\004 \001(\tR\013unsupport" +
+      "edB\242\001B\013StatusProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer" +
+      ".Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\Agentic\\" +
+      "Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\Plugin\\V1" +
+      "\\GPBMetadata\352\002 Ai::Stigmer::Agentic::Plu" +
+      "gin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

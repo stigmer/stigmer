@@ -107,13 +107,6 @@ const (
 	AccessChangeCause_role_reconciliation AccessChangeCause = 9
 	// The server's operator became owner of an organization nobody owned.
 	AccessChangeCause_operator_ownership AccessChangeCause = 10
-	// A person who signed in through a platform client was given the
-	// organization role that client granted. No longer written: a minted
-	// user's sign-in role is an ordinary grant made by the service account
-	// whose key minted the token, as federation records its own. It stays
-	// because history entries hold it, and an entry's cause is what
-	// happened then.
-	AccessChangeCause_platform_client_grant AccessChangeCause = 11
 	// An administrator created a service account with its role in the
 	// organization.
 	AccessChangeCause_service_account_created AccessChangeCause = 12
@@ -133,7 +126,6 @@ var (
 		8:  "first_sign_in",
 		9:  "role_reconciliation",
 		10: "operator_ownership",
-		11: "platform_client_grant",
 		12: "service_account_created",
 	}
 	AccessChangeCause_value = map[string]int32{
@@ -148,7 +140,6 @@ var (
 		"first_sign_in":                   8,
 		"role_reconciliation":             9,
 		"operator_ownership":              10,
-		"platform_client_grant":           11,
 		"service_account_created":         12,
 	}
 )
@@ -2009,7 +2000,7 @@ const file_ai_stigmer_iam_grant_v1_io_proto_rawDesc = "" +
 	"\fAccessChange\x12\x1d\n" +
 	"\x19access_change_unspecified\x10\x00\x12\v\n" +
 	"\agranted\x10\x01\x12\v\n" +
-	"\arevoked\x10\x02*\xc3\x02\n" +
+	"\arevoked\x10\x02*\xa8\x02\n" +
 	"\x11AccessChangeCause\x12#\n" +
 	"\x1faccess_change_cause_unspecified\x10\x00\x12\t\n" +
 	"\x05grant\x10\x01\x12\n" +
@@ -2024,8 +2015,7 @@ const file_ai_stigmer_iam_grant_v1_io_proto_rawDesc = "" +
 	"\rfirst_sign_in\x10\b\x12\x17\n" +
 	"\x13role_reconciliation\x10\t\x12\x16\n" +
 	"\x12operator_ownership\x10\n" +
-	"\x12\x19\n" +
-	"\x15platform_client_grant\x10\v\x12\x1b\n" +
+	"\x12\x1b\n" +
 	"\x17service_account_created\x10\fB\xf1\x01\n" +
 	"\x1bcom.ai.stigmer.iam.grant.v1B\aIoProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/grant/v1;grantv1\xa2\x02\x04ASIG\xaa\x02\x17Ai.Stigmer.Iam.Grant.V1\xca\x02\x17Ai\\Stigmer\\Iam\\Grant\\V1\xe2\x02#Ai\\Stigmer\\Iam\\Grant\\V1\\GPBMetadata\xea\x02\x1bAi::Stigmer::Iam::Grant::V1b\x06proto3"
 

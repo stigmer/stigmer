@@ -82,10 +82,6 @@ import { metadataOf, parentIdOf } from "./shapes.js";
  * shared org assets) keep the org-viewer shape at the child-organizations
  * level, so sharing a blueprint with the organization's children never
  * hides it from its own org's catalog.
- *
- * The retired public level has no shape here. It was retired before
- * 0.1.0, every door refuses it, and no stored row holds it, so no
- * transition FROM it reaches this policy.
  */
 export function visibilityShapesFor(
   kind: ApiResourceKind,

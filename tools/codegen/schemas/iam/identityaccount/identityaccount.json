@@ -77,12 +77,11 @@
         "enumValues": [
           "direct",
           "federated",
-          "machine",
           "app_user",
           "service_account"
         ]
       },
-      "description": "How this identity account was provisioned.\n Unspecified for legacy accounts created before this field was introduced.\n (ignored for create) this value is assigned by backend.",
+      "description": "How this identity account was provisioned.\n (ignored for create) this value is assigned by backend.",
       "required": false
     },
     {

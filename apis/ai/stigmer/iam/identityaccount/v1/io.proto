@@ -35,9 +35,6 @@ message IdpId {
 
 // IdentityAccountsList is a paginated response containing identity accounts.
 message IdentityAccountsList {
-  reserved 1;
-  reserved "total_pages";
-
   // Identity accounts in the current page.
   repeated IdentityAccount entries = 2;
 
@@ -50,8 +47,6 @@ message IdentityAccountsList {
 message ListServiceAccountsInput {
   // Organization to list identity accounts for, by id or slug.
   string org = 1;
-  reserved 2;
-  reserved "page";
 
   // The most entries to return: 0 asks for the default page of 50, and a
   // size above 100 is read as 100.

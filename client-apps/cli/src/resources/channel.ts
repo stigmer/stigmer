@@ -50,7 +50,7 @@ import {
 } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
-import { idPrefixesFor, isAgentId, parseReference } from "./reference.js";
+import { idPrefixOf, isAgentId, parseReference } from "./reference.js";
 import { resolveAgentRef } from "./run/resolve.js";
 import { requireOrganization } from "../client/single-org.js";
 import { organizationLabel, sameOrganization } from "../client/organizations.js";
@@ -536,7 +536,7 @@ export async function setChannelEnabled(
 }
 
 async function loadChannel(client: Stigmer, ref: string, org: string, verb: string): Promise<Channel> {
-  const parsed = parseReference(ref, org, idPrefixesFor(ApiResourceKind.channel));
+  const parsed = parseReference(ref, org, idPrefixOf(ApiResourceKind.channel));
   if (parsed.kind === "id") {
     return client.channel.get(parsed.id);
   }

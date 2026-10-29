@@ -3,11 +3,9 @@ syntax = "proto3";
 package ai.stigmer.iam.identityaccount.v1;
 
 // IdentityAccountProvisioningMode defines how an identity account was created.
-//
-// @internal
-// Unspecified is the default for legacy accounts created before this enum was introduced.
 enum IdentityAccountProvisioningMode {
-  // Default value for legacy accounts created before provisioning mode tracking.
+  // Not set. The server sets a mode on every account it creates, and a
+  // reader treats an unset mode as direct.
   identity_account_provisioning_mode_unspecified = 0;
 
   // User signed up directly via Stigmer's own authentication tenant.
@@ -15,9 +13,6 @@ enum IdentityAccountProvisioningMode {
 
   // Account was created by the platform for federated authentication via a FederationIssuer.
   federated = 2;
-
-  // Machine-to-machine client credentials account for inter-service communication.
-  machine = 3;
 
   // A person who signs in from an organization's own product: the
   // product's backend asks for their token with TokenService.mintUserToken,

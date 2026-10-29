@@ -74,19 +74,14 @@ describe("identity_account#organization", () => {
     ).toEqual([]);
   });
 
-  it("a federated or machine row that names an organization derives nothing", async () => {
-    for (const mode of [
-      IdentityAccountProvisioningMode.federated,
-      IdentityAccountProvisioningMode.machine,
-    ]) {
-      expect(
-        await serviceAccountOrganization(
-          OBJECT,
-          accountRow(mode, "org_acme"),
-          NO_LOADER,
-        ),
-      ).toEqual([]);
-    }
+  it("a federated row that names an organization derives nothing", async () => {
+    expect(
+      await serviceAccountOrganization(
+        OBJECT,
+        accountRow(IdentityAccountProvisioningMode.federated, "org_acme"),
+        NO_LOADER,
+      ),
+    ).toEqual([]);
   });
 
   it("a service-account row with no organization derives nothing", async () => {

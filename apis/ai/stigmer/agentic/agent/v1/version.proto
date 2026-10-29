@@ -52,13 +52,6 @@ message AgentVersionEntry {
   // subagent pins, skill and plugin references, declared keys and vaults a
   // turn on this version runs with.
   AgentSpec spec_snapshot = 7;
-
-  // Field 8 was a git provenance message in the unimplemented design of
-  // this entry. No write path ever carried it (agents are applied, not
-  // pushed from a directory), so it was removed before agent versions
-  // shipped.
-  reserved 8;
-  reserved "git_provenance";
 }
 
 // ListAgentVersionsInput requests the version history for an agent.
@@ -89,9 +82,6 @@ message ListAgentVersionsResponse {
   // Set when more entries may follow: pass it as page_token to continue.
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 2;
-
-  reserved 3;
-  reserved "total_count";
 }
 
 // GetAgentVersionInput requests one version of an agent by its hash.

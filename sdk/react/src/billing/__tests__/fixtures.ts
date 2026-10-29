@@ -47,7 +47,7 @@ function plan(
     metadata: { id, name, slug: name.toLowerCase() },
     spec: create(PlanSpecSchema, {
       instrument: PlanInstrument.subscription,
-      entitlements: extra.entitlements ?? { features: [Feature.channels, Feature.sharing, Feature.teams] },
+      entitlements: extra.entitlements ?? { features: [Feature.channels, Feature.chat_links, Feature.teams] },
       terms: extra.terms ?? { monthlyMinimumMicros: minimum * USD },
       description: extra.description ?? "",
     }),
@@ -59,7 +59,7 @@ export const TEAM = plan("pln_team", "Team", 99n);
 export const BUSINESS = plan("pln_business", "Business", 499n, {
   description: "Everything in Team, with your own provider keys, child organizations for your customers.",
   entitlements: {
-    features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.child_orgs],
+    features: [Feature.channels, Feature.chat_links, Feature.teams, Feature.child_orgs],
     limits: { includedChildOrgs: 5 },
   },
   terms: { monthlyMinimumMicros: 499n * USD, perExtraOrgMicros: 25n * USD },

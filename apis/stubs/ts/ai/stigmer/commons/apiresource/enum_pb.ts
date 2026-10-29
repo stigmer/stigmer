@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/commons/apiresource/enum.proto.
  */
 export const file_ai_stigmer_commons_apiresource_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqngEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhUKEXZpc2liaWxpdHlfcHVibGljEAISEgoOdmlzaWJpbGl0eV9vcmcQAxIZChV2aXNpYmlsaXR5X2NoaWxkX29yZ3MQBGIGcHJvdG8z");
+  fileDesc("CilhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvZW51bS5wcm90bxIeYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlKnYKFEFwaVJlc291cmNlRXZlbnRUeXBlEg8KC3Vuc3BlY2lmaWVkEAASCwoHY3JlYXRlZBABEgsKB3VwZGF0ZWQQAhILCgdkZWxldGVkEAMSCwoHcmVuYW1lZBAEEhkKFXN0YWNrX291dHB1dHNfdXBkYXRlZBAFKowBCh1BcGlSZXNvdXJjZVN0YXRlT3BlcmF0aW9uVHlwZRIxCi1hcGlfcmVzb3VyY2Vfc3RhdGVfb3BlcmF0aW9uX3R5cGVfdW5zcGVjaWZpZWQQABIKCgZjcmVhdGUQARIKCgZ1cGRhdGUQAhIKCgZkZWxldGUQAxIICgRyZWFkEAQSCgoGc3RyZWFtEAUqhwEKFUFwaVJlc291cmNlVmlzaWJpbGl0eRInCiNhcGlfcmVzb3VyY2VfdmlzaWJpbGl0eV91bnNwZWNpZmllZBAAEhYKEnZpc2liaWxpdHlfcHJpdmF0ZRABEhIKDnZpc2liaWxpdHlfb3JnEAMSGQoVdmlzaWJpbGl0eV9jaGlsZF9vcmdzEARiBnByb3RvMw");
 
 /**
  * Event types produced by command controller RPCs across all API resources.
@@ -142,7 +142,6 @@ export const ApiResourceStateOperationTypeSchema: GenEnum<ApiResourceStateOperat
  *   AND read-only viewers all satisfy the organization#viewer userset)
  * - CHILD_ORGS: resource#child_org_viewer@organization:<org>#child_org_viewer
  *   (everyone in every child organization of the owning organization)
- * - PUBLIC: retired; see the value's own comment.
  *
  * @generated from enum ai.stigmer.commons.apiresource.ApiResourceVisibility
  */
@@ -172,18 +171,6 @@ export enum ApiResourceVisibility {
   visibility_private = 1,
 
   /**
-   * Retired. This level made a resource readable to every account on the
-   * server; it is refused at create and at updateVisibility for every kind,
-   * and every stored row that held it has been moved to visibility_org.
-   * Sharing across organizations happens through plugins (a copy is
-   * installed and owned) or, from a parent organization to its children,
-   * through visibility_child_orgs.
-   *
-   * @generated from enum value: visibility_public = 2;
-   */
-  visibility_public = 2,
-
-  /**
    * Everyone in the owning organization can access (read) this resource —
    * all org roles including read-only viewers (the role just-in-time provisioning
    * grants by default). Running or otherwise spending against the resource
@@ -192,9 +179,6 @@ export enum ApiResourceVisibility {
    * read, never spend.
    *
    * FGA tuple: resource#viewer@organization:<org>#viewer
-   * (The tuple once targeted organization#member, which
-   * excluded viewer-role users; the authorization model no longer admits
-   * that shape.)
    *
    * @generated from enum value: visibility_org = 3;
    */

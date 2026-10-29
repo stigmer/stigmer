@@ -25,9 +25,6 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
  * never depend on that alone. Resource ids are time-sortable ULIDs
  * (`run_01k…`), so an ascending id sort is creation order without parsing
  * timestamps; entries missing an id sort last but keep a stable relative order.
- * A session older than the run kind's rename also holds runs minted `aex_…`;
- * those are older than every `run_…` one and `aex` sorts before `run`, so the
- * order holds across the rename.
  */
 export function sortChronologically(
   executions: readonly Run[],

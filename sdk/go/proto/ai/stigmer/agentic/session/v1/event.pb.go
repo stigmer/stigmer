@@ -4198,7 +4198,7 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12(\n" +
 	"\vthinking_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"thinkingId\x12\x12\n" +
-	"\x04text\x18\x04 \x01(\tR\x04text\"\xb4\x03\n" +
+	"\x04text\x18\x04 \x01(\tR\x04text\"\x9e\x03\n" +
 	"\x1bStigmerPermissionAskedEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12'\n" +
@@ -4207,7 +4207,7 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\fargs_preview\x18\x05 \x01(\tR\vargsPreview\x12\x98\x01\n" +
 	"\rpolicy_source\x18\x06 \x01(\tBs\xbaHp\xd8\x01\x01rkR\x10builtin_categoryR\x1eannotation_destructive_tightenR\x04hookR\x0eapproval_leaseR\x10auto_approve_allR\x0funattended_skipR\fpolicySource\x12\x1f\n" +
 	"\vpolicy_hook\x18\a \x01(\tR\n" +
-	"policyHookJ\x04\b\b\x10\tR\x0econtent_digest\"\x8c\x01\n" +
+	"policyHook\"\x8c\x01\n" +
 	"\x17StigmerHarnessNoteEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12\x12\n" +

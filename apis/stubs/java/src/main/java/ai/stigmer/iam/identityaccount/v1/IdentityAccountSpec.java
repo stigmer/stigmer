@@ -367,7 +367,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * How this identity account was provisioned.
-   * Unspecified for legacy accounts created before this field was introduced.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
@@ -380,7 +379,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * How this identity account was provisioned.
-   * Unspecified for legacy accounts created before this field was introduced.
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
@@ -1634,7 +1632,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this identity account was provisioned.
-     * Unspecified for legacy accounts created before this field was introduced.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
@@ -1647,7 +1644,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this identity account was provisioned.
-     * Unspecified for legacy accounts created before this field was introduced.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
@@ -1665,7 +1661,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this identity account was provisioned.
-     * Unspecified for legacy accounts created before this field was introduced.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
@@ -1680,7 +1675,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this identity account was provisioned.
-     * Unspecified for legacy accounts created before this field was introduced.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *
@@ -1698,7 +1692,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * How this identity account was provisioned.
-     * Unspecified for legacy accounts created before this field was introduced.
      * (ignored for create) this value is assigned by backend.
      * </pre>
      *

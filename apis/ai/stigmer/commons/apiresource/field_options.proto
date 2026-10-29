@@ -6,12 +6,6 @@ import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "google/protobuf/descriptor.proto";
 
 // Field-level options for api-resource fields
-//
-// Numbers 90203 (is_expression) and 90205 (discriminated_by) on
-// FieldOptions, and 90301 (discriminator_value) on MessageOptions, marked a
-// workflow task's expression fields and its typed task configs until the
-// workflow product was removed platform-wide. They are never reused, so a
-// descriptor written with them never reads as a different option.
 extend google.protobuf.FieldOptions {
   // Marks a field as computed/read-only
   bool computed = 90201;

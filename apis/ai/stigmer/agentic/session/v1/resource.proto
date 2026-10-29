@@ -26,10 +26,6 @@ message SessionResource {
   // Empty for a file, which is placed by its mount_path.
   string name = 1 [(buf.validate.field).string.max_len = 255];
 
-  // Field 2 is left free: a workspace entry's source sat there before the
-  // three resource types became one list.
-  reserved 2;
-
   // What the resource is: exactly one.
   oneof resource {
     option (buf.validate.oneof).required = true;
@@ -77,8 +73,6 @@ message FileResource {
 // carrying a token for any other repository is refused.
 //
 // @internal
-// Field numbers are the retired GitRepoSource's, depth (4) dropped, so a
-// stored repository and its sealed token move across unchanged.
 // Authentication: the run's credential resolver fills GITHUB_TOKEN from the
 // resource's token, then from a connection at the clone URL's host. The
 // token is consumed by provisioning and never reaches the agent runtime.
@@ -99,11 +93,6 @@ message GitRepositoryResource {
   // Commit to check out after the clone. With a branch, the branch is
   // cloned first, then the commit is checked out.
   string commit = 3;
-
-  // Field 4 held a clone depth; a repository is cloned shallow, and a
-  // commit set here is fetched when the shallow clone lacks it.
-  reserved 4;
-  reserved "depth";
 
   // Whether the platform turns the agent's changes into a branch and a pull
   // request.

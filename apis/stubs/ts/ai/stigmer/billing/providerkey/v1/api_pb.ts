@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/api.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEi5AIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGgoSaW5oZXJpdGVkX2Zyb21fb3JnGAkgASgJEhAKCGJhc2VfdXJsGAogASgJEkIKBWNoZWNrGAsgASgOMjMuYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLlByb3ZpZGVyS2V5Q2hlY2tKBAgIEAlSBmluX3VzZSpSChBQcm92aWRlcktleUNoZWNrEiIKHnByb3ZpZGVyX2tleV9jaGVja191bnNwZWNpZmllZBAAEgsKB2NoZWNrZWQQARINCgl1bmNoZWNrZWQQAmIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEi1gIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGgoSaW5oZXJpdGVkX2Zyb21fb3JnGAkgASgJEhAKCGJhc2VfdXJsGAogASgJEkIKBWNoZWNrGAsgASgOMjMuYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLlByb3ZpZGVyS2V5Q2hlY2sqUgoQUHJvdmlkZXJLZXlDaGVjaxIiCh5wcm92aWRlcl9rZXlfY2hlY2tfdW5zcGVjaWZpZWQQABILCgdjaGVja2VkEAESDQoJdW5jaGVja2VkEAJiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * An organization's own model provider key, as every caller sees it: the key
@@ -108,7 +108,7 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
 
   /**
    * Whether the provider confirmed the key when it was saved (updated_at).
-   * Unspecified on a key saved before the outcome was recorded.
+   * Unspecified when the server holds no outcome for the key.
    *
    * @generated from field: ai.stigmer.billing.providerkey.v1.ProviderKeyCheck check = 11;
    */

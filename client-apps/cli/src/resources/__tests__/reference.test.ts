@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   hasResourceIdPrefix,
-  idPrefixesFor,
+  idPrefixOf,
   isAgentId,
   isRoutineId,
   isSessionId,
@@ -60,37 +60,30 @@ describe("parseReference", () => {
   });
 });
 
-describe("a kind's retired id prefixes", () => {
-  it("are read beside its current one, current first", () => {
-    expect(idPrefixesFor(ApiResourceKind.run)).toEqual(["run", "aex"]);
-    expect(idPrefixesFor(ApiResourceKind.federation_issuer)).toEqual(["fis", "idp"]);
-    expect(idPrefixesFor(ApiResourceKind.agent)).toEqual(["agt"]);
+describe("a kind's id prefix", () => {
+  it("is the kind's id_prefix", () => {
+    expect(idPrefixOf(ApiResourceKind.run)).toBe("run");
+    expect(idPrefixOf(ApiResourceKind.federation_issuer)).toBe("fis");
+    expect(idPrefixOf(ApiResourceKind.agent)).toBe("agt");
   });
 
-  it("are none for a kind the CLI's table does not carry", () => {
-    expect(idPrefixesFor(ApiResourceKind.grant)).toEqual([]);
+  it("is empty for a kind the CLI's table does not carry", () => {
+    expect(idPrefixOf(ApiResourceKind.grant)).toBe("");
   });
 
-  it("classify a stored id as an id of the kind, for every reader", () => {
-    for (const id of [`run_${ULID}`, `aex_${ULID}`]) {
-      expect(hasResourceIdPrefix(id), id).toBe(true);
-      expect(validateResourceId(id), id).toBeNull();
-      expect(parseReference(id, "acme", idPrefixesFor(ApiResourceKind.run)), id).toEqual({ kind: "id", id });
-    }
-    expect(validateResourceId("aex_tooshort")).toMatch(/incomplete/);
-    expect(parseReference("aex-run", "acme", idPrefixesFor(ApiResourceKind.run))).toEqual({
-      kind: "ref",
-      org: "acme",
-      slug: "aex-run",
-    });
+  it("classifies a run id as an id of the kind, for every reader", () => {
+    const id = `run_${ULID}`;
+    expect(hasResourceIdPrefix(id)).toBe(true);
+    expect(validateResourceId(id)).toBeNull();
+    expect(parseReference(id, "acme", idPrefixOf(ApiResourceKind.run))).toEqual({ kind: "id", id });
+    expect(validateResourceId("run_tooshort")).toMatch(/incomplete/);
   });
 
-  it("leave an agent slug that starts with run- an agent reference", () => {
+  it("leaves an agent slug that starts with run- an agent reference", () => {
     for (const slug of ["run-nightly-report", `run-${ULID}`]) {
       expect(hasResourceIdPrefix(slug), slug).toBe(false);
       expect(validateResourceId(slug), slug).toMatch(/not a recognized/);
     }
-    expect(hasResourceIdPrefix(`aex-${ULID}`)).toBe(true);
   });
 });
 
@@ -100,9 +93,7 @@ describe("resource-ID classification", () => {
     expect(isAgentId(`agt-${ULID}`)).toBe(true);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
     expect(isRoutineId(`rtn_${ULID}`)).toBe(true);
-    // A routine stored while the kind was Schedule keeps its sch_ id.
-    expect(isRoutineId(`sch_${ULID}`)).toBe(true);
-    expect(isRoutineId(`sch-${ULID}`)).toBe(true);
+    expect(isRoutineId(`rtn-${ULID}`)).toBe(true);
     expect(isRoutineId(`ses_${ULID}`)).toBe(false);
   });
 

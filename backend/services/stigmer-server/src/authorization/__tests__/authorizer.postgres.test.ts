@@ -219,11 +219,9 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         await grant(orgRole(FOUNDER.accountId, "owner", "acme"));
         await grant(orgRole(ADMIN.accountId, "admin", "acme"));
         await grant(orgRole(MEMBER.accountId, "member", "acme"));
-        // The founder's blueprints: one private, one org-visible, and one
-        // still carrying the retired public level (a row the store
-        // migration has not met); the org-visible one stamped with the
-        // founder's RAW subject (a row a 3.14.x verifier wrote), the
-        // others with the id.
+        // The founder's blueprints: one private and one org-visible; the
+        // org-visible one stamped with the founder's RAW subject (a row a
+        // 3.14.x verifier wrote), the other with the id.
         await seed("agent", "agt_private", {
           org: "acme",
           visibility: ApiResourceVisibility.visibility_private,
@@ -233,11 +231,6 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           org: "acme",
           visibility: ApiResourceVisibility.visibility_org,
           createdBy: FOUNDER.subject,
-        });
-        await seed("agent", "agt_public", {
-          org: "acme",
-          visibility: ApiResourceVisibility.visibility_public,
-          createdBy: FOUNDER.accountId,
         });
         // The member's own session — personal: nobody else reads it.
         await seed("session", "ses_member", {
@@ -454,18 +447,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           });
         });
 
-        it("an unprovisioned subject reads nothing — not a private agent, and not a row still carrying the retired public level, which grants no one anything", async () => {
+        it("an unprovisioned subject reads nothing — not a private agent", async () => {
           const auth = authorizer();
-          expect(
-            await auth.authorize(
-              idpShaped(STRANGER),
-              check(
-                IamPermission.can_view,
-                ApiResourceKind.agent,
-                "agt_public",
-              ),
-            ),
-          ).toEqual({ kind: "deny", reason: "" });
           expect(
             await auth.authorize(
               idpShaped(STRANGER),

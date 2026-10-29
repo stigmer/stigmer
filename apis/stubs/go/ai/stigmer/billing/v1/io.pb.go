@@ -140,9 +140,8 @@ type RecordLlmCallUsageInput struct {
 	// Whose provider credential the proxy injected upstream for this call,
 	// stamped verbatim onto the usage record (the proxy holds the fact).
 	// ORGANIZATION means the organization's own provider key served the
-	// call, which is recorded and never charged.
-	// PLATFORM means a connection the platform provides served it.
-	// UNSPECIFIED from a proxy that predates the field.
+	// call, which is recorded and never charged. UNSPECIFIED means the proxy
+	// did not say.
 	ProviderKeySource v1.ProviderKeySource `protobuf:"varint,21,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.run.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
@@ -984,7 +983,7 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a2ai/stigmer/billing/v1/model_pricing_baseline.proto\x1a\x1bbuf/validate/validate.proto\":\n" +
 	"\x1eGetOrCreateBillingAccountInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xdb\a\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\x94\a\n" +
 	"\x17RecordLlmCallUsageInput\x12\x1d\n" +
 	"\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12#\n" +
 	"\bsequence\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\bsequence\x12!\n" +
@@ -1005,17 +1004,17 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x13served_service_tier\x18\x12 \x01(\tR\x11servedServiceTier\x12B\n" +
 	"\vmetered_run\x18\x13 \x01(\v2!.ai.stigmer.billing.v1.MeteredRunR\n" +
 	"meteredRun\x12\\\n" +
-	"\x13provider_key_source\x18\x15 \x01(\x0e2,.ai.stigmer.agentic.run.v1.ProviderKeySourceR\x11providerKeySourceJ\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_source\"\x8d\x02\n" +
+	"\x13provider_key_source\x18\x15 \x01(\x0e2,.ai.stigmer.agentic.run.v1.ProviderKeySourceR\x11providerKeySource\"\x8d\x02\n" +
 	"\n" +
 	"MeteredRun\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12!\n" +
 	"\fpinned_model\x18\x02 \x01(\tR\vpinnedModel\x12\\\n" +
 	"\x16requested_service_tier\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.run.v1.ServiceTierR\x14requestedServiceTier\x12_\n" +
-	"\x17requested_thinking_mode\x18\x04 \x01(\x0e2'.ai.stigmer.agentic.run.v1.ThinkingModeR\x15requestedThinkingMode\"\xbd\x01\n" +
+	"\x17requested_thinking_mode\x18\x04 \x01(\x0e2'.ai.stigmer.agentic.run.v1.ThinkingModeR\x15requestedThinkingMode\"g\n" +
 	"\x1aRecordLlmCallUsageResponse\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12!\n" +
-	"\fis_duplicate\x18\x05 \x01(\bR\visDuplicateJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\x14provider_cost_microsR\x1fcustomer_billable_amount_microsR\vis_billable\"b\n" +
+	"\fis_duplicate\x18\x05 \x01(\bR\visDuplicate\"b\n" +
 	"\x1fCreateBillingPortalSessionInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12%\n" +
 	"\n" +

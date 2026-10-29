@@ -94,20 +94,19 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "SignInR\006signIn\022 \n\013description\030\004 \001(\tR\013des" +
       "cription\022\031\n\010saved_by\030\005 \001(\tR\007savedBy\0225\n\010s" +
       "aved_at\030\006 \001(\0132\032.google.protobuf.Timestam" +
-      "pR\007savedAt\"\207\002\n\025VaultConnectionSignIn\022\035\n\n" +
+      "pR\007savedAt\"\335\001\n\025VaultConnectionSignIn\022\035\n\n" +
       "expires_at\030\001 \001(\003R\texpiresAt\022\033\n\tclient_id" +
       "\030\002 \001(\tR\010clientId\022\037\n\013auth_method\030\003 \001(\tR\na" +
       "uthMethod\022%\n\016token_endpoint\030\004 \001(\tR\rtoken" +
       "Endpoint\022#\n\rrefresh_token\030\005 \001(\tR\014refresh" +
-      "Token\022\033\n\tlogin_app\030\010 \001(\tR\010loginAppJ\004\010\006\020\007" +
-      "J\004\010\007\020\010R\rmcp_server_idR\rlocal_program*Y\n\025" +
-      "VaultConnectionSource\022\'\n#vault_connectio" +
-      "n_source_unspecified\020\000\022\n\n\006pasted\020\001\022\013\n\007si" +
-      "gn_in\020\002B\234\001B\tSpecProtoP\001\242\002\004ASAV\252\002\033Ai.Stig" +
-      "mer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agenti" +
-      "c\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\V1" +
-      "\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Vau" +
-      "lt::V1b\006proto3"
+      "Token\022\033\n\tlogin_app\030\010 \001(\tR\010loginApp*Y\n\025Va" +
+      "ultConnectionSource\022\'\n#vault_connection_" +
+      "source_unspecified\020\000\022\n\n\006pasted\020\001\022\013\n\007sign" +
+      "_in\020\002B\234\001B\tSpecProtoP\001\242\002\004ASAV\252\002\033Ai.Stigme" +
+      "r.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agentic\\" +
+      "Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\V1\\G" +
+      "PBMetadata\352\002\037Ai::Stigmer::Agentic::Vault" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

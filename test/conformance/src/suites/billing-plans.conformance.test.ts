@@ -88,7 +88,7 @@ const DOMAIN_COPY = {
 } as const;
 
 // Free has no catalog row: its entitlements are the engine's constant.
-const FREE_FEATURES = [Feature.channels, Feature.sharing];
+const FREE_FEATURES = [Feature.channels, Feature.chat_links];
 
 // The loud-failure posture: a billingPlans target without these is a target
 // bug, never a skip.

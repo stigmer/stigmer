@@ -888,10 +888,7 @@ describe("updateVisibility on a composition with no Authorizer", () => {
   it("an unknown id with a level the kind refuses is NOT_FOUND; a known one is INVALID_ARGUMENT", async () => {
     const openCommands = createClient(VaultCommandController, transportFor(openPort));
     const known = await openCommands.create(sharedInput());
-    for (const visibility of [
-      ApiResourceVisibility.visibility_public,
-      ApiResourceVisibility.visibility_child_orgs,
-    ]) {
+    for (const visibility of [ApiResourceVisibility.visibility_child_orgs]) {
       const refused = await failureOf(
         openCommands.updateVisibility({ resourceId: known.metadata!.id, visibility }),
       );

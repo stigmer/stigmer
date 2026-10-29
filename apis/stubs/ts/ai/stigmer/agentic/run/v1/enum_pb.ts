@@ -795,8 +795,7 @@ export enum RunValueOrigin {
 
   /**
    * A vault of the routine, channel or embedding settings a turn with no
-   * person came through. The value's name is older than this wording and
-   * stays: an enum value is a wire identifier.
+   * person came through.
    *
    * @generated from enum value: RUN_VALUE_ORIGIN_SURFACE_VAULT = 4;
    */
