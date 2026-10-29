@@ -5,9 +5,10 @@
  *
  * - a unit test renders each chain's sum and compares it with the
  *   committed file, so a step and its line change together or not at all;
- * - `scripts/check-migration-sums.mjs` compares a branch's sum files with
- *   the base branch's and refuses a changed or removed line, so a merged
- *   step, the newest included, is frozen (a merge deploys);
+ * - `npm run schema:check-sums` (scripts/check-migration-sums.ts, run by
+ *   the Enterprise lane) compares a branch's sum files with the base
+ *   branch's through `compareSums` and refuses a changed or removed line,
+ *   so a merged step, the newest included, is frozen (a merge deploys);
  * - every runner records the digest in its ledger and refuses to boot when
  *   a recorded one differs from the build's, naming the version: the
  *   database that ran a draft step a branch later changed.
@@ -57,5 +58,44 @@ export function assertChainShape(steps: ReadonlyArray<ChecksummedStep>): void {
         `schema chain step ${index + 1} has version ${step.version}; versions run 1, 2, 3, … in order`,
       );
     }
+  });
+}
+
+/** The lines of a sum file that name a step, as `<version> <hex>`. */
+export function sumLines(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"));
+}
+
+/**
+ * What a branch's sum file does to the base branch's: one refusal per
+ * merged line that is gone or reads differently, and one for a file the
+ * branch deleted (`headText` undefined). Lines after the base's are new
+ * steps, and pass.
+ */
+export function compareSums(
+  path: string,
+  baseText: string,
+  headText: string | undefined,
+): string[] {
+  if (headText === undefined) {
+    return [
+      `${path}: removed, but its steps have merged; a merged step never goes`,
+    ];
+  }
+  const head = sumLines(headText);
+  return sumLines(baseText).flatMap((line, index) => {
+    const now = head[index];
+    if (now === undefined) {
+      return [`${path}: the merged line "${line}" was removed`];
+    }
+    if (now !== line) {
+      return [
+        `${path}: the merged line "${line}" now reads "${now}"; a merged step never changes, so add a new step instead`,
+      ];
+    }
+    return [];
   });
 }

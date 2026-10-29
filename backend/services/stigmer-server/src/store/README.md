@@ -40,9 +40,10 @@ The practice, for every step after 0.1.0:
 
 1. A schema change is a new step. A merged step never changes or goes: a
    merge may deploy at once, and a team's own server upgrades from any
-   release. `scripts/check-migration-sums.mjs` refuses a changed or removed
-   `migrations.sum` line against the base branch, and every runner refuses
-   to boot when a step it recorded differs from the build's.
+   release. `npm run schema:check-sums` refuses a changed or removed
+   `migrations.sum` line against the base branch (the Enterprise lane runs
+   it), and every runner refuses to boot when a step it recorded differs
+   from the build's.
 2. Each step is safe while the previous release's server still runs against
    the same database during a roll: expand now (a new nullable column, a new
    table, a new index), contract in a later release once no running server

@@ -50,6 +50,7 @@
     "test:load": "vitest run -c vitest.load.config.ts",
     "test:live": "vitest run -c vitest.live.config.ts",
     "schema:snapshot": "tsx scripts/write-schema-snapshots.ts",
+    "schema:check-sums": "tsx scripts/check-migration-sums.ts",
     "clean": "rm -rf dist dist-slim"
   },
   "repository": {
