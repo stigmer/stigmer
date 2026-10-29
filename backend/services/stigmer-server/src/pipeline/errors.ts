@@ -237,19 +237,19 @@ export function grpcCodeName(code: Code): string {
  * rawMessage is the code-prefix-free message — ConnectError.message
  * prepends "[code_name] ", which must not ride the manufactured desc.
  */
-export function goWrappedStatusError(
+export function wrappedStatusError(
   prefix: string,
   error: ConnectError,
 ): ConnectError {
-  return new ConnectError(`${prefix}: ${goGrpcErrorText(error)}`, error.code);
+  return new ConnectError(`${prefix}: ${grpcErrorText(error)}`, error.code);
 }
 
 /**
  * A downstream error's text as `rpc error: code = <Name> desc =
  * <message>`, for sites that embed it under a DIFFERENT outer code.
- * goWrappedStatusError above is the twin that also keeps the inner code.
+ * wrappedStatusError above is the twin that also keeps the inner code.
  */
-export function goGrpcErrorText(error: ConnectError): string {
+export function grpcErrorText(error: ConnectError): string {
   return `rpc error: code = ${GRPC_CODE_NAMES[error.code]} desc = ${error.rawMessage}`;
 }
 

@@ -153,7 +153,7 @@ export function newValidateHarnessImmutabilityStep(
  * (ExecutionTarget[1] yields "LOCAL"), but the refusal copy carries the
  * full proto value names — cross-edition wire contract.
  */
-const EXECUTION_TARGET_GO_NAMES: Readonly<Record<ExecutionTarget, string>> = {
+const EXECUTION_TARGET_PROTO_NAMES: Readonly<Record<ExecutionTarget, string>> = {
   [ExecutionTarget.UNSPECIFIED]: "EXECUTION_TARGET_UNSPECIFIED",
   [ExecutionTarget.LOCAL]: "EXECUTION_TARGET_LOCAL",
   [ExecutionTarget.CLOUD]: "EXECUTION_TARGET_CLOUD",
@@ -199,7 +199,7 @@ export function newValidateExecutionTargetImmutabilityStep(
       }
 
       throw failedPreconditionError(
-          `session execution_target cannot be changed after the first execution (${EXECUTION_TARGET_GO_NAMES[existingTarget]} → ${EXECUTION_TARGET_GO_NAMES[inputTarget]}; unset resolves to the deployment default, ${temporalConfig.defaultExecutionTarget}) — workspace state may not be portable between local and cloud environments`,
+          `session execution_target cannot be changed after the first execution (${EXECUTION_TARGET_PROTO_NAMES[existingTarget]} → ${EXECUTION_TARGET_PROTO_NAMES[inputTarget]}; unset resolves to the deployment default, ${temporalConfig.defaultExecutionTarget}) — workspace state may not be portable between local and cloud environments`,
       );
     },
   };

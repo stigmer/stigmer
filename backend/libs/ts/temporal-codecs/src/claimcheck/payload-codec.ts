@@ -9,9 +9,8 @@
  * and decompressed, and the original bytes are restored — transparent
  * to workflow/activity code.
  *
- * Moved from backend/services/runner/src/claimcheck/payload-codec.ts when
- * the codecs became @stigmer/temporal-codecs (one home for the
- * cross-language envelope contract; the TS server is the second consumer).
+ * One implementation shared by the runner and the server, so both read
+ * and write the same marker.
  */
 
 import { randomUUID } from "node:crypto";
@@ -31,8 +30,9 @@ interface ClaimcheckMarker {
    * The relocated payload's original metadata, base64-encoded per value.
    * Without it the restored payload would carry the marker's own
    * "binary/claimcheck" encoding and no payload converter could interpret
-   * it. Absent on markers written before this field existed; those decode
-   * with the legacy (metadata-less) behavior.
+   * it. Absent when the relocated payload carried no metadata
+   * (`serializeMetadata` writes nothing for none); such a marker decodes
+   * with the marker payload's own metadata.
    */
   metadata?: Record<string, string>;
 }

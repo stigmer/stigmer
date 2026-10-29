@@ -57,7 +57,7 @@ import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enu
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { goWrappedStatusError } from "../../pipeline/errors.js";
+import { wrappedStatusError } from "../../pipeline/errors.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
@@ -242,7 +242,7 @@ export async function planRunValues(
 
 /**
  * Wrap chains: the INNERMOST status boundary renders through
- * goWrappedStatusError ("prefix: rpc error: code = X desc = …", the #852
+ * wrappedStatusError ("prefix: rpc error: code = X desc = …", the #852
  * wire shape); every OUTER wrap prepends plain text while preserving the
  * inner code. Plain errors chain as plain errors and land on the
  * pipeline's Internal fallback.
@@ -275,7 +275,7 @@ async function loadRunSession(
     session = await deps.sessionLoader().get(sessionId);
   } catch (error) {
     if (error instanceof ConnectError) {
-      throw goWrappedStatusError(`load session ${sessionId}`, error);
+      throw wrappedStatusError(`load session ${sessionId}`, error);
     }
     throw new Error(
       `load session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -303,7 +303,7 @@ async function loadRunAgent(
   } catch (error) {
     const what = `load agent ${agentId} at the version this turn recorded (${versionHash})`;
     if (error instanceof ConnectError) {
-      throw goWrappedStatusError(what, error);
+      throw wrappedStatusError(what, error);
     }
     chainError(what, error);
   }

@@ -136,13 +136,13 @@ function parentOrgRequested(input: Message): string {
  * Refuses an organization that names an organization of its own: an
  * organization belongs to none, so its metadata.org is always empty.
  *
- * An org that names the organization itself is cleared instead: earlier
- * releases stored an organization's own slug there (clients sent it on
- * create), so its `get -o yaml` manifest, and the clients of that time,
- * still carry it. It names itself when it equals the request's own id or
- * slug, or the id that slug resolves to (the serving chain has already
- * turned a slug in metadata.org into its id). Stored rows are not
- * rewritten; an update keeps what the row holds.
+ * An org that names the organization itself is cleared instead: a client
+ * that fills every document's metadata.org from its target organization
+ * (the TypeScript SDK's `parseManifest` does) sends an organization's own
+ * manifest naming itself when that organization is the target. It names
+ * itself when it equals the request's own id or slug, or the id that slug
+ * resolves to (the serving chain has already turned a slug in
+ * metadata.org into its id).
  */
 export function newRefuseOrganizationOrgStep(
   resolver: OrganizationNameResolver,

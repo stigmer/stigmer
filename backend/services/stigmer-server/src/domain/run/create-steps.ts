@@ -44,7 +44,7 @@ import { isFirstPartyHumanOperator, isServerComposedRequest } from "../../extens
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import {
   failedPreconditionError,
-  goWrappedStatusError,
+  wrappedStatusError,
   internalError,
   invalidArgumentError,
   permissionDeniedError,
@@ -222,7 +222,7 @@ export function newCreateSessionIfNeededStep(deps: {
           .createAsCaller(sessionRequest, ctx.callerIdentity);
       } catch (error) {
         if (error instanceof ConnectError) {
-          throw goWrappedStatusError("failed to create session", error);
+          throw wrappedStatusError("failed to create session", error);
         }
         throw new Error(
           `failed to create session: ${error instanceof Error ? error.message : String(error)}`,
