@@ -216,12 +216,12 @@ describe.each(
       );
 
       it("a token that names our type and fails the HMAC is CLAIMED and refused — never passed to a laxer verifier", async () => {
-        await agentExecution("aex_forged", CAROL);
+        await agentExecution("run_forged", CAROL);
         const failure = await rejectionOf(
           verifier().verify(
             forgedToken({
               token_type: TOKEN_TYPE_EXECUTION_SCOPED,
-              execution_id: "aex_forged",
+              execution_id: "run_forged",
             }),
           ),
         );
@@ -231,8 +231,8 @@ describe.each(
 
     describe("the run credential admits its bearer as the run's human", () => {
       it("an agent execution stamped with the creator's account id: the account acting as itself, class runner, the raw token carried, bound to the run's organization", async () => {
-        await agentExecution("aex_by_id", CAROL);
-        const token = service.mintRunCredential("aex_by_id");
+        await agentExecution("run_by_id", CAROL);
+        const token = service.mintRunCredential("run_by_id");
         expect(await verifier().verify(token)).toEqual({
           ...CAROL_IDENTITY,
           rawToken: token,
@@ -241,9 +241,9 @@ describe.each(
       });
 
       it("an agent execution stamped with the raw issuer subject (the 3.14.x shape) resolves to the same account", async () => {
-        await agentExecution("aex_by_sub", SUBJECT);
+        await agentExecution("run_by_sub", SUBJECT);
         const identity = await verifier().verify(
-          service.mintRunCredential("aex_by_sub"),
+          service.mintRunCredential("run_by_sub"),
         );
         expect(identity?.identityId).toBe(CAROL);
         expect(identity?.callerClass).toBe("runner");
@@ -251,19 +251,19 @@ describe.each(
 
       it("a PENDING execution is live — the runner's first read happens before any phase write", async () => {
         await agentExecution(
-          "aex_pending",
+          "run_pending",
           CAROL,
           RunPhase.RUN_PENDING,
         );
         expect(
-          (await verifier().verify(service.mintRunCredential("aex_pending")))
+          (await verifier().verify(service.mintRunCredential("run_pending")))
             ?.identityId,
         ).toBe(CAROL);
       });
 
       it("the exchange lane's clocked token (a present, future exp) admits the same way while its clock runs", async () => {
-        await agentExecution("aex_clocked", CAROL);
-        const minted = service.mint("aex_clocked", 300);
+        await agentExecution("run_clocked", CAROL);
+        const minted = service.mint("run_clocked", 300);
         expect((await verifier().verify(minted.token))?.identityId).toBe(CAROL);
       });
     });
@@ -324,9 +324,9 @@ describe.each(
       ])(
         "a %s execution's credential is refused with the liveness sentence",
         async (_label, phase) => {
-          await agentExecution("aex_over", CAROL, phase);
+          await agentExecution("run_over", CAROL, phase);
           const failure = await rejectionOf(
-            verifier().verify(service.mintRunCredential("aex_over")),
+            verifier().verify(service.mintRunCredential("run_over")),
           );
           expectUnauthenticated(failure, RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
         },
@@ -335,12 +335,12 @@ describe.each(
       it("a run that ended moments ago still admits — the grace covers the writes that trail the terminal stamp", async () => {
         await opened.store.saveResource(
           ApiResourceKind.run,
-          "aex_just_over",
+          "run_just_over",
           RunSchema,
           create(RunSchema, {
             metadata: {
-              id: "aex_just_over",
-              name: "aex_just_over",
+              id: "run_just_over",
+              name: "run_just_over",
               org: "acme",
             },
             status: {
@@ -351,7 +351,7 @@ describe.each(
           }),
         );
         expect(
-          (await verifier().verify(service.mintRunCredential("aex_just_over")))
+          (await verifier().verify(service.mintRunCredential("run_just_over")))
             ?.identityId,
         ).toBe(CAROL);
       });
@@ -359,12 +359,12 @@ describe.each(
       it("a run that ended past the grace is refused — the grace is a constant, not a second clock", async () => {
         await opened.store.saveResource(
           ApiResourceKind.run,
-          "aex_long_over",
+          "run_long_over",
           RunSchema,
           create(RunSchema, {
             metadata: {
-              id: "aex_long_over",
-              name: "aex_long_over",
+              id: "run_long_over",
+              name: "run_long_over",
               org: "acme",
             },
             status: {
@@ -378,7 +378,7 @@ describe.each(
         );
         expectUnauthenticated(
           await rejectionOf(
-            verifier().verify(service.mintRunCredential("aex_long_over")),
+            verifier().verify(service.mintRunCredential("run_long_over")),
           ),
           RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE,
         );
@@ -386,7 +386,7 @@ describe.each(
 
       it("an execution that does not exist is UNAUTHENTICATED with the token sentence — the credential is invalid, the run is not the caller's to learn about", async () => {
         const failure = await rejectionOf(
-          verifier().verify(service.mintRunCredential("aex_missing")),
+          verifier().verify(service.mintRunCredential("run_missing")),
         );
         expectUnauthenticated(failure, RUNNER_CREDENTIAL_INVALID_MESSAGE);
       });
@@ -399,8 +399,8 @@ describe.each(
       });
 
       it("a present exp in the past is refused even while the row lives — the exchange lane's clock still counts", async () => {
-        await agentExecution("aex_expired", CAROL);
-        const minted = service.mint("aex_expired", 1);
+        await agentExecution("run_expired", CAROL);
+        const minted = service.mint("run_expired", 1);
         await new Promise((resolve) => setTimeout(resolve, 1100));
         expectUnauthenticated(
           await rejectionOf(verifier().verify(minted.token)),
@@ -418,9 +418,9 @@ describe.each(
       ])(
         "%s refuses with the liveness sentence — deterministic, never a retry",
         async (_label, stamp) => {
-          await agentExecution("aex_nobody", stamp);
+          await agentExecution("run_nobody", stamp);
           const failure = await rejectionOf(
-            verifier().verify(service.mintRunCredential("aex_nobody")),
+            verifier().verify(service.mintRunCredential("run_nobody")),
           );
           expectUnauthenticated(failure, RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
         },
@@ -429,7 +429,7 @@ describe.each(
 
     describe("faults are faults", () => {
       it("a store fault loading the execution propagates as the error it is — the chassis maps INTERNAL, never a credential rejection", async () => {
-        await agentExecution("aex_fault", CAROL);
+        await agentExecution("run_fault", CAROL);
         const fault = new Error("connection reset");
         const failing = newRunnerSubjectIdentityVerifier({
           store: { ...opened.store, getResource: () => Promise.reject(fault) },
@@ -437,12 +437,12 @@ describe.each(
           credentials,
         });
         await expect(
-          failing.verify(service.mintRunCredential("aex_fault")),
+          failing.verify(service.mintRunCredential("run_fault")),
         ).rejects.toBe(fault);
       });
 
       it("a keyless service refuses every token that names our type (fail closed: without a key no token can be genuine)", async () => {
-        await agentExecution("aex_keyless", CAROL);
+        await agentExecution("run_keyless", CAROL);
         const keyless = newRunnerSubjectIdentityVerifier({
           store: opened.store,
           accounts,
@@ -451,7 +451,7 @@ describe.each(
           ),
         });
         const failure = await rejectionOf(
-          keyless.verify(service.mintRunCredential("aex_keyless")),
+          keyless.verify(service.mintRunCredential("run_keyless")),
         );
         expectUnauthenticated(failure, RUNNER_CREDENTIAL_INVALID_MESSAGE);
       });
@@ -476,24 +476,24 @@ describe("the run credential's shape (the service, no store)", () => {
   const service = RunnerAuthService.create(KEY);
 
   it("carries the execution_scoped type and the binding, and NO exp — its validity is the run's, not a clock's", () => {
-    const token = service.mintRunCredential("aex_shape");
+    const token = service.mintRunCredential("run_shape");
     const payload = JSON.parse(
       Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf8"),
     ) as Record<string, unknown>;
     expect(payload["token_type"]).toBe(TOKEN_TYPE_EXECUTION_SCOPED);
-    expect(payload["execution_id"]).toBe("aex_shape");
+    expect(payload["execution_id"]).toBe("run_shape");
     expect(typeof payload["iat"]).toBe("number");
     expect(payload).not.toHaveProperty("exp");
   });
 
   it("verify accepts the run credential and returns its binding — the decrypt lane keeps its binding-equality decision over it", () => {
-    expect(service.verify(service.mintRunCredential("aex_shape"))).toBe(
-      "aex_shape",
+    expect(service.verify(service.mintRunCredential("run_shape"))).toBe(
+      "run_shape",
     );
   });
 
   it("verify still refuses a present exp in the past — the exchange lane's tokens keep their clock", async () => {
-    const minted = service.mint("aex_shape", 1);
+    const minted = service.mint("run_shape", 1);
     await new Promise((resolve) => setTimeout(resolve, 1100));
     expect(() => service.verify(minted.token)).toThrow();
   });

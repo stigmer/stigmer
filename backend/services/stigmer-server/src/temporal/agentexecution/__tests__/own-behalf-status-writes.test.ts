@@ -24,9 +24,7 @@
  * (invoke-agent-execution.ts): updateStatusOnFailure's FAILED with its
  * error and stop cause, updateStatusOnCancellation's CANCELLED with its
  * stop cause, and the phase-only persistFinalStatus /
- * persistInterruptedStatus / persistResumedStatus shape. A payload a run in
- * flight across the deploy recorded with the transcript lines these
- * writes once carried still lands, the lines dropped. The merge's full
+ * persistInterruptedStatus / persistResumedStatus shape. The merge's full
  * case matrix is domain/run/__tests__/update-status.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -252,20 +250,6 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     expect(execution.status?.error).toBe("");
     expect(execution.status?.stopCause).toBe("user");
     expect(authorizerCalls).toHaveLength(0);
-  });
-
-  it("lands a payload recorded with the transcript lines the cancellation once sent, the lines dropped", async () => {
-    await seedExecution("aex_ownbehalf_recorded");
-
-    await updateStatus("aex_ownbehalf_recorded", {
-      phase: "RUN_CANCELLED",
-      stopCause: "user",
-      messages: [{ type: "MESSAGE_SYSTEM", content: "Cancelled by user" }],
-    });
-
-    const execution = await persisted("aex_ownbehalf_recorded");
-    expect(execution.status?.phase).toBe(RunPhase.RUN_CANCELLED);
-    expect(execution.status?.stopCause).toBe("user");
   });
 
   it("re-asserts a phase with the message-less persistInterruptedStatus shape", async () => {

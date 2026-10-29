@@ -290,7 +290,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     const failure = await failureOf(
       authenticateBearerToken(
         server.identityVerifiers,
-        forgedRunnerToken("aex_forged"),
+        forgedRunnerToken("run_forged"),
         silentLogger,
       ),
     );
@@ -310,10 +310,10 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
 
   it("the run credential the server mints for a live run, presented on the run's own read, is ADMITTED as the person who created it", async () => {
     await seedAgentRun(
-      "aex_live",
+      "run_live",
       RunPhase.RUN_IN_PROGRESS,
     );
-    const credential = server.runnerAuthService.mintRunCredential("aex_live");
+    const credential = server.runnerAuthService.mintRunCredential("run_live");
 
     const identity = await authenticateBearerToken(
       server.identityVerifiers,
@@ -331,40 +331,40 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       RunQueryController,
       transportFor(port, credential),
     );
-    const row = await asRunner.get({ value: "aex_live" });
-    expect(row.metadata?.id).toBe("aex_live");
+    const row = await asRunner.get({ value: "run_live" });
+    expect(row.metadata?.id).toBe("run_live");
   });
 
   it("once the run is over, the same credential is UNAUTHENTICATED with the liveness sentence — validity is the row's", async () => {
     await seedAgentRun(
-      "aex_done",
+      "run_done",
       RunPhase.RUN_IN_PROGRESS,
     );
-    const credential = server.runnerAuthService.mintRunCredential("aex_done");
+    const credential = server.runnerAuthService.mintRunCredential("run_done");
     const asRunner = createClient(
       RunQueryController,
       transportFor(port, credential),
     );
-    expect((await asRunner.get({ value: "aex_done" })).metadata?.id).toBe(
-      "aex_done",
+    expect((await asRunner.get({ value: "run_done" })).metadata?.id).toBe(
+      "run_done",
     );
 
-    await seedAgentRun("aex_done", RunPhase.RUN_COMPLETED);
-    const failure = await failureOf(asRunner.get({ value: "aex_done" }));
+    await seedAgentRun("run_done", RunPhase.RUN_COMPLETED);
+    const failure = await failureOf(asRunner.get({ value: "run_done" }));
     expect(failure.code).toBe(Code.Unauthenticated);
     expect(failure.rawMessage).toBe(RUNNER_CREDENTIAL_NOT_LIVE_MESSAGE);
   });
 
   it("a credential bound to one run does not open another — the binding is the capability", async () => {
     await seedAgentRun(
-      "aex_mine",
+      "run_mine",
       RunPhase.RUN_IN_PROGRESS,
     );
     await seedAgentRun(
-      "aex_other",
+      "run_other",
       RunPhase.RUN_IN_PROGRESS,
     );
-    const credential = server.runnerAuthService.mintRunCredential("aex_mine");
+    const credential = server.runnerAuthService.mintRunCredential("run_mine");
     const asRunner = createClient(
       RunQueryController,
       transportFor(port, credential),
@@ -373,8 +373,8 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
     // run succeeds AS CAROL: the credential narrows WHO the runner is,
     // not WHICH rows that person may read. Pinned so the reach is stated,
     // not discovered (the cloud's sandbox token has the same reach).
-    expect((await asRunner.get({ value: "aex_other" })).metadata?.id).toBe(
-      "aex_other",
+    expect((await asRunner.get({ value: "run_other" })).metadata?.id).toBe(
+      "run_other",
     );
   });
 
@@ -393,7 +393,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       expect((await bruce.provisionMyAccount({})).metadata?.id).not.toBe("");
       await seedAgentRun(
-        "aex_carols",
+        "run_carols",
         RunPhase.RUN_IN_PROGRESS,
       );
     });
@@ -405,7 +405,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "runId", value: "aex_carols" },
+          scope: { case: "runId", value: "run_carols" },
         }),
       );
       expect(failure.code).toBe(Code.PermissionDenied);
@@ -421,7 +421,7 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
         ),
       );
       const minted = await platform.getRunnerScopedToken({
-        scope: { case: "runId", value: "aex_carols" },
+        scope: { case: "runId", value: "run_carols" },
       });
       expect(minted.runnerScopedToken).not.toBe("");
       expect(minted.tokenType).toBe("Bearer");
@@ -447,11 +447,11 @@ describe("the built-in posture (OIDC, no unit Authorizer): the runner acts as th
       );
       const failure = await failureOf(
         platform.getRunnerScopedToken({
-          scope: { case: "runId", value: "aex_nowhere" },
+          scope: { case: "runId", value: "run_nowhere" },
         }),
       );
       expect(failure.code).toBe(Code.NotFound);
-      expect(failure.rawMessage).toBe("Run not found: aex_nowhere");
+      expect(failure.rawMessage).toBe("Run not found: run_nowhere");
     });
   });
 });
@@ -483,7 +483,7 @@ describe("trusted-local: no runner verifier is composed", () => {
   });
 
   it("the server's run credential is an UNCLAIMED bearer here — the exchange token stays the decrypt-lane discriminator it is today", async () => {
-    const credential = server.runnerAuthService.mintRunCredential("aex_local");
+    const credential = server.runnerAuthService.mintRunCredential("run_local");
     expect(
       await authenticateBearerToken(
         server.identityVerifiers,

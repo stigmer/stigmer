@@ -6,8 +6,7 @@
  *     runner wrote before the run rename, with retired names, included;
  *     any other unknown name refused) and hands it
  *     to the in-process status edge (stigmer#979) — the lane's answer,
- *     success or ConnectError, IS the activity's outcome; the transcript
- *     lines such a write once carried are dropped. The lane itself
+ *     success or ConnectError, IS the activity's outcome. The lane itself
  *     (transport, interceptors, handler, merge, hooks) is
  *     pinned end to end in own-behalf-status-writes.test.ts;
  *   - LoadAgentExecution returns proto-JSON that survives the payload
@@ -184,20 +183,16 @@ describe("UpdateExecutionStatus activity", () => {
     expect(writes).toHaveLength(0);
   });
 
-  it("decodes a status recorded before the run rename, its retired names read as the current ones and its transcript dropped", async () => {
+  it("decodes a status recorded before the run rename, its retired names read as the current ones", async () => {
     const { activities, writes } = newFixture();
-    // The status JSON the user-cancel replay history records for this
-    // activity's input, written before agent executions became runs.
+    // The phase the user-cancel replay history records for this activity's
+    // input, written before agent executions became runs.
     await (
       activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
         id: string,
         status: JsonValue,
       ) => Promise<void>
-    )("aex_recorded", {
-      messages: [{ type: "MESSAGE_SYSTEM", content: "Execution was cancelled." }],
-      phase: "EXECUTION_CANCELLED",
-      subAgentExecutions: [{ id: "sub_1", name: "researcher" }],
-    });
+    )("aex_recorded", { phase: "EXECUTION_CANCELLED" });
 
     expect(writes).toHaveLength(1);
     expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_CANCELLED);

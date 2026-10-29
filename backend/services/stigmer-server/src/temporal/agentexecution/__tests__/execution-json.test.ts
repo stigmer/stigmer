@@ -29,7 +29,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
-import { create, createFileRegistry, type DescMessage } from "@bufbuild/protobuf";
+import { create, createFileRegistry, type DescMessage, type JsonObject } from "@bufbuild/protobuf";
 import {
   FieldDescriptorProto_Label,
   FieldDescriptorProto_Type,
@@ -107,10 +107,11 @@ describe("the run JSON recorded before a release", () => {
   });
 
   it("decodes a status write that names a field the message reserves, the field dropped under its JSON or its proto name", () => {
-    for (const json of [
+    const recorded: JsonObject[] = [
       { phase: "paused", transcriptLines: [{ content: "Paused by user" }] },
       { phase: "paused", transcript_lines: [] },
-    ]) {
+    ];
+    for (const json of recorded) {
       expect(decodeRunStatusJson(RESERVING_STATUS, json), JSON.stringify(json)).toMatchObject({ phase: "paused" });
     }
   });
