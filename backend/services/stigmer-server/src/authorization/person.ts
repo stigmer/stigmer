@@ -18,8 +18,9 @@
  *   `personFor(caller, account)` — the pure half: the account id the
  *   Grant rows name, and every string a creator stamp may carry for
  *   the same human. A provisioned caller carries the account id and the
- *   account's issuer subject (rows the 3.14.x verifiers stamped with the
- *   raw `sub` still match — the alias rule); an unprovisioned one
+ *   account's issuer subject (a write made before the caller's account
+ *   existed carries their raw `sub`, and it still matches — the alias
+ *   rule); an unprovisioned one
  *   is their identity id alone and holds no rows. Nothing else is an
  *   alias: an email stamp is nobody's, in the membership rules and here.
  *

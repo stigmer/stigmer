@@ -1,6 +1,6 @@
 /**
  * The sliding window a run's recoveries are counted in (the invoke
- * workflow's bounded recovery loop, behind RECOVERY_WINDOW_PATCH_ID).
+ * workflow's bounded recovery loop).
  *
  * Why a window and not a count over the run's life: a turn that runs for
  * hours meets a deploy or a lost runner every so often, and each one is a

@@ -33,7 +33,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { desiredPaused, hasSchedule, note } from "./artifact.js";
 import type { RoutineTemporalConfig } from "./config.js";
-import { PROBE_ID_PREFIX, TICK_ID_PREFIX, resourceIdOf } from "./names.js";
+import { TICK_ID_PREFIX, resourceIdOf } from "./names.js";
 import { pruneRunLedger } from "./run-ledger.js";
 import type { RoutineSyncer } from "./syncer.js";
 
@@ -105,8 +105,6 @@ export class RoutineReconciler {
             note: entry.state.note ?? "",
             paused: entry.state.paused,
           });
-        } else if (entry.scheduleId.startsWith(PROBE_ID_PREFIX)) {
-          // Not ours: OSS creates no probes (names.ts PROBE_ID_PREFIX).
         }
         // Anything else is someone else's schedule (e.g. a user's own
         // Temporal use on the shared dev server) — never touch it.

@@ -180,7 +180,6 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       findByPrincipalAndResource: () => Promise.resolve([]),
       findByResourceWithRelations: () => Promise.resolve([]),
       countDistinctPrincipalsByResource: () => Promise.resolve(0),
-      findByResourceKindAndRelation: () => Promise.resolve([]),
       findScopeTuple: () => Promise.resolve(undefined),
       listChanges: () => Promise.resolve([]),
       pruneChanges: () => Promise.resolve(0),
@@ -354,11 +353,6 @@ describe("onComposed: the grant store binding under open source's own authorizat
     expect((await grants.findScopeTuple("team", "tem_acme"))?.metadata?.id).toBe(
       id,
     );
-    expect(
-      (await grants.findByResourceKindAndRelation("team", "organization")).map(
-        (grant) => grant.metadata?.id,
-      ),
-    ).toEqual([id]);
   });
 });
 

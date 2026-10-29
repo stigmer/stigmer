@@ -7,8 +7,7 @@
  *     that stops claiming, is a reviewed change here;
  *   - claimName on both drivers: a free name is won; a name the id already
  *     holds counts as won; a live holder keeps it; a holder that no longer
- *     holds it is freed only once its claim is old enough; a name equal to
- *     its holder's id is never freed;
+ *     holds it is freed only once its claim is old enough;
  *   - on a composed server on both drivers, two creates of one agent slug
  *     racing in one organization: exactly one lands and the other is
  *     refused AlreadyExists (stigmer#2153); the same slug in another
@@ -168,7 +167,7 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
     }
   });
 
-  it.skipIf(fixture.skip)("frees a name whose holder is gone once its claim is old, but never a name equal to its id", async () => {
+  it.skipIf(fixture.skip)("frees a name whose holder is gone once its claim is old", async () => {
     const opened = await fixture.open();
     try {
       const store = opened.store;
@@ -176,11 +175,6 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
       await store.resourceNames.claim(key, "agt_gone", longAgo.toISOString());
       const taken = await claimName(store, key, "agt_b", new Date(), holdsNothing);
       expect(taken).toMatchObject({ claimed: true, entry: { id: "agt_b" } });
-
-      const legacy = resourceNameKey(ApiResourceKind.agent, ACME, "agt_legacy");
-      await store.resourceNames.claim(legacy, "agt_legacy", longAgo.toISOString());
-      const refused = await claimName(store, legacy, "agt_c", new Date(), holdsNothing);
-      expect(refused).toMatchObject({ claimed: false, entry: { id: "agt_legacy" } });
     } finally {
       await opened.close();
     }

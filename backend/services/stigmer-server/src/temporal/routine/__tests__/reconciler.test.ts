@@ -7,7 +7,7 @@
  *   - phase 3 reaps orphans ONLY after the point read confirms the row is
  *     genuinely gone — a row created after phase 2's listing must never
  *     lose its just-armed clock (THE guard);
- *   - probe-prefixed and foreign artifacts are never touched;
+ *   - foreign artifacts are never touched;
  *   - per-row failures (arm, repair, no-schedule removal, orphan point
  *     read, orphan teardown) count, log the routine, and the pass
  *     continues; a failed row listing aborts the pass with one counted
@@ -287,9 +287,8 @@ describe("runPass — the four phases", () => {
     expect(syncerScript.toreDown).toEqual([]);
   });
 
-  it("skips probe-prefixed and foreign artifacts entirely", async () => {
+  it("skips foreign artifacts entirely", async () => {
     listedArtifacts = [
-      { scheduleId: "schedule/probe/sch_x", state: { paused: false } },
       { scheduleId: "someone-elses-workflow-schedule", state: { paused: false } },
     ];
 

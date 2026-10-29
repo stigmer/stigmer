@@ -26,11 +26,9 @@
  * instants: a watcher whose clock is skewed still shows the right age.
  *
  * Each preview goes alone, through the persist chokepoint's single flight
- * (`PersistChokepoint.flushLiveness`): a server older than the preview
- * refuses the append as invalid (the preview's oneof is required), and that
- * refusal must never cost a stored event or another preview. On the first
- * refusal the pump stops for the turn, logged once. A preview is
- * ephemeral: one that fails is not resent; the next one says it again.
+ * (`PersistChokepoint.flushLiveness`), so a preview the log refuses never
+ * costs a stored event or another preview. A preview is ephemeral: one that
+ * fails is logged and not resent; the next one says it again.
  *
  * Timers are real and unref'd; nothing here keeps the process alive.
  * Proven by `__tests__/liveness-pump.test.ts`, and end to end on every
@@ -42,8 +40,8 @@ import type { OperationsSnapshot } from "./open-operations.js";
 /** Default liveness interval (ms), `Config.livenessIntervalMs`: the module header's cadence. */
 export const DEFAULT_LIVENESS_INTERVAL_MS = 30_000;
 
-/** How one send went: sent (or failed and logged), the slot busy, or refused by the server. */
-export type LivenessSend = "sent" | "busy" | "refused";
+/** How one send went: sent (or failed and logged), or the slot busy. */
+export type LivenessSend = "sent" | "busy";
 
 export interface LivenessPumpDeps {
   /** What the turn has open now (`OpenOperations.snapshot`). */
@@ -54,7 +52,7 @@ export interface LivenessPumpDeps {
   readonly intervalMs: number;
   /** The least time between two sends a change prompts: the streaming floor. */
   readonly minGapMs: number;
-  /** Named in the one log line a refusal writes. */
+  /** Named in a failed send's log line. */
   readonly runId: string;
 }
 
@@ -111,14 +109,6 @@ export class LivenessPump {
       .then(
         (outcome) => {
           busy = outcome === "busy";
-          if (outcome === "refused") {
-            console.warn(
-              `[liveness] run=${this.deps.runId}: the server refused the liveness preview (a server older than it); not sent again this turn`,
-            );
-            this.stopped = true;
-            this.clear();
-            return;
-          }
           if (outcome === "sent") this.sentKey = keyOf(snapshot);
         },
         (err: unknown) => console.warn(`[liveness] run=${this.deps.runId}: sending the liveness preview failed: ${String(err)}`),

@@ -4,9 +4,10 @@
  * (domain/grant/membership.ts `ensureRolesOnServerOrganization`).
  *
  * Three boots over ONE data directory:
- *   1. A server that holds any number of organizations (an older open-source
- *      release): two people sign in, oldest first, and nobody makes an
- *      organization. The role reconciliation runs, over none.
+ *   1. A server that holds any number of organizations (a composition with
+ *      no organization limit, as an Enterprise license declares): two people
+ *      sign in, oldest first, and nobody makes an organization. Their first
+ *      sign-ins run the membership rules over none.
  *   2. The same directory boots as a one-organization server: it makes
  *      `stigmer` as nobody, and the people it already held get their roles
  *      on it, as each person's own, in sign-in order. With no operator email
@@ -44,9 +45,8 @@
  *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts),
- * the open-source sign-in shape role-reconciliation-composed.test.ts boots;
- * the one-organization boots add `orgLimit: 1`, the open-source edition's
- * declaration.
+ * the open-source sign-in shape; the one-organization boots add
+ * `orgLimit: 1`, the open-source edition's declaration.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

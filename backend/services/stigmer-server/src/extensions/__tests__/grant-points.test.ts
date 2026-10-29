@@ -45,7 +45,6 @@ const store: GrantStore = {
   findByResourceWithRelations: unimplemented,
   countDistinctPrincipalsByResource: unimplemented,
   findScopeTuple: unimplemented,
-  findByResourceKindAndRelation: unimplemented,
   listChanges: unimplemented,
   pruneChanges: unimplemented,
   lastChangeSequence: unimplemented,

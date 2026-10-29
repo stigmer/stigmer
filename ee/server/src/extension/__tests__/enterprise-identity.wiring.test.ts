@@ -9,9 +9,8 @@
  *     a second binding that answers by another rule than the Authorize
  *     step.
  *   - The unit's start makes its schema current, then runs the
- *     organization-link repair, then its owner-row reconcile: the repair
- *     reads grant rows a host's own start may converge first, and the
- *     reconcile reads the links the repair restores.
+ *     organization-link repair: the repair reads grant rows a host's own
+ *     start may converge first, from tables the schema run makes.
  *
  * A reintroduced port or a swapped order compiles, boots and serves, and
  * the behaviour suites beside this one (enterprise-identity.test.ts) see
@@ -78,12 +77,11 @@ describe("the identity unit's wiring", () => {
     expect(unit).toMatch(/async start\(\): Promise<void> \{/);
   });
 
-  it("makes its schema current on start, then runs the link repair, then the owner-row reconcile", () => {
+  it("makes its schema current on start, then runs the link repair", () => {
     const start = block(unitSource(), "async start(): Promise<void> {", "\n    },\n");
     const at = positions(start, [
       "await ports.schema.ensure();",
       "await repairOrganizationLinks();",
-      "await revokeOwnerRows();",
     ]);
     expect(at).toEqual([...at].sort((a, b) => a - b));
   });

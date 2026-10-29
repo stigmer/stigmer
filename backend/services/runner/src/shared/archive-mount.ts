@@ -8,11 +8,11 @@
  * skill's `SKILL.md` and hash marker; the plugin's content-addressed cache
  * and its tamper guard) and call these for the rest:
  *
- * - {@link downloadArchive}: mint a download URL first and fetch over HTTP,
- *   so the archive's full size is deliverable; fall back to the unary RPC,
- *   capped by the gRPC message limit, only when the server predates the
- *   lane (`Unimplemented`), or runs without one where the transport says
- *   its mint answers so (an Eval's, `FailedPrecondition`).
+ * - {@link downloadArchive}: mint a download URL and fetch over HTTP, so
+ *   the archive's full size is deliverable. A transport that names an
+ *   inline read takes it, capped by the gRPC message limit, on the mint
+ *   answers it names (an Eval's: `FailedPrecondition`, a server running
+ *   without a transfer lane); every other refusal fails the download.
  * - {@link resetDirectory} then {@link writeArchiveEntries}: a mount is
  *   rebuilt from scratch, so a file the new content no longer carries never
  *   lingers, and every entry must resolve inside the mount.
@@ -28,27 +28,28 @@
 
 import { agentFs } from "./agent-fs.js";
 import { dirname, extname, resolve } from "node:path";
-import { ConnectError, Code } from "@connectrpc/connect";
+import { ConnectError, type Code } from "@connectrpc/connect";
 import type { ZipFileEntry } from "./zip-extract.js";
 
-/** The two ways a server hands out an archive's bytes, by storage key. */
+/** How a server hands out an archive's bytes, by storage key. */
 export interface ArchiveTransport {
-  /** Mint an HTTP download URL; throws `Unimplemented` on a server that predates the lane. */
+  /** Mint an HTTP download URL. */
   readonly mintDownloadUrl: (artifactStorageKey: string) => Promise<{ readonly url: string; readonly sizeBytes: bigint }>;
-  /** The unary fallback, capped by the server's gRPC message limit. */
-  readonly fetchUnary: (artifactStorageKey: string) => Promise<{ readonly artifact: Uint8Array }>;
   /**
-   * The answers to the mint that mean "no transfer lane here, read
-   * inline"; absent, `Unimplemented` alone (a server that predates the
-   * lane). The Eval lane also answers `FailedPrecondition` when the server
-   * runs without one.
+   * The inline read, capped by the server's gRPC message limit, and the
+   * answers to the mint that send the download there; absent, every
+   * refusal of the mint fails the download.
    */
-  readonly inlineOn?: readonly Code[];
+  readonly inline?: {
+    readonly on: readonly Code[];
+    readonly fetch: (artifactStorageKey: string) => Promise<{ readonly artifact: Uint8Array }>;
+  };
 }
 
 /**
- * Download an archive's bytes, transfer lane first (#675). `undefined` when
- * the server holds no bytes for the key.
+ * Download an archive's bytes over the transfer lane (#675), or inline where
+ * the transport says so. `undefined` when the server holds no bytes for the
+ * key.
  */
 export async function downloadArchive(
   transport: ArchiveTransport,
@@ -58,8 +59,8 @@ export async function downloadArchive(
   try {
     minted = await transport.mintDownloadUrl(artifactStorageKey);
   } catch (err) {
-    if (err instanceof ConnectError && (transport.inlineOn ?? [Code.Unimplemented]).includes(err.code)) {
-      const resp = await transport.fetchUnary(artifactStorageKey);
+    if (transport.inline !== undefined && err instanceof ConnectError && transport.inline.on.includes(err.code)) {
+      const resp = await transport.inline.fetch(artifactStorageKey);
       return resp.artifact && resp.artifact.length > 0 ? resp.artifact : undefined;
     }
     throw err;

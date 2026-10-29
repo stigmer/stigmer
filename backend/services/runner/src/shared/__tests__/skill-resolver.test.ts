@@ -2,16 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, existsSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { ConnectError, Code } from "@connectrpc/connect";
 import { resolveSkills } from "../skill-resolver.js";
+import { mintedDownload } from "../../__test-utils__/minted-download.js";
 import { buildZip } from "@stigmer/zip-structure/testing";
-
-/** A server that predates the transfer lane (#675) answers the mint RPC
- * with UNIMPLEMENTED — the default posture for these tests, which keeps
- * every pre-existing case pinned to the unary getSkillArtifact fallback. */
-function unimplementedMint() {
-  return vi.fn().mockRejectedValue(new ConnectError("unimplemented", Code.Unimplemented));
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -80,8 +73,7 @@ describe("resolveSkills — artifact extraction", () => {
 
     const client = {
       getSkillByReference: vi.fn(),
-      getSkillArtifact: vi.fn().mockResolvedValue({ artifact: new Uint8Array(0) }),
-      getSkillArtifactDownloadUrl: unimplementedMint(),
+      getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue(mintedDownload(new Uint8Array(0))),
       ...clientOverrides,
     } as any;
 
@@ -131,7 +123,7 @@ describe("resolveSkills — artifact extraction", () => {
             artifactStorageKey: "artifacts/garden.zip",
           }),
         ),
-        getSkillArtifact: vi.fn().mockResolvedValue({ artifact }),
+        getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue(mintedDownload(artifact)),
       },
     );
 
@@ -171,7 +163,7 @@ describe("resolveSkills — artifact extraction", () => {
 
     try {
       expect(result).toHaveLength(1);
-      expect(client.getSkillArtifact).not.toHaveBeenCalled();
+      expect(client.getSkillArtifactDownloadUrl).not.toHaveBeenCalled();
 
       const skillDir = join(platformDir, "skills", "simple-skill");
       expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# Simple");
@@ -193,7 +185,7 @@ describe("resolveSkills — artifact extraction", () => {
             artifactStorageKey: "artifacts/flaky.zip",
           }),
         ),
-        getSkillArtifact: vi.fn().mockRejectedValue(new Error("Network timeout")),
+        getSkillArtifactDownloadUrl: vi.fn().mockRejectedValue(new Error("Network timeout")),
       },
     );
 
@@ -222,16 +214,16 @@ describe("resolveSkills — artifact extraction", () => {
         versionHash: "hash-v1",
       }),
     );
-    const getSkillArtifact = vi.fn().mockResolvedValue({ artifact });
+    const getSkillArtifactDownloadUrl = vi.fn().mockResolvedValue(mintedDownload(artifact));
 
     const { result, platformDir, client, resolveAgain } = await resolveWithMockClient(
       [makeRef("cached-skill")],
-      { getSkillByReference, getSkillArtifact },
+      { getSkillByReference, getSkillArtifactDownloadUrl },
     );
 
     try {
       expect(result).toHaveLength(1);
-      expect(client.getSkillArtifact).toHaveBeenCalledTimes(1);
+      expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(1);
 
       const second = await resolveAgain();
       expect(second).toHaveLength(1);
@@ -239,7 +231,7 @@ describe("resolveSkills — artifact extraction", () => {
       // Metadata was re-fetched (latest-version freshness)...
       expect(client.getSkillByReference).toHaveBeenCalledTimes(2);
       // ...but the artifact transfer and rewrite were skipped.
-      expect(client.getSkillArtifact).toHaveBeenCalledTimes(1);
+      expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(1);
 
       const skillDir = join(platformDir, "skills", "cached-skill");
       expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
@@ -267,14 +259,14 @@ describe("resolveSkills — artifact extraction", () => {
     const artifactV2 = buildZip([{ name: "references/new-in-v2.md", content: "new" }]);
 
     const getSkillByReference = vi.fn().mockResolvedValueOnce(v1).mockResolvedValueOnce(v2);
-    const getSkillArtifact = vi
+    const getSkillArtifactDownloadUrl = vi
       .fn()
-      .mockResolvedValueOnce({ artifact: artifactV1 })
-      .mockResolvedValueOnce({ artifact: artifactV2 });
+      .mockResolvedValueOnce(mintedDownload(artifactV1))
+      .mockResolvedValueOnce(mintedDownload(artifactV2));
 
     const { platformDir, client, resolveAgain } = await resolveWithMockClient(
       [makeRef("evolving-skill")],
-      { getSkillByReference, getSkillArtifact },
+      { getSkillByReference, getSkillArtifactDownloadUrl },
     );
 
     try {
@@ -282,7 +274,7 @@ describe("resolveSkills — artifact extraction", () => {
       expect(readFileSync(join(skillDir, "references", "removed-in-v2.md"), "utf-8")).toBe("old");
 
       await resolveAgain();
-      expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+      expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(2);
       expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# V2");
       expect(readFileSync(join(skillDir, "references", "new-in-v2.md"), "utf-8")).toBe("new");
       // The v1-only file must not linger in the v2 mount (the stale-file leak).
@@ -302,14 +294,14 @@ describe("resolveSkills — artifact extraction", () => {
     });
     const artifact = buildZip([{ name: "references/late.md", content: "finally" }]);
     const getSkillByReference = vi.fn().mockResolvedValue(proto);
-    const getSkillArtifact = vi
+    const getSkillArtifactDownloadUrl = vi
       .fn()
       .mockRejectedValueOnce(new Error("Network timeout"))
-      .mockResolvedValueOnce({ artifact });
+      .mockResolvedValueOnce(mintedDownload(artifact));
 
     const { result, platformDir, client, resolveAgain } = await resolveWithMockClient(
       [makeRef("retry-skill")],
-      { getSkillByReference, getSkillArtifact },
+      { getSkillByReference, getSkillArtifactDownloadUrl },
     );
 
     try {
@@ -320,12 +312,12 @@ describe("resolveSkills — artifact extraction", () => {
 
       // Second pass retries and completes the mount.
       await resolveAgain();
-      expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+      expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(2);
       expect(readFileSync(join(skillDir, "references", "late.md"), "utf-8")).toBe("finally");
 
       // Third pass is a cache hit.
       await resolveAgain();
-      expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+      expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(2);
     } finally {
       cleanupPlatformDir(platformDir);
     }
@@ -342,11 +334,11 @@ describe("resolveSkills — artifact extraction", () => {
         versionHash: "hash-v1",
       }),
     );
-    const getSkillArtifact = vi.fn().mockResolvedValue({ artifact });
+    const getSkillArtifactDownloadUrl = vi.fn().mockResolvedValue(mintedDownload(artifact));
 
     const { platformDir, client, resolveAgain } = await resolveWithMockClient(
       [makeRef("tampered-skill")],
-      { getSkillByReference, getSkillArtifact },
+      { getSkillByReference, getSkillArtifactDownloadUrl },
     );
 
     try {
@@ -354,7 +346,7 @@ describe("resolveSkills — artifact extraction", () => {
       writeFileSync(join(skillDir, ".stigmer-mount.json"), "not json {");
 
       await resolveAgain();
-      expect(client.getSkillArtifact).toHaveBeenCalledTimes(2);
+      expect(client.getSkillArtifactDownloadUrl).toHaveBeenCalledTimes(2);
       expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
     } finally {
       cleanupPlatformDir(platformDir);
@@ -381,7 +373,7 @@ describe("resolveSkills — artifact extraction", () => {
             artifactStorageKey: "artifacts/test.zip",
           }),
         ),
-        getSkillArtifact: vi.fn().mockResolvedValue({ artifact }),
+        getSkillArtifactDownloadUrl: vi.fn().mockResolvedValue(mintedDownload(artifact)),
       },
     );
 

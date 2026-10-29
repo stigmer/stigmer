@@ -15,9 +15,8 @@
  *     gone is freed and taken again: an interrupted create or delete
  *     leaves such names behind. A holder is never judged gone while its
  *     claim is younger than ABANDONED_NAME_AFTER_MS, because a create
- *     holds its claim a step before its row exists, and a name equal to
- *     its holder's id is never gone (an earlier release filed a resource
- *     under it). Whether the holder still holds the name is the caller's
+ *     holds its claim a step before its row exists. Whether the holder
+ *     still holds the name is the caller's
  *     question (NameHolder): a row read for most kinds, the kind's port
  *     where a composition keeps the rows elsewhere;
  *   - ClaimName, immediately before Persist on every create, after the
@@ -256,18 +255,13 @@ export async function claimName(
 
 /**
  * Whether the resource a name points at is gone: it no longer holds the
- * name, and the claim is older than ABANDONED_NAME_AFTER_MS. A name equal
- * to its holder's id never counts as gone: an earlier release filed a
- * resource under it.
+ * name, and the claim is older than ABANDONED_NAME_AFTER_MS.
  */
 export async function holderIsGone(
   entry: ResourceNameEntry,
   now: Date,
   holder: NameHolder,
 ): Promise<boolean> {
-  if (entry.name === entry.id) {
-    return false;
-  }
   if (now.getTime() - Date.parse(entry.claimedAt) < ABANDONED_NAME_AFTER_MS) {
     return false;
   }

@@ -18,8 +18,7 @@
  *     head has no hash or no audit row, and a failing head-tag read is
  *     Internal;
  *   - the version-metadata rule leaves a head with no hash or no metadata as
- *     it is, and on an unchanged hash keeps the stored chain, repairing an
- *     empty stored version id from the hash;
+ *     it is, and on an unchanged hash keeps the stored id and chain;
  *   - a version page whose head hash no audit row holds marks no version
  *     current, and a failing read of the current record is Internal.
  */
@@ -322,9 +321,9 @@ describe("the version-metadata rule", () => {
     },
   });
 
-  it("on an unchanged hash keeps the stored chain and message, repairs an empty stored id, and moves a named tag", () => {
+  it("on an unchanged hash keeps the stored id, chain and message, and moves a named tag", () => {
     const stored = create(AgentSchema, {
-      metadata: { id: "agt_1", version: { id: "", previousVersionId: OLD, message: "stored", tag: "old" } },
+      metadata: { id: "agt_1", version: { id: HEAD, previousVersionId: OLD, message: "stored", tag: "old" } },
       status: { versionHash: HEAD },
     });
     const ctx = new RequestContext(

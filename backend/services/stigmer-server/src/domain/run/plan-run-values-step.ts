@@ -17,9 +17,9 @@
  *
  * Inputs: the session by the execution's session_id (its own values, its
  * vaults, its resources and its own plugins), and the agent
- * from the stamp alone: the stamped version's spec, or the stamped agent
- * as it is now when the turn recorded no version. A stamped version that
- * no longer resolves refuses, naming it. The agent's organization is read
+ * from the stamp alone: the stamped version's spec (a turn that names an
+ * agent always records its version, ResolveRunAgent). A stamped version
+ * that no longer resolves refuses, naming it. The agent's organization is read
  * from its row as it is now (none when the row cannot be read), so the
  * resolver keeps the person's own values from another organization's
  * agent. No stamp is the built-in assistant: no agent, and the session's
@@ -288,32 +288,16 @@ async function loadRunSession(
 
 /**
  * The spec of the agent a turn runs, its name for the resolver's messages
- * and its organization: the recorded version's snapshot when the turn
- * recorded one (the name and organization read best-effort from the agent
- * as it is now; no organization when it cannot be read), else the agent as
- * it is now, read once. Failures keep the inner status code with Go's wrap
- * prefix, naming the version when one was recorded.
+ * and its organization: the recorded version's snapshot (the name and
+ * organization read best-effort from the agent as it is now; no
+ * organization when it cannot be read). Failures keep the inner status
+ * code with Go's wrap prefix, naming the version.
  */
 async function loadRunAgent(
   deps: RunValuePlannerDeps,
   agentId: string,
   versionHash: string,
 ): Promise<{ spec: AgentSpec | undefined; name: string; org: string | undefined }> {
-  if (versionHash === "") {
-    try {
-      const agent = await deps.agentLoader().get(agentId);
-      return {
-        spec: agent.spec,
-        name: agent.metadata?.name || agent.metadata?.slug || agentId,
-        org: agent.metadata?.org,
-      };
-    } catch (error) {
-      if (error instanceof ConnectError) {
-        throw goWrappedStatusError(`load agent ${agentId}`, error);
-      }
-      chainError(`load agent ${agentId}`, error);
-    }
-  }
   let spec: AgentSpec | undefined;
   try {
     spec = (await deps.agentLoader().getVersion(agentId, versionHash))

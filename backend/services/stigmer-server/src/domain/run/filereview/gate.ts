@@ -13,32 +13,7 @@
  * (domain/session/hitl/answer.ts `openAsksOf`). One fact, so the workflow's
  * wake condition and an answer's signal can never disagree about whether
  * the turn may resume.
- *
- * `unresolvedGateCountOfJson` is the gate a history recorded before that
- * count replays (OPEN_GATES_FROM_LOG_PATCH_ID in
- * temporal/agentexecution/names.ts): the length of the pending approvals
- * in the run JSON its load returned. The contract no longer has the
- * field, so it is read from the recorded JSON as written, which gives the
- * replay the count the original run saw.
- *
- * Bundle-safe: the invoke workflow imports this module by direct path.
  */
-import type { JsonValue } from "@bufbuild/protobuf";
-
-/** The gate a replayed history read: the pending approvals in its recorded run JSON (module header). */
-export function unresolvedGateCountOfJson(run: JsonValue): number {
-  const status = field(run, "status");
-  const pending = field(status, "pendingApprovals") ?? field(status, "pending_approvals");
-  return Array.isArray(pending) ? pending.length : 0;
-}
-
-/** A JSON object's field, or undefined when the value is not an object. */
-function field(value: JsonValue | undefined, name: string): JsonValue | undefined {
-  if (value === undefined || value === null || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  return value[name];
-}
 
 /** Whether the HITL gate is clear — the turn may resume: none of its asks is open. */
 export function gateResolved(openGates: number): boolean {

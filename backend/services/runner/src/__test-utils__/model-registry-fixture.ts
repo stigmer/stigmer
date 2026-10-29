@@ -7,8 +7,9 @@
  * fails SOFT to defaults with a 60 s failure
  * cache, which would make a golden depend on DEFAULT_PRICING and log a
  * warning on every run, so a hermetic run stubs `fetch` to answer one
- * registry document — and to THROW for any other URL, so a new network
- * dependency on the activity path fails the run instead of leaking.
+ * registry document — and to THROW for any other URL but a `data:` one,
+ * which reaches no network, so a new network dependency on the activity
+ * path fails the run instead of leaking.
  *
  * One entry per harness, each priced at round numbers so a golden's usage and
  * cost are legible (600 000 input tokens = $0.60). `claude-haiku-4.5` is
@@ -142,6 +143,11 @@ export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { rea
     "fetch",
     vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      // A `data:` URL holds its bytes and reaches no network
+      // (`minted-download.ts`), so it is read, not refused or recorded.
+      if (url.startsWith("data:")) {
+        return networkFetch(input, init);
+      }
       urls.push(url);
       if (url.includes("/model-registry")) {
         return { ok: true, status: 200, json: async () => document } as unknown as Response;

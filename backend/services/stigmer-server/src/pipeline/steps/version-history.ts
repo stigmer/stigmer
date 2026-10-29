@@ -426,9 +426,8 @@ export function newLoadAndMapVersionsStep<
           : auditSeqOf(decodeListPageToken(req.pageToken, fingerprint).cursor);
 
       // is_current = the newest record whose hash is the live head's, not
-      // the newest row. Legacy data may hold duplicate-hash rows
-      // (predating repoint semantics); naming one record keeps
-      // exactly-one-current true for them, on whichever page it falls.
+      // the newest row: naming one record keeps exactly one current, on
+      // whichever page it falls.
       const headHash = ctx.get(LIST_VERSIONS_HEAD_HASH_KEY) as string;
       let records: AuditRecord[];
       let currentSeq = "";

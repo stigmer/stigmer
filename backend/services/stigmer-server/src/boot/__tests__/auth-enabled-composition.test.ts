@@ -451,11 +451,11 @@ describe("identity accounts under the OIDC posture", () => {
   });
 
   it("a key minted BEFORE provisioning still resolves to the owner's account — the raw-sub stamp derives to the same id", async () => {
-    const overLegacyKey = createClient(
+    const overEarlyKey = createClient(
       IdentityAccountQueryController,
       transportWith(keyMintedBeforeProvisioning),
     );
-    expect((await overLegacyKey.whoAmI({})).metadata?.id).toBe(accountId);
+    expect((await overEarlyKey.whoAmI({})).metadata?.id).toBe(accountId);
   });
 
   it("provisionMyAccount is idempotent for a provisioned subject", async () => {

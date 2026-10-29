@@ -28,6 +28,7 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 
 const TASK_QUEUE = "eval-replay-capture";
+const CAPTURE_IDENTITY = "replay-capture";
 const OUT_DIR = fileURLToPath(new URL("../src/temporal/evals/__tests__/replay-histories", import.meta.url));
 
 function argument(name: string): string | undefined {
@@ -91,8 +92,11 @@ function cells(runs: number) {
 
 async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
-  const env = await TestWorkflowEnvironment.createLocal();
+  // One fixed identity for the client and the worker, so a committed
+  // history names no machine.
+  const env = await TestWorkflowEnvironment.createLocal({ client: { identity: CAPTURE_IDENTITY } });
   const worker = await Worker.create({
+    identity: CAPTURE_IDENTITY,
     connection: env.nativeConnection,
     taskQueue: TASK_QUEUE,
     workflowsPath: WORKFLOWS_PATH,

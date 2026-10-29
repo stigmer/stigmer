@@ -17,9 +17,7 @@
  *     start the platform keeps refusing for capacity is recorded "busy";
  *     any other start failure "not-started"; every judge that started or
  *     failed to start is recorded once, so its reservation is settled and
- *     its session deleted;
- *   - a history recorded by the workflow as it was before the judge
- *     (__fixtures__/grade-run-before-judge) replays against today's.
+ *     its session deleted.
  *
  * Needs the `temporal` CLI on PATH (TestWorkflowEnvironment.createLocal);
  * every test skips VISIBLY when the local test server cannot start, never
@@ -45,11 +43,6 @@ import {
 const TASK_QUEUE = "grade-run-workflow-test";
 const WORKFLOWS_PATH = new URL("../workflows/index.ts", import.meta.url)
   .pathname;
-const BEFORE_JUDGE_QUEUE = "grade-run-before-judge-test";
-const BEFORE_JUDGE_WORKFLOWS_PATH = new URL(
-  "./__fixtures__/grade-run-before-judge/index.ts",
-  import.meta.url,
-).pathname;
 
 const TICKET: JudgeTicket = { evaluatorId: "evl_test", modelName: "", capUsd: 0.25, period: "2026-10" };
 
@@ -286,25 +279,4 @@ describe("stigmer/grading/grade-run workflow (TestWorkflowEnvironment)", () => {
     await (await startGradeRun("run_over_limit")).result();
     expect(script.recordCalls).toEqual([]);
   }, 30_000);
-
-  it("replays a history recorded before the judge existed", async (testCtx) => {
-    if (!envReady || env === null) return testCtx.skip();
-    const { Worker: W } = await import("@temporalio/worker");
-    const before = await W.create({
-      connection: env.nativeConnection,
-      taskQueue: BEFORE_JUDGE_QUEUE,
-      workflowsPath: BEFORE_JUDGE_WORKFLOWS_PATH,
-      activities: scriptedActivities(),
-    });
-    const handle = await env.client.workflow.start(GRADE_RUN_WORKFLOW_TYPE, {
-      taskQueue: BEFORE_JUDGE_QUEUE,
-      workflowId: `grade-run-before-judge-${Date.now()}`,
-      args: ["run_before_judge"],
-    });
-    await before.runUntil(handle.result());
-    const history = await handle.fetchHistory();
-    await expect(
-      W.runReplayHistory({ workflowsPath: WORKFLOWS_PATH }, history),
-    ).resolves.toBeUndefined();
-  }, 60_000);
 });

@@ -70,8 +70,6 @@ export const DEFAULT_ACTIVITY_TASK_QUEUE = "stigmer_runner";
  */
 export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";
 
-export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
-
 /**
  * The close of the previous turn's file review, run first in every
  * message turn's workflow: the previous turn's still-undecided edits are
@@ -81,46 +79,11 @@ export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
 export const CLOSE_FILE_REVIEW_ACTIVITY_NAME = "CloseFileReview";
 
 /**
- * The retired run-end delete of a run's stored copy of its values. A run
- * no longer stores one (its values are fetched from their vaults when its
- * work starts), so new runs never call it: the workflow skips the call
- * behind VALUES_FETCHED_PATCH_ID. A run started before that change has the
- * call in its history, and a replay must make it again, so the worker
- * still registers the name, with a body that does nothing (the upgrade's
- * migration deleted every stored copy). Byte-pinned.
- */
-export const RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME = "DeleteExecutionContext";
-
-/** The workflow patch that stops new runs calling the retired delete above. Byte-pinned. */
-export const VALUES_FETCHED_PATCH_ID = "values-fetched-from-vaults";
-
-/**
- * The workflow patch behind which a message turn calls CloseFileReview
- * first: a run started before the step has no such call in its history,
- * so a replay of it makes none. Byte-pinned.
- */
-export const CLOSE_FILE_REVIEW_PATCH_ID = "close-file-review";
-
-/**
- * The workflow patch behind which a run's recoveries are counted within a
- * sliding hour of workflow time rather than over its whole life: a run
- * recovered before it keeps the lifetime count on replay. Byte-pinned.
- */
-export const RECOVERY_WINDOW_PATCH_ID = "recovery-window";
-
-/**
  * The count of a turn's open gates, read from its session's log
- * (store/session-events.ts `openGates`): the workflow's HITL wait reads it
- * in place of the run's pending approvals. Byte-pinned.
+ * (store/session-events.ts `openGates`), which the workflow's HITL wait
+ * reads. Byte-pinned.
  */
 export const COUNT_OPEN_GATES_ACTIVITY_NAME = "CountOpenGates";
-
-/**
- * The workflow patch behind which the HITL wait counts the turn's open
- * gates from the log (COUNT_OPEN_GATES_ACTIVITY_NAME): a run whose history
- * loaded the run for its pending approvals replays that load. Byte-pinned.
- */
-export const OPEN_GATES_FROM_LOG_PATCH_ID = "open-gates-from-log";
 
 /**
  * The start of the turn a session's queued messages wait for
@@ -129,10 +92,3 @@ export const OPEN_GATES_FROM_LOG_PATCH_ID = "open-gates-from-log";
  * Byte-pinned.
  */
 export const START_QUEUED_TURN_ACTIVITY_NAME = "StartQueuedTurn";
-
-/**
- * The workflow patch behind which a run's workflow starts its session's
- * queued turn as it ends: a run started before the step has no such call in
- * its history, so a replay of it makes none. Byte-pinned.
- */
-export const START_QUEUED_TURN_PATCH_ID = "start-queued-turn";

@@ -7,11 +7,10 @@
  * Eval's archive is read through the run's own door, under the run's
  * scoped credential, never via a plugin and never by the reference when
  * the door answers (stigmer#2364); inline when the door says the server
- * has no transfer lane (`FailedPrecondition`); by the reference at the
- * stamped digest only when the server predates the door (`Unimplemented`),
- * that read itself over its URL or inline; refused naming the Eval when
- * the door or the read is (a refusal of the door never falls back), when
- * it holds no bytes, or when the bytes are another version's. The index
+ * has no transfer lane (`FailedPrecondition`), by the reference at the
+ * stamped digest; refused naming the Eval when the door or the read is (any
+ * other refusal of the door, `Unimplemented` included, never falls back),
+ * when it holds no bytes, or when the bytes are another version's. The index
  * answers the root (`""`) with every file, an Eval's suite being its root.
  */
 
@@ -24,6 +23,7 @@ import { buildZip } from "@stigmer/zip-structure/testing";
 import { describe, expect, it } from "vitest";
 import type { StigmerClient } from "../../../client/stigmer-client.js";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { mintedDownload } from "../../../__test-utils__/minted-download.js";
 import { caseArchiveOf, CaseArchiveError, fetchCaseArchive, joinCasePath } from "../case-archive.js";
 
 const ARCHIVE = buildZip([
@@ -41,7 +41,7 @@ const context = (digest = DIGEST) => create(EvalCaseContextSchema, { pluginId: "
 const pluginRecord = (status: { digest?: string; artifactStorageKey?: string }): Plugin =>
   create(PluginSchema, { status: { digest: DIGEST, artifactStorageKey: "plugins/abc.zip", ...status } });
 
-/** A client whose download lane is absent, so the unary read answers with `bytes`. */
+/** A client whose transfer lane serves `bytes`, or whose mint fails with `fetchError`. */
 function clientServing(fields: {
   plugin?: () => Promise<Plugin>;
   bytes?: Uint8Array;
@@ -49,8 +49,8 @@ function clientServing(fields: {
 }): StigmerClient {
   return {
     getPlugin: fields.plugin ?? (() => Promise.resolve(pluginRecord({}))),
-    getPluginArtifactDownloadUrl: () => Promise.reject(fields.fetchError ?? new ConnectError("no lane", Code.Unimplemented)),
-    getPluginArtifact: () => Promise.resolve({ artifact: fields.bytes ?? ARCHIVE }),
+    getPluginArtifactDownloadUrl: () =>
+      fields.fetchError !== undefined ? Promise.reject(fields.fetchError) : Promise.resolve(mintedDownload(fields.bytes ?? ARCHIVE)),
   } as unknown as StigmerClient;
 }
 
@@ -87,11 +87,10 @@ const evalContext = (digest = DIGEST) => create(EvalCaseContextSchema, { evalId:
 /**
  * A client serving an Eval's reads, recording the references they named
  * and the door's asks; `getPlugin` is never asked. The door answers as
- * `door` says, by default as a server that predates it.
+ * `door` says, by default as a server with no transfer lane.
  */
 function evalClient(fields: {
   door?: () => Promise<{ url: string; sizeBytes: bigint }>;
-  mint?: () => Promise<{ url: string; sizeBytes: bigint }>;
   inline?: () => Promise<{ artifact: Uint8Array }>;
   refs?: Array<{ id: string; version: string; kind: number }>;
   doorAsks?: Array<[string, string | undefined]>;
@@ -103,11 +102,7 @@ function evalClient(fields: {
       Promise.resolve(agentExecutionId === RUN_ID ? SCOPED : undefined),
     getRunEvalCaseArchiveDownloadUrl: (runId: string, scopedToken?: string) => {
       fields.doorAsks?.push([runId, scopedToken]);
-      return (fields.door ?? (() => Promise.reject(new ConnectError("no door", Code.Unimplemented))))();
-    },
-    getEvalDownloadUrl: (ref: { id: string; version: string; kind: number }) => {
-      record(ref);
-      return (fields.mint ?? (() => Promise.reject(new ConnectError("no lane", Code.FailedPrecondition))))();
+      return (fields.door ?? (() => Promise.reject(new ConnectError("no lane", Code.FailedPrecondition))))();
     },
     downloadEval: (ref: { id: string; version: string; kind: number }) => {
       record(ref);
@@ -116,14 +111,12 @@ function evalClient(fields: {
   } as unknown as StigmerClient;
 }
 
-const dataUrl = (bytes: Uint8Array): string => `data:application/zip;base64,${Buffer.from(bytes).toString("base64")}`;
-
 describe("fetchCaseArchive for an Eval's case", () => {
   it("reads the case through the run's door under its scoped credential, never by the reference", async () => {
     const refs: Array<{ id: string; version: string; kind: number }> = [];
     const doorAsks: Array<[string, string | undefined]> = [];
     const client = evalClient({
-      door: () => Promise.resolve({ url: dataUrl(ARCHIVE), sizeBytes: BigInt(ARCHIVE.length) }),
+      door: () => Promise.resolve(mintedDownload(ARCHIVE)),
       refs,
       doorAsks,
     });
@@ -141,14 +134,6 @@ describe("fetchCaseArchive for an Eval's case", () => {
     expect(refs).toEqual([{ id: EVAL_ID, version: DIGEST, kind: ApiResourceKind.eval }]);
   });
 
-  it("reads the Eval at its stamped digest over the download URL when the server predates the door", async () => {
-    const refs: Array<{ id: string; version: string; kind: number }> = [];
-    const client = evalClient({ mint: () => Promise.resolve({ url: dataUrl(ARCHIVE), sizeBytes: BigInt(ARCHIVE.length) }), refs });
-    const archive = await fetchCaseArchive(client, evalContext(), RUN_ID);
-    expect(archive.text("evals/fix/case.yaml")).toBe("name: fix\n");
-    expect(refs).toEqual([{ id: EVAL_ID, version: DIGEST, kind: ApiResourceKind.eval }]);
-  });
-
   it("never falls back past the door's refusal", async () => {
     const refs: Array<{ id: string; version: string; kind: number }> = [];
     const client = evalClient({
@@ -161,19 +146,18 @@ describe("fetchCaseArchive for an Eval's case", () => {
     expect(refs).toEqual([]);
   });
 
-  it.each([
-    ["has no transfer lane", Code.FailedPrecondition],
-    ["predates the transfer lane", Code.Unimplemented],
-  ])("reads it inline when a server that predates the door %s", async (_why, code) => {
-    const client = evalClient({ mint: () => Promise.reject(new ConnectError("no lane", code)) });
-    const archive = await fetchCaseArchive(client, evalContext(), RUN_ID);
-    expect(archive.under("evals/fix/resources").map(([path]) => path)).toEqual(["a.md", "b.md"]);
+  it("never falls back past a door that answers Unimplemented", async () => {
+    const refs: Array<{ id: string; version: string; kind: number }> = [];
+    const client = evalClient({ door: () => Promise.reject(new ConnectError("no door", Code.Unimplemented)), refs });
+    const refused = fetchCaseArchive(client, evalContext(), RUN_ID);
+    await expect(refused).rejects.toThrow(`eval ${EVAL_ID} could not be read ([unimplemented] no door)`);
+    expect(refs).toEqual([]);
   });
 
   it.each([
     [
       "the read is refused",
-      { mint: () => Promise.reject(new ConnectError("unauthorized to get eval", Code.PermissionDenied)) },
+      { inline: () => Promise.reject(new ConnectError("unauthorized to get eval", Code.PermissionDenied)) },
       `eval ${EVAL_ID} could not be read ([permission_denied] unauthorized to get eval)`,
     ],
     ["the server holds no bytes", { inline: () => Promise.resolve({ artifact: new Uint8Array() }) }, `the server holds no archive for eval ${EVAL_ID}`],

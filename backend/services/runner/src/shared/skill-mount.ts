@@ -138,8 +138,7 @@ export async function mountIsFresh(
 
 /**
  * Download a skill artifact's ZIP bytes over the shared archive transport
- * (`archive-mount.ts` `downloadArchive`: the URL lane first, the unary RPC
- * against a server that predates it).
+ * (`archive-mount.ts` `downloadArchive`: the URL lane).
  *
  * Runs only on a mount-cache miss (the hash-keyed marker above) — a hit
  * skips the transfer entirely, whichever lane would have carried it.
@@ -149,10 +148,7 @@ export async function downloadArtifact(
   artifactStorageKey: string,
 ): Promise<Uint8Array | undefined> {
   return downloadArchive(
-    {
-      mintDownloadUrl: (key) => client.getSkillArtifactDownloadUrl(key),
-      fetchUnary: (key) => client.getSkillArtifact(key),
-    },
+    { mintDownloadUrl: (key) => client.getSkillArtifactDownloadUrl(key) },
     artifactStorageKey,
   );
 }

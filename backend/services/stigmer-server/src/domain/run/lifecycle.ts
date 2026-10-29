@@ -796,9 +796,9 @@ function runRecoverPipeline(
         deps.gateSteps,
         "agent-execution-recover:pre-side-effect-gate",
       ),
-      // A turn created before turns recorded their agent records the
-      // session's pin here, persisted before the values are planned again
-      // and the fresh workflow's runner reads it (resolve-run-agent.ts).
+      // A turn that carries no agent records the session's pin here, when
+      // the session pins one, persisted before the values are planned
+      // again and the fresh workflow's runner reads it (resolve-run-agent.ts).
       newStampRecoveredRunAgentStep(deps.store, deps.logger, alreadyRecovered),
       newRePlanRunValuesStep(deps),
       newStartFreshWorkflowStep(deps),

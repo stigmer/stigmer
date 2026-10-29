@@ -50,9 +50,10 @@
  * about "".
  *
  * The third reading is a ROW's creator stamp, `accountForStamp`: the
- * account a `created_by.id` names, read the two ways a stamp has been
- * written — as an account id (rows stamped since 3.15.0) and as the raw
- * issuer subject (rows the 3.14.x verifiers stamped) — in
+ * account a `created_by.id` names, read the two ways a stamp is written
+ * — as an account id (a provisioned caller's write) and as the raw issuer
+ * subject (a write made before the caller's account existed carries their
+ * subject) — in
  * `accountForCaller`'s order, with no subject read for an account-id
  * stamp the id read missed: no account carries an `ida_` as its subject,
  * so that read could only miss. Three lanes make the server act as the

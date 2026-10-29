@@ -376,11 +376,10 @@ function withEvents(client: StigmerClient) {
       flushGates.push(g);
       await g.opened;
     }),
-    sendLiveness: vi.fn(async (): Promise<"sent" | "refused"> => {
+    sendLiveness: vi.fn(async (): Promise<void> => {
       const g = gate();
       flushGates.push(g);
       await g.opened;
-      return "sent";
     }),
   };
   const chokepoint = new PersistChokepoint({
@@ -448,7 +447,7 @@ describe("PersistChokepoint: what the turn has open, alone", () => {
     await write;
   });
 
-  it("takes the slot when it is free, holds a write behind it, and says what the log answered", async () => {
+  it("takes the slot when it is free, and holds a write behind it", async () => {
     const { client, gates } = heldClient();
     const { chokepoint, events, flushGates } = withEvents(client);
     const sending = chokepoint.flushLiveness(NOTHING_OPEN);
@@ -462,8 +461,5 @@ describe("PersistChokepoint: what the turn has open, alone", () => {
     await vi.waitFor(() => expect(gates).toHaveLength(1));
     gates[0]!.open();
     await write;
-
-    events.sendLiveness.mockResolvedValueOnce("refused");
-    expect(await chokepoint.flushLiveness(NOTHING_OPEN)).toBe("refused");
   });
 });

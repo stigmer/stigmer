@@ -1,9 +1,9 @@
 /**
- * The GenerateSessionSubject activity's wire contract: one argument in one of
- * two shapes — the positional execution id every server has sent, and the
- * typed object a server sends when the dispatch carries the run credential.
- * Both reach the same core with the same execution id; the credential is the
- * activity boundary's business, not this activity's (the header explains).
+ * The GenerateSessionSubject activity's wire contract: one argument, the
+ * typed object, with the run credential when the dispatch carries one and
+ * without it otherwise. Both reach the same core with the same execution id;
+ * the credential is the activity boundary's business, not this activity's
+ * (the header explains).
  *
  * The client is the hermetic module seam (`__test-utils__/hermetic-activity.ts`)
  * because the factory constructs its own `StigmerClient`; the LLM seam is
@@ -94,13 +94,6 @@ function activityUnderTest() {
 }
 
 describe("GenerateSessionSubject wire shapes", () => {
-  it("accepts the positional execution id — every earlier server's shape", async () => {
-    const { GenerateSessionSubject, reads, titled } = activityUnderTest();
-    await GenerateSessionSubject(EXECUTION_ID);
-    expect(reads).toEqual([EXECUTION_ID]);
-    expect(titled).toEqual(["Indexing Basics"]);
-  });
-
   it("accepts the typed object carrying the run credential and reads the same execution", async () => {
     const { GenerateSessionSubject, reads, titled } = activityUnderTest();
     await GenerateSessionSubject({

@@ -6,7 +6,7 @@ protocol now lives on the Stigmer documentation site:
 **https://stigmer.ai/docs/guides/runners/ipc-protocol**
 
 That page is the single source of truth for the command/response contract, the
-versioned handshake, the lifecycle, and the backward-compatibility rules. Edit it
+versioned handshake, the lifecycle, and the compatibility rules. Edit it
 there — do not re-add the full prose here, so the contract has exactly one home.
 
 The machine-readable definition of the protocol is the code itself:

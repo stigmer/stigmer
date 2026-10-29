@@ -23,24 +23,18 @@
  * worth having even when no model is reachable, so nothing here fails
  * closed.
  *
- * Activity contract — exactly ONE argument, in one of two shapes:
+ * Activity contract — exactly ONE argument, the typed object:
  *   Name:   "GenerateSessionSubject"
- *   Input:  (executionId: string)
- *           | ({ execution_id, execution_context_token? }: GenerateSessionSubjectInput)
+ *   Input:  ({ execution_id, execution_context_token? }: GenerateSessionSubjectInput)
  *   Output: void
  *
- * The object is what a server sends when the dispatch carries the run's
- * credential (shared/run-credential.ts), so that this activity reads the
- * run and titles the session AS THE RUN'S HUMAN — with sign-in on, the
- * operator's key the process holds cannot read a member's run. The string
- * is what every server sent before, and what a server whose dispatch carries
- * no credential still sends (the cloud's, whose desktop runners in the field
- * must keep titling sessions). Both shapes are accepted — the dual-shape
- * posture the turn activities take (shared/activity-input.ts); the
+ * `execution_context_token` is the run's credential (shared/run-credential.ts),
+ * present when the dispatch carried one, so that this activity reads the run
+ * and titles the session AS THE RUN'S HUMAN — with sign-in on, the
+ * operator's key the process holds cannot read a member's run. A dispatch
+ * that carries none (the cloud's) sends the object without it. The
  * credential itself is entered by the activity boundary
- * (interceptors/run-credential-activity.ts), never read here. The cloud's
- * Java signature carries a second argument, invokerIdentityAccountId, that
- * never crosses this wire.
+ * (interceptors/run-credential-activity.ts), never read here.
  */
 
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
@@ -359,9 +353,9 @@ export function createGenerateSessionSubjectActivities(config: Config) {
   return {
     // Registered under the name the server's workflow schedules, declared once for both.
     [GENERATE_SESSION_SUBJECT_ACTIVITY_NAME]: async (
-      input: GenerateSessionSubjectInput | string,
+      input: GenerateSessionSubjectInput,
     ): Promise<void> => {
-      const executionId = typeof input === "string" ? input : input.execution_id;
+      const executionId = input.execution_id;
       activityStarted();
       try {
         log(`started: execution=${executionId}`);

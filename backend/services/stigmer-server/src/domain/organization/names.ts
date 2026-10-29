@@ -16,18 +16,12 @@
  *     its claim and before its row is stored releases the claim;
  *   - a rename moves the current name and leaves the old one resolving to
  *     the organization for RENAMED_SLUG_HOLD_MS, then free
- *     (RenameOrganizationSlug); an organization made before ids were minted
- *     keeps its old name for good, because that name is its id and every
- *     row it owns carries it;
+ *     (RenameOrganizationSlug);
  *   - the delete releases every name the organization holds, after its row
  *     is gone (RetireOrganizationSlug), so a later organization may take
- *     the slug and sees nothing the deleted one owned. A name equal to the
- *     organization's id is the exception: an organization made before ids
- *     were minted was filed under it, its leftovers still carry it, so the
- *     store keeps it reserved after the delete, as v8/v13 keep the slugs
- *     the old ledger had retired.
+ *     the slug and sees nothing the deleted one owned.
  *
- * A name whose organization is gone is free, unless it equals that id. Interrupted sequences leave
+ * A name whose organization is gone is free. Interrupted sequences leave
  * such names behind (a delete whose release failed, a create whose release
  * failed), and a claim that meets one lets it go and claims again. A claim
  * younger than ABANDONED_NAME_AFTER_MS is never treated so, because a create
@@ -108,11 +102,6 @@ export function organizationSlugReservedMessage(slug: string): string {
   return `Organization slug '${slug}' was recently another organization's, and still leads to it`;
 }
 
-/** The copy of a refusal for a name an earlier release filed an organization under. */
-export function organizationIdReservedMessage(slug: string): string {
-  return `Organization slug '${slug}' is reserved: an organization from an earlier release was filed under it`;
-}
-
 /**
  * The refusal for a slug an entry already holds: the reserved refusal for a
  * previous name, the existing duplicate copy for a current one.
@@ -120,9 +109,7 @@ export function organizationIdReservedMessage(slug: string): string {
 export function refusalForHeldName(entry: ResourceNameEntry): ConnectError {
   if (entry.state === "previous") {
     return alreadyExistsWithReasonError(
-      entry.name === entry.id
-        ? organizationIdReservedMessage(entry.name)
-        : organizationSlugReservedMessage(entry.name),
+      organizationSlugReservedMessage(entry.name),
       { reason: ORGANIZATION_SLUG_RESERVED, metadata: { slug: entry.name } },
     );
   }
@@ -131,8 +118,7 @@ export function refusalForHeldName(entry: ResourceNameEntry): ConnectError {
 
 /**
  * Whether the organization a name points at is gone: no row holds its id,
- * and the name is older than ABANDONED_NAME_AFTER_MS. A name equal to its
- * id never counts as gone: it is reserved for good (the module header).
+ * and the name is older than ABANDONED_NAME_AFTER_MS.
  */
 export async function nameHolderIsGone(
   store: Store,

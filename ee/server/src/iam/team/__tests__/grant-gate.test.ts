@@ -71,7 +71,7 @@ const ACME_ID = "org_acme";
 const organizations: Pick<OrganizationLookup, "find"> = {
   find: (orgId) =>
     Promise.resolve(
-      orgId === ACME_ID ? { createdAt: undefined, name: "Acme", slug: "acme", logoUrl: "", parentOrg: "" } : undefined,
+      orgId === ACME_ID ? { createdAt: new Date("2026-01-01T00:00:00Z"), name: "Acme", slug: "acme", logoUrl: "", parentOrg: "" } : undefined,
     ),
 };
 

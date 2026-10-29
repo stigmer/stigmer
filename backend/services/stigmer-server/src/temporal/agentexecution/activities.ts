@@ -1,11 +1,9 @@
 /**
- * Server-side activity implementations for the agent-execution worker —
- * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution), counts a waiting turn's open
- * gates (CountOpenGates), closes the previous turn's file review
- * (CloseFileReview), and
- * registers the retired DeleteExecutionContext name with a body that does
- * nothing, for the runs whose history still calls it (names.ts).
+ * Server-side activity implementations for the agent-execution worker: the
+ * status merge (UpdateExecutionStatus), the count of a waiting turn's open
+ * gates (CountOpenGates), the close of the previous turn's file review
+ * (CloseFileReview) and the start of a session's queued turn
+ * (StartQueuedTurn).
  *
  * Payload boundary: statuses and
  * executions cross as proto-JSON — the TS default payload converter
@@ -33,8 +31,6 @@
  * enforcing Authorizer has no grant for — every runner failure on the
  * cloud composition left a hung, never-FAILED execution (stigmer#979).
  *
- * The read (LoadAgentExecution) stays store-direct: a pure read with Java `findById` parity — no chain to bypass.
- *
  * CountOpenGates is the workflow's HITL wait condition: the number of the
  * turn's tool uses that wait in its session's log (an ask no answer and
  * no result closed, store/session-events.ts `openGates`), the same fact
@@ -43,7 +39,7 @@
  * resume. The session is the workflow input's, or the run's own when an
  * input carried none; a run in no session has no log and no open gate. A
  * store fault fails the activity, and the workflow then waits for the
- * signal, as it did when the load failed.
+ * signal.
  *
  * CloseFileReview is the server's own policy write, as the auto-keeps
  * inside the status merge are: once this turn's message is in the log,
@@ -73,7 +69,7 @@
  * message still queued (no run) or dropped is no turn, and a message this
  * run read while it worked is its own.
  */
-import { create, toJson } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 
 import {
@@ -106,8 +102,6 @@ import type { Store } from "../../store/interface.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
-  LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
-  RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
@@ -182,32 +176,6 @@ export function createAgentExecutionActivities(
       );
     },
 
-    /**
-     * Pure read of the current execution (the workflow's input snapshot
-     * is stale by completion time — historically the workflow held a
-     * stale copy; loading from the DB reflects every runner update).
-     */
-    [LOAD_AGENT_EXECUTION_ACTIVITY_NAME]: async (
-      executionId: string,
-    ): Promise<JsonValue> => {
-      let execution;
-      try {
-        execution = await store.getResource(
-          ApiResourceKind.run,
-          executionId,
-          RunSchema,
-        );
-      } catch (error) {
-        // Go load_execution.go wraps with this exact text — keeps the
-        // inner diagnostic chain byte-comparable across editions.
-        throw new Error(
-          `load agent execution ${executionId}: ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error },
-        );
-      }
-      return toJson(RunSchema, execution);
-    },
-
     /** The turn's open gates in its session's log (module header). */
     [COUNT_OPEN_GATES_ACTIVITY_NAME]: async (
       executionId: string,
@@ -280,9 +248,6 @@ export function createAgentExecutionActivities(
     [START_QUEUED_TURN_ACTIVITY_NAME]: async (sessionId: string): Promise<void> => {
       await deps.queuedTurns(sessionId);
     },
-
-    /** The retired run-end cleanup: nothing is stored to delete (names.ts). */
-    [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (): Promise<void> => {},
   };
 }
 

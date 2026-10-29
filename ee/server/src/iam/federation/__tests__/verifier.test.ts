@@ -234,7 +234,7 @@ function verifierOf(
     jwksFetch?: typeof fetch;
     reservedIssuers?: ReadonlyArray<string>;
     /** The organizations the lookup answers; absent, every organization exists and predates its providers. */
-    organizations?: ReadonlyMap<string, Date | undefined>;
+    organizations?: ReadonlyMap<string, Date>;
     /** The verifier's clock; absent, the wall clock. */
     nowMs?: () => number;
     /** The userinfo read; absent, it refuses. Every call is recorded in `userinfoCalls` first. */
@@ -347,14 +347,15 @@ function verifierOf(
 }
 
 /** A lookup over `known` (organization to creation time); absent, every organization exists since ORG_CREATED. */
-function organizationsOf(known?: ReadonlyMap<string, Date | undefined>): OrganizationLookup {
+function organizationsOf(known?: ReadonlyMap<string, Date>): OrganizationLookup {
   return {
     find: (org): Promise<OrganizationFacts | undefined> => {
-      if (known !== undefined && !known.has(org)) {
+      const createdAt = known === undefined ? ORG_CREATED : known.get(org);
+      if (createdAt === undefined) {
         return Promise.resolve(undefined);
       }
       return Promise.resolve({
-        createdAt: known === undefined ? ORG_CREATED : known.get(org),
+        createdAt,
         name: org,
         slug: org,
         logoUrl: "",

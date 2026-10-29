@@ -39,6 +39,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { archiveFileMode } from "../archive-mount.js";
 import { manifestEvalDir, mountPlugin, PluginMountError, PluginTree, PLUGINS_SUBDIR, withoutEvalSuite } from "../plugin-mount.js";
+import { mintedDownload } from "../../__test-utils__/minted-download.js";
 
 const FILES = {
   ".claude-plugin/plugin.json": '{"name":"safety"}',
@@ -67,14 +68,11 @@ function pluginRecord(overrides: { digest?: string; key?: string } = {}): Plugin
   });
 }
 
-/** A client whose download lane is absent, so the unary read answers. */
-function clientServing(bytes: Uint8Array): StigmerClient & { getPluginArtifact: ReturnType<typeof vi.fn> } {
+/** A client whose transfer lane serves `bytes`. */
+function clientServing(bytes: Uint8Array): StigmerClient & { getPluginArtifactDownloadUrl: ReturnType<typeof vi.fn> } {
   return {
-    getPluginArtifactDownloadUrl: vi.fn(async () => {
-      throw new ConnectError("no lane", Code.Unimplemented);
-    }),
-    getPluginArtifact: vi.fn(async () => ({ artifact: bytes })),
-  } as unknown as StigmerClient & { getPluginArtifact: ReturnType<typeof vi.fn> };
+    getPluginArtifactDownloadUrl: vi.fn(async () => mintedDownload(bytes)),
+  } as unknown as StigmerClient & { getPluginArtifactDownloadUrl: ReturnType<typeof vi.fn> };
 }
 
 describe("mountPlugin", () => {
@@ -90,7 +88,7 @@ describe("mountPlugin", () => {
     expect(existsSync(join(platformDir, PLUGINS_SUBDIR, `${digest}.zip`))).toBe(true);
 
     await mountPlugin(client, pluginRecord(), platformDir);
-    expect(client.getPluginArtifact).toHaveBeenCalledTimes(1);
+    expect(client.getPluginArtifactDownloadUrl).toHaveBeenCalledTimes(1);
   });
 
   it("fetches again when the cached archive no longer hashes to the digest", async () => {
@@ -98,7 +96,7 @@ describe("mountPlugin", () => {
     await mountPlugin(client, pluginRecord(), platformDir);
     writeFileSync(join(platformDir, PLUGINS_SUBDIR, `${digest}.zip`), "tampered");
     const mounted = await mountPlugin(client, pluginRecord(), platformDir);
-    expect(client.getPluginArtifact).toHaveBeenCalledTimes(2);
+    expect(client.getPluginArtifactDownloadUrl).toHaveBeenCalledTimes(2);
     expect(readFileSync(join(mounted.root, "hooks/check"), "utf-8")).toBe(FILES["hooks/check"]);
   });
 

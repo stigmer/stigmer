@@ -645,13 +645,6 @@ What the driver needs:
   only while HTTPS egress is on. With HTTPS egress off, the server logs a
   warning at boot that no sandbox can reach it.
 
-The server refuses to boot while a setting it no longer reads is set, naming
-where its job went: `STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS` (a sandbox
-sleeps once, after `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS`),
-`STIGMER_SANDBOX_SUBSTRATE_SANDBOX_CONFIG` (the WorkerPool's `sandboxClasses`
-entry chooses the configuration) and
-`STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL` (atelet needs no grant).
-
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name
 through Substrate's intercepting gateway, unless you set

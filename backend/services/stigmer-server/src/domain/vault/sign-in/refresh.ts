@@ -25,10 +25,7 @@
  * sign-in's own token endpoint and client, so after an admin repoints the
  * app, its secret would reach an endpoint it was never issued for. Such a
  * sign-in renews without a secret, as one whose app is gone does, and the
- * provider decides. A sign-in saved before login apps were recorded
- * (`vendor_oauth` with no `login_app`) is renewed through the app the
- * address finds now, under the same client id and token URL guard, and
- * records it on write-back. A public client of the address's own login
+ * provider decides. A public client of the address's own login
  * server (`mcp_oauth`) renews without a secret, and with `resource` set to
  * the address, as its sign-in was made (RFC 8707); a login app's renewal
  * never carries `resource`.
@@ -48,8 +45,8 @@ import type { SecretService } from "../../../encryption/encryption.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { Store } from "../../../store/interface.js";
 import { isGitHostAddress } from "../address.js";
-import { SIGN_IN_THROUGH_APP, SIGN_IN_THROUGH_LOGIN_SERVER } from "../constants.js";
-import { findLoginApp, loginAppByRef } from "../login-app.js";
+import { SIGN_IN_THROUGH_LOGIN_SERVER } from "../constants.js";
+import { loginAppByRef } from "../login-app.js";
 import type { LoginProviderSettings } from "../login-providers.js";
 import { SignInRenewalError } from "../resolve.js";
 import type { SignInFreshener } from "../resolve.js";
@@ -200,20 +197,12 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
         return connection.token;
       }
 
-      let loginApp = signIn.loginApp;
+      const loginApp = signIn.loginApp;
       let clientSecret = "";
       let tokenAuthMethod = "";
       try {
-        if (loginApp === "" && signIn.authMethod === SIGN_IN_THROUGH_APP) {
-          // Saved before sign-ins recorded their app: the app the address
-          // finds now, held to the same guard as a recorded one.
-          loginApp = (await findLoginApp(deps, vault.metadata?.org ?? "", connection.address))?.ref ?? "";
-        }
         if (loginApp !== "") {
-          ({ clientSecret, tokenAuthMethod } = await loadSignInClientCredentials(deps, {
-            ...signIn,
-            loginApp,
-          }));
+          ({ clientSecret, tokenAuthMethod } = await loadSignInClientCredentials(deps, signIn));
         }
       } catch (error) {
         deps.logger.warn("Failed to load the login app's client secret for renewal", {
@@ -256,8 +245,6 @@ export function newSignInFreshener(deps: SignInFreshenerDeps): SignInFreshener {
             ...renewing,
             expiresAt: BigInt(result.newExpiresAt),
             refreshToken: result.newRefreshToken,
-            // A legacy sign-in records the app whose secret renewed it.
-            loginApp: signIn.loginApp !== "" || clientSecret === "" ? signIn.loginApp : loginApp,
           },
           // A sign-in made since the run read this one stands.
           expectStoredToken: connection.storedToken,

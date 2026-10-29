@@ -6,8 +6,8 @@
  * no unit registered an Authorizer); a composition with its own
  * Authorizer has its own onboarding and never constructs this.
  *
- * Four moments, one set of arms (`roleFor`, the pure function the first,
- * third and fourth share):
+ * Three moments, one set of arms (`roleFor`, the pure function the first
+ * and third share):
  *
  *   onAccountCreated(account, caller) — a person's FIRST provisioning, and
  *   only that (the identity-account domain's AccountCreatedHook, run by
@@ -45,8 +45,8 @@
  *   organization, the one a one-organization server holds (the id recorded
  *   under SINGLE_ORG_KEY, domain/organization/limit.ts, at every start
  *   that fills it, whoever made it: the server itself, as nobody under
- *   sign-in, or an older release's console or CLI before the server held
- *   one), the person who set the server up owns it, as they would had they
+ *   sign-in, or a person's console or CLI while the store was composed to
+ *   hold any number), the person who set the server up owns it, as they would had they
  *   created it in the console: arm 3 answers `owner`, and arm 4 answers
  *   `owner` when no operator email is configured. With one configured, arm
  *   4 keeps `admin` there, so a stranger who signs in before the operator
@@ -74,49 +74,35 @@
  *   email and name — so its audit actor reads like every other write on
  *   that laptop.
  *
- *   ensureRolesForExistingAccounts() — the built-in posture's boot
- *   reconciliation, ONCE per database. The first moment runs only on the
- *   call that CREATES an account, so a self-host whose people were
- *   provisioned before the rules existed (3.15.x with OIDC on) holds
- *   accounts with no role rows, and under an enforcing authorizer every
- *   one of them would be an outsider on every organization with nobody
- *   able to grant a way back. At the first boot where the bootstrap-state
- *   marker (ROLES_RECONCILED_KEY) is absent, the arms above run for every
- *   PERSON account (`isPersonAccount`: a direct or legacy account, never a
- *   machine, app-user, federated or service account; the row-level
- *   twin of the `user`-class gate),
- *   acting as that account, in
- *   creation order — the order the sign-ins would have run the hook in,
- *   so arm 4 hands an unclaimed organization to its first sign-in and
- *   not to whoever sorts first by id — and the marker is written after
- *   the last account. A fault propagates and the boot fails loudly (the
- *   storage stage's posture) with the marker unset; the grant path is
- *   idempotent and an organization already held is skipped, so the next
- *   boot converges. The marker, not "zero rows", is what makes it
- *   one-shot: a database whose every role was revoked after the marker is
- *   never handed back to anyone by a reboot (the zero-rows rule's reason,
- *   applied to the whole store). Accounts are read through the generic
- *   Store as the organizations and blueprints are — the account
- *   port carries no enumeration, by its own rule that a port does not
- *   carry a method only one edition calls, and this act is open source's.
- *
- *   ensureRolesOnServerOrganization() — the same pass, over the server's
+ *   ensureRolesOnServerOrganization() — the arms over the server's
  *   organization, ONCE per database (SERVER_ORGANIZATION_ROLES_KEY), and
- *   only when the server made that organization on an empty store (the boot
- *   step marks the pass SERVER_ORGANIZATION_ROLES_OWED before the create).
- *   The server makes it in `start()`, after the reconciliation above has
- *   run, so a store upgraded with people
- *   but no organization (someone signed in and never made one) would hold
- *   an organization no account holds a role on, with the limit refusing a
- *   second and the delete refusing this one. The arms run for every person
- *   account on that organization only, as each account, in creation order,
- *   and the marker is written after the last; a fault leaves it unset and
+ *   only when the server made that organization on a store holding none
+ *   (the boot step marks the pass SERVER_ORGANIZATION_ROLES_OWED before the
+ *   create). People can be provisioned while the store holds no
+ *   organization: under a composition that holds any number (an Enterprise
+ *   license) where nobody made one, or while a one-organization server's
+ *   create waits on a slug an interrupted create still holds. Their first
+ *   sign-ins ran the arms over none, so when the server then makes its
+ *   organization as nobody, no account would hold a role on it, with the
+ *   limit refusing a second and the delete refusing this one. The arms run
+ *   for every PERSON account (`isPersonAccount`: a direct account, never a
+ *   machine, app-user, federated or service account; the row-level twin
+ *   of the `user`-class gate) on that organization only, acting as each
+ *   account, in creation order — the order their sign-ins ran in, so arm
+ *   4 hands the organization to the first of them and not to whoever
+ *   sorts first by id — and the marker is written after the last. A fault
+ *   propagates and the boot fails loudly with the marker unset; the grant
+ *   path is idempotent and an organization already held is skipped, so
  *   the next boot converges. Nothing while the server holds none: the
  *   marker waits for the organization. A store that already held its
  *   organization owes nothing: the marker is written and no role granted,
- *   so a member an admin removed there is not handed back. On a fresh install there is nobody
- *   yet, the marker is written, and every later person gets their role at
- *   their first sign-in.
+ *   so a member an admin removed there is not handed back. On a fresh
+ *   install there is nobody yet, the marker is written, and every later
+ *   person gets their role at their first sign-in. Accounts are read
+ *   through the generic Store as the organizations and blueprints are —
+ *   the account port carries no enumeration, by its own rule that a port
+ *   does not carry a method only one edition calls, and this act is open
+ *   source's.
  *
  * Child organizations are outside every moment. A child (one that names
  * a parent, domain/organization/children.ts) gets its people from its
@@ -124,7 +110,7 @@
  * these rules: arm 5 would otherwise make every person provisioned after
  * the child a member of it, and arms 1 and 4 would hand it to the
  * integrator identity that created it. `scanOrganizations` drops children
- * before any arm runs, so all four moments skip them by construction.
+ * before any arm runs, so all three moments skip them by construction.
  *
  * Organizations being deleted are outside every moment too
  * (domain/organization/lifecycle.ts). Their delete revoked every role row,
@@ -192,7 +178,6 @@ import type { AccountCreatedHook } from "../identityaccount/provisioning.js";
 import type { GrantChangeCause } from "./change.js";
 import {
   BLUEPRINT_KINDS,
-  ROLES_RECONCILED_KEY,
   SERVER_ORGANIZATION_ROLES_KEY,
   SERVER_ORGANIZATION_ROLES_OWED,
 } from "./constants.js";
@@ -214,8 +199,6 @@ export interface MembershipRulesDeps {
 export interface MembershipRules extends AccountCreatedHook {
   /** The trusted-local boot ensure: `owner` wherever no owner row exists. */
   ensureOperatorOwnership(operator: IdentityAccount): Promise<void>;
-  /** The built-in posture's boot reconciliation: the arms for every person provisioned before the rules existed, once per database. */
-  ensureRolesForExistingAccounts(): Promise<void>;
   /** The same arms for every person account on the server's organization (SINGLE_ORG_KEY), once per database. */
   ensureRolesOnServerOrganization(): Promise<void>;
 }
@@ -257,8 +240,8 @@ export function isPersonStamp(stamp: string): boolean {
 
 /**
  * An account row that is a person's — the row-level twin of the hook's
- * `user`-class gate, for the reconciliation, which has a row and no
- * caller. A machine account (`is_machine_account`, or the `machine`
+ * `user`-class gate, for the server-organization pass, which has a row and
+ * no caller. A machine account (`is_machine_account`, or the `machine`
  * provisioning mode) earns no role, exactly as a `machine`-class caller
  * earns none at the hook. Nor does an app user: it is a person on an
  * organization's product, not on this install — the mint grants it exactly
@@ -275,9 +258,11 @@ export function isPersonStamp(stamp: string): boolean {
  * administrators, never from these rules. Nor does an organization's
  * service account: it holds the one role its admins gave it, in its own
  * organization, and arm 5 would otherwise make it a member of every other.
+ * Nor does a row that records no mode: every create records one, so such a
+ * row was written outside the provisioning paths and names nobody who
+ * signed in.
  *
- * An ALLOW-list: a person here is a `direct` account, or a legacy row
- * from before provisioning modes were recorded, and never a machine
+ * An ALLOW-list: a person here is a `direct` account, never a machine
  * account. A mode added later is not a person until someone says so here.
  */
 export function isPersonAccount(account: IdentityAccount): boolean {
@@ -285,13 +270,7 @@ export function isPersonAccount(account: IdentityAccount): boolean {
   if (spec === undefined || spec.isMachineAccount) {
     return false;
   }
-  switch (spec.provisioningMode) {
-    case IdentityAccountProvisioningMode.direct:
-    case IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified:
-      return true;
-    default:
-      return false;
-  }
+  return spec.provisioningMode === IdentityAccountProvisioningMode.direct;
 }
 
 /** One organization's question for one account: everything the five arms read, resolved by the caller. */
@@ -317,8 +296,8 @@ export interface RoleQuestion {
 /**
  * The five arms in their ruled order, as one pure function over what they
  * read — the one statement of "which role does this person get here",
- * shared by the first-sign-in hook and the boot reconciliation so the two
- * moments cannot drift. Arms 3 and 4 both answer `admin`; 3 comes first
+ * shared by the first-sign-in hook and the server-organization pass so the
+ * two moments cannot drift. Arms 3 and 4 both answer `admin`; 3 comes first
  * because it is a string compare and 4 needs the rows read. `undefined`
  * is "no role here": arm 5's answer above the open-source edition.
  */
@@ -484,21 +463,12 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
     return { accountIds, stamps };
   }
 
-  /** The whole world one pass reads, scanned once: every organization and every blueprint. */
-  async function scanWorld(): Promise<ScannedWorld> {
-    return {
-      organizations: await scanOrganizations(),
-      blueprints: await scanBlueprints(),
-      serverOrganization: await store.bootstrapState.get(SINGLE_ORG_KEY),
-      laptopOperators: await scanLaptopOperators(),
-    };
-  }
-
   /**
    * The arms for ONE account over a scanned world: a row on every
    * organization the account holds none on, granted as `caller` through
    * `cause`'s door. Shared by the hook (one account, the world scanned for
-   * it) and the reconciliation (the world scanned once for every account).
+   * it) and the server-organization pass (the world scanned once for every
+   * account).
    */
   async function applyRulesTo(
     account: IdentityAccount,
@@ -600,34 +570,6 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
       );
     },
 
-    async ensureRolesForExistingAccounts(): Promise<void> {
-      if ((await store.bootstrapState.get(ROLES_RECONCILED_KEY)) !== "") {
-        return;
-      }
-      const accounts = await scanPersonAccounts();
-      if (accounts.length > 0) {
-        const world = await scanWorld();
-        for (const account of accounts) {
-          // As the account itself (actor.ts, the one construction), so the
-          // row's audit actor reads exactly as the person's own first
-          // sign-in would have stamped it.
-          await applyRulesTo(
-            account,
-            accountAsCaller(account),
-            world,
-            "role_reconciliation",
-          );
-        }
-      }
-      // After the last account, never before: a fault above leaves the
-      // marker unset and the next boot converges (the grant path is
-      // idempotent; an organization already held is skipped).
-      await store.bootstrapState.set(
-        ROLES_RECONCILED_KEY,
-        rfc3339Seconds(new Date()),
-      );
-    },
-
     async ensureRolesOnServerOrganization(): Promise<void> {
       const marker = await store.bootstrapState.get(
         SERVER_ORGANIZATION_ROLES_KEY,
@@ -654,6 +596,9 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           laptopOperators: await scanLaptopOperators(),
         };
         for (const account of accounts) {
+          // As the account itself (actor.ts, the one construction), so the
+          // row's audit actor reads exactly as the person's own first
+          // sign-in would have stamped it.
           await applyRulesTo(
             account,
             accountAsCaller(account),
@@ -662,7 +607,9 @@ export function newMembershipRules(deps: MembershipRulesDeps): MembershipRules {
           );
         }
       }
-      // After the last account, as the reconciliation above writes its own.
+      // After the last account, never before: a fault above leaves the
+      // marker owed and the next boot converges (the grant path is
+      // idempotent; an organization already held is skipped).
       await store.bootstrapState.set(
         SERVER_ORGANIZATION_ROLES_KEY,
         rfc3339Seconds(new Date()),

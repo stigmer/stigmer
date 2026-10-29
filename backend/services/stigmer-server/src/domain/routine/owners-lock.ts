@@ -15,8 +15,9 @@
  *
  * The caller is the owner when they are the principal the row's creator
  * stamp names, or the account that stamp resolves to as a fire resolves it
- * (an account id, or the raw issuer subject rows the 3.14.x verifiers
- * stamped); a routine whose stamp names nobody has no owner, and only the
+ * (an account id, or the raw issuer subject a write made before the
+ * caller's account existed carries); a routine whose stamp names nobody
+ * has no owner, and only the
  * server itself (the internal caller class) changes what it runs. The trusted-local laptop
  * has one person and signs nobody in, as for its fires, so the lock is
  * composed only where callers are accounts (`accounts` undefined: none).

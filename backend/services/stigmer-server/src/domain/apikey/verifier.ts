@@ -33,8 +33,8 @@
  * (domain/identityaccount/resolve.ts), the read the runner-subject and
  * schedule-fire lanes make of a row's creator: by account id (the stamp
  * of every key a provisioned owner mints), then as the raw issuer subject
- * a key minted before its owner was provisioned carries, so no write over a legacy key
- * mints a raw-subject stamp again. One primary-key read for an
+ * a key minted before its owner was provisioned carries, so no write over
+ * such a key mints a raw-subject stamp again. One primary-key read for an
  * account-id stamp, hit or miss (no account carries an `ida_` as its
  * subject, so no subject read follows a miss); a raw-subject stamp costs
  * a second. No cache. On a hit the caller is the account's principal

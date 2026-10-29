@@ -27,9 +27,8 @@
  *          "latest" to the head's hash, and writes the hash into the
  *          reference, so what a write sends decides: a reference without a
  *          version takes the latest, one carrying a hash keeps it;
- *       2. refuses a version the agent does not hold, and a head with no
- *          hash (an agent written before agents were versioned), so a pin
- *          is never empty and never silently tracks the head;
+ *       2. refuses a version the agent does not hold, so a pin is never
+ *          empty and never silently tracks the head;
  *       3. refuses a pinned version that lists subagents of its own: a
  *          subagent cannot hand work on (one level). The check cannot go
  *          stale, because a pinned version never changes;
@@ -108,11 +107,6 @@ export function subagentVersionNotFoundMessage(
   version: string,
 ): string {
   return `subagent '${slug}' has no version '${version}'; name a tag or a version it has, or leave the version empty to take its latest`;
-}
-
-/** The refusal for a listed agent saved before agents were versioned. */
-export function subagentUnversionedMessage(slug: string): string {
-  return `subagent '${slug}' has no version yet: it was saved before agents were versioned. Save it once, then list it again`;
 }
 
 /** The refusal for a listed agent whose pinned version lists subagents (one level). */
@@ -271,9 +265,6 @@ async function pinnedHash(
     throw failedPreconditionError(
       subagentVersionNotFoundMessage(slug, named),
     );
-  }
-  if (hash === "") {
-    throw failedPreconditionError(subagentUnversionedMessage(slug));
   }
   const pinned = await loadVersion(
     store,

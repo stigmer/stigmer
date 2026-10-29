@@ -1,11 +1,16 @@
+/**
+ * Pins the turn activities' input boundary (../activity-input.ts): the
+ * typed object's snake_case keys read into the runtime's camelCase input,
+ * an empty or absent thread and turn read as a first turn's.
+ */
 import { describe, it, expect } from "vitest";
 import {
   normalizeActivityInput,
   type ExecuteActivityInput,
 } from "../activity-input.js";
 
-describe("normalizeActivityInput — dual-shape activity boundary", () => {
-  it("reads the new typed object (snake_case wire keys from Go/Java)", () => {
+describe("normalizeActivityInput", () => {
+  it("reads the typed object's snake_case wire keys", () => {
     const wire: ExecuteActivityInput = {
       execution_id: "exec-1",
       thread_id: "thread-1",
@@ -19,24 +24,6 @@ describe("normalizeActivityInput — dual-shape activity boundary", () => {
     });
   });
 
-  it("reads the legacy positional args (old Go control plane: 2 args)", () => {
-    expect(normalizeActivityInput("exec-2", "thread-2")).toEqual({
-      executionId: "exec-2",
-      threadId: "thread-2",
-      turnSeq: 0,
-    });
-  });
-
-  it("ignores a legacy 3rd positional arg (old Java sent invokerId as arg2)", () => {
-    // The runner only declares (arg0, arg1); a 3rd positional arg is dropped by
-    // JS, so the old Java (executionId, threadId, invokerId) call still works.
-    expect(normalizeActivityInput("exec-3", "thread-3")).toEqual({
-      executionId: "exec-3",
-      threadId: "thread-3",
-      turnSeq: 0,
-    });
-  });
-
   it("treats an empty thread_id (first run / new harness state) as empty", () => {
     expect(
       normalizeActivityInput({
@@ -45,15 +32,9 @@ describe("normalizeActivityInput — dual-shape activity boundary", () => {
         invoker_identity_account_id: "acct-4",
       }),
     ).toEqual({ executionId: "exec-4", threadId: "", turnSeq: 0 });
-
-    expect(normalizeActivityInput("exec-5")).toEqual({
-      executionId: "exec-5",
-      threadId: "",
-      turnSeq: 0,
-    });
   });
 
-  it("defaults turn_seq to 0 when the object omits it (first turn / older control plane)", () => {
+  it("defaults turn_seq to 0 when the object omits it (first turn)", () => {
     expect(
       normalizeActivityInput({
         execution_id: "exec-7",
@@ -63,9 +44,7 @@ describe("normalizeActivityInput — dual-shape activity boundary", () => {
     ).toEqual({ executionId: "exec-7", threadId: "thread-7", turnSeq: 0 });
   });
 
-  it("deserializes the exact JSON shape the control planes emit", () => {
-    // Mirrors the bytes the Go struct / Java record serialize to (snake_case),
-    // including the additive turn_seq the cutover threads through.
+  it("deserializes the exact JSON shape the server emits", () => {
     const fromWire = JSON.parse(
       '{"execution_id":"exec-6","thread_id":"thread-6","invoker_identity_account_id":"acct-6","turn_seq":3}',
     ) as ExecuteActivityInput;

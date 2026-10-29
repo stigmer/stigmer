@@ -129,7 +129,7 @@ export function resetClaudeScenarioState(env: HermeticEnvironment): void {
 }
 
 /** The `ExecuteClaude` activity behind `proxy`, booted on `config`. */
-export async function claudeActivity(config: Config, proxy: AgentProxy): Promise<(arg0: ExecuteActivityInput | string, arg1?: string) => Promise<unknown>> {
+export async function claudeActivity(config: Config, proxy: AgentProxy): Promise<(input: ExecuteActivityInput) => Promise<unknown>> {
   const { createClaudeAdapter } = await import("../adapter.js");
   const { createHarnessActivities } = await import("../../../harness/registry.js");
   const { loopbackHostedRow } = await import("../../../__test-utils__/loopback-host.js");

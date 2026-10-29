@@ -22,6 +22,7 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 
 const TASK_QUEUE = "schedule-replay-capture";
+const CAPTURE_IDENTITY = "replay-capture";
 const WORKFLOWS_PATH = fileURLToPath(
   new URL("../src/temporal/routine/workflows/index.ts", import.meta.url),
 );
@@ -47,8 +48,11 @@ const activities = {
 
 async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
-  const env = await TestWorkflowEnvironment.createLocal();
+  // One fixed identity for the client and the worker, so a committed
+  // history names no machine.
+  const env = await TestWorkflowEnvironment.createLocal({ client: { identity: CAPTURE_IDENTITY } });
   const worker = await Worker.create({
+    identity: CAPTURE_IDENTITY,
     connection: env.nativeConnection,
     taskQueue: TASK_QUEUE,
     workflowsPath: WORKFLOWS_PATH,
@@ -62,7 +66,7 @@ async function main(): Promise<void> {
     // workflowId = artifactId(scheduleId) + "-" + fireTime, so the
     // scenario name rides the SCHEDULE id and the suffix stays a pure
     // timestamp the tier-2 parser accepts.
-    const scheduleId = `sch-replay-${name}`;
+    const scheduleId = `rtn_replay_${name.replaceAll("-", "_")}`;
     const handle = await env.client.workflow.start("schedule/tick", {
       taskQueue: TASK_QUEUE,
       workflowId: `schedule/tick/${scheduleId}-2026-08-25T09:30:00Z`,
@@ -82,7 +86,7 @@ async function main(): Promise<void> {
   tickOutcome = "FIRED";
   runStart = {
     outcome: "STARTED",
-    executionId: "aex-replay",
+    executionId: "run_replay",
     trackingTimeoutMinutes: 60,
     failureReason: "",
   };

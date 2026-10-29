@@ -73,12 +73,8 @@ export interface HarnessRow {
   readonly adapter: HarnessAdapter;
 }
 
-/**
- * The legacy positional activity signature, kept as the wire shape both
- * control planes send until they both send the typed object
- * (`shared/activity-input.ts`). Every harness's activity has it.
- */
-export type HarnessActivity = (arg0: ExecuteActivityInput | string, arg1?: string) => Promise<unknown>;
+/** Every harness's activity signature: the typed object (`shared/activity-input.ts`). */
+export type HarnessActivity = (input: ExecuteActivityInput) => Promise<unknown>;
 
 /** The row serving `harness`; a harness the table lacks is a wiring defect, so it throws. */
 export function harnessRowFor(rows: readonly HarnessRow[], harness: HarnessName): HarnessRow {
@@ -117,8 +113,8 @@ export async function createHarnessActivities(
   for (const row of rows) {
     const activityName = HARNESS_ACTIVITY_NAMES[row.harness];
     const deps = { adapter: row.adapter, activityName, client, config };
-    activities[activityName] = async (arg0, arg1) => {
-      const input = normalizeActivityInput(arg0, arg1);
+    activities[activityName] = async (wire) => {
+      const input = normalizeActivityInput(wire);
       activityStarted();
       try {
         return await runTurnActivity(deps, input);

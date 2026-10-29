@@ -275,13 +275,6 @@ export function fakeGrantStore(
           !["owner", "creator"].includes(p.spec?.relation ?? ""),
       );
     },
-    async findByResourceKindAndRelation(resourceKind, relation) {
-      return all().filter(
-        (p) =>
-          p.spec?.resource?.kind === resourceKind &&
-          p.spec.relation === relation,
-      );
-    },
     async listChanges(org, page) {
       if (!Number.isSafeInteger(page.limit) || page.limit <= 0) {
         throw new Error(`limit must be a positive integer, got ${page.limit}`);

@@ -15,8 +15,9 @@
  * execution, not an identity assertion. Its claims name only the
  * binding; the server resolves the person from the row the way the
  * schedule fire caller resolves a schedule's creator (`accountForStamp`:
- * the account id stamped since 3.15.0, the raw issuer subject the 3.14.x
- * verifiers stamped) and mints the account acting as itself
+ * the account id a provisioned caller's write carries, or the raw issuer
+ * subject a write made before the caller's account existed carries) and
+ * mints the account acting as itself
  * (`accountAsRunnerCaller`), so the audit actor on every row the runner
  * writes carries the person's email and display name that no token
  * could. The API-key verifier is the precedent for a store-reading
@@ -63,9 +64,9 @@
  * the chain is the contract, not a detail: the OIDC verifier claims any
  * JWT-shaped token and throws when it cannot verify one, and the server's
  * own HS256 token is JWT-shaped, so composed after `oidc` this verifier
- * would never see its own token; that is precisely what a 3.15.x
- * self-host with sign-in on did (stigmer#1137: every agent execution
- * failed INTERNAL). A token that names our type and fails the HMAC is
+ * would never see its own token, and every agent execution on a server
+ * with sign-in on would fail INTERNAL (stigmer#1137). A token that names
+ * our type and fails the HMAC is
  * CLAIMED and refused, never passed to a laxer verifier (the identity.ts
  * contract); an OIDC-issued JWT never carries the claim, so there is no
  * downgrade path.

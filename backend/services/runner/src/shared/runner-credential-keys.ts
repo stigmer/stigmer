@@ -46,10 +46,6 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // Fallback bearer token for model-registry/pricing fetches when
   // STIGMER_TOKEN is unset (registry-endpoint.ts).
   "STIGMER_AUTH_TOKEN",
-  // The retired Cursor harness's key. No code reads it any more, but a
-  // deployment configured before the retirement may still set it, so it
-  // stays in custody: an agent's process never sees it.
-  "CURSOR_API_KEY",
   // Direct-mode Anthropic key for the Stigmer harness (model-client.ts).
   "ANTHROPIC_API_KEY",
   // Direct-mode OpenAI key for the Stigmer harness (model-client.ts).

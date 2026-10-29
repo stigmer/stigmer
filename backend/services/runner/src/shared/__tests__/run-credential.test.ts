@@ -26,11 +26,11 @@ describe("readRunCredentialFromInput", () => {
     ).toBe("cred-1");
   });
 
-  it("answers undefined for the positional string shape the turn activities also accept", () => {
+  it("answers undefined for a positional string argument (EnsureThread's)", () => {
     expect(readRunCredentialFromInput("aex_123")).toBeUndefined();
   });
 
-  it("answers undefined for a credential-less object — an older server's dispatch", () => {
+  it("answers undefined for a credential-less object — the cloud's dispatch", () => {
     expect(
       readRunCredentialFromInput({ execution_id: "aex_123", thread_id: "" }),
     ).toBeUndefined();
