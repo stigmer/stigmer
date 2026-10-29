@@ -454,6 +454,8 @@ test(
 
     const kit = JSON.parse(readFileSync(join(bare, "node_modules", REACT_KIT, "package.json"), "utf8"));
     const optional = Object.keys(kit.peerDependenciesMeta ?? {}).filter((name) => kit.peerDependenciesMeta[name].optional === true);
+    // A manifest that marks nothing optional makes npm install every peer, and this case would hold nothing.
+    if (optional.length === 0) throw new Error(`the installed ${REACT_KIT} marks no peer optional: its published manifest lost peerDependenciesMeta`);
     const present = optional.filter((name) => existsSync(join(bare, "node_modules", name, "package.json")));
     if (present.length > 0) throw new Error(`the install meant to have no optional peer has ${present.join(", ")}`);
 

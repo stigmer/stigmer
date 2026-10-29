@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 /** The editor module, loaded fresh with the CodeMirror module mocked by `factory`. */
-async function editorWith(factory: () => unknown) {
+async function editorWith(factory: () => Record<string, unknown>) {
   vi.resetModules();
   vi.doMock("../CodeMirrorYamlEditor", factory);
   return (await import("../YamlEditor")).YamlEditor;

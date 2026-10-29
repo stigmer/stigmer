@@ -162,6 +162,28 @@ test("generateDistPackageJson carries bin and pins workspace deps", () => {
   }
 });
 
+test("generateDistPackageJson keeps which peers are optional (stigmer#2621)", () => {
+  const pkgDir = mkdtempSync(join(tmpdir(), "publish-libs-test-"));
+  try {
+    mkdirSync(join(pkgDir, "dist"));
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({
+        name: "@stigmer/react-sdk",
+        peerDependencies: { "@stigmer/client": "*", mermaid: "^11.0.0", react: "^19.0.0" },
+        peerDependenciesMeta: { mermaid: { optional: true } },
+      }),
+    );
+
+    const dist = JSON.parse(readFileSync(generateDistPackageJson(pkgDir, "1.2.3"), "utf8"));
+
+    assert.deepEqual(dist.peerDependencies, { "@stigmer/client": "1.2.3", mermaid: "^11.0.0", react: "^19.0.0" });
+    assert.deepEqual(dist.peerDependenciesMeta, { mermaid: { optional: true } });
+  } finally {
+    rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
 // A synthetic publish set shaped like the real one's hazards: a peer-only
 // edge (sdk -> protos), a diamond (cli -> ink -> sdk, cli -> sdk), a
 // third-party dep to ignore, and a package nothing reaches (embed). Keyed by

@@ -329,6 +329,12 @@ export function generateDistPackageJson(pkgDir, version) {
       version,
     );
   }
+  // Which peers are optional. Without it npm 7+ installs every peer as a
+  // required one, so an app adopting the React kit would get CodeMirror and
+  // mermaid whether or not it uses them (stigmer#2621).
+  if (srcPkg.peerDependenciesMeta) {
+    distPkg.peerDependenciesMeta = srcPkg.peerDependenciesMeta;
+  }
 
   const distPath = resolve(pkgDir, "dist", "package.json");
   writeFileSync(distPath, JSON.stringify(distPkg, null, 2) + "\n");
