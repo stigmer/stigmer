@@ -38,12 +38,8 @@ advances. This guide is an index; the files it names are the truth.
   a driver directory; drivers own their SQL; every query pattern has an index. A
   behaviour both drivers must share is pinned in
   `src/store/__tests__/store-contract.ts`.
-- Schema discipline. A schema change is a new step in each driver's chain, run
-  by the one runner (`src/store/postgres/schema-chain.ts` and its SQLite twin);
-  a merged step never changes, each step is safe beside the previous release's
-  server, and `npm run schema:snapshot` rewrites the committed snapshot and sum
-  the step's review reads. `src/store/README.md` ("Schema migrations") is the
-  practice in full.
+- Schema discipline. A schema change is a new step; a merged step never changes
+  (`src/store/README.md`, "Schema migrations").
 - Temporal discipline. Deterministic workflows, idempotent activities, signals
   that carry identity only, explicit timeouts, and the SDK's `patched` and
   `deprecatePatch` for changes that meet in-flight executions. Workflow, queue,
