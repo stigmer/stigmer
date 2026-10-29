@@ -1,3 +1,9 @@
+// Unit tests for resource-reference parsing and id classification
+// (resources/reference.ts). Pinned: org/slug versus id parsing, each kind's id
+// prefix, and the strict reading the run and resume resolvers rely on: an id is
+// a known prefix, "_" and a 26-char ULID, so a dashed spelling or a bare UUID
+// reads as a slug or an unrecognized token, never as an id.
+
 import { describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -88,12 +94,12 @@ describe("a kind's id prefix", () => {
 });
 
 describe("resource-ID classification", () => {
-  it("detects kind prefixes with either separator", () => {
+  it("detects kind prefixes followed by an underscore, and only those", () => {
     expect(isAgentId(`agt_${ULID}`)).toBe(true);
-    expect(isAgentId(`agt-${ULID}`)).toBe(true);
+    expect(isAgentId(`agt-${ULID}`)).toBe(false);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
     expect(isRoutineId(`rtn_${ULID}`)).toBe(true);
-    expect(isRoutineId(`rtn-${ULID}`)).toBe(true);
+    expect(isRoutineId(`rtn-${ULID}`)).toBe(false);
     expect(isRoutineId(`ses_${ULID}`)).toBe(false);
   });
 
@@ -115,13 +121,15 @@ describe("resource-ID classification", () => {
   it("recognizes any known prefix via hasResourceIdPrefix (length-agnostic)", () => {
     expect(hasResourceIdPrefix("agt_short")).toBe(true);
     expect(hasResourceIdPrefix("ses_anything")).toBe(true);
-    expect(hasResourceIdPrefix("plg-x")).toBe(true);
+    expect(hasResourceIdPrefix("plg_x")).toBe(true);
+    expect(hasResourceIdPrefix("plg-x")).toBe(false);
     expect(hasResourceIdPrefix("plain-slug")).toBe(false);
   });
 
   it("validates a complete ID (prefix + 26-char ULID)", () => {
     expect(validateResourceId(`agt_${ULID}`)).toBeNull();
-    expect(validateResourceId(`ses-${ULID}`)).toBeNull();
+    expect(validateResourceId(`ses_${ULID}`)).toBeNull();
+    expect(validateResourceId(`ses-${ULID}`)).toMatch(/not a recognized/);
   });
 
   it("reports an incomplete ID when the prefix matches but the body is wrong", () => {
@@ -129,9 +137,9 @@ describe("resource-ID classification", () => {
     expect(validateResourceId(`agt_${ULID}extra`)).toMatch(/incomplete/);
   });
 
-  it("accepts a legacy UUID and rejects unrelated tokens", () => {
-    expect(validateResourceId("123e4567-e89b-12d3-a456-426614174000")).toBeNull();
-    expect(hasResourceIdPrefix("123e4567-e89b-12d3-a456-426614174000")).toBe(true);
+  it("rejects a bare UUID and unrelated tokens", () => {
+    expect(validateResourceId("123e4567-e89b-12d3-a456-426614174000")).toMatch(/not a recognized/);
+    expect(hasResourceIdPrefix("123e4567-e89b-12d3-a456-426614174000")).toBe(false);
     expect(validateResourceId("just-a-slug")).toMatch(/not a recognized/);
   });
 });

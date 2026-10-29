@@ -19,7 +19,7 @@ import type { EvalIo } from "../../resources/eval-run/follow.js";
 import type { EvalRunOptions } from "../../resources/eval-run/options.js";
 
 const CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
 };

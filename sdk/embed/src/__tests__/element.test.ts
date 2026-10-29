@@ -1,3 +1,8 @@
+// Unit tests for the `<stigmer-agent>` element (element.ts): it frames the
+// hosted chat page for its `channel`, refuses to mount without one, carries
+// the host's title and sizing into the frame, and rebuilds the frame only when
+// identity or configuration changes.
+
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
@@ -47,19 +52,7 @@ describe("<stigmer-agent>", () => {
     expect(iframe!.title).toBe("Chat with an agent");
   });
 
-  it("reads the deprecated share attribute when channel is absent", () => {
-    const element = mount({ share: "ash_legacy" });
-
-    expect(iframeOf(element)!.src).toBe(`${APP_ORIGIN}/chat/ash_legacy`);
-  });
-
-  it("prefers channel when both channel and share are present", () => {
-    const element = mount({ channel: "ash_new", share: "ash_legacy" });
-
-    expect(iframeOf(element)!.src).toBe(`${APP_ORIGIN}/chat/ash_new`);
-  });
-
-  it("errors on the channel attribute when neither attribute is present", () => {
+  it("errors on the channel attribute when it is absent", () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);

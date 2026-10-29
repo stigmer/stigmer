@@ -102,8 +102,6 @@ beforeEach(() => {
   writeFileSync(
     join(home, ".stigmer", "config.yaml"),
     [
-      "backend:",
-      "  type: cloud",
       "backends:",
       "  test:",
       "    type: selfhost",

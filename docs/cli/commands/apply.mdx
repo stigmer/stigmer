@@ -59,9 +59,8 @@ routines, channels, environments and multi-document YAML (separated by `---`).
 An MCP server is not a file of its own. An agent lists its own servers under
 `spec.mcp_servers` (name, URL and headers), which only an organization's admins
 may add or change, or uses a plugin that carries one, listed under
-`spec.plugins`. A file of `kind: McpServer`, or an agent listing
-`mcp_server_usages`, is refused with that way forward;
-`stigmer mcp add <name> <url>` installs a one-off server as a plugin.
+`spec.plugins`. `stigmer mcp add <name> <url>` installs a one-off server as a
+plugin.
 
 ```bash
 # Apply a single file

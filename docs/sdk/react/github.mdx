@@ -129,7 +129,6 @@ function useGitHubRepos(org: string | null): UseGitHubReposReturn
     hasMore: { type: "boolean", description: "Whether more pages may be available." },
     isBackgroundLoading: { type: "boolean", description: "`true` while additional pages are being fetched after the first page." },
     isLoading: { type: "boolean", description: "`true` while the first page is being fetched." },
-    loadMore: { type: "() => void", description: "" },
     repos: { type: "readonly GitHubRepo[]", description: "Repositories matching the current client-side search filter." },
     search: { type: "string", description: "Current client-side search query." },
     setSearch: { type: "(query: string) => void", description: "Update the client-side search query to filter repos by name." },

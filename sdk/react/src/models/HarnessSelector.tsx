@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
-import { HARNESS_LABELS, HARNESS_OPTIONS as OPTIONS, type HarnessOption } from "./harness.js";
+import { HARNESS_META, HARNESS_OPTIONS as OPTIONS, type HarnessOption } from "./harness.js";
 
 /** Props for {@link HarnessSelector}. */
 export interface HarnessSelectorProps {
@@ -16,7 +16,8 @@ export interface HarnessSelectorProps {
 }
 
 /**
- * Compact segmented control for choosing the session harness.
+ * The composer's harness control: a compact segmented control for choosing
+ * the session harness, also used for an agent's default harness.
  *
  * Renders one mutually exclusive option per offered harness — "Stigmer"
  * (`stigmer`) and "Claude Agent" (`claude`) — as adjacent pill segments.
@@ -25,12 +26,7 @@ export interface HarnessSelectorProps {
  * semantics. All visual properties flow through `--stgm-*` tokens.
  *
  * Platform builders who need different rendering use
- * {@link HarnessOption} and {@link HARNESS_LABELS} directly.
- *
- * @deprecated Use {@link ModelSelector} in unified mode (without the
- * `harness` prop) instead. The unified model picker embeds a harness
- * tag on each model row, eliminating the need for a separate harness
- * control. This component is kept for backward compatibility.
+ * {@link HarnessOption} and {@link HARNESS_META} directly.
  *
  * @example
  * ```tsx
@@ -95,7 +91,7 @@ export function HarnessSelector({
             type="button"
             role="radio"
             aria-checked={isActive}
-            aria-label={HARNESS_LABELS[option]}
+            aria-label={HARNESS_META[option].label}
             tabIndex={isActive ? 0 : -1}
             disabled={disabled}
             onClick={() => {
@@ -110,7 +106,7 @@ export function HarnessSelector({
                 : "stg:text-muted-foreground stg:hover:text-foreground",
             ].join(" ")}
           >
-            {HARNESS_LABELS[option]}
+            {HARNESS_META[option].label}
           </button>
         );
       })}

@@ -12,7 +12,7 @@ let originalHome: string | undefined;
 
 function cloudConfig(overrides: Partial<NamedBackendConfig>): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       cloud: { type: "cloud", endpoint: "api.stigmer.ai:443", ...overrides },
     },
@@ -22,7 +22,7 @@ function cloudConfig(overrides: Partial<NamedBackendConfig>): Config {
 
 function selfhostConfig(overrides: Partial<NamedBackendConfig> = {}): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       staging: {
         type: "selfhost",

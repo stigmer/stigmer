@@ -9,7 +9,6 @@
 // contract, so a row cannot drift from it unnoticed.
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { MCP_SERVER_WAY_FORWARD } from "@stigmer/client";
 
 export interface KindMeta {
   /** Proto kind_meta.name — also the YAML `kind` value (e.g. "ChannelApp"). */
@@ -126,39 +125,3 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.eval,
   ApiResourceKind.eval_run,
 ];
-
-/**
- * YAML kinds the platform once served and no longer does. A manifest that
- * still carries one is an old file, not a typo, so the refusal it meets
- * says what happened and what to do instead of "unknown kind"; the
- * registry's `unknownKindError` reads this table before falling back to the
- * generic sentence. The key is the YAML `kind` value as the retired proto
- * declared it; the value is the sentence that follows the kind's name.
- */
-export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
-  [
-    "AgentInstance",
-    "is no longer a Stigmer resource. A conversation starts on the agent itself: run `stigmer run <org>/<agent>`, and delete this file.",
-  ],
-  [
-    "WorkflowInstance",
-    "is no longer a Stigmer resource. A run starts on an agent: save the keys it reads in your own vault (`stigmer vault set-secret <NAME> --mine`), run `stigmer run <org>/<agent>`, and delete this file.",
-  ],
-  ["McpServer", `is no longer a Stigmer resource. ${MCP_SERVER_WAY_FORWARD}`],
-  [
-    "AgentShare",
-    "is now a channel. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec.web`. A file with no `metadata.name` edited the link named after its agent: give it `metadata.name: <the agent's slug>` so it still edits that link instead of creating another. Then apply it with `stigmer apply -f <file>`.",
-  ],
-  [
-    "AgentChannel",
-    "is now a channel. Rewrite the file as `kind: Channel`, keep `spec.slack` or `spec.whatsapp`, and move `app_ref` and `proactive_messaging_enabled` from `spec` into that type (`spec.slack.app_ref`, `spec.whatsapp.app_ref`, `spec.whatsapp.proactive_messaging_enabled`), then apply it with `stigmer apply -f <file>`.",
-  ],
-  [
-    "Schedule",
-    "is now a routine. Rewrite the file as `kind: Routine`, which is the whole change, then apply it with `stigmer apply -f <file>`.",
-  ],
-  [
-    "Project",
-    "is no longer a Stigmer resource. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>` to install it as one, or apply each resource file with `stigmer apply -f <file>`.",
-  ],
-]);

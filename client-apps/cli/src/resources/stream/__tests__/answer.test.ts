@@ -1,10 +1,9 @@
 // Tests for how an ask is answered: `--approve-default` parses its three
-// words (any case, with the allow-all spellings), refuses a retired word with
-// the word that replaced it, and refuses anything else; each choice maps to
-// its answer, deny and an unset flag to a deny carrying the neutral reason;
-// each answer has its status word; and an
-// answer goes out as confirmToolUse (allow, or deny with its reason) or as
-// grantPermission, naming the session and the tool use.
+// words (any case, with the allow-all spellings) and refuses anything else;
+// each choice maps to its answer, deny and an unset flag to a deny carrying
+// the neutral reason; each answer has its status word; and an answer goes out
+// as confirmToolUse (allow, or deny with its reason) or as grantPermission,
+// naming the session and the tool use.
 
 import type { ConfirmToolUseInput, GrantPermissionInput } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { describe, expect, it } from "vitest";
@@ -20,15 +19,6 @@ describe("parseApproveDefault", () => {
     expect(parseApproveDefault("allow-all")).toBe("allow-all");
     expect(parseApproveDefault("allow_all")).toBe("allow-all");
     expect(parseApproveDefault("AllowAll")).toBe("allow-all");
-  });
-
-  it("refuses a retired word with the word that replaced it", () => {
-    expect(() => parseApproveDefault("approve")).toThrow(UsageError);
-    expect(() => parseApproveDefault("approve")).toThrow('"approve" is now "allow"');
-    expect(() => parseApproveDefault("Skip")).toThrow('"skip" and "reject" are now "deny"');
-    expect(() => parseApproveDefault("reject")).toThrow('"skip" and "reject" are now "deny"');
-    expect(() => parseApproveDefault("approve-all")).toThrow('"approve-all" is now "allow-all"');
-    expect(() => parseApproveDefault("approve_all")).toThrow('"approve-all" is now "allow-all"');
   });
 
   it("refuses any other word as a usage error", () => {

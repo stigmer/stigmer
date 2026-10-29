@@ -1,3 +1,8 @@
+// Unit tests for the CLI config file (config/config.ts): a missing file and
+// standalone mode yield the local default, named backends load and save, a
+// pristine local config writes no backend keys, and the opaque `backend.local`
+// section survives a load/save round-trip untouched.
+
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,36 +28,16 @@ describe("load", () => {
 
   it("returns the default in standalone mode without reading the file", () => {
     const path = tempConfigPath();
-    writeFileSync(path, "backend:\n  type: cloud\n");
+    writeFileSync(path, "backends:\n  cloud:\n    type: cloud\ncurrent_backend: cloud\n");
     setStandalone(true);
     expect(load(path)).toEqual(getDefault());
-  });
-
-  it("migrates a legacy cloud config into the named model on load", () => {
-    const path = tempConfigPath();
-    writeFileSync(
-      path,
-      "backend:\n  type: cloud\n  cloud:\n    endpoint: api.stigmer.ai:443\n    org_id: acme\ncontext:\n  org: acme\n",
-    );
-    const config = load(path);
-    // The legacy slot becomes the reserved "cloud" entry; the legacy type
-    // selects it as current. The slot itself is not carried forward.
-    expect(config.current_backend).toBe("cloud");
-    expect(config.backends?.["cloud"]).toEqual({
-      type: "cloud",
-      endpoint: "api.stigmer.ai:443",
-      org_id: "acme",
-    });
-    expect(config.backend.cloud).toBeUndefined();
-    expect(config.context?.org).toBe("acme");
-    expect(isCloudMode(config)).toBe(true);
   });
 
   it("parses a named-model config with selfhost entries", () => {
     const path = tempConfigPath();
     writeFileSync(
       path,
-      "backend:\n  type: cloud\nbackends:\n  staging:\n    type: selfhost\n    endpoint: stigmer.example.com:7234\n    api_key: stk_x\ncurrent_backend: staging\n",
+      "backends:\n  staging:\n    type: selfhost\n    endpoint: stigmer.example.com:7234\n    api_key: stk_x\ncurrent_backend: staging\n",
     );
     const config = load(path);
     expect(config.current_backend).toBe("staging");
@@ -80,43 +65,24 @@ describe("save", () => {
     const reloaded = load(path);
     expect(reloaded.backends).toEqual(config.backends);
     expect(reloaded.current_backend).toBe("cloud");
-    // The legacy mirror is written for older readers.
-    expect(reloaded.backend.type).toBe("cloud");
+    expect(text).not.toContain("backend:\n");
 
     rmSync(path);
   });
 
-  it("writes a legacy-loaded cloud config in the named shape (the one-time migration)", () => {
-    const path = tempConfigPath();
-    writeFileSync(
-      path,
-      "backend:\n  type: cloud\n  cloud:\n    endpoint: api.stigmer.ai:443\n    token: t\n",
-    );
-    save(load(path), path);
-
-    const text = readFileSync(path, "utf8");
-    expect(text).toContain("backends:");
-    expect(text).toContain("current_backend: cloud");
-    // The legacy slot is gone; its content lives in backends.cloud.
-    expect(text).not.toContain("  cloud:\n    endpoint");
-    const reloaded = load(path);
-    expect(reloaded.backends?.["cloud"]?.token).toBe("t");
-  });
-
-  it("keeps a pristine local config byte-stable (no named-model keys appear)", () => {
+  it("writes no backend keys for a pristine local config", () => {
     const path = tempConfigPath();
     save(getDefault(), path);
     const text = readFileSync(path, "utf8");
-    expect(text).not.toContain("backends:");
-    expect(text).not.toContain("current_backend:");
-    expect(text).toContain("type: local");
+    expect(text).not.toContain("backend");
+    expect(load(path)).toEqual(getDefault());
   });
 
   it("preserves the opaque local backend section across a load/save round-trip", () => {
     const path = tempConfigPath();
     writeFileSync(
       path,
-      "backend:\n  type: local\n  local:\n    temporal:\n      managed: true\n    execution:\n      mode: local\n",
+      "backend:\n  local:\n    temporal:\n      managed: true\n    execution:\n      mode: local\n",
     );
 
     const config = load(path);

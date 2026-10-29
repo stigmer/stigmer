@@ -10,7 +10,8 @@ import { CliExitError, ExitCode } from "../errors/index.js";
 import { SERVER_PORT } from "../local/constants.js";
 import { type Config, activeBackend } from "./config.js";
 
-const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
+/** Stigmer Cloud's API, where a cloud entry with no endpoint of its own points. */
+export const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
 const DEFAULT_LOCAL_ENDPOINT = "localhost:7234";
 
 /** Well-known URL for the Stigmer Cloud web console. */

@@ -53,14 +53,14 @@ import { standingWords } from "../../../resources/provider-key.js";
 import { registerProviderKey } from "../index.js";
 
 const CLOUD_CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
   context: { org: "org_ctx", org_slug: "acme" },
 };
 
 // A laptop's `stigmer up`: the local daemon, no organization named.
-const LOCAL_CONFIG: Config = { backend: { type: "local" }, backends: {}, current_backend: "local" };
+const LOCAL_CONFIG: Config = { backend: {}, backends: {}, current_backend: "local" };
 
 const ANTHROPIC_KEY = create(ProviderKeySchema, {
   org: "org_ctx",

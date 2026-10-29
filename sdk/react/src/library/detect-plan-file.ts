@@ -29,26 +29,15 @@ export interface SessionPlan {
 }
 
 /**
- * Legacy plan filename. Detection-only: {@link isPlanFileName} still
- * accepts this exact name so plans written before named plans existed keep
- * working. The runner never freshly emits it (a titleless plan falls back to
- * a bare `<id>.plan.md`).
- */
-export const PLAN_FILE_NAME = "plan.md";
-
-/**
  * Suffix every named plan carries (`<slug>_<id>.plan.md`, or a bare
  * `<id>.plan.md` when untitled). The runner derives the slug from the plan's
  * title and the `<id>` from its content hash; detection keys on this suffix.
  */
 export const PLAN_FILE_SUFFIX = ".plan.md";
 
-/**
- * Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
- * any `*.plan.md`.
- */
+/** Returns `true` when a filename is a plan's: any `*.plan.md`. */
 export function isPlanFileName(name: string): boolean {
-  return name === PLAN_FILE_NAME || name.endsWith(PLAN_FILE_SUFFIX);
+  return name.endsWith(PLAN_FILE_SUFFIX);
 }
 
 /**

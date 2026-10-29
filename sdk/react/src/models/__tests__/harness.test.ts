@@ -6,7 +6,6 @@ import {
   isHarnessOption,
   isNamedHarness,
   DEFAULT_HARNESS,
-  HARNESS_LABELS,
   HARNESS_META,
   HARNESS_OPTIONS,
   type HarnessOption,
@@ -74,25 +73,12 @@ describe("harness constants", () => {
     expect(DEFAULT_HARNESS).toBe("stigmer");
   });
 
-  it("provides user-facing labels for both options", () => {
-    expect(HARNESS_LABELS.stigmer).toBe("Stigmer");
-    expect(HARNESS_LABELS.claude).toBe("Claude Agent");
-  });
-
   // docs/vocabulary.md "Harness": one label and one description per value, the same on every surface.
   it("names each harness with the vocabulary's label and description", () => {
     expect(HARNESS_META).toEqual({
       stigmer: { label: "Stigmer", description: "Stigmer's own harness: runs any catalog model, open source end to end" },
       claude: { label: "Claude Agent", description: "Anthropic's Claude Agent SDK: Claude models on your Anthropic key" },
     });
-  });
-
-  it("covers every HarnessOption in HARNESS_LABELS", () => {
-    const options: HarnessOption[] = ["stigmer", "claude"];
-    for (const opt of options) {
-      expect(HARNESS_LABELS[opt]).toBeDefined();
-      expect(typeof HARNESS_LABELS[opt]).toBe("string");
-    }
   });
 });
 

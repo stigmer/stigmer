@@ -35,7 +35,6 @@ import {
 import {
   applyNamingCurrentSlug,
   followDeclaredSlug,
-  retiredShapeWayForward,
   SlugChangeRefusedError,
   SlugRenamedError,
   toDesiredState,
@@ -82,7 +81,7 @@ export function resolveApplyItems(path: string): ApplyItem[] {
 /**
  * Resolve a YAML `kind` to its apply handler, enforcing the verb-support gate.
  * The unknown-kind wording is the registry's (`unknownKindError`), shared
- * with `validate -f`, so a retired kind is refused with the same sentence on
+ * with `validate -f`, so an unknown kind is refused with the same sentence on
  * both paths. `where` is woven into errors for a precise location.
  */
 export function resolveHandlerForKind(kind: string, where: string): ApplyHandler {
@@ -138,10 +137,7 @@ export function marshalItem(item: ApplyItem): Message {
       fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false }),
     );
   } catch (err) {
-    const hint = retiredShapeWayForward(item.document);
-    throw new UsageError(
-      `invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}${hint === undefined ? "" : `\n${hint}`}`,
-    );
+    throw new UsageError(`invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}`);
   }
 }
 

@@ -49,98 +49,16 @@ import { registerVersion } from "./commands/version.js";
 import { setDebug, setStandalone } from "./runtime.js";
 import { VERSION } from "./version.js";
 
-/**
- * Top-level commands the CLI once had and no longer does. Typing one is an
- * old habit, not a typo, so commander's unknown-command answer gains the one
- * line here naming what replaced it. The old word is not an alias: it does
- * nothing but fail with this pointer.
- */
-export const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
-  ["execution", "`stigmer execution` is now `stigmer runs` (cancel, terminate, pause, resume, logs, trace, approve)."],
-  // Met as `stigmer connect mcp-server`: `stigmer mcp-server` itself still
-  // starts Stigmer's own MCP server, so only the connect subcommand is gone.
-  [
-    "mcp-server",
-    "An agent lists its own MCP servers under `mcp_servers`, written by an organization's admins, or uses a plugin that carries one: `stigmer connect plugin <plugin>` lists a plugin's tools, and `stigmer mcp add <name> <url>` installs a one-off server as a plugin.",
-  ],
-  ["plugin", "`stigmer plugin eval <plugin>` is now `stigmer eval run --plugin <plugin>`; cancel with `stigmer eval cancel`."],
-  [
-    "share",
-    "`stigmer share agent` is now `stigmer channel link`. To give people access to an agent, use Manage access in the console.",
-  ],
-]);
-
-/**
- * Subcommands the CLI once had and no longer does, by the group they were
- * in, answered as {@link RETIRED_COMMANDS} are: `agent` is still a group,
- * so its old `eval` meets commander's unknown-command answer there.
- */
-export const RETIRED_SUBCOMMANDS: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map([
-  [
-    "agent",
-    new Map([
-      [
-        "eval",
-        "`stigmer agent eval <agent>` is now `stigmer eval run --agent <agent>` (`--plugin` there is now `--cases-from`); cancel with `stigmer eval cancel`.",
-      ],
-    ]),
-  ],
-]);
-
-/**
- * Options a command once had and no longer does, by the command's name: a
- * run and a connect carry no keys of their own, so a key is saved in a vault
- * and they read it there. As with {@link RETIRED_COMMANDS}, commander's
- * unknown-option answer on that command gains the one line here; the option
- * itself is gone, not hidden. Only the commands listed ever took these
- * options, so another command meeting the same word answers with commander's
- * error alone.
- */
-const RETIRED_RUN_OPTION_HINT =
-  "A run no longer takes keys on the command line: save it with `stigmer vault set-secret NAME --mine`, then run.";
-
-const RETIRED_CONNECT_OPTION_HINT =
-  "A connect no longer takes keys on the command line: save it with `stigmer vault set-secret NAME --mine`, then connect.";
-
-export const RETIRED_OPTIONS: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map([
-  [
-    "run",
-    new Map([
-      ["--env", RETIRED_RUN_OPTION_HINT],
-      ["--env-file", RETIRED_RUN_OPTION_HINT],
-      ["--secret", RETIRED_RUN_OPTION_HINT],
-      ["--secret-file", RETIRED_RUN_OPTION_HINT],
-    ]),
-  ],
-  ["connect", new Map([["--env", RETIRED_CONNECT_OPTION_HINT]])],
-]);
-
-// Append a retired command's or option's pointer to commander's unknown
-// command or option error. `command` is the top-level command the parse
-// dispatched to, if any: a retired subcommand is answered only in its
-// group. A retired option is answered with its name alone,
-// never the rest of commander's message: written as `--secret=KEY=VALUE`,
-// commander echoes the whole argument, and the value (which may hold quotes
-// or newlines) may be the key itself.
-function withRetiredHint(message: string, command: string | undefined): string {
-  const unknownCommand = /^error: unknown command '([^']+)'/.exec(message);
-  if (unknownCommand !== null) {
-    const name = unknownCommand[1];
-    const hint =
-      (command === undefined ? undefined : RETIRED_SUBCOMMANDS.get(command)?.get(name)) ?? RETIRED_COMMANDS.get(name);
-    return hint === undefined ? message : `${message}${hint}\n`;
-  }
-  const option = /^error: unknown option '(--[A-Za-z0-9-]+)(?=['=])/.exec(message);
-  const hint = option === null || command === undefined ? undefined : RETIRED_OPTIONS.get(command)?.get(option[1]);
-  if (option === null || hint === undefined) return message;
-  return `error: unknown option '${option[1]}'\n${hint}\n`;
+// Commander echoes an unknown option exactly as typed, so `--name=VALUE`
+// would print the value, which may be a key pasted onto the wrong flag. The
+// answer names the option alone.
+function withoutOptionValue(message: string): string {
+  const option = /^error: unknown option '(--[A-Za-z0-9-]+)=/.exec(message);
+  return option === null ? message : `error: unknown option '${option[1]}'\n`;
 }
 
 export function buildProgram(): Command {
   const program = new Command();
-  // The top-level command this parse runs, so a retired option's pointer is
-  // given only on the command that once took it.
-  let dispatched: string | undefined;
 
   program
     .name("stigmer")
@@ -151,11 +69,7 @@ export function buildProgram(): Command {
     .option("--org <slug>", "organization, on servers that hold several")
     .option("--api-key <key>", "API key for authentication")
     .enablePositionalOptions()
-    .configureOutput({ outputError: (message, write) => write(withRetiredHint(message, dispatched)) });
-
-  program.hook("preSubcommand", (_program, subcommand) => {
-    dispatched = subcommand.name();
-  });
+    .configureOutput({ outputError: (message, write) => write(withoutOptionValue(message)) });
 
   // Capture global flags into process-global state before any command runs.
   // Bridging --api-key to the env mirrors the Go CLI's PersistentPreRun so the

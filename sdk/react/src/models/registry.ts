@@ -421,11 +421,10 @@ export async function fetchModelRegistry(
 }
 
 /**
- * Model ID used when no user preference is set (Stigmer harness).
- *
- * @deprecated Use {@link resolveDefaultModelId} for dynamic resolution
- * based on the active harness and featured models. This constant is kept
- * as the last-resort platform fallback.
+ * The platform's last-resort model: what {@link resolveDefaultModelId}
+ * settles on when no preference, default or usable registry row names one.
+ * For the default a picker should show, call {@link resolveDefaultModelId},
+ * which tries the active harness and its featured models first.
  */
 export const DEFAULT_MODEL_ID = "claude-sonnet-4.6";
 

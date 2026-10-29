@@ -49,17 +49,11 @@ interface StigmerAgentAttributes
   extends ClassAttributes<StigmerAgentElement>,
     Omit<HTMLAttributes<StigmerAgentElement>, "children"> {
   /**
-   * The web channel's id (`ash_…`), the one path segment of the hosted
+   * The web channel's id (`chn_…`), the one path segment of the hosted
    * chat link. Required at runtime (see above for why the type cannot
-   * enforce it); `share` is accepted in its place.
+   * enforce it).
    */
   channel?: string;
-  /**
-   * The former name of `channel`.
-   *
-   * @deprecated use `channel`; pages that carry `share` keep working.
-   */
-  share?: string;
   /** Link token for a locked chat link; forwarded as the `?k=` parameter. */
   token?: string;
   /**

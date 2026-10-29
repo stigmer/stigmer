@@ -60,7 +60,6 @@ beforeEach(() => {
     search: "",
     setSearch: () => {},
     hasMore: false,
-    loadMore: () => {},
     fetchBranches,
   };
   searchState.current = {

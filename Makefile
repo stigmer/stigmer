@@ -859,7 +859,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
-       lint-docs lint-docs-audit format-docs format-docs-check check-links web-build tsdoc-check \
+       lint-docs lint-docs-audit format-docs format-docs-check check-links tsdoc-check \
        check-docs-inventory check-conformance-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-e2e-console-login test-e2e-single-org test-e2e-no-providers test-a11y check \
        check-prep check-go check-node check-site check-rust check-java
@@ -1019,11 +1019,11 @@ release-desktop-local: ## Debug build + install to /Applications
 	@du -sh "client-apps/desktop/src-tauri/target/debug/bundle/macos/Stigmer.app" | awk '{print "  .app bundle: " $$1}'
 	@du -sh "client-apps/desktop/src-tauri/target/debug/stigmer" | awk '{print "  binary:      " $$1}'
 
-# ─── Client Apps: Backward-Compat Aliases ────
+# ─── Client Apps: Aliases ────
 
-web-build: build-web
+# The name the runner and the desktop app print when the runner binary is
+# missing ("make desktop-dev").
 desktop-dev: launch-desktop
-desktop-build: build-desktop
 
 tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 	node scripts/turbo-set.mjs workspace tsdoc:check

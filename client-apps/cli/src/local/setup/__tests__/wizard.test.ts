@@ -11,7 +11,7 @@ import {
 } from "../wizard.js";
 
 function config(local?: unknown): Config {
-  return { backend: { type: "local", local } };
+  return { backend: { local } };
 }
 
 // Regression pin: every provider offered by `stigmer setup` promises an

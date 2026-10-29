@@ -37,19 +37,11 @@ import { OUTPUTS_SUBDIR } from "./outputs.js";
 import { getPlatformDir } from "./workspace/platform-dir.js";
 
 /**
- * Legacy plan filename. Detection-only: {@link isPlanFileName} still
- * accepts this exact name so plans returned before named plans existed
- * keep working. It is NEVER freshly emitted — a titleless plan now falls back
- * to a bare `<hash>.plan.md` (see {@link planFileName}).
- */
-export const PLAN_FILE_NAME = "plan.md";
-
-/**
  * Suffix every named plan File carries. The UI keys plan detection on this
  * suffix, so it must stay in sync with the SDK's `PLAN_FILE_SUFFIX`
  * (`sdk/react/src/library/detect-plan-file.ts`). The two cannot share a
  * module — the runner and the browser SDK have disjoint module graphs — so the
- * constant is duplicated by design, mirroring {@link PLAN_FILE_NAME}.
+ * constant is duplicated by design.
  */
 export const PLAN_FILE_SUFFIX = ".plan.md";
 
@@ -60,11 +52,11 @@ const MAX_PLAN_SLUG_LENGTH = 60;
 const PLAN_ID_LENGTH = 8;
 
 /**
- * Reports whether a filename is a plan: the legacy exact name, or any
- * `*.plan.md`. Kept in sync with the SDK's `isPlanFileName`.
+ * Reports whether a filename is a plan: any `*.plan.md`. Kept in sync with
+ * the SDK's `isPlanFileName`.
  */
 export function isPlanFileName(name: string): boolean {
-  return name === PLAN_FILE_NAME || name.endsWith(PLAN_FILE_SUFFIX);
+  return name.endsWith(PLAN_FILE_SUFFIX);
 }
 
 // Plan-title extraction, mirrored from the SDK so the runner's derived filename

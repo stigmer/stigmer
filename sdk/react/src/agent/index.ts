@@ -20,10 +20,7 @@ export { AgentPicker } from "./AgentPicker.js";
 export type { AgentPickerProps } from "./AgentPicker.js";
 
 export { AgentEnvForm } from "./AgentEnvForm.js";
-export type {
-  AgentEnvFormProps,
-  AgentEnvFormVariable,
-} from "./AgentEnvForm.js";
+export type { AgentEnvFormProps } from "./AgentEnvForm.js";
 
 export { diffEnv } from "../vault/diffEnv.js";
 
