@@ -31,6 +31,11 @@ export interface ChildHandle {
   readonly pid: number;
   /** True once the child has terminated (and been observed). */
   hasExited(): boolean;
+  /** How the child terminated, once observed; null while it runs. */
+  exitInfo(): ExitInfo | null;
+  /** The child's last few complete stderr lines, oldest first: its last
+   * words, recorded beside a failure. */
+  stderrTail(): readonly string[];
   /** Register the exit callback (invoked once). */
   onExit(cb: (info: ExitInfo) => void): void;
   /** Register the readiness callback (invoked once if a marker was set). */

@@ -11,6 +11,8 @@
 // things a person needs next: the console line comes from probing the server
 // once it answers (stigmer#2649), and the agents line from the providers the
 // started runner reaches, the same answer the server was handed (stigmer#1084).
+// A stack that does not start ends with why, in either shape: the failed
+// component, how it ended and its last stderr lines (stigmer#1845).
 
 import { homedir } from "node:os";
 import type { Command } from "commander";
@@ -87,11 +89,15 @@ async function runUp(run: UpRun, flags: OutputFlags): Promise<void> {
     onReady: (report) => renderUpCard(run, flags, report),
   });
   if (code !== 0) {
-    // The daemon body has already logged which component failed and why.
-    const { logDir } = await import("../local/paths.js");
-    throw new CliExitError("the local stack did not start", ExitCode.General, [
-      `Check the component logs under ${logDir(homedir())}.`,
-    ]);
+    // The daemon body ran as this process, so its record carries our PID; the
+    // last words a container's log shows are then the reason, not a pointer.
+    const { dataDir, logDir } = await import("../local/paths.js");
+    throw (
+      launch.startupFailure(dataDir(homedir()), process.pid) ??
+      new CliExitError("the local stack did not start", ExitCode.General, [
+        `Check the component logs under ${logDir(homedir())}.`,
+      ])
+    );
   }
 }
 

@@ -108,6 +108,26 @@ describe("buildStatusResult", () => {
     expect(field(result, "Runner", "Status")).toBe("Running ✓ (starting)");
   });
 
+  it("shows a failed component's last error and where its logs are", async () => {
+    writeHealth({
+      daemon_pid: process.pid,
+      started_at: new Date().toISOString(),
+      components: {
+        "stigmer-server": {
+          pid: 11,
+          state: "failed",
+          restart_count: 0,
+          started_at: new Date().toISOString(),
+          last_error: "the server exited with code 1 before it was ready",
+          last_output: ["boot failed: bad setting"],
+        },
+      },
+    });
+    const result = await buildStatusResult(home, closed);
+    expect(field(result, "Stigmer Server", "Last Error")).toBe("the server exited with code 1 before it was ready");
+    expect(result.hints).toContain("View stigmer-server logs: stigmer logs --component stigmer-server");
+  });
+
   it("synthesizes a running server when only the port answers", async () => {
     const result = await buildStatusResult(home, open);
     expect(result.status).toBe("success");

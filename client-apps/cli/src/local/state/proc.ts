@@ -80,3 +80,21 @@ export function findProcessByPort(port: number): number | null {
   const pid = Number.parseInt(firstLine.trim(), 10);
   return Number.isInteger(pid) && pid > 0 ? pid : null;
 }
+
+/**
+ * The command line of a live process via `ps`, or null when it cannot be read.
+ * POSIX-only and best-effort, like findProcessByPort, whose answer it names.
+ */
+export function processCommand(pid: number): string | null {
+  let output: string;
+  try {
+    output = execFileSync("ps", ["-o", "command=", "-p", String(pid)], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+  const command = output.trim();
+  return command === "" ? null : command;
+}

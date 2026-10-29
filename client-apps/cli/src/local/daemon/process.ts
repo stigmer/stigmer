@@ -96,7 +96,7 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
       await temporal.start();
     } catch (err) {
       healthState.components.temporal.state = "failed";
-      healthState.components.temporal.last_error = String(err);
+      healthState.components.temporal.last_error = err instanceof Error ? err.message : String(err);
       persist();
       log.error("failed to start managed Temporal", { error: String(err) });
       return 1;
@@ -118,7 +118,12 @@ export async function runInternalDaemon(deps: InternalDaemonDeps): Promise<numbe
   });
   const result = await supervisor.startAll();
   if (!result.ok) {
-    log.error("critical component failed to start", { component: result.failedCritical });
+    const failed = result.failedCritical === undefined ? undefined : healthState.components[result.failedCritical];
+    log.error("critical component failed to start", { component: result.failedCritical, error: failed?.last_error });
+    // A server that hangs without opening its port is still running: stop what
+    // started, in reverse, as a clean shutdown would, so a failed start leaves
+    // nothing behind holding the port.
+    await supervisor.shutdown();
     if (temporal !== null) {
       temporal.stopSupervisor();
       await temporal.stop().catch(() => {});
