@@ -37,6 +37,7 @@ import {
 } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 // The smallest budget the runner accepts (tool-rounds.ts MIN_TOOL_ROUNDS);
 // a lower value is clamped up to it, which this suite does not exercise.
@@ -93,7 +94,7 @@ describe("Run run_config.max_tool_rounds", () => {
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
     for (let round = 1; round <= SCRIPTED_TOOL_TURNS; round++) {
-      mock.enqueue(anthropicToolUse(`call_round_${round}`, ECHO_TOOL_NAME, { text: `round-${round}` }));
+      mock.enqueue(anthropicToolUse(`call_round_${round}`, modelToolName(plugin, ECHO_TOOL_NAME), { text: `round-${round}` }));
     }
     mock.enqueue(anthropicText("Done."));
 

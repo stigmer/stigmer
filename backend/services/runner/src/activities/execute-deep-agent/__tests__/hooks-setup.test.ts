@@ -32,7 +32,6 @@ import type { MountedPlugin } from "../../../shared/plugin-mount.js";
 import { buildHookEvaluator, HookSetupError, permissionModeOf } from "../hooks-setup.js";
 
 const sink = { stopSignal: new AbortController().signal, recordActivity: vi.fn() };
-const tools = { toolServerMap: new Map<string, string>() };
 
 const mounted: MountedPlugin = { id: "plg_safety", slug: "safety", name: "Safety", root: "/p/safety", data: "/d/safety", verify: async () => undefined };
 const audit: MountedPlugin = { id: "plg_audit", slug: "audit", name: "Audit", root: "/p/audit", data: "/d/audit", verify: async () => undefined };
@@ -91,9 +90,9 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("buildHookEvaluator", () => {
   it("builds nothing for an agent without hooks, or with none this engine runs", async () => {
-    expect(await buildHookEvaluator(input([]), sink, tools, 180_000)).toBeNull();
+    expect(await buildHookEvaluator(input([]), sink, 180_000)).toBeNull();
     const lifecycle = [create(HookGroupSchema, { event: "Stop", handlers: [create(HookHandlerSchema, { command: "x" })] })];
-    expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: lifecycle }]), sink, tools, 180_000)).toBeNull();
+    expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: lifecycle }]), sink, 180_000)).toBeNull();
   });
 
   it("builds an evaluator when every value a plugin's hook reads is that plugin's", async () => {
@@ -102,7 +101,6 @@ describe("buildHookEvaluator", () => {
         plugins: new Map([["plg_safety", { API_TOKEN: "t" }]]),
       }),
       sink,
-      tools,
       180_000,
     );
     expect(hooks).not.toBeNull();
@@ -114,7 +112,7 @@ describe("buildHookEvaluator", () => {
       agent: { API_TOKEN: "agent's" },
       plugins: new Map([["plg_audit", { API_TOKEN: "audit's" }]]),
     });
-    await expect(buildHookEvaluator(elsewhere, sink, tools, 180_000)).rejects.toThrow(
+    await expect(buildHookEvaluator(elsewhere, sink, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook of the plugin 'safety' reads the variable API_TOKEN, which none of this conversation's vaults holds. Save API_TOKEN in one of them, then run again.",
       ),
@@ -127,16 +125,16 @@ describe("buildHookEvaluator", () => {
       ],
       { plugins: new Map([["plg_safety", { API_TOKEN: "safety's" }], ["plg_audit", { API_TOKEN: "audit's" }]]) },
     );
-    expect(await buildHookEvaluator(both, sink, tools, 180_000)).not.toBeNull();
+    expect(await buildHookEvaluator(both, sink, 180_000)).not.toBeNull();
   });
 
   it("fills the agent's own block from the agent's values, and refuses one the run does not give the agent", async () => {
     const reads = groups({ command: "check", args: ["${user_config.X}"] });
     expect(
-      await buildHookEvaluator(input([{ plugin: null, format: "claude-code", groups: reads }], { agent: { X: "x" } }), sink, tools, 180_000),
+      await buildHookEvaluator(input([{ plugin: null, format: "claude-code", groups: reads }], { agent: { X: "x" } }), sink, 180_000),
     ).not.toBeNull();
     const pluginOnly = input([{ plugin: null, format: "claude-code", groups: reads }], { plugins: new Map([["plg_safety", { X: "x" }]]) });
-    await expect(buildHookEvaluator(pluginOnly, sink, tools, 180_000)).rejects.toThrow(
+    await expect(buildHookEvaluator(pluginOnly, sink, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook in the agent's own hooks block reads the variable X, which this run does not give the agent. Declare X in the agent's env and set its value, then run again.",
       ),
@@ -158,7 +156,7 @@ describe("buildHookEvaluator", () => {
       home: { kind: "plugin", pluginId: "plg_github", plugin: "github", server: "api" },
     };
     const claimed: TurnInput = { ...base, mcp: { ...base.mcp, servers: [server] } };
-    await expect(buildHookEvaluator(claimed, sink, tools, 180_000)).rejects.toThrow(
+    await expect(buildHookEvaluator(claimed, sink, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook of the plugin 'safety' reads the variable API_TOKEN, which this run keeps for its MCP server 'plugin_github_api' " +
           "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
@@ -167,7 +165,7 @@ describe("buildHookEvaluator", () => {
     // A tool that did not resolve this turn is still named, readably: its
     // value is still never the hook's, and the sentence carries no raw
     // group key (plugin id, NUL, server).
-    const unresolved = buildHookEvaluator(base, sink, tools, 180_000);
+    const unresolved = buildHookEvaluator(base, sink, 180_000);
     await expect(unresolved).rejects.toThrow("which this run keeps for its MCP server");
     await expect(unresolved).rejects.toThrow(/keeps for its MCP server '[^'\u0000]+'/);
   });
@@ -189,13 +187,13 @@ describe("buildHookEvaluator", () => {
         "and gives neither the agent's shell nor its hooks. Give the hook a variable of its own, then run again.",
     );
     const platform: ResolvedMcpServer = { slug: "stigmer-memory", connectionType: "http", url: "https://bridge.example/mcp", home: { kind: "platform" } };
-    await expect(buildHookEvaluator({ ...base, mcp: { ...base.mcp, servers: [platform, server] } }, sink, tools, 180_000)).rejects.toThrow(sentence);
-    await expect(buildHookEvaluator(base, sink, tools, 180_000)).rejects.toThrow(sentence);
+    await expect(buildHookEvaluator({ ...base, mcp: { ...base.mcp, servers: [platform, server] } }, sink, 180_000)).rejects.toThrow(sentence);
+    await expect(buildHookEvaluator(base, sink, 180_000)).rejects.toThrow(sentence);
   });
 
   it("refuses a shell-form command that reads user_config, and judges only the events it runs", async () => {
     const shellForm = input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check ${user_config.API_TOKEN}" }) }]);
-    await expect(buildHookEvaluator(shellForm, sink, tools, 180_000)).rejects.toThrow(
+    await expect(buildHookEvaluator(shellForm, sink, 180_000)).rejects.toThrow(
       new HookSetupError(
         "A hook of the plugin 'safety' reads ${user_config.*} in a command that runs in bash, where the value is not substituted. " +
           "Pass it in args (exec form), then run again.",
@@ -208,7 +206,7 @@ describe("buildHookEvaluator", () => {
         create(HookHandlerSchema, { command: "notify", args: ["${user_config.WEBHOOK}"] }),
       ],
     })];
-    expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: notRun }]), sink, tools, 180_000)).toBeNull();
+    expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: notRun }]), sink, 180_000)).toBeNull();
   });
 
   it("hands the evaluator the workspace's paths and the turn's activity", async () => {
@@ -220,7 +218,7 @@ describe("buildHookEvaluator", () => {
         [{ plugin: null, format: "claude-code", groups: [create(HookGroupSchema, { event: "PreToolUse", matcher: "Read", handlers: [create(HookHandlerSchema, { command: `sleep 0.2; printf '%s' '${rewrite}' | sed "s#/WORKSPACE#$CLAUDE_PROJECT_DIR#"` })] })] }],
         { workspaceDir: workspace },
       );
-      const hooks = await buildHookEvaluator(turn, { ...sink, recordActivity }, tools, 30);
+      const hooks = await buildHookEvaluator(turn, { ...sink, recordActivity }, 30);
       const outcome = await hooks!.preToolUse({ id: "c", name: "read_file", args: { file_path: "/a.md" }, serverSlug: "" }, {});
       expect(outcome.updatedArgs, "a real path back to the engine's").toEqual({ file_path: "/notes.md" });
       expect(recordActivity).toHaveBeenCalledWith("hook the agent's hooks");
@@ -233,10 +231,10 @@ describe("buildHookEvaluator", () => {
     const empty = mkdtempSync(join(tmpdir(), "no-bash-"));
     try {
       vi.stubEnv("PATH", `:${empty}`);
-      await expect(buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check" }) }]), sink, tools, 180_000)).rejects.toThrow(
+      await expect(buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "check" }) }]), sink, 180_000)).rejects.toThrow(
         "no bash is on this runner's PATH",
       );
-      expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "/bin/check", args: ["x"] }) }]), sink, tools, 180_000)).not.toBeNull();
+      expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "/bin/check", args: ["x"] }) }]), sink, 180_000)).not.toBeNull();
     } finally {
       rmSync(empty, { recursive: true, force: true });
     }
@@ -246,12 +244,12 @@ describe("buildHookEvaluator", () => {
     const reads = groups({ command: "check", args: ["${user_config.NOTES_KEY}"] });
     const own = subagent([{ plugin: null, format: "claude-code", groups: reads }], { NOTES_KEY: "n" });
     const turn = input([], { subagents: [own] });
-    expect(await buildHookEvaluator(turn, sink, tools, 180_000), "the main agent has no hooks").toBeNull();
-    expect(await buildHookEvaluator(turn, sink, tools, 180_000, own)).not.toBeNull();
+    expect(await buildHookEvaluator(turn, sink, 180_000), "the main agent has no hooks").toBeNull();
+    expect(await buildHookEvaluator(turn, sink, 180_000, own)).not.toBeNull();
 
     const agentsOnly = subagent([{ plugin: null, format: "claude-code", groups: reads }], {});
     await expect(
-      buildHookEvaluator(input([], { agent: { NOTES_KEY: "agent's" }, subagents: [agentsOnly] }), sink, tools, 180_000, agentsOnly),
+      buildHookEvaluator(input([], { agent: { NOTES_KEY: "agent's" }, subagents: [agentsOnly] }), sink, 180_000, agentsOnly),
     ).rejects.toThrow(
       "A hook in the subagent 'release-notes''s own hooks block reads the variable NOTES_KEY, which this run does not give the subagent 'release-notes'. " +
         "Declare NOTES_KEY in the subagent 'release-notes''s env and set its value, then run again.",
@@ -269,12 +267,12 @@ describe("buildHookEvaluator", () => {
       });
       const call = { id: "c", name: "read_file", args: { file_path: "/a.md" }, serverSlug: "" };
 
-      const main = await buildHookEvaluator(turn, sink, tools, 180_000);
+      const main = await buildHookEvaluator(turn, sink, 180_000);
       expect((await main!.preToolUse(call, {})).additionalContext, "the main agent's graph runs only the conversation's").toEqual([
         "conversation agent=agent-secret sub=",
       ]);
 
-      const delegated = await buildHookEvaluator(turn, sink, tools, 180_000, own);
+      const delegated = await buildHookEvaluator(turn, sink, 180_000, own);
       expect((await delegated!.preToolUse(call, {})).additionalContext).toEqual([
         "conversation agent=agent-secret sub=",
         "subagent agent= sub=notes-secret",
@@ -309,9 +307,7 @@ describe("buildHookEvaluator", () => {
       ];
       const own: TurnSubagent = { ...subagent([{ plugin: null, format: "claude-code", groups: reportsServer }], {}), servers: [github, platform] };
       const turn = input([], { workspaceDir: workspace, subagents: [own] });
-      const served = { toolServerMap: new Map([["create_issue", "plugin_github_api"], ["add_note", "notes"]]) };
-
-      const delegated = await buildHookEvaluator(turn, sink, served, 180_000, own);
+      const delegated = await buildHookEvaluator(turn, sink, 180_000, own);
       const issue = await delegated!.preToolUse({ id: "c1", name: "create_issue", args: {}, serverSlug: "plugin_github_api" }, {});
       expect(issue.additionalContext).toEqual(["plugin:github:api"]);
       const note = await delegated!.preToolUse({ id: "c2", name: "add_note", args: {}, serverSlug: "notes" }, {});

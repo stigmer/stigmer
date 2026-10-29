@@ -38,6 +38,7 @@ import { ToolScope } from "../../../shared/tool-lists.js";
 import { DeepAgentTranslator } from "../translator.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 class ScriptedAnthropicModel extends ScriptedModel {
   static override lc_name(): string {
@@ -115,7 +116,7 @@ describe("the runner's shell on a real graph", () => {
     const marker = join(root, "gated.txt");
     const backend = await shellBackend(root);
     const checkpointer = new MemorySaver();
-    const gate = createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() });
+    const gate = createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY });
     const graph = await createDeepAgent({
       model: new ScriptedAnthropicModel(callsExecute("echo ran > gated.txt && echo done", MAX_TIMEOUT_SECONDS + 1)),
       checkpointer: checkpointer as never,

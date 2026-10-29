@@ -15,6 +15,15 @@
  * is idempotent — on resume it returns the decision value instead of
  * pausing again.
  *
+ * Which tool a call is: the model calls an MCP tool by its engine name,
+ * `mcp__<server>__<tool>` (`shared/mcp-tool-names.ts`), and the gate reads
+ * the server and the bare tool from the turn's index (`mcpIndex`) once per
+ * call. Everything the gate says outside the engine (the card, the hooks'
+ * view, the receipt, capture) names that pair; the messages it writes back
+ * to the model answer the call under the name the model used. A call the
+ * index does not own is a built-in, so a server's own `write_file` is
+ * judged as its server's tool, never by a built-in's category.
+ *
  * Platform tool defaults: DeepAgents JS backend tools (read, write,
  * edit, execute, etc.) are not MCP tools. Built-in tools
  * are classified through the shared {@link toolApprovalCategory} — the single
@@ -109,6 +118,7 @@ import { hookAskMessage, hookFeedbackSection, hookRefusalMessage, personDecision
 import { NO_PRE_TOOL_USE, type HookCallScope, type HookEvaluator, type PreToolUseOutcome } from "../shared/hooks/evaluate.js";
 import { TOOL_REFUSED_EVENT, customStreamWriterOf, type ToolRefusedPayload } from "./tool-scope.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
+import type { McpToolIndex } from "../shared/mcp-tool-names.js";
 import { blockedSecretPath, captureFlows, fileEditFlow, secretBlockMessage, type FileEditPosture } from "../shared/file-edit-policy.js";
 import {
   computeApprovalFingerprint,
@@ -133,7 +143,8 @@ export interface ApprovalGateConfig extends FileEditPosture {
    * sub-agents along with the rest of this config.
    */
   readonly leasedCategories?: ReadonlySet<ToolApprovalCategory>;
-  readonly toolServerMap: ReadonlyMap<string, string>;
+  /** The server and bare tool each MCP engine name stands for (the header). */
+  readonly mcpIndex: McpToolIndex;
   /**
    * Per-execution HMAC key for the shadow receipt's action fingerprint. Derived
    * from the runner master secret + execution_id (see fingerprint-secret.ts).
@@ -237,7 +248,7 @@ function secretBlockToolMessage(toolName: string, path: string, toolCallId: stri
 export function createApprovalGateMiddleware(
   config: ApprovalGateConfig,
 ): StigmerMiddleware {
-  const { mcpDefault, toolServerMap } = config;
+  const { mcpDefault, mcpIndex } = config;
   const leasedCategories = config.leasedCategories ?? EMPTY_CATEGORY_SET;
   const hooks = config.hooks ?? null;
   const globalBypass = config.globalBypass ?? false;
@@ -248,9 +259,10 @@ export function createApprovalGateMiddleware(
 
     async wrapToolCall(request: ToolCallRequest, handler) {
       const { toolCall } = request;
-      const toolName = toolCall.name;
-      const serverSlug = toolServerMap.get(toolName) ?? "";
-      const category = toolApprovalCategory(toolName);
+      const owner = mcpIndex.ownerOf(toolCall.name);
+      const toolName = owner?.tool ?? toolCall.name;
+      const serverSlug = owner?.slug ?? "";
+      const category = owner === undefined ? toolApprovalCategory(toolName) : undefined;
 
       // 1. Secret-like writes, ahead of anything a hook could answer.
       if (!globalBypass) {
@@ -275,13 +287,13 @@ export function createApprovalGateMiddleware(
         }
       }
 
-      const hookSource = await resolveHookDecision(config, call, serverSlug, pre, pre.decision, globalBypass);
+      const hookSource = await resolveHookDecision(config, call, toolName, serverSlug, pre, pre.decision, globalBypass);
       if (hookSource instanceof ToolMessage) return hookSource;
 
       const run = async (source: PolicySource | undefined, authorization: AuthorizationSource) => {
         if (hookSource !== undefined) writeToolPolicy(call, hookSource, pre.hook);
-        emitExecutionReceipt(config, call.toolCall, serverSlug, category, authorization, source);
-        return withHookFeedback(await handler(call), call, serverSlug, pre, hooks, scope);
+        emitExecutionReceipt(config, { ...call.toolCall, name: toolName }, serverSlug, category, authorization, source);
+        return withHookFeedback(await handler(call), call, toolName, serverSlug, pre, hooks, scope);
       };
 
       if (hookSource !== undefined) {
@@ -335,6 +347,7 @@ export function createApprovalGateMiddleware(
   async function resolveHookDecision(
     gate: ApprovalGateConfig,
     call: ToolCallRequest,
+    toolName: string,
     serverSlug: string,
     pre: PreToolUseOutcome,
     decision: Exclude<PreToolUseOutcome["decision"], "deny">,
@@ -350,9 +363,9 @@ export function createApprovalGateMiddleware(
         if (gate.unattended) return skipUnattended(gate, call, pre.hook);
         const decision = await askPerson(call, {
           tool_call_id: call.toolCall.id,
-          tool_name: call.toolCall.name,
+          tool_name: toolName,
           mcp_server_slug: serverSlug,
-          message: pre.reason || hookAskMessage(pre.hook, hooks?.viewOf({ ...call.toolCall, serverSlug })?.toolName ?? call.toolCall.name),
+          message: pre.reason || hookAskMessage(pre.hook, hooks?.viewOf({ ...call.toolCall, name: toolName, serverSlug })?.toolName ?? toolName),
           policy_source: "hook",
           policy_hook: pre.hook,
           ...(pre.updatedArgs !== undefined ? { args: call.toolCall.args } : {}),
@@ -500,13 +513,14 @@ function writeToolPolicy(call: ToolCallRequest, source: PolicySource, hook: stri
 async function withHookFeedback(
   result: ToolMessage | Command,
   call: ToolCallRequest,
+  toolName: string,
   serverSlug: string,
   pre: PreToolUseOutcome,
   hooks: HookEvaluator | null,
   scope: HookCallScope,
 ): Promise<ToolMessage | Command> {
   if (hooks === null) return result;
-  const appendTo = (message: ToolMessage) => appendHookFeedback(message, call, serverSlug, pre, hooks, scope);
+  const appendTo = (message: ToolMessage) => appendHookFeedback(message, call, toolName, serverSlug, pre, hooks, scope);
   if (result instanceof ToolMessage) return appendTo(result);
 
   const update = result.update;
@@ -528,6 +542,7 @@ async function withHookFeedback(
 async function appendHookFeedback(
   result: ToolMessage,
   call: ToolCallRequest,
+  toolName: string,
   serverSlug: string,
   pre: PreToolUseOutcome,
   hooks: HookEvaluator,
@@ -536,7 +551,7 @@ async function appendHookFeedback(
   const feedback = [...pre.additionalContext];
   if (result.status !== "error") {
     const post = await hooks.postToolUse(
-      { id: call.toolCall.id, name: call.toolCall.name, args: call.toolCall.args, serverSlug },
+      { id: call.toolCall.id, name: toolName, args: call.toolCall.args, serverSlug },
       scope,
       typeof result.content === "string" ? result.content : JSON.stringify(result.content),
     );

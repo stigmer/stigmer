@@ -6,10 +6,11 @@
 // The surface is the harness's HTTP MCP fixture (harness/mcp-server.ts),
 // written straight into the agent, never pushed as a plugin: each arm's
 // agent writes exactly one server, named SERVER, at one of the fixture's
-// tool surfaces, and no plugin of the fixture rides the same turn (the
-// Stigmer harness binds MCP tools by bare name, so one turn holds one fixture
-// server). The fixture records each JSON-RPC request with its headers, so
-// what reached the server is read where it arrived.
+// tool surfaces, and no plugin of the fixture rides the same turn. The model
+// calls its tool as `mcp__<server>__<tool>` (`mcpToolName`) on every engine,
+// and the call, the ask and the log name the bare tool beside the server.
+// The fixture records each JSON-RPC request with its headers, so what
+// reached the server is read where it arrived.
 //
 // The contract under test:
 //   - a run of an agent that writes its own server dials it at turn start
@@ -56,6 +57,7 @@ import {
   ECHO_TOOL_NAME,
   type FixtureTool,
   type McpToolFixture,
+  mcpToolName,
 } from "../harness/mcp-server";
 import { type AgentOptions, type AgentRefInit, agentRefOf, createSubagents, makeAgent, subagentSlugsOf } from "../support/agents";
 import { awaitRequiresAction, confirmPerContract } from "../support/answers";
@@ -164,7 +166,7 @@ async function completedEchoRun(
   callId: string,
   opts: { includeMyVault?: boolean } = {},
 ) {
-  mock.enqueue(anthropicToolUse(callId, ECHO_TOOL_NAME, { text: "ping" }));
+  mock.enqueue(anthropicToolUse(callId, mcpToolName(SERVER, ECHO_TOOL_NAME), { text: "ping" }));
   mock.enqueue(anthropicText("Done."));
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
@@ -223,7 +225,7 @@ describe("Run — an agent's own MCP server is dialed and its tool called", () =
     const { org } = await target.provisionTenancy();
     const agent = await agentWithOwnServer(org, { tools: [DESTRUCTIVE_ECHO_TOOL_NAME] });
 
-    mock.enqueue(anthropicToolUse("call_own_destructive", DESTRUCTIVE_ECHO_TOOL_NAME, { text: "careful" }));
+    mock.enqueue(anthropicToolUse("call_own_destructive", mcpToolName(SERVER, DESTRUCTIVE_ECHO_TOOL_NAME), { text: "careful" }));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({ org, name: uniqueName("aex-own-gate"), agentRef: agentRefOf(agent) }),

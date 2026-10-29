@@ -15,7 +15,8 @@
  * turn offers its stand-in the same tool from that event.
  *
  * The server is an agent's own HTTP server in this process
- * (`HttpMcpServer`). Its tool carries no `destructiveHint`, so the approval
+ * (`HttpMcpServer`); the model calls its tool as `mcp__docs__lookup`, and
+ * the row, the event and the definition name the bare tool beside it. Its tool carries no `destructiveHint`, so the approval
  * default asks nothing of it (`shared/approval-policy.ts`: only an explicit
  * destructive mark asks) and both calls run ungated.
  *
@@ -42,6 +43,7 @@ import { HttpMcpServer } from "../../../../__test-utils__/http-mcp-server.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
 import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { mcpToolName } from "../../../../shared/mcp-tool-names.js";
 
 const SERVER = "docs";
 const TOOL = "lookup";
@@ -92,12 +94,12 @@ describe("ExecuteDeepAgent hermetic — an MCP tool's definition, recorded once"
         turns: [
           {
             text: "Looking up the first.",
-            toolCalls: [{ id: FIRST_CALL, name: TOOL, args: { q: "alpha" } }],
+            toolCalls: [{ id: FIRST_CALL, name: mcpToolName(SERVER, TOOL), args: { q: "alpha" } }],
             usage: { inputTokens: 1_500, outputTokens: 60 },
           },
           {
             text: "Now the second.",
-            toolCalls: [{ id: SECOND_CALL, name: TOOL, args: { q: "beta" } }],
+            toolCalls: [{ id: SECOND_CALL, name: mcpToolName(SERVER, TOOL), args: { q: "beta" } }],
             usage: { inputTokens: 1_600, outputTokens: 50 },
           },
           { text: "Both found.", usage: { inputTokens: 1_700, outputTokens: 20 } },

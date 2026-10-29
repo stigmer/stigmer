@@ -31,6 +31,7 @@ import {
 import { uniqueName } from "../support/naming";
 import { createOrganizationOnceReleased, organizationSlug } from "../support/organizations";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -69,7 +70,7 @@ describe("Organization purge with a live run", () => {
     );
     mock.enqueue(
       anthropicToolUses([
-        { toolCallId: "call_purge_echo", toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text: "held" } },
+        { toolCallId: "call_purge_echo", toolName: modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME), toolInput: { text: "held" } },
       ]),
     );
     mock.enqueue(anthropicText("Done."));

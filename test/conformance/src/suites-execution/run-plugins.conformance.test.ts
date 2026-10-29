@@ -45,7 +45,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
-import { oneServerPlugin, pluginRefOf, pushPlugin, toolServerSegment } from "../support/plugins";
+import { modelToolName, oneServerPlugin, pluginRefOf, pushPlugin, toolServerSegment } from "../support/plugins";
 import { toolUseByCallId, turnOfRun } from "../support/turn";
 import {
   awaitTerminal,
@@ -135,9 +135,9 @@ async function wholePlugin(org: string): Promise<Plugin> {
 
 // Scripts the turn: a shell delete the plugin's hook refuses, then the
 // plugin's echo tool, then an answer.
-function scriptTurn(): void {
+function scriptTurn(plugin: Plugin): void {
   mock.enqueue(anthropicToolUse("call_plugin_rm", "execute", { command: "rm -rf build" }));
-  mock.enqueue(anthropicToolUse("call_plugin_echo", ECHO_TOOL_NAME, { text: "ping" }));
+  mock.enqueue(anthropicToolUse("call_plugin_echo", modelToolName(plugin, ECHO_TOOL_NAME), { text: "ping" }));
   mock.enqueue(anthropicText("Done."));
 }
 
@@ -155,8 +155,8 @@ async function expectWholePlugin(plugin: Plugin, final: Run): Promise<void> {
   const wire = JSON.stringify(request);
   expect(wire, "the plugin's skill reaches the model named under the plugin").toContain(`${name}:${SKILL}`);
   expect(wire, "the plugin's agent is a sub-agent named under the plugin").toContain(`${name}:${AGENT}`);
-  expect((request.tools ?? []).map((tool) => tool.name), "the plugin server's tool is offered").toContain(
-    ECHO_TOOL_NAME,
+  expect((request.tools ?? []).map((tool) => tool.name), "the plugin server's tool is offered by its server").toContain(
+    modelToolName(plugin, ECHO_TOOL_NAME),
   );
 
   const turn = await turnOfRun(clients, final);
@@ -179,7 +179,7 @@ describe("Run — a turn runs its plugins whole", () => {
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-    scriptTurn();
+    scriptTurn(plugin);
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({ org, name: uniqueName("aex-whole"), agentRef: agentRefOf(agent) }),
     );
@@ -193,7 +193,7 @@ describe("Run — a turn runs its plugins whole", () => {
     const { org } = await target.provisionTenancy();
     const plugin = await wholePlugin(org);
 
-    scriptTurn();
+    scriptTurn(plugin);
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,

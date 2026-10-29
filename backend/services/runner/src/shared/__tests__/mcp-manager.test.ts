@@ -1,12 +1,14 @@
 /**
  * Pins the deep-agent MCP connection manager: the stdio env contract (only
  * declared variables, never the runner's credentials), the HTTP reconnect
- * shape, that every listed tool binds with its server's identity kept as the
- * tool object, and the unicode-pattern sanitization (issue #420).
+ * shape, that every listed tool binds named by its server (stigmer#1860:
+ * `mcp__<server>__<tool>`, the index answering which server and tool a name
+ * stands for), and the unicode-pattern sanitization (issue #420).
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import type { Connection } from "@langchain/mcp-adapters";
 import { connectMcpServers, toMcpClientConfig } from "../mcp-manager.js";
+import { McpToolIndex, McpToolNameCollisionError, engineToolName } from "../mcp-tool-names.js";
 import { RUNNER_CREDENTIAL_ENV_KEYS } from "../runner-credential-keys.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 
@@ -15,6 +17,7 @@ import type { ResolvedMcpServer } from "../mcp-resolver.js";
 // toMcpClientConfig suites are pure and never construct it.
 const mockMcpClient = vi.hoisted(() => ({
   toolMap: {} as Record<string, { name: string }[]>,
+  closed: 0,
 }));
 
 vi.mock("@langchain/mcp-adapters", () => ({
@@ -22,7 +25,9 @@ vi.mock("@langchain/mcp-adapters", () => ({
     async initializeConnections() {
       return mockMcpClient.toolMap;
     }
-    async close() {}
+    async close() {
+      mockMcpClient.closed += 1;
+    }
   },
 }));
 
@@ -184,13 +189,14 @@ describe("toMcpClientConfig — stdio env isolation (oss#256)", () => {
   });
 });
 
-describe("connectMcpServers — every tool binds, attributed by object", () => {
+describe("connectMcpServers — every tool binds, named by its server", () => {
   const tool = (name: string) => ({ name }) as any;
 
   beforeEach(() => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     mockMcpClient.toolMap = {};
+    mockMcpClient.closed = 0;
   });
 
   afterEach(() => {
@@ -202,23 +208,50 @@ describe("connectMcpServers — every tool binds, attributed by object", () => {
 
     const result = await connectMcpServers([makeServer({ slug: "planton", command: "npx" })]);
 
-    expect(result.tools.map((t) => t.name)).toEqual(["get", "apply", "destroy"]);
-    expect(result.serverToolMap.planton.map((t) => t.name)).toEqual(["get", "apply", "destroy"]);
+    expect(result.tools.map((t) => t.name)).toEqual(["mcp__planton__get", "mcp__planton__apply", "mcp__planton__destroy"]);
+    expect(result.serverToolMap.planton.map((t) => t.name)).toEqual(["mcp__planton__get", "mcp__planton__apply", "mcp__planton__destroy"]);
+    expect(result.index.ownerOf("mcp__planton__destroy")).toEqual({ slug: "planton", tool: "destroy" });
   });
 
-  it("keeps two servers' same-named tools apart as distinct objects in the per-server map", async () => {
+  it("names two servers' same-named tools apart, as distinct objects, and a long name fitted", async () => {
     const aGet = tool("get");
     const bGet = tool("get");
-    mockMcpClient.toolMap = { a: [aGet], b: [bGet] };
+    const long = "plugin_interactive-brokers_interactive-brokers";
+    mockMcpClient.toolMap = { a: [aGet], b: [bGet], [long]: [tool("get_portfolio_positions")] };
 
     const result = await connectMcpServers([
       makeServer({ slug: "a", command: "npx" }),
       makeServer({ slug: "b", command: "npx" }),
+      makeServer({ slug: long, command: "npx" }),
     ]);
 
     expect(result.serverToolMap.a[0]).toBe(aGet);
     expect(result.serverToolMap.b[0]).toBe(bGet);
-    expect(result.tools).toEqual([aGet, bGet]);
+    expect([aGet.name, bGet.name]).toEqual(["mcp__a__get", "mcp__b__get"]);
+    expect(result.index.ownerOf("mcp__b__get")).toEqual({ slug: "b", tool: "get" });
+    const fitted = result.serverToolMap[long][0];
+    expect(fitted.name).toBe(engineToolName(long, "get_portfolio_positions"));
+    expect(result.index.ownerOf(fitted.name)).toEqual({ slug: long, tool: "get_portfolio_positions" });
+  });
+
+  it("connects nothing for servers it cannot configure, with an empty index", async () => {
+    const result = await connectMcpServers([makeServer({ slug: "no-command", connectionType: "stdio" })]);
+
+    expect(result.tools).toEqual([]);
+    expect(result.serverToolMap).toEqual({});
+    expect(result.index).toBe(McpToolIndex.EMPTY);
+  });
+
+  it("refuses two tools that would take one name, and closes what it connected", async () => {
+    const fitted = engineToolName("s".repeat(60), "tool");
+    const lookalike = fitted.slice("mcp__".length, fitted.lastIndexOf("__"));
+    mockMcpClient.toolMap = { ["s".repeat(60)]: [tool("tool")], [lookalike]: [tool("tool")] };
+
+    await expect(connectMcpServers([
+      makeServer({ slug: "s".repeat(60), command: "npx" }),
+      makeServer({ slug: lookalike, command: "npx" }),
+    ])).rejects.toThrow(McpToolNameCollisionError);
+    expect(mockMcpClient.closed).toBe(1);
   });
 });
 

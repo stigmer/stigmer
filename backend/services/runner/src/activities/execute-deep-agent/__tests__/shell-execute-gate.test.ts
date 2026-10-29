@@ -23,6 +23,7 @@ import {
 } from "../__test-utils__/scripted-model.js";
 import { compileSubagents, type TransformedSubagent } from "../subagent-transformer.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 describe("Stigmer harness shell execute approval", () => {
   let root: string;
@@ -62,7 +63,7 @@ describe("Stigmer harness shell execute approval", () => {
       checkpointer: checkpointer as never,
       backend,
       middleware: [
-        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY }),
       ],
     } as Parameters<typeof createDeepAgent>[0]);
 
@@ -183,7 +184,7 @@ describe("general-purpose sub-agent gating", () => {
     const compiled = await compileSubagents([gpSpec], {
       parentModelName: "claude-sonnet-4-6",
       workspaceRootDir: root,
-      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY },
       shellEnv: {},
       modelFactory: async () => new ScriptedModel(roleScript),
     });

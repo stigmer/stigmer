@@ -49,6 +49,7 @@ import { contractHookSources } from "../../../__test-utils__/approval-contract/h
 import { StigmerToolViews } from "../../../shared/hooks/tool-view.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
+import { McpToolIndex, engineToolName } from "../../../shared/mcp-tool-names.js";
 import { PLATFORM_ROUTE_PREFIX, admitsRoutedRead } from "../platform-route.js";
 import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
@@ -76,26 +77,45 @@ import { ApprovalPolicySource } from "../../../gen/turn/ai/stigmer/runner/turn/v
  *  - write  → `overwrite_file` (FILE_WRITE), delete → `remove_file` (FILE_DELETE),
  *    shell → `execute_command` (SHELL): each gated fail-closed by category.
  *  - read   → an unknown, non-mutating name: auto-approved (fail-open), no gate.
- *  - mcp    → the MCP tool name mapped to its server: governed by policy, absent
- *    policy ⇒ auto-approved.
+ *  - mcp    → the MCP tool under its engine name (`mcp__<server>__<tool>`,
+ *    as connect names it): governed by policy, absent policy ⇒ auto-approved.
+ * `tool` is the name a row carries: a built-in's own, an MCP tool's bare one.
  */
 function toDeepAgentTool(action: ProposedAction): {
   name: string;
+  tool: string;
   args: Record<string, unknown>;
   serverSlug: string;
 } {
   switch (action.kind) {
     case "write":
-      return { name: "overwrite_file", args: { path: action.resource, content: "x" }, serverSlug: "" };
+      return { name: "overwrite_file", tool: "overwrite_file", args: { path: action.resource, content: "x" }, serverSlug: "" };
     case "shell":
-      return { name: "execute_command", args: { command: action.resource }, serverSlug: "" };
+      return { name: "execute_command", tool: "execute_command", args: { command: action.resource }, serverSlug: "" };
     case "delete":
-      return { name: "remove_file", args: { path: action.resource }, serverSlug: "" };
+      return { name: "remove_file", tool: "remove_file", args: { path: action.resource }, serverSlug: "" };
     case "read":
-      return { name: "inspect_resource", args: { path: action.resource }, serverSlug: "" };
+      return { name: "inspect_resource", tool: "inspect_resource", args: { path: action.resource }, serverSlug: "" };
     case "mcp":
-      return { name: action.mcpToolName ?? "mcp_tool", args: {}, serverSlug: action.mcpServerSlug ?? "srv" };
+      return mcpCallOf(action);
   }
+}
+
+/** An MCP action's call: its engine name, its bare tool and its server. */
+function mcpCallOf(action: ProposedAction): { name: string; tool: string; args: Record<string, unknown>; serverSlug: string } {
+  const tool = action.mcpToolName ?? "mcp_tool";
+  const serverSlug = action.mcpServerSlug ?? "srv";
+  return { name: engineToolName(serverSlug, tool), tool, args: {}, serverSlug };
+}
+
+/** The turn's index over an MCP action's server, its same-name twin's first (invariant 38); empty for a built-in. */
+function mcpIndexOf(action: ProposedAction): McpToolIndex {
+  if (action.kind !== "mcp") return McpToolIndex.EMPTY;
+  const tools = [action.mcpToolName ?? "mcp_tool"];
+  return McpToolIndex.of([
+    ...(action.mcpTwin !== undefined ? [{ slug: action.mcpTwin.slug, tools }] : []),
+    { slug: action.mcpServerSlug ?? "srv", tools },
+  ]);
 }
 
 /** Map a contract decision to the gate's resume verdict (anything unrecognized = unknown). */
@@ -124,7 +144,7 @@ async function runProbe(
   decision: GatewayDecision,
   leasedCategories: ReadonlySet<ToolApprovalCategory>,
 ): Promise<GatewayOutcome> {
-  const { name, args, serverSlug } = toDeepAgentTool(action);
+  const { name, args } = toDeepAgentTool(action);
 
   let executionCount = 0;
   const countingTool = tool(
@@ -139,12 +159,16 @@ async function runProbe(
     },
   );
 
-  const toolServerMap = serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>();
   const gate = createApprovalGateMiddleware({
     mcpDefault: mcpDefaultFor(action),
-    toolServerMap,
+    mcpIndex: mcpIndexOf(action),
     leasedCategories,
   });
+  // A same-name probe's other server: its tool of the same name is bound first, and never counts.
+  const twinName = action.kind === "mcp" && action.mcpTwin !== undefined ? engineToolName(action.mcpTwin.slug, action.mcpToolName ?? "mcp_tool") : undefined;
+  const twin = twinName !== undefined
+    ? [tool(async () => "twin ran", { name: twinName, description: `contract twin tool ${twinName}`, schema: z.object({}).passthrough() })]
+    : [];
 
   const agent = await createDeepAgent({
     model: new ScriptedModel(() => ({
@@ -153,7 +177,7 @@ async function runProbe(
     })),
     checkpointer: new MemorySaver() as never,
     backend: new StateBackend(),
-    tools: [countingTool],
+    tools: [...twin, countingTool],
     middleware: [gate],
   } as unknown as Parameters<typeof createDeepAgent>[0]);
 
@@ -185,6 +209,9 @@ function mcpDefaultFor(action: ProposedAction): McpApprovalDefault {
   if (action.kind === "mcp" && action.mcpDestructive) {
     destructive.add(mcpToolKey(action.mcpServerSlug ?? "srv", action.mcpToolName ?? "mcp_tool"));
   }
+  if (action.kind === "mcp" && action.mcpTwin?.destructive === true) {
+    destructive.add(mcpToolKey(action.mcpTwin.slug, action.mcpToolName ?? "mcp_tool"));
+  }
   return { destructive, unlisted: new Set<string>(), leasedServers: new Set() };
 }
 
@@ -198,20 +225,20 @@ function seedWorkspace(root: string): void {
 }
 
 /** An action as the Stigmer harness's own built-in call, or an MCP tool call. */
-function toStigmerCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
+function toStigmerCall(action: ProposedAction): { name: string; tool: string; args: Record<string, unknown>; serverSlug: string } {
   switch (action.kind) {
     case "write":
-      return { name: "write_file", args: { file_path: action.resource, content: action.content ?? "x" }, serverSlug: "" };
+      return { name: "write_file", tool: "write_file", args: { file_path: action.resource, content: action.content ?? "x" }, serverSlug: "" };
     case "shell":
-      return { name: "execute", args: { command: action.resource }, serverSlug: "" };
+      return { name: "execute", tool: "execute", args: { command: action.resource }, serverSlug: "" };
     case "read": {
       const path = action.platformContent ? `${PLATFORM_ROUTE_PREFIX}${action.resource}` : action.resource;
-      return { name: "read_file", args: { file_path: path }, serverSlug: "" };
+      return { name: "read_file", tool: "read_file", args: { file_path: path }, serverSlug: "" };
     }
     case "delete":
       throw new Error("toStigmerCall: the Stigmer harness binds no delete tool (deepagents-profiles.ts)");
     case "mcp":
-      return { name: action.mcpToolName ?? "mcp_tool", args: {}, serverSlug: action.mcpServerSlug ?? "srv" };
+      return mcpCallOf(action);
     default: {
       const exhaustive: never = action.kind;
       throw new Error(`toStigmerCall: unknown action kind ${String(exhaustive)}`);
@@ -228,7 +255,7 @@ async function runListsProbe(
   const root = mkdtempSync(join(tmpdir(), "contract-lists-"));
   try {
     seedWorkspace(root);
-    const { name, args, serverSlug } = toStigmerCall(action);
+    const { name, args } = toStigmerCall(action);
 
     let mcpCount = 0;
     const mcpTools =
@@ -250,7 +277,7 @@ async function runListsProbe(
     const middleware: unknown[] = [
       createToolScopeMiddleware({
         scope,
-        serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
+        mcpIndex: mcpIndexOf(action),
         platformServerSlugs: new Set(),
         admitsRoutedRead,
         readsSkillContent: skillContentReadCheck(undefined),
@@ -260,7 +287,7 @@ async function runListsProbe(
       middleware.push(
         createApprovalGateMiddleware({
           mcpDefault: mcpDefaultFor(action),
-          toolServerMap: serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>(),
+          mcpIndex: mcpIndexOf(action),
           leasedCategories: NO_LEASED_CATEGORIES,
         }),
       );
@@ -302,9 +329,9 @@ function shellWord(text: string): string {
 const SHELL_RAN = ".contract-ran";
 
 /** The Stigmer call for a hooks probe: a shell leaves a mark, a write and a read touch the workspace. */
-function toHooksCall(action: ProposedAction): { name: string; args: Record<string, unknown>; serverSlug: string } {
+function toHooksCall(action: ProposedAction): { name: string; tool: string; args: Record<string, unknown>; serverSlug: string } {
   if (action.kind === "shell") {
-    return { name: "execute", args: { command: `${action.resource}; echo ran >> ${SHELL_RAN}` }, serverSlug: "" };
+    return { name: "execute", tool: "execute", args: { command: `${action.resource}; echo ran >> ${SHELL_RAN}` }, serverSlug: "" };
   }
   return toStigmerCall(action);
 }
@@ -338,7 +365,7 @@ async function runHooksProbe(
     if (action.kind === "read") seedWorkspace(root);
     mkdirSync(join(root, "work"), { recursive: true });
     const files = { runs: join(pluginRoot, "runs.jsonl"), state: join(pluginRoot, "asked") };
-    const { name, args, serverSlug } = toHooksCall(action);
+    const { name, args } = toHooksCall(action);
 
     let mcpCount = 0;
     const mcpTools =
@@ -354,7 +381,6 @@ async function runHooksProbe(
             ),
           ]
         : [];
-    const toolServerMap = serverSlug ? new Map([[name, serverSlug]]) : new Map<string, string>();
 
     const sources: HookSourceGroups[] = contractHookSources(hooks, files, pluginRoot, (rewrite) => claudeInputOf(rewrite, root));
     const leased = options.hookLease;
@@ -363,7 +389,6 @@ async function runHooksProbe(
       views: new StigmerToolViews({
         workspaceRoot: root,
         toVirtualPath: (path) => normalizeWorkspacePathArg(path, root),
-        toolServerMap,
         serverNames: new Map(),
         platformServerSlugs: new Set(),
       }),
@@ -373,7 +398,7 @@ async function runHooksProbe(
       baseEnv: buildShellEnv({}),
       homeDir: pluginRoot,
       leases: leased
-        ? new Set([hookLeaseKey(leased.plugin, toHooksCall(leased.action).serverSlug, toHooksCall(leased.action).name)])
+        ? new Set([hookLeaseKey(leased.plugin, toHooksCall(leased.action).serverSlug, toHooksCall(leased.action).tool)])
         : new Set(),
     });
 
@@ -381,7 +406,7 @@ async function runHooksProbe(
     if (options.lists) {
       middleware.push(createToolScopeMiddleware({
         scope: ToolScope.of('Agent "contract"', options.lists),
-        serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
+        mcpIndex: mcpIndexOf(action),
         platformServerSlugs: new Set(),
         admitsRoutedRead,
         readsSkillContent: skillContentReadCheck(undefined),
@@ -389,7 +414,7 @@ async function runHooksProbe(
     }
     middleware.push(createApprovalGateMiddleware({
       mcpDefault: mcpDefaultFor(action),
-      toolServerMap,
+      mcpIndex: mcpIndexOf(action),
       leasedCategories: options.categoryLease ? new Set([options.categoryLease]) : NO_LEASED_CATEGORIES,
       hooks: evaluator,
       globalBypass: options.autoApproveAll ?? false,
@@ -490,7 +515,7 @@ export function createDeepAgentSubstrate(): GatewaySubstrate {
       // decision — so only the lease can clear it.
       const leasedTool = toDeepAgentTool(leased);
       const scope = deriveLeaseScope({
-        name: leasedTool.name,
+        name: leasedTool.tool,
         mcpServerSlug: leasedTool.serverSlug,
         approvalPolicySource: ApprovalPolicySource.UNSPECIFIED,
         approvalPolicyHook: "",

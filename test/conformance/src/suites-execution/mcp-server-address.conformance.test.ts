@@ -55,6 +55,7 @@ import { myVaultTarget, setSecretsInput } from "../support/vaults";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 // The reserved key, pinned verbatim to the runner's platform-server-address.ts.
 const SERVER_ADDRESS_ENV_KEY = "STIGMER_SERVER_ADDRESS";
@@ -124,7 +125,7 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → a plugin s
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
 
-    mock.enqueue(anthropicToolUse("call_echo_address", ECHO_TOOL_NAME, { text: "ping" }));
+    mock.enqueue(anthropicToolUse("call_echo_address", modelToolName(plugin, ECHO_TOOL_NAME), { text: "ping" }));
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(
@@ -172,7 +173,7 @@ describe("platform STIGMER_SERVER_ADDRESS (My vault → execution → a plugin s
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-    mock.enqueue(anthropicToolUse("call_echo_address_fill", ECHO_TOOL_NAME, { text: "ping" }));
+    mock.enqueue(anthropicToolUse("call_echo_address_fill", modelToolName(plugin, ECHO_TOOL_NAME), { text: "ping" }));
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(

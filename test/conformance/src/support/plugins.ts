@@ -28,6 +28,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { ConformanceClients } from "../harness/clients";
+import { mcpToolName } from "../harness/mcp-server";
 import type { FixtureTracker } from "../harness/fixtures";
 import type { InitShape } from "./init-shape";
 import { zipFiles } from "./skills";
@@ -291,6 +292,15 @@ export function toolServerSegment(pluginName: string, serverName: string = FIXTU
 /** `mcp__plugin_<plugin>_<server>__<tool>`: a plugin tool in an agent's tool lists. */
 export function pluginToolName(pluginName: string, serverName: string, tool: string): string {
   return `mcp__${toolServerSegment(pluginName, serverName)}__${tool}`;
+}
+
+/**
+ * The name the model calls a pushed plugin's `tool` by, on every engine:
+ * `mcp__plugin_<plugin>_<server>__<tool>` (`harness/mcp-server.ts`
+ * `mcpToolName`, which refuses one the engine would have to fit).
+ */
+export function modelToolName(plugin: Plugin, tool: string, serverName: string = FIXTURE_SERVER): string {
+  return mcpToolName(toolServerSegment(plugin.metadata!.name, serverName), tool);
 }
 
 /** `plugin:<plugin>:<server>`: the declarer a run's values and its refusals name a plugin's server by. */

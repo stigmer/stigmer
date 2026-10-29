@@ -33,6 +33,7 @@ import { CasCaptureObserver } from "../../../shared/filereview/cas-capture-obser
 import { compileSubagents, type TransformedSubagent } from "../subagent-transformer.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector } from "../__test-utils__/scripted-model.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 /** Only `src/**` is git-tracked (capturable); everything else is gitignored. */
 const isTracked = (relPath: string): boolean => relPath.startsWith("src/");
@@ -66,7 +67,7 @@ describe("sub-agent gitignored capture", () => {
   function captureGate(observer: CasCaptureObserver): ApprovalGateConfig {
     return {
       mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
-      toolServerMap: new Map(),
+      mcpIndex: McpToolIndex.EMPTY,
       fileCaptureMode: true,
       isCapturablePath: async (raw: string) =>
         isTracked(resolveWorkspacePath(raw, root, true).path),

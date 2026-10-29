@@ -15,6 +15,7 @@ import { createCostAdvisoryMiddleware } from "../../../middleware/cost-advisory.
 import { ADVISORY_LEAD_IN } from "../../../middleware/advisory-message.js";
 import type { ModelCallRequest } from "../../../middleware/types.js";
 import * as approvalGateModule from "../../../middleware/approval-gate.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 describe("buildSubAgentMiddleware", () => {
   it("returns the correct middleware order without a cost advisory", () => {
@@ -114,7 +115,7 @@ describe("buildSubAgentMiddleware", () => {
 
   it("installs the approval gate when an approvalGate config is provided", () => {
     const stack = buildSubAgentMiddleware({
-      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY },
     });
 
     // loop, budget, tool intent, truncation, approval gate, error hints, spans, model retry
@@ -141,7 +142,7 @@ describe("buildSubAgentMiddleware", () => {
 
     const stack = buildSubAgentMiddleware({
       costAdvisory: parentCostAdvisory,
-      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY },
     });
 
     // loop, budget, tool intent, truncation, approval gate, cost advisory view,
@@ -163,7 +164,7 @@ describe("buildSubAgentMiddleware", () => {
       const recordBlockedSecret = vi.fn();
       const parentGate = {
         mcpDefault: { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() },
-        toolServerMap: new Map<string, string>(),
+        mcpIndex: McpToolIndex.EMPTY,
         captureIgnored: true,
         recordBlockedSecret,
       };
@@ -184,7 +185,7 @@ describe("buildSubAgentMiddleware", () => {
       // would apply unobserved, unreviewable bytes.
       const parentGate = {
         mcpDefault: { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() },
-        toolServerMap: new Map<string, string>(),
+        mcpIndex: McpToolIndex.EMPTY,
         captureIgnored: true,
         recordBlockedSecret,
       };

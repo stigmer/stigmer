@@ -3,7 +3,8 @@
  * tools it loaded (`turn-setup.ts`): `listingOfLoadedTools` reads each
  * tool's own MCP annotation as `@langchain/mcp-adapters` keeps it on the
  * tool's `metadata`, marking a tool destructive only for an explicit
- * `destructiveHint: true`, lists every plugin server's tool names, never
+ * `destructiveHint: true`, lists every plugin server's tools by their bare
+ * names (connect named each `mcp__<server>__<tool>` for the model), never
  * reads the platform's own servers, and leaves nothing unlisted (a server
  * that did not connect has no tools to call); it offers the turn's record each
  * plugin tool's description and the JSON schema the loader made of it; `readGateState` builds the
@@ -18,15 +19,16 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import { resolveToolApproval } from "../../../shared/approval-policy.js";
 import { listingOfLoadedTools, readGateState, type DeepAgentTools } from "../turn-setup.js";
+import { McpToolIndex, engineToolName } from "../../../shared/mcp-tool-names.js";
 
 /** The JSON schema the adapter loads every test tool with. */
 const SCHEMA = { type: "object" as const, properties: { id: { type: "string" } }, required: ["id"] };
 
-/** A loaded MCP tool carrying `annotations` on its metadata, as the adapter loads one (a JSON schema, never a zod one). */
-function loaded(name: string, annotations?: Record<string, unknown>): DynamicStructuredTool {
+/** Server `slug`'s loaded `tool` carrying `annotations` on its metadata, as the adapter loads one (a JSON schema, never a zod one) and connect names it. */
+function loaded(slug: string, tool: string, annotations?: Record<string, unknown>): DynamicStructuredTool {
   return new DynamicStructuredTool({
-    name,
-    description: `${name} it`,
+    name: engineToolName(slug, tool),
+    description: `${tool} it`,
     schema: SCHEMA,
     func: async () => "",
     ...(annotations === undefined ? {} : { metadata: { annotations } }),
@@ -37,20 +39,25 @@ const serverToolMap = new Map<string, readonly DynamicStructuredTool[]>([
   [
     "plugin_linear_api",
     [
-      loaded("delete_issue", { destructiveHint: true }),
-      loaded("spoofed", { destructiveHint: true, readOnlyHint: true }),
-      loaded("search", { readOnlyHint: true }),
-      loaded("truthy_string", { destructiveHint: "true" }),
-      loaded("unannotated"),
+      loaded("plugin_linear_api", "delete_issue", { destructiveHint: true }),
+      loaded("plugin_linear_api", "spoofed", { destructiveHint: true, readOnlyHint: true }),
+      loaded("plugin_linear_api", "search", { readOnlyHint: true }),
+      loaded("plugin_linear_api", "truthy_string", { destructiveHint: "true" }),
+      loaded("plugin_linear_api", "unannotated"),
     ],
   ],
-  ["plugin_github_api", [loaded("merge_pr", { destructiveHint: true })]],
-  ["stigmer-memory", [loaded("forget", { destructiveHint: true })]],
+  ["plugin_github_api", [loaded("plugin_github_api", "merge_pr", { destructiveHint: true })]],
+  ["stigmer-memory", [loaded("stigmer-memory", "forget", { destructiveHint: true })]],
+]);
+const mcpIndex = McpToolIndex.of([
+  { slug: "plugin_linear_api", tools: ["delete_issue", "spoofed", "search", "truthy_string", "unannotated"] },
+  { slug: "plugin_github_api", tools: ["merge_pr"] },
+  { slug: "stigmer-memory", tools: ["forget"] },
 ]);
 
 describe("listingOfLoadedTools", () => {
   it("marks only an explicit destructiveHint: true, lists every plugin server, and never reads a platform server", () => {
-    const listing = listingOfLoadedTools(serverToolMap, new Set(["stigmer-memory"]));
+    const listing = listingOfLoadedTools({ serverToolMap, mcpIndex }, new Set(["stigmer-memory"]));
 
     expect(listing.listed).toEqual([
       { server: "plugin_linear_api", tools: ["delete_issue", "spoofed", "search", "truthy_string", "unannotated"] },
@@ -88,10 +95,10 @@ describe("readGateState", () => {
       connection: undefined,
       mcpTools: [...serverToolMap.values()].flat(),
       serverToolMap,
-      toolServerMap: new Map(),
+      mcpIndex,
     };
 
-    const { mcpDefault } = readGateState(input, tools, listingOfLoadedTools(serverToolMap, input.mcp.platformServerSlugs));
+    const { mcpDefault } = readGateState(input, tools, listingOfLoadedTools(tools, input.mcp.platformServerSlugs));
 
     expect([...mcpDefault.destructive].sort()).toEqual(
       ["plugin_github_api/merge_pr", "plugin_linear_api/delete_issue", "plugin_linear_api/spoofed"].sort(),

@@ -69,6 +69,11 @@
  * 37. beforeShellExecution's matcher is tested against the command, and an
  *     MCP call's against `MCP:<tool>`.
  *
+ * Two servers' tools of one name (stigmer#1860):
+ * 38. each is its own server's tool: a call to the one its server marks
+ *     destructive is gated, and a call to the other runs, whichever of the
+ *     two the turn lists first.
+ *
  * Capability-gated invariants (9, 10, 11, 19) run only where the substrate supports
  * the relevant lease; the "executes exactly once" count in (2) is asserted only
  * where the substrate observes execution. Differences are gated, never forked —
@@ -109,6 +114,8 @@ const MCP_DESTRUCTIVE: ProposedAction = {
   mcpToolName: "delete_repository",
   mcpDestructive: true,
 };
+/** The other server of a same-name probe: it lists every tool `srv` does (invariant 38). */
+const TWIN_SERVER = "other";
 const PLATFORM_READ: ProposedAction = { kind: "read", resource: "skills/guide/SKILL.md", platformContent: true };
 const SECRET_WRITE: ProposedAction = { kind: "write", resource: "/work/.env", content: "TOKEN=x" };
 
@@ -218,6 +225,18 @@ export function describeGatewayContract(substrate: GatewaySubstrate): void {
           "annotation_destructive_tighten",
         );
       }
+    });
+
+    // Invariant 38: two servers' tools of one name are two tools, each
+    // judged by its own server's marks, in either order of the servers.
+    it("judges each of two servers' same-named tools as its own server's (invariant 38)", async () => {
+      const destructive = await substrate.authorize({ ...MCP_DESTRUCTIVE, mcpTwin: { slug: TWIN_SERVER, destructive: false } }, "none");
+      expect(destructive.gated, `${substrate.name}: the destructive one must be gated beside an unmarked twin`).toBe(true);
+      expect(destructive.executed, `${substrate.name}: the destructive one must not run unapproved`).toBe(false);
+      const unmarked: ProposedAction = { ...MCP_DESTRUCTIVE, mcpServerSlug: TWIN_SERVER, mcpDestructive: false, mcpTwin: { slug: "srv", destructive: true } };
+      const plain = await substrate.authorize(unmarked, "none");
+      expect(plain.gated, `${substrate.name}: the unmarked one must not be gated beside a destructive twin`).toBe(false);
+      expect(plain.executed, `${substrate.name}: the unmarked one must run, on its own server`).toBe(true);
     });
 
     // Invariant 13: an allow-list is exact.
