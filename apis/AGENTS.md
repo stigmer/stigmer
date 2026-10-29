@@ -59,8 +59,7 @@ generator are the truth.
 - Proto field names, enum values and service names are wire bytes.
   `buf breaking` runs in CI; a rename is a protocol break with a migration plan,
   never a cleanup.
-- A field or enum value that leaves the contract keeps its number and name
-  `reserved`; neither is reused.
+- A removed field or enum value keeps its number and name `reserved`.
 - After any `.proto` change, `make codegen` from the repository root, and the
   generated output is committed. Hand edits under `stubs/` or any `gen`
   directory are defects.
@@ -72,7 +71,5 @@ generator are the truth.
 
 ## Verify
 
-The root map's rows (`make -C apis lint`, then for `.proto` changes
-`make check-docs-yaml gen-proto-sdk-docs-check`), plus `make -C apis fmt` before
-committing and `make stubs-internal-check` to prove no `@internal` text reached
-a stub.
+The root map's rows, plus `make -C apis fmt` before committing and
+`make stubs-internal-check` (no `@internal` text in a stub).

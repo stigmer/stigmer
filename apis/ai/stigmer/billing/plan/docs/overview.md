@@ -21,6 +21,6 @@ spec:
   entitlements:
     features:
       - channels
-      - sharing
-  description: "Channels and sharing for a growing team."
+      - chat_links
+  description: "Channels and chat links for a growing team."
 ```
