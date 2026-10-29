@@ -35,7 +35,7 @@ function createMockStigmer(overrides: {
         }),
       completeInstall:
         overrides.completeInstall ??
-        vi.fn().mockResolvedValue({ metadata: { id: "ach_1" } }),
+        vi.fn().mockResolvedValue({ metadata: { id: "chn_1" } }),
     },
   } as never;
 }
@@ -72,7 +72,7 @@ describe("useConnectSlackChannel", () => {
   });
 
   it("walks the full phase machine on the happy path", async () => {
-    const installed = { metadata: { id: "ach_1" }, status: { installState: 2 } };
+    const installed = { metadata: { id: "chn_1" }, status: { installState: 2 } };
     const initiateInstall = vi.fn().mockResolvedValue({
       authorizationUrl: "https://slack.com/oauth/v2/authorize?x=1",
       state: "state-1",
@@ -87,7 +87,7 @@ describe("useConnectSlackChannel", () => {
 
     let connectPromise: Promise<unknown> = Promise.resolve();
     act(() => {
-      connectPromise = result.current.connect("ach_1");
+      connectPromise = result.current.connect("chn_1");
     });
 
     // The popup must navigate to the consent URL once initiate resolves.
@@ -96,7 +96,7 @@ describe("useConnectSlackChannel", () => {
     );
     expect(popup.location.href).toBe("https://slack.com/oauth/v2/authorize?x=1");
     expect(initiateInstall).toHaveBeenCalledWith(
-      expect.objectContaining({ resourceId: "ach_1" }),
+      expect.objectContaining({ resourceId: "chn_1" }),
     );
 
     act(() => deliverCallback("state-1"));
@@ -107,7 +107,7 @@ describe("useConnectSlackChannel", () => {
 
     expect(completeInstall).toHaveBeenCalledWith(
       expect.objectContaining({
-        resourceId: "ach_1",
+        resourceId: "chn_1",
         state: "state-1",
         code: "auth-code-123",
       }),
@@ -126,7 +126,7 @@ describe("useConnectSlackChannel", () => {
     });
 
     await act(async () => {
-      await expect(result.current.connect("ach_1")).rejects.toThrow(
+      await expect(result.current.connect("chn_1")).rejects.toThrow(
         /allow popups/i,
       );
     });
@@ -155,7 +155,7 @@ describe("useConnectSlackChannel", () => {
     });
 
     await act(async () => {
-      await expect(result.current.connect("ach_1")).rejects.toThrow(
+      await expect(result.current.connect("chn_1")).rejects.toThrow(
         "channel installs require Stigmer Cloud",
       );
     });
@@ -186,7 +186,7 @@ describe("useConnectSlackChannel", () => {
 
     let connectPromise: Promise<unknown> = Promise.resolve();
     act(() => {
-      connectPromise = result.current.connect("ach_1");
+      connectPromise = result.current.connect("chn_1");
     });
     connectPromise.catch(() => {});
 
@@ -210,7 +210,7 @@ describe("useConnectSlackChannel", () => {
 
     let connectPromise: Promise<unknown> = Promise.resolve();
     act(() => {
-      connectPromise = result.current.connect("ach_1");
+      connectPromise = result.current.connect("chn_1");
     });
     connectPromise.catch(() => {});
 
@@ -237,7 +237,7 @@ describe("useConnectSlackChannel", () => {
 
     let connectPromise: Promise<unknown> = Promise.resolve();
     act(() => {
-      connectPromise = result.current.connect("ach_1");
+      connectPromise = result.current.connect("chn_1");
     });
     connectPromise.catch(() => {});
 
@@ -265,7 +265,7 @@ describe("useConnectSlackChannel", () => {
 
     let connectPromise: Promise<unknown> = Promise.resolve();
     act(() => {
-      connectPromise = result.current.connect("ach_1");
+      connectPromise = result.current.connect("chn_1");
     });
 
     await waitFor(() =>

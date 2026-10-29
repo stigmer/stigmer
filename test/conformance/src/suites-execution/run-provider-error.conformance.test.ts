@@ -106,7 +106,7 @@ async function runToFailure(): Promise<Run> {
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex-provider-error"), agentRef: agentRefOf(agent) }),
+    makeAgentExecution({ org, name: uniqueName("run-provider-error"), agentRef: agentRefOf(agent) }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

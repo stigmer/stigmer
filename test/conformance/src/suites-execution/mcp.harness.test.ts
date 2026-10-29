@@ -82,7 +82,7 @@ describe("Execution harness smoke — MCP tool dispatch", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-mcp-smoke"),
+        name: uniqueName("run-mcp-smoke"),
         agentRef: agentRefOf(agent),
         autoApproveAll: true,
       }),

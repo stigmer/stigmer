@@ -181,7 +181,7 @@ describe("Run — a turn runs its plugins whole", () => {
 
     scriptTurn(plugin);
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-whole"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-whole"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -197,7 +197,7 @@ describe("Run — a turn runs its plugins whole", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-assistant-whole"),
+        name: uniqueName("run-assistant-whole"),
         sessionSpec: { plugins: [pluginRefOf(plugin)] },
       }),
     );
@@ -217,7 +217,7 @@ describe("Run — a plugin's local program runs where a person's own runner runs
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-local-program"),
+        name: uniqueName("run-local-program"),
         sessionSpec: { executionTarget: ExecutionTarget.LOCAL, plugins: [pluginRefOf(plugin)] },
       }),
     );
@@ -242,7 +242,7 @@ describe("Run — a plugin's local program runs where a person's own runner runs
           const created = await clients.agentExecutionCommand.create(
             makeAgentExecution({
               org,
-              name: uniqueName("aex-hosted-program"),
+              name: uniqueName("run-hosted-program"),
               sessionSpec: { executionTarget: ExecutionTarget.CLOUD, plugins: [pluginRefOf(plugin)] },
             }),
           );
@@ -281,7 +281,7 @@ describe("Run — a turn runs its plugins whole, on Claude", () => {
       { kind: "text", text: "Done." },
     ]);
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-whole-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-whole-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

@@ -95,11 +95,11 @@ describe("useDashboardFailedRuns", () => {
     await waitFor(() => expect(result.current.failedRuns).toHaveLength(5));
 
     expect(result.current.failedRuns.map((run) => run.id)).toEqual([
-      "aex_5",
-      "aex_4",
-      "aex_3",
-      "aex_2",
-      "aex_1",
+      "run_5",
+      "run_4",
+      "run_3",
+      "run_2",
+      "run_1",
     ]);
     expect(result.current.failedRuns[0]!.resourceName).toBe("agt_5");
   });

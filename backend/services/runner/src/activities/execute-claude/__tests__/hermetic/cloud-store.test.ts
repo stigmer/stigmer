@@ -101,7 +101,7 @@ describe("ExecuteClaude hermetic — a session kept on the platform", () => {
 
     rmSync(getClaudeEngineDir(FIXTURE.sessionId), { recursive: true, force: true });
     const before = file.wire().conversations.length;
-    const two = await file.resume(claudeExecutionRecord({ message: "Which word?", executionId: "aex_claude_0002" }), () => anthropicText("Kestrel."));
+    const two = await file.resume(claudeExecutionRecord({ message: "Which word?", executionId: "run_claude_0002" }), () => anthropicText("Kestrel."));
 
     expect((two.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     const resumed = file.wire().conversations[before]!;

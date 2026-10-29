@@ -129,7 +129,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
       const channelSession = await createSession(scope.clients, org, agentRef, {
         subject: "Channel conversation",
-        labels: { "stigmer.ai/channel-id": "ach_conformance" },
+        labels: { "stigmer.ai/channel-id": "chn_conformance" },
       });
       const routineSession = await createSession(scope.clients, org, agentRef, {
         subject: "Routine run",

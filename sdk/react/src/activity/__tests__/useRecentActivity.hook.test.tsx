@@ -4,8 +4,7 @@
  * page size it was given (30 by default) and returns the entries in the
  * server's order, each normalized (an empty subject reads "Untitled
  * session"), keeping only entries whose id carries the session prefix
- * `ses_` (an older server can still return workflow-run entries, `wex_`
- * ids, which would not open as sessions). The client and the active
+ * `ses_` (any other id would not open as a session). The client and the active
  * organization are stubbed.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -67,7 +66,7 @@ describe("useRecentActivity", () => {
     const listRecentActivity = vi.fn().mockResolvedValue(
       create(ListRecentActivityResponseSchema, {
         entries: [
-          create(RecentActivityEntrySchema, { id: "wex_1", subject: "Nightly report run" }),
+          create(RecentActivityEntrySchema, { id: "other_1", subject: "Nightly report run" }),
           create(RecentActivityEntrySchema, { id: "ses_1", subject: "Triage the inbox" }),
         ],
       }),

@@ -22,7 +22,7 @@ const BUILD: OperationsSnapshot = { operations: [{ callId: "c1", name: "shell", 
 function pumpOver(outcomes: LivenessSend[] = []) {
   let snapshot = NOTHING;
   const send = vi.fn(async (_: OperationsSnapshot): Promise<LivenessSend> => outcomes.shift() ?? "sent");
-  const pump = new LivenessPump({ snapshot: () => snapshot, send, intervalMs: INTERVAL_MS, minGapMs: FLOOR_MS, runId: "aex_1" });
+  const pump = new LivenessPump({ snapshot: () => snapshot, send, intervalMs: INTERVAL_MS, minGapMs: FLOOR_MS, runId: "run_1" });
   return { pump, send, set: (next: OperationsSnapshot) => (snapshot = next) };
 }
 

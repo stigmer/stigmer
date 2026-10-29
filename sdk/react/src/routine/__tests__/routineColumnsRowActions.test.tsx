@@ -50,7 +50,7 @@ function makeRoutine(overrides?: {
 }): Routine {
   return create(RoutineSchema, {
     metadata: {
-      id: "sch_01example",
+      id: "rtn_01example",
       name: "daily-fee-reminders",
       slug: "daily-fee-reminders",
       org: "isc",
@@ -158,7 +158,7 @@ describe("RoutineRowActions", () => {
     fireEvent.click(screen.getByText("Start run"));
     await waitFor(() =>
       expect(trigger).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "sch_01example", text: "SEN-4521 fired" }),
+        expect.objectContaining({ id: "rtn_01example", text: "SEN-4521 fired" }),
       ),
     );
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
@@ -172,7 +172,7 @@ describe("RoutineRowActions", () => {
     await waitFor(() => expect(screen.queryByRole("button", { name: /Run .* now/ })).toBeNull());
     expect(grant.checkMyPermission.mock.calls[0]![0]).toMatchObject({
       relation: "can_fire",
-      resource: { kind: "routine", id: "sch_01example" },
+      resource: { kind: "routine", id: "rtn_01example" },
     });
   });
 
@@ -186,7 +186,7 @@ describe("RoutineRowActions", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Resume/ }));
-    await waitFor(() => expect(resume).toHaveBeenCalledWith("sch_01example"));
+    await waitFor(() => expect(resume).toHaveBeenCalledWith("rtn_01example"));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 

@@ -55,7 +55,7 @@ import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-0123456789";
 const RUNNER_TOKEN = "runner-control-plane-token";
-const EXECUTION = "aex-live";
+const EXECUTION = "run_live";
 const SESSION = "ses-live";
 const THREAD = `thread-${SESSION}`;
 const BODY = JSON.stringify({ model: "claude-sonnet-4-5", stream: true, messages: [{ role: "user", content: "hi" }] });
@@ -161,14 +161,14 @@ describe("what a host token buys", () => {
     setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator" });
     const proxy = await startProxy();
     const closeOwn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
-    const closeOther = proxy.openTurn({ executionId: "aex-other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
+    const closeOther = proxy.openTurn({ executionId: "run_other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
     try {
-      const borrowed = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-execution-id": "aex-other" } });
+      const borrowed = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-execution-id": "run_other" } });
       expect(borrowed.status, "another live execution, named with this turn's key").toBe(403);
-      expect(((await borrowed.json()) as { error: { message: string } }).error.message).toBe("the turn key is not execution aex-other's");
+      expect(((await borrowed.json()) as { error: { message: string } }).error.message).toBe("the turn key is not execution run_other's");
       const forged = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-turn-key": "turn-key-forged" } });
       expect(forged.status, "a key no turn holds").toBe(403);
-      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-turn-key": "turn-key-other", "x-stigmer-execution-id": "aex-other" } })).status, "the other turn, with its own key").toBe(200);
+      expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asHost, "x-stigmer-turn-key": "turn-key-other", "x-stigmer-execution-id": "run_other" } })).status, "the other turn, with its own key").toBe(200);
       expect(upstream.received).toHaveLength(1);
     } finally {
       closeOwn();
@@ -231,7 +231,7 @@ describe("what a host token buys", () => {
     const proxy = await startProxy();
     try {
       expect((await call(proxy, "/v1/proxy/llm/somewhere/v1/x", { headers: asHost })).status).toBe(404);
-      expect((await call(proxy, "/v1/runs/aex-live", { method: "GET", headers: asHost })).status, "the Stigmer API is the runner's own").toBe(404);
+      expect((await call(proxy, "/v1/runs/run_live", { method: "GET", headers: asHost })).status, "the Stigmer API is the runner's own").toBe(404);
       expect(upstream.received).toHaveLength(0);
     } finally {
       await proxy.close();
@@ -265,15 +265,15 @@ describe("what a turn's own key buys an engine that presents it as its credentia
     setEnv({ ANTHROPIC_BASE_URL: upstream.url, ANTHROPIC_API_KEY: "sk-operator", OPENAI_BASE_URL: upstream.url, OPENAI_API_KEY: "sk-openai" });
     const proxy = await startProxy();
     const close = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
-    proxy.openTurn({ executionId: "aex-other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
+    proxy.openTurn({ executionId: "run_other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
     try {
       expect((await call(proxy, "/v1/proxy/llm/openai/v1/chat/completions", { headers: { authorization: `Bearer ${TURN_KEY}` } })).status, "another model lane").toBe(401);
       expect((await call(proxy, `/v1/proxy/checkpoints/checkpoint?thread_id=${THREAD}`, { method: "GET", headers: { ...asEngine, "x-stigmer-turn-key": TURN_KEY } })).status, "the checkpoint lane").toBe(401);
       expect((await call(proxy, "/v1/proxy/model-registry", { method: "GET", headers: asEngine })).status, "the model registry").toBe(401);
       expect((await call(proxy, "/v1/proxy/otlp/v1/traces", { headers: asEngine })).status, "the telemetry lane").toBe(401);
-      const named = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asEngine, "x-stigmer-execution-id": "aex-other" } });
+      const named = await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: { ...asEngine, "x-stigmer-execution-id": "run_other" } });
       expect(named.status, "naming another live execution").toBe(403);
-      expect(((await named.json()) as { error: { message: string } }).error.message).toBe("the turn key is not execution aex-other's");
+      expect(((await named.json()) as { error: { message: string } }).error.message).toBe("the turn key is not execution run_other's");
       close();
       expect((await call(proxy, "/v1/proxy/llm/anthropic/v1/messages", { headers: asEngine })).status, "settled").toBe(401);
       expect(upstream.received, "nothing reached a provider").toHaveLength(0);
@@ -470,8 +470,8 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
   });
 
   it("serves the thread the turn itself names, whatever its shape", async () => {
-    const close = proxy.openTurn({ executionId: "aex-ephemeral", threadId: "ephemeral-agt-1", turnKey: "turn-key-ephemeral" });
-    const asEphemeral = { ...asHost, "x-stigmer-execution-id": "aex-ephemeral", "x-stigmer-turn-key": "turn-key-ephemeral" };
+    const close = proxy.openTurn({ executionId: "run_ephemeral", threadId: "ephemeral-agt-1", turnKey: "turn-key-ephemeral" });
+    const asEphemeral = { ...asHost, "x-stigmer-execution-id": "run_ephemeral", "x-stigmer-turn-key": "turn-key-ephemeral" };
     const read = await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=ephemeral-agt-1", { method: "GET", headers: asEphemeral });
     close();
     expect(read.status).toBe(200);
@@ -493,7 +493,7 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
   });
 
   it("lets a turn's key reach only that turn's own thread", async () => {
-    const close = proxy.openTurn({ executionId: "aex-other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
+    const close = proxy.openTurn({ executionId: "run_other", threadId: "thread-ses-other", turnKey: "turn-key-other" });
     try {
       expect((await call(proxy, "/v1/proxy/checkpoints/checkpoint?thread_id=thread-ses-other", { method: "GET", headers: asHost })).status, "another live turn's thread").toBe(403);
       expect((await call(proxy, `/v1/proxy/checkpoints/checkpoint?thread_id=${THREAD}`, { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION } })).status, "no key").toBe(403);
@@ -553,7 +553,7 @@ describe("the engine-sessions lane: a turn's transcript store reaches its own th
   });
 
   it("refuses another thread, a live turn's included, in the query or in the body", async () => {
-    const closeOther = proxy.openTurn({ executionId: "aex-other", threadId: OTHER_THREAD, turnKey: "turn-key-other" });
+    const closeOther = proxy.openTurn({ executionId: "run_other", threadId: OTHER_THREAD, turnKey: "turn-key-other" });
     try {
       const sent = upstream.received.length;
       const read = await call(proxy, `${LANE}/entries?thread_id=${OTHER_THREAD}&subpath=`, { method: "GET", headers: asHost });
@@ -582,8 +582,8 @@ describe("the engine-sessions lane: a turn's transcript store reaches its own th
   });
 
   it("refuses the turn's own thread once the turn has settled", async () => {
-    const close = proxy.openTurn({ executionId: "aex-settling", threadId: "thread-ses-settling", turnKey: "turn-key-settling" });
-    const asSettling = { ...asHost, "x-stigmer-execution-id": "aex-settling", "x-stigmer-turn-key": "turn-key-settling" };
+    const close = proxy.openTurn({ executionId: "run_settling", threadId: "thread-ses-settling", turnKey: "turn-key-settling" });
+    const asSettling = { ...asHost, "x-stigmer-execution-id": "run_settling", "x-stigmer-turn-key": "turn-key-settling" };
     const path = `${LANE}/entries?thread_id=thread-ses-settling&subpath=`;
     expect((await call(proxy, path, { method: "GET", headers: asSettling })).status, "while live").toBe(200);
     const sent = upstream.received.length;

@@ -48,8 +48,7 @@ export interface GuestAuthConfig {
 
   /**
    * Id of the web channel, from the hosted chat link (`/chat/<channel id>`)
-   * or the embed's `share` attribute: the Channel's `metadata.id`. Ids
-   * minted before the Channel kind (`ash_…`) stay valid.
+   * or the embed's `channel` attribute: the Channel's `metadata.id`.
    */
   readonly channelId: string;
 

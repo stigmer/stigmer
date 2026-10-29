@@ -23,11 +23,11 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { advanceInSlices } from "../../internal/__tests__/fake-timer-slices";
 import { ConversationsWorkbench } from "../ConversationsWorkbench";
 
-const SELECTED = { channelId: "ach_wa", conversationKey: "15550001111" };
+const SELECTED = { channelId: "chn_wa", conversationKey: "15550001111" };
 
 function whatsappChannel() {
   return create(ChannelSchema, {
-    metadata: { id: "ach_wa", org: "acme", name: "support-line", slug: "support-line" },
+    metadata: { id: "chn_wa", org: "acme", name: "support-line", slug: "support-line" },
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       type: { case: "whatsapp", value: {} },
@@ -44,7 +44,7 @@ function webChannel() {
 
 function slackChannel() {
   return create(ChannelSchema, {
-    metadata: { id: "ach_sl", org: "acme", name: "eng-help", slug: "eng-help" },
+    metadata: { id: "chn_sl", org: "acme", name: "eng-help", slug: "eng-help" },
     spec: { type: { case: "slack", value: {} } },
   });
 }
@@ -720,7 +720,7 @@ describe("ConversationsWorkbench", () => {
     // is the remount's observable contract: remove the key and this
     // fails.
     const user = userEvent.setup();
-    const other = { channelId: "ach_wa", conversationKey: "15550009999" };
+    const other = { channelId: "chn_wa", conversationKey: "15550009999" };
     const client = createMockStigmer({
       listConversations: vi.fn().mockResolvedValue({
         entries: [row(), row({ conversationKey: other.conversationKey, displayName: "Sam" })],
@@ -868,18 +868,18 @@ describe("ConversationsWorkbench", () => {
     const client = createMockStigmer({
       list: vi.fn().mockResolvedValue({ entries: [slackChannel()], nextPageToken: "" }),
       listConversations: vi.fn().mockResolvedValue({
-        entries: [row({ channelId: "ach_sl", conversationKey: "1723012345.678900" })],
+        entries: [row({ channelId: "chn_sl", conversationKey: "1723012345.678900" })],
         nextPageToken: "",
       }),
       getConversation: vi
         .fn()
-        .mockResolvedValue(row({ channelId: "ach_sl", conversationKey: "1723012345.678900" })),
+        .mockResolvedValue(row({ channelId: "chn_sl", conversationKey: "1723012345.678900" })),
       listTimeline: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     });
     render(
       <ConversationsWorkbench
         org="acme"
-        selected={{ channelId: "ach_sl", conversationKey: "1723012345.678900" }}
+        selected={{ channelId: "chn_sl", conversationKey: "1723012345.678900" }}
         onSelectionChange={vi.fn()}
       />,
       { wrapper: wrapper(client) },

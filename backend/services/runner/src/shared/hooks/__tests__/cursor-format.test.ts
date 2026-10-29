@@ -26,7 +26,7 @@ import type { CursorToolView } from "../tool-view.js";
 
 const ctx: FormatContext = {
   sessionId: "ses_1",
-  executionId: "aex_1",
+  executionId: "run_1",
   model: "composer-2.5",
   workspaceRoot: "/w",
   permissionMode: "default",
@@ -75,7 +75,7 @@ describe("stdin per event", () => {
   const common = {
     conversation_id: "ses_1",
     session_id: "ses_1",
-    generation_id: "aex_1",
+    generation_id: "run_1",
     model: "composer-2.5",
     workspace_roots: ["/w"],
     transcript_path: null,

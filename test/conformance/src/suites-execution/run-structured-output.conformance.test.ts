@@ -139,7 +139,7 @@ async function runWithSchema(
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-so"),
+      name: uniqueName("run-so"),
       agentRef: agentRefOf(agent),
       message: "Analyze the word hello.",
       autoApproveAll: true,
@@ -297,7 +297,7 @@ describe("Run structured output — on Claude", () => {
       { kind: "text", text: "" },
     ]);
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-so-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, structuredOutputSchema: SUMMARY_SCORE_SCHEMA, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-so-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, structuredOutputSchema: SUMMARY_SCORE_SCHEMA, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

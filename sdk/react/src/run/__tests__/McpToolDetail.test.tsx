@@ -36,7 +36,7 @@ describe("McpToolDetail — offloaded output", () => {
     } as unknown as Stigmer;
 
     const ref = {
-      storageKey: "artifacts/aex_1/toolcalls/tc-1.png",
+      storageKey: "artifacts/run_1/toolcalls/tc-1.png",
       isImage: true,
       mimeType: "image/png",
     };
@@ -46,7 +46,7 @@ describe("McpToolDetail — offloaded output", () => {
     const img = await screen.findByRole("img");
     expect(img.getAttribute("src")).toBe("https://fresh/shot.png");
     expect(getArtifactDownloadUrl.mock.calls[0][0].storageKey).toBe(
-      "artifacts/aex_1/toolcalls/tc-1.png",
+      "artifacts/run_1/toolcalls/tc-1.png",
     );
   });
 
@@ -61,7 +61,7 @@ describe("McpToolDetail — offloaded output", () => {
     } as unknown as Stigmer;
 
     const ref = {
-      storageKey: "artifacts/aex_1/toolcalls/tc-1.txt",
+      storageKey: "artifacts/run_1/toolcalls/tc-1.txt",
       isImage: false,
       mimeType: "text/plain",
       sizeBytes: 800_000n,
@@ -95,7 +95,7 @@ describe("McpToolDetail — truncated offloaded output", () => {
     const getArtifactDownloadUrl = vi.fn().mockResolvedValue({ downloadUrl: "" });
     const stigmer = { run: { getArtifactContent, getArtifactDownloadUrl } } as unknown as Stigmer;
     const ref = {
-      storageKey: "artifacts/aex_1/toolcalls/tc-1.txt",
+      storageKey: "artifacts/run_1/toolcalls/tc-1.txt",
       isImage: false,
       mimeType: "text/plain",
       sizeBytes: 2_000_000n,
@@ -106,7 +106,7 @@ describe("McpToolDetail — truncated offloaded output", () => {
     fireEvent.click(await screen.findByText(/Output truncated — download full file/));
 
     await waitFor(() => expect(getArtifactDownloadUrl).toHaveBeenCalledTimes(1));
-    expect(getArtifactDownloadUrl.mock.calls[0][0].storageKey).toBe("artifacts/aex_1/toolcalls/tc-1.txt");
+    expect(getArtifactDownloadUrl.mock.calls[0][0].storageKey).toBe("artifacts/run_1/toolcalls/tc-1.txt");
   });
 });
 

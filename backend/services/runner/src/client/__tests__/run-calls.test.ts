@@ -65,14 +65,14 @@ describe("StigmerClient.updateStatus", () => {
       phase: RunPhase.RUN_IN_PROGRESS,
     });
 
-    const answered = await newClient().updateStatus("aex_1", status);
+    const answered = await newClient().updateStatus("run_1", status);
 
     expect(runUpdateStatus).toHaveBeenCalledTimes(1);
     const input = runUpdateStatus.mock.calls[0]![0] as {
       runId: string;
       status: unknown;
     };
-    expect(input.runId).toBe("aex_1");
+    expect(input.runId).toBe("run_1");
     expect(input.status).toBe(status);
     expect(answered).toBe(response);
   });
@@ -83,37 +83,37 @@ describe("StigmerClient.mountRunFiles", () => {
     const entries = [{ fileId: "file_1", mountPath: "a.txt" }];
     fileMount.mockResolvedValue({ entries });
 
-    const answered = await newClient().mountRunFiles("aex_1", "scoped-tok");
+    const answered = await newClient().mountRunFiles("run_1", "scoped-tok");
 
     const [input, options] = fileMount.mock.calls[0]! as [{ runId: string }, { headers: Record<string, string> }];
-    expect(input.runId).toBe("aex_1");
+    expect(input.runId).toBe("run_1");
     expect(options.headers.authorization).toBe("Bearer scoped-tok");
     expect(answered).toBe(entries);
   });
 
   it("leaves the credential to the interceptor when no scoped token is handed", async () => {
     fileMount.mockResolvedValue({ entries: [] });
-    await newClient().mountRunFiles("aex_1");
+    await newClient().mountRunFiles("run_1");
     expect(fileMount.mock.calls[0]![1]).toBeUndefined();
   });
 });
 
 describe("StigmerClient.claimSessionInput", () => {
   it("names the run, authenticates with the scoped token and answers the messages taken", async () => {
-    const events = [{ runId: "aex_1" }];
+    const events = [{ runId: "run_1" }];
     claimInput.mockResolvedValue({ events });
 
-    const answered = await newClient().claimSessionInput("aex_1", "scoped-tok");
+    const answered = await newClient().claimSessionInput("run_1", "scoped-tok");
 
     const [input, options] = claimInput.mock.calls[0]! as [{ runId: string }, { headers: Record<string, string> }];
-    expect(input.runId).toBe("aex_1");
+    expect(input.runId).toBe("run_1");
     expect(options.headers.authorization).toBe("Bearer scoped-tok");
     expect(answered).toBe(events);
   });
 
   it("leaves the credential to the interceptor when no scoped token is handed", async () => {
     claimInput.mockResolvedValue({ events: [] });
-    await newClient().claimSessionInput("aex_1");
+    await newClient().claimSessionInput("run_1");
     expect(claimInput.mock.calls[0]![1]).toBeUndefined();
   });
 });
@@ -126,22 +126,22 @@ describe("StigmerClient's output calls", () => {
     registerOutputs.mockResolvedValue({ files });
     const client = newClient();
 
-    expect(await client.createOutputUploads("aex_1", [{ outputPath: "reports/a.md", sizeBytes: 12 }], "scoped-tok")).toBe(uploads);
+    expect(await client.createOutputUploads("run_1", [{ outputPath: "reports/a.md", sizeBytes: 12 }], "scoped-tok")).toBe(uploads);
     const [minted, mintOptions] = createOutputUploads.mock.calls[0]! as [
       { runId: string; entries: Array<{ outputPath: string; sizeBytes: bigint }> },
       { headers: Record<string, string> },
     ];
-    expect(minted.runId).toBe("aex_1");
+    expect(minted.runId).toBe("run_1");
     expect(minted.entries.map((entry) => [entry.outputPath, entry.sizeBytes])).toEqual([["reports/a.md", 12n]]);
     expect(mintOptions.headers.authorization).toBe("Bearer scoped-tok");
 
     const entry = { outputPath: "reports/a.md", uploadRef: "fup_1", contentSha256: "a".repeat(64) };
-    expect(await client.registerOutputs("aex_1", [entry], "scoped-tok")).toBe(files);
+    expect(await client.registerOutputs("run_1", [entry], "scoped-tok")).toBe(files);
     const [registered, registerOptions] = registerOutputs.mock.calls[0]! as [
       { runId: string; entries: Array<typeof entry> },
       { headers: Record<string, string> },
     ];
-    expect(registered.runId).toBe("aex_1");
+    expect(registered.runId).toBe("run_1");
     expect(registered.entries.map((e) => ({ outputPath: e.outputPath, uploadRef: e.uploadRef, contentSha256: e.contentSha256 }))).toEqual([entry]);
     expect(registerOptions.headers.authorization).toBe("Bearer scoped-tok");
   });

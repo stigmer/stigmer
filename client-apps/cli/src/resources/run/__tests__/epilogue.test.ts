@@ -31,7 +31,7 @@ import { runEpilogue } from "../epilogue.js";
 const STARTED = "2026-06-12T10:00:00Z";
 
 function finalRun(status: MessageInitShape<typeof RunSchema>["status"]): Run {
-  return create(RunSchema, { metadata: { id: "aex_1" }, status });
+  return create(RunSchema, { metadata: { id: "run_1" }, status });
 }
 
 interface Double {
@@ -105,7 +105,7 @@ const ok: HeadlessResult = { phase: "completed", error: "", turn: undefined };
 describe("runEpilogue", () => {
   it("re-raises a stream that failed before any phase, reading nothing", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }));
-    const raised = runEpilogue(d.client, "ses_1", "aex_1", { phase: "", error: "stream reset", turn: undefined });
+    const raised = runEpilogue(d.client, "ses_1", "run_1", { phase: "", error: "stream reset", turn: undefined });
     await expect(raised).rejects.toBeInstanceOf(CliExitError);
     await expect(raised).rejects.toMatchObject({ message: "stream reset", exitCode: ExitCode.General });
     expect(d.gets).toEqual([]);
@@ -114,11 +114,11 @@ describe("runEpilogue", () => {
   it("summarises a completed session turn with duration and metered tokens, and returns the final run", async () => {
     const run = finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:01:30Z" });
     const d = double(run, { totalTokens: 18_400n, llmCallCount: 3 });
-    const result = await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    const result = await runEpilogue(d.client, "ses_1", "run_1", ok);
 
     expect(result).toBe(run);
-    expect(d.gets).toEqual(["aex_1"]);
-    expect(d.usageRequests.map((r) => r.runId)).toEqual(["aex_1"]);
+    expect(d.gets).toEqual(["run_1"]);
+    expect(d.usageRequests.map((r) => r.runId)).toEqual(["run_1"]);
     expect(stderr).toEqual(["\n", "✓ Completed (1m30s · 18.4k tokens)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
     expect(d.eventRequests).toEqual([]);
   });
@@ -128,31 +128,31 @@ describe("runEpilogue", () => {
       totalTokens: 1_234_567n,
       llmCallCount: 0,
     });
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("✓ Completed (42s · ~1.2M tokens)\n");
   });
 
   it("drops the token part when the report counted none", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:00:45Z" }));
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("✓ Completed (45s)\n");
   });
 
   it("names only the tokens when the run has no duration", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }), { totalTokens: 900n, llmCallCount: 1 });
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("✓ Completed (900 tokens)\n");
   });
 
   it("drops the tokens when the usage report fails, without failing the run", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:00:45Z" }), "fails");
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("✓ Completed (45s)\n");
   });
 
   it("offers a retry for a failed session turn, naming the run's error", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED, error: "model refused" }));
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("✗ Failed: model refused\n");
     expect(stderr).toContain("  To retry:     stigmer resume ses_1\n");
     expect(d.eventRequests).toEqual([]);
@@ -160,7 +160,7 @@ describe("runEpilogue", () => {
 
   it("names the turn's status error when the run holds none", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
-    await runEpilogue(d.client, "ses_1", "aex_1", folded([user("aex_1", "go"), phase("aex_1", "failed", "budget exceeded")]));
+    await runEpilogue(d.client, "ses_1", "run_1", folded([user("run_1", "go"), phase("run_1", "failed", "budget exceeded")]));
     expect(stderr).toContain("✗ Failed: budget exceeded\n");
   });
 
@@ -169,26 +169,26 @@ describe("runEpilogue", () => {
     await runEpilogue(
       d.client,
       "ses_1",
-      "aex_1",
-      folded([user("aex_1", "go"), failure("aex_1", "e1", "first"), failure("aex_1", "e2", "model overloaded"), phase("aex_1", "failed")]),
+      "run_1",
+      folded([user("run_1", "go"), failure("run_1", "e1", "first"), failure("run_1", "e2", "model overloaded"), phase("run_1", "failed")]),
     );
     expect(stderr).toContain("✗ Failed: model overloaded\n");
   });
 
   it("reads the turn from the run's events when the stream handed none over", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }), NO_USAGE, [
-      user("aex_1", "go"),
-      failure("aex_1", "e1", "model overloaded"),
-      phase("aex_1", "failed"),
+      user("run_1", "go"),
+      failure("run_1", "e1", "model overloaded"),
+      phase("run_1", "failed"),
     ]);
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("✗ Failed: model overloaded\n");
-    expect(d.eventRequests.map((r) => [r.sessionId, r.runId])).toEqual([["ses_1", "aex_1"]]);
+    expect(d.eventRequests.map((r) => [r.sessionId, r.runId])).toEqual([["ses_1", "run_1"]]);
   });
 
   it("reports a cancelled session turn and offers to resume it", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_CANCELLED }));
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("Cancelled\n");
     expect(stderr).toContain("  To resume:    stigmer resume ses_1\n");
   });
@@ -198,8 +198,8 @@ describe("runEpilogue", () => {
     await runEpilogue(
       d.client,
       "ses_1",
-      "aex_1",
-      folded([user("aex_1", "go"), note("aex_1", "n0", "first notice"), note("aex_1", "n1", "cost cap reached"), phase("aex_1", "terminated")]),
+      "run_1",
+      folded([user("run_1", "go"), note("run_1", "n0", "first notice"), note("run_1", "n1", "cost cap reached"), phase("run_1", "terminated")]),
     );
     expect(stderr).toContain("Stopped: cost cap reached\n");
   });
@@ -209,15 +209,15 @@ describe("runEpilogue", () => {
     await runEpilogue(
       d.client,
       "ses_1",
-      "aex_1",
+      "run_1",
       folded([
-        user("aex_1", "go"),
-        use("aex_1", "bg1", "execute", { input: { command: "npm test", background: true } }),
-        result("aex_1", "bg1", "Started in the background (id bg1)."),
-        background("aex_1", "bg1"),
-        background("aex_1", "bg1", { ending: "exited", exitCode: 1 }),
-        failure("aex_1", "err1", "model overloaded"),
-        phase("aex_1", "failed"),
+        user("run_1", "go"),
+        use("run_1", "bg1", "execute", { input: { command: "npm test", background: true } }),
+        result("run_1", "bg1", "Started in the background (id bg1)."),
+        background("run_1", "bg1"),
+        background("run_1", "bg1", { ending: "exited", exitCode: 1 }),
+        failure("run_1", "err1", "model overloaded"),
+        phase("run_1", "failed"),
       ]),
     );
     expect(stderr).toContain("✗ Failed: model overloaded\n");
@@ -226,14 +226,14 @@ describe("runEpilogue", () => {
 
   it("reports a session turn that exited mid-phase", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_WAITING_FOR_APPROVAL }));
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    await runEpilogue(d.client, "ses_1", "run_1", ok);
     expect(stderr).toContain("Exited (awaiting-approval)\n");
     expect(stderr).toContain("  To resume:    stigmer resume ses_1\n");
   });
 
   it("prints one completion line outside a session", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }));
-    await runEpilogue(d.client, "", "aex_1", ok);
+    await runEpilogue(d.client, "", "run_1", ok);
     expect(stderr).toEqual(["\n", "✓ Run completed\n"]);
   });
 
@@ -242,36 +242,36 @@ describe("runEpilogue", () => {
     await runEpilogue(
       d.client,
       "",
-      "aex_1",
+      "run_1",
       folded([
-        user("aex_1", "go"),
-        said("aex_1", 0, "Fetching."),
-        use("aex_1", "c1", "Bash"),
-        result("aex_1", "c1", "ok"),
-        use("aex_1", "c2", "Fetch"),
-        result("aex_1", "c2", "", true),
-        use("aex_1", "c3", "Fetch"),
-        result("aex_1", "c3", "connection refused", true),
-        phase("aex_1", "failed"),
+        user("run_1", "go"),
+        said("run_1", 0, "Fetching."),
+        use("run_1", "c1", "Bash"),
+        result("run_1", "c1", "ok"),
+        use("run_1", "c2", "Fetch"),
+        result("run_1", "c2", "", true),
+        use("run_1", "c3", "Fetch"),
+        result("run_1", "c3", "connection refused", true),
+        phase("run_1", "failed"),
       ]),
     );
     expect(stderr).toEqual(["\n", "✗ Run failed: connection refused\n"]);
   });
 
   it("finds a failed tool use inside a subagent", async () => {
-    const thread = "aex_1.t1";
+    const thread = "run_1.t1";
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
     await runEpilogue(
       d.client,
       "",
-      "aex_1",
+      "run_1",
       folded([
-        user("aex_1", "go"),
-        use("aex_1", "t1", "task"),
-        threadRunning("aex_1", thread, "researcher"),
-        use("aex_1", "s1", "read", { threadId: thread }),
-        result("aex_1", "s1", "no such file", true, thread),
-        phase("aex_1", "failed"),
+        user("run_1", "go"),
+        use("run_1", "t1", "task"),
+        threadRunning("run_1", thread, "researcher"),
+        use("run_1", "s1", "read", { threadId: thread }),
+        result("run_1", "s1", "no such file", true, thread),
+        phase("run_1", "failed"),
       ]),
     );
     expect(stderr).toEqual(["\n", "✗ Run failed: no such file\n"]);
@@ -279,13 +279,13 @@ describe("runEpilogue", () => {
 
   it("falls back to the generic pointer when a failed run and its turn hold no error", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
-    await runEpilogue(d.client, "", "aex_1", folded([user("aex_1", "go"), phase("aex_1", "failed")]));
+    await runEpilogue(d.client, "", "run_1", folded([user("run_1", "go"), phase("run_1", "failed")]));
     expect(stderr).toContain("✗ Run failed: Run failed (error details unavailable — check run logs)\n");
   });
 
   it("falls back to the generic pointer outside a session with no turn, reading no events", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
-    await runEpilogue(d.client, "", "aex_1", ok);
+    await runEpilogue(d.client, "", "run_1", ok);
     expect(stderr).toContain("✗ Run failed: Run failed (error details unavailable — check run logs)\n");
     expect(d.eventRequests).toEqual([]);
   });

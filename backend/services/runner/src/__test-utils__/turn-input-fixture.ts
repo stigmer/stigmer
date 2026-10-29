@@ -40,7 +40,7 @@ import { mockWorkspaceBackend } from "./mock-workspace.js";
 
 /** The ids a fixture record carries when a test does not name its own. */
 export const TURN_INPUT_FIXTURE_IDS = {
-  executionId: "aex_fixture_0001",
+  executionId: "run_fixture_0001",
   sessionId: "ses_fixture_0001",
   agentId: "agt_fixture_0001",
   org: "fixture-org",

@@ -57,8 +57,8 @@ describe("desktop DashboardPage — opening a run", () => {
   it("opens a failed run at its address", () => {
     renderDashboard();
 
-    act(() => page.dashboard.at(-1)?.onFailedRunClick("aex_failed"));
+    act(() => page.dashboard.at(-1)?.onFailedRunClick("run_failed"));
 
-    expect(screen.getByTestId("location").textContent).toBe("/runs/aex_failed");
+    expect(screen.getByTestId("location").textContent).toBe("/runs/run_failed");
   });
 });

@@ -54,7 +54,7 @@ describe("useConversationTimeline", () => {
       nextPageToken: "",
     });
     const { result } = renderHook(
-      () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
+      () => useConversationTimeline("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
 
@@ -82,7 +82,7 @@ describe("useConversationTimeline", () => {
       });
 
     const { result } = renderHook(
-      () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
+      () => useConversationTimeline("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -117,7 +117,7 @@ describe("useConversationTimeline", () => {
       });
 
     const { result } = renderHook(
-      () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
+      () => useConversationTimeline("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(2));
@@ -151,7 +151,7 @@ describe("useConversationTimeline", () => {
       .mockResolvedValueOnce({ entries: [read], nextPageToken: "" });
 
     const { result } = renderHook(
-      () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
+      () => useConversationTimeline("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));
@@ -173,7 +173,7 @@ describe("useConversationTimeline", () => {
       }),
     );
     const { result } = renderHook(
-      () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
+      () => useConversationTimeline("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));
@@ -195,7 +195,7 @@ describe("useConversationTimeline", () => {
       .mockReturnValue(new Promise(() => {}));
 
     const { result, rerender } = renderHook(
-      ({ key }: { key: string }) => useConversationTimeline("ach_1", key, NO_POLL),
+      ({ key }: { key: string }) => useConversationTimeline("chn_1", key, NO_POLL),
       {
         wrapper: wrapper(createMockStigmer(listTimeline)),
         initialProps: { key: "15550001111" },
@@ -211,7 +211,7 @@ describe("useConversationTimeline", () => {
 
   it("refetches the head when the window regains focus", async () => {
     const listTimeline = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
-    renderHook(() => useConversationTimeline("ach_1", "15550001111", NO_POLL), {
+    renderHook(() => useConversationTimeline("chn_1", "15550001111", NO_POLL), {
       wrapper: wrapper(createMockStigmer(listTimeline)),
     });
     await waitFor(() => expect(listTimeline).toHaveBeenCalledTimes(1));
@@ -243,7 +243,7 @@ describe("useConversationTimeline", () => {
       .mockRejectedValueOnce(new Error("boom"));
 
     const { result } = renderHook(
-      () => useConversationTimeline("ach_1", "15550001111", NO_POLL),
+      () => useConversationTimeline("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(listTimeline)) },
     );
     await waitFor(() => expect(result.current.items).toHaveLength(1));

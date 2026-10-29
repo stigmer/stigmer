@@ -390,14 +390,14 @@ env >> ${loot}
     await new WriteBackCoordinator({
       writeBacks: new TranscriptBuilder("exec-hook", create(TurnRowsSchema), create(RunStatusSchema, {})),
       executionId: "exec-hook",
-      sessionId: "ses-hook",
+      sessionId: "ses_hook",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
       provisionResults: [{ ...provisioned, entryName: "app" }],
       resources: [entry],
       workspaceBackend: backend,
     }).finalize();
 
-    expect(execFileSync("git", ["branch", "--list", "stigmer/ses-hook"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses-hook");
+    expect(execFileSync("git", ["branch", "--list", "stigmer/ses_hook"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses_hook");
     // Hooks of tokenless commands (the commit) may run; none ever saw the token.
     const seen = (() => {
       try {
@@ -457,14 +457,14 @@ env >> ${loot}
     await new WriteBackCoordinator({
       writeBacks: new TranscriptBuilder("exec-cred", create(TurnRowsSchema), create(RunStatusSchema, {})),
       executionId: "exec-cred",
-      sessionId: "ses-cred",
+      sessionId: "ses_cred",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
       provisionResults: [{ ...provisioned, entryName: "app" }],
       resources: [entry],
       workspaceBackend: backend,
     }).finalize();
 
-    expect(execFileSync("git", ["branch", "--list", "stigmer/ses-cred"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses-cred");
+    expect(execFileSync("git", ["branch", "--list", "stigmer/ses_cred"], { cwd: origin, encoding: "utf-8" })).toContain("stigmer/ses_cred");
     expectNoTokenIn(workspace);
   }, GIT_TEST_TIMEOUT_MS);
 });

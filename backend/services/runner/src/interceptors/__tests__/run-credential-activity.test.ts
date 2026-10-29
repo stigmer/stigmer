@@ -28,7 +28,7 @@ describe("runCredentialActivityInterceptor", () => {
       await execute({
         args: [
           {
-            execution_id: "aex_1",
+            execution_id: "run_1",
             thread_id: "",
             [RUN_CREDENTIAL_INPUT_KEY]: "cred-input",
           },
@@ -39,10 +39,10 @@ describe("runCredentialActivityInterceptor", () => {
   });
 
   it("runs a credential-less activity with an empty store — an older server, the cloud", async () => {
-    expect(await execute({ args: ["aex_1", ""], headers: {} })).toBeUndefined();
+    expect(await execute({ args: ["run_1", ""], headers: {} })).toBeUndefined();
     expect(
       await execute({
-        args: [{ execution_id: "aex_1", thread_id: "" }],
+        args: [{ execution_id: "run_1", thread_id: "" }],
         headers: {},
       }),
     ).toBeUndefined();
@@ -77,7 +77,7 @@ describe("runCredentialActivityInterceptor", () => {
         args: [{ [RUN_CREDENTIAL_INPUT_KEY]: "cred-secret" }],
         headers: {},
       });
-      await execute({ args: ["aex_1"], headers: {} });
+      await execute({ args: ["run_1"], headers: {} });
       for (const spy of spies) expect(spy).not.toHaveBeenCalled();
     } finally {
       for (const spy of spies) spy.mockRestore();

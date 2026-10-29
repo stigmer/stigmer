@@ -27,7 +27,7 @@ configureLogger({ level: "error", format: "text" });
 const resolvedAgent = create(AgentSchema, {
   apiVersion: "v1",
   kind: "agent",
-  metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "acme", id: "agt-123" },
+  metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "acme", id: "agt_123" },
 });
 
 let backend: Http2Server;
@@ -94,7 +94,7 @@ describe("delete tools integration", () => {
   it("delete_agent resolves the id then deletes via the typed AgentId", async () => {
     const result = await callTool("delete_agent", { org: "acme", slug: "code-reviewer" });
     expect(result.isError).toBeFalsy();
-    expect(deletedAgentId).toBe("agt-123");
+    expect(deletedAgentId).toBe("agt_123");
     expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
       toJson(AgentSchema, resolvedAgent, { useProtoFieldName: true }),
     );
@@ -106,6 +106,6 @@ describe("delete tools integration", () => {
     const result = await callTool("delete_agent", { slug: "code-reviewer" });
     expect(result.isError).toBeFalsy();
     expect(lastAgentReferenceOrg).toBe("");
-    expect(deletedAgentId).toBe("agt-123");
+    expect(deletedAgentId).toBe("agt_123");
   });
 });

@@ -189,7 +189,7 @@ function handOff(toolCallId: string, subagentType: string) {
 /** Creates the turn, awaits its end and asserts it completed. */
 async function completedTurn(options: Omit<AgentExecutionOptions, "name">): Promise<Run> {
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ name: uniqueName("aex-subagent"), autoApproveAll: true, ...options }),
+    makeAgentExecution({ name: uniqueName("run-subagent"), autoApproveAll: true, ...options }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -402,7 +402,7 @@ describe("Run — a subagent runs its own definition", () => {
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-subagent-env"), agentRef: agentRefOf(agent), autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-subagent-env"), agentRef: agentRefOf(agent), autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -609,7 +609,7 @@ describe("Run — a subagent's local program runs where a person's own runner ru
           const created = await clients.agentExecutionCommand.create(
             makeAgentExecution({
               org,
-              name: uniqueName("aex-hosted-subagent"),
+              name: uniqueName("run-hosted-subagent"),
               agentRef: agentRefOf(agent),
               sessionSpec: { executionTarget: ExecutionTarget.CLOUD },
             }),
@@ -652,7 +652,7 @@ describe("Run — a subagent on Claude", () => {
     CLAUDE_ARM.script(mock, task, [{ kind: "delegate", id: delegation, agent: helper, prompt }, { kind: "text", text: `The helper reported: ${SUBAGENT_ANSWER}` }]);
     CLAUDE_ARM.script(mock, prompt, options.helperSteps(prompt));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-claude-subagent"), agentRef: agentRefOf(agent), message: task, autoApproveAll: options.autoApproveAll, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-claude-subagent"), agentRef: agentRefOf(agent), message: task, autoApproveAll: options.autoApproveAll, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

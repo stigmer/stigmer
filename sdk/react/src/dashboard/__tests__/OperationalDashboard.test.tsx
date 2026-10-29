@@ -28,7 +28,7 @@ vi.mock("../useDashboardFailedRuns.js", () => ({
     return {
       failedRuns: [
         {
-          id: "aex_9",
+          id: "run_9",
           name: "Nightly triage",
           error: "model refused",
           failedAt: new Date("2026-10-01T00:00:00Z"),
@@ -57,6 +57,6 @@ describe("OperationalDashboard", () => {
     expect(within(region).getByText("Nightly triage")).toBeTruthy();
 
     fireEvent.click(within(region).getByRole("button", { name: "View" }));
-    expect(onFailedRunClick).toHaveBeenCalledWith("aex_9");
+    expect(onFailedRunClick).toHaveBeenCalledWith("run_9");
   });
 });

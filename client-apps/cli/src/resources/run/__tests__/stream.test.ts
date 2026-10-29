@@ -33,7 +33,7 @@ vi.mock("../epilogue.js", () => epilogue);
 
 import { streamAgentRun } from "../stream.js";
 
-const FINAL = create(RunSchema, { metadata: { id: "aex_1" } });
+const FINAL = create(RunSchema, { metadata: { id: "run_1" } });
 
 let followed: StreamSessionEventsRequest[];
 let confirms: ConfirmToolUseInput[];
@@ -54,7 +54,7 @@ function deps(overrides: Partial<StreamDeps> = {}): StreamDeps {
   return {
     client,
     sessionId: "ses_1",
-    runId: "aex_1",
+    runId: "run_1",
     org: "acme",
     mode: "plan",
     approveDefault: "allow",
@@ -86,7 +86,7 @@ beforeEach(() => {
     const opened = d.follow(controller.signal)[Symbol.asyncIterator]().next();
     controller.abort();
     await opened;
-    await d.answer("aex_1.c1", { kind: "allow" });
+    await d.answer("run_1.c1", { kind: "allow" });
     return DONE;
   });
   ink.runInkSession.mockResolvedValue(undefined);
@@ -104,7 +104,7 @@ describe("streamAgentRun", () => {
 
     expect(driverDeps().renderer).toBeInstanceOf(NdjsonRenderer);
     expect(driverDeps().sessionId).toBe("ses_1");
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", DONE);
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", DONE);
     expect(result).toBe(FINAL);
     expect(ink.runInkSession).not.toHaveBeenCalled();
   });
@@ -112,10 +112,10 @@ describe("streamAgentRun", () => {
   it("binds the driver to the run's session, its turn and its --approve-default", async () => {
     await streamAgentRun(deps({ outputMode: "json" }));
 
-    expect(driverDeps().runId).toBe("aex_1");
+    expect(driverDeps().runId).toBe("run_1");
     expect(driverDeps().approveDefault).toBe("allow");
     expect(followed.map((r) => [r.sessionId, r.afterSeq])).toEqual([["ses_1", 0n]]);
-    expect(confirms.map((c) => [c.sessionId, c.toolUseId, c.result])).toEqual([["ses_1", "aex_1.c1", "allow"]]);
+    expect(confirms.map((c) => [c.sessionId, c.toolUseId, c.result])).toEqual([["ses_1", "run_1.c1", "allow"]]);
   });
 
   it("hands an inline run on a terminal to Ink, then prints the epilogue", async () => {
@@ -124,7 +124,7 @@ describe("streamAgentRun", () => {
 
     expect(ink.runInkSession).toHaveBeenCalledWith({ client, sessionId: "ses_1", org: "acme", mode: "plan" });
     expect(headless.runHeadlessStream).not.toHaveBeenCalled();
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", { phase: "", error: "", turn: undefined });
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", { phase: "", error: "", turn: undefined });
     expect(result).toBe(FINAL);
   });
 
@@ -138,7 +138,7 @@ describe("streamAgentRun", () => {
     const result = await streamAgentRun(deps());
 
     expect(driverDeps().renderer).toBeInstanceOf(PlaintextRenderer);
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", DONE);
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "run_1", DONE);
     expect(result).toBe(FINAL);
     expect(ink.runInkSession).not.toHaveBeenCalled();
   });

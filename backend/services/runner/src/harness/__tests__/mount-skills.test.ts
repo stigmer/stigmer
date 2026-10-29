@@ -135,7 +135,7 @@ describe("mountSkills: the root's skills", () => {
     mkdirSync(env.workspaceRootDir, { recursive: true });
   });
   beforeEach(() => {
-    sessionId = `ses-skills-${++n}`;
+    sessionId = `ses_skills-${++n}`;
     primaryDir = join(env.workspaceRootDir, sessionId);
     mkdirSync(primaryDir, { recursive: true });
   });
@@ -245,7 +245,7 @@ describe("mountSkills: a plugin's skills", () => {
   let primaryDir: string;
 
   beforeEach(() => {
-    sessionId = `ses-plugin-skills-${++n}`;
+    sessionId = `ses_plugin-skills-${++n}`;
     primaryDir = join(env.workspaceRootDir, sessionId);
     mkdirSync(primaryDir, { recursive: true });
   });

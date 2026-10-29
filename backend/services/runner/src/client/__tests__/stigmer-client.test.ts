@@ -398,7 +398,7 @@ describe("StigmerClient", () => {
       const client = clientWithEveryProcessCredential();
       const exchange = vi.spyOn(client, "getRunnerScopedToken");
       const token = await withRunCredential("run-cred", () =>
-        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
+        client.acquireScopedRunnerToken({ agentExecutionId: "run_1" }),
       );
       expect(token).toBe("run-cred");
       expect(exchange).not.toHaveBeenCalled();
@@ -421,17 +421,17 @@ describe("StigmerClient", () => {
         expiresInSeconds: 14400,
       });
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "run_1" });
 
       expect(token).toBe("scoped-tok");
-      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ agentExecutionId: "aex_1" });
+      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ agentExecutionId: "run_1" });
     });
 
     it("skips the exchange for an already-scoped sandbox credential (cloud sandbox runner)", async () => {
       const client = clientWithRunnerCredential(fakeTokenOfType("sandbox"));
       const spy = vi.spyOn(client, "getRunnerScopedToken");
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "run_1" });
 
       expect(token).toBeUndefined();
       expect(spy).not.toHaveBeenCalled();
@@ -447,10 +447,10 @@ describe("StigmerClient", () => {
         expiresInSeconds: 3600,
       });
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "run_1" });
 
       expect(token).toBe("oss-scoped-tok");
-      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ agentExecutionId: "aex_1" });
+      expect(client.getRunnerScopedToken).toHaveBeenCalledWith({ agentExecutionId: "run_1" });
     });
 
     it("throws, never proceeds tokenless, when a credential-less exchange is answered not-minted", async () => {
@@ -458,8 +458,8 @@ describe("StigmerClient", () => {
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
       await expect(
-        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
-      ).rejects.toThrow(/minted no scoped runner token for agent execution aex_1/);
+        client.acquireScopedRunnerToken({ agentExecutionId: "run_1" }),
+      ).rejects.toThrow(/minted no scoped runner token for agent execution run_1/);
     });
 
     it("throws, never proceeds tokenless, when a credential-less exchange is refused", async () => {
@@ -467,21 +467,21 @@ describe("StigmerClient", () => {
       vi.spyOn(client, "getRunnerScopedToken").mockRejectedValue(new Error("permission denied"));
 
       await expect(
-        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
-      ).rejects.toThrow(/exchange failed for agent execution aex_1: permission denied/);
+        client.acquireScopedRunnerToken({ agentExecutionId: "run_1" }),
+      ).rejects.toThrow(/exchange failed for agent execution run_1: permission denied/);
     });
 
     it("acquireScopedRunnerCredential carries an exchange token's lifetime, and none for an ambient or absent one", async () => {
       const exchanging = clientWithRunnerCredential(null);
       vi.spyOn(exchanging, "getRunnerScopedToken").mockResolvedValue({ token: "clocked", expiresInSeconds: 3600 });
-      expect(await exchanging.acquireScopedRunnerCredential({ agentExecutionId: "aex_1" })).toEqual({ token: "clocked", expiresInSeconds: 3600 });
+      expect(await exchanging.acquireScopedRunnerCredential({ agentExecutionId: "run_1" })).toEqual({ token: "clocked", expiresInSeconds: 3600 });
 
       const unclocked = clientWithRunnerCredential(null);
       vi.spyOn(unclocked, "getRunnerScopedToken").mockResolvedValue({ token: "no-expiry" });
-      expect(await unclocked.acquireScopedRunnerCredential({ agentExecutionId: "aex_1" })).toEqual({ token: "no-expiry" });
+      expect(await unclocked.acquireScopedRunnerCredential({ agentExecutionId: "run_1" })).toEqual({ token: "no-expiry" });
 
       const ambient = clientWithRunnerCredential(fakeTokenOfType("sandbox"));
-      expect(await ambient.acquireScopedRunnerCredential({ agentExecutionId: "aex_1" })).toEqual({ token: undefined });
+      expect(await ambient.acquireScopedRunnerCredential({ agentExecutionId: "run_1" })).toEqual({ token: undefined });
     });
 
     it("treats a non-JWT process token as no runner credential (the harness/proxy token shape)", async () => {
@@ -491,7 +491,7 @@ describe("StigmerClient", () => {
       const client = clientWithRunnerCredential("not-a-jwt-proxy-token");
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({ token: "scoped-tok" });
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "run_1" });
 
       expect(token).toBe("scoped-tok");
     });
@@ -500,7 +500,7 @@ describe("StigmerClient", () => {
       const client = clientWithRunnerCredential(fakeTokenOfType(undefined));
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue({ token: "scoped-tok" });
 
-      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" });
+      const token = await client.acquireScopedRunnerToken({ agentExecutionId: "run_1" });
 
       expect(token).toBe("scoped-tok");
       expect(client.getRunnerScopedToken).toHaveBeenCalled();
@@ -511,8 +511,8 @@ describe("StigmerClient", () => {
       vi.spyOn(client, "getRunnerScopedToken").mockResolvedValue(undefined);
 
       await expect(
-        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
-      ).rejects.toThrow(/minted no scoped runner token for agent execution aex_1/);
+        client.acquireScopedRunnerToken({ agentExecutionId: "run_1" }),
+      ).rejects.toThrow(/minted no scoped runner token for agent execution run_1/);
     });
 
     it("throws when the exchange fails, naming the scope and preserving the cause", async () => {
@@ -520,8 +520,8 @@ describe("StigmerClient", () => {
       vi.spyOn(client, "getRunnerScopedToken").mockRejectedValue(new Error("boom"));
 
       await expect(
-        client.acquireScopedRunnerToken({ agentExecutionId: "aex_1" }),
-      ).rejects.toThrow(/exchange failed for agent execution aex_1: boom/);
+        client.acquireScopedRunnerToken({ agentExecutionId: "run_1" }),
+      ).rejects.toThrow(/exchange failed for agent execution run_1: boom/);
     });
   });
 
@@ -538,10 +538,10 @@ describe("StigmerClient", () => {
     it("maps agentExecutionId onto its oneof arm", async () => {
       const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
 
-      await client.getRunnerScopedToken({ agentExecutionId: "aex_1" });
+      await client.getRunnerScopedToken({ agentExecutionId: "run_1" });
 
       const input = rpc.mock.calls[0]![0];
-      expect(input.scope).toEqual({ case: "runId", value: "aex_1" });
+      expect(input.scope).toEqual({ case: "runId", value: "run_1" });
     });
 
     it("maps renewal onto its message arm", async () => {
@@ -567,7 +567,7 @@ describe("StigmerClient", () => {
     it("passes no call options without a caller token", async () => {
       const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
 
-      await client.getRunnerScopedToken({ agentExecutionId: "aex_1" });
+      await client.getRunnerScopedToken({ agentExecutionId: "run_1" });
 
       expect(rpc).toHaveBeenCalledWith(expect.anything(), undefined);
     });
@@ -589,10 +589,10 @@ describe("StigmerClient", () => {
       // returned {}, so install the method it would have provided.
       (client as any).vaultValues = { fetchValues };
 
-      await client.fetchExecutionValues("aex_1", "scoped-tok");
+      await client.fetchExecutionValues("run_1", "scoped-tok");
 
       expect(fetchValues).toHaveBeenCalledWith(
-        expect.objectContaining({ executionId: "aex_1" }),
+        expect.objectContaining({ executionId: "run_1" }),
         { headers: { authorization: "Bearer scoped-tok" } },
       );
     });
@@ -602,7 +602,7 @@ describe("StigmerClient", () => {
       const fetchValues = vi.fn().mockResolvedValue({});
       (client as any).vaultValues = { fetchValues };
 
-      await client.fetchExecutionValues("aex_1");
+      await client.fetchExecutionValues("run_1");
 
       expect(fetchValues).toHaveBeenCalledWith(expect.anything(), undefined);
     });

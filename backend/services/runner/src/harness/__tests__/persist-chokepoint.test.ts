@@ -65,7 +65,7 @@ function chokepointOver(
   const onPlatformStop = options.onPlatformStop ?? vi.fn();
   const chokepoint = new PersistChokepoint({
     client,
-    executionId: "aex_test",
+    executionId: "run_test",
     status,
     rows,
     offload: undefined,
@@ -86,7 +86,7 @@ describe("PersistChokepoint: one write", () => {
     const heard: boolean[] = [];
     const chokepoint = new PersistChokepoint({
       client,
-      executionId: "aex_test",
+      executionId: "run_test",
       status: create(RunStatusSchema, {}),
       rows: create(TurnRowsSchema, {}),
       offload: undefined,
@@ -111,7 +111,7 @@ describe("PersistChokepoint: one write", () => {
     });
     const events = new SessionEventEmitter({
       client: { appendSessionEvents, listRunSessionEvents: vi.fn(async () => []) },
-      runId: "aex_test",
+      runId: "run_test",
       credential: async () => undefined,
       delay: async () => {},
     });
@@ -121,7 +121,7 @@ describe("PersistChokepoint: one write", () => {
     const rows = create(TurnRowsSchema, {});
     const chokepoint = new PersistChokepoint({
       client,
-      executionId: "aex_test",
+      executionId: "run_test",
       status,
       rows,
       offload: undefined,
@@ -202,12 +202,12 @@ describe("PersistChokepoint: one write", () => {
       }),
     };
     const { chokepoint, status } = chokepointOver(client, {
-      progress: { changeSetId: "aex_test:0", substrate, state: newProgressCaptureState() },
+      progress: { changeSetId: "run_test:0", substrate, state: newProgressCaptureState() },
     });
 
     const first = chokepoint.write();
     await vi.waitFor(() => expect(gates).toHaveLength(1));
-    expect(status.fileChangeProgress?.changeSetId, "attached before the bytes leave").toBe("aex_test:0");
+    expect(status.fileChangeProgress?.changeSetId, "attached before the bytes leave").toBe("run_test:0");
     expect(status.fileChangeProgress?.linesAdded).toBe(2);
     const attachedAt = status.fileChangeProgress?.capturedAt;
     gates[0]!.open();
@@ -228,7 +228,7 @@ describe("PersistChokepoint: one write", () => {
       capture: () => Promise.reject(new Error("Command failed: git add -A -- .\nerror: short read while indexing a.md")),
     };
     const { chokepoint, status, heartbeat } = chokepointOver(client, {
-      progress: { changeSetId: "aex_test:0", substrate, state: newProgressCaptureState() },
+      progress: { changeSetId: "run_test:0", substrate, state: newProgressCaptureState() },
     });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
@@ -304,7 +304,7 @@ describe("PersistChokepoint: coalescing", () => {
 describe("PersistChokepoint: the run's file record", () => {
   /** A ledger event for the change set: its baseline, or its candidate. */
   function ledgerEvent(kind: "baseline" | "candidate") {
-    const changeSetId = "aex_test:0";
+    const changeSetId = "run_test:0";
     return kind === "baseline"
       ? create(FileReviewEventSchema, {
           eventId: "b",
@@ -330,13 +330,13 @@ describe("PersistChokepoint: the run's file record", () => {
     } as unknown as StigmerClient;
     const { chokepoint, rows } = chokepointOver(client);
     await chokepoint.write();
-    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, { runId: "aex_test", events: [ledgerEvent("baseline")] });
+    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, { runId: "run_test", events: [ledgerEvent("baseline")] });
     await chokepoint.write();
     await chokepoint.write();
     rows.fileReviewEventStream.events.push(ledgerEvent("candidate"));
     await chokepoint.write({ final: true });
     await chokepoint.write({ final: true });
-    expect(carried).toEqual([[], ["aex_test:0"], [], ["aex_test:0+candidate"], []]);
+    expect(carried).toEqual([[], ["run_test:0"], [], ["run_test:0+candidate"], []]);
   });
 
   it("carries a set again when the write that carried it did not land", async () => {
@@ -353,7 +353,7 @@ describe("PersistChokepoint: the run's file record", () => {
       }),
     } as unknown as StigmerClient;
     const { chokepoint, rows } = chokepointOver(client);
-    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, { runId: "aex_test", events: [ledgerEvent("baseline")] });
+    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, { runId: "run_test", events: [ledgerEvent("baseline")] });
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       await chokepoint.write();
@@ -384,7 +384,7 @@ function withEvents(client: StigmerClient) {
   };
   const chokepoint = new PersistChokepoint({
     client,
-    executionId: "aex_test",
+    executionId: "run_test",
     status: create(RunStatusSchema, {}),
     rows: create(TurnRowsSchema, {}),
     offload: undefined,

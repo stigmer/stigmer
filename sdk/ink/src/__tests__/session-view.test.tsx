@@ -94,13 +94,13 @@ afterEach(() => {
 describe("SessionView — load states", () => {
   it("shows a spinner line while the session loads", () => {
     conversation = makeConversation({ isLoading: true });
-    const { lastFrame } = render(<SessionView sessionId="ses-1" org="acme" />);
+    const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" />);
     expect(lastFrame()).toContain("Loading session...");
   });
 
   it("names the failure when the session cannot load", () => {
     conversation = makeConversation({ loadError: new Error("session not found") });
-    const { lastFrame } = render(<SessionView sessionId="ses-1" org="acme" />);
+    const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" />);
     expect(lastFrame()).toContain("Failed to load session");
     expect(lastFrame()).toContain("session not found");
   });
@@ -109,14 +109,14 @@ describe("SessionView — load states", () => {
 describe("SessionView — a loaded conversation", () => {
   it("shows the subject and the agent-mode follow-up line", () => {
     conversation = makeConversation();
-    const { lastFrame } = render(<SessionView sessionId="ses-1" org="acme" />);
+    const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" />);
     expect(lastFrame()).toContain("Refactor the billing module");
     expect(lastFrame()).toContain("Agent mode — full tool access");
   });
 
   it("shows the mid-run capture strip, and Ctrl+O reveals its per-file list", async () => {
     conversation = makeConversation({ fileChangeProgress: PROGRESS });
-    const { lastFrame, stdin } = render(<SessionView sessionId="ses-1" org="acme" />);
+    const { lastFrame, stdin } = render(<SessionView sessionId="ses_1" org="acme" />);
     expect(lastFrame()).toContain("2 files changing…");
     expect(lastFrame()).not.toContain("src/billing/ledger.ts");
 
@@ -130,7 +130,7 @@ describe("SessionView — a loaded conversation", () => {
     conversation = makeConversation({
       fileChangeProgress: create(FileChangeProgressSchema, { changeSetId: "cs-1", filesChanged: 0 }),
     });
-    const { lastFrame } = render(<SessionView sessionId="ses-1" org="acme" />);
+    const { lastFrame } = render(<SessionView sessionId="ses_1" org="acme" />);
     expect(lastFrame()).not.toContain("changing…");
   });
 
@@ -144,7 +144,7 @@ describe("SessionView — a loaded conversation", () => {
       },
       answerError: new Error("gate already answered"),
     });
-    const frame = render(<SessionView sessionId="ses-1" org="acme" />).lastFrame() ?? "";
+    const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
     expect(frame).toContain("Running");
     expect(frame).toContain("Read the ledger");
     expect(frame).toContain("Approval error: gate already answered");
@@ -157,7 +157,7 @@ describe("SessionView — a loaded conversation", () => {
       fileReviewSets: [set, set],
       fileReviewError: new Error("digest mismatch"),
     });
-    const frame = render(<SessionView sessionId="ses-1" org="acme" />).lastFrame() ?? "";
+    const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
     expect(frame).toContain("1 file awaiting review");
     expect(frame).toContain("1 more awaiting review");
     expect(frame).toContain("File review error: digest mismatch");
@@ -169,13 +169,13 @@ describe("SessionView — a loaded conversation", () => {
       asks: [waitingToolUse("write_file")],
       fileReviewSets: [reviewSet([{ id: "a", path: "one.ts" }])],
     });
-    const frame = render(<SessionView sessionId="ses-1" org="acme" />).lastFrame() ?? "";
+    const frame = render(<SessionView sessionId="ses_1" org="acme" />).lastFrame() ?? "";
     expect(frame).toContain("Resolve the pending approval first");
   });
 
   it("switches to plan mode on Ctrl+T", async () => {
     conversation = makeConversation();
-    const { lastFrame, stdin } = render(<SessionView sessionId="ses-1" org="acme" />);
+    const { lastFrame, stdin } = render(<SessionView sessionId="ses_1" org="acme" />);
     stdin.write("\u0014"); // Ctrl+T
     await settle();
     expect(lastFrame()).toContain("Plan mode — read-only analysis, no file mutations");

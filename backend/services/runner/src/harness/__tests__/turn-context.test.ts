@@ -44,7 +44,7 @@ import {
 import { TERMINAL_COPY } from "../terminal-table.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
-const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
+const INPUT = { executionId: "run_1", threadId: "", turnSeq: 0 } as const;
 
 describe("runWroteEngineEvents", () => {
   it("asks the run's log for one event of the types only the engine's rows produce", async () => {
@@ -162,7 +162,7 @@ describe("runFinishedWhileWaiting", () => {
   it("runs on when the run it waited for is still going", async () => {
     const { deps, getExecution } = depsIn(RunPhase.RUN_IN_PROGRESS);
     expect(await runFinishedWhileWaiting(deps, true)).toBeUndefined();
-    expect(getExecution).toHaveBeenCalledWith("aex_1");
+    expect(getExecution).toHaveBeenCalledWith("run_1");
   });
 
   it("settles as the stored phase when the run finished while it waited", async () => {
@@ -173,11 +173,11 @@ describe("runFinishedWhileWaiting", () => {
 
 describe("stopIsExplained", () => {
   type EventValue = NonNullable<Parameters<typeof create<typeof SessionEventSchema>>[1]>["event"];
-  const ev = (event: EventValue): SessionEvent => create(SessionEventSchema, { runId: "aex_1", event });
-  const message = ev({ case: "agentMessage", value: { id: "aex_1.m1", content: [{ type: "text", text: "Working." }] } });
-  const toolUse = ev({ case: "agentToolUse", value: { id: "aex_1.c1", name: "shell", input: {} } });
-  const note = (text: string): SessionEvent => ev({ case: "stigmerHarnessNote", value: { id: "aex_1.n1", text } });
-  const status = (phase: string): SessionEvent => ev({ case: "stigmerRunStatus", value: { id: "aex_1.s1", phase } });
+  const ev = (event: EventValue): SessionEvent => create(SessionEventSchema, { runId: "run_1", event });
+  const message = ev({ case: "agentMessage", value: { id: "run_1.m1", content: [{ type: "text", text: "Working." }] } });
+  const toolUse = ev({ case: "agentToolUse", value: { id: "run_1.c1", name: "shell", input: {} } });
+  const note = (text: string): SessionEvent => ev({ case: "stigmerHarnessNote", value: { id: "run_1.n1", text } });
+  const status = (phase: string): SessionEvent => ev({ case: "stigmerRunStatus", value: { id: "run_1.s1", phase } });
 
   it("is false for a run whose engine wrote and then went silent: a lost runner", () => {
     expect(stopIsExplained([message, toolUse])).toBe(false);

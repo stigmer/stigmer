@@ -1090,7 +1090,7 @@ describe("Channel conformance — the anonymous resolution lane", () => {
     const { org } = await target.provisionTenancy();
 
     // Absent channel, under a retired prefix: old links keep their ids.
-    const missingId = "ash_01confnevercreated";
+    const missingId = "chn_01confnevercreated";
     const absent = await expectGrpcCode(
       () => clients.channelQuery.getAgentProfile({ channelId: missingId }),
       Code.NotFound,
@@ -1246,11 +1246,11 @@ describe("Channel conformance — the rotatable link token", () => {
 
   it("[rpc:ChannelCommandController.rotateLink] rotateLink on an unknown channel returns NotFound", async () => {
     const err = await expectGrpcCode(
-      () => clients.channelCommand.rotateLink({ resourceId: "ash_01confmissing" }),
+      () => clients.channelCommand.rotateLink({ resourceId: "chn_01confmissing" }),
       Code.NotFound,
       "rotateLink on a nonexistent channel",
     );
-    expect(err.rawMessage).toBe(channelNotFoundMessage("ash_01confmissing"));
+    expect(err.rawMessage).toBe(channelNotFoundMessage("chn_01confmissing"));
   });
 
   it("[rpc:ChannelCommandController.rotateLink] rotateLink refuses a Slack channel, which has no link (FailedPrecondition)", async () => {

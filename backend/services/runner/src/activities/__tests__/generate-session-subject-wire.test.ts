@@ -41,7 +41,7 @@ import {
 } from "../generate-session-subject.js";
 import type { Config } from "../../config.js";
 
-const EXECUTION_ID = "aex_wire_1";
+const EXECUTION_ID = "run_wire_1";
 
 function clientReadingExecution(): {
   client: StigmerClient;

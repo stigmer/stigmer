@@ -132,7 +132,7 @@ async function runEchoAndCapture(options: {
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org: options.org,
-      name: uniqueName("aex-identity"),
+      name: uniqueName("run-identity"),
       agentRef: agentRefOf(agent),
       autoApproveAll: true,
       ...(options.sessionSpec !== undefined ? { sessionSpec: options.sessionSpec } : {}),

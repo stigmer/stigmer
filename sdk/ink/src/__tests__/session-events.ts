@@ -17,7 +17,7 @@ type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 
 /** A stored event of the demo run, on a thread ("" for the primary). */
 export function event(init: EventInit, threadId = "", runId = RUN_ID): SessionEvent {
-  return create(SessionEventSchema, { sessionId: "ses-1", runId, threadId, event: init });
+  return create(SessionEventSchema, { sessionId: "ses_1", runId, threadId, event: init });
 }
 
 /** The one turn the events fold to. */

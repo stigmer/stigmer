@@ -173,7 +173,7 @@ const knownChannel = create(ChannelSchema, {
 const webChannel = create(ChannelSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Channel",
-  metadata: { name: "clinic-assistant-web", slug: "clinic-assistant-web", org: ACME_ID, id: "ash_2" },
+  metadata: { name: "clinic-assistant-web", slug: "clinic-assistant-web", org: ACME_ID, id: "chn_2" },
   spec: {
     enabled: false,
     agentRef: { kind: ApiResourceKind.agent, org: ACME_ID, slug: "clinic-assistant" },
@@ -789,7 +789,7 @@ describe("list integration", () => {
       /clinic-patient-whatsapp\s+acme\/clinic-assistant\s+whatsapp\s+installed\s+true/,
     );
     // A web channel's STATE is its audience, never an install state.
-    expect(rows.find((line) => line.includes("ash_2"))).toMatch(
+    expect(rows.find((line) => line.includes("chn_2"))).toMatch(
       /clinic-assistant-web\s+acme\/clinic-assistant\s+web\s+public\s+false/,
     );
   });

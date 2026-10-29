@@ -10,7 +10,7 @@ import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useConversationParticipation } from "../useConversationParticipation";
 
-const IDENTITY = { channelId: "ach_1", conversationKey: "15550001111" };
+const IDENTITY = { channelId: "chn_1", conversationKey: "15550001111" };
 
 function row(control: ConversationControl, controlledBy = "") {
   return create(ChannelConversationSchema, {

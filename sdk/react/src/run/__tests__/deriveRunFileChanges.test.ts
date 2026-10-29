@@ -90,10 +90,10 @@ describe("deriveRunFileChanges", () => {
   it("net-diffs the same path ACROSS executions: first execution's before -> last execution's after", () => {
     // A session's follow-up turns: two runs touching one file.
     const r = deriveRunFileChanges([
-      execWith("aex_1", [
+      execWith("run_1", [
         captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" }),
       ]),
-      execWith("aex_2", [
+      execWith("run_2", [
         captured({ id: "fc2", pathAfter: "src/shared.ts", before: "v1", after: "v2" }),
       ]),
     ]);
@@ -104,10 +104,10 @@ describe("deriveRunFileChanges", () => {
   });
 
   it("anchors the net diff on INPUT order — reversed executions produce the reversed anchors (chronology is a correctness input)", () => {
-    const first = execWith("aex_1", [
+    const first = execWith("run_1", [
       captured({ id: "fc1", pathAfter: "src/shared.ts", before: "v0", after: "v1" }),
     ]);
-    const second = execWith("aex_2", [
+    const second = execWith("run_2", [
       captured({ id: "fc2", pathAfter: "src/shared.ts", before: "v1", after: "v2" }),
     ]);
 
@@ -118,10 +118,10 @@ describe("deriveRunFileChanges", () => {
 
   it("reconciles an add (execution 1) then a delete (execution 2) to deleted across the span", () => {
     const r = deriveRunFileChanges([
-      execWith("aex_1", [
+      execWith("run_1", [
         captured({ id: "fc1", pathAfter: "src/tmp.ts", after: "scratch", kind: FileChangeKind.ADD }),
       ]),
-      execWith("aex_2", [
+      execWith("run_2", [
         captured({ id: "fc2", pathBefore: "src/tmp.ts", pathAfter: "src/tmp.ts", before: "scratch", kind: FileChangeKind.DELETE }),
       ]),
     ]);
@@ -131,10 +131,10 @@ describe("deriveRunFileChanges", () => {
 
   it("rolls up a finished run and a live run in one list", () => {
     const r = deriveRunFileChanges([
-      execWith("aex_done", [
+      execWith("run_done", [
         captured({ id: "fc1", pathAfter: "src/a.ts", before: "a", after: "b" }),
       ]),
-      execWith("aex_live", [
+      execWith("run_live", [
         captured({ id: "fc2", pathAfter: "src/b.ts", before: "x", after: "y" }),
       ]),
     ]);
@@ -143,10 +143,10 @@ describe("deriveRunFileChanges", () => {
 
   it("keeps distinct paths from distinct executions distinct", () => {
     const r = deriveRunFileChanges([
-      execWith("aex_1", [
+      execWith("run_1", [
         captured({ id: "fc1", pathAfter: "src/one.ts", before: "a", after: "b" }),
       ]),
-      execWith("aex_2", [
+      execWith("run_2", [
         captured({ id: "fc2", pathAfter: "src/two.ts", before: "c", after: "d" }),
       ]),
     ]);
@@ -187,7 +187,7 @@ describe("toFileDiffEntry", () => {
         before: create(FileContentSchema, {
           body: {
             case: "ref",
-            value: { storageKey: "artifacts/aex_1/before", contentHash: "h1" },
+            value: { storageKey: "artifacts/run_1/before", contentHash: "h1" },
           },
         }),
         after: inlineSide("new"),

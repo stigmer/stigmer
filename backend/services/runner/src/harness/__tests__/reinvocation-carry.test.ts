@@ -43,7 +43,7 @@ describe("resolveStandingContext's memory selection", () => {
     status: { recalledMemories: { enabled: true, facts: [{ memoryId: "mem-1", content: "Prefers tabs." }] } },
   });
   const deps = (rows = create(TurnRowsSchema)): ResolutionDeps =>
-    ({ input: { executionId: "aex-memory", threadId: "", turnSeq: 0 }, config: testConfig(), rows }) as unknown as ResolutionDeps;
+    ({ input: { executionId: "run_memory", threadId: "", turnSeq: 0 }, config: testConfig(), rows }) as unknown as ResolutionDeps;
   const blueprint = { sessionSpec: { metadata: {} } } as unknown as ResolvedBlueprint;
 
   it("stamps the selection's report on the turn's rows, once", async () => {

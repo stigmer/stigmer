@@ -87,7 +87,7 @@ describe("resolveReconcileTurn: the settlements before the undo", () => {
   });
 
   it("a tree another turn holds past the wait settles workspace-lock-timeout and reads no owed undo", async () => {
-    const sessionId = "ses-reconcile-lock";
+    const sessionId = "ses_reconcile-lock";
     const client = mockStigmerClient({ fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)) });
     const { deps } = depsWith(client, sessionId);
     const frame = emptyFrame();

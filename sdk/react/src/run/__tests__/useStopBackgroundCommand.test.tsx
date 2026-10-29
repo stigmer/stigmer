@@ -32,7 +32,7 @@ describe("useStopBackgroundCommand", () => {
 
     let pending!: Promise<void>;
     act(() => {
-      pending = result.current.stopBackgroundCommand("ses-1", "run_1.bg-1");
+      pending = result.current.stopBackgroundCommand("ses_1", "run_1.bg-1");
     });
     expect(result.current.stoppingToolUseIds.has("run_1.bg-1")).toBe(true);
     await act(async () => {
@@ -40,7 +40,7 @@ describe("useStopBackgroundCommand", () => {
       await pending;
     });
     expect(result.current.stoppingToolUseIds.has("run_1.bg-1")).toBe(false);
-    expect(stopBackgroundCommand.mock.calls[0][0]).toMatchObject({ sessionId: "ses-1", toolUseId: "run_1.bg-1" });
+    expect(stopBackgroundCommand.mock.calls[0][0]).toMatchObject({ sessionId: "ses_1", toolUseId: "run_1.bg-1" });
   });
 
   it("keeps a failure per tool use and as the latest, rethrows it, and clears both", async () => {
@@ -48,7 +48,7 @@ describe("useStopBackgroundCommand", () => {
     const { result } = renderHook(() => useStopBackgroundCommand(), { wrapper: Wrapper });
 
     await act(async () => {
-      await expect(result.current.stopBackgroundCommand("ses-1", "run_1.bg-1")).rejects.toThrow("the command already ended");
+      await expect(result.current.stopBackgroundCommand("ses_1", "run_1.bg-1")).rejects.toThrow("the command already ended");
     });
     expect(result.current.errorsByToolUseId.get("run_1.bg-1")?.message).toBe("the command already ended");
     expect(result.current.error?.message).toBe("the command already ended");

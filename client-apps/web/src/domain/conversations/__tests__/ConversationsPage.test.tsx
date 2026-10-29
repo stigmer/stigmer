@@ -59,16 +59,16 @@ beforeEach(() => {
 
 describe("web ConversationsPage", () => {
   it("reads the selection from the path and mounts that channel's access dialog", () => {
-    page.path = `/conversations/${encodeURIComponent("ach_1")}/${encodeURIComponent("1712.0001")}/`;
+    page.path = `/conversations/${encodeURIComponent("chn_1")}/${encodeURIComponent("1712.0001")}/`;
     render(<ConversationsPage />);
 
-    expect(page.workbench.at(-1)?.selected).toEqual({ channelId: "ach_1", conversationKey: "1712.0001" });
+    expect(page.workbench.at(-1)?.selected).toEqual({ channelId: "chn_1", conversationKey: "1712.0001" });
     expect(page.access.at(-1)).toMatchObject({
       label: "Channel access",
       resource: {
         kind: ApiResourceKind.channel,
         kindString: "channel",
-        id: "ach_1",
+        id: "chn_1",
         org: "org_acme",
         name: "support",
       },

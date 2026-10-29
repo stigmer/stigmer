@@ -17,7 +17,7 @@ function outputFile(filename: string, outputPath = filename) {
   return create(FileSchema, {
     metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
     spec: { filename },
-    status: { sizeBytes: 2048n, runId: "aex_1", outputPath },
+    status: { sizeBytes: 2048n, runId: "run_1", outputPath },
   });
 }
 

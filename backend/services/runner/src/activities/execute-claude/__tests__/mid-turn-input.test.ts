@@ -54,7 +54,7 @@ class FakeRuntime {
   queue: TurnMessage[] = [];
   /** Run while the persist is in flight: what lands between persist and claim. */
   duringPersist: (() => void) | undefined;
-  readonly transcript = new TranscriptBuilder("aex-mid", create(TurnRowsSchema), create(RunStatusSchema, {}));
+  readonly transcript = new TranscriptBuilder("run_mid", create(TurnRowsSchema), create(RunStatusSchema, {}));
 
   readonly input: TurnInputChannel = {
     pending: () => this.pending,

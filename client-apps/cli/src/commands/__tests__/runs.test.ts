@@ -60,11 +60,11 @@ beforeEach(() => {
     stderr.push(String(chunk));
     return true;
   });
-  control.cancelRun.mockResolvedValue({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: ["aex_1", "aex_2"] });
+  control.cancelRun.mockResolvedValue({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: ["run_1", "run_2"] });
   control.terminateRun.mockResolvedValue({ phase: "terminated" });
   control.pauseRun.mockResolvedValue({ phase: "paused" });
   control.resumeRun.mockResolvedValue({ phase: "running" });
-  approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "delete", answer: "deny" });
+  approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "run_1.c1", toolName: "delete", answer: "deny" });
   logs.streamRunLogs.mockResolvedValue(undefined);
   trace.traceRun.mockResolvedValue(undefined);
   scores.showRunScores.mockResolvedValue(undefined);
@@ -77,100 +77,100 @@ afterEach(() => {
 
 describe("stigmer runs cancel | terminate | pause | resume", () => {
   it("cancels and reports the phase and every turn the interrupt stopped", async () => {
-    const out = await runs("cancel", "aex_1");
-    expect(control.cancelRun).toHaveBeenCalledWith(stigmer, "aex_1");
-    expect(out).toContain("Run cancelled: aex_1 (phase: cancelled; stopped: aex_1, aex_2)");
+    const out = await runs("cancel", "run_1");
+    expect(control.cancelRun).toHaveBeenCalledWith(stigmer, "run_1");
+    expect(out).toContain("Run cancelled: run_1 (phase: cancelled; stopped: run_1, run_2)");
   });
 
   it("names no stopped turns when the interrupt stopped none", async () => {
     control.cancelRun.mockResolvedValue({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: [] });
-    const out = await runs("cancel", "aex_1");
-    expect(out).toContain("Run cancelled: aex_1 (phase: cancelled)");
+    const out = await runs("cancel", "run_1");
+    expect(out).toContain("Run cancelled: run_1 (phase: cancelled)");
   });
 
   it("says when the run had already ended", async () => {
     control.cancelRun.mockResolvedValue({ phase: "completed", wasAlreadyTerminal: true, stoppedRunIds: [] });
-    const out = await runs("cancel", "aex_1");
-    expect(out).toContain("Run already ended: aex_1 (phase: completed)");
+    const out = await runs("cancel", "run_1");
+    expect(out).toContain("Run already ended: run_1 (phase: completed)");
   });
 
   it("terminates with the reason", async () => {
-    const out = await runs("terminate", "aex_1", "--reason", "stuck");
-    expect(control.terminateRun).toHaveBeenCalledWith(stigmer, "aex_1", "stuck");
-    expect(out).toContain("Run terminated: aex_1 (phase: terminated)");
+    const out = await runs("terminate", "run_1", "--reason", "stuck");
+    expect(control.terminateRun).toHaveBeenCalledWith(stigmer, "run_1", "stuck");
+    expect(out).toContain("Run terminated: run_1 (phase: terminated)");
   });
 
   it("pauses with an empty reason when none is given", async () => {
-    const out = await runs("pause", "aex_1");
-    expect(control.pauseRun).toHaveBeenCalledWith(stigmer, "aex_1", "");
-    expect(out).toContain("Run paused: aex_1 (phase: paused)");
+    const out = await runs("pause", "run_1");
+    expect(control.pauseRun).toHaveBeenCalledWith(stigmer, "run_1", "");
+    expect(out).toContain("Run paused: run_1 (phase: paused)");
   });
 
   it("resumes, which takes no reason", async () => {
-    const out = await runs("resume", "aex_1");
-    expect(control.resumeRun).toHaveBeenCalledWith(stigmer, "aex_1");
-    expect(out).toContain("Run resumed: aex_1 (phase: running)");
+    const out = await runs("resume", "run_1");
+    expect(control.resumeRun).toHaveBeenCalledWith(stigmer, "run_1");
+    expect(out).toContain("Run resumed: run_1 (phase: running)");
   });
 });
 
 describe("stigmer runs approve", () => {
   it("answers the named tool call with the given action and reason", async () => {
-    const out = await runs("approve", "aex_1", "--tool-call", "aex_1.c1", "--action", "deny", "--comment", "unsafe");
+    const out = await runs("approve", "run_1", "--tool-call", "run_1.c1", "--action", "deny", "--comment", "unsafe");
     expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
-      runId: "aex_1",
-      toolCallId: "aex_1.c1",
+      runId: "run_1",
+      toolCallId: "run_1.c1",
       action: "deny",
       comment: "unsafe",
     });
-    expect(out).toContain("Tool call denied: delete (aex_1.c1)");
+    expect(out).toContain("Tool call denied: delete (run_1.c1)");
   });
 
   it("allows the one waiting call for the turn when no --tool-call is named", async () => {
-    approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "shell", answer: "grant" });
-    const out = await runs("approve", "aex_1", "--action", "allow-all");
+    approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "run_1.c1", toolName: "shell", answer: "grant" });
+    const out = await runs("approve", "run_1", "--action", "allow-all");
     expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
-      runId: "aex_1",
+      runId: "run_1",
       toolCallId: "",
       action: "allow-all",
       comment: "",
     });
-    expect(out).toContain("Tool call allowed for the rest of the turn: shell (aex_1.c1)");
+    expect(out).toContain("Tool call allowed for the rest of the turn: shell (run_1.c1)");
   });
 
   it("defaults the action to allow", async () => {
-    approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "shell", answer: "allow" });
-    const out = await runs("approve", "aex_1");
+    approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "run_1.c1", toolName: "shell", answer: "allow" });
+    const out = await runs("approve", "run_1");
     expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
-      runId: "aex_1",
+      runId: "run_1",
       toolCallId: "",
       action: "allow",
       comment: "",
     });
-    expect(out).toContain("Tool call allowed: shell (aex_1.c1)");
+    expect(out).toContain("Tool call allowed: shell (run_1.c1)");
   });
 
   it("passes the resource's refusal through", async () => {
-    approve.approveAgentToolCall.mockRejectedValue(new UsageError("run aex_1 has no tool call waiting for an answer"));
-    await expect(runs("approve", "aex_1")).rejects.toThrow("run aex_1 has no tool call waiting for an answer");
+    approve.approveAgentToolCall.mockRejectedValue(new UsageError("run run_1 has no tool call waiting for an answer"));
+    await expect(runs("approve", "run_1")).rejects.toThrow("run run_1 has no tool call waiting for an answer");
   });
 });
 
 describe("stigmer runs logs", () => {
   it("passes --follow through with an abort signal", async () => {
-    await runs("logs", "aex_1", "--follow");
+    await runs("logs", "run_1", "--follow");
     expect(logs.streamRunLogs).toHaveBeenCalledWith(
       stigmer,
-      { runId: "aex_1", follow: true },
+      { runId: "run_1", follow: true },
       expect.any(AbortSignal),
     );
   });
 
   it("reads once when --follow is absent, and leaves no signal handler behind", async () => {
     const before = process.listenerCount("SIGINT");
-    await runs("logs", "aex_1");
+    await runs("logs", "run_1");
     expect(logs.streamRunLogs).toHaveBeenCalledWith(
       stigmer,
-      { runId: "aex_1", follow: false },
+      { runId: "run_1", follow: false },
       expect.any(AbortSignal),
     );
     expect(process.listenerCount("SIGINT")).toBe(before);
@@ -179,13 +179,13 @@ describe("stigmer runs logs", () => {
 
 describe("stigmer runs trace", () => {
   it("renders the table by default", async () => {
-    await runs("trace", "aex_1");
-    expect(trace.traceRun).toHaveBeenCalledWith(stigmer, "aex_1", "table");
+    await runs("trace", "run_1");
+    expect(trace.traceRun).toHaveBeenCalledWith(stigmer, "run_1", "table");
   });
 
   it("passes -o json through", async () => {
-    await runs("trace", "aex_1", "-o", "json");
-    expect(trace.traceRun).toHaveBeenCalledWith(stigmer, "aex_1", "json");
+    await runs("trace", "run_1", "-o", "json");
+    expect(trace.traceRun).toHaveBeenCalledWith(stigmer, "run_1", "json");
   });
 });
 

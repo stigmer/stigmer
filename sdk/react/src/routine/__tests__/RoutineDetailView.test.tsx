@@ -80,7 +80,7 @@ function makeRoutine(overrides?: {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Routine",
     metadata: {
-      id: "sch_01example",
+      id: "rtn_01example",
       name: "daily-fee-reminders",
       slug: "daily-fee-reminders",
       org: "isc",
@@ -106,7 +106,7 @@ function makeRoutine(overrides?: {
     status: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 3 * 3_600_000)),
       lastFireAt: timestampFromDate(new Date(NOW.getTime() - 5 * 60_000)),
-      lastRunId: overrides?.lastRunId ?? "aex_01run",
+      lastRunId: overrides?.lastRunId ?? "run_01run",
       consecutiveFailures:
         overrides?.consecutiveFailures ?? (overrides?.pausedReason ? 5 : 0),
       pausedReason: overrides?.pausedReason ?? "",
@@ -158,7 +158,7 @@ function makeClient(routine: Routine): MockClient {
       fire: vi.fn().mockResolvedValue(
         create(RoutineFireResultSchema, {
           outcome: RoutineFireOutcome.STARTED,
-          runId: "aex_01triggered",
+          runId: "run_01triggered",
           routine: routine,
         }),
       ),
@@ -254,7 +254,7 @@ function pagedFires(total: number) {
     return create(RoutineFireListSchema, {
       entries: Array.from({ length: end - start }, (_, i) =>
         create(RoutineFireSchema, {
-          routineId: "sch_01example",
+          routineId: "rtn_01example",
           origin: RoutineFireOrigin.SCHEDULE,
           outcome: RoutineFireOutcome.COMPLETED,
           nominalFireTime: timestampFromDate(new Date(NOW.getTime() - (start + i + 1) * 60_000)),
@@ -278,7 +278,7 @@ describe("RoutineDetailView", () => {
     expect(screen.getByText("Send today's fee reminders.")).toBeTruthy();
     expect(screen.getByText("in 3h")).toBeTruthy();
     expect(screen.getByText("5m")).toBeTruthy();
-    expect(screen.getByText("aex_01run")).toBeTruthy();
+    expect(screen.getByText("run_01run")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
     // Active routines show no state banner.
     expect(screen.queryByText("Routine is disabled")).toBeNull();
@@ -337,7 +337,7 @@ describe("RoutineDetailView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Resume routine" }));
 
     await waitFor(() =>
-      expect(client.routine.resume).toHaveBeenCalledWith("sch_01example"),
+      expect(client.routine.resume).toHaveBeenCalledWith("rtn_01example"),
     );
   });
 
@@ -367,7 +367,7 @@ describe("RoutineDetailView", () => {
 
     fireEvent.click(screen.getByText("Start run"));
     await waitFor(() =>
-      expect(client.routine.fire).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" })),
+      expect(client.routine.fire).toHaveBeenCalledWith(expect.objectContaining({ id: "rtn_01example" })),
     );
     // Refetch picks up the new last_run_id.
     await waitFor(() =>
@@ -396,7 +396,7 @@ describe("RoutineDetailView", () => {
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     expect(doc.message.spec?.enabled).toBe(true);
     await waitFor(() =>
-      expect(client.routine.fire).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" })),
+      expect(client.routine.fire).toHaveBeenCalledWith(expect.objectContaining({ id: "rtn_01example" })),
     );
   });
 
@@ -411,7 +411,7 @@ describe("RoutineDetailView", () => {
     fireEvent.click(screen.getByText("Start run"));
 
     await waitFor(() =>
-      expect(onNavigateToRun).toHaveBeenCalledWith("aex_01triggered"),
+      expect(onNavigateToRun).toHaveBeenCalledWith("run_01triggered"),
     );
   });
 
@@ -421,7 +421,7 @@ describe("RoutineDetailView", () => {
       create(RoutineFireListSchema, {
         entries: [
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.SCHEDULE,
             outcome: RoutineFireOutcome.REFUSED,
             reason:
@@ -457,7 +457,7 @@ describe("RoutineDetailView", () => {
       create(RoutineFireListSchema, {
         entries: [
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.SCHEDULE,
             outcome: RoutineFireOutcome.COMPLETED,
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
@@ -488,21 +488,21 @@ describe("RoutineDetailView", () => {
     fireEvent.click(screen.getByRole("button", { name: "isc/fee-reminder" }));
     expect(onNavigateToAgent).toHaveBeenCalledWith("isc", "fee-reminder");
 
-    fireEvent.click(screen.getByRole("button", { name: "aex_01run" }));
-    expect(onNavigateToRun).toHaveBeenCalledWith("aex_01run");
+    fireEvent.click(screen.getByRole("button", { name: "run_01run" }));
+    expect(onNavigateToRun).toHaveBeenCalledWith("run_01run");
   });
 
   it("navigates to a ledger row's run from the recent-fires strip and the History table", async () => {
     const onNavigateToRun = vi.fn();
-    const client = makeClient(makeRoutine({ lastRunId: "aex_01last" }));
+    const client = makeClient(makeRoutine({ lastRunId: "run_01last" }));
     client.routine.listFires.mockResolvedValue(
       create(RoutineFireListSchema, {
         entries: [
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.MANUAL,
             outcome: RoutineFireOutcome.COMPLETED,
-            runId: "aex_01ledger",
+            runId: "run_01ledger",
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
         ],
@@ -511,14 +511,14 @@ describe("RoutineDetailView", () => {
     );
     renderView(client, { onNavigateToRun });
 
-    fireEvent.click(await screen.findByRole("button", { name: "aex_01ledger" }));
-    expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
+    fireEvent.click(await screen.findByRole("button", { name: "run_01ledger" }));
+    expect(onNavigateToRun).toHaveBeenLastCalledWith("run_01ledger");
 
     fireEvent.click(screen.getByRole("tab", { name: /History/ }));
     const table = await screen.findByRole("table", { name: "Fire history" });
-    fireEvent.click(within(table).getByRole("button", { name: "aex_01ledger" }));
+    fireEvent.click(within(table).getByRole("button", { name: "run_01ledger" }));
     expect(onNavigateToRun).toHaveBeenCalledTimes(2);
-    expect(onNavigateToRun).toHaveBeenLastCalledWith("aex_01ledger");
+    expect(onNavigateToRun).toHaveBeenLastCalledWith("run_01ledger");
   });
 
   it("deletes behind a confirmation that says past runs are kept, then reports it", async () => {
@@ -539,7 +539,7 @@ describe("RoutineDetailView", () => {
     expect(client.routine.delete).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(client.routine.delete).toHaveBeenCalledWith("sch_01example"));
+    await waitFor(() => expect(client.routine.delete).toHaveBeenCalledWith("rtn_01example"));
     await waitFor(() => expect(onDeleted).toHaveBeenCalledOnce());
   });
 
@@ -552,7 +552,7 @@ describe("RoutineDetailView", () => {
     await openMenu(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Copy ID" }));
 
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith("sch_01example"));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("rtn_01example"));
   });
 
   it("renders references as plain text without navigation callbacks", async () => {
@@ -637,7 +637,7 @@ describe("RoutineDetailView", () => {
       create(RoutineFireListSchema, {
         entries: [
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.SCHEDULE,
             outcome: RoutineFireOutcome.COMPLETED,
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
@@ -725,7 +725,7 @@ describe("RoutineDetailView", () => {
 
     await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
     expect(client.routine.rename.mock.calls[0]![0]).toMatchObject({
-      resourceId: "sch_01example",
+      resourceId: "rtn_01example",
       slug: "weekly-fee-reminders",
     });
     expect(onRenamed.mock.calls[0]![0].metadata.slug).toBe("weekly-fee-reminders");
@@ -768,7 +768,7 @@ describe("RoutineDetailView", () => {
     // The one changed field by its path, on the routine's id; the rest of
     // the edited spec is sent as loaded.
     expect(sentUpdate<Routine>(client.routine.update).paths).toEqual(["spec.agent"]);
-    expect(doc.message.metadata?.id).toBe("sch_01example");
+    expect(doc.message.metadata?.id).toBe("rtn_01example");
     expect(doc.message.spec?.cron).toBe("0 9 * * *");
     expect(doc.message.spec?.enabled).toBe(true);
     expect(target?.agentRef?.slug).toBe("fee-reminder");
@@ -1087,7 +1087,7 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     fireEvent.click(screen.getByText("Start run"));
     await waitFor(() =>
       expect(client.routine.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "sch_01example", text: "Sentry alert SEN-4521 fired" }),
+        expect.objectContaining({ id: "rtn_01example", text: "Sentry alert SEN-4521 fired" }),
       ),
     );
     await waitFor(() => expect(screen.queryByText("Run this routine now?")).toBeNull());
@@ -1155,21 +1155,21 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
       create(RoutineFireListSchema, {
         entries: [
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.MANUAL,
             outcome: RoutineFireOutcome.STARTED,
             firedBy: { id: "ida_alerting", displayName: "alerting", mintedBy: "ida_sa_gateway" },
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
           }),
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.MANUAL,
             outcome: RoutineFireOutcome.STARTED,
             firedBy: { id: "ida_ana", email: "ana@example.com" },
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 120_000)),
           }),
           create(RoutineFireSchema, {
-            routineId: "sch_01example",
+            routineId: "rtn_01example",
             origin: RoutineFireOrigin.SCHEDULE,
             outcome: RoutineFireOutcome.COMPLETED,
             nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 180_000)),
@@ -1214,7 +1214,7 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     const curl = await screen.findByText(
       /https:\/\/api\.example\.com\/ai\.stigmer\.agentic\.routine\.v1\.RoutineCommandController\/fire/,
     );
-    expect(curl.textContent).toContain('"id":"sch_01example"');
+    expect(curl.textContent).toContain('"id":"rtn_01example"');
     // Open source shares a routine with no one: the creator's own key, no setup steps.
     await screen.findByText("Use an API key of the person who created this routine.");
     expect(screen.queryByText("Who may call it")).toBeNull();

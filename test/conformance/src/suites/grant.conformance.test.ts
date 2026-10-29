@@ -191,7 +191,7 @@ const ABSENT_AGENT = "agt_01hzzzzzzzzzzzzzzzzzzzzzzz";
 // The same for a run: an agent execution's type defines neither
 // can_grant_access nor can_view_access, so it is the target that asks the
 // model a question it does not define.
-const ABSENT_AGENT_EXECUTION = "aex_01hzzzzzzzzzzzzzzzzzzzzzzz";
+const ABSENT_AGENT_EXECUTION = "run_01hzzzzzzzzzzzzzzzzzzzzzzz";
 
 let target: TargetProfile;
 let clients: ConformanceClients;

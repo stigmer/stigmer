@@ -23,7 +23,7 @@ import { PlanFileCard } from "../PlanFileCard";
 const planFile = create(FileSchema, {
   metadata: { id: "file_plan" },
   spec: { filename: "plan.md", mimeType: "text/markdown" },
-  status: { sizeBytes: 4500n, runId: "aex_1", outputPath: "plan.md" },
+  status: { sizeBytes: 4500n, runId: "run_1", outputPath: "plan.md" },
 });
 
 /** Modal content reads the File's text — keep it pending so nothing rejects. */

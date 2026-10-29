@@ -268,7 +268,7 @@ describe("Run conformance — CRUD & identity", () => {
 
   it("[rpc:RunQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
-      () => clients.agentExecutionQuery.get({ value: "aex_doesnotexist" }),
+      () => clients.agentExecutionQuery.get({ value: "run_doesnotexist" }),
       Code.NotFound,
       "get missing id",
     ));
@@ -278,7 +278,7 @@ describe("Run conformance — distinctness (no duplicate check)", () => {
   it("[rpc:RunCommandController.create] two identical creates yield two distinct executions (no AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
-    const name = uniqueName("aex-dup");
+    const name = uniqueName("run-dup");
 
     const first = await createExecution(org, agent, name);
 
@@ -396,7 +396,7 @@ describe("Run conformance — a turn belongs to its session and its session's or
 
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org: "", name: uniqueName("aex-no-org"), sessionId }),
+      makeAgentExecution({ org: "", name: uniqueName("run-no-org"), sessionId }),
     );
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second.metadata!.id }));
 
@@ -684,7 +684,7 @@ describe("Run conformance — lifecycle preconditions & negatives", () => {
 
   it("[rpc:RunCommandController.pause] pause of a missing execution returns NotFound", () =>
     expectGrpcCode(
-      () => clients.agentExecutionCommand.pause({ id: "aex_doesnotexist" }),
+      () => clients.agentExecutionCommand.pause({ id: "run_doesnotexist" }),
       Code.NotFound,
       "pause missing execution",
     ));
@@ -780,7 +780,7 @@ describe("Run conformance — create negative paths", () => {
     const created = await clients.agentExecutionCommand.create({
       apiVersion: AGENT_EXECUTION_API_VERSION,
       kind: AGENT_EXECUTION_KIND,
-      metadata: { name: uniqueName("aex-assistant"), org },
+      metadata: { name: uniqueName("run-assistant"), org },
       spec: { message: "hi" },
     });
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
@@ -811,7 +811,7 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-bootstrap"),
+        name: uniqueName("run-bootstrap"),
         agentRef: agentRefOf(agent),
         sessionSpec: {
           subject: "Bootstrap conformance",
@@ -878,7 +878,7 @@ describe("Run conformance — a turn's outputs", () => {
     mock.enqueue(anthropicToolUse("toolu_out_south", "write_file", { file_path: "/.stigmer/outputs/reports/south/summary.md", content: south }));
     mock.enqueue(anthropicText("Saved both summaries."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-outputs"), agentRef: agentRefOf(agent), message: "Write the regional summaries." }),
+      makeAgentExecution({ org, name: uniqueName("run-outputs"), agentRef: agentRefOf(agent), message: "Write the regional summaries." }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
@@ -920,7 +920,7 @@ describe("Run conformance — a turn's outputs", () => {
     // cannot finish on its own first.
     mock.enqueue(anthropicText("Still writing."), { delayMs: 120_000 });
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-outputs-stop"), agentRef: agentRefOf(agent), message: "Draft the summary." }),
+      makeAgentExecution({ org, name: uniqueName("run-outputs-stop"), agentRef: agentRefOf(agent), message: "Draft the summary." }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
@@ -960,7 +960,7 @@ describe("Run conformance — a turn's dispatch queue is the server's to derive"
     mock.enqueue(anthropicText("Done."));
     const request = create(
       RunSchema,
-      makeAgentExecution({ org, name: uniqueName("aex-queue"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-queue"), agentRef: agentRefOf(agent) }),
     );
     // The retired field's bytes as a caller could still send them: a string
     // naming a queue no runner polls.
@@ -1013,7 +1013,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-attach"),
+        name: uniqueName("run-attach"),
         agentRef: agentRefOf(agent),
         message: "Here is a file.",
         fileIds: [original],
@@ -1074,7 +1074,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-presign"),
+        name: uniqueName("run-presign"),
         agentRef: agentRefOf(agent),
         message: "Here is a file.",
         fileIds: [original],
@@ -1136,7 +1136,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-fileserver"),
+        name: uniqueName("run-fileserver"),
         agentRef: agentRefOf(agent),
         message: "Publish a file.",
       }),
@@ -1226,7 +1226,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-vision"),
+        name: uniqueName("run-vision"),
         agentRef: agentRefOf(agent),
         message: "What is in this image?",
         fileIds: [image],
@@ -1393,7 +1393,7 @@ describe("Run conformance — a turn on Claude", () => {
       { kind: "text", text: "Printed the marker." },
     ]);
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const runId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

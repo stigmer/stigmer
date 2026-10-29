@@ -39,11 +39,11 @@ describe("useInstallChannel", () => {
     });
 
     await act(async () => {
-      await result.current.install("ach_1");
+      await result.current.install("chn_1");
     });
 
     expect(initiateInstall).toHaveBeenCalledWith(
-      expect.objectContaining({ resourceId: "ach_1" }),
+      expect.objectContaining({ resourceId: "chn_1" }),
     );
     expect(result.current.phase).toBe("done");
     expect(result.current.error).toBeNull();
@@ -63,7 +63,7 @@ describe("useInstallChannel", () => {
 
     let installPromise: Promise<void> = Promise.resolve();
     act(() => {
-      installPromise = result.current.install("ach_1");
+      installPromise = result.current.install("chn_1");
     });
 
     await waitFor(() => expect(result.current.isInProgress).toBe(true));
@@ -92,7 +92,7 @@ describe("useInstallChannel", () => {
     });
 
     await act(async () => {
-      await expect(result.current.install("ach_1")).rejects.toThrow(
+      await expect(result.current.install("chn_1")).rejects.toThrow(
         /interactive install/i,
       );
     });
@@ -116,7 +116,7 @@ describe("useInstallChannel", () => {
     });
 
     await act(async () => {
-      await expect(result.current.install("ach_1")).rejects.toThrow(
+      await expect(result.current.install("chn_1")).rejects.toThrow(
         /access token/i,
       );
     });
@@ -165,7 +165,7 @@ describe("useInstallChannel", () => {
     });
 
     await act(async () => {
-      await expect(result.current.install("ach_1")).rejects.toThrow();
+      await expect(result.current.install("chn_1")).rejects.toThrow();
     });
 
     // The hook must not re-wrap the error in a way that severs the cause

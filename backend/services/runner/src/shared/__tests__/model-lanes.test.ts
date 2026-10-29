@@ -46,7 +46,7 @@ import { _resetRegistryCache } from "../model-registry.js";
 import { resetModelLanesForTests, routeModelCallsThroughLanes } from "../model-lanes.js";
 
 const HOST_TOKEN = "host-token-for-lanes";
-const EXECUTION = "aex-lanes";
+const EXECUTION = "run_lanes";
 const TURN_KEY = "turn-key-model-lanes";
 
 const REGISTRY = {

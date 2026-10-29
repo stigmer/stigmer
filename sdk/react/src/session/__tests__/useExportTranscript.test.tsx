@@ -30,17 +30,17 @@ const fakeSession = create(SessionSchema, {
 });
 
 const fakeExecution = create(RunSchema, {
-  metadata: { id: "aex_01" },
+  metadata: { id: "run_01" },
   spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
 /** The turn as the session's event log holds it: the question, a thinking, the answer. */
 const fakeEvents = samples.sessionEventList([
-  samples.userMessageEvent("Why is CI red?", { runId: "aex_01" }),
-  ...samples.thinkingEvents("Checking the loop.", { runId: "aex_01" }),
-  samples.agentMessageEvent("Found it.", { runId: "aex_01" }),
-  samples.runStatusEvent("completed", { runId: "aex_01" }),
+  samples.userMessageEvent("Why is CI red?", { runId: "run_01" }),
+  ...samples.thinkingEvents("Checking the loop.", { runId: "run_01" }),
+  samples.agentMessageEvent("Found it.", { runId: "run_01" }),
+  samples.runStatusEvent("completed", { runId: "run_01" }),
 ]);
 
 let listBySession: (input: unknown) => Promise<unknown>;
@@ -166,7 +166,7 @@ describe("useExportTranscript", () => {
     expect(downloadedFilenames).toEqual(["fix-the-flaky-test-transcript.json"]);
     const parsed = JSON.parse(await createdBlobs[0].text());
     expect(parsed.format).toBe("stigmer.ai/session-transcript/v3");
-    expect(parsed.turns[0].run_id).toBe("aex_01");
+    expect(parsed.turns[0].run_id).toBe("run_01");
     expect(JSON.stringify(parsed.turns[0].events)).toContain("Checking the loop.");
   });
 

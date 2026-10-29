@@ -55,31 +55,31 @@ beforeEach(() => {
 
 describe("desktop RunPage", () => {
   it("opens the session the run ran in", async () => {
-    page.sessionFor.set("aex_1", "ses_1");
-    renderAt("/runs/aex_1");
+    page.sessionFor.set("run_1", "ses_1");
+    renderAt("/runs/run_1");
 
     expect(await screen.findByText("session page")).toBeTruthy();
-    expect(page.resolving).toContain("aex_1");
+    expect(page.resolving).toContain("run_1");
   });
 
   it("shows nothing of its own while the run resolves", () => {
-    page.pending.add("aex_2");
-    renderAt("/runs/aex_2");
+    page.pending.add("run_2");
+    renderAt("/runs/run_2");
 
     expect(screen.queryByText("session page")).toBeNull();
     expect(screen.queryByText("Run not found")).toBeNull();
   });
 
   it("shows the not-found state when no run resolves", () => {
-    renderAt("/runs/aex_missing");
+    renderAt("/runs/run_missing");
 
     expect(screen.getByText("Run not found")).toBeTruthy();
     expect(screen.queryByText("session page")).toBeNull();
   });
 
   it("says the run failed to load, not that it is missing, and retries on request", () => {
-    page.failing.add("aex_flaky");
-    renderAt("/runs/aex_flaky");
+    page.failing.add("run_flaky");
+    renderAt("/runs/run_flaky");
 
     expect(screen.getByRole("heading", { name: "Failed to load run" })).toBeTruthy();
     expect(screen.queryByText("Run not found")).toBeNull();

@@ -116,7 +116,7 @@ async function runRead(agent: StdioAgent): Promise<Run> {
   const run = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org: agent.org,
-      name: uniqueName("aex-reader"),
+      name: uniqueName("run-reader"),
       sessionId: agent.sessionId,
       message: `What is the description of ${agent.org}/${agent.slug}?`,
       autoApproveAll: true,

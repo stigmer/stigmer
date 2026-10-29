@@ -331,7 +331,7 @@ describe("manifestDocumentForResource", () => {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Routine",
     metadata: {
-      id: "sch_01example",
+      id: "rtn_01example",
       name: "daily-fee-reminders",
       slug: "daily-fee-reminders",
       org: "isc",

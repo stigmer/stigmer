@@ -15,7 +15,7 @@ import { DELETE_HANDLERS } from "../delete.js";
 import { getterFor } from "../get-bindings.js";
 
 const scoringRule = create(ScoringRuleSchema, {
-  metadata: { id: "evl_1", org: "acme" },
+  metadata: { id: "srl_1", org: "acme" },
   spec: { agentId: "agt_1", enabled: true, sampleRate: 0.1, monthlyLimitUsd: 10 },
 });
 
@@ -35,10 +35,10 @@ describe("the scoring rule verbs", () => {
       },
     } as unknown as Stigmer;
 
-    const got = await getterFor(ApiResourceKind.scoring_rule)!(client, { kind: "id", id: "evl_1" });
+    const got = await getterFor(ApiResourceKind.scoring_rule)!(client, { kind: "id", id: "srl_1" });
     expect(got.message).toBe(scoringRule);
-    await DELETE_HANDLERS.get(ApiResourceKind.scoring_rule)!(client, "evl_1", false);
-    expect(asked).toEqual(["get evl_1", "delete evl_1"]);
+    await DELETE_HANDLERS.get(ApiResourceKind.scoring_rule)!(client, "srl_1", false);
+    expect(asked).toEqual(["get srl_1", "delete srl_1"]);
   });
 
   it("promises get and delete, and no apply", () => {

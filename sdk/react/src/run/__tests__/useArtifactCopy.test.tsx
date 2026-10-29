@@ -26,19 +26,19 @@ describe("useArtifactCopy", () => {
   it("fetches content at click time and writes decoded text to the clipboard", async () => {
     const bytes = new TextEncoder().encode("# Plan\n\nsteps");
     const fn = vi.fn().mockResolvedValue({ content: bytes });
-    const { result } = renderHook(() => useArtifactCopy("aex_1"), {
+    const { result } = renderHook(() => useArtifactCopy("run_1"), {
       wrapper: wrapperFor(makeStigmer(fn)),
     });
 
     expect(result.current.copied).toBe(false);
     await act(async () => {
-      await result.current.copy("artifacts/aex_1/plan.md");
+      await result.current.copy("artifacts/run_1/plan.md");
     });
 
     expect(fn).toHaveBeenCalledTimes(1);
     const req = fn.mock.calls[0][0];
-    expect(req.runId).toBe("aex_1");
-    expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
+    expect(req.runId).toBe("run_1");
+    expect(req.storageKey).toBe("artifacts/run_1/plan.md");
     expect(writeText).toHaveBeenCalledWith("# Plan\n\nsteps");
     expect(result.current.copied).toBe(true);
     expect(result.current.error).toBeNull();
@@ -48,12 +48,12 @@ describe("useArtifactCopy", () => {
     vi.useFakeTimers();
     const bytes = new TextEncoder().encode("x");
     const fn = vi.fn().mockResolvedValue({ content: bytes });
-    const { result } = renderHook(() => useArtifactCopy("aex_1"), {
+    const { result } = renderHook(() => useArtifactCopy("run_1"), {
       wrapper: wrapperFor(makeStigmer(fn)),
     });
 
     await act(async () => {
-      await result.current.copy("artifacts/aex_1/plan.md");
+      await result.current.copy("artifacts/run_1/plan.md");
     });
     expect(result.current.copied).toBe(true);
 
@@ -78,11 +78,11 @@ describe("useArtifactCopy", () => {
 
   it("surfaces an error when the content RPC fails", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("boom"));
-    const { result } = renderHook(() => useArtifactCopy("aex_1"), {
+    const { result } = renderHook(() => useArtifactCopy("run_1"), {
       wrapper: wrapperFor(makeStigmer(fn)),
     });
     await act(async () => {
-      await result.current.copy("artifacts/aex_1/plan.md");
+      await result.current.copy("artifacts/run_1/plan.md");
     });
     await waitFor(() => expect(result.current.error?.message).toBe("boom"));
     expect(result.current.copied).toBe(false);

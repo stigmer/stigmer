@@ -19,7 +19,7 @@ import { useConversation } from "../useConversation";
 
 function row(overrides: { control?: ConversationControl; controlledBy?: string } = {}) {
   return create(ChannelConversationSchema, {
-    channelId: "ach_1",
+    channelId: "chn_1",
     conversationKey: "15550001111",
     org: "acme",
     control: overrides.control ?? ConversationControl.control_agent,
@@ -29,7 +29,7 @@ function row(overrides: { control?: ConversationControl; controlledBy?: string }
 }
 
 function notFound() {
-  return new StigmerError("not-found", "no conversation with this key exists on channel ach_1", 5);
+  return new StigmerError("not-found", "no conversation with this key exists on channel chn_1", 5);
 }
 
 function createMockStigmer(getConversation: (input: unknown) => Promise<unknown>) {
@@ -58,7 +58,7 @@ describe("useConversation", () => {
   it("loads the conversation row", async () => {
     const getConversation = vi.fn().mockResolvedValue(row());
     const { result } = renderHook(
-      () => useConversation("ach_1", "15550001111", NO_POLL),
+      () => useConversation("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(getConversation)) },
     );
 
@@ -69,14 +69,14 @@ describe("useConversation", () => {
     expect(result.current.awaitingCustomer).toBe(false);
     expect(result.current.error).toBeNull();
     expect(getConversation).toHaveBeenCalledWith(
-      expect.objectContaining({ channelId: "ach_1", conversationKey: "15550001111" }),
+      expect.objectContaining({ channelId: "chn_1", conversationKey: "15550001111" }),
     );
   });
 
   it("answers NOT_FOUND as the awaiting-customer state, never an error", async () => {
     const getConversation = vi.fn().mockRejectedValue(notFound());
     const { result } = renderHook(
-      () => useConversation("ach_1", "15550001111", NO_POLL),
+      () => useConversation("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(getConversation)) },
     );
 
@@ -95,7 +95,7 @@ describe("useConversation", () => {
       .fn()
       .mockRejectedValue(new StigmerError("permission-denied", "unauthorized", 7));
     const { result } = renderHook(
-      () => useConversation("ach_1", "15550001111", NO_POLL),
+      () => useConversation("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(getConversation)) },
     );
 
@@ -131,7 +131,7 @@ describe("useConversation", () => {
       .mockReturnValueOnce(parked);
 
     const { result } = renderHook(
-      () => useConversation("ach_1", "15550001111", NO_POLL),
+      () => useConversation("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(getConversation)) },
     );
     await waitFor(() =>
@@ -164,7 +164,7 @@ describe("useConversation", () => {
       .mockReturnValue(new Promise(() => {}));
 
     const { result, rerender } = renderHook(
-      ({ key }: { key: string }) => useConversation("ach_1", key, NO_POLL),
+      ({ key }: { key: string }) => useConversation("chn_1", key, NO_POLL),
       {
         wrapper: wrapper(createMockStigmer(getConversation)),
         initialProps: { key: "15550001111" },
@@ -180,7 +180,7 @@ describe("useConversation", () => {
 
   it("refetches the row when the window regains focus", async () => {
     const getConversation = vi.fn().mockResolvedValue(row());
-    renderHook(() => useConversation("ach_1", "15550001111", NO_POLL), {
+    renderHook(() => useConversation("chn_1", "15550001111", NO_POLL), {
       wrapper: wrapper(createMockStigmer(getConversation)),
     });
     await waitFor(() => expect(getConversation).toHaveBeenCalledTimes(1));
@@ -204,7 +204,7 @@ describe("useConversation", () => {
       .mockResolvedValue(row());
 
     const { result } = renderHook(
-      () => useConversation("ach_1", "15550001111", NO_POLL),
+      () => useConversation("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(getConversation)) },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -229,7 +229,7 @@ describe("useConversation", () => {
   it("keeps the row reference stable across polls that change nothing", async () => {
     const getConversation = vi.fn().mockImplementation(() => Promise.resolve(row()));
     const { result } = renderHook(
-      () => useConversation("ach_1", "15550001111", NO_POLL),
+      () => useConversation("chn_1", "15550001111", NO_POLL),
       { wrapper: wrapper(createMockStigmer(getConversation)) },
     );
     await waitFor(() => expect(result.current.conversation).not.toBeNull());

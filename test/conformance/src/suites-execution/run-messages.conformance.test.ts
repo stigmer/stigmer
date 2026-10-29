@@ -105,7 +105,7 @@ async function runAgent(opts: {
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-messages"),
+      name: uniqueName("run-messages"),
       agentRef: agentRefOf(agent),
       message: opts.message,
       autoApproveAll: true,

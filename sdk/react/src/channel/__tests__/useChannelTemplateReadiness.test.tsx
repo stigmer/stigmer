@@ -12,7 +12,7 @@ function makeChannel(overrides?: {
   proactiveMessagingEnabled?: boolean;
 }): Channel {
   return {
-    metadata: { id: "ach_1", org: "acme", slug: "wa-main" },
+    metadata: { id: "chn_1", org: "acme", slug: "wa-main" },
     spec: {
       enabled: overrides?.enabled ?? true,
       type: {
@@ -121,7 +121,7 @@ describe("useChannelTemplateReadiness", () => {
   });
 
   it("treats a channel with no status/spec as not yet installed", () => {
-    const bare = { metadata: { id: "ach_2" } } as unknown as Channel;
+    const bare = { metadata: { id: "chn_2" } } as unknown as Channel;
     expect(readinessOf(bare)).toEqual({ status: "not-installed" });
   });
 });

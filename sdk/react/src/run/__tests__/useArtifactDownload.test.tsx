@@ -25,19 +25,19 @@ beforeEach(() => {
 describe("useArtifactDownload", () => {
   it("mints a fresh URL at click time and toggles isDownloading", async () => {
     const fn = vi.fn().mockResolvedValue({ downloadUrl: "https://fresh/dl" });
-    const { result } = renderHook(() => useArtifactDownload("aex_1"), {
+    const { result } = renderHook(() => useArtifactDownload("run_1"), {
       wrapper: wrapperFor(makeStigmer(fn)),
     });
 
     expect(result.current.isDownloading).toBe(false);
     await act(async () => {
-      await result.current.download("artifacts/aex_1/file.bin", "file.bin");
+      await result.current.download("artifacts/run_1/file.bin", "file.bin");
     });
 
     expect(fn).toHaveBeenCalledTimes(1);
     const req = fn.mock.calls[0][0];
-    expect(req.runId).toBe("aex_1");
-    expect(req.storageKey).toBe("artifacts/aex_1/file.bin");
+    expect(req.runId).toBe("run_1");
+    expect(req.storageKey).toBe("artifacts/run_1/file.bin");
     // Save-to-disk actions force an attachment disposition on the minted URL.
     expect(req.asAttachment).toBe(true);
     expect(result.current.isDownloading).toBe(false);
@@ -57,11 +57,11 @@ describe("useArtifactDownload", () => {
 
   it("surfaces an error when the refresh RPC fails", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("boom"));
-    const { result } = renderHook(() => useArtifactDownload("aex_1"), {
+    const { result } = renderHook(() => useArtifactDownload("run_1"), {
       wrapper: wrapperFor(makeStigmer(fn)),
     });
     await act(async () => {
-      await result.current.download("artifacts/aex_1/file.bin");
+      await result.current.download("artifacts/run_1/file.bin");
     });
     expect(result.current.error?.message).toBe("boom");
     expect(result.current.isDownloading).toBe(false);

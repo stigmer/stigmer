@@ -35,7 +35,7 @@ function makeChannelSession(id: string, externalUser: string) {
       id,
       org: "acme",
       labels: {
-        "stigmer.ai/channel-id": "ach_1",
+        "stigmer.ai/channel-id": "chn_1",
         "stigmer.ai/channel-external-user-key": externalUser,
       },
     },
@@ -53,7 +53,7 @@ describe("useChannelSessions", () => {
     const listByChannel = vi.fn().mockResolvedValue({ entries: [session], nextPageToken: "" });
     const client = createMockStigmer({ listByChannel });
 
-    const { result } = renderHook(() => useChannelSessions("ach_1"), {
+    const { result } = renderHook(() => useChannelSessions("chn_1"), {
       wrapper: wrapper(client),
     });
 
@@ -63,7 +63,7 @@ describe("useChannelSessions", () => {
     expect(result.current.sessions).toEqual([session]);
     expect(result.current.error).toBeNull();
     expect(listByChannel).toHaveBeenCalledWith(
-      expect.objectContaining({ channelId: "ach_1" }),
+      expect.objectContaining({ channelId: "chn_1" }),
     );
   });
 
@@ -85,7 +85,7 @@ describe("useChannelSessions", () => {
     const listByChannel = vi.fn().mockRejectedValue(denied);
     const client = createMockStigmer({ listByChannel });
 
-    const { result } = renderHook(() => useChannelSessions("ach_1"), {
+    const { result } = renderHook(() => useChannelSessions("chn_1"), {
       wrapper: wrapper(client),
     });
 

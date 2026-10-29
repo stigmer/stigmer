@@ -45,7 +45,7 @@ describe("historyAxes", () => {
 
 describe("the wire names", () => {
   it("builds the invoke workflow id the server's names module pins", () => {
-    expect(invokeWorkflowIdFor("aex_fixture")).toBe("stigmer/agent-execution/invoke/aex_fixture");
+    expect(invokeWorkflowIdFor("run_fixture")).toBe("stigmer/agent-execution/invoke/run_fixture");
   });
 
   it("maps each harness label to its runner activity", () => {

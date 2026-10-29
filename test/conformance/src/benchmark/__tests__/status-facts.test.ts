@@ -20,7 +20,7 @@ import { said, subAgentThread, thought, turnFrom, userMessage } from "./turn-eve
 describe("statusFacts", () => {
   it("reads tokens, the cost estimate in micros, the priced model and the server's stamps", () => {
     const execution = create(RunSchema, {
-      metadata: { id: "aex_1" },
+      metadata: { id: "run_1" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
       status: {
         phase: RunPhase.RUN_COMPLETED,
@@ -40,7 +40,7 @@ describe("statusFacts", () => {
     });
     const facts = statusFacts(execution);
     expect(facts).toEqual({
-      execution_id: "aex_1",
+      execution_id: "run_1",
       session_id: "ses_1",
       model_reported: "claude-sonnet-4-6",
       tokens: { input: 1200, output: 30, cache_read: 1100, cache_write: 0, total: 1230 },

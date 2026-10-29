@@ -29,7 +29,7 @@ function slackChannel(id: string, name: string) {
 
 function conversation(overrides: Record<string, unknown> = {}) {
   return create(ChannelConversationSchema, {
-    channelId: "ach_wa",
+    channelId: "chn_wa",
     conversationKey: "15550001111",
     org: "acme",
     lastActivityAt: timestampFromDate(new Date("2026-08-07T11:55:00Z")),
@@ -45,7 +45,7 @@ function baseProps() {
     hasMore: false,
     loadMore: vi.fn(),
     isLoadingMore: false,
-    channels: [whatsappChannel("ach_wa", "support-line")],
+    channels: [whatsappChannel("chn_wa", "support-line")],
     channelFilter: "",
     onChannelFilterChange: vi.fn(),
     selected: null,
@@ -73,9 +73,9 @@ describe("ConversationListPane", () => {
     render(
       <ConversationListPane
         {...baseProps()}
-        channels={[slackChannel("ach_sl", "eng-help")]}
+        channels={[slackChannel("chn_sl", "eng-help")]}
         conversations={[
-          conversation({ channelId: "ach_sl", conversationKey: "1723012345.678900" }),
+          conversation({ channelId: "chn_sl", conversationKey: "1723012345.678900" }),
         ]}
       />,
     );
@@ -111,10 +111,10 @@ describe("ConversationListPane", () => {
     render(
       <ConversationListPane
         {...baseProps()}
-        channels={[slackChannel("ach_sl", "eng-help")]}
+        channels={[slackChannel("chn_sl", "eng-help")]}
         conversations={[
           conversation({
-            channelId: "ach_sl",
+            channelId: "chn_sl",
             conversationKey: "1723012345.678900",
             displayName: "deploy question",
           }),
@@ -319,7 +319,7 @@ describe("ConversationListPane", () => {
         {...baseProps()}
         conversations={[open]}
         onSelect={onSelect}
-        selected={{ channelId: "ach_wa", conversationKey: "15550001111" }}
+        selected={{ channelId: "chn_wa", conversationKey: "15550001111" }}
       />,
     );
 
@@ -351,11 +351,11 @@ describe("ConversationListPane", () => {
       <ConversationListPane
         {...baseProps()}
         onChannelFilterChange={onChannelFilterChange}
-        channels={[whatsappChannel("ach_wa", "support-line"), slackChannel("ach_sl", "eng-help")]}
+        channels={[whatsappChannel("chn_wa", "support-line"), slackChannel("chn_sl", "eng-help")]}
       />,
     );
-    await user.selectOptions(screen.getByLabelText("Filter by channel"), "ach_sl");
-    expect(onChannelFilterChange).toHaveBeenCalledWith("ach_sl");
+    await user.selectOptions(screen.getByLabelText("Filter by channel"), "chn_sl");
+    expect(onChannelFilterChange).toHaveBeenCalledWith("chn_sl");
   });
 
   it("offers Show more exactly while more pages exist", async () => {

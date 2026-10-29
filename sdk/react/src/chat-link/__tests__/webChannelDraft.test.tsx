@@ -80,7 +80,7 @@ const FULL_DRAFT: WebChannelDraft = {
 function webChannel(overrides: { id?: string; org?: string; slug?: string; spec?: Record<string, unknown> } = {}): Channel {
   return {
     metadata: {
-      id: overrides.id ?? "ash_1",
+      id: overrides.id ?? "chn_1",
       org: overrides.org ?? "acme",
       slug: overrides.slug ?? "support-agent",
       name: "Support Agent",
@@ -181,11 +181,11 @@ describe("webChannelPatch through useSaveChannel", () => {
   it("edits an existing web channel by its id, naming every draft field and the web settings one by one (a renamed channel is never forked)", async () => {
     // A channel created via manifest with a non-default slug: an apply with
     // the agent's slug would create a SECOND channel; an update names it by id.
-    const renamed = webChannel({ id: "ash_1", slug: "help-desk" });
+    const renamed = webChannel({ id: "chn_1", slug: "help-desk" });
 
     const sent = await saveEdit(renamed, FULL_DRAFT);
 
-    expect(sent.id).toBe("ash_1");
+    expect(sent.id).toBe("chn_1");
     expect(sent.paths).toEqual(DRAFT_PATHS);
     // The agent reference is not named: it stays as stored.
     expect(sent.paths).not.toContain("spec.agent_ref");
@@ -231,7 +231,7 @@ describe("webChannelPatch through useSaveChannel", () => {
       maxToolResultChars: 20000,
     };
     const channel = webChannel({
-      id: "ash_3",
+      id: "chn_3",
       spec: { enabled: true, type: { case: "web", value: { allowedOrigins: [] } }, vaults: [], runConfig },
     });
 
@@ -244,13 +244,13 @@ describe("webChannelPatch through useSaveChannel", () => {
   it("editing an existing web channel keeps ITS identity, whatever organization it was written in", async () => {
     // A channel written before sharing across organizations was retired
     // may live in another organization; an edit must not re-home it.
-    const legacy = webChannel({ id: "ash_ext", org: "consumer-org", slug: "renamed-channel" });
+    const legacy = webChannel({ id: "chn_ext", org: "consumer-org", slug: "renamed-channel" });
 
     const sent = await saveEdit(legacy, FULL_DRAFT);
 
     // An update names the channel by its id: its organization and slug are
     // never named, so it is never re-homed.
-    expect(sent.id).toBe("ash_ext");
+    expect(sent.id).toBe("chn_ext");
     expect(sent.paths).toEqual(DRAFT_PATHS);
   });
 });

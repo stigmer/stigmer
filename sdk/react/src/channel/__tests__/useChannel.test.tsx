@@ -37,13 +37,13 @@ describe("useChannel", () => {
 
   it("loads a channel by id", async () => {
     const channel = {
-      metadata: { id: "ach_1", org: "acme", slug: "support-slack" },
+      metadata: { id: "chn_1", org: "acme", slug: "support-slack" },
       spec: { enabled: true },
     };
     const get = vi.fn().mockResolvedValue(channel);
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("chn_1"), {
       wrapper: wrapper(client),
     });
 
@@ -52,16 +52,16 @@ describe("useChannel", () => {
 
     expect(result.current.channel).toEqual(channel);
     expect(result.current.error).toBeNull();
-    expect(get).toHaveBeenCalledWith("ach_1");
+    expect(get).toHaveBeenCalledWith("chn_1");
   });
 
   it("maps not-found to null data, not an error", async () => {
     const get = vi
       .fn()
-      .mockRejectedValue(new StigmerError("not-found", "Channel not found: ach_1", 5));
+      .mockRejectedValue(new StigmerError("not-found", "Channel not found: chn_1", 5));
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("chn_1"), {
       wrapper: wrapper(client),
     });
 
@@ -79,7 +79,7 @@ describe("useChannel", () => {
       .mockRejectedValue(new StigmerError("internal", "boom", 13));
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("chn_1"), {
       wrapper: wrapper(client),
     });
 
@@ -102,10 +102,10 @@ describe("useChannel", () => {
   });
 
   it("refetches on demand", async () => {
-    const get = vi.fn().mockResolvedValue({ metadata: { id: "ach_1" } });
+    const get = vi.fn().mockResolvedValue({ metadata: { id: "chn_1" } });
     const client = createMockStigmer({ get });
 
-    const { result } = renderHook(() => useChannel("ach_1"), {
+    const { result } = renderHook(() => useChannel("chn_1"), {
       wrapper: wrapper(client),
     });
 

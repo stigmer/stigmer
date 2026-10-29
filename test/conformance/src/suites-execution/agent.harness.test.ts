@@ -56,7 +56,7 @@ describe("Execution harness smoke — agent text turn", () => {
     mock.enqueue(anthropicText("Hello from the conformance mock."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-smoke"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-smoke"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

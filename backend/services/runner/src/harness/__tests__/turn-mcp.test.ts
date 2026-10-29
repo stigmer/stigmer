@@ -85,7 +85,7 @@ vi.mock("../../shared/eval-case/mock-endpoint.js", () => ({
     ),
 }));
 
-const EXECUTION_ID = "aex_mcp_1";
+const EXECUTION_ID = "run_mcp_1";
 
 function deps(options: { readonly channels: boolean }): ResolutionDeps {
   const status = create(RunStatusSchema, {});

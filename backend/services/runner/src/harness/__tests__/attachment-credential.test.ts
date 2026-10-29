@@ -42,12 +42,12 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     listMessagingChannels: async () => [],
   } as unknown as StigmerClient;
   const deps: ResolutionDeps = {
-    input: { executionId: "aex-attach", threadId: "", turnSeq: 0 },
+    input: { executionId: "run_attach", threadId: "", turnSeq: 0 },
     client,
     config: testConfig({ stigmerTokenRef: { current: runnerKey }, mcpBridgeEndpoint: "http://bridge.local" }),
     status,
     rows,
-    transcript: new TranscriptBuilder("aex-attach", rows, status),
+    transcript: new TranscriptBuilder("run_attach", rows, status),
     artifactStorage: undefined,
     timing: new TimingRecorder(),
     signal: new AbortController().signal,
@@ -71,7 +71,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
   const mcp = await resolveMcpServersAndPolicies(deps, {
     execution: create(RunSchema, { status: create(RunStatusSchema, { recalledMemories: create(RecalledMemoriesSchema, { enabled: true }) }) }),
     session,
-    sessionId: "ses-attach",
+    sessionId: "ses_attach",
     blueprint,
     values: NO_RUN_VALUES,
     grants: new Map(),

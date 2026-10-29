@@ -136,7 +136,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-bench"),
+        name: uniqueName("run-bench"),
         agentRef: agentRefOf(agent),
         sessionSpec: { subject: "benchmark readers smoke" },
         message: "Say hello.",
