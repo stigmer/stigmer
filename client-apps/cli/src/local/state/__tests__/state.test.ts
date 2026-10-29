@@ -6,7 +6,7 @@ import { type HealthState, loadHealthState, writeHealthState } from "../health-s
 import { acquireLock } from "../lock.js";
 import { cleanupOldLogs, rotateLogs } from "../log-rotation.js";
 import { readPidFile, removePidFile, writePidFile } from "../pidfile.js";
-import { isOtherLiveProcess, isProcessAlive } from "../proc.js";
+import { isOtherLiveProcess, isProcessAlive, processCommand } from "../proc.js";
 import { loadStartupConfig, removeStartupConfig, saveStartupConfig, type StartupConfig } from "../startup-config.js";
 
 function tempDir(prefix: string): string {
@@ -59,6 +59,14 @@ describe("isOtherLiveProcess", () => {
     expect(isOtherLiveProcess(DEAD_PID)).toBe(false);
     expect(isProcessAlive(0)).toBe(false);
     expect(isProcessAlive(-1)).toBe(false);
+  });
+});
+
+describe("processCommand", () => {
+  // Names the holder of a port `stigmer up` refuses to start beside.
+  it("reads a live process's command line, and null for a dead PID", () => {
+    expect(processCommand(process.pid)).toContain(process.execPath.split("/").pop() ?? "node");
+    expect(processCommand(DEAD_PID)).toBeNull();
   });
 });
 

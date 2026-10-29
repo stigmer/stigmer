@@ -168,8 +168,9 @@ export function buildComponents(config: DaemonConfig, base: NodeJS.ProcessEnv = 
   return components;
 }
 
-// The server is ready once its gRPC port accepts a connection; fail fast if it
-// exits first.
+// The server is ready once its gRPC port accepts a connection; fail fast, with
+// how it ended, if it exits first. The error is recorded under the component's
+// name, so it speaks of "the server".
 function serverGate(): ReadinessGate {
   return {
     description: `stigmer-server gRPC on port ${SERVER_PORT}`,
@@ -177,8 +178,8 @@ function serverGate(): ReadinessGate {
       waitForTcp({
         port: SERVER_PORT,
         timeoutMs: SERVER_GATE_TIMEOUT_MS,
-        label: "stigmer-server gRPC",
-        getExit: () => (handle.hasExited() ? { code: null, signal: null } : null),
+        label: "the server",
+        getExit: () => handle.exitInfo(),
       }),
   };
 }

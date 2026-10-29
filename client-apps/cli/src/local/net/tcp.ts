@@ -2,8 +2,9 @@
 // manager and the server gate.
 //
 // A single short-lived connection attempt tells us whether something is
-// listening; waitForTcp loops that probe until a deadline, failing fast (with a
-// log tail) if the process under watch exits first. This mirrors
+// listening; waitForTcp loops that probe until a deadline, failing fast, with
+// how it ended, if the process under watch exits first. Its output is the
+// caller's to keep beside the error, as data (the daemon's health snapshot). This mirrors
 // `test/support/src/temporal.ts` so the CLI and the harnesses share
 // one readiness model.
 
@@ -27,6 +28,12 @@ export function tcpConnects(port: number, host = "127.0.0.1", timeoutMs = 200): 
   });
 }
 
+/** How a watched process ended. */
+export interface ProcessExit {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+}
+
 export interface WaitForTcpOptions {
   port: number;
   host?: string;
@@ -36,30 +43,30 @@ export interface WaitForTcpOptions {
   pollMs?: number;
   /** If provided and it returns non-null, the watched process has exited — fail
    * immediately rather than waiting out the deadline. */
-  getExit?: () => { code: number | null; signal: NodeJS.Signals | null } | null;
-  /** Diagnostic log tail, appended to the failure message. */
-  getLog?: () => string;
+  getExit?: () => ProcessExit | null;
   /** Human label for the thing being awaited (used in error text). */
   label?: string;
 }
 
 /** Poll a TCP port until it accepts a connection or the deadline passes. */
 export async function waitForTcp(options: WaitForTcpOptions): Promise<void> {
-  const { port, host = "127.0.0.1", timeoutMs = 30_000, pollMs = 150, getExit, getLog, label = `port ${port}` } = options;
+  const { port, host = "127.0.0.1", timeoutMs = 30_000, pollMs = 150, getExit, label = `port ${port}` } = options;
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
     const exit = getExit?.();
     if (exit != null) {
-      throw new Error(`${label} exited before becoming ready (code=${exit.code}, signal=${exit.signal})${tail(getLog)}`);
+      throw new Error(`${label} ${describeExit(exit)} before it was ready`);
     }
     if (await tcpConnects(port, host)) return;
     await delay(pollMs);
   }
-  throw new Error(`${label} did not become ready within ${timeoutMs}ms${tail(getLog)}`);
+  throw new Error(`${label} did not become ready within ${timeoutMs}ms`);
 }
 
-function tail(getLog?: () => string): string {
-  const log = getLog?.();
-  return log ? `\n--- log tail ---\n${log}` : "";
+/** How a process ended, as a person would say it: "exited with code 1". */
+export function describeExit(exit: ProcessExit): string {
+  if (exit.code !== null) return `exited with code ${exit.code}`;
+  if (exit.signal !== null) return `was stopped by ${exit.signal}`;
+  return "exited";
 }
