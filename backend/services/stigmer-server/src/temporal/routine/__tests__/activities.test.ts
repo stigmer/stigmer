@@ -1,5 +1,5 @@
 /**
- * Pins the tick activities against Go's tick_activities_test.go: the
+ * Pins the tick activities: the
  * record-tick revalidation matrix (deleted/disabled/paused decline, and a
  * routine whose cron was removed while its artifact lingers), the start-run
  * re-validation collapse to SKIPPED (and its no-ledger-row deleted arm),

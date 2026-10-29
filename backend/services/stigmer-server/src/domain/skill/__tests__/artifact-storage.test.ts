@@ -1,10 +1,9 @@
 /**
- * Pins the skill artifact store against Go's artifact_storage_test.go:
- * path layout ({root}/skills/{hash}.zip — cutover inherits Go-written
- * directories), permissions, traversal-guarded reads, and the dedupe
- * surface (exists/getStorageKey). The store is the domain port
- * over the local blob driver — the assertions are UNCHANGED from the
- * pre-reconciliation class on purpose: they are the byte-identity proof.
+ * Pins the skill artifact store: path layout ({root}/skills/{hash}.zip,
+ * the layout every stored artifact sits at), permissions,
+ * traversal-guarded reads, and the dedupe surface (exists/getStorageKey).
+ * The store is the domain port over the local blob driver; these
+ * assertions are the byte-identity proof of the layout.
  */
 import { mkdirSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,7 +28,7 @@ let storage: SkillArtifactStorage;
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "skill-artifact-test-"));
   // Mirrors the compose local arm (boot/compose.ts): skills/ boot-created
-  // 0755 (the Go layout invariant), the driver rooted at the storage path,
+  // 0755 (the layout invariant), the driver rooted at the storage path,
   // the port owning keys and the not-found vocabulary.
   mkdirSync(path.join(dir, "skills"), { recursive: true, mode: 0o755 });
   storage = newSkillArtifactStorage(new LocalArtifactStorage(dir, "", testUrlSigner()));

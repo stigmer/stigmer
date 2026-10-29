@@ -59,7 +59,7 @@ import type {
 import { VaultConnectionSource } from "../service.js";
 import { refreshToken } from "./token.js";
 
-/** The outcome of a refresh attempt (Go RefreshResult). */
+/** The outcome of a refresh attempt. */
 export interface RefreshResult {
   refreshed: boolean;
   newAccessToken: string;
@@ -69,7 +69,7 @@ export interface RefreshResult {
 }
 
 /**
- * Refresh slightly before expiry — Go's 60-second buffer, named per the
+ * Refresh slightly before expiry — a 60-second buffer, named per the
  * guidelines' semantic-constant rule.
  */
 export const REFRESH_EXPIRY_BUFFER_SECONDS = 60;

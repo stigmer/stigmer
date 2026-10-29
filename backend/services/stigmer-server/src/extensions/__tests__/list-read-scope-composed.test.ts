@@ -309,9 +309,7 @@ describe("list read scope (composed server, fake scope)", () => {
     const scoped = await search.search({ query: "scopedagent" });
     expect(scoped.entries.map((e) => e.id)).toEqual(["agt_mine"]);
 
-    // The org-filtered shape asks the scope too: the one request shape
-    // that once skipped it (the retired public level's cross-organization
-    // discovery) no longer exists on the wire.
+    // The org-filtered shape asks the scope too.
     seenKinds.length = 0;
     const orgScoped = await search.search({
       kinds: [ApiResourceKind.agent],

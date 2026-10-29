@@ -1,6 +1,5 @@
 /**
- * Memory controller — ports pkg/domain/memory/controller (command + query
- * sides): agent-proposed, user-confirmed facts the platform remembers
+ * Memory controller (command + query sides): agent-proposed, user-confirmed facts the platform remembers
  * about a person (stigmer/stigmer#293).
  *
  * A memory is system-generated: an agent proposes it (the remember tool
@@ -48,7 +47,6 @@
  * content must not surface in org-visible search): no search-extractor,
  * no IndexSearch/DeleteSearchIndex steps anywhere in this domain.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by memory.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/memory.test.ts.
  */
@@ -185,7 +183,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline: a new memory in the proposed
+ * Create — a new memory in the proposed
  * state. ResolveMemoryDefaults mints the id BEFORE
  * BuildNewState so an unnamed record can default its name from its own
  * identity; InitializeMemoryLifecycle runs AFTER BuildNewState so the
@@ -253,7 +251,7 @@ async function createMemory(
 }
 
 /**
- * Update — chain per Go buildUpdatePipeline: edits the fact text only
+ * Update — edits the fact text only
  * (the content is the subject's; everything else on the record is
  * not up for editing). The spec is replaced wholesale (declarative
  * semantics), but only content may actually change: subject and
@@ -297,7 +295,7 @@ async function update(
 }
 
 /**
- * Confirm — Go confirm.go: moves a proposed memory to confirmed — the
+ * Confirm — moves a proposed memory to confirmed — the
  * consent act. From the next eligible execution on, the fact
  * is recalled as background context.
  *
@@ -328,7 +326,7 @@ async function confirm(
 }
 
 /**
- * Reject — Go reject.go: moves a proposed memory to rejected. A rejected
+ * Reject — moves a proposed memory to rejected. A rejected
  * memory is never recalled; the record is kept rather than deleted so the
  * decision is auditable and an identical re-proposal is visible as such.
  *
@@ -357,8 +355,7 @@ async function reject(
 }
 
 /**
- * The shared confirm/reject pipeline — Go buildTransitionPipeline +
- * runTransition: one contract with opposite verdicts,
+ * The shared confirm/reject pipeline: one contract with opposite verdicts,
  * answering with the post-image row.
  *
  * Authorize evaluates can_edit on the memory (subject-only in the model)
@@ -401,7 +398,7 @@ async function runTransition(
 }
 
 /**
- * Delete — Go delete.go: deletes a memory permanently, in ANY lifecycle
+ * Delete — deletes a memory permanently, in ANY lifecycle
  * state — the any-state guarantee is load-bearing for the trust story:
  * "delete this one" must never be refused on lifecycle grounds.
  * Deleting a confirmed memory is how consent is revoked; past executions
@@ -451,7 +448,7 @@ async function deleteMemory(
 }
 
 /**
- * Get — chain per Go buildGetPipeline (ExtractResourceId → LoadTarget).
+ * Get — ExtractResourceId → LoadTarget.
  *
  * Authorize evaluates can_view on the memory: in the model only the person
  * a memory is about can read it.
@@ -488,7 +485,7 @@ async function get(
 }
 
 /**
- * List — Go list.go: memories in an organization, newest first. Ordering
+ * List — memories in an organization, newest first. Ordering
  * is chronological only; grouping pending proposals first is the
  * console's presentation concern, deliberately not an RPC
  * parameter at the kind's dozens-of-records scale.

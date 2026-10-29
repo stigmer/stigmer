@@ -24,7 +24,7 @@
  * engine's own default. reResolveRunConfig resolves again over another
  * pinned version and leaves an unchanged pin alone; CreateSessionIfNeeded
  * refuses a created session on an engine the platform does not offer (the
- * retired number 2 included), and judges the re-resolved settings by the
+ * unused number 2 included), and judges the re-resolved settings by the
  * same checks (a fast tier the new version cannot price).
  * Refusals name the layer that chose each value, the profile and "no
  * layer" included. A surface's saved settings that set a tier or thinking

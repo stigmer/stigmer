@@ -1,10 +1,8 @@
 /**
  * The platform's archive limits — one home for every ZIP-bomb budget the
- * server applies to a pushed archive, whichever kind it becomes. Skills
- * carried these alone until plugins arrived (also pushed as a ZIP); the
- * values stay byte-pinned to the retired Go gate's (pkg/domain/skill/storage/
- * zip_extractor.go), because every sentence quoting them is wire contract
- * and the transfer lane refuses over-limit declarations by them before a
+ * server applies to a pushed archive, whichever kind it becomes (skills and
+ * plugins are both pushed as a ZIP). The values are byte-pinned, because
+ * every sentence quoting them is wire contract and the transfer lane refuses over-limit declarations by them before a
  * byte moves.
  *
  * A per-kind cap that is NOT an archive budget (the 1 MB SKILL.md

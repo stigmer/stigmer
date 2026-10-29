@@ -7,10 +7,9 @@
  *     trailing-slash canonicalization, 404 posture (the full route-tree
  *     equivalence against the parsed nginx model lives in
  *     nginx-equivalence.test.ts; these arms pin the semantics readably);
- *   - the RSC FLIGHT contract: the retired Go handler's `.txt` rewrites
- *     (page-level twins and nested `__next.*.txt` payloads), including the
- *     two-dynamic-segment routes the Go handler's single-substitution
- *     loop could not resolve.
+ *   - the RSC FLIGHT contract: the `.txt` rewrites (page-level twins and
+ *     nested `__next.*.txt` payloads), including two-dynamic-segment
+ *     routes.
  */
 import { describe, expect, it } from "vitest";
 
@@ -168,7 +167,7 @@ describe("page contract (the nginx chain)", () => {
   });
 });
 
-describe("RSC flight contract (the Go handler's rewrites)", () => {
+describe("RSC flight contract (the .txt rewrites)", () => {
   it("serves static-route flight payloads directly", () => {
     expect(servedFile("/conversations.txt")).toBe("/conversations.txt");
     expect(servedFile("/__next._tree.txt")).toBe("/__next._tree.txt");
@@ -180,7 +179,7 @@ describe("RSC flight contract (the Go handler's rewrites)", () => {
     );
   });
 
-  it("rewrites two-dynamic-segment flight payloads (beyond the Go handler)", () => {
+  it("rewrites two-dynamic-segment flight payloads", () => {
     expect(servedFile("/library/agents/acme/triage-bot.txt")).toBe(
       "/library/agents/__placeholder__/__placeholder__.txt",
     );

@@ -10,7 +10,7 @@
  * fail-safe arms (eligibility throw → sanitize; copy rejection → the
  * fallback copy, never the original), the mid-stream guard, and the
  * NEGATIVE CONTROL: the same call WITHOUT the boundary proves the raw
- * message crosses verbatim (the Java wire suite's pre-fix-red pattern).
+ * message crosses verbatim.
  */
 import { describe, expect, it } from "vitest";
 import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
@@ -151,8 +151,8 @@ describe("arm 1: structural raw-error conversion", () => {
   });
 
   it("NEGATIVE CONTROL: without the boundary, the raw message crosses verbatim", async () => {
-    // The pre-fix wiring: connect-node's default conversion — proves the
-    // leak the boundary closes (the Java wire suite's control pattern).
+    // connect-node's default conversion with no boundary — proves the leak
+    // the boundary closes.
     const raw = new Error("ENOENT: /var/lib/stigmer/secrets.db");
     const withoutBoundary = ConnectError.from(raw);
     expect(withoutBoundary.code).toBe(Code.Unknown);
@@ -250,7 +250,7 @@ describe("arm 2: the visitor rewrite", () => {
     }
   });
 
-  it("consults the policy even with NO stamped identity (the Java no-context pin)", async () => {
+  it("consults the policy even with NO stamped identity", async () => {
     // An is_public-shaped policy answers on the method alone — the arm
     // that must hold when position 1 itself failed before stamping.
     const publicOnly: VisitorErrorPolicy = {
@@ -280,7 +280,7 @@ describe("arm 2: the visitor rewrite", () => {
     expect(error.rawMessage).not.toContain("raw driver detail");
   });
 
-  it("drops details and metadata on sanitize (the Java trailers-drop)", async () => {
+  it("drops details and metadata on sanitize (the trailers drop)", async () => {
     const thrown = new ConnectError("internals", Code.Internal);
     thrown.metadata.set("x-debug-hint", "table=oauth_grant");
     const error = await runFailing(
@@ -352,7 +352,7 @@ describe("the stream guard", () => {
 });
 
 describe("the ref format", () => {
-  it("is the Java byte-pinned suffix shape", () => {
+  it("is the byte-pinned suffix shape", () => {
     expect(supportRefSuffix("9c1b2a3d")).toBe(" (ref: 9c1b2a3d)");
   });
 });

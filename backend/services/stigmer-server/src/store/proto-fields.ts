@@ -26,7 +26,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 /**
- * The kind's proto enum value name (Go: kind.String()), e.g.
+ * The kind's proto enum value name, e.g.
  * ApiResourceKind.organization → "organization". An unknown value throws
  * (enumToJson's own error) — an unknown kind reaching storage is a
  * programming error, never data.
@@ -38,8 +38,8 @@ export function apiResourceKindName(kind: ApiResourceKind): string {
 /**
  * Extracts a field value as a string by dot-notation path (e.g.
  * "spec.executionId"). Path parts match the proto field name directly,
- * then fall back through camelCase→snake_case — exactly Go's two-probe
- * lookup, so the same fieldPath strings the Go callers pass keep working.
+ * then fall back through camelCase→snake_case (a two-probe lookup), so a
+ * caller may write either spelling.
  * Returns "" when the path does not resolve.
  */
 export function extractFieldValue(
@@ -100,7 +100,7 @@ export function extractLabelValue(
 /**
  * The findByField scan every driver shares: deserialize each stored blob,
  * probe fieldPath, return the FIRST match (scan order is the driver's row
- * order — Go's semantics). Malformed records are skipped, as Go does.
+ * order). Malformed records are skipped.
  * Returns undefined when nothing matches — the driver owns the typed
  * not-found error (it knows the kind name for the message).
  */
@@ -115,7 +115,7 @@ export function scanForFieldMatch<Desc extends DescMessage>(
     try {
       msg = fromBinary(schema, data);
     } catch {
-      continue; // skip malformed records, as Go does
+      continue; // skip malformed records
     }
     if (extractFieldValue(schema, msg, fieldPath) === value) {
       return msg;
@@ -155,7 +155,7 @@ export function filterRowsByField<Desc extends DescMessage>(
  * The findAllByLabel scan every driver shares: deserialize each stored
  * blob, keep the ORIGINAL bytes of rows whose metadata.labels[labelKey]
  * equals labelValue (callers receive stored bytes, not re-marshaled ones).
- * Malformed records are skipped, as Go does.
+ * Malformed records are skipped.
  */
 export function filterRowsByLabel<Desc extends DescMessage>(
   rows: Iterable<Uint8Array>,
@@ -189,10 +189,9 @@ function findFieldByProtoName(
 }
 
 /**
- * Field value → string, mirroring Go protoreflect.Value.String() for the
- * kinds the callers use: strings pass through, numbers/bools/enums print
- * their primitive form. List/map/message values are not addressable as
- * terminal path parts in Go either — they return "".
+ * Field value → string for the kinds the callers use: strings pass
+ * through, numbers/bools/enums print their primitive form. List/map/message
+ * values are not addressable as terminal path parts — they return "".
  */
 function scalarString(message: ReflectMessage, field: DescField): string {
   if (field.fieldKind === "list" || field.fieldKind === "map") {
@@ -201,8 +200,8 @@ function scalarString(message: ReflectMessage, field: DescField): string {
   if (field.fieldKind === "message") {
     return "";
   }
-  // Enum values reflect as their numbers — matching Go, whose
-  // protoreflect.Value.String() prints an enum's number, not its name.
+  // Enum values reflect as their numbers, not their names: a fieldPath
+  // over an enum compares against the number.
   const value = message.get(field);
   if (typeof value === "string") {
     return value;
@@ -214,14 +213,14 @@ function scalarString(message: ReflectMessage, field: DescField): string {
     return value ? "true" : "false";
   }
   if (value instanceof Uint8Array) {
-    // Go's Value.String() on bytes stringifies the raw bytes; no store
-    // caller queries a bytes field, so latin1 is a faithful stand-in.
+    // Bytes stringify as their raw bytes; no store caller queries a bytes
+    // field, so latin1 is enough.
     return Buffer.from(value).toString("latin1");
   }
   return "";
 }
 
-/** camelCase → snake_case (Go toSnakeCase): "executionId" → "execution_id". */
+/** camelCase → snake_case: "executionId" → "execution_id". */
 export function toSnakeCase(value: string): string {
   let result = "";
   for (let i = 0; i < value.length; i++) {

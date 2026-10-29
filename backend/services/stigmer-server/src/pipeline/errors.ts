@@ -1,8 +1,7 @@
 /**
- * Domain error constructors — port backend/libs/go/grpc/server.go's helper
- * family. Errors are API surface (guidelines §8): the CLI, console, and SDK
- * show these messages verbatim, so the FORMAT STRINGS are byte-pinned
- * contract, mirrored character-for-character from Go.
+ * Domain error constructors. Errors are API surface (guidelines §8): the
+ * CLI, console, and SDK show these messages verbatim, so the FORMAT
+ * STRINGS are byte-pinned wire contract.
  *
  * The sanitization contract (stigmer/stigmer#478): internalError's
  * wire-visible description is ONLY the static message — the cause's raw
@@ -45,17 +44,17 @@ export interface RefusalReason {
   readonly metadata?: Readonly<Record<string, string>>;
 }
 
-/** Go NotFoundError: "%s not found: %s". */
+/** NotFound: "%s not found: %s". */
 export function notFoundError(resource: string, id: string): ConnectError {
   return new ConnectError(`${resource} not found: ${id}`, Code.NotFound);
 }
 
-/** Go InvalidArgumentError (callers pre-format their message). */
+/** InvalidArgument (callers pre-format their message). */
 export function invalidArgumentError(message: string): ConnectError {
   return new ConnectError(message, Code.InvalidArgument);
 }
 
-/** Go AlreadyExistsError: "%s already exists: %s". */
+/** AlreadyExists: "%s already exists: %s". */
 export function alreadyExistsError(resource: string, id: string): ConnectError {
   return new ConnectError(
     `${resource} already exists: ${id}`,
@@ -90,7 +89,7 @@ export function permissionDeniedError(message: string): ConnectError {
 }
 
 /**
- * Go FailedPreconditionError — the system is not in a state required for
+ * FailedPrecondition — the system is not in a state required for
  * the operation (vs AlreadyExists, which tells the caller to stop). With a
  * reason, the refusal also carries it as an ErrorInfo detail.
  */
@@ -160,7 +159,7 @@ function reasonDetail(reason: RefusalReason) {
 }
 
 /**
- * Go AbortedError — retryable conflict (e.g. an in-flight dedupe claim).
+ * Aborted — retryable conflict (e.g. an in-flight dedupe claim).
  * With a reason, the conflict also carries it as an ErrorInfo detail, so a
  * client (and the guarded-write runner, pipeline/guarded-write.ts) can tell
  * a write that lost a race from any other abort.
@@ -177,23 +176,23 @@ export function abortedError(
   ]);
 }
 
-/** Go UnavailableError — a dependency is temporarily unreachable. */
+/** Unavailable — a dependency is temporarily unreachable. */
 export function unavailableError(message: string): ConnectError {
   return new ConnectError(message, Code.Unavailable);
 }
 
 /**
- * Go InternalError: the wire carries ONLY `message`; `cause` stays
- * server-side (#478). Callers keep writing
- * internalError(err, "failed to <do thing>") exactly as in Go — the split
- * between operator-visible detail and client-visible copy happens here.
+ * Internal: the wire carries ONLY `message`; `cause` stays server-side
+ * (#478). Callers write internalError(err, "failed to <do thing>") — the
+ * split between operator-visible detail and client-visible copy happens
+ * here.
  */
 export function internalError(cause: unknown, message: string): ConnectError {
   return new ConnectError(message, Code.Internal, undefined, undefined, cause);
 }
 
 /**
- * grpc-go's codes.Code.String() names, keyed by the connect Code enum.
+ * The CamelCase gRPC code names, keyed by the connect Code enum.
  * Record<Code, string> keeps the map compile-time exhaustive: a new code
  * in the enum fails typecheck here instead of rendering "undefined" on
  * the wire.
@@ -218,7 +217,7 @@ const GRPC_CODE_NAMES: Readonly<Record<Code, string>> = {
 };
 
 /**
- * grpc-go's codes.Code.String() name for a connect Code — for surfaces
+ * The CamelCase gRPC code name for a connect Code — for surfaces
  * that persist the code NAME rather than raise it (McpServer
  * connect_status.failure_code copies the blocking RPC's classification in
  * CamelCase form per status.proto's field doc).
@@ -228,15 +227,12 @@ export function grpcCodeName(code: Code): string {
 }
 
 /**
- * Reproduces the wire message grpc-go's status.FromError manufactures for
- * %w-wrapped status errors: when Go wraps a downstream in-process client
- * error with fmt.Errorf("%s: %w", ...), PipelineError.GRPCStatus's
- * errors.As branch keeps the INNER code but rewrites the message to the
- * full wrapped text — and the inner client error's Error() renders as
- * `rpc error: code = <CodeName> desc = <message>`. Byte-parity with Go on
- * the arms that hit this (a run create's session bootstrap and the
- * planning of its values). The transport-formatting leak is filed as stigmer/stigmer#852 for a both-editions post-cutover
- * fix; until then this shim IS the wire contract.
+ * A downstream in-process client error wrapped under a prefix: the INNER
+ * code is kept, and the message is `<prefix>: rpc error: code =
+ * <CodeName> desc = <message>`. This rendering is wire contract on the
+ * arms that use it (a run create's session bootstrap and the planning of
+ * its values); dropping the transport formatting from those messages is
+ * stigmer/stigmer#852, a change for both editions at once.
  *
  * rawMessage is the code-prefix-free message — ConnectError.message
  * prepends "[code_name] ", which must not ride the manufactured desc.
@@ -249,21 +245,17 @@ export function goWrappedStatusError(
 }
 
 /**
- * The `%v` rendering of a grpc-go status error — `rpc error: code = <Name>
- * desc = <message>` — for sites that embed a downstream error's text under
- * a DIFFERENT outer code (Go's %v prints the inner wire text under the
- * outer code). goWrappedStatusError above is the %w twin that also
- * keeps the inner code.
+ * A downstream error's text as `rpc error: code = <Name> desc =
+ * <message>`, for sites that embed it under a DIFFERENT outer code.
+ * goWrappedStatusError above is the twin that also keeps the inner code.
  */
 export function goGrpcErrorText(error: ConnectError): string {
   return `rpc error: code = ${GRPC_CODE_NAMES[error.code]} desc = ${error.rawMessage}`;
 }
 
 /**
- * Re-throws a downstream in-process client error UNWRAPPED — Go's
- * `return err // already a gRPC error from the client` arms, where the
- * inner status reaches the wire verbatim (no prefix, no manufactured
- * desc).
+ * Re-throws a downstream in-process client error UNWRAPPED: the inner
+ * status reaches the wire verbatim (no prefix, no manufactured desc).
  *
  * A FRESH ConnectError is constructed on purpose: the router-transport
  * client's error instance carries the INNER response's metadata, and

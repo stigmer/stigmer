@@ -357,7 +357,7 @@ describe("the eval trace, by the engine that made the calls", () => {
     expect(trace.toolCalls.map((c) => c.name)).toEqual(["Bash", "Skill", "ToolSearch", "mcp__docs__lookup"]);
   });
 
-  it("names a number no engine owns, the retired 2 included, rather than reading its calls as the Stigmer harness's", async () => {
+  it("names a number no engine owns, the unused 2 included, rather than reading its calls as the Stigmer harness's", async () => {
     const run = runOf([call("k1", "Bash", { command: "ls" })], []);
     for (const number of [2, 7]) {
       await expect(evalTraceOf(run, deps(number as Harness))).rejects.toThrow(

@@ -1,6 +1,5 @@
 /**
- * Secret backing-state cleanup — the OSS half of the Java
- * SecretValueCleanup contract. When a resource
+ * Secret backing-state cleanup. When a resource
  * carrying sealed secrets is deleted — or a secret-bearing key is
  * dropped by an update — the stored ciphertext's EXTERNAL backing state
  * must be destroyed: for enc:v3 values that is a KV entry in the vault;
@@ -10,7 +9,7 @@
  * therefore never changes observable behavior — the conformance rosters
  * pin that.
  *
- * Failure semantics (Java parity; the CleanupGrants discipline):
+ * Failure semantics (the CleanupGrants discipline):
  * best-effort, AFTER the store write. The row is already gone or
  * updated, so a destroy failure must never fail the request — each
  * failure logs ERROR with the resource identity and the pass continues.

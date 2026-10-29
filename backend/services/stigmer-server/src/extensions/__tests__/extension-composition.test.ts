@@ -3,7 +3,7 @@
  * registering a cloud-family service the OSS server never serves
  * (BillingQueryController) is visible through BOTH routers — the bound
  * port and the in-process transport — with the full interceptor chain
- * running on each lane (extension services held to the same parity as the
+ * running on each lane (extension services held to the same chain as the
  * server's own), and the registry-declared edition answers on
  * getServerInfo. Later arms below compose the rest of the extension
  * surface: caller guards, the require-authentication posture, the driver
@@ -339,9 +339,8 @@ describe("extension composition (enterprise edition on the wire)", () => {
  * is enforced on the SERVING chain and structurally absent from the
  * in-process chain. This is the wiring proof the unit arms cannot give —
  * it pins that compose.ts threads resolved guards into the serving
- * chassis AND that boot/inprocess.ts has no guard path at all (the TS
- * rendering of the Java InProcessCallContextHolder exemption, proven by
- * execution rather than by signature).
+ * chassis AND that boot/inprocess.ts has no guard path at all (the
+ * in-process exemption, proven by execution rather than by signature).
  */
 describe("extension composition (caller guards)", () => {
   let server: ComposedServer;
@@ -421,7 +420,7 @@ describe("extension composition (caller guards)", () => {
  * The require-authentication registry point: a unit
  * whose own verifiers are the admission path declares the posture
  * WITHOUT an OSS OIDC issuer, and the serving chain refuses tokenless
- * non-exempt requests exactly as the issuer arm does — the Java copy,
+ * non-exempt requests exactly as the issuer arm does — the pinned copy,
  * is_public and the health service still reachable, a claimed credential
  * admitted. The in-process transport is untouched by construction (it
  * carries no require-auth arm).
@@ -525,7 +524,7 @@ describe("extension composition (require-authentication posture)", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("a tokenless non-public RPC is UNAUTHENTICATED with the Java byte-pinned copy — no issuer configured", async () => {
+  it("a tokenless non-public RPC is UNAUTHENTICATED with the byte-pinned copy — no issuer configured", async () => {
     const client = createClient(OrganizationQueryController, transportWith());
     const failure = await client
       .listMine({})
@@ -913,7 +912,8 @@ describe("extension composition (driver substitution)", () => {
  * declared slot refuses with its own ConnectError code and copy — before
  * the side effect on a pre-side-effect slot (nothing persisted: the
  * session and organization chains), after it on the post-persist slot
- * (the row survives the failed request, the inherited Java semantics);
+ * (the row survives the failed request: post-persist means after the
+ * write);
  * the status observers
  * see the terminal updateStatus transition exactly once (the
  * phase-change rule) and the response decorator contributes the control
@@ -1059,7 +1059,7 @@ describe("extension composition (gate slots + status hooks)", () => {
     expect(session.metadata?.id).not.toBe("");
   });
 
-  it("a post-persist gate failure fails the request but the org row survives (inherited Java semantics)", async () => {
+  it("a post-persist gate failure fails the request but the org row survives", async () => {
     const command = createClient(OrganizationCommandController, portTransport);
     const query = createClient(OrganizationQueryController, portTransport);
 

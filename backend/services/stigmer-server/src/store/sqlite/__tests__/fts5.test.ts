@@ -56,14 +56,14 @@ describe("renderFts5MatchExpression (the escaping table, case by case)", () => {
     });
   }
 
-  it("the prefix decision counts terms AFTER sanitization (Go's order)", () => {
+  it("the prefix decision counts terms AFTER sanitization", () => {
     // Two input terms, one sanitizes away — the survivor is a SINGLE
     // term and keeps prefix matching.
     expect(renderFts5MatchExpression(["foo", `"""`])).toBe(`"foo"*`);
   });
 });
 
-describe("normalizeBm25Score (Go's table)", () => {
+describe("normalizeBm25Score (the normalization table)", () => {
   const cases: Array<[bm25: number, min: number, max: number]> = [
     [0, 1.0, 1.0],
     [1.0, 1.0, 1.0],

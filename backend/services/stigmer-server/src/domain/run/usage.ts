@@ -134,7 +134,7 @@ export interface UsageReportDeps {
   readonly now?: () => Date;
 }
 
-// Context keys for inter-step communication — Go's key strings, verbatim.
+// Context keys for inter-step communication.
 const EXECUTION_USAGE_REPORT_KEY = "execution_usage_report";
 const EXECUTION_KEY = "execution";
 const SESSION_USAGE_REPORT_KEY = "session_usage_report";
@@ -828,20 +828,19 @@ function requireReport<T>(value: unknown, message: string): T {
 }
 
 // ---------------------------------------------------------------------------
-// getRunSummary — the dashboard aggregate (get_execution_summary.go,
-// a direct handler in Go as well — no pipeline). Tokens are deliberately
+// getRunSummary — the dashboard aggregate (a direct handler — no
+// pipeline). Tokens are deliberately
 // absent from this shape: the dashboard reads them from getOrgUsageReport,
 // so carrying them here too would count them twice. A run with no
 // creation stamp (audit.spec_audit.created_at) is never skipped by the
-// cutoff, Go's zero time.
+// cutoff.
 //
 // The rows are the requested org's within the time window, read through
 // the list index, so a member of several organizations never sees every
 // org's numbers on every dashboard; with a composed ListReadScope they are
 // offered to its restrict verb (exact, one read of the kind), and none
-// visible answers the proto default instance — the Java
-// AgentExecutionGetExecutionSummaryHandler baseline, whose multi-tenant
-// zero shape falls out of the scoping, never a special case.
+// visible answers the proto default instance — the zero shape falls out
+// of the scoping, never a special case.
 // ---------------------------------------------------------------------------
 
 export async function getRunSummary(
@@ -953,8 +952,7 @@ export async function getRunSummary(
 
 /**
  * The window cutoff in epoch ms; undefined = no cutoff (ALL_TIME's zero
- * time). Default (UNSPECIFIED and unknown values) is LAST_7D — Go's
- * switch default.
+ * time). Default (UNSPECIFIED and unknown values) is LAST_7D.
  */
 function resolveAgentTimeCutoffMs(
   tw: RunSummaryTimeWindow,
@@ -985,9 +983,8 @@ function isAgentActivePhase(p: RunPhase): boolean {
 
 /**
  * completed_at − started_at in ms; 0 when either side is missing or
- * malformed (Go returns 0 on time.Parse error). Go parses strict RFC3339;
- * Date.parse is more lenient, so a strictness guard keeps the reject set
- * aligned for realistic inputs (both fields are machine-authored RFC3339;
+ * malformed. The read is strict RFC3339; Date.parse is more lenient, so a
+ * strictness guard keeps the reject set strict for realistic inputs (both fields are machine-authored RFC3339;
  * the exotic leniency edges are unreachable in practice).
  */
 function completionDurationMs(exec: Run): number {
@@ -1013,8 +1010,7 @@ function parseRfc3339Ms(value: string): number | undefined {
 
 /**
  * Milliseconds → google.protobuf.Duration, truncating toward zero at
- * nanosecond scale exactly like Go's integer division of a nanosecond
- * total.
+ * nanosecond scale (integer division of a nanosecond total).
  */
 function durationFromMs(ms: number): Duration {
   const truncatedMs = Math.trunc(ms);
@@ -1024,10 +1020,9 @@ function durationFromMs(ms: number): Duration {
 }
 
 /**
- * Failure ranks sorted by count descending, capped (Go
- * buildAgentFailureRanks — its manual insertion sort is stable, as is
- * Array.sort; tie ORDER still differs cross-edition because Go feeds the
- * sort from nondeterministic map iteration — not wire-assertable).
+ * Failure ranks sorted by count descending, capped. Array.sort is stable,
+ * so ties keep the counts map's insertion order; tie ORDER is not part of
+ * the contract (not wire-assertable).
  */
 function buildAgentFailureRanks(
   counts: Map<string, number>,

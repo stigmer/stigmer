@@ -1,9 +1,7 @@
 /**
  * Pins the edition-neutral half of the tuple-lifecycle seam: the visibility
- * shape policy and its set-diff
- * (re-pinning the Java VisibilityTupleReconcilerTest transition matrix),
- * and the config-driven creation-event resolution
- * (CreateAuthorizationTuplesStepV2's scope/owner/parent semantics,
+ * shape policy and its set-diff (the transition matrix), and the
+ * config-driven creation-event resolution (scope/owner/parent semantics,
  * including every failure arm and the optional parents a vault's two
  * owners use: an empty optional field writes no link), and the one delete cleanup every delete
  * chain and every cascade hands its deleted resource to: best-effort, a
@@ -286,7 +284,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     expect(event?.ownerAttribution).toBe(OwnerAttributionType.INHERITED);
   });
 
-  it("run with no session id fails the request (Java's missing-parent arm)", () => {
+  it("run with no session id fails the request (the missing-parent arm)", () => {
     const execution = create(RunSchema, {
       metadata: { id: "run_2", org: "acme" },
     });
@@ -319,7 +317,7 @@ describe("resolveResourceCreatedEvent (the config-driven creation resolution)", 
     });
   });
 
-  it("NONE-scoped kinds resolve to no event at all (Java's early return)", () => {
+  it("NONE-scoped kinds resolve to no event at all", () => {
     const platform = create(OrganizationSchema, {
       metadata: { id: "stigmer" },
     });

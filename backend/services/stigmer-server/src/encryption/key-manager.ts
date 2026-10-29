@@ -1,5 +1,5 @@
 /**
- * Named-key loader — ports pkg/encryption/keymanager.go.
+ * Named-key loader.
  *
  * One convention for every key the server holds: env var (Base64) →
  * ~/.stigmer/<file> (0600) → auto-generate and persist. The
@@ -11,41 +11,40 @@
  * says what a key IS — how an env value and a file decode, how one is
  * generated and written — and nothing about the ladder, which stays one.
  *
- * Ladder semantics, exactly Go's, for every codec:
+ * Ladder semantics, for every codec:
  *   - An EXPLICITLY configured env key that is unusable (bad Base64, wrong
  *     length, not the key type the codec holds) is an ERROR, never a
  *     degrade — silently ignoring deliberate configuration would be worse
  *     than refusing to boot.
  *   - A key file that fails its load checks (permissions other than 0600,
  *     content the codec does not accept) is never adopted; the ladder
- *     FALLS THROUGH to auto-generate, which overwrites the file's content —
- *     Go's shipped behavior (loadKeyFromFile error → generate → save),
- *     ported as-is.
+ *     FALLS THROUGH to auto-generate, which overwrites the file's content
+ *     (load error → generate → save).
  *   - Auto-generation persists for future boots; a persist FAILURE is a
  *     stderr warning only — the key is still usable for this process.
  *
  * `env` and `homeDir` are injectable with process defaults — the
  * loadConfig(env = process.env) idiom (boot/config.ts) — so unit tests
  * stay hermetic and never touch the real ~/.stigmer. The key env
- * vars deliberately do NOT ride ServerConfig: Go's pkg/config never sees
- * them either, and config.ts's contract is that no entry exists before
- * the code that reads it.
+ * vars deliberately do NOT ride ServerConfig: the key ladder is their one
+ * reader, and config.ts's contract is that no entry exists before the
+ * code that reads it.
  */
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-/** AES-256 / HMAC-SHA256 key size (32 bytes = 256 bits) — Go KeySize. */
+/** AES-256 / HMAC-SHA256 key size (32 bytes = 256 bits). */
 export const KEY_SIZE = 32;
 
-/** Directory under home for key files — Go KeyFileDir. */
+/** Directory under home for key files. */
 export const KEY_FILE_DIR = ".stigmer";
 
-/** Key file permissions (owner read/write only) — Go KeyFilePermissions. */
+/** Key file permissions (owner read/write only). */
 export const KEY_FILE_PERMISSIONS = 0o600;
 
-/** Key directory permissions — Go KeyDirPermissions. */
+/** Key directory permissions. */
 export const KEY_DIR_PERMISSIONS = 0o700;
 
 export interface KeyLoaderOptions {
@@ -91,7 +90,7 @@ export const RAW_32_BYTE_KEY: KeyCodec<Buffer> = {
 };
 
 /**
- * Go GetOrCreateNamedKey: env var → key file → auto-generate, for a 32-byte
+ * Env var → key file → auto-generate, for a 32-byte
  * raw key. Throws only on unusable EXPLICIT configuration (bad env value)
  * or when no key can be produced at all.
  */
@@ -132,7 +131,7 @@ export function getOrCreateKey<Key>(
   try {
     saveKeyToFile(keyPath, codec.toFile(key));
   } catch (error) {
-    // Warn but don't fail — the key is still usable (Go's posture).
+    // Warn but don't fail — the key is still usable for this process.
     process.stderr.write(
       `Warning: could not save key to ${keyPath}: ${error instanceof Error ? error.message : String(error)}\n`,
     );
@@ -144,9 +143,9 @@ export function getOrCreateKey<Key>(
 function decodeEnvBase64(envVar: string, value: string): Buffer {
   const decoded = Buffer.from(value, "base64");
   // Node's base64 decoder is lenient (skips invalid characters, accepts
-  // missing padding) and never throws; Go's StdEncoding errors on any
-  // non-canonical input. Round-tripping — Buffer always re-emits the
-  // canonical padded form — restores Go's strictness.
+  // missing padding) and never throws; an explicitly configured key must
+  // be canonical. Round-tripping — Buffer always re-emits the canonical
+  // padded form — refuses any non-canonical input.
   if (decoded.toString("base64") !== value) {
     throw new Error(`invalid Base64 encoding in ${envVar}`);
   }
@@ -163,10 +162,9 @@ export function namedKeyFilePath(
 }
 
 /**
- * Reads a key file's bytes, mirroring Go loadKeyFromFile: missing file →
- * undefined (fall through the ladder); present with insecure permissions
- * also falls through — exactly Go's behavior, where any load error falls
- * to auto-generate. The 0600 check is skipped on Windows, where POSIX
+ * Reads a key file's bytes: missing file → undefined (fall through the
+ * ladder); present with insecure permissions also falls through — any
+ * load error falls to auto-generate. The 0600 check is skipped on Windows, where POSIX
  * modes are not meaningful.
  */
 function readKeyFile(keyPath: string): Buffer | undefined {

@@ -87,9 +87,9 @@ describe("SecretService disabled (keyless) semantics", () => {
     expect(await svc.encrypt("plain", SCOPE)).toBe("plain");
   });
 
-  it("passes unprefixed values through decrypt (legacy plaintext rows)", async () => {
-    expect(await disabled().decrypt("legacy plaintext")).toBe(
-      "legacy plaintext",
+  it("passes unprefixed values through decrypt (a keyless server's plaintext rows)", async () => {
+    expect(await disabled().decrypt("stored plaintext")).toBe(
+      "stored plaintext",
     );
   });
 
@@ -100,7 +100,7 @@ describe("SecretService disabled (keyless) semantics", () => {
     );
   });
 
-  it("treats an empty key buffer as disabled, like Go's len(key) == 0", () => {
+  it("treats an empty key buffer as disabled, like an absent key", () => {
     expect(SecretService.create(Buffer.alloc(0)).isEnabled()).toBe(false);
   });
 });
@@ -143,10 +143,9 @@ describe("SecretService error taxonomy", () => {
 
   it("fails CLOSED on unregistered-version prefixes as the unavailable arm", async () => {
     // enc:v2: is isEncrypted-matched (fail-open-as-plaintext would be the
-    // bug) but has no codec in a v1-only facade. Before the codec seam
-    // this refused as accidental invalid-base64; it now refuses as
+    // bug) but has no codec in a v1-only facade, so it refuses as
     // EncryptionUnavailableError — the value may be perfectly valid, the
-    // machinery is missing (the Java taxonomy's recorded rationale).
+    // machinery is missing.
     const v1 = await enabled().encrypt("future", SCOPE);
     const v2 = v1.replace("enc:v1:", "enc:v2:");
     await expect(enabled().decrypt(v2)).rejects.toThrow(

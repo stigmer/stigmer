@@ -1,15 +1,12 @@
 /**
  * Captures schedule/tick workflow histories for the replay determinism
- * gate — the go-forward discipline the routine's tick itself
- * originated (Go tick_history_capture_test.go): any change to the tick's
- * logic must replay committed histories green, or be gated with patched().
+ * gate — the go-forward discipline: any change to the tick's logic must
+ * replay committed histories green, or be gated with patched().
  * Histories are REGENERATED only when no producing release is still
  * supported.
  *
- * The three scenarios mirror Go's gold masters name-for-name
- * (tick-completed-run, tick-skipped-disabled, tick-start-failed) —
- * captured fresh here because Go histories cannot replay against the TS
- * SDK. Mock data only — safe to commit. Writes proto-JSON to
+ * Three scenarios (tick-completed-run, tick-skipped-disabled,
+ * tick-start-failed). Mock data only — safe to commit. Writes proto-JSON to
  * src/temporal/routine/__tests__/replay-histories/.
  *
  * Usage: npx tsx scripts/capture-routine-replay-histories.ts
@@ -82,7 +79,7 @@ async function main(): Promise<void> {
   }
 
   // 1. The tracked happy path: FIRED → STARTED → poll COMPLETED → the
-  //    success reset (Go tick-completed-run.json).
+  //    success reset.
   tickOutcome = "FIRED";
   runStart = {
     outcome: "STARTED",
@@ -93,12 +90,12 @@ async function main(): Promise<void> {
   pollResult = "COMPLETED";
   await capture("tick-completed-run");
 
-  // 2. The revalidation decline (Go tick-skipped-disabled.json).
+  // 2. The revalidation decline.
   tickOutcome = "SKIPPED_DISABLED";
   await capture("tick-skipped-disabled");
 
   // 3. The start failure: FIRED → TARGET_MISSING → the single-attempt
-  //    failure record (Go tick-start-failed.json).
+  //    failure record.
   tickOutcome = "FIRED";
   runStart = {
     outcome: "TARGET_MISSING",

@@ -1,5 +1,5 @@
 /**
- * BuildUpdateState — ports steps/build_update_state.go: the new state is
+ * BuildUpdateState: the new state is
  * the row LoadExisting read with the fields the update's mask names copied
  * from the request (update-mask.ts), so every field the update does not
  * name keeps its stored value: identifiers, the ENTIRE status (all system
@@ -125,7 +125,7 @@ function takeVersionArguments(merged: Message, request: Message): void {
 }
 
 /**
- * Go updateAuditFieldsReflect: spec_audit keeps the existing creation
+ * Update audit stamping: spec_audit keeps the existing creation
  * identity with a fresh update stamp; status_audit is fully current (the
  * status was rebuilt); both carry event "updated".
  */

@@ -1,7 +1,7 @@
 /**
  * Pins the apikey identity verifier — the chassis's first OSS entry:
  * claim-or-pass by the case-insensitive stk_ prefix, the byte-pinned
- * Java classifyAuthError copy on the two failure arms (unknown/revoked →
+ * wire copy on the two failure arms (unknown/revoked →
  * "invalid token", expired → "token has expired", where a key is expired
  * when expires_at is past unless never_expires is set, which wins:
  * stigmer/stigmer#1434), the
@@ -205,7 +205,7 @@ describe("claim-or-pass", () => {
     expect(await apikey.verify("Basic-ish-token")).toBeNull();
   });
 
-  it("claims stk_ tokens case-insensitively (Java startsWithIgnoreCase)", async () => {
+  it("claims stk_ tokens case-insensitively", async () => {
     const apikey = verifier();
     // Recognized but unknown — must THROW, never pass (a forged key must
     // not fall through to a laxer verifier).

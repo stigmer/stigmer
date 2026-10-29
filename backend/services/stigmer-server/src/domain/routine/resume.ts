@@ -1,6 +1,5 @@
 /**
- * The resume command's clearing step — ports
- * pkg/domain/schedule/controller/resume.go.
+ * The resume command's clearing step.
  *
  * "Paused" is the platform's latch (status.paused_reason, written by the
  * failure-streak auto-pause), distinct from "disabled", the owner's switch
@@ -29,8 +28,7 @@ import type { Store } from "../../store/interface.js";
 
 /**
  * Aborts the atomic write on the idempotent no-op path — the fresh row has
- * no latch and no streak, so nothing is written and no audit bumps (Go
- * errResumeNothingToClear).
+ * no latch and no streak, so nothing is written and no audit bumps.
  */
 class NothingToClearError extends Error {
   constructor() {
@@ -42,15 +40,12 @@ class NothingToClearError extends Error {
 /**
  * Clears status.paused_reason and resets status.consecutive_failures in
  * ONE store.updateResource closure on the freshly-read row, preserving
- * every other status leaf as the concurrent runtime last wrote it (Go
- * clearSchedulePauseStep).
+ * every other status leaf as the concurrent runtime last wrote it.
  *
- * Why atomic: a previous
- * load-mutate-save across step boundaries was safe only while nothing else
- * wrote routine status. The clock ended that — a fire recorded (or a
- * streak advanced) between the load and the save would have been silently
- * reverted. The agent-execution domain adopted this exact primitive after
- * losing user approvals to the same race class.
+ * Why atomic: the clock writes routine status too, so a load-mutate-save
+ * across step boundaries would silently revert a fire recorded (or a
+ * streak advanced) between the load and the save. The run domain uses the
+ * same primitive against the same race class.
  */
 export function newClearRoutinePauseStep<Desc extends DescMessage>(
   store: Store,
@@ -93,7 +88,7 @@ export function newClearRoutinePauseStep<Desc extends DescMessage>(
         if (error instanceof NothingToClearError) {
           // The untouched fresh row is the honest response on the no-op
           // path; updateResource skipped the write, so re-read the live
-          // row (Go's out-param `live` holds it either way).
+          // row.
           try {
             live = await store.getResource(
               ApiResourceKind.routine,

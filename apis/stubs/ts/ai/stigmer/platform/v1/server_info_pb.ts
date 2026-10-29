@@ -64,9 +64,9 @@ export type GetServerInfoOutput = Message<"ai.stigmer.platform.v1.GetServerInfoO
    * unavailable then.
    *
    * Every server that knows the field sets it, true or false. Absent means
-   * the server predates it and its posture is unknown: a client offers the
-   * feature and lets the server's own answer decide, rather than reading an
-   * older server as one that trusts every request.
+   * the server was released before the field and its posture is unknown: a
+   * client offers the feature and lets the server's own answer decide,
+   * rather than reading such a server as one that trusts every request.
    *
    * @generated from field: optional bool authentication_required = 3;
    */

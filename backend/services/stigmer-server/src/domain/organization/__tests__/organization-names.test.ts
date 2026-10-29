@@ -248,16 +248,16 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(await resolve("nested")).toBeUndefined();
   });
 
-  it("an organization naming itself, as earlier releases stored it, is cleared rather than refused", async () => {
-    // A create from a client of that time sends its own slug as its org.
+  it("an organization naming itself as its org is cleared rather than refused", async () => {
+    // A create that sends its own slug as its org.
     const made = await organizations.create({
       ...organizationInput("selfnamed"),
       metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },
     });
     expect(made.metadata?.org).toBe("");
 
-    // An organization an earlier release made stores its slug, its id, as
-    // its org; applying its own `get -o yaml` back succeeds, and the row
+    // A stored organization whose id is its slug and whose org names
+    // itself: applying its own `get -o yaml` back succeeds, and the row
     // keeps what it holds.
     await server.store.saveResource(
       ApiResourceKind.organization,
@@ -279,8 +279,8 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(applied.spec?.description).toBe("applied back from its own manifest");
 
     // An apply naming a minted organization by slug alone, with its own slug
-    // as its org (as earlier CLIs injected it): the edge turns that org into
-    // the id, which is the id the slug resolves to.
+    // as its org: the edge turns that org into the id, which is the id the
+    // slug resolves to.
     const reapplied = await organizations.apply({
       ...organizationInput("selfnamed"),
       metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },

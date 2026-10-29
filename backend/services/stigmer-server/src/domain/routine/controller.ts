@@ -177,8 +177,8 @@ export interface RoutineControllerDeps {
   readonly modelRegistry: ModelCatalogProvider;
   /**
    * The scheduling runtime (clock.ts), resolved at call time so the
-   * compose root can wire it after the Temporal stage — Go's SetClock,
-   * without the mutable-controller seam.
+   * compose root can wire it after the Temporal stage, without a
+   * mutable-controller seam.
    */
   readonly clock: ClockProvider;
   /**
@@ -532,7 +532,7 @@ async function fire(
   return reqCtx.get(FIRE_RESULT_KEY) as RoutineFireResult;
 }
 
-/** Get — LoadTarget by id; NotFound when absent (get.go). */
+/** Get — LoadTarget by id; NotFound when absent. */
 async function get(
   deps: RoutineControllerDeps,
   routineId: RoutineId,
@@ -556,7 +556,7 @@ async function get(
   return reqCtx.get(TARGET_RESOURCE_KEY) as Routine;
 }
 
-/** GetByReference — the shared org+slug reference lookup (get_by_reference.go). */
+/** GetByReference — the shared org+slug reference lookup. */
 async function getByReference(
   deps: RoutineControllerDeps,
   ref: ApiResourceReference,
@@ -761,7 +761,7 @@ async function readRoutinePage(
   });
 }
 
-/** ListFires — the fire-ledger surface (list_runs.go:44-61). */
+/** ListFires — the fire-ledger surface. */
 async function listFires(
   deps: RoutineControllerDeps,
   req: ListRoutineFiresRequest,

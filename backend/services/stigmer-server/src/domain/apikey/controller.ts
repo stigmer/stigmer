@@ -1,14 +1,11 @@
 /**
  * ApiKey controller — the shared apikey contract: issuance and
  * verification live wholly in open source, and every edition serves this
- * module. Unlike the ported Class-A domains there is no Go provenance:
- * the behavioral reference is the retired Java handler family
- * (domain/iam/apikey/request/handler/*).
+ * module.
  *
- * Chains mirror the Java pipelines with two deliberate differences:
- *   - PreserveKeyMaterial on update (the Java handler documented
- *     hash/fingerprint immutability but did not enforce it; see steps.ts
- *     for why it matters).
+ * The chains are the canonical ones with these domain rules:
+ *   - PreserveKeyMaterial on update: hash and fingerprint are immutable
+ *     (see steps.ts for why it matters).
  *   - list returns the caller's own keys, read by owner through the
  *     key list index (list-index.ts), not every key a read scope admits:
  *     an organization's admins may view its service accounts' keys, and
@@ -174,7 +171,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — the Java ApiKeyCreateHandler chain: the canonical create steps,
+ * Create — the canonical create steps,
  * BindApiKeyOrganization and GenerateApiKey after BuildNewState,
  * ReplaceHashWithPlainText after Persist (the response's one plaintext
  * look; the store keeps the hash).
@@ -424,8 +421,8 @@ async function get(
 }
 
 /**
- * GetByKeyHash — the verifier-facing lookup, also served on the wire
- * (Java ApiKeyGetByKeyHashHandler). The lane is is_skip_authorization, so
+ * GetByKeyHash — the verifier-facing lookup, also served on the wire.
+ * The lane is is_skip_authorization, so
  * every edition serves it to any authenticated caller; nothing gates it
  * further.
  */

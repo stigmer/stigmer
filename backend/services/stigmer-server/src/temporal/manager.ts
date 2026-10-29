@@ -1,5 +1,5 @@
 /**
- * TemporalManager — ports pkg/server/temporal_manager.go: the Temporal
+ * TemporalManager: the Temporal
  * connection lifecycle with non-fatal initial connect, a periodic health
  * monitor, automatic reconnection with worker recreation, and reconnect
  * hooks.
@@ -8,29 +8,24 @@
  * managed Temporal dev server can restart at any time (often with EMPTY
  * state), so the manager must survive outages, recreate every worker on
  * reconnect (a worker missing from the reconnect path silently dies after
- * the first Temporal blip — Go's createWorkers warning), and let domain
- * code observe the CURRENT client at call time.
+ * the first Temporal blip), and let domain code observe the CURRENT
+ * client at call time.
  *
- * Two deliberate TS-idiom deviations from Go, both internal (neither is
- * wire-visible):
+ * How the current client reaches its readers:
  *
- *   - Go re-injects workflow creators into controllers via duck-typed
- *     SetWorkflowCreator/SetTemporalClient assertions on an untyped
- *     dependency bag. Here the domain's engine implementation reads
- *     getClient() at call time — the engine-state provider IS
- *     the injection mechanism, so reconnects propagate with no reinject
- *     step and "forgot to wire it" is a compile error.
- *   - Go passes the client to CompleteExternalActivity through a mutable
- *     package global re-set on every reconnect. Here activities receive a
- *     live client PROVIDER (worker factory deps), which reads the current
- *     client when the activity runs.
+ *   - the domain's engine implementation reads getClient() at call time —
+ *     the engine-state provider IS the injection mechanism, so reconnects
+ *     propagate with no reinject step and "forgot to wire it" is a compile
+ *     error;
+ *   - activities that call CompleteExternalActivity receive a live client
+ *     PROVIDER (worker factory deps), which reads the current client when
+ *     the activity runs.
  *
- * Parity note on availability semantics (Go behavior, preserved exactly):
- * the engine is "unavailable" only until the FIRST successful connect —
- * Go's nil workflowCreator window. After that, getClient() keeps returning
- * the most recent client even during an outage; operations fail with
- * connection errors exactly as Go's stale-client operations do, and the
- * health monitor swaps in a fresh client when the server returns.
+ * Availability semantics: the engine is "unavailable" only until the FIRST
+ * successful connect. After that, getClient() keeps returning the most
+ * recent client even during an outage; operations fail with connection
+ * errors, and the health monitor swaps in a fresh client when the server
+ * returns.
  *
  * One choke point for connection security: `connection` (TLS, mutual TLS,
  * an API key; `@stigmer/temporal-codecs`' `loadTemporalConnectionConfig`)
@@ -40,9 +35,9 @@
  *
  * One choke point for payload decryption: the codecs are installed on the
  * client at dial AND wired into every worker by the deps' createWorker
- * capability (the TS SDK's Worker.create takes its own dataConverter; Go
- * workers inherit the client's — same coverage, two installation sites,
- * one source array, one construction path).
+ * capability (the TS SDK's Worker.create takes its own dataConverter, so
+ * there are two installation sites: one source array, one construction
+ * path).
  *
  * One choke point for the SDK's own log lines: every native connect is
  * preceded by attaching this manager's logger to the process's SDK log
@@ -64,26 +59,23 @@ import { processSdkLogBridge } from "./sdk-logger.js";
 /**
  * Initial connect: 3 attempts with exponential backoff (1s, 2s between
  * attempts), then give up NON-fatally — the server boots and serves with
- * the engine unavailable; the health monitor keeps retrying
- * (temporal_manager.go InitialConnect).
+ * the engine unavailable; the health monitor keeps retrying.
  */
 const INITIAL_CONNECT_MAX_ATTEMPTS = 3;
 const INITIAL_CONNECT_BASE_DELAY_MS = 1_000;
 
 /**
- * Per-dial connect window. Go's client.Dial fails FAST on
- * connection-refused; grpc-js instead keeps re-dialing inside its
- * connectTimeout (default 10s), which would turn the non-fatal 3-attempt
+ * Per-dial connect window. grpc-js keeps re-dialing a refused connection
+ * inside its connectTimeout (default 10s), which would turn the non-fatal 3-attempt
  * boot into a ~33s stall when Temporal is absent (the Class A conformance
- * harness deliberately points at a closed port). A short window restores
- * Go's fail-fast boot; the retry loop and the health monitor supply all
+ * harness deliberately points at a closed port). A short window keeps the
+ * boot fail-fast; the retry loop and the health monitor supply all
  * the patience a slow-starting Temporal needs.
  */
 const DIAL_CONNECT_TIMEOUT_MS = 1_000;
 
 /**
- * Health monitor cadence: 15s ticks with a 5s CheckHealth deadline
- * (temporal_manager.go StartHealthMonitor/testConnection). Fast enough
+ * Health monitor cadence: 15s ticks with a 5s CheckHealth deadline. Fast enough
  * that a dev-server restart is healed within one schedule-reconcile
  * window; slow enough to be free at idle.
  */
@@ -91,13 +83,12 @@ const HEALTH_CHECK_INTERVAL_MS = 15_000;
 const HEALTH_CHECK_TIMEOUT_MS = 5_000;
 
 /**
- * Reconnect backoff: exponential 1s, 2s, 4s… capped at 30s
- * (temporal_manager.go calculateBackoff) — the cap keeps recovery latency
+ * Reconnect backoff: exponential 1s, 2s, 4s… capped at 30s — the cap keeps recovery latency
  * bounded when the dev server has been down a while.
  */
 const RECONNECT_BACKOFF_CAP_MS = 30_000;
 
-/** The gRPC health service name Go's client.CheckHealth probes. */
+/** The gRPC health service name the health check probes. */
 const TEMPORAL_HEALTH_SERVICE =
   "temporal.api.workflowservice.v1.WorkflowService";
 
@@ -155,8 +146,7 @@ export interface WorkerFactoryDeps {
 
 /**
  * Creates one domain worker (agent-execution here; the schedule clock
- * appends its own — Go createWorkers' list;
- * extension workers append after the OSS set via the registry).
+ * appends its own; extension workers append after the OSS set via the registry).
  */
 export type WorkerFactory = (deps: WorkerFactoryDeps) => Promise<Worker>;
 
@@ -191,7 +181,7 @@ export class TemporalManager {
   private connected = false;
   private consecutiveFails = 0;
   private lastAttemptMs = 0;
-  /** Go's reconnectMu.TryLock: one reconnection attempt at a time. */
+  /** One reconnection attempt at a time. */
   private reconnecting = false;
   private monitor: NodeJS.Timeout | undefined;
   private closed = false;
@@ -208,9 +198,9 @@ export class TemporalManager {
 
   /**
    * The current client, or undefined until the FIRST successful connect
-   * (Go's nil-creator window — see the module header's parity note).
-   * After an outage this keeps returning the stale client on purpose;
-   * operations fail as Go's do until the monitor swaps in a fresh one.
+   * (see the module header's availability note). After an outage this
+   * keeps returning the stale client on purpose; operations fail until the
+   * monitor swaps in a fresh one.
    */
   getClient(): Client | undefined {
     return this.client;
@@ -222,7 +212,7 @@ export class TemporalManager {
 
   /**
    * Registers a callback run after every successful RECONNECTION, once
-   * workers are recreated (Go AddReconnectHook). Its consumer is the
+   * workers are recreated. Its consumer is the
    * schedule reconciliation kick — an OSS reconnect very
    * often means the dev server restarted with empty state.
    */
@@ -233,7 +223,7 @@ export class TemporalManager {
   /**
    * Attempts the initial connection with bounded retries; returns true on
    * success, false after all retries (NON-fatal — the health monitor takes
-   * over). Mirrors Go InitialConnect.
+   * over).
    */
   async initialConnect(): Promise<boolean> {
     this.logger.info("Attempting initial Temporal connection with retry", {
@@ -278,10 +268,10 @@ export class TemporalManager {
   }
 
   /**
-   * Creates and starts all workers for the first time (Go StartWorkers).
+   * Creates and starts all workers for the first time.
    * No client → warn and return; a worker-start failure is a warning, not
-   * a boot failure (server.go's posture — the health monitor's next
-   * reconnect recreates everything).
+   * a boot failure (the health monitor's next reconnect recreates
+   * everything).
    */
   async startWorkers(): Promise<void> {
     if (this.client === undefined) {
@@ -291,8 +281,7 @@ export class TemporalManager {
     try {
       await this.createAndRunWorkers();
       // This exact wording is LOAD-BEARING: scripts/verify-slim-artifact.mjs
-      // (the slim-artifact CI/release gate) waits for it, and the Go server
-      // emits the identical line (temporal_manager.go). Reword all three
+      // (the slim-artifact CI/release gate) waits for it. Reword both
       // together or the gate fails as an opaque timeout.
       this.logger.info("All Temporal workers started", {
         worker_count: this.workers.length,
@@ -308,8 +297,7 @@ export class TemporalManager {
   }
 
   /**
-   * Starts the periodic health check + reconnection loop (Go
-   * StartHealthMonitor): an immediate check, then 15s ticks. The interval
+   * Starts the periodic health check + reconnection loop: an immediate check, then 15s ticks. The interval
    * is unref'd so an unclosed manager cannot keep the process alive past
    * main's intent; close() clears it deliberately.
    */
@@ -352,7 +340,7 @@ export class TemporalManager {
       namespace: this.namespace,
       // When payload encryption is configured, the decode-only codec is
       // the single client-side choke point for runner-encrypted payload
-      // reads (Go dialTemporal). Absent config installs nothing.
+      // reads. Absent config installs nothing.
       ...(this.payloadCodecs.length > 0
         ? { dataConverter: { payloadCodecs: this.payloadCodecs } }
         : {}),
@@ -396,7 +384,7 @@ export class TemporalManager {
 
   private async attemptReconnection(): Promise<void> {
     if (this.reconnecting) {
-      return; // Go's TryLock: another attempt is in flight.
+      return; // Another attempt is in flight.
     }
     const backoffMs = this.calculateBackoff();
     if (Date.now() - this.lastAttemptMs < backoffMs) {
@@ -426,15 +414,14 @@ export class TemporalManager {
       // close() may have completed while the dial was in flight; adopting
       // the fresh connection now would RESURRECT the manager after
       // shutdown — live pollers, open connections, reconnect hooks firing
-      // post-close (Go is immune because its monitor's
-      // context is cancelled before Close). Discard and stand down.
+      // post-close. Discard and stand down.
       if (this.closed) {
         await closeQuietly(() => dialed.connection.close(), this.logger);
         return;
       }
 
       const oldConnection = this.connection;
-      // Swap order is contract (Go attemptReconnection): the new client is
+      // Swap order is contract: the new client is
       // observable BEFORE workers restart, so an engine call racing the
       // reconnect sees the fresh client, never a closed one.
       this.connection = dialed.connection;
@@ -461,7 +448,7 @@ export class TemporalManager {
       // No creator re-injection step: the engine-state provider reads
       // getClient() at call time (see the module header).
 
-      // Reconnect hooks last, once workers poll again (Go ordering) —
+      // Reconnect hooks last, once workers poll again —
       // e.g. the schedule re-arm must find a worker to fire against.
       for (const hook of [...this.reconnectHooks]) {
         hook();
@@ -490,7 +477,7 @@ export class TemporalManager {
     await this.shutdownWorkers();
     if (this.nativeConnection !== undefined) {
       // The old NativeConnection is bound to the dead server; workers get
-      // a fresh one (Go workers are recreated from the new client).
+      // a fresh one.
       await closeQuietly(() => this.nativeConnection!.close(), this.logger);
       this.nativeConnection = undefined;
     }
@@ -501,8 +488,8 @@ export class TemporalManager {
         worker_count: this.workers.length,
       });
     } catch (error) {
-      // Mirror Go restartWorkers: a worker failure never breaks the
-      // reconnect — the next monitor tick tries again.
+      // A worker failure never breaks the reconnect — the next monitor
+      // tick tries again.
       this.logger.warn("Failed to restart workers", {
         error: errorMessage(error),
       });
@@ -563,8 +550,8 @@ export class TemporalManager {
       const taskQueue = worker.options.taskQueue;
       this.logger.info("Temporal worker started", { task_queue: taskQueue });
       // run() resolves on graceful shutdown and rejects on fatal worker
-      // errors; a rejection is logged and left to the health monitor —
-      // Go's "worker died, reconnect recreates it" model. ERROR level with
+      // errors; a rejection is logged and left to the health monitor (a
+      // dead worker is recreated by the next reconnect). ERROR level with
       // the queue identity, deliberately: a PERMANENT death (the
       // dual-module-instance class) re-dies on every recreate while the
       // worker still reports RUNNING — this line is the only signal.
@@ -584,8 +571,7 @@ export class TemporalManager {
         worker.shutdown();
       } catch {
         // Already stopped — shutdown on a non-running worker throws in the
-        // TS SDK; Go's Stop is idempotent, and idempotence is what the
-        // reconnect path needs here.
+        // TS SDK, and idempotence is what the reconnect path needs here.
       }
     }
     await Promise.all(this.workers.map(({ runPromise }) => runPromise));

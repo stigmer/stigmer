@@ -1,6 +1,5 @@
 /**
- * Pins the routine domain against Go's schedule_test.go and
- * trigger_test.go — through the REAL stack: a composed server on an
+ * Pins the routine domain through the REAL stack: a composed server on an
  * ephemeral port, a native gRPC client, the full interceptor chain, the
  * REAL in-process agentexecution create pipeline behind the trigger, and
  * a deterministically-closed Temporal port (the arming steps must degrade,
@@ -512,8 +511,7 @@ describe("trigger — the two-level contract", () => {
 
     // No engine behind this server: the create pipeline's engine gate
     // refuses Unavailable — an infrastructure failure, propagated as the
-    // trigger's OWN error (Go: "Manual trigger's run start failed on
-    // infrastructure"). The re-mint matters: echoing the in-process error
+    // trigger's OWN error. The re-mint matters: echoing the in-process error
     // corrupts HTTP/2 trailers.
     const err = await refusal(() => command.fire({ id }));
     expect(err.code).toBe(Code.Unavailable);

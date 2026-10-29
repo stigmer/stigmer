@@ -1,23 +1,20 @@
 /**
- * Pins the agentexecution surfaces against Go's controller —
- * through the REAL stack: a composed server on an ephemeral port, a
+ * Pins the run surfaces through the REAL stack: a composed server on an ephemeral port, a
  * native gRPC client, the full interceptor chain. Executions cannot be
  * created through the RPC surface here (the engine gate refuses without
  * Temporal — the production posture while no engine is connected), so
- * records are
- * seeded directly through the store, the same way Go's controller tests
- * seed with SaveResource.
+ * records are seeded directly through the store.
  *
  * Load-bearing pins the conformance suite cannot cover:
  *   - a turn whose conversation runs on Claude reaches the engine gate like
  *     any offered engine's, a new conversation naming it and a message to a
  *     stored one alike; a stored conversation whose engine is a number no
- *     engine owns (a row written before validation, the retired number 2
+ *     engine owns (a row written outside validation, the unused number 2
  *     among them) is refused before the engine gate;
  *   - the MANGLED unknown-execution message on getRunUsageReport,
- *     byte-for-byte (a faithful port of the Go message);
+ *     byte-for-byte (existing error copy is wire contract);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
- *     rule (Go get_agent_usage_report_test.go case-for-case);
+ *     rule, case by case;
  *   - the usage reports over the wire: a run's runner report counted
  *     (estimated, under the unknown server), the organization report's
  *     range by creation instant and its UTC days;
@@ -1193,7 +1190,7 @@ describe("updateStatus over the wire", () => {
 describe("getRunSummary — the populated arm", () => {
   it("counts phases, actives, completion durations, and failure ranks", async () => {
     // Seeded records carry no audit timestamps, so the window cutoff
-    // never skips them (Go: a zero created_at disables the skip).
+    // never skips them (a zero created_at disables the skip).
     await seed(
       seedInput({
         org: idOf("org-summary"),

@@ -5,8 +5,8 @@
  * extension registers `drivers.identityAccountStore`.
  *
  * Every subject lookup is a PRIMARY-KEY read of the derived id
- * (constants.ts accountIdFor): open source has no legacy random ids, so
- * "the account with subject S" IS "the row with id accountIdFor(S)". That
+ * (constants.ts accountIdFor): open source never mints a random account
+ * id, so "the account with subject S" IS "the row with id accountIdFor(S)". That
  * is what makes the OIDC lane's per-request resolve, whoAmI and the
  * provisioning idempotency check O(1) reads with no secondary index and
  * no scan, and it is why `save` refuses a direct account whose id is not

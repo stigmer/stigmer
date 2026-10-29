@@ -1,6 +1,5 @@
 /**
- * Session controller — ports pkg/domain/session/controller (command +
- * query sides): the conversation thread a person has with an agent, or with
+ * Session controller (command + query sides): the conversation thread a person has with an agent, or with
  * the built-in assistant when it names none. Create and update pin the
  * agent the session names, at the version it resolves to
  * (resolve-session-agent.ts); update keeps the harness, the execution
@@ -9,7 +8,6 @@
  * cascades the session's agent executions and its Files; updateSubject is a field-level
  * read-modify-write.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by session.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/session.test.ts.
  *
@@ -215,7 +213,7 @@ export interface SessionControllerDeps {
   readonly gateSteps: ResolvedGateSteps;
   /**
    * The sandbox lane: session delete tears the session's
-   * sandbox down best-effort (the Java SessionDeleteHandler posture).
+   * sandbox down best-effort.
    */
   readonly sandboxLane: SandboxLane;
   /**
@@ -228,7 +226,7 @@ export interface SessionControllerDeps {
    * The composed list read scope — the three list lanes narrow to the
    * caller's authorized sessions through it; undefined = the OSS full
    * scan (the guest rule rides the driver, the
-   * org deliberately NOT intersected — the Java session lanes never do).
+   * org deliberately NOT intersected).
    */
   readonly listReadScope: ListReadScope | undefined;
   /** Seals the session's own values at rest; opens nothing (the run resolver does). */
@@ -306,7 +304,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline, then the pin: the reference
+ * Create — the create chain, then the pin: the reference
  * rule judges spec.agent_ref (and records the agent it found),
  * ResolveSessionAgent pins that agent at the version the reference names,
  * and AuthorizeRunTarget (the run gate) asks can_execute on the pinned id —
@@ -320,8 +318,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * header).
  *
  * The pre-side-effect gate slot splices before Persist, after the last
- * pure step and after the pin, so an edition gate reads the pinned agent
- * (mirroring the Java baseline's post-resolution gate position). Every
+ * pure step and after the pin, so an edition gate reads the pinned agent.
+ * Every
  * step above it is pure, so a gate refusal leaves nothing behind.
  */
 async function createSession(
@@ -410,7 +408,7 @@ function fileInstancesOf(deps: SessionControllerDeps): FileInstances {
 }
 
 /**
- * Update — chain per Go buildUpdatePipeline: the immutability sentinels
+ * Update — the immutability sentinels
  * run after LoadExisting, the server-owned history append after
  * BuildUpdateState (it mutates the merged state). The reference rule, the
  * pin and the run gate run as on create, so changing a session's agent is
@@ -488,7 +486,7 @@ async function update(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `session`, not the pipeline's mutated clone);
+ * message, not the probe pipeline's mutated clone;
  * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
@@ -609,8 +607,8 @@ async function deleteSession(
     );
   }
   // The session's sandbox tears down AFTER the row is gone —
-  // best-effort, never failing the delete (the Java SessionDeleteHandler
-  // posture; the helper carries the leak-logging rationale).
+  // best-effort, never failing the delete (the helper carries the
+  // leak-logging rationale).
   await deprovisionSessionSandboxBestEffort(
     deps.sandboxLane,
     deps.logger,
@@ -620,7 +618,7 @@ async function deleteSession(
 }
 
 /**
- * UpdateSubject — update_subject.go: a field-level read-modify-write, NO
+ * UpdateSubject — a field-level read-modify-write, NO
  * pipeline. The server loads the current session, modifies only the
  * subject field, stamps the SPEC audit slot (a definition change, unlike
  * the visibility RPCs' status slot), persists, and refreshes the search
@@ -628,9 +626,9 @@ async function deleteSession(
  * the server, concurrent callers (e.g., GenerateSessionSubject and
  * sandbox_manager) cannot overwrite each other's unrelated fields.
  *
- * The annotation's can_edit check runs AFTER the load — the Java
- * SessionUpdateSubjectHandler order (load-before-authorize, stigmer#224:
- * a missing id answers NOT_FOUND, never PERMISSION_DENIED).
+ * The annotation's can_edit check runs AFTER the load
+ * (load-before-authorize, stigmer#224: a missing id answers NOT_FOUND,
+ * never PERMISSION_DENIED).
  */
 async function updateSubject(
   deps: SessionControllerDeps,
@@ -691,8 +689,8 @@ async function updateSubject(
 
 /**
  * Refreshes the search index for a session. Best-effort: logs on
- * failure but does not propagate (Go indexSessionSearch — an undefined
- * entry returns silently, without the shared step's warn).
+ * failure but does not propagate (an undefined entry returns silently,
+ * without the shared step's warn).
  */
 async function indexSessionSearch(
   deps: SessionControllerDeps,
@@ -716,7 +714,7 @@ async function indexSessionSearch(
   }
 }
 
-/** Get — LoadTarget by id (Go's chain has no ExtractResourceId here). */
+/** Get — LoadTarget by id (no ExtractResourceId step). */
 async function get(
   deps: SessionControllerDeps,
   id: SessionId,

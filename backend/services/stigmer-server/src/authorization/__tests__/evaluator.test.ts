@@ -81,7 +81,7 @@ describe("a person against a direct tuple", () => {
     tuple("organization:acme#affiliated@identity_account:ida_carol"),
   ]);
 
-  it("matches on any alias, so a row stamped with the 3.14 issuer subject is still its creator's", async () => {
+  it("matches on any alias, so a row stamped with the raw issuer subject is still its creator's", async () => {
     const carol = person("ida_carol", "auth0|carol");
     expect(await allowed(source, "agent:a", "can_edit", carol)).toBe(true);
     expect(

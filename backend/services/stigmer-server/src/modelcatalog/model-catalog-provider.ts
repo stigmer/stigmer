@@ -12,22 +12,21 @@
  *
  *   1. Reads are PER CALL. Implementations may cache internally (they own
  *      invalidation), but consumers never build boot-time indexes over
- *      this provider. The named counterexample is the cloud Java
- *      ModelValidationHelper's @PostConstruct index, which captured the
- *      embedded registry before the DB baseline loaded and served
- *      stale validity for the process's whole life.
+ *      this provider: a boot-time index captures the registry before a
+ *      DB baseline loads and serves stale validity for the process's
+ *      whole life.
  *   2. Validation logic stays OSS and edition-neutral. The did-you-mean
  *      pin machinery (pin-validation.ts) and every refusal message CONSUME
  *      this provider; an edition substitutes the data source only, never
  *      the judgment. Refusal copy is conformance-visible shared contract.
  *
  * The OSS implementation is ModelRegistryStore (bundled snapshot + hourly
- * upstream refresh), unchanged; its refresh lifecycle is deliberately NOT
+ * upstream refresh); its refresh lifecycle is deliberately NOT
  * part of this contract — refresh is how ONE implementation keeps itself
  * current, owned by the composition root that constructs it. Extensions
  * substitute an implementation through the drivers registry point
- * (extensions/drivers.ts); with none composed, behavior is byte-identical
- * to the pre-extraction store.
+ * (extensions/drivers.ts); with none composed, ModelRegistryStore
+ * serves.
  */
 
 /**

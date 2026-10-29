@@ -1,11 +1,9 @@
 /**
  * Authorization-tuple lifecycle steps — the OSS half of the
- * resource-authorization lifecycle seam. Ports the Java service's
- * config-driven tuple machinery: CreateAuthorizationTuplesStepV2 (create
- * chains, post-persist), DeleteOperationCleanupIamPoliciesStep (delete
- * chains, best-effort), and the VisibilityTupleReconciler's level→shape
- * policy with set-diff transitions (updateVisibility chains,
- * post-persist). Verified against the Java sources 2026-08-27.
+ * resource-authorization lifecycle seam: config-driven tuple creation
+ * (create chains, post-persist), delete cleanup (delete chains,
+ * best-effort), and the visibility level→shape policy with set-diff
+ * transitions (updateVisibility chains, post-persist).
  *
  * Everything edition-neutral resolves HERE — the kind's proto
  * AuthorizationConfig (via kind_meta, the apiresource-meta idiom),
@@ -16,13 +14,12 @@
  * owns only the tuple writes. No driver = every step no-ops before any
  * resolution work — OSS behavior AND cost are byte-identical.
  *
- * Failure semantics (Java parity):
+ * Failure semantics:
  *   - create: a resolution gap (missing parent id, missing org) or a
  *     driver throw FAILS the request as Internal — after persist, so a
  *     half-created resource is a real, retry-healed state (inherited).
  *   - delete cleanup: best-effort — log and continue, never fail the
- *     delete (Java's step swallows everything; orphaned grants are inert
- *     once the row is gone). One function, `cleanUpDeletedResource`, is
+ *     delete (orphaned grants are inert once the row is gone). One function, `cleanUpDeletedResource`, is
  *     that cleanup for every delete chain's own resource and for every
  *     child a parent's cascade deletes (stigmer#1603): a cascaded child is
  *     cleaned as its own delete would clean it, so its rows and tuples go
@@ -31,8 +28,7 @@
  *     persist; retrying the same transition converges (set-diff
  *     idempotency).
  *   - the PLATFORM scope arm is dead config in BOTH editions (no kind
- *     uses it; Java's switch falls through to a warn) — ported as the
- *     same conscious warn, never an implementation.
+ *     uses it) — a conscious warn, never an implementation.
  */
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 
@@ -66,14 +62,13 @@ import type { HasMetadataShape } from "./shapes.js";
 import { metadataOf, parentIdOf } from "./shapes.js";
 
 // ---------------------------------------------------------------------------
-// Visibility shape policy — the reconciler's level→shape mapping, ported
-// from the Java VisibilityTupleReconciler (its unit-test matrix is
-// re-pinned in this module's tests).
+// Visibility shape policy — the level→shape mapping (its transition matrix
+// is pinned in this module's tests).
 // ---------------------------------------------------------------------------
 
 /**
  * The tuple shapes a visibility level expands to for a kind. Levels the
- * kind does not support yield the empty set SILENTLY (Java parity — the
+ * kind does not support yield the empty set SILENTLY (the
  * ValidateVisibility steps reject unsupported levels with
  * InvalidArgument before persist; this policy never doubles as
  * validation).
@@ -149,7 +144,7 @@ function resolveParentLink(
 ): ResolvedParentLink {
   const parentId = parentIdOf(resource, parentConfig);
   if (parentId === "") {
-    // Java: "Parent ID required for X but not found" → the request fails.
+    // A required parent id that is missing fails the request.
     const field =
       parentConfig.statusField !== ""
         ? `status field '${parentConfig.statusField}'`
@@ -170,7 +165,7 @@ function resolveParentLink(
 
 /**
  * The scope link + additional parents for a created resource — resolved
- * in Java's order (scope first, additional parents after).
+ * in order (scope first, additional parents after).
  */
 function resolveParentLinks(
   kind: ApiResourceKind,
@@ -212,9 +207,9 @@ function resolveParentLinks(
     case AuthorizationScopeType.OWNER_ONLY:
       break;
     case AuthorizationScopeType.PLATFORM:
-      // Dead config in both editions — Java's switch warns and writes no
-      // scope link (organization/identity_account are OWNER_ONLY in the
-      // shipped config). Ported as the same conscious warn.
+      // Dead config in both editions — warn and write no scope link
+      // (organization/identity_account are OWNER_ONLY in the shipped
+      // config).
       logger.warn("unhandled PLATFORM authorization scope — no scope link", {
         kind: getKindName(kind),
       });
@@ -237,8 +232,8 @@ function resolveParentLinks(
 
 /**
  * Resolves the creation event for a just-persisted resource, or
- * undefined for kinds whose scope is NONE/UNSPECIFIED (Java's early
- * return — no owner tuple, no visibility either). Shared by the generic
+ * undefined for kinds whose scope is NONE/UNSPECIFIED (no owner tuple,
+ * no visibility either). Shared by the generic
  * create step and the domain-local lanes whose pipeline message is not
  * the resource (skill push rides SKILL_KEY).
  */
@@ -278,8 +273,7 @@ export function resolveResourceCreatedEvent(
       metadata.org,
       logger,
     ),
-    // Creation is the unspecified→level transition (Java models it the
-    // same way through the reconciler).
+    // Creation is the unspecified→level transition.
     visibilityShapes: [...visibilityShapesFor(kind, metadata.visibility)],
   };
 }
@@ -333,8 +327,7 @@ export function newCreateAuthorizationTuplesStep<Desc extends DescMessage>(
 /**
  * The delete cleanup of one deleted resource: the composed driver's
  * `onResourceDeleted`, best-effort by contract. A driver failure is logged
- * and never raised (Java's DeleteOperationCleanupIamPoliciesStep swallowed
- * all), because a deleted resource's rows grant nothing once it is gone,
+ * and never raised, because a deleted resource's rows grant nothing once it is gone,
  * and no sweep revisits them: a cleanup that fails here stays undone until
  * another cleanup reaches the row from its other side. No driver = no-op.
  *
@@ -429,7 +422,7 @@ export function newRecordVisibilityBeforeUpdateStep<Desc extends DescMessage>(
  * UpdateVisibilityTuples — post-persist in every updateVisibility chain
  * (and the skill push lanes, which set visibility at creation time
  * through the create step instead). A driver failure fails the request
- * (Java parity: metadata persisted, tuples lagging, retry converges).
+ * (metadata persisted, tuples lagging, retry converges).
  */
 export function newUpdateVisibilityTuplesStep<Desc extends DescMessage>(
   lifecycle: ResourceAuthorizationLifecycle | undefined,

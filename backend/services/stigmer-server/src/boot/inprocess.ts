@@ -1,10 +1,8 @@
 /**
- * In-process ConnectRPC clients — the TS twin of Go's pkg/downstream/*
- * packages (agent and the rest), which serve cross-domain calls through
- * the same *grpc.Server over an in-memory bufconn so EVERY interceptor
- * executes: an internal call is validated, logged, and kind-tagged exactly
- * like an external one. Here the bufconn equivalent is ConnectRPC's
- * `createRouterTransport` built from the SAME routes registration function
+ * In-process ConnectRPC clients: cross-domain calls served through the
+ * same routes so EVERY interceptor executes — an internal call is
+ * validated, logged, and kind-tagged exactly like an external one. The
+ * transport is ConnectRPC's `createRouterTransport` built from the SAME routes registration function
  * the unified-port server uses, with the SAME interceptor chain EXCEPT the
  * position-1 identity source: this chain stamps the
  * `internal` caller class only it can mint, where the serving chain runs
@@ -171,7 +169,7 @@ export interface InProcessWiring {
 /**
  * Builds the in-process clients over a router transport that registers the
  * SAME routes and runs the SAME interceptor chain as the serving router —
- * validation parity is the point, exactly Go's bufconn shape.
+ * validation parity is the point.
  */
 export function createInProcessClients(
   routes: (router: ConnectRouter) => void,
@@ -180,8 +178,8 @@ export function createInProcessClients(
 ): InProcessWiring {
   // Position 1 of this chain is the in-process identity stamper, NOT the
   // serving chassis: every call through this transport
-  // carries the internal caller class, which only this chain can mint —
-  // the TS rendering of the Java in-process authorization skip. Positions
+  // carries the internal caller class, which only this chain can mint,
+  // and which authorization lets through. Positions
   // 2–4 stay identical to the serving chain (validation parity).
   const transport = createRouterTransport(routes, {
     router: {
@@ -209,7 +207,7 @@ export function createInProcessClients(
   const skillCommand = createClient(SkillCommandController, transport);
   const scoreCommand = createClient(ScoreCommandController, transport);
 
-  // The caller-propagation call options (the Java posture restored): the
+  // The caller-propagation call options: the
   // ORIGINAL caller's identity rides the
   // propagation header (the one client→router channel; contextValues are
   // server-side); the in-process position-1 interceptor decodes it and

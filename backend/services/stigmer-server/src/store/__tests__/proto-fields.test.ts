@@ -1,8 +1,8 @@
 /**
  * Byte-pins the physical-layout constants and the reflection helpers.
- * The kind names are the values of the `kind` column in every table the
- * Go server ever wrote (Go kind.String()); a drift here silently orphans
- * every row of that kind at cutover — these pins fail first.
+ * The kind names are the values of the `kind` column in every table; a
+ * drift here silently orphans every stored row of that kind — these pins
+ * fail first.
  */
 import { describe, expect, it } from "vitest";
 
@@ -25,7 +25,7 @@ describe("apiResourceKindName", () => {
     [ApiResourceKind.channel_app, "channel_app"],
     [ApiResourceKind.channel, "channel"],
     [ApiResourceKind.skill, "skill"],
-  ])("maps kind %d to Go's kind.String() value %j", (kind, expected) => {
+  ])("maps kind %d to its proto enum name %j", (kind, expected) => {
     expect(apiResourceKindName(kind)).toBe(expected);
   });
 
@@ -44,7 +44,7 @@ describe("extractFieldValue", () => {
     expect(extractFieldValue(OrganizationSchema, org, "metadata.slug")).toBe("acme");
   });
 
-  it("falls back camelCase → snake_case, as Go's two-probe lookup", () => {
+  it("falls back camelCase → snake_case, a two-probe lookup", () => {
     expect(extractFieldValue(OrganizationSchema, org, "apiVersion")).toBe(
       "tenancy.stigmer.ai/v1",
     );
@@ -77,7 +77,7 @@ describe("toSnakeCase", () => {
     ["supersedesRunId", "supersedes_run_id"],
     ["already_snake", "already_snake"],
     ["single", "single"],
-  ])("converts %j to %j (Go toSnakeCase)", (input, expected) => {
+  ])("converts %j to %j", (input, expected) => {
     expect(toSnakeCase(input)).toBe(expected);
   });
 });

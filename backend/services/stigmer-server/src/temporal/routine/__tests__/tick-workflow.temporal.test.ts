@@ -1,6 +1,5 @@
 /**
- * Tick-workflow orchestration tests — port the scenario matrix of
- * pkg/domain/schedule/temporal/tick_workflow_test.go through a
+ * Tick-workflow orchestration tests — the scenario matrix through a
  * TestWorkflowEnvironment with scripted activities.
  *
  * What these pin (the clock's orchestration contract):

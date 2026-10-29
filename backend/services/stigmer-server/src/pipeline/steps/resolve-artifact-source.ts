@@ -7,8 +7,7 @@
  * context key and never touch the request's fields, so the two sources
  * are indistinguishable past this point.
  *
- * Skills carried this step alone (the Go ResolveArtifactSource port);
- * plugins are pushed the same two ways over the same staging port (one
+ * Skills and plugins are pushed the same two ways over the same staging port (one
  * upload surface, as boot/compose.ts wires it), so the step lives here
  * and each kind names its lane-absent sentence and the request fields it
  * reads. The staging port (domain/skill/transfer/staging.ts) hides which

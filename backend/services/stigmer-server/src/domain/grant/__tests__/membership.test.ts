@@ -262,9 +262,8 @@ describe("membership rules", () => {
   }
 
   /**
-   * Seeds an account row as 3.15.x provisioning left it: the derived id,
-   * the subject, the email, a creation stamp (the reconciliation's order)
-   * and no role row anywhere.
+   * Seeds an account row with no role row anywhere: the derived id, the
+   * subject, the email and a creation stamp (the order the arms read).
    */
   async function seedAccount(
     sub: string,

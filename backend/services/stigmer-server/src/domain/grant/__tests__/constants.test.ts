@@ -11,13 +11,12 @@
  *     re-addresses every grant open source ever wrote. The
  *     prefix moved from `iamp` to `grt` with the kind's rename and the
  *     hash did not, so a stored id moves by its prefix alone;
- *   - `BLUEPRINT_KINDS` — the kinds an admin authors, the legacy-creator
- *     rule's whole scan; sessions and executions are personal
- *     and never appear here;
- *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
- *     new sentences (the two edition refusals, the unknown permission, the
+ *   - `BLUEPRINT_KINDS` — the kinds an admin authors; sessions and
+ *     executions are personal and never appear here;
+ *   - the byte-pinned copy (the CLI, console and SDK show it verbatim),
+ *     with the two edition refusals, the unknown permission, the
  *     unknown principal kind, the malformed triple, the four principal
- *     refusals a team grantee brought);
+ *     refusals a team grantee brought;
  *   - `USER_GRANT_PRINCIPAL_KINDS` — a person and a team, and no kind the
  *     hierarchy walk would read as a structural parent;
  *   - the canonical text's one weakness and its closure: `ApiResourceRef` fields carry no character pattern, so an
@@ -301,7 +300,7 @@ describe("the contract's identity strings", () => {
   });
 });
 
-describe("BLUEPRINT_KINDS — the legacy-creator rule's scan", () => {
+describe("BLUEPRINT_KINDS — the kinds an admin authors", () => {
   it("is exactly the three kinds an admin authors, in registry order", () => {
     expect([...BLUEPRINT_KINDS]).toEqual([
       ApiResourceKind.agent,

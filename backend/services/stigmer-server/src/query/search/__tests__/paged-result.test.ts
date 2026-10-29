@@ -1,7 +1,5 @@
 /**
- * Pins the paged-result value object against Go's
- * search_paged_result_test.go, less the page-count math the response no
- * longer carries: the results, counts and match total pass through, a
+ * Pins the paged-result value object: the results, counts and match total pass through, a
  * negative total is refused, and EmptyResult is the all-zero shape.
  */
 import { create } from "@bufbuild/protobuf";
@@ -20,7 +18,7 @@ describe("newSearchPagedResult", () => {
     expect(paged.totalCount).toBe(5);
   });
 
-  it("rejects a negative total with Go's message", () => {
+  it("rejects a negative total with its message", () => {
     expect(() => newSearchPagedResult([], {}, -1)).toThrowError(
       "totalCount cannot be negative: -1",
     );

@@ -1,6 +1,5 @@
 /**
- * Organization domain steps — port
- * pkg/domain/organization/controller/steps.go, reshaped for minted ids.
+ * Organization domain steps.
  *
  * An organization is filed under the id BuildNewState mints (org_<ulid>),
  * like every other kind, and its slug is a name in the resource-name table

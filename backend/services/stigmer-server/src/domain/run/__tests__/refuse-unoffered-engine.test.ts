@@ -2,7 +2,7 @@
  * RefuseUnofferedEngine (refuse-unoffered-engine.ts): a turn is judged on
  * the engine ResolveRunConfig placed its conversation on. Every engine the
  * proto names is offered and passes; a number no engine owns (a row stored
- * before validation, say, or the retired number 2) is refused with
+ * outside validation, say, or the unused number 2) is refused with
  * FailedPrecondition naming it; a chain
  * without the placement (the step composed without ResolveRunConfig) has
  * nothing to judge and passes.

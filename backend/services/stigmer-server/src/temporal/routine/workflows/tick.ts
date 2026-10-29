@@ -1,6 +1,5 @@
 /**
- * The tick workflow — ports pkg/domain/schedule/temporal/tick_workflow.go:
- * one schedule fire, spanning its run: record the
+ * The tick workflow: one schedule fire, spanning its run: record the
  * fire, start the run, poll it to a terminal phase, record the verdict.
  * Spanning is what makes the artifact's overlap SKIP genuinely mean "never
  * start a run while the last is active", and the verdict is what feeds the
@@ -24,12 +23,10 @@
  * replay gate (__tests__/replay.test.ts) must stay green against the
  * committed histories.
  *
- * ERROR POSTURE: Go's
- * `return err` fails the WORKFLOW EXECUTION; a plain thrown Error in the
- * TS sandbox fails only the workflow TASK and retries forever. Every Go
- * error return is therefore an ApplicationFailure here. Cancellation
- * (sleep throwing CancelledFailure) propagates untouched — Go's
- * workflow.Sleep error return, same terminal outcome.
+ * ERROR POSTURE: a failed step must fail the WORKFLOW EXECUTION; a plain
+ * thrown Error in the TS sandbox fails only the workflow TASK and retries
+ * forever. Every failed step is therefore an ApplicationFailure here.
+ * Cancellation (sleep throwing CancelledFailure) propagates untouched.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox — imports are limited to @temporalio/workflow, @temporalio/common,
@@ -77,22 +74,21 @@ import {
  * The tracking loop's code-level backstop, on top of the per-fire budget:
  * 240 polls at the capped backoff is ~3.9 hours and ~1,200 history
  * events — the loop can never outgrow a workflow history even if a budget
- * is misconfigured (Go MaxTrackingCycles; exported so the bound test can
- * assert it).
+ * is misconfigured (exported so the bound test can assert it).
  */
 export const MAX_TRACKING_CYCLES = 240;
 
 /**
  * The nominal fire time Temporal stamps on every schedule-started
  * workflow — tier one of the nominal-time derivation (present on cron
- * fires AND manual triggers alike; Go scheduledStartTimeKey).
+ * fires AND manual triggers alike).
  */
 const SCHEDULED_START_TIME_KEY = defineSearchAttributeKey(
   "TemporalScheduledStartTime",
   SearchAttributeType.DATETIME,
 );
 
-// The three activity-option contexts (Go tick_workflow.go). Record stub:
+// The three activity-option contexts. Record stub:
 // short idempotent status writes, retried freely.
 const recordActivities = proxyActivities<RoutineTickActivities>({
   startToCloseTimeout: "30 seconds",
@@ -123,8 +119,7 @@ const failureActivities = proxyActivities<RoutineTickActivities>({
 });
 
 /**
- * Executes one tick (Go TickWorkflow.Run; registered as "schedule/tick"
- * via the barrel). The single argument is the routine's id
+ * Executes one tick (registered as "schedule/tick" via the barrel). The single argument is the routine's id
  * (Temporal bakes action args once — the nominal fire time is derived,
  * never carried).
  */
@@ -203,7 +198,7 @@ export async function tick(routineResourceId: string): Promise<void> {
 
 /**
  * Polls the run to a terminal phase within this fire's budget and records
- * the verdict (Go trackRun).
+ * the verdict.
  */
 async function trackRun(
   routineResourceId: string,
@@ -293,7 +288,7 @@ async function trackRun(
  * recoveryBackoff's exact shape, the only backoff curve this platform runs
  * in production workflow code. It notices a 30-120s run (the common case)
  * within seconds and reaches its cap by cycle twelve, bounding poll volume
- * on long runs (Go trackingBackoff). Exported for the curve's unit pin.
+ * on long runs. Exported for the curve's unit pin.
  */
 export function trackingBackoffMs(cycle: number): number {
   const ms = cycle * 5_000;
@@ -301,9 +296,9 @@ export function trackingBackoffMs(cycle: number): number {
 }
 
 /**
- * Derives THE fire's nominal time, three tiers (Go nominalFireTime):
+ * Derives THE fire's nominal time, three tiers:
  *  1. The TemporalScheduledStartTime search attribute (cron fires and
- *     manual triggers both carry it — spike-verified on the Go side).
+ *     manual triggers both carry it).
  *  2. The workflow-id suffix Temporal appends to the artifact's base id.
  *  3. Workflow time truncated to whole seconds (a hand-started tick).
  *
@@ -322,9 +317,8 @@ function nominalFireTime(routineResourceId: string): Date {
   const workflowId = workflowInfo().workflowId;
   if (workflowId.startsWith(base)) {
     const suffix = workflowId.slice(base.length);
-    // Go time.Parse(time.RFC3339) is strict; Date() is lenient — the
-    // pattern guard keeps a non-RFC3339 suffix falling to tier 3 exactly
-    // as Go's parse error does.
+    // Date() is lenient — the pattern guard keeps a non-RFC3339 suffix
+    // falling to tier 3.
     if (RFC3339_PATTERN.test(suffix)) {
       const parsed = new Date(suffix);
       if (!Number.isNaN(parsed.getTime())) {
@@ -332,14 +326,12 @@ function nominalFireTime(routineResourceId: string): Date {
       }
     }
   }
-  // Date.now() is deterministic workflow time inside the sandbox — Go's
-  // workflow.Now twin.
+  // Date.now() is deterministic workflow time inside the sandbox.
   return new Date(Math.floor(Date.now() / 1000) * 1000);
 }
 
 /**
- * Maps a failed activity to Go's `return fmt.Errorf("<label>: %w", err)` —
- * a WORKFLOW failure (see the module header's error posture). Cancellation
+ * Maps a failed activity to a `<label>: <error>` WORKFLOW failure (see the module header's error posture). Cancellation
  * failures propagate untouched.
  */
 async function failing<T>(label: string, promise: Promise<T>): Promise<T> {
@@ -360,7 +352,7 @@ async function failing<T>(label: string, promise: Promise<T>): Promise<T> {
 const RFC3339_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
-/** Go time.RFC3339, UTC whole seconds (the wire shape the activities pin). */
+/** RFC 3339, UTC whole seconds (the wire shape the activities pin). */
 function rfc3339Seconds(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }

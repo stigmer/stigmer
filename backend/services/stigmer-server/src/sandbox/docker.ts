@@ -7,8 +7,8 @@
  * self-host boxes) already has Docker; the driver seam keeps an
  * Engine-API swap mechanical if demand appears.
  *
- * The ensure state machine (the Java KubernetesSandboxProvisioner's
- * arms, minus the cloud-only archive ladder): container absent → run;
+ * The ensure state machine (every provisioner's arms, minus the
+ * cloud-only archive ladder): container absent → run;
  * exists but stopped → start; running → fast path. State is derived
  * from the container itself — name + labels — never a store table.
  *

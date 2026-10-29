@@ -10,8 +10,8 @@
  * row, its names and its access go, while the agent still links it to its
  * organization.
  *
- * A channel in another organization (a chat link written before sharing
- * across organizations was retired) is that organization's resource:
+ * A channel in another organization (a row that reached the store past
+ * the same-organization rule) is that organization's resource:
  * deleting it here would make an agent's delete a cross-principal
  * destructive act, so it is left to fail closed through its dangling
  * reference.

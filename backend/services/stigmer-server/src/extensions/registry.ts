@@ -167,8 +167,8 @@ export interface ServerExtension {
    * point, the edition's shape). Declaring it turns
    * the serving chain's tokenless-refusal arm on INDEPENDENTLY of the OSS
    * OIDC issuer: a request with no credential on a non-`is_public` method
-   * is UNAUTHENTICATED "authentication token missing" (the Java
-   * interceptor's copy), instead of falling to the trusted-local
+   * is UNAUTHENTICATED "authentication token missing" (the pinned copy),
+   * instead of falling to the trusted-local
    * single-operator identity. A composition whose own identity verifiers
    * resolve its users declares this — the OSS issuer arm cannot be reused
    * for it, because configuring the issuer also registers the OSS OIDC

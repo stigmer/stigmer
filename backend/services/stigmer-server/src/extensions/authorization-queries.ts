@@ -29,8 +29,8 @@
  * OpenFGA's `type:id#relation` strings itself; that grammar belongs to the
  * store that runs it and never enters this library.
  *
- * Semantics the controller and the conformance suite rely on (the Java
- * check-handler posture the cloud's client already implements):
+ * Semantics the controller and the conformance suite rely on (the
+ * cloud's client implements the same):
  *
  *   - `check` resolves usersets (a grant to `organization:acme#viewer`
  *     answers true for everyone in the organization), so "may I read

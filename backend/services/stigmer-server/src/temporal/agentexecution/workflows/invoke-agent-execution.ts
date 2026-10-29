@@ -1,6 +1,5 @@
 /**
- * The agent-execution orchestrator workflow — ports
- * pkg/domain/agentexecution/temporal/workflows/invoke_workflow_impl.go
+ * The agent-execution orchestrator workflow
  * (registered as "stigmer/agent-execution/invoke"; proven by the
  * agentexecution execution suites on local-execution and the
  * co-located TestWorkflowEnvironment tests).
@@ -10,7 +9,7 @@
  * activity queue; this workflow's own activities run on the stigmer
  * queue or in-process (local activities).
  *
- * Shape preserved exactly from Go:
+ * Its shape:
  *   - Harness dispatch, one exhaustive switch: STIGMER/UNSPECIFIED and
  *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
  *     stable across re-invocations; the engine derives its own state from
@@ -19,7 +18,7 @@
  *   - Pause/resume: each attempt runs in a cancellable scope with a
  *     monitor that consumes ONE pause signal and cancels the scope; a
  *     pause queued while no attempt is running pauses the next attempt
- *     immediately (Go's buffered signal channel semantics).
+ *     immediately (buffered signal semantics).
  *   - HITL loop: while the runner reports WAITING_FOR_APPROVAL, persist
  *     the phase, count the turn's open gates in its session's log
  *     (CountOpenGates), and either wait for approvalGateResolved or fail fast after
@@ -49,8 +48,7 @@
  *     writes carry no transcript lines. The runner-failed, user-cancel and
  *     pause-resume replay histories pin the activities these stops
  *     schedule.
- *   - Recovery is terminate-and-start-fresh ONLY (stigmer#200); no
- *     version gates (no Go-era history can replay here).
+ *   - Recovery is terminate-and-start-fresh ONLY (stigmer#200).
  *   - The session's queue: however the workflow ends (it completes, fails
  *     or is cancelled), its last act is StartQueuedTurn, which starts the
  *     turn the session's queued messages wait for, if any
@@ -128,7 +126,7 @@ import {
 } from "../runner-result.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
 
-// ─── Loop-safety bounds (invoke_workflow_impl.go, values are contract) ──
+// ─── Loop-safety bounds (values are contract) ───────────────────────────
 
 /** Maximum HITL approval iterations — prevents infinite loops. */
 const MAX_APPROVAL_CYCLES = 100;
@@ -180,9 +178,8 @@ const approvalGateResolvedSignal = defineSignal(SIGNAL_APPROVAL_GATE_RESOLVED);
  * cross-component wire contract. `execution_context_token` is the run
  * credential the workflow input carries (workflow-input.ts), handed on
  * so the activity can present it on the run's own RPCs; omitted when the
- * dispatch carried none (the omitempty convention). Adding the key needed
- * no patch marker: an in-flight history's input has no token, so the
- * commands its replay generates are byte-for-byte what they were.
+ * dispatch carried none (zero values are omitted). The key is optional: a
+ * history whose input has no token generates the same commands.
  */
 interface ExecuteActivityInput {
   readonly execution_id: string;
@@ -303,11 +300,10 @@ interface ServerActivities {
 
 /**
  * Status persists on the FAILURE and CANCELLATION paths run as REGULAR
- * activities on the workflow's own (stigmer) queue: local activities
- * produce RECORD_MARKER events that trigger a Go-SDK state-machine bug
- * when executed in the same workflow task as a remote-activity failure.
- * The history SHAPE is preserved as contract in this port — recovery
- * semantics were tuned against it.
+ * activities on the workflow's own (stigmer) queue, not as local
+ * activities (which would record RECORD_MARKER events in the same
+ * workflow task as a remote-activity failure). The history SHAPE is
+ * contract — recovery semantics were tuned against it.
  */
 const failurePathActivities = proxyActivities<
   Pick<ServerActivities, typeof UPDATE_EXECUTION_STATUS_ACTIVITY_NAME>
@@ -356,9 +352,8 @@ export async function invokeAgentExecution(
   const executionId = input.execution_id;
   log.info("Starting workflow for execution", { executionId });
 
-  // Go reads ctx.Err() to distinguish external workflow cancellation from
-  // internal pause-scope cancels; the TS equivalent observes the root
-  // scope's cancellation request. The dangling rejection is the designed
+  // External workflow cancellation is told apart from internal pause-scope
+  // cancels by observing the root scope's cancellation request. The dangling rejection is the designed
   // API shape (cancelRequested is a Promise<never>).
   let workflowCancelled = false;
   CancellationScope.current().cancelRequested.catch(() => {
@@ -407,13 +402,11 @@ export async function invokeAgentExecution(
   }
 
   if (flowError !== undefined) {
-    // Cancellation path — keyed on the WORKFLOW's cancel state alone
-    // (Go's temporal.IsCanceledError(ctx.Err())): the flow wraps activity
-    // errors, so the flowError itself may not read as a cancellation.
-    // Cleanup runs on a non-cancellable scope (Go's disconnected context)
-    // and the workflow must end CANCELLED, not FAILED — so the underlying
-    // CancelledFailure is what propagates (Go's `return err` reaches the
-    // same terminal state through its SDK's canceled-error detection).
+    // Cancellation path — keyed on the WORKFLOW's cancel state alone:
+    // the flow wraps activity errors, so the flowError itself may not
+    // read as a cancellation. Cleanup runs on a non-cancellable scope and
+    // the workflow must end CANCELLED, not FAILED — so the underlying
+    // CancelledFailure is what propagates.
     if (workflowCancelled) {
       log.info("Workflow cancelled, running cancellation cleanup", { executionId });
       await handleCancellation(executionId);
@@ -476,7 +469,7 @@ async function startQueuedTurn(input: InvokeAgentExecutionWorkflowInput): Promis
   }
 }
 
-// ─── Signal buffering (Go's buffered signal channels) ───────────────────
+// ─── Signal buffering ───────────────────────────────────────────────────
 
 interface SignalBuffers {
   /** Pending pause reasons; each monitor consumes exactly one. */
@@ -656,7 +649,7 @@ interface PauseRecoveryOptions {
 }
 
 /**
- * The outer loop of every harness's turn (Go's, parameterized here): each
+ * The outer loop of every harness's turn, parameterized by harness: each
  * attempt runs the HITL loop in a cancellable scope with a
  * pause monitor; pause → persist PAUSED, wait for resume, re-invoke;
  * recoverable interruption → persist IN_PROGRESS, linear backoff,
@@ -713,8 +706,8 @@ async function runWithPauseAndRecovery(
         executionId,
         pauseCycle,
       });
-      // Re-assert IN_PROGRESS after resume (a deliberate TS-side divergence
-      // in the correct direction; oss#869 tracks the shared root cause).
+      // Re-assert IN_PROGRESS after resume (a correcting write in the safe
+      // direction; oss#869 tracks the root cause).
       // The PAUSED persist above carries no ordering
       // information: on a fast pause→resume it can land AFTER the Resume
       // RPC's IN_PROGRESS write and resurrect PAUSED — and no later
@@ -754,7 +747,7 @@ async function runWithPauseAndRecovery(
           await sleep(recoveryBackoffMs(counted));
         } catch {
           // Sleep only rejects on cancellation — surface the ORIGINAL
-          // interruption, exactly Go's sleepErr branch.
+          // interruption.
           throw wrapActivityError(activityLabel, attempt.error);
         }
         continue;
@@ -800,13 +793,11 @@ interface AttemptOutcome {
 }
 
 /**
- * One cancellable attempt with a pause monitor (Go's per-iteration
- * workflow.WithCancel + monitoring goroutine): the monitor consumes ONE
+ * One cancellable attempt with a pause monitor: the monitor consumes ONE
  * queued pause signal and cancels the scope — cancelling both the
  * running activity AND any HITL approval wait inside it. If the attempt
  * finishes first, the monitor is released WITHOUT consuming, so a pause
- * that raced completion stays queued for the next attempt (Go's buffered
- * channel semantics).
+ * that raced completion stays queued for the next attempt.
  */
 async function runPausableAttempt(
   executionId: string,
@@ -826,7 +817,7 @@ async function runPausableAttempt(
       // rejects only in a LATER activation (after the server processes
       // the cancel request). An uncaught rejection here would fail the
       // workflow task at the activation boundary and the server would
-      // retry it forever — the TS sandbox has no Go-goroutine leniency.
+      // retry it forever.
       // The attempt's own rejection carries the cancellation signal.
       return;
     }
@@ -1086,9 +1077,9 @@ async function persistFinalStatus(
 
 /**
  * Re-asserts IN_PROGRESS while the workflow re-invokes an interrupted
- * turn. A runner no longer writes an ending for an interruption the
- * workflow continues (stigmer#2428); this write is the defence for one
- * that did (an older runner), and the server's merge keeps a terminal
+ * turn. A runner writes no ending for an interruption the workflow
+ * continues (stigmer#2428); this write is the defence for one that does
+ * (runner and server are released apart), and the server's merge keeps a terminal
  * phase it already holds. Phase-only (no appended message) to stay
  * idempotent across recovery cycles.
  */
@@ -1105,8 +1096,7 @@ async function persistInterruptedStatus(executionId: string): Promise<void> {
 /**
  * Re-asserts IN_PROGRESS after a resume, healing the stale-PAUSED write
  * the pause branch's defense persist can land over a fast resume's
- * IN_PROGRESS (oss#869 — the race is shared with Go; this correcting
- * write is a deliberate TS-side addition in the safe direction,
+ * IN_PROGRESS (oss#869; a correcting write in the safe direction,
  * mirroring persistInterruptedStatus's idiom). Phase-only and idempotent
  * across pause cycles; best-effort like every defense persist.
  */
@@ -1166,10 +1156,9 @@ function isRecoverableActivityError(error: unknown): boolean {
 }
 
 /**
- * Wraps activity errors with operator-actionable context (Go
- * wrapActivityError). The prefix copy is OURS and byte-pinned from Go;
- * the "Original error:" tail carries the SDK-authored failure text,
- * which necessarily differs between the Go and TS SDKs.
+ * Wraps activity errors with operator-actionable context. The prefix copy
+ * is OURS and wire contract; the "Original error:" tail carries the
+ * SDK-authored failure text.
  */
 function wrapActivityError(activityName: string, error: unknown): Error {
   const original = errorMessage(error);
@@ -1228,9 +1217,9 @@ function wrapActivityError(activityName: string, error: unknown): Error {
 }
 
 /**
- * Renders a timeout type with Go's enum String() spelling
- * ("ScheduleToClose", not the TS SDK's "SCHEDULE_TO_CLOSE") so the
- * wrapped copy stays byte-comparable across editions. Only the default
+ * Renders a timeout type in the copy's own spelling
+ * ("ScheduleToClose", not the TS SDK's "SCHEDULE_TO_CLOSE"), which the
+ * wrapped copy pins. Only the default
  * branch of wrapActivityError reaches this (no proxy configures a
  * ScheduleToClose timeout today).
  */
@@ -1267,8 +1256,8 @@ function findInCauseChain<T extends Error>(
 
 /**
  * The dispatch-resolved activity queue, pinned in the workflow memo at
- * creation (workflow_creator.go). The fallback "should never happen if
- * the workflow is created properly" (Go getActivityTaskQueue).
+ * creation. The fallback should never be reached for a workflow the
+ * engine client created.
  */
 function getActivityTaskQueue(): string {
   const memoValue = workflowInfo().memo?.[MEMO_ACTIVITY_TASK_QUEUE];

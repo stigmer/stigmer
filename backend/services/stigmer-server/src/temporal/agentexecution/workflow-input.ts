@@ -35,14 +35,14 @@ export interface InvokeAgentExecutionWorkflowInput {
   readonly execution_context_token?: string;
   /**
    * Session harness as the proto enum numeric value (0=UNSPECIFIED treated
-   * as STIGMER, 1=STIGMER, 3=CLAUDE; 2 is retired) — selects ExecuteDeepAgent
+   * as STIGMER, 1=STIGMER, 3=CLAUDE; 2 names no harness) — selects ExecuteDeepAgent
    * or ExecuteClaude; any other number fails the run.
    */
   readonly harness?: number;
   /**
    * Resolved execution target as the proto enum numeric value (0=UNSPEC,
    * 1=LOCAL, 2=CLOUD). Cloud uses it for sandbox provisioning; the OSS
-   * workflow ignores it (kept for cross-edition input parity).
+   * workflow ignores it (every edition's input carries the same keys).
    */
   readonly execution_target?: number;
   /**

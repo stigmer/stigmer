@@ -1,5 +1,5 @@
 /**
- * CheckDuplicate — ports steps/duplicate.go. Rejects a create whose slug
+ * CheckDuplicate: rejects a create whose slug
  * another resource of the kind already holds in the same organization,
  * read through the name table (pipeline/steps/names.ts). It is the early,
  * readable refusal, before any side effect; the guarantee is ClaimName's,

@@ -161,7 +161,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
         const store = await PostgresStore.open(db.databaseUrl);
         try {
-          await store.upsertSearchIndex(ApiResourceKind.agent, "agt-name", {
+          await store.upsertSearchIndex(ApiResourceKind.agent, "agt_name", {
             name: "billing reconciler",
             description: "does things nightly",
             tags: "",
@@ -169,7 +169,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             visibility: "visibility_org",
             createdAt: 1,
           });
-          await store.upsertSearchIndex(ApiResourceKind.agent, "agt-desc", {
+          await store.upsertSearchIndex(ApiResourceKind.agent, "agt_desc", {
             name: "invoice sync",
             description: "synchronizes the billing ledger",
             tags: "",
@@ -187,7 +187,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           });
 
           expect(result.totalCount).toBe(2);
-          expect(result.hits[0]?.resourceId).toBe("agt-name");
+          expect(result.hits[0]?.resourceId).toBe("agt_name");
           expect(result.hits[0]!.score).toBeGreaterThan(result.hits[1]!.score);
         } finally {
           await store.close();

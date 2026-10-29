@@ -10,7 +10,7 @@
  * (`ListEntryMeta`, built by the lanes' shared helper; `rowFactsOfEntry`)
  * both read through pipeline/steps/authorization-facts.ts — the read-time
  * twin of the tuple lifecycle's create-time resolution, lenient where that
- * one throws (a legacy row's missing organization is a fact, not a fault),
+ * one throws (a stored row's missing organization is a fact, not a fault),
  * and pinned equal to it in __tests__/facts.test.ts. Naming the shape once
  * is what lets the derivation stay one function and what states exactly
  * which facts a list candidate must carry: a candidate's facts ARE these,

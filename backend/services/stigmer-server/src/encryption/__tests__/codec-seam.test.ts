@@ -5,7 +5,7 @@
  * unprefixed pass-through, unknown-version refusal on the unavailable
  * arm), the batch verbs and their loop fallbacks, reencrypt's three load-bearing rules (upward-only, round-trip-verified,
  * marker-refused, plaintext-sealed), versionOf, and EncryptionScope's
- * validation invariants (the Java EncryptionScopeTest cases). The v1
+ * validation invariants. The v1
  * wire format itself is pinned by encryption.test.ts.
  */
 import { describe, expect, it } from "vitest";
@@ -90,7 +90,7 @@ function facadeWith(v2: SecretCodec, writeVersion: string): SecretService {
   });
 }
 
-describe("write-version resolution (fail-fast, the Java @PostConstruct contract)", () => {
+describe("write-version resolution (fail-fast at construction)", () => {
   it("refuses a write version with no registered codec, naming the registered set", () => {
     expect(() =>
       SecretService.withCodecs({
@@ -262,19 +262,19 @@ describe("reencrypt (the sweep's one upgrade door)", () => {
   });
 });
 
-describe("EncryptionScope (the Java record's validation invariants)", () => {
-  it("derives org-<id> tenancy, for a minted id and an older slug-shaped one, and the platform tenant", () => {
+describe("EncryptionScope (its validation invariants)", () => {
+  it("derives org-<id> tenancy, for a minted id and a slug-shaped one, and the platform tenant", () => {
     const minted = EncryptionScope.forOrganization("org_01jaaaaaaaaaaaaaaaaaaaaaaa");
     expect(minted.tenantSegment).toBe("org-org_01jaaaaaaaaaaaaaaaaaaaaaaa");
     expect(minted.kekKeyName()).toBe("org-org_01jaaaaaaaaaaaaaaaaaaaaaaa");
     expect(minted.isLocated()).toBe(false);
 
-    // An organization made before ids were minted keeps the id it was
-    // given, its first slug, and the key it has always had.
+    // A slug-shaped id is safe in a key name and a path, and derives its
+    // tenancy the same way.
     const older = EncryptionScope.forOrganization("acme-corp");
     expect(older.tenantSegment).toBe("org-acme-corp");
 
-    // Even an older organization whose id is "platform" never shares the
+    // Even an organization whose id is "platform" never shares the
     // platform's key.
     expect(EncryptionScope.forOrganization("platform").tenantSegment).toBe(
       "org-platform",

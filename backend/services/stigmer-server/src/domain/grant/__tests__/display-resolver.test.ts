@@ -4,8 +4,8 @@
  * read through the identity-account PORT's `findByIds`, and the display
  * name precedence `first+last > first > last > metadata.name > email`.
  *
- * The `metadata.name` arm is this entry's one code divergence from the
- * Java PrincipalEnricher: the trusted-local operator account carries its
+ * The `metadata.name` arm exists because the trusted-local operator
+ * account carries its
  * display name THERE and empty first/last names (identityaccount/
  * operator.ts), while the cloud names every account by its email — so on
  * the cloud the arm and the email arm answer the same string, and on a
@@ -86,7 +86,7 @@ describe("the display name precedence", () => {
     expect(view?.email).toBe("operator@example.com");
   });
 
-  it("an account the cloud named by its email renders exactly as the Java precedence did", async () => {
+  it("an account the cloud named by its email renders as its email", async () => {
     const view = await resolveOne(
       account("ida_5", { name: "bob@example.com", email: "bob@example.com" }),
     );

@@ -1,50 +1,42 @@
 /**
- * Agent-execution Temporal config — ports
- * pkg/domain/agentexecution/temporal/config.go: the queue names, routing
- * mode, and default execution target for agent-execution dispatch.
+ * Agent-execution Temporal config: the queue names, routing mode, and
+ * default execution target for agent-execution dispatch.
  *
  * resolveExecutionTarget is the SINGLE definition of the
  * UNSPECIFIED-resolution rule (oss#397) — dispatch (the agentexecution
  * domain) and policy enforcement (the session update pipeline's
  * execution-target immutability step) must both use it rather than
  * re-deriving the default, so they can never disagree about where an
- * execution runs. Mirrors the cloud edition's
- * AgentExecutionTemporalConfig.resolveExecutionTarget.
- *
- * This module was the first resident of the agentexecution domain
- * directory; the tree corresponds to Go's.
+ * execution runs.
  */
 import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 /**
  * Routes all activities to the shared global queue (runnerQueue, default
  * stigmer_runner) — the default for OSS local development where a single
- * runner polls one queue for all sessions (Go RoutingGlobal).
+ * runner polls one queue for all sessions.
  */
 export const ROUTING_GLOBAL = "global";
 
 /**
  * Derives a per-session task queue (session:{session_id}) for each
  * execution — for deployments where each session has a dedicated runner
- * (desktop app with embedded runners, or cloud sandboxes; Go
- * RoutingSession).
+ * (desktop app with embedded runners, or cloud sandboxes).
  */
 export const ROUTING_SESSION = "session";
 
 /**
- * Resolves UNSPECIFIED to LOCAL — OSS/self-hosted deployments (Go
- * DefaultExecutionTargetLocal).
+ * Resolves UNSPECIFIED to LOCAL — OSS/self-hosted deployments.
  */
 export const DEFAULT_EXECUTION_TARGET_LOCAL = "local";
 
 /**
- * Resolves UNSPECIFIED to CLOUD — the managed cloud service (Go
- * DefaultExecutionTargetCloud).
+ * Resolves UNSPECIFIED to CLOUD — the managed cloud service.
  */
 export const DEFAULT_EXECUTION_TARGET_CLOUD = "cloud";
 
 /**
- * Configuration for agent-execution Temporal workers (Go temporal.Config).
+ * Configuration for agent-execution Temporal workers.
  *
  * Queue architecture:
  *   - stigmerQueue: server workflows on agent_execution_stigmer
@@ -75,7 +67,7 @@ export class AgentExecutionTemporalConfig {
    * Resolves a session's execution_target to its effective target:
    * UNSPECIFIED becomes the configured default (LOCAL on OSS/self-hosted,
    * CLOUD on the managed cloud service); explicit values pass through
-   * unchanged (Go Config.ResolveExecutionTarget).
+   * unchanged.
    */
   resolveExecutionTarget(target: ExecutionTarget): ExecutionTarget {
     if (target !== ExecutionTarget.UNSPECIFIED) {
@@ -89,8 +81,8 @@ export class AgentExecutionTemporalConfig {
 }
 
 /**
- * Builds the config from environment variables with Go NewConfig's
- * defaults. Env-derived strings only — no Temporal connection is made
+ * Builds the config from environment variables with the defaults above.
+ * Env-derived strings only — no Temporal connection is made
  * here (the TemporalManager owns the connection).
  */
 export function newConfigFromEnv(): AgentExecutionTemporalConfig {
@@ -111,7 +103,7 @@ export function newConfigFromEnv(): AgentExecutionTemporalConfig {
   );
 }
 
-/** Go's `if v == "" { v = default }` idiom for env reads. */
+/** An env read where unset and empty both take the default. */
 function valueOrDefault(value: string | undefined, fallback: string): string {
   return value === undefined || value === "" ? fallback : value;
 }

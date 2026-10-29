@@ -111,8 +111,8 @@ export async function finishSignIn(
         `the login server for ${address} no longer knows Stigmer's client: sign in again`,
       );
     }
-    // The pinned (unusual) Go mapping for a failed exchange,
-    // complete_oauth_connect.go:96.
+    // A failed exchange answers UNAVAILABLE: the pinned (unusual) mapping
+    // the conformance suite holds.
     throw unavailableError(
       `token exchange failed: ${error instanceof Error ? error.message : String(error)}`,
     );

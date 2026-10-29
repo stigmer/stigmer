@@ -1,10 +1,8 @@
 /**
- * Agent-execution Temporal wire identifiers — ports the constants of
- * pkg/domain/agentexecution/temporal (workflow_types.go,
- * workflows/invoke_workflow.go, activities/*.go).
+ * Agent-execution Temporal wire identifiers.
  *
- * Every value here is a byte-pinned cross-edition wire constant:
- * the TS runner, the Go server, and the Java control plane all address
+ * Every value here is a byte-pinned cross-edition wire constant: the
+ * runner, every edition's server and every recorded history address
  * workflows, signals, activities, and memos by these exact strings.
  * Renaming one is a wire-protocol break, not a style fix.
  *
@@ -13,41 +11,39 @@
  * workflow sandbox bundler hard-fails on node imports).
  */
 
-/** Go workflows.InvokeAgentExecutionWorkflowName. */
+/** The agent-execution workflow's registered name. */
 export const INVOKE_AGENT_EXECUTION_WORKFLOW_NAME =
   "stigmer/agent-execution/invoke";
 
 /**
  * Workflow ID format: stigmer/agent-execution/invoke/{execution-id} —
- * rebuilt identically by the creator and every lifecycle step (Go
- * fmt.Sprintf in workflow_creator.go and lifecycle_steps.go).
+ * rebuilt identically by the creator and every lifecycle step.
  */
 export function invokeWorkflowIdFor(executionId: string): string {
   return `${INVOKE_AGENT_EXECUTION_WORKFLOW_NAME}/${executionId}`;
 }
 
-/** Go temporal.SignalPause — pauses the running activity loop. */
+/** Pauses the running activity loop. */
 export const SIGNAL_PAUSE = "pause";
 
-/** Go temporal.SignalResume — resumes a paused execution. */
+/** Resumes a paused execution. */
 export const SIGNAL_RESUME = "resume";
 
 /**
- * Go temporal.SignalApprovalGateResolved — sent by the answer core
+ * Sent by the answer core
  * (domain/session/hitl/answer.ts) when the turn has no open ask left.
  */
 export const SIGNAL_APPROVAL_GATE_RESOLVED = "approvalGateResolved";
 
 /**
- * The ONLY memo key this domain writes (workflow_creator.go); the workflow
+ * The ONLY memo key this domain writes (at creation); the workflow
  * reads it back on every dispatch.
  */
 export const MEMO_ACTIVITY_TASK_QUEUE = "activityTaskQueue";
 
 /**
- * Fallback when the memo is somehow absent ("should never happen" — Go
- * getActivityTaskQueue) and the dispatch default (dispatch.go
- * DefaultActivityTaskQueue).
+ * Fallback when the memo is somehow absent (it should never be) and the
+ * dispatch default (dispatch.ts).
  */
 export const DEFAULT_ACTIVITY_TASK_QUEUE = "stigmer_runner";
 
@@ -63,9 +59,9 @@ export const DEFAULT_ACTIVITY_TASK_QUEUE = "stigmer_runner";
 
 /**
  * Registered once, invoked in BOTH modes: as a regular activity on the
- * stigmer queue from the failure/cancellation paths (dodging a Go-SDK
- * replay bug with local-activity markers after remote-activity failures —
- * the history SHAPE is preserved as contract), and as a local activity from
+ * stigmer queue from the failure/cancellation paths (no local-activity
+ * markers after remote-activity failures — the history SHAPE is
+ * contract), and as a local activity from
  * persistFinalStatus/persistInterruptedStatus.
  */
 export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";

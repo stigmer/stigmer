@@ -1,6 +1,6 @@
-# Store tests for real blueprint privacy (since 2026-06-11).
+# Store tests for real blueprint privacy.
 #
-# Blueprint viewer relations no longer include the unconditional
+# Blueprint viewer relations do not include an unconditional
 # `viewer from organization` grant: a PRIVATE blueprint is invisible to the
 # rest of its own org. Every broader level is an explicit tuple written by
 # VisibilityTupleReconciler:
@@ -12,7 +12,7 @@
 #
 # Read vs spend: an org viewer-role user READS org-visible blueprints (and, at
 # the model level, satisfies can_execute — run-what-you-can-read), but every
-# spend path is gated in Java on the org-level can_create_session /
+# spend path is gated on the org-level can_create_session /
 # can_create_run_in permissions, which require member-or-guest. The
 # vera assertions pin both halves of that contract.
 #

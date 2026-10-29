@@ -28,7 +28,7 @@ import { failedPreconditionError, notFoundError, unavailableError } from "../../
 
 export const GITHUB_API = "https://api.github.com";
 
-/** The broker's single-round-trip bound (Go httpTimeout). */
+/** The broker's single-round-trip bound. */
 export const HTTP_TIMEOUT_MS = 10_000;
 
 /** One page of repositories, GitHub's maximum. */

@@ -95,7 +95,7 @@ import type {
 import type { CallerIdentity } from "../../extensions/identity.js";
 
 /**
- * The provider install lane (Go install.go's cloud arm). OSS has already
+ * The provider install lane. OSS has already
  * validated the input and loaded the channel — the NOT_FOUND contract is
  * spent before the driver runs; `channel` is that loaded resource.
  */
@@ -193,8 +193,7 @@ export interface ChannelRuntimeConversations {
 /**
  * One composition's channel delivery runtime, grouped by the surfaces it
  * takes over (the groups mirror the OSS file seams — controller.ts's
- * install lane, message.ts, conversation.ts — which are themselves the
- * retired Go server's file seams).
+ * install lane, message.ts, conversation.ts).
  */
 export interface ChannelRuntime {
   readonly installs: ChannelRuntimeInstalls;

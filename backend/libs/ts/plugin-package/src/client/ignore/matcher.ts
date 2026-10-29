@@ -1,6 +1,5 @@
 // Ignore matcher: composes pattern sources with gitignore precedence (defaults
 // → .gitignore → .stigmerignore → caller flags), evaluating "last match wins".
-// A faithful port of the Go CLI's pkg/ignore Matcher.
 //
 // The matcher is pure over the TEXT of the ignore files. Where that text
 // comes from is the caller's edge: the CLI reads `.gitignore` and

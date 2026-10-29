@@ -5,15 +5,13 @@
  * published at every release version and at every pre-release the release
  * lane cuts (`X.Y.Z-rc.1` under the `next` tag), never for a source build
  * (`dev`, `0.0.0-dev`), a dev-channel stamp (`X.Y.Z-dev.<stamp>`) or a
- * local build (`0.0.0-local.<stamp>`, scripts/stage-server-library.mjs). Two
- * clients used to answer this with two different tests: the console
- * accepted only `X.Y.Z` and called an `rc` server a development build; the
- * CLI accepted anything without `-dev` and would have tried to acquire
- * packages for the bare `dev` an unbundled server reports. One predicate,
- * its cases pinned, no third opinion. The server reads it too: a release
- * server's sandbox drivers hold the runner layer to that release, so a
- * local build read as one refused every layer that named a real release
- * (stigmer/stigmer#1867).
+ * local build (`0.0.0-local.<stamp>`, scripts/stage-server-library.mjs). Every
+ * client asks this one predicate, its cases pinned, so an `rc` server is
+ * never called a development build and the bare `dev` an unbundled server
+ * reports never sends a client to acquire packages. The server reads it
+ * too: a release server's sandbox drivers hold the runner layer to that
+ * release, so a local build read as one would refuse every layer that
+ * named a real release (stigmer/stigmer#1867).
  */
 
 /**

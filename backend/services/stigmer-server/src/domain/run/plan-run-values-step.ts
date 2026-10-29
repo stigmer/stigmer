@@ -241,13 +241,11 @@ export async function planRunValues(
 }
 
 /**
- * Go's %w wrap chains, mirrored: the INNERMOST status boundary renders
- * through goWrappedStatusError ("prefix: rpc error: code = X desc = …");
- * every OUTER wrap prepends plain text while preserving the inner code —
- * exactly how nested fmt.Errorf("%s: %w") chains reach the wire through
- * the pipeline's errors.As branch (the #852 leak). Plain errors chain as
- * plain errors and land on the pipeline's Internal fallback, Go's
- * non-status path.
+ * Wrap chains: the INNERMOST status boundary renders through
+ * goWrappedStatusError ("prefix: rpc error: code = X desc = …", the #852
+ * wire shape); every OUTER wrap prepends plain text while preserving the
+ * inner code. Plain errors chain as plain errors and land on the
+ * pipeline's Internal fallback.
  */
 function chainError(prefix: string, error: unknown): never {
   if (error instanceof ConnectError) {
@@ -291,7 +289,7 @@ async function loadRunSession(
  * and its organization: the recorded version's snapshot (the name and
  * organization read best-effort from the agent as it is now; no
  * organization when it cannot be read). Failures keep the inner status
- * code with Go's wrap prefix, naming the version.
+ * code with the wrap prefix, naming the version.
  */
 async function loadRunAgent(
   deps: RunValuePlannerDeps,

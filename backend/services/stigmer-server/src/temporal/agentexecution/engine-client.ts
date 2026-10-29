@@ -1,25 +1,23 @@
 /**
- * The ConnectedExecutionEngine implementation — ports
- * pkg/domain/agentexecution/temporal/workflow_creator.go (Create,
- * SignalApprovalGateResolved) plus the controller-side temporalClient
- * lifecycle operations (lifecycle_steps.go: pause/resume signals, cancel,
- * terminate).
+ * The ConnectedExecutionEngine implementation: workflow start, the
+ * approval-gate signal, and the lifecycle operations (pause/resume
+ * signals, cancel, terminate).
  *
  * The domain models the engine as the ConnectedExecutionEngine seam
  * (src/domain/agentexecution/engine.ts); this module fills it. Dispatch
  * resolution lives INSIDE startInvokeWorkflow (the seam's boundary): dispatch
  * failures throw EngineDispatchError — the create
- * step maps them to FailedPrecondition verbatim, Go's
- * ResolveActivityTaskQueue boundary — while workflow-start failures throw
+ * step maps them to FailedPrecondition verbatim — while workflow-start
+ * failures throw
  * plain errors the create step turns into FAILED + Internal.
  *
- * The engine-state provider is the injection mechanism (no Go-style
- * SetWorkflowCreator re-injection): it reads the manager's CURRENT client
+ * The engine-state provider is the injection mechanism (no re-injection
+ * step): it reads the manager's CURRENT client
  * at request time, so reconnects propagate automatically. It memoizes the
  * engine per client instance — a new engine object per RPC would be
  * garbage for no behavior.
  *
- * The run credential rides the input (2026-09-16): every dispatch — a
+ * The run credential rides the input: every dispatch — a
  * fresh start and a recovery alike, both through startInvokeWorkflow —
  * asks the composed credential provider for the run's credential
  * (runnerauth/dispatch-credential.ts) and carries it as
@@ -84,7 +82,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       );
     } catch (error) {
       // The message travels to the wire verbatim as FailedPrecondition
-      // (create-steps.ts StartWorkflow — Go's dispatch error boundary).
+      // (create-steps.ts StartWorkflow, the dispatch error boundary).
       throw new EngineDispatchError(
         error instanceof Error ? error.message : String(error),
       );
@@ -97,9 +95,8 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       logger,
     );
 
-    // Slim input with Go's omitempty shape (workflow-input.ts): zero-value
-    // fields are omitted so TS- and Go-authored histories carry the same
-    // keys.
+    // Slim input (workflow-input.ts): zero-value fields are omitted, so
+    // every recorded history carries the same keys.
     const workflowInput: InvokeAgentExecutionWorkflowInput = {
       execution_id: input.executionId,
       session_id: input.sessionId,
@@ -120,7 +117,7 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
     // NOTE deliberately NO workflowRunTimeout: HITL approval can block for
     // minutes, hours, or days — a finite timeout would contradict the
     // durable-execution promise. Activity-level timeouts already protect
-    // against stuck activities (workflow_creator.go).
+    // against stuck activities.
     await client.workflow.start(INVOKE_AGENT_EXECUTION_WORKFLOW_NAME, {
       workflowId,
       taskQueue: config.stigmerQueue,
@@ -192,8 +189,8 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
 }
 
 /**
- * Maps the TS SDK's workflow-not-found onto the seam's sentinel (Go
- * serviceerror.NotFound → ErrWorkflowNotFound): lifecycle steps treat it
+ * Maps the TS SDK's workflow-not-found onto the seam's sentinel: lifecycle
+ * steps treat it
  * as warn-and-proceed, the answer core reconciles the stale execution.
  */
 function mapNotFound(error: unknown, executionId: string): unknown {
@@ -215,10 +212,10 @@ export interface EngineStateProviderDeps {
  * Builds the provider compose hands the agentexecution registration —
  * in place of a fixed `() => ENGINE_DISCONNECTED`.
  *
- * Availability parity with Go (manager.ts module header): disconnected
- * ONLY until the first successful connect; afterwards the engine wraps
- * the manager's CURRENT client, stale-during-outage included — operations
- * then fail exactly as Go's stale-client operations do.
+ * Availability (manager.ts module header): disconnected ONLY until the
+ * first successful connect; afterwards the engine wraps the manager's
+ * CURRENT client, stale-during-outage included — operations then fail
+ * with connection errors.
  */
 export function newExecutionEngineStateProvider(
   deps: EngineStateProviderDeps,

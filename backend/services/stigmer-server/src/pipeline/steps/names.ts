@@ -28,7 +28,7 @@
  *     organization purge's copy of it. Best-effort: the row is gone, so a
  *     fault is logged, and the next claim of the name frees it;
  *   - findResourceByName: a name read through the table, then a point
- *     read by id, in place of the scan every lookup by slug used to run.
+ *     read by id, so no lookup by slug scans the kind.
  *     A read follows a previous name a rename left for its hold
  *     (pipeline/steps/rename.ts);
  *   - findResourceForWrite: apply's lookup. By the id the request carries

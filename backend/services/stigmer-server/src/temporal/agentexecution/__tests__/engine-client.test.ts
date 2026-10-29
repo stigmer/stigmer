@@ -1,21 +1,21 @@
 /**
  * Engine-client tests — pins TemporalExecutionEngine's wire contract
- * (ports workflow_creator.go's assertions plus the lifecycle mapping):
+ * (workflow start plus the lifecycle mapping):
  *
  *   - startInvokeWorkflow: the byte-pinned workflow type + workflow-ID
  *     format, the stigmer task queue, the ONE memo key with the
- *     dispatch-resolved value, the slim snake_case input with Go's
- *     omitempty shape (harness/execution_target from dispatch), and NO
+ *     dispatch-resolved value, the slim snake_case input with zero-value
+ *     fields omitted (harness/execution_target from dispatch), and NO
  *     run timeout;
  *   - dispatch failures throw EngineDispatchError with the resolver's
  *     message VERBATIM (the create step surfaces it as
- *     FailedPrecondition — Go's boundary);
+ *     FailedPrecondition);
  *   - lifecycle ops signal/cancel/terminate the pinned workflow ID and
  *     map the SDK's workflow-not-found onto EngineWorkflowNotFoundError
- *     (Go serviceerror.NotFound → ErrWorkflowNotFound);
+ *     (the seam's sentinel);
  *   - the engine-state provider: DISCONNECTED until the first connect,
  *     memoized per client instance, re-built on client swap (reconnect);
- *   - the run credential on the input (2026-09-16): minted through the
+ *   - the run credential on the input: minted through the
  *     composed provider's capability and bound to the execution with no
  *     clock; the key is ABSENT when the provider lacks the capability
  *     (an edition credentialed another way), when it is keyless, and
@@ -191,15 +191,15 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     expect(call.options["memo"]).toEqual({
       activityTaskQueue: DEFAULT_ACTIVITY_TASK_QUEUE,
     });
-    // No run timeout: HITL can block for days (workflow_creator.go).
+    // No run timeout: HITL can block for days.
     expect(call.options["workflowRunTimeout"]).toBeUndefined();
     expect(call.options["args"]).toEqual([
       {
         execution_id: "run_1",
         session_id: "",
         agent_id: "agt_1",
-        // Dispatch defaults: harness STIGMER (nonzero — Go's omitempty
-        // keeps it, so the wire carries it) and target resolved LOCAL.
+        // Dispatch defaults: harness STIGMER (nonzero, so the wire
+        // carries it) and target resolved LOCAL.
         harness: Harness.STIGMER,
         execution_target: ExecutionTarget.LOCAL,
         // The run credential, minted per dispatch (its own arms below).

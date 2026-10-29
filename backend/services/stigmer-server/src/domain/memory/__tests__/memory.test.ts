@@ -1,6 +1,5 @@
 /**
- * Pins the memory domain against Go's pkg/domain/memory tests — through
- * the REAL stack: a composed server on an ephemeral port, a native gRPC
+ * Pins the memory domain through the REAL stack: a composed server on an ephemeral port, a native gRPC
  * client, and the full interceptor chain.
  *
  * The load-bearing pins:

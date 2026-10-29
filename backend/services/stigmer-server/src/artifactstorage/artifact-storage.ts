@@ -1,6 +1,5 @@
 /**
- * Artifact storage — ports pkg/domain/artifact/storage/{storage.go,
- * local_storage.go,disposition.go}: the execution-output/attachment blob
+ * Artifact storage: the execution-output/attachment blob
  * store SHARED by agentexecution attachments, a run's files, the port+1
  * file server (file-server.ts), and the File store's local arm. Cross-cutting
  * home, like src/encryption/.
@@ -187,7 +186,7 @@ export interface StagedUploadLane {
 }
 
 export interface ArtifactStorageConfig {
-  /** "local" or "r2" ("" defaults to local — Go NewArtifactStorage). */
+  /** "local" or "r2" ("" defaults to local). */
   readonly type: string;
   readonly localBasePath: string;
   /**
@@ -216,7 +215,7 @@ export interface ArtifactStorageConfig {
 export const BUILT_IN_STORAGE_TYPES = ["local", "r2"] as const;
 
 /**
- * Factory mirroring Go NewArtifactStorage, opened to registered drivers:
+ * The storage factory, opened to registered drivers:
  * built-ins first, then the composition's registered driver
  * map — the cloud substitutes its per-domain R2 drivers without this
  * switch ever growing a case.
@@ -271,7 +270,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
      */
     private readonly stagedUploadLane?: StagedUploadLane,
   ) {
-    // Ensure the artifact root exists (Go NewLocalStorage MkdirAll).
+    // Ensure the artifact root exists.
     mkdirSync(this.root(), { recursive: true });
   }
 
@@ -282,7 +281,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
   ): Promise<void> {
     const filePath = this.resolveWithinRoot(key);
     await mkdir(path.dirname(filePath), { recursive: true });
-    // Restricted permissions, matching Go's 0600.
+    // Restricted permissions: owner read/write only.
     await writeFile(filePath, data, { mode: 0o600 });
   }
 
@@ -471,8 +470,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
       return;
     }
     try {
-      // rmdir fails on non-empty directories — exactly the stop signal
-      // (Go os.Remove semantics).
+      // rmdir fails on non-empty directories — exactly the stop signal.
       await rmdir(dir);
     } catch {
       return;
@@ -484,7 +482,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
 /**
  * Whether `p` is `root` itself or a descendant — cleaned-path comparison
  * with a trailing separator so a sibling sharing a name prefix (`/a/bc`
- * vs `/a/b`) is correctly excluded (Go isWithin).
+ * vs `/a/b`) is correctly excluded.
  */
 function isWithin(root: string, p: string): boolean {
   const cleanRoot = path.resolve(root);
@@ -496,8 +494,7 @@ function isWithin(root: string, p: string): boolean {
 
 /**
  * Content-Disposition header value instructing a browser to save the
- * response as a download named filename (Go
- * ContentDispositionAttachment): a plain quoted `filename="..."`
+ * response as a download named filename: a plain quoted `filename="..."`
  * (ASCII-sanitized fallback) plus, when the name carries non-ASCII, the
  * RFC 5987 `filename*=UTF-8''...` parameter modern browsers prefer. The
  * fallback escapes embedded quotes and backslashes, so a crafted name can
@@ -514,7 +511,7 @@ export function contentDispositionAttachment(filename: string): string {
   return disposition;
 }
 
-/** Bytes outside printable ASCII (and controls) become '_' (Go twin). */
+/** Bytes outside printable ASCII (and controls) become '_'. */
 function sanitizeAsciiFilename(filename: string): string {
   let out = "";
   for (const r of filename) {

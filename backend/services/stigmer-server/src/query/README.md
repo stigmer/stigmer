@@ -1,6 +1,6 @@
 # query/ — the CQRS read-side services
 
-The two cross-aggregate query services (Go `pkg/query/`):
+The two cross-aggregate query services:
 
 - `search/` — the SearchService over the store's search index: criteria value object, the
   searchable-extractor registry (9 kinds, `kind_meta`-derived set), the
@@ -10,7 +10,6 @@ The two cross-aggregate query services (Go `pkg/query/`):
 
 Neither is a domain: no `api_resource_kind` service option, no pipeline
 lifecycle — plain CQRS handlers over the store, registered in
-`boot/compose.ts` between plugin and github (Go server.go:493–522's
-order). Domain `search-extractor.ts` files implement `search/extractor.ts`'s
+`boot/compose.ts` between plugin and github. Domain `search-extractor.ts` files implement `search/extractor.ts`'s
 `SearchableExtractor` contract; growing the searchable surface is one
 registry entry plus the domain's extractor file.

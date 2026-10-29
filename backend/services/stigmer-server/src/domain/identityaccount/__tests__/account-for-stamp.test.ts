@@ -1,8 +1,8 @@
 /**
  * Pins `accountForStamp` (resolve.ts): the account a row's CREATOR STAMP
- * names, read the two ways a stamp has been written — as an account id
- * (rows stamped since 3.15.0) and as the raw issuer subject (rows the
- * 3.14.x verifiers stamped) — stated ONCE so the schedule fire caller and
+ * names, read the two ways a stamp is written — as an account id, and as
+ * the raw issuer subject a write made before the caller's account existed
+ * carries — stated ONCE so the schedule fire caller and
  * the runner-subject verifier, which both make a server lane act as the
  * person a row names, cannot resolve the same stamp two ways. The read
  * order is `accountForCaller`'s: by id first, then the direct subject
@@ -62,7 +62,7 @@ describe("accountForStamp", () => {
     expect(account?.spec?.email).toBe("carol@example.com");
   });
 
-  it("a raw-subject stamp (the 3.14.x shape) resolves through the direct lookup to the same account", async () => {
+  it("a raw-subject stamp (a write made before the account existed) resolves through the direct lookup to the same account", async () => {
     expect((await accountForStamp(seeded(), SUBJECT))?.metadata?.id).toBe(
       CAROL,
     );

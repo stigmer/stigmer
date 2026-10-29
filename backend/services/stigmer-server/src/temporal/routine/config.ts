@@ -1,9 +1,8 @@
 /**
- * Schedule-clock configuration — ports
- * pkg/domain/schedule/temporal/config.go.
+ * Schedule-clock configuration.
  *
- * Environment variables deliberately share the STIGMER_SCHEDULES_* names
- * with the cloud edition, so test harnesses and runbooks use one
+ * Environment variables share the STIGMER_SCHEDULES_* names across
+ * editions, so test harnesses and runbooks use one
  * vocabulary. There is deliberately NO interval-floor knob, in any edition:
  * five-field cron fires at most once a minute, the artifact's SKIP overlap
  * never starts a fire over a running one, and every fire is a run that
@@ -96,9 +95,8 @@ export class RoutineTemporalConfig {
 
   /**
    * Clamps the tracking budget to at least 1 minute and at least one hour
-   * inside the baked artifact run timeout — the cloud edition's exact
-   * clamp, so a misconfigured budget cannot outlive the tick that carries
-   * it (Go ResolvedRunTrackingTimeoutMinutes).
+   * inside the baked artifact run timeout, so a misconfigured budget
+   * cannot outlive the tick that carries it.
    */
   resolvedRunTrackingTimeoutMinutes(): number {
     let ceiling = (this.tickRunTimeoutHours - 1) * 60;
@@ -117,8 +115,7 @@ export class RoutineTemporalConfig {
 
   /**
    * Floors the pause threshold at 1 — a zero/negative threshold would
-   * pause on configuration, not on failure (Go
-   * ResolvedMaxConsecutiveFailures).
+   * pause on configuration, not on failure.
    */
   resolvedMaxConsecutiveFailures(): number {
     return this.maxConsecutiveFailures < 1 ? 1 : this.maxConsecutiveFailures;
@@ -126,19 +123,17 @@ export class RoutineTemporalConfig {
 
   /**
    * Floors the fire-ledger retention at 1 day — zero/negative would prune
-   * history as it lands (Go ResolvedRunHistoryRetentionDays).
+   * history as it lands.
    */
   resolvedRunHistoryRetentionDays(): number {
     return this.runHistoryRetentionDays < 1 ? 1 : this.runHistoryRetentionDays;
   }
 
   /**
-   * Floors the periodic-pass cadence at 1 minute. Go has no clamp here and
-   * time.NewTicker(0) PANICS the process; a zero interval through
-   * setInterval would instead hot-loop full-table reconciliation passes
-   * silently — the worse failure mode. The floor follows this file's
-   * sibling clamps and is a disclosed divergence (crash → clamp) on a
-   * misconfiguration no healthy deployment carries.
+   * Floors the periodic-pass cadence at 1 minute: a zero interval through
+   * setInterval would hot-loop full-table reconciliation passes silently.
+   * The floor follows this file's sibling clamps, on a misconfiguration
+   * no healthy deployment carries.
    */
   resolvedReconciliationIntervalMinutes(): number {
     return this.reconciliationIntervalMinutes < 1
@@ -147,7 +142,7 @@ export class RoutineTemporalConfig {
   }
 }
 
-/** Loads configuration from environment variables (Go LoadConfig). */
+/** Loads configuration from environment variables. */
 export function newRoutineConfigFromEnv(): RoutineTemporalConfig {
   return new RoutineTemporalConfig(
     getEnv("TEMPORAL_SCHEDULE_STIGMER_TASK_QUEUE", "schedule_stigmer"),
@@ -169,8 +164,8 @@ function getEnv(key: string, defaultValue: string): string {
 }
 
 /**
- * Go strconv.Atoi parity: only a plain (optionally signed) integer parses;
- * anything else silently keeps the default, exactly Go's getEnvInt.
+ * Only a plain (optionally signed) integer parses; anything else silently
+ * keeps the default.
  */
 function getEnvInt(key: string, defaultValue: number): number {
   const value = process.env[key];
@@ -181,8 +176,7 @@ function getEnvInt(key: string, defaultValue: number): number {
 }
 
 /**
- * Go strconv.ParseBool parity: exactly 1/t/T/TRUE/true/True and the 0/f
- * family parse; anything else keeps the default.
+ * Exactly 1/t/T/TRUE/true/True and the 0/f family parse; anything else keeps the default.
  */
 function getEnvBool(key: string, defaultValue: boolean): boolean {
   const value = process.env[key];
@@ -198,7 +192,7 @@ function getEnvBool(key: string, defaultValue: boolean): boolean {
   return defaultValue;
 }
 
-/** Go strconv.ParseFloat parity: a finite float parses, else the default. */
+/** A finite float parses, else the default. */
 function getEnvFloat(key: string, defaultValue: number): number {
   const value = process.env[key];
   if (value === undefined || value === "") {

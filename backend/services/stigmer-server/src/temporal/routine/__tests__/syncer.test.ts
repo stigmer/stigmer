@@ -1,5 +1,5 @@
 /**
- * Pins the syncer against Go's syncer.go: the create-or-update convergence
+ * Pins the syncer: the create-or-update convergence
  * on ScheduleAlreadyRunning (the update rewrites the described artifact to
  * the routine's desired state), next_fire_at stamped from Temporal's OWN
  * answer through the atomic row write (undefined while paused), teardown's

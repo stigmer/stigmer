@@ -1,7 +1,6 @@
 /**
- * Pins the skill domain against Go's skill_controller_test.go +
- * push_test.go + versioning_repoint_test.go + transfer_lane_test.go +
- * get_artifact_test.go — through the REAL stack: a composed server on an
+ * Pins the skill domain — the controller, push, version repointing, the
+ * transfer lane and getArtifact — through the REAL stack: a composed server on an
  * ephemeral port, a native gRPC client, the full interceptor chain, and
  * plain fetch against the HTTP transfer lane.
  *
@@ -447,7 +446,7 @@ describe("get / getByReference — the version ladder", () => {
       Code.InvalidArgument,
       "org-less reference",
     );
-    // The kind's proto meta name ("Skill"), exactly Go's meta.GetName().
+    // The kind's proto meta name ("Skill").
     expect(orgError.rawMessage).toBe("org is required for Skill lookup");
     const kindError = await expectCode(
       query.getByReference({ org: ORG, slug: "anything", kind: ApiResourceKind.agent }),

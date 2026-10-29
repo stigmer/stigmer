@@ -1,12 +1,11 @@
 /**
- * ChannelConversation controllers (the retired Go server's
- * conversation.go): the conversation surface beside the channel
+ * ChannelConversation controllers: the conversation surface beside the channel
  * messaging controllers, on the same runtime side of the resource/runtime
  * split. Stateless on the storing edition — no store.
  *
  * The whole surface is posture-split at REGISTRATION (channel-runtime.ts):
  * with no ChannelRuntime composed the storing bodies below
- * serve byte-identically to before the seam existed; with one composed,
+ * serve the storing posture; with one composed,
  * EVERY method delegates — on the serving edition even the discovery
  * reads are real store-backed lookups (truthful emptiness is an OUTCOME
  * there, not a stub), and the uniform-miss reads must cover every cause
@@ -27,7 +26,7 @@
  * prevent one.
  *
  * Input validation is Layer-1: the transport interceptor chain validates
- * every request (matching Go's explicit SharedValidator calls), so the
+ * every request, so the
  * INVALID_ARGUMENT contract holds before every refusal AND before every
  * delegation.
  *

@@ -1,12 +1,11 @@
 /**
- * ChannelMessage controllers (the retired Go server's message.go): the
- * runtime messaging surface beside the Channel
+ * ChannelMessage controllers: the runtime messaging surface beside the Channel
  * resource controllers, kept off the resource CRUD surface. Stateless on
  * the storing edition — no store.
  *
  * The whole surface is posture-split at REGISTRATION (channel-runtime.ts):
  * with no ChannelRuntime composed the storing bodies below
- * serve byte-identically to before the seam existed; with one composed,
+ * serve the storing posture; with one composed,
  * EVERY method delegates — the driver owns runtime state and its own
  * error semantics, including the fail-closed arms this module's storing
  * bodies deliberately do not probe for (see below). Tail-end delegation
@@ -30,7 +29,7 @@
  * and refuses bare direct calls — the two-armed conformance pin.)
  *
  * Input validation is Layer-1: the transport interceptor chain validates
- * every request (matching Go's explicit SharedValidator calls), so the
+ * every request, so the
  * INVALID_ARGUMENT contract holds before every refusal AND before every
  * delegation.
  *

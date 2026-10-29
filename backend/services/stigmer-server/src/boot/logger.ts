@@ -4,10 +4,9 @@
  * Hand-rolled rather than a dependency: the repo's TS services have no
  * logging library precedent (the runner logs through raw console and
  * Temporal's runtime), and the server's needs are exactly four levels, a
- * threshold, structured fields, and two output shapes. Go's zerolog
- * behavior is the reference: NDJSON to stderr in deployed environments,
- * human-readable console output when ENV=local (server.go:939), stdout
- * untouched.
+ * threshold, structured fields, and two output shapes: NDJSON to stderr
+ * in deployed environments, human-readable console output when
+ * ENV=local, stdout untouched.
  *
  * The sink is the one seam for a structured export. A deployable that
  * ships records to a collector (the cloud composition's OTLP log export,

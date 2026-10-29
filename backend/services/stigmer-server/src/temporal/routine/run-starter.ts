@@ -192,7 +192,7 @@ export function scheduledExecutionName(
   return `${idPart}-${runNameFireTime(nominalFireTime)}`;
 }
 
-/** Go's "20060102t150405z", UTC whole seconds. */
+/** "yyyymmddThhmmssZ" lowercased (e.g. 20260825t093000z), UTC whole seconds. */
 function runNameFireTime(nominal: Date): string {
   const p = utcParts(nominal);
   return `${p.year}${p.month}${p.day}t${p.hour}${p.minute}${p.second}z`;
@@ -228,10 +228,9 @@ export function fencedFireText(text: string): string {
 }
 
 /**
- * Renders "Monday, 2006-01-02 15:04" in the zone, with Go's zone-name
- * echo: LoadLocation("") is UTC and prints "UTC"; an unloadable name
- * degrades to UTC (ComposeMessage's fallback); a loadable name echoes
- * byte-for-byte as given.
+ * Renders "<Weekday>, YYYY-MM-DD HH:MM" in the zone, echoing the zone
+ * name: an empty zone is UTC and prints "UTC"; an unloadable name
+ * degrades to UTC; a loadable name echoes byte-for-byte as given.
  */
 function fireContextLine(
   requestedZone: string,

@@ -330,7 +330,7 @@ describe("grant domain (composed server, trusted-local posture)", () => {
       expect(onOther.roles.map((role) => role.code)).toEqual(["member"]);
     });
 
-    it("delete of an absent triple answers the default instance (Java's contract)", async () => {
+    it("delete of an absent triple answers the default instance (an idempotent delete)", async () => {
       const org = (await newOrganization()).slug;
       const deleted = await command.delete(
         orgRole("ida_nobody", "member", org),

@@ -1,9 +1,7 @@
 /**
- * The tick workflow's activity surface — ports
- * pkg/domain/schedule/temporal/tick_activities.go. Nominal fire times
- * cross the boundary as RFC-3339 UTC strings so the payload never depends
- * on the data converter's time handling — the same wire shape the cloud
- * tick uses.
+ * The tick workflow's activity surface. Nominal fire times cross the
+ * boundary as RFC-3339 UTC strings so the payload never depends on the
+ * data converter's time handling — the same wire shape in every edition.
  *
  * Registered by the schedule worker under the pinned slash names
  * (names.ts); the retry postures live with the CALLER (workflows/tick.ts's
@@ -84,7 +82,7 @@ export interface RoutineTickActivityDeps {
   readonly logger: Logger;
 }
 
-/** Wires the activity implementations (Go NewTickActivities). */
+/** Wires the activity implementations. */
 export function createRoutineTickActivities(
   deps: RoutineTickActivityDeps,
 ): RoutineTickActivities {
@@ -108,7 +106,7 @@ export function createRoutineTickActivities(
  * Re-reads the routine row and either records the fire or explains why
  * this tick is a no-op — the revalidation that makes every orphaned
  * artifact harmless by construction: deleted, owner-disabled,
- * and platform-paused rows all decline the fire (Go RecordTick).
+ * and platform-paused rows all decline the fire.
  */
 async function recordTick(
   deps: RoutineTickActivityDeps,
@@ -164,7 +162,7 @@ async function recordTick(
  * Stamps the fire on status: last_fire_at = the NOMINAL time (identical on
  * activity retry — idempotent by construction), plus a best-effort
  * next_fire_at refresh from the live artifact. The refresh failing must
- * never block recording the fire that already happened (Go recordFire).
+ * never block recording the fire that already happened.
  */
 async function recordFire(
   deps: RoutineTickActivityDeps,
@@ -222,8 +220,7 @@ async function recordFire(
  * Re-validates and starts this fire's run. The revalidation repeats
  * recordTick's checks collapsed into one SKIPPED outcome — the row may
  * have changed between the two activities, and a fire that recorded must
- * still decline to run against a row that no longer wants it (Go
- * StartScheduledRun).
+ * still decline to run against a row that no longer wants it.
  */
 async function startScheduledRun(
   deps: RoutineTickActivityDeps,
@@ -344,7 +341,7 @@ async function startScheduledRun(
  * The read unmarshals the whole execution row — SQLite stores one protobuf
  * blob with no projection. At one poll per 5-60s per active
  * run on a single-user daemon that is noise; a projected phase column is
- * the named follow-up if it ever isn't (Go PollExecutionPhase).
+ * the named follow-up if it ever isn't.
  */
 async function pollExecutionPhase(
   deps: RoutineTickActivityDeps,
@@ -386,7 +383,7 @@ async function pollExecutionPhase(
 /**
  * Resets the failure streak to its absorbing zero. Idempotent — the caller
  * retries freely: a LOST reset strands a stale streak that pauses a
- * healthy routine later, so this write must land (Go RecordSuccessfulRun).
+ * healthy routine later, so this write must land.
  */
 async function recordSuccessfulRun(
   deps: RoutineTickActivityDeps,
@@ -436,8 +433,7 @@ async function recordSuccessfulRun(
  *
  * The caller gives this activity EXACTLY ONE attempt: an increment is not
  * idempotent — a retry after a successful write over-counts and pauses a
- * healthy routine early, while a lost write under-counts and fails safe
- * (Go RecordFailedRun).
+ * healthy routine early, while a lost write under-counts and fails safe.
  */
 async function recordFailedRun(
   deps: RoutineTickActivityDeps,
@@ -548,7 +544,7 @@ async function recordFailedRun(
   return recorded;
 }
 
-/** Go time.Parse(time.RFC3339) — an unparseable nominal time fails the activity. */
+/** Strict RFC 3339 parse — an unparseable nominal time fails the activity. */
 function parseRfc3339(value: string): Date {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {

@@ -5,12 +5,12 @@
  *
  *   - close() racing an in-flight reconnect must NOT resurrect the
  *     manager (fresh dial discarded; no workers recreated; no hooks
- *     fired after shutdown) — Go is immune via context cancellation,
- *     this port re-checks `closed` across every await;
+ *     fired after shutdown) — the manager re-checks `closed` across every
+ *     await;
  *   - a worker factory throwing mid-loop must leave the already-started
  *     workers TRACKED so close() can stop them (an untracked poller
  *     lives forever);
- *   - the Go availability parity: getClient() is undefined only until
+ *   - the availability posture: getClient() is undefined only until
  *     the first successful connect;
  *   - both connections, the client's and the workers' native one, carry
  *     the configured connection security (TLS and API key) beside the
@@ -242,7 +242,7 @@ describe("TemporalManager worker tracking", () => {
     }));
 
     await manager.initialConnect();
-    // startWorkers logs the factory failure as a warning (Go posture)…
+    // startWorkers logs the factory failure as a warning…
     await manager.startWorkers();
     // …but the FIRST worker already started polling; close() must reach it.
     await manager.close();
@@ -255,7 +255,7 @@ describe("TemporalManager worker tracking", () => {
 });
 
 describe("TemporalManager availability posture", () => {
-  it("getClient() is undefined until the first successful connect (Go's nil-creator window)", async () => {
+  it("getClient() is undefined until the first successful connect", async () => {
     const manager = newManager([]);
     expect(manager.getClient()).toBeUndefined();
 

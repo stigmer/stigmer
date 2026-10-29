@@ -5,9 +5,8 @@
  * ride the in-process transport: position 1 mints the internal caller
  * class the Authorize step honors as the server acting as itself, so the
  * Authorizer is never consulted for a write the server makes on its own
- * behalf (the Java UpdateExecutionStatusActivityImpl posture — no
- * authorization step on this write — reached through the shared chain
- * rather than around it).
+ * behalf (no authorization step on this write, reached through the
+ * shared chain rather than around it).
  *
  * Composed the way the cloud is shaped — a real server over SQLite with a
  * denying, recording Authorizer unit — and driven through the REAL

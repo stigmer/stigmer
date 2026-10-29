@@ -98,7 +98,7 @@ describe("explicit env misconfiguration errors (never degrades)", () => {
   });
 });
 
-describe("key file load gates (fall through to auto-generate, as Go does)", () => {
+describe("key file load gates (fall through to auto-generate)", () => {
   it.skipIf(process.platform === "win32")(
     "never adopts a key file with insecure permissions",
     () => {

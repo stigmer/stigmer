@@ -1,6 +1,6 @@
 /**
  * Boot-ordering (health gate) tests — the contract the CLI's serverGate
- * depends on (Go server.go:739-743, 839-843; grpc lib Stop :247-265):
+ * depends on:
  *
  *   - overall health is NOT_SERVING from construction until the
  *     composition root completes;

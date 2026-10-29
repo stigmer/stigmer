@@ -1,5 +1,5 @@
 /**
- * Pins the artifact mapping against Go's artifact_test.go: the id
+ * Pins the artifact mapping: the id
  * contract, the drift-fingerprint note, the two-lever paused derivation,
  * and the baked policy (SKIP overlap, PauseOnFailure false, one action
  * arg) — every value here is cross-repo wire contract.
@@ -133,7 +133,7 @@ describe("applyDesiredState — the update half of ensure", () => {
     expect(state.note).toBe("cron=30 8 * * * tz=UTC");
   });
 
-  it("preserves unrelated previous state fields (Go mutates desc.Schedule.State in place)", () => {
+  it("preserves unrelated previous state fields", () => {
     const previous = {
       state: { paused: false, note: "x", remainingActions: 7 },
       info: {},

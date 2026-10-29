@@ -1,5 +1,5 @@
 /**
- * LoadForApply — ports steps/load_for_apply.go. Apply's existence probe:
+ * LoadForApply: Apply's existence probe:
  * NEVER fails on not-found — it sets the ShouldCreate/ExistsInDatabase
  * flags the controller branches on (create vs update), and populates the
  * id when the resource exists. The resource is found as every write finds
@@ -18,7 +18,7 @@ import { findResourceForWrite, storedRowReader } from "./names.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
 
-/** Context keys (Go ExistsInDatabaseKey / ShouldCreateKey). */
+/** Context keys the controller branches on. */
 export const EXISTS_IN_DATABASE_KEY = "existsInDatabase";
 export const SHOULD_CREATE_KEY = "shouldCreate";
 
@@ -58,13 +58,12 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
 }
 
 /**
- * The apply update-arm delegation message: the ORIGINAL request (the Go
- * pin — never the pipeline's mutated clone) with ONLY the resolved id
+ * The apply update-arm delegation message: the ORIGINAL request (never
+ * the pipeline's mutated clone) with ONLY the resolved id
  * copied on. Apply requests identify by name+org, not id, so without
  * this the delegated update chain's Authorize step checks an EMPTY
- * resource id — the permissive OSS default never noticed, but a real
- * Authorizer (the cloud edition) must check the true target, exactly as
- * the Java edition's post-load authorize order does. The resolved id
+ * resource id — the permissive OSS default would not notice, but an
+ * enforcing Authorizer must check the true target. The resolved id
  * replaces whatever id the manifest carried: one the probe passed over (a
  * row of another organization, or none) must not reach the update chain,
  * which loads by id.

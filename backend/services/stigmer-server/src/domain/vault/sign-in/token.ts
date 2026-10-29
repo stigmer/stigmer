@@ -1,6 +1,6 @@
 /**
- * OAuth token-endpoint client — ports pkg/domain/mcpserver/oauth/token.go
- * whole: the pre-flight refresh and the authorization-code exchange.
+ * OAuth token-endpoint client: the pre-flight refresh and the
+ * authorization-code exchange.
  *
  * A token request carries the client secret, the PKCE code verifier or
  * the refresh token, so a redirect is never followed (`redirect:
@@ -25,7 +25,7 @@
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
 
-/** Token-endpoint response (Go TokenResponse). */
+/** Token-endpoint response. */
 export interface TokenResponse {
   accessToken: string;
   tokenType: string;
@@ -42,7 +42,7 @@ export interface TokenResponse {
 export const TOKEN_AUTH_METHOD_BASIC = "client_secret_basic";
 export const TOKEN_AUTH_METHOD_POST = "client_secret_post";
 
-/** Go's tokenHTTPClient 15s timeout — a named constant per guidelines. */
+/** A 15s timeout — a named constant per guidelines. */
 export const TOKEN_REQUEST_TIMEOUT_MS = 15_000;
 
 /** A token endpoint's refusal, with its OAuth error code when it named one (RFC 6749 section 5.2). */
@@ -59,7 +59,7 @@ export class TokenEndpointError extends Error {
 
 /**
  * Exchanges an authorization code for tokens using the
- * authorization_code grant with PKCE (Go ExchangeCode). For public
+ * authorization_code grant with PKCE. For public
  * clients (DCR), clientSecret is empty; for confidential clients (vendor
  * OAuth) tokenAuthMethod selects how the secret is presented.
  */

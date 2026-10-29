@@ -7,9 +7,8 @@
  *   1. identity source  — REQUIRED parameter
  *      request metrics  — SERVING chain only, immediately inside the
  *                         identity source (interceptors/request-metrics.ts:
- *                         Java's RED emitter at Java's position — an
- *                         identity refusal is position 1's own record,
- *                         never a counted error)
+ *                         the RED emitter — an identity refusal is
+ *                         position 1's own record, never a counted error)
  *   2. logging          — level-tiered per outcome
  *      single-org fill  — SERVING chain only, and only on a composition
  *                         that declares one organization
@@ -30,8 +29,8 @@
  *
  * ConnectRPC applies array order as nesting order (first = outermost),
  * verified by a spike. Positions 2–4 are the SAME for external
- * transports and in-process router-transport calls — validation parity is
- * the point. Position 1 deliberately differs per transport: the serving
+ * transports and in-process router-transport calls — one validation for
+ * both is the point. Position 1 deliberately differs per transport: the serving
  * chain runs the verifier chassis over the wire's
  * credentials, the in-process chain stamps the internal caller class its
  * own interceptor mints (interceptors/auth.ts owns both sources and the
@@ -42,8 +41,7 @@
  * The serving-only interceptors travel as ONE optional parameter so
  * a chain cannot half-inherit them: in-process hops are exempt from
  * sanitization by construction — the outer handler needs the full inner
- * diagnostic (the Java InProcessCallContextHolder exemption,
- * structurally) — and an in-process hop is not a request, so it is not
+ * diagnostic — and an in-process hop is not a request, so it is not
  * counted as one.
  */
 import type { Interceptor } from "@connectrpc/connect";

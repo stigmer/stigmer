@@ -76,7 +76,7 @@ import type {
 } from "../extensions/identity.js";
 import type { IssuerDiscovery } from "./oidc-discovery.js";
 
-/** Java classifyAuthError arms — byte-pinned cross-edition copy. */
+/** Verification-failure classification arms — byte-pinned cross-edition copy. */
 export const TOKEN_EXPIRED_MESSAGE = "token has expired";
 export const TOKEN_AUDIENCE_MESSAGE =
   "token audience does not match the expected audience";
@@ -182,7 +182,7 @@ function isJwtShaped(token: string): boolean {
 }
 
 /**
- * Maps jose's verification failures onto the Java classifyAuthError arms.
+ * Maps jose's verification failures onto the classification arms.
  * JWKS transport failures (discovery succeeded, key fetch did not) are
  * NOT credential rejections — they rethrow as plain errors for the
  * chassis's INTERNAL arm.

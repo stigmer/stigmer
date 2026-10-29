@@ -1,15 +1,14 @@
 /**
  * gRPC health service (grpc.health.v1) — the readiness gate.
  *
- * Ports the Go server's health posture (backend/libs/go/grpc/server.go):
- * the overall status ("" service) starts NOT_SERVING at construction and
+ * The overall status ("" service) starts NOT_SERVING at construction and
  * flips SERVING only after the composition root completes — "ready" means
- * "wired and answering RPCs", never merely "port bound" (server.go:739-742).
- * Shutdown flips NOT_SERVING FIRST, before the drain (Stop, :247-265).
+ * "wired and answering RPCs", never merely "port bound". Shutdown flips
+ * NOT_SERVING FIRST, before the drain.
  * The CLI's serverGate TCP probe keys off the port bind, which the boot
  * sequence therefore performs only after this state is SERVING.
  *
- * Semantics match grpc-go's health server: Check on an unknown service is
+ * Semantics are the gRPC health protocol's: Check on an unknown service is
  * NOT_FOUND; Watch answers immediately with the current status
  * (SERVICE_UNKNOWN if unset), stays open, and streams changes.
  */
@@ -81,9 +80,9 @@ export function registerHealthService(
     },
 
     watch: async function* (request, context) {
-      // Immediate current status (SERVICE_UNKNOWN for unset — grpc-go keeps
-      // the stream OPEN in that case rather than failing, so a client can
-      // watch a service that registers later).
+      // Immediate current status (SERVICE_UNKNOWN for unset — the stream
+      // stays OPEN in that case rather than failing, so a client can watch
+      // a service that registers later).
       let latest =
         state.status(request.service) ?? ServingStatus.SERVICE_UNKNOWN;
       yield { status: latest };

@@ -563,9 +563,8 @@ export {
 } from "./pipeline/errors.js";
 export type { RefusalReason } from "./pipeline/errors.js";
 // The shared slug derivation: extension-registered resource
-// kinds derive slugs with the SAME generator both editions pin
-// (ApiRequestResourceSlugGenerator parity) — the semantics live exactly
-// once.
+// kinds derive slugs with the SAME generator both editions pin — the
+// semantics live exactly once.
 export { generateSlug } from "./pipeline/steps/slug.js";
 // The in-process caller-propagation surface: extension code
 // composing requests through the in-process transport AS a caller rides

@@ -1,6 +1,6 @@
 // Built-in security-first ignore patterns, applied (lowest priority) unless
-// disabled. A verbatim port of the Go CLI's DefaultPatterns so `push` excludes
-// the same secrets, VCS metadata, and build artifacts on both CLIs.
+// disabled, so every client's `push` excludes the same secrets, VCS metadata,
+// and build artifacts.
 
 export const DEFAULT_PATTERNS: readonly string[] = [
   // Version control

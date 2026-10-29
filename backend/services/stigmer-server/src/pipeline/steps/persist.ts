@@ -1,5 +1,5 @@
 /**
- * Persist — ports steps/persist.go: saves newState through the store
+ * Persist: saves newState through the store
  * (metadata.id must be set by an earlier step). A credential bound to an
  * organization saves no row filed in an organization it does not reach
  * (refuse-bound-elsewhere.ts, through the composed binding): the backstop

@@ -1,6 +1,6 @@
 /**
- * Pins the oauthapp domain against Go's oauthapp_secrets_test.go, and the
- * addresses an app signs in to — through the REAL stack: a composed server on an ephemeral port, a native gRPC
+ * Pins the oauthapp domain's secrets, and the addresses an app signs in
+ * to — through the REAL stack: a composed server on an ephemeral port, a native gRPC
  * client, the full interceptor chain.
  *
  * The load-bearing pins the conformance suite CANNOT cover (black box; these
@@ -12,7 +12,7 @@
  *     read, and the enc:v<N>: shape rejection stays UNCONDITIONAL (oss#395);
  *   - the delete RPC answers the removed app REDACTED, never the stored
  *     secret: not the ciphertext on a keyed server, not the plaintext on
- *     a keyless one (stigmer/stigmer#1257; the Go port returned it);
+ *     a keyless one (stigmer/stigmer#1257);
  *   - an app's addresses are normalized and each belongs to one app per
  *     organization: create and update claim theirs, an update lets go of
  *     the ones it drops, delete lets go of all, and an abandoned claim is
@@ -277,7 +277,7 @@ describe("oauthapp domain (encryption enabled)", () => {
 
     const listed = await ts.query.list({ org: otherOrg });
     expect(listed.entries).toHaveLength(2);
-    // Newest first (Go's created_at-descending comparator).
+    // Newest first (created_at descending).
     expect(listed.entries[0]?.metadata?.id).toBe(second.metadata?.id);
     expect(listed.entries[1]?.metadata?.id).toBe(first.metadata?.id);
   });

@@ -563,8 +563,8 @@ describe("the rule, for a caller bound to one organization", () => {
       });
     expect(await verdictOf(VIEW)).toBe("admitted");
     expect(await verdictOf(EDIT)).toBe("outside");
-    // No permission is admitted outside beyond reading and running: the
-    // retired connect permission is no exception any more.
+    // No permission is admitted outside beyond reading and running:
+    // can_connect is no exception.
     expect(await verdictOf("can_connect")).toBe("outside");
   });
 

@@ -10,9 +10,9 @@
  * the rest is still a customer's. Encrypting at the payload codec layer
  * covers every crossing with one mechanism instead of chasing each one.
  *
- * Envelope (cross-SDK contract — the Java decode-only codec in
- * stigmer-cloud's temporal-starter must match it byte-for-byte, pinned
- * by the conformance fixture in __tests__/fixtures/):
+ * Envelope (wire contract — every process that reads the history decodes
+ * it byte-for-byte, pinned by the conformance fixture in
+ * __tests__/fixtures/):
  *
  *   metadata: encoding            = "binary/encrypted"
  *             encryption-key-id   = <key id that encrypted this payload>
@@ -22,9 +22,9 @@
  * data), so decode restores the payload exactly — including its
  * original encoding — with no side channel.
  *
- * Decode passes through payloads it did not encode. This is what keeps
- * plaintext signals from the Java/Go orchestrators and pre-rollout
- * in-flight histories working with zero migration. Everything else
+ * Decode passes through payloads it did not encode, so a signal from a
+ * client without the codec, or a history recorded before encryption was
+ * switched on, still reads. Everything else
  * fails closed: unknown key id, missing key id, and ciphertext tampering
  * all throw rather than surfacing bogus payloads.
  *
@@ -58,7 +58,7 @@ const ENCODING_METADATA_KEY = "encoding";
 const ENCRYPTED_ENCODING_VALUE = "binary/encrypted";
 const KEY_ID_METADATA_KEY = "encryption-key-id";
 
-/** AES-GCM parameters shared with the Java implementation. */
+/** AES-GCM parameters, part of the envelope contract. */
 const IV_BYTES = 12;
 const AUTH_TAG_BYTES = 16;
 
@@ -155,8 +155,8 @@ function encrypt(plaintext: Uint8Array, key: EncryptionKey): Buffer {
   const iv = randomBytes(IV_BYTES);
   const cipher = createCipheriv("aes-256-gcm", key.key, iv);
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  // Layout iv ‖ ciphertext ‖ tag matches Java's AES/GCM/NoPadding, whose
-  // doFinal() output is ciphertext ‖ tag.
+  // Layout iv ‖ ciphertext ‖ tag: the standard AES/GCM/NoPadding output
+  // (ciphertext ‖ tag) behind its IV.
   return Buffer.concat([iv, ciphertext, cipher.getAuthTag()]);
 }
 

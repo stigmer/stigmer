@@ -1,6 +1,5 @@
 /**
- * Error-boundary interceptor — the serving chain's position 0, the TS
- * port of the cloud Java VisitorErrorSanitizerInterceptor posture.
+ * Error-boundary interceptor — the serving chain's position 0.
  *
  * Two arms, one structural guarantee each:
  *
@@ -20,24 +19,22 @@
  *      six leak-prone codes are rewritten for callers the policy deems
  *      on the anonymous surface (the cloud: guest / channel / is_public),
  *      the code ALWAYS preserved so SDK retry semantics stay honest, a
- *      minted support ref appended in the Java byte-pinned format, and
+ *      minted support ref appended in the byte-pinned format, and
  *      the original description kept operator-visible via the boundary
  *      WARN (log-based correlation — the TS serving path has no OTel
  *      span to stamp). The sanitized error is a FRESH
  *      ConnectError: details and metadata never survive sanitization
- *      (the Java trailers-drop, and rethrownStatusError's metadata
- *      lesson).
+ *      (the trailers drop, and rethrownStatusError's metadata lesson).
  *
  * Placement contract: OUTERMOST on the SERVING chain only (chain.ts).
- * Outermost keeps the Java pin "sanitizes even with no identity context"
+ * Outermost keeps the pin "sanitizes even with no identity context"
  * (identity is read from contextValues at error time — stamped by
  * position 1 when the error rose from inside it, absent when position 1
  * itself refused) and covers identity-chassis faults; the logging
  * interceptor sits inside, so operators keep the ORIGINAL error at error
  * level while the wire carries the rewrite. The in-process chain never
  * composes this interceptor — in-process hops are exempt by
- * construction (the outer handler needs the full inner diagnostic), the
- * TS rendering of the Java InProcessCallContextHolder exemption.
+ * construction (the outer handler needs the full inner diagnostic).
  *
  * Streams: mid-iteration errors bypass a plain `await next(request)`
  * wrapper, so stream responses are re-wrapped with a guarded iterable —
@@ -89,8 +86,7 @@ export interface VisitorErrorPolicy {
    * cloud rule: guest or channel caller class, or an is_public method).
    * Synchronous and cheap — it runs on every boundary error. `identity`
    * is undefined when the error rose from position 1 before stamping
-   * (the Java "no interceptor context" arm — an is_public rule must
-   * still answer there). A throw is treated as eligible: over-sanitizing
+   * (an is_public rule must still answer there). A throw is treated as eligible: over-sanitizing
    * an org member's diagnostics is recoverable, leaking internals to a
    * visitor is not.
    */
@@ -109,11 +105,9 @@ export interface VisitorErrorPolicy {
 }
 
 /**
- * The Java supportRef format, byte-pinned:
- * `" (ref: <8 hex chars>)"`. Java derives the ref from the first 8 of
- * the trace id; the TS serving path has no trace id, so the boundary
- * mints one on the error path and the boundary WARN is the correlation
- * point.
+ * The support-ref format, byte-pinned: `" (ref: <8 hex chars>)"`. The
+ * serving path has no trace id, so the boundary mints the ref on the error
+ * path and the boundary WARN is the correlation point.
  */
 export function supportRefSuffix(ref: string): string {
   return ` (ref: ${ref})`;
@@ -227,8 +221,7 @@ async function boundaryError(
 
   const ref = mintSupportRef();
   // The correlation point: the visitor holds the ref, this line
-  // holds the original description — the log-based rendering of the
-  // Java span attribute + boundary WARN pair.
+  // holds the original description.
   logger.warn("sanitized a visitor-facing error", {
     procedure,
     code: Code[connectError.code],
@@ -238,6 +231,6 @@ async function boundaryError(
   });
   // A FRESH error: same code (never changed — SDK retry semantics stay
   // honest), rewritten description + ref, and NO inherited details or
-  // metadata (the Java trailers-drop; rethrownStatusError's lesson).
+  // metadata (the trailers drop; rethrownStatusError's lesson).
   return new ConnectError(copy + supportRefSuffix(ref), connectError.code);
 }

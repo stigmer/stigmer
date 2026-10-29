@@ -8,7 +8,7 @@
  *   - a composed scope narrows to the kept ids — and can only narrow:
  *     ids the scope answers that were never offered add nothing;
  *   - the org argument narrows BEFORE the scope, only when non-blank
- *     (the Java repos' uniform blank-org posture; the scope is the last
+ *     (the uniform blank-org posture; the scope is the last
  *     per-row predicate, so it is
  *     offered the org's rows and never the kind's — the same result set,
  *     a fraction of the candidates);

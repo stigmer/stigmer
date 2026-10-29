@@ -1,6 +1,5 @@
 /**
- * Skill artifact transfer lane — ports pkg/domain/skill/transfer/handler.go:
- * the HTTP upload/download surface that carries skill artifact bytes
+ * Skill artifact transfer lane: the HTTP upload/download surface that carries skill artifact bytes
  * OUTSIDE the gRPC control plane (#675) when the blob driver is the local
  * one. The gRPC server caps messages at 10MB while the skill layer permits
  * 100MB artifacts, so inline bytes physically cannot carry every valid
@@ -21,8 +20,7 @@
  *
  * The lane slots into the transport's existing skillTransferLane seam
  * (transport/server.ts lane 3); URL renderers live next to the route
- * dispatch so the URL shape and its handler cannot drift apart (Go's
- * stated invariant): uploadUrl is what the local driver's staged-upload
+ * dispatch so the URL shape and its handler cannot drift apart: uploadUrl is what the local driver's staged-upload
  * lane mints, and transferServeUrl is the serve URL the composition hands
  * the local skill driver so its signed GETs land on the download route
  * below. Proven by __tests__/skill.test.ts's transfer-lane block (both
@@ -66,7 +64,7 @@ function trimTrailingSlash(url: string): string {
 }
 
 /**
- * Builds the lane handler (Go NewHandler). `signer` is the one the local
+ * Builds the lane handler. `signer` is the one the local
  * skill driver mints its download URLs with.
  */
 export function newSkillTransferLane(
@@ -82,7 +80,7 @@ export function newSkillTransferLane(
     const query = new URLSearchParams(queryStart === -1 ? "" : url.slice(queryStart + 1));
     if (!pathOnly.startsWith(SKILL_ARTIFACTS_PATH_PREFIX)) {
       // Unreachable through the lane router (it dispatches by this exact
-      // prefix); kept as the honest Go http.NotFound arm for direct use.
+      // prefix); kept as the plain 404 arm for direct use.
       writeText(response, 404, "404 page not found");
       return;
     }
@@ -225,7 +223,7 @@ async function handleDownload(
   response.end(Buffer.from(data));
 }
 
-/** Go http.Error's shape: text/plain body with a trailing newline. */
+/** A plain-text error body with a trailing newline. */
 function writeText(response: LaneResponse, status: number, body: string): void {
   response.statusCode = status;
   response.setHeader("Content-Type", "text/plain; charset=utf-8");

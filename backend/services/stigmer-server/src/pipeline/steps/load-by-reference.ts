@@ -1,5 +1,5 @@
 /**
- * LoadByReference — ports steps/load_by_reference.go. GetByReference's
+ * LoadByReference: GetByReference's
  * loader: validates the reference (kind mismatch → InvalidArgument;
  * org-scoped kinds require an org for a slug — RequireOrgForReference),
  * resolves by id, or by slug in its org, stores under TargetResource.

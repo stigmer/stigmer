@@ -1,11 +1,9 @@
 /**
- * ResolveSlug — ports steps/slug.go. Derives a URL-safe slug from
- * metadata.name; idempotent when the slug is already set. NO length
- * truncation, deliberately: truncation created silent collisions between
- * different names, and the generator matches the cloud Java
- * ApiRequestResourceSlugGenerator so both editions derive identical slugs
- * (dots are namespace separators → hyphens, e.g. "platform.sara" →
- * "platform-sara").
+ * ResolveSlug: derives a URL-safe slug from metadata.name; idempotent when
+ * the slug is already set. NO length truncation, deliberately: truncation
+ * creates silent collisions between different names. Every edition runs
+ * this generator, so all derive identical slugs (dots are namespace
+ * separators → hyphens, e.g. "platform.sara" → "platform-sara").
  *
  * A derived slug is held to metadata.slug's own rules (`checkDerivedSlug`).
  * Most chains run ValidateProto before this step, so without the check a
@@ -49,7 +47,7 @@ export function newResolveSlugStep<
     execute(ctx: RequestContext<Desc>): void {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
-        // A server-side programming error, not bad client input (Go).
+        // A server-side programming error, not bad client input.
         throw internalError(
           new Error("resource metadata is nil"),
           "slug resolution",
@@ -73,7 +71,7 @@ export function newResolveSlugStep<
 }
 
 /**
- * Go GenerateSlug: lowercase → spaces/dots to hyphens → strip
+ * The slug generator: lowercase → spaces/dots to hyphens → strip
  * non-[a-z0-9- ] → collapse hyphens → trim hyphens. No truncation.
  */
 export function generateSlug(name: string): string {
@@ -90,7 +88,7 @@ export function generateSlug(name: string): string {
  * caller can fix, so the slug is made to fit instead:
  *
  *   - the shared generator over the name, kept as it is whenever the rules
- *     admit it, so a valid slug is the one every earlier release derived;
+ *     admit it, so a valid slug is exactly the generator's;
  *   - nothing left (no ASCII letter or digit): the first fallback that
  *     leaves something;
  *   - not starting with a letter: `a-` in front;

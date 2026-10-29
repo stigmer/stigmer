@@ -1,6 +1,5 @@
 /**
- * Model-registry document store — ports the Go server's ModelRegistryStore
- * (model_registry_store.go). The model catalog is its own module, not any
+ * Model-registry document store. The model catalog is its own module, not any
  * one domain's: every domain that pins a model (agents, runs, schedules,
  * shares, channels) and the
  * transport's /v1/proxy/model-registry lane read this ONE store, so the
@@ -10,18 +9,17 @@
  * The store always holds a complete, valid document: it starts from the
  * bundled build-time snapshot (offline-install contract — a server with no
  * outbound network still answers a full registry) and upgrades in place
- * from the hosted API. Every transition is guarded by the same sanity gate
- * Go applies (applyDocument, :299-306): the candidate must parse and index
+ * from the hosted API. Every transition is guarded by one sanity gate: the
+ * candidate must parse and index
  * at least one model entry, otherwise it is rejected and the current
  * document stays — a bad upstream can never blank the console's model
  * pickers or turn model validation into reject-everything. An upstream
  * document must also give the platform default harness (`stigmer`) a
  * section: a hosted registry that files its rows under a word this build
- * does not read (one served before the harness took its word, or after a
- * later rename) would otherwise empty the default harness's catalog, so it
+ * does not read (a later rename, say) would otherwise empty the default harness's catalog, so it
  * is refused like any other bad document and the current one stays.
  *
- * Failure logging matches Go (:454-476): the FIRST consecutive refresh
+ * Failure logging: the FIRST consecutive refresh
  * failure logs at warn, repeats at debug until a success resets the flag —
  * an offline laptop must not fill its log with hourly warnings.
  *
@@ -41,20 +39,19 @@ import { DocumentModelCatalog } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 import { HARNESS_WORDS } from "./pin-validation.js";
 
-/** Upstream refresh cadence (Go modelRegistryRefreshInterval, :34). */
+/** Upstream refresh cadence. */
 export const MODEL_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
-/** Per-fetch budget (Go fetch timeout, :35-39). */
+/** Per-fetch budget. */
 export const MODEL_REGISTRY_FETCH_TIMEOUT_MS = 30_000;
 
 /**
- * Read cap on the upstream body (Go's 8<<20 limited reader). Go truncates
- * the stream and lets the parse fail; here the size check rejects before
- * parsing — same outcome (oversized document rejected, current kept).
+ * Read cap on the upstream body: the size check rejects before parsing
+ * (oversized document rejected, current kept).
  */
 export const MODEL_REGISTRY_MAX_BYTES = 8 * 1024 * 1024;
 
-/** Hosted API path appended to the upstream origin (Go :20-32). */
+/** Hosted API path appended to the upstream origin. */
 export const MODEL_REGISTRY_UPSTREAM_PATH = "/api/v1/public/model-registry";
 
 /**
@@ -102,8 +99,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
 
   constructor(options: ModelRegistryStoreOptions) {
     // A broken bundled snapshot is a build defect, not a runtime condition:
-    // fail loud at construction rather than serving an empty registry
-    // (Go log.Fatal in Store()).
+    // fail loud at construction rather than serving an empty registry.
     const catalog = DocumentModelCatalog.tryBuild(options.bundledDocument);
     if (catalog === undefined) {
       throw new Error(
@@ -263,7 +259,7 @@ export class ModelRegistryStore implements ModelCatalogProvider {
   }
 
 
-  /** Immediate refresh, then hourly — Go's goroutine shape (:435-447). */
+  /** Immediate refresh, then hourly. */
   startRefresh(): void {
     if (!this.options.refreshEnabled || this.refreshTimer !== undefined) {
       return;

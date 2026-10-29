@@ -3,14 +3,12 @@
  * versioned kind (agents, skills, plugins): the version-metadata
  * rule an applied kind's write runs once its hash is known, the "archive
  * the head" step a write runs after the head is fully populated, and the
- * best-effort archive cleanup a delete runs before the row. Skills carried
- * the archive and the cleanup alone (#341, adopted for skills in #475; the
- * Go ArchiveCurrentSkillStep / DeleteSkillArchivesStep port); one copy
- * serves every kind, and each kind names its step (`SaveVersionAudit`,
+ * best-effort archive cleanup a delete runs before the row (#341, #475).
+ * One copy serves every kind, and each kind names its step (`SaveVersionAudit`,
  * `ArchiveCurrentSkill`, `ArchiveCurrentPlugin`, …), where its head rides
  * and where its hash and tag live.
  *
- * The load-bearing semantics, all preserved from the skill port:
+ * The load-bearing semantics:
  *   - repoint-never-duplicate: re-writing EVER-archived content repoints
  *     the head to the existing audit row (an A→B→A re-push must not
  *     duplicate A's row);

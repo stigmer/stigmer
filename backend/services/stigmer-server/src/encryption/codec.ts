@@ -1,6 +1,5 @@
 /**
- * One version of the secret-value wire format (enc:v<N>:...) — ports the
- * cloud edition's ai.stigmer.infra.encryption.SecretCodec: the whole
+ * One version of the secret-value wire format (enc:v<N>:...): the whole
  * mapping between the stored string and the plaintext, including where
  * the bytes live, but NO policy.
  *
@@ -13,15 +12,12 @@
  * through the `secretCodecs` ExtensionDrivers field (never a module-level
  * side registry: one registry, one door).
  *
- * In the Java original a codec was pure crypto over the stored string
- * alone until v3; the v3 codec stores the secret's value in the vault KV
- * store and keeps only an authenticated pointer in the string, so
- * encrypt/decrypt there include store I/O. That is why every verb here
- * is async even though the
- * built-in v1 codec never awaits anything.
+ * A codec may do store I/O: the v3 codec stores the secret's value in the
+ * vault KV store and keeps only an authenticated pointer in the string.
+ * That is why every verb here is async even though the built-in v1 codec
+ * never awaits anything.
  *
- * TS shape note: Java's interface carries default methods; here the
- * batch/lifecycle verbs are OPTIONAL and the facade owns the fallbacks
+ * The batch/lifecycle verbs are OPTIONAL and the facade owns the fallbacks
  * (loop the singular verbs; delete is a no-op) — a codec implements them
  * only when it can do better (the v2 envelope codec batches all data-key
  * wraps into one Transit round trip).
@@ -103,8 +99,8 @@ export interface SecretCodec {
 
   /**
    * Whether this codec can actually seal new values. OPTIONAL — absent
-   * means enabled (the Java posture: a codec bean exists exactly when its
-   * key machinery does, so registration IS the ability to encrypt). Only
+   * means enabled (a codec is registered exactly when its key machinery
+   * exists, so registration IS the ability to encrypt). Only
    * the OSS v1 codec implements it: its keyless WARN-degrade state
    * (oss#394) is a deliberate, modeled condition the write steps branch
    * on.

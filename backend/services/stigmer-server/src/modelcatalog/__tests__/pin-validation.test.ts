@@ -1,5 +1,5 @@
 /**
- * Pin-validation tests — pin the Go pin_validation.go behavior: the
+ * Pin-validation tests: the
  * harness-name mapping (unset → stigmer, the edition-honest posture), the
  * write-time existence rule's refusal copy with did-you-mean
  * (oss#774), the any-harness arm for surfaces without a serving harness,

@@ -1,6 +1,5 @@
 /**
- * Lexical cron and time-zone validation — ports
- * pkg/domain/schedule/controller/cron.go.
+ * Lexical cron and time-zone validation.
  *
  * The platform owns NO cron parsing in either edition — calendar and DST
  * semantics live in the Temporal server. This module restricts
@@ -12,10 +11,10 @@
  * 6/7-field forms defeat the structural one-minute floor; "#" comments are
  * noise).
  *
- * Both server editions and the cloud Java edition mirror these checks with
- * byte-identical messages; the shared rejection matrix is pinned by unit
- * tests on every side. Widening this grammar later is additive; narrowing
- * it would break stored specs — start narrow.
+ * Every edition serves these checks with byte-identical messages (existing
+ * error copy is wire contract); the rejection matrix is pinned by
+ * __tests__/cron.test.ts. Widening this grammar later is additive;
+ * narrowing it would break stored specs — start narrow.
  */
 import { invalidArgumentError } from "../../pipeline/errors.js";
 
@@ -69,7 +68,7 @@ export function validateRoutineCron(cron: string): void {
     return;
   }
 
-  // Go strings.Fields: split on any run of whitespace, no empty fields.
+  // Split on any run of whitespace, no empty fields.
   const fields = cron.split(/\s+/).filter((field) => field !== "");
   if (fields.length !== 5) {
     throw invalidArgumentError(
@@ -87,15 +86,12 @@ export function validateRoutineCron(cron: string): void {
 }
 
 /**
- * Requires a name the platform tz database resolves — Go
- * validateScheduleTimeZone (the Temporal server loads the same database
- * when it evaluates the cron).
+ * Requires a name the platform tz database resolves (the Temporal server
+ * loads the same database when it evaluates the cron).
  *
- * "Local" is rejected explicitly: Go resolves it to the host's zone
- * (nondeterministic across replicas) while Java's ZoneId does not resolve
- * it at all — accepting it would be a cross-edition divergence on top of a
- * correctness bug. The EMPTY string is valid, as in Go: time.LoadLocation("")
- * is UTC (and the artifact's empty TimeZoneName means UTC to Temporal).
+ * "Local" is rejected explicitly: the Temporal server would resolve it to
+ * its host's zone, which differs across replicas. The EMPTY string is
+ * valid: the artifact's empty TimeZoneName means UTC to Temporal.
  */
 export function validateRoutineTimeZone(timeZone: string): void {
   if (timeZone === "Local" || !isLoadableTimeZone(timeZone)) {
@@ -120,24 +116,24 @@ function zoneSets(): { exact: Set<string>; lowered: Set<string> } {
 }
 
 /**
- * The TS spelling of Go time.LoadLocation's yes/no answer. ICU (behind
- * Intl) resolves zone names CASE-INSENSITIVELY (and may canonicalize
- * through historical aliases, e.g. asia/kolkata → Asia/Calcutta) while
- * Go's tzdata file lookup is case-sensitive. The guard restores Go's
- * refusal: an input that is a mere case-variant of a canonical zone is
- * rejected; genuine links ("US/Pacific") pass through ICU acceptance as
- * they do in Go. Residual divergence — a case-variant of a LINK name —
- * is a disclosed parity nuance (PR register), not silently absorbed.
+ * Whether the Temporal server's zone lookup would load the name. ICU
+ * (behind Intl) resolves zone names CASE-INSENSITIVELY (and may
+ * canonicalize through historical aliases, e.g. asia/kolkata →
+ * Asia/Calcutta) while the Temporal server's tzdata file lookup is
+ * case-sensitive. The guard keeps that refusal: an input that is a mere
+ * case-variant of a canonical zone is rejected; genuine links
+ * ("US/Pacific") pass through ICU acceptance as they load in Temporal.
+ * One known gap: a case-variant of a LINK name passes here.
  */
 export function isLoadableTimeZone(timeZone: string): boolean {
   if (timeZone === "") {
-    return true; // Go LoadLocation("") — UTC.
+    return true; // The empty zone is UTC.
   }
   const { exact, lowered } = zoneSets();
   if (exact.has(timeZone)) {
     return true;
   }
-  // A case-variant of a canonical zone: ICU would accept it, Go refuses.
+  // A case-variant of a canonical zone: ICU would accept it, Temporal refuses.
   if (lowered.has(timeZone.toLowerCase())) {
     return false;
   }

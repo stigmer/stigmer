@@ -1,6 +1,5 @@
 /**
- * Pins the platform domain against Go's platform_controller_test.go +
- * get_runner_scoped_token_test.go — through the real stack (composed
+ * Pins the platform domain through the real stack (composed
  * server, native gRPC client, full interceptor chain),
  * plus a keyless-service arm on an in-process router.
  *
@@ -159,7 +158,7 @@ describe("platform domain (composed server)", () => {
   it("getServerInfo names the oss edition and the dev version, stable across calls", async () => {
     const first = await client.getServerInfo({});
     expect(first.edition).toBe(ServerEdition.oss);
-    // Unbundled runs report Go's unstamped default; release bundles stamp
+    // Unbundled runs report the unstamped "dev"; release bundles stamp
     // the esbuild define (scripts/bundle-slim.mjs).
     expect(first.version).toBe("dev");
     // A server that trusts every request says so on the wire: an explicit
@@ -167,7 +166,7 @@ describe("platform domain (composed server)", () => {
     expect(first.authenticationRequired).toBe(false);
     // The default posture starts no sandbox (SANDBOX_PROVISIONER_TYPE
     // unset): no Environment governs a conversation here, and the field is
-    // still present, so a console never reads it as an older server.
+    // still present, so a console never reads it as unanswered.
     expect(first.environments).toEqual(
       expect.objectContaining({ applies: false, limitedNetworking: false, packages: false }),
     );
@@ -244,8 +243,8 @@ describe("platform domain (composed server)", () => {
 
   it("an unset scope is rejected by protovalidate BEFORE the handler (both editions)", async () => {
     // The proto pins `scope` as a required oneof, so the wire can never
-    // reach the handler's defensive undefined arm — the same InvalidArgument
-    // protovalidate answers on the Go server.
+    // reach the handler's defensive undefined arm — protovalidate answers
+    // InvalidArgument first.
     try {
       await client.getRunnerScopedToken({});
       throw new Error("expected the call to fail");

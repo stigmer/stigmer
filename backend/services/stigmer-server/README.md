@@ -5,18 +5,10 @@ the server `stigmer up` launches. A single-tenant TypeScript service serving
 the unified one-port gRPC/gRPC-Web/Connect transport over a `node:sqlite`
 store, with Temporal workers for the execution engine.
 
-**Where it came from**: born as `stigmer-server-ts`, a domain-by-domain
-TypeScript port of the original Go server, built behind the cross-edition
-conformance suite in [`test/conformance/`](../../../test/conformance) and cut
-over once its roster equalled the Go server's whole gate. The Go server
-retired shortly after (its source lives in git history). Ported modules
-cite the Go packages they came from — those citations are the port's
-provenance record.
-
 ## Contract promise
 
 The wire contract is shared: the cloud composition, the runner, every
-published SDK, and databases written before the cutover all speak it.
+published SDK, and every database a release wrote all speak it.
 Byte-pinned identifiers, error copy, and streaming behavior are contract —
 every deliberate exception is noted at the code that makes it, and nothing
 diverges silently. The conformance suite

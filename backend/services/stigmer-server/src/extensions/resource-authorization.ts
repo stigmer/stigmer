@@ -2,9 +2,8 @@
  * The resource-authorization lifecycle extension point. The cloud edition writes
  * relationship tuples (OpenFGA) at three verified points of every
  * resource's life — creation, deletion, and visibility change — through
- * ONE driver seam, mirroring the Java service's config-driven
- * architecture (CreateAuthorizationTuplesStepV2 + cleanupIamPolicies +
- * VisibilityTupleReconciler, the shapes production trusts today).
+ * ONE driver seam, config-driven (tuple creation, delete cleanup and the
+ * visibility reconcile).
  *
  * Division of labor: the OSS steps
  * (src/pipeline/steps/authorization-tuples.ts) resolve EVERYTHING
@@ -14,11 +13,10 @@
  * writes. No driver composed = the steps no-op = OSS behavior is
  * byte-identical (an absent point resolves to an explicit empty default).
  *
- * Failure semantics are part of the contract (Java parity, verified
- * against the cloud handlers 2026-08-27):
+ * Failure semantics are part of the contract:
  *   - onResourceCreated: SYNCHRONOUS, post-persist; a throw FAILS the
- *     request (the resource row survives — half-created resources are an
- *     inherited real state, healed by retry).
+ *     request (the resource row survives — a half-created resource is a
+ *     real state, healed by retry).
  *   - onResourceDeleted: best-effort — the call site logs and continues;
  *     a throw never fails the delete (orphaned grants are inert once the
  *     resource row is gone). It fires for the resource a delete chain
@@ -137,14 +135,14 @@ export interface ResolvedParentLink {
  * model over a candidate needs no second read of the row.
  *
  * Read-side facts are lenient where the create-time resolution is strict:
- * a legacy row that names no organization or no parent carries none (an
+ * a stored row that names no organization or no parent carries none (an
  * empty `org`, a link absent from `parentLinks`) and a stamp that names
  * nobody is the empty string — a fact about the row, never a fault of the
  * read.
  */
 export interface RowAuthorizationFacts {
   readonly id: string;
-  /** `metadata.org`; "" for kinds outside organization scope and for legacy rows that never named one. */
+  /** `metadata.org`; "" for kinds outside organization scope and for rows that never named one. */
   readonly org: string;
   /** `metadata.visibility` as stored; unspecified when the row never set one. */
   readonly visibility: ApiResourceVisibility;
@@ -177,8 +175,8 @@ export interface ResourceCreatedEvent {
   /** Scope link + additional parents, fully resolved. */
   readonly parentLinks: ReadonlyArray<ResolvedParentLink>;
   /**
-   * The creation-time visibility expansion (the Java reconciler's
-   * `unspecified → level` transition), org floor included.
+   * The creation-time visibility expansion (the `unspecified → level`
+   * transition), org floor included.
    */
   readonly visibilityShapes: ReadonlyArray<VisibilityTupleShape>;
 }

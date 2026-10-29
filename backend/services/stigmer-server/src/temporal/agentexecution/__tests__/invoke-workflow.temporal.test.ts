@@ -1,8 +1,7 @@
 /**
- * Invoke-workflow orchestration tests — ports the scenario matrix of
- * pkg/domain/agentexecution/temporal/workflows/invoke_workflow_pause_test.go
- * (TestWorkflowEnvironment with mocked activities and a persisted-status
- * recorder).
+ * Invoke-workflow orchestration tests — the scenario matrix, on a
+ * TestWorkflowEnvironment with mocked activities and a persisted-status
+ * recorder.
  *
  * What these pin (all load-bearing orchestration contracts):
  *   - the happy path (EnsureThread → ExecuteDeepAgent), and
@@ -24,7 +23,7 @@
  *     and a failing close never fails the turn; a reconcile turn
  *     (`reconcile_file_review`) closes nothing and titles no session;
  *   - pause/resume (activity cancelled, PAUSED persisted, resume
- *     re-invokes) — Go's CancellationScope pattern;
+ *     re-invokes) — a CancellationScope per attempt;
  *   - bounded auto-recovery on worker-shutdown shapes (#776: IN_PROGRESS
  *     persisted, honest status copy on exhaustion);
  *   - RUN_FAILED propagation with the fallback persist;
@@ -36,8 +35,8 @@
  *     stigmer#282);
  *   - the engine switch: Stigmer and Claude share the deterministic-state
  *     flow (EnsureThread's thread on every invocation), each on its own
- *     Execute* activity; a number no harness owns (the retired 2
- *     among them) fails the run naming it and runs nothing, never as
+ *     Execute* activity; a number no harness owns (2 among them) fails
+ *     the run naming it and runs nothing, never as
  *     Stigmer;
  *   - every end of the workflow (completed, failed by the runner, broken,
  *     cancelled) calls StartQueuedTurn with the run's session as its last
@@ -301,8 +300,8 @@ function workflowInput(
 ): InvokeAgentExecutionWorkflowInput {
   return {
     execution_id: currentExecutionId,
-    session_id: "ses-1",
-    agent_id: "agt-1",
+    session_id: "ses_1",
+    agent_id: "agt_1",
     ...overrides,
   };
 }
@@ -493,7 +492,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       ),
     ).toBe(true);
     // The gate is the turn's open asks in its session's log.
-    expect(script.gateCalls).toEqual([[currentExecutionId, "ses-1"]]);
+    expect(script.gateCalls).toEqual([[currentExecutionId, "ses_1"]]);
   }, 30_000);
 
   it("waits for the signal when the turn's open gates cannot be counted", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -543,7 +542,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startWorkflow(workflowInput());
     await handle.result();
 
-    expect(script.closeCalls).toEqual([[currentExecutionId, "ses-1"]]);
+    expect(script.closeCalls).toEqual([[currentExecutionId, "ses_1"]]);
     expect(script.order).toEqual(["close", "execute", "queued"]);
     expect(script.subjectArguments).toEqual([{ execution_id: currentExecutionId }]);
   }, 30_000);
@@ -697,7 +696,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   // NOTE: full recovery EXHAUSTION (11 interrupted invocations, ~275s of
   // real linear backoff) is not exercised here — createLocal does not
-  // auto-skip timers the way Go's test env does. The classifier and the
+  // auto-skip timers. The classifier and the
   // honest-copy mapping it feeds are pinned by runner-failure.test.ts, the
   // per-hour count by recovery-window.test.ts; the recovery loop mechanics
   // are pinned by the single-cycle tests above.
@@ -776,13 +775,13 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
   it("starts the session's queued turn as the workflow's last act, on every end", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
     await (await startWorkflow(workflowInput())).result();
-    expect(script.queuedTurnCalls, "completed").toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls, "completed").toEqual(["ses_1"]);
     expect(script.order.at(-1)).toBe("queued");
 
     resetScript();
     script.executeBehaviors = [async () => slimResult(RunPhase.RUN_FAILED, "agent blew up")];
     await expect((await startWorkflow(workflowInput())).result()).rejects.toThrow(/Workflow execution failed/);
-    expect(script.queuedTurnCalls, "failed by the runner").toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls, "failed by the runner").toEqual(["ses_1"]);
 
     resetScript();
     const started = new Promise<void>((resolve) => {
@@ -797,7 +796,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await started;
     await cancelled.cancel();
     await expect(cancelled.result()).rejects.toThrow();
-    expect(script.queuedTurnCalls, "cancelled").toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls, "cancelled").toEqual(["ses_1"]);
   }, 60_000);
 
   it("starts no queued turn for a run in no session, and a failing start changes nothing about the end", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -809,7 +808,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     script.queuedTurnFault = "the server is restarting";
     script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
     await expect((await startWorkflow(workflowInput())).result()).resolves.toBeUndefined();
-    expect(script.queuedTurnCalls).toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls).toEqual(["ses_1"]);
   }, 60_000);
 
   for (const [engine, activity] of [
@@ -838,7 +837,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     }, 30_000);
   }
 
-  // 2 is the retired Cursor number the wire reserves; 7 was never assigned.
+  // Neither 2 nor 7 names a harness.
   for (const unowned of [2, 7]) {
     it(`harness number ${unowned}, which no harness owns, fails the run naming it and never runs as Stigmer`, async (testCtx) => {    if (!envReady) return testCtx.skip();
       script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];

@@ -1,5 +1,5 @@
 /**
- * IndexSearch / DeleteSearchIndex — port steps/index_search.go. Search
+ * IndexSearch / DeleteSearchIndex. Search
  * index maintenance is BEST-EFFORT by contract: the resource is already
  * persisted (or deleted) when these run, and the index can be rebuilt from
  * the resources table — a failure logs a warning and never fails the
@@ -19,7 +19,7 @@ import { internalError } from "../errors.js";
 import { metadataOf } from "./shapes.js";
 
 /**
- * Extracts the searchable fields from a resource — Go SearchIndexExtractor.
+ * Extracts the searchable fields from a resource.
  * Each indexed domain registers its own extractor (undefined entry = skip).
  */
 export interface SearchIndexExtractor {

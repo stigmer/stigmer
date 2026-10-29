@@ -13,8 +13,8 @@
  *
  * ValidateGrantableRole (the `create` chain only; `bootstrapGrant` is the
  * structural lane and skips it) is the one step with branching logic. It
- * runs BEFORE Grant — the cloud's validate-before-write order, so a held
- * legacy row under a role the kind does not grant is refused rather than
+ * runs BEFORE Grant — validate before write, so a held
+ * row under a role the kind does not grant is refused rather than
  * answered as a duplicate — and reads, in this order:
  *   1. the wire refusals: an unknown resource kind is `Unknown resource
  *      kind`, never a role sentence — the second line behind the
@@ -275,7 +275,7 @@ export function newGrantStep(
   };
 }
 
-/** Revoke the spec's row as the chain's caller; absent, the default instance is the result (Java's idempotent delete). */
+/** Revoke the spec's row as the chain's caller; absent, the default instance is the result (an idempotent delete). */
 export function newRevokeStep(
   grantPath: GrantPath,
 ): PipelineStep<typeof GrantSpecSchema> {

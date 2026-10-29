@@ -1,7 +1,7 @@
 /**
- * Lifecycle RPC tests — ports lifecycle_cancel_cascade_test.go,
- * lifecycle_concurrency_test.go, and terminate_existing_workflow_step_test.go,
- * plus the pipeline-level behavior Go asserts through conformance:
+ * Lifecycle RPC tests — the cancel cascade, concurrency and the
+ * terminate-existing-workflow step, plus the pipeline-level behavior the
+ * conformance suite asserts too:
  *
  *   - applyLifecyclePhaseTransition: the pure mutation inside the atomic
  *     persist closure — a terminal phase's completed_at and stop cause,
@@ -35,7 +35,7 @@
  *     the session's queue;
  *   - the pause/record race: the lifecycle persist rides the row-locked
  *     write, so a concurrent write to the run's file record is never
- *     clobbered (the Go 50-iteration regression).
+ *     clobbered (the 50-iteration regression).
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import {
@@ -928,8 +928,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover proceeds when the previous workflow is already gone (NotFound = success)", async () => {
-    // Go terminate_existing_workflow_step_test.go NotFound_Succeeds: a
-    // FAILED execution's workflow has normally already completed; the
+    // A FAILED execution's workflow has normally already completed; the
     // re-plan + fresh start must still run.
     const starts: string[] = [];
     const plans: Run[] = [];
@@ -975,8 +974,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover aborts when the terminate fails with a real error — nothing re-started", async () => {
-    // Go terminate_existing_workflow_step_test.go TerminateFails: the
-    // workflow ID must be terminal before the fresh start reuses it, so a
+    // The workflow ID must be terminal before the fresh start reuses it, so a
     // genuine terminate failure gates the whole recovery.
     const starts: string[] = [];
     const plans: Run[] = [];
@@ -1031,8 +1029,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover already IN_PROGRESS is idempotent success without touching the engine", async () => {
-    // Go terminate_existing_workflow_step_test.go
-    // SkipsWhenAlreadyInTargetState, driven through the full pipeline.
+    // The already-in-target-state skip, driven through the full pipeline.
     let engineCalls = 0;
     const deps: LifecycleDeps = {
       store,
@@ -1265,7 +1262,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover surfaces the inner status code when the re-plan fails (never Internal)", async () => {
-    // The re-plan step wraps like Go's %w: a NotFound session load (or a
+    // The re-plan step wraps its errors: a NotFound session load (or a
     // FailedPrecondition refusal of a required key) keeps its code on the
     // wire with the recover prefix — the caller-actionable copy must not
     // collapse into an opaque 500.
@@ -1686,8 +1683,7 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
 });
 
 // The lifecycle persist must go through the store's atomic row-locked
-// write, never the whole-resource saveResource it replaced (Go
-// TestLifecyclePersist_UsesUpdateResource): a saveResource here is the
+// write, never the whole-resource saveResource: a saveResource here is the
 // regression that lets a concurrent write to the run (its file record, as
 // the race test below writes) be clobbered.
 // The atomic write is writeResourceAppendingEvents since a transition
@@ -1781,7 +1777,7 @@ describe("lifecycle persist uses the atomic row-locked write", () => {
 // The lifecycle path never loses a concurrent write: a pause and a write to
 // the run's file record race on the same run. Because the lifecycle persist
 // re-reads fresh under the store's write lock, it can never clobber what a
-// concurrent writer recorded (Go's 50-iteration regression).
+// concurrent writer recorded (the 50-iteration regression).
 describe("lifecycle pause racing a write to the run's record", () => {
   it("keeps both the record and the pause across 50 races", async () => {
     const deps = lifecycleDeps(connected(stubConnectedEngine()));

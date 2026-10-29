@@ -52,7 +52,7 @@ describe("tierServedByEdition — the SDK's rank table, spelled out", () => {
     });
   }
 
-  it("an edition the server does not know serves everything — an older server hides nothing, the SDK's own fallback", () => {
+  it("an edition the server does not know serves everything — a server that names no edition hides nothing, the SDK's own fallback", () => {
     for (const [tier] of MATRIX) {
       expect(
         tierServedByEdition(tier, ServerEdition.server_edition_unspecified),

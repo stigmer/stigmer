@@ -1,5 +1,6 @@
-// Faithful port of Go's path/filepath Match, used by the gitignore pattern
-// engine to match a single glob against a single path component.
+// Glob matching with Go's path/filepath Match semantics (the grammar git
+// tooling built on go-git applies), used by the gitignore pattern engine to
+// match a single glob against a single path component.
 //
 // The separator is fixed to "/" (paths are normalized to forward slashes and
 // individual components never contain a separator). Matching operates on UTF-16

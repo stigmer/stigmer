@@ -4,8 +4,8 @@
  * signed with a real RS256 keypair — no network, no mocks of jose):
  * claim-or-pass (non-JWT shapes and JWTs naming another issuer pass;
  * this issuer's JWTs are claimed, and a JWT naming no issuer is refused), the
- * identity mapping (sub/iss/email/name), the four byte-pinned Java
- * classifyAuthError arms, and the infrastructure-fault posture (discovery
+ * identity mapping (sub/iss/email/name), the four byte-pinned
+ * classification arms, and the infrastructure-fault posture (discovery
  * failures are plain errors for the chassis's INTERNAL arm — never
  * credential rejections).
  *

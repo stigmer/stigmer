@@ -132,8 +132,8 @@ function appRefOf(spec: ChannelSpec | undefined): ApiResourceReference | undefin
 
 /**
  * The write-time model-pin existence rule (stigmer/stigmer#774) on a
- * channel's run_config: a typo'd pin used to ride through opaquely and
- * silently run (and bill) as Auto wherever the channel serves. Validated
+ * channel's run_config: a typo'd pin would otherwise ride through opaquely
+ * and silently run (and bill) as Auto wherever the channel serves. Validated
  * against every registry harness section (the "" harness mode) because
  * this edition stores channel specs without a serving runtime. Saved
  * settings name the model their tier or thinking is for. Shared by create

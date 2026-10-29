@@ -1,17 +1,14 @@
 /**
- * Search criteria value object — ports
- * pkg/query/search/valueobject/search_criteria.go: validated, normalized,
+ * Search criteria value object: validated, normalized,
  * immutable search parameters and the three-mode contract (list / search /
  * discover).
  *
  * The searchable-kind set is DERIVED from the proto kind_meta extension
- * (not_search_indexed: false, tier == open_source) — Go's
- * SearchIndexedKinds() posture since stigmer/stigmer#439, where hand-copied
- * kind lists drifted from the proto and from each other. Go still carries a
- * hand map (SearchableKinds) pinned to the derivation by an invariant test;
- * here the derivation IS the set — parity by construction, one source. The
+ * (not_search_indexed: false, tier == open_source), because hand-copied
+ * kind lists drift from the proto and from each other
+ * (stigmer/stigmer#439): the derivation IS the set, one source. The
  * registry unit test pins the registered extractors against this same
- * derivation (the #439 invariant's TS home).
+ * derivation.
  *
  * The tier clause admits open_source alone, not "anything but cloud_only":
  * the index is the core's, and a kind tiered enterprise must not enter it
@@ -28,7 +25,7 @@
  * discover mode and return every other kind's resources
  * (stigmer/stigmer#440).
  *
- * Proven by __tests__/criteria.test.ts (Go's tables case-for-case) and
+ * Proven by __tests__/criteria.test.ts (its tables case by case) and
  * search.conformance.test.ts on local.
  */
 import {
@@ -41,18 +38,17 @@ import { trimWhiteSpace } from "../../text/whitespace.js";
 import { getKindMeta } from "../../pipeline/apiresource-meta.js";
 import { listPageSizeOf } from "../../pipeline/steps/list-page.js";
 
-/** Go MaxQueryLength (the proto's max_len twin; see newSearchCriteria). */
+/** The query's maximum length (the proto's max_len twin; see create). */
 export const MAX_QUERY_LENGTH = 500;
 
 let searchIndexedKindsCache: readonly ApiResourceKind[] | undefined;
 let searchableKindSetCache: ReadonlySet<ApiResourceKind> | undefined;
 
 /**
- * Go SearchIndexedKinds(): every kind this edition's search read side
- * serves — kind_meta declares it search-indexed and open_source-tier.
- * Sorted ascending by enum value, exactly Go's sort. Kinds whose
- * kind_meta cannot be read are skipped (Go's contract; the registry unit
- * test separately fails on such a defect).
+ * Every kind this edition's search read side serves — kind_meta declares
+ * it search-indexed and open_source-tier. Sorted ascending by enum value.
+ * Kinds whose kind_meta cannot be read are skipped (the registry unit test
+ * separately fails on such a defect).
  */
 export function searchIndexedKinds(): readonly ApiResourceKind[] {
   if (searchIndexedKindsCache === undefined) {
@@ -79,7 +75,7 @@ export function searchIndexedKinds(): readonly ApiResourceKind[] {
   return searchIndexedKindsCache;
 }
 
-/** The derivation as a Set — effectiveKinds' filter (Go SearchableKinds). */
+/** The derivation as a Set — effectiveKinds' filter. */
 function searchableKindSet(): ReadonlySet<ApiResourceKind> {
   if (searchableKindSetCache === undefined) {
     searchableKindSetCache = new Set(searchIndexedKinds());
@@ -100,7 +96,7 @@ export class SearchCriteria {
   ) {}
 
   /**
-   * Go NewSearchCriteria: trims query and org, sizes the page as every
+   * Trims query and org, sizes the page as every
    * list does (list-page.ts `listPageSizeOf`: 0 is the default page, above
    * the maximum is the maximum), keeps the rank position a page token
    * carried (negative reads as the first page), keeps kinds verbatim. Throws on an over-length query — defensive twin of the
@@ -169,7 +165,7 @@ export class SearchCriteria {
   }
 
   /**
-   * Go EffectiveKinds: discover mode → all searchable kinds; otherwise
+   * Discover mode → all searchable kinds; otherwise
    * the requested kinds filtered to the searchable set — silently
    * dropping non-searchable ones (the forward-compatibility contract on
    * SearchRequest.kinds). The result may be EMPTY: the caller answers
@@ -183,7 +179,7 @@ export class SearchCriteria {
     return this.requestedKinds.filter((kind) => searchable.has(kind));
   }
 
-  /** Zero-indexed rank position of the page's first row (Go Offset). */
+  /** Zero-indexed rank position of the page's first row. */
   offset(): number {
     return this.offsetValue;
   }

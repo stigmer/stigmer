@@ -1,9 +1,8 @@
 /**
  * The unified-port server: one TCP port serving native gRPC, gRPC-Web, the
- * Connect protocol, and the plain-HTTP REST lanes — the TS equivalent of
- * the Go server's Run() routing block (pkg/server/server.go:775-843).
+ * Connect protocol, and the plain-HTTP REST lanes.
  *
- * Lane priority follows Go's if-chain (server.go:812-836):
+ * Lane priority:
  *
  *   1. exact match  /v1/proxy/model-registry       (registry proxy)
  *      exact match  /v1/oauth/client.json          (Stigmer's OAuth client
@@ -23,15 +22,13 @@
  *   3. guarded      console statics                (GET/HEAD only, never RPC
  *                                                   or /v1/* paths; absent
  *                                                   when no export is bundled)
- *   4. RPC adapter  gRPC + gRPC-Web + Connect      (replaces Go's lanes
- *                                                   4–5; WebSocket retired
+ *   4. RPC adapter  gRPC + gRPC-Web + Connect      (no WebSocket lane,
  *                                                   deliberately)
  *   5. 404          (the adapter's fallback — conformance asserts unknown
  *                    /v1/proxy/* paths land here)
  *
  * The demux (demux.ts) fronts the port; both protocol servers run this same
- * lane router. Shutdown is Go's order (grpc lib Stop, server.go:247-265):
- * health NOT_SERVING first, drain in-flight requests up to 10s, then
+ * lane router. Shutdown order is contract: health NOT_SERVING first, drain in-flight requests up to 10s, then
  * destroy what remains.
  */
 import type { ConnectRouter, Interceptor } from "@connectrpc/connect";
@@ -80,8 +77,7 @@ export interface UnifiedPortServerOptions {
   oauthClientDocumentLane?: LaneHandler;
   /**
    * Lane 2: skill artifact transfer (#675). When absent, the prefix falls
-   * through to the adapter's 404, which is also what Go answers for
-   * unknown paths.
+   * through to the adapter's 404, as every unknown path does.
    */
   skillTransferLane?: LaneHandler;
   /**
@@ -162,8 +158,8 @@ export function createUnifiedPortServer(
     }
 
     if (isRpcPreflight(request)) {
-      // Go answers preflights for ALL endpoints, registered or not
-      // (WithCorsForRegisteredEndpointsOnly(false), server.go:777-784).
+      // Preflights are answered for ALL endpoints, registered or not
+      // (cors.ts).
       handleRpcPreflight(request, response);
       return;
     }
@@ -181,7 +177,7 @@ export function createUnifiedPortServer(
     armKeepalivePings(session, options.logger);
   });
   // Protocol-level session failures (bad frames, resets) are a client's
-  // problem, not a server crash; Go's h2c stack likewise swallows them.
+  // problem, not a server crash.
   http2.on("sessionError", (error) => {
     options.logger.debug("http2 session error", { error: String(error) });
   });
@@ -210,8 +206,8 @@ export function createUnifiedPortServer(
     },
 
     async shutdown(): Promise<void> {
-      // Go's Shutdown closes idle connections immediately and waits only
-      // for active work. Node needs that spelled out: GOAWAY every h2
+      // Shutdown closes idle connections immediately and waits only for
+      // active work. Node needs that spelled out: GOAWAY every h2
       // session (in-flight streams finish, idle sessions close now) and
       // drop idle http1 keep-alives; then the drain race below only ever
       // waits on genuinely active requests.
@@ -250,9 +246,8 @@ export function createUnifiedPortServer(
 
 /**
  * Server-initiated keepalive pings (constants.ts carries the values and the
- * MinTime-enforcement caveat). One interval per session; an unacked ping
- * past the timeout destroys the session — the same liveness contract Go's
- * keepalive.ServerParameters provides.
+ * client-ping caveat). One interval per session; an unacked ping past the
+ * timeout destroys the session — the liveness contract.
  */
 function armKeepalivePings(session: ServerHttp2Session, logger: Logger): void {
   const interval = setInterval(() => {

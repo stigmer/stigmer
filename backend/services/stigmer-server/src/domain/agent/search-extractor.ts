@@ -1,10 +1,8 @@
 /**
- * Agent search extractor — ports pkg/query/search/extractor/
- * agent_extractor.go (both sides: the index side, the query side).
+ * Agent search extractor (both sides: the index side, the query side).
  * The search summary uses spec.description if available, falling back to
- * instructions (the system prompt) — the common pattern where older agents
- * may not have a dedicated description field, but all agents have
- * instructions. Agents are one of the two kinds carrying an icon_url on
+ * instructions (the system prompt): description is optional, and every
+ * agent has instructions. Agents are one of the two kinds carrying an icon_url on
  * the search projection.
  */
 import type { Message } from "@bufbuild/protobuf";
@@ -50,10 +48,10 @@ export const agentSearchExtractor: SearchableExtractor = {
       name: metadata.name,
       description: agentSearchSummary(agent),
       // Tags join space-separated — the index entry carries one tags
-      // string (Go extractor.JoinTags).
+      // string.
       tags: metadata.tags.join(" "),
       org: metadata.org,
-      // The enum NAME string, exactly Go's visibility.String().
+      // The enum NAME string, the value every index entry stores.
       visibility: ApiResourceVisibility[metadata.visibility] ?? "",
       createdAt: Number(
         agent.status?.audit?.specAudit?.createdAt?.seconds ?? 0n,
@@ -62,7 +60,7 @@ export const agentSearchExtractor: SearchableExtractor = {
   },
 };
 
-/** Go AgentExtractor.GetSearchSummary: description, else instructions. */
+/** The search summary: description, else instructions. */
 function agentSearchSummary(agent: Agent): string {
   const spec = agent.spec;
   if (spec === undefined) {

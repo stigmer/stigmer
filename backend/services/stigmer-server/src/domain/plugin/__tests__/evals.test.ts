@@ -46,7 +46,7 @@ const greeter = (
   });
 
 describe("the eval suite on the install plan", () => {
-  it("summarises the suite and no longer warns that evals/ is not installed", () => {
+  it("summarises the suite and does not warn that evals/ is not installed", () => {
     const planned = plan(
       greeter({
         "evals/b-case/prompt.md": "---\ntags: [smoke, greet]\n---\nSay hi.",

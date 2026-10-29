@@ -8,10 +8,9 @@
  *     verifier claims ANY JWT-shaped token and throws when it cannot
  *     verify it, and the server's own runner token is JWT-shaped — placed
  *     after `oidc`, the runner verifier would never see its own token,
- *     and every runner call would fail as the OIDC verifier's fault. That
- *     is exactly what a 3.15.x self-host with sign-in on does today
- *     (stigmer#1137: no agent execution can run for anyone), and this
- *     file's wire arms are the regression test for it.
+ *     and every runner call would fail as the OIDC verifier's fault
+ *     (stigmer#1137: no agent execution can run for anyone); this file's
+ *     wire arms are the regression test for it.
  *   - trusted-local: no runner verifier is composed. Nothing to
  *     delegate; the exchange token stays the decrypt-lane discriminator.
  *   - a unit's own Authorizer: no runner verifier is composed. The

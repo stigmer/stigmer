@@ -1,7 +1,7 @@
 /**
- * Coarse, cross-taxonomy approval category of a gated built-in tool —
- * ports approval/tool_category.go (itself the Go edition of
- * toolApprovalCategory in backend/services/runner/src/shared/tool-kind.ts).
+ * Coarse, cross-taxonomy approval category of a gated built-in tool — the
+ * server's twin of toolApprovalCategory in
+ * backend/services/runner/src/shared/tool-kind.ts.
  *
  * FILE_WRITE and FILE_EDIT both collapse to "write" on purpose: hook
  * formats and engines name a file mutation differently (a hook may report
@@ -50,7 +50,7 @@ const TOOL_NAME_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
 /**
  * The approval category ("write"/"delete"/"shell") of a gated built-in
  * tool; undefined for tools not gated by category (read-only built-ins,
- * MCP tools, unknown names). Go returns (category, ok).
+ * MCP tools, unknown names).
  */
 export function toolApprovalCategory(name: string): string | undefined {
   return TOOL_NAME_TO_CATEGORY.get(name);

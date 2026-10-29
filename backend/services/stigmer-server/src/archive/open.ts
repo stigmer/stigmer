@@ -4,7 +4,7 @@
  * bytes: `openArchive` bounds the compressed size, hashes the bytes (the
  * content-addressed version identity), parses the central directory and
  * applies the safearchive prefilter; `validateArchiveStructure` walks the
- * pre-filtered entries in the retired Go gate's exact order (empty
+ * pre-filtered entries in a fixed order (empty
  * archive, file count, then per entry the filename control-character rule,
  * the running declared-uncompressed budget and the per-file ratio cap).
  *
@@ -13,8 +13,8 @@
  * it needs in the same pass and rules on it afterwards, which keeps the
  * observable error order the skill gate's tests pin.
  *
- * Error text is wire-visible contract: the sentences below are the Go
- * gate's verbatim, wrapped by each kind's push step into its own
+ * Error text is wire-visible contract: the sentences below are pinned
+ * verbatim, wrapped by each kind's push step into its own
  * InvalidArgument arm. Only declared sizes are judged here; inflating an
  * entry under a real cap is `inflate.ts`'s job.
  *
@@ -59,8 +59,8 @@ export function openArchive(
   try {
     entries = parseZipStructure(bytes);
   } catch {
-    // Go's zip.NewReader surfaces stdlib ErrFormat here; its text is what
-    // clients see via the %w chain, so it is pinned verbatim.
+    // Its text is what clients see through the wrapping chain, so it is
+    // pinned verbatim.
     throw new Error("invalid ZIP file: zip: not a valid zip file");
   }
 
@@ -97,7 +97,7 @@ export function validateArchiveStructure(
     onEntry?.(name);
 
     // Reject null bytes and control characters in entry names (code
-    // points, not UTF-16 units — Go ranges over runes).
+    // points, not UTF-16 units).
     for (const ch of name) {
       const codePoint = ch.codePointAt(0)!;
       if (codePoint < 32 || codePoint === 127) {
@@ -113,7 +113,7 @@ export function validateArchiveStructure(
       );
     }
 
-    // Per-file compression ratio (ZIP-bomb guard); integer division as Go.
+    // Per-file compression ratio (ZIP-bomb guard); integer division.
     if (entry.compressedSize > 0) {
       const ratio = Math.floor(entry.uncompressedSize / entry.compressedSize);
       if (ratio > limits.maxCompressionRatio) {
@@ -125,7 +125,7 @@ export function validateArchiveStructure(
   }
 }
 
-/** SHA-256 hex of the archive bytes (Go CalculateHash). */
+/** SHA-256 hex of the archive bytes. */
 export function calculateHash(data: Uint8Array): string {
   return createHash("sha256").update(data).digest("hex");
 }

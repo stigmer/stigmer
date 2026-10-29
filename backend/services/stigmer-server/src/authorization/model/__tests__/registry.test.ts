@@ -22,7 +22,7 @@
  *     step and the model cannot disagree about where a team may be
  *     granted;
  *   - an organization is admitted only as its whole read audience,
- *     `organization#viewer`: a narrower role's userset (the retired
+ *     `organization#viewer`: a narrower role's userset (an
  *     `organization#member` read grant) would leave out every viewer-role
  *     member, and the model's README names the shape as one to avoid;
  *   - the derived rules are exactly the two relations `kind_meta` cannot

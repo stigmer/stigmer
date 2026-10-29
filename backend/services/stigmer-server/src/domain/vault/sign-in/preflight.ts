@@ -1,6 +1,5 @@
 /**
- * Authorization-endpoint pre-flight probe — ports
- * pkg/domain/mcpserver/oauth/preflight.go.
+ * Authorization-endpoint pre-flight probe.
  *
  * Some providers (e.g. Canva) accept Dynamic Client Registration for any
  * redirect URI but enforce a redirect-host allowlist at the authorization
@@ -28,7 +27,7 @@ import { truncateBody } from "./truncate-body.js";
 
 /**
  * A definite refusal from an authorization endpoint, observed before any
- * browser was involved (Go AuthorizeRejection).
+ * browser was involved.
  */
 export interface AuthorizeRejection {
   /** The HTTP status the authorization endpoint returned. */
@@ -44,20 +43,19 @@ export interface AuthorizeRejection {
 }
 
 /**
- * Go's preflightHTTPClient 4s timeout: this probe sits on the user-facing
+ * A 4s timeout: this probe sits on the user-facing
  * initiate path, after discovery and DCR round trips.
  */
 export const PREFLIGHT_REQUEST_TIMEOUT_MS = 4_000;
 
 /**
- * Error pages are small; anything longer is noise (Go's LimitReader cap).
+ * Error pages are small; anything longer is noise.
  */
 const PREFLIGHT_BODY_READ_CAP = 4096;
 
 /**
  * Probes an authorization URL server-side and reports whether the
- * provider will refuse it before ever showing a login page (Go
- * PreflightAuthorize). Redirects are deliberately not followed: a healthy
+ * provider will refuse it before ever showing a login page. Redirects are deliberately not followed: a healthy
  * authorization endpoint answers a fresh GET with either a login/consent
  * page (2xx) or a redirect into the vendor's login flow (3xx), and the
  * first response alone is enough to classify.
@@ -67,7 +65,7 @@ export async function preflightAuthorize(
   fetchImpl: OutboundFetch,
 ): Promise<AuthorizeRejection | undefined> {
   // Network errors propagate to the caller, who treats them as
-  // fail-open diagnostics — exactly Go's (nil, err) contract.
+  // fail-open diagnostics.
   const response = await fetchImpl(authorizationUrl, {
     method: "GET",
     redirect: "manual",
@@ -91,7 +89,7 @@ export async function preflightAuthorize(
 
 /**
  * Pulls the provider's own words from an RFC 6749-shaped JSON error body
- * (Go extractVendorDetail). HTML error pages (Canva's case) yield "" —
+ * HTML error pages (Canva's case) yield "" —
  * scraping prose out of markup is not worth the fragility.
  */
 function extractVendorDetail(body: string): string {

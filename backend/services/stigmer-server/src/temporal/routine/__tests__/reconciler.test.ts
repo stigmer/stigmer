@@ -1,7 +1,5 @@
 /**
- * Pins the reconciler against Go's reconcile.go — the OSS-load-bearing
- * convergence pass (this machinery once shipped untested, with a comment
- * claiming otherwise):
+ * Pins the reconciler — the OSS-load-bearing convergence pass:
  *
  *   - phase 2 arms rows without artifacts and repairs note/paused drift;
  *   - phase 3 reaps orphans ONLY after the point read confirms the row is
@@ -471,7 +469,7 @@ describe("the loop — kicks, coalescing, stop, containment", () => {
     const kick = r.startReconciliation(); // boot pass queues immediately
     kick(); // coalesces with the boot pass or queues one more
     // Observe the pass land BEFORE stopping: stop() deliberately skips
-    // queued-but-unstarted passes (Go's context-cancel shutdown).
+    // queued-but-unstarted passes.
     await waitFor(() => syncerScript.ensured.includes("rtn_kick"));
     await r.stop();
     expect(syncerScript.ensured).toContain("rtn_kick");

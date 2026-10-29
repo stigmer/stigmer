@@ -1,6 +1,6 @@
 /**
- * Artifact read surfaces — ports get_artifact_content.go and
- * get_artifact_download_url.go. A run's input files are Files
+ * Artifact read surfaces: the content read and the download URL. A run's
+ * input files are Files
  * (domain/file/), named by id and read through their own links.
  *
  * getArtifactContent returns bytes through the API (no CORS concerns for
@@ -62,20 +62,19 @@ export interface ArtifactRpcDeps {
 
 /**
  * Default size limit when max_bytes is unset: the first 512 KB with
- * truncated=true when the full content exceeds it (Go
- * DefaultMaxArtifactContentBytes).
+ * truncated=true when the full content exceeds it.
  */
 export const DEFAULT_MAX_ARTIFACT_CONTENT_BYTES = 512 * 1024;
 
 /**
  * Default expiration for artifact download URLs — R2's presigned-URL
- * maximum (Go DefaultArtifactURLExpiration).
+ * maximum.
  */
 export const DEFAULT_ARTIFACT_URL_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Artifact-relevant extensions commonly missing from OS MIME databases
- * (Go knownContentTypes); checked before the generic table below.
+ * Artifact-relevant extensions commonly missing from OS MIME databases;
+ * checked before the generic table below.
  */
 const KNOWN_CONTENT_TYPES: ReadonlyMap<string, string> = new Map([
   [".yaml", "text/yaml"],
@@ -98,12 +97,10 @@ const KNOWN_CONTENT_TYPES: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * The stand-in for Go's mime.TypeByExtension (Node has no OS MIME
- * database binding): Go's mime package BUILTIN table verbatim, including
- * its charset-qualified text types — the deterministic subset both
- * editions agree on. Go additionally consults the OS mime.types database
- * for other extensions; that residue is an accepted, recorded parity gap
- * (everything else falls to octet-stream, Go's final default).
+ * The common-extension MIME table (Node has no OS MIME database binding),
+ * including its charset-qualified text types: a fixed table, so every
+ * host answers the same type for the same key. Anything else falls to
+ * octet-stream.
  */
 const OS_MIME_FALLBACK: ReadonlyMap<string, string> = new Map([
   [".avif", "image/avif"],
@@ -150,8 +147,8 @@ export async function getArtifactContent(
   // Ownership is checked on the NORMALIZED key and the normalized key is
   // what gets served: the storage layer path-cleans `.`/`..` segments, so
   // a raw-key prefix check would let `artifacts/{mine}/../{other}/f` pass
-  // yet resolve into another execution's artifacts. Deliberate fail-closed
-  // divergence from Go until stigmer/stigmer#858 lands there.
+  // yet resolve into another execution's artifacts. Fail-closed
+  // (stigmer/stigmer#858).
   const storageKey = path.posix.normalize(req.storageKey);
   const expectedPrefix = `artifacts/${req.runId}/`;
   if (!storageKey.startsWith(expectedPrefix)) {
@@ -255,9 +252,8 @@ export async function getArtifactContent(
 }
 
 /**
- * Reads a single file from an in-memory ZIP archive (Go extractZipEntry
- * over archive/zip; here fflate's unzipSync with a name filter so only
- * the requested entry inflates). undefined = not found / unreadable.
+ * Reads a single file from an in-memory ZIP archive (fflate's unzipSync
+ * with a name filter so only the requested entry inflates). undefined = not found / unreadable.
  *
  * The max_bytes guard applies AFTER inflation (both editions): a crafted
  * entry inflates fully in memory first. Acceptable under the current
@@ -280,7 +276,7 @@ function extractZipEntry(
 
 /**
  * MIME type from the extension: the artifact-relevant table first, the
- * OS-table stand-in second, octet-stream last (Go detectContentType).
+ * common-extension table second, octet-stream last.
  */
 export function detectContentType(storageKey: string): string {
   const ext = fileExtension(storageKey);
@@ -394,7 +390,7 @@ export async function getArtifactDownloadUrl(
 
   return create(GetArtifactDownloadUrlResponseSchema, {
     downloadUrl,
-    // RFC3339 seconds precision, Go's time.RFC3339 Format.
+    // RFC3339 at seconds precision.
     expiresAt: expiresAt.toISOString().replace(/\.\d{3}Z$/, "Z"),
   });
 }

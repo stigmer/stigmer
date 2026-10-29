@@ -4,8 +4,7 @@
  * single-error fail-closed verify (every failure = InvalidTokenError, no
  * reason leakage), alg-confusion refusal via the encoded-header pin,
  * constant-time signature comparison including the Node length-mismatch
- * guard, and the `now >= exp` expiry boundary. Ports
- * pkg/runnerauth/runnerauth_test.go plus adversarial arms.
+ * guard, and the `now >= exp` expiry boundary, with adversarial arms.
  */
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";

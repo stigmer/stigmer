@@ -166,9 +166,8 @@ type organization
     # outside traffic (a public chat link opens it to the internet), an
     # admin-level act, whichever agent it serves. A member owns the agents
     # they create (can_create_agent), so ownership alone must not make one.
-    # A channel's agent lives in the channel's own organization since the
-    # public level retired (stigmer#1211), so the two questions are always
-    # one organization's.
+    # A channel's agent lives in the channel's own organization
+    # (stigmer#1211), so the two questions are always one organization's.
     define can_create_channel: admin
     # Teams are the organization's, managed by its admins (team.fga).
     define can_create_team: admin

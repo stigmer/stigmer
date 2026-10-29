@@ -3,7 +3,8 @@
  * harness's label as people read it ("Stigmer", "Claude Agent"); every
  * harness the proto names is offered (Stigmer, Claude, and unspecified, the
  * platform default), and a
- * number no harness owns, the retired 2 included, is refused naming the
+ * number no harness owns, 2 (the gap in the enum's numbering) included,
+ * is refused naming the
  * number and the field that named it, never read as Stigmer. The
  * step refuses with FailedPrecondition at the first unoffered engine a
  * request names, in field order, and passes a request naming none.
@@ -35,7 +36,7 @@ describe("offeredHarnessRefusal", () => {
     }
   });
 
-  it("refuses a number no harness owns, the retired 2 included, naming it", () => {
+  it("refuses a number no harness owns, 2 included, naming it", () => {
     for (const retired of [2, 7]) {
       expect(offeredHarnessRefusal(retired as Harness, "spec.agent.harness")).toBe(
         `spec.agent.harness names harness ${retired}, which this platform does not run`,

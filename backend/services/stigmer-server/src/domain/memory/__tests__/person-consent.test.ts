@@ -5,8 +5,8 @@
  * credential's subject (an account id or a raw issuer subject, read the
  * way accountForStamp reads a creator stamp), else the calling person —
  * and hands that account to CheckMemoryEnablement, which requires the
- * organization's switch and then the person's own (the Java
- * MemoryCreateHandler's order and copy). A caller no account stands for is
+ * organization's switch and then the person's own (that order, with the
+ * pinned copy). A caller no account stands for is
  * stamped "" and refused by the enablement step, behind the authorization
  * bar. Without the directory — the single-operator posture — the org flag
  * alone decides and the subject stays the "" sentinel.

@@ -1,7 +1,7 @@
 /**
  * Grant domain constants: the derived
- * grant id and the one spelling of a triple it hashes, the kinds the
- * legacy-creator rule scans, and the byte-pinned wire copy.
+ * grant id and the one spelling of a triple it hashes, the kinds an admin
+ * authors, and the byte-pinned wire copy.
  *
  * The derived id. A grant's id is a pure function of its triple:
  * `grt_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
@@ -26,14 +26,13 @@
  * relation an FGA relation name — and OpenFGA itself rejects `:` and `#`
  * in ids, so the cloud loses nothing it could ever have written.
  *
- * `BLUEPRINT_KINDS` is the legacy-creator rule's whole scan: the
- * kinds an admin authors. Sessions, executions, keys and memories are
+ * `BLUEPRINT_KINDS` is the kinds an admin authors, the ones the creator
+ * scan reads (membership.ts). Sessions, executions, keys and memories are
  * personal and stay with their creator; they never appear
  * here.
  *
- * The copy moved from the cloud's iam/grant/handlers.ts as-is: the CLI,
- * console and SDK show these sentences verbatim, so they are contract. The
- * new sentences are the two edition refusals (the federation shape), the
+ * The copy is contract: the CLI, console and SDK show these sentences
+ * verbatim. Among them are the two edition refusals (the federation shape), the
  * unknown permission, the unknown principal kind (the resource sentence's
  * shape), the malformed triple, and the four principal refusals a team
  * grantee brought (a person's qualifier, a team's qualifier, a kind no
@@ -131,8 +130,8 @@ export function grantIdFor(spec: GrantSpec): string {
 }
 
 /**
- * The kinds an admin authors — the legacy-creator rule's scan,
- * in registry order. A caller who created one of these idp-shaped, before
+ * The kinds an admin authors, the creator scan's (membership.ts), in
+ * registry order. A caller who created one of these idp-shaped, before
  * an account existed, becomes admin on first sign-in.
  */
 export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [

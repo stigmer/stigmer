@@ -1,6 +1,5 @@
 /**
- * Pins the shared steps against their Go references (steps/*_test.go,
- * translated): slug generation (cloud-Java-identical, no truncation), a
+ * Pins the shared steps: slug generation (byte-pinned, no truncation), a
  * derived slug held to metadata.slug's bound and pattern (stigmer#1283),
  * duplicate checking with the byte-pinned AlreadyExists copy, create/update
  * state building (status clearing, ULID minting that replaces any id the
@@ -170,7 +169,7 @@ function orgCtx(input = org()): RequestContext<typeof OrganizationSchema> {
   );
 }
 
-describe("generateSlug (Go GenerateSlug, cloud-Java-identical)", () => {
+describe("generateSlug (byte-pinned derivation)", () => {
   it.each([
     ["My Cool Agent", "my-cool-agent"],
     ["platform.sara", "platform-sara"],
@@ -256,7 +255,7 @@ describe("ResolveSlug", () => {
 });
 
 describe("CheckDuplicate (org-scoped)", () => {
-  it("rejects a same-org duplicate with Go's exact copy and allows other orgs", async () => {
+  it("rejects a same-org duplicate with the pinned copy and allows other orgs", async () => {
     const existing = agent({ id: "agt_1", slug: "support", org: "tenant-a" });
     await store.saveResource(ApiResourceKind.agent, "agt_1", AgentSchema, existing);
 
@@ -327,8 +326,7 @@ describe("BuildNewState", () => {
     expect(state.status?.audit?.specAudit?.event).toBe("created");
     expect(state.status?.audit?.statusAudit?.event).toBe("created");
     // The audit actor derives from the REQUEST's caller
-    // identity — here the explicit test identity (production wire
-    // requests derive the same bytes as the retired process-global seam).
+    // identity — here the explicit test identity.
     expect(state.status?.audit?.specAudit?.createdBy?.id).toBe("test-caller");
     // Organization is not a blueprint kind → private default.
     expect(state.metadata?.visibility).toBe(
@@ -372,7 +370,7 @@ describe("BuildNewState", () => {
 });
 
 describe("generateId", () => {
-  it("mints {prefix}_{lowercase 26-char Crockford ULID} (Go GenerateID format)", () => {
+  it("mints {prefix}_{lowercase 26-char Crockford ULID}", () => {
     const id = generateId("agt");
     expect(id).toMatch(/^agt_[0-9a-hjkmnp-tv-z]{26}$/);
     expect(generateId("agt")).not.toBe(id);
@@ -854,7 +852,7 @@ describe("references (agent spec as the vehicle)", () => {
     expect(explicit.newState.spec?.skillRefs[0]?.org).toBe("other-org");
   });
 
-  it("ValidateReferences rejects a missing plugin with FailedPrecondition and Go's copy", async () => {
+  it("ValidateReferences rejects a missing plugin with FailedPrecondition and the pinned copy", async () => {
     const withPlugin = create(AgentSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
@@ -883,7 +881,7 @@ describe("references (agent spec as the vehicle)", () => {
   });
 });
 
-describe("list helpers (consolidated from the per-domain Go copies)", () => {
+describe("list helpers (shared by every domain)", () => {
   function ts(seconds: number, nanos = 0) {
     return create(TimestampSchema, { seconds: BigInt(seconds), nanos });
   }

@@ -1,8 +1,7 @@
 /**
- * Artifact RPC tests — ports get_artifact_content_test.go and
- * get_artifact_download_url_test.go
- * case-for-case over a real SQLite store and a real local-filesystem
- * artifact backend (the same direct-call shape as Go's controller tests).
+ * Artifact RPC tests — the content read and the download URL, case by
+ * case, over a real SQLite store and a real local-filesystem artifact
+ * backend, called directly.
  */
 import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -259,8 +258,7 @@ describe("getArtifactContent CAS blob integrity", () => {
   it("a `..` key that clean-resolves into ANOTHER execution's prefix is rejected", async () => {
     // stigmer/stigmer#858: the raw key starts with the caller's own
     // prefix, but path-cleaning resolves it into the victim's artifacts —
-    // the ownership check must run on the normalized form. Deliberate
-    // fail-closed divergence from Go until #858 lands there.
+    // the ownership check must run on the normalized form, fail-closed.
     await seedExecution(execId);
     const victimBody = Buffer.from("victim's secret");
     await upload(`artifacts/run_victim/secret.txt`, victimBody);
@@ -410,14 +408,14 @@ describe("getArtifactDownloadUrl", () => {
 });
 
 describe("detectContentType", () => {
-  it("prefers the artifact-relevant table, falls back per Go", () => {
+  it("prefers the artifact-relevant table, then the common-extension table", () => {
     expect(detectContentType("artifacts/x/report.yaml")).toBe("text/yaml");
     expect(detectContentType("artifacts/x/data.json")).toBe(
       "application/json",
     );
     expect(detectContentType("artifacts/x/image.png")).toBe("image/png");
-    // Go's mime builtins carry charset qualifiers for text types the
-    // KNOWN table doesn't intercept (.css falls through; .html does not).
+    // The common-extension table carries charset qualifiers for text types
+    // the KNOWN table doesn't intercept (.css falls through; .html does not).
     expect(detectContentType("artifacts/x/style.css")).toBe(
       "text/css; charset=utf-8",
     );

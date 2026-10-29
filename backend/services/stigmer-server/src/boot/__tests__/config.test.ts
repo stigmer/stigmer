@@ -1,9 +1,8 @@
 /**
- * Pins the config loader's env semantics to Go's (pkg/config/config.go
- * getEnvInt/getEnvString): defaults on absence, defaults on malformed
- * values (silently — Go's shipped leniency is contract), explicit values
- * win. The model-registry refresh switch is only disabled by the literal
- * "off" (model_registry_store.go), and the ready line is only turned on by
+ * Pins the config loader's lenient env semantics: defaults on absence,
+ * defaults on malformed values (silently — the leniency is contract),
+ * an empty string is absent, explicit values win. The model-registry
+ * refresh switch is only disabled by the literal "off", and the ready line is only turned on by
  * the literal "stdout". The Temporal connection settings are
  * the security exception: their reader (`@stigmer/temporal-codecs`) fails
  * the boot on a contradiction, and its own suite pins each rule; here the
@@ -26,7 +25,7 @@ import {
 } from "../config.js";
 
 describe("loadConfig", () => {
-  it("returns Go's defaults for an empty environment", () => {
+  it("returns the defaults for an empty environment", () => {
     const config = loadConfig({});
     expect(config.grpcPort).toBe(DEFAULT_GRPC_PORT);
     expect(config.logLevel).toBe("info");
@@ -53,18 +52,18 @@ describe("loadConfig", () => {
     ["7234x", DEFAULT_GRPC_PORT],
     ["", DEFAULT_GRPC_PORT],
   ])(
-    "falls back on malformed GRPC_PORT %j exactly as Go's getEnvInt",
+    "falls back on malformed GRPC_PORT %j to the default port",
     (raw, expected) => {
       expect(loadConfig({ GRPC_PORT: raw }).grpcPort).toBe(expected);
     },
   );
 
-  it("treats empty-string env values as absent (Go's getEnvString)", () => {
+  it("treats empty-string env values as absent", () => {
     expect(loadConfig({ LOG_LEVEL: "" }).logLevel).toBe("info");
   });
 
-  // The loopback default is the retired Go server's
-  // posture and must survive any future refactor — a changed default would
+  // The loopback default must survive any future refactor — a changed
+  // default would
   // silently expose every bare-metal install's artifact lane.
   it("defaults the artifact file server host to loopback", () => {
     expect(loadConfig({}).artifactHttpHost).toBe("127.0.0.1");
@@ -74,7 +73,7 @@ describe("loadConfig", () => {
     expect(loadConfig({ ARTIFACT_HTTP_HOST: "0.0.0.0" }).artifactHttpHost).toBe(
       "0.0.0.0",
     );
-    // Empty string is absent, per the Go getEnvString leniency.
+    // Empty string is absent, per the lenient loader.
     expect(loadConfig({ ARTIFACT_HTTP_HOST: "" }).artifactHttpHost).toBe(
       "127.0.0.1",
     );
@@ -143,7 +142,7 @@ describe("loadConfig", () => {
       expect(config.temporalHostPort).toBe("temporal.internal:7233");
     });
 
-    it("treats an empty string as absent (Go's getEnvString)", () => {
+    it("treats an empty string as absent", () => {
       expect(
         loadConfig({
           TEMPORAL_HOST_PORT: "temporal.internal:7233",
@@ -253,7 +252,7 @@ describe("loadConfig", () => {
       ).toBe("stigmer-console");
     });
 
-    it("treats an empty string as absent (Go's getEnvString)", () => {
+    it("treats an empty string as absent", () => {
       expect(
         loadConfig({ ...OIDC, STIGMER_OIDC_CONSOLE_CLIENT_ID: "" })
           .oidcConsoleClientId,

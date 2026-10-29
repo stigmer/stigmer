@@ -482,9 +482,8 @@ export function hostOf(address: string): string {
 }
 
 /**
- * Builds the authorization URL (Go buildAuthorizationURL). Parameters are
- * rendered SORTED by key — Go's url.Values.Encode() sorts, and the
- * conformance suite asserts the exact parameter set — with
+ * Builds the authorization URL. Parameters are rendered SORTED by key —
+ * the conformance suite asserts the exact parameter set — with
  * form-urlencoding (spaces as +, both editions). `resource` (RFC 8707) is
  * added for a login server found by the address's own metadata.
  */
@@ -521,8 +520,8 @@ export function buildAuthorizationUrl(
 }
 
 /**
- * Renders the user-facing copy for a pre-flight authorize rejection (Go
- * dcrRejectionMessage). The wording is hedged — a 400 can in principle
+ * Renders the user-facing copy for a pre-flight authorize rejection. The
+ * wording is hedged — a 400 can in principle
  * have other causes — but leads with the redirect-host allowlist because
  * it is the only cause observed in the wild (Canva, stigmer/stigmer#235),
  * and it names this deployment's callback host so self-hosted operators
@@ -542,7 +541,7 @@ export function dcrRejectionMessage(
       callbackHost = parsed.host;
     }
   } catch {
-    // Keep the raw URI when it does not parse — Go's err-tolerant arm.
+    // Keep the raw URI when it does not parse.
   }
   let message =
     `${providerName} rejected the sign-in request before showing a login page (HTTP ${rejection.statusCode}). ` +
@@ -554,7 +553,7 @@ export function dcrRejectionMessage(
   return message;
 }
 
-/** 32 random bytes, base64url — CSRF state (Go generateState). */
+/** 32 random bytes, base64url — CSRF state. */
 function generateState(): string {
   return randomBytes(32).toString("base64url");
 }
