@@ -4,30 +4,25 @@
  * sqlite_search_query_store_query_test.go (the end-to-end
  * write→index→query pins: session list mode, the #440 emptiness arm, the
  * #439 newly-searchable-kind arm), plus the scope filter (org strict:
- * visibility never widens or narrows it) and RebuildIndex —
- * including the proof that rebuilding over an ADOPTED Go-created
- * database re-indexes the rows it already holds. The escaping and
+ * visibility never widens or narrows it) and RebuildIndex. The escaping and
  * score-normalization tables moved with their code into the sqlite
  * driver: see store/sqlite/__tests__/fts5.test.ts.
  * These tests still run the REAL driver through tempStore — the
  * two-layer service→driver integration proof.
  */
-import { create, toBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import { createLogger } from "../../../boot/logger.js";
-import { SqliteStore } from "../../../store/sqlite/store.js";
 import {
-  materializeGoFixture,
   tempStore,
   type TempStore,
 } from "../../../store/sqlite/__tests__/support.js";
@@ -397,60 +392,5 @@ describe("rebuildIndex", () => {
     );
     expect(after.totalCount).toBe(1);
     expect(after.results[0]?.id).toBe("ses-1");
-  });
-
-  it("re-indexes existing rows on an ADOPTED Go-created database", async () => {
-    // The committed Go-v6 fixture, opened through the driver (migrates
-    // v6→current — real adoption), then given a skill row the way a Go
-    // server would have written one: raw resource bytes.
-    const fixture = materializeGoFixture();
-    const adopted = SqliteStore.open(fixture.dbPath);
-    try {
-      const skill = create(SkillSchema, {
-        metadata: {
-          id: "skl_1",
-          name: "billing",
-          slug: "billing",
-          org: "acme",
-        },
-        spec: { description: "the billing skill" },
-        status: {
-          audit: { specAudit: { createdAt: { seconds: 1_700_000_000n } } },
-        },
-      });
-      await adopted.saveResource(
-        ApiResourceKind.skill,
-        "skl_1",
-        SkillSchema,
-        skill,
-      );
-      // Boot state: the TS server wipes and rebuilds — a registry without
-      // the kind would erase this row from search forever.
-      const adoptedQueryStore = new SqliteSearchQueryStore(
-        adopted,
-        registry,
-        silentLogger,
-      );
-      await adoptedQueryStore.rebuildIndex();
-
-      const result = await adoptedQueryStore.search(
-        criteria({ kinds: [ApiResourceKind.skill], org: "acme" }),
-      );
-      expect(result.totalCount).toBe(1);
-      expect(result.results[0]?.id).toBe("skl_1");
-      expect(result.results[0]?.description).toBe("the billing skill");
-
-      // toBinary sanity: the row loaded back is byte-equal to what a Go
-      // server holds (protobuf wire format is shared).
-      const raw = await adopted.getResource(
-        ApiResourceKind.skill,
-        "skl_1",
-        SkillSchema,
-      );
-      expect(toBinary(SkillSchema, raw)).toEqual(toBinary(SkillSchema, skill));
-    } finally {
-      await adopted.close();
-      fixture.cleanup();
-    }
   });
 });

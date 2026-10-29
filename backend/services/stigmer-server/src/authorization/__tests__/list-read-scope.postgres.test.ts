@@ -269,8 +269,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
           // Blueprints: the founder's private and org-visible agents, a
           // member's private one, one still carrying the retired public
-          // level (a row the store migration has not met, which derives no
-          // viewer grant and so reads as its owner's alone), and one
+          // level (a row no door writes, which derives no viewer grant and
+          // so reads as its owner's alone), and one
           // stamped by the 3.14 verifiers' raw subject.
           await save("agent", {
             id: "agt_private",

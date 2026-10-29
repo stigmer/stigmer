@@ -28,9 +28,9 @@
  *
  * Rows are found where the store keeps them: through the kind's list index
  * when it has one (one organization's rows, a bounded page), otherwise by
- * reading the kind in keyset pages and decoding each row's organization,
- * the migrations' precedent (store/organization-slug-history.ts); the kinds
- * without a list index hold few rows (boot/list-indexes.ts says how few).
+ * reading the kind in keyset pages and decoding each row's organization;
+ * the kinds without a list index hold few rows (boot/list-indexes.ts says
+ * how few).
  * A kind may name its organization elsewhere than `metadata.org` (an API
  * key bound to one), through `belongsTo`; a kind whose rows live behind a
  * port a composition may substitute reads them through it (`rows`).

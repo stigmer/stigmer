@@ -6,12 +6,7 @@
  * Core quiesce has already terminated the run.
  *
  * A run holds no bytes of its own. The files sent with its messages are
- * Files, purged by the File's own purge (domain/file/purge.ts), and so are
- * the attachments runs stored before Files existed, once the boot pass has
- * converted them (domain/file/convert-attachments.ts): each conversion's
- * blob row is the run's organization's. Only a stored attachment that pass
- * could not convert (logged at boot, its row forgotten) leaves bytes that
- * no organization's purge finds.
+ * Files, purged by the File's own purge (domain/file/purge.ts).
  */
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";

@@ -257,7 +257,7 @@ export function describeStoreContract(
       expect(await fx.store.listResources(KIND)).toEqual([]);
     });
 
-    it("deleteResourcesByKind and ByIdPrefix return the deleted counts", async () => {
+    it("deleteResourcesByKind returns the deleted count", async () => {
       await fx.store.saveResource(
         KIND,
         "acme",
@@ -277,28 +277,7 @@ export function describeStoreContract(
         makeOrganization({ id: "acme-2" }),
       );
 
-      expect(await fx.store.deleteResourcesByIdPrefix(KIND, "acme")).toBe(2);
-      expect(await fx.store.deleteResourcesByKind(KIND)).toBe(1);
-    });
-
-    it("deleteResourcesByIdPrefix treats LIKE metacharacters in the prefix literally", async () => {
-      await fx.store.saveResource(
-        KIND,
-        "a_c",
-        OrganizationSchema,
-        makeOrganization({ id: "a_c" }),
-      );
-      await fx.store.saveResource(
-        KIND,
-        "abc",
-        OrganizationSchema,
-        makeOrganization({ id: "abc" }),
-      );
-
-      // "a_c" must match only the literal id — an unescaped LIKE '_' would
-      // also delete "abc".
-      expect(await fx.store.deleteResourcesByIdPrefix(KIND, "a_c")).toBe(1);
-      expect(await fx.store.listResources(KIND)).toHaveLength(1);
+      expect(await fx.store.deleteResourcesByKind(KIND)).toBe(3);
     });
   });
 

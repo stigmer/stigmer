@@ -11,7 +11,7 @@
  *
  * Trade-offs:
  *   - The whole chain, bounded. Causes nest: a step's `{ cause }` wrapper
- *     (store/kind-rename.ts, store/environment-retired.ts and others) is
+ *     (a schema step's rewrite, a driver's own refusal) is
  *     wrapped once more by the executor's internalError, so the first
  *     cause alone would often print a wrapper's copy instead of the
  *     driver's error. MAX_CAUSE_LINKS bounds the walk, and a repeated

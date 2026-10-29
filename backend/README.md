@@ -146,9 +146,9 @@ CREATE TABLE resources (
 Adding a new resource kind requires **no schema migration** — define the
 proto, run `make codegen`, add the controller. Purpose-built side tables
 exist where a generic row is the wrong shape (resource audit history,
-routine fires, bootstrap state) — see
-`backend/services/stigmer-server/src/store/sqlite/` (the migration chain in
-`migrations.ts`) for the authoritative schema.
+routine fires, bootstrap state) — see each driver's committed
+`schema.snapshot.sql` under `backend/services/stigmer-server/src/store/` for
+the authoritative schema.
 
 **Trade-offs**: no type safety at the DB level (validation lives at the
 proto layer); queries by anything other than `(kind, id)` scan — fine for

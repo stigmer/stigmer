@@ -955,15 +955,6 @@ export interface Store {
   /** Removes all resources of a kind; returns the count deleted. */
   deleteResourcesByKind(kind: ApiResourceKind): Promise<number>;
 
-  /**
-   * Removes resources whose id starts with idPrefix (GLOB).
-   * @deprecated Legacy prefix-key compatibility only — use audit methods.
-   */
-  deleteResourcesByIdPrefix(
-    kind: ApiResourceKind,
-    idPrefix: string,
-  ): Promise<number>;
-
   // ---------------------------------------------------------------------------
   // Audit operations (version history)
   // ---------------------------------------------------------------------------

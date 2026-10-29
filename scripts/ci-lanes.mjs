@@ -494,6 +494,8 @@ export const LANES = {
       // scripts/lib/ is also imported by the server's bundle-slim.mjs, which
       // bundles the Enterprise image's tree.
       "scripts/verify-consumer-install.mjs",
+      // The merged-schema-step check the lane runs over every chain's sum.
+      "scripts/check-migration-sums.mjs",
       "scripts/lib/**",
       // The Enterprise image job runs the server's verify-slim-artifact.mjs
       // and smoke-docker-image.mjs, which import the shared console-lane

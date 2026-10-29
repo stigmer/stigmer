@@ -147,8 +147,6 @@ import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { stampEtag } from "../etag.js";
 import { fileBlobRefusal } from "../file-blobs.js";
 import type {
-  AttachmentConversion,
-  OutputConversion,
   FileBlobRecord,
   FileBlobState,
   FileBlobStore,
@@ -295,7 +293,7 @@ export class PostgresStore implements Store {
     // session-scoped, so lock and unlock must ride the same connection.
     const client = await pool.connect();
     try {
-      await runMigrations(client, undefined, logger);
+      await runMigrations(client, { logger });
     } catch (error) {
       client.release();
       await pool.end();
@@ -1067,27 +1065,6 @@ export class PostgresStore implements Store {
     await this.open().query(`DELETE FROM resource_list_keys WHERE kind = $1`, [
       kindName,
     ]);
-    return result.rowCount ?? 0;
-  }
-
-  async deleteResourcesByIdPrefix(
-    kind: ApiResourceKind,
-    idPrefix: string,
-  ): Promise<number> {
-    // LIKE with the wildcard characters of the PREFIX escaped — sqlite's
-    // GLOB has no LIKE-metacharacter hazard, this port must not either.
-    const params = [
-      apiResourceKindName(kind),
-      `${escapeLikePattern(idPrefix)}%`,
-    ];
-    const result = await this.open().query(
-      `DELETE FROM resources WHERE kind = $1 AND id LIKE $2 ESCAPE '\\'`,
-      params,
-    );
-    await this.open().query(
-      `DELETE FROM resource_list_keys WHERE kind = $1 AND id LIKE $2 ESCAPE '\\'`,
-      params,
-    );
     return result.rowCount ?? 0;
   }
 
@@ -2706,14 +2683,6 @@ function factsOfBytes(
   }
 }
 
-/** Escapes LIKE metacharacters so a prefix matches literally. */
-function escapeLikePattern(value: string): string {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll("%", "\\%")
-    .replaceAll("_", "\\_");
-}
-
 // =============================================================================
 // Organization deletions (interface.ts, OrganizationDeletionStore)
 // =============================================================================
@@ -3526,89 +3495,8 @@ class PostgresFileBlobStore implements FileBlobStore {
   async deleteByOrg(org: string): Promise<number> {
     return this.transaction(async (client) => {
       await client.query(`DELETE FROM file_blob_refs WHERE org = $1`, [org]);
-      await client.query(`DELETE FROM file_conversions WHERE org = $1`, [org]);
-      await client.query(`DELETE FROM output_conversions WHERE org = $1`, [org]);
       const result = await client.query(`DELETE FROM file_blobs WHERE org = $1`, [org]);
       return result.rowCount ?? 0;
     });
   }
-
-  async listConversions(limit: number): Promise<AttachmentConversion[]> {
-    const result = await this.open().query<FileConversionRow>(
-      `SELECT ${FILE_CONVERSION_COLUMNS} FROM file_conversions
-       ORDER BY created_at, run_id, position
-       LIMIT $1`,
-      [limit],
-    );
-    return result.rows.map(fileConversionOf);
-  }
-
-  async forgetConversion(runId: string, position: number): Promise<void> {
-    await this.open().query(`DELETE FROM file_conversions WHERE run_id = $1 AND position = $2`, [runId, position]);
-  }
-
-  async listOutputConversions(limit: number): Promise<OutputConversion[]> {
-    const result = await this.open().query<OutputConversionRow>(
-      `SELECT ${OUTPUT_CONVERSION_COLUMNS} FROM output_conversions
-       ORDER BY created_at, run_id, position
-       LIMIT $1`,
-      [limit],
-    );
-    return result.rows.map(outputConversionOf);
-  }
-
-  async forgetOutputConversion(runId: string, position: number): Promise<void> {
-    await this.open().query(`DELETE FROM output_conversions WHERE run_id = $1 AND position = $2`, [runId, position]);
-  }
-}
-
-const FILE_CONVERSION_COLUMNS =
-  "run_id, position, org, session_id, filename, storage_key, content_type, created_at";
-
-interface FileConversionRow {
-  run_id: string;
-  position: string | number;
-  org: string;
-  session_id: string;
-  filename: string;
-  storage_key: string;
-  content_type: string;
-  created_at: string;
-}
-
-function fileConversionOf(row: FileConversionRow): AttachmentConversion {
-  return {
-    runId: row.run_id,
-    position: Number(row.position),
-    org: row.org,
-    sessionId: row.session_id,
-    filename: row.filename,
-    storageKey: row.storage_key,
-    contentType: row.content_type,
-    createdAt: row.created_at,
-  };
-}
-
-const OUTPUT_CONVERSION_COLUMNS = "run_id, position, org, session_id, name, storage_key, created_at";
-
-interface OutputConversionRow {
-  run_id: string;
-  position: string | number;
-  org: string;
-  session_id: string;
-  name: string;
-  storage_key: string;
-  created_at: string;
-}
-
-function outputConversionOf(row: OutputConversionRow): OutputConversion {
-  return {
-    runId: row.run_id,
-    position: Number(row.position),
-    org: row.org,
-    sessionId: row.session_id,
-    name: row.name,
-    storageKey: row.storage_key,
-    createdAt: row.created_at,
-  };
 }

@@ -1,13 +1,11 @@
 /**
- * Shared helpers for the sqlite driver tests: temp-dir stores and the
- * Go-database fixture loader. The organization factory moved to
- * ../../__tests__/support.ts with the contract-suite extraction;
- * re-exported here so existing driver tests keep their import path.
+ * Shared helpers for the sqlite driver tests: temp-dir stores. The
+ * organization factory lives in ../../__tests__/support.ts, re-exported
+ * here so the driver tests import from one place.
  */
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
 
 import { STORE_OPEN_OPTIONS } from "../../../boot/store-options.js";
 import type { StoreOpenOptions } from "../../interface.js";
@@ -38,33 +36,6 @@ export function tempStore(
     dbPath,
     async cleanup() {
       await store.close();
-      rmSync(dir, { recursive: true, force: true });
-    },
-  };
-}
-
-const FIXTURE_PATH = path.join(
-  import.meta.dirname,
-  "fixtures",
-  "go-v6-database.sql",
-);
-
-/**
- * Reconstructs the Go-created v6 database from its committed SQL dump into
- * a throwaway file and returns the path. Write-then-reopen is required:
- * the dump instantiates the FTS5 virtual table through writable_schema,
- * which only takes effect on the next connection — the same shape as real
- * adoption, where the driver always opens an existing file fresh.
- */
-export function materializeGoFixture(): { dbPath: string; cleanup(): void } {
-  const dir = mkdtempSync(path.join(tmpdir(), "stigmer-go-fixture-"));
-  const dbPath = path.join(dir, "stigmer.db");
-  const writer = new DatabaseSync(dbPath);
-  writer.exec(readFileSync(FIXTURE_PATH, "utf8"));
-  writer.close();
-  return {
-    dbPath,
-    cleanup() {
       rmSync(dir, { recursive: true, force: true });
     },
   };

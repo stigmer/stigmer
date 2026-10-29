@@ -8,7 +8,7 @@
  * score on an eval run's try (the reserved label the create chain copies
  * from the run), which those reads leave out, as both conversation lists
  * leave out the tries' sessions. Revision 3 renamed the key from
- * `plugin_eval` with its label (store/eval-kinds-retired.ts). The organization and
+ * `plugin_eval` with its label. The organization and
  * the creation order are every declaration's.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts

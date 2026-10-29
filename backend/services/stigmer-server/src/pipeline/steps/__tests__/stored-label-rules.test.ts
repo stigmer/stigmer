@@ -3,8 +3,8 @@
  * over the served chains (gRPC, the edge validator included).
  *
  * A row may hold labels and tags the rules now refuse: the edge validates
- * requests, never stored rows, and the store's report migration names such
- * rows without rewriting them (store/label-tag-report.ts). An update whose
+ * requests, never stored rows, and nothing rewrites a stored row when a
+ * rule tightens. An update whose
  * mask leaves labels and tags out keeps them as stored and succeeds; an
  * update that sends a value the rules refuse is refused. Two kinds on two
  * chains: an agent (spec.instructions) and an organization

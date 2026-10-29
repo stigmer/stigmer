@@ -83,11 +83,9 @@ import { metadataOf, parentIdOf } from "./shapes.js";
  * level, so sharing a blueprint with the organization's children never
  * hides it from its own org's catalog.
  *
- * The retired public level has no shape here. No stored row holds it once
- * the store migration has run, so no transition FROM it reaches this
- * policy; a deployment that still holds public rows must move them through
- * updateVisibility on the release that knew the level, whose reconciler
- * deletes the wildcard grant, before it runs this one.
+ * The retired public level has no shape here. It was retired before
+ * 0.1.0, every door refuses it, and no stored row holds it, so no
+ * transition FROM it reaches this policy.
  */
 export function visibilityShapesFor(
   kind: ApiResourceKind,

@@ -10,7 +10,7 @@
  *   - each output's upload link is signed for the runner, which puts it;
  *   - a retried registration answers the File it made and promotes
  *     nothing again; a reference spent with no File is FAILED_PRECONDITION;
- *     an output's id is never an attachment conversion's;
+ *     each output's id derives from its organization, run, path and content;
  *   - a run a person stopped mints within the grace and not after it, and
  *     registers after it; a finished run otherwise returns nothing;
  *   - everyone but the run's runner gets the one PERMISSION_DENIED;
@@ -64,7 +64,6 @@ import { UploadSlots } from "../../skill/transfer/slots.js";
 import { newFileBlobs, uploadRefOf } from "../blobs.js";
 import type { FileBlobs } from "../blobs.js";
 import { STAGED_FILE_NAME, STAGING_KEY_PREFIX } from "../constants.js";
-import { convertedFileId } from "../convert-attachments.js";
 import { fileListIndex } from "../list-index.js";
 import {
   NOT_THE_RUNS_RUNNER_OUTPUTS_MESSAGE,
@@ -297,15 +296,13 @@ describe("RunFileController.createOutputUploads and registerOutputs", () => {
     expect(await filesOfRun(RUN)).toHaveLength(1);
   });
 
-  it("refuses a reference spent with no File behind it, and never derives a conversion's id", async () => {
+  it("refuses a reference spent with no File behind it, and derives an id per output", async () => {
     const outputs = { "report.md": "text" };
     const uploads = await mint(outputs);
     await put(uploads, outputs);
     await blobs.promote(ORG, uploads.entries[0]?.uploadRef ?? "");
     expect((await refusal(register(uploads, outputs))).code).toBe(Code.FailedPrecondition);
 
-    const conversions = new Set(Array.from({ length: 50 }, (_, position) => convertedFileId(RUN, position)));
-    expect(conversions.has(outputFileId(ORG, RUN, "0", sha256("")))).toBe(false);
     expect(outputFileId(ORG, RUN, "a.md", sha256("x"))).not.toBe(outputFileId(ORG, RUN, "b/a.md", sha256("x")));
     expect(outputFileId(ORG, RUN, "a.md", sha256("x"))).not.toBe(outputFileId(ORG, RUN, "a.md", sha256("y")));
     expect(outputFileId(ORG, RUN, "a.md", sha256("x"))).toMatch(/^file_[0-9a-hjkmnp-tv-z]{26}$/);

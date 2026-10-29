@@ -256,8 +256,9 @@ describe("runServer", () => {
     const db = new DatabaseSync(path.join(dir, "stigmer.db"));
     try {
       runMigrations(db);
-      db.prepare(`INSERT INTO schema_version (version) VALUES (?)`).run(
+      db.prepare(`INSERT INTO schema_version (version, checksum) VALUES (?, ?)`).run(
         CURRENT_SCHEMA_VERSION + 1,
+        "a step a newer release shipped",
       );
     } finally {
       db.close();

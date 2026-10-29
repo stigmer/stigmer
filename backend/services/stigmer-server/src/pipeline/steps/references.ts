@@ -651,8 +651,7 @@ function sameReference(a: SpecReference, b: SpecReference): boolean {
  * The order the floor compares on: private < org < child_orgs, an unset
  * level reading as private (the level a row with no config holds). The
  * retired public level is unreachable here — refused at every door and
- * moved off every stored row by the store migration — so meeting it is a
- * fault, not a rank.
+ * held by no stored row — so meeting it is a fault, not a rank.
  */
 function visibilityRank(level: ApiResourceVisibility): number {
   switch (level) {
