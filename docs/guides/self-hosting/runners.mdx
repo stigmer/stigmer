@@ -190,18 +190,19 @@ get no address. Each sandboxed runner gets the server's Temporal namespace and
 its `STIGMER_TEMPORAL_*` connection settings, the credentials through the same
 channel as the runner's token.
 
-A released server (the server image, the all-in-one image) defaults the image to
-`ghcr.io/stigmer/runner` at its own release, `v<version>`, so it starts a runner
-it knows how to launch. A development build, or a program that embeds the
-`@stigmer/server` library, defaults to `latest`; name the image there. The image
-is Stigmer's default base image (Debian with git, Node.js, Python, Go, ripgrep,
-and the other tools Agents use) with the runner layer added. Everything of the
-runner lives under `/runner`, and the drivers start it through
-`/runner/bin/start`, which checks the image and then runs the runner on its own
-Node, `/runner/bin/node`, so the `node` an Agent's commands run is the base
-image's, not the runner's. The image's own command is a shell; the container
-drivers set the runner's command themselves. To run Agents in an image of your
-own instead, see [Bring your own base image](#bring-your-own-base-image).
+A released server (the server image, the all-in-one image), and a program that
+embeds the `@stigmer/server` library and states its release, defaults the image
+to `ghcr.io/stigmer/runner` at that release, `v<version>`, so it starts a runner
+it knows how to launch. A development build, or an embedding program that states
+no release, defaults to `latest`; name the image there. The image is Stigmer's
+default base image (Debian with git, Node.js, Python, Go, ripgrep, and the other
+tools Agents use) with the runner layer added. Everything of the runner lives
+under `/runner`, and the drivers start it through `/runner/bin/start`, which
+checks the image and then runs the runner on its own Node, `/runner/bin/node`,
+so the `node` an Agent's commands run is the base image's, not the runner's. The
+image's own command is a shell; the container drivers set the runner's command
+themselves. To run Agents in an image of your own instead, see
+[Bring your own base image](#bring-your-own-base-image).
 
 **On Kubernetes, through agent-sandbox.** The `agent-sandbox` driver hands each
 sandbox to Kubernetes SIG Apps' agent-sandbox, which you install in the cluster

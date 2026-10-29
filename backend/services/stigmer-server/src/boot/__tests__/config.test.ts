@@ -332,8 +332,8 @@ describe("loadConfig", () => {
       }
     });
 
-    it("uses this build's default unless the operator names an image", () => {
-      expect(loadConfig({}).sandboxRunnerImage).toBe(defaultSandboxRunnerImage());
+    it("records only the image the operator names, empty for the composition's default", () => {
+      expect(loadConfig({}).sandboxRunnerImage).toBe("");
       expect(
         loadConfig({ STIGMER_SANDBOX_RUNNER_IMAGE: "registry.example/runner@sha256:abc" })
           .sandboxRunnerImage,
