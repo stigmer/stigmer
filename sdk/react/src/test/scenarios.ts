@@ -15,16 +15,28 @@
 // the clock; a view that does (a running subagent's duration) is pinned by
 // its test's fake clock. The builders here cover what `samples` does not yet
 // (a subagent's thread, a review set) with `create(SessionEventSchema)`.
-import { create, type MessageInitShape } from "@bufbuild/protobuf";
+//
+// Two states carry what lives beside the events: `busy` the liveness
+// preview the stream sends while a turn works (streamed, never stored, so it
+// is folded after the events and a page that replays the scenario sends it
+// as a frame), and `finished` the Files its turn returned and the routine
+// that started the session.
+import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
+import { durationFromMs } from "@bufbuild/protobuf/wkt";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import {
+  RunLivenessSchema,
   SessionEventSchema,
+  type RunLiveness,
   type SessionEvent,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { StreamSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileReviewSet, SessionFold, ToolUse, Turn, TurnPhase } from "@stigmer/client";
+import { SessionLog, type FileReviewSet, type SessionFold, type ToolUse, type Turn, type TurnPhase } from "@stigmer/client";
 import type { UseSessionConversationReturn } from "../session/useSessionConversation.js";
 import type { UseSessionUsageReturn } from "../session/useSessionUsage.js";
 import { samples, sampleInstant } from "./samples.js";
@@ -43,6 +55,8 @@ export const SCENARIO_NAMES = [
   "failed",
   "completed",
   "markdown",
+  "busy",
+  "finished",
 ] as const;
 
 /** One of the catalogue's states. */
@@ -75,6 +89,13 @@ export interface Scenario {
   readonly loadError: Error | null;
   /** The session's usage report, or undefined when it has none. */
   readonly usage: ScenarioUsage | undefined;
+  /**
+   * The newest liveness preview the stream sent for the working turn, already
+   * in `fold`; undefined when the turn has none or nothing works.
+   */
+  readonly liveness: RunLiveness | undefined;
+  /** The Files the session's turns returned (their outputs folder), oldest first. */
+  readonly files: readonly StigmerFile[];
 }
 
 const RUN_ID = samples.run().metadata!.id;
@@ -180,15 +201,106 @@ const MARKDOWN_REPLY = [
   "| 1 × 9.995 | 10.00 | 10.00 |",
 ].join("\n");
 
-/** Builds a loaded scenario from its events, its one turn's run phase and its usage. */
-function loaded(
-  name: ScenarioName,
-  title: string,
-  events: readonly SessionEvent[],
-  usage?: ScenarioUsage,
-): Scenario {
+/** What a loaded scenario holds beside its events. */
+interface Beside {
+  readonly usage?: ScenarioUsage;
+  readonly liveness?: RunLiveness;
+  readonly files?: readonly StigmerFile[];
+  readonly session?: Session;
+}
+
+/** The events folded, then the liveness preview the stream sent after them. */
+function foldWithLiveness(events: readonly SessionEvent[], liveness: RunLiveness | undefined): SessionFold {
+  if (liveness === undefined) return samples.fold(events);
+  const log = new SessionLog();
+  log.apply(numbered(events));
+  log.applyFrame(create(StreamSessionEventsResponseSchema, { frame: { case: "stigmerRunLiveness", value: liveness } }));
+  return log.snapshot();
+}
+
+/**
+ * A tool call at `atMs` after the frozen instant and, unless it still runs,
+ * its result `tookMs` later. `id` names a second call of the same tool.
+ */
+function call(name: string, input: JsonObject, atMs: number, result?: string, tookMs = 1_200, id?: string): SessionEvent[] {
+  const use = samples.toolUseEvent(name, input, { id: id ?? `${RUN_ID}.tc-${name}`, processedAt: sampleInstant(atMs) });
+  if (result === undefined) return [use];
+  return [use, samples.toolResultEvent(use.event.value!.id, result, { processedAt: sampleInstant(atMs + tookMs) })];
+}
+
+const BUSY_TASK_ID = `${RUN_ID}.tc-task`;
+const BUSY_TEST_RUN_ID = `${RUN_ID}.tc-execute-suite`;
+
+/** The busy turn: a to-do list, settled searches, an edit and a test run, a note, then a subagent and the full suite still running. */
+function busyEvents(): SessionEvent[] {
+  const todos = [
+    { content: "Find every place invoices round", status: "completed" },
+    { content: "Round once, at the invoice total", status: "completed" },
+    { content: "Apply the same rule to credit notes", status: "in_progress" },
+    { content: "Add tests for the half-cent cases", status: "pending" },
+    { content: "Run the billing suite", status: "pending" },
+  ];
+  return [
+    samples.userMessageEvent("Invoices are off by a cent across the billing module. Find every place that rounds, fix it, and prove it with tests."),
+    samples.runStatusEvent("running"),
+    ...call("write_todos", { todos }, 3_000, "Updated the to-do list", 200),
+    ...call("grep", { pattern: "round(", path: "src/billing" }, 6_000, "src/billing/invoice.ts:41\nsrc/billing/credit-note.ts:18"),
+    ...call("read_file", { path: "src/billing/invoice.ts" }, 9_000, "export function invoiceTotal(lines: readonly Line[]) {"),
+    ...call("edit_file", { path: "src/billing/invoice.ts" }, 21_000, "1 edit applied", 800),
+    ...call("execute", { command: "npm test -- billing/invoice" }, 30_000, "Tests: 12 passed, 12 total", 14_000),
+    samples.agentMessageEvent("Invoice totals now round once. A researcher is mapping where credit notes round while the full suite runs.", {
+      id: `${RUN_ID}.root.m1`,
+      processedAt: sampleInstant(48_000),
+    }),
+    samples.toolUseEvent("task", { description: "map where credit notes round" }, { id: BUSY_TASK_ID, processedAt: sampleInstant(52_000) }),
+    ...threadEvents(BUSY_TASK_ID, "running", ""),
+    ...call("execute", { command: "npm test -- billing" }, 60_000, undefined, 0, BUSY_TEST_RUN_ID),
+  ];
+}
+
+/** What the busy turn had open when the stream last said: the subagent for 38s, the suite for 30s. */
+const BUSY_LIVENESS: RunLiveness = create(RunLivenessSchema, {
+  runId: RUN_ID,
+  operations: [
+    { toolUseId: BUSY_TASK_ID, name: "task", elapsed: durationFromMs(38_000) },
+    { toolUseId: BUSY_TEST_RUN_ID, name: "execute", elapsed: durationFromMs(30_000) },
+  ],
+});
+
+/** The Files the finished turn returned: the audit it wrote and the cases it found. */
+const FINISHED_FILES: readonly StigmerFile[] = [
+  samples.outputFile("invoice-audit.md", { mimeType: "text/markdown", sizeBytes: 4_210n }),
+  samples.outputFile("rounding-cases.csv", { mimeType: "text/csv", sizeBytes: 1_830n }),
+];
+
+/** The finished turn: read, edit, write the two Files, answer. */
+function finishedEvents(): SessionEvent[] {
+  return [
+    samples.userMessageEvent("Audit last month's invoices for rounding errors and fix what you find."),
+    samples.runStatusEvent("running"),
+    ...call("read_file", { path: "src/billing/invoice.ts" }, 4_000, "export function invoiceTotal(lines: readonly Line[]) {"),
+    ...call("edit_file", { path: "src/billing/invoice.ts" }, 18_000, "1 edit applied", 800),
+    ...call("write_file", { path: "outputs/invoice-audit.md" }, 52_000, "Wrote 4.1 KB", 300),
+    ...call("write_file", { path: "outputs/rounding-cases.csv" }, 60_000, "Wrote 1.8 KB", 300, `${RUN_ID}.tc-write_file-2`),
+    samples.agentMessageEvent(
+      "Fourteen invoices were a cent off, all from rounding each line before the total. `invoiceTotal` now rounds once, at the total. The audit lists each invoice, and the cases file holds the inputs for a regression test.",
+      { processedAt: sampleInstant(73_000) },
+    ),
+    samples.runStatusEvent("completed", { processedAt: sampleInstant(74_000) }),
+  ];
+}
+
+/** The session a nightly routine started. */
+function routineSession(): Session {
+  const session = samples.session({ subject: "Nightly billing check" });
+  session.status = create(SessionStatusSchema, { routineId: "rtn-00000000-0000-0000-0000-000000000001" });
+  return session;
+}
+
+/** Builds a loaded scenario from its events, its one turn's run phase and what it holds beside them. */
+function loaded(name: ScenarioName, title: string, events: readonly SessionEvent[], beside: Beside = {}): Scenario {
   const ordered = numbered(events);
-  const fold = samples.fold(events);
+  const fold = foldWithLiveness(events, beside.liveness);
   const runs = fold.turns.map((turn) =>
     samples.run({
       id: turn.runId,
@@ -200,13 +312,15 @@ function loaded(
   return {
     name,
     title,
-    session: samples.session({ subject: "Fix invoice rounding" }),
+    session: beside.session ?? samples.session({ subject: "Fix invoice rounding" }),
     events: ordered,
     fold,
     runs,
     loading: false,
     loadError: null,
-    usage,
+    usage: beside.usage,
+    liveness: beside.liveness,
+    files: beside.files ?? [],
   };
 }
 
@@ -224,6 +338,8 @@ function build(name: ScenarioName): Scenario {
         loading: true,
         loadError: null,
         usage: undefined,
+        liveness: undefined,
+        files: [],
       };
     case "load-failed":
       return {
@@ -236,6 +352,8 @@ function build(name: ScenarioName): Scenario {
         loading: false,
         loadError: new Error("[unavailable] connect ECONNREFUSED 127.0.0.1:7234"),
         usage: undefined,
+        liveness: undefined,
+        files: [],
       };
     case "empty":
       return loaded(name, "a new session with no turns", []);
@@ -298,10 +416,28 @@ function build(name: ScenarioName): Scenario {
           tools: [{ name: "edit_file", input: { path: "src/billing/invoice.ts" }, result: "1 edit applied" }],
           reply: "Fixed: invoices now round once, at the total.",
         }),
-        { totalTokens: 18_432, llmCallCount: 3, model: "claude-sonnet-4-5", workingSeconds: 42 },
+        { usage: { totalTokens: 18_432, llmCallCount: 3, model: "claude-sonnet-4-5", workingSeconds: 42 } },
       );
     case "markdown":
       return loaded(name, "a long reply in markdown: a heading, lists, code and a table", samples.turnEvents({ message, reply: MARKDOWN_REPLY }));
+    case "busy":
+      return loaded(
+        name,
+        "a long turn at work: two of five to-dos done, commands and an edit settled, a subagent and the test run still going",
+        busyEvents(),
+        { liveness: BUSY_LIVENESS },
+      );
+    case "finished":
+      return loaded(
+        name,
+        "a finished session a routine started: an edit, two files returned and the answer, with usage",
+        finishedEvents(),
+        {
+          usage: { totalTokens: 41_210, llmCallCount: 7, model: "claude-sonnet-4-5", workingSeconds: 74 },
+          files: FINISHED_FILES,
+          session: routineSession(),
+        },
+      );
   }
 }
 
@@ -319,6 +455,8 @@ export const scenarios: Readonly<Record<ScenarioName, Scenario>> = {
   failed: build("failed"),
   completed: build("completed"),
   markdown: build("markdown"),
+  busy: build("busy"),
+  finished: build("finished"),
 };
 
 const NO_IDS: ReadonlySet<string> = new Set();

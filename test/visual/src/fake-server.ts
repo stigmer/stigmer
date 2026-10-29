@@ -13,7 +13,7 @@
 // started for QUIET_MS, so a call one answer leads to (an organization list,
 // then its provider keys) is waited for too. The spec reads `idle` before it
 // takes the picture.
-import { createRouterTransport, type ConnectRouter, type Interceptor } from "@connectrpc/connect";
+import { Code, ConnectError, createRouterTransport, type ConnectRouter, type Interceptor } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/client";
 import { MODEL_REGISTRY } from "./fixtures.ts";
 
@@ -58,6 +58,13 @@ export function fakeStigmer(routes: Routes = () => {}): Stigmer {
     begin();
     try {
       return await next(request);
+    } catch (error) {
+      // The scene's author reads which call it forgot here, rather than
+      // guessing from the error state its picture shows.
+      if (error instanceof ConnectError && error.code === Code.Unimplemented) {
+        console.warn(`gallery: no route answers ${request.service.typeName}/${request.method.name}`);
+      }
+      throw error;
     } finally {
       end();
     }

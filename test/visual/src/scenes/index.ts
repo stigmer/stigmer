@@ -15,6 +15,7 @@ import {
   modelsHubScene,
 } from "./models.tsx";
 import { modelSelectorScene } from "./settings.tsx";
+import { sessionScene } from "./session.tsx";
 import { threadScene } from "./thread.tsx";
 
 const threads = Object.fromEntries(THREAD_STATES.map((state) => [`thread-${state}`, () => threadScene(state)])) as Record<
@@ -45,5 +46,14 @@ export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   "model-selector-open": modelSelectorScene,
   "model-selector-not-ready": modelSelectorNotReadyScene,
   "dashboard-kpis": dashboardScene,
+  "session-busy": () => sessionScene("busy"),
+  "session-approval": () => sessionScene("approval"),
+  "session-finished": () => sessionScene("finished"),
+  "session-inspector": () => sessionScene("finished"),
+  "session-failed": () => sessionScene("failed"),
+  "session-end-user": () => sessionScene("busy", { audience: "endUser", panel: "none" }),
+  "session-guest": () => sessionScene("finished", { audience: "guest" }),
+  "session-observer": () => sessionScene("finished", { audience: "observer" }),
+  "session-load-failed": () => sessionScene("load-failed"),
   ...presets,
 };
