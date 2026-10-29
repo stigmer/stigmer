@@ -2,10 +2,12 @@
 // the comparison of a change against its base.
 // Run via `node --test scripts/test-integrity.test.mjs` (wired into root `npm test`).
 //
-// What these guard: which calls register a case, a suite or a skip; the one
+// What these guard: which calls register a case, a suite or a skip (node:test's
+// options among them), in TypeScript and plain-Node tests; the one
 // return shape that is a pass without running (valueless, before anything was
 // asserted) and the shapes that are not; the vitest options that let a suite
-// pass without passing; how a deletion is told from a retitle and a move; which
+// pass without passing; which include and exclude lists decide what a config
+// collects; how a deletion is told from a retitle and a move; which
 // skips carry their reason by construction; the PR-body declarations; which
 // of a run's skipped cases a skip site explains; how the RPC waiver file is
 // read and which of its changes weaken the contract; how a coverage floors
@@ -49,6 +51,8 @@ import {
   resolveRelative,
   RPC_WAIVERS,
   scanModule,
+  scriptKindOf,
+  TEST_PATHSPECS,
   typeScriptCandidates,
 } from "./test-integrity.mjs";
 
@@ -123,12 +127,85 @@ it("a quarantine comment on the line above names its issue", () => {
   assert.deepEqual(skips[0].quarantine, { repo: "stigmer", issue: 1322 });
 });
 
+const MJS = "scripts/a.test.mjs";
+
+it("node:test's options are read on a registration: skip and todo are skip sites, only is focus", () => {
+  const { cases, skips, findings } = inv(`
+    test("inline", { skip: !onMacOS }, () => {});
+    test("a reason", { skip: "needs a Mac" }, () => {});
+    test("later", { todo: true }, () => {});
+    test("bare todo", { todo: true });
+    test("off", { skip: false, timeout: 5 }, () => {});
+    describe("suite", { skip: true }, () => { test("inside", () => {}); });
+  `, MJS);
+  assert.deepEqual(cases.map((c) => c.key), ["inline", "a reason", "later", "bare todo", "off", "suite > inside"]);
+  assert.deepEqual(skips.map((s) => [s.title, s.kind, s.condition]), [
+    ["inline", "skip", "!onMacOS"],
+    ["a reason", "skip", ""],
+    ["later", "todo", ""],
+    ["bare todo", "todo", ""],
+    ["suite", "skip", ""],
+  ]);
+  assert.deepEqual(findings, []);
+  assert.deepEqual(inv(`test("focused", { only: true }, () => {});`, MJS).findings.map((f) => f.rule), ["only"]);
+});
+
+it("an options conditional, inline or through a module-level const, skips under its test; a const shared by cases is one site per case", () => {
+  const { skips, findings } = inv(`
+    const linux = onPath("dpkg");
+    const NEEDS_LINUX =
+      linux || process.env.STIGMER_TEST_GATE === "1"
+        ? {}
+        : { skip: "needs a Linux runner; the gate runs it" };
+    const FOCUS = debugging ? { only: true } : {};
+    test("one", NEEDS_LINUX, () => {});
+    test("two", NEEDS_LINUX, () => {});
+    test("lint", which("shellcheck") ? {} : { skip: "not installed" }, () => {});
+    test("focus", FOCUS, () => {});
+  `, MJS);
+  assert.deepEqual(skips.map((s) => [s.title, s.kind, s.condition]), [
+    ["one", "skip", 'linux || process.env.STIGMER_TEST_GATE === "1"'],
+    ["two", "skip", 'linux || process.env.STIGMER_TEST_GATE === "1"'],
+    ["lint", "skip", 'which("shellcheck")'],
+  ]);
+  assert.deepEqual(findings.map((f) => [f.rule, f.line]), [["only", 11]]);
+});
+
+it("option keys outside a registration are data, never read", () => {
+  const { cases, skips, findings } = inv(`
+    const rows = [{ name: "a", skip: true, todo: false }];
+    const config = strykerConfig("mutate", { only: true });
+    report({ skip: 1, only: true });
+    test("real", () => { assert.deepEqual(parse(rows), { skip: true }); });
+    test(\`computed \${n}\`, { timeout: 5 });
+  `, MJS);
+  assert.deepEqual(cases.map((c) => c.key), ["real"]);
+  assert.deepEqual(skips, []);
+  assert.deepEqual(findings, []);
+});
+
+it("a JavaScript test is parsed as JavaScript, TypeScript as TypeScript, by its extension", () => {
+  assert.deepEqual(
+    ["a.test.ts", "a.test.mts", "a.test.tsx", "a.test.mjs", "a.test.cjs", "a.test.js", "a.test.jsx"].map((p) => scriptKindOf(ts, p)),
+    [ts.ScriptKind.TS, ts.ScriptKind.TS, ts.ScriptKind.TSX, ts.ScriptKind.JS, ts.ScriptKind.JS, ts.ScriptKind.JS, ts.ScriptKind.JSX],
+  );
+});
+
+it("the tests node --test runs are read: .mjs, .cjs and .js beside the TypeScript ones", () => {
+  for (const spec of ["*.test.mjs", "*.test.cjs", "*.test.js"]) assert.ok(TEST_PATHSPECS.includes(spec), spec);
+});
+
 // ─── Rules on the tree ──────────────────────────────────────────────────
 
 it(".only on a case or a suite is refused", () => {
   assert.deepEqual(rules(`it.only("a", () => {});`), ["only"]);
   assert.deepEqual(rules(`describe.only("s", () => { it("a", () => {}); });`), ["only"]);
   assert.deepEqual(rules(`test.describe.only("s", () => {});`), ["only"]);
+  // A JavaScript test keeps the same rules.
+  const js = (text, path) => inv(text, path).findings.map((f) => f.rule);
+  assert.deepEqual(js(`test.only("a", () => {});`, "scripts/a.test.mjs"), ["only"]);
+  assert.deepEqual(js(`const { test } = require("node:test");\ntest.only("a", () => {});`, "tools/x/__tests__/a.test.cjs"), ["only"]);
+  assert.deepEqual(js(`test("a", () => { if (!ready) return; assert.ok(x); });`, "scripts/a.test.mjs"), ["valueless-return"]);
 });
 
 it("a valueless return before anything was asserted is a pass that never ran", () => {
@@ -237,6 +314,21 @@ it("a new skip is one beyond what the file carried; by-construction and quaranti
   assert.deepEqual(newSkips.map((s) => s.title), ["b", "g"]);
 });
 
+it("an option-form skip the base carried is not new; one more case under a shared skip const is", () => {
+  const SHARED = `const MAC = onMacOS ? {} : { skip: "needs a Mac" };\n`;
+  const GATE = `const LINUX = linux || process.env.STIGMER_TEST_GATE === "1" ? {} : { skip: "needs Linux" };\n`;
+  const base = file("scripts/a.test.mjs", `${SHARED}${GATE}test("a", MAC, () => {}); test("x", { skip: !onMacOS }, () => {});`);
+  const head = file("scripts/a.test.mjs", `${SHARED}${GATE}
+    test("a", MAC, () => {});
+    test("x", { skip: !onMacOS }, () => {});
+    test("b", MAC, () => {});
+    test("y", { todo: true }, () => {});
+    test("z", LINUX, () => {});
+  `);
+  const { newSkips } = compareInventories([{ base, head }], new Set(["."]));
+  assert.deepEqual(newSkips.map((s) => [s.title, s.kind]), [["b", "skip"], ["y", "todo"]]);
+});
+
 it("the by-construction classes are capability, platform, a gate-provided dependency, and a live file's key", () => {
   assert.equal(byConstruction("!capabilities.versionTagging"), "target capability");
   assert.equal(byConstruction('process.platform === "win32"'), "platform");
@@ -249,6 +341,11 @@ it("the by-construction classes are capability, platform, a gate-provided depend
   // A key read through a variable carries no reason the tool can read.
   assert.equal(byConstruction("!key", "pkg/src/__tests__/turn.live.test.ts"), undefined);
   assert.equal(byConstruction("!hasBash"), undefined);
+  // Every gate lane sets STIGMER_TEST_GATE=1, so a case escaping by that exact comparison never skips there.
+  assert.equal(byConstruction('linux || process.env.STIGMER_TEST_GATE === "1"'), "runs in the gate");
+  assert.equal(byConstruction("process.env.STIGMER_TEST_GATE === '1'"), "runs in the gate");
+  assert.equal(byConstruction("process.env.STIGMER_TEST_GATE"), undefined);
+  assert.equal(byConstruction('isRoot || process.env.STIGMER_TEST_AS_ROOT === "1"'), undefined);
 });
 
 it("a liveSecret skip is new in an ordinary test, and by construction only in a live one", () => {
@@ -566,7 +663,8 @@ it("a module's value imports are followed; a type-only import is not", () => {
 /** Runs the layout rules over an in-memory tree: `tree` maps a path to its text. */
 function layout(tree, { packages = ["pkg"], configs = {} } = {}) {
   const files = new Set(Object.keys(tree).filter((p) => /\.(m?ts|tsx)$/.test(p)));
-  const tests = [...files].filter((p) => /\.(test|spec)\.(m?ts|tsx)$/.test(p));
+  // Every test the command reads, the JavaScript ones included: the layout rules pick the TypeScript ones.
+  const tests = Object.keys(tree).filter((p) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(p));
   return checkLayout(ts, {
     tests,
     files,
@@ -680,15 +778,51 @@ it("in a package with a live config, every other vitest config excludes the live
   // Excluding the load class is not excluding the live class.
   const loadOnly = `export default { test: { exclude: ["**/*.load.test.ts"] } };`;
   assert.deepEqual(layout({}, { configs: { ...live, "pkg/vitest.config.ts": loadOnly } }), ["layout-live-collected pkg/vitest.config.ts"]);
-  // A package with both classes needs both excluded, and each class's own config is exempt only from its own rule.
+  // A package with both classes needs both excluded, and each class's own config is exempt only from its own rule:
+  // a load config that can collect any test must exclude the live class.
   const both = {
-    "pkg/vitest.load.config.ts": `export default { test: { include: ["src/**/*.load.test.ts"] } };`,
-    "pkg/vitest.live.config.ts": `export default { test: { include: ["src/**/*.live.test.ts"], exclude: ["**/*.load.test.ts"] } };`,
+    "pkg/vitest.load.config.ts": `export default { test: {} };`,
+    "pkg/vitest.live.config.ts": `export default { test: { include: ["src/**/*.live.test.ts"] } };`,
     "pkg/vitest.config.ts": `export default { test: { exclude: ["**/*.load.test.ts", "**/*.live.test.ts"] } };`,
   };
   assert.deepEqual(layout({}, { configs: both }), ["layout-live-collected pkg/vitest.load.config.ts"]);
   // A package without a live config has no such rule.
   assert.deepEqual(layout({}, { configs: { "pkg/vitest.config.ts": `export default { test: {} };` } }), []);
+});
+
+it("only the test-level include and exclude decide what a config collects; coverage and other nesting do not", () => {
+  const load = { "pkg/vitest.load.config.ts": `export default defineConfig({ test: { include: ["src/**/*.load.test.ts"] } });` };
+  // A coverage exclude leaves the load class collected.
+  const coverageOnly = `export default defineConfig({ test: { include: ["src/**/*.test.ts"], coverage: { exclude: ["**/*.load.test.ts"] } } });`;
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": coverageOnly } }), ["layout-load-collected pkg/vitest.config.ts"]);
+  const serverDeps = `export default defineConfig({ server: { deps: { exclude: ["**/*.load.test.ts"] } }, test: {} });`;
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": serverDeps } }), ["layout-load-collected pkg/vitest.config.ts"]);
+  // A coverage include collects no browser test.
+  const browserCoverage = { "pkg/vitest.a11y.config.ts": `export default defineConfig({ test: { coverage: { include: ["src/**/*.browser.test.tsx"] } } });` };
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": `it("a", () => {});` }, { configs: browserCoverage }), ["layout-word-place pkg/src/__tests__/panel.browser.test.tsx browser"]);
+  // The test block is found through a const config object, mergeConfig, and a project's own test block.
+  const viaConst = `const EXCLUDE = ["**/*.load.test.ts"];\nconst config = { test: { exclude: EXCLUDE } };\nexport default defineConfig(config);`;
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": viaConst } }), []);
+  const merged = `export default mergeConfig(shared, defineConfig({ test: { exclude: [...configDefaults.exclude, "**/*.load.test.ts"] } }));`;
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.config.ts": merged } }), []);
+  const projects = { "pkg/vitest.config.ts": `export default defineConfig({ test: { projects: [{ extends: true, test: { name: "browser", include: ["src/**/*.browser.test.tsx"] } }] } });` };
+  assert.deepEqual(layout({ "pkg/src/__tests__/panel.browser.test.tsx": `it("a", () => {});` }, { configs: projects }), []);
+});
+
+it("a config whose includes can only collect another layer is not asked to exclude the class; any other include is", () => {
+  const load = { "pkg/vitest.load.config.ts": `export default { test: { include: ["src/**/*.load.test.ts"] } };` };
+  const config = (include) => ({ ...load, "pkg/vitest.a11y.config.ts": `export default { test: { include: ${JSON.stringify(include)} } };` });
+  assert.deepEqual(layout({}, { configs: config(["src/**/*.browser.test.ts", "src/**/*.browser.test.tsx"]) }), []);
+  // A glob that can collect any test, or the load class itself, must exclude it; so must a config with no include (vitest's default).
+  for (const include of [["src/**/*.browser.test.tsx", "src/**/*.test.ts"], ["src/**/*.test.{ts,tsx}"], ["src/**/*.browser.test.{ts,tsx}"], ["src/**/*.load.test.ts"], ["src/**/*.*.test.ts"]]) {
+    assert.deepEqual(layout({}, { configs: config(include) }), ["layout-load-collected pkg/vitest.a11y.config.ts"], include.join(" "));
+  }
+  assert.deepEqual(layout({}, { configs: { ...load, "pkg/vitest.a11y.config.ts": `export default { test: { exclude: ["**/*.browser.test.tsx"] } };` } }), ["layout-load-collected pkg/vitest.a11y.config.ts"]);
+});
+
+it("a JavaScript test is placed in review, not by the layout rules", () => {
+  const ok = `test("a", () => {});`;
+  assert.deepEqual(layout({ "scripts/release.test.mjs": ok, "tools/lint/rules/__tests__/rule.test.js": ok, "scripts/smoke.e2e.test.mjs": ok }, { packages: ["."] }), []);
 });
 
 it("a TypeScript test lives in __tests__, a spec under the spec homes; the suites' trees are placed by their suite", () => {
@@ -820,6 +954,49 @@ it("the command: a silent return on the tree fails without a base", () => {
     const result = r.run();
     assert.equal(result.status, 1);
     assert.match(result.stdout, /valueless-return +pkg\/src\/__tests__\/a\.test\.ts:1/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a plain-Node test beside its script is read, its .only refused, and no layout rule placed on it", () => {
+  const r = repo();
+  try {
+    r.write("package.json", "{}");
+    r.write("scripts/release.test.mjs", `import { test } from "node:test";\ntest("tags", () => {});`);
+    r.write("tools/lint/rules/__tests__/rule.test.js", `const { test } = require("node:test");\ntest("flags", () => {});`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    const clean = r.run();
+    assert.equal(clean.status, 0, clean.stdout);
+    assert.match(clean.stdout, /test-integrity: 2 test file\(s\) read; clean$/m);
+
+    r.write("tools/lint/rules/__tests__/rule.test.js", `const { test } = require("node:test");\ntest.only("flags", () => {});`);
+    r.git("commit", "-qam", "focus");
+    const focused = r.run();
+    assert.equal(focused.status, 1, focused.stdout);
+    assert.match(focused.stdout, /only +tools\/lint\/rules\/__tests__\/rule\.test\.js:2/);
+  } finally {
+    rmSync(r.dir, { recursive: true, force: true });
+  }
+});
+
+it("the command: a deleted plain-Node case and a new option-form skip are refused; a skip the base carried is not", () => {
+  const r = repo();
+  try {
+    r.write("package.json", "{}");
+    const MAC = `const MAC = onMacOS ? {} : { skip: "needs a Mac" };\n`;
+    r.write("scripts/ci-lanes.test.mjs", `${MAC}test("kept", MAC, () => {});\ntest("other", () => {});\ntest("dropped", () => {});\n`);
+    r.git("add", ".");
+    r.git("commit", "-q", "-m", "base");
+    r.git("checkout", "-q", "-b", "change");
+    r.write("scripts/ci-lanes.test.mjs", `${MAC}test("kept", MAC, () => {});\ntest("other", MAC, () => {});\n`);
+    r.git("commit", "-qam", "drop one, skip one");
+    const refused = r.run("--base", "main");
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(refused.stdout, /deleted-case +scripts\/ci-lanes\.test\.mjs:4 +"dropped" was deleted/);
+    assert.match(refused.stdout, /new-skip +scripts\/ci-lanes\.test\.mjs:3 +new skip \(onMacOS\) on "other"/);
+    assert.doesNotMatch(refused.stdout, /"kept"/);
   } finally {
     rmSync(r.dir, { recursive: true, force: true });
   }
