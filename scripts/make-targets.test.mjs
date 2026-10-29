@@ -138,7 +138,7 @@ test("readMakefile ends a non-recipe line at its first unescaped # outside a ref
   );
   assert.deepEqual(rules.get("t").prerequisites, ["dep"], "a prerequisite list ends at a # too");
   assert.deepEqual(rules.get("t").recipe, [{ line: 6, text: "echo x#y" }], "a recipe line's # is the shell's");
-  for (const line of ["Y := $(shell echo 1 #2)", "Y := ${X#y} # c", "t: $(X#y)"]) {
+  for (const line of ["Y := $(shell echo 1 #2)", "Y := ${X#y} # c", "t: $(X#y)", "Y := $(X #never closed"]) {
     const read = readMakefile(mk(line));
     assert.deepEqual(read.refusals.length, 1, line);
     assert.match(read.refusals[0], /^line 1: a `#` inside a reference ends the line in make 3\.81 and is text in make 4\.3/, line);
