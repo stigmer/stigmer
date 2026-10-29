@@ -25,12 +25,12 @@
  * refusal happens rather than at the end of the turn.
  *
  * How a tool is attributed:
- *  - An MCP tool belongs to the server whose `serverToolMap` entry holds that
- *    very tool OBJECT; hiding is exact even when two servers name a tool
- *    alike. A call carries a name and, from the tool node, the tool object;
- *    the object decides, and a bare name is the fallback, refused unless
- *    every server carrying that name allows it (stigmer#1860 is the name
- *    collision this inherits).
+ *  - An MCP tool is the one its engine name stands for in the turn's index
+ *    (`mcpIndex`, `shared/mcp-tool-names.ts`): the model is offered and
+ *    calls every server's tool as `mcp__<server>__<tool>`, one name per
+ *    tool, so the name alone is exact, for a tool the model is shown and
+ *    for a call it makes, and two servers' tools of one name are judged
+ *    apart (stigmer#1860). The lists judge the server and the bare tool.
  *  - A tool of a platform server (the synthesized channel, conversation and
  *    memory attachments, `TurnMcp.platformServerSlugs`) is always in scope:
  *    no plugin can name them and an agent without them cannot answer its
@@ -73,6 +73,7 @@ import { ToolMessage } from "@langchain/core/messages";
 import { STIGMER_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import { outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
 import { SHELL_TOOL_NAME, STOP_BACKGROUND_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
+import type { McpToolIndex } from "../shared/mcp-tool-names.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 
 /**
@@ -121,8 +122,8 @@ const READ_PATH_ARG = "file_path";
 export interface ToolScopeConfig {
   /** The scope this graph enforces: the agent's, or a sub-agent's narrowed from it. */
   readonly scope: ToolScope;
-  /** Each MCP server's tool objects, by slug — the identity a tool is attributed to its server by. */
-  readonly serverToolMap: ReadonlyMap<string, readonly unknown[]>;
+  /** The server and bare tool each MCP engine name stands for. */
+  readonly mcpIndex: McpToolIndex;
   /** The platform's own servers, outside every list. */
   readonly platformServerSlugs: ReadonlySet<string>;
   /**
@@ -149,41 +150,30 @@ function toolNameOf(tool: unknown): string | undefined {
 
 /** The middleware; see the module header. Install only when `scope.restricted`. */
 export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddleware {
-  const { scope, platformServerSlugs, admitsRoutedRead, readsSkillContent } = config;
+  const { scope, mcpIndex, platformServerSlugs, admitsRoutedRead, readsSkillContent } = config;
 
-  const serverOfTool = new Map<unknown, string>();
-  const serversOfName = new Map<string, string[]>();
-  for (const [slug, tools] of config.serverToolMap) {
-    for (const tool of tools) {
-      serverOfTool.set(tool, slug);
-      const name = toolNameOf(tool);
-      if (name === undefined) continue;
-      const slugs = serversOfName.get(name) ?? [];
-      slugs.push(slug);
-      serversOfName.set(name, slugs);
-    }
-  }
-
-  const mcpToolInScope = (slug: string, name: string): boolean =>
-    platformServerSlugs.has(slug) || scope.allowsMcpTool(slug, name);
+  /** Whether the MCP tool `name` stands for is in scope; `undefined` for a name no server listed. */
+  const mcpToolInScope = (name: string): boolean | undefined => {
+    const owner = mcpIndex.ownerOf(name);
+    if (owner === undefined) return undefined;
+    return platformServerSlugs.has(owner.slug) || scope.allowsMcpTool(owner.slug, owner.tool);
+  };
 
   /** Whether a tool the model is shown stays visible: `read_file` always does (the header's exception). */
   const visible = (tool: unknown): boolean => {
     const name = toolNameOf(tool);
     if (name === undefined) return true;
-    const slug = serverOfTool.get(tool);
-    if (slug !== undefined) return mcpToolInScope(slug, name);
+    const mcp = mcpToolInScope(name);
+    if (mcp !== undefined) return mcp;
     if (name === READ_TOOL) return true;
     return scope.allowsEngineTool(scopeNameOf(name), STIGMER_TOOL_COVERS);
   };
 
-  /** Whether a call may run, from the tool object when the tool node supplies it, else from the name. */
+  /** Whether a call may run, by the name the model called. */
   const callable = async (request: ToolCallRequest): Promise<boolean> => {
     const { name, args } = request.toolCall;
-    const objectSlug = serverOfTool.get(request.tool);
-    if (objectSlug !== undefined) return mcpToolInScope(objectSlug, name);
-    const nameSlugs = serversOfName.get(name);
-    if (nameSlugs !== undefined) return nameSlugs.every((slug) => mcpToolInScope(slug, name));
+    const mcp = mcpToolInScope(name);
+    if (mcp !== undefined) return mcp;
     const path = args[READ_PATH_ARG];
     const read = name === READ_TOOL && typeof path === "string";
     // The read alone: grep, glob and the shell are out of this check's scope (the header says why).

@@ -56,6 +56,13 @@ export interface ProposedAction {
    */
   readonly mcpDestructive?: boolean;
   /**
+   * For `kind: "mcp"`: a second server of the turn, by this slug, lists a
+   * tool of the same name, marked destructive or not. A substrate binds it
+   * beside the action's own; only the action's own server's tool counts as
+   * the action running.
+   */
+  readonly mcpTwin?: { readonly slug: string; readonly destructive: boolean };
+  /**
    * For `kind: "read"`: `resource` is a path under the platform's own content
    * (the `.stigmer/` route that carries the agent's skills, inputs and plan),
    * which each adapter places where its engine mounts it.

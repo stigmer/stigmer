@@ -34,15 +34,34 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
+// The name every engine offers a server's tool to the model under, and the one
+// a scripted tool_use turn must call: `mcp__<server>__<tool>`, Claude Code's
+// grammar, which the console and the API tell people their tools have. The
+// suite writes the grammar itself rather than importing the runner's, because
+// it is the published contract. Everything that leaves the engine (a row, a
+// card, the session's log) still names the bare tool beside its server, so
+// those assertions keep the bare constants below.
+//
+// The engine fits a name longer than the providers' 64 characters with a
+// hash no suite should reproduce; a suite's server names stay short enough
+// that it never has to, and this refuses one that does not.
+export const MODEL_TOOL_NAME_MAX = 64;
+
+export function mcpToolName(server: string, tool: string): string {
+  const name = `mcp__${server}__${tool}`;
+  if (name.length > MODEL_TOOL_NAME_MAX) {
+    throw new Error(`${name} is longer than ${MODEL_TOOL_NAME_MAX} characters, where the engine fits the name: shorten the suite's server or plugin name`);
+  }
+  return name;
+}
+
 // The default tool this fixture exposes. Deterministic by construction: it echoes
 // its `text` argument straight back, so a tool call's result is fully assertable
-// without any external dependency. The name is bare (no server prefix) because
-// the runner binds MCP tools by their bare names — the mock LLM's tool_use turn
-// references exactly this string. It declares no annotations, so the approval
-// default lets it through: every suite that calls it unattended relies on that.
-// A plugin's tool is offered to the model by this bare name; the turn's tool
-// lists and a call's mcp_server_slug name its server as
-// `plugin_<plugin>_<server>` (support/plugins.ts).
+// without any external dependency. This is the bare name the server lists and
+// every row records; the model calls it as `mcpToolName(<server>, ECHO_TOOL_NAME)`.
+// It declares no annotations, so the approval default lets it through: every
+// suite that calls it unattended relies on that. A plugin's server is named
+// `plugin_<plugin>_<server>` (support/plugins.ts, `pluginToolName`).
 export const ECHO_TOOL_NAME = "echo";
 
 // The same echo, declared `destructiveHint: true`: the tool the approval

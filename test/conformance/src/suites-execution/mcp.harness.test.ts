@@ -28,7 +28,7 @@ import {
   requireLlmProxy,
   requireMcpFixture,
 } from "../support/runs";
-import { toolServerSegment } from "../support/plugins";
+import { modelToolName, toolServerSegment } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
@@ -76,7 +76,7 @@ describe("Execution harness smoke — MCP tool dispatch", () => {
 
     // Script: call echo, then end the loop with a text turn. Approval is bypassed
     // (auto_approve_all), so echo runs immediately.
-    mock.enqueue(anthropicToolUse("call_echo_smoke", ECHO_TOOL_NAME, { text: "ping" }));
+    mock.enqueue(anthropicToolUse("call_echo_smoke", modelToolName(plugin, ECHO_TOOL_NAME), { text: "ping" }));
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(

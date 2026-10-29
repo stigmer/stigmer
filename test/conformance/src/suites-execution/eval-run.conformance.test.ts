@@ -124,6 +124,8 @@ import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/r
 import { toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 import type { TenancyContext } from "../targets/target";
+import { mcpToolName } from "../harness/mcp-server";
+import { toolServerSegment } from "../support/plugins";
 
 // Read once at collection time to gate the engine-backed arms (constructing
 // a target is side-effect-free; setup() is what boots processes).
@@ -801,8 +803,8 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
         ],
       },
     ]);
-    mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: "Crash on save" }));
-    mock.enqueue(anthropicToolUse("call_triage", "triage", { issue: 4821 }));
+    mock.enqueue(anthropicToolUse("call_create", mcpToolName(toolServerSegment(installation.plugin.metadata!.name, "tracker"), "create_issue"), { title: "Crash on save" }));
+    mock.enqueue(anthropicToolUse("call_triage", mcpToolName(toolServerSegment(installation.plugin.metadata!.name, "tracker"), "triage"), { issue: 4821 }));
     mock.enqueue(anthropicText("LABEL-BUG")); // the agent mock's own model call
     mock.enqueue(anthropicText(DONE));
 
@@ -829,7 +831,7 @@ describe.skipIf(!runnerServesTries)("EvalRun about a plugin — fixtures, resume
         graders: [lastMessageGrader("says-done", "^DONE")],
       },
     ]);
-    mock.enqueue(anthropicToolUse("call_create", "create_issue", { title: 7 }));
+    mock.enqueue(anthropicToolUse("call_create", mcpToolName(toolServerSegment(installation.plugin.metadata!.name, "tracker"), "create_issue"), { title: 7 }));
 
     const { attempt } = await onlyTry(installation);
     expect(attempt.state).toBe(EvalRunTryState.graded);

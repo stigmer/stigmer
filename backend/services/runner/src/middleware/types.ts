@@ -14,6 +14,7 @@ import type { AnyBackendProtocol } from "deepagents";
 import type { BackgroundCommands, BackgroundOutputPaths } from "../shared/shell/background-commands.js";
 import type { TurnInputChannel } from "../harness/turn-input.js";
 import type { InputBarriers } from "../activities/execute-deep-agent/input-barrier.js";
+import type { McpToolIndex } from "../shared/mcp-tool-names.js";
 
 export type { ToolMessage, SystemMessage, AIMessage };
 
@@ -117,7 +118,8 @@ export interface CostAdvisoryConfig {
 }
 
 export interface OtelSpansConfig {
-  readonly toolServerMap: ReadonlyMap<string, string>;
+  /** The server and bare tool each MCP engine name stands for: a span names the tool as it does everywhere outside the engine. */
+  readonly mcpIndex: McpToolIndex;
 }
 
 // Single source of truth lives in approval-gate.ts (the gate consumes it);

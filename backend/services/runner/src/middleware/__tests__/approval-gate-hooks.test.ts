@@ -24,6 +24,7 @@ import type { ToolCallRequest } from "../types.js";
 
 vi.mock("@langchain/langgraph", async (importOriginal) => ({ ...(await importOriginal<object>()), interrupt: vi.fn() }));
 import { Command, interrupt } from "@langchain/langgraph";
+import { McpToolIndex } from "../../shared/mcp-tool-names.js";
 
 const mockedInterrupt = vi.mocked(interrupt);
 
@@ -40,7 +41,6 @@ function hooksAnswering(pre: Partial<HookRunResult>, post: Partial<HookRunResult
     views: new StigmerToolViews({
       workspaceRoot: "/ws",
       toVirtualPath: (path) => (path.startsWith("/ws/") ? path.slice(3) : undefined),
-      toolServerMap: new Map(),
       serverNames: new Map(),
       platformServerSlugs: new Set(),
     }),
@@ -61,7 +61,7 @@ const decide = (permissionDecision: string, extra: Record<string, unknown> = {})
 function gate(hooks: HookEvaluator, extra: Partial<ApprovalGateConfig> = {}) {
   return createApprovalGateMiddleware({
     mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
-    toolServerMap: new Map(),
+    mcpIndex: McpToolIndex.EMPTY,
     hooks,
     ...extra,
   });

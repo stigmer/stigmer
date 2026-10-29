@@ -62,6 +62,7 @@ import { TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runn
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { createTurnInputMiddleware } from "../turn-input-middleware.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptedTurn, type TurnPlayer } from "../__test-utils__/scripted-model.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 class ScriptedAnthropicModel extends ScriptedModel {
   static override lc_name(): string {
@@ -360,7 +361,7 @@ describe("background commands on a real graph", () => {
   it("keeps the start's artifact across a save and a reload, and tells the resumed invocation the command was stopped at the approval pause", async () => {
     const dbPath = join(offload, "checkpoints.sqlite");
     await writeFile(join(root, "keep.txt"), "x");
-    const gate = () => createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() });
+    const gate = () => createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY });
     const script = player((transcript) => {
       const last = transcript.at(-1);
       if (last !== undefined && isHumanMessage(last) && textOf(last).startsWith("<background-command ")) return { text: "noted; it was stopped" };

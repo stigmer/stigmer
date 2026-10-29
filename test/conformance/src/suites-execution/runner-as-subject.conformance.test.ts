@@ -103,7 +103,7 @@ import {
   anthropicToolUse,
   type AnthropicMessageBody,
 } from "@stigmer/test-support/llm-wire";
-import { ECHO_TOOL_NAME } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, mcpToolName } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
@@ -1117,7 +1117,7 @@ describe.skipIf(!runnerActsAsRunCreator)(
         agentRefOf(agent),
         "member-remember",
         [
-          anthropicToolUse("toolu_remember", "remember", { fact }),
+          anthropicToolUse("toolu_remember", mcpToolName("stigmer-memory", "remember"), { fact }),
           anthropicText("I have suggested that as a memory."),
         ],
       );

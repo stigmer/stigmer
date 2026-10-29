@@ -39,6 +39,7 @@ import {
   makeValuesEvent,
   makeUpdatesEvent,
 } from "../__test-utils__/v3-event-fixtures.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 beforeEach(() => resetSeq());
 
@@ -489,20 +490,22 @@ describe("V3ProtocolNormalizer", () => {
       expect(child).toMatchObject({ subAgentId: "task-0" });
     });
 
-    it("attributes root calls only: a sub-agent's tool start carries no server and no provenance even under a gate", () => {
+    it("names every call's tool and server, and answers provenance at the root only (#1133)", () => {
       const t = new DeepAgentTranslator({
         mcpDefault: { destructive: new Set(["search-server/grep"]), unlisted: new Set<string>(), leasedServers: new Set() },
-        toolServerMap: new Map([["grep", "search-server"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "search-server", tools: ["grep"] }]),
         leasedCategories: new Set(),
         globalBypass: false,
         unattended: false,
         unattendedSkips: new Map(),
       });
       t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: TASK_NS }));
-      const [root] = t.translate(makeToolStarted("root-grep", "grep", {}));
-      expect(root).toMatchObject({ mcpServerSlug: "search-server", provenance: "annotation_destructive_tighten" });
-      const [sub] = t.translate(makeToolStarted("sub-grep", "grep", {}, { namespace: CHILD_TOOL_NS }));
-      expect(sub).toMatchObject({ subAgentId: "task-1", mcpServerSlug: "" });
+      const [root] = t.translate(makeToolStarted("root-grep", "mcp__search-server__grep", {}));
+      expect(root).toMatchObject({ name: "grep", mcpServerSlug: "search-server", provenance: "annotation_destructive_tighten" });
+      const [sub] = t.translate(makeToolStarted("sub-grep", "mcp__search-server__grep", {}, { namespace: CHILD_TOOL_NS }));
+      expect(sub).toMatchObject({ subAgentId: "task-1", name: "grep", mcpServerSlug: "search-server" });
+      const [builtin] = t.translate(makeToolStarted("root-builtin", "grep", {}));
+      expect(builtin, "the engine's own grep is no server's").toMatchObject({ name: "grep", mcpServerSlug: "" });
       expect(sub).not.toHaveProperty("provenance");
     });
   });
@@ -588,7 +591,7 @@ describe("V3ProtocolNormalizer", () => {
   describe("a refused call, from the tool-scope middleware's custom event", () => {
     const GATE = {
       mcpDefault: { destructive: new Set(["github/delete_repo"]), unlisted: new Set<string>(), leasedServers: new Set<string>() },
-      toolServerMap: new Map([["delete_repo", "github"]]),
+      mcpIndex: McpToolIndex.of([{ slug: "github", tools: ["delete_repo"] }]),
       leasedCategories: new Set<never>(),
       globalBypass: false,
       unattended: false,
@@ -601,12 +604,19 @@ describe("V3ProtocolNormalizer", () => {
         { namespace },
       );
 
-    it("opens the call's row and fails it with the refusal's message: attributed to its server, no provenance", () => {
-      const events = new DeepAgentTranslator(GATE).translate(refused("c1", "delete_repo"));
+    it("opens the call's row and fails it with the refusal's message: its bare tool beside its server, no provenance", () => {
+      const events = new DeepAgentTranslator(GATE).translate(refused("c1", "mcp__github__delete_repo"));
       expect(events).toEqual([
         { kind: "tool_started", callId: "c1", name: "delete_repo", input: { repo: "x" }, mcpServerSlug: "github" },
         { kind: "tool_error", callId: "c1", message: "Error: refused" },
       ]);
+    });
+
+    it("a sub-agent's refused MCP call names its server too", () => {
+      const t = new DeepAgentTranslator(GATE);
+      t.translate(makeToolStarted("task-5", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-5"] }));
+      const [started] = t.translate(refused("c7", "mcp__github__delete_repo", ["tools:pregel-5"]));
+      expect(started).toEqual({ kind: "tool_started", callId: "c7", name: "delete_repo", input: { repo: "x" }, mcpServerSlug: "github", subAgentId: "task-5" });
     });
 
     it("a refused task opens no sub-agent", () => {

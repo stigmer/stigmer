@@ -11,7 +11,10 @@
  * held or denied tool call never reaches here and gets no span.
  * Every tool the graph executes gets one, the built-in ones (`task`,
  * `execute`, `read_file`, ...) as much as an MCP server's, which is an
- * `extension` tool with `mcp.method.name=tools/call`, one span per call.
+ * `extension` tool with `mcp.method.name=tools/call`, one span per call,
+ * named by its bare tool beside its server as everything outside the
+ * engine names it, never by the `mcp__<server>__<tool>` the model calls
+ * (`shared/mcp-tool-names.ts`).
  * A sub-agent runs inside its `task` call's span (`subagent-transformer.ts`
  * opens its `invoke_agent` span there), so its calls nest where they
  * happened; the sub-agent stacks carry this middleware too
@@ -80,6 +83,7 @@ import {
 import { telemetrySettings } from "../otel-export.js";
 import { chatModelFacts } from "../shared/model-facts.js";
 import { chatContent, exportedResult, markFailed, toolCallContent } from "../shared/telemetry-content.js";
+import { McpToolIndex } from "../shared/mcp-tool-names.js";
 import type { StigmerMiddleware, OtelSpansConfig, ModelCallRequest } from "./types.js";
 
 /** The usage LangChain reports on a model's answer. */
@@ -164,7 +168,7 @@ function failureOf(err: unknown): { readonly message: string; readonly error?: E
 export function createOtelSpansMiddleware(
   config: Partial<OtelSpansConfig> = {},
 ): StigmerMiddleware {
-  const toolServerMap = config.toolServerMap ?? new Map();
+  const mcpIndex = config.mcpIndex ?? McpToolIndex.EMPTY;
 
   // Metric instruments are created lazily on first use
   let metricsInitialized = false;
@@ -270,8 +274,10 @@ export function createOtelSpansMiddleware(
     async wrapToolCall(request, handler) {
       ensureMetrics();
 
-      const { id, name, args } = request.toolCall;
-      const serverName = toolServerMap.get(name);
+      const { id, args } = request.toolCall;
+      const owner = mcpIndex.ownerOf(request.toolCall.name);
+      const name = owner?.tool ?? request.toolCall.name;
+      const serverName = owner?.slug;
       const tracer = api.trace.getTracer(TRACER_NAME);
       const span = tracer.startSpan(`${OP_EXECUTE_TOOL} ${name}`, {
         kind: api.SpanKind.INTERNAL,

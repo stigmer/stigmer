@@ -33,6 +33,7 @@ import {
   readPendingInterrupts,
   type ScriptSelector,
 } from "../__test-utils__/scripted-model.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 // Role script for this test: the WORKER (its bound tools include the gated
 // `overwrite_file`) writes a file; the PARENT delegates via `task`. createDeepAgent
@@ -74,7 +75,7 @@ describe("sub-agent approval interrupt propagation", () => {
       model: new ScriptedModel(roleScript),
       tools: [overwriteFile],
       middleware: [
-        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY }),
       ],
       backend: new StateBackend(),
       generalPurposeAgent: false,
@@ -138,7 +139,7 @@ describe("sub-agent approval interrupt propagation", () => {
       backend: new StateBackend(),
       tools: [overwriteFile],
       middleware: [
-        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, mcpIndex: McpToolIndex.EMPTY }),
       ],
     } as unknown as Parameters<typeof createDeepAgent>[0]);
 

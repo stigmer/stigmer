@@ -18,6 +18,7 @@ vi.mock("@langchain/langgraph", () => ({
 }));
 
 import { interrupt } from "@langchain/langgraph";
+import { McpToolIndex } from "../../shared/mcp-tool-names.js";
 
 const mockedInterrupt = vi.mocked(interrupt);
 
@@ -53,7 +54,7 @@ function destructive(...keys: string[]): McpApprovalDefault {
 function makeConfig(overrides: Partial<ApprovalGateConfig> = {}): ApprovalGateConfig {
   return {
     mcpDefault: NO_MCP_DEFAULT,
-    toolServerMap: new Map<string, string>(),
+    mcpIndex: McpToolIndex.EMPTY,
     ...overrides,
   };
 }
@@ -98,14 +99,35 @@ describe("ApprovalGateMiddleware", () => {
 
   it("passes through tools with no matching policy", async () => {
     const mw = createApprovalGateMiddleware(makeConfig({
-      toolServerMap: new Map([["my_tool", "my-server"]]),
+      mcpIndex: McpToolIndex.of([{ slug: "my-server", tools: ["my_tool"] }]),
     }));
 
-    const req = makeRequest({ name: "my_tool" });
+    const req = makeRequest({ name: "mcp__my-server__my_tool" });
     const result = await mw.wrapToolCall!(req, passthrough);
     expect(result).toBeInstanceOf(ToolMessage);
     expect((result as ToolMessage).content).toBe("tool result");
     expect(mockedInterrupt).not.toHaveBeenCalled();
+  });
+
+  it("judges a server's tool named like a built-in as its server's, never by the built-in's category (stigmer#1860)", async () => {
+    const twins = McpToolIndex.of([
+      { slug: "github", tools: ["write_file"] },
+      { slug: "vault", tools: ["write_file"] },
+    ]);
+    const mw = createApprovalGateMiddleware(makeConfig({ mcpDefault: destructive("vault/write_file"), mcpIndex: twins }));
+    const args = { file_path: "/.env", content: "TOKEN=x" };
+
+    const ran = await mw.wrapToolCall!(makeRequest({ name: "mcp__github__write_file", args }), passthrough);
+    expect((ran as ToolMessage).content, "unmarked: it runs, with no secret block and no write card").toBe("tool result");
+    expect(mockedInterrupt).not.toHaveBeenCalled();
+
+    mockedInterrupt.mockReturnValue({ action: "skip" });
+    await mw.wrapToolCall!(makeRequest({ name: "mcp__vault__write_file", args }), passthrough);
+    expect(mockedInterrupt).toHaveBeenCalledWith(expect.objectContaining({
+      tool_name: "write_file",
+      mcp_server_slug: "vault",
+      policy_source: "annotation_destructive_tighten",
+    }));
   });
 
   it("calls interrupt() for an MCP tool its server marks destructive", async () => {
@@ -113,12 +135,12 @@ describe("ApprovalGateMiddleware", () => {
 
     const mw = createApprovalGateMiddleware(makeConfig({
       mcpDefault,
-      toolServerMap: new Map([["dangerous_tool", "my-server"]]),
+      mcpIndex: McpToolIndex.of([{ slug: "my-server", tools: ["dangerous_tool"] }]),
     }));
 
     mockedInterrupt.mockReturnValue({ action: "approve" });
 
-    const req = makeRequest({ name: "dangerous_tool", args: { target: "prod" } });
+    const req = makeRequest({ name: "mcp__my-server__dangerous_tool", args: { target: "prod" } });
     const result = await mw.wrapToolCall!(req, passthrough);
 
     expect(mockedInterrupt).toHaveBeenCalledWith({
@@ -137,12 +159,12 @@ describe("ApprovalGateMiddleware", () => {
 
     const mw = createApprovalGateMiddleware(makeConfig({
       mcpDefault,
-      toolServerMap: new Map([["tool_a", "srv"]]),
+      mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["tool_a"] }]),
     }));
 
     mockedInterrupt.mockReturnValue({ action: "skip", comment: "not needed" });
 
-    const req = makeRequest({ name: "tool_a" });
+    const req = makeRequest({ name: "mcp__srv__tool_a" });
     const result = await mw.wrapToolCall!(req, passthrough);
 
     expect(result).toBeInstanceOf(ToolMessage);
@@ -155,14 +177,14 @@ describe("ApprovalGateMiddleware", () => {
 
     const mw = createApprovalGateMiddleware(makeConfig({
       mcpDefault,
-      toolServerMap: new Map([["tool_b", "srv"]]),
+      mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["tool_b"] }]),
     }));
 
     mockedInterrupt.mockReturnValue({ action: "reject", comment: "too dangerous" });
 
     // Spy handler so we can prove the tool never executes on reject.
     const handler = vi.fn(passthrough);
-    const req = makeRequest({ name: "tool_b" });
+    const req = makeRequest({ name: "mcp__srv__tool_b" });
     const result = await mw.wrapToolCall!(req, handler);
 
     expect(result).toBeInstanceOf(ToolMessage);
@@ -295,12 +317,12 @@ describe("ApprovalGateMiddleware", () => {
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
       const mw = createApprovalGateMiddleware(makeConfig({
-        toolServerMap: new Map([["search_issues", "github"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "github", tools: ["search_issues"] }]),
         fingerprintKey: "test-key",
         executionId: "exec-2",
       }));
 
-      await mw.wrapToolCall!(makeRequest({ name: "search_issues", args: { q: "x" } }), passthrough);
+      await mw.wrapToolCall!(makeRequest({ name: "mcp__github__search_issues", args: { q: "x" } }), passthrough);
 
       const r = receipts();
       expect(r).toHaveLength(1);
@@ -316,13 +338,13 @@ describe("ApprovalGateMiddleware", () => {
       const mcpDefault = destructive("github/delete_repo");
       const mw = createApprovalGateMiddleware(makeConfig({
         mcpDefault,
-        toolServerMap: new Map([["delete_repo", "github"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "github", tools: ["delete_repo"] }]),
         fingerprintKey: "test-key",
         executionId: "exec-3",
       }));
       mockedInterrupt.mockReturnValue({ action: "approve" });
 
-      await mw.wrapToolCall!(makeRequest({ name: "delete_repo", args: { repo: "x" } }), passthrough);
+      await mw.wrapToolCall!(makeRequest({ name: "mcp__github__delete_repo", args: { repo: "x" } }), passthrough);
 
       const r = receipts();
       expect(r).toHaveLength(1);
@@ -445,13 +467,13 @@ describe("ApprovalGateMiddleware", () => {
       const mcpDefault = destructive("srv/mutate");
       const mw = createApprovalGateMiddleware(makeConfig({
         mcpDefault,
-        toolServerMap: new Map([["mutate", "srv"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["mutate"] }]),
         fileCaptureMode: true,
         isCapturablePath: async () => true,
       }));
       mockedInterrupt.mockReturnValue({ action: "approve" });
 
-      await mw.wrapToolCall!(makeRequest({ name: "mutate", args: {} }), passthrough);
+      await mw.wrapToolCall!(makeRequest({ name: "mcp__srv__mutate", args: {} }), passthrough);
 
       expect(mockedInterrupt).toHaveBeenCalledTimes(1);
     });
@@ -548,12 +570,12 @@ describe("ApprovalGateMiddleware", () => {
       const mw = createApprovalGateMiddleware(makeConfig({
         fileReviewOff: true,
         mcpDefault: destructive("srv/mutate"),
-        toolServerMap: new Map([["mutate", "srv"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["mutate"] }]),
       }));
       mockedInterrupt.mockReturnValue({ action: "approve" });
 
       await mw.wrapToolCall!(makeRequest({ name: "shell", args: { command: "ls" } }), passthrough);
-      await mw.wrapToolCall!(makeRequest({ name: "mutate", args: {} }), passthrough);
+      await mw.wrapToolCall!(makeRequest({ name: "mcp__srv__mutate", args: {} }), passthrough);
 
       expect(mockedInterrupt).toHaveBeenCalledTimes(2);
     });
@@ -1049,12 +1071,12 @@ describe("ApprovalGateMiddleware", () => {
 
     const mw = createApprovalGateMiddleware(makeConfig({
       mcpDefault,
-      toolServerMap: new Map([["tool_c", "srv"]]),
+      mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["tool_c"] }]),
     }));
 
     mockedInterrupt.mockReturnValue({ action: "banana" });
 
-    const req = makeRequest({ name: "tool_c" });
+    const req = makeRequest({ name: "mcp__srv__tool_c" });
     const result = await mw.wrapToolCall!(req, passthrough);
 
     expect(result).toBeInstanceOf(ToolMessage);
@@ -1068,14 +1090,14 @@ describe("ApprovalGateMiddleware", () => {
       const unattendedSkips = new Map<string, string | null>();
       const mw = createApprovalGateMiddleware(makeConfig({
         mcpDefault: gatedMcpDefault,
-        toolServerMap: new Map([["gated_tool", "srv"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["gated_tool"] }]),
         unattended: true,
         unattendedSkips,
       }));
 
       const handler = vi.fn(passthrough);
       const result = await mw.wrapToolCall!(
-        makeRequest({ name: "gated_tool", args: { target: "prod" } }),
+        makeRequest({ name: "mcp__srv__gated_tool", args: { target: "prod" } }),
         handler,
       );
 
@@ -1111,13 +1133,13 @@ describe("ApprovalGateMiddleware", () => {
       // unattended mode never touches it.
       const unattendedSkips = new Map<string, string | null>();
       const mw = createApprovalGateMiddleware(makeConfig({
-        toolServerMap: new Map([["book_appointment", "clinic"]]),
+        mcpIndex: McpToolIndex.of([{ slug: "clinic", tools: ["book_appointment"] }]),
         unattended: true,
         unattendedSkips,
       }));
 
       const result = await mw.wrapToolCall!(
-        makeRequest({ name: "book_appointment", args: { slot: "mon-10" } }),
+        makeRequest({ name: "mcp__clinic__book_appointment", args: { slot: "mon-10" } }),
         passthrough,
       );
 
@@ -1131,12 +1153,12 @@ describe("ApprovalGateMiddleware", () => {
       try {
         const mw = createApprovalGateMiddleware(makeConfig({
           mcpDefault: gatedMcpDefault,
-          toolServerMap: new Map([["gated_tool", "srv"]]),
+          mcpIndex: McpToolIndex.of([{ slug: "srv", tools: ["gated_tool"] }]),
           unattended: true,
           unattendedSkips: new Map<string, string | null>(),
         }));
 
-        await mw.wrapToolCall!(makeRequest({ name: "gated_tool" }), passthrough);
+        await mw.wrapToolCall!(makeRequest({ name: "mcp__srv__gated_tool" }), passthrough);
 
         const receipts = logSpy.mock.calls
           .map((c) => String(c[0]))

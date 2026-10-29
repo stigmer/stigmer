@@ -34,7 +34,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, type McpToolFixture, mcpToolName } from "../harness/mcp-server";
 import { agentRefOf } from "../support/agents";
 import {
   awaitEvalRunEnd,
@@ -137,7 +137,7 @@ async function turn(input: Parameters<typeof makeAgentExecution>[0]): Promise<Ru
 async function conversation(agent: Agent): Promise<Run> {
   mock.enqueue(anthropicText(FIRST_REPLY));
   const first = await turn({ org: tenancy.org, name: uniqueName("ecr-first"), agentRef: agentRefOf(agent), message: FIRST_REQUEST });
-  mock.enqueue(anthropicToolUse("call_lookup", ECHO_TOOL_NAME, { text: LOOKUP }));
+  mock.enqueue(anthropicToolUse("call_lookup", mcpToolName(SERVER, ECHO_TOOL_NAME), { text: LOOKUP }));
   mock.enqueue(anthropicText(DONE));
   return turn({ org: tenancy.org, name: uniqueName("ecr-second"), sessionId: sessionIdOf(first), message: SECOND_REQUEST });
 }
@@ -201,7 +201,7 @@ describe.skipIf(!runnerServesTries)("an eval case built from a run", () => {
     // The eval's run of the new case replays the turn on the agent.
     mcp.resetCaptured();
     mock.reset();
-    mock.enqueue(anthropicToolUse("call_try", ECHO_TOOL_NAME, { text: LOOKUP }));
+    mock.enqueue(anthropicToolUse("call_try", mcpToolName(SERVER, ECHO_TOOL_NAME), { text: LOOKUP }));
     mock.enqueue(anthropicText(DONE));
     mock.enqueue(vote("passed"));
     mock.enqueue(vote("passed"));
@@ -230,7 +230,7 @@ describe.skipIf(!runnerServesTries)("an eval case built from a run", () => {
     expect(mcp.capturedRequests().map((r) => r.method), "the mocked server is never connected").toEqual([]);
     const offered = mock
       .scriptedRequests()
-      .flatMap((request) => ((request.body as { tools?: OfferedToAnthropic[] }).tools ?? []).filter((tool) => tool.name === ECHO_TOOL_NAME));
+      .flatMap((request) => ((request.body as { tools?: OfferedToAnthropic[] }).tools ?? []).filter((tool) => tool.name === mcpToolName(SERVER, ECHO_TOOL_NAME)));
     expect(offered.length, "the try's model is offered the tool").toBeGreaterThan(0);
     for (const tool of offered) {
       expect(tool.description, "as the run offered it, never the stand-in's generic one").toBe(ECHO_DESCRIPTION);

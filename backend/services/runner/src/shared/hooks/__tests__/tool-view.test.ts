@@ -25,6 +25,7 @@ import type { HookFormatName } from "../hook-set.js";
 import { claudeToolResponse, hookServerNamesOf, STIGMER_VIEWED_TOOLS, StigmerToolViews } from "../tool-view.js";
 
 const ROOT = "/work/repo";
+/** Each MCP tool's server, as the gate reads the pair from the turn's index and hands it with the call. */
 const SERVERS = new Map([
   ["create_issue", "github"],
   ["run_check", "plugin_safety_checks"],
@@ -34,7 +35,6 @@ const SERVERS = new Map([
 const views = new StigmerToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => normalizeWorkspacePathArg(path, ROOT),
-  toolServerMap: SERVERS,
   serverNames: hookServerNamesOf([
     { slug: "plugin_safety_checks", connectionType: "http", home: { kind: "plugin", pluginId: "plg_s", plugin: "safety", server: "checks" } },
     { slug: "zendesk", connectionType: "http", home: { kind: "agent", agentId: "agt_helper", subagent: null, server: "zendesk" } },
@@ -42,6 +42,11 @@ const views = new StigmerToolViews({
   ]),
   platformServerSlugs: new Set(["channel"]),
 });
+
+/** The call to `name` as Claude Code shows it to a hook, with its server as the gate gives it. */
+function viewOf(name: string, args: Record<string, unknown>) {
+  return views.viewsOf({ name, args, serverSlug: SERVERS.get(name) ?? "" })["claude-code"];
+}
 
 /** A hook's rewrite of a call to `name`, back in the engine's shape (or why not). */
 function back(name: string, input: Record<string, unknown>, format: HookFormatName = "claude-code"): Record<string, unknown> | string {
@@ -72,30 +77,30 @@ describe("the Stigmer views", () => {
   it.each(bound)("%s: its view's inverse restores the call", (name) => {
     const args = CALLS[name];
     expect(args, `a representative ${name} call`).toBeDefined();
-    const view = views.viewOf(name, args!);
+    const view = viewOf(name, args!);
     expect(view).toBeDefined();
     expect(back(name, view!.toolInput)).toEqual(args);
   });
 
   it("names each call as Claude does, with real absolute paths", () => {
-    expect(views.viewOf("execute", CALLS["execute"]!)).toEqual({
+    expect(viewOf("execute", CALLS["execute"]!)).toEqual({
       toolName: "Bash",
       toolInput: { command: "git push origin main", intent: "Push the branch" },
     });
-    expect(views.viewOf("execute", { command: "npm test", background: true }), "Claude Code's Bash names it run_in_background").toEqual({
+    expect(viewOf("execute", { command: "npm test", background: true }), "Claude Code's Bash names it run_in_background").toEqual({
       toolName: "Bash",
       toolInput: { command: "npm test", run_in_background: true },
     });
     expect(back("execute", { command: "npm test", run_in_background: true })).toEqual({ command: "npm test", background: true });
-    expect(views.viewOf("read_file", CALLS["read_file"]!)?.toolInput).toEqual({ file_path: "/work/repo/src/a.ts", offset: 10, limit: 20 });
-    expect(views.viewOf("grep", CALLS["grep"]!)?.toolInput["path"]).toBe(ROOT);
-    expect(views.viewOf("ls", CALLS["ls"]!)).toEqual({ toolName: "Glob", toolInput: { pattern: "*", path: "/work/repo/src" } });
-    expect(views.viewOf("task", CALLS["task"]!)).toEqual({
+    expect(viewOf("read_file", CALLS["read_file"]!)?.toolInput).toEqual({ file_path: "/work/repo/src/a.ts", offset: 10, limit: 20 });
+    expect(viewOf("grep", CALLS["grep"]!)?.toolInput["path"]).toBe(ROOT);
+    expect(viewOf("ls", CALLS["ls"]!)).toEqual({ toolName: "Glob", toolInput: { pattern: "*", path: "/work/repo/src" } });
+    expect(viewOf("task", CALLS["task"]!)).toEqual({
       toolName: "Agent",
       toolInput: { prompt: "Find the bug", description: "Find the bug", subagent_type: "explore" },
     });
-    expect(views.viewOf("write_todos", CALLS["write_todos"]!)?.toolName).toBe("TodoWrite");
-    expect(views.viewOf("web_fetch", CALLS["web_fetch"]!)?.toolName).toBe("WebFetch");
+    expect(viewOf("write_todos", CALLS["write_todos"]!)?.toolName).toBe("TodoWrite");
+    expect(viewOf("web_fetch", CALLS["web_fetch"]!)?.toolName).toBe("WebFetch");
   });
 
   it("maps a hook's rewritten path, real or relative, back to the engine's", () => {
@@ -112,13 +117,13 @@ describe("the Stigmer views", () => {
   });
 
   it("leaves a path that is not absolute as written", () => {
-    expect(views.viewOf("read_file", { file_path: "../outside" })?.toolInput["file_path"]).toBe("../outside");
+    expect(viewOf("read_file", { file_path: "../outside" })?.toolInput["file_path"]).toBe("../outside");
   });
 });
 
 describe("MCP and platform tools", () => {
   it("names a server the turn has no plugin name for by its slug, still a plugin's", () => {
-    expect(views.viewOf("create_issue", { title: "x" })).toEqual({
+    expect(viewOf("create_issue", { title: "x" })).toEqual({
       toolName: "mcp__github__create_issue",
       toolInput: { title: "x" },
       mcpServer: { name: "github", source: "plugin" },
@@ -126,7 +131,7 @@ describe("MCP and platform tools", () => {
   });
 
   it("names a plugin's own server as Claude Code does", () => {
-    expect(views.viewOf("run_check", {})).toEqual({
+    expect(viewOf("run_check", {})).toEqual({
       toolName: "mcp__plugin_safety_checks__run_check",
       toolInput: {},
       mcpServer: { name: "plugin:safety:checks", source: "plugin" },
@@ -134,7 +139,7 @@ describe("MCP and platform tools", () => {
   });
 
   it("names a server the agent writes itself by its own name, as the agent's", () => {
-    expect(views.viewOf("search_tickets", { q: "x" })).toEqual({
+    expect(viewOf("search_tickets", { q: "x" })).toEqual({
       toolName: "mcp__zendesk__search_tickets",
       toolInput: { q: "x" },
       mcpServer: { name: "zendesk", source: "agent" },
@@ -142,8 +147,8 @@ describe("MCP and platform tools", () => {
   });
 
   it("shows no hook the platform's own tools, or a tool it has no name for", () => {
-    expect(views.viewOf("send_message", {})).toBeUndefined();
-    expect(views.viewOf("think", { thought: "x" })).toBeUndefined();
+    expect(viewOf("send_message", {})).toBeUndefined();
+    expect(viewOf("think", { thought: "x" })).toBeUndefined();
   });
 
   it("passes an MCP tool's rewritten input through", () => {

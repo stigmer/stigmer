@@ -45,7 +45,7 @@ import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
-import { ECHO_TOOL_NAME } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, mcpToolName } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { turnOfRun } from "../support/turn";
@@ -71,6 +71,7 @@ import {
   scoreOrgMismatchMessage,
 } from "../support/scores";
 import { createTarget, enforcingLaneOf, type TargetProfile } from "../targets";
+import { toolServerSegment } from "../support/plugins";
 
 // What a person typed, sent through the echo tool: no reason may quote it.
 const TYPED_TEXT = "private-words-from-a-person";
@@ -107,7 +108,8 @@ afterAll(async () => {
 
 interface RunOptions {
   readonly script: AnthropicMessageBody[];
-  readonly withEchoTool?: boolean;
+  /** The name of a plugin to push on the echo surface, whose tool the script calls. */
+  readonly echoPlugin?: string;
   readonly schema?: JsonObject;
   readonly sessionId?: string;
 }
@@ -116,10 +118,10 @@ interface RunOptions {
 // existing session), scripted on the mock, awaited to its terminal phase.
 async function runToEnd(org: string, opts: RunOptions): Promise<Run> {
   const plugins: string[] = [];
-  if (opts.withEchoTool === true) {
+  if (opts.echoPlugin !== undefined) {
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
       org,
-      name: uniqueName("mcp-scores"),
+      name: opts.echoPlugin,
       tools: [ECHO_TOOL_NAME],
     });
     plugins.push(plugin.metadata!.slug);
@@ -160,12 +162,14 @@ function criterion(score: Score, name: string) {
 describe("Run scores", () => {
   it("[rpc:ScoreQueryController.listByRun] a run stuck on the same call three times gets a failed run-health naming the tool", async () => {
     const { org } = await target.provisionTenancy();
+    const echoPlugin = uniqueName("mcp-scores");
+    const echo = mcpToolName(toolServerSegment(echoPlugin), ECHO_TOOL_NAME);
     const run = await runToEnd(org, {
-      withEchoTool: true,
+      echoPlugin,
       script: [
-        anthropicToolUse("call_1", ECHO_TOOL_NAME, { text: TYPED_TEXT }),
-        anthropicToolUse("call_2", ECHO_TOOL_NAME, { text: TYPED_TEXT }),
-        anthropicToolUse("call_3", ECHO_TOOL_NAME, { text: TYPED_TEXT }),
+        anthropicToolUse("call_1", echo, { text: TYPED_TEXT }),
+        anthropicToolUse("call_2", echo, { text: TYPED_TEXT }),
+        anthropicToolUse("call_3", echo, { text: TYPED_TEXT }),
         anthropicText("Done."),
       ],
     });

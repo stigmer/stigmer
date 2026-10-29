@@ -50,6 +50,7 @@ import {
   TodoStatus,
 } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 /**
  * A builder over an empty status. Usage never reaches the builder:
@@ -300,7 +301,7 @@ describe("the Stigmer harness's translator through the builder", () => {
         const { sb, status } = makeBuilder();
         const gate = gateWith({
           mcpDefault: destructiveDefault(mcpToolKey("my-server", "dangerous_tool")),
-          toolServerMap: new Map([["dangerous_tool", "my-server"]]),
+          mcpIndex: McpToolIndex.of([{ slug: "my-server", tools: ["dangerous_tool"] }]),
         });
 
         feedAll(sb, [
@@ -310,7 +311,7 @@ describe("the Stigmer harness's translator through the builder", () => {
             reason: "tool_use",
             usage: { input_tokens: 100, output_tokens: 10 },
           }),
-          makeToolStarted("toolu_1", "dangerous_tool", { path: "/etc/shadow" }),
+          makeToolStarted("toolu_1", "mcp__my-server__dangerous_tool", { path: "/etc/shadow" }),
         ], gate);
 
         expect(sb.awaitingApproval, "no tool_started parks a row").toBe(false);
@@ -318,6 +319,7 @@ describe("the Stigmer harness's translator through the builder", () => {
         const tc = status.messages[0].toolCalls[0];
         expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
         expect(tc.requiresApproval).toBe(false);
+        expect(tc.name, "the row names the bare tool, never the engine name the model called").toBe("dangerous_tool");
         expect(tc.mcpServerSlug).toBe("my-server");
         expect(tc.approvalPolicySource, "the default's reason still attributes the row").toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
         expect(tc.approvalRequestedAt).toBe("");
@@ -589,7 +591,7 @@ describe("the Stigmer harness's translator through the builder", () => {
   function gateWith(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateState {
     return {
       mcpDefault: destructiveDefault(),
-      toolServerMap: new Map(),
+      mcpIndex: McpToolIndex.EMPTY,
       leasedCategories: new Set(),
       globalBypass: false,
       unattended: false,
@@ -627,8 +629,8 @@ describe("the Stigmer harness's translator through the builder", () => {
     it("an MCP tool its server marks destructive STILL runs when it started, attributed to its server and the default's reason", () => {
       const key = mcpToolKey("github", "create_issue");
       const { sb, tc } = firstToolCallUnder(
-        gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["create_issue", "github"]]) }),
-        "create_issue",
+        gateWith({ mcpDefault: destructiveDefault(key), mcpIndex: McpToolIndex.of([{ slug: "github", tools: ["create_issue"] }]) }),
+        "mcp__github__create_issue",
         { title: "Bug fix" },
       );
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
@@ -642,8 +644,8 @@ describe("the Stigmer harness's translator through the builder", () => {
     it("the global bypass (spec.auto_approve_all) attributes every row to it", () => {
       const key = mcpToolKey("github", "delete_repo");
       const { tc } = firstToolCallUnder(
-        gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["delete_repo", "github"]]), globalBypass: true }),
-        "delete_repo",
+        gateWith({ mcpDefault: destructiveDefault(key), mcpIndex: McpToolIndex.of([{ slug: "github", tools: ["delete_repo"] }]), globalBypass: true }),
+        "mcp__github__delete_repo",
       );
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
       expect(tc.mcpServerSlug, "the bypass still attributes the row to its MCP server").toBe("github");
@@ -651,15 +653,15 @@ describe("the Stigmer harness's translator through the builder", () => {
     });
 
     it("an MCP tool its server does not mark destructive is attributed to its server and needed no approval", () => {
-      const { tc } = firstToolCallUnder(gateWith({ toolServerMap: new Map([["read", "filesystem"]]) }), "read");
+      const { tc } = firstToolCallUnder(gateWith({ mcpIndex: McpToolIndex.of([{ slug: "filesystem", tools: ["read"] }]) }), "mcp__filesystem__read");
       expect(tc.mcpServerSlug).toBe("filesystem");
       expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
       expect(tc.policyEngineVersion, "no provenance, no engine version").toBe("");
     });
 
-    it("a tool the server map does not know carries no server (the destructive key needs the server)", () => {
+    it("a tool the index does not own carries no server (the destructive key needs the server)", () => {
       const key = mcpToolKey("github", "create_pr");
-      const { tc } = firstToolCallUnder(gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map() }), "create_pr");
+      const { tc } = firstToolCallUnder(gateWith({ mcpDefault: destructiveDefault(key), mcpIndex: McpToolIndex.EMPTY }), "create_pr");
       expect(tc.mcpServerSlug).toBe("");
       expect(tc.approvalPolicySource, "an unknown built-in is governed by no layer").toBe(ApprovalPolicySource.UNSPECIFIED);
       expect(tc.policyEngineVersion).toBe("");
@@ -761,11 +763,11 @@ describe("the Stigmer harness's translator through the builder", () => {
       });
       const sb = new TranscriptBuilder("exec-resume", status, create(RunStatusSchema));
       const key = mcpToolKey("my-server", "dangerous_tool");
-      const gate = gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["dangerous_tool", "my-server"]]) });
+      const gate = gateWith({ mcpDefault: destructiveDefault(key), mcpIndex: McpToolIndex.of([{ slug: "my-server", tools: ["dangerous_tool"] }]) });
 
       // The durable checkpoint re-emits the SAME tool_call_id now that approval is granted.
       feedAll(sb, [
-        makeToolStarted(GATED_ID, "dangerous_tool", { target: "prod" }),
+        makeToolStarted(GATED_ID, "mcp__my-server__dangerous_tool", { target: "prod" }),
         makeToolFinished(GATED_ID, "tool executed ok"),
         makeMessageStart("llm-after"),
         makeTextDelta("llm-after", "All done."),

@@ -15,7 +15,9 @@
  * `tools/call` are forwarded unchanged, a call only once the gate admitted
  * it. The platform's own servers (channel,
  * conversation, memory) ride the same bridge. Tool names stay Claude Code's,
- * `mcp__<slug>__<tool>`.
+ * `mcp__<slug>__<tool>`, and a name is mapped back to its server and tool
+ * through the index both engines share (`shared/mcp-tool-names.ts`), built
+ * from what the servers listed, never by parsing.
  *
  * What the bridge reads while it lists, once per turn:
  *  - every page of each server's tools, each schema loosened where a regex
@@ -51,15 +53,11 @@ import { withNetworkErrorCapture } from "../../shared/mcp-network-errors.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { sanitizeSchemaPatterns } from "../../shared/mcp-schema-sanitizer.js";
 import { definitionOf, type McpToolListing } from "../../shared/mcp-tool-listing.js";
+import { McpToolIndex, mcpToolName, type McpToolOwner } from "../../shared/mcp-tool-names.js";
 import { textResult, type ServedServer } from "./loopback-mcp.js";
 
 /** The most pages of tools one server's listing reads before the turn gives up on it. */
 const MAX_LIST_PAGES = 100;
-
-/** The engine's name for one server's tool. */
-export function mcpToolName(slug: string, tool: string): string {
-  return `mcp__${slug}__${tool}`;
-}
 
 /** One connected server as the engine sees it. */
 interface BridgedServer {
@@ -75,7 +73,7 @@ export interface McpBridge {
   /** Every tool the engine is offered, by its engine name. */
   readonly offered: ReadonlySet<string>;
   /** The server and tool an engine name stands for; undefined for a name no bridged server lists. */
-  serverOf(toolName: string): { readonly slug: string; readonly tool: string } | undefined;
+  serverOf(toolName: string): McpToolOwner | undefined;
   /** What the servers listed, for the approval default and the turn's record of what the engine was offered. */
   readonly listing: McpToolListing;
   close(): Promise<void>;
@@ -143,16 +141,16 @@ async function listAllTools(slug: string, client: Client): Promise<Tool[]> {
 /** The bridge over connected servers: one served server each, forwarding every call. */
 function bridgeOf(bridged: readonly BridgedServer[], platformServerSlugs: ReadonlySet<string>, close: () => Promise<void>): McpBridge {
   const servers = new Map<string, ServedServer>();
-  const owners = new Map<string, { slug: string; tool: string }>();
   for (const server of bridged) {
     servers.set(server.slug, { name: server.slug, tools: () => server.tools, call: (call) => forward(server, call.tool, call.args) });
-    for (const tool of server.tools) owners.set(mcpToolName(server.slug, tool.name), { slug: server.slug, tool: tool.name });
   }
+  // Claude Code builds and sends these names itself, so they are its own, never fitted.
+  const index = McpToolIndex.of(bridged.map((server) => ({ slug: server.slug, tools: server.tools.map((tool) => tool.name) })), mcpToolName);
   const marked = bridged.filter((server) => !platformServerSlugs.has(server.slug));
   return {
     servers,
-    offered: new Set(owners.keys()),
-    serverOf: (toolName) => owners.get(toolName),
+    offered: new Set(index.engineNames()),
+    serverOf: (toolName) => index.ownerOf(toolName),
     listing: {
       listed: marked.map((server) => ({ server: server.slug, tools: server.tools.map((tool) => tool.name) })),
       destructive: marked.flatMap((server) =>
