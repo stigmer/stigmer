@@ -19,6 +19,7 @@
 
 import type { Command } from "commander";
 import { type Config, activeBackend } from "../config/config.js";
+import { DEFAULT_CLOUD_ENDPOINT } from "../config/resolve.js";
 
 /** Flags the command bridges into the server's environment. */
 export interface McpServerFlags {
@@ -66,8 +67,10 @@ export function registerMcpServer(program: Command): void {
 
 async function runMcpServer(flags: McpServerFlags): Promise<void> {
   const { load } = await import("../config/config.js");
-  applyConfigEnv(load(), process.env);
+  // Flags first, then the config fills only what is still unset: the same
+  // precedence, with the final address known before a credential is bridged.
   applyFlagsEnv(flags, process.env);
+  applyConfigEnv(load(), process.env);
 
   // Imported lazily so `stigmer --help`/`version` never pull in the MCP stack.
   const { run, defaultConfig } = await import("@stigmer/mcp-server");
@@ -89,7 +92,9 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
  * unset, so a pre-existing environment variable (or a flag bridged before this)
  * wins. The local daemon is reached without auth; a named backend contributes
  * its endpoint and its credential (a cloud login's token, a self-hosted
- * entry's API key).
+ * entry's API key). The credential goes only to its own backend: when the
+ * environment already names another address (a runner spawning this command
+ * for its server), none is bridged.
  */
 export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): void {
   const { entry } = activeBackend(config);
@@ -97,7 +102,10 @@ export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): void {
     setIfEmpty(env, "STIGMER_SERVER_ADDRESS", "localhost:7234");
     return;
   }
-  setIfEmpty(env, "STIGMER_SERVER_ADDRESS", entry.endpoint);
+  const endpoint = entry.endpoint || (entry.type === "cloud" ? DEFAULT_CLOUD_ENDPOINT : undefined);
+  if (endpoint === undefined) return;
+  setIfEmpty(env, "STIGMER_SERVER_ADDRESS", endpoint);
+  if (env.STIGMER_SERVER_ADDRESS !== endpoint) return;
   setIfEmpty(env, "STIGMER_API_KEY", entry.type === "cloud" ? entry.token : entry.api_key);
 }
 
