@@ -13,8 +13,19 @@
  * module is imported, and the base tree is read with `git show`, so a pull
  * request is judged in seconds against the commit it branched from.
  *
+ * The test files are the TypeScript ones vitest and Playwright run and the
+ * plain-Node ones `node --test` runs (`*.test.mjs`, `*.test.cjs`,
+ * `*.test.js`), each parsed in its own language. A node:test option that skips
+ * or focuses a case is read where a registration passes it, inline
+ * (`test(title, { skip: !onMacOS }, fn)`), as a conditional
+ * (`ready ? {} : { skip: "why" }`), or through a module-level `const` bound to
+ * either, so a shared const is one skip site per case it is passed to. The same
+ * keys anywhere else are data. node:test subtests (`t.test(...)`) are not
+ * read as cases; none exist here.
+ *
  * Rules on the tree as it is (always):
- *   - no `.only` on a test or a suite (vitest or Playwright);
+ *   - no `.only` on a test or a suite (vitest, Playwright or node:test), and
+ *     no `only` in a registration's options;
  *   - no valueless `return` in a test callback's own body: `return;` there is
  *     a pass that never ran. Returning a value (`return ctx.skip(...)`, a
  *     promise) is fine, and nested functions are not the test's body;
@@ -30,8 +41,8 @@
  *     that vanished from one file and appeared in another file of the same
  *     package is a move. Anything left is a deletion.
  *   - a new skip: a `skip`, `skipIf`, `runIf`, `todo` or `fixme` on a case or
- *     suite, or a runtime `.skip()` call inside a case, beyond what the file
- *     carried at the base.
+ *     suite, a `skip` or `todo` in its options, or a runtime `.skip()` call
+ *     inside a case, beyond what the file carried at the base.
  *   - a weakened RPC waiver. `test/conformance/inventory/rpc-waivers.yaml`
  *     lists the declared RPCs no conformance test tags, each a `gap` or
  *     `proven-elsewhere`; an RPC waived there that was not waived at the base
@@ -51,8 +62,9 @@
  *     as `packages` of numbers, at the head or the base, is refused
  *     (`coverage-floors-shape`), never passed unread.
  *
- * Rules on where a test lives and what its name says (always; the standard
- * they enforce is test/README.md, "The test standard"). A name that says
+ * Rules on where a TypeScript test lives and what its name says (always; the
+ * standard they enforce is test/README.md, "The test standard", which leaves
+ * a plain-Node test's place beside its script to review). A name that says
  * something false is a quiet failure too: a file named for a service the gate
  * provides that never reaches it, or one that reaches a service its name
  * hides, misleads the reader and the run alike, and a test outside the place
@@ -71,7 +83,11 @@
  *   - in a package with a vitest.load.config or a vitest.live.config, another
  *     vitest config that does not exclude `*.load.test.*` or `*.live.test.*`:
  *     a default run would collect a measurement, or a paid call to a real
- *     provider that skips without its key and looks green;
+ *     provider that skips without its key and looks green. A config's lists
+ *     are its `test` block's `include` and `exclude` (and its projects'), never
+ *     a coverage or dependency setting's; a config whose every include ends in
+ *     another layer word (`*.browser.test.tsx`) cannot collect the class and
+ *     is not asked to exclude it;
  *   - a service the file reaches that its name does not carry, and a service
  *     word on a file that never reaches it. Reaching is a value use of the
  *     service's entry point (a call of `testDatabaseAdminUrl` or
@@ -99,13 +115,17 @@
  * without the list (the change that introduces it) has nothing to compare
  * with.
  *
- * Four skips carry their reason by construction and are never "new": a
+ * Five skips carry their reason by construction and are never "new": a
  * condition on a target capability (`capabilities.x`, the conformance guide's
  * idiom), on the platform (`process.platform`), on a dependency the gate
- * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`), or, in a `live` file
- * only, on its provider key (`liveSecret(...)`): inside the gate the gate's
- * helpers, and inside the live lane `liveSecret`, throw when the dependency is
- * missing, so that skip cannot hide there. An ordinary test never runs in the
+ * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`), on the gate itself
+ * (`process.env.STIGMER_TEST_GATE`, which every gate lane sets to "1", read
+ * from which way the skip goes: `ok || <it> === "1" ? {} : { skip }` runs in
+ * the gate, `skipIf(<it> === "1")` skips there and is new), or,
+ * in a `live` file only, on its provider key (`liveSecret(...)`): inside the
+ * gate the gate's helpers, and inside the live lane `liveSecret`, throw when
+ * the dependency is missing, and a case escaping by the gate's variable runs
+ * there, so that skip cannot hide there. An ordinary test never runs in the
  * live lane, so a `liveSecret` skip in one is a new skip like any other. A
  * case quarantined by name carries its reason in a comment on the line above,
  * `// quarantined: <repo>#<issue>`; with --check-issues the issue must be
@@ -158,8 +178,14 @@ import { fileURLToPath } from "node:url";
 
 // ─── What counts as a test file, a config and a registration ────────────
 
-/** Tracked files the rules read, as git pathspecs. */
-export const TEST_PATHSPECS = ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx", "*.test.mts", "*.spec.mts"];
+/**
+ * Tracked files the rules read, as git pathspecs: the TypeScript tests vitest and Playwright run,
+ * and the plain-Node tests `node --test` runs (the repository's scripts, CommonJS ones included).
+ */
+export const TEST_PATHSPECS = [
+  "*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx", "*.test.mts", "*.spec.mts",
+  "*.test.mjs", "*.test.cjs", "*.test.js",
+];
 export const CONFIG_PATHSPECS = [
   "vitest.config.*", "vitest.*.config.*", "**/vitest.config.*", "**/vitest.*.config.*",
   "playwright.config.*", "**/playwright.config.*",
@@ -342,6 +368,16 @@ function quarantineOf(ts, sf, node) {
   return undefined;
 }
 
+/** What must hold for a runtime skip to run (see `runsInGate`): its own condition argument, or the branch of the `if` around it. */
+function runtimeWhen(ts, call) {
+  const first = call.arguments[0];
+  if (first && !ts.isStringLiteral(first) && !ts.isNoSubstitutionTemplateLiteral(first) && !ts.isTemplateExpression(first)) return [{ node: first, negated: false }];
+  for (let child = call, node = call.parent; node && !isFunctionLike(ts, node); child = node, node = node.parent) {
+    if (ts.isIfStatement(node)) return [{ node: node.expression, negated: child === node.elseStatement }];
+  }
+  return [];
+}
+
 /** The condition a runtime skip sits under: its own condition argument, or the `if` around it. */
 function runtimeCondition(ts, sf, call) {
   const first = call.arguments[0];
@@ -363,12 +399,147 @@ export function byConstruction(condition, path = "") {
 }
 
 /**
+ * The reason a skip site carries by construction, or undefined: its case runs in the gate (read
+ * from which way the skip goes, `runsInGate`), or its condition names a class above.
+ */
+export function siteReason(site, path = "") {
+  return site.runsInGate ? "runs in the gate" : byConstruction(site.condition, path);
+}
+
+/** The variable every gate lane sets to "1". */
+const GATE_VARIABLE = "process.env.STIGMER_TEST_GATE";
+
+/**
+ * Whether an expression is surely truthy (`value` true) or surely falsy whenever the gate's
+ * variable is "1", read through `!`, `&&`, `||` and parentheses down to a comparison of that
+ * variable with "1". Anything else is unknown, so false.
+ */
+function holdsInGate(ts, sf, node, value) {
+  const e = bare(ts, node);
+  if (!e) return false;
+  if (ts.isPrefixUnaryExpression(e) && e.operator === ts.SyntaxKind.ExclamationToken) return holdsInGate(ts, sf, e.operand, !value);
+  if (!ts.isBinaryExpression(e)) return false;
+  const op = e.operatorToken.kind;
+  const left = () => holdsInGate(ts, sf, e.left, value);
+  const right = () => holdsInGate(ts, sf, e.right, value);
+  // `a && b` is surely truthy when both are, surely falsy when either is; `||` the other way round.
+  if (op === ts.SyntaxKind.AmpersandAmpersandToken) return value ? left() && right() : left() || right();
+  if (op === ts.SyntaxKind.BarBarToken) return value ? left() || right() : left() && right();
+  const equal = op === ts.SyntaxKind.EqualsEqualsEqualsToken || op === ts.SyntaxKind.EqualsEqualsToken;
+  if (!equal && op !== ts.SyntaxKind.ExclamationEqualsEqualsToken && op !== ts.SyntaxKind.ExclamationEqualsToken) return false;
+  const gate = (x) => squash(x.getText(sf)) === GATE_VARIABLE;
+  const one = (x) => (ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x)) && x.text === "1";
+  const [a, b] = [bare(ts, e.left), bare(ts, e.right)];
+  if (!((gate(a) && one(b)) || (gate(b) && one(a)))) return false;
+  return equal === value;
+}
+
+/**
+ * Whether a skip's case runs whenever the gate's variable is "1". `when` is what must all hold
+ * for it to skip, each `{ node, negated }`: the node truthy, or falsy when negated. One that is
+ * surely the other way in the gate keeps the case running there.
+ */
+function runsInGate(ts, sf, when) {
+  return when.some(({ node, negated }) => holdsInGate(ts, sf, node, negated));
+}
+
+/** A file's module-level `const` bindings, by name, to their initializers. */
+function moduleConsts(ts, sf) {
+  const consts = new Map();
+  for (const statement of sf.statements) {
+    if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
+    for (const d of statement.declarationList.declarations) {
+      if (ts.isIdentifier(d.name) && d.initializer) consts.set(d.name.text, d.initializer);
+    }
+  }
+  return consts;
+}
+
+/** An expression without its parentheses and type assertions (`(x)`, `x as T`, `x satisfies T`). */
+function bare(ts, node) {
+  let e = node;
+  while (e && (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e))) e = e.expression;
+  return e;
+}
+
+/** An identifier followed to the module-level `const` it names, once, or the expression itself. */
+function followConst(ts, node, consts) {
+  const e = bare(ts, node);
+  return e && ts.isIdentifier(e) && consts.has(e.text) ? bare(ts, consts.get(e.text)) : e;
+}
+
+/** The initializer of an object literal's property `name`, written `name: value` or `{ name }`. */
+function propertyOf(ts, object, name) {
+  for (const p of object.properties) {
+    if (ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === name) return p.initializer;
+    if (ts.isShorthandPropertyAssignment(p) && p.name.text === name) return p.name;
+  }
+  return undefined;
+}
+
+/** The node:test (and vitest) option keys that skip a case or focus it. */
+const OPTION_SKIPS = ["skip", "todo"];
+
+/**
+ * What a registration's options argument sets: `{ only, skips: [{ kind, condition, runsInGate }] }`, or
+ * undefined when the argument is not one this reader can follow. It reads an object literal, a
+ * conditional whose branches are such (`ready ? {} : { skip: "why" }`), and a module-level `const`
+ * bound to either. A key set in any branch counts, since that branch can run. A skip's condition
+ * is the conditional's test, else the key's value when that is not a literal (`{ skip: !onMacOS }`),
+ * else empty: unconditional, like `.skip`.
+ */
+function readOptions(ts, sf, node, consts) {
+  const branches = [];
+  // `tests` are the conditionals' tests on the way to a branch, each `{ node, negated }` (see `runsInGate`).
+  const collect = (expr, tests) => {
+    const e = followConst(ts, expr, consts);
+    if (!e) return false;
+    if (ts.isObjectLiteralExpression(e)) {
+      branches.push({ object: e, tests });
+      return true;
+    }
+    if (ts.isConditionalExpression(e)) {
+      return collect(e.whenTrue, [...tests, { node: e.condition, negated: false }]) && collect(e.whenFalse, [...tests, { node: e.condition, negated: true }]);
+    }
+    return false;
+  };
+  if (!collect(node, [])) return undefined;
+  const off = (v) => v.kind === ts.SyntaxKind.FalseKeyword || v.kind === ts.SyntaxKind.NullKeyword
+    || (ts.isIdentifier(v) && v.text === "undefined") || ((ts.isStringLiteral(v) || ts.isNoSubstitutionTemplateLiteral(v)) && v.text === "")
+    || (ts.isNumericLiteral(v) && Number(v.text) === 0);
+  const literal = (v) => v.kind === ts.SyntaxKind.TrueKeyword || ts.isStringLiteral(v) || ts.isNoSubstitutionTemplateLiteral(v) || ts.isNumericLiteral(v);
+  let only = false;
+  const skips = [];
+  for (const { object, tests } of branches) {
+    const value = (key) => {
+      const v = propertyOf(ts, object, key);
+      return v && !off(bare(ts, v)) ? bare(ts, v) : undefined;
+    };
+    if (value("only")) only = true;
+    for (const kind of OPTION_SKIPS) {
+      const v = value(kind);
+      if (!v || skips.some((s) => s.kind === kind)) continue;
+      const condition = tests.length > 0 ? tests.map((t) => squash(t.node.getText(sf))).join(", ") : literal(v) ? "" : squash(v.getText(sf));
+      skips.push({ kind, condition, runsInGate: runsInGate(ts, sf, [...tests, ...(literal(v) ? [] : [{ node: v, negated: false }])]) });
+    }
+  }
+  return { only, skips };
+}
+
+/** How a file is parsed, by its extension: a JavaScript test is never read as TypeScript. */
+export function scriptKindOf(ts, path) {
+  const javaScript = /\.[cm]?jsx?$/.test(path);
+  if (path.endsWith("x")) return javaScript ? ts.ScriptKind.JSX : ts.ScriptKind.TSX;
+  return javaScript ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+}
+
+/**
  * Inventories one test file: its cases, its skip sites, and what breaks the
  * rules on the tree. Pure: the caller supplies the compiler and the text.
  */
 export function inventoryFile(ts, path, text) {
-  const kind = path.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind);
+  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKindOf(ts, path));
+  const consts = moduleConsts(ts, sf);
   const cases = [];
   const skips = [];
   const findings = [];
@@ -396,7 +567,7 @@ export function inventoryFile(ts, path, text) {
         if (chain?.some((c) => ASSERTION.test(c.name)) || last === "skip" || last === "fixme") settled = true;
         if (chain && (last === "skip" || last === "fixme") && !(TEST_ROOTS.has(chain[0].name) && isRegistrationCall(node))) {
           const condition = runtimeCondition(ts, sf, node);
-          skips.push({ kind: `runtime-${last}`, condition, line: lineOf(sf, node), title: caseTitle, suite, quarantine: quarantineOf(ts, sf, node) });
+          skips.push({ kind: `runtime-${last}`, condition, runsInGate: runsInGate(ts, sf, runtimeWhen(ts, node)), line: lineOf(sf, node), title: caseTitle, suite, quarantine: quarantineOf(ts, sf, node) });
         }
       }
       ts.forEachChild(node, walk);
@@ -404,10 +575,19 @@ export function inventoryFile(ts, path, text) {
     walk(fn.body);
   }
 
+  /** The options argument between a registration's title and its callback (`test(title, options, fn)`), if any. */
+  function optionsOf(call) {
+    const second = call.arguments[1];
+    return second && !isFunctionLike(ts, second) ? readOptions(ts, sf, second, consts) : undefined;
+  }
+
   function isRegistrationCall(call) {
     const first = call.arguments[0];
-    return Boolean(first && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first) || ts.isTemplateExpression(first)) && call.arguments.some((a) => isFunctionLike(ts, a)))
-      || (call.arguments.length === 1 && Boolean(first) && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first)));
+    const titled = Boolean(first) && (ts.isStringLiteral(first) || ts.isNoSubstitutionTemplateLiteral(first));
+    return Boolean(first && (titled || ts.isTemplateExpression(first)) && call.arguments.some((a) => isFunctionLike(ts, a)))
+      || (call.arguments.length === 1 && titled)
+      // node:test's `test(title, { todo: true })` registers a todo (or skipped) case with no body.
+      || (call.arguments.length === 2 && titled && (optionsOf(call)?.skips.length ?? 0) > 0);
   }
 
   function visit(node, chainTitles) {
@@ -418,13 +598,21 @@ export function inventoryFile(ts, path, text) {
         const isSuite = SUITE_WORDS.has(names[0]) || names.includes("describe");
         const title = titleOf(ts, sf, node.arguments[0]);
         const line = lineOf(sf, node);
+        const options = optionsOf(node);
         if (names.includes("only")) {
           findings.push({ rule: "only", path, line, message: `\`.only\` on "${title}" drops every other case in the run` });
+        } else if (options?.only) {
+          findings.push({ rule: "only", path, line, message: `\`only\` in the options of "${title}" drops every other case in the run` });
         }
         for (const member of chain.slice(1)) {
           if (!SKIP_MEMBERS.has(member.name)) continue;
           const condition = member.args ? squash(member.args.map((a) => a.getText(sf)).join(", ")) : "";
-          skips.push({ kind: member.name, condition, line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
+          // `runIf(c)` skips when `c` is falsy; the others skip when their condition is truthy.
+          const when = member.args?.[0] ? [{ node: member.args[0], negated: member.name === "runIf" }] : [];
+          skips.push({ kind: member.name, condition, runsInGate: runsInGate(ts, sf, when), line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
+        }
+        for (const { kind, condition, runsInGate: inGate } of options?.skips ?? []) {
+          skips.push({ kind, condition, runsInGate: inGate, line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
         }
         const fn = [...node.arguments].reverse().find((a) => isFunctionLike(ts, a));
         if (isSuite) {
@@ -615,49 +803,86 @@ export function makeReach(ts, files, read) {
 }
 
 /**
- * The globs a config's `include` arrays name, written inline or through a
- * module-level `const` array (`include: BROWSER_GLOBS`); an `exclude` or a
- * comment collects nothing.
+ * The globs a config's test-level `include` arrays name, written inline or
+ * through a module-level `const` array (`include: BROWSER_GLOBS`); an
+ * `exclude` or a comment collects nothing. Only the lists that decide what
+ * runs are read (see `configGlobs`), never a coverage or dependency setting's.
  */
 export function configIncludes(ts, path, text) {
   return configGlobs(ts, path, text, "include");
 }
 
-/** The globs a config's `exclude` arrays name, read the way `configIncludes` reads `include`. */
+/** The globs a config's test-level `exclude` arrays name, read the way `configIncludes` reads `include`. */
 export function configExcludes(ts, path, text) {
   return configGlobs(ts, path, text, "exclude");
 }
 
+/**
+ * Reads `key` from the exported config's `test` block and from each of its
+ * `test.projects[]` entries' own `test` block. The config object is found
+ * through the calls that wrap it (`defineConfig(...)`, `mergeConfig(a, b)`) and
+ * module-level `const`s. A project's list counts for the whole config: the
+ * packages with a load or live config use no projects, so the union is never
+ * looser than what runs until one does. A config written any other way (a
+ * function of the mode) names nothing, so the rules that read it fail closed.
+ */
 function configGlobs(ts, path, text, key) {
   const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const constants = new Map();
-  for (const statement of sf.statements) {
-    if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) continue;
-    for (const d of statement.declarationList.declarations) {
-      if (ts.isIdentifier(d.name) && d.initializer && ts.isArrayLiteralExpression(d.initializer)) constants.set(d.name.text, d.initializer);
+  const consts = moduleConsts(ts, sf);
+  // The object literals an expression stands for, through wrapping calls and consts.
+  const objects = (node, seen = new Set()) => {
+    const e = bare(ts, node);
+    if (!e || seen.has(e)) return [];
+    seen.add(e);
+    if (ts.isObjectLiteralExpression(e)) return [e];
+    if (ts.isIdentifier(e) && consts.has(e.text)) return objects(consts.get(e.text), seen);
+    if (ts.isCallExpression(e)) return e.arguments.flatMap((a) => objects(a, seen));
+    return [];
+  };
+  const testBlocks = (config) => objects(propertyOf(ts, config, "test"));
+  const globs = [];
+  const read = (block) => {
+    const value = followConst(ts, propertyOf(ts, block, key), consts);
+    if (!value || !ts.isArrayLiteralExpression(value)) return;
+    for (const e of value.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
+  };
+  const exported = sf.statements.find((s) => ts.isExportAssignment(s));
+  for (const config of exported ? objects(exported.expression) : []) {
+    for (const block of testBlocks(config)) {
+      read(block);
+      const projects = followConst(ts, propertyOf(ts, block, "projects"), consts);
+      if (!projects || !ts.isArrayLiteralExpression(projects)) continue;
+      for (const project of projects.elements.flatMap((p) => objects(p))) for (const own of testBlocks(project)) read(own);
     }
   }
-  const globs = [];
-  const walk = (node) => {
-    if (ts.isPropertyAssignment(node) && (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === key) {
-      const value = ts.isIdentifier(node.initializer) ? constants.get(node.initializer.text) : node.initializer;
-      if (value && ts.isArrayLiteralExpression(value)) {
-        for (const e of value.elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) globs.push(e.text);
-      }
-    }
-    ts.forEachChild(node, walk);
-  };
-  walk(sf);
   return globs;
 }
 
 /**
- * The layout rules over the tree (see the header). `tests` are the tracked
- * test files, `files` every tracked TypeScript module, `read` a module's text,
- * `packageDirs` the directories holding a package.json, and `configs` the
- * tracked vitest configs as `{ path, text }`.
+ * Whether a config's includes can collect a class's files (`*.<word>.test.*`).
+ * No include is vitest's default, which collects every test. A glob cannot
+ * collect the class only when its file name, read as a test file's name is
+ * (`nameWords`), ends in another literal layer word (`*.browser.test.tsx`);
+ * any other glob is taken to collect it, so the reading fails closed without a
+ * glob matcher.
  */
-export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
+function canCollect(includes, word) {
+  return includes.length === 0 || includes.some((glob) => {
+    const { last } = nameWords(glob);
+    return !(last && LAYER_WORDS.includes(last) && last !== word);
+  });
+}
+
+/**
+ * The layout rules over the tree (see the header). `tests` are the tracked
+ * test files, of which the rules read the TypeScript ones (a plain-Node test
+ * sits beside its script, which review reads), `files` every tracked
+ * TypeScript module, `read` a module's text, `packageDirs` the directories
+ * holding a package.json, and `configs` the tracked vitest configs as
+ * `{ path, text }`.
+ */
+export function checkLayout(ts, { tests: tracked, files, read, packageDirs, configs }) {
+  const tests = tracked.filter((path) => !/\.[cm]?jsx?$/.test(path));
   const findings = [];
   const { reach, scan } = makeReach(ts, files, read);
   // A config collects for its own package: the nearest package.json above it, not a parent's.
@@ -718,6 +943,7 @@ export function checkLayout(ts, { tests, files, read, packageDirs, configs }) {
     const pkg = packageOf(config.path, packageDirs);
     for (const { word, config: own } of OWN_CADENCE) {
       if (own.test(name) || !configsIn(pkg).some((c) => own.test(posix.basename(c.path)))) continue;
+      if (!canCollect(configIncludes(ts, config.path, config.text), word)) continue;
       if (!configExcludes(ts, config.path, config.text).some((g) => g.includes(`.${word}.test`))) {
         find(`layout-${word}-collected`, config.path, 1, `the package has a vitest.${word}.config, so this config excludes \`**/*.${word}.test.ts\`; without it a default run collects the ${word} class`);
       }
@@ -843,8 +1069,8 @@ export function compareInventories(lineages, packageDirs) {
     for (const c of vanished.slice(pairs)) vanishedPool.push({ ...c, path: base.path, pkg });
     for (const c of gained.slice(pairs)) gainedPool.push({ ...c, path, pkg });
 
-    const headSkips = (head?.skips ?? []).filter((s) => !byConstruction(s.condition, path) && !s.quarantine);
-    const baseSkips = (base?.skips ?? []).filter((s) => !byConstruction(s.condition, base?.path ?? path) && !s.quarantine);
+    const headSkips = (head?.skips ?? []).filter((s) => !siteReason(s, path) && !s.quarantine);
+    const baseSkips = (base?.skips ?? []).filter((s) => !siteReason(s, base?.path ?? path) && !s.quarantine);
     for (const s of surplus(headSkips, baseSkips, (x) => `${x.kind}|${x.condition}`)) newSkips.push({ ...s, path });
   }
 
@@ -889,9 +1115,9 @@ export function explainRunSkips(report, inventories, root) {
       const ancestors = result.ancestorTitles ?? [];
       const name = [...ancestors, result.title].join(" > ");
       const sites = (inventory?.skips ?? []).filter((s) => covers(s, ancestors, result.title));
-      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition, path));
+      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => siteReason(s, path));
       if (site) {
-        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition, path) });
+        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : siteReason(site, path) });
         continue;
       }
       const line = sites[0]?.line ?? inventory?.cases.find((c) => c.key === name)?.line ?? 1;

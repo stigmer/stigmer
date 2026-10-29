@@ -49,7 +49,7 @@
  * on what a case and its title are. That file is copied byte for byte into
  * another repository and names neither repository's layout, which is why
  * this rule lives here and not there. The files read are its test pathspecs,
- * the tooling tests (`*.test.mjs`) and the install smokes
+ * which carry the tooling tests (`*.test.mjs`) too, and the install smokes
  * (`test/install/smoke-*.mjs`), whose `node:test` cases may hold a promise.
  *
  * In CI this runs as a step of ci.integrity.yaml, from the base branch's copy
@@ -74,7 +74,7 @@ import { inventoryFile, loadTypeScript, TEST_PATHSPECS } from "./test-integrity.
 /** The bar, from the repository root. */
 export const BAR = "test/ux-bar.json";
 /** The tracked files whose cases may hold a promise. */
-export const BAR_PATHSPECS = [...TEST_PATHSPECS, "*.test.mjs", "test/install/smoke-*.mjs"];
+export const BAR_PATHSPECS = [...TEST_PATHSPECS, "test/install/smoke-*.mjs"];
 
 const ID = /^[A-Z]{3}-[0-9]{2}$/;
 const PREFIX = /^[A-Z]{3}$/;
