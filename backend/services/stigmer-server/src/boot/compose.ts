@@ -292,7 +292,7 @@ import {
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
-import type { ServerConfig } from "./config.js";
+import { defaultSandboxRunnerImage, type ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
 import { LIST_INDEXES } from "./list-indexes.js";
@@ -412,10 +412,9 @@ export interface ComposeOptions {
    * extension unit — which is why it lives here and not on
    * ServerExtension beside `edition`. When it is a release it is also the
    * release every sandbox driver hands the runner layer's start script
-   * (SandboxDriverConfig.serverRelease), while the default runner image
-   * (defaultSandboxRunnerImage) follows SERVER_VERSION: a composition that
-   * states a release names its runner image too, or its sandboxes start on
-   * `runner:latest`, warned about or refused by that layer's release.
+   * (SandboxDriverConfig.serverRelease), and it picks the runner image the
+   * drivers launch when the operator names none (defaultSandboxRunnerImage),
+   * so a composition that states a release starts that release's runner.
    */
   version?: string;
   /** Test seam forwarded to the model-registry upstream fetch. */
@@ -429,9 +428,10 @@ export async function composeServer(
   options: ComposeOptions,
 ): Promise<ComposedServer> {
   const { config, logger } = options;
-  // The one version this server states: getServerInfo reports it, and the
+  // The one version this server states: getServerInfo reports it, the
   // sandbox drivers hand it, when it is a release, to the runner layer's
-  // start script, which refuses a layer of another release.
+  // start script, which refuses a layer of another release, and it picks
+  // the runner image they launch unless the operator names one.
   const version = options.version ?? SERVER_VERSION;
 
   // Stage: extensions — resolves and validates BEFORE any stage has side
@@ -1016,7 +1016,10 @@ export async function composeServer(
         temporalAddress: config.sandboxTemporalAddress,
         temporalNamespace: config.temporalNamespace,
         temporalConnectionEnv: temporalConnectionEnv(config.temporalConnection),
-        runnerImage: config.sandboxRunnerImage,
+        runnerImage:
+          config.sandboxRunnerImage !== ""
+            ? config.sandboxRunnerImage
+            : defaultSandboxRunnerImage(version),
         runnerCommand: config.sandboxRunnerCommand,
         kubernetesNamespace: config.sandboxKubernetesNamespace,
         runnerEnv: config.sandboxRunnerEnv,

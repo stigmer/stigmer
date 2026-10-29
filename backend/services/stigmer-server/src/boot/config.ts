@@ -31,7 +31,6 @@ import {
   type ModelProvider,
 } from "../modelcatalog/provider-need.js";
 
-import { SERVER_VERSION } from "../domain/platform/version.js";
 import { DEFAULT_FILE_MAX_BYTES } from "../domain/file/constants.js";
 import { DEFAULT_ROUTINE_FIRES_PER_HOUR } from "../domain/routine/fire-rate.js";
 import {
@@ -306,9 +305,10 @@ export interface ServerConfig {
    */
   readonly sandboxTemporalAddress: string;
   /**
-   * The runner image container-based provisioners launch
-   * (STIGMER_SANDBOX_RUNNER_IMAGE). The default is the published sandbox
-   * image of this server's release (defaultSandboxRunnerImage).
+   * The runner image container-based provisioners launch, as the operator
+   * named it (STIGMER_SANDBOX_RUNNER_IMAGE). Empty means the composition's
+   * release default: composeServer hands the drivers
+   * defaultSandboxRunnerImage of the version it states.
    */
   readonly sandboxRunnerImage: string;
   /**
@@ -403,24 +403,23 @@ export const DEFAULT_GRPC_PORT = 7234;
 export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
 
 /**
- * The sandbox runner image this server launches when the operator names
- * none: the image of its own release, `ghcr.io/stigmer/runner:v<version>`
+ * The sandbox runner image a server launches when the operator names none:
+ * the image of its own release, `ghcr.io/stigmer/runner:v<version>`
  * (release.sandbox-cloud.yaml tags one per release, `X.Y.Z` and
  * `X.Y.Z-rc.N`), because the launch command (sandbox/runner-launch.ts) is
  * a contract between a server and the image it starts, and `latest` moves
- * on every runner change to `main`. Only a bundled server knows its version
- * (the release lane stamps SERVER_VERSION into the server image, the
- * all-in-one image and @stigmer/server-slim); the @stigmer/server library
- * and an unbundled build report `dev`, a local build
- * (`0.0.0-local.<stamp>`) has no published image, and a dev build's
- * runner lives in Stigmer's own image repository rather than ghcr.io
- * (release.dev.yaml), so all of those fall back to `latest`. A composition that embeds the library names its image itself
- * (the cloud selects the image of the version it pins). isReleaseVersion is the one test of which
- * versions the release lane publishes.
+ * on every runner change to `main`. composeServer calls it with the one
+ * version the server states: a bundled server's SERVER_VERSION (the
+ * release lane stamps it into the server image, the all-in-one image and
+ * @stigmer/server-slim), or the release a composition embedding the
+ * library states (ComposeOptions.version). A server that states no release
+ * (`dev` unbundled, a local build `0.0.0-local.<stamp>` with no published
+ * image, a dev build whose runner lives in Stigmer's own image repository
+ * rather than ghcr.io, release.dev.yaml) falls back to `latest`.
+ * isReleaseVersion is the one test of which versions the release lane
+ * publishes.
  */
-export function defaultSandboxRunnerImage(
-  serverVersion: string = SERVER_VERSION,
-): string {
+export function defaultSandboxRunnerImage(serverVersion: string): string {
   return isReleaseVersion(serverVersion)
     ? `ghcr.io/stigmer/runner:v${serverVersion}`
     : "ghcr.io/stigmer/runner:latest";
@@ -520,11 +519,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "STIGMER_SANDBOX_TEMPORAL_ADDRESS",
       envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     ),
-    sandboxRunnerImage: envString(
-      env,
-      "STIGMER_SANDBOX_RUNNER_IMAGE",
-      defaultSandboxRunnerImage(),
-    ),
+    sandboxRunnerImage: envString(env, "STIGMER_SANDBOX_RUNNER_IMAGE", ""),
     sandboxRunnerCommand: envString(
       env,
       "STIGMER_SANDBOX_RUNNER_COMMAND",
