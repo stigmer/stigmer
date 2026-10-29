@@ -14,14 +14,17 @@
  * What it models, and what it refuses. Make is read as these Makefiles use it:
  * plain rules (`target: prerequisites`, with order-only prerequisites after
  * `|`), recipes of tab-prefixed lines with backslash continuations, `=`, `:=`,
- * `::=`, `?=` and `+=` variables, `export NAME`, comments. A file that uses
- * anything else is refused whole, wherever in the file the construct sits,
- * because a reader that guessed at a conditional's branch or an included file's
- * rules would hold a lane to the wrong files and pass green: a conditional,
- * `define`, `include`, `vpath`, a pattern or double-colon rule, a recipe on the
- * rule's own line, a target-specific variable, a function call at the top level
- * (`$(eval ...)`, `$(info ...)`), `override`, a `$(shell ...)` in a rule line,
- * a shell assignment (`!=`), a variable assigned a second time, or after a `:=`
+ * `::=`, `?=` and `+=` variables, `export NAME`, comments (a line outside a
+ * recipe ends at its first `#` not escaped as `\#`, with or without a space
+ * before it). A file that uses anything else is refused whole, wherever in the
+ * file the construct sits, because a reader that guessed at a conditional's
+ * branch or an included file's rules would hold a lane to the wrong files and
+ * pass green: a conditional, `define`, `include`, `vpath`, a pattern or
+ * double-colon rule, a recipe on the rule's own line, a target-specific
+ * variable, a function call at the top level (`$(eval ...)`, `$(info ...)`),
+ * `override`, a `$(shell ...)` in a rule line, a `#` inside a reference outside
+ * a recipe (make 3.81 ends the line there, make 4.3 reads it as text), a shell
+ * assignment (`!=`), a variable assigned a second time, or after a `:=`
  * used it (make expands a `:=` value when it is assigned, so either would
  * change what this reader reads), a special target other than those that change
  * nothing it reads (`.PHONY`, `.SILENT` and the like; `.ONESHELL`,
@@ -43,9 +46,11 @@
  * scripts/x.mjs)` stays as written, so the words inside it are still read; a
  * name no file defines (`$(HOME)`, a variable the caller passes) stays as
  * written. `$(CURDIR)`, the directory make runs in, expands to that directory
- * as an absolute path whose root is the checkout's (`$(CURDIR)/x` reads `/x` in
- * the root Makefile, `/sdk/go/x` under `make -C sdk/go`), so a word built on it
- * is placed from the checkout's root whatever directory its line changed to.
+ * as an absolute path whose root is the checkout's (`$(CURDIR)/x` reads `/x` and
+ * a bare `$(CURDIR)` reads `/` in the root Makefile, `/sdk/go/x` under `make -C
+ * sdk/go`), so a word built on it is placed from the checkout's root whatever
+ * directory its line changed to. A script word built from a reference left
+ * unexpanded (`rehearse-$(ARTIFACT).mjs`) is refused: its name cannot be known.
  * Since every recipe line runs in its own shell (no `.ONESHELL`), a word whose
  * line changes directory is placed by that change: a leading `cd <dir> &&`
  * places the line, and a `(cd <dir> && ...)` subshell places the words inside
@@ -80,6 +85,8 @@ const INERT_SPECIAL_TARGETS = new Set([
   ".NOTPARALLEL",
   ".EXPORT_ALL_VARIABLES",
 ]);
+/** What the root's `$(CURDIR)` expands to until the walk is done: a character no Makefile holds. */
+const ROOT_CURDIR = "\0";
 /** `make` as a word of its own: not `cmake`, not `make-targets.mjs`. */
 const MAKE_WORD = /(^|[\s;&|(`])make(?=[\s;&|)`]|$)/;
 /** A directory change at a command's start: `cd`, `pushd`, `popd`. */
@@ -145,7 +152,12 @@ export function readMakefile(text) {
       }
       continue;
     }
-    const content = line.replace(/(^|\s)#.*$/, "").trim();
+    const stripped = withoutComment(line);
+    if (stripped.refusal) {
+      refusals.push(`line ${number}: ${stripped.refusal}`);
+      continue;
+    }
+    const content = stripped.text.trim();
     // Blank and comment lines do not end a recipe in make, so `current` stays.
     if (content === "") continue;
     current = null;
@@ -245,22 +257,74 @@ export function readMakefile(text) {
 }
 
 /**
+ * A non-recipe line without its comment, as make reads it: `{ text }` or
+ * `{ refusal }`. The line ends at its first `#` outside a reference, wherever
+ * it sits in a word; a run of backslashes before a `#` reads as half as many,
+ * and an odd run escapes the `#`. A `#` inside a `$(...)` or `${...}` before
+ * that is refused: make 3.81 ends the line there and make 4.3 reads it as text.
+ */
+function withoutComment(line) {
+  const spans = referenceSpans(line);
+  let text = "";
+  let from = 0;
+  for (let index = line.indexOf("#"); index !== -1; index = line.indexOf("#", index + 1)) {
+    if (spans.some(({ start, end }) => index > start && index < end)) {
+      return { refusal: "a `#` inside a reference ends the line in make 3.81 and is text in make 4.3; this reader does not guess which" };
+    }
+    let backslashes = 0;
+    while (line[index - 1 - backslashes] === "\\") backslashes += 1;
+    text += line.slice(from, index - backslashes) + "\\".repeat(Math.floor(backslashes / 2));
+    if (backslashes % 2 === 0) return { text };
+    text += "#";
+    from = index + 1;
+  }
+  return { text: text + line.slice(from) };
+}
+
+/**
+ * The `$(...)` and `${...}` spans `text` holds, outermost only, as
+ * `{ start, end }` with `end` past the closing bracket (or at the text's end
+ * when the reference never closes). Nesting is counted as commandWords counts
+ * it.
+ */
+function referenceSpans(text) {
+  const spans = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if ((char === "(" || char === "{") && text[index - 1] === "$") {
+      if (depth === 0) start = index - 1;
+      depth += 1;
+    } else if ((char === ")" || char === "}") && depth > 0) {
+      depth -= 1;
+      if (depth === 0) spans.push({ start, end: index + 1 });
+    }
+  }
+  if (depth > 0) spans.push({ start, end: text.length });
+  return spans;
+}
+
+/**
  * `text` with its variable references expanded as text (the header says
  * how): `variables` from the file, `overrides` from the command line, where
  * a `null` value marks a variable passed with a value this reader cannot
- * know, left as written. `curdir` is what `$(CURDIR)` names.
+ * know, left as written. `curdir` is what `$(CURDIR)` names; the root's
+ * (`""`) reads `/` alone and nothing before a `/`, so `$(CURDIR)/x` is `/x`
+ * and a bare `$(CURDIR)` is `/`, directly or through a variable.
  */
 export function expand(text, variables, { overrides = new Map(), curdir = "" } = {}) {
   const walk = (value, seen) =>
     value.replace(REFERENCE, (whole, paren, brace) => {
       if (whole === "$$") return "$";
       const name = paren ?? brace;
-      if (name === "CURDIR") return curdir;
+      if (name === "CURDIR") return curdir === "" ? ROOT_CURDIR : curdir;
       if (overrides.has(name)) return overrides.get(name) ?? whole;
       if (!variables.has(name) || seen.has(name)) return whole;
       return walk(variables.get(name), new Set([...seen, name]));
     });
-  return walk(text, new Set());
+  // What follows the root's `$(CURDIR)` is known only once every reference around it is expanded.
+  return walk(text, new Set()).replaceAll(`${ROOT_CURDIR}/`, "/").replaceAll(ROOT_CURDIR, "/");
 }
 
 /**
@@ -384,11 +448,13 @@ export function parseMakeArguments(words, dir) {
  * `targets` are `{ makefile, target }`; `lines` are `{ makefile, dir, target,
  * text }`, one per reached recipe line, expanded, shell comments left out. Each
  * Makefile read adds its `:=` values that run a shell, as target `(read)`,
- * since make runs those whenever it reads the file. A target that still holds a
- * reference this reader could not expand reaches every rule its literal prefix
- * starts (`rehearse-upgrade-$(ARTIFACT)` reaches each `rehearse-upgrade-*`), so
- * a lane can only be held to more files, never fewer; one named wholly by such
- * a reference (`$(TARGET)`) has no prefix to match on and is refused.
+ * since make runs those whenever it reads the file: once per distinct expanded
+ * line, so a read with other overrides adds what they change. A target that
+ * still holds a reference this reader could not expand reaches every rule its
+ * literal prefix starts (`rehearse-upgrade-$(ARTIFACT)` reaches each
+ * `rehearse-upgrade-*`), so a lane can only be held to more files, never fewer;
+ * one named wholly by such a reference (`$(TARGET)`) has no prefix to match on
+ * and is refused.
  */
 export function targetClosure({ read, dir, targets, overrides = new Map() }) {
   const parsed = new Map();
@@ -397,6 +463,8 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
   const lines = [];
   const refusals = [];
   const seen = new Set();
+  // The read-time lines already added, by Makefile and expanded text.
+  const readLines = new Set();
   const load = (makefile, at) => {
     if (!parsed.has(makefile)) {
       const text = read(makefile);
@@ -420,12 +488,15 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
       refusals.push(`${makefile} does not exist, yet a make call reads it for ${target}`);
       return;
     }
-    if (!makefiles.has(makefile)) {
-      makefiles.add(makefile);
-      // What the file runs when it is read, before any target: each `:=` value's `$(shell ...)`.
-      for (const { text } of file.onRead) {
-        lines.push({ makefile, dir: at, target: "(read)", text: expand(text, file.variables, { overrides: passed, curdir: curdirOf(at) }) });
-      }
+    makefiles.add(makefile);
+    // What the file runs when it is read, before any target: each `:=` value's `$(shell ...)`, once
+    // per distinct line, since each read may pass overrides that change it.
+    for (const { text } of file.onRead) {
+      const expanded = expand(text, file.variables, { overrides: passed, curdir: curdirOf(at) });
+      const key = `${makefile}\0${expanded}`;
+      if (readLines.has(key)) continue;
+      readLines.add(key);
+      lines.push({ makefile, dir: at, target: "(read)", text: expanded });
     }
     let names = [target];
     if (target.includes("$")) {
@@ -487,8 +558,13 @@ export function targetClosure({ read, dir, targets, overrides = new Map() }) {
  * placed in `dir`, in the directory of the line's leading `cd <dir> &&`, or
  * in that of the `(cd <dir> && ...)` subshell holding it. A word in a line
  * that changes directory any other way is refused, since the directory it
- * runs in cannot be named, and so is a word glued to a reference left
- * unexpanded (`$(TOOLS)/x.mjs`).
+ * runs in cannot be named. So is a word built from a reference left
+ * unexpanded that `pattern` misses or reads only in part
+ * (`rehearse-$(ARTIFACT).mjs`, `$(TOOLS)/x.mjs`): the words are matched a
+ * second time with each reference blanked, and one that overlaps a reference
+ * there, but is not matched whole as written, is refused as written. One
+ * matched whole (`${DIR}/y.mjs`, when `pattern` takes braces) is passed on,
+ * holding its `$`, for the caller to judge.
  */
 export function placeWords(text, dir, pattern) {
   const words = [];
@@ -522,13 +598,22 @@ export function placeWords(text, dir, pattern) {
     .replace(/^cd\s+[^\s;&|()]+\s*&&/, "")
     .replace(/\(\s*cd\s+[^\s;&|()]+\s*&&/g, "(");
   const unplaceable = DIRECTORY_CHANGE.test(others);
-  for (const match of text.matchAll(pattern)) {
+  const matches = [...text.matchAll(pattern)];
+  // Each reference blanked to a word character of its length, so indexes line up with `text`.
+  const spans = referenceSpans(text);
+  const blanked = spans.reduce((line, { start, end }) => line.slice(0, start) + "x".repeat(end - start) + line.slice(end), text);
+  const built = [];
+  for (const match of blanked.matchAll(pattern)) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (!spans.some((span) => span.start < end && span.end > start)) continue;
+    if (matches.some((each) => each.index === start && each[0].length === end - start)) continue;
+    built.push({ start, end });
+    refusals.push(`"${text.slice(start, end)}" is built from a reference this reader could not expand`);
+  }
+  for (const match of matches) {
     const word = match[0];
-    // A word glued to a reference left unexpanded (`$(TOOLS)/x.mjs`) starts where the reference ends.
-    if (/[)}]/.test(text[match.index - 1] ?? "")) {
-      refusals.push(`"${word}" follows a reference this reader could not expand, so its directory cannot be named`);
-      continue;
-    }
+    if (built.some(({ start, end }) => match.index >= start && match.index < end)) continue;
     if (word.startsWith("/")) {
       words.push({ word, path: posix.normalize(word).slice(1) });
       continue;

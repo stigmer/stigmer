@@ -1285,7 +1285,7 @@ test("makeReach holds a lane to the Makefiles and scripts its calls reach, and r
       (path) => ({ Makefile: `t:\n\t${recipe}`, ...extra })[path],
     ).refusals;
   assert.match(refusalsOf("node scripts/gone.mjs")[0], /runs scripts\/gone\.mjs, which git does not track/);
-  assert.match(refusalsOf("node $(TOOLS)/x.mjs")[0], /follows a reference this reader could not expand/);
+  assert.match(refusalsOf("node $(TOOLS)/x.mjs")[0], /"\$\(TOOLS\)\/x\.mjs" is built from a reference this reader could not expand/);
   assert.match(refusalsOf("node ${TOOLS}/x.mjs $$HOME/y.mjs")[0], /names a script through a variable this guard could not expand/);
   assert.match(refusalsOf("node --test none/*.test.mjs")[0], /matches no tracked file/);
   assert.match(refusalsOf("cd a; node b.mjs")[0], /a directory change this reader cannot place/);
