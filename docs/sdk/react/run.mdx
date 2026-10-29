@@ -1146,6 +1146,7 @@ mount this component rather than passing an `active` flag.
     onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the action bar offers Delete to a caller holding `can_delete` on the File; the host re-reads its list (the content stays mounted until the host closes it)." },
     onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for a plan: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
     org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
+    readOnly: { type: "boolean", description: "The reader may only read, copy and download the File: no Apply, no adding it as a skill and no delete, and no permission read for them. For a reader whose credential the server refuses those acts, such as a chat link's guest." },
   }}
 />
 
@@ -1188,6 +1189,7 @@ automatically when the dialog closes.
     onImplement: { type: "() => void", description: "Optional plan-build action (see FilePreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
     open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
     org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
+    readOnly: { type: "boolean", description: "The reader may only read, copy and download the File: no Apply, no adding it as a skill and no delete, and no permission read for them. For a reader whose credential the server refuses those acts, such as a chat link's guest." },
   }}
 />
 
