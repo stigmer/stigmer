@@ -18,8 +18,7 @@ export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*
  */
 export enum IdentityAccountProvisioningMode {
   /**
-   * Not set. The server sets a mode on every account it creates, and a
-   * reader treats an unset mode as direct.
+   * Not set. The server sets a mode on every account it creates.
    *
    * @generated from enum value: identity_account_provisioning_mode_unspecified = 0;
    */

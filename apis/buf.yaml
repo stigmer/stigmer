@@ -37,8 +37,8 @@ breaking:
   # PROVIDER_KEY_SOURCE_PLATFORM) and ApiResourceKindMeta.retired_id_prefixes
   # (10), and Feature.sharing (5) is named chat_links. No number moves. This
   # block exists for that pull request; the pull request that removes it
-  # lands straight after the merge, and from then on a removed field or value
-  # keeps its number and name reserved.
+  # lands straight after the merge (stigmer/stigmer#2725), and from then on a
+  # removed field or value keeps its number and name reserved.
   ignore_only:
     RESERVED_MESSAGE_NO_DELETE:
       - ai/stigmer/activity/v1/io.proto

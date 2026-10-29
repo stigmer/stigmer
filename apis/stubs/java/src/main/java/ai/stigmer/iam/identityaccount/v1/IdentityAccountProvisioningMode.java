@@ -17,8 +17,7 @@ public enum IdentityAccountProvisioningMode
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Not set. The server sets a mode on every account it creates, and a
-   * reader treats an unset mode as direct.
+   * Not set. The server sets a mode on every account it creates.
    * </pre>
    *
    * <code>identity_account_provisioning_mode_unspecified = 0;</code>
@@ -97,8 +96,7 @@ public enum IdentityAccountProvisioningMode
   }
   /**
    * <pre>
-   * Not set. The server sets a mode on every account it creates, and a
-   * reader treats an unset mode as direct.
+   * Not set. The server sets a mode on every account it creates.
    * </pre>
    *
    * <code>identity_account_provisioning_mode_unspecified = 0;</code>

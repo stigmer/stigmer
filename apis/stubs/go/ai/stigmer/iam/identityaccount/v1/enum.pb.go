@@ -25,8 +25,7 @@ const (
 type IdentityAccountProvisioningMode int32
 
 const (
-	// Not set. The server sets a mode on every account it creates, and a
-	// reader treats an unset mode as direct.
+	// Not set. The server sets a mode on every account it creates.
 	IdentityAccountProvisioningMode_identity_account_provisioning_mode_unspecified IdentityAccountProvisioningMode = 0
 	// User signed up directly via Stigmer's own authentication tenant.
 	IdentityAccountProvisioningMode_direct IdentityAccountProvisioningMode = 1
