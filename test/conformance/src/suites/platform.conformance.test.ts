@@ -20,6 +20,8 @@
 //     is — never half-populated. Clients branch on presence, so a
 //     half-populated response is a broken contract even when every field is
 //     individually well-formed.
+//     The MCP bridge is optional (an open-source server publishes none by
+//     default); when present it is https, or http on loopback.
 //   - getLicenseStatus answers on every edition and follows the same
 //     presence contract: the state names what the server holds, claims are
 //     present exactly when a ticket verified, key_id exactly when a ticket
@@ -316,5 +318,15 @@ describe("Platform conformance — getRunnerBootstrapConfig", () => {
       config.payloadEncryptionSecondaryKeyId === "",
       "secondary key id is present exactly when the secondary key is",
     ).toBe(config.payloadEncryptionSecondaryKey === "");
+
+    // The MCP bridge is optional; when published, it is a URL a runner may
+    // send each turn's credential to: https, or http on loopback.
+    if (config.mcpBridgeEndpoint !== "") {
+      const bridge = new URL(config.mcpBridgeEndpoint);
+      expect(
+        bridge.protocol === "https:" || ["localhost", "127.0.0.1", "[::1]"].includes(bridge.hostname),
+        "a published bridge is https, or plaintext only on loopback",
+      ).toBe(true);
+    }
   });
 });

@@ -222,4 +222,36 @@ public interface GetRunnerBootstrapConfigOutputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPayloadEncryptionSecondaryKeyIdBytes();
+
+  /**
+   * <pre>
+   * Address of the MCP bridge that serves the runner's built-in Stigmer
+   * tools (memory, channel messaging, conversation participation).
+   *
+   * Empty when the server offers no bridge: the runner then serves those tools
+   * from a local `stigmer mcp-server` process, as it does when no server tells
+   * it otherwise. A runner configured with its own bridge address
+   * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+   * </pre>
+   *
+   * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+   * @return The mcpBridgeEndpoint.
+   */
+  java.lang.String getMcpBridgeEndpoint();
+  /**
+   * <pre>
+   * Address of the MCP bridge that serves the runner's built-in Stigmer
+   * tools (memory, channel messaging, conversation participation).
+   *
+   * Empty when the server offers no bridge: the runner then serves those tools
+   * from a local `stigmer mcp-server` process, as it does when no server tells
+   * it otherwise. A runner configured with its own bridge address
+   * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+   * </pre>
+   *
+   * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+   * @return The bytes for mcpBridgeEndpoint.
+   */
+  com.google.protobuf.ByteString
+      getMcpBridgeEndpointBytes();
 }

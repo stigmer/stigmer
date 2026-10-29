@@ -2267,6 +2267,7 @@ export async function composeServer(
     // Platform registers LAST of all controllers (Go server.go 530–535).
     registerPlatformServices(router, {
       runnerBootstrapTemporalAddress: config.runnerBootstrapTemporalAddress,
+      runnerBootstrapMcpBridgeEndpoint: config.runnerBootstrapMcpBridgeEndpoint,
       temporalNamespace: config.temporalNamespace,
       runnerAuthService: runnerCredentials,
       edition: extensions.edition,

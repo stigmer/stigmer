@@ -19,7 +19,8 @@
  *   - getRunnerBootstrapConfig echoes the configured Temporal coordinates
  *     with the token fields empty (minting a proxy token is cloud-only),
  *     and publishes the runner-bootstrap address rather than the one the
- *     server dials when the two differ (stigmer#1357);
+ *     server dials when the two differ (stigmer#1357), and the MCP bridge
+ *     only when one is configured (stigmer#1374);
  *   - getServerInfo reports the build stamp by default and the release a
  *     library consumer states through ComposeOptions.version otherwise
  *     (stigmer#1168: unbundled, the stamp is always "dev"), and a
@@ -193,6 +194,9 @@ describe("platform domain (composed server)", () => {
     expect(config.runnerAccessTokenExpiresInSeconds).toBe(0);
     expect(config.payloadEncryptionKeyId).toBe("");
     expect(config.payloadEncryptionKey).toBe("");
+    // No bridge configured: the empty field keeps runners on their local
+    // `stigmer mcp-server` child.
+    expect(config.mcpBridgeEndpoint).toBe("");
   });
 
   it("getLicenseStatus answers absent — no claims, no key, a fresh checked_at — when nothing is composed", async () => {
@@ -371,6 +375,7 @@ describe("platform domain (composed for runners off the server's network)", () =
         TEMPORAL_HOST_PORT: "127.0.0.1:7777",
         TEMPORAL_NAMESPACE: "conformance-ns",
         STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS: "temporal.example.test:7233",
+        STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT: "https://mcp.example.test",
       }),
       logger: silentLogger,
       portOverride: 0,
@@ -393,6 +398,11 @@ describe("platform domain (composed for runners off the server's network)", () =
     const config = await client.getRunnerBootstrapConfig({});
     expect(config.temporalAddress).toBe("temporal.example.test:7233");
     expect(config.temporalNamespace).toBe("conformance-ns");
+  });
+
+  it("getRunnerBootstrapConfig publishes the configured MCP bridge", async () => {
+    const config = await client.getRunnerBootstrapConfig({});
+    expect(config.mcpBridgeEndpoint).toBe("https://mcp.example.test");
   });
 });
 
@@ -557,6 +567,7 @@ describe("platform domain (keyless runner-token service)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
           RunnerAuthService.create(undefined),
@@ -595,6 +606,7 @@ describe("platform domain (environment availability)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
           RunnerAuthService.create(undefined),
@@ -661,6 +673,7 @@ describe("platform domain (license status)", () => {
     const transport = createRouterTransport((router) => {
       registerPlatformServices(router, {
         runnerBootstrapTemporalAddress: "localhost:7233",
+        runnerBootstrapMcpBridgeEndpoint: "",
         temporalNamespace: "default",
         runnerAuthService: newExecutionScopedRunnerCredentialProvider(
           RunnerAuthService.create(undefined),

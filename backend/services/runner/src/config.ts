@@ -113,11 +113,14 @@ export interface Config {
   readonly stigmerTokenRef: Readonly<TokenRef>;
   /**
    * The MCP bridge endpoint for the runner-synthesized attachments —
-   * channel messaging and conversation participation
-   * (STIGMER_MCP_BRIDGE_ENDPOINT, e.g. https://mcp.stigmer.ai). Null
-   * selects the OSS/local shape: a spawned `stigmer mcp-server` stdio
-   * child against the local backend. See shared/channel-attachment.ts
-   * and shared/conversation-attachment.ts.
+   * memory, channel messaging and conversation participation
+   * (STIGMER_MCP_BRIDGE_ENDPOINT, e.g. https://mcp.stigmer.ai). A root
+   * that discovers its bootstrap fills an unset value from the server's
+   * answer (bootstrap.ts; stigmer#1374), before the agent host starts.
+   * Null selects the OSS/local shape: a spawned `stigmer mcp-server`
+   * stdio child against the local backend. See
+   * shared/memory-attachment.ts, shared/channel-attachment.ts and
+   * shared/conversation-attachment.ts.
    */
   readonly mcpBridgeEndpoint: string | null;
   /**

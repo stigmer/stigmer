@@ -2,10 +2,14 @@
  * Runner self-bootstrap for embedded runners.
  *
  * A cloud embedder's contract should be one endpoint plus one token. From that
- * the runner needs two things it should not have to know or hold ahead of time:
- * the Temporal frontend coordinates to poll for work, and (on cloud) a minted
- * iss=stigmer access token for its proxy traffic. This module resolves
- * both at boot from a single control-plane call:
+ * the runner needs what it should not have to know or hold ahead of time: the
+ * Temporal frontend coordinates to poll for work, (on cloud) a minted
+ * iss=stigmer access token for its proxy traffic, and the MCP bridge its
+ * built-in Stigmer tools connect to when the server has one (stigmer#1374:
+ * without it, a desktop runner spawns a local `stigmer mcp-server` its machine
+ * may not have). This module resolves them at boot from a single control-plane
+ * call, before anything consumes the runner's configuration, the agent host
+ * included:
  *
  *   1. Explicit address wins. If TEMPORAL_SERVICE_ADDRESS (or the equivalent
  *      option) is set, use it verbatim — preserves local dev and any caller that
@@ -24,9 +28,11 @@
  * Two distinct failure semantics: the Temporal coordinates are load-bearing, so
  * discovery failure throws — there is no silent localhost fallback once we have
  * committed to discovery, because in a cloud deployment a wrong address fails
- * later in a far more confusing way. The runner token is best-effort: a response
- * that omits it is normal (OSS, or no signing key) and never throws — the runner
- * just keeps its existing token.
+ * later in a far more confusing way. The runner token and the bridge are
+ * best-effort: a response that omits them is normal (OSS, no signing key, no
+ * bridge) and never throws — the runner keeps its existing token and serves its
+ * built-in tools locally. A bridge the runner's own STIGMER_MCP_BRIDGE_ENDPOINT
+ * names wins over a discovered one; the composition roots apply that rule.
  */
 
 // StigmerClient is loaded dynamically, not statically imported here: it
@@ -54,8 +60,9 @@ export interface ResolveTemporalOptions {
  * live control plane. Defaults to a real {@link StigmerClient}.
  *
  * Async because the default factory loads StigmerClient via dynamic import to
- * keep @connectrpc/connect-node out of the pre-install module graph (see the
- * note on the omitted static import at the top of this file).
+ * keep @connectrpc/connect-node out of the module graph of a boot that never
+ * discovers (see the note on the omitted static import at the top of this
+ * file).
  */
 export type BootstrapClientFactory = (
   endpoint: string,
@@ -118,6 +125,8 @@ export async function resolveRunnerBootstrap(
     // management. Note the explicit-address and localhost branches above return
     // none by construction — key management only exists where discovery does.
     payloadEncryption: discovered.payloadEncryption,
+    // Best-effort as well: absent wherever the server offers no bridge.
+    mcpBridgeEndpoint: discovered.mcpBridgeEndpoint?.trim() || undefined,
   };
 }
 

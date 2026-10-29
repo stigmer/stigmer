@@ -153,6 +153,51 @@ describe("loadConfig", () => {
     });
   });
 
+  // stigmer#1374: the bridge runners are told to connect their built-in
+  // tools to. Unset publishes none, so every install that sets nothing
+  // keeps its runners on the local child; a set value is checked at boot
+  // by the issuer's rule, since runners send each turn's credential to it.
+  describe("runnerBootstrapMcpBridgeEndpoint (STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT)", () => {
+    const NAME = "STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT";
+
+    it("defaults to none", () => {
+      expect(loadConfig({}).runnerBootstrapMcpBridgeEndpoint).toBe("");
+    });
+
+    it("reads an https URL, trimmed", () => {
+      expect(
+        loadConfig({ [NAME]: " https://mcp.example.com " }).runnerBootstrapMcpBridgeEndpoint,
+      ).toBe("https://mcp.example.com");
+    });
+
+    it("treats an empty or blank string as absent", () => {
+      expect(loadConfig({ [NAME]: "" }).runnerBootstrapMcpBridgeEndpoint).toBe("");
+      expect(loadConfig({ [NAME]: "   " }).runnerBootstrapMcpBridgeEndpoint).toBe("");
+    });
+
+    it.each(["http://localhost:7234", "http://127.0.0.1:8080/mcp", "http://[::1]:7234"])(
+      "takes plaintext on loopback: %s",
+      (endpoint) => {
+        expect(loadConfig({ [NAME]: endpoint }).runnerBootstrapMcpBridgeEndpoint).toBe(endpoint);
+      },
+    );
+
+    it("refuses a value that is not a URL", () => {
+      expect(() => loadConfig({ [NAME]: "mcp.example.com" })).toThrow(
+        /STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT "mcp\.example\.com" is not a valid URL/,
+      );
+    });
+
+    it.each(["http://mcp.example.com", "http://0.0.0.0:7234", "ftp://mcp.example.com"])(
+      "refuses anything but https off loopback: %s",
+      (endpoint) => {
+        expect(() => loadConfig({ [NAME]: endpoint })).toThrow(
+          /must be an https URL .*http is accepted only on localhost, 127\.0\.0\.1 or \[::1\]/,
+        );
+      },
+    );
+  });
+
   describe("STIGMER_OIDC_ISSUER (https, or http on loopback only)", () => {
     const AUDIENCE = { STIGMER_OIDC_AUDIENCE: "https://stigmer.example.com/" };
 

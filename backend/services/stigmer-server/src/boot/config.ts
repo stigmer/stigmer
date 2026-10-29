@@ -119,6 +119,21 @@ export interface ServerConfig {
    */
   readonly runnerBootstrapTemporalAddress: string;
   /**
+   * The MCP bridge getRunnerBootstrapConfig publishes to the same
+   * runners (STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT; stigmer#1374):
+   * the base URL their built-in Stigmer tools (memory, channels,
+   * conversations) connect to over HTTP instead of a local
+   * `stigmer mcp-server` child. Empty, the default, publishes none, and
+   * those runners keep the local child, which is right wherever they run
+   * beside a `stigmer` install. Set it where they do not: a hosted server
+   * whose runners are desktop apps. A runner's own
+   * STIGMER_MCP_BRIDGE_ENDPOINT wins over it, and sandboxes are handed
+   * their bridge by the provisioner, never by this. A value that is not
+   * an https URL (http on loopback) fails the boot: the runner sends each
+   * turn's credential to it.
+   */
+  readonly runnerBootstrapMcpBridgeEndpoint: string;
+  /**
    * Artifact blob storage (attachments + execution outputs; Go
    * config.ArtifactStorage). "local" is the OSS default; "r2" selects
    * Cloudflare R2 with the settings below.
@@ -461,6 +476,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "STIGMER_RUNNER_BOOTSTRAP_TEMPORAL_ADDRESS",
       envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     ),
+    runnerBootstrapMcpBridgeEndpoint: loadRunnerBootstrapMcpBridgeEndpoint(env),
     artifactStorageType,
     artifactLocalBasePath: envString(
       env,
@@ -542,14 +558,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
 }
 
 /**
- * The hosts an http issuer may name: this machine's loopback, where the test
- * and e2e issuers listen (test/support's local OIDC issuer). Discovery and
- * the signing keys are fetched from the issuer, so plaintext anywhere else
- * would let the network between the server and its identity provider vouch
- * for every token. Not the bind-any addresses (0.0.0.0, [::]): those name no
- * host a request could reach. `URL.hostname` keeps IPv6 brackets.
+ * The hosts an http issuer or runner bridge may name: this machine's
+ * loopback, where the test and e2e issuers listen (test/support's local OIDC
+ * issuer) and a local stack serves its bridge. Discovery and the signing keys
+ * are fetched from the issuer, and a runner sends each turn's credential to
+ * the bridge, so plaintext anywhere else would let the network between them
+ * vouch for every token or read one. Not the bind-any addresses (0.0.0.0,
+ * [::]): those name no host a request could reach. `URL.hostname` keeps IPv6
+ * brackets.
  */
-const PLAINTEXT_ISSUER_HOSTS: ReadonlySet<string> = new Set([
+const PLAINTEXT_LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
   "localhost",
   "127.0.0.1",
   "[::1]",
@@ -587,13 +605,45 @@ function loadOidcConfig(env: NodeJS.ProcessEnv): {
     );
   }
   const plaintextAllowed =
-    parsed.protocol === "http:" && PLAINTEXT_ISSUER_HOSTS.has(parsed.hostname);
+    parsed.protocol === "http:" && PLAINTEXT_LOOPBACK_HOSTS.has(parsed.hostname);
   if (parsed.protocol !== "https:" && !plaintextAllowed) {
     throw new Error(
       `STIGMER_OIDC_ISSUER "${issuer}" must be an https URL — OIDC discovery and the signing keys are fetched from it; http is accepted only on localhost, 127.0.0.1 or [::1]`,
     );
   }
   return { oidcIssuer: issuer, oidcAudience: audience };
+}
+
+/**
+ * The runner bridge address getRunnerBootstrapConfig publishes — boot-FATAL
+ * when set to anything but an https URL (or an http URL on loopback), the
+ * issuer's rule: a typo would otherwise surface as a failed tool at a
+ * person's first turn rather than at deploy, and a plaintext bridge would
+ * carry every turn's credential across the network.
+ */
+function loadRunnerBootstrapMcpBridgeEndpoint(env: NodeJS.ProcessEnv): string {
+  const endpoint = (
+    env["STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT"] ?? ""
+  ).trim();
+  if (endpoint === "") {
+    return "";
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(endpoint);
+  } catch {
+    throw new Error(
+      `STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT "${endpoint}" is not a valid URL — runners connect to the bridge at its https URL`,
+    );
+  }
+  const plaintextAllowed =
+    parsed.protocol === "http:" && PLAINTEXT_LOOPBACK_HOSTS.has(parsed.hostname);
+  if (parsed.protocol !== "https:" && !plaintextAllowed) {
+    throw new Error(
+      `STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT "${endpoint}" must be an https URL — runners send each turn's credential to the bridge; http is accepted only on localhost, 127.0.0.1 or [::1]`,
+    );
+  }
+  return endpoint;
 }
 
 /** Go validateR2Config — the four required fields, error copy mirrored. */

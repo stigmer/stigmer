@@ -78,8 +78,8 @@ export interface BootstrapPayloadEncryptionKeys {
 }
 
 /**
- * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
- * its own minted access token.
+ * Everything an embedded runner needs to bootstrap: Temporal coordinates, its
+ * own minted access token and, where the server has one, its MCP bridge.
  *
  * The Temporal coordinates are always present. The access token is optional: the
  * server only mints one when it has a model proxy to authenticate against
@@ -98,6 +98,8 @@ export interface RunnerBootstrapConfig {
   runnerAccessTokenExpiresInSeconds?: number;
   /** Server-managed payload-encryption keys; absent when not managed by the server. */
   payloadEncryption?: BootstrapPayloadEncryptionKeys;
+  /** The MCP bridge the runner's built-in tools connect to; absent when the server offers none. */
+  mcpBridgeEndpoint?: string;
 }
 
 /**
@@ -322,6 +324,7 @@ export class StigmerClient {
             secondaryKeyId: res.payloadEncryptionSecondaryKeyId || undefined,
           }
         : undefined,
+      mcpBridgeEndpoint: res.mcpBridgeEndpoint || undefined,
     };
   }
 

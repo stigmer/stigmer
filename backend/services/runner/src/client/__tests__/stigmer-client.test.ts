@@ -608,6 +608,26 @@ describe("StigmerClient", () => {
     });
   });
 
+  describe("getRunnerBootstrapConfig presence mapping", () => {
+    function clientAnswering(response: Record<string, unknown>) {
+      const client = new StigmerClient({ endpoint: "http://localhost", token: null });
+      // As above: install the method the mocked createClient() left out.
+      (client as any).platformQuery = { getRunnerBootstrapConfig: vi.fn().mockResolvedValue(response) };
+      return client;
+    }
+    const coordinates = { temporalAddress: "t:7233", temporalNamespace: "default" };
+
+    it("passes the server's MCP bridge through", async () => {
+      const client = clientAnswering({ ...coordinates, mcpBridgeEndpoint: "https://mcp.stigmer.ai" });
+      expect((await client.getRunnerBootstrapConfig()).mcpBridgeEndpoint).toBe("https://mcp.stigmer.ai");
+    });
+
+    it("reads an empty bridge as none offered", async () => {
+      const client = clientAnswering({ ...coordinates, mcpBridgeEndpoint: "" });
+      expect((await client.getRunnerBootstrapConfig()).mcpBridgeEndpoint).toBeUndefined();
+    });
+  });
+
   describe("transport", () => {
     it("exposes transport as a readonly property", () => {
       const client = new StigmerClient({ endpoint: "http://localhost", token: null });

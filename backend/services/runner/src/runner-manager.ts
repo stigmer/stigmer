@@ -256,16 +256,39 @@ async function buildStigmerRunnerManager(
 
   assertLlmBackendsPreflight(baseConfig.proxyEndpoint);
 
-  // Boot the harnesses BEFORE resolving Temporal coordinates: nothing a boot
-  // reads depends on the coordinates, so `baseConfig` carries none yet. The
-  // modules imported here load no engine's SDK (`harness-adapters.ts`,
-  // `harness/registry.ts`, `agent-host/hosting.ts`;
-  // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
-  // run in the agent host, one for every session worker of this manager,
-  // behind their remote adapters (`agent-host/`).
+  // Resolve the runner bootstrap BEFORE hosting the harnesses, so the one
+  // `config` the agent host, the activities and the worker all run with is
+  // final before anything consumes it: the host builds its turns'
+  // configuration once, from the config it starts with
+  // (`agent-host/supervisor.ts`, `wireConfig`), and a turn reads the MCP
+  // bridge the bootstrap may publish (stigmer#1374: a desktop runner signed
+  // in to the cloud otherwise spawns a local `stigmer` for its memory tools).
+  // An explicit address wins; otherwise a token triggers control-plane
+  // discovery; otherwise localhost. Only the worker connection dials Temporal
+  // — no activity does (emit-event, the last one, now routes signals through
+  // the server's SendSignal lane; see oss#517).
+  const bootstrap = await resolveRunnerBootstrap({
+    explicitAddress: options.temporalAddress,
+    explicitNamespace: options.temporalNamespace,
+    token: options.stigmerToken,
+    stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
+  });
+  const config: Config = {
+    ...baseConfig,
+    temporalAddress: bootstrap.temporalAddress,
+    temporalNamespace: bootstrap.temporalNamespace,
+    // The runner's own setting wins; a discovered bridge fills its absence.
+    mcpBridgeEndpoint: baseConfig.mcpBridgeEndpoint ?? bootstrap.mcpBridgeEndpoint ?? null,
+  };
+
+  // Host and boot the harnesses. The modules imported here load no engine's
+  // SDK (`harness-adapters.ts`, `harness/registry.ts`,
+  // `agent-host/hosting.ts`; `__tests__/harness-boot-order.test.ts`). The
+  // hosted harnesses' engines run in the agent host, one for every session
+  // worker of this manager, behind their remote adapters (`agent-host/`).
   const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses }] =
     await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js"), import("./agent-host/hosting.js")]);
-  const hosted = await hostHarnesses(HARNESS_ADAPTERS, baseConfig);
+  const hosted = await hostHarnesses(HARNESS_ADAPTERS, config);
   boot.release = async () => {
     try {
       await shutdownHarnesses(adaptersOf(hosted.rows));
@@ -273,7 +296,7 @@ async function buildStigmerRunnerManager(
       await hosted.close();
     }
   };
-  await bootHarnesses(adaptersOf(hosted.rows), baseConfig);
+  await bootHarnesses(adaptersOf(hosted.rows), config);
 
   // The token coordinator owns the proxy credential and its
   // refresh lifecycle. It writes ONE sink, `runnerTokenRef`, which the gRPC
@@ -291,25 +314,6 @@ async function buildStigmerRunnerManager(
         stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
       }),
   });
-
-  // Resolve the runner bootstrap after the harnesses have booted (discovery
-  // dials the control plane through connect-node). An explicit address wins;
-  // otherwise a token triggers control-plane discovery; otherwise localhost.
-  // Must happen before createAllActivities so the activities' Config carries
-  // the resolved coordinates. Only the worker connection dials Temporal — no
-  // activity does (emit-event, the last one, now routes signals through the
-  // server's SendSignal lane; see oss#517).
-  const bootstrap = await resolveRunnerBootstrap({
-    explicitAddress: options.temporalAddress,
-    explicitNamespace: options.temporalNamespace,
-    token: options.stigmerToken,
-    stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
-  });
-  const config: Config = {
-    ...baseConfig,
-    temporalAddress: bootstrap.temporalAddress,
-    temporalNamespace: bootstrap.temporalNamespace,
-  };
 
   // Adopt the minted proxy token (cloud): it diverges from the control-plane
   // token from here on, and the coordinator refreshes it before expiry.
@@ -635,14 +639,15 @@ export function mapManagerOptionsToConfig(
   return {
     taskQueue: "manager", // not used for Workers — each Worker gets its own
     // May be empty here; createStigmerRunnerManager resolves it via
-    // resolveTemporalCoordinates before any Temporal connection is opened.
+    // resolveRunnerBootstrap before anything consumes the config.
     temporalAddress: options.temporalAddress ?? "",
     temporalNamespace: options.temporalNamespace ?? "default",
     temporalConnection:
       options.temporalConnection ?? loadTemporalConnectionConfig(getRunnerSecret),
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
-    // Env-only like the env-loaded path (loadConfig): the bridge and public
-    // endpoints are deployment topology, not per-session state.
+    // The runner's own settings, as in the env-loaded path (loadConfig): the
+    // bridge and public endpoints are deployment topology, not per-session
+    // state. An unset bridge may still come from the bootstrap (the root).
     mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
     mcpPublicEndpoint: process.env.STIGMER_MCP_PUBLIC_ENDPOINT || null,
     stigmerTokenRef: tokenRef,
