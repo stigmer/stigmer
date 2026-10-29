@@ -29,7 +29,7 @@ impl RunnerState {
     /// elapse. Errors are swallowed: a best-effort stop has nowhere to surface one.
     ///
     /// Do NOT use `stop()` as an app-exit reaper. Its bounded wait relies on the tokio time
-    /// driver, which is no longer pumped at `RunEvent::Exit`; combined with a mid-execution runner
+    /// driver, which is not pumped at `RunEvent::Exit`; combined with a mid-execution runner
     /// that never acks the shutdown, a `block_on(stop())` there parks forever (issue #178). Reap
     /// on exit with [`RunnerState::kill`].
     pub async fn stop(&self) {

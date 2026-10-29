@@ -1,9 +1,9 @@
 // Version history (`get agent --version-history`) and single version
 // retrieval (`get agent --version <hashOrTag>`): every apply that changes an
 // agent records an immutable, hash-addressed version that can be tagged. The
-// history table mirrors Go's RunVersionsList layout and empty-history
-// guidance, which names the organization by slug where the caller can see it.
-// A version prints the agent as that version stored it.
+// history is one table, and its empty-history guidance names the
+// organization by slug where the caller can see it. A version prints the
+// agent as that version stored it.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -15,7 +15,7 @@ import {
 import type { Stigmer } from "@stigmer/client";
 import { organizationLabel } from "../client/organizations.js";
 
-// Go caps the history view at 50 entries (RunVersionsList).
+// The history view shows one page of at most 50 entries.
 const VERSION_HISTORY_PAGE_SIZE = 50;
 
 /** The columns the history table shows. */
@@ -32,11 +32,7 @@ export async function renderAgentVersionHistory(client: Stigmer, org: string, sl
   return renderVersionsTable(response.entries, response.nextPageToken !== "");
 }
 
-/**
- * The agent as a version (a hash, a tag, or "latest") stored it. An agent last
- * written before agents were versioned has no history yet; its next apply
- * records one.
- */
+/** The agent as a version (a hash, a tag, or "latest") stored it. */
 export async function getAgentAtVersion(client: Stigmer, org: string, slug: string, hashOrTag: string): Promise<Agent> {
   return client.agent.getByReference({ org, slug, version: hashOrTag });
 }
@@ -52,7 +48,7 @@ async function emptyHistory(client: Stigmer, org: string, slug: string): Promise
   ].join("\n");
 }
 
-// --- Rendering (mirrors Go's displayVersionsTable) ---
+// --- Rendering ---
 
 // The history is one page, newest first: a list says whether more follow,
 // not how many there are, so the header counts the page and adds "+" when

@@ -82,8 +82,7 @@ function persistOrgId(id: string): void {
 /**
  * Find the org a reference names. A reference is an id or a slug; ids and
  * slugs are each unique, so an id match is tried first and a slug match
- * second (an older organization's id equals its slug, which either match
- * answers the same).
+ * second.
  */
 export function findOrgByRef(
   orgs: readonly Organization[],

@@ -84,7 +84,7 @@ describe("providerReach", () => {
     ).toEqual([]);
   });
 
-  it("reaches nothing with no settings at all, nor on an old Cursor key, which no engine reads", () => {
+  it("reaches nothing with no settings at all, nor on a Cursor key, which no engine reads", () => {
     expect(providerReach({})).toEqual([]);
     expect(providerReach({ CURSOR_API_KEY: "key_c" })).toEqual([]);
   });
