@@ -188,7 +188,7 @@ describe("MermaidDiagram — failure degrades to the code block", () => {
     expect(queryDiagram(container)).toBeNull();
   });
 
-  it("falls back when the mermaid library cannot be loaded (optional peer absent)", async () => {
+  it("falls back when the host's import of mermaid rejects", async () => {
     loadMermaidMock.mockRejectedValue(
       new Error("Cannot find module 'mermaid'"),
     );

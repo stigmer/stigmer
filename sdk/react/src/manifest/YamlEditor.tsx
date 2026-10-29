@@ -46,9 +46,15 @@ type EditorComponent = ComponentType<YamlEditorProps>;
  */
 let editorImport: Promise<EditorComponent> | null = null;
 
+/**
+ * The editor once it has loaded, so a later mount (a dialog opened again)
+ * draws it at once instead of a frame of the loading box.
+ */
+let loadedEditor: EditorComponent | undefined;
+
 function loadEditor(): Promise<EditorComponent> {
   editorImport ??= import("./CodeMirrorYamlEditor.js").then(
-    (module) => module.CodeMirrorYamlEditor,
+    (module) => (loadedEditor = module.CodeMirrorYamlEditor),
     (error: unknown) => {
       editorImport = null;
       throw error;
@@ -82,9 +88,10 @@ const BOX = "stg:flex stg:items-center stg:justify-center stg:rounded-md stg:bor
  * ```
  */
 export const YamlEditor = memo(function YamlEditor(props: YamlEditorProps) {
-  const [state, setState] = useState<{ readonly editor?: EditorComponent; readonly failed?: boolean }>({});
+  const [state, setState] = useState<{ readonly editor?: EditorComponent; readonly failed?: boolean }>(() => ({ editor: loadedEditor }));
 
   useEffect(() => {
+    if (loadedEditor) return;
     let live = true;
     loadEditor().then(
       (editor) => live && setState({ editor }),

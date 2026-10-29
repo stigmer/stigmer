@@ -1,13 +1,16 @@
 // Tests for StigmerProvider's loadMermaid: the host's loader reaches the
 // kit's diagrams as one function for the provider's lifetime, even when the
 // host passes a new inline arrow every render, and calls the latest one; a
-// provider without it hands the diagrams no loader.
+// provider without it hands the diagrams no loader; and a loader that
+// arrives on a later render reaches a diagram already on screen, which
+// draws through it.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 import { useContext } from "react";
 import type { Stigmer } from "@stigmer/client";
 import { StigmerProvider } from "../provider";
+import { MermaidDiagram } from "../internal/MermaidDiagram";
 import { MermaidLoaderContext, type MermaidLoader, type MermaidModule } from "../mermaid-loader-context";
 
 afterEach(cleanup);
@@ -68,5 +71,28 @@ describe("StigmerProvider loadMermaid", () => {
     await expect(loader!()).resolves.toEqual({ default: MERMAID });
     expect(latestHostLoader).toHaveBeenCalledTimes(1);
     expect(firstHostLoader).not.toHaveBeenCalled();
+  });
+
+  it("draws a mounted diagram through a loader that arrives on a later render", async () => {
+    const client = makeClient();
+    const drawing = {
+      initialize: vi.fn(),
+      render: vi.fn().mockResolvedValue({ svg: "<svg data-testid='drawn'></svg>" }),
+    } as unknown as MermaidModule;
+    const hostLoader = vi.fn(() => Promise.resolve({ default: drawing }));
+
+    const { rerender, container } = render(
+      <StigmerProvider client={client}>
+        <MermaidDiagram chart={"flowchart LR\n  A --> B"} />
+      </StigmerProvider>,
+    );
+    rerender(
+      <StigmerProvider client={client} loadMermaid={hostLoader}>
+        <MermaidDiagram chart={"flowchart LR\n  A --> B"} />
+      </StigmerProvider>,
+    );
+
+    await waitFor(() => expect(container.querySelector("[data-testid='drawn']")).not.toBeNull());
+    expect(hostLoader).toHaveBeenCalledTimes(1);
   });
 });

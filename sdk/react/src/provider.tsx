@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -357,10 +358,15 @@ export function StigmerProvider({
  * pass an inline `() => import("mermaid")`, a new function every render; a
  * diagram re-renders when its loader changes, so it sees one stable function
  * that calls the latest, and changes only when a loader comes or goes.
+ *
+ * The latest is kept in a layout effect: a diagram loads in a passive
+ * effect, and a child's passive effects run before its parent's, so a
+ * passive update here would leave a loader that just arrived unset when the
+ * diagram already on screen calls it. Every layout effect runs first.
  */
 function useStableLoader(loadMermaid: MermaidLoader | undefined): MermaidLoader | null {
   const latest = useRef(loadMermaid);
-  useEffect(() => {
+  useLayoutEffect(() => {
     latest.current = loadMermaid;
   });
   const hasLoader = loadMermaid !== undefined;

@@ -2,7 +2,8 @@
 // editor, which loads on first render: it says it is loading until the
 // editor's module arrives, then renders it with the props it was given; when
 // the module cannot load (its chunk failed), it says so instead of throwing;
-// and a failed load is not remembered, so the next mount tries again. The CodeMirror module is mocked: these tests are about
+// a loaded editor draws at once on the next mount; and a failed load is not
+// remembered, so the next mount tries again. The CodeMirror module is mocked: these tests are about
 // the boundary, not the editor (stigmer#2621).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -50,6 +51,20 @@ describe("YamlEditor", () => {
     expect(alert.textContent).toContain("The YAML editor could not load.");
     expect(alert.textContent).toContain("Reload the page to try again.");
     expect(alert.className).toContain("stg:h-80");
+  });
+
+  it("draws the editor at once on a mount after it has loaded", async () => {
+    const YamlEditor = await editorWith(() => ({
+      CodeMirrorYamlEditor: ({ value }: YamlEditorProps) => <pre data-testid="codemirror">{value}</pre>,
+    }));
+    const first = render(<YamlEditor value="kind: Agent" />);
+    await screen.findByTestId("codemirror");
+    first.unmount();
+
+    render(<YamlEditor value="kind: Skill" />);
+
+    expect(screen.getByTestId("codemirror").textContent).toBe("kind: Skill");
+    expect(screen.queryByText("Loading editor…")).toBeNull();
   });
 
   it("tries the import again on the next mount after a failed one", async () => {
