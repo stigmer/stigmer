@@ -119,7 +119,9 @@
  * condition on a target capability (`capabilities.x`, the conformance guide's
  * idiom), on the platform (`process.platform`), on a dependency the gate
  * provides (a `TEST_*` URL, `testDatabaseAdminUrl()`), on the gate itself
- * (`process.env.STIGMER_TEST_GATE === "1"`, which every gate lane sets), or,
+ * (`process.env.STIGMER_TEST_GATE`, which every gate lane sets to "1", read
+ * from which way the skip goes: `ok || <it> === "1" ? {} : { skip }` runs in
+ * the gate, `skipIf(<it> === "1")` skips there and is new), or,
  * in a `live` file only, on its provider key (`liveSecret(...)`): inside the
  * gate the gate's helpers, and inside the live lane `liveSecret`, throw when
  * the dependency is missing, and a case escaping by the gate's variable runs
@@ -209,8 +211,6 @@ export const BY_CONSTRUCTION = [
   { reason: "target capability", pattern: /\bcapabilities\s*\.\s*\w+/ },
   { reason: "platform", pattern: /\bprocess\s*\.\s*platform\b/ },
   { reason: "gate-provided dependency", pattern: /\bTEST_[A-Z0-9_]+\b|\btestDatabaseAdminUrl\s*\(/ },
-  // Every gate lane sets STIGMER_TEST_GATE=1: a case that escapes its skip by that comparison runs there.
-  { reason: "runs in the gate", pattern: /\bprocess\s*\.\s*env\s*\.\s*STIGMER_TEST_GATE\s*===?\s*(["'])1\1/ },
   // The live class's key: missing outside the live lane skips by name, missing inside it throws.
   // Only in a live file: an ordinary test never runs in the live lane, so its `liveSecret` skip
   // would skip in every run, the gate's included, and must stay a skip someone answers for.
@@ -368,6 +368,16 @@ function quarantineOf(ts, sf, node) {
   return undefined;
 }
 
+/** What must hold for a runtime skip to run (see `runsInGate`): its own condition argument, or the branch of the `if` around it. */
+function runtimeWhen(ts, call) {
+  const first = call.arguments[0];
+  if (first && !ts.isStringLiteral(first) && !ts.isNoSubstitutionTemplateLiteral(first) && !ts.isTemplateExpression(first)) return [{ node: first, negated: false }];
+  for (let child = call, node = call.parent; node && !isFunctionLike(ts, node); child = node, node = node.parent) {
+    if (ts.isIfStatement(node)) return [{ node: node.expression, negated: child === node.elseStatement }];
+  }
+  return [];
+}
+
 /** The condition a runtime skip sits under: its own condition argument, or the `if` around it. */
 function runtimeCondition(ts, sf, call) {
   const first = call.arguments[0];
@@ -386,6 +396,51 @@ function runtimeCondition(ts, sf, call) {
  */
 export function byConstruction(condition, path = "") {
   return BY_CONSTRUCTION.find(({ pattern, layer }) => pattern.test(condition) && (layer === undefined || nameWords(path).words.includes(layer)))?.reason;
+}
+
+/**
+ * The reason a skip site carries by construction, or undefined: its case runs in the gate (read
+ * from which way the skip goes, `runsInGate`), or its condition names a class above.
+ */
+export function siteReason(site, path = "") {
+  return site.runsInGate ? "runs in the gate" : byConstruction(site.condition, path);
+}
+
+/** The variable every gate lane sets to "1". */
+const GATE_VARIABLE = "process.env.STIGMER_TEST_GATE";
+
+/**
+ * Whether an expression is surely truthy (`value` true) or surely falsy whenever the gate's
+ * variable is "1", read through `!`, `&&`, `||` and parentheses down to a comparison of that
+ * variable with "1". Anything else is unknown, so false.
+ */
+function holdsInGate(ts, sf, node, value) {
+  const e = bare(ts, node);
+  if (!e) return false;
+  if (ts.isPrefixUnaryExpression(e) && e.operator === ts.SyntaxKind.ExclamationToken) return holdsInGate(ts, sf, e.operand, !value);
+  if (!ts.isBinaryExpression(e)) return false;
+  const op = e.operatorToken.kind;
+  const left = () => holdsInGate(ts, sf, e.left, value);
+  const right = () => holdsInGate(ts, sf, e.right, value);
+  // `a && b` is surely truthy when both are, surely falsy when either is; `||` the other way round.
+  if (op === ts.SyntaxKind.AmpersandAmpersandToken) return value ? left() && right() : left() || right();
+  if (op === ts.SyntaxKind.BarBarToken) return value ? left() || right() : left() && right();
+  const equal = op === ts.SyntaxKind.EqualsEqualsEqualsToken || op === ts.SyntaxKind.EqualsEqualsToken;
+  if (!equal && op !== ts.SyntaxKind.ExclamationEqualsEqualsToken && op !== ts.SyntaxKind.ExclamationEqualsToken) return false;
+  const gate = (x) => squash(x.getText(sf)) === GATE_VARIABLE;
+  const one = (x) => (ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x)) && x.text === "1";
+  const [a, b] = [bare(ts, e.left), bare(ts, e.right)];
+  if (!((gate(a) && one(b)) || (gate(b) && one(a)))) return false;
+  return equal === value;
+}
+
+/**
+ * Whether a skip's case runs whenever the gate's variable is "1". `when` is what must all hold
+ * for it to skip, each `{ node, negated }`: the node truthy, or falsy when negated. One that is
+ * surely the other way in the gate keeps the case running there.
+ */
+function runsInGate(ts, sf, when) {
+  return when.some(({ node, negated }) => holdsInGate(ts, sf, node, negated));
 }
 
 /** A file's module-level `const` bindings, by name, to their initializers. */
@@ -426,7 +481,7 @@ function propertyOf(ts, object, name) {
 const OPTION_SKIPS = ["skip", "todo"];
 
 /**
- * What a registration's options argument sets: `{ only, skips: [{ kind, condition }] }`, or
+ * What a registration's options argument sets: `{ only, skips: [{ kind, condition, runsInGate }] }`, or
  * undefined when the argument is not one this reader can follow. It reads an object literal, a
  * conditional whose branches are such (`ready ? {} : { skip: "why" }`), and a module-level `const`
  * bound to either. A key set in any branch counts, since that branch can run. A skip's condition
@@ -435,6 +490,7 @@ const OPTION_SKIPS = ["skip", "todo"];
  */
 function readOptions(ts, sf, node, consts) {
   const branches = [];
+  // `tests` are the conditionals' tests on the way to a branch, each `{ node, negated }` (see `runsInGate`).
   const collect = (expr, tests) => {
     const e = followConst(ts, expr, consts);
     if (!e) return false;
@@ -443,8 +499,7 @@ function readOptions(ts, sf, node, consts) {
       return true;
     }
     if (ts.isConditionalExpression(e)) {
-      const test = squash(e.condition.getText(sf));
-      return collect(e.whenTrue, [...tests, test]) && collect(e.whenFalse, [...tests, test]);
+      return collect(e.whenTrue, [...tests, { node: e.condition, negated: false }]) && collect(e.whenFalse, [...tests, { node: e.condition, negated: true }]);
     }
     return false;
   };
@@ -463,7 +518,9 @@ function readOptions(ts, sf, node, consts) {
     if (value("only")) only = true;
     for (const kind of OPTION_SKIPS) {
       const v = value(kind);
-      if (v && !skips.some((s) => s.kind === kind)) skips.push({ kind, condition: tests.length > 0 ? tests.join(", ") : literal(v) ? "" : squash(v.getText(sf)) });
+      if (!v || skips.some((s) => s.kind === kind)) continue;
+      const condition = tests.length > 0 ? tests.map((t) => squash(t.node.getText(sf))).join(", ") : literal(v) ? "" : squash(v.getText(sf));
+      skips.push({ kind, condition, runsInGate: runsInGate(ts, sf, [...tests, ...(literal(v) ? [] : [{ node: v, negated: false }])]) });
     }
   }
   return { only, skips };
@@ -510,7 +567,7 @@ export function inventoryFile(ts, path, text) {
         if (chain?.some((c) => ASSERTION.test(c.name)) || last === "skip" || last === "fixme") settled = true;
         if (chain && (last === "skip" || last === "fixme") && !(TEST_ROOTS.has(chain[0].name) && isRegistrationCall(node))) {
           const condition = runtimeCondition(ts, sf, node);
-          skips.push({ kind: `runtime-${last}`, condition, line: lineOf(sf, node), title: caseTitle, suite, quarantine: quarantineOf(ts, sf, node) });
+          skips.push({ kind: `runtime-${last}`, condition, runsInGate: runsInGate(ts, sf, runtimeWhen(ts, node)), line: lineOf(sf, node), title: caseTitle, suite, quarantine: quarantineOf(ts, sf, node) });
         }
       }
       ts.forEachChild(node, walk);
@@ -550,10 +607,12 @@ export function inventoryFile(ts, path, text) {
         for (const member of chain.slice(1)) {
           if (!SKIP_MEMBERS.has(member.name)) continue;
           const condition = member.args ? squash(member.args.map((a) => a.getText(sf)).join(", ")) : "";
-          skips.push({ kind: member.name, condition, line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
+          // `runIf(c)` skips when `c` is falsy; the others skip when their condition is truthy.
+          const when = member.args?.[0] ? [{ node: member.args[0], negated: member.name === "runIf" }] : [];
+          skips.push({ kind: member.name, condition, runsInGate: runsInGate(ts, sf, when), line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
         }
-        for (const { kind, condition } of options?.skips ?? []) {
-          skips.push({ kind, condition, line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
+        for (const { kind, condition, runsInGate: inGate } of options?.skips ?? []) {
+          skips.push({ kind, condition, runsInGate: inGate, line, title, suite: chainTitles, quarantine: quarantineOf(ts, sf, node) });
         }
         const fn = [...node.arguments].reverse().find((a) => isFunctionLike(ts, a));
         if (isSuite) {
@@ -1010,8 +1069,8 @@ export function compareInventories(lineages, packageDirs) {
     for (const c of vanished.slice(pairs)) vanishedPool.push({ ...c, path: base.path, pkg });
     for (const c of gained.slice(pairs)) gainedPool.push({ ...c, path, pkg });
 
-    const headSkips = (head?.skips ?? []).filter((s) => !byConstruction(s.condition, path) && !s.quarantine);
-    const baseSkips = (base?.skips ?? []).filter((s) => !byConstruction(s.condition, base?.path ?? path) && !s.quarantine);
+    const headSkips = (head?.skips ?? []).filter((s) => !siteReason(s, path) && !s.quarantine);
+    const baseSkips = (base?.skips ?? []).filter((s) => !siteReason(s, base?.path ?? path) && !s.quarantine);
     for (const s of surplus(headSkips, baseSkips, (x) => `${x.kind}|${x.condition}`)) newSkips.push({ ...s, path });
   }
 
@@ -1056,9 +1115,9 @@ export function explainRunSkips(report, inventories, root) {
       const ancestors = result.ancestorTitles ?? [];
       const name = [...ancestors, result.title].join(" > ");
       const sites = (inventory?.skips ?? []).filter((s) => covers(s, ancestors, result.title));
-      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => byConstruction(s.condition, path));
+      const site = sites.find((s) => s.quarantine) ?? sites.find((s) => siteReason(s, path));
       if (site) {
-        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : byConstruction(site.condition, path) });
+        explained.push({ path, line: site.line, name, reason: site.quarantine ? `quarantined on ${site.quarantine.repo}#${site.quarantine.issue}` : siteReason(site, path) });
         continue;
       }
       const line = sites[0]?.line ?? inventory?.cases.find((c) => c.key === name)?.line ?? 1;

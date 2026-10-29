@@ -52,6 +52,7 @@ import {
   RPC_WAIVERS,
   scanModule,
   scriptKindOf,
+  siteReason,
   TEST_PATHSPECS,
   typeScriptCandidates,
 } from "./test-integrity.mjs";
@@ -341,11 +342,44 @@ it("the by-construction classes are capability, platform, a gate-provided depend
   // A key read through a variable carries no reason the tool can read.
   assert.equal(byConstruction("!key", "pkg/src/__tests__/turn.live.test.ts"), undefined);
   assert.equal(byConstruction("!hasBash"), undefined);
-  // Every gate lane sets STIGMER_TEST_GATE=1, so a case escaping by that exact comparison never skips there.
-  assert.equal(byConstruction('linux || process.env.STIGMER_TEST_GATE === "1"'), "runs in the gate");
-  assert.equal(byConstruction("process.env.STIGMER_TEST_GATE === '1'"), "runs in the gate");
-  assert.equal(byConstruction("process.env.STIGMER_TEST_GATE"), undefined);
-  assert.equal(byConstruction('isRoot || process.env.STIGMER_TEST_AS_ROOT === "1"'), undefined);
+});
+
+it("a skip whose case runs whenever STIGMER_TEST_GATE is 1 carries its reason; one that skips in the gate does not", () => {
+  // Every gate lane sets STIGMER_TEST_GATE=1: the reason is read from which way the skip goes, never from the text alone.
+  const reasons = (text, path = MJS) => inv(text, path).skips.map((s) => [s.title, siteReason(s, path) ?? null]);
+  assert.deepEqual(reasons(`
+    const NEEDS_LINUX = linux || process.env.STIGMER_TEST_GATE === "1" ? {} : { skip: "needs Linux" };
+    test("const", NEEDS_LINUX, () => {});
+    test("inline", which("shellcheck") || process.env.STIGMER_TEST_GATE === '1' ? {} : { skip: "no shellcheck" }, () => {});
+    test("flipped", process.env.STIGMER_TEST_GATE !== "1" ? { skip: "outside the gate" } : {}, () => {});
+    test("value", { skip: !onMac && process.env.STIGMER_TEST_GATE != "1" }, () => {});
+  `), [["const", "runs in the gate"], ["inline", "runs in the gate"], ["flipped", "runs in the gate"], ["value", "runs in the gate"]]);
+  assert.deepEqual(reasons(`
+    it.skipIf(process.env.STIGMER_TEST_GATE !== "1")("a", () => {});
+    describe.runIf(process.env.STIGMER_TEST_GATE === "1")("b", () => {});
+  `, "pkg/src/__tests__/a.test.ts"), [["a", "runs in the gate"], ["b", "runs in the gate"]]);
+  // The reviewer's four: each skips inside the gate, so none carries the reason.
+  assert.deepEqual(reasons(`it.skipIf(process.env.STIGMER_TEST_GATE === "1")("a", () => {});`, "pkg/src/__tests__/a.test.ts"), [["a", null]]);
+  assert.deepEqual(reasons(`test("b", process.env.STIGMER_TEST_GATE === "1" ? { skip: "flaky in CI" } : {}, () => {});`), [["b", null]]);
+  assert.deepEqual(reasons(`test("c", { skip: process.env.STIGMER_TEST_GATE === "1" }, () => {});`), [["c", null]]);
+  assert.deepEqual(reasons(`test("d", (t) => { if (process.env.STIGMER_TEST_GATE === "1") t.skip(); assert.ok(1); });`), [["d", null]]);
+  // Nor does a skip the gate's variable cannot stop, or another variable's.
+  assert.deepEqual(reasons(`test("e", linux && process.env.STIGMER_TEST_GATE === "1" ? {} : { skip: "x" }, () => {});`), [["e", null]]);
+  assert.deepEqual(reasons(`test("f", isRoot || process.env.STIGMER_TEST_AS_ROOT === "1" ? {} : { skip: "x" }, () => {});`), [["f", null]]);
+  assert.deepEqual(reasons(`test("g", process.env.STIGMER_TEST_GATE ? {} : { skip: "x" }, () => {});`), [["g", null]]);
+  // A runtime skip in the else of a gate check runs in the gate.
+  assert.deepEqual(reasons(`test("h", (t) => { if (process.env.STIGMER_TEST_GATE === "1") { assert.ok(1); } else { t.skip(); } });`), [["h", "runs in the gate"]]);
+  // The text reasons still apply through the site.
+  assert.deepEqual(reasons(`test("i", { skip: process.platform !== "darwin" }, () => {});`), [["i", "platform"]]);
+});
+
+it("a skip that fires only in the gate is a new skip like any other", () => {
+  const base = file("scripts/a.test.mjs", "");
+  const head = file("scripts/a.test.mjs", `
+    test("in", process.env.STIGMER_TEST_GATE === "1" ? { skip: "flaky in CI" } : {}, () => {});
+    test("out", process.env.STIGMER_TEST_GATE === "1" ? {} : { skip: "needs the gate" }, () => {});
+  `);
+  assert.deepEqual(compareInventories([{ base, head }], new Set(["."])).newSkips.map((s) => s.title), ["in"]);
 });
 
 it("a liveSecret skip is new in an ordinary test, and by construction only in a live one", () => {
