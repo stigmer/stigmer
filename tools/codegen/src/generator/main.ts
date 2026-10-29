@@ -114,7 +114,7 @@ function main(): void {
       break;
     default:
       process.stderr.write(
-        `Unknown --target "${flags.target}"\n`,
+        `Unknown or not-yet-ported --target "${flags.target}" — remaining targets run via the Go generator until their port lands\n`,
       );
       process.exit(1);
   }
