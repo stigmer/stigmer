@@ -159,7 +159,7 @@ describe("every authored plugin", () => {
 });
 
 describe("Stigmer's own folder", () => {
-  it("no plugin carries an ai.stigmer/ folder: Stigmer reads none, and install would warn about it", () => {
+  it("no plugin carries an ai.stigmer/ folder: Stigmer gives it no meaning, so its files would ship as plain plugin content", () => {
     const carrying = marketplace.plugins.filter((entry) => existsSync(join(CATALOGUE_ROOT, entry.dir, "ai.stigmer")));
     expect(carrying.map((entry) => entry.dir)).toEqual([]);
   });
