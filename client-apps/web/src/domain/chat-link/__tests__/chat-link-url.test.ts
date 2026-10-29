@@ -10,8 +10,8 @@ import { chatLinkUrlFor } from "../chat-link-url";
 
 describe("chatLinkUrlFor", () => {
   it("builds /chat/<channel id> on the console's public origin", () => {
-    expect(chatLinkUrlFor("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
-      "https://app.example.com/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2",
+    expect(chatLinkUrlFor("chn_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
+      "https://app.example.com/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2",
     );
   });
 });

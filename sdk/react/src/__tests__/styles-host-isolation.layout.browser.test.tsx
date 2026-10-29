@@ -49,11 +49,11 @@ const HOST_TAILWIND_CSS = `
 `;
 
 /**
- * The PRE-#454 SDK emission shape: a bare shared-name utility inside
+ * The emission shape that leaks (#454): a bare shared-name utility inside
  * `@layer stgm`, declared last. Injected only by the negative control to
  * prove this suite measures the defect mechanism.
  */
-const LEGACY_SDK_LEAK_CSS = `
+const LEAKING_SDK_CSS = `
   @layer theme, base, components, utilities, stgm;
   @layer stgm {
     .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
@@ -170,7 +170,7 @@ describe("host isolation of the shipped stylesheet (#454)", () => {
   });
 
   it("negative control: the pre-#454 emission shape breaks the host (this suite detects the defect)", () => {
-    injectStyle(LEGACY_SDK_LEAK_CSS);
+    injectStyle(LEAKING_SDK_CSS);
     render(
       <>
         <HostFactsRail testId="rail-legacy" />

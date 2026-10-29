@@ -14,8 +14,9 @@
  * Why a verifier reads the store: the token is a capability for one
  * execution, not an identity assertion. Its claims name only the
  * execution; the server resolves the person from the row (the account
- * id stamp since 3.15.0, the raw issuer subject the 3.14.x verifiers
- * stamped — the schedule fire caller's two shapes) and mints the account
+ * id stamp, or the raw issuer subject a write made before the caller's
+ * account existed carries — the schedule fire caller's two shapes) and
+ * mints the account
  * acting as itself, so the audit actor carries the person's email and
  * display name that no token could. Validity is the row's: a terminal or
  * missing execution refuses; a run credential carries no `exp`, because
@@ -240,7 +241,7 @@ describe.each(
         });
       });
 
-      it("an agent execution stamped with the raw issuer subject (the 3.14.x shape) resolves to the same account", async () => {
+      it("an agent execution stamped with the raw issuer subject (a write made before the account existed) resolves to the same account", async () => {
         await agentExecution("run_by_sub", SUBJECT);
         const identity = await verifier().verify(
           service.mintRunCredential("run_by_sub"),

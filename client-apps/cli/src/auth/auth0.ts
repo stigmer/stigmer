@@ -5,7 +5,7 @@
 // password), and PKCE removes the need for a client secret entirely. The
 // authorize/token endpoints are hardcoded because Auth0's URL structure is
 // stable ({domain}/authorize, {domain}/oauth/token), saving an OIDC-discovery
-// round-trip at login time. Kept byte-for-byte identical to the Go CLI.
+// round-trip at login time.
 
 export const AUTH0_DOMAIN = "https://stigmer-prod.us.auth0.com";
 export const CLIENT_ID = "kIT6URf4HKn6YzrQVVFTFN63BrSJdTPM";

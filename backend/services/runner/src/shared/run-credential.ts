@@ -7,8 +7,8 @@
  * that the runner — one long-lived process keyed with one operator's API key,
  * serving every member's runs — can act as the run's own human on that run's
  * RPCs. Under a server with sign-in on, the credential's bearer IS the run's
- * person for as long as the run lives; on an older server no credential
- * arrives and the runner behaves exactly as before. The runner never decodes
+ * person for as long as the run lives; a dispatch with no credential (the
+ * cloud's) leaves the runner on its process credential. The runner never decodes
  * or judges the credential: it presents, the server judges
  * (`client/token-claims.ts`).
  *
@@ -36,8 +36,8 @@ export const RUN_CREDENTIAL_INPUT_KEY = "execution_context_token" as const;
 /**
  * The run credential an activity input carries, or `undefined` when the
  * argument is not an object carrying a non-empty string under the key —
- * positional string arguments, the connect lane's camelCase input, and an
- * older server's credential-less object all answer `undefined`.
+ * positional string arguments (EnsureThread's), the connect lane's camelCase
+ * input, and a credential-less dispatch's object all answer `undefined`.
  */
 export function readRunCredentialFromInput(arg: unknown): string | undefined {
   if (arg === null || typeof arg !== "object") {

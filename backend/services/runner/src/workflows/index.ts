@@ -16,8 +16,7 @@
  * pins the exact set.
  *
  * The types and their starters:
- *   - "stigmer/mcp-server/connect" and "stigmer/mcp-server/discover": the
- *     server's plugin tools listing (`temporal/plugintools/names.ts` in the
+ *   - "stigmer/mcp-server/connect": the server's plugin tools listing (`temporal/plugintools/names.ts` in the
  *     server), by plugin id and server name.
  *
  * ES2022 arbitrary module export names (`export { fn as "..." }`) let
@@ -32,5 +31,4 @@
 
 export {
   listPluginTools as "stigmer/mcp-server/connect",
-  listPluginToolsLegacy as "stigmer/mcp-server/discover",
 } from "./list-plugin-tools.js";

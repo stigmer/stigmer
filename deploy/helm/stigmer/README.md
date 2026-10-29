@@ -468,7 +468,6 @@ the map.
 | `ingress`                                         | `enabled`, `className`, `api.{host,annotations,tlsSecretName}`, `artifacts.{host,annotations,tlsSecretName}`.                                                                                   |
 | `enterprise`                                      | `license.{existingSecret,key}` (the switch), `organizationCreators`, `accessHistoryRetentionDays`, `outboundEgress`; see [Stigmer Enterprise](#stigmer-enterprise).                             |
 | `egressPolicy`                                    | `enabled`, `allowedCidrs`: the stigmer pod's outbound fence, on by default under a strict license; see [One trust domain](#one-trust-domain).                                                   |
-| `openfga`, `redis`, `openbao`, `licenseKeySecret` | Retired: reserved before Stigmer Enterprise shipped, which needs none. Accepted at their off values; refused when turned on.                                                                    |
 
 Unknown keys are refused at install, so a typo fails loudly instead of doing
 nothing; every `securityContext` takes the Kubernetes container fields and no

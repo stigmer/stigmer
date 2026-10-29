@@ -15,11 +15,12 @@ import { useOrgIdForRef, useOrgSlugForId } from "../useOrgRefs";
 afterEach(cleanup);
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
+const GLOBEX_ID = "org_01jbbbbbbbbbbbbbbbbbbbbbbb";
 const CHILD_ID = "org_01jccccccccccccccccccccccc";
 
 const orgs = [
   { metadata: { id: ACME_ID, slug: "acme", name: "Acme" } },
-  { metadata: { id: "legacy", slug: "legacy", name: "Legacy" } },
+  { metadata: { id: GLOBEX_ID, slug: "globex", name: "Globex" } },
 ] as Organization[];
 
 const child = {
@@ -60,7 +61,7 @@ describe("useOrgSlugForId", () => {
     const { result } = renderRefs();
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.slugFor(ACME_ID)).toBe("acme");
-    expect(result.current.slugFor("legacy")).toBe("legacy");
+    expect(result.current.slugFor(GLOBEX_ID)).toBe("globex");
   });
 
   it("hands back an id it does not know", async () => {

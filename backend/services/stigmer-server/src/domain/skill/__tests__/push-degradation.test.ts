@@ -1,6 +1,6 @@
 /**
- * Pins ArchiveCurrentSkill's safe-degradation arms (Go push_test.go's
- * failing-store cases) at step level — the composed suite cannot make the
+ * Pins ArchiveCurrentSkill's safe-degradation arms (the failing-store
+ * cases) at step level — the composed suite cannot make the
  * real store fail selectively:
  *
  *   - archive (saveAudit) failure clears status.version_hash AND

@@ -12,15 +12,15 @@
 
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { GetArtifactResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 import { vi } from "vitest";
 
 import type { StigmerClient } from "../../../client/stigmer-client.js";
 import type { ExecutionRecord } from "../../../__test-utils__/hermetic-activity.js";
+import { mintedDownload } from "../../../__test-utils__/minted-download.js";
 
 /** The plugin skill's body, as the plugin's author wrote it. */
 export const LINT_BODY = "Run the linter and fix what it reports.";
@@ -45,13 +45,10 @@ export const ACME = create(PluginSchema, {
   },
 });
 
-/** The control plane's answers for the plugin: the record, and its archive on the gRPC lane. */
+/** The control plane's answers for the plugin: the record, and its archive on the transfer lane. */
 export const ACME_CLIENT: Partial<StigmerClient> = {
   getPluginByReference: vi.fn(async () => ACME),
-  getPluginArtifactDownloadUrl: vi.fn(async () => {
-    throw new ConnectError("no download lane", Code.Unimplemented);
-  }),
-  getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+  getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE))),
 };
 
 /** List the plugin on the record's agent (`AgentSpec.plugins`). */

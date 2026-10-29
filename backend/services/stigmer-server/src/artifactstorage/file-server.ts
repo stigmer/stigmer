@@ -4,8 +4,7 @@
  * getSignedUrl mints. Two kinds of file reach a caller through it: an agent
  * run's files (run.getArtifactDownloadUrl) and the skill and plugin
  * archives a runner mounts (the staging driver's download links). The lane
- * ports Go pkg/server/server.go's artifactDownloadHandler and its boot block:
- * a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the unified
+ * is a second listener on 127.0.0.1:ARTIFACT_HTTP_PORT (unset: the unified
  * port + 1, ephemeral beside an ephemeral unified port — the rule is
  * boot/artifact-lane.ts), started only when artifact storage is LOCAL,
  * serving GET /<key> as the exact bytes LocalArtifactStorage wrote, to a
@@ -15,11 +14,10 @@
  * Past the signature, a missing file is 404 and one that cannot be read (a
  * permission refused, a disk error) a 500 with a static body and the cause
  * in the server log, so a broken artifact never reads as a gone one
- * (stigmer#1352; __tests__/file-server-faults.test.ts). Unlike
- * Go, a bind failure fails the boot: the composition binds the lane before
- * SERVING and lets listen()'s rejection stand (stigmer#1089). It is not a
- * unified-port lane: Go ran it as a separate listener, and so does this
- * port.
+ * (stigmer#1352; __tests__/file-server-faults.test.ts). A bind failure
+ * fails the boot: the composition binds the lane before SERVING and lets
+ * listen()'s rejection stand (stigmer#1089). It is not a unified-port lane:
+ * it is its own listener.
  *
  * Disposition contract (proven by __tests__/file-server.test.ts and, on
  * links the storage mints, __tests__/file-server-signing.test.ts): a
@@ -28,14 +26,11 @@
  * which signs Content-Disposition into the presigned URL. Requests without
  * the parameter are served INLINE with no disposition header.
  *
- * Two disclosed nuances versus Go's http.FileServer (neither pinned by a
- * test):
- *   - No Content-Type header: Go sniffs one (net/http DetectContentType);
- *     porting the whole sniffing algorithm for an unpinned header is not
- *     parity the register demands, and an absent header lets clients apply
- *     the same sniffing themselves.
+ * Two deliberate omissions (neither pinned by a test):
+ *   - No Content-Type header: the server does not sniff one; an absent
+ *     header lets clients apply content sniffing themselves.
  *   - No Range support: range requests are answered with the full body
- *     (200), which HTTP permits; Go's ServeContent honors them.
+ *     (200), which HTTP permits.
  */
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
@@ -81,11 +76,10 @@ export function createArtifactFileServer(
     listen(port: number, host: string): Promise<number> {
       return new Promise((resolve, reject) => {
         server.once("error", reject);
-        // Loopback by DEFAULT, as Go bound "127.0.0.1:<port>": download
-        // URLs are minted for the local machine, never a network
-        // interface. The host became configurable (ARTIFACT_HTTP_HOST)
-        // for containers, where 127.0.0.1 is unreachable from
-        // outside; the default preserves Go's posture byte-for-byte.
+        // Loopback by DEFAULT: download URLs are minted for the local
+        // machine, never a network interface. The host is configurable
+        // (ARTIFACT_HTTP_HOST) for containers, where 127.0.0.1 is
+        // unreachable from outside.
         server.listen(port, host, () => {
           server.removeListener("error", reject);
           const address = server.address();
@@ -102,8 +96,8 @@ export function createArtifactFileServer(
     shutdown(): Promise<void> {
       return new Promise((resolve) => {
         server.close(() => resolve());
-        // In-flight downloads do not hold shutdown open (Go's file server
-        // is simply abandoned on exit; close() at least stops the listener).
+        // In-flight downloads do not hold shutdown open: close() stops the
+        // listener and the open connections are dropped.
         server.closeAllConnections();
       });
     },
@@ -129,8 +123,7 @@ async function serveArtifact(
     try {
       key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
     } catch {
-      // Malformed percent-escapes are a client error, not a server fault
-      // (Go's net/http rejects them before the file server runs).
+      // Malformed percent-escapes are a client error, not a server fault.
       res.writeHead(404);
       res.end("404 page not found\n");
       return;
@@ -187,8 +180,7 @@ async function serveArtifact(
       "Content-Length": String(info.size),
     };
     // The download query parameter (set by getSignedUrl, and covered by
-    // its signature) rides the URL; applied here exactly as Go's
-    // artifactDownloadHandler does. Absent → inline, no header.
+    // its signature) rides the URL. Absent → inline, no header.
     const downloadName = url.searchParams.get(LOCAL_DOWNLOAD_QUERY_PARAM) ?? "";
     if (downloadName !== "") {
       headers["Content-Disposition"] = contentDispositionAttachment(downloadName);

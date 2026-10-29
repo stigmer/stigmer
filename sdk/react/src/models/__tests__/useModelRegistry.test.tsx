@@ -231,7 +231,7 @@ describe("useModelRegistry visionLimits pass-through (#365)", () => {
     expect(result.current.visionLimits).toEqual(limits);
   });
 
-  it("stays undefined when the context has no limits (older server)", () => {
+  it("stays undefined when the context has no limits", () => {
     const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
     expect(result.current.visionLimits).toBeUndefined();
   });

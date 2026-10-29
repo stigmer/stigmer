@@ -1,10 +1,8 @@
 // Unified output-format resolution.
 //
-// The Go CLI grew three inconsistent output conventions: reads used
-// `-o table|json|yaml`, mutations used `--json`/`--quiet`, and streaming used
-// `--json` for NDJSON. The TS CLI unifies the *surface* on a single
-// `-o/--output` flag with one universal vocabulary — table | json | yaml |
-// ndjson — and keeps `--json`/`--quiet` as back-compat aliases.
+// One `-o/--output` flag with one universal vocabulary — table | json | yaml |
+// ndjson — across reads, mutations and streams, with `--json`/`--quiet` as
+// short aliases.
 //
 // The *meaning* of each universal value adapts to the command's class so a
 // single mental model ("json = machine-readable") works everywhere:

@@ -1,5 +1,4 @@
 // Registration helpers for MCP resource templates.
-// Go parity: mcp-server/internal/domains/resourcehandler.go.
 //
 // Every Stigmer resource template resolves the per-request credential the same
 // way tools do (resolveToken over extra.authInfo), parses org/slug[/version]

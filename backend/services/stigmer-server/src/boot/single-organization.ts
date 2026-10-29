@@ -27,17 +27,18 @@
  *
  * After the create the store is read again, and that read settles the
  * holder and the SINGLE_ORG_KEY record, not the create's answer. The record
- * names whichever organization the store holds alone, whoever made it, so
- * an upgraded store's organization is the server's as much as one this
- * step made, and a start that died before recording heals. Two replicas
- * racing on an empty store end with one organization (the duplicate check,
- * the limit or the slug claim refuses the loser, and its refusal is the lost
- * race; the loser re-reads for about a second, since it can read the store
- * between the winner's slug claim and its row), and a store from before
- * this step may hold several. Exactly one turns the fill on; any other
- * count leaves it off for the process, clears the record and any owed
- * roles pass, and logs one
- * warning: the count when it holds several, the cause when it holds none.
+ * names whichever organization the store holds alone, whoever made it (a
+ * person, while the store was composed to hold any number), so that
+ * organization is the server's as much as one this step made, and a start
+ * that died before recording heals. Two replicas racing on an empty store
+ * end with one organization (the duplicate check, the limit or the slug
+ * claim refuses the loser, and its refusal is the lost race; the loser
+ * re-reads for about a second, since it can read the store between the
+ * winner's slug claim and its row). A store a composition that holds any
+ * number (an Enterprise license) filled may hold several. Exactly one turns
+ * the fill on; any other count leaves it off for the process, clears the
+ * record and any owed roles pass, and logs one warning: the count when it
+ * holds several, the cause when it holds none.
  *
  * On an empty store, before the create, the step marks the membership
  * rules' pass over the server's organization as owed
@@ -46,12 +47,10 @@
  * for them, and no other store's people do.
  *
  * A failure is a boot throw: a server composed to hold one organization
- * cannot serve without it, and the port stays closed. One failure is not
- * fatal: a store from an earlier release whose `stigmer` was deleted keeps
- * that slug reserved for good (it was that organization's id, and what it
- * left behind still names it: domain/organization/names.ts), so the create
- * is refused with ORGANIZATION_SLUG_RESERVED. That start warns, fills
- * nothing and boots, and a person creates an organization to start.
+ * cannot serve without it, and the port stays closed, except a create
+ * refused as a duplicate that leaves the store with none (the lost race
+ * above, with no winner's row to find): that start warns, fills nothing
+ * and boots.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -69,7 +68,6 @@ import {
   SINGLE_ORGANIZATION_SLUG,
   SINGLE_ORG_KEY,
 } from "../domain/organization/limit.js";
-import { ORGANIZATION_SLUG_RESERVED } from "../domain/organization/names.js";
 import {
   SERVER_ORGANIZATION_ROLES_KEY,
   SERVER_ORGANIZATION_ROLES_OWED,
@@ -155,11 +153,6 @@ export async function ensureSingleOrganization(
       "this server holds one organization, but its store holds several: requests must name their organization, and no organization can be added",
       { organizations: others.length + 1 },
     );
-  } else if (outcome === "reserved") {
-    logger.warn(
-      `this server cannot make its organization: the slug '${SINGLE_ORGANIZATION_SLUG}' is reserved for an organization an earlier release made and deleted; create an organization to start`,
-      { slug: SINGLE_ORGANIZATION_SLUG },
-    );
   } else if (outcome === "lost") {
     // Refused as a duplicate, yet nothing holds the slug's row: a name left
     // by an interrupted create, which a claim frees once it is a minute old
@@ -183,12 +176,10 @@ async function organizationIds(store: Store): Promise<string[]> {
 
 /**
  * What the create did: made the organization; lost it to another replica
- * (refused as a duplicate or at the limit, whose row the store read finds);
- * found the slug reserved for an earlier release's deleted organization,
- * which no later start can take. "present":
- * the store already held one, so nothing was created.
+ * (refused as a duplicate or at the limit, whose row the store read finds).
+ * "present": the store already held one, so nothing was created.
  */
-type CreateOutcome = "made" | "lost" | "reserved" | "present";
+type CreateOutcome = "made" | "lost" | "present";
 
 async function createSingleOrganization(
   deps: SingleOrganizationBootDeps,
@@ -209,9 +200,6 @@ async function createSingleOrganization(
       const reasons = error
         .findDetails(ErrorInfoSchema)
         .map((info) => info.reason);
-      if (error.code === Code.AlreadyExists && reasons.includes(ORGANIZATION_SLUG_RESERVED)) {
-        return "reserved";
-      }
       // Another replica made it first. Its row reached this create either at
       // the duplicate check (AlreadyExists) or, persisted a moment later, at
       // the limit (ORGANIZATION_LIMIT_REACHED); the store read that follows

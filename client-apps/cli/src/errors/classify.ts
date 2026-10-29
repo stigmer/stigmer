@@ -1,7 +1,6 @@
 // Classifies any thrown value into a CliError: an exit code, a user-facing
-// message, and optional remediation hints. Mirrors the Go CLI's
-// clierr.Classify, including walking the error chain so wrapped RPC errors
-// still map to the right exit code.
+// message, and optional remediation hints. It walks the error chain so
+// wrapped RPC errors still map to the right exit code.
 //
 // A refusal that carries a reason the CLI knows gets its own copy. Today
 // there are two:
@@ -54,8 +53,7 @@ export function classify(err: unknown): CliError | null {
 
   // Local cancellation (Ctrl-C / AbortController) is a clean outcome, not a
   // failure — exit 0 silently. A *remote* Canceled status is a genuine failure
-  // and falls through to classifyConnectCode (exit 1). This is the one place
-  // the TS CLI deliberately improves on the Go CLI, which exits 1 for both.
+  // and falls through to classifyConnectCode (exit 1).
   if (isLocalAbort(err)) {
     return { exitCode: ExitCode.Success, message: "", cause: toError(err) };
   }
@@ -107,9 +105,8 @@ interface CodedError {
   readonly message: string;
 }
 
-// Walks the cause chain for the first SDK StigmerError or raw ConnectError.
-// status.FromError in Go only checks the outermost error; this mirrors the Go
-// CLI's extractGRPCStatus which walks Unwrap to handle wrapped RPC errors.
+// Walks the cause chain for the first SDK StigmerError or raw ConnectError, so
+// a wrapped RPC error still classifies by its status.
 function extractCoded(err: unknown): CodedError | undefined {
   let depth = 0;
   for (let current: unknown = err; current != null && depth < MAX_CHAIN_DEPTH; current = causeOf(current), depth++) {

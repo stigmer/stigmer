@@ -175,7 +175,7 @@ describe("boot-time RebuildIndex", () => {
           slug: "adopted-skill",
           org: "preboot",
         },
-        spec: { description: "a skill from the Go era" },
+        spec: { description: "a skill stored before this boot" },
         status: {
           audit: { specAudit: { createdAt: { seconds: 1_700_000_000n } } },
         },
@@ -208,6 +208,6 @@ describe("boot-time RebuildIndex", () => {
       org: "preboot",
     });
     expect(skills.entries.map((entry) => entry.id)).toEqual(["skl_adopted"]);
-    expect(skills.entries[0]?.description).toBe("a skill from the Go era");
+    expect(skills.entries[0]?.description).toBe("a skill stored before this boot");
   });
 });

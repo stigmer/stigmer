@@ -55,7 +55,7 @@ export interface ServiceSchema {
 }
 
 /**
- * Serializes a ServiceSchema in the exact Go struct-tag order, with the
+ * Serializes a ServiceSchema in the committed schemas' exact key order, with the
  * resource name applied by the caller.
  */
 export function serviceSchemaStruct(resource: string, schema: ServiceSchema): GoJsonStruct {
@@ -254,8 +254,8 @@ function collectEnumTypes(
   return result;
 }
 
-// Direct or list-of-enum only — Go's collectEnumFromTypeSpec never captured
-// map-value enums on this path.
+// Direct or list-of-enum only — map-value enums are not captured on this
+// path, as the committed schemas hold them.
 function collectEnumFromDescField(
   field: DescField,
   seen: Set<string>,

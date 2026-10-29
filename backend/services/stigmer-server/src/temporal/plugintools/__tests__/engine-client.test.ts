@@ -9,7 +9,7 @@
  *     found anywhere in the cause chain and winning over a timeout, a run
  *     timeout, a run Temporal no longer knows, and every other failure by
  *     its own text;
- *   - the race backstop answers Go's "context deadline exceeded" when the
+ *   - the race backstop answers "context deadline exceeded" when the
  *     run outlives it, and lets a run that settles first answer;
  *   - the engine-state provider is disconnected until the first connect,
  *     memoized per client and rebuilt on a reconnect.
@@ -239,7 +239,7 @@ describe("the race backstop", () => {
     expect(await settle(async () => ({ tools: [] }), 5_000)).toEqual({ ok: true, output: { tools: [] } });
   });
 
-  it("answers Go's deadline text when the run outlives it", async () => {
+  it("answers the deadline text when the run outlives it", async () => {
     const never = () => new Promise<unknown>(() => {});
     expect(await settle(never, 5)).toEqual({
       ok: false,

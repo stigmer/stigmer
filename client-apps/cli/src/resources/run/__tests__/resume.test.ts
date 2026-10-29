@@ -40,7 +40,7 @@ function executionIn(
   interactionMode: InteractionMode = InteractionMode.UNSPECIFIED,
 ) {
   return create(RunSchema, {
-    metadata: { id: "aex_1", org: "acme" },
+    metadata: { id: "run_1", org: "acme" },
     spec: { interactionMode },
     status: { phase },
   });
@@ -72,14 +72,14 @@ describe("openSession", () => {
     });
 
     expect(stream).toHaveBeenCalledWith(
-      expect.objectContaining({ sessionId: "ses_1", org: "acme", runId: "aex_1", approveDefault: "" }),
+      expect.objectContaining({ sessionId: "ses_1", org: "acme", runId: "run_1", approveDefault: "" }),
     );
   });
 
   describe("a finished session off a terminal", () => {
     let stdout: string[];
     let stderr: string[];
-    const history = [user("aex_1", "hi"), said("aex_1", 0, "Hello."), phase("aex_1", "completed")];
+    const history = [user("run_1", "hi"), said("run_1", 0, "Hello."), phase("run_1", "completed")];
 
     beforeEach(() => {
       stdout = [];

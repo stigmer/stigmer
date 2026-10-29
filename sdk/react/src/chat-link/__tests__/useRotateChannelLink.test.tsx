@@ -36,13 +36,13 @@ describe("useRotateChannelLink", () => {
 
   it("calls rotateLink with the channel id and returns the updated channel", async () => {
     const rotated = {
-      metadata: { id: "ash_1" },
+      metadata: { id: "chn_1" },
       status: { typeStatus: { case: "web", value: { linkToken: "fresh-token" } } },
     };
     const rotateLink = vi.fn().mockResolvedValue(rotated);
     const client = createMockStigmer({ rotateLink });
 
-    const { result } = renderHook(() => useRotateChannelLink("ash_1"), {
+    const { result } = renderHook(() => useRotateChannelLink("chn_1"), {
       wrapper: wrapper(client),
     });
 
@@ -53,7 +53,7 @@ describe("useRotateChannelLink", () => {
 
     expect(rotateLink).toHaveBeenCalledTimes(1);
     const input = rotateLink.mock.calls[0][0] as RotateChannelLinkInput;
-    expect(input.resourceId).toBe("ash_1");
+    expect(input.resourceId).toBe("chn_1");
     // The server generates the token — the request carries nothing but the id.
     expect(Object.keys(input)).not.toContain("linkToken");
     expect(returned).toBe(rotated);
@@ -83,7 +83,7 @@ describe("useRotateChannelLink", () => {
     const rotateLink = vi.fn().mockRejectedValue(failure);
     const client = createMockStigmer({ rotateLink });
 
-    const { result } = renderHook(() => useRotateChannelLink("ash_1"), {
+    const { result } = renderHook(() => useRotateChannelLink("chn_1"), {
       wrapper: wrapper(client),
     });
 

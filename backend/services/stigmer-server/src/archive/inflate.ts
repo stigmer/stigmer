@@ -1,11 +1,10 @@
 /**
  * Reading one archive entry under a real cap. Declared sizes are client
  * claims, so every gate that opens an entry bounds the ACTUAL inflated
- * output (`maxOutputLength`), verifies the CRC the way Go's checksumReader
- * does on every read, and opens only the two methods the platform
- * registers (stored, deflated). The skill gate did this for SKILL.md alone;
- * a plugin reads many documents through the same discipline, so the read
- * lives here and each kind keeps its own sentences: the outcome is a typed
+ * output (`maxOutputLength`), verifies the CRC on every read, and opens only the two methods the platform
+ * registers (stored, deflated). A skill reads SKILL.md and a plugin reads
+ * many documents through the same discipline, so the read lives here and
+ * each kind keeps its own sentences: the outcome is a typed
  * failure, never prose, because the skill's copy is byte-pinned wire
  * contract and a plugin's names a different document.
  *
@@ -17,7 +16,7 @@ import { inflateRawSync } from "node:zlib";
 import { crc32 } from "@stigmer/zip-structure";
 import type { ZipStructuralEntry } from "@stigmer/zip-structure";
 
-/** ZIP compression methods the gate can open (Go registers the same two). */
+/** ZIP compression methods the gate can open. */
 const METHOD_STORED = 0;
 const METHOD_DEFLATED = 8;
 
@@ -26,7 +25,7 @@ export type InflateFailureKind =
   | "too-large"
   /** zlib refused the payload; `detail` carries its message. */
   | "read-failed"
-  /** A compression method neither Go nor this gate registers. */
+  /** A compression method this gate does not register. */
   | "unsupported-method"
   /** The inflated bytes do not match the entry's CRC. */
   | "checksum";
@@ -76,8 +75,8 @@ export function inflateEntry(
       }
       break;
     default:
-      // Go: File.Open returns ErrAlgorithm for methods without a registered
-      // decompressor; each kind pins the text via its own %w-shaped arm.
+      // A method with no registered decompressor; each kind pins the text
+      // via its own wrapping arm.
       throw new InflateError(
         "unsupported-method",
         "zip: unsupported compression algorithm",
@@ -89,7 +88,7 @@ export function inflateEntry(
   }
 
   if (crc32(content) !== entry.crc32) {
-    // Go's checksumReader: stdlib ErrChecksum via the read-error arm.
+    // The checksum refusal, through the read-error arm.
     throw new InflateError("checksum", "zip: checksum error");
   }
 

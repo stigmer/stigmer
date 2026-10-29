@@ -1,5 +1,5 @@
 /**
- * UpdateStatus — ports controller/update_status.go: the runner's
+ * UpdateStatus — the runner's
  * progressive status-update RPC and the domain's single merge chokepoint.
  *
  * Chain: Authorize → ValidateUpdateStatusInput → AdmitLoadedVersions →
@@ -143,7 +143,7 @@ type UpdateStatusDesc =
   typeof RunCommandController.method.updateStatus.input;
 
 const EXECUTION_KEY = "execution";
-// An internal handoff (not a ported Go key): the phase read inside the
+// An internal handoff: the phase read inside the
 // updateResource closure BEFORE the merge mutates, for the observer step.
 const OLD_PHASE_KEY = "o4OldPhase";
 

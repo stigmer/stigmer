@@ -1,9 +1,6 @@
 /**
- * The sandbox-provisioner driver seam. The contract generalizes the
- * cloud edition's production-proven Java
- * strategy interface (stigmer-cloud
- * domain/agentic/sandbox/SandboxProvisioner.java) so execution isolation
- * is an OSS capability: a provisioner creates, repairs, and tears down
+ * The sandbox-provisioner driver seam, so execution isolation is an OSS
+ * capability: a provisioner creates, repairs, and tears down
  * the isolated runner that polls one execution-scoped Temporal task
  * queue.
  *

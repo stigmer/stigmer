@@ -1,5 +1,5 @@
 // `stigmer download <type> <ref>` — download what a resource holds as files.
-// A run (`run_`, or `aex_` from before the rename) gives back its outputs,
+// A run (`run_`) gives back its outputs,
 // the files its agent saved in .stigmer/outputs/, each written at its place
 // in that folder; a session gives back what all its turns saved, newest per
 // path; a File gives back its bytes under its filename; an eval

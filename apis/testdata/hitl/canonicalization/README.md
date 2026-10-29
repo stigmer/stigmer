@@ -4,11 +4,11 @@ This directory pins the **canonicalization** of a tool action — the single,
 explicit normalization pass that erases incidental differences between two
 representations of the same action before any hash is computed.
 
-It exists because the rolled-back March 2026 dedup hashed *divergent*
-representations of the same call (display args in one place, raw args in
-another). The fix is to canonicalize at exactly one layer, deterministically,
-and to lock that determinism with cross-language vectors so Go, Java, and TS all
-agree byte-for-byte.
+It exists because hashing *divergent* representations of the same call
+(display args in one place, raw args in another) makes two equal actions look
+different. The answer is to canonicalize at exactly one layer,
+deterministically, and to lock that determinism with vectors every reader (the
+runner and the server) must match byte-for-byte.
 
 > Scope: the canonical form is **defined and computed** here, not hashed. The
 > approval fingerprint (an HMAC keyed on a Stigmer secret, pinned in

@@ -5,7 +5,7 @@
  *
  * The full credential loop this proves is the multi-user self-host story:
  *   1. tokenless requests are UNAUTHENTICATED "authentication token
- *      missing" (the Java copy) — except is_public methods (getServerInfo)
+ *      missing" (wire contract copy) — except is_public methods (getServerInfo)
  *      and the gRPC health service by name (a Kubernetes grpc probe;
  *      stigmer#974);
  *   2. an OIDC access token authenticates; the caller's sub becomes the
@@ -242,7 +242,7 @@ afterAll(async () => {
 });
 
 describe("the require-authentication posture on the wire", () => {
-  it("a tokenless RPC is UNAUTHENTICATED with the Java byte-pinned copy", async () => {
+  it("a tokenless RPC is UNAUTHENTICATED with the byte-pinned copy", async () => {
     const query = createClient(ApiKeyQueryController, transportWith());
     const error = await query.list({}).catch((e: unknown) => e);
     expect(ConnectError.from(error).code).toBe(Code.Unauthenticated);
@@ -451,11 +451,11 @@ describe("identity accounts under the OIDC posture", () => {
   });
 
   it("a key minted BEFORE provisioning still resolves to the owner's account — the raw-sub stamp derives to the same id", async () => {
-    const overLegacyKey = createClient(
+    const overEarlyKey = createClient(
       IdentityAccountQueryController,
       transportWith(keyMintedBeforeProvisioning),
     );
-    expect((await overLegacyKey.whoAmI({})).metadata?.id).toBe(accountId);
+    expect((await overEarlyKey.whoAmI({})).metadata?.id).toBe(accountId);
   });
 
   it("provisionMyAccount is idempotent for a provisioned subject", async () => {

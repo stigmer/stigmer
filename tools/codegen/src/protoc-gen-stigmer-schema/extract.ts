@@ -1,10 +1,10 @@
-// Message, field, type, and enum extraction — the port of the Go
-// extractor's parse*/extract*/collect* family.
+// Message, field, type, and enum extraction: the parse*/extract*/collect*
+// family.
 //
 // Schema values are built as plain objects whose KEY INSERTION ORDER equals
-// the Go struct-tag order and where `undefined` reproduces `omitempty`; the
-// gojson serializer turns that into the exact committed bytes. Values that
-// Go left as nil slices (marshaling to `null`) are represented as explicit
+// the committed schemas' key order and where `undefined` reproduces
+// `omitempty`; the gojson serializer turns that into the exact committed
+// bytes. A list the committed schemas write as `null` is an explicit
 // `null`.
 
 import type { DescEnum, DescField, DescFile, DescMessage } from "@bufbuild/protobuf";
@@ -59,7 +59,7 @@ export interface EnumSchemaValue extends GoJsonStruct {
   values: GoJsonValue;
 }
 
-/** Message comment reduced to SDK-facing text (the Go extractComments). */
+/** Message comment reduced to SDK-facing text. */
 export function messageDescription(msg: DescMessage, ctx: ExtractContext): string {
   return stripText(ctx.comments.message(msg));
 }
@@ -103,9 +103,9 @@ export function extractFieldSchema(field: DescField, ctx: ExtractContext): Field
   };
 }
 
-// Go's protoreflect reported SYNTHETIC oneofs too (a proto3 `optional int32
-// depth` field carries oneofGroup "_depth" in the committed schemas), while
-// protobuf-es's field.oneof deliberately hides them. Real oneofs come from
+// The committed schemas name SYNTHETIC oneofs too (a proto3 `optional int32
+// depth` field carries oneofGroup "_depth"), while protobuf-es's field.oneof
+// deliberately hides them. Real oneofs come from
 // field.oneof; synthetic ones are detected via proto3Optional (oneofIndex
 // itself can't be presence-checked on the plain message shape — proto2
 // optionals surface as 0 when unset).
@@ -118,8 +118,7 @@ function oneofGroupName(field: DescField): string | undefined {
 }
 
 // Maps captured rules onto the Validation struct's tag order with omitempty
-// semantics (zero values drop — including a computed Min of 0, exactly as
-// Go's `int` + omitempty did).
+// semantics (zero values drop — including a computed Min of 0).
 function validationStruct(v: ValidationRules): GoJsonStruct {
   return {
     required: v.required ? true : undefined,

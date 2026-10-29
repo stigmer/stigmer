@@ -170,7 +170,7 @@ describe("teeChildOutput", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("writes a chunk emitted between the stop signal and stdio close to the file — the ordering that used to throw write-after-end", async () => {
+  it("writes a chunk emitted between the stop signal and stdio close to the file — the ordering that would otherwise throw write-after-end", async () => {
     const child = new FakeChild();
     const file = join(dir, "runner.log");
     const tee = teeChildOutput(child.asHandle(), { tailBytes: 8_000, file });

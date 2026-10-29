@@ -97,7 +97,7 @@ Resource spec schema:
 
 Type kinds: `string`, `int32`, `uint32`, `int64`, `bool`, `float`, `double`, `bytes`, `map` (`keyType`/`valueType`), `array` (`elementType`), `message` (`messageType`), `struct`, `timestamp`; enums carry `enumType`/`enumValues`.
 
-Schemas are serialized with `src/gojson.ts`, a byte-exact equivalent of Go's `json.MarshalIndent` (HTML escaping, sorted map keys, two-space indent) — the toolchain was ported from Go and every committed artifact reproduces byte-for-byte, so diffs stay meaningful.
+Schemas are serialized with `src/gojson.ts`, a byte-exact equivalent of Go's `json.MarshalIndent` (HTML escaping, sorted map keys, two-space indent) — every committed artifact is in that one format, so diffs stay meaningful.
 
 ## Development
 
@@ -110,7 +110,3 @@ npm run test -w @stigmer/codegen
 # Typecheck:
 npm run typecheck -w @stigmer/codegen
 ```
-
-## History
-
-The toolchain was originally written in Go (`proto2schema` + `generator`); it was ported to TypeScript with byte-identical output in 2026-08 so the codegen stack matches the language of the project it generates for, with Stage 1 becoming a proper buf plugin. Before that, the generator once had a single hardcoded target that emitted Go structs into `sdk/go/gen`; that surface was never consumed and drifted for months, so oss#496 deleted it. The current generator is dispatch-only: every target is explicit, every output is gated.

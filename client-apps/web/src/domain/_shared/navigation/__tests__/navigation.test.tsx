@@ -33,11 +33,11 @@ beforeEach(() => {
 
 describe("AppNavigationProvider", () => {
   it("seeds currentPath from the browser path on mount", () => {
-    setBrowserPath("/runs/aex_seed");
+    setBrowserPath("/runs/run_seed");
     const { result } = renderHook(() => useAppNavigation(), {
       wrapper: AppNavigationProvider,
     });
-    expect(result.current.currentPath).toBe("/runs/aex_seed");
+    expect(result.current.currentPath).toBe("/runs/run_seed");
   });
 
   it("navigate() updates currentPath and calls history.pushState (no reload)", () => {
@@ -46,11 +46,11 @@ describe("AppNavigationProvider", () => {
       wrapper: AppNavigationProvider,
     });
 
-    act(() => result.current.navigate("/runs/aex_1"));
+    act(() => result.current.navigate("/runs/run_1"));
 
-    expect(result.current.currentPath).toBe("/runs/aex_1");
-    expect(window.location.pathname).toBe("/runs/aex_1");
-    expect(pushSpy).toHaveBeenCalledWith(null, "", "/runs/aex_1");
+    expect(result.current.currentPath).toBe("/runs/run_1");
+    expect(window.location.pathname).toBe("/runs/run_1");
+    expect(pushSpy).toHaveBeenCalledWith(null, "", "/runs/run_1");
     pushSpy.mockRestore();
   });
 
@@ -134,10 +134,10 @@ describe("zone derivation", () => {
   it("derives the active execution id inside the execution zone", () => {
     const { result } = renderHook(useZones, { wrapper });
 
-    act(() => result.current.execution.navigateToRun("aex_42"));
+    act(() => result.current.execution.navigateToRun("run_42"));
 
     expect(result.current.execution.isExecutionZone).toBe(true);
-    expect(result.current.execution.activeRunId).toBe("aex_42");
+    expect(result.current.execution.activeRunId).toBe("run_42");
     expect(result.current.session.isSessionZone).toBe(false);
     expect(result.current.session.activeSessionId).toBeNull();
   });
@@ -149,7 +149,7 @@ describe("zone derivation", () => {
     expect(result.current.session.isSessionZone).toBe(true);
     expect(result.current.execution.isExecutionZone).toBe(false);
 
-    act(() => result.current.execution.navigateToRun("aex_1"));
+    act(() => result.current.execution.navigateToRun("run_1"));
     // The cross-zone bug a naive two-provider design would cause: both zones
     // true at once. A single source of truth makes them mutually exclusive.
     expect(result.current.execution.isExecutionZone).toBe(true);
@@ -169,7 +169,7 @@ describe("zone derivation", () => {
     // navigateToHome stays in the session zone, so nothing captured yet.
     expect(result.current.session.lastSessionZonePath).toBeNull();
 
-    act(() => result.current.execution.navigateToRun("aex_x"));
+    act(() => result.current.execution.navigateToRun("run_x"));
     // Left the session zone (home) for the run zone.
     expect(result.current.session.lastSessionZonePath).toBe("/");
   });

@@ -4,7 +4,7 @@
 // via the idempotent start path (which reuses healthy instances and cleans up
 // stale ones). This is intentionally separate from the daemon's child
 // supervisor: Temporal owns its own lifecycle and lock, so it carries its own
-// watchdog — exactly the split the Go CLI uses.
+// watchdog.
 //
 // The check and backoff are dependency-injected (clock) so the policy is unit-
 // testable without real time, and the loop never overlaps with itself.

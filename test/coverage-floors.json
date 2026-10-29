@@ -33,7 +33,7 @@
     "backend/libs/ts/session-log": {
       "lines": 100,
       "branches": 94,
-      "cases": 194
+      "cases": 188
     },
     "backend/libs/ts/tool-vocabulary": {
       "lines": 100,

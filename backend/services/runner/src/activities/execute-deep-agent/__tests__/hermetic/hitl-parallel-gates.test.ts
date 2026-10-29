@@ -4,7 +4,7 @@
  *
  * The Stigmer harness's prompt asks the model to make independent calls together
  * (`prompt-builder.ts`, "Working with tools"), so with approvals on, several
- * calls wait in the same round more often than they used to. The resume path
+ * calls often wait in the same round. The resume path
  * was built for it: `hitl.ts` `resolveResumeInput` builds one
  * `Command(resume)` map over every pending interrupt, keyed by interrupt id.
  * Every other approval arm gates one call per round, so this pins that

@@ -1,6 +1,6 @@
 // Public, embeddable surface for the Stigmer MCP server.
 //
-// Mirrors Go pkg/mcpserver: a minimal API — load a Config from the environment,
+// A minimal API — load a Config from the environment,
 // then run() the server until the provided AbortSignal fires. The Stigmer CLI
 // embeds the whole server through run(); a host that serves MCP beside its own
 // traffic mounts createMcpHttpHandler on its own node:http listener instead.

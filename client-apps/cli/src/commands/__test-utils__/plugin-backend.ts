@@ -85,8 +85,6 @@ export function useTestHome(port: number): TestHome {
   writeFileSync(
     join(dir, ".stigmer", "config.yaml"),
     [
-      "backend:",
-      "  type: cloud",
       "backends:",
       "  test:",
       "    type: selfhost",

@@ -202,24 +202,13 @@ describe("writeSkillMount — marker mechanics", () => {
 
 // ─── downloadArtifact — transfer lane routing (#675) ─────────────────────
 
-/** A server that predates the transfer lane (#675) answers the mint RPC
- * with UNIMPLEMENTED — the default posture for these tests, which keeps
- * every pre-existing case pinned to the unary getSkillArtifact fallback. */
-function unimplementedMint() {
-  return vi.fn().mockRejectedValue(new ConnectError("unimplemented", Code.Unimplemented));
-}
-
 describe("downloadArtifact — transfer lane routing", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   function makeClient(overrides: Record<string, any> = {}) {
-    return {
-      getSkillArtifact: vi.fn().mockResolvedValue({ artifact: new Uint8Array(0) }),
-      getSkillArtifactDownloadUrl: unimplementedMint(),
-      ...overrides,
-    } as any;
+    return { ...overrides } as any;
   }
 
   it("fetches bytes over HTTP when the server mints a download URL", async () => {
@@ -241,34 +230,15 @@ describe("downloadArtifact — transfer lane routing", () => {
 
     expect(got).toEqual(bytes);
     expect(fetchMock).toHaveBeenCalledWith("http://localhost:7234/v1/skill-artifacts/skills/abc.zip");
-    // The unary lane (10MB-capped) must not be touched when the URL lane works.
-    expect(client.getSkillArtifact).not.toHaveBeenCalled();
   });
 
-  it("falls back to the unary RPC when the server predates the lane", async () => {
-    const bytes = new Uint8Array([9, 9]);
-    const client = makeClient({
-      getSkillArtifact: vi.fn().mockResolvedValue({ artifact: bytes }),
-    });
-    vi.stubGlobal("fetch", vi.fn()); // must never be called
-
-    const got = await downloadArtifact(client, "skills/abc.zip");
-
-    expect(got).toEqual(bytes);
-    expect(client.getSkillArtifact).toHaveBeenCalledWith("skills/abc.zip");
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("does NOT fall back on non-Unimplemented mint failures", async () => {
-    const client = makeClient({
-      getSkillArtifactDownloadUrl: vi.fn().mockRejectedValue(
-        new ConnectError("boom", Code.Internal),
-      ),
-    });
-
-    await expect(downloadArtifact(client, "skills/abc.zip")).rejects.toThrow("boom");
-    // Falling back here would mask real server faults behind the capped lane.
-    expect(client.getSkillArtifact).not.toHaveBeenCalled();
+  it("fails the download on any mint refusal, Unimplemented included", async () => {
+    for (const code of [Code.Internal, Code.Unimplemented]) {
+      const client = makeClient({
+        getSkillArtifactDownloadUrl: vi.fn().mockRejectedValue(new ConnectError("boom", code)),
+      });
+      await expect(downloadArtifact(client, "skills/abc.zip")).rejects.toThrow("boom");
+    }
   });
 
   it("rejects truncated fetches via the minted size", async () => {

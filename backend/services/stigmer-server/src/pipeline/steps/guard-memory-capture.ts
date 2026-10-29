@@ -1,6 +1,6 @@
 /**
- * GuardMemoryCapture — the memory create chain's capture-eligibility gate
- * (the Java MemoryCreateHandler's first gate): memory may only be captured
+ * GuardMemoryCapture — the memory create chain's first gate, capture
+ * eligibility: memory may only be captured
  * for a FIRST-PARTY HUMAN OPERATOR
  * — or the remember tool's SESSION-SCOPED sandbox credential acting as
  * its human subject. Machine accounts and
@@ -27,7 +27,7 @@
  * another edition's lane names). The capability's three verdicts:
  * `admit` (the session-scoped capture lane — the token's proved subject
  * and session id are stashed under MEMORY_CAPTURE_CREDENTIAL_KEY for
- * ResolveMemoryDefaults' Java-parity field derivation), `refuse` (a
+ * ResolveMemoryDefaults' field derivation), `refuse` (a
  * runner credential outside the capture lane — the byte-pinned copy
  * below), `no-opinion` (not a credential the implementation classifies —
  * this gate's own logic applies). The capability throws its own
@@ -48,7 +48,7 @@ import type { RequestContext } from "../request-context.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { metadataOf } from "./shapes.js";
 
-/** The Java MemoryPolicy.MEMORY_CAPTURE_CALLER_MESSAGE, byte-pinned. */
+/** The capture-caller refusal copy, byte-pinned. */
 export const MEMORY_CAPTURE_CALLER_MESSAGE =
   "memory can only be captured for a first-party human operator";
 
@@ -77,8 +77,7 @@ export function newGuardMemoryCaptureStep<Desc extends DescMessage>(
         // The org the capture addresses — the capability's org-mismatch
         // arm checks it against the token's own claim (and throws its
         // byte-pinned refusal itself). Empty when the request carries
-        // none; Java requires metadata.org before its org-match arm, so
-        // an empty value can only ever narrow. Awaited because the
+        // none, and an empty value can only ever narrow. Awaited because the
         // built-in provider reads the bound execution's row for the
         // session and org the cloud's token carries as claims.
         const org = metadataOf(ctx.newState)?.org ?? "";

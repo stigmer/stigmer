@@ -3,7 +3,6 @@
  * spec of the version a turn runs, for its run defaults.
  *
  *   - no agent reads nothing;
- *   - an empty version hash reads the agent as it is now;
  *   - the head's hash reads the head, an archived hash the archived spec
  *     (not the head's);
  *   - a version the agent does not hold, and an agent that is gone, are
@@ -66,10 +65,6 @@ describe("readRunAgentSpec", () => {
     expect(await readRunAgentSpec(store, "", HEAD)).toBeUndefined();
   });
 
-  it("reads the agent as it is now when the turn names no version", async () => {
-    expect((await readRunAgentSpec(store, AGENT, ""))?.runConfig?.modelName).toBe("head-model");
-  });
-
   it("reads the head by its hash and an archived version by its own", async () => {
     expect((await readRunAgentSpec(store, AGENT, HEAD))?.runConfig?.modelName).toBe("head-model");
     expect((await readRunAgentSpec(store, AGENT, OLD))?.runConfig?.modelName).toBe("old-model");
@@ -77,13 +72,13 @@ describe("readRunAgentSpec", () => {
 
   it("answers NotFound for a version the agent does not hold, and for an agent that is gone", async () => {
     expect(await code(readRunAgentSpec(store, AGENT, "f".repeat(64)))).toBe(Code.NotFound);
-    expect(await code(readRunAgentSpec(store, "agt_gone", ""))).toBe(Code.NotFound);
+    expect(await code(readRunAgentSpec(store, "agt_gone", HEAD))).toBe(Code.NotFound);
   });
 
   it("answers Internal for a store fault reading the head", async () => {
     const faulty = {
       getResource: () => Promise.reject(new Error("disk on fire")),
     } as unknown as Store;
-    expect(await code(readRunAgentSpec(faulty, AGENT, ""))).toBe(Code.Internal);
+    expect(await code(readRunAgentSpec(faulty, AGENT, HEAD))).toBe(Code.Internal);
   });
 });

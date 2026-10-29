@@ -2,12 +2,11 @@
  * The router-transport spike: `createRouterTransport` traverses the
  * FULL interceptor chain on in-process calls.
  *
- * Why this matters: Go serves internal calls (plugin member deletes,
- * cascades, schedule RunStarter creates) through the same *grpc.Server over
- * an in-memory bufconn precisely so validation parity holds — an internal
- * call is validated exactly like an external one. The TS equivalent is
- * ConnectRPC's router transport; these tests verify the properties the
- * design depends on BEFORE the composition root is built on them:
+ * Why this matters: the server serves internal calls (plugin member
+ * deletes, cascades, schedule RunStarter creates) through the same chain
+ * as external ones, so an internal call is validated exactly like an
+ * external one. ConnectRPC's router transport is how; these tests verify
+ * the properties the composition root depends on:
  *
  *   1. every interceptor runs for an in-process call,
  *   2. in registration order (outermost first — the chain contract),

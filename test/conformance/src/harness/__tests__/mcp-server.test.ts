@@ -4,7 +4,8 @@
 // serves the fixed order table and refuses an unknown id as a tool error,
 // `echo_destructive` alone carries `destructiveHint: true` (the mark the
 // approval default asks on), and an unknown name is refused rather than served
-// as a guess. Driven over loopback with the real MCP client; no runner, no
+// as a guess; and the name a model calls a server's tool by
+// (`mcpToolName`). Driven over loopback with the real MCP client; no runner, no
 // target. Domain: conformance harness (execution engine).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -15,7 +16,9 @@ import {
   FAIL_TOOL_NAME,
   FIXTURE_ORDERS,
   LOOKUP_ORDER_TOOL_NAME,
+  MODEL_TOOL_NAME_MAX,
   McpToolFixture,
+  mcpToolName,
   toolsForPath,
 } from "../mcp-server";
 
@@ -149,5 +152,14 @@ describe("the OAuth posture's metadata document", () => {
     } finally {
       fixture.requireOAuth(undefined);
     }
+  });
+});
+
+describe("mcpToolName", () => {
+  it("writes the published grammar, and refuses a name the engine would have to fit", () => {
+    expect(mcpToolName("fixture-own", ECHO_TOOL_NAME)).toBe("mcp__fixture-own__echo");
+    const longest = "s".repeat(MODEL_TOOL_NAME_MAX - "mcp__".length - "__".length - ECHO_TOOL_NAME.length);
+    expect(mcpToolName(longest, ECHO_TOOL_NAME)).toHaveLength(MODEL_TOOL_NAME_MAX);
+    expect(() => mcpToolName(`${longest}s`, ECHO_TOOL_NAME)).toThrow(/longer than 64 characters/);
   });
 });

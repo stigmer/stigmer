@@ -33,7 +33,7 @@ export type { ConnectProviderPanelProps, ModelNeedsProviderProps } from "./Conne
 export type { InheritedModel, ModelSelectorProps } from "./ModelSelector.js";
 export { HarnessSelector } from "./HarnessSelector.js";
 export type { HarnessSelectorProps } from "./HarnessSelector.js";
-export { DEFAULT_HARNESS, HARNESS_LABELS, HARNESS_META, HARNESS_OPTIONS, isHarnessOption, toProtoHarness, fromProtoHarness } from "./harness.js";
+export { DEFAULT_HARNESS, HARNESS_META, HARNESS_OPTIONS, isHarnessOption, toProtoHarness, fromProtoHarness } from "./harness.js";
 export type { HarnessOption, HarnessDisplayInfo } from "./harness.js";
 export { FAST_SERVICE_TIER, toProtoServiceTier, fromProtoServiceTier } from "./service-tier.js";
 export type { ServiceTierOption } from "./service-tier.js";

@@ -9,18 +9,13 @@
 // organization the server made, and says it fills it; a smoke line runs in
 // the organization it is given, else a one-organization server's, else a
 // fresh one. The run probes: an agent run
-// passes only on the model's reply, and a terminal failure (of an agent run,
-// or of the legacy arm's workflow run) ends the wait at once instead of being
-// retried to the deadline (#1514). The state probes the upgrade rehearsal
-// reads: what the runs created is recorded, read back after an upgrade, and
-// every loss or change named at once (compareState is pure; recordState and
-// assertStateSurvived run against a scripted lane whose rows can be made to
-// vanish, the way a data-losing migration would, and which can serve a
-// release from before runs were named runs and then upgrade, so state
-// recorded through the old run API reads back through the new one). The
-// legacy workflow arm: a base that still serves workflows, under either run
-// API, records one workflow run, a base that serves none records none, and
-// the workflow API must be gone after the upgrade. The version probe: the
+// passes only on the model's reply, and a terminal failure ends the wait at
+// once instead of being retried to the deadline (#1514). The state probes the
+// upgrade rehearsal reads: what the runs created is recorded, read back after
+// an upgrade, and every loss or change named at once (compareState is pure;
+// recordState and assertStateSurvived run against a scripted lane whose rows
+// can be made to vanish, the way a data-losing migration would). The version
+// probe: the
 // server's own getServerInfo answer, refused when empty. The refusal probe:
 // a request the server must refuse passes only on a non-2xx naming the
 // expected text, and an admission or another refusal fails, naming the
@@ -40,19 +35,13 @@ import {
   assertMissingOrganizationRefused,
   assertOAuthCallbackFromPublicOrigin,
   assertStateSurvived,
-  assertWorkflowApiGone,
   compareState,
   connectRefusal,
   expectRefusal,
-  LEGACY_WORKFLOW_APIS,
-  legacyWorkflowApiOf,
   pollUntil,
-  RUN_APIS,
   readState,
   recordState,
   runAgentToReply,
-  runApiOf,
-  runSetVarsWorkflow,
   serverLogEntries,
   serverVersion,
   streamedRunOutcome,
@@ -247,7 +236,6 @@ async function serveConnectLane(routes) {
 const ORG_CREATE = "ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create";
 const SERVER_INFO = "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo";
 const MY_ORGS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine";
-const MY_ORGS_BEFORE_LIST_RENAME = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations";
 const STIGMER_ORG = { metadata: { id: "stigmer", slug: "stigmer", name: "Stigmer" } };
 const OTHER_ORG = { metadata: { id: "acme", slug: "acme", name: "acme" } };
 const AGENT_CREATE = "ai.stigmer.agentic.agent.v1.AgentCommandController/create";
@@ -262,7 +250,7 @@ const REPLY = "This is the Stigmer fake model's default reply; no real model was
  * for it (a page of the run's agent.message events, from {@link
  * agentMessage}).
  */
-function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "aex_smoke_1" } }), events = () => page([agentMessage(REPLY)]) } = {}) {
+function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "run_smoke_1" } }), events = () => page([agentMessage(REPLY)]) } = {}) {
   return serveConnectLane({
     // A server that holds several organizations: the line makes its own.
     [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
@@ -276,17 +264,17 @@ function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "aex_smok
 
 /** A completed run in the session `ses_smoke_1`; its reply is in the session's log, not on it. */
 function completed() {
-  return { metadata: { id: "aex_smoke_1" }, spec: { sessionId: "ses_smoke_1" }, status: { phase: "RUN_COMPLETED" } };
+  return { metadata: { id: "run_smoke_1" }, spec: { sessionId: "ses_smoke_1" }, status: { phase: "RUN_COMPLETED" } };
 }
 
-/** One agent.message event of `aex_smoke_1`, as listEvents answers it in JSON; `threadId` names a sub-agent's thread. */
+/** One agent.message event of `run_smoke_1`, as listEvents answers it in JSON; `threadId` names a sub-agent's thread. */
 function agentMessage(text, threadId) {
   return {
     seq: "7",
     sessionId: "ses_smoke_1",
-    runId: "aex_smoke_1",
+    runId: "run_smoke_1",
     ...(threadId === undefined ? {} : { threadId }),
-    agentMessage: { id: "aex_smoke_1.m0", content: [{ type: "text", text }] },
+    agentMessage: { id: "run_smoke_1.m0", content: [{ type: "text", text }] },
   };
 }
 
@@ -299,7 +287,7 @@ test("an agent run starts a conversation on the agent's reference", async () => 
   const lane = await agentLane(completed, {
     aexCreate: (_n, body) => {
       sent.push(body.spec);
-      return { metadata: { id: "aex_smoke_1" } };
+      return { metadata: { id: "run_smoke_1" } };
     },
   });
   try {
@@ -310,32 +298,6 @@ test("an agent run starts a conversation on the agent's reference", async () => 
         message: "Say hello.",
       },
     ]);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("an agent run on a server that predates agent references names the agent by id", async () => {
-  const sent = [];
-  const lane = await agentLane(completed, {
-    aexCreate: (_n, body) => {
-      sent.push(body.spec);
-      return body.spec.sessionSpec === undefined
-        ? { metadata: { id: "aex_smoke_1" } }
-        : {
-            refuse: {
-              status: 400,
-              code: "invalid_argument",
-              message:
-                'cannot decode message ai.stigmer.agentic.session.v1.SessionSpec from JSON: key "agentRef" is unknown',
-            },
-          };
-    },
-  });
-  try {
-    const result = await runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY });
-    assert.equal(result.executionId, "aex_smoke_1");
-    assert.deepEqual(sent[1], { agentId: "agt_smoke_1", message: "Say hello." });
   } finally {
     await lane.close();
   }
@@ -355,7 +317,7 @@ test("an agent run passes on the model's reply, and yields the ids an upgrade re
       orgId: "org_smoke_1",
       agentId: "agt_smoke_1",
       agentSlug: "smoke-agent",
-      executionId: "aex_smoke_1",
+      executionId: "run_smoke_1",
       reply: REPLY,
     });
     assert.equal(lane.calls(AEX_GET), 2);
@@ -363,7 +325,7 @@ test("an agent run passes on the model's reply, and yields the ids an upgrade re
     // agent.message in its session's log.
     assert.deepEqual(asked.at(-1), {
       sessionId: "ses_smoke_1",
-      runId: "aex_smoke_1",
+      runId: "run_smoke_1",
       types: ["agent.message"],
       order: "desc",
       pageSize: 100,
@@ -378,7 +340,7 @@ test("an agent run's reply is its newest message on the session's own thread, ne
     events: () =>
       page([
         agentMessage("a sub-agent's later words", "sub_1"),
-        { ...agentMessage(""), agentMessage: { id: "aex_smoke_1.m1", content: [{ type: "text", text: "This is the " }, { type: "redacted" }, { type: "text", text: "reply" }] } },
+        { ...agentMessage(""), agentMessage: { id: "run_smoke_1.m1", content: [{ type: "text", text: "This is the " }, { type: "redacted" }, { type: "text", text: "reply" }] } },
         agentMessage(REPLY),
       ]),
   });
@@ -391,10 +353,10 @@ test("an agent run's reply is its newest message on the session's own thread, ne
 });
 
 test("an agent run that names no session fails, rather than reading no reply", async () => {
-  const lane = await agentLane(() => ({ metadata: { id: "aex_smoke_1" }, status: { phase: "RUN_COMPLETED" } }));
+  const lane = await agentLane(() => ({ metadata: { id: "run_smoke_1" }, status: { phase: "RUN_COMPLETED" } }));
   try {
     await assert.rejects(runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY }), /names no session to read its reply from/);
-    assert.equal(lane.calls(LIST_EVENTS), 1, "only the routing probe reached the event list");
+    assert.equal(lane.calls(LIST_EVENTS), 0, "nothing reached the event list");
   } finally {
     await lane.close();
   }
@@ -462,20 +424,6 @@ test("the organization probe refuses a server that does not fill one, and any ot
   }
 });
 
-test("a release from before the list rename answers the organization probes through findMyOrganizations", async () => {
-  const lane = await serveConnectLane({
-    [SERVER_INFO]: () => ({ edition: "oss", singleOrg: true }),
-    [MY_ORGS_BEFORE_LIST_RENAME]: () => ({ entries: [STIGMER_ORG] }),
-  });
-  try {
-    assert.equal(await readSingleOrganization(lane.baseUrl), "stigmer");
-    assert.equal(await smokeOrganization(lane.baseUrl, "smoke-org-1"), "stigmer");
-    assert.equal(lane.calls(MY_ORGS_BEFORE_LIST_RENAME), 2);
-  } finally {
-    await lane.close();
-  }
-});
-
 test("the organization probe names a listMine refusal other than an unrouted 404", async () => {
   const lane = await serveConnectLane({
     [SERVER_INFO]: () => ({ edition: "oss", singleOrg: true }),
@@ -529,30 +477,6 @@ test("an agent run needs the reply text the install's model answers with", async
   await assert.rejects(runAgentToReply("http://127.0.0.1:9", 1_000, {}), /needs the reply text/);
 });
 
-test("a workflow run that fails ends the wait at once (#1514)", async () => {
-  const lane = await serveConnectLane({
-    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
-    [ORG_CREATE]: () => ({ metadata: { id: "org_smoke_1" } }),
-    "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": () => ({ metadata: { id: "wfl_smoke_1" } }),
-    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunCommandController/create": () => ({
-      metadata: { id: "wex_smoke_1" },
-    }),
-    "ai.stigmer.agentic.workflowrun.v1.WorkflowRunQueryController/get": () => ({
-      status: { phase: "RUN_FAILED", error: { message: "set_vars failed" } },
-    }),
-  });
-  const started = Date.now();
-  try {
-    await assert.rejects(
-      runSetVarsWorkflow(lane.baseUrl, 60_000, () => {}, { api: LEGACY_WORKFLOW_APIS[0] }),
-      /execution reached RUN_FAILED: .*set_vars failed/,
-    );
-    assert.ok(Date.now() - started < 5_000, "the failure waited for the deadline");
-  } finally {
-    await lane.close();
-  }
-});
-
 test("pollUntil retries a transient error until the probe succeeds", async () => {
   let n = 0;
   const value = await pollUntil(
@@ -582,7 +506,7 @@ const SNAPSHOT = Object.freeze({
   agentOrg: { id: "org_ag", name: "smoke-agent-org-1", slug: "smoke-agent-org-1" },
   agent: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
   agentByReference: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
-  agentExecution: { id: "aex_1", name: "smoke-aex-1", slug: "smoke-aex-1", phase: "RUN_COMPLETED", reply: REPLY },
+  agentExecution: { id: "run_1", name: "smoke-run-1", slug: "smoke-run-1", phase: "RUN_COMPLETED", reply: REPLY },
 });
 
 function readOf(changes) {
@@ -614,17 +538,11 @@ test("compareState names an execution that is no longer COMPLETED", () => {
 /**
  * A lane that serves every call the state probes make, from rows it keeps:
  * creates add a row, gets read it, and `lane.lose(id)` deletes one, as a
- * migration that dropped rows would. It speaks `api` (RUN_APIS) and, when
- * `workflows` names one (LEGACY_WORKFLOW_APIS), that workflow run API, until
- * `lane.upgrade()`, which serves the current run API and no workflow API over
- * the same rows with their phases renamed, as the store's enum numbers read
- * after the rename. A run's reply is where its server keeps it: in the
- * session's event log on the current API (`lane.loseReply(id)` empties a
- * run's), on the run's status on an API from before the log, which the
- * upgrade does not carry into the log. An unrouted procedure answers as the
- * Connect adapter does: a bare 404.
+ * migration that dropped rows would. A run's reply is in the session's event
+ * log (`lane.loseReply(id)` empties a run's). An unrouted procedure answers as
+ * the Connect adapter does: a bare 404.
  */
-async function stateLane(api = RUN_APIS.current, workflows = undefined) {
+async function stateLane() {
   const rows = new Map();
   const replies = new Map();
   let n = 0;
@@ -639,56 +557,29 @@ async function stateLane(api = RUN_APIS.current, workflows = undefined) {
   // A Map, and a function check at the call: the path is the caller's, so it
   // must never reach an inherited property (a path of "constructor") or call
   // something that is not a route.
-  const workflowRoutes = (served) =>
-    served === undefined
-      ? {}
-      : {
-          "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create": create("wfl"),
-          [`${served.service}CommandController/create`]: (body) => {
-            assert.equal(body.kind, served.kind);
-            return create("wex", { status: { phase: `${served.phasePrefix}COMPLETED` } })(body);
-          },
-          [`${served.service}QueryController/get`]: get,
-        };
-  const routesFor = (speaks, served) => {
-    const logged = speaks === RUN_APIS.current;
-    const loggedRoutes = logged
-      ? {
-          [LIST_EVENTS]: (body) => ({
-            events: (replies.get(body.runId) ?? []).map((text) => ({
-              runId: body.runId,
-              sessionId: body.sessionId,
-              agentMessage: { id: `${body.runId}.m0`, content: [{ type: "text", text }] },
-            })),
-          }),
-        }
-      : {};
-    return new Map(Object.entries({
-      [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
-      [ORG_CREATE]: create("org"),
-      ...workflowRoutes(served),
-      [AGENT_CREATE]: create("agt"),
-      [`${speaks.agentService}CommandController/create`]: (body) => {
-        assert.equal(body.kind, speaks.agentKind);
-        if (!logged) {
-          return create("aex", {
-            spec: { sessionId: "ses_state" },
-            status: { phase: `${speaks.phasePrefix}COMPLETED`, messages: [{ type: "MESSAGE_AI", content: REPLY }] },
-          })(body);
-        }
-        const row = create("aex", { spec: { sessionId: "ses_state" }, status: { phase: `${speaks.phasePrefix}COMPLETED` } })(body);
-        replies.set(row.metadata.id, [REPLY]);
-        return row;
-      },
-      "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
-      "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
-      [`${speaks.agentService}QueryController/get`]: get,
-      "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
-        [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
-      ...loggedRoutes,
-    }));
-  };
-  let routes = routesFor(api, workflows);
+  const routes = new Map(Object.entries({
+    [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
+    [ORG_CREATE]: create("org"),
+    [AGENT_CREATE]: create("agt"),
+    [AEX_CREATE]: (body) => {
+      assert.equal(body.kind, "Run");
+      const row = create("run", { spec: { sessionId: "ses_state" }, status: { phase: "RUN_COMPLETED" } })(body);
+      replies.set(row.metadata.id, [REPLY]);
+      return row;
+    },
+    "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get": get,
+    "ai.stigmer.agentic.agent.v1.AgentQueryController/get": get,
+    [AEX_GET]: get,
+    "ai.stigmer.agentic.agent.v1.AgentQueryController/getByReference": (body) =>
+      [...rows.values()].find((row) => row.metadata.slug === body.slug && body.kind === "agent"),
+    [LIST_EVENTS]: (body) => ({
+      events: (replies.get(body.runId) ?? []).map((text) => ({
+        runId: body.runId,
+        sessionId: body.sessionId,
+        agentMessage: { id: `${body.runId}.m0`, content: [{ type: "text", text }] },
+      })),
+    }),
+  }));
   const server = createServer((request, response) => {
     let raw = "";
     request.on("data", (chunk) => (raw += chunk));
@@ -712,18 +603,6 @@ async function stateLane(api = RUN_APIS.current, workflows = undefined) {
     rename: (id, name) => {
       rows.get(id).metadata.name = name;
     },
-    setPhase: (id, phase) => {
-      rows.get(id).status.phase = phase;
-    },
-    upgrade: () => {
-      routes = routesFor(RUN_APIS.current, undefined);
-      for (const row of rows.values()) {
-        const phase = row.status?.phase;
-        if (phase?.startsWith(api.phasePrefix)) {
-          row.status.phase = `${RUN_APIS.current.phasePrefix}${phase.slice(api.phasePrefix.length)}`;
-        }
-      }
-    },
     close: () => new Promise((resolve) => server.close(resolve)),
   };
 }
@@ -734,9 +613,6 @@ test("recorded state that reads back whole survives", async () => {
     const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
     assert.equal(recorded.snapshot.agentExecution.reply, REPLY);
     assert.equal(recorded.snapshot.agentByReference.id, recorded.ids.agentId);
-    assert.equal(recorded.workflowRun, undefined, "a base that serves no workflows records no workflow run");
-    assert.equal(recorded.ids.workflowOrgId, undefined);
-    assert.equal(recorded.snapshot.workflowOrg, undefined);
     await assertStateSurvived(lane.baseUrl, recorded);
   } finally {
     await lane.close();
@@ -775,122 +651,16 @@ test("a lost agent execution and a renamed agent both fail the survival check, n
   }
 });
 
-test("state recorded through the run API before the rename reads back whole through the current one", async () => {
-  const lane = await stateLane(RUN_APIS.beforeRunRename);
-  try {
-    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.beforeRunRename);
-    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
-    assert.equal(recorded.snapshot.agentExecution.phase, "COMPLETED");
-    // A release from before the session event log answered with the reply
-    // on the run's status; the log does not carry it over, so it is read to
-    // prove the base ran and left out of what must survive.
-    assert.equal(recorded.reply, REPLY);
-    assert.equal(recorded.snapshot.agentExecution.reply, undefined);
-    lane.upgrade();
-    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
-    await assertStateSurvived(lane.baseUrl, recorded);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("state recorded through the agent run API reads back whole through the current one", async () => {
-  const lane = await stateLane(RUN_APIS.beforeRunKindRename);
-  try {
-    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.beforeRunKindRename);
-    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
-    assert.equal(recorded.snapshot.agentExecution.phase, "COMPLETED");
-    lane.upgrade();
-    assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
-    await assertStateSurvived(lane.baseUrl, recorded);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("a run that lost its phase across the rename is named", async () => {
-  const lane = await stateLane(RUN_APIS.beforeRunRename);
-  try {
-    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
-    lane.upgrade();
-    lane.setPhase(recorded.ids.agentExecutionId, "RUN_PHASE_UNSPECIFIED");
-    await assert.rejects(
-      assertStateSurvived(lane.baseUrl, recorded),
-      /agentExecution\.phase: was "COMPLETED", now "PHASE_UNSPECIFIED"/,
-    );
-  } finally {
-    await lane.close();
-  }
-});
-
-test("runApiOf takes any answer but an unrouted procedure's bare 404 as the current run API", async () => {
-  for (const [status, body] of [
-    [404, { code: "not_found", message: "Run not found: run_api_probe" }],
-    [400, { code: "invalid_argument", message: "value: not an id" }],
-  ]) {
-    const lane = await serveAnswer(status, body);
-    try {
-      assert.equal(await runApiOf(lane.baseUrl), RUN_APIS.current);
-    } finally {
-      await lane.close();
-    }
-  }
-});
-
 test("readState keeps a failed read as an error and skips the reference it depends on", async () => {
   const lane = await stateLane();
   try {
     const read = await readState(lane.baseUrl, {
       agentOrgId: "org_gone",
       agentId: "agt_gone",
-      agentExecutionId: "aex_gone",
+      agentExecutionId: "run_gone",
     });
     assert.match(read.agent.error, /HTTP 404/);
     assert.match(read.agentByReference.error, /did not read back by id/);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("a base that still serves workflows records one completed workflow run, under either run API", async () => {
-  for (const [api, workflows] of [
-    [RUN_APIS.beforeRunKindRename, LEGACY_WORKFLOW_APIS[0]],
-    [RUN_APIS.beforeRunRename, LEGACY_WORKFLOW_APIS[1]],
-  ]) {
-    const lane = await stateLane(api, workflows);
-    try {
-      assert.equal(await legacyWorkflowApiOf(lane.baseUrl), workflows);
-      const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
-      assert.match(recorded.workflowRun?.executionId ?? "", /^wex_/);
-      assert.match(recorded.workflowRun?.workflowId ?? "", /^wfl_/);
-      // The run's organization joins the ids, and reads back with the rest.
-      assert.equal(recorded.ids.workflowOrgId, recorded.workflowRun?.orgId);
-      assert.equal(recorded.snapshot.workflowOrg?.id, recorded.workflowRun?.orgId);
-      assert.equal(recorded.reply, REPLY);
-    } finally {
-      await lane.close();
-    }
-  }
-});
-
-test("the workflow API must be gone after the upgrade: refused while it is routed, passed once it is not", async () => {
-  const lane = await stateLane(RUN_APIS.beforeRunKindRename, LEGACY_WORKFLOW_APIS[0]);
-  try {
-    const recorded = await recordState(lane.baseUrl, 10_000, { expectText: REPLY });
-    await assert.rejects(assertWorkflowApiGone(lane.baseUrl), /still routes ai\.stigmer\.agentic\.workflowrun\.v1\.WorkflowRunQueryController\/get/);
-    lane.upgrade();
-    assert.equal(await legacyWorkflowApiOf(lane.baseUrl), undefined);
-    await assertWorkflowApiGone(lane.baseUrl);
-    await assertStateSurvived(lane.baseUrl, recorded);
-  } finally {
-    await lane.close();
-  }
-});
-
-test("legacyWorkflowApiOf takes any answer but an unrouted procedure's bare 404 as a routed workflow API", async () => {
-  const lane = await serveAnswer(404, { code: "not_found", message: "workflow run wex_workflow_api_probe not found" });
-  try {
-    assert.equal(await legacyWorkflowApiOf(lane.baseUrl), LEGACY_WORKFLOW_APIS[0]);
   } finally {
     await lane.close();
   }

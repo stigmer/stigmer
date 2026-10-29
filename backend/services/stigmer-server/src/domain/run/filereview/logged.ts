@@ -57,7 +57,7 @@ export interface LoggedDecision {
   readonly action: ActionWord;
   /** Who decided, as the event's word: person, approved_command, eval_try or next_turn. */
   readonly origin: string;
-  /** The account of the person who decided; "" for a rule's keep, or a decision written before the event named its decider. */
+  /** The account of the person who decided; "" for a rule's keep. */
   readonly decidedBy: string;
 }
 

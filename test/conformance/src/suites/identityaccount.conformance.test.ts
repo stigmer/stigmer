@@ -13,7 +13,7 @@
 //   - create over the wire is PERMISSION_DENIED with the byte-pinned copy
 //     and writes nothing;
 //   - getByEmail / getByIdpId answer the byte-pinned NOT_FOUND copy
-//     ("Identity account not found: <handle>", the cloud's Java copy), and
+//     ("Identity account not found: <handle>"), and
 //     so does get for an unknown id where the caller may read every
 //     account (trusted-local). Where the server enforces the model, get
 //     answers an id the caller may not read PERMISSION_DENIED whether or

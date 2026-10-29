@@ -88,7 +88,7 @@ import { NO_HOOKS, type TurnHookEvaluators } from "../hooks.js";
 
 const WORKSPACE = "/work/repo";
 const PLATFORM = "/sessions/ses_1/platform";
-const HOME = "/sessions/ses_1/claude/aex_1-0";
+const HOME = "/sessions/ses_1/claude/run_1-0";
 const SHELL = "mcp__stigmer__bash";
 const OFFERED = new Set(["Read", "Write", "Edit", "NotebookEdit", "Glob", "Grep", "Bash", "TodoWrite", SHELL, "mcp__docs__search", "mcp__docs__drop", "mcp__plugin__any", "Skill", "Agent"]);
 

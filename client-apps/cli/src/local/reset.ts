@@ -2,8 +2,7 @@
 // next `up` starts from a clean slate. Configuration (config.yaml) is preserved
 // by default so users do not lose API keys; `includeConfig` removes it too.
 //
-// The set of removed paths is a faithful port of the Go CLI's reset, spanning
-// both roots of the `~/.stigmer` layout (the SQLite db + Temporal state under
+// The set of removed paths spans both roots of the `~/.stigmer` layout (the SQLite db + Temporal state under
 // the config dir, and everything under the data dir).
 
 import { existsSync, rmSync } from "node:fs";

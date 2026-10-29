@@ -31,7 +31,7 @@ vi.mock("../../client/single-org.js", async (importOriginal) => {
 });
 
 const CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
 };
@@ -81,7 +81,7 @@ vi.mock("../../resources/runs.js", async (importOriginal) => {
     getRun: async () => ({
       schema: RunSchema,
       message: create(RunSchema, {
-        metadata: { id: "aex_1", name: "run", org: executionOrg },
+        metadata: { id: "run_1", name: "run", org: executionOrg },
       }),
     }),
   };
@@ -155,7 +155,7 @@ describe("stigmer get", () => {
   it("names a run's organization by slug where it carries the id", async () => {
     stigmer = stigmerKnowingAcme();
     executionOrg = ACME_ID;
-    const out = await runGet("run", "aex_1");
+    const out = await runGet("run", "run_1");
     expect(out).toMatch(/Org:\s+acme\n/);
     expect(out).not.toContain(ACME_ID);
   });
@@ -205,8 +205,8 @@ describe("stigmer get", () => {
 
   it("prints none for a run on a server that holds one", async () => {
     singleOrg = true;
-    const out = await runGet("run", "aex_1");
-    expect(out).toMatch(/ID:\s+aex_1/);
+    const out = await runGet("run", "run_1");
+    expect(out).toMatch(/ID:\s+run_1/);
     expect(out).not.toMatch(/Org:/);
   });
 });

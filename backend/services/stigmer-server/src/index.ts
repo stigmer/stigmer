@@ -371,10 +371,7 @@ export type {
   AccountsBySubject,
   SubjectPrincipal,
 } from "./domain/identityaccount/resolve.js";
-export {
-  identityIdForSubject,
-  principalForSubject,
-} from "./domain/identityaccount/resolve.js";
+export { principalForSubject } from "./domain/identityaccount/resolve.js";
 // The derived id of the account under a subject. An edition's own per-org
 // system accounts take the id of their own subject, so the primary key holds
 // one row per subject there as it does for every account the library mints.
@@ -563,9 +560,8 @@ export {
 } from "./pipeline/errors.js";
 export type { RefusalReason } from "./pipeline/errors.js";
 // The shared slug derivation: extension-registered resource
-// kinds derive slugs with the SAME generator both editions pin
-// (ApiRequestResourceSlugGenerator parity) — the semantics live exactly
-// once.
+// kinds derive slugs with the SAME generator both editions pin — the
+// semantics live exactly once.
 export { generateSlug } from "./pipeline/steps/slug.js";
 // The in-process caller-propagation surface: extension code
 // composing requests through the in-process transport AS a caller rides

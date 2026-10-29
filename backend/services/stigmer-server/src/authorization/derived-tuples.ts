@@ -200,7 +200,8 @@ export function deriveTuples(facts: RowFacts): ReadonlyArray<Tuple> {
       subject: account(facts.createdBy),
     });
   }
-  // No organization to point at (a legacy row): no visibility userset.
+  // No organization to point at (a row that names none): no visibility
+  // userset.
   if (facts.org !== "") {
     for (const shape of visibilityShapesFor(facts.kind, facts.visibility)) {
       const grant = visibilityGrant(shape);
@@ -570,8 +571,8 @@ function tupleOfRow(row: Grant): Tuple {
     type: principal?.kind ?? "",
     id: principal?.id ?? "",
   };
-  // A principal id of `*` (a wildcard row a cloud database may still hold
-  // from the retired public level) is read as an ordinary object id here:
+  // A principal id of `*` (a wildcard row) is read as an ordinary object
+  // id here:
   // no person carries `*` among their aliases, so the row matches nobody
   // and reads as the inert grant it is, never as a fault that would turn
   // the resource unreadable.

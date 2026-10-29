@@ -262,7 +262,7 @@ function fireOutcomeFromLabel(outcome: string): RoutineFireOutcome {
   }
 }
 
-/** Go's time.Parse(time.RFC3339) tolerance: unparseable leaves the field unset. */
+/** An RFC 3339 read that tolerates garbage: unparseable leaves the field unset. */
 function parseTime(value: string): Date | undefined {
   if (value === "") {
     return undefined;

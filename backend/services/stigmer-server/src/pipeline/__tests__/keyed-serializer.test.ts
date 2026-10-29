@@ -20,20 +20,20 @@ describe("KeyedSerializer", () => {
     const releaseFirst = deferred();
     const releaseSecond = deferred();
 
-    const first = serializer.run("aex_1", async () => {
+    const first = serializer.run("run_1", async () => {
       events.push("first started");
       firstStarted.resolve();
       await releaseFirst.promise;
       events.push("first finished");
       return "first";
     });
-    const second = serializer.run("aex_1", async () => {
+    const second = serializer.run("run_1", async () => {
       events.push("second started");
       await releaseSecond.promise;
       events.push("second finished");
       return "second";
     });
-    const third = serializer.run("aex_1", async () => {
+    const third = serializer.run("run_1", async () => {
       events.push("third started");
       return "third";
     });
@@ -59,10 +59,10 @@ describe("KeyedSerializer", () => {
     const releaseHeld = deferred();
     const otherStarted = deferred();
 
-    const held = serializer.run("aex_held", async () => {
+    const held = serializer.run("run_held", async () => {
       await releaseHeld.promise;
     });
-    const other = serializer.run("aex_other", async () => {
+    const other = serializer.run("run_other", async () => {
       otherStarted.resolve();
     });
 
@@ -78,10 +78,10 @@ describe("KeyedSerializer", () => {
     const serializer = new KeyedSerializer();
     const failure = new Error("first exploded");
 
-    const first = serializer.run("aex_1", async () => {
+    const first = serializer.run("run_1", async () => {
       throw failure;
     });
-    const second = serializer.run("aex_1", async () => "second");
+    const second = serializer.run("run_1", async () => "second");
 
     await expect(first).rejects.toBe(failure);
     expect(await second).toBe("second");
@@ -91,11 +91,11 @@ describe("KeyedSerializer", () => {
     const serializer = new KeyedSerializer();
     const failure = new Error("synchronous");
 
-    const first = serializer.run("aex_1", () => {
+    const first = serializer.run("run_1", () => {
       throw failure;
     });
     await expect(first).rejects.toBe(failure);
-    expect(await serializer.run("aex_1", async () => "after")).toBe("after");
+    expect(await serializer.run("run_1", async () => "after")).toBe("after");
   });
 
   it("forgets a key once its queue drains, whatever the last work's outcome", async () => {
@@ -103,13 +103,13 @@ describe("KeyedSerializer", () => {
     const release = deferred();
     expect(serializer.activeKeyCount).toBe(0);
 
-    const held = serializer.run("aex_1", async () => {
+    const held = serializer.run("run_1", async () => {
       await release.promise;
     });
-    const failing = serializer.run("aex_1", async () => {
+    const failing = serializer.run("run_1", async () => {
       throw new Error("last one fails");
     });
-    const other = serializer.run("aex_2", async () => "other");
+    const other = serializer.run("run_2", async () => "other");
     expect(serializer.activeKeyCount).toBe(2);
 
     await other;

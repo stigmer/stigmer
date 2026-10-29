@@ -6,9 +6,8 @@
  *
  * What a run needs (requirements), each with its declarer:
  *   - every key its agent declares (`AgentSpec.env`), except a key any
- *     tool or plugin of the run declares: an agent saved before plugins were
- *     whole may hold copies of its tools' keys, and a tool's key never
- *     reaches the agent's shell;
+ *     tool or plugin of the run declares: a tool's key never reaches the
+ *     agent's shell, even when the agent declares the same name;
  *   - every key each subagent declares, by the same rule, for that
  *     subagent's shell and hooks only (its own declarer, matched on its
  *     own);
@@ -138,7 +137,6 @@ import { create } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 
-import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -267,8 +265,9 @@ export interface SignInFreshener {
 
 /**
  * The saved resource a tool is part of, at the version the run planned,
- * which the fetch reads the server at: a plugin's archive (its digest), or
- * an agent's version (its hash). Empty reads it as it is now.
+ * which the fetch reads the server at: a plugin's archive (its digest; an
+ * empty digest reads the plugin as it is now), or an agent's version (its
+ * hash).
  */
 export type ToolHome =
   | { readonly kind: "plugin"; readonly pluginId: string; readonly pluginDigest: string }
@@ -1387,10 +1386,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           return plugin.status?.mcpServers.find((entry) => entry.name === server);
         }
         case "agent": {
-          const agent =
-            home.agentVersion === ""
-              ? await deps.store.getResource(ApiResourceKind.agent, home.agentId, AgentSchema)
-              : (await loadVersion(deps.store, agentVersionBinding, home.agentId, home.agentVersion)).resource;
+          const agent = (await loadVersion(deps.store, agentVersionBinding, home.agentId, home.agentVersion)).resource;
           const written = agent.spec?.mcpServers.find((entry) => entry.name === server);
           return written === undefined ? undefined : agentServerEntry(written);
         }

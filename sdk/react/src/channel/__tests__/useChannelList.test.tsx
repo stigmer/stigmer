@@ -33,7 +33,7 @@ function wrapper(client: unknown) {
   };
 }
 
-function makeChannel(org: string, slug: string, id = `ach_${org}_${slug}`) {
+function makeChannel(org: string, slug: string, id = `chn_${org}_${slug}`) {
   return {
     metadata: { id, org, slug },
     spec: { enabled: true },

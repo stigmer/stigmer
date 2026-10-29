@@ -32,7 +32,6 @@ function slowHooks(onActivity: ((detail: string) => void) | undefined): HookEval
     views: new StigmerToolViews({
       workspaceRoot: process.cwd(),
       toVirtualPath: () => undefined,
-      toolServerMap: new Map(),
       serverNames: new Map(),
       platformServerSlugs: new Set(),
     }),

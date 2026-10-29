@@ -33,13 +33,12 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { ConnectError, Code } from "@connectrpc/connect";
 import { ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { GetArtifactResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 
@@ -57,6 +56,7 @@ import {
   type HermeticEnvironment,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { initGitWorkspace, localPathEntry } from "../../../../__test-utils__/git-workspace-fixture.js";
+import { mintedDownload } from "../../../../__test-utils__/minted-download.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedToolCall, ScriptedTurn } from "../../__test-utils__/scripted-model.js";
@@ -140,10 +140,7 @@ function listPlugin(record: ExecutionRecord, where: "agent" | "session"): void {
 
 const pluginClient: Partial<StigmerClient> = {
   getPluginByReference: vi.fn(async () => FORMAT_ON_EDIT),
-  getPluginArtifactDownloadUrl: vi.fn(async () => {
-    throw new ConnectError("no download lane", Code.Unimplemented);
-  }),
-  getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+  getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE))),
 };
 
 /** One tool call, then a closing turn; every tool result the model is handed is kept in `seen`. */

@@ -1,6 +1,6 @@
 // Effective-value resolution with env > config > default precedence. These are
 // the settings the backend client and read verbs depend on; centralizing the
-// precedence keeps every call site consistent (mirrors the Go CLI's Resolve*).
+// precedence keeps every call site consistent.
 //
 // All resolvers read the ACTIVE named backend (config.ts): local is the
 // managed daemon (fixed endpoint, never requires auth), cloud entries carry
@@ -10,7 +10,8 @@ import { CliExitError, ExitCode } from "../errors/index.js";
 import { SERVER_PORT } from "../local/constants.js";
 import { type Config, activeBackend } from "./config.js";
 
-const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
+/** Stigmer Cloud's API, where a cloud entry with no endpoint of its own points. */
+export const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
 const DEFAULT_LOCAL_ENDPOINT = "localhost:7234";
 
 /** Well-known URL for the Stigmer Cloud web console. */
@@ -72,7 +73,7 @@ export function resolveToken(config: Config): string {
 /**
  * Resolve the active organization.
  *   --org flag override > STIGMER_ORG env > context.org
- *   > the active entry's org_id (legacy fallback)
+ *   > the active entry's org_id (`config set backend.cloud.org_id`)
  */
 export function resolveOrganization(config: Config, flagOrg?: string): string {
   if (flagOrg !== undefined && flagOrg !== "") {
@@ -98,7 +99,7 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
  *   1. `STIGMER_CONSOLE_URL` (explicit override)
  *   2. local daemon → `http://localhost:{SERVER_PORT}` — the server's own
  *      unified port serves the console (one origin for UI and
- *      API; the Go-era separate 8234 listener is retired)
+ *      API)
  *   3. selfhost → the entry's endpoint on the same one-origin rule
  *      (https for :443, http otherwise)
  *   4. cloud → {@link DEFAULT_CLOUD_CONSOLE_URL}

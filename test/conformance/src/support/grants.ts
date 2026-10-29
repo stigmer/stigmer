@@ -29,7 +29,7 @@ export const GRANT_KIND = "Grant";
 // (targets/target.ts); re-exported here so the suites keep one import.
 export { ORGANIZATION_ROLES, type OrganizationRole } from "../targets/target";
 
-// get for an unknown id (the Java copy, kept by the cloud's handler).
+// get for an unknown id.
 export function grantNotFoundMessage(id: string): string {
   return `Grant not found: ${id}`;
 }
@@ -87,8 +87,8 @@ export function unknownPrincipalKindMessage(kind: string): string {
   return `Unknown principal kind: '${kind}'`;
 }
 
-// The principal-trust rule of checkAuthorization and listAuthorizedResourceIds
-// (the Java EnforcePrincipalTrust copy): a user may ask only about their own
+// The principal-trust rule of checkAuthorization and listAuthorizedResourceIds:
+// a user may ask only about their own
 // account. Enforced before any engine, so every edition answers it.
 export const NON_ACCOUNT_PRINCIPAL_MESSAGE =
   "Only self identity_account permission checks are supported";

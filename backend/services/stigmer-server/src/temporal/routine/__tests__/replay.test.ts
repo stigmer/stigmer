@@ -1,8 +1,6 @@
 /**
- * Replay determinism gate for the schedule/tick workflow — the
- * discipline this domain ORIGINATED (Go tick_replay_test.go, whose rule
- * the agent-execution gate adopted; this port brings it home):
- * committed histories from released workflow code must replay green on
+ * Replay determinism gate for the schedule/tick workflow (the same
+ * discipline as the agent-execution gate): committed histories from released workflow code must replay green on
  * the CURRENT code. A red run here means a change to the tick's logic is
  * NOT replay-safe for in-flight ticks — ticks live for minutes-to-an-hour
  * and OSS releases cut every 1-3 days, so an in-flight tick WILL straddle

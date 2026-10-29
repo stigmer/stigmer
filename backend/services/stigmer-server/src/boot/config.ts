@@ -2,21 +2,18 @@
  * Server configuration — stage 1 of the composition root
  * (config → storage → temporal → controllers → routes → listen).
  *
- * Deliberately covers ONLY the env contract the transport scaffold consumes.
- * Go's full config surface (pkg/config/config.go) is ported entry by entry
- * with the code that consumes it, so no config entry exists here before the
- * code that reads it.
+ * Covers ONLY the env contract the server consumes: a config entry lands
+ * with the code that reads it, never before.
  *
- * Env semantics mirror Go exactly (pkg/config/config.go getEnvInt/
- * getEnvString): a missing OR malformed value falls back to the default,
- * silently. That leniency is Go's shipped behavior and therefore contract —
- * a stricter loader would turn working `stigmer up` setups into boot
- * failures at cutover.
+ * Env semantics are lenient: a missing OR malformed value falls back to the
+ * default, silently, and an empty string is absent. That leniency is
+ * contract — a stricter loader would turn working `stigmer up` setups into
+ * boot failures.
  *
  * One deliberate exception to the leniency: the operator identity
- * (STIGMER_OPERATOR_EMAIL/NAME) is boot-fatal on certain misconfiguration,
- * exactly as Go's loadOperatorIdentity — silently stamping a typo'd
- * identity on every audit record is worse than refusing to boot.
+ * (STIGMER_OPERATOR_EMAIL/NAME) is boot-fatal on certain misconfiguration
+ * (loadOperatorIdentity) — silently stamping a typo'd identity on every
+ * audit record is worse than refusing to boot.
  */
 import os from "node:os";
 import path from "node:path";
@@ -34,7 +31,6 @@ import {
   type ModelProvider,
 } from "../modelcatalog/provider-need.js";
 
-import { SERVER_VERSION } from "../domain/platform/version.js";
 import { DEFAULT_FILE_MAX_BYTES } from "../domain/file/constants.js";
 import { DEFAULT_ROUTINE_FIRES_PER_HOUR } from "../domain/routine/fire-rate.js";
 import {
@@ -68,7 +64,7 @@ export interface ServerConfig {
    * exists: boot/ready-line.ts.
    */
   readonly readyLine: "stdout" | undefined;
-  /** SQLite database file (DB_PATH; Go defaultDBPath ~/.stigmer/stigmer.db). */
+  /** SQLite database file (DB_PATH; default ~/.stigmer/stigmer.db). */
   readonly dbPath: string;
   /**
    * Postgres connection URL (DATABASE_URL). PRECEDENCE: when set
@@ -87,11 +83,10 @@ export interface ServerConfig {
   readonly operatorEmail: string;
   readonly operatorName: string;
   /**
-   * Temporal coordinates this server runs against (Go TemporalHostPort/
-   * TemporalNamespace). The Temporal workers read the same fields;
-   * connection failure is NON-fatal (the server serves with the engine
-   * unavailable and the TemporalManager's health monitor keeps retrying —
-   * Go server.go InitialConnect posture). The address runners are told to
+   * Temporal coordinates this server runs against. The Temporal workers
+   * read the same fields; connection failure is NON-fatal (the server
+   * serves with the engine unavailable and the TemporalManager's health
+   * monitor keeps retrying). The address runners are told to
    * dial is a separate fact: runnerBootstrapTemporalAddress below.
    */
   readonly temporalHostPort: string;
@@ -134,8 +129,8 @@ export interface ServerConfig {
    */
   readonly runnerBootstrapMcpBridgeEndpoint: string;
   /**
-   * Artifact blob storage (attachments + execution outputs; Go
-   * config.ArtifactStorage). "local" is the OSS default; "r2" selects
+   * Artifact blob storage (attachments + execution outputs). "local" is
+   * the OSS default; "r2" selects
    * Cloudflare R2 with the settings below.
    */
   readonly artifactStorageType: string;
@@ -159,9 +154,8 @@ export interface ServerConfig {
   readonly artifactHttpPort: number | undefined;
   /**
    * The artifact file server's bind host (ARTIFACT_HTTP_HOST;
-   * shipped with the Docker image). Defaults to 127.0.0.1 —
-   * the retired Go server's posture, byte-identical for every bare-metal
-   * install: download URLs are minted for the local machine. Containers
+   * shipped with the Docker image). Defaults to 127.0.0.1 for every
+   * bare-metal install: download URLs are minted for the local machine. Containers
    * set 0.0.0.0 (the official image does, with its rationale) because a
    * loopback bind is unreachable through the container boundary even
    * with the port published.
@@ -184,14 +178,14 @@ export interface ServerConfig {
    * Stigmer's own login apps switched on (domain/vault/login-providers.ts):
    * each catalog entry's STIGMER_<KEY>_CLIENT_ID and
    * STIGMER_<KEY>_CLIENT_SECRET. GitHub's pair defaults to the bundled
-   * "Stigmer Local" OAuth App, and an empty value is treated as unset (Go
-   * getEnvString), so no configuration can blank it on OSS.
+   * "Stigmer Local" OAuth App, and an empty value is treated as unset (the
+   * lenient loader), so no configuration can blank it on OSS.
    */
   readonly loginProviders: LoginProviderSettings;
   /**
    * The OAuth callback URL every sign-in returns to (the vault's sign-in
    * and Connect links)
-   * (STIGMER_OAUTH_REDIRECT_URI; Go config.go OAuthRedirectURI). Unset, a
+   * (STIGMER_OAUTH_REDIRECT_URI). Unset, a
    * server that serves the web console on its unified port derives the
    * console's own callback page on the origin browsers reach it on:
    * SKILL_TRANSFER_BASE_URL when set (the address a team install was told
@@ -205,10 +199,9 @@ export interface ServerConfig {
    */
   readonly oauthRedirectUri: string;
   /**
-   * Skill artifact storage root (STORAGE_PATH; Go defaultStoragePath
-   * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/ —
-   * byte-identical to Go's layout, so a Go-written directory is served in
-   * place at cutover — and upload staging at {storagePath}/skills/staging/,
+   * Skill artifact storage root (STORAGE_PATH; default
+   * ~/.stigmer/storage). Artifacts live at {storagePath}/skills/ and upload
+   * staging at {storagePath}/skills/staging/,
    * the prefix the domain names (domain/skill/constants.ts).
    */
   readonly storagePath: string;
@@ -216,7 +209,7 @@ export interface ServerConfig {
    * Skill artifact storage backend (SKILL_ARTIFACT_STORAGE_TYPE) — the
    * per-domain opt-in, deliberately SEPARATE from
    * ARTIFACT_STORAGE_TYPE: skill artifacts stay on the local storagePath
-   * root (the Go-written-directory serving invariant) regardless of the
+   * root regardless of the
    * generic artifact store's backend, until a deployment opts skill in
    * here explicitly. "" or "local" is today's local arm; "r2" shares the
    * artifact store's R2 settings; any other name selects a
@@ -227,7 +220,7 @@ export interface ServerConfig {
    * Externally-reachable base of the skill artifact transfer lane's
    * capability URLs (#675; SKILL_TRANSFER_BASE_URL), set when the server
    * is reached through a tunnel or reverse proxy (the
-   * ARTIFACT_LOCAL_SERVE_URL idiom, Go config.go:52-58). "" = unset: the
+   * ARTIFACT_LOCAL_SERVE_URL idiom). "" = unset: the
    * base is the server's own port on localhost, read from the port the
    * unified listener actually binds (boot/skill-transfer-origin.ts), so a
    * server on an ephemeral port mints URLs that reach it (stigmer#1386).
@@ -249,10 +242,8 @@ export interface ServerConfig {
    * non-empty registers the OSS
    * identity verifiers (API tokens + OIDC) on the chassis and turns on
    * the require-authentication posture (absent token → UNAUTHENTICATED
-   * except is_public methods — the Java interceptor's
-   * posture). Empty — the default — is the trusted-local single-operator
-   * state, byte-identical to the wire behavior before authentication
-   * existed. Any OIDC issuer works here: sign-in is configuration, not
+   * except is_public methods). Empty — the default — is the trusted-local
+   * single-operator state, where no request carries a credential. Any OIDC issuer works here: sign-in is configuration, not
    * code.
    */
   readonly oidcIssuer: string;
@@ -314,9 +305,10 @@ export interface ServerConfig {
    */
   readonly sandboxTemporalAddress: string;
   /**
-   * The runner image container-based provisioners launch
-   * (STIGMER_SANDBOX_RUNNER_IMAGE). The default is the published sandbox
-   * image of this server's release (defaultSandboxRunnerImage).
+   * The runner image container-based provisioners launch, as the operator
+   * named it (STIGMER_SANDBOX_RUNNER_IMAGE). Empty means the composition's
+   * release default: composeServer hands the drivers
+   * defaultSandboxRunnerImage of the version it states.
    */
   readonly sandboxRunnerImage: string;
   /**
@@ -381,7 +373,7 @@ export interface ServerConfig {
 // The bundled "Stigmer Local" OAuth App credentials (callback:
 // localhost:3000), hardcoded in source following the GitHub CLI (gh)
 // pattern: a localhost-only OAuth App's client_secret has negligible
-// security value. Byte-mirrored from Go pkg/config/config.go. Release
+// security value. Release
 // bundles may stamp the Cloud OAuth App via the esbuild defines in
 // scripts/bundle-slim.mjs — the ldflags equivalent.
 declare const __STIGMER_GITHUB_CLIENT_ID__: string | undefined;
@@ -407,28 +399,27 @@ const LOGIN_PROVIDER_DEFAULTS: ReadonlyMap<string, string> = new Map([
 /** Default unified port; the CLI's env contract pins the same value. */
 export const DEFAULT_GRPC_PORT = 7234;
 
-/** Default model-registry origin (model_registry_store.go). */
+/** Default model-registry origin. */
 export const DEFAULT_MODEL_REGISTRY_UPSTREAM = "https://api.stigmer.ai";
 
 /**
- * The sandbox runner image this server launches when the operator names
- * none: the image of its own release, `ghcr.io/stigmer/runner:v<version>`
+ * The sandbox runner image a server launches when the operator names none:
+ * the image of its own release, `ghcr.io/stigmer/runner:v<version>`
  * (release.sandbox-cloud.yaml tags one per release, `X.Y.Z` and
  * `X.Y.Z-rc.N`), because the launch command (sandbox/runner-launch.ts) is
  * a contract between a server and the image it starts, and `latest` moves
- * on every runner change to `main`. Only a bundled server knows its version
- * (the release lane stamps SERVER_VERSION into the server image, the
- * all-in-one image and @stigmer/server-slim); the @stigmer/server library
- * and an unbundled build report `dev`, a local build
- * (`0.0.0-local.<stamp>`) has no published image, and a dev build's
- * runner lives in Stigmer's own image repository rather than ghcr.io
- * (release.dev.yaml), so all of those fall back to `latest`. A composition that embeds the library names its image itself
- * (the cloud selects the image of the version it pins). isReleaseVersion is the one test of which
- * versions the release lane publishes.
+ * on every runner change to `main`. composeServer calls it with the one
+ * version the server states: a bundled server's SERVER_VERSION (the
+ * release lane stamps it into the server image, the all-in-one image and
+ * @stigmer/server-slim), or the release a composition embedding the
+ * library states (ComposeOptions.version). A server that states no release
+ * (`dev` unbundled, a local build `0.0.0-local.<stamp>` with no published
+ * image, a dev build whose runner lives in Stigmer's own image repository
+ * rather than ghcr.io, release.dev.yaml) falls back to `latest`.
+ * isReleaseVersion is the one test of which versions the release lane
+ * publishes.
  */
-export function defaultSandboxRunnerImage(
-  serverVersion: string = SERVER_VERSION,
-): string {
+export function defaultSandboxRunnerImage(serverVersion: string): string {
   return isReleaseVersion(serverVersion)
     ? `ghcr.io/stigmer/runner:v${serverVersion}`
     : "ghcr.io/stigmer/runner:latest";
@@ -455,7 +446,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     "SKILL_ARTIFACT_STORAGE_TYPE",
     "",
   );
-  // Go validateR2Config: boot-fatal on incomplete r2 configuration — a
+  // validateR2Config: boot-fatal on incomplete r2 configuration — a
   // second deliberate exception to the lenient-loader posture (a server
   // that silently ignored half an R2 config would write blobs nowhere).
   // Skill's per-domain knob shares the settings, so its r2 arm gets
@@ -492,7 +483,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       DEFAULT_MODEL_REGISTRY_UPSTREAM,
     ),
     // Only the literal "off" disables the refresh — any other value keeps
-    // the default-on behavior, exactly as Go tests the variable.
+    // the default-on behavior.
     modelRegistryRefreshEnabled:
       env["STIGMER_MODEL_REGISTRY_REFRESH"] !== "off",
     // A word, like the refresh switch above: the value names where the line
@@ -528,11 +519,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       "STIGMER_SANDBOX_TEMPORAL_ADDRESS",
       envString(env, "TEMPORAL_HOST_PORT", "localhost:7233"),
     ),
-    sandboxRunnerImage: envString(
-      env,
-      "STIGMER_SANDBOX_RUNNER_IMAGE",
-      defaultSandboxRunnerImage(),
-    ),
+    sandboxRunnerImage: envString(env, "STIGMER_SANDBOX_RUNNER_IMAGE", ""),
     sandboxRunnerCommand: envString(
       env,
       "STIGMER_SANDBOX_RUNNER_COMMAND",
@@ -646,7 +633,7 @@ function loadRunnerBootstrapMcpBridgeEndpoint(env: NodeJS.ProcessEnv): string {
   return endpoint;
 }
 
-/** Go validateR2Config — the four required fields, error copy mirrored. */
+/** The four required r2 fields, each named in the boot refusal. */
 function validateR2Config(r2: {
   r2Bucket: string;
   r2Endpoint: string;
@@ -668,7 +655,7 @@ function validateR2Config(r2: {
   }
 }
 
-/** Go defaultStoragePath: ~/.stigmer/storage, ./storage without a home. */
+/** ~/.stigmer/storage, ./storage without a home. */
 function defaultStoragePath(): string {
   try {
     return path.join(os.homedir(), ".stigmer", "storage");
@@ -677,7 +664,7 @@ function defaultStoragePath(): string {
   }
 }
 
-/** Go defaultDBPath: ~/.stigmer/stigmer.db, ./stigmer.db without a home. */
+/** ~/.stigmer/stigmer.db, ./stigmer.db without a home. */
 function defaultDbPath(): string {
   try {
     return path.join(os.homedir(), ".stigmer", "stigmer.db");
@@ -686,7 +673,7 @@ function defaultDbPath(): string {
   }
 }
 
-/** Go defaultArtifactPath: ~/.stigmer/data/artifacts, ./artifacts without a home. */
+/** ~/.stigmer/data/artifacts, ./artifacts without a home. */
 function defaultArtifactPath(): string {
   try {
     return path.join(os.homedir(), ".stigmer", "data", "artifacts");
@@ -817,11 +804,11 @@ function sandboxRunnerList(
 }
 
 /**
- * Go loadOperatorIdentity (#400): boot-FATAL on the two certain
+ * The operator identity (#400): boot-FATAL on the two certain
  * misconfigurations, deliberately unlike the lenient loaders above — an
  * email without '@' can never be deliverable (certainly a typo), and a
  * name without an email is incoherent (the email IS the identity). The
- * error copy matches Go's character-for-character.
+ * error copy is pinned by the config tests.
  */
 function loadOperatorIdentity(env: NodeJS.ProcessEnv): {
   operatorEmail: string;
@@ -870,8 +857,8 @@ function envOptionalInt(
     return undefined;
   }
   const parsed = Number.parseInt(value, 10);
-  // Go's strconv.Atoi rejects trailing garbage ("7234x"); Number.parseInt
-  // would accept it, so the round-trip check keeps the two loaders aligned.
+  // A port with trailing garbage ("7234x") is malformed; Number.parseInt
+  // would accept it, so the round-trip check refuses it.
   return Number.isSafeInteger(parsed) && String(parsed) === value.trim()
     ? parsed
     : undefined;

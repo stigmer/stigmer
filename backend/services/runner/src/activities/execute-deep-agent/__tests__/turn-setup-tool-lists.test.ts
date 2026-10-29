@@ -26,12 +26,13 @@ import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { pluginSubagentScope, savedSubagentScope } from "../../../shared/subagents.js";
 import { ToolListResolutionError, ToolScope } from "../../../shared/tool-lists.js";
 import { checkTurnToolLists, turnToolInventory, type DeepAgentTools } from "../turn-setup.js";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 const tool = (name: string) => ({ name }) as unknown as DynamicStructuredTool;
 
 function tools(servers: Record<string, string[]>): DeepAgentTools {
   const serverToolMap = new Map(Object.entries(servers).map(([slug, names]) => [slug, names.map(tool)]));
-  return { connection: undefined, mcpTools: [...serverToolMap.values()].flat(), serverToolMap, toolServerMap: new Map() };
+  return { connection: undefined, mcpTools: [...serverToolMap.values()].flat(), serverToolMap, mcpIndex: McpToolIndex.EMPTY };
 }
 
 describe("turnToolInventory", () => {

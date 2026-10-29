@@ -4,8 +4,8 @@
  * is OSS-owned contract,
  * never hidden behind a chain-builder wrapper).
  *
- * The step reads the same declarative proto method options the Java
- * edition's authorization step reads — `(ai.stigmer.commons.rpc.config)`,
+ * The step reads the declarative proto method options every edition
+ * authorizes by — `(ai.stigmer.commons.rpc.config)`,
  * `is_public` (50057), `is_skip_authorization` (50058) — resolves the
  * check target from the request, and maps the Authorizer's three decision
  * arms to the wire:
@@ -15,14 +15,13 @@
  *                 `error_msg` (the reason arm is the fallback copy);
  *   not-found   → NOT_FOUND with the load-first chain's copy (a
  *                 resource-scoped check on a
- *                 nonexistent id answers what Java's load-before-authorize
- *                 order answers, stigmer#224);
+ *                 nonexistent id answers what a load-before-authorize
+ *                 order would answer, stigmer#224);
  *   unavailable → INTERNAL — an authorization-backend outage is NEVER
- *                 softened into a denial (the verified Java StepResult
- *                 lesson, a wire-visible contract).
+ *                 softened into a denial (a wire-visible contract).
  *
  * Skip arms, in order: the `internal` caller class (the in-process chain's
- * own calls — the TS rendering of the Java in-process authorization skip),
+ * own calls),
  * `is_public`, `is_skip_authorization`, and methods carrying
  * no config at all (no authorization requirement is declared; the
  * coverage inventory, docs/authorization-coverage.md, records every such
@@ -42,10 +41,9 @@
  * `authorizeDirect` is the SAME evaluation exported for the direct
  * handlers — the config-annotated methods that deliberately run no
  * pipeline (streams cannot run in the pipeline executor; the rest are
- * ported direct forms, docs/authorization-coverage.md). One evaluation,
+ * direct forms, docs/authorization-coverage.md). One evaluation,
  * two entry shapes; a direct handler calls it after its own input
- * validation and before any load or side effect, mirroring the Java
- * edition's validate → authorize handler order. The optional target override
+ * validation and before any load or side effect (validate → authorize). The optional target override
  * serves the lanes whose true
  * target is server-side state rather than caller input, in two shapes:
  * a server-side ID under the annotation's static kind (getByEmail and
@@ -249,18 +247,16 @@ export function authorizeTarget(
 
 /**
  * The SAME evaluation for a check whose target the HANDLER resolved —
- * the mid-chain resolved-id pattern (the pattern the two ListVersions
- * handlers port onto). It serves the
- * `is_skip_authorization` lanes whose Java baseline runs a hand-rolled
- * check the declarative annotation cannot express (a mid-chain resolved
- * id, a two-field target dispatch): the skip annotation makes the
- * position-1 step a no-op, and the handler calls THIS at the Java
- * baseline's exact position instead. Skip arms deliberately reduce to
+ * the mid-chain resolved-id pattern (the two ListVersions handlers use
+ * it). It serves the `is_skip_authorization` lanes whose check the
+ * declarative annotation cannot express (a mid-chain resolved id, a
+ * two-field target dispatch): the skip annotation makes the position-1
+ * step a no-op, and the handler calls THIS at the position the check
+ * needs instead. Skip arms deliberately reduce to
  * the `internal` class alone — the annotation skips do not apply because
  * the caller IS the enforcement the annotation opted out of.
  *
- * `errorMsg` is the lane's byte-pinned deny copy (the Java handler's
- * error_msg); empty falls back to the Authorizer's reason, then the
+ * `errorMsg` is the lane's byte-pinned deny copy; empty falls back to the Authorizer's reason, then the
  * shared fallback — the authorizeDirect precedence exactly.
  */
 export async function authorizeResolvedResource(

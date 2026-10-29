@@ -132,7 +132,7 @@ describe("conversation status tooltips", () => {
       <ConversationListPane
         conversations={[
           create(ChannelConversationSchema, {
-            channelId: "ach_wa",
+            channelId: "chn_wa",
             conversationKey: "15550001111",
             org: "acme",
             displayName: "Pat",

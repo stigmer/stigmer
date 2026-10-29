@@ -1,6 +1,6 @@
 /**
  * Boot-ordering (health gate) tests — the contract the CLI's serverGate
- * depends on (Go server.go:739-743, 839-843; grpc lib Stop :247-265):
+ * depends on:
  *
  *   - overall health is NOT_SERVING from construction until the
  *     composition root completes;
@@ -27,6 +27,8 @@
  *     getServerInfo reports when it is a release, and "" for a development
  *     version, so the runner layer's pairing check can never compare a
  *     layer with a version the server does not report (stigmer#1831);
+ *     and, unless the operator names one, the runner image of that same
+ *     release, `latest` for a development version (stigmer#1850);
  *   - a bucket-backed plugin store signs the archive link a runner reads
  *     for R2_RUNNER_ENDPOINT when one is set, else for R2_ENDPOINT (a
  *     local HTTP listener stands in for the bucket's HEAD; presigning is
@@ -192,7 +194,7 @@ describe("the artifact download lane", () => {
       // stored run, and handed back as a minted download URL.
       const query = createClient(RunQueryController, transport);
       const content = new TextEncoder().encode("ephemeral lane body\n");
-      const runId = "aex_01ephemerallane";
+      const runId = "run_01ephemerallane";
       const storageKey = `artifacts/${runId}/ephemeral-lane.txt`;
       mkdirSync(path.join(artifactRoot, "artifacts", runId), { recursive: true });
       writeFileSync(path.join(artifactRoot, storageKey), content);
@@ -405,41 +407,53 @@ describe("a sandbox provisioner without per-session routing", () => {
 });
 
 describe("the server's release in the sandbox driver bag", () => {
-  it.each([
-    ["3.42.0", "3.42.0"],
-    ["3.42.0-rc.1", "3.42.0-rc.1"],
-    ["3.42.0-dev.20261004013001.g5b1a7967f91e", ""],
-    ["0.0.0-local.20261004150608", ""],
-    ["dev", ""],
-  ])(
-    "a server stating %s hands its drivers %j, and reports what it stated",
-    async (version, release) => {
-      let handed: SandboxDriverConfig | undefined;
-      const provisioner = {} as SandboxProvisioner;
-      vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
-      const server = await compose(
-        { SANDBOX_PROVISIONER_TYPE: "recording" },
-        silentLogger,
-        [
-          {
-            name: "recording-sandboxes",
-            drivers: {
-              sandboxProvisionerDrivers: new Map([
-                [
-                  "recording",
-                  ({ config }: { config: SandboxDriverConfig }) => {
-                    handed = config;
-                    return provisioner;
-                  },
-                ],
-              ]),
-            },
+  // Composes with a recording sandbox driver and returns the bag it was
+  // handed, beside the server (which the caller shuts down).
+  async function composeRecording(env: NodeJS.ProcessEnv, version: string) {
+    let handed: SandboxDriverConfig | undefined;
+    const provisioner = {} as SandboxProvisioner;
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
+    const server = await compose(
+      { ...env, SANDBOX_PROVISIONER_TYPE: "recording" },
+      silentLogger,
+      [
+        {
+          name: "recording-sandboxes",
+          drivers: {
+            sandboxProvisionerDrivers: new Map([
+              [
+                "recording",
+                ({ config }: { config: SandboxDriverConfig }) => {
+                  handed = config;
+                  return provisioner;
+                },
+              ],
+            ]),
           },
-        ],
-        version,
-      );
+        },
+      ],
+      version,
+    );
+    return { server, handed };
+  }
+
+  it.each([
+    ["3.42.0", "3.42.0", "ghcr.io/stigmer/runner:v3.42.0"],
+    ["3.42.0-rc.1", "3.42.0-rc.1", "ghcr.io/stigmer/runner:v3.42.0-rc.1"],
+    [
+      "3.42.0-dev.20261004013001.g5b1a7967f91e",
+      "",
+      "ghcr.io/stigmer/runner:latest",
+    ],
+    ["0.0.0-local.20261004150608", "", "ghcr.io/stigmer/runner:latest"],
+    ["dev", "", "ghcr.io/stigmer/runner:latest"],
+  ])(
+    "a server stating %s hands its drivers release %j and image %s, and reports what it stated",
+    async (version, release, image) => {
+      const { server, handed } = await composeRecording({}, version);
       try {
         expect(handed?.serverRelease).toBe(release);
+        expect(handed?.runnerImage).toBe(image);
         const info = await createClient(
           PlatformQueryController,
           server.inProcessTransport,
@@ -451,6 +465,20 @@ describe("the server's release in the sandbox driver bag", () => {
       }
     },
   );
+
+  it("hands the image the operator names, whatever release it states", async () => {
+    const { server, handed } = await composeRecording(
+      { STIGMER_SANDBOX_RUNNER_IMAGE: "registry.example/runner@sha256:abc" },
+      "3.42.0",
+    );
+    try {
+      expect(handed?.runnerImage).toBe("registry.example/runner@sha256:abc");
+      expect(handed?.serverRelease).toBe("3.42.0");
+    } finally {
+      await server.shutdown();
+      vi.unstubAllEnvs();
+    }
+  });
 });
 
 describe("a bucket-backed plugin store", () => {

@@ -1,8 +1,10 @@
 /**
  * Which names a caller's own keys are read by (`list`, controller.ts):
  * the caller's account id, and its subject only for an account whose
- * subject is the platform's own (a direct or legacy account), the stamp a
- * key minted before the account existed carries. A federated account's
+ * subject is the platform's own (`identityaccount/own-subject.ts`: a direct
+ * account, or a composition's system account that records no mode), the
+ * stamp a key minted before the account existed carries, and the same rule
+ * by which a raw-subject stamp resolves to the account. A federated account's
  * subject is the one its organization's federation issuer chose, so a
  * provider that asserted another person's subject must not list that
  * person's keys; nor may a token's own `sub` claim name an owner.
@@ -107,5 +109,28 @@ describe("the names a caller's own keys are read by", () => {
     });
     const keys = await ownKeysOf(direct, "auth0|victim");
     expect(keys.entries.map((key) => key.metadata?.id).sort()).toEqual(["key_legacy", "key_mine"]);
+  });
+
+  it("an account that records no mode lists the keys its subject's stamp speaks for, as the direct lookup resolves that subject to it", async () => {
+    const system = create(IdentityAccountSchema, {
+      metadata: { id: "ida_me" },
+      spec: { idpId: "auth0|me" },
+    });
+    const keys = await ownKeysOf(system, "auth0|victim");
+    expect(keys.entries.map((key) => key.metadata?.id).sort()).toEqual(["key_legacy", "key_mine"]);
+  });
+
+  it("an app user's or a service account's subject names none of its keys", async () => {
+    for (const provisioningMode of [
+      IdentityAccountProvisioningMode.app_user,
+      IdentityAccountProvisioningMode.service_account,
+    ]) {
+      const account = create(IdentityAccountSchema, {
+        metadata: { id: "ida_me" },
+        spec: { idpId: "auth0|me", provisioningMode },
+      });
+      const keys = await ownKeysOf(account, "auth0|me");
+      expect(keys.entries.map((key) => key.metadata?.id)).toEqual(["key_mine"]);
+    }
   });
 });

@@ -185,8 +185,8 @@ function describeResultView(view: ToolResultView): string | null {
       return truncate(JSON.stringify(view.value));
     case "outputRef": {
       // The full bytes were offloaded to artifact storage. A terminal formatter
-      // can't fetch them inline, so we surface the stable storage key rather
-      // than a baked URL (which expired after an hour and is no longer present).
+      // can't fetch them inline, so we surface the stable storage key (the
+      // reference carries no URL).
       const size = view.sizeBytes ? ` (${formatBytes(view.sizeBytes)})` : "";
       if (view.isImage) return `[image output${size}] ${view.storageKey}`;
       const preview = view.preview ? `${truncate(view.preview)}\n` : "";

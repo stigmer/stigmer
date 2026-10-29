@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs an audience; a disabled dependency needs its external address; an Enterprise setting needs a license) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry. The retired keys are declared here so a values file that still carries them installs, and their refusal when turned on names what replaced them.",
+  "$comment": "The shape of values.yaml. additionalProperties is false at every level so a misspelled key fails `helm install` instead of silently doing nothing. Cross-field rules (a Secret is required; OIDC needs an audience; a disabled dependency needs its external address; an Enterprise setting needs a license) are template `fail`s in templates/_helpers.tpl, because they need sentences a schema cannot carry.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -207,13 +207,6 @@
           }
         }
       }
-    },
-    "openfga": { "$ref": "#/$defs/retiredUnit" },
-    "redis": { "$ref": "#/$defs/retiredUnit" },
-    "openbao": { "$ref": "#/$defs/retiredUnit" },
-    "licenseKeySecret": {
-      "type": "string",
-      "description": "Retired: the license is enterprise.license.existingSecret. Kept so a values file that carries it empty still installs; set, it is refused naming the new value."
     }
   },
   "$defs": {
@@ -342,14 +335,6 @@
         "host": { "type": "string" },
         "annotations": { "type": "object", "additionalProperties": { "type": "string" } },
         "tlsSecretName": { "type": "string" }
-      }
-    },
-    "retiredUnit": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Retired: no Stigmer edition runs this beside the server. Kept so a values file that carries it at enabled: false still installs; turned on, it is refused with the reason.",
-      "properties": {
-        "enabled": { "type": "boolean" }
       }
     }
   }

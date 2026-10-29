@@ -3,9 +3,8 @@
 #
 # Every behavior of the three surfaces only the hosted edition serves — the
 # billing engine, the side-channel proxy, the public REST lane — each with a
-# disposition that says where it is proven. The rows were first enumerated
-# from the retired Java service's code and tests; the composition that
-# replaced it is held to them. `npm run inventory:check`
+# disposition that says where it is proven. The composition that serves
+# them is held to them. `npm run inventory:check`
 # (scripts/check-inventory.ts, logic in src/inventory/inventory.ts) fails the
 # CI lanes when a `conformance` row has no test tag, when a tag names no row,
 # or when a tag sits on a row whose proof lives elsewhere.
@@ -21,9 +20,8 @@
 #                exact copy where the copy is contract
 #   class        behavior | carve-out (bytes that must not differ between editions) | adversarial
 #   disposition  conformance | unit | smoke | debris-candidate | debris
-#                (`deviation` — the contract asserted here while Java carried a
-#                tracked entry for its wrong answer — retired with the Java
-#                service and its registry, stigmer#1023)
+#                (closed: no disposition records a known wrong answer,
+#                stigmer#1023)
 #   observability launcher | composition-only | none
 #                (`launcher`: observable from outside on the environment the
 #                cloud suites run against, src/harness/cloud-env.ts, so
@@ -160,7 +158,7 @@ rows:
     caller: outsider
     needs: [keyless-org, fake-stripe]
 
-  # --- the plan catalog and subscriptions (cloud_only kinds; no Java) ---------
+  # --- the plan catalog and subscriptions (cloud_only kinds) ----------------
   - id: billing.rpc.plan-list.buyable-rows-only
     surface: billing
     lane: >-
@@ -365,7 +363,7 @@ rows:
     caller: primary
     needs: [none]
     note: >-
-      Runs where the flag is FALSE (the versionTagging posture); observability `none` here means "not a Java behavior".
+      Runs where the flag is FALSE (the versionTagging posture); observability `none` here means "not observed from outside".
 
   # ===========================================================================
   # BILLING — gate steps and status hooks, observed through agent executions
@@ -497,7 +495,7 @@ rows:
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Debris: no execution carries a billing STOP, so an approval asks nothing of billing; the run-scoped approval method is itself retired, and a waiting call is answered through the session's confirmToolUse and grantPermission. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused).
+      Debris: no execution carries a billing STOP, so an approval asks nothing of billing; there is no run-scoped approval method, and a waiting call is answered through the session's confirmToolUse and grantPermission. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused).
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-
@@ -579,7 +577,7 @@ rows:
     lane: >-
       stripe.webhook
     behavior: >-
-      An event whose signature timestamp is older than the tolerance (stripe-java default 300 s) answers 400 "Invalid signature".
+      An event whose signature timestamp is older than the tolerance (Stripe's SDKs default to 300 s) answers 400 "Invalid signature".
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -597,7 +595,7 @@ rows:
     caller: anonymous
     needs: [fake-stripe]
     note: >-
-      The composition answers 400. The retired Java service answered 401 here, which made this the one `deviation` row until the service and the registry that tracked it retired (stigmer#1023).
+      The composition answers 400 (stigmer#1023).
   - id: billing.stripe.webhook.anonymous-reachable
     surface: billing
     lane: >-
@@ -716,20 +714,20 @@ rows:
     lane: >-
       stripe.webhook
     behavior: >-
-      An otherwise valid checkout.session.completed whose api_version is not stripe-java 32.1.0's pin answers 200 and grants nothing — getObject() deserializes nothing (the api_version trap the fake Stripe documents).
+      An otherwise valid checkout.session.completed whose api_version differs from the fake's default answers 200 and grants nothing (the api_version note the fake Stripe carries).
     class: behavior
     disposition: debris
     observability: launcher
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      Debris: a silent 200 that grants nothing was stripe-java's release-train strictness (getObject() answered empty unless the event's api_version shared the SDK's train), not a behavior of the product — the composition (stripe-node) parses regardless and must not replicate it. The fake stamps the pin on every event so no other row trips on this.
+      Debris: a silent 200 that grants nothing for an event of another api_version is not a behavior of the product — the composition (stripe-node) parses an event whatever its version and must not answer that way. The fake stamps one version on every event so no other row trips on this.
   - id: billing.stripe.customer-updated.syncs-default-payment-method
     surface: billing
     lane: >-
       stripe.customer-updated
     behavior: >-
-      customer.updated carrying invoice_settings.default_payment_method makes Java retrieve that payment method (GET /v1/payment_methods/{id}) and record it as the account's default (id, brand, last4, exp_month, exp_year — visible on getBillingAccount); carrying none clears the account's default; a customer Java never minted is a silent 200 with no retrieve.
+      customer.updated carrying invoice_settings.default_payment_method makes the billing engine retrieve that payment method (GET /v1/payment_methods/{id}) and record it as the account's default (id, brand, last4, exp_month, exp_year — visible on getBillingAccount); carrying none clears the account's default; a customer the billing engine never minted is a silent 200 with no retrieve.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -743,7 +741,7 @@ rows:
     lane: >-
       stripe.payment-method-attached
     behavior: >-
-      payment_method.attached for a card sets it as the account's default ONLY when none is set (a second card does not displace the first) and makes it the customer's default on Stripe (POST /v1/customers/{id} invoice_settings[default_payment_method], once); a method without a card (us_bank_account) and a customer Java never minted are silent 200s with no write.
+      payment_method.attached for a card sets it as the account's default ONLY when none is set (a second card does not displace the first) and makes it the customer's default on Stripe (POST /v1/customers/{id} invoice_settings[default_payment_method], once); a method without a card (us_bank_account) and a customer the billing engine never minted are silent 200s with no write.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -757,7 +755,7 @@ rows:
     lane: >-
       stripe.payment-intent-succeeded
     behavior: >-
-      payment_intent.succeeded carrying metadata stigmer_recharge_event_id provisions the recharge's credits exactly once — an auto_recharge_credit ledger entry under idempotency key auto_recharge_<event_id>, the balance up by the recharge amount; the same event replayed or a fresh event for the same recharge grants nothing more; without the metadata (a checkout's intent) or naming a recharge Java never created the event is a silent 200.
+      payment_intent.succeeded carrying metadata stigmer_recharge_event_id provisions the recharge's credits exactly once — an auto_recharge_credit ledger entry under idempotency key auto_recharge_<event_id>, the balance up by the recharge amount; the same event replayed or a fresh event for the same recharge grants nothing more; without the metadata (a checkout's intent) or naming a recharge the billing engine never created the event is a silent 200.
     class: behavior
     disposition: debris
     observability: none
@@ -783,7 +781,7 @@ rows:
     lane: >-
       stripe.outbound
     behavior: >-
-      The auto-recharge PaymentIntent create carries Idempotency-Key auto_recharge_<event_id> (the event's own key) and the shape Java sends — amount in cents (micros / 10_000), currency usd, the saved payment method, the org's customer, off_session=true, confirm=true, metadata stigmer_org_id / stigmer_recharge_event_id / stigmer_credits_micros — and the month's slot is claimed (current_month_charged_micros) before any money moves.
+      The auto-recharge PaymentIntent create carries Idempotency-Key auto_recharge_<event_id> (the event's own key) and this shape — amount in cents (micros / 10_000), currency usd, the saved payment method, the org's customer, off_session=true, confirm=true, metadata stigmer_org_id / stigmer_recharge_event_id / stigmer_credits_micros — and the month's slot is claimed (current_month_charged_micros) before any money moves.
     class: carve-out
     disposition: debris
     observability: none
@@ -807,7 +805,7 @@ rows:
     caller: none
     needs: [none]
     note: >-
-      The composition keeps the id (and type) by name; its billing workers' model is the list of record, and its retired-schedule list names what boot removes.
+      The composition keeps the id (and type) by name; its billing workers' model is the list of record, and its schedule list names what boot removes.
   - id: billing.worker.reservation-expiry.releases-stale-holds
     surface: billing
     lane: >-
@@ -867,7 +865,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      Money arithmetic in micros (rounding, conversion to cents, overflow guards) matches Java's BillingMicros table.
+      Money arithmetic in micros (rounding, conversion to cents, overflow guards) matches the hosted edition's BillingMicros table.
     class: carve-out
     disposition: unit
     observability: none
@@ -878,7 +876,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      Rating a usage record (input/output/cache tokens x model price, harness and tier policy) matches Java's UsageRatingService table.
+      Rating a usage record (input/output/cache tokens x model price, harness and tier policy) matches the hosted edition's usage-rating table.
     class: carve-out
     disposition: debris
     observability: none
@@ -891,7 +889,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      determineSignal(account, headroom) maps balance and thresholds to stop_execution / low_balance_warning / continue exactly as Java's table.
+      determineSignal(account, headroom) maps balance and thresholds to stop_execution / low_balance_warning / continue exactly as the hosted edition's table.
     class: carve-out
     disposition: debris
     observability: none
@@ -904,7 +902,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      Ledger entries classify into the console's view categories exactly as Java's LedgerViewClassifier table.
+      Ledger entries classify into the console's view categories exactly as the hosted edition's ledger-view table.
     class: carve-out
     disposition: debris
     observability: none
@@ -917,7 +915,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      The model registry document codec round-trips and the embedded registry snapshot parses exactly as Java's tables.
+      The model registry document codec round-trips and the embedded registry snapshot parses exactly as the hosted edition's tables.
     class: behavior
     disposition: unit
     observability: none
@@ -928,7 +926,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      The credit pack catalog (ids, prices, credits) and the billing policy seed match Java's tables.
+      The credit pack catalog (ids, prices, credits) and the billing policy seed match the hosted edition's tables.
     class: carve-out
     disposition: debris
     observability: none
@@ -1175,7 +1173,7 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, keyed-org, agent-execution]
     note: >-
-      Corrected on the first hermetic run: Java records the partial row (llm_call_count +1); the assumption "records nothing" was wrong.
+      The partial row is recorded (llm_call_count +1), not nothing.
   - id: proxy.llm.headers.hop-by-hop-stripped
     surface: proxy
     lane: >-
@@ -1203,7 +1201,7 @@ rows:
     caller: primary
     needs: [workflow-execution]
     note: >-
-      Debris: the lane has no caller. CLAIMCHECK_ENABLED is set in no sandbox manifest, and the runner's claimcheck codec presigns through the ARTIFACTS lane with a claimcheck/ key prefix that lane rejects (stigmer#992). The composition does not carry it; the controller retired with Java.
+      Debris: the lane has no caller. CLAIMCHECK_ENABLED is set in no sandbox manifest, and the runner's claimcheck codec presigns through the ARTIFACTS lane with a claimcheck/ key prefix that lane rejects (stigmer#992). The composition does not carry it.
   - id: proxy.claimcheck.key-rules
     surface: proxy
     lane: >-
@@ -1233,7 +1231,7 @@ rows:
     lane: >-
       artifact
     behavior: >-
-      A key that is blank, longer than 1024, with characters outside [a-zA-Z0-9/_-.], containing .. or //, or not prefixed artifacts/ (attachments/ included, retired with the attachment lane) answers 400 with the validator's reason; an upload content type not matching the MIME pattern answers 400.
+      A key that is blank, longer than 1024, with characters outside [a-zA-Z0-9/_-.], containing .. or //, or not prefixed artifacts/ (attachments/ included: there is no attachment lane) answers 400 with the validator's reason; an upload content type not matching the MIME pattern answers 400.
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1339,7 +1337,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      SSE frames (event/data/id/retry lines, multi-line data, CRLF) decode exactly as Java's SseFrameDecoder table.
+      SSE frames (event/data/id/retry lines, multi-line data, CRLF) decode exactly as the hosted edition's SSE-frame table.
     class: behavior
     disposition: unit
     observability: none
@@ -1350,7 +1348,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      The Anthropic, OpenAI SSE and OpenAI JSON usage extractors produce the same ParsedLlmUsage as Java's tables over the fixture streams in src/test/resources/ai/stigmer/proxy/usage/.
+      The Anthropic, OpenAI SSE and OpenAI JSON usage extractors produce the same ParsedLlmUsage as the hosted edition's tables over its fixture streams.
     class: behavior
     disposition: unit
     observability: none
@@ -1372,7 +1370,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      PlatformProviderErrorClassifier (Anthropic billing 400 text, OpenAI 429 insufficient_quota, 401/403) classifies exactly as Java's tables.
+      PlatformProviderErrorClassifier (Anthropic billing 400 text, OpenAI 429 insufficient_quota, 401/403) classifies exactly as the hosted edition's tables.
     class: behavior
     disposition: debris
     observability: none
@@ -1385,7 +1383,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      Per-execution call sequencing and the usage reporter's swallow-and-log posture match Java's tables.
+      Per-execution call sequencing and the usage reporter's swallow-and-log posture match the hosted edition's tables.
     class: behavior
     disposition: unit
     observability: none
@@ -1396,14 +1394,14 @@ rows:
     lane: >-
       unit
     behavior: >-
-      The execution-context source chain (local store, composition authority, caching, chained) behaves as Java's tables.
+      The execution-context source chain (local store, composition authority, caching, chained) behaves as the hosted edition's tables.
     class: behavior
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      The composition-authority source retired with the Java service: in process, the proxy reads executions from its own store. Key selection retired: every call runs on the organization's own key, read like any provider key; the id keeps its old wording.
+      In process, the proxy reads executions from its own store, so there is no composition-authority source. There is no key selection: every call runs on the organization's own key, read like any provider key; the id is a stable name, not a description.
 
   # ===========================================================================
   # PUBLIC — /api/v1/public/* and the marketing-site contract
@@ -1604,18 +1602,18 @@ rows:
     caller: anonymous
     needs: [none]
 
-# The metric inventory: every `stigmer.*` metric the retired Java service
-# emitted in these domains, ported by the composition under the same name or
-# dropped with the mechanism that emitted it. Same discipline, same file.
+# The metric inventory: every `stigmer.*` metric name the hosted edition's
+# alert rules know in these domains, emitted by the composition under that
+# name or dropped with the reason it is not. Same discipline, same file.
 #
-#   name         the Java metric name, byte-exact (the composition emits the
+#   name         the metric name, byte-exact (the composition emits the
 #                same name when `disposition: ported` — from its own code or
 #                from the OSS server it pins, the row's note says which)
 #   surface      billing | proxy | platform (a metric no lane owns: the HTTP
 #                edge, the gRPC edge, the secret cleanup)
 #   disposition  ported | dropped
 #   alerts       the hosted edition's alert rules that read the series
-#   note         required when `dropped`: why the mechanism retires
+#   note         required when `dropped`: why it is not emitted
 #
 # Billing-side series that proxy reports FEED (stigmer.billing.usage.
 # metered_execution, .service_tier.mismatch, .thinking.mismatch,
@@ -1626,12 +1624,12 @@ metrics:
     surface: proxy
     disposition: dropped
     note: >-
-      The LLM lane serves no call on a platform key, so no upstream failure is the platform's: every failure is relayed as the organization's own key's. The counter, its metric and logs rules and its dashboard retired with the platform key.
+      The LLM lane serves no call on a platform key, so no upstream failure is the platform's: every failure is relayed as the organization's own key's. So the counter, its metric and logs rules and its dashboard are not carried.
   - name: stigmer.http.request.duration
     surface: platform
     disposition: ported
     note: >-
-      Java's servlet filter saw every HTTP route. The contract for the composition is the same: the pair recorded once per request by each HTTP lane's dispatcher — the cloud ingress (proxy and webhook mounts) and the public lane — with the same labels: http.request.method, http.route (first two path segments), http.response.status_code.
+      Every HTTP route is measured: the pair recorded once per request by each HTTP lane's dispatcher — the cloud ingress (proxy and webhook mounts) and the public lane — with the same labels: http.request.method, http.route (first two path segments), http.response.status_code.
   - name: stigmer.http.request.count
     surface: platform
     disposition: ported
@@ -1649,19 +1647,19 @@ metrics:
     disposition: ported
     alerts: [telemetry-heartbeat-lost, grpc-error-rate-spike]
     note: >-
-      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, Java's constructor add(0), so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of status_code != OK. Recorded inside the identity source — Java's @Order position — so an identity refusal is never a counted error. Health is not measured; is_public methods are.
+      Emitted by the OSS server itself (pipeline/interceptors/request-metrics.ts), not by the composition: one record per RPC on the serving chain, labels rpc.service, rpc.method and rpc.grpc.status_code as the gRPC status NAME (OK, NOT_FOUND, CANCELLED). Born attribute-less at zero before the port binds, so the heartbeat's ten-minute absence window measures the export pipeline rather than a post-restart lull; the error-rate rule is the share of status_code != OK. Recorded inside the identity source, so an identity refusal is never a counted error. Health is not measured; is_public methods are.
   - name: stigmer.grpc.request.duration
     surface: platform
     disposition: ported
     alerts: [grpc-latency-regression-p95]
     note: >-
-      The count's sibling, same labels, fractional milliseconds from interception to the RPC's end — for a server stream, the end of the stream (Java measured to ServerCall.close). Never pre-registered: a record(0) would be a real sample in the p95. SDK default histogram buckets in both editions.
+      The count's sibling, same labels, fractional milliseconds from interception to the RPC's end — for a server stream, the end of the stream. Never pre-registered: a record(0) would be a real sample in the p95. SDK default histogram buckets in both editions.
   - name: stigmer.db.postgres.connections.used
     surface: platform
     disposition: ported
     alerts: [postgres-connections-above-80-of-max]
     note: >-
-      Backends connected to the composition's database (pg_stat_activity, datname = current_database()), polled every 60 s by the composition's observability/postgres-capacity.ts and observed as a gauge with db.cluster = app-postgres only: Java's second cluster label, checkpointer-postgres, probed the separate stigmer_checkpoints database, whose tables the composition moved into the one database — that series retires with Java. The connections rule divides this by connections.max, so both rows name it. Nothing is observed before the first successful poll; a failed poll keeps the last values (Java's atomics).
+      Backends connected to the composition's database (pg_stat_activity, datname = current_database()), polled every 60 s by the composition's observability/postgres-capacity.ts and observed as a gauge with db.cluster = app-postgres only: the checkpoint tables live in the same database, so there is no second cluster label. The connections rule divides this by connections.max, so both rows name it. Nothing is observed before the first successful poll; a failed poll keeps the last values.
   - name: stigmer.db.postgres.connections.max
     surface: platform
     disposition: ported
@@ -1679,20 +1677,20 @@ metrics:
     disposition: ported
     alerts: [postgres-wal-above-80-of-max-wal-size]
     note: >-
-      The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
+      The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
   - name: stigmer.sandbox.pool.target
     surface: platform
     disposition: dropped
     note: >-
-      The warm sandbox pool's effective target. The hosted edition runs its conversations on Agent Substrate and keeps no pool of pre-started sandboxes, so there is no target to report; the gauge and its below-target alert retired with the pool.
+      The warm sandbox pool's effective target. The hosted edition runs its conversations on Agent Substrate and keeps no pool of pre-started sandboxes, so there is no target to report; the gauge and its below-target alert are not carried.
   - name: stigmer.sandbox.pool.members
     surface: platform
     disposition: dropped
     note: >-
-      Pool members by status (provisioning, ready, claimed). With no warm pool there are no members to count; the gauge retired with the pool, alongside the target.
+      Pool members by status (provisioning, ready, claimed). With no warm pool there are no members to count; the gauge is not carried, like the target.
   # ---- billing -------------------------------------------------------------
-  # The stigmer.billing.* names the Java service emitted. Those whose
-  # mechanism the composition still runs are ported under the same names onto
+  # The stigmer.billing.* names. Those whose mechanism the composition runs
+  # are emitted under the same names onto
   # its lazy-instrument idiom; every counter whose alert needs a series before
   # its first increment is pre-registered at zero on unit boot. The rest are
   # dropped, each with its reason; stigmer.billing.model_pin.unknown was never
@@ -1722,29 +1720,29 @@ metrics:
     surface: billing
     disposition: dropped
     note: >-
-      The meter records what a call was and never a price, so no usage row waits to be repriced; the repricing sweep, this gauge and its alert retired with the price on the record.
+      The meter records what a call was and never a price, so no usage row waits to be repriced; so there is no repricing sweep, gauge or alert.
   - name: stigmer.billing.auto_recharge.rejected
     surface: billing
     disposition: dropped
     note: >-
-      There is no prepaid balance to top up, so no off-session top-up is charged; the counter and its alert retired with auto-recharge.
+      There is no prepaid balance to top up, so no off-session top-up is charged; so the counter and its alert are not carried.
   - name: stigmer.billing.auto_recharge.late_success_repair
     surface: billing
     disposition: dropped
     note: >-
-      There is no prepaid balance to top up, so no off-session top-up is charged; the counter and its alert retired with auto-recharge.
+      There is no prepaid balance to top up, so no off-session top-up is charged; so the counter and its alert are not carried.
   - name: stigmer.billing.auto_recharge.gate_skipped
     surface: billing
     disposition: dropped
     note: >-
-      There is no prepaid balance to top up, so no off-session top-up is charged; the counter retired with auto-recharge.
+      There is no prepaid balance to top up, so no off-session top-up is charged; so the counter is not carried.
   - name: stigmer.billing.auto_recharge.reconciled
     surface: billing
     disposition: dropped
     note: >-
-      There is no prepaid balance to top up, so no off-session top-up is charged; the counter retired with auto-recharge.
+      There is no prepaid balance to top up, so no off-session top-up is charged; so the counter is not carried.
   - name: stigmer.billing.model_pin.unknown
     surface: billing
     disposition: dropped
     note: >-
-      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS routine and channel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.
+      A boot check's counter (a channel, schedule or guest model pin the registry does not know), never billing code's — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS routine and channel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.

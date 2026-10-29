@@ -45,6 +45,7 @@ import {
   sessionIdOf,
 } from "../support/runs";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 // The built-in delegation tool the Stigmer harness binds when a turn has subagents.
 const TASK_TOOL_NAME = "task";
@@ -144,12 +145,12 @@ describe.skipIf(collectionTarget.traceCollector === undefined)("Run — a tracin
         subagent_type: subagentSlug,
       }),
     );
-    mock.enqueue(anthropicToolUse("call_trace_echo", ECHO_TOOL_NAME, { text: "order 42" }));
+    mock.enqueue(anthropicToolUse("call_trace_echo", modelToolName(plugin, ECHO_TOOL_NAME), { text: "order 42" }));
     mock.enqueue(anthropicText(SUBAGENT_ANSWER));
     mock.enqueue(anthropicText(`The researcher says: ${SUBAGENT_ANSWER}`));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-trace"), agentRef: agentRefOf(agent), message: REQUEST, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-trace"), agentRef: agentRefOf(agent), message: REQUEST, autoApproveAll: true }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

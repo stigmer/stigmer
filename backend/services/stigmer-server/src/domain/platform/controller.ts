@@ -1,5 +1,5 @@
 /**
- * Platform controller — ports pkg/domain/platform: the server's
+ * Platform controller: the server's
  * self-description surface (NOT a resource domain — no store, no
  * pipelines; four direct handlers on PlatformQueryController).
  *
@@ -146,9 +146,9 @@ export interface PlatformControllerDeps {
   /**
    * Mints the execution-scoped tokens getRunnerScopedToken hands to
    * runners for the values fetch (oss#535). Keyless
-   * yields the presence-based "not minted" response. (Go also tolerates a
-   * nil service in tests; the composition root here always wires one — a
-   * keyless instance is the modeled disabled state.)
+   * yields the presence-based "not minted" response. (The composition
+   * root always wires one — a keyless instance is the modeled disabled
+   * state.)
    */
   readonly runnerAuthService: RunnerCredentialProvider;
   /**
@@ -171,7 +171,7 @@ export interface PlatformControllerDeps {
    * the features that hand out credentials only a verifying server
    * honours (user token minting) are unavailable on the latter.
    * Always set on the wire, true or false: the field's absence is how a
-   * client recognises a server that predates it.
+   * client recognises a server released before the field existed.
    */
   readonly authenticationRequired: boolean;
   /**
@@ -230,7 +230,7 @@ export function registerPlatformServices(
   });
 }
 
-/** Go GetServerInfo: the server edition, release version, authentication posture, whether it fills one organization, and what an Environment does here. */
+/** GetServerInfo: the server edition, release version, authentication posture, whether it fills one organization, and what an Environment does here. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
@@ -379,7 +379,7 @@ async function getLicenseStatus(
 }
 
 /**
- * Go GetRunnerBootstrapConfig: the Temporal coordinates an embedded runner
+ * GetRunnerBootstrapConfig: the Temporal coordinates an embedded runner
  * should connect to so it can self-bootstrap from a token alone: the
  * address deps name for runners, never assumed to be the server's own
  * (the proto's "the one reachable by the caller"). The
@@ -393,8 +393,7 @@ async function getLicenseStatus(
  * the token and payload-key fields (module header); the coordinates are
  * OSS-owned either way — they describe THIS deployment's Temporal, not a
  * credential policy. Capability failures degrade to the empty fields and
- * never fail the bootstrap the coordinates ride on (the Java handler's
- * best-effort contract).
+ * never fail the bootstrap the coordinates ride on (best-effort).
  */
 async function getRunnerBootstrapConfig(
   deps: PlatformControllerDeps,
@@ -436,7 +435,7 @@ async function getRunnerBootstrapConfig(
 }
 
 /**
- * Go GetRunnerScopedToken (oss#535): mints a token scoped to one unit of
+ * GetRunnerScopedToken (oss#535): mints a token scoped to one unit of
  * dispatched work, accepted by the values fetch
  * (VaultValueController.fetchValues).
  *
@@ -545,7 +544,8 @@ async function getRunnerScopedToken(
  * The proto oneof, transcribed to the seam's domain shape (the provider
  * contract deliberately imports no wire types). Every arm maps
  * one-to-one, INCLUDING unset — the implementation owns the unset
- * refusal (Java answers INVALID_ARGUMENT there), so this mapping must
+ * refusal (an implementation may answer INVALID_ARGUMENT there), so this
+ * mapping must
  * never collapse it into a real arm.
  */
 function exchangeRequestOf(

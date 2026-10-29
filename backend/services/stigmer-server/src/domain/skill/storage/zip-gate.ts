@@ -1,6 +1,5 @@
 /**
- * Skill artifact ZIP gate — ports pkg/domain/skill/storage/zip_extractor.go
- * arm-for-arm. Validates an uploaded artifact (size caps, ZIP-bomb
+ * Skill artifact ZIP gate. Validates an uploaded artifact (size caps, ZIP-bomb
  * budgets, entry-count and filename rules, root-SKILL.md presence with the
  * #452 hint), extracts SKILL.md IN MEMORY ONLY (never to disk), and parses
  * its frontmatter.
@@ -10,18 +9,15 @@
  * plugins are pushed as archives too; this module composes it and owns
  * what is a SKILL's: the root-SKILL.md rule, the 1 MB document cap, the
  * frontmatter parse, and every sentence below. The observable error order
- * is the Go gate's exactly: the structural walk tracks SKILL.md placement
- * in the same pass it validates, and rules on presence last.
+ * is pinned: the structural walk tracks SKILL.md placement in the same
+ * pass it validates, and rules on presence last.
  *
  * Error strings are wire-visible contract (the push pipeline wraps them
- * into the InvalidArgument "failed to extract SKILL.md: ..." arm), pinned
- * from Go including the stdlib texts Go's %w wrapping surfaces
- * ("zip: not a valid zip file", "zip: unsupported compression algorithm",
- * "zip: checksum error"). Two disclosed nuances versus Go, both stricter
- * only on pathological archives: a corrupt payload SLICE on any entry
- * fails structural parsing here while Go only fails when it opens that
- * entry, and deflate-corruption error text carries zlib's message rather
- * than Go flate's.
+ * into the InvalidArgument "failed to extract SKILL.md: ..." arm), the
+ * archive texts included ("zip: not a valid zip file", "zip: unsupported
+ * compression algorithm", "zip: checksum error"). A corrupt payload SLICE
+ * on any entry fails structural parsing, and deflate-corruption error
+ * text carries zlib's message.
  *
  * Proven by __tests__/zip-gate.test.ts and the skill conformance suite's
  * push-validation negatives (CONFORMANCE_TARGET=local).
@@ -42,7 +38,7 @@ import { parseFrontmatter } from "./frontmatter.js";
 
 export { calculateHash } from "../../../archive/open.js";
 
-/** Result of a successful gate pass (Go ExtractSkillMdResult). */
+/** Result of a successful gate pass. */
 export interface ExtractSkillMdResult {
   /** Full SKILL.md content, frontmatter included. */
   readonly content: string;
@@ -55,8 +51,7 @@ export interface ExtractSkillMdResult {
 }
 
 /**
- * Validates the artifact and extracts SKILL.md + frontmatter (Go
- * ExtractSkillMd). Throws plain Errors with byte-pinned messages; the
+ * Validates the artifact and extracts SKILL.md + frontmatter. Throws plain Errors with byte-pinned messages; the
  * push pipeline owns the gRPC code.
  */
 export function extractSkillMd(zipData: Uint8Array): ExtractSkillMdResult {
@@ -64,7 +59,7 @@ export function extractSkillMd(zipData: Uint8Array): ExtractSkillMdResult {
 
   // SKILL.md must be at the archive root. Nested occurrences are tracked
   // only to make the rejection actionable (the #452 hint), in the same
-  // pass the structural checks run so their precedence stays Go's.
+  // pass the structural checks run so their precedence stays pinned.
   let hasSkillMd = false;
   let hasNestedSkillMd = false;
   validateArchiveStructure(entries, PLATFORM_ARCHIVE_LIMITS, (name) => {
@@ -102,9 +97,9 @@ export function extractSkillMd(zipData: Uint8Array): ExtractSkillMdResult {
 }
 
 /**
- * Extracts SKILL.md's content in memory (Go extractSkillMdContent): the
- * first root-named entry, decompressed under the 1MB cap, CRC-verified,
- * UTF-8 decoded. The typed inflate outcome maps to Go's sentences here.
+ * Extracts SKILL.md's content in memory: the first root-named entry,
+ * decompressed under the 1MB cap, CRC-verified, UTF-8 decoded. The typed
+ * inflate outcome maps to the pinned sentences here.
  */
 function extractSkillMdContent(entries: readonly PrefilteredEntry[]): string {
   for (const { name, entry } of entries) {

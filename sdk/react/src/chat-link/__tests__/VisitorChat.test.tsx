@@ -53,7 +53,7 @@ vi.mock("../useChannelAgentProfile", () => ({
 
 import { VisitorChat } from "../VisitorChat";
 
-const CHANNEL_ID = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+const CHANNEL_ID = "chn_01j9z3k8f2q4m6n7p8r9s0t1v2";
 
 /** The chat link's agent reference, version included, as the profile gives it. */
 const LINK_AGENT_REF = { org: "org_acme", slug: "support-bot", version: "v2", kind: 40 };

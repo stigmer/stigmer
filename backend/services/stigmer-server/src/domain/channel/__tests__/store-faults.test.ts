@@ -88,7 +88,7 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-const CHANNEL_ID = "ach_storefault";
+const CHANNEL_ID = "chn_storefault";
 
 const NOT_FOUND_COPY = `Channel not found: ${CHANNEL_ID}`;
 const LOAD_FAULT_COPY = "failed to load channel";

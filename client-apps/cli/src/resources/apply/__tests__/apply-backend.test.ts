@@ -153,10 +153,9 @@ describe("file-mode apply — fidelity (raw controller preserves full proto)", (
 
 
 
-// The stigmer/stigmer#353 regression block: ChannelApp apply used to fail
-// with "apply not implemented for Channel App" because the CLI's handler
-// table was a drifted copy of the SDK manifest registry. The handlers now
-// COME FROM that registry, so this suite pins the whole class: the kind
+// The stigmer/stigmer#353 regression block: ChannelApp apply fails with
+// "apply not implemented for Channel App" whenever the CLI's handler table
+// drifts from the SDK manifest registry. The handlers COME FROM that registry, so this suite pins the whole class: the kind
 // applies, secrets round-trip verbatim, and the ordering the registry
 // encodes (app before the channel that references it) is honored.
 const CHANNEL_APP_YAML = [
@@ -298,131 +297,7 @@ describe("file-mode apply — channel app (#353)", () => {
 });
 
 describe("file-mode apply — kinds the registry does not know", () => {
-  it("refuses a retired kind with what happened and what to run instead", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(dir, "project.yaml", ["kind: Project", "metadata:", "  name: Demo", "  slug: demo", ""].join("\n"));
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'Project' in .*project\.yaml is no longer a Stigmer resource.*stigmer push plugin <dir>/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses an McpServer manifest, naming an agent's own mcp_servers and mcp add", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(dir, "server.yaml", ["kind: McpServer", "metadata:", "  name: github", ""].join("\n"));
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'McpServer' in .*server\.yaml is no longer a Stigmer resource\. An agent lists its own MCP servers under `mcp_servers`.*`stigmer mcp add <name> <url>`/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses an agent listing mcp_server_usages, naming the agent's own mcp_servers and mcp add", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(
-        dir,
-        "agent.yaml",
-        AGENT_WITH_ID + ["  mcp_server_usages:", "    - mcp_server_ref:", "        slug: github", ""].join("\n"),
-      );
-      const [item] = resolveApplyItems(dir);
-      expect(() => marshalItem(item)).toThrow(/invalid Agent in .*agent\.yaml: .*\n.*`mcp_servers`.*stigmer mcp add <name> <url>/s);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses an AgentInstance manifest, naming the agent as where a conversation starts", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(
-        dir,
-        "instance.yaml",
-        ["kind: AgentInstance", "metadata:", "  name: Reviewer", "  slug: reviewer-default", ""].join("\n"),
-      );
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'AgentInstance' in .*instance\.yaml is no longer a Stigmer resource.*stigmer run <org>\/<agent>/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses a WorkflowInstance manifest, naming the agent as where a run starts", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(
-        dir,
-        "workflow-instance.yaml",
-        ["kind: WorkflowInstance", "metadata:", "  name: Deploy", "  slug: deploy-default", ""].join("\n"),
-      );
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'WorkflowInstance' in .*workflow-instance\.yaml is no longer a Stigmer resource.*stigmer vault set-secret <NAME> --mine.*stigmer run <org>\/<agent>/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses an Environment manifest that still holds data, naming the vault as where secrets live now", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(
-        dir,
-        "environment.yaml",
-        ["kind: Environment", "metadata:", "  name: Prod", "  slug: prod", "spec:", "  data:", "    API_KEY:", "      value: x", ""].join("\n"),
-      );
-      const [item] = resolveApplyItems(dir);
-      expect(() => marshalItem(item)).toThrow(
-        /invalid Environment in .*environment\.yaml: .*\n.*logins and secrets live in vaults.*stigmer vault set-secret <NAME> --mine/s,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses a Schedule manifest, naming the routine it is now", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(dir, "nightly.yaml", ["kind: Schedule", "metadata:", "  name: Nightly", ""].join("\n"));
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'Schedule' in .*nightly\.yaml is now a routine\. Rewrite the file as `kind: Routine`, which is the whole change/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses an AgentShare manifest, naming the web channel its settings move into", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(dir, "share.yaml", ["kind: AgentShare", "metadata:", "  name: Support", ""].join("\n"));
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'AgentShare' in .*share\.yaml is now a channel\. Rewrite the file as `kind: Channel` and move `audience`, `allowed_origins` and `messages` from `spec` under `spec\.web`\. A file with no `metadata\.name` edited the link named after its agent: give it `metadata\.name: <the agent's slug>` so it still edits that link instead of creating another/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses an AgentChannel manifest, naming the channel type its app settings move into", () => {
-    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
-    try {
-      writeYaml(dir, "connection.yaml", ["kind: AgentChannel", "metadata:", "  name: Support", ""].join("\n"));
-      expect(() => resolveApplyItems(dir)).toThrow(
-        /kind 'AgentChannel' in .*connection\.yaml is now a channel\. Rewrite the file as `kind: Channel`, keep `spec\.slack` or `spec\.whatsapp`.*`spec\.whatsapp\.proactive_messaging_enabled`/,
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("refuses a kind that never existed with the plain unknown-kind sentence", () => {
+  it("refuses an unknown kind with the plain unknown-kind sentence", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(dir, "thing.yaml", ["kind: Widget", "metadata:", "  name: Demo", ""].join("\n"));
@@ -512,10 +387,10 @@ describe("file-mode apply — orchestration", () => {
     }
   });
 
-  it("refuses an agent that still names vaults: an agent is a blueprint, and a conversation names its vaults", async () => {
-    // The server drops a field it no longer knows from a binary write, so
-    // this client-side refusal is what tells an author their old manifest's
-    // vaults would never be read.
+  it("refuses an agent that names vaults: an agent is a blueprint, and a conversation names its vaults", async () => {
+    // The server drops a field it does not know from a binary write, so
+    // this client-side refusal is what tells an author the agent's vaults
+    // would never be read.
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(

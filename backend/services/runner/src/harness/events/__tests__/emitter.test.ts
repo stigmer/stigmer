@@ -799,7 +799,7 @@ describe("what the turn has open, sent alone", () => {
   it("sends nothing before it begins", async () => {
     const log = logDouble();
     const e = emitter(log);
-    expect(await e.sendLiveness({ operations: [open("sh", 1)], awaitingModelMs: undefined })).toBe("sent");
+    await e.sendLiveness({ operations: [open("sh", 1)], awaitingModelMs: undefined });
     expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
   });
 
@@ -810,11 +810,10 @@ describe("what the turn has open, sent alone", () => {
     await e.flush(status({ messages: [{ type: AI, content: "Ran.", toolCalls: [row("done")] }] }), { final: false });
     const before = log.client.appendSessionEvents.mock.calls.length;
 
-    const sent = await e.sendLiveness({
+    await e.sendLiveness({
       operations: [open("sh", 840_500), open("c2", 1_250, "task1"), open("done", 9)],
       awaitingModelMs: 2_000,
     });
-    expect(sent).toBe("sent");
     const call = log.client.appendSessionEvents.mock.calls[before]!;
     expect(call[1], "a liveness carries no event").toEqual([]);
     expect(call[2].map((p) => p.preview.case), "and no other preview").toEqual(["stigmerRunLiveness"]);
@@ -856,16 +855,17 @@ describe("what the turn has open, sent alone", () => {
     expect(sent[1]!.name).toBe("tool");
   });
 
-  it("answers refused when the log refuses the preview, and logs any other failure without resending", async () => {
+  it("logs a refused or failed preview without resending it", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const log = logDouble();
       const e = emitter(log);
       await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
       log.answers.push("refuse");
-      expect(await e.sendLiveness({ operations: [], awaitingModelMs: undefined })).toBe("refused");
+      await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
       log.answers.push("fail");
-      expect(await e.sendLiveness({ operations: [], awaitingModelMs: undefined })).toBe("sent");
+      await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+      expect(warn).toHaveBeenCalledTimes(2);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("sending the turn's liveness failed"));
       expect(log.previews).toEqual([]);
     } finally {

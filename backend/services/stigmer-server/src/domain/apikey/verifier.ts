@@ -1,25 +1,21 @@
 /**
  * The API-token identity verifier — the first OSS entry
- * on the chassis's verifier chain, the TS rendering of the cloud's
- * OpaqueTokenAuthenticationProvider + RedisApiKeyIntrospector pair minus
- * the cache (lookup.ts carries the no-cache rationale: instant
- * revocation).
+ * on the chassis's verifier chain, with no cache (lookup.ts carries the
+ * no-cache rationale: instant revocation).
  *
- * Claim rule: the `stk_` prefix, case-insensitive (the Java provider's
- * startsWithIgnoreCase). Everything else passes to the next verifier.
- * A recognized token that fails verification THROWS (identity.ts
- * contract) with the wire copy the Java interceptor's classifyAuthError
- * produces for the introspector's failures, byte-pinned:
+ * Claim rule: the `stk_` prefix, case-insensitive. Everything else passes
+ * to the next verifier. A recognized token that fails verification THROWS
+ * (identity.ts contract) with byte-pinned wire copy (existing error copy
+ * is wire contract):
  *
- *   - unknown/revoked key → "invalid token" (Java: the introspector's
- *     "revoked or unknown" description classifies to the fallback arm);
- *   - expired key → "token has expired" (the "expired" keyword arm).
+ *   - unknown/revoked key → "invalid token" (one copy for both, so a
+ *     caller learns nothing about which keys exist);
+ *   - expired key → "token has expired".
  *
- * Identity: the key authenticates AS ITS OWNING USER (the verified Java
- * posture — an API-key principal is indistinguishable downstream from a
- * JWT login). The owner is the key's creator,
- * status.audit.spec_audit.created_by (the Java owner extractor's actual
- * read), whose actor row also carries the email/displayName the audit
+ * Identity: the key authenticates AS ITS OWNING USER (an API-key
+ * principal is indistinguishable downstream from a sign-in). The owner is
+ * the key's creator, status.audit.spec_audit.created_by, whose actor row
+ * also carries the email/displayName the audit
  * seam wants. Expiry is "expires_at set and past, unless never_expires,
  * which wins": the contract ignores expires_at on a never-expiring key,
  * and every client already shows such a key as never expiring
@@ -33,8 +29,8 @@
  * (domain/identityaccount/resolve.ts), the read the runner-subject and
  * schedule-fire lanes make of a row's creator: by account id (the stamp
  * of every key a provisioned owner mints), then as the raw issuer subject
- * a key minted before its owner was provisioned carries, so no write over a legacy key
- * mints a raw-subject stamp again. One primary-key read for an
+ * a key minted before its owner was provisioned carries, so no write over
+ * such a key mints a raw-subject stamp again. One primary-key read for an
  * account-id stamp, hit or miss (no account carries an `ida_` as its
  * subject, so no subject read follows a miss); a raw-subject stamp costs
  * a second. No cache. On a hit the caller is the account's principal
@@ -130,10 +126,10 @@ import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { hashApiKey, isApiKeyToken } from "./keymaterial.js";
 import { findApiKeyByHash } from "./lookup.js";
 
-/** Java classifyAuthError's fallback arm — the unknown/revoked-key copy. */
+/** The unknown/revoked-key copy, one for both arms. */
 export const INVALID_TOKEN_MESSAGE = "invalid token";
 
-/** Java classifyAuthError's "expired" arm. */
+/** The expired-key copy. */
 export const TOKEN_EXPIRED_MESSAGE = "token has expired";
 
 /**

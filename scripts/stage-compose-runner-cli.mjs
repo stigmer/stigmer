@@ -7,11 +7,11 @@
  * at one version, as npm tarballs.
  *
  * The compose-runner spawns `stigmer mcp-server` for the memory and channel
- * attachments, so the CLI must be in the image. It used to be installed from
- * the npm registry at the release version, seconds after the same workflow
- * run published it — and lost the registry's replication race on three
- * consecutive releases (stigmer/stigmer#1158). Now the image installs the
- * packages the run itself built: @stigmer/cli and its @stigmer/* closure,
+ * attachments, so the CLI must be in the image. Installed from the npm
+ * registry at the release version, seconds after the same workflow run
+ * published it, it loses the registry's replication race
+ * (stigmer/stigmer#1158), so the image installs the packages the run itself
+ * built: @stigmer/cli and its @stigmer/* closure,
  * packed by publish-libs.mjs from the same dist/ the registry receives, so
  * the image's CLI is provably this commit's and no build step waits on npm.
  * The all-in-one image (scripts/stage-all-in-one.mjs) has installed its

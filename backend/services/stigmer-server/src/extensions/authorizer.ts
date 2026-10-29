@@ -4,9 +4,8 @@
  * which splices the shared Authorize step at position 1 of every chain and
  * installs open source's Authorizer when no extension registers one.
  *
- * The interface follows the Java edition's design. The
- * `unavailable` arm is deliberate: the Java StepResult distinguishes
- * denial from evaluation error so an authorization-backend outage surfaces
+ * The `unavailable` arm is deliberate: it distinguishes denial from
+ * evaluation error so an authorization-backend outage surfaces
  * as an INTERNAL fault, never a silent lockout dressed as
  * PERMISSION_DENIED. An interface without that distinction would be wrong
  * on day one — the deny/unavailable mapping is wire contract (deny →
@@ -34,10 +33,9 @@ export interface AuthzCheck {
  *
  * `not-found` refines deny: for RESOURCE-SCOPED checks, an authorizer that has
  * verified the target does not exist answers not-found instead of deny —
- * the Authorize step maps it to NOT_FOUND with the domain copy, matching
- * the Java edition's deliberate load-before-authorize order
- * (stigmer#224: a nonexistent id answers NOT_FOUND, never
- * PERMISSION_DENIED). Only meaningful with a known kind and a non-empty
+ * the Authorize step maps it to NOT_FOUND with the domain copy, the answer
+ * a load-before-authorize order gives (stigmer#224: a nonexistent id
+ * answers NOT_FOUND, never PERMISSION_DENIED). Only meaningful with a known kind and a non-empty
  * resource id — anything else is an authorizer contract bug and surfaces
  * as INTERNAL. The OSS permissive default never emits it; the built-in
  * authorizer (authorization/authorizer.ts) emits it for a missing target

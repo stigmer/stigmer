@@ -2,8 +2,7 @@
 //
 // The server is the TypeScript `@stigmer/mcp-server` package, and the CLI runs it
 // IN-PROCESS via its `run(cfg, signal)` embed API — the module exists precisely
-// so a host like the CLI embeds it rather than shelling out (the Go CLI shelled
-// out only because Go cannot import TypeScript). This avoids a child process, an
+// so a host like the CLI embeds it rather than shelling out. This avoids a child process, an
 // npx/tsx resolution dance, and a second Node startup.
 //
 // MCP clients (Cursor, Claude Desktop, Windsurf) spawn `stigmer mcp-server` and
@@ -12,13 +11,14 @@
 // CLI owns the shutdown signal and aborts the server's AbortController on
 // SIGINT/SIGTERM.
 //
-// Configuration precedence (matches the Go CLI): flags > env > ~/.stigmer config
+// Configuration precedence: flags > env > ~/.stigmer config
 // > server defaults. We realize that precedence by bridging config into the
 // environment only where unset, then letting explicit flags override, and finally
 // letting the server read its Config from the environment.
 
 import type { Command } from "commander";
-import type { Config } from "../config/config.js";
+import { type Config, activeBackend } from "../config/config.js";
+import { DEFAULT_CLOUD_ENDPOINT } from "../config/resolve.js";
 
 /** Flags the command bridges into the server's environment. */
 export interface McpServerFlags {
@@ -33,7 +33,7 @@ export interface McpServerFlags {
 const HELP_AFTER = `
 Environment variables:
   STIGMER_SERVER_ADDRESS         gRPC address (default: CLI config, else localhost:7234)
-  STIGMER_API_KEY                API key (auto-resolved from CLI config for cloud)
+  STIGMER_API_KEY                API key (default: the active CLI backend's credential)
   STIGMER_MCP_TRANSPORT          stdio | http | both (default: stdio)
   STIGMER_MCP_ROSTER             full | channels | memory (default: full; channels = send_channel_message only, memory = remember only)
   STIGMER_MCP_HTTP_PORT          HTTP listen port (default: 8080)
@@ -66,8 +66,10 @@ export function registerMcpServer(program: Command): void {
 
 async function runMcpServer(flags: McpServerFlags): Promise<void> {
   const { load } = await import("../config/config.js");
-  applyConfigEnv(load(), process.env);
+  // Flags first, then the config fills only what is still unset: the same
+  // precedence, with the final address known before a credential is bridged.
   applyFlagsEnv(flags, process.env);
+  applyConfigEnv(load(), process.env);
 
   // Imported lazily so `stigmer --help`/`version` never pull in the MCP stack.
   const { run, defaultConfig } = await import("@stigmer/mcp-server");
@@ -85,21 +87,29 @@ async function runMcpServer(flags: McpServerFlags): Promise<void> {
 }
 
 /**
- * Bridge CLI config into the server's environment, but only where unset, so a
- * pre-existing environment variable (or a flag bridged before this) wins. Local
- * backends connect to the local server without auth; cloud backends contribute
- * the stored endpoint and token.
+ * Bridge the active backend into the server's environment, but only where
+ * unset, so a pre-existing environment variable (or a flag bridged before this)
+ * wins. The local daemon is reached without auth; a named backend contributes
+ * its endpoint and its credential (a cloud login's token, a self-hosted
+ * entry's API key). The credential goes only to its own backend: when the
+ * environment already names another address (a runner spawning this command
+ * for its server), none is bridged.
  */
 export function applyConfigEnv(config: Config, env: NodeJS.ProcessEnv): void {
-  if (config.backend.type === "local") {
+  // Both already given (flags, or a runner's own environment): the config is
+  // not read, so a dangling current_backend cannot stop a server that needs
+  // nothing from it.
+  if (isSet(env.STIGMER_SERVER_ADDRESS) && isSet(env.STIGMER_API_KEY)) return;
+  const { entry } = activeBackend(config);
+  if (entry === undefined) {
     setIfEmpty(env, "STIGMER_SERVER_ADDRESS", "localhost:7234");
     return;
   }
-  const cloud = config.backend.cloud;
-  if (cloud !== undefined) {
-    setIfEmpty(env, "STIGMER_SERVER_ADDRESS", cloud.endpoint);
-    setIfEmpty(env, "STIGMER_API_KEY", cloud.token);
-  }
+  const endpoint = entry.endpoint || (entry.type === "cloud" ? DEFAULT_CLOUD_ENDPOINT : undefined);
+  if (endpoint === undefined) return;
+  setIfEmpty(env, "STIGMER_SERVER_ADDRESS", endpoint);
+  if (env.STIGMER_SERVER_ADDRESS !== endpoint) return;
+  setIfEmpty(env, "STIGMER_API_KEY", entry.type === "cloud" ? entry.token : entry.api_key);
 }
 
 /** Bridge explicitly-set flags into the server's environment (highest precedence). */
@@ -110,6 +120,10 @@ export function applyFlagsEnv(flags: McpServerFlags, env: NodeJS.ProcessEnv): vo
   setIfPresent(env, "STIGMER_API_KEY", flags.apiKey);
   setIfPresent(env, "STIGMER_MCP_LOG_FORMAT", flags.logFormat);
   setIfPresent(env, "STIGMER_MCP_LOG_LEVEL", flags.logLevel);
+}
+
+function isSet(value: string | undefined): boolean {
+  return value !== undefined && value !== "";
 }
 
 function setIfEmpty(env: NodeJS.ProcessEnv, key: string, value: string | undefined): void {

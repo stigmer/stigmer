@@ -215,7 +215,7 @@ export function assembleSessionTranscript(
 
 /**
  * The user prose that opened a turn, or `null`: a turn with no message, the
- * legacy `"execute"` placeholder stamped on runs started without one, and a
+ * `"execute"` placeholder for a run started without one, and a
  * Build-from-plan turn's machine-written label are not user prose.
  */
 function userPromptOf(turn: Turn, isBuildFromPlan: boolean): string | null {

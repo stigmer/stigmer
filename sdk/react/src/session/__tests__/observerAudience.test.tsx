@@ -167,7 +167,7 @@ const CHANNEL_SESSION = {
     id: "ses_1",
     org: "acme",
     labels: {
-      "stigmer.ai/channel-id": "ach_1",
+      "stigmer.ai/channel-id": "chn_1",
       "stigmer.ai/channel-external-user-key": "U0AB12CD3",
       "stigmer.ai/channel-conversation-key": "C0AB12CD3:1712345678.000100",
     },

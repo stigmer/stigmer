@@ -231,7 +231,7 @@ describe("useSessionPanel — File document tabs", () => {
     return create(FileSchema, {
       metadata: { id: `file_${filename}` },
       spec: { filename },
-      status: { runId: "aex_1", outputPath },
+      status: { runId: "run_1", outputPath },
     });
   }
 

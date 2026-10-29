@@ -1,15 +1,13 @@
 /**
- * Ports storage/local_storage_test.go + disposition_test.go case-for-case:
- * the containment guard (every escaping key refused on every operation,
+ * Pins the local artifact storage: the containment guard (every escaping key refused on every operation,
  * contained dot-segment keys allowed), the #285 no-implicit-segment
  * layout contract, the local signed-URL shape (a fixed serve URL, or one
  * resolved per mint once the file server binds — stigmer#1089; the key's
  * path segment-encoded; the download filename, the expiry and the
  * signature in the query, the expiry clamped to the 7-day ceiling the R2
  * backend shares, and the signer's verify accepting what it minted), and the
- * Content-Disposition builder. Adds the factory's r2/unknown refusals
- * (Go's are boot asserted; here they're the disclosed deferral), and the
- * widened surface: size, the typed not-found, the contained copy,
+ * Content-Disposition builder; the factory's r2/unknown refusals; and the
+ * wider surface: size, the typed not-found, the contained copy,
  * presigned-PUT over the skill-transfer-lane mechanism, and
  * registered-driver factory selection.
  */
@@ -146,7 +144,7 @@ describe("LocalArtifactStorage", () => {
   });
 
   it("signed URL: the key's path, then the filename when set, the expiry and the signature", async () => {
-    const key = "artifacts/aex_1/plan.md";
+    const key = "artifacts/run_1/plan.md";
     const expires = Math.floor((NOW + 3600_000) / 1000);
     const inline = await storage.getSignedUrl(key, 3600_000, "", "person");
     expect(inline).toMatch(
@@ -160,13 +158,13 @@ describe("LocalArtifactStorage", () => {
       "my plan.plan.md",
       "person",
     );
-    // Space encodes as '+' (Go url.Values.Encode).
+    // Space encodes as '+' (form encoding).
     expect(download).toMatch(
       new RegExp(`^http://localhost:7235/${key}\\?download=my\\+plan\\.plan\\.md&exp=${expires}&sig=`),
     );
     expect(signer.verify(key, new URL(download).searchParams)).toBe(true);
 
-    // Go url.QueryEscape byte-exactness on the two characters where
+    // The query escaping's byte-exactness on the two characters where
     // URLSearchParams disagrees: '~' stays bare, '*' percent-encodes.
     const exotic = await storage.getSignedUrl(key, 3600_000, "a~b*c.md", "person");
     expect(exotic).toContain(`/${key}?download=a~b%2Ac.md&exp=`);
@@ -186,7 +184,7 @@ describe("LocalArtifactStorage", () => {
 
   it("signed URL: the expiry is clamped to the 7-day ceiling the R2 backend shares", async () => {
     const url = new URL(
-      await storage.getSignedUrl("artifacts/aex_1/plan.md", 30 * 24 * 3600_000, "", "person"),
+      await storage.getSignedUrl("artifacts/run_1/plan.md", 30 * 24 * 3600_000, "", "person"),
     );
     expect(Number(url.searchParams.get("exp"))).toBe(
       Math.floor((NOW + MAX_SIGNED_URL_TTL_MS) / 1000),
@@ -197,7 +195,7 @@ describe("LocalArtifactStorage", () => {
   it("signed URL: a resolved serve URL is read at every mint, not at construction", async () => {
     let origin = "";
     const resolved = new LocalArtifactStorage(base, () => origin, signer);
-    const key = "artifacts/aex_1/plan.md";
+    const key = "artifacts/run_1/plan.md";
     await expect(resolved.getSignedUrl(key, 3600_000, "", "person")).rejects.toThrow(
       "local serve URL not configured",
     );
@@ -377,8 +375,8 @@ describe("newArtifactStorage factory", () => {
   });
 
   it("r2 constructs the R2 backend (validation pins live in r2-storage tests)", () => {
-    // The former boot-fail deferral test: the r2 arm now constructs, and
-    // an incomplete config fails with Go NewR2Storage's copy.
+    // The r2 arm constructs, and an incomplete config fails with the
+    // driver's required-config copy.
     expect(() =>
       newArtifactStorage({ type: "r2", localBasePath: "", localServeUrl: "", localUrlSigner: signer, ...NO_R2 }),
     ).toThrow("R2 bucket name is required");

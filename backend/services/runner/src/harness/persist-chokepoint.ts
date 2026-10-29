@@ -165,25 +165,18 @@ export class PersistChokepoint {
    * Send what the turn has open, as one liveness preview alone, when no
    * write is in flight: the runtime's liveness pump (`liveness-pump.ts`).
    * Resolves `busy`, sending nothing, when a write or another flush holds
-   * the slot, and `refused` when the log refused the preview as invalid.
-   * Never rejects.
+   * the slot. Never rejects.
    */
   async flushLiveness(snapshot: OperationsSnapshot): Promise<LivenessSend> {
     const events = this.deps.events;
     if (events === undefined) return "sent";
     if (this.inFlight !== undefined) return "busy";
-    let outcome: LivenessSend = "sent";
-    const flush = events
-      .sendLiveness(snapshot)
-      .then((sent) => {
-        outcome = sent;
-      })
-      .finally(() => {
-        this.inFlight = undefined;
-      });
+    const flush = events.sendLiveness(snapshot).finally(() => {
+      this.inFlight = undefined;
+    });
     this.inFlight = flush;
     await flush;
-    return outcome;
+    return "sent";
   }
 
   /**

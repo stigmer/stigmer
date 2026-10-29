@@ -93,7 +93,7 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
-const TICKET: JudgeTicket = { evaluatorId: "evl_1", modelName: "", capUsd: PER_GRADE_CAP_USD, period: periodOf(new Date()) };
+const TICKET: JudgeTicket = { evaluatorId: "srl_1", modelName: "", capUsd: PER_GRADE_CAP_USD, period: periodOf(new Date()) };
 
 /** The score's create chain as far as the activities see it: one score per writer and version. */
 function recorder(store: () => Store = () => temp.store): ScoreRecorder {
@@ -190,17 +190,17 @@ async function seedRun(
 async function seedScoringRule(enabled = true): Promise<void> {
   await temp.store.saveResource(
     ApiResourceKind.scoring_rule,
-    "evl_1",
+    "srl_1",
     ScoringRuleSchema,
     create(ScoringRuleSchema, {
-      metadata: { id: "evl_1", name: "evl_1", org: "org_1" },
+      metadata: { id: "srl_1", name: "srl_1", org: "org_1" },
       spec: { agentId: "agt_1", enabled, sampleRate: 1, monthlyLimitUsd: 10 },
     }),
   );
 }
 
 async function scoringRuleStatus() {
-  return (await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema)).status;
+  return (await temp.store.getResource(ApiResourceKind.scoring_rule, "srl_1", ScoringRuleSchema)).status;
 }
 
 async function judgeScores(runId: string): Promise<Score[]> {
@@ -262,7 +262,7 @@ describe("plan-judge", () => {
     await seedScoringRule();
     await seedRun("run_1", { agentId: "agt_1" });
     expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).kind).toBe("grade");
-    await temp.store.updateResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema, (live) => {
+    await temp.store.updateResource(ApiResourceKind.scoring_rule, "srl_1", ScoringRuleSchema, (live) => {
       if (live.spec !== undefined) live.spec.enabled = false;
     });
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual({ kind: "skip" });
@@ -272,7 +272,7 @@ describe("plan-judge", () => {
     await seedScoringRule();
     await seedRun("run_2", { agentId: "agt_1" });
     expect((await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_2")).kind).toBe("grade");
-    await temp.store.deleteResource(ApiResourceKind.scoring_rule, "evl_1");
+    await temp.store.deleteResource(ApiResourceKind.scoring_rule, "srl_1");
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_2")).toEqual({ kind: "skip" });
     expect(await judgeScores("run_2")).toEqual([]);
   });
@@ -527,7 +527,7 @@ describe("record-judge", () => {
     const outcome = await activities({ store: goesWhileWritten })[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "", "busy");
     expect(outcome).toBe(GRADE_RUN_GONE);
     expect(await judgeScores("run_1")).toEqual([]);
-    const scoringRule = await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema);
+    const scoringRule = await temp.store.getResource(ApiResourceKind.scoring_rule, "srl_1", ScoringRuleSchema);
     expect(scoringRule.status?.notGraded ?? 0, "a deleted run's grade counts nothing").toBe(0);
   });
 
@@ -573,7 +573,7 @@ describe("record-judge", () => {
       }),
     );
     expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "run_judge_gone", "")).toBe(GRADE_ALREADY_GRADED);
-    const scoringRule = await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema);
+    const scoringRule = await temp.store.getResource(ApiResourceKind.scoring_rule, "srl_1", ScoringRuleSchema);
     expect(scoringRule.status?.graded, "counted as the grade it kept").toBe(1);
     expect(scoringRule.status?.notGraded ?? 0).toBe(0);
 
@@ -587,7 +587,7 @@ describe("record-judge", () => {
       }),
     );
     expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_3", TICKET, "run_judge_gone", "")).toBe(GRADE_ALREADY_GRADED);
-    const after = await temp.store.getResource(ApiResourceKind.scoring_rule, "evl_1", ScoringRuleSchema);
+    const after = await temp.store.getResource(ApiResourceKind.scoring_rule, "srl_1", ScoringRuleSchema);
     expect(after.status?.notGraded).toBe(1);
     expect(after.status?.lastNotGradedReason).toBe(JUDGE_BUSY_REASON);
 

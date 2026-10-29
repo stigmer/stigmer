@@ -2,10 +2,7 @@
 // the full execution glob against the local TS server with its engine
 // provisioned (Temporal + the unified runner).
 //
-// The glob replaced the explicit local-ts-execution roster when the Go
-// server retired: roster/glob equality — the Class B half of the cutover —
-// was reached before it. The per-entry roster history lives
-// in git (vitest.local-ts-execution.config.ts).
+// Every suite file the glob matches runs; there is no roster to keep.
 //
 // Separate from vitest.config.ts so the dependency-light CRUD suites stay
 // fast and Temporal-free. These suites boot Temporal + the runner

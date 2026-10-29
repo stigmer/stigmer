@@ -1,10 +1,8 @@
 /**
- * Run controller — ports pkg/domain/agentexecution/controller
- * (command + query sides): the deepest domain's request surface. One Go
- * controller implements both services; this module mirrors that with one
- * deps object and one registration function.
+ * Run controller (command + query sides): the deepest domain's request
+ * surface. One module implements both services, with one deps object and
+ * one registration function.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by run.conformance.test.ts
  * (CONFORMANCE_TARGET=local) and __tests__/.
  *
@@ -374,7 +372,7 @@ export function registerAgentExecutionServices(
 }
 
 /**
- * Create — create.go buildCreatePipeline: validation (proto → visibility)
+ * Create — validation (proto → visibility)
  * → the run gate's first question (AuthorizeRunTarget: may the
  * caller add a turn to the session it names; a new conversation asks
  * nothing here, its session create asks can_create_session and the
@@ -616,7 +614,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Update — update.go buildUpdatePipeline: USER-initiated spec updates
+ * Update — USER-initiated spec updates
  * (status updates from the runner use UpdateStatus instead). Standard
  * chain; BuildUpdateState clears status per the shared pattern,
  * GuardReservedLabels refuses a `stigmer.ai/*` label the caller
@@ -677,7 +675,7 @@ async function update(
 }
 
 /**
- * Delete — delete.go buildDeletePipeline; returns the deleted execution
+ * Delete — returns the deleted execution
  * for the audit trail (gRPC convention). The run's scores go first,
  * through their own delete chain, while the run still links them to the
  * organization (domain/score/cascade.ts).
@@ -727,7 +725,7 @@ async function deleteExecution(
   return deleted as Run;
 }
 
-/** Get — get.go buildGetPipeline: ValidateProto → LoadTarget. */
+/** Get — ValidateProto → LoadTarget. */
 async function get(
   deps: AgentExecutionControllerDeps,
   id: RunId,
@@ -757,7 +755,7 @@ async function get(
 }
 
 /**
- * List — list.go: one page of the request's org (or every org), newest
+ * List — one page of the request's org (or every org), newest
  * first, the optional phase filter and the read scope per batch
  * (steps.ts, QueryExecutionPage).
  */
@@ -792,7 +790,7 @@ async function list(
   return requireListResult(reqCtx.get(EXECUTION_LIST_KEY));
 }
 
-/** ListBySession — list_by_session.go: one page of the session's executions, newest first. */
+/** ListBySession — one page of the session's executions, newest first. */
 async function listBySession(
   deps: AgentExecutionControllerDeps,
   req: ListRunsBySessionRequest,

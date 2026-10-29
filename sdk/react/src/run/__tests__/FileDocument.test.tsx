@@ -22,7 +22,7 @@ function outputFile(filename: string, mimeType = "") {
   return create(FileSchema, {
     metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
     spec: { filename, mimeType },
-    status: { sizeBytes: 64n, runId: "aex_1", outputPath: filename },
+    status: { sizeBytes: 64n, runId: "run_1", outputPath: filename },
   });
 }
 

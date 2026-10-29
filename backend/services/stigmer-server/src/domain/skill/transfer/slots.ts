@@ -1,6 +1,6 @@
 /**
- * Skill artifact upload slots — the local blob driver's staging mechanism,
- * ported from pkg/domain/skill/transfer/slots.go: an in-memory registry of
+ * Skill artifact upload slots — the local blob driver's staging mechanism:
+ * an in-memory registry of
  * single-use upload capabilities plus the staging files their bytes land
  * in (#675).
  *
@@ -22,10 +22,10 @@
  * make), and a slot is worthless across restarts anyway — its bytes live
  * in the staging directory, which is swept on boot.
  *
- * Sentinel error classes replace Go's sentinel error values so the HTTP
- * handler maps registry failures onto honest status codes without string
- * matching; their message texts are Go's, verbatim (they ride wire-visible
- * copy: the handler's 404, 409 and 400 bodies).
+ * Sentinel error classes let the HTTP handler map registry failures onto
+ * honest status codes without string matching; their message texts are
+ * pinned (they ride wire-visible copy: the handler's 404, 409 and 400
+ * bodies).
  *
  * Proven by __tests__/slots.test.ts (injected clock for expiry) and the
  * conformance suite's transfer-lane tests.
@@ -35,7 +35,7 @@ import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
 
-/** Go errSlotUnknown — never existed, expired, or swept. */
+/** The slot never existed, expired, or was swept. */
 export class SlotUnknownError extends Error {
   constructor() {
     super("upload reference unknown or expired");
@@ -43,7 +43,7 @@ export class SlotUnknownError extends Error {
   }
 }
 
-/** Go errSlotConsumed — the slot already carries an upload. */
+/** The slot already carries an upload. */
 export class SlotConsumedError extends Error {
   constructor() {
     super("upload reference already carries an upload");
@@ -51,7 +51,7 @@ export class SlotConsumedError extends Error {
   }
 }
 
-/** Go errSizeMismatch — the body disagreed with the reserved declaration. */
+/** The body disagreed with the reserved declaration. */
 export class SizeMismatchError extends Error {
   constructor(received: number, declared: number) {
     super(
@@ -78,7 +78,7 @@ export const STAGED_ARCHIVE_NAME = /^[0-9a-f]+\.zip$/;
 export class UploadSlots {
   private readonly slots = new Map<string, Slot>();
   private readonly stagingDir: string;
-  /** Injectable for expiry tests, mirroring Go's `now` field. */
+  /** Injectable for expiry tests. */
   private readonly now: () => number;
 
   /**
@@ -158,8 +158,8 @@ export class UploadSlots {
         mode: 0o700,
       });
       // Consume at most declared+1 bytes: seeing the extra byte proves the
-      // body exceeds the declaration without buffering an unbounded stream
-      // (Go's io.LimitReader(declared+1) + written != declared check).
+      // body exceeds the declaration without buffering an unbounded
+      // stream.
       await pipeline(
         body,
         limitBytes(declared + 1, (n) => {
@@ -179,8 +179,7 @@ export class UploadSlots {
       throw new SizeMismatchError(written, declared);
     }
 
-    // Re-check after the write: the slot may have expired mid-upload
-    // (Go re-checks under the lock for the same reason).
+    // Re-check after the write: the slot may have expired mid-upload.
     const current = this.slots.get(key);
     if (current === undefined || this.now() > current.expiresAtMs) {
       await fs.promises.rm(filePath, { force: true });

@@ -58,7 +58,7 @@ import {
   requireMcpFixture,
   sessionIdOf,
 } from "../support/runs";
-import { FIXTURE_SERVER, oneServerPlugin, pluginToolName, pushPlugin } from "../support/plugins";
+import { FIXTURE_SERVER, modelToolName, oneServerPlugin, pluginToolName, pushPlugin } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -118,15 +118,15 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
 
     mock.enqueue(
       anthropicToolUses([
-        { toolCallId: "call_in_scope", toolName: ECHO_TOOL_NAME, toolInput: { text: "in scope" } },
+        { toolCallId: "call_in_scope", toolName: modelToolName(plugin, ECHO_TOOL_NAME), toolInput: { text: "in scope" } },
         { toolCallId: "call_denied_shell", toolName: STIGMER_SHELL_TOOL, toolInput: { command: "echo denied" } },
-        { toolCallId: "call_unlisted", toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text: "unlisted" } },
+        { toolCallId: "call_unlisted", toolName: modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME), toolInput: { text: "unlisted" } },
       ]),
     );
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-lists"), agentRef: agentRefOf(agent), autoApproveAll }),
+      makeAgentExecution({ org, name: uniqueName("run-lists"), agentRef: agentRefOf(agent), autoApproveAll }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -162,15 +162,15 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
     const scripted = mock.scriptedRequests();
     expect(scripted.length, "the tool round and the answer").toBe(2);
     const offered = (readAnthropicRequest(scripted[0]!.body).tools ?? []).map((t) => t.name);
-    expect(offered, "the in-scope tool is offered").toContain(ECHO_TOOL_NAME);
+    expect(offered, "the in-scope tool is offered").toContain(modelToolName(plugin, ECHO_TOOL_NAME));
     expect(offered, "a tool disallowed_tools removes is not offered").not.toContain(STIGMER_SHELL_TOOL);
-    expect(offered, "a tool tools does not name is not offered").not.toContain(DESTRUCTIVE_ECHO_TOOL_NAME);
+    expect(offered, "a tool tools does not name is not offered").not.toContain(modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME));
 
     // Refused: the model reads each refusal on its next request, and the
     // refused tools never ran (the fixture saw exactly the one in-scope call).
     const nextRequest = JSON.stringify(scripted[1]!.body);
     expect(nextRequest, "the model reads the shell refusal").toContain(`${STIGMER_SHELL_TOOL} ${OUT_OF_SCOPE}`);
-    expect(nextRequest, "the model reads the unlisted tool's refusal").toContain(`${DESTRUCTIVE_ECHO_TOOL_NAME} ${OUT_OF_SCOPE}`);
+    expect(nextRequest, "the model reads the unlisted tool's refusal").toContain(`${modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME)} ${OUT_OF_SCOPE}`);
 
     expect(
       mcp.capturedRequests().filter((request) => request.method === "tools/call"),
@@ -248,15 +248,15 @@ describe("Run tool lists — a plugin's agent is scoped by its own list", () => 
     );
     mock.enqueue(
       anthropicToolUses([
-        { toolCallId: "call_desk_echo", toolName: ECHO_TOOL_NAME, toolInput: { text: "ORD-4821" } },
-        { toolCallId: "call_desk_fail", toolName: FAIL_TOOL_NAME, toolInput: { message: "unlisted" } },
+        { toolCallId: "call_desk_echo", toolName: inScope, toolInput: { text: "ORD-4821" } },
+        { toolCallId: "call_desk_fail", toolName: modelToolName(plugin, FAIL_TOOL_NAME, serverName), toolInput: { message: "unlisted" } },
       ]),
     );
     mock.enqueue(anthropicText("The desk answered ORD-4821."));
     mock.enqueue(anthropicText("The clerk found ORD-4821."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-desk"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-desk"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -277,15 +277,15 @@ describe("Run tool lists — a plugin's agent is scoped by its own list", () => 
     const childRequest = mock.scriptedRequests()[1];
     expect(childRequest, "the child's first model request").toBeDefined();
     const offered = (readAnthropicRequest(childRequest!.body).tools ?? []).map((t) => t.name);
-    expect(offered, "the tool its list names is offered").toContain(ECHO_TOOL_NAME);
-    expect(offered, "a tool its list does not name is not offered").not.toContain(FAIL_TOOL_NAME);
+    expect(offered, "the tool its list names is offered").toContain(inScope);
+    expect(offered, "a tool its list does not name is not offered").not.toContain(modelToolName(plugin, FAIL_TOOL_NAME, serverName));
 
     const echo = toolUseByCallId(turn, "call_desk_echo");
     expect(echo?.state, "the named tool ran").toBe("completed");
     expect(echo!.result?.text).toContain("ORD-4821");
     const refused = toolUseByCallId(turn, "call_desk_fail");
     expect(refused?.state, "the unnamed tool is a failed call").toBe("failed");
-    expect(refused!.result?.text).toContain(`${FAIL_TOOL_NAME} ${OUT_OF_SCOPE}`);
+    expect(refused!.result?.text).toContain(`${modelToolName(plugin, FAIL_TOOL_NAME, serverName)} ${OUT_OF_SCOPE}`);
     expect(
       mcp.capturedRequests().filter((request) => request.method === "tools/call"),
       "only the named call reached the server",

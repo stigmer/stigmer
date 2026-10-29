@@ -2,12 +2,12 @@
 # gRPC Conformance Suite (local target)
 # =============================================================================
 # Runs the implementation-agnostic gRPC conformance suite against the OSS
-# server, built from source. The suite is the shared API contract for the OSS
-# server and the Java cloud service — it turns OSS<->cloud behavioral drift
-# into a failing test.
+# server, built from source. The suite is the shared API contract every
+# composition of the server answers to: behavioural drift between them is a
+# failing test.
 #
 # This slice is the dependency-light Class A signal: no Temporal, no runner,
-# no Java service. The suite compiles the server, boots it against a
+# no external service. The suite compiles the server, boots it against a
 # throwaway SQLite database, and drives it through generated Connect clients.
 # The execution-engine suites (Class B) run in ci.conformance-execution.yaml.
 # =============================================================================

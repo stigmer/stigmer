@@ -20,7 +20,7 @@ import { FilesTab, type FilesTabProps } from "../FilesTab";
 import { deriveSessionOutputs } from "../../useSessionOutputs";
 import { givenKey, type SessionGivenEntry } from "../../useSessionGivenFiles";
 
-function output(filename: string, runId = "aex_1", id = `file_${filename.replace(/\W/g, "_")}`, created?: Date) {
+function output(filename: string, runId = "run_1", id = `file_${filename.replace(/\W/g, "_")}`, created?: Date) {
   return create(FileSchema, {
     metadata: { id },
     spec: { filename },
@@ -34,11 +34,11 @@ function output(filename: string, runId = "aex_1", id = `file_${filename.replace
 }
 
 const execution = create(RunSchema, {
-  metadata: { id: "aex_1" },
+  metadata: { id: "run_1" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
-const ENTRIES = deriveSessionOutputs([output("plan.md"), output("notes.md")], [execution]).outputs;
+const ENTRIES = deriveSessionOutputs([output("launch_a1b2c3d4.plan.md"), output("notes.md")], [execution]).outputs;
 
 /** A File given to the conversation, at the place its resources settled. */
 const GIVEN: readonly SessionGivenEntry[] = [
@@ -82,10 +82,10 @@ describe("FilesTab — dense row list", () => {
     renderTab({ onOpenFileDocument: vi.fn() });
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByText("plan.md")).toBeTruthy();
+    expect(screen.getByText("launch_a1b2c3d4.plan.md")).toBeTruthy();
     expect(screen.getByText("notes.md")).toBeTruthy();
     expect(screen.queryByText("Preview")).toBeNull();
-    expect(screen.getByLabelText("Download plan.md")).toBeTruthy();
+    expect(screen.getByLabelText("Download launch_a1b2c3d4.plan.md")).toBeTruthy();
     expect(screen.getByLabelText("Download notes.md")).toBeTruthy();
   });
 
@@ -117,9 +117,9 @@ describe("FilesTab — dense row list", () => {
   });
 
   it("puts a path's earlier versions behind a disclosure, each opening in the preview", () => {
-    const later = create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const later = create(RunSchema, { metadata: { id: "run_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
     const outputs = deriveSessionOutputs(
-      [output("report.md", "aex_2", "file_v2"), output("report.md", "aex_1", "file_v1")],
+      [output("report.md", "run_2", "file_v2"), output("report.md", "run_1", "file_v1")],
       [execution, later],
     ).outputs;
     renderTab({ outputs, onOpenFileDocument: vi.fn() });
@@ -167,14 +167,14 @@ describe("FilesTab — open routing", () => {
     expect(givenKey(GIVEN[0]!)).toBe(".stigmer/uploads/q3/ledger.csv");
   });
 
-  it("routes plan.md to onOpenPlan (never onOpenFileDocument) when both are provided", () => {
+  it("routes a plan to onOpenPlan (never onOpenFileDocument) when both are provided", () => {
     const onOpenFileDocument = vi.fn();
     const onOpenPlan = vi.fn();
     renderTab({ onOpenFileDocument, onOpenPlan });
 
-    openRow("plan.md");
+    openRow("launch_a1b2c3d4.plan.md");
 
-    expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
+    expect(onOpenPlan).toHaveBeenCalledWith("run_1");
     expect(onOpenFileDocument).not.toHaveBeenCalled();
     expect(document.querySelector("dialog")).toBeNull();
   });
@@ -187,10 +187,10 @@ describe("FilesTab — open routing", () => {
     expect(document.querySelector("dialog")).toBeTruthy();
   });
 
-  it("falls back to the modal for plan.md when neither onOpenPlan nor onOpenFileDocument is provided", () => {
+  it("falls back to the modal for a plan when neither onOpenPlan nor onOpenFileDocument is provided", () => {
     renderTab();
 
-    openRow("plan.md");
+    openRow("launch_a1b2c3d4.plan.md");
 
     expect(document.querySelector("dialog")).toBeTruthy();
   });
@@ -206,14 +206,14 @@ describe("FilesTab — pin (double-click) routing", () => {
     expect(onActivateFileDocument).toHaveBeenCalledWith("notes.md");
   });
 
-  it("routes a plan.md double-click to onOpenPlan (its tab is already pinned), never onActivateFileDocument", () => {
+  it("routes a plan's double-click to onOpenPlan (its tab is already pinned), never onActivateFileDocument", () => {
     const onActivateFileDocument = vi.fn();
     const onOpenPlan = vi.fn();
     renderTab({ onOpenFileDocument: vi.fn(), onActivateFileDocument, onOpenPlan });
 
-    activateRow("plan.md");
+    activateRow("launch_a1b2c3d4.plan.md");
 
-    expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
+    expect(onOpenPlan).toHaveBeenCalledWith("run_1");
     expect(onActivateFileDocument).not.toHaveBeenCalled();
   });
 
@@ -229,10 +229,10 @@ describe("FilesTab — pin (double-click) routing", () => {
 });
 
 describe("FilesTab — modal fallback plan 'Build' wiring", () => {
-  it("shows 'Build' in the modal preview of a plan.md output (panel-less host)", () => {
+  it("shows 'Build' in the modal preview of a plan output (panel-less host)", () => {
     renderTab({ onImplementPlan: vi.fn() });
 
-    openRow("plan.md");
+    openRow("launch_a1b2c3d4.plan.md");
 
     const dialog = document.querySelector("dialog")!;
     expect(within(dialog).getByText("Build")).toBeTruthy();
@@ -251,7 +251,7 @@ describe("FilesTab — modal fallback plan 'Build' wiring", () => {
     const onImplementPlan = vi.fn();
     renderTab({ onImplementPlan });
 
-    openRow("plan.md");
+    openRow("launch_a1b2c3d4.plan.md");
     const dialog = document.querySelector("dialog")!;
     fireEvent.click(within(dialog).getByText("Build"));
 
@@ -273,15 +273,15 @@ describe("FilesTab — given Files and earlier versions", () => {
   });
 
   it("names each earlier version by when its turn saved it, and downloads it under its own name", async () => {
-    const later = create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
-    const third = create(RunSchema, { metadata: { id: "aex_3" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const later = create(RunSchema, { metadata: { id: "run_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const third = create(RunSchema, { metadata: { id: "run_3" }, status: { phase: RunPhase.RUN_COMPLETED } });
     const outputs = deriveSessionOutputs(
       [
-        output("report.md", "aex_3", "file_v3"),
-        output("report.md", "aex_2", "file_v2", new Date(Date.now() - 2 * 3_600_000)),
-        output("report.md", "aex_1", "file_v1", new Date("2001-07-12T10:00:00Z")),
-        output("notes.md", "aex_1", "file_n1", new Date()),
-        output("notes.md", "aex_2", "file_n2"),
+        output("report.md", "run_3", "file_v3"),
+        output("report.md", "run_2", "file_v2", new Date(Date.now() - 2 * 3_600_000)),
+        output("report.md", "run_1", "file_v1", new Date("2001-07-12T10:00:00Z")),
+        output("notes.md", "run_1", "file_n1", new Date()),
+        output("notes.md", "run_2", "file_n2"),
       ],
       [execution, later, third],
     ).outputs;

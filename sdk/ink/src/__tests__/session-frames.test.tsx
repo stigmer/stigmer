@@ -66,7 +66,7 @@ afterAll(() => {
 function frame(name: ScenarioName, columns: number): string {
   conversation = conversationOf(scenarios[name]);
   usage = usageOf(scenarios[name]);
-  return stripVTControlCharacters(renderToString(<SessionView sessionId="ses-1" org="demo" />, { columns }));
+  return stripVTControlCharacters(renderToString(<SessionView sessionId="ses_1" org="demo" />, { columns }));
 }
 
 const FRAMES = SCENARIO_NAMES.flatMap((name) => WIDTHS.map((columns) => ({ name, columns })));
@@ -110,7 +110,7 @@ describe("INK-02 an approval prompt is unmissable, keyboard-driven, and never ti
     const answerToolUse = vi.fn(async () => {});
     conversation = { ...conversationOf(scenarios.approval), answerToolUse };
     usage = usageOf(scenarios.approval);
-    const { lastFrame } = render(<SessionView sessionId="ses-1" org="demo" />);
+    const { lastFrame } = render(<SessionView sessionId="ses_1" org="demo" />);
     expect(lastFrame()).toContain("[y] Approve");
     vi.advanceTimersByTime(60 * 60 * 1000);
     expect(lastFrame()).toContain("[y] Approve");

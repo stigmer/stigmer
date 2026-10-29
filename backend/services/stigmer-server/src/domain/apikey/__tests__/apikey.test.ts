@@ -1,14 +1,13 @@
 /**
- * Pins the apikey domain — the key-material contract (byte-format parity
- * with the cloud Java library) and the composed-server behaviors the
+ * Pins the apikey domain — the key-material contract (the token, hash
+ * and fingerprint byte formats) and the composed-server behaviors the
  * conformance suite cannot express cross-edition:
  *
  *   - the plaintext leaves the server EXACTLY once, in spec.key_hash of
  *     the create response; the store and every later read hold the hash;
  *   - the client can never choose key material (request-carried
  *     key_hash/fingerprint are overwritten on create);
- *   - update immutability (the Java handler documented it and did not
- *     enforce it): a
+ *   - update immutability: a
  *     request that rewrites key_hash/fingerprint persists the STORED
  *     values; only the expiry fields move;
  *   - getByKeyHash resolves by the stored hash and answers the
@@ -54,7 +53,7 @@ import {
 } from "../keymaterial.js";
 import { API_KEY_NOT_FOUND_BY_HASH_MESSAGE } from "../steps.js";
 
-describe("key material (Java library byte-format parity)", () => {
+describe("key material (the byte formats)", () => {
   it("generates stk_-prefixed Base64URL tokens with 32 bytes of entropy", () => {
     const seen = new Set<string>();
     for (let i = 0; i < 32; i += 1) {
@@ -66,9 +65,9 @@ describe("key material (Java library byte-format parity)", () => {
     expect(seen.size).toBe(32);
   });
 
-  it("hashes with SHA-256 Base64URL no padding (the Java hasher's vector)", () => {
+  it("hashes with SHA-256 Base64URL no padding (the pinned vector)", () => {
     // Precomputed: base64url(sha256("stk_test")) — any divergence here is
-    // a storage-compatibility break with keys hashed by the Java service.
+    // a storage-compatibility break: every stored key hash stops matching.
     expect(hashApiKey("stk_test")).toBe(
       "JDbciNJDsor0_cZpqFjseFSBDlsVDoKa4uZp27wbOMI",
     );

@@ -4,9 +4,8 @@
  * Covers the codec in isolation, its composition with the claim-check
  * codec (order is load-bearing: encrypt before relocate, so object
  * storage only ever sees ciphertext), the config loader's fail-fast
- * contract, and the committed cross-language conformance fixture that
- * pins the envelope format the Java decode-only codec (stigmer-cloud
- * temporal-starter) must match.
+ * contract, and the committed conformance fixture that pins the envelope
+ * format every reader must match.
  */
 
 import { describe, it, expect, afterEach } from "vitest";
@@ -61,7 +60,7 @@ describe("EncryptionPayloadCodec", () => {
 
   it("passes through payloads it did not encode", async () => {
     const codec = new EncryptionPayloadCodec(makeKeyConfig());
-    const plaintext = makeJsonPayload({ from: "java-orchestrator" });
+    const plaintext = makeJsonPayload({ from: "a-client-without-the-codec" });
     const [decoded] = await codec.decode([plaintext]);
     expect(decoded).toBe(plaintext);
   });
@@ -352,11 +351,9 @@ describe("loadPayloadEncryptionConfig", () => {
 });
 
 describe("cross-language conformance fixture", () => {
-  // The committed fixture pins the envelope as a wire contract. A copy
-  // lives in stigmer-cloud (temporal-starter test resources) where the
-  // Java decode-only codec must decrypt it to the same payload. Never
+  // The committed fixture pins the envelope as a wire contract. Never
   // regenerate it casually: changing the fixture means changing the
-  // cross-SDK envelope, which requires both implementations to move in
+  // envelope every reader decodes, which requires every reader to move in
   // lockstep.
   it("decrypts the committed fixture to the expected payload", async () => {
     const fixture = JSON.parse(

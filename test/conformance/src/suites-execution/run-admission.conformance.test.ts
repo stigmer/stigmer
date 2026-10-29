@@ -135,7 +135,7 @@ describe.skipIf(!billingEnabled)(
       const err = await expectGrpcCode(
         () =>
           clients.agentExecutionCommand.create(
-            makeAgentExecution({ org, name: uniqueName("aex-claude"), agentRef, sessionSpec: { harness: Harness.CLAUDE } }),
+            makeAgentExecution({ org, name: uniqueName("run-claude"), agentRef, sessionSpec: { harness: Harness.CLAUDE } }),
           ),
         Code.FailedPrecondition,
         "keyless Claude create",
@@ -240,7 +240,7 @@ describe.skipIf(!runnerProviderDeclaration)(
       return declared.agentExecutionCommand.create(
         makeAgentExecution({
           org,
-          name: uniqueName("aex-readiness"),
+          name: uniqueName("run-readiness"),
           agentRef,
           sessionSpec: { harness },
           runConfig: { modelName: model },

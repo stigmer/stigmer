@@ -7,13 +7,10 @@
  * its retries, a second records the run as not graded, because a failed
  * grade is never a missing or failing value.
  *
- * Then the judge (judge-activities.ts), behind the `grade-run-judge`
- * patch: an execution started before the judge existed replays without
- * the marker and ends after run health, as it always did. The planner
- * decides whether to grade and sets the cost aside; the start creates the
- * judge run, retrying a capacity refusal for up to ten minutes; the
- * workflow polls the judge run on a capped backoff for up to ten minutes;
- * and the record writes the verdict or the reason there is none, deletes
+ * Then the judge (judge-activities.ts). The planner decides whether to
+ * grade and sets the cost aside; the start creates the judge run,
+ * retrying a capacity refusal for up to ten minutes; the workflow polls
+ * the judge run on a capped backoff for up to ten minutes; and the record writes the verdict or the reason there is none, deletes
  * the judge's session and settles the budget. Every path past the planner
  * ends in the record, retried for up to twenty minutes, so a reservation
  * is settled and a judge session deleted unless the store is out longer
@@ -27,14 +24,12 @@ import {
   ActivityFailure,
   ApplicationFailure,
   isCancellation,
-  patched,
   proxyActivities,
   sleep,
 } from "@temporalio/workflow";
 
 import {
   GRADE_RUN_HEALTH_ACTIVITY_NAME,
-  GRADE_RUN_JUDGE_PATCH,
   GRADING_FAILED_REASON,
   JUDGE_BUSY_FAILURE_TYPE,
   PLAN_JUDGE_ACTIVITY_NAME,
@@ -119,9 +114,7 @@ export async function gradeRun(runId: string): Promise<GradeOutcome> {
       GRADING_FAILED_REASON,
     );
   }
-  if (patched(GRADE_RUN_JUDGE_PATCH)) {
-    await judge(runId);
-  }
+  await judge(runId);
   return outcome;
 }
 

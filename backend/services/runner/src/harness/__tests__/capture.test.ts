@@ -40,7 +40,7 @@ import { baselineRef } from "../../shared/filereview/git-substrate.js";
 import { AgentMessageSchema, ToolCallSchema, type ToolCall, SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
-const EXECUTION_ID = "aex-capture-unit";
+const EXECUTION_ID = "run_capture-unit";
 const FILE_REVIEW: FileReviewIdentity = { harnessId: "unit", excludePaths: [".unit/scratch.json"] };
 
 function workspaceOver(root: string, turnSeq = 0): TurnWorkspace {

@@ -101,15 +101,16 @@ app.run(|app_handle, event| {
 ```
 
 Use `kill()`, **not** `stop()`, on the exit path. `stop()` is a *graceful* shutdown whose
-bounded wait relies on the tokio time driver — which is no longer pumped at `RunEvent::Exit`.
+bounded wait relies on the tokio time driver — which is not pumped at `RunEvent::Exit`.
 With a mid-execution runner that never acks the shutdown, a `block_on(stop())` there parks
 forever (issue #178). `kill()` is a timer-free SIGKILL-then-reap and cannot park. Reserve
 `stop()` for an explicit in-app stop while the event loop is still healthy.
 
 ## Protocol version compatibility
 
-The crate speaks `IPC_PROTOCOL_VERSION` (currently `2`). On the `ready` handshake it
-reconciles its version against the runner's: a runner advertising a **higher** version is
+The crate speaks `IPC_PROTOCOL_VERSION` (currently `1`). The `ready` handshake must carry
+the runner's version, and the host reconciles it against its own: a runner advertising a
+**higher** version is
 rejected with `RunnerHostError::ProtocolVersionMismatch` (this host is too old to
 understand it). The version bumps only on a breaking change; additive changes never bump
 it, so equal or lower runner versions are accepted.

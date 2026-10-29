@@ -159,11 +159,6 @@ export interface ModelSelectorProps {
    * is not marked. Omitted, nothing is marked.
    */
   readonly readinessOf?: ModelReadinessLookup;
-
-  /**
-   * @deprecated Use {@link onHarnessChange} instead.
-   */
-  readonly onHarnessResolved?: (harness: HarnessOption) => void;
 }
 
 /**
@@ -215,7 +210,6 @@ export function ModelSelector({
   harness,
   initialHarness,
   onHarnessChange,
-  onHarnessResolved,
   availableHarnesses,
   curatedModels,
   groupBy = "provider",
@@ -362,11 +356,10 @@ export function ModelSelector({
     (newHarness: HarnessOption) => {
       setInternalHarness(newHarness);
       onHarnessChange?.(newHarness);
-      onHarnessResolved?.(newHarness);
       setShowAll(false);
       setSearchQuery("");
     },
-    [onHarnessChange, onHarnessResolved],
+    [onHarnessChange],
   );
 
   const selectModel = useCallback(

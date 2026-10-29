@@ -1,7 +1,6 @@
 // Server construction, tool registration, and transport entry points.
 //
-// Mirrors Go internal/server (server.go + http.go) plus the lifecycle helpers
-// from pkg/mcpserver/run.go. The server is stateless: every per-request value
+// The server is stateless: every per-request value
 // (the credential, and thus the gRPC client) is derived from the transport's
 // auth context, so the registration is identical regardless of transport.
 //
@@ -36,8 +35,7 @@ import { registerSkillTools } from "./domains/skills/tools.js";
 import { log } from "./logger.js";
 
 /**
- * Server version. Overridable at publish/build time; "dev" otherwise, matching
- * the Go server's ldflags fallback.
+ * Server version. Overridable at publish/build time; "dev" otherwise.
  */
 export const SERVER_VERSION = process.env.STIGMER_MCP_VERSION || "dev";
 
@@ -113,8 +111,7 @@ export function createMemoryServer(
 
 /**
  * A built roster: the server, and the names its domains registered, so the
- * log's count and roster cannot drift from what is actually wired (the Go
- * server's startup log shape).
+ * log's count and roster cannot drift from what is actually wired.
  */
 interface BuiltRoster {
   readonly server: McpServer;
@@ -187,8 +184,8 @@ function registerResources(server: McpServer, target: BackendTarget): string[] {
  *
  * Resolves on a clean disconnect (the MCP discovery probe connects, lists
  * tools/resources, then closes stdin → EOF). Protocol-level errors are logged
- * but do not terminate the process, mirroring the Go server treating EOF /
- * broken pipe as a normal shutdown rather than a failure.
+ * but do not terminate the process: EOF / broken pipe is a normal shutdown
+ * rather than a failure.
  */
 export async function serveStdio(server: McpServer, signal: AbortSignal): Promise<void> {
   const transport = new StdioServerTransport();
@@ -266,8 +263,7 @@ export function routedServerFactory(target: BackendTarget): RouteServerFactory {
  * contract it serves).
  *
  * Each request is wrapped in access logging (16-hex request id, method, path,
- * status, duration). DNS-rebinding allow-lists are intentionally out of
- * parity scope (the Go server has none).
+ * status, duration). DNS-rebinding allow-lists are out of scope.
  *
  * `httpPort` "0" binds an ephemeral port; `onListening` is told the port the
  * listener got, once it accepts connections. A caller that needs a port must
@@ -315,7 +311,7 @@ export async function serveHttp(
 /**
  * Serve stdio and HTTP concurrently. stdio binds a single server; HTTP builds
  * one server per request via the route factory. The first transport to settle aborts
- * the other, mirroring Go's serveBoth.
+ * the other.
  */
 export async function serveBoth(target: BackendTarget, cfg: Config, signal: AbortSignal): Promise<void> {
   const linked = new AbortController();
@@ -392,7 +388,7 @@ export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
   return createServer(target);
 }
 
-/** Request path without the query string (mirrors Go's r.URL.Path). */
+/** Request path without the query string. */
 function requestPath(req: IncomingMessage): string {
   const url = req.url ?? "/";
   const q = url.indexOf("?");
@@ -401,7 +397,7 @@ function requestPath(req: IncomingMessage): string {
 
 /**
  * Attach access logging to a request: on completion, log a 16-hex request id,
- * method, path, status, and duration. Mirrors Go's requestLogger middleware.
+ * method, path, status, and duration.
  */
 function logAccess(req: IncomingMessage, res: ServerResponse): void {
   const start = Date.now();
@@ -420,8 +416,7 @@ function logAccess(req: IncomingMessage, res: ServerResponse): void {
 /**
  * Reports whether an error represents a clean client disconnect (EOF / broken
  * pipe / abort) rather than a genuine failure, so discovery probes that connect
- * and immediately disconnect do not cause a non-zero exit. Mirrors Go's
- * isNormalShutdown.
+ * and immediately disconnect do not cause a non-zero exit.
  */
 export function isNormalShutdown(err: unknown): boolean {
   if (err == null) return true;

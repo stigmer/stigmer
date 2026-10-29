@@ -8,9 +8,8 @@
 // confirmed/rejected) lives in status and is written only by create and the
 // confirm/reject commands.
 //
-// The exported copy constants are CROSS-EDITION CONTRACT STRINGS: the Go
-// controller (stigmer) and the Java handlers (stigmer-cloud) each pin
-// them in their own unit tests, and this suite asserts them over the
+// The exported copy constants are CROSS-EDITION CONTRACT STRINGS: the
+// server's unit tests pin them, and this suite asserts them over the
 // wire. A change to any of them is a contract change, not a copy edit.
 import type { InitShape } from "./init-shape";
 import { create } from "@bufbuild/protobuf";
@@ -42,8 +41,7 @@ export function memoryDisabledMessage(org: string): string {
 
 // The member half of the double opt-in (stigmer#1387): the refusal where
 // callers are persons and the person the memory is about has not turned
-// memory on for their own account (Java
-// MemoryPolicy.MEMORY_ACCOUNT_DISABLED_MESSAGE).
+// memory on for their own account.
 export const MEMORY_ACCOUNT_DISABLED_MESSAGE =
   "memory is not enabled for your account — enable it in account preferences";
 

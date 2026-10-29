@@ -1,7 +1,5 @@
-// Byte-parity pins for the internalcomment port: every case is carried
-// verbatim from the Go package's tests (tools/codegen/internalcomment) so
-// the TS implementation provably matches the semantics the committed
-// schemas and stubs were produced with.
+// Byte-exact pins for internalcomment: every case pins the semantics the
+// committed schemas and stubs were produced with.
 import { describe, expect, it } from "vitest";
 
 import { stripLines, stripText } from "../internalcomment.js";

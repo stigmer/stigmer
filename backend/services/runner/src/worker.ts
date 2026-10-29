@@ -7,7 +7,7 @@
  * the server with ids (that file's header is the list and the rule).
  *
  * Architecture:
- * - Java backend starts connect workflows on the runner's task queue
+ * - The server starts connect workflows on the runner's task queue
  * - This TypeScript worker handles both workflow and activity tasks
  * - Activities are dispatched by name within the same queue
  */

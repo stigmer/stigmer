@@ -4,8 +4,8 @@
  * signed with a real RS256 keypair — no network, no mocks of jose):
  * claim-or-pass (non-JWT shapes and JWTs naming another issuer pass;
  * this issuer's JWTs are claimed, and a JWT naming no issuer is refused), the
- * identity mapping (sub/iss/email/name), the four byte-pinned Java
- * classifyAuthError arms, and the infrastructure-fault posture (discovery
+ * identity mapping (sub/iss/email/name), the four byte-pinned
+ * classification arms, and the infrastructure-fault posture (discovery
  * failures are plain errors for the chassis's INTERNAL arm — never
  * credential rejections).
  *
@@ -261,7 +261,7 @@ describe("the byte-pinned classifyAuthError arms", () => {
       Buffer.from(JSON.stringify(value)).toString("base64url");
     const hs256 = `${segment({ alg: "HS256", typ: "JWT" })}.${segment({
       token_type: "execution_scoped",
-      execution_id: "aex_1",
+      execution_id: "run_1",
       iat: 1,
       exp: 4102444800,
     })}.${segment("a-mac-this-verifier-cannot-check")}`;

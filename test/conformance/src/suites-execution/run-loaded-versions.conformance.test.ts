@@ -42,6 +42,7 @@ import { awaitRequiresAction, confirmPerContract } from "../support/answers";
 import { uniqueName } from "../support/naming";
 import { makeSkillArtifact } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -91,10 +92,10 @@ describe("Run — what a run loaded", () => {
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-    mock.enqueue(anthropicToolUses([{ toolCallId: "call_echo_loaded", toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text: "hello" } }]));
+    mock.enqueue(anthropicToolUses([{ toolCallId: "call_echo_loaded", toolName: modelToolName(plugin, DESTRUCTIVE_ECHO_TOOL_NAME), toolInput: { text: "hello" } }]));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-loaded"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-loaded"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

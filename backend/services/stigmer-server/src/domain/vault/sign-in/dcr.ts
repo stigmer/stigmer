@@ -1,6 +1,5 @@
 /**
- * RFC 7591 Dynamic Client Registration — ports
- * pkg/domain/mcpserver/oauth/dcr.go. Registers a PUBLIC client
+ * RFC 7591 Dynamic Client Registration. Registers a PUBLIC client
  * (token_endpoint_auth_method "none"): MCP OAuth uses PKCE instead of a
  * client secret, and an empty secret is what keeps the pending state's
  * "never ciphertext-of-empty" rule meaningful (oss#394).
@@ -9,7 +8,7 @@
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";
 
-/** Dynamic Client Registration response per RFC 7591 (Go DCRResponse). */
+/** Dynamic Client Registration response per RFC 7591. */
 export interface DcrResponse {
   clientId: string;
   clientSecret: string;
@@ -17,12 +16,12 @@ export interface DcrResponse {
   tokenEndpointAuthMethod: string;
 }
 
-/** Go's dcrHTTPClient 15s timeout — a named constant per guidelines. */
+/** A 15s timeout — a named constant per guidelines. */
 export const DCR_REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * Performs OAuth Dynamic Client Registration at the given registration
- * endpoint (Go RegisterClient). The returned client_id is saved on the
+ * endpoint. The returned client_id is saved on the
  * login's sign-in record in the vault, for its renewals. Accepts 200 or 201
  * (RFC says 201; real providers answer both).
  */

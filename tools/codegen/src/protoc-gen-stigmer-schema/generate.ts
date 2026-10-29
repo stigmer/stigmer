@@ -1,7 +1,6 @@
-// Comprehensive-mode orchestration: the port of runComprehensiveGeneration,
+// Comprehensive-mode orchestration: runComprehensiveGeneration,
 // generateNamespaceSchemas, generateSDKServiceSchemas, and
-// extractCommonsSchema. The Go tool discovered work by scanning the apis/
-// filesystem; here the same groups are derived from the compiled file names
+// extractCommonsSchema. The groups are derived from the compiled file names
 // buf hands the plugin, sorted into filepath.Walk visit order so every
 // order-dependent byte (package selection, array ordering, first-seen type
 // collection) is reproduced.

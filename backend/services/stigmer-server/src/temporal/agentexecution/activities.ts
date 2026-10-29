@@ -1,11 +1,9 @@
 /**
- * Server-side activity implementations for the agent-execution worker —
- * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution), counts a waiting turn's open
- * gates (CountOpenGates), closes the previous turn's file review
- * (CloseFileReview), and
- * registers the retired DeleteExecutionContext name with a body that does
- * nothing, for the runs whose history still calls it (names.ts).
+ * Server-side activity implementations for the agent-execution worker: the
+ * status merge (UpdateExecutionStatus), the count of a waiting turn's open
+ * gates (CountOpenGates), the close of the previous turn's file review
+ * (CloseFileReview) and the start of a session's queued turn
+ * (StartQueuedTurn).
  *
  * Payload boundary: statuses and
  * executions cross as proto-JSON — the TS default payload converter
@@ -26,14 +24,11 @@
  * exact updateStatus handler: the domain's single atomic merge
  * chokepoint plus the composed status hooks, so the activity and the
  * runner's gRPC path can never
- * diverge on merge semantics (Go's activity impl shared the merge helpers
- * for the same reason). The activity therefore builds NO identity of its
- * own. Its predecessor called the domain function directly with the
- * chassis's trusted-local WIRE identity (`user`-class), which an
- * enforcing Authorizer has no grant for — every runner failure on the
- * cloud composition left a hung, never-FAILED execution (stigmer#979).
- *
- * The read (LoadAgentExecution) stays store-direct: a pure read with Java `findById` parity — no chain to bypass.
+ * diverge on merge semantics. The activity therefore builds NO identity of
+ * its own: a direct domain call with the chassis's trusted-local WIRE
+ * identity (`user`-class) has no grant under an enforcing Authorizer, and
+ * would leave every runner failure a hung, never-FAILED execution
+ * (stigmer#979).
  *
  * CountOpenGates is the workflow's HITL wait condition: the number of the
  * turn's tool uses that wait in its session's log (an ask no answer and
@@ -43,7 +38,7 @@
  * resume. The session is the workflow input's, or the run's own when an
  * input carried none; a run in no session has no log and no open gate. A
  * store fault fails the activity, and the workflow then waits for the
- * signal, as it did when the load failed.
+ * signal.
  *
  * CloseFileReview is the server's own policy write, as the auto-keeps
  * inside the status merge are: once this turn's message is in the log,
@@ -73,7 +68,7 @@
  * message still queued (no run) or dropped is no turn, and a message this
  * run read while it worked is its own.
  */
-import { create, toJson } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 
 import {
@@ -106,8 +101,6 @@ import type { Store } from "../../store/interface.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
-  LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
-  RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
@@ -118,7 +111,7 @@ import { decodeRunStatusJson } from "./execution-json.js";
  * The worker's own-behalf status edge — the agentexecution UpdateStatus
  * RPC reached over the in-process transport (the `InProcessClients`
  * surface in boot/inprocess.ts satisfies it). Method-segregated like the
- * other in-process edges (Go's narrow client interfaces): the worker
+ * other in-process edges (narrow client interfaces): the worker
  * needs exactly this one RPC.
  */
 export interface ExecutionStatusWriter {
@@ -150,7 +143,7 @@ const TURN_MESSAGE_TYPE = "user.message";
  * Builds the activity record the worker registers. Keys are the
  * byte-pinned activity names; runner-owned activities (declared in
  * `@stigmer/temporal-codecs/activity-names`) are deliberately NOT here — registering them would break queue-based
- * routing (worker_config.go's CRITICAL rules).
+ * routing (worker.ts's queue architecture).
  */
 export function createAgentExecutionActivities(
   deps: AgentExecutionActivityDeps,
@@ -161,13 +154,12 @@ export function createAgentExecutionActivities(
     /**
      * The atomic status merge, invoked as a regular activity (failure/
      * cancellation paths) AND a local activity (persistFinalStatus) —
-     * one implementation serves both modes, exactly Go's single named
-     * registration. The activity owns only the payload boundary (proto-
-     * JSON in, a typed UpdateStatus input out); identity, authorization,
+     * one implementation serves both modes under one registered name.
+     * The activity owns only the payload boundary (proto-JSON in, a typed
+     * UpdateStatus input out); identity, authorization,
      * merge and hooks are the in-process lane's (module
      * header). A ConnectError from the lane — NotFound for a deleted
-     * execution — IS the activity's failure, exactly what the direct
-     * domain call answered before.
+     * execution — IS the activity's failure.
      */
     [UPDATE_EXECUTION_STATUS_ACTIVITY_NAME]: async (
       executionId: string,
@@ -180,32 +172,6 @@ export function createAgentExecutionActivities(
           status,
         }),
       );
-    },
-
-    /**
-     * Pure read of the current execution (the workflow's input snapshot
-     * is stale by completion time — historically the workflow held a
-     * stale copy; loading from the DB reflects every runner update).
-     */
-    [LOAD_AGENT_EXECUTION_ACTIVITY_NAME]: async (
-      executionId: string,
-    ): Promise<JsonValue> => {
-      let execution;
-      try {
-        execution = await store.getResource(
-          ApiResourceKind.run,
-          executionId,
-          RunSchema,
-        );
-      } catch (error) {
-        // Go load_execution.go wraps with this exact text — keeps the
-        // inner diagnostic chain byte-comparable across editions.
-        throw new Error(
-          `load agent execution ${executionId}: ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error },
-        );
-      }
-      return toJson(RunSchema, execution);
     },
 
     /** The turn's open gates in its session's log (module header). */
@@ -280,9 +246,6 @@ export function createAgentExecutionActivities(
     [START_QUEUED_TURN_ACTIVITY_NAME]: async (sessionId: string): Promise<void> => {
       await deps.queuedTurns(sessionId);
     },
-
-    /** The retired run-end cleanup: nothing is stored to delete (names.ts). */
-    [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (): Promise<void> => {},
   };
 }
 

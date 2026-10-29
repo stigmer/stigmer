@@ -1,4 +1,4 @@
 
 ✗ Failed: the model provider refused the request: the API key is invalid
 
-  To retry:     stigmer resume ses-00000000-0000-0000-0000-000000000001
+  To retry:     stigmer resume ses_00000000000000000000000001

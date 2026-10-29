@@ -4,14 +4,7 @@
  * the CURRENT code. A red run here means a change to the workflow's
  * logic is NOT replay-safe for in-flight executions: gate it with
  * patched()/deprecatePatch(), never regenerate the histories (regenerate
- * only when no producing release is still supported — the schedule
- * domain's rule). The one exception is a history whose path leaves with
- * the feature that produced it: the parented HITL history went with the
- * workflow product, whose parent runs an upgrade deletes; the Upgrading
- * section of the pull request that removed them (stigmer#1995), which the
- * release notes carry, tells operators to finish or cancel running
- * workflows before upgrading, because a run a workflow step started
- * cannot resume.
+ * only when no producing release is still supported).
  *
  * Fully local: replay needs no Temporal server, so this gate runs in the
  * plain vitest suite (and the ci.stigmer-server workflow) on every
@@ -37,12 +30,11 @@ const historyFiles = readdirSync(HISTORY_DIR).filter((name) =>
 
 describe("invoke-agent-execution replay determinism", () => {
   it("has committed histories to replay (the gate cannot be empty)", () => {
-    // 3 originals (happy, HITL, pause/resume) + the runner-failed and
-    // user-cancel histories captured before stigmer#980 changed the
-    // payloads (never the command sequence) of those two paths + a drain
-    // recovered before recoveries were counted per hour (no
-    // recovery-window marker) and a drained turn continued after it + a
-    // Claude turn's HITL cycle on the deterministic-state flow.
+    // One history per scenario of scripts/capture-replay-histories.ts: a
+    // completed turn, a HITL approval cycle, a pause and resume, a failure
+    // the runner reported, a user's cancel, a drained turn recovered, a
+    // drained turn that continued, and a Claude turn's HITL cycle on the
+    // deterministic-state flow.
     expect(historyFiles.length).toBeGreaterThanOrEqual(8);
   });
 

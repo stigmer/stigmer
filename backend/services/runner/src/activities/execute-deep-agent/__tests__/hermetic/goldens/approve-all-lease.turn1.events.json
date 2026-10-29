@@ -1,22 +1,22 @@
 [
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_thinking": {
-      "id": "aex_hermetic_0001.root.t0"
+      "id": "run_hermetic_0001.root.t0"
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "stigmer_agent_thinking": {
-      "id": "aex_hermetic_0001.root.t0.text",
-      "thinking_id": "aex_hermetic_0001.root.t0",
+      "id": "run_hermetic_0001.root.t0.text",
+      "thinking_id": "run_hermetic_0001.root.t0",
       "text": "Two commands are needed; I will run them in order."
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m1",
+      "id": "run_hermetic_0001.root.m1",
       "content": [
         {
           "type": "text",
@@ -26,9 +26,9 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "agent_tool_use": {
-      "id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "id": "run_hermetic_0001.call-hermetic-exec-0001",
       "input": {
         "command": "echo hermetic-a"
       },
@@ -37,10 +37,10 @@
     }
   },
   {
-    "run_id": "aex_hermetic_0001",
+    "run_id": "run_hermetic_0001",
     "stigmer_permission_asked": {
-      "id": "aex_hermetic_0001.call-hermetic-exec-0001.ask",
-      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "id": "run_hermetic_0001.call-hermetic-exec-0001.ask",
+      "tool_use_id": "run_hermetic_0001.call-hermetic-exec-0001",
       "message": "Run command: echo hermetic-a",
       "args_preview": "{\"command\":\"echo hermetic-a\"}",
       "policy_source": "builtin_category"

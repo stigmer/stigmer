@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_clean",
+      "id": "run_claude_0001.toolu_clean",
       "input": {
         "command": "echo toolu_clean >> ledger.txt",
         "description": "Record toolu_clean"
@@ -12,10 +12,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "stigmer_permission_asked": {
-      "id": "aex_claude_0001.toolu_clean.ask",
-      "tool_use_id": "aex_claude_0001.toolu_clean",
+      "id": "run_claude_0001.toolu_clean.ask",
+      "tool_use_id": "run_claude_0001.toolu_clean",
       "message": "Run command: echo toolu_clean >> ledger.txt",
       "args_preview": "{\"command\":\"echo toolu_clean >> ledger.txt\",\"description\":\"Record toolu_clean\"}",
       "policy_source": "builtin_category"
@@ -23,18 +23,18 @@
   },
   {
     "session_id": "ses_claude_0001",
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "user_tool_confirmation": {
-      "id": "sevt_tc_fa9c7ce28b1dd3985752df227698b9bf85869e0f",
+      "id": "sevt_tc_88f323fe346578cc1ea503800b4f41c59f15a5bc",
       "result": "allow",
-      "tool_use_id": "aex_claude_0001.toolu_clean"
+      "tool_use_id": "run_claude_0001.toolu_clean"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_clean.r",
-      "tool_use_id": "aex_claude_0001.toolu_clean",
+      "id": "run_claude_0001.toolu_clean.r",
+      "tool_use_id": "run_claude_0001.toolu_clean",
       "content": [
         {
           "type": "text",
@@ -44,9 +44,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m0",
+      "id": "run_claude_0001.root.m0",
       "content": [
         {
           "type": "text",

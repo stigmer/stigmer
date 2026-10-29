@@ -38,7 +38,7 @@ const STORED = create(SessionSchema, {
 describe("useSessionPageFlow — a stored repository token", () => {
   it("is kept by a follow-up: the entry keeps its name and echoes the marker", async () => {
     const sessionUpdate = vi.fn().mockResolvedValue(STORED);
-    const runSend = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+    const runSend = vi.fn().mockResolvedValue({ metadata: { id: "run_1" }, spec: {} });
     const releaseFiles = vi.fn().mockResolvedValue(undefined);
     const client = {
       session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },

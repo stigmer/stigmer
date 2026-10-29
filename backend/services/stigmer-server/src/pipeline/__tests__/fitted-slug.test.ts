@@ -3,7 +3,7 @@
  * for every name the server may choose (an account's email or subject, a
  * managed resource's name), checked through the same checkDerivedSlug
  * every other kind's derivation answers to. A name whose slug the rules
- * already admit keeps the slug every earlier release derived; a name that
+ * already admit keeps the slug the rules derive unchanged; a name that
  * starts with a digit gains `a-`; a name with no ASCII letter or digit
  * falls back to the subject; a name too long is cut and hashed, so two long
  * names sharing their first 54 characters still differ. fittedName cuts a

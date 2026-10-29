@@ -150,21 +150,21 @@ test("one-dynamic-segment routes resolve via the two-segment block", () => {
 test("the ambiguous three-segment pair disambiguates by filesystem probe", () => {
   // /conversations/archived/[id]: the literal candidate exists and wins.
   assert.equal(
-    resolveProbe("/conversations/archived/ach_123"),
+    resolveProbe("/conversations/archived/chn_123"),
     "/conversations/archived/__placeholder__.html",
   );
   // /conversations/[channelId]/[key]: the literal candidate does not exist,
   // so the two-placeholder candidate serves — same URL shape, different
   // route.
   assert.equal(
-    resolveProbe("/conversations/ach_01kz/919912850490"),
+    resolveProbe("/conversations/chn_01kz/919912850490"),
     "/conversations/__placeholder__/__placeholder__.html",
   );
 });
 
 test("conversation deep links resolve to the conversations placeholder", () => {
   assert.equal(
-    resolveProbe("/conversations/ach_01kz/919912850490"),
+    resolveProbe("/conversations/chn_01kz/919912850490"),
     "/conversations/__placeholder__/__placeholder__.html",
   );
 });
@@ -173,15 +173,15 @@ test("chat resolves through the general rule without a special-case block", () =
   // A hosted chat link names only the channel, by its id: /chat/[channel] is a
   // one-placeholder route, served by the two-segment block like /sessions.
   assert.equal(
-    resolveProbe("/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2"),
+    resolveProbe("/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2"),
     "/chat/__placeholder__.html",
   );
 });
 
-test("an old /chat/<org>/<slug> link no longer reaches a chat page", () => {
+test("a /chat/<org>/<slug> link reaches no chat page", () => {
   // It falls to the three-segment block, whose candidates
   // (/chat/acme/__placeholder__.html, /chat/__placeholder__/__placeholder__.html)
-  // no longer exist in the export, so it ends at the real not-found page —
+  // do not exist in the export, so it ends at the real not-found page —
   // never the chat page under another channel's id, never the blank shell.
   assert.equal(resolveProbe("/chat/acme/support-bot"), "/404.html");
 });
@@ -194,10 +194,10 @@ test("four-segment library routes resolve to their placeholder pair", () => {
 });
 
 test("existing files always win over placeholder candidates", () => {
-  const files = new Set([...FILES, "/conversations/ach_01kz/9199.html"]);
+  const files = new Set([...FILES, "/conversations/chn_01kz/9199.html"]);
   assert.equal(
-    resolveRequest(probeModel, "/conversations/ach_01kz/9199", files),
-    "/conversations/ach_01kz/9199.html",
+    resolveRequest(probeModel, "/conversations/chn_01kz/9199", files),
+    "/conversations/chn_01kz/9199.html",
   );
 });
 
@@ -211,7 +211,7 @@ test("trailing-slash URLs canonicalize to the same document (301 followed)", () 
   assert.equal(resolveProbe("/login/"), "/login.html");
   assert.equal(resolveProbe("/settings/billing/"), "/settings/billing.html");
   assert.equal(
-    resolveProbe("/conversations/ach_01kz/919912850490/"),
+    resolveProbe("/conversations/chn_01kz/919912850490/"),
     "/conversations/__placeholder__/__placeholder__.html",
   );
   // The root has no slashless twin and must keep serving the shell.
@@ -348,7 +348,7 @@ test("the pre-fix config produces the blank page for conversations", () => {
   // It falls into the one-level block, whose candidate embeds the real
   // channel id where a literal __placeholder__ must be, and misses.
   assert.equal(
-    resolveRequest(historical, "/conversations/ach_01kz/9199", FILES),
+    resolveRequest(historical, "/conversations/chn_01kz/9199", FILES),
     "/index.html",
   );
   // While /chat only worked because of its special case (the export then

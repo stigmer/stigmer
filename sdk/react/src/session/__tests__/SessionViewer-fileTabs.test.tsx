@@ -55,7 +55,7 @@ vi.mock("../../composer", async (importOriginal) => {
 const output = create(FileSchema, {
   metadata: { id: "file_agent" },
   spec: { filename: "agent.yaml" },
-  status: { sizeBytes: 512n, sessionId: "ses_1", runId: "aex_1", outputPath: "configs/agent.yaml" },
+  status: { sizeBytes: 512n, sessionId: "ses_1", runId: "run_1", outputPath: "configs/agent.yaml" },
 });
 
 // A person's upload: a File of the conversation that no turn returned.
@@ -66,7 +66,7 @@ const upload = create(FileSchema, {
 });
 
 const fileExecution = create(RunSchema, {
-  metadata: { id: "aex_1" },
+  metadata: { id: "run_1" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
@@ -331,7 +331,7 @@ describe("SessionViewer — the Files facet lists what was saved and what was gi
     // conversation's from this moment, and the turn has not ended.
     stubSessionPageFlow.allRuns = [
       fileExecution,
-      create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_IN_PROGRESS } }),
+      create(RunSchema, { metadata: { id: "run_2" }, status: { phase: RunPhase.RUN_IN_PROGRESS } }),
     ];
     rerender(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
 
@@ -391,7 +391,7 @@ describe("SessionViewer — the inspector's other doors", () => {
   it("opens a File the turn returned as the inspector's document tab, from the turn's outcome", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await showPanelWithFiles();
-    const turn = samples.turn({ runId: "aex_1" });
+    const turn = samples.turn({ runId: "run_1" });
     render(<>{(threadProps.at(-1)!.turnOutcome as (turn: unknown) => React.ReactNode)(turn)}</>);
     fireEvent.click(screen.getByRole("button", { name: /agent\.yaml/ }));
     await waitFor(() => expect(latestEditors().some((editor) => editor.path.includes("agent.yaml"))).toBe(true));
@@ -403,7 +403,7 @@ describe("SessionViewer — the inspector's other doors", () => {
       render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
       await showPanelWithFiles();
       const turn = samples.turn({
-        runId: "aex_1",
+        runId: "run_1",
         tools: [{ name: "edit_file", input: { path: "/home/daytona/workspace/src/invoice.ts" }, result: "ok" }],
       });
       render(<>{(threadProps.at(-1)!.turnOutcome as (turn: unknown) => React.ReactNode)(turn)}</>);

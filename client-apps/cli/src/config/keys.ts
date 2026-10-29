@@ -17,10 +17,10 @@ interface ConfigKey {
   set(config: Config, value: string): void;
 }
 
-// The backend.cloud.* keys predate named backends and remain the documented
-// kv surface for the reserved "cloud" entry; `current_backend` is the named
-// model's own key. `backend.type` stays the simple local/cloud switch
-// (named backends switch through `config backend use`).
+// The backend.cloud.* keys are the kv surface for the reserved "cloud" entry;
+// `current_backend` is the named model's own key. `backend.type` is the simple
+// local/cloud switch over it (named backends switch through
+// `config backend use`).
 const KEYS: Record<string, ConfigKey> = {
   "backend.type": {
     get: (config) =>

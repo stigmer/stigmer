@@ -5,18 +5,10 @@ the server `stigmer up` launches. A single-tenant TypeScript service serving
 the unified one-port gRPC/gRPC-Web/Connect transport over a `node:sqlite`
 store, with Temporal workers for the execution engine.
 
-**Where it came from**: born as `stigmer-server-ts`, a domain-by-domain
-TypeScript port of the original Go server, built behind the cross-edition
-conformance suite in [`test/conformance/`](../../../test/conformance) and cut
-over once its roster equalled the Go server's whole gate. The Go server
-retired shortly after (its source lives in git history). Ported modules
-cite the Go packages they came from — those citations are the port's
-provenance record.
-
 ## Contract promise
 
 The wire contract is shared: the cloud composition, the runner, every
-published SDK, and databases written before the cutover all speak it.
+published SDK, and every database a release wrote all speak it.
 Byte-pinned identifiers, error copy, and streaming behavior are contract —
 every deliberate exception is noted at the code that makes it, and nothing
 diverges silently. The conformance suite
@@ -77,7 +69,7 @@ const server = await composeServer({ config, logger, extensions: [myExtension] }
 
 A composition that is a whole process, rather than a library inside one, boots through the same process body the shipped server does: `runServer({ extensions: [myExtension] })` reads the config, makes the logger, composes, starts, prints the ready line and runs the drain on SIGTERM or SIGINT. An entry that needs the config or the logger to build its units (a pool over `DATABASE_URL`, a key it must verify first) passes a function instead, `runServer({ extensions: ({ config, logger }) => buildUnits(config, logger) })`, called once after both exist and before composition; its rejection rejects `runServer` as a composition failure does. Such an entry composes `openSourceEdition`, the shipped server's one unit, when it has nothing of its own to add. An edition above open source that signs its own tokens as the open-source server does registers `openSourcePlatformTokenKeyRing()` as its `drivers.platformTokenKeys`: the library generates that ring unasked for open source alone.
 
-A unit receives the composition's own instances at `onComposed` (`ComposedServices`): the bound Authorizer and list scope, the identity accounts' store and create path, and `grants`, the policy store binding's reads (`findByResource`, `findScopeTuple`, `findByResourceKindAndRelation`), for a unit's repair or grant gate, and `resourceOrganizations`, which organization a resource belongs to (its scope links, else its row's `metadata.org`), for a grant gate where the posture stores no scope link, as open source's own authorization does not. Writes go through the Grant RPCs, never this store.
+A unit receives the composition's own instances at `onComposed` (`ComposedServices`): the bound Authorizer and list scope, the identity accounts' store and create path, and `grants`, the policy store binding's reads (`findByResource`, `findScopeTuple`), for a unit's repair or grant gate, and `resourceOrganizations`, which organization a resource belongs to (its scope links, else its row's `metadata.org`), for a grant gate where the posture stores no scope link, as open source's own authorization does not. Writes go through the Grant RPCs, never this store.
 
 Versions are lockstep with the platform (`vX.Y.Z` tags on this repository). Pre-release builds for cross-repository work publish under the `dev` dist-tag as `X.Y.Z-dev.<stamp>.g<sha12>`, naming the commit they were built from (`.github/workflows/docs/dev-publishing.md`); pin them exactly, never by tag, and never in a production image.
 

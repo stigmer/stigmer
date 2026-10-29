@@ -1,6 +1,6 @@
 // Static (non-schema-driven) files of the TypeScript SDK gen dir:
-// errors.ts, proto-utils.ts, types.ts, and bidi-stream.ts. Byte-exact
-// copies of the Go emitter's raw-string templates.
+// errors.ts, proto-utils.ts, types.ts, and bidi-stream.ts, written from
+// fixed templates.
 
 import * as fs from "node:fs";
 import * as path from "node:path";

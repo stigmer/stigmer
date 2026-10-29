@@ -56,10 +56,9 @@ const SESSION_ID_PREFIX = "ses_";
  * (the OSS server since stigmer#461; it is single-tenant, so the caller sees
  * every stored session and the org filter is a no-op there).
  *
- * The client keeps only entries whose id carries the session prefix
- * (`ses_`). The wire entry no longer says what kind it is, and an older
- * server can still return workflow-run entries (`wex_` ids); listed, they
- * would read as sessions that fail to open, so they are dropped here.
+ * The wire entry does not say what kind it is, so the client keeps only
+ * entries whose id carries the session prefix (`ses_`): any other id,
+ * listed, would read as a session that fails to open.
  */
 export function useRecentActivity(
   options?: UseRecentActivityOptions,

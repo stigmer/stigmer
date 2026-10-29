@@ -1,6 +1,6 @@
 // Conformance suite for the TypeScript MCP server (@stigmer/mcp-server).
 // Domain: MCP protocol bridge over a live backend (the OSS server or the
-// cloud Java service).
+// cloud composition).
 //
 // Unlike the other suites — which drive the raw proto controllers via a
 // TargetProfile — this one exercises the MCP tool surface end-to-end through

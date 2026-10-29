@@ -532,8 +532,8 @@ enum ApiResourceKind {
     id_prefix: "chn"
     is_versioned: false
     // Not searchable by design: a channel is configuration reached through
-    // its agent's surfaces, not a library artifact. Skips the Go
-    // search-extractor entirely.
+    // its agent's surfaces, not a library artifact. Has no search
+    // extractor.
     not_search_indexed: true
     tier: open_source
     authorization: {
@@ -579,7 +579,7 @@ enum ApiResourceKind {
     is_versioned: false
     // Not searchable by design: a channel app is credential configuration
     // reached through the org's channel settings, not a library artifact.
-    // (Mirrors channel; skips the Go search-extractor.)
+    // (Like channel, it has no search extractor.)
     not_search_indexed: true
     tier: open_source
     authorization: {
@@ -614,7 +614,7 @@ enum ApiResourceKind {
     is_versioned: false
     // Not searchable by design: a routine is operational configuration
     // reached through its agent's surfaces, not a library artifact.
-    // (Mirrors channel; skips the Go search-extractor.)
+    // (Like channel, it has no search extractor.)
     not_search_indexed: true
     tier: open_source
     authorization: {
@@ -657,8 +657,8 @@ enum ApiResourceKind {
     is_versioned: false
     // Not searchable by design (privacy): memory content is subject-only
     // and must never surface through the global
-    // search index, whose results are org-visible. Also skips the Go
-    // search-extractor boot contract, like channel and routine.
+    // search index, whose results are org-visible. Like channel and
+    // routine, it has no search extractor.
     not_search_indexed: true
     tier: open_source
     authorization: {

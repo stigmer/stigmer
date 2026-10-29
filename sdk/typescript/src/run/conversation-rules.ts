@@ -86,8 +86,8 @@ export function isBuildFromPlanTurn(exec: Run): boolean {
  * `spec.message` is the submitted prompt, but three shapes of it are not user
  * prose and synthesize no user turn:
  *  - empty — nothing was typed (programmatic creates);
- *  - the literal `"execute"` — the legacy placeholder stamped on runs started
- *    without a message;
+ *  - the literal `"execute"`, a placeholder for a run started without a
+ *    message;
  *  - a Build-from-plan turn's machine-written label (see
  *    {@link isBuildFromPlanTurn}).
  */

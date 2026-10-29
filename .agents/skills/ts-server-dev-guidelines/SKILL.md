@@ -23,25 +23,23 @@ the header wins and this skill is corrected.
 
 ## Parity is the prime directive
 
-The server began as a strict port of a retired Go implementation and is now the
-one implementation of the core for every edition: the cloud composition pins an
-exact published release of `@stigmer/server`, and `test/conformance/` holds both
-editions to the same contract. "Parity" means parity with that suite and with
-every client already in the field.
+The server is the one implementation of the core for every edition: the cloud
+composition pins an exact published release of `@stigmer/server`, and
+`test/conformance/` holds both editions to the same contract. "Parity" means
+parity with that suite and with every client already in the field.
 
 - Byte-pinned wire identifiers are never cleaned up. Workflow, activity, queue
   and signal names, memo keys, id prefixes (`agt_`, `ses_`), refusal copy and
   error messages are shared with the runner, the cloud composition, the
-  published SDKs and databases written before any rename you might make. However
-  inconsistent their casing looks, renaming one is a protocol break the
-  conformance suite catches late and expensively. The names live in one module
-  per domain (for example
+  published SDKs and every database a release has written. However inconsistent
+  their casing looks, renaming one is a protocol break the conformance suite
+  catches late and expensively. The names live in one module per domain (for
+  example
   `backend/services/stigmer-server/src/temporal/agentexecution/names.ts`).
-- Deliberate divergences inherited from the port are contract. Where two chains
-  answer the same fault with different codes on purpose, the code carries a
-  comment citing the issue that fixed the behaviour; preserve it. A new
-  cross-edition divergence goes to the maintainers before it ships; nothing
-  diverges silently.
+- Deliberate divergences are contract. Where two chains answer the same fault
+  with different codes on purpose, the code carries a comment citing the issue
+  that fixed the behaviour; preserve it. A new cross-edition divergence goes to
+  the maintainers before it ships; nothing diverges silently.
 - A value that looks arbitrary is not therefore tunable. Every semantic timeout,
   loop cap, TTL and retry policy is a named constant whose rationale rides
   beside it (`backend/services/stigmer-server/src/transport/constants.ts` is the
@@ -173,8 +171,7 @@ Errors are API surface: the CLI, the console and the SDKs render them directly.
   `internalError(cause, "failed to <do thing>")` from
   `backend/services/stigmer-server/src/pipeline/errors.ts` in a direct handler.
   Presenting a locked file or a corrupted page as "not found" invites clients to
-  discard real state, which is why the retired implementation's
-  everything-is-not-found mapping was deliberately not ported.
+  discard real state.
   `backend/services/stigmer-server/src/pipeline/__tests__/blind-not-found.test.ts`
   holds the rule: it fails any catch that answers NotFound without testing the
   error it caught.

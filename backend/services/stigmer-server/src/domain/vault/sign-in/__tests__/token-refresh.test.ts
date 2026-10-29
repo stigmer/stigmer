@@ -1,8 +1,7 @@
 /**
- * OAuth token/refresh slice tests — ports the refresh-relevant halves of
- * pkg/domain/mcpserver/oauth/token_test.go (the Slack authed_user
- * "which token wins" resolution + the #410 client-secret placement pins,
- * RefreshToken arm; ExchangeCode is token-exchange.test.ts's) and pins
+ * OAuth token/refresh slice tests: the Slack authed_user "which token
+ * wins" resolution and the #410 client-secret placement pins on the
+ * refresh arm (the code exchange is token-exchange.test.ts's), and
  * refreshTokenIfExpired's expiry-buffer / rotation contract over a vault
  * connection's sign-in record. The token endpoint is a fetch
  * stub — deterministic, no sockets.
@@ -67,9 +66,8 @@ function captureTokenServer(captured: CapturedTokenRequest): typeof fetch {
   };
 }
 
-// The Slack V2 authed_user resolution: which token wins (Go
-// TestResolveFromAuthedUser_*), driven through refreshToken since the TS
-// port inlines the resolution in the response parse.
+// The Slack V2 authed_user resolution: which token wins, driven through
+// refreshToken since the resolution is inlined in the response parse.
 describe("authed_user token resolution", () => {
   async function refreshAgainst(body: string) {
     return refreshToken(
@@ -160,8 +158,8 @@ describe("authed_user token resolution", () => {
 
 // Client-secret placement (stigmer/stigmer#410): which channel carries
 // the secret per token_endpoint_auth_method, and never both (RFC 6749
-// §2.3). Go pins ExchangeCode and RefreshToken; only RefreshToken exists
-// in this slice.
+// §2.3). This slice pins the refresh arm; the exchange arm is
+// token-exchange.test.ts's.
 describe("refreshToken secret placement", () => {
   const cases = [
     {

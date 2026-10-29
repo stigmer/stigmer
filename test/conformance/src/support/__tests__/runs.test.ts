@@ -98,7 +98,7 @@ function queryAnswering(answers: Run[]) {
 
 function atPhase(phase: RunPhase, extra: { error?: string; stopCause?: string } = {}): Run {
   return create(RunSchema, {
-    metadata: { id: "aex_unit" },
+    metadata: { id: "run_unit" },
     status: { phase, error: extra.error ?? "", stopCause: extra.stopCause ?? "" },
   });
 }
@@ -113,18 +113,18 @@ describe("pollExecution", () => {
     // Long enough for at least three polls on a loaded machine; the predicate
     // never holds, so the run always ends at the deadline.
     await expect(
-      pollExecution(clients, "aex_unit", () => false, { timeoutMs: 1000, pollMs: 1, label: "the unit predicate" }),
+      pollExecution(clients, "run_unit", () => false, { timeoutMs: 1000, pollMs: 1, label: "the unit predicate" }),
     ).rejects.toThrow(
-      "execution aex_unit did not satisfy the unit predicate within 1000ms " +
+      "execution run_unit did not satisfy the unit predicate within 1000ms " +
         '(observed phases: RUN_PENDING -> RUN_IN_PROGRESS; status.error: "provider refused"; ' +
         'stop_cause: "model_error")',
     );
-    expect(get).toHaveBeenCalledWith({ value: "aex_unit" });
+    expect(get).toHaveBeenCalledWith({ value: "run_unit" });
   });
 
   it("reads an absent phase as RUN_PHASE_UNSPECIFIED", async () => {
     const { clients } = queryAnswering([create(RunSchema, {})]);
-    await expect(pollExecution(clients, "aex_unit", () => false, { timeoutMs: 1, pollMs: 1 })).rejects.toThrow(
+    await expect(pollExecution(clients, "run_unit", () => false, { timeoutMs: 1, pollMs: 1 })).rejects.toThrow(
       'did not satisfy the predicate within 1ms (observed phases: RUN_PHASE_UNSPECIFIED; status.error: ""; stop_cause: "")',
     );
   });
@@ -134,7 +134,7 @@ describe("awaitPhase", () => {
   it("returns the run once it reaches the phase", async () => {
     const completed = atPhase(RunPhase.RUN_COMPLETED);
     const { clients } = queryAnswering([completed]);
-    await expect(awaitPhase(clients, "aex_unit", RunPhase.RUN_COMPLETED, { timeoutMs: 1, pollMs: 1 })).resolves.toBe(
+    await expect(awaitPhase(clients, "run_unit", RunPhase.RUN_COMPLETED, { timeoutMs: 1, pollMs: 1 })).resolves.toBe(
       completed,
     );
   });
@@ -142,19 +142,19 @@ describe("awaitPhase", () => {
   it("labels its timeout with the phase it awaited", async () => {
     const { clients } = queryAnswering([atPhase(RunPhase.RUN_IN_PROGRESS)]);
     await expect(
-      awaitPhase(clients, "aex_unit", RunPhase.RUN_WAITING_FOR_APPROVAL, { timeoutMs: 1, pollMs: 1 }),
+      awaitPhase(clients, "run_unit", RunPhase.RUN_WAITING_FOR_APPROVAL, { timeoutMs: 1, pollMs: 1 }),
     ).rejects.toThrow("did not satisfy phase RUN_WAITING_FOR_APPROVAL within 1ms");
   });
 });
 
 describe("interruptRunSession", () => {
   it("interrupts the session the run's target names", async () => {
-    const run = create(RunSchema, { metadata: { id: "aex_unit" }, spec: { target: { case: "sessionId", value: "ses_unit" } } });
+    const run = create(RunSchema, { metadata: { id: "run_unit" }, spec: { target: { case: "sessionId", value: "ses_unit" } } });
     const get = vi.fn(async () => run);
     const interrupt = vi.fn(async () => ({}));
     const clients = { agentExecutionQuery: { get }, sessionCommand: { interrupt } } as unknown as ConformanceClients;
-    await interruptRunSession(clients, "aex_unit");
-    expect(get).toHaveBeenCalledWith({ value: "aex_unit" });
+    await interruptRunSession(clients, "run_unit");
+    expect(get).toHaveBeenCalledWith({ value: "run_unit" });
     expect(interrupt).toHaveBeenCalledWith({ sessionId: "ses_unit" });
   });
 });

@@ -203,7 +203,7 @@ describe("ExecuteClaude hermetic — approvals", () => {
     expect(phaseOf(await file.run(first, steps([[shell("toolu_stale")]], "Deleted.")))).toBe("RUN_WAITING_FOR_APPROVAL");
 
     // The person stops the run instead of answering, and sends another message: a new run on the same session.
-    const second = claudeExecutionRecord({ message: "Never mind, just say hi.", executionId: "aex_claude_0002" });
+    const second = claudeExecutionRecord({ message: "Never mind, just say hi.", executionId: "run_claude_0002" });
     const before = file.wire().conversations.length;
     const next = await file.resume(second, () => anthropicText("Hi."));
 

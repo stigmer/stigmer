@@ -79,7 +79,6 @@ import {
   EncryptionUnavailableError,
   grantStoreContract,
   identityAccountStoreContract,
-  identityIdForSubject,
   InvalidTokenError,
   isRunGateCheck,
   loadConfig,
@@ -462,7 +461,6 @@ const consumerGrantStore: GrantStore = {
   findByResourceWithRelations: () => Promise.resolve([]),
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
-  findByResourceKindAndRelation: () => Promise.resolve([]),
   // A store that keeps no history answers none and removes none; one
   // composed above open source keeps one, reads it back and ages it out here.
   listChanges: () => Promise.resolve([]),
@@ -601,16 +599,6 @@ const verifier: IdentityVerifier = {
     };
   },
 };
-
-/**
- * The id-only reading a composition written before principalForSubject
- * still calls. It is deprecated and kept until compositions adopt the
- * principal (stigmer/stigmer#1769), so it is typechecked here: removing it
- * is a deliberate surface change, never an accident.
- */
-export function legacySubjectResolution(subject: string): Promise<string> {
-  return identityIdForSubject(consumerIdentityAccountStore, subject);
-}
 
 /**
  * A consumer-shaped identity-federation capability: the four

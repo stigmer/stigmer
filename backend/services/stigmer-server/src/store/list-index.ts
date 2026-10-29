@@ -1,8 +1,9 @@
 /**
  * The list index: what a store keeps beside a row so a list lane can read
  * one organization's or one parent's rows in creation order without
- * decoding the whole kind. Every list lane used to call `listResources`
- * and filter in memory, and the payload is opaque bytes by contract
+ * decoding the whole kind. Without it a list lane would call
+ * `listResources` and filter in memory, and the payload is opaque bytes by
+ * contract
  * (postgres/migrations.ts: audit hashes are content-addressed over them),
  * so an index is projected columns written beside the blob, never a path
  * into it.

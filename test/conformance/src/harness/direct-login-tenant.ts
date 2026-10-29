@@ -101,10 +101,9 @@ export function newDirectLoginTenant(
 
 // How long before its exp an already-expired token is dated as issued. A real
 // expired token was issued BEFORE it expired; a token whose exp precedes its
-// iat is not "expired", it is malformed — Spring's Jwt constructor refuses it
-// as "expiresAt must be after issuedAt", which classifies as `invalid token`,
-// not the expiry copy the suite pins. Found when the hermetic Java launcher
-// first ran production security mode.
+// iat is not "expired", it is malformed — a JWT verifier may refuse it as
+// such, which classifies as `invalid token`, not the expiry copy the suite
+// pins.
 const EXPIRED_TOKEN_LIFETIME_SECONDS = 60;
 
 // The claim set Auth0 mints for a first-party client — exported so the suite's

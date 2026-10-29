@@ -20,8 +20,7 @@
  * ORDER is deliberately NOT asserted here, it is driver-relative), the
  * resource-name table (one winner of
  * concurrent claims, lazy expiry, renames that move, take back, revert and
- * overlap to one current name, a name equal to its id reserved for good,
- * a release that frees only its own names), OAuth grants, once-only pending-state
+ * overlap to one current name, a release that frees only its own names), OAuth grants, once-only pending-state
  * redemption with its 10-minute TTL, the organization deletion table (one
  * winner of concurrent marks, transitions that apply only from the phase
  * they name), removal of one organization's side-store records, the
@@ -400,7 +399,7 @@ export function describeStoreContract(
   });
 
   describe("field and label queries", () => {
-    it("findByField matches camelCase paths with snake_case fallback (Go's two-probe lookup)", async () => {
+    it("findByField matches camelCase paths with snake_case fallback (two-probe lookup)", async () => {
       await fx.store.saveResource(
         KIND,
         "acme",
@@ -509,9 +508,8 @@ export function describeStoreContract(
     });
   });
 
-  // The maintenance surface — ports the
-  // Java contract shapes (PostgresAgentRepositoryContractTest): keyset
-  // paging from "", stale-expectation loses, deleted-row loses.
+  // The maintenance surface: keyset paging from "", stale-expectation
+  // loses, deleted-row loses.
   describe("maintenance surface: raw ordered scan + bytes-level CAS", () => {
     it('findResourcesRawOrderedAfter pages the whole kind in id order from ""', async () => {
       for (const id of ["raw-b", "raw-a", "raw-c"]) {
@@ -1268,12 +1266,12 @@ export function describeStoreContract(
     it("search mode returns matching hits with wire-ready scores (0–1, higher = better)", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-1",
+        "agt_1",
         entry({ name: "kubernetes helper", createdAt: 1_700_000_001 }),
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-2",
+        "agt_2",
         entry({ name: "unrelated thing", createdAt: 1_700_000_002 }),
       );
 
@@ -1288,7 +1286,7 @@ export function describeStoreContract(
       expect(result.totalCount).toBe(1);
       expect(result.countsByKind).toEqual({ agent: 1 });
       expect(result.hits).toHaveLength(1);
-      expect(result.hits[0]?.resourceId).toBe("agt-1");
+      expect(result.hits[0]?.resourceId).toBe("agt_1");
       expect(result.hits[0]?.score).toBeGreaterThan(0);
       expect(result.hits[0]?.score).toBeLessThanOrEqual(1);
     });
@@ -1296,7 +1294,7 @@ export function describeStoreContract(
     it("a single term is a prefix match; multiple terms compose with AND", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-1",
+        "agt_1",
         entry({ name: "kubernetes deployment helper" }),
       );
 
@@ -1332,7 +1330,7 @@ export function describeStoreContract(
     it("hostile query-operator content matches as literal text, never as engine syntax", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-1",
+        "agt_1",
         entry({ name: "plain agent" }),
       );
 
@@ -1357,17 +1355,17 @@ export function describeStoreContract(
     it("authorizedIdsByKind narrows per kind; an empty set matches nothing; absent kinds stay unrestricted", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-mine",
+        "agt_mine",
         entry({ name: "scoped alpha" }),
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-foreign",
+        "agt_foreign",
         entry({ name: "scoped beta" }),
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.skill,
-        "skl-any",
+        "skl_any",
         entry({ name: "scoped gamma" }),
       );
 
@@ -1376,14 +1374,14 @@ export function describeStoreContract(
         kinds: ["agent", "skill"],
         terms: ["scoped"],
         orgFilter: "",
-        authorizedIdsByKind: new Map([["agent", new Set(["agt-mine"])]]),
+        authorizedIdsByKind: new Map([["agent", new Set(["agt_mine"])]]),
         limit: 20,
         offset: 0,
       });
       expect(narrowed.countsByKind).toEqual({ agent: 1, skill: 1 });
       expect(narrowed.hits.map((hit) => hit.resourceId).sort()).toEqual([
-        "agt-mine",
-        "skl-any",
+        "agt_mine",
+        "skl_any",
       ]);
 
       // An EMPTY set for a kind matches nothing for that kind.
@@ -1393,7 +1391,7 @@ export function describeStoreContract(
         orgFilter: "",
         authorizedIdsByKind: new Map([
           ["agent", new Set<string>()],
-          ["skill", new Set(["skl-any"])],
+          ["skill", new Set(["skl_any"])],
         ]),
         limit: 20,
         offset: 0,
@@ -1429,12 +1427,12 @@ export function describeStoreContract(
     it("org scoping is strict: the visibility column never widens or narrows the org filter", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-mine",
+        "agt_mine",
         entry({ name: "searchable alpha", org: "acme" }),
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-shared",
+        "agt_shared",
         entry({
           name: "searchable beta",
           org: "globex",
@@ -1443,7 +1441,7 @@ export function describeStoreContract(
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-foreign",
+        "agt_foreign",
         entry({ name: "searchable gamma", org: "globex" }),
       );
 
@@ -1454,7 +1452,7 @@ export function describeStoreContract(
         limit: 20,
         offset: 0,
       });
-      expect(strict.hits.map((hit) => hit.resourceId)).toEqual(["agt-mine"]);
+      expect(strict.hits.map((hit) => hit.resourceId)).toEqual(["agt_mine"]);
 
       const unscoped = await fx.store.querySearchIndex({
         kinds: ["agent"],
@@ -1464,19 +1462,19 @@ export function describeStoreContract(
         offset: 0,
       });
       expect(new Set(unscoped.hits.map((hit) => hit.resourceId))).toEqual(
-        new Set(["agt-mine", "agt-shared", "agt-foreign"]),
+        new Set(["agt_mine", "agt_shared", "agt_foreign"]),
       );
     });
 
     it("list mode (terms undefined) orders newest first with score exactly 1.0", async () => {
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-old",
+        "agt_old",
         entry({ name: "older", createdAt: 1_700_000_001 }),
       );
       await fx.store.upsertSearchIndex(
         ApiResourceKind.agent,
-        "agt-new",
+        "agt_new",
         entry({ name: "newer", createdAt: 1_700_000_002 }),
       );
 
@@ -1489,8 +1487,8 @@ export function describeStoreContract(
       });
 
       expect(result.hits.map((hit) => hit.resourceId)).toEqual([
-        "agt-new",
-        "agt-old",
+        "agt_new",
+        "agt_old",
       ]);
       for (const hit of result.hits) {
         expect(hit.score).toBe(1.0);
@@ -1698,25 +1696,12 @@ export function describeStoreContract(
     });
 
     it("an old name with no expiry is held for good", async () => {
-      await names().claim(key("older"), "older", T0);
-      await names().rename({ ...ORG, id: "older", from: "older", to: "newer", fromExpiresAt: "", now: T1 });
+      await names().claim(key("older"), "org_a", T0);
+      await names().rename({ ...ORG, id: "org_a", from: "older", to: "newer", fromExpiresAt: "", now: T1 });
       expect(await names().resolve(key("older"), "2999-01-01T00:00:00.000Z")).toMatchObject({
-        id: "older", state: "previous", expiresAt: "",
+        id: "org_a", state: "previous", expiresAt: "",
       });
       expect((await names().claim(key("older"), "org_b", "2999-01-01T00:00:00.000Z")).claimed).toBe(false);
-    });
-
-    it("a name equal to its id is held for good, whatever expiry the rename gives", async () => {
-      await names().claim(key("legacy"), "legacy", T0);
-      await names().rename({ ...ORG, id: "legacy", from: "legacy", to: "renamed", fromExpiresAt: T2, now: T1 });
-      expect(await names().resolve(key("legacy"), "2999-01-01T00:00:00.000Z")).toMatchObject({
-        id: "legacy", state: "previous", expiresAt: "",
-      });
-
-      // Renamed again, the name it moved to expires as any other.
-      await names().rename({ ...ORG, id: "legacy", from: "renamed", to: "again", fromExpiresAt: T2, now: T1 });
-      expect(await names().resolve(key("renamed"), T1)).toMatchObject({ state: "previous", expiresAt: T2 });
-      expect(await names().resolve(key("legacy"), "2999-01-01T00:00:00.000Z")).toMatchObject({ expiresAt: "" });
     });
 
     it("two renames from one name leave exactly one current name, the later one's", async () => {
@@ -1792,19 +1777,6 @@ export function describeStoreContract(
       expect(await names().resolve(key("acme"), T2)).toMatchObject({ id: "org_a", state: "previous", expiresAt: T3 });
     });
 
-    it("a move back never lets go of a name equal to its id", async () => {
-      await names().claim(key("older"), "older", T0);
-      await names().rename({ ...ORG, id: "older", from: "older", to: "newer", fromExpiresAt: T2, now: T1 });
-      const back = { ...ORG, id: "older", from: "newer", to: "older", fromExpiresAt: T2, now: T1 };
-      const moved = await names().rename(back);
-      await names().revertRename(back, moved.claimed ? moved.takenBack : undefined);
-
-      expect(await names().resolve(key("older"), "2999-01-01T00:00:00.000Z")).toMatchObject({
-        id: "older", state: "previous", expiresAt: "",
-      });
-      expect((await names().claim(key("older"), "org_b", "2999-01-01T00:00:00.000Z")).claimed).toBe(false);
-    });
-
     it("a rename onto a name taken fresh carries nothing taken back", async () => {
       await names().claim(key("acme"), "org_a", T0);
       const moved = await names().rename({ ...ORG, id: "org_a", from: "acme", to: "acme-corp", fromExpiresAt: T3, now: T1 });
@@ -1818,18 +1790,6 @@ export function describeStoreContract(
       expect(await names().current("organization", "", "org_a")).toMatchObject({ name: "acme-corp", state: "current" });
       await names().release("organization", "", "org_a");
       expect(await names().current("organization", "", "org_a")).toBeUndefined();
-    });
-
-    it("release keeps a name equal to the id reserved for good, and lets go of every other", async () => {
-      await names().claim(key("older"), "older", T0);
-      await names().rename({ ...ORG, id: "older", from: "older", to: "newer", fromExpiresAt: T2, now: T1 });
-      await names().release("organization", "", "older");
-      await names().release("organization", "", "older");
-      expect(await names().resolve(key("newer"), T1)).toBeUndefined();
-      expect(await names().resolve(key("older"), "2999-01-01T00:00:00.000Z")).toMatchObject({
-        id: "older", state: "previous", expiresAt: "",
-      });
-      expect((await names().claim(key("older"), "org_b", "2999-01-01T00:00:00.000Z")).claimed).toBe(false);
     });
 
     it("release lets go of every name one resource holds, and only its", async () => {
@@ -2371,7 +2331,7 @@ export function describeStoreContract(
 
     it("reads a parent's rows through a key, or through any of several", async () => {
       await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
-      await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
+      await save(session("ses_2", "acme", 2, { channel: "chn_1" }));
       await save(session("ses_3", "acme", 3, { agentId: "agt_2" }));
 
       expect(
@@ -2386,7 +2346,7 @@ export function describeStoreContract(
           await fx.store.queryResources(CONTRACT_SESSION_INDEX, {
             anyKey: [
               { name: "agent", value: "agt_1" },
-              { name: "channel", value: "ach_1" },
+              { name: "channel", value: "chn_1" },
             ],
           }),
         ),
@@ -2399,12 +2359,12 @@ export function describeStoreContract(
 
     it("leaves out rows holding a value for any key it is told to, the unproven included", async () => {
       await save(session("ses_1", "acme", 1, { agentId: "agt_1" }));
-      await save(session("ses_2", "acme", 2, { channel: "ach_1" }));
+      await save(session("ses_2", "acme", 2, { channel: "chn_1" }));
       await save(
-        session("ses_3", "acme", 3, { agentId: "agt_1", channel: "ach_2" }),
+        session("ses_3", "acme", 3, { agentId: "agt_1", channel: "chn_2" }),
       );
       await save(session("ses_4", "acme", 4));
-      await save(session("ses_5", "other", 5, { channel: "ach_3" }));
+      await save(session("ses_5", "other", 5, { channel: "chn_3" }));
 
       expect(
         ids(
@@ -2457,7 +2417,7 @@ export function describeStoreContract(
         "ses_old_channel",
         toBinary(
           SessionSchema,
-          session("ses_old_channel", "acme", 10, { channel: "ach_9" }),
+          session("ses_old_channel", "acme", 10, { channel: "chn_9" }),
         ),
       );
       await fx.writeAsOlderBinary(
@@ -3073,7 +3033,7 @@ export function describeStoreContract(
   describe("lifecycle", () => {
     it("every method fails with 'store is closed' after close; close is idempotent", async () => {
       await fx.store.close();
-      await fx.store.close(); // second close is a no-op, as in Go
+      await fx.store.close(); // second close is a no-op
 
       await expect(fx.store.listResources(KIND)).rejects.toThrow(
         "store is closed",

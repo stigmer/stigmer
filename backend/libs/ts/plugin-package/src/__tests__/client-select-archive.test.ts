@@ -1,12 +1,11 @@
 /**
  * The client entry's identity discipline: the same tree selected and
  * archived from a directory (the CLI's edge) and from a flat in-memory file
- * list (the console's edge) yields one digest, and that digest is the one
- * the CLI produced before this module existed.
+ * list (the console's edge) yields one digest, and that digest is frozen.
  *
- * The frozen constant below was computed with the unmodified CLI at
- * `d75b0724a` (`preparePluginPush` over the vendored `thermos` fixture,
- * whose bytes never change). If it changes, every installed plugin would
+ * The frozen constant below was computed at `d75b0724a`
+ * (`preparePluginPush` over the vendored `thermos` fixture, whose bytes
+ * never change). If it changes, every installed plugin would
  * look like an upgrade; this test is the tripwire. The catalogue's own
  * `plugins/linear` is read too, but its content is allowed to evolve (a
  * manifest edit is an upgrade by design), so its cases pin the identity
@@ -67,7 +66,7 @@ function inMemory(files: Record<string, string>): { candidates: CandidateFile[];
 
 const RESPECT = { respectGitignore: true };
 
-describe("parity with the CLI's original walk", () => {
+describe("the directory walk's selection", () => {
   it("plugins/linear selects exactly its files, in walk order", () => {
     const { candidates, read } = listDirectory(`${REPO_PLUGINS}linear`);
     const selection = selectPluginFiles(candidates, read, RESPECT);

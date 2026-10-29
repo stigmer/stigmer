@@ -3,14 +3,12 @@
  * versioned kind (agents, skills, plugins): the version-metadata
  * rule an applied kind's write runs once its hash is known, the "archive
  * the head" step a write runs after the head is fully populated, and the
- * best-effort archive cleanup a delete runs before the row. Skills carried
- * the archive and the cleanup alone (#341, adopted for skills in #475; the
- * Go ArchiveCurrentSkillStep / DeleteSkillArchivesStep port); one copy
- * serves every kind, and each kind names its step (`SaveVersionAudit`,
+ * best-effort archive cleanup a delete runs before the row (#341, #475).
+ * One copy serves every kind, and each kind names its step (`SaveVersionAudit`,
  * `ArchiveCurrentSkill`, `ArchiveCurrentPlugin`, …), where its head rides
  * and where its hash and tag live.
  *
- * The load-bearing semantics, all preserved from the skill port:
+ * The load-bearing semantics:
  *   - repoint-never-duplicate: re-writing EVER-archived content repoints
  *     the head to the existing audit row (an A→B→A re-push must not
  *     duplicate A's row);
@@ -115,9 +113,7 @@ export function newPopulateVersionStep<Desc extends DescMessage>(
         const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
         const stored =
           existing === undefined ? undefined : metadataOf(existing)?.version;
-        // An earlier release saved an unchanged apply with the client's
-        // empty version id; the head's own hash repairs it.
-        version.id = stored?.id || newHash;
+        version.id = stored?.id ?? newHash;
         version.previousVersionId = stored?.previousVersionId ?? "";
         version.message = stored?.message ?? "";
       }

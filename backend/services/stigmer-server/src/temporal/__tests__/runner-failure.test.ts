@@ -1,8 +1,6 @@
 /**
- * Pins the worker-shutdown classification (pkg/runnerfailure parity,
- * issue #776): the two message shapes that mean "infrastructure
- * interrupted the turn", matched exactly as the Go and Java control
- * planes match them, and the honest status.error copy every edition
+ * Pins the worker-shutdown classification (issue #776): the two message
+ * shapes that mean "infrastructure interrupted the turn", and the honest status.error copy every edition
  * shares; and the typed failure of a turn that stopped to continue
  * (stigmer#2428), matched by its type and never its text. The invoke
  * workflow's recovery loop and failure-path persist both key on these.

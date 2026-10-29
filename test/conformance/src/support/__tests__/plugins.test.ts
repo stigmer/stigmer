@@ -26,6 +26,7 @@ import {
   claudeLike,
   FIXTURE_SERVER,
   mcpOnly,
+  modelToolName,
   oneServerPlugin,
   pluginRefOf,
   pluginToolDeclarer,
@@ -85,6 +86,12 @@ describe("the names a turn gives a plugin's parts", () => {
     expect(toolServerSegment("acme")).toBe(`plugin_acme_${FIXTURE_SERVER}`);
     expect(pluginToolName("acme_tools", "orders", "echo")).toBe("mcp__plugin_acme_tools_orders__echo");
     expect(pluginToolDeclarer("acme", "orders")).toBe("plugin:acme:orders");
+  });
+
+  it("names a pushed plugin's tool as the model calls it, on the fixture's server unless told another", () => {
+    const plugin = create(PluginSchema, { metadata: { name: "acme.tools" } });
+    expect(modelToolName(plugin, "echo")).toBe(`mcp__plugin_acme_tools_${FIXTURE_SERVER}__echo`);
+    expect(modelToolName(plugin, "echo", "orders")).toBe("mcp__plugin_acme_tools_orders__echo");
   });
 });
 

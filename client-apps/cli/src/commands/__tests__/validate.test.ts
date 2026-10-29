@@ -2,9 +2,8 @@
 // against temp files and asserts the classified exit code and, for the plugin
 // route, the rendered output. The contract: 0 = valid (a plugin with warnings
 // is still 0), 2 = invalid input (bad path, bad YAML, unknown kind, schema
-// failure, a plugin the reader refuses), 1 = unexpected. This is a
-// deliberate, documented refinement over the Go CLI, which returned a
-// generic exit 1 for all validate failures. The YAML cases are unchanged by
+// failure, a plugin the reader refuses), 1 = unexpected, so a script tells a
+// bad input from a failure of the CLI itself. The YAML cases are unchanged by
 // the plugin route and pin that it stays out of their way.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -43,9 +42,9 @@ beforeAll(() => {
   writeFileSync(join(dir, "bad-schema.yaml"), ["kind: Agent", "metadata: not-an-object", ""].join("\n"));
   writeFileSync(join(dir, "unknown.yaml"), ["kind: Banana", "metadata:", "  name: x", ""].join("\n"));
 
-  // A Cursor plugin with a header token the manifest does not declare and an
-  // ai.stigmer/ folder Stigmer does not read: valid, with those two warnings,
-  // and the folder's document never validated as a loose resource.
+  // A Cursor plugin with a header token the manifest does not declare and a
+  // YAML file of its own: valid, with the one warning, and the plugin's
+  // document never validated as a loose resource.
   plugin = mkdtempSync(join(tmpdir(), "stigmer-validate-plugin-"));
   write(plugin, ".cursor-plugin/plugin.json", JSON.stringify({ name: "github", version: "1.0.0", mcpServers: "./mcp.json", logo: "assets/logo.svg" }));
   write(plugin, "mcp.json", JSON.stringify({ mcpServers: { github: { type: "http", url: "https://api.example.com/mcp/", headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } } } }));
@@ -122,7 +121,7 @@ describe("validate on a plugin directory", () => {
     const run = await runValidate("-f", plugin);
     expect(run.exitCode).toBe(ExitCode.Success);
     expect(run.stdout).toBe("");
-    expect(run.stderr).toContain("Plugin 'github' is valid with 2 warnings");
+    expect(run.stderr).toContain("Plugin 'github' is valid with 1 warning");
     expect(run.stderr).toContain("Cursor plugin");
     // Section keys are padded to the widest key, so match key and value loosely.
     expect(run.stderr).toMatch(/MCP servers\s+1: github \(http\)/);
@@ -144,12 +143,12 @@ describe("validate on a plugin directory", () => {
       mcpServers: [{ name: "github", transport: "http", env: ["GITHUB_TOKEN"] }],
       variables: [{ name: "GITHUB_TOKEN", isSecret: true, optional: false, declaredBy: "inferred" }],
     });
-    expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred", "stigmer-folder-ignored"]);
+    expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred"]);
   });
 
   it("prints only the status line with --quiet", async () => {
     const run = await runValidate("-f", plugin, "--quiet");
-    expect(run.stderr.trim()).toBe("⚠ Plugin 'github' is valid with 2 warnings");
+    expect(run.stderr.trim()).toBe("⚠ Plugin 'github' is valid with 1 warning");
   });
 
   it("refuses with exit 2 and every problem's sentence", async () => {

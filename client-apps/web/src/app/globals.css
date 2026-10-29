@@ -9,7 +9,7 @@
 /* The COMPILED SDK stylesheet (dist/styles.css, `stg:`-prefixed utilities;
    #454). The console consumes the same prebuilt artifact external hosts get,
    so it exercises the real two-stylesheet embedding path: this app's Tailwind
-   build no longer scans SDK sources or re-emits SDK utilities. Utilities this
+   build does not scan SDK sources or re-emit SDK utilities. Utilities this
    app's OWN code authors are generated below from the shared theme mapping
    (@stigmer/design-tokens/tailwind-theme.css)
    (plus the z-popover definition, mirrored from the SDK build). Rebuild via
@@ -22,7 +22,7 @@
 
 /* Mirrors the SDK build's z-popover definition (sdk/react/src/styles.css) for
    this app's OWN usages: since the console consumes the compiled SDK
-   stylesheet (#454), SDK `@utility` definitions no longer flow into this
+   stylesheet (#454), SDK `@utility` definitions do not flow into this
    compile. */
 @utility z-popover {
   z-index: var(--stgm-z-popover);

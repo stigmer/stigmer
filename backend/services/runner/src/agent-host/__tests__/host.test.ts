@@ -200,7 +200,7 @@ describe("the agent host's server", () => {
 
     await call();
     expect(uses).toEqual([
-      "agent host: the artifact store is the runner's (artifacts/aex_fixture_0001/a.txt)",
+      "agent host: the artifact store is the runner's (artifacts/run_fixture_0001/a.txt)",
       "agent host: the artifact store is the runner's (artifacts/other/secret)",
       "agent host: the artifact store is the runner's (artifacts/other/secret)",
     ]);

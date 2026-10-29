@@ -20,17 +20,10 @@ export interface ToolCallGroupProps {
    * Custom label formatter for a folded run chip (e.g. a run of reads).
    * Receives the run's tool uses and returns the chip's collapsed label.
    *
-   * NOTE: the unit of summary moved from the *turn* to the *run*. This used to
-   * label the whole turn ("Ran 3 tools"); since the turn no longer collapses,
-   * it now labels each {@link ToolRunGroup} chip. The signature is unchanged.
+   * The unit of summary is the *run*, not the turn: the turn does not
+   * collapse, so this labels each {@link ToolRunGroup} chip.
    */
   readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
-  /**
-   * @deprecated No-op. The turn no longer collapses as a unit — rows persist
-   * and only repetitive runs fold (see {@link ToolRunGroup}). Kept for
-   * back-compat so existing call sites keep type-checking.
-   */
-  readonly defaultExpanded?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -54,7 +47,6 @@ export function toolCallGroupPropsEqual(
   }
   return (
     prev.formatSummary === next.formatSummary &&
-    prev.defaultExpanded === next.defaultExpanded &&
     prev.className === next.className
   );
 }

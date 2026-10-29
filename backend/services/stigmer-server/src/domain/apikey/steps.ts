@@ -1,17 +1,16 @@
 /**
- * ApiKey domain steps — the three steps the canonical
- * chains do not provide, mirroring the cloud Java handlers' domain steps:
+ * ApiKey domain steps — the steps the canonical chains do not provide:
  *
- *   - GenerateApiKey (Java ApiKeyCreateHandler.GenerateApiKey): mints the
+ *   - GenerateApiKey: mints the
  *     plaintext AFTER BuildNewState, stores hash + fingerprint on the
  *     spec, and parks the plaintext under the context key for the
  *     response step. The client can never choose key material — whatever
  *     spec.key_hash/fingerprint the request carried is overwritten.
- *   - ReplaceHashWithPlainText (Java ApiKeyCreateHandler): AFTER Persist,
+ *   - ReplaceHashWithPlainText: AFTER Persist,
  *     swaps the plaintext into spec.key_hash of the RESPONSE only. This
  *     is the ONLY time the plaintext ever leaves the server; the store
- *     and audit rows hold the hash. The INTERNAL copy is byte-pinned to
- *     the Java step's.
+ *     and audit rows hold the hash. The INTERNAL copy is byte-pinned
+ *     (existing error copy is wire contract).
  *   - BindApiKeyOrganization: the organization a key is limited to
  *     (spec.bound_org). A credential limited to an organization creates only
  *     keys limited to an organization it reaches (its own, or one of its
@@ -28,10 +27,9 @@
  *   - PreserveKeyMaterial: update keeps spec.key_hash, spec.fingerprint
  *     and spec.bound_org from the STORED resource, so only the expiry fields are
  *     client-mutable (an update that cleared spec.bound_org would free a limited
- *     key of its organization). The point is not forgery: the Java
- *     pipeline's computed-field clearing already stripped both fields
- *     from every update request — but nothing restored them, so every
- *     Java update persisted EMPTY key material and bricked the key. This
+ *     key of its organization). The point is not forgery alone: a
+ *     pipeline that only stripped the computed fields from an update
+ *     would persist EMPTY key material and brick the key. This
  *     step strips and restores, in every edition. The
  *     shared contract is pinned by the apikey conformance suite's
  *     update-immutability arm.
@@ -67,8 +65,7 @@ import { keysOwnedBy } from "./queries.js";
 
 /**
  * Context key parking the plaintext between GenerateApiKey and
- * ReplaceHashWithPlainText — the Java handler's API_KEY_PLAINTEXT
- * Context.Key, name kept verbatim.
+ * ReplaceHashWithPlainText.
  */
 export const API_KEY_PLAINTEXT_KEY = "API_KEY_PLAINTEXT";
 
@@ -198,7 +195,7 @@ export function newCheckDuplicateKeyNameStep(
 /**
  * Swaps the plaintext into the response's spec.key_hash after Persist —
  * the store row keeps the hash; the client gets its one look. The
- * INTERNAL copy is the Java step's, byte-pinned.
+ * INTERNAL copy is byte-pinned (existing error copy is wire contract).
  */
 export function newReplaceHashWithPlainTextStep(): PipelineStep<ApiKeyDesc> {
   return {
@@ -255,7 +252,7 @@ export function newPreserveKeyMaterialStep(): PipelineStep<ApiKeyDesc> {
 }
 
 /**
- * Java ApiKeyGetByKeyHashHandler's NOT_FOUND copy — byte-pinned
+ * GetByKeyHash's NOT_FOUND copy — byte-pinned
  * cross-edition contract (no id in the message, deliberately: the input
  * IS the hash and echoing hashes into error copy invites log scraping).
  */
@@ -263,7 +260,7 @@ export const API_KEY_NOT_FOUND_BY_HASH_MESSAGE = "ApiKey not found";
 
 /**
  * Loads the key whose spec.key_hash equals the input hash into the
- * TargetResource slot (Java ApiKeyGetByKeyHashHandler: the input is used
+ * TargetResource slot (the input is used
  * as-is — already hashed — and the stored resource returns unmodified,
  * hash in place; the secret is only ever visible in the create response).
  */

@@ -34,8 +34,7 @@
 // Deliberately NOT asserted: whether the fallback validates the value against
 // the schema (extra fields, a missing required field, a wrong type). The
 // fallback does no validation today, and pinning that would bless the absence
-// of validation as contract; the question is filed as a runner issue. Replaces
-// the Go offline suite's structured_output_offline_test.go hard arms.
+// of validation as contract; the question is filed as a runner issue.
 import type { JsonObject } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -139,7 +138,7 @@ async function runWithSchema(
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-so"),
+      name: uniqueName("run-so"),
       agentRef: agentRefOf(agent),
       message: "Analyze the word hello.",
       autoApproveAll: true,
@@ -297,7 +296,7 @@ describe("Run structured output — on Claude", () => {
       { kind: "text", text: "" },
     ]);
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-so-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, structuredOutputSchema: SUMMARY_SCORE_SCHEMA, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-so-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, structuredOutputSchema: SUMMARY_SCORE_SCHEMA, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

@@ -363,8 +363,9 @@ fn decode_line(raw: &[u8]) -> String {
 /// because additive changes never bump the version.
 fn negotiate_ready(line: &str) -> Result<u32, RunnerHostError> {
     match serde_json::from_str::<IpcResponse>(line)? {
-        IpcResponse::Ready { protocol_version } => {
-            let runner = protocol_version.unwrap_or(1);
+        IpcResponse::Ready {
+            protocol_version: runner,
+        } => {
             if runner > IPC_PROTOCOL_VERSION {
                 return Err(RunnerHostError::ProtocolVersionMismatch {
                     host: IPC_PROTOCOL_VERSION,
@@ -609,33 +610,24 @@ mod tests {
 
     #[test]
     fn ready_with_current_version_is_accepted() {
-        let version = negotiate_ready(r#"{"type":"ready","protocolVersion":2}"#).unwrap();
+        let version = negotiate_ready(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
         assert_eq!(version, IPC_PROTOCOL_VERSION);
     }
 
     #[test]
-    fn older_runner_is_accepted() {
-        let version = negotiate_ready(r#"{"type":"ready","protocolVersion":1}"#).unwrap();
-        assert_eq!(
-            version, 1,
-            "a runner older than the host speaks a subset the host understands"
-        );
-    }
-
-    #[test]
-    fn ready_without_version_defaults_to_one() {
-        let version = negotiate_ready(r#"{"type":"ready"}"#).unwrap();
-        assert_eq!(version, 1, "absent protocolVersion is treated as v1");
+    fn ready_without_version_is_refused() {
+        let err = negotiate_ready(r#"{"type":"ready"}"#).unwrap_err();
+        assert!(matches!(err, RunnerHostError::Serde(_)));
     }
 
     #[test]
     fn newer_runner_is_rejected_as_mismatch() {
         // This is the negotiation guard: removing it would let a newer runner through.
-        let err = negotiate_ready(r#"{"type":"ready","protocolVersion":3}"#).unwrap_err();
+        let err = negotiate_ready(r#"{"type":"ready","protocolVersion":2}"#).unwrap_err();
         match err {
             RunnerHostError::ProtocolVersionMismatch { host, runner } => {
                 assert_eq!(host, IPC_PROTOCOL_VERSION);
-                assert_eq!(runner, 3);
+                assert_eq!(runner, 2);
             }
             other => panic!("expected ProtocolVersionMismatch, got {other:?}"),
         }

@@ -21,9 +21,9 @@ describe("loadConfig", () => {
 
     expect(config.mode).toBe("local");
     expect(config.taskQueue).toBe("stigmer_runner");
-    // temporalAddress is left empty by loadConfig now — it is resolved later by
-    // the factory (resolveRunnerBootstrap), which falls back to localhost
-    // for a tokenless local runner. loadConfig no longer hardcodes the default.
+    // loadConfig leaves temporalAddress empty: the factory
+    // (resolveRunnerBootstrap) resolves it, falling back to localhost for a
+    // tokenless local runner.
     expect(config.temporalAddress).toBe("");
     expect(config.temporalNamespace).toBe("default");
     expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");
@@ -120,14 +120,14 @@ describe("loadConfig", () => {
     expect(config.taskQueue).toBe("runner:abc123");
   });
 
-  it("respects TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE as fallback", () => {
+  it("polls stigmer_runner without STIGMER_TASK_QUEUE, whatever the server's own queue variable says", () => {
     process.env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE = "custom-queue";
     const config = loadConfig();
 
-    expect(config.taskQueue).toBe("custom-queue");
+    expect(config.taskQueue).toBe("stigmer_runner");
   });
 
-  it("no longer requires TEMPORAL_SERVICE_ADDRESS up front in cloud mode", () => {
+  it("does not require TEMPORAL_SERVICE_ADDRESS up front in cloud mode", () => {
     // Token-only embedding: the address is discovered from the control plane at
     // boot, so loadConfig must NOT fail when it is absent. It is left empty for
     // the factory to resolve (or throw with an actionable error if discovery

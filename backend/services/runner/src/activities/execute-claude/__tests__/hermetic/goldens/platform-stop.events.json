@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_stop_glob",
+      "id": "run_claude_0001.toolu_stop_glob",
       "input": {
         "pattern": "**/*.md"
       },
@@ -10,10 +10,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_stop_glob.r",
-      "tool_use_id": "aex_claude_0001.toolu_stop_glob",
+      "id": "run_claude_0001.toolu_stop_glob.r",
+      "tool_use_id": "run_claude_0001.toolu_stop_glob",
       "content": [
         {
           "type": "text",

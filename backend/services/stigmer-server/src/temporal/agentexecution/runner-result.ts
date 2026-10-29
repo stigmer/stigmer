@@ -1,28 +1,24 @@
 /**
- * Runner activity result handling — ports the RunnerActivityResult half of
- * pkg/domain/agentexecution/temporal/activities/execute_deep_agent.go.
+ * Runner activity result handling.
  *
- * The TS runner returns a plain JSON object: the proto-JSON fields of the
- * slim RunStatus (phase, error, …). An untyped record
- * preserves every field across the data converter, exactly Go's
- * map[string]interface{} posture. The tolerant phase
- * extraction (string enum name first, numeric fallback) is a wire
- * contract: proto-JSON serializes enums as names, but numeric payloads
- * have crossed this boundary historically.
+ * The runner returns a plain JSON object: the proto-JSON fields of the
+ * slim RunStatus (phase, error, …). An untyped record preserves every
+ * field across the data converter. The tolerant phase extraction (string
+ * enum name first, numeric fallback) is a wire contract: proto-JSON
+ * serializes enums as names, and a numeric payload is read as the enum
+ * value.
  *
  * Bundle-safe (pure proto enum import) — the workflow reads phases from
  * every activity result.
  */
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { currentRunEnumValueName } from "./execution-json.js";
-
-/** Go activities.RunnerActivityResult (map[string]interface{}). */
+/** A runner activity's result: an untyped JSON record. */
 export type RunnerActivityResult = Record<string, unknown>;
 
 /**
  * Extracts the execution phase from a runner activity result; UNSPECIFIED
- * when missing or unparseable (Go GetPhaseFromResult).
+ * when missing or unparseable.
  */
 export function getPhaseFromResult(
   result: RunnerActivityResult | null | undefined,
@@ -32,12 +28,10 @@ export function getPhaseFromResult(
   }
   const phase = result["phase"];
   if (typeof phase === "string") {
-    // Proto-JSON uses string enum names; the generated TS enum keys ARE
-    // the proto value names, so this lookup is Go's ExecutionPhase_value
-    // map exactly. A result recorded before the run rename names the
-    // phase by its retired name (EXECUTION_COMPLETED), which the
-    // retired-names table reads as its current name (RUN_COMPLETED).
-    const value = (RunPhase as Record<string, unknown>)[currentRunEnumValueName(phase)];
+    // Proto-JSON uses string enum names, and the generated TS enum keys
+    // are the proto value names, so the phase is read by its name; a name
+    // the enum does not have reads as UNSPECIFIED.
+    const value = (RunPhase as Record<string, unknown>)[phase];
     if (typeof value === "number") {
       return value as RunPhase;
     }
@@ -49,7 +43,7 @@ export function getPhaseFromResult(
   return RunPhase.RUN_PHASE_UNSPECIFIED;
 }
 
-/** Extracts the error string from a runner activity result (Go GetErrorFromResult). */
+/** Extracts the error string from a runner activity result. */
 export function getErrorFromResult(
   result: RunnerActivityResult | null | undefined,
 ): string {

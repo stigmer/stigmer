@@ -1,6 +1,4 @@
 // Local target: builds and boots the OSS TypeScript server from source.
-// Born as local-ts during the TS rewrite and renamed to plain `local` when
-// the Go server retired — there is one local implementation now.
 // Domain: conformance targets.
 //
 // This is a managed target — it owns the server process lifecycle. The

@@ -155,9 +155,9 @@ type GetServerInfoOutput struct {
 	// unavailable then.
 	//
 	// Every server that knows the field sets it, true or false. Absent means
-	// the server predates it and its posture is unknown: a client offers the
-	// feature and lets the server's own answer decide, rather than reading an
-	// older server as one that trusts every request.
+	// the server was released before the field and its posture is unknown: a
+	// client offers the feature and lets the server's own answer decide,
+	// rather than reading such a server as one that trusts every request.
 	AuthenticationRequired *bool `protobuf:"varint,3,opt,name=authentication_required,json=authenticationRequired,proto3,oneof" json:"authentication_required,omitempty"`
 	// Whether this server holds one organization and fills it into any
 	// request that names none.

@@ -41,7 +41,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
-import { connectBridge, mcpToolName, type McpBridge } from "../mcp-bridge.js";
+import { connectBridge, type McpBridge } from "../mcp-bridge.js";
+import { mcpToolName } from "../../../shared/mcp-tool-names.js";
 import type { ServedServer } from "../loopback-mcp.js";
 import { connectServed } from "../__test-utils__/served-client.js";
 
@@ -178,7 +179,7 @@ afterEach(async () => {
 });
 
 function stdioServer(slug: string, env: Record<string, string> = {}): ResolvedMcpServer {
-  return { slug, connectionType: "stdio", command: process.execPath, args: [script], env, home: { kind: "agent", agentId: "agt-1", subagent: null, server: slug } };
+  return { slug, connectionType: "stdio", command: process.execPath, args: [script], env, home: { kind: "agent", agentId: "agt_1", subagent: null, server: slug } };
 }
 
 function httpServer(slug: string, headers: Record<string, string>, platform = false): ResolvedMcpServer {

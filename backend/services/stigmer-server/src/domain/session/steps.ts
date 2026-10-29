@@ -1,11 +1,6 @@
 /**
- * Session domain-local pipeline steps — port the inline steps of
- * pkg/domain/session/controller/ (create.go, delete.go, list.go,
- * validate_harness_immutability.go,
- * validate_execution_target_immutability.go) and its steps/ package
- * (filter_by_channel.go; FilterByAgent reads the pinned agent). Shared
- * steps stay
- * in src/pipeline/steps/; these exist because they embody
+ * Session domain-local pipeline steps (FilterByAgent reads the pinned
+ * agent). Shared steps stay in src/pipeline/steps/; these exist because they embody
  * session-specific contracts: the harness and execution-target locks once
  * a conversation has run, the active-execution delete guard with its
  * execution cascade, and the list filters.
@@ -69,11 +64,11 @@ import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js"
 
 type SessionDesc = typeof SessionSchema;
 
-/** Context key for the list result (Go listResultKey). */
+/** Context key for the list result. */
 export const LIST_RESULT_KEY = "listResult";
 
 // ---------------------------------------------------------------------------
-// ValidateHarnessImmutability — validate_harness_immutability.go: rejects
+// ValidateHarnessImmutability — rejects
 // session updates that change the harness once the session has run. Each
 // harness owns its conversation state independently (Stigmer keeps it under
 // the session's own LangGraph thread, Claude in its session store keyed by
@@ -133,8 +128,7 @@ export function newValidateHarnessImmutabilityStep(
 }
 
 // ---------------------------------------------------------------------------
-// ValidateExecutionTargetImmutability —
-// validate_execution_target_immutability.go: rejects session updates that
+// ValidateExecutionTargetImmutability — rejects session updates that
 // attempt to change execution_target after the session has been used for
 // execution — workspace state may not be portable between local and cloud
 // environments.
@@ -154,12 +148,12 @@ export function newValidateHarnessImmutabilityStep(
 // ---------------------------------------------------------------------------
 
 /**
- * Go's ExecutionTarget.String() names, reproduced explicitly: protobuf-es
+ * The full proto value names, reproduced explicitly: protobuf-es
  * strips the shared EXECUTION_TARGET_ prefix from the TS enum members
  * (ExecutionTarget[1] yields "LOCAL"), but the refusal copy carries the
  * full proto value names — cross-edition wire contract.
  */
-const EXECUTION_TARGET_GO_NAMES: Readonly<Record<ExecutionTarget, string>> = {
+const EXECUTION_TARGET_PROTO_NAMES: Readonly<Record<ExecutionTarget, string>> = {
   [ExecutionTarget.UNSPECIFIED]: "EXECUTION_TARGET_UNSPECIFIED",
   [ExecutionTarget.LOCAL]: "EXECUTION_TARGET_LOCAL",
   [ExecutionTarget.CLOUD]: "EXECUTION_TARGET_CLOUD",
@@ -205,14 +199,14 @@ export function newValidateExecutionTargetImmutabilityStep(
       }
 
       throw failedPreconditionError(
-          `session execution_target cannot be changed after the first execution (${EXECUTION_TARGET_GO_NAMES[existingTarget]} → ${EXECUTION_TARGET_GO_NAMES[inputTarget]}; unset resolves to the deployment default, ${temporalConfig.defaultExecutionTarget}) — workspace state may not be portable between local and cloud environments`,
+          `session execution_target cannot be changed after the first execution (${EXECUTION_TARGET_PROTO_NAMES[existingTarget]} → ${EXECUTION_TARGET_PROTO_NAMES[inputTarget]}; unset resolves to the deployment default, ${temporalConfig.defaultExecutionTarget}) — workspace state may not be portable between local and cloud environments`,
       );
     },
   };
 }
 
 // ---------------------------------------------------------------------------
-// Delete guard + cascade — delete.go. Children before parent, so a
+// Delete guard + cascade. Children before parent, so a
 // mid-failure retry converges (already-deleted executions are simply no
 // longer found; the reverse order would orphan executions permanently).
 // The cross-kind access to agent_execution rows (another domain's kind) is
@@ -222,8 +216,7 @@ export function newValidateExecutionTargetImmutabilityStep(
 /**
  * Every agent execution of the given session, through the list index's
  * session key (exact whoever wrote the rows, store/interface.ts); malformed
- * rows warn and are skipped. Shared by the guard and cascade steps (Go
- * listExecutionsBySession).
+ * rows warn and are skipped. Shared by the guard and cascade steps.
  */
 async function listExecutionsBySession(
   store: Store,
@@ -386,13 +379,12 @@ function requireSessionId<Desc extends DescMessage>(
 }
 
 // ---------------------------------------------------------------------------
-// List steps — list.go and the steps/ package. Each lane reads its page
+// List steps. Each lane reads its page
 // through the list index (pipeline/steps/list-page.ts): the store narrows
 // by the request's organization or parent key and orders newest first
 // (spec-audit created_at, unstamped last, ties by id); the read scope, when
-// composed, narrows each batch to the caller's authorized sessions last —
-// the Java list handlers' FGA-ids pattern, guest cookie rule included
-// driver-side. No scope composed = the OSS single-user posture, every
+// composed, narrows each batch to the caller's authorized sessions last,
+// the guest cookie rule included driver-side. No scope composed = the OSS single-user posture, every
 // matching session.
 // ---------------------------------------------------------------------------
 
@@ -477,14 +469,13 @@ export function newFilterByAgentStep(
 }
 
 /**
- * AuthorizeChannelAccess — the Java SessionListByChannelHandler's
- * two-stage authorization, stage one: an explicit can_view check on the
+ * AuthorizeChannelAccess — the two-stage authorization of a
+ * list-by-channel, stage one: an explicit can_view check on the
  * TARGET channel before any session work, so a caller without
  * channel access learns nothing about the channel's sessions. The
  * mid-chain resolved-target evaluation (the is_skip_authorization
  * annotation makes the position-1 step a no-op on this lane); deny copy is
- * the Java handler's byte-pinned "unauthorized to list channel
- * conversations". The blank-id refusal stays FilterByChannel's (the step
+ * the byte-pinned "unauthorized to list channel conversations". The blank-id refusal stays FilterByChannel's (the step
  * behind this gate) — the gate asks nothing when no channel is named.
  */
 export function newAuthorizeChannelAccessStep(
@@ -508,7 +499,7 @@ export function newAuthorizeChannelAccessStep(
 }
 
 /**
- * FilterByChannel — steps/filter_by_channel.go: one page of the sessions
+ * FilterByChannel — one page of the sessions
  * whose metadata.labels carry the channel's stigmer.ai/channel-id stamp,
  * newest first. Channel sessions are created by the cloud channel runtime
  * (Slack/WhatsApp inbound turns), which stamps the label at create time;

@@ -251,7 +251,7 @@ function assignAppUserBackendFields(
 
 /**
  * The backend-assigned fields of a SERVICE ACCOUNT: never a machine
- * account in the legacy sense (its subject is the reserved composite, not
+ * account (its subject is the reserved composite, not
  * an `@clients` client id), mode `service_account`, no provider ref, and
  * none of a person's fields — its one name is `metadata.name`.
  */

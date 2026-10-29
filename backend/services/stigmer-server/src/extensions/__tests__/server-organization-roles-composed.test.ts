@@ -4,9 +4,10 @@
  * (domain/grant/membership.ts `ensureRolesOnServerOrganization`).
  *
  * Three boots over ONE data directory:
- *   1. A server that holds any number of organizations (an older open-source
- *      release): two people sign in, oldest first, and nobody makes an
- *      organization. The role reconciliation runs, over none.
+ *   1. A server that holds any number of organizations (a composition with
+ *      no organization limit, as an Enterprise license declares): two people
+ *      sign in, oldest first, and nobody makes an organization. Their first
+ *      sign-ins run the membership rules over none.
  *   2. The same directory boots as a one-organization server: it makes
  *      `stigmer` as nobody, and the people it already held get their roles
  *      on it, as each person's own, in sign-in order. With no operator email
@@ -22,9 +23,9 @@
  * person to sign in owns it and the next is a member, as on a fresh sign-in
  * install. The laptop account's stamp and owner row are nobody's on that
  * organization (domain/grant/membership.ts). The same holds for an
- * organization an older release's laptop made (`acme`, through its console
- * or CLI): the one organization a server holds is the server's, whoever
- * made it.
+ * organization the laptop made through its console or CLI (`acme`, on a
+ * trusted-local server with no organization limit): the one organization
+ * a server holds is the server's, whoever made it.
  *
  * And a sign-in install upgraded with its one organization: a member an
  * admin removed before the upgrade stays removed after it, and an operator
@@ -44,9 +45,8 @@
  *
  * The unit vouches for unsigned JWT-shaped tokens and declares the
  * require-authentication posture with no Authorizer (composed-support.ts),
- * the open-source sign-in shape role-reconciliation-composed.test.ts boots;
- * the one-organization boots add `orgLimit: 1`, the open-source edition's
- * declaration.
+ * the open-source sign-in shape; the one-organization boots add
+ * `orgLimit: 1`, the open-source edition's declaration.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -302,7 +302,7 @@ describe("a laptop that turns sign-in on (composed server, trusted-local then OI
   });
 });
 
-describe("an older release's laptop organization when sign-in is turned on (composed server, trusted-local with any number, then OIDC with one and no operator email)", () => {
+describe("a laptop organization made through the console when sign-in is turned on (composed server, trusted-local with any number, then OIDC with one and no operator email)", () => {
   let dir: string;
   let server: ComposedServer;
   let port: number;
@@ -328,7 +328,7 @@ describe("an older release's laptop organization when sign-in is turned on (comp
   }
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "older-laptop-to-sign-in-"));
+    dir = mkdtempSync(path.join(tmpdir(), "laptop-org-to-sign-in-"));
     await boot([]);
   });
 
@@ -345,7 +345,7 @@ describe("an older release's laptop organization when sign-in is turned on (comp
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
       metadata: { name: "acme", slug: "acme", org: "" },
-      spec: { description: "made on the laptop by an older release" },
+      spec: { description: "made on the laptop through the console" },
     });
     await server.shutdown();
 
@@ -547,7 +547,7 @@ describe("a server that cannot make its organization (composed server, OIDC; its
   });
 
   beforeAll(async () => {
-    dir = mkdtempSync(path.join(tmpdir(), "retired-slug-"));
+    dir = mkdtempSync(path.join(tmpdir(), "held-slug-"));
     await boot(anyNumber);
   });
 

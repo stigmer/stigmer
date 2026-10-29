@@ -1,6 +1,5 @@
 /**
- * Pins the routine domain against Go's schedule_test.go and
- * trigger_test.go — through the REAL stack: a composed server on an
+ * Pins the routine domain through the REAL stack: a composed server on an
  * ephemeral port, a native gRPC client, the full interceptor chain, the
  * REAL in-process agentexecution create pipeline behind the trigger, and
  * a deterministically-closed Temporal port (the arming steps must degrade,
@@ -377,7 +376,7 @@ async function pauseDirectly(id: string): Promise<Routine> {
       live.status = create(RoutineStatusSchema);
     }
     live.status.pausedReason =
-      "Paused after 2 consecutive failed runs. Last failure: run aex_x ended failed";
+      "Paused after 2 consecutive failed runs. Last failure: run run_x ended failed";
     live.status.consecutiveFailures = 2;
   });
 }
@@ -483,14 +482,14 @@ describe("resume — the one clearing path", () => {
   });
 
   it("answers NOT_FOUND for a missing schedule", async () => {
-    const err = await refusal(() => command.resume({ value: "sch_missing" }));
+    const err = await refusal(() => command.resume({ value: "rtn_missing" }));
     expect(err.code).toBe(Code.NotFound);
   });
 });
 
 describe("trigger — the two-level contract", () => {
   it("refuses a missing schedule with NOT_FOUND (level one)", async () => {
-    const err = await refusal(() => command.fire({ id: "sch_missing" }));
+    const err = await refusal(() => command.fire({ id: "rtn_missing" }));
     expect(err.code).toBe(Code.NotFound);
   });
 
@@ -512,8 +511,7 @@ describe("trigger — the two-level contract", () => {
 
     // No engine behind this server: the create pipeline's engine gate
     // refuses Unavailable — an infrastructure failure, propagated as the
-    // trigger's OWN error (Go: "Manual trigger's run start failed on
-    // infrastructure"). The re-mint matters: echoing the in-process error
+    // trigger's OWN error. The re-mint matters: echoing the in-process error
     // corrupts HTTP/2 trailers.
     const err = await refusal(() => command.fire({ id }));
     expect(err.code).toBe(Code.Unavailable);
@@ -621,7 +619,7 @@ describe("queries — list, listByAgent, listFires", () => {
   });
 
   it("listFires answers NOT_FOUND for a missing schedule (never an empty history)", async () => {
-    const err = await refusal(() => query.listFires({ routineId: "sch_missing" }));
+    const err = await refusal(() => query.listFires({ routineId: "rtn_missing" }));
     expect(err.code).toBe(Code.NotFound);
   });
 
@@ -677,15 +675,15 @@ describe("listFires — an in-flight row reads its run's live phase", () => {
     const created = await command.create(routineInput({ name: "Live Runs", slug: "live-runs" }));
     const id = created.metadata?.id ?? "";
     // Each fire's run, written as the run domain leaves it: a terminal
-    // phase, still running, or a row with no status yet. aex_live_gone
+    // phase, still running, or a row with no status yet. run_live_gone
     // names a run that was deleted.
     const phases: ReadonlyArray<readonly [string, RunPhase | undefined]> = [
-      ["aex_live_done", RunPhase.RUN_COMPLETED],
-      ["aex_live_failed", RunPhase.RUN_FAILED],
-      ["aex_live_cancelled", RunPhase.RUN_CANCELLED],
-      ["aex_live_terminated", RunPhase.RUN_TERMINATED],
-      ["aex_live_running", RunPhase.RUN_IN_PROGRESS],
-      ["aex_live_silent", undefined],
+      ["run_live_done", RunPhase.RUN_COMPLETED],
+      ["run_live_failed", RunPhase.RUN_FAILED],
+      ["run_live_cancelled", RunPhase.RUN_CANCELLED],
+      ["run_live_terminated", RunPhase.RUN_TERMINATED],
+      ["run_live_running", RunPhase.RUN_IN_PROGRESS],
+      ["run_live_silent", undefined],
     ];
     for (const [runId, phase] of phases) {
       await server.store.saveResource(
@@ -698,7 +696,7 @@ describe("listFires — an in-flight row reads its run's live phase", () => {
         }),
       );
     }
-    const runIds = [...phases.map(([runId]) => runId), "aex_live_gone"];
+    const runIds = [...phases.map(([runId]) => runId), "run_live_gone"];
     for (const [index, runId] of runIds.entries()) {
       await server.store.upsertRoutineFire({
         routineId: id,
@@ -717,21 +715,21 @@ describe("listFires — an in-flight row reads its run's live phase", () => {
     const runs = await query.listFires({ routineId: id });
     const byRun = new Map(runs.entries.map((run) => [run.runId, run]));
     expect(byRun.size).toBe(runIds.length);
-    expect(byRun.get("aex_live_done")).toMatchObject({
+    expect(byRun.get("run_live_done")).toMatchObject({
       outcome: RoutineFireOutcome.COMPLETED,
       reason: "",
     });
     for (const [runId, word] of [
-      ["aex_live_failed", "failed"],
-      ["aex_live_cancelled", "cancelled"],
-      ["aex_live_terminated", "terminated"],
+      ["run_live_failed", "failed"],
+      ["run_live_cancelled", "cancelled"],
+      ["run_live_terminated", "terminated"],
     ] as const) {
       expect(byRun.get(runId)).toMatchObject({
         outcome: RoutineFireOutcome.FAILED,
         reason: `run ${runId} ended ${word}`,
       });
     }
-    for (const runId of ["aex_live_running", "aex_live_silent", "aex_live_gone"]) {
+    for (const runId of ["run_live_running", "run_live_silent", "run_live_gone"]) {
       expect(byRun.get(runId)).toMatchObject({
         outcome: RoutineFireOutcome.STARTED,
         reason: "",

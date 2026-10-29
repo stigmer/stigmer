@@ -8,9 +8,8 @@
  * publish-libs.mjs owns the workspace libs (it publishes a generated
  * dist/package.json from each lib's dist/). A standalone package publishes
  * from its own directory with its `files` list, so it needs a different
- * sequence, which used to live as inline `node -e` blocks in two release
- * workflows. One tested implementation here instead (since @stigmer/server
- * became the second such package):
+ * sequence: one tested implementation here, for the runner and
+ * @stigmer/server alike:
  *
  *   1. Stamp the release version into package.json and pin every
  *      @stigmer/* `file:` dependency to that exact version — the published

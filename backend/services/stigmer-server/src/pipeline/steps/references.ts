@@ -121,8 +121,8 @@
  *
  * Cost: one point read per distinct target a write judges, by id, and
  * one name read per distinct slug a write names. *
- * The refusal copy is exported below. The MCP-server sentence predates the
- * rule and is wire contract (byte-pinned by pipeline/__tests__/steps.test.ts
+ * The refusal copy is exported below. The MCP-server sentence is wire
+ * contract (byte-pinned by pipeline/__tests__/steps.test.ts
  * and the agent conformance suite); its siblings for the other kinds take
  * the same shape. `collectSpecReferences` is the walk exported for the
  * readers that ask the reverse question ("who references this?").
@@ -681,8 +681,7 @@ export function noOrgReferenceMessage(
 
 /**
  * Clause (ii)'s sentence for the targets not found, one per kind. The MCP
- * server form is the wire contract that predates the rule; the others are
- * its siblings.
+ * server form is wire contract; the others are its siblings.
  */
 export function missingReferencesMessage(
   entry: ReferenceTargetKind,

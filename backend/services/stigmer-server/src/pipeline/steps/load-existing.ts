@@ -1,5 +1,5 @@
 /**
- * LoadExisting — ports steps/load_existing.go. An update's loader, by the
+ * LoadExisting: an update's loader, by the
  * id the update names (AIP-134: an update names its target; finding by
  * slug is apply's, LoadForApply). An update without an id is refused with
  * INVALID_ARGUMENT, and NotFound FAILS here.
@@ -9,9 +9,7 @@
  * lands between this read and the chain's write is never undone
  * (pipeline/guarded-write.ts).
  *
- * Deliberate divergence from the Go source (decided 2026-08-26): Go
- * mapped ANY store error to NotFound. Here only the typed
- * ResourceNotFoundError is NotFound; other store failures rethrow to the
+ * Only the store's typed ResourceNotFoundError is NotFound; other store failures rethrow to the
  * executor's sanitized Internal (see pipeline.ts and load-target.ts —
  * the same narrowing, applied at every store-read site).
  */
@@ -29,7 +27,7 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { metadataOf } from "./shapes.js";
 
-/** Context key for the loaded resource (Go ExistingResourceKey). */
+/** Context key for the loaded resource. */
 export const EXISTING_RESOURCE_KEY = "existingResource";
 
 /**

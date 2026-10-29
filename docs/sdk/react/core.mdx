@@ -690,9 +690,6 @@ while it still holds the backend sentinel.
 All display paths should call this before rendering a session subject so
 the sentinel is never shown in the UI.
 
-Mirrors the Go CLI's `ResolvedSubject` in
-`client-apps/cli/internal/cli/session/get.go`.
-
 ```tsx
 function resolvedSubject(subject: string | undefined): string | null
 ```

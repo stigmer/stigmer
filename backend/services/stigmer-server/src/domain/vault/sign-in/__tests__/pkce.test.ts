@@ -1,5 +1,5 @@
 /**
- * Pins PKCE pair generation against Go oauth/pkce.go: 32-byte base64url
+ * Pins PKCE pair generation: 32-byte base64url
  * verifier (no padding), S256 challenge = base64url(SHA-256(verifier)) —
  * RFC 7636 / OAuth 2.1 shape the mock authorization server verifies at
  * the token exchange.

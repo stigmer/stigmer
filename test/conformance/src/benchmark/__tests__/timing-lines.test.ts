@@ -14,7 +14,7 @@ import { axesFromTiming, parseTimingLines, timingFor } from "../timing-lines";
 
 const SETUP_LINE = JSON.stringify({
   stigmer_timing: "execution_setup",
-  execution_id: "aex_1",
+  execution_id: "run_1",
   session_id: "ses_1",
   harness: "stigmer",
   mcp_server_count: 1,
@@ -31,7 +31,7 @@ const SETUP_LINE = JSON.stringify({
 
 const PHASES_LINE = JSON.stringify({
   stigmer_timing: "turn_phases",
-  execution_id: "aex_1",
+  execution_id: "run_1",
   session_id: "ses_1",
   turn_seq: 1,
   harness: "stigmer",
@@ -49,7 +49,7 @@ const PHASES_LINE = JSON.stringify({
 
 const CLAUDE_SETUP_LINE = JSON.stringify({
   stigmer_timing: "execution_setup",
-  execution_id: "aex_c",
+  execution_id: "run_c",
   harness: "claude",
   mcp_server_count: 1,
   skill_count: 8,
@@ -60,7 +60,7 @@ const CLAUDE_SETUP_LINE = JSON.stringify({
 
 const OTHER_EXECUTION = JSON.stringify({
   stigmer_timing: "turn_phases",
-  execution_id: "aex_2",
+  execution_id: "run_2",
   total_ms: 1,
   segments: [],
 });
@@ -69,21 +69,21 @@ const LOG = [
   "Worker ready, polling for tasks",
   '{"level":"INFO","label":"TemporalWorker","message":"Worker state changed"}',
   SETUP_LINE,
-  "ExecuteDeepAgent model resolved: execution=aex_1",
+  "ExecuteDeepAgent model resolved: execution=run_1",
   PHASES_LINE,
   CLAUDE_SETUP_LINE,
   OTHER_EXECUTION,
-  '{"stigmer_timing":"turn_phases","execution_id":"aex_3","tot',
+  '{"stigmer_timing":"turn_phases","execution_id":"run_3","tot',
 ].join("\n");
 
 describe("parseTimingLines", () => {
   it("keeps every stigmer_timing line and skips prose, other JSON and a torn line", () => {
     const lines = parseTimingLines(LOG);
     expect(lines.map((line) => `${line.event}:${String(line.context["execution_id"])}`)).toEqual([
-      "execution_setup:aex_1",
-      "turn_phases:aex_1",
-      "execution_setup:aex_c",
-      "turn_phases:aex_2",
+      "execution_setup:run_1",
+      "turn_phases:run_1",
+      "execution_setup:run_c",
+      "turn_phases:run_2",
     ]);
   });
 
@@ -96,7 +96,7 @@ describe("parseTimingLines", () => {
 
 describe("timingFor and axesFromTiming", () => {
   it("joins the lines of one execution by execution_id and derives the runner axes and counts", () => {
-    const timing = timingFor(parseTimingLines(LOG), "aex_1");
+    const timing = timingFor(parseTimingLines(LOG), "run_1");
     expect(timing.execution_setup?.total_ms).toBe(812.4);
     expect(timing.turn_phases?.context["harness"]).toBe("stigmer");
     expect(axesFromTiming(timing)).toEqual({
@@ -116,13 +116,13 @@ describe("timingFor and axesFromTiming", () => {
   });
 
   it("reads no MCP connect time off a setup line that names no connect_mcp segment", () => {
-    const axes = axesFromTiming(timingFor(parseTimingLines(LOG), "aex_c"));
+    const axes = axesFromTiming(timingFor(parseTimingLines(LOG), "run_c"));
     expect(axes.mcp_connect_ms).toBeNull();
     expect(axes.mcp_server_count).toBe(1);
   });
 
   it("reads null, never zero, for an execution whose lines are not present yet", () => {
-    const timing = timingFor(parseTimingLines(LOG), "aex_missing");
+    const timing = timingFor(parseTimingLines(LOG), "run_missing");
     expect(timing).toEqual({ turn_phases: null, execution_setup: null });
     expect(axesFromTiming(timing).runner_first_visible_token_ms).toBeNull();
     expect(axesFromTiming(timing).execution_setup_ms).toBeNull();

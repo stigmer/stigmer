@@ -1,8 +1,7 @@
 /**
  * Access-list machinery: the row-driven answer to
  * "who has access, with which roles" behind `listResourceAccessByPrincipal`
- * — the Java ResourceHierarchyResolver and PrincipalEnricher ports, moved
- * as-is from the cloud's iam/grant/access-lists.ts so every edition
+ * — the hierarchy walk and the principal display, here so every edition
  * renders an access list the same way over its own GrantStore.
  *
  * The hierarchy walk climbs the resource's scope tuples (child →
@@ -21,8 +20,7 @@
  * the edition's `drivers.principalDisplay` when one is composed
  * (extensions/principal-display.ts). A principal nobody answers for — no
  * driver, or an account or team whose row is gone — renders as kind/id
- * with the id standing in as the display name, the Java `enrich()`
- * fallback shape.
+ * with the id standing in as the display name (the fallback shape).
  *
  * A resource's list names only people who belong to its organization.
  * The model bounds every direct grant on an organization-scoped object by
@@ -78,7 +76,7 @@ const ORGANIZATION_KIND = kindEnumName(ApiResourceKind.organization);
 /** The parent's roles that make a person an admin of each child (`parent_admin: admin from parent_org`). */
 const PARENT_ADMIN_ROLES: ReadonlySet<string> = new Set(["owner", "admin"]);
 
-/** The Java resolver's bounds: ≤5 steps, platform terminates the walk. */
+/** The walk's bounds: ≤5 steps, platform terminates the walk. */
 const MAX_HIERARCHY_DEPTH = 5;
 const TERMINAL_KINDS: ReadonlySet<string> = new Set([
   kindEnumName(ApiResourceKind.platform),
@@ -90,7 +88,7 @@ export interface HierarchyLevel {
 }
 
 /**
- * Child-first hierarchy via scope-tuple rows (Java resolve): index 0 is
+ * Child-first hierarchy via scope-tuple rows: index 0 is
  * the resource itself; each later level is the previous one's structural
  * scope parent.
  */
@@ -124,7 +122,7 @@ export async function resolveHierarchy(
 }
 
 /**
- * The display-enrichment seam (the Java PrincipalEnricher's account half):
+ * The display-enrichment seam (its account half):
  * the views for the identity-account ids it can resolve, keyed by id. Ids
  * it does not answer for fall back below.
  */
@@ -136,9 +134,9 @@ export interface PrincipalDisplayResolver {
 
 /**
  * Groups assignable-role grants by principal in first-seen order (the
- * Java LinkedHashMap contract), enriched where the resolver (people) or
- * the composed principal display (every other kind) answers, and the Java
- * fallback shape (name = id) everywhere else.
+ * listing's stable order), enriched where the resolver (people) or the
+ * composed principal display (every other kind) answers, and the fallback
+ * shape (name = id) everywhere else.
  */
 export async function buildPrincipalAccessList(
   grantStore: GrantStore,
@@ -201,7 +199,7 @@ export async function buildPrincipalAccessList(
       const view = enriched.get(`${principal.kind}:${principal.id}`);
       entry = {
         // A resolved view is shared by every qualifier of one grantee, so
-        // each entry stamps its own copy. The Java enrich() fallback shape
+        // each entry stamps its own copy. The fallback shape
         // for unresolved principals of ANY kind: kind/id with the id
         // standing in as the display name.
         principal: withRelation(
@@ -289,7 +287,8 @@ async function accountsOutsideOrganization(
  * `kind:id` (the grouping key, so two kinds can never share an id's view):
  * people through the identity-account resolver, every other kind the
  * edition's principal display knows through it, one call per kind. A kind
- * string that names no kind (a legacy row) and every kind with no display
+ * string that names no kind (a row a composition wrote under a name no
+ * ApiResourceKind carries) and every kind with no display
  * are simply absent, so the caller's fallback shape names them.
  */
 export async function resolvePrincipalViews(

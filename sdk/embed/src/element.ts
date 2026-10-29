@@ -7,14 +7,10 @@
  * <stigmer-agent channel="chn_01j9z3k8f2q4m6n7p8r9s0t1v2"></stigmer-agent>
  * ```
  *
- * `channel` is the web channel's id (a chat link minted before the Channel
- * kind keeps its `ash_` id): the hosted chat link `/chat/<channel id>` names
- * nothing else, so no rename of the channel's organization can break an
- * embed and no later holder of that organization's name can take it over.
- *
- * The attribute was once called `share`. Pages already carrying
- * `share="…"` keep working: the element reads it when `channel` is absent,
- * and `channel` wins when both are present.
+ * `channel` is the web channel's id: the hosted chat link
+ * `/chat/<channel id>` names nothing else, so no rename of the channel's
+ * organization can break an embed and no later holder of that
+ * organization's name can take it over.
  *
  * The element renders a cross-origin iframe onto the hosted chat page — the
  * iframe is the isolation boundary; no Stigmer UI code runs in the host page.
@@ -28,7 +24,6 @@ import { createEmbedHost, type EmbedHost } from "./host.js";
 /** Attribute-driven configuration of `<stigmer-agent>`. */
 const OBSERVED_ATTRIBUTES = [
   "channel",
-  "share",
   "token",
   "theme",
   "width",
@@ -92,8 +87,7 @@ export class StigmerAgentElement extends BaseElement {
   private attach(): void {
     this.detach();
 
-    // `share` is the deprecated name of `channel`; see the header comment.
-    const channel = this.getAttribute("channel") || this.getAttribute("share");
+    const channel = this.getAttribute("channel");
     const appOrigin = this.getAttribute("app-origin") ?? defaultAppOrigin;
     if (!channel) {
       console.error("[stigmer-agent] the channel attribute is required");

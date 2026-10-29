@@ -9,8 +9,8 @@ import { renderHook, act } from "@testing-library/react";
 // changed through the follow-up's `agentRef`: `undefined` leaves the
 // session's agent and its pinned version alone; a reference (no version, so
 // the server pins the agent's current one) rebinds it; `null` clears it.
-// Pinned here because the clear used to send nothing — the chip vanished and
-// the server kept the agent.
+// Pinned here because a clear that sends nothing would make the chip vanish
+// while the server keeps the agent.
 // ---------------------------------------------------------------------------
 
 const mockSendFollowUp = vi.fn();

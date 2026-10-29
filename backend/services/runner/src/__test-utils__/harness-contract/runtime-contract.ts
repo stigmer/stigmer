@@ -176,7 +176,7 @@ export class RuntimeExecutionDriver {
       ...recordOptions,
       ids: {
         org: "kit-org",
-        executionId: `aex-${label}`,
+        executionId: `run_${label}`,
         sessionId: `ses-${label}`,
         agentId: `agt-${label}`,
         agentName: `agent-${label}`,
@@ -1301,8 +1301,7 @@ export const KIT_LIVENESS_INTERVAL_MS = 200;
  * runtime sends `stigmer.run.liveness` previews at its interval, each naming
  * the operation by the id of its tool use in the log and how long it has been
  * open, and the age grows from one to the next. Each goes in an append of its
- * own, so a server older than the preview, which refuses it, never costs a
- * stored event. Without them the console can only guess from silence whether
+ * own, so a preview the log refuses never costs a stored event. Without them the console can only guess from silence whether
  * a ten-minute build is alive (`SlowIndicator`).
  */
 export async function assertLivenessNamesTheOpenOperation(harness: RuntimeContractHarness, label = "rt-liveness"): Promise<RuntimeArmResult> {

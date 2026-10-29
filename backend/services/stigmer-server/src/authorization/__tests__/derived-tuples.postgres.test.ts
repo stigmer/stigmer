@@ -103,7 +103,7 @@ describe("deriveTuples — the cloud driver's shapes, from the row", () => {
     ]);
   });
 
-  it("an unspecified level derives no visibility tuple — a legacy row reads private in both editions", () => {
+  it("an unspecified level derives no visibility tuple — a row with no level reads private in both editions", () => {
     expect(
       derivedFor("plugin", {
         visibility: ApiResourceVisibility.api_resource_visibility_unspecified,

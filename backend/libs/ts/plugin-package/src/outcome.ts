@@ -112,8 +112,7 @@ export type PluginWarningKind =
   | "skill-hooks-not-run"
   | "hooks-not-read"
   | "settings-agent-unknown"
-  | "settings-key-ignored"
-  | "stigmer-folder-ignored";
+  | "settings-key-ignored";
 
 /**
  * The warnings that name hooks Stigmer does not run, so a surface can list

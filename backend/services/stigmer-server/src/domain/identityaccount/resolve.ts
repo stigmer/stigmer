@@ -8,8 +8,6 @@
  * claims standing in where it says nothing), so a resource a person creates
  * names them, not just their id, however few profile claims their
  * provider puts in an access token (stigmer/stigmer#1226).
- * `identityIdForSubject` is the same read answering the id alone, kept
- * for compositions that call it until they adopt the principal.
  *
  * The rule is the cloud's direct-login posture (iam/direct/verifier.ts):
  * one primary-key read of the DIRECT account for the subject; a hit
@@ -50,9 +48,10 @@
  * about "".
  *
  * The third reading is a ROW's creator stamp, `accountForStamp`: the
- * account a `created_by.id` names, read the two ways a stamp has been
- * written — as an account id (rows stamped since 3.15.0) and as the raw
- * issuer subject (rows the 3.14.x verifiers stamped) — in
+ * account a `created_by.id` names, read the two ways a stamp is written
+ * — as an account id (a provisioned caller's write) and as the raw issuer
+ * subject (a write made before the caller's account existed carries their
+ * subject) — in
  * `accountForCaller`'s order, with no subject read for an account-id
  * stamp the id read missed: no account carries an `ida_` as its subject,
  * so that read could only miss. Three lanes make the server act as the
@@ -145,20 +144,6 @@ export async function principalForSubject(
     );
   }
   return principalOf(account, claims);
-}
-
-/**
- * The id `principalForSubject` answers, alone: the same read and the
- * same faults.
- *
- * @deprecated Use `principalForSubject`, which also carries the account's
- * email and display name, so the caller's audit stamp names the person.
- */
-export async function identityIdForSubject(
-  accounts: AccountsBySubject,
-  subject: string,
-): Promise<string> {
-  return (await principalForSubject(accounts, subject)).identityId;
 }
 
 /** The claims a credential asserted, with an empty field left out, as a verifier stamps them. */

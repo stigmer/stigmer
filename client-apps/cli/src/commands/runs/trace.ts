@@ -1,6 +1,6 @@
 // `stigmer runs trace <run-id>` — show the run's tool-call structure.
 // Thin handler: resolve the client and format, delegate to
-// resources/run-trace.ts. Mirrors Go's execution_trace.go.
+// resources/run-trace.ts.
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";

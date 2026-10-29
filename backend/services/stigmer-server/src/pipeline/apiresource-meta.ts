@@ -1,13 +1,12 @@
 /**
- * Kind-metadata helpers — port backend/libs/go/apiresource/metadata.go.
- * The proto `kind_meta` enum-value extension is the single source of truth
- * for a kind's canonical name, id prefix, and visibility config; deriving
- * anything from enum spellings is forbidden (Go learned this at
- * stigmer/stigmer#545 — PascalCase cannot recover "oauth_app").
+ * Kind-metadata helpers. The proto `kind_meta` enum-value extension is the
+ * single source of truth for a kind's canonical name, id prefix, and
+ * visibility config; deriving anything from enum spellings is forbidden
+ * (stigmer/stigmer#545 — PascalCase cannot recover "oauth_app").
  *
- * Both editions resolve the same strings from the same proto metadata; the
- * visibility helpers mirror Cloud's VisibilityConfigResolver so the
- * cross-edition error contract is identical by construction.
+ * Both editions resolve the same strings from the same proto metadata
+ * through this module, so the cross-edition error contract is identical by
+ * construction.
  *
  * The contract carries TWO kind vocabularies, and this module holds one
  * lookup for each so they are never merged:
@@ -61,7 +60,7 @@ import type { ParentRelationConfig } from "@stigmer/apis/ai/stigmer/commons/apir
 import type { IamRole } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
-/** Go GetKindMeta: the kind_meta extension of the enum value. */
+/** The kind_meta extension of the enum value. */
 export function getKindMeta(kind: ApiResourceKind): ApiResourceKindMeta {
   const valueDesc = kindValueDescriptor(kind);
   if (valueDesc === undefined || !hasOption(valueDesc, kind_meta)) {
@@ -101,12 +100,12 @@ export function inheritedAuthorizationParentOf(
   return config.parent;
 }
 
-/** Go GetIdPrefix: e.g. agent → "agt". */
+/** The kind's id prefix, e.g. agent → "agt". */
 export function getIdPrefix(kind: ApiResourceKind): string {
   return getKindMeta(kind).idPrefix;
 }
 
-/** Go GetKindName: the canonical name, e.g. agent → "Agent" (error copy uses this). */
+/** The canonical name, e.g. agent → "Agent" (error copy uses this). */
 export function getKindName(kind: ApiResourceKind): string {
   return getKindMeta(kind).name;
 }
@@ -123,9 +122,8 @@ export function kindNoun(kind: ApiResourceKind): string {
 }
 
 /**
- * Go GetKindEnum: resolve a resource's `kind` string field to the enum via
- * canonical kind_meta.name matching (case-insensitive, underscores
- * ignored) — twin of Cloud's ApiResourceKindExtractor.
+ * Resolves a resource's `kind` string field to the enum via canonical
+ * kind_meta.name matching (case-insensitive, underscores ignored).
  */
 export function getKindEnum(kindValue: string): ApiResourceKind {
   if (kindValue === "") {
@@ -171,7 +169,7 @@ export function kindEnumName(kind: ApiResourceKind): string {
 }
 
 /**
- * Go DefaultVisibilityFor: blueprint kinds flagged defaults_to_org_visibility
+ * The default visibility: blueprint kinds flagged defaults_to_org_visibility
  * get visibility_org (blueprints are shared org assets — a private default
  * would silently hide new blueprints from teammates); all others get
  * visibility_private.
@@ -188,9 +186,7 @@ export function defaultVisibilityFor(
 /**
  * The roles a user may be granted on a resource of `kind` according to the
  * CONTRACT — `kind_meta.authorization.grantable_roles`, the one source of
- * "what can be granted at all" (Java AuthorizationConfigResolver
- * .getGrantableRoles; the cloud's iam/grant/roles.ts grantableRolesFor,
- * which this replaced). A kind that lists none
+ * "what can be granted at all". A kind that lists none
  * is system-managed in every edition (identity_account, api_key,
  * grant, invitation, agent_execution); an edition's GrantScope
  * (extensions/grant-scope.ts) only narrows this list.
@@ -347,7 +343,7 @@ export function supportsVisibility(
 }
 
 /**
- * Go SupportedVisibilityLevels: comma-joined level names, always starting
+ * The supported visibility levels: comma-joined level names, always starting
  * with visibility_private — both editions build the same INVALID_ARGUMENT
  * copy from this exact format.
  */
@@ -367,7 +363,7 @@ function kindValueDescriptor(kind: ApiResourceKind): DescEnumValue | undefined {
   return ApiResourceKindSchema.values.find((value) => value.number === kind);
 }
 
-/** Canonical spelling: lowercase, underscores stripped (Go canonicalKindName). */
+/** Canonical spelling: lowercase, underscores stripped. */
 function canonicalKindName(value: string): string {
   return value.toLowerCase().replaceAll("_", "");
 }

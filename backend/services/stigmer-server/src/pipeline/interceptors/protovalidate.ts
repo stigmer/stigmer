@@ -1,20 +1,15 @@
 /**
- * Protovalidate interceptor — chain position 3, the boundary validator
- * (Go registers protovalidateinterceptor on both the unary and
- * stream chains, pkg/server/server.go:253-254).
+ * Protovalidate interceptor — chain position 3, the boundary validator, on
+ * both unary and streaming calls.
  *
  * Every request message is validated against its proto rules BEFORE any
  * handler code, including in-process calls through the router transport —
- * that traversal is the validation-parity property router-transport.test.ts
+ * that traversal is the one-validation property router-transport.test.ts
  * proves.
  * Client/bidi-streaming requests validate each message as it arrives.
  *
- * Violations map to InvalidArgument carrying the library's violation text.
- * WATCH ITEM: protovalidate-es and
- * protovalidate-go may format violation strings differently; if a
- * conformance suite pins validation MESSAGE bytes (not just the code),
- * that divergence surfaces there and goes to the owner — do not paper over
- * it here.
+ * Violations map to InvalidArgument carrying the library's violation text,
+ * as protovalidate-es formats it.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Interceptor } from "@connectrpc/connect";

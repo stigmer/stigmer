@@ -30,7 +30,7 @@ configureLogger({ level: "error", format: "text" });
 const knownAgent = create(AgentSchema, {
   apiVersion: "v1",
   kind: "agent",
-  metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "stigmer", id: "agt-123" },
+  metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "stigmer", id: "agt_123" },
 });
 
 let backend: Http2Server;

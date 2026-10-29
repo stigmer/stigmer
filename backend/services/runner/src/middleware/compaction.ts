@@ -33,15 +33,15 @@
  *  - The runnable states the model's window as its `profile`
  *    (`shared/model-window.ts` `windowOf`, recorded for the model by the
  *    turn's model builder), read on every call, so deepagents sizes its
- *    trigger and what it keeps against the model's real window, where it
- *    used to read the profile of the id the model was built with and fall
- *    back to a fixed 170,000 tokens for a provider's rewritten id. With no
- *    window, the profile is empty and deepagents' fallback applies as before.
+ *    trigger and what it keeps against the model's real window, never the
+ *    profile of the id the model was built with, which falls back to a fixed
+ *    170,000 tokens for a provider's rewritten id. With no window, the
+ *    profile is empty and deepagents' own fallback applies.
  *  - Each summary the runnable answered is said on the graph's custom
  *    stream ({@link CONTEXT_COMPACTED_EVENT}, through the runtime's writer)
  *    just before deepagents' next call to the model, so the marker lands
  *    ahead of the first reply that read the summary. It carries the
- *    summary's token usage: the stream no longer shows the call, and the
+ *    summary's token usage: the stream does not show the call, and the
  *    Stigmer harness's loop's one usage writer reads it from this event instead
  *    (`execute-deep-agent/translator.ts` `usageOf`). One event per summary
  *    call: deepagents' re-summary after an overflow is a second one.

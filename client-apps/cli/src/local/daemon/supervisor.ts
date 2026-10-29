@@ -8,8 +8,8 @@
 // (stigmer#1845), so a stopped-after-failure component keeps its "failed".
 //
 // Every side effect (spawning, time, the health probe) is injected, so this
-// whole policy is unit-testable without real processes or real waiting — the
-// property the Go daemon never had. process.ts wires this to the real host,
+// whole policy is unit-testable without real processes or real waiting.
+// process.ts wires this to the real host,
 // clock, Temporal, signals, and the 10s tick.
 
 import { SERVER_PORT } from "../constants.js";

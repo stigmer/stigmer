@@ -25,36 +25,36 @@ describe("sortChronologically", () => {
     // heap order — the afternoon turns (…vk…) interleaved with the evening
     // turns (…w3…/…w4…). Chronological order is ascending ULID.
     const scrambled = [
-      exec("aex_01kyw3zeq8cre6cc8gznf31y13"),
-      exec("aex_01kyvk1hxyrhch1q23p5j177pb"),
-      exec("aex_01kyw416w9mg6ezzpkc6q9y71x"),
-      exec("aex_01kyvk2sh0vjc69c7z3q4c9r1m"),
-      exec("aex_01kyw45qkf88x28pf9bxmrr3bf"),
-      exec("aex_01kyw3y0rfx9vd7dhnawgqgnb0"),
-      exec("aex_01kyvk3v34vh9phedx2ezajxtr"),
+      exec("run_01kyw3zeq8cre6cc8gznf31y13"),
+      exec("run_01kyvk1hxyrhch1q23p5j177pb"),
+      exec("run_01kyw416w9mg6ezzpkc6q9y71x"),
+      exec("run_01kyvk2sh0vjc69c7z3q4c9r1m"),
+      exec("run_01kyw45qkf88x28pf9bxmrr3bf"),
+      exec("run_01kyw3y0rfx9vd7dhnawgqgnb0"),
+      exec("run_01kyvk3v34vh9phedx2ezajxtr"),
     ];
 
     expect(ids(sortChronologically(scrambled))).toEqual([
-      "aex_01kyvk1hxyrhch1q23p5j177pb",
-      "aex_01kyvk2sh0vjc69c7z3q4c9r1m",
-      "aex_01kyvk3v34vh9phedx2ezajxtr",
-      "aex_01kyw3y0rfx9vd7dhnawgqgnb0",
-      "aex_01kyw3zeq8cre6cc8gznf31y13",
-      "aex_01kyw416w9mg6ezzpkc6q9y71x",
-      "aex_01kyw45qkf88x28pf9bxmrr3bf",
+      "run_01kyvk1hxyrhch1q23p5j177pb",
+      "run_01kyvk2sh0vjc69c7z3q4c9r1m",
+      "run_01kyvk3v34vh9phedx2ezajxtr",
+      "run_01kyw3y0rfx9vd7dhnawgqgnb0",
+      "run_01kyw3zeq8cre6cc8gznf31y13",
+      "run_01kyw416w9mg6ezzpkc6q9y71x",
+      "run_01kyw45qkf88x28pf9bxmrr3bf",
     ]);
   });
 
   it("does not mutate the input array", () => {
-    const input = [exec("aex_02"), exec("aex_01")];
+    const input = [exec("run_02"), exec("run_01")];
     const before = ids(input);
     sortChronologically(input);
     expect(ids(input)).toEqual(before);
   });
 
   it("sorts entries missing an id last", () => {
-    const list = [exec("aex_02"), exec(""), exec("aex_01")];
-    expect(ids(sortChronologically(list))).toEqual(["aex_01", "aex_02", ""]);
+    const list = [exec("run_02"), exec(""), exec("run_01")];
+    expect(ids(sortChronologically(list))).toEqual(["run_01", "run_02", ""]);
   });
 
   it("returns an empty array unchanged", () => {

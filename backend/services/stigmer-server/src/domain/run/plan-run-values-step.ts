@@ -17,9 +17,9 @@
  *
  * Inputs: the session by the execution's session_id (its own values, its
  * vaults, its resources and its own plugins), and the agent
- * from the stamp alone: the stamped version's spec, or the stamped agent
- * as it is now when the turn recorded no version. A stamped version that
- * no longer resolves refuses, naming it. The agent's organization is read
+ * from the stamp alone: the stamped version's spec (a turn that names an
+ * agent always records its version, ResolveRunAgent). A stamped version
+ * that no longer resolves refuses, naming it. The agent's organization is read
  * from its row as it is now (none when the row cannot be read), so the
  * resolver keeps the person's own values from another organization's
  * agent. No stamp is the built-in assistant: no agent, and the session's
@@ -57,7 +57,7 @@ import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enu
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
-import { goWrappedStatusError } from "../../pipeline/errors.js";
+import { wrappedStatusError } from "../../pipeline/errors.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
@@ -241,13 +241,11 @@ export async function planRunValues(
 }
 
 /**
- * Go's %w wrap chains, mirrored: the INNERMOST status boundary renders
- * through goWrappedStatusError ("prefix: rpc error: code = X desc = …");
- * every OUTER wrap prepends plain text while preserving the inner code —
- * exactly how nested fmt.Errorf("%s: %w") chains reach the wire through
- * the pipeline's errors.As branch (the #852 leak). Plain errors chain as
- * plain errors and land on the pipeline's Internal fallback, Go's
- * non-status path.
+ * Wrap chains: the INNERMOST status boundary renders through
+ * wrappedStatusError ("prefix: rpc error: code = X desc = …", the #852
+ * wire shape); every OUTER wrap prepends plain text while preserving the
+ * inner code. Plain errors chain as plain errors and land on the
+ * pipeline's Internal fallback.
  */
 function chainError(prefix: string, error: unknown): never {
   if (error instanceof ConnectError) {
@@ -277,7 +275,7 @@ async function loadRunSession(
     session = await deps.sessionLoader().get(sessionId);
   } catch (error) {
     if (error instanceof ConnectError) {
-      throw goWrappedStatusError(`load session ${sessionId}`, error);
+      throw wrappedStatusError(`load session ${sessionId}`, error);
     }
     throw new Error(
       `load session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -288,32 +286,16 @@ async function loadRunSession(
 
 /**
  * The spec of the agent a turn runs, its name for the resolver's messages
- * and its organization: the recorded version's snapshot when the turn
- * recorded one (the name and organization read best-effort from the agent
- * as it is now; no organization when it cannot be read), else the agent as
- * it is now, read once. Failures keep the inner status code with Go's wrap
- * prefix, naming the version when one was recorded.
+ * and its organization: the recorded version's snapshot (the name and
+ * organization read best-effort from the agent as it is now; no
+ * organization when it cannot be read). Failures keep the inner status
+ * code with the wrap prefix, naming the version.
  */
 async function loadRunAgent(
   deps: RunValuePlannerDeps,
   agentId: string,
   versionHash: string,
 ): Promise<{ spec: AgentSpec | undefined; name: string; org: string | undefined }> {
-  if (versionHash === "") {
-    try {
-      const agent = await deps.agentLoader().get(agentId);
-      return {
-        spec: agent.spec,
-        name: agent.metadata?.name || agent.metadata?.slug || agentId,
-        org: agent.metadata?.org,
-      };
-    } catch (error) {
-      if (error instanceof ConnectError) {
-        throw goWrappedStatusError(`load agent ${agentId}`, error);
-      }
-      chainError(`load agent ${agentId}`, error);
-    }
-  }
   let spec: AgentSpec | undefined;
   try {
     spec = (await deps.agentLoader().getVersion(agentId, versionHash))
@@ -321,7 +303,7 @@ async function loadRunAgent(
   } catch (error) {
     const what = `load agent ${agentId} at the version this turn recorded (${versionHash})`;
     if (error instanceof ConnectError) {
-      throw goWrappedStatusError(what, error);
+      throw wrappedStatusError(what, error);
     }
     chainError(what, error);
   }

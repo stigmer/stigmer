@@ -1,6 +1,5 @@
 /**
- * Activity-queue dispatch resolution — ports
- * pkg/domain/agentexecution/temporal/dispatch.go.
+ * Activity-queue dispatch resolution.
  *
  * Decides which Temporal task queue an execution's runner activities route
  * to, and resolves the session's harness (STIGMER vs CLAUDE — which
@@ -9,7 +8,7 @@
  * ignores it).
  *
  * Proven by the agentexecution suites on local-execution and by the
- * co-located dispatch tests (ports dispatch_test.go).
+ * co-located dispatch tests.
  */
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -25,10 +24,10 @@ import {
 } from "../../domain/run/temporal/config.js";
 import { ResourceNotFoundError, type Store } from "../../store/interface.js";
 
-/** Go dispatch.go sessionTaskQueuePrefix. */
+/** The per-session task queue's prefix. */
 const SESSION_TASK_QUEUE_PREFIX = "session:";
 
-/** Go temporal.DispatchResult. */
+/** Where an execution's runner activities go, and what they run. */
 export interface DispatchResult {
   readonly taskQueue: string;
   readonly harness: Harness;
@@ -36,8 +35,8 @@ export interface DispatchResult {
 }
 
 /**
- * Derives the canonical per-session task queue name (Go
- * FormatSessionTaskQueue): "session:{session_id}". Pure — usable by
+ * Derives the canonical per-session task queue name:
+ * "session:{session_id}". Pure — usable by
  * tests and any component validating queue names.
  */
 export function formatSessionTaskQueue(sessionId: string): string {
@@ -46,9 +45,8 @@ export function formatSessionTaskQueue(sessionId: string): string {
 
 /**
  * Resolves the activity task queue, harness, and execution target for one
- * execution (Go ResolveActivityTaskQueue). Error message text is pinned:
- * the create step surfaces it verbatim as FailedPrecondition (Go create.go
- * startWorkflowStep).
+ * execution. Error message text is pinned: the create step surfaces it
+ * verbatim as FailedPrecondition.
  */
 export async function resolveActivityTaskQueue(
   store: Store,
@@ -66,9 +64,8 @@ export async function resolveActivityTaskQueue(
         sessionId,
         SessionSchema,
       );
-      // A LOADED session with a nil spec resolves UNSPECIFIED (Go's
-      // GetSpec().GetHarness() nil-chain); STIGMER is only the pre-load
-      // default.
+      // A LOADED session with no spec resolves UNSPECIFIED; STIGMER is
+      // only the pre-load default.
       harness = session.spec?.harness ?? Harness.UNSPECIFIED;
       executionTarget = session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED;
     } catch (error) {
@@ -97,7 +94,7 @@ export async function resolveActivityTaskQueue(
   return { taskQueue, harness, executionTarget: resolvedTarget };
 }
 
-/** Go resolveTaskQueue: session routing only with a session id in hand. */
+/** Session routing only with a session id in hand. */
 function resolveTaskQueue(
   sessionId: string,
   config: AgentExecutionTemporalConfig,

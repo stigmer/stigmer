@@ -19,7 +19,7 @@ function createMockStigmer(overrides: {
     agent: { getByReference: vi.fn() },
     session: {
       create: overrides.create ?? vi.fn().mockResolvedValue({
-        metadata: { id: "ses-new-1" },
+        metadata: { id: "ses_new-1" },
       }),
     },
   } as never;
@@ -43,7 +43,7 @@ describe("useCreateSession", () => {
   });
 
   it("creates a session on the agent reference, reading no agent first", async () => {
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-123" } });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_123" } });
     const client = createMockStigmer({ create });
 
     const { result } = renderHook(() => useCreateSession(), {
@@ -60,7 +60,7 @@ describe("useCreateSession", () => {
       });
     });
 
-    expect(sessionResult!.sessionId).toBe("ses-123");
+    expect(sessionResult!.sessionId).toBe("ses_123");
     expect(result.current.isCreating).toBe(false);
     expect(result.current.error).toBeNull();
     expect(create).toHaveBeenCalledTimes(1);
@@ -73,7 +73,7 @@ describe("useCreateSession", () => {
   });
 
   it("names no agent for the built-in assistant", async () => {
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-0" } });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_0" } });
     const client = createMockStigmer({ create });
 
     const { result } = renderHook(() => useCreateSession(), {
@@ -88,7 +88,7 @@ describe("useCreateSession", () => {
   });
 
   it("sends file review only when the caller asks for it", async () => {
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-fr" } });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_fr" } });
     const client = createMockStigmer({ create });
 
     const { result } = renderHook(() => useCreateSession(), {
@@ -133,7 +133,7 @@ describe("useCreateSession", () => {
   });
 
   it("passes executionTarget to stigmer.session.create()", async () => {
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-et" } });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_et" } });
     const client = createMockStigmer({ create });
 
     const { result } = renderHook(() => useCreateSession(), {
@@ -156,7 +156,7 @@ describe("useCreateSession", () => {
   });
 
   it("omits executionTarget when not provided", async () => {
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-no-et" } });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_no-et" } });
     const client = createMockStigmer({ create });
 
     const { result } = renderHook(() => useCreateSession(), {
@@ -176,7 +176,7 @@ describe("useCreateSession", () => {
 
   describe("session metadata and sessionContext", () => {
     it("passes the metadata map through to stigmer.session.create()", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-md" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_md" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -199,7 +199,7 @@ describe("useCreateSession", () => {
     });
 
     it("maps the typed sessionContext onto the reserved metadata key", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-sc" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_sc" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -222,7 +222,7 @@ describe("useCreateSession", () => {
     });
 
     it("lets the typed sessionContext win over a raw entry under the reserved key", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-both" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_both" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -252,7 +252,7 @@ describe("useCreateSession", () => {
     });
 
     it("omits metadata entirely when neither field is provided", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-none" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_none" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -307,7 +307,7 @@ describe("useCreateSession", () => {
     }
 
     it("uses context executionTarget when per-call input omits it", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-ctx" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_ctx" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -329,7 +329,7 @@ describe("useCreateSession", () => {
     });
 
     it("per-call executionTarget overrides context", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-override" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_override" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -352,7 +352,7 @@ describe("useCreateSession", () => {
     });
 
     it("omits executionTarget when neither context nor per-call provides it", async () => {
-      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-none" } });
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_none" } });
       const client = createMockStigmer({ create });
 
       const { result } = renderHook(() => useCreateSession(), {
@@ -372,7 +372,7 @@ describe("useCreateSession", () => {
   });
 
   it("sends the Environment the input names, and none when it names none", async () => {
-    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-env" } });
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses_env" } });
     const { result } = renderHook(() => useCreateSession(), {
       wrapper: wrapper(createMockStigmer({ create })),
     });

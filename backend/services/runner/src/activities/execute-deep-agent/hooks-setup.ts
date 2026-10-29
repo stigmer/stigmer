@@ -8,8 +8,9 @@
  * subagent's environment.
  *
  * What is this harness's here is how its calls look to a hook: the Stigmer
- * views (`shared/hooks/tool-view.ts` `StigmerToolViews`), over the tools it
- * bound and the workspace's virtual paths.
+ * views (`shared/hooks/tool-view.ts` `StigmerToolViews`), over the
+ * workspace's virtual paths; the gate hands them each MCP call as its bare
+ * tool beside its server.
  */
 
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -20,7 +21,6 @@ import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.j
 import type { HookEvaluator, HookPermissionMode } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator as buildEvaluator, hookPermissionMode } from "../../shared/hooks/setup.js";
 import { StigmerToolViews } from "../../shared/hooks/tool-view.js";
-import type { DeepAgentTools } from "./turn-setup.js";
 
 export { HookSetupError } from "../../shared/hooks/setup.js";
 
@@ -32,7 +32,6 @@ export { HookSetupError } from "../../shared/hooks/setup.js";
 export async function buildHookEvaluator(
   input: TurnInput,
   sink: Pick<TurnSink, "stopSignal" | "recordActivity">,
-  tools: Pick<DeepAgentTools, "toolServerMap">,
   stallTimeoutMs: number,
   subagent?: TurnSubagent,
 ): Promise<HookEvaluator | null> {
@@ -50,7 +49,6 @@ export async function buildHookEvaluator(
     views: new StigmerToolViews({
       workspaceRoot: primaryDir,
       toVirtualPath: (path) => normalizeWorkspacePathArg(path, primaryDir),
-      toolServerMap: tools.toolServerMap,
       serverNames,
       platformServerSlugs: input.mcp.platformServerSlugs,
     }),

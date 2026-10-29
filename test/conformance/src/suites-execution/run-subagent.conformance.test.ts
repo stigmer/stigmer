@@ -47,9 +47,7 @@
 //
 // Deliberately out of scope: the save rules (pinning, one level at save,
 // listing once, the delete guard) are the agent suite's, who may list which
-// agent is the run gate's, the local stores' retirement of inline sub-agents
-// is the store suites' (a conformance target cannot seed a pre-upgrade
-// store), and the prompt wording (assertions read names, models and
+// agent is the run gate's, and the prompt wording (assertions read names, models and
 // markers, never prose).
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -62,7 +60,7 @@ import { anthropicText, anthropicToolUse, anthropicToolUses } from "@stigmer/tes
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type McpToolFixture, mcpToolName } from "../harness/mcp-server";
 import { requireRegistryRow } from "../harness/model-registry";
 import {
   AGENT_API_VERSION,
@@ -77,7 +75,7 @@ import {
 } from "../support/agents";
 import { provisionOrgWithFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
-import { FIXTURE_SERVER, oneServerPlugin, pluginRefOf, pluginToolName, pushPlugin } from "../support/plugins";
+import { FIXTURE_SERVER, modelToolName, oneServerPlugin, pluginRefOf, pluginToolName, pushPlugin } from "../support/plugins";
 import { RunValueDeclarerKind, runSourcesOf, sourcesFor } from "../support/run-values";
 import {
   type AgentExecutionOptions,
@@ -100,8 +98,8 @@ const TASK_TOOL_NAME = "task";
 const STIGMER_SHELL_TOOL = "execute";
 // The platform's own tools a subagent is never given: memory capture, and a
 // channel's send tool.
-const MEMORY_TOOL_NAME = "remember";
-const CHANNEL_SEND_TOOL_NAME = "send_channel_message";
+const MEMORY_TOOL_NAME = mcpToolName("stigmer-memory", "remember");
+const CHANNEL_SEND_TOOL_NAME = mcpToolName("stigmer-channels", "send_channel_message");
 
 // Two Stigmer registry ids whose provider ids differ from them and from each
 // other, so the model each request ran on is read off the wire.
@@ -189,7 +187,7 @@ function handOff(toolCallId: string, subagentType: string) {
 /** Creates the turn, awaits its end and asserts it completed. */
 async function completedTurn(options: Omit<AgentExecutionOptions, "name">): Promise<Run> {
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ name: uniqueName("aex-subagent"), autoApproveAll: true, ...options }),
+    makeAgentExecution({ name: uniqueName("run-subagent"), autoApproveAll: true, ...options }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -261,7 +259,7 @@ describe("Run — a subagent runs its own definition", () => {
     mock.enqueue(handOff("toolu_task_research", name));
     mock.enqueue(
       anthropicToolUses([
-        { toolCallId: "call_sub_echo", toolName: ECHO_TOOL_NAME, toolInput: { text: "from the subagent" } },
+        { toolCallId: "call_sub_echo", toolName: modelToolName(plugin, ECHO_TOOL_NAME), toolInput: { text: "from the subagent" } },
         { toolCallId: "call_sub_shell", toolName: STIGMER_SHELL_TOOL, toolInput: { command: "echo shell-ran-in-subagent" } },
       ]),
     );
@@ -286,10 +284,10 @@ describe("Run — a subagent runs its own definition", () => {
     // it disallows; the subagent is offered both, and never `task`.
     const parentOffered = offeredAt(0);
     expect(parentOffered, "the parent is offered the hand-off").toContain(TASK_TOOL_NAME);
-    expect(parentOffered, "the subagent's plugin tool is not the parent's").not.toContain(ECHO_TOOL_NAME);
+    expect(parentOffered, "the subagent's plugin tool is not the parent's").not.toContain(modelToolName(plugin, ECHO_TOOL_NAME));
     expect(parentOffered, "the parent's lists remove its shell").not.toContain(STIGMER_SHELL_TOOL);
     const subagentOffered = offeredAt(1);
-    expect(subagentOffered, "the subagent is offered its own plugin's tool").toContain(ECHO_TOOL_NAME);
+    expect(subagentOffered, "the subagent is offered its own plugin's tool").toContain(modelToolName(plugin, ECHO_TOOL_NAME));
     expect(subagentOffered, "the parent's lists do not reach the subagent").toContain(STIGMER_SHELL_TOOL);
     expect(subagentOffered, "one level: a subagent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
 
@@ -355,7 +353,7 @@ describe("Run — a subagent runs its own definition", () => {
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
     mock.enqueue(handOff("toolu_task_desk", name));
-    mock.enqueue(anthropicToolUse("call_desk_echo", ECHO_TOOL_NAME, { text: "ORD-4821" }));
+    mock.enqueue(anthropicToolUse("call_desk_echo", inScope, { text: "ORD-4821" }));
     mock.enqueue(anthropicText("The desk answered ORD-4821."));
     mock.enqueue(anthropicText("The clerk found ORD-4821."));
 
@@ -372,8 +370,8 @@ describe("Run — a subagent runs its own definition", () => {
       parentModel,
     ]);
     const offered = offeredAt(1);
-    expect(offered, "the tool its list names is offered").toContain(ECHO_TOOL_NAME);
-    expect(offered, "a tool its list does not name is not offered").not.toContain(FAIL_TOOL_NAME);
+    expect(offered, "the tool its list names is offered").toContain(inScope);
+    expect(offered, "a tool its list does not name is not offered").not.toContain(modelToolName(plugin, FAIL_TOOL_NAME));
     expect(offered, "one level: a plugin's agent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
     const echo = toolUseByCallId(await turnOfRun(clients, final), "call_desk_echo");
     expect(echo?.state).toBe("completed");
@@ -402,7 +400,7 @@ describe("Run — a subagent runs its own definition", () => {
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-subagent-env"), agentRef: agentRefOf(agent), autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-subagent-env"), agentRef: agentRefOf(agent), autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -486,8 +484,8 @@ describe("Run — what a subagent is not given", () => {
 
     const final = await completedTurn({ org, agentRef: agentRefOf(agent), sessionSpec: { plugins: [pluginRefOf(plugin)] } });
     await subagentRecordOf(final, name);
-    expect(offeredAt(0), "the conversation's plugin is the parent's").toContain(ECHO_TOOL_NAME);
-    expect(offeredAt(1), "the conversation's plugin is not the subagent's").not.toContain(ECHO_TOOL_NAME);
+    expect(offeredAt(0), "the conversation's plugin is the parent's").toContain(modelToolName(plugin, ECHO_TOOL_NAME));
+    expect(offeredAt(1), "the conversation's plugin is not the subagent's").not.toContain(modelToolName(plugin, ECHO_TOOL_NAME));
   });
 
   describe.skipIf(!collectionTarget.capabilities.firstPartyMemoryCapture)(
@@ -609,7 +607,7 @@ describe("Run — a subagent's local program runs where a person's own runner ru
           const created = await clients.agentExecutionCommand.create(
             makeAgentExecution({
               org,
-              name: uniqueName("aex-hosted-subagent"),
+              name: uniqueName("run-hosted-subagent"),
               agentRef: agentRefOf(agent),
               sessionSpec: { executionTarget: ExecutionTarget.CLOUD },
             }),
@@ -652,7 +650,7 @@ describe("Run — a subagent on Claude", () => {
     CLAUDE_ARM.script(mock, task, [{ kind: "delegate", id: delegation, agent: helper, prompt }, { kind: "text", text: `The helper reported: ${SUBAGENT_ANSWER}` }]);
     CLAUDE_ARM.script(mock, prompt, options.helperSteps(prompt));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-claude-subagent"), agentRef: agentRefOf(agent), message: task, autoApproveAll: options.autoApproveAll, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-claude-subagent"), agentRef: agentRefOf(agent), message: task, autoApproveAll: options.autoApproveAll, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

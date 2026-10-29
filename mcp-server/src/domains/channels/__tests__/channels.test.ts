@@ -137,7 +137,7 @@ describe("argument → request mapping (the ChannelOutboundPayload oneof)", () =
     expect(req?.payload?.kind.case).toBe("text");
     expect(req?.payload?.kind.case === "text" && req.payload.kind.value.body).toBe("see you at 6");
 
-    // toProtoJson emits proto (snake_case) field names — the Go parity rule.
+    // toProtoJson emits proto (snake_case) field names.
     const body = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, string>;
     expect(body.outcome).toBe("accepted");
     expect(body.provider_message_id).toBe("wamid.abc");

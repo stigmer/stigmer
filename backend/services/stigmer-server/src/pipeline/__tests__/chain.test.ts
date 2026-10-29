@@ -2,14 +2,14 @@
  * Interceptor-chain behavior tests, exercised through the REAL stigmer
  * service descriptors over the in-process router transport (so these
  * tests double as proof that in-process calls get full pipeline
- * treatment — the Go bufconn parity property).
+ * treatment).
  *
  * Pinned behaviors:
  *   - protovalidate refuses an invalid Agent BEFORE the handler runs,
  *     with InvalidArgument;
  *   - a valid request reaches the handler with the apiresource kind
- *     injected from the service option (interceptor.go parity);
- *   - the logging tiers (grpc lib server.go:295-345): success info,
+ *     injected from the service option;
+ *   - the logging tiers: success info,
  *     health success debug, NotFound debug, InvalidArgument warn, other
  *     errors error — and the REAL error message is logged while the wire
  *     carries whatever the handler threw;

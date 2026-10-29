@@ -18,7 +18,8 @@
  *
  * Grant and Revoke are proven for the one thing a step adds over the
  * grant path: the result they leave under GRANT_RESULT_KEY (the revoke
- * of an absent triple leaves the default instance, Java's contract).
+ * of an absent triple leaves the default instance, so revoke is
+ * idempotent).
  *
  * The two owner steps: a change that grants, revokes or removes an
  * organization's owner role asks `can_assign_roles` there and refuses with
@@ -297,7 +298,7 @@ describe("ValidateGrantableRole", () => {
           contextOf(
             triple(team, "participant", {
               kind: "channel",
-              id: "ach_1",
+              id: "chn_1",
             }),
           ),
         ),
@@ -487,7 +488,7 @@ describe("Grant and Revoke leave their result under GRANT_RESULT_KEY", () => {
     );
   });
 
-  it("Revoke leaves the revoked row, or the default instance when there was none (Java's idempotent delete)", async () => {
+  it("Revoke leaves the revoked row, or the default instance when there was none (an idempotent delete)", async () => {
     const path = pathOverFreshStore();
     const spec = orgRole("ida_bob", "member", "acme");
     await path.grant(spec, caller, "grant");

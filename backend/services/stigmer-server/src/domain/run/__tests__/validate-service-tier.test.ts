@@ -1,6 +1,5 @@
 /**
- * Pins validate-service-tier.ts against Go's validate_service_tier_test.go
- * case-for-case: fail-closed create-time validation of the service tier a
+ * Pins validate-service-tier.ts case by case: fail-closed create-time validation of the service tier a
  * turn resolved (#357; each case runs ResolveRunConfig first, as the chain
  * does, over a new conversation with no agent, on Claude unless a case
  * names Stigmer) against the bundled registry plus one test-local fast

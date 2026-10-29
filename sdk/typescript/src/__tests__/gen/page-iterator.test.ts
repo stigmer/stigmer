@@ -24,7 +24,7 @@ function client() {
         const end = Math.min(start + 2, 5);
         return create(RoutineListSchema, {
           entries: Array.from({ length: end - start }, (_, i) =>
-            create(RoutineSchema, { metadata: { id: `sch_${start + i}` } }),
+            create(RoutineSchema, { metadata: { id: `rtn_${start + i}` } }),
           ),
           nextPageToken: end < 5 ? String(end) : "",
         });
@@ -41,7 +41,7 @@ describe("a generated page iterator", () => {
     for await (const s of schedules.listAll({ org: "acme", labels: { team: "support" }, pageSize: 2 })) {
       ids.push(s.metadata?.id ?? "");
     }
-    expect(ids).toEqual(["sch_0", "sch_1", "sch_2", "sch_3", "sch_4"]);
+    expect(ids).toEqual(["rtn_0", "rtn_1", "rtn_2", "rtn_3", "rtn_4"]);
     expect(requests.map((r) => r.pageToken)).toEqual(["", "2", "4"]);
     expect(requests.every((r) => r.org === "acme" && r.labels.team === "support" && r.pageSize === 2)).toBe(true);
   });
@@ -50,13 +50,13 @@ describe("a generated page iterator", () => {
     const { schedules } = client();
     const ids: string[] = [];
     for await (const s of schedules.listAll({ org: "acme", pageToken: "4" })) ids.push(s.metadata?.id ?? "");
-    expect(ids).toEqual(["sch_4"]);
+    expect(ids).toEqual(["rtn_4"]);
   });
 
   it("reads no further page once the caller stops", async () => {
     const { schedules, requests } = client();
     for await (const s of schedules.listAll({ org: "acme" })) {
-      if (s.metadata?.id === "sch_0") break;
+      if (s.metadata?.id === "rtn_0") break;
     }
     expect(requests).toHaveLength(1);
   });

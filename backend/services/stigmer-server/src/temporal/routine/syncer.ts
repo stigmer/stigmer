@@ -1,5 +1,5 @@
 /**
- * The Syncer — ports pkg/domain/schedule/temporal/syncer.go: converges one
+ * The Syncer: converges one
  * routine's Temporal artifact to its desired state and records
  * the result on the resource's status. The ONE arming/teardown authority,
  * shared by the write-path steps, the reconciliation pass, and the tick's
@@ -11,10 +11,9 @@
  * Reading through the provider on every call makes that entire bug class
  * unrepresentable here.
  *
- * Status writes go through store.updateResource — the OSS equivalent of
- * the cloud's targeted leaf patches: SQLite stores one
- * protobuf blob, so the atomic read-modify-write under the store's write
- * lock is what keeps a concurrent `stigmer apply` from clobbering the
+ * Status writes go through store.updateResource: the store keeps one
+ * protobuf blob per row, so the atomic read-modify-write under the
+ * store's write lock is what keeps a concurrent `stigmer apply` from clobbering the
  * stamp (and vice versa). status.next_fire_at is the contract's arming
  * witness: stamped from Temporal's own answer when armed, cleared when the
  * artifact is paused, absent while nothing has converged.
@@ -46,8 +45,7 @@ import { artifactId } from "./names.js";
 import { ensureStatus } from "./status-writes.js";
 
 /**
- * The syncer's answer when no Temporal client exists right now (Go
- * ErrTemporalUnavailable). Callers on the write path treat it as "converge
+ * The syncer's answer when no Temporal client exists right now. Callers on the write path treat it as "converge
  * later" (arming is best-effort).
  */
 export class TemporalUnavailableError extends Error {
@@ -70,7 +68,7 @@ export class RoutineSyncer {
    * Creates or updates the resource's artifact to the desired state, then
    * stamps status.next_fire_at from Temporal's answer. Returns the stamped
    * time (undefined when the artifact is paused) so write paths can mirror
-   * it into their response state (Go EnsureAndRecord).
+   * it into their response state.
    */
   async ensureAndRecord(routine: Routine): Promise<Date | undefined> {
     const resourceId = routine.metadata?.id ?? "";
@@ -127,7 +125,7 @@ export class RoutineSyncer {
    * Reads the next fire time from the LIVE artifact — Temporal's answer is
    * authoritative (it accounts for the catch-up window; the platform
    * computes nothing). Undefined while paused, per status.next_fire_at's
-   * contract (Go PeekNextFireAt).
+   * contract.
    */
   async peekNextFireAt(routine: Routine): Promise<Date | undefined> {
     if (!hasSchedule(routine) || desiredPaused(routine)) {
@@ -153,7 +151,7 @@ export class RoutineSyncer {
   /**
    * Deletes the resource's artifact. Not-found is success — delete is
    * idempotent from the platform's point of view even though Temporal's is
-   * not (Go Teardown).
+   * not.
    */
   async teardown(resourceId: string): Promise<void> {
     const client = this.clientProvider();
@@ -205,7 +203,7 @@ export class RoutineSyncer {
   /**
    * Stamps status.next_fire_at from peekNextFireAt onto the LIVE row
    * (updateResource re-reads inside the lock — the stamp can never
-   * resurrect a stale snapshot of the rest of status). Go recordNextFireAt.
+   * resurrect a stale snapshot of the rest of status).
    */
   private async recordNextFireAt(routine: Routine): Promise<Date | undefined> {
     const nextFireAt = await this.peekNextFireAt(routine);

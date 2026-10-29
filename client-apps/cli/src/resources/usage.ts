@@ -4,8 +4,7 @@
 // of the report's tokens; no dollar figure appears. A served-by line says
 // whose provider credential served the tokens (the organization's own keys
 // or a connection the platform provides), and "estimated" marks numbers counted from a
-// run's own runner report rather than the deployment's meter. Mirrors the
-// retired Go CLI's usage_* renderers for layout and date formatting.
+// run's own runner report rather than the deployment's meter.
 //
 // Two clocks, two words, two units. Every report shows WORKING time, the
 // seconds an agent worked (never waiting for a person), as a duration in
@@ -15,12 +14,8 @@
 // up, the rule the console's billing page and the invoice use; it is the
 // one place a price may appear, the plan's own price past its allowance.
 //
-// A deliberate divergence from the retired Go CLI, which serialized usage
-// reports with the standard library (encoding/json + yaml.v3) directly on the
-// proto messages, a *different* shape (lowerCamel keys, integer enums, numeric
-// int64) than the protojson used by every other command. We emit protojson
-// here for consistency with the rest of the CLI (string enums/int64,
-// snake_case keys).
+// json and yaml are protojson, as every other command prints (string
+// enums/int64, snake_case keys).
 //
 // The HARNESS column prints each harness's label (Stigmer, Claude Agent), and
 // a word this build does not know as it came, so a newer server's harness
@@ -423,7 +418,7 @@ function formatInputDateRange(from: string, to: string): string {
   return `${from} to ${to}`;
 }
 
-// Matches Go's mapPhaseToString (snake_case phase labels for the usage table).
+// Snake_case phase labels for the usage table.
 function mapPhaseToString(phase: RunPhase): string {
   switch (phase) {
     case RunPhase.RUN_PENDING:

@@ -79,7 +79,7 @@ const sessionReport = create(GetSessionUsageReportOutputSchema, {
 });
 
 describe("renderSessionUsage", () => {
-  it("emits protojson for json (a deliberate divergence from the Go CLI's encoding/json)", () => {
+  it("emits protojson for json, the shape every other command prints", () => {
     const json = JSON.parse(renderSessionUsage(sessionReport, "json"));
     expect(json).toEqual(toJson(GetSessionUsageReportOutputSchema, sessionReport, { useProtoFieldName: true }));
   });

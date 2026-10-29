@@ -1,26 +1,25 @@
 /**
- * RequestContext — ports backend/libs/go/grpc/request/pipeline/context.go.
+ * RequestContext: the state one request's pipeline steps share.
  *
  * input vs newState: `input` is the original, immutable request; `newState`
  * is an auto-cloned copy the steps mutate. The separation keeps the
  * original request pristine for debugging, logging, and idempotency —
  * steps read from and modify newState, never input.
  *
- * Three mechanics differ from Go, deliberately:
- *   - The resolved ApiResourceKind is a constructor parameter instead of a
- *     hidden context.Context value. Go's steps fish it out of ctx (injected
- *     by the apiresource interceptor); here the controller reads it from
- *     the ConnectRPC contextValues (apiResourceKindKey) once and passes it
- *     explicitly — a missing kind is a compile error, not a zero-value
- *     surprise (the composition-root idiom, guidelines §4).
+ * Three mechanics, deliberately:
+ *   - The resolved ApiResourceKind is a constructor parameter, not a
+ *     hidden context value: the controller reads it from the ConnectRPC
+ *     contextValues (apiResourceKindKey, injected by the apiresource
+ *     interceptor) once and passes it explicitly — a missing kind is a
+ *     compile error, not a zero-value surprise (the composition-root
+ *     idiom, guidelines §4).
  *   - The CallerIdentity is a REQUIRED constructor parameter (the same
  *     idiom): position 1 of every
  *     chain stamps it, the controller reads it once (callerIdentityOf),
  *     and every construction site that forgets it is a compile error.
  *     The Authorize step and the audit-actor derivation read it here.
  *   - metadata values are typed per key via the small helpers below rather
- *     than blind interface{} casts; the KEY STRINGS stay identical to Go's
- *     so the inventory's step notes read straight onto this code.
+ *     than blind casts; the KEY STRINGS are stable names steps share.
  */
 import { clone } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
@@ -30,8 +29,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { CallerIdentity } from "../extensions/identity.js";
 
 /**
- * The lifecycle chains' loaded-resource context key (Go's key string,
- * verbatim). On lifecycle pipelines the request `Desc` is the INPUT
+ * The lifecycle chains' loaded-resource context key. On lifecycle pipelines the request `Desc` is the INPUT
  * message, so `ctx.newState` is the input — the loaded resource rides the
  * metadata map under this key, stamped by each chain's LoadExecutionById
  * step. Hoisted here so the two lifecycle modules and
@@ -48,8 +46,8 @@ export class RequestContext<Desc extends DescMessage> {
   /** The authenticated caller, produced at chain position 1. */
   readonly callerIdentity: CallerIdentity;
   /**
-   * The resource kind of the target service (Go: injected by the
-   * apiresource interceptor; unknown when the service carries no
+   * The resource kind of the target service (injected by the apiresource
+   * interceptor; unknown when the service carries no
    * api_resource_kind option).
    */
   readonly apiResourceKind: ApiResourceKind;
@@ -70,22 +68,22 @@ export class RequestContext<Desc extends DescMessage> {
     this.apiResourceKind = apiResourceKind;
   }
 
-  /** The resource being built/modified (Go NewState()). */
+  /** The resource being built/modified. */
   get newState(): MessageShape<Desc> {
     return this.state;
   }
 
-  /** Replaces the resource being built (Go SetNewState()). */
+  /** Replaces the resource being built. */
   setNewState(state: MessageShape<Desc>): void {
     this.state = state;
   }
 
-  /** Inter-step value by key; undefined when absent (Go Get()). */
+  /** Inter-step value by key; undefined when absent. */
   get(key: string): unknown {
     return this.metadata.get(key);
   }
 
-  /** Stores an inter-step value (Go Set()). */
+  /** Stores an inter-step value. */
   set(key: string, value: unknown): void {
     this.metadata.set(key, value);
   }

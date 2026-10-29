@@ -116,7 +116,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
   beforeEach(() => {
     stored = STORED;
     sessionUpdate = vi.fn().mockResolvedValue(STORED);
-    runSend = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+    runSend = vi.fn().mockResolvedValue({ metadata: { id: "run_1" }, spec: {} });
   });
 
   it("writes the person's pick by a session update, not on the run", async () => {

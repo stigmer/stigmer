@@ -1,15 +1,12 @@
 /**
  * Captures schedule/tick workflow histories for the replay determinism
- * gate — the go-forward discipline the routine's tick itself
- * originated (Go tick_history_capture_test.go): any change to the tick's
- * logic must replay committed histories green, or be gated with patched().
+ * gate — the go-forward discipline: any change to the tick's logic must
+ * replay committed histories green, or be gated with patched().
  * Histories are REGENERATED only when no producing release is still
  * supported.
  *
- * The three scenarios mirror Go's gold masters name-for-name
- * (tick-completed-run, tick-skipped-disabled, tick-start-failed) —
- * captured fresh here because Go histories cannot replay against the TS
- * SDK. Mock data only — safe to commit. Writes proto-JSON to
+ * Three scenarios (tick-completed-run, tick-skipped-disabled,
+ * tick-start-failed). Mock data only — safe to commit. Writes proto-JSON to
  * src/temporal/routine/__tests__/replay-histories/.
  *
  * Usage: npx tsx scripts/capture-routine-replay-histories.ts
@@ -22,6 +19,7 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 
 const TASK_QUEUE = "schedule-replay-capture";
+const CAPTURE_IDENTITY = "replay-capture";
 const WORKFLOWS_PATH = fileURLToPath(
   new URL("../src/temporal/routine/workflows/index.ts", import.meta.url),
 );
@@ -47,8 +45,11 @@ const activities = {
 
 async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
-  const env = await TestWorkflowEnvironment.createLocal();
+  // One fixed identity for the client and the worker, so a committed
+  // history names no machine.
+  const env = await TestWorkflowEnvironment.createLocal({ client: { identity: CAPTURE_IDENTITY } });
   const worker = await Worker.create({
+    identity: CAPTURE_IDENTITY,
     connection: env.nativeConnection,
     taskQueue: TASK_QUEUE,
     workflowsPath: WORKFLOWS_PATH,
@@ -62,7 +63,7 @@ async function main(): Promise<void> {
     // workflowId = artifactId(scheduleId) + "-" + fireTime, so the
     // scenario name rides the SCHEDULE id and the suffix stays a pure
     // timestamp the tier-2 parser accepts.
-    const scheduleId = `sch-replay-${name}`;
+    const scheduleId = `rtn_replay_${name.replaceAll("-", "_")}`;
     const handle = await env.client.workflow.start("schedule/tick", {
       taskQueue: TASK_QUEUE,
       workflowId: `schedule/tick/${scheduleId}-2026-08-25T09:30:00Z`,
@@ -78,23 +79,23 @@ async function main(): Promise<void> {
   }
 
   // 1. The tracked happy path: FIRED → STARTED → poll COMPLETED → the
-  //    success reset (Go tick-completed-run.json).
+  //    success reset.
   tickOutcome = "FIRED";
   runStart = {
     outcome: "STARTED",
-    executionId: "aex-replay",
+    executionId: "run_replay",
     trackingTimeoutMinutes: 60,
     failureReason: "",
   };
   pollResult = "COMPLETED";
   await capture("tick-completed-run");
 
-  // 2. The revalidation decline (Go tick-skipped-disabled.json).
+  // 2. The revalidation decline.
   tickOutcome = "SKIPPED_DISABLED";
   await capture("tick-skipped-disabled");
 
   // 3. The start failure: FIRED → TARGET_MISSING → the single-attempt
-  //    failure record (Go tick-start-failed.json).
+  //    failure record.
   tickOutcome = "FIRED";
   runStart = {
     outcome: "TARGET_MISSING",

@@ -1,3 +1,8 @@
+// Unit tests for the manifest engine (manifest/parse.ts, serialize.ts,
+// document.ts, registry.ts): strict YAML parsing that refuses unknown kinds
+// and fields, org injection and its mismatch warning, serialization back to
+// editable YAML, and the round trip between the two.
+
 import { describe, it, expect } from "vitest";
 import { clone, create, equals } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -6,16 +11,7 @@ import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/ro
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
-import {
-  ENVIRONMENT_DATA_WAY_FORWARD,
-  MCP_SERVER_WAY_FORWARD,
-  SUBAGENTS_WAY_FORWARD,
-  environmentDataWayForward,
-  mcpServerWayForward,
-  parseManifest,
-  retiredShapeWayForward,
-  subagentsWayForward,
-} from "../manifest/parse";
+import { parseManifest } from "../manifest/parse";
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind, type ServiceClientFn } from "../manifest/registry";
@@ -157,13 +153,6 @@ describe("parseManifest", () => {
     expect(parseManifest(naming(GLOBEX_ID), target)[0].warning).toContain(`"${GLOBEX_ID}"`);
     // Known only by its id, the target cannot be compared with a slug.
     expect(parseManifest(naming("globex"), { org: ACME_ID })[0].warning).toBeUndefined();
-
-    // A target made before ids were minted is known by one value (its id is
-    // its slug); given as fully known, a document naming another
-    // organization by id warns too.
-    const legacy = { org: "acme", orgNames: ["acme"] };
-    expect(parseManifest(naming("acme"), legacy)[0].warning).toBeUndefined();
-    expect(parseManifest(naming(GLOBEX_ID), legacy)[0].warning).toContain(`"${GLOBEX_ID}"`);
   });
 
   it("rejects unknown fields loudly (strict schema contract)", () => {
@@ -189,73 +178,6 @@ describe("parseManifest", () => {
     expect(() => parseManifest("kind: Skill\nmetadata:\n  name: x\n")).toThrow(
       /Unsupported resource kind "Skill".*Agent/s,
     );
-  });
-
-  it("refuses a retired McpServer document with the way forward", () => {
-    expect(() =>
-      parseManifest("kind: McpServer\nmetadata:\n  name: github\nspec: {}\n"),
-    ).toThrow(/Unsupported resource kind "McpServer".*`mcp_servers`.*stigmer mcp add <name> <url>/s);
-  });
-
-  it("refuses an agent listing mcp_server_usages with the way forward", () => {
-    const yaml = AGENT_YAML.replace(
-      "spec:",
-      "spec:\n  mcp_server_usages:\n    - mcp_server_ref:\n        slug: github",
-    );
-    expect(() => parseManifest(yaml)).toThrow(
-      /Invalid Agent.*`mcp_servers`.*stigmer mcp add <name> <url>/s,
-    );
-  });
-
-  it("names the way forward only for a retired MCP server document, never for a non-mapping one", () => {
-    expect(mcpServerWayForward({ kind: "McpServer" })).toBe(MCP_SERVER_WAY_FORWARD);
-    expect(mcpServerWayForward({ kind: "Agent", spec: { mcpServerUsages: [] } })).toBe(MCP_SERVER_WAY_FORWARD);
-    expect(mcpServerWayForward({ kind: "Agent", spec: { instructions: "x" } })).toBeUndefined();
-    for (const document of [null, undefined, "kind: McpServer", 42, [{ kind: "McpServer" }]]) {
-      expect(mcpServerWayForward(document)).toBeUndefined();
-    }
-  });
-
-  it("names the subagents way forward for an agent writing subagents inside it, never for any other document", () => {
-    expect(subagentsWayForward({ kind: "Agent", spec: { sub_agents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
-    expect(subagentsWayForward({ kind: "Agent", spec: { subAgents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
-    expect(subagentsWayForward({ kind: "Agent", spec: { subagents: [{ kind: "agent", slug: "helper" }] } })).toBeUndefined();
-    expect(subagentsWayForward({ kind: "Agent" })).toBeUndefined();
-    for (const document of [null, undefined, "spec: {sub_agents: []}", 42, [{ spec: { sub_agents: [] } }]]) {
-      expect(subagentsWayForward(document)).toBeUndefined();
-    }
-  });
-
-  it("names the Environment way forward for an Environment still holding data, never for any other document", () => {
-    expect(environmentDataWayForward({ kind: "Environment", spec: { data: {} } })).toBe(ENVIRONMENT_DATA_WAY_FORWARD);
-    expect(environmentDataWayForward({ kind: "Environment", spec: { packages: { pip: ["pandas"] } } })).toBeUndefined();
-    expect(environmentDataWayForward({ kind: "Environment" })).toBeUndefined();
-    expect(environmentDataWayForward({ kind: "Agent", spec: { data: {} } })).toBeUndefined();
-    for (const document of [null, "kind: Environment", 42, [{ kind: "Environment", spec: { data: {} } }]]) {
-      expect(environmentDataWayForward(document)).toBeUndefined();
-    }
-    expect(retiredShapeWayForward({ kind: "Environment", spec: { data: {} } })).toBe(ENVIRONMENT_DATA_WAY_FORWARD);
-  });
-
-  it("names the way forward for either retired shape, MCP server first", () => {
-    expect(retiredShapeWayForward({ kind: "Agent", spec: { sub_agents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
-    expect(retiredShapeWayForward({ kind: "Agent", spec: { subAgents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
-    expect(retiredShapeWayForward({ kind: "Agent", spec: { mcp_server_usages: [] } })).toBe(MCP_SERVER_WAY_FORWARD);
-    expect(
-      retiredShapeWayForward({ kind: "Agent", spec: { mcp_server_usages: [], sub_agents: [] } }),
-    ).toBe(MCP_SERVER_WAY_FORWARD);
-    expect(retiredShapeWayForward({ kind: "Agent", spec: { instructions: "x" } })).toBeUndefined();
-    for (const document of [null, "kind: Agent", 42, []]) {
-      expect(retiredShapeWayForward(document)).toBeUndefined();
-    }
-  });
-
-  it("refuses an agent writing sub_agents with the way forward", () => {
-    const yaml = AGENT_YAML.replace(
-      "spec:",
-      "spec:\n  sub_agents:\n    - inline_spec:\n        name: helper",
-    );
-    expect(() => parseManifest(yaml)).toThrow(/Invalid Agent.*A subagent is now a saved agent.*`subagents`/s);
   });
 
   it("rejects empty input with actionable guidance", () => {
@@ -402,7 +324,7 @@ describe("manifestDocumentForResource", () => {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Routine",
     metadata: {
-      id: "sch_01example",
+      id: "rtn_01example",
       name: "daily-fee-reminders",
       slug: "daily-fee-reminders",
       org: "isc",

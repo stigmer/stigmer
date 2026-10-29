@@ -1,6 +1,5 @@
 /**
- * Pins the agent domain against Go's pkg/domain/agent tests — through the
- * REAL stack: a composed server on an ephemeral port, a native gRPC
+ * Pins the agent domain through the REAL stack: a composed server on an ephemeral port, a native gRPC
  * client and the full interceptor chain.
  *
  * The load-bearing pins:

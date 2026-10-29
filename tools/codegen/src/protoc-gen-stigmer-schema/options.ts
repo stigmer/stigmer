@@ -3,13 +3,10 @@
 // The extension DEFINITIONS (buf.validate.field and the stigmer custom
 // options) arrive in the CodeGeneratorRequest as compiled files, so they are
 // resolved from the request's own registry instead of being compiled in.
-// This replaces two mechanisms in the retired Go extractor: the typed
-// protovalidate getters, and — for the custom options — raw unknown-field
-// wire walking. Reading through the registry is output-identical and
-// strictly less fragile.
+// Reading through the registry needs neither typed protovalidate getters
+// nor, for the custom options, raw unknown-field wire walking.
 //
-// Quirks preserved deliberately, so the schemas stay byte-identical to the
-// retired extractor's output:
+// Quirks kept deliberately, so the committed schemas stay byte-identical:
 //   - numeric rules use `!= 0` value guards, so a genuine `gte: 0` is
 //     dropped, while string/bytes rules use presence checks, so a
 //     `min_len: 0` is kept;
@@ -26,7 +23,7 @@ import type { Message } from "@bufbuild/protobuf";
 const BUF_VALIDATE_FIELD = 1159;
 const REFERENCE_KIND = 90204;
 
-/** Validation rules in the exact shape the Go extractor captured. */
+/** Validation rules in the exact shape the committed schemas hold. */
 export interface ValidationRules {
   required: boolean;
   minLength: number;

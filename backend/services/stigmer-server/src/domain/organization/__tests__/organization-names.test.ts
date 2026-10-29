@@ -3,7 +3,8 @@
  * server in the trusted-local posture:
  *
  *   - a create mints an `org_` id, its slug resolves to it, and an
- *     organization naming an organization of its own is refused;
+ *     organization naming an organization of its own is refused, while one
+ *     naming itself as its org, by slug or by id, is cleared;
  *   - of two concurrent creates of one slug exactly one succeeds;
  *   - a create racing another create's young claim is a duplicate, while a
  *     claim older than a minute whose organization never landed is freed;
@@ -82,7 +83,6 @@ import {
   RENAMED_SLUG_HOLD_MS,
   nameHolderIsGone,
   newClaimOrganizationSlugStep,
-  organizationIdReservedMessage,
   settleOrganizationSlug,
   newRetireOrganizationSlugStep,
   organizationNameKey,
@@ -249,39 +249,26 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(await resolve("nested")).toBeUndefined();
   });
 
-  it("an organization naming itself, as earlier releases stored it, is cleared rather than refused", async () => {
-    // A create from a client of that time sends its own slug as its org.
+  it("an organization naming itself as its org is cleared rather than refused", async () => {
+    // A create that sends its own slug as its org.
     const made = await organizations.create({
       ...organizationInput("selfnamed"),
       metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },
     });
     expect(made.metadata?.org).toBe("");
 
-    // An organization an earlier release made stores its slug, its id, as
-    // its org; applying its own `get -o yaml` back succeeds, and the row
-    // keeps what it holds.
-    await server.store.saveResource(
-      ApiResourceKind.organization,
-      "olden",
-      OrganizationSchema,
-      create(OrganizationSchema, {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { id: "olden", slug: "olden", name: "Olden", org: "olden" },
-      }),
-    );
-    await server.store.resourceNames.claim(organizationNameKey("olden"), "olden", new Date().toISOString());
-    const applied = await organizations.apply({
-      ...organizationInput("olden"),
-      metadata: { id: "olden", name: "Olden", slug: "olden", org: "olden" },
-      spec: { description: "applied back from its own manifest" },
+    // An apply naming the organization by its id, with that id as its org.
+    const byId = await organizations.apply({
+      ...organizationInput("selfnamed"),
+      metadata: { id: made.metadata?.id ?? "", name: "selfnamed", slug: "selfnamed", org: made.metadata?.id ?? "" },
+      spec: { description: "applied by id" },
     });
-    expect(applied.metadata?.id).toBe("olden");
-    expect(applied.spec?.description).toBe("applied back from its own manifest");
+    expect(byId.metadata?.org).toBe("");
+    expect(byId.spec?.description).toBe("applied by id");
 
     // An apply naming a minted organization by slug alone, with its own slug
-    // as its org (as earlier CLIs injected it): the edge turns that org into
-    // the id, which is the id the slug resolves to.
+    // as its org: the edge turns that org into the id, which is the id the
+    // slug resolves to.
     const reapplied = await organizations.apply({
       ...organizationInput("selfnamed"),
       metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },
@@ -322,26 +309,6 @@ describe("organization names (composed server, trusted-local posture)", () => {
     const stored = await server.store.getResource(ApiResourceKind.organization, id, OrganizationSchema);
     expect(stored.metadata?.slug).toBe("settle-b");
     expect(stored.spec?.description).toBe("an update between the move and the row write");
-  });
-
-  it("deleting an organization from an earlier release keeps its slug, its id, reserved", async () => {
-    await server.store.saveResource(
-      ApiResourceKind.organization,
-      "veteran",
-      OrganizationSchema,
-      create(OrganizationSchema, {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { id: "veteran", slug: "veteran", name: "Veteran" },
-      }),
-    );
-    await server.store.resourceNames.claim(organizationNameKey("veteran"), "veteran", new Date().toISOString());
-    await organizations.delete({ value: "veteran" });
-
-    const refused = await grpcError(() => organizations.create(organizationInput("veteran")));
-    expect(refused.code).toBe(Code.AlreadyExists);
-    expect(reasonOf(refused)).toBe(ORGANIZATION_SLUG_RESERVED);
-    expect(refused.rawMessage).toBe(organizationIdReservedMessage("veteran"));
   });
 
   it("of two concurrent creates of one slug, exactly one succeeds and the other is a duplicate", async () => {
@@ -455,51 +422,6 @@ describe("organization names (composed server, trusted-local posture)", () => {
     );
     expect(taken.code).toBe(Code.AlreadyExists);
     expect(reasonOf(taken)).toBe(ORGANIZATION_SLUG_RESERVED);
-  });
-
-  it("an organization from an earlier release keeps its old slug, its id, for good after a rename; a minted one's lapses", async () => {
-    // An earlier release filed the organization under its slug: id == slug,
-    // and the migration recorded that slug as its current name.
-    const seededAt = new Date().toISOString();
-    await server.store.saveResource(
-      ApiResourceKind.organization,
-      "wayne",
-      OrganizationSchema,
-      create(OrganizationSchema, {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { id: "wayne", slug: "wayne", name: "Wayne" },
-      }),
-    );
-    expect(
-      (await server.store.resourceNames.claim(organizationNameKey("wayne"), "wayne", seededAt)).claimed,
-    ).toBe(true);
-    const minted = await organizations.create(organizationInput("stark"));
-
-    await organizations.rename(create(RenameInputSchema, { resourceId: "wayne", slug: "wayne-corp" }));
-    await organizations.rename(create(RenameInputSchema, { resourceId: "stark", slug: "stark-industries" }));
-
-    const kept = await resolve("wayne");
-    expect(kept).toMatchObject({ id: "wayne", state: "previous", expiresAt: "" });
-
-    // Past the hold, the old slug still names the earlier release's
-    // organization, so every row filed under it keeps resolving, and nobody
-    // else can take it; the minted organization's old slug is free.
-    const pastTheHold = new Date(Date.now() + RENAMED_SLUG_HOLD_MS + 86_400_000).toISOString();
-    expect(
-      (await server.store.resourceNames.resolve(organizationNameKey("wayne"), pastTheHold))?.id,
-    ).toBe("wayne");
-    const contested = await server.store.resourceNames.claim(
-      organizationNameKey("wayne"),
-      "org_01jzzzzzzzzzzzzzzzzzzzzzzz",
-      pastTheHold,
-    );
-    expect(contested.claimed).toBe(false);
-    expect(contested.entry.id).toBe("wayne");
-    expect(
-      await server.store.resourceNames.resolve(organizationNameKey("stark"), pastTheHold),
-    ).toBeUndefined();
-    expect(minted.metadata?.id).toMatch(MINTED_ID);
   });
 
   it("a rename takes back its own old slug, is refused another's slug, and changes nothing for its own", async () => {
@@ -958,13 +880,6 @@ describe("nameHolderIsGone", () => {
     expect(
       await nameHolderIsGone(rowStore(async () => create(OrganizationSchema)), old, now),
     ).toBe(false);
-  });
-
-  it("never counts a name equal to its id gone: an earlier release filed an organization under it", async () => {
-    const store = rowStore(rowMissing);
-    const reserved: ResourceNameEntry = { ...old, name: "veteran", id: "veteran", state: "previous" };
-    expect(await nameHolderIsGone(store, reserved, now)).toBe(false);
-    expect(store.getResource).not.toHaveBeenCalled();
   });
 
   it("rejects with a store fault rather than guessing, so a name is never freed on a failed read", async () => {

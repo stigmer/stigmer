@@ -8,19 +8,6 @@ import {
 } from "../vault/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
-// Backward-compatible type aliases
-// ---------------------------------------------------------------------------
-
-/**
- * Describes a single environment variable that the form should collect.
- *
- * @deprecated Use {@link EnvVarFormVariable} from `@stigmer/react-sdk` instead.
- *   This alias is kept for backward compatibility and will be removed in
- *   a future major version.
- */
-export type AgentEnvFormVariable = EnvVarFormVariable;
-
-// ---------------------------------------------------------------------------
 // Props (unchanged public shape)
 // ---------------------------------------------------------------------------
 
@@ -32,7 +19,7 @@ export interface AgentEnvFormProps {
    * Variables to collect. Each entry renders one input field, in order.
    * Must contain at least one variable.
    */
-  readonly variables: AgentEnvFormVariable[];
+  readonly variables: EnvVarFormVariable[];
   /** Called with the collected values (for My vault) when the user submits the form. */
   readonly onSubmit: (values: Record<string, EnvVarInput>) => void;
   /** Called when the user clicks the back/cancel button. */

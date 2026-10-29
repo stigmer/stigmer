@@ -28,7 +28,7 @@ afterEach(() => {
 
 function localConfig(context?: Config["context"]): Config {
   return {
-    backend: { type: "local" },
+    backend: {},
     backends: {},
     current_backend: "local",
     context,
@@ -40,7 +40,7 @@ function cloudConfig(
   context?: Config["context"],
 ): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       cloud: { type: "cloud", endpoint: "cloud.example:443", ...overrides },
     },
@@ -51,7 +51,7 @@ function cloudConfig(
 
 function selfhostConfig(overrides: Partial<NamedBackendConfig> = {}): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       staging: {
         type: "selfhost",
@@ -137,7 +137,7 @@ describe("resolveOrganization", () => {
 
   it("uses context organization when no flag/env is set", () => {
     const config = cloudConfig(
-      { org_id: "legacy" },
+      { org_id: "entry-org" },
       { org: "ctx-org" },
     );
     expect(resolveOrganization(config)).toBe("ctx-org");
@@ -145,8 +145,8 @@ describe("resolveOrganization", () => {
   });
 
   it("falls back to the entry's org_id", () => {
-    expect(resolveContextOrganization(cloudConfig({ org_id: "legacy" }))).toBe(
-      "legacy",
+    expect(resolveContextOrganization(cloudConfig({ org_id: "entry-org" }))).toBe(
+      "entry-org",
     );
   });
 

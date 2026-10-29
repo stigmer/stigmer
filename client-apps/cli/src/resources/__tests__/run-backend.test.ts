@@ -8,12 +8,12 @@
 // session), answering a waiting run's tool calls, the trace from the run's
 // folded events, and the logs listed and followed from the session's log.
 //
-// The log holds four runs of session ses_1: aex_1 finished (a message, a
-// Bash call), aex_live still working (more of its events, and its end, come
-// only on the stream), aex_wait waiting on one tool call, aex_two waiting on
-// two, aex_long holding one long message, aex_chat a message and no tool
-// call; aex_empty has no events,
-// aex_orphan names no session.
+// The log holds four runs of session ses_1: run_1 finished (a message, a
+// Bash call), run_live still working (more of its events, and its end, come
+// only on the stream), run_wait waiting on one tool call, run_two waiting on
+// two, run_long holding one long message, run_chat a message and no tool
+// call; run_empty has no events,
+// run_orphan names no session.
 
 import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -58,45 +58,45 @@ beforeEach(() => {
   grants = [];
 });
 
-const thread = "aex_1.t1";
+const thread = "run_1.t1";
 
 // What the log keeps (listEvents) and what arrives only on the stream.
 const STORED: SessionEvent[] = [
-  user("aex_1", "do it"),
-  phase("aex_1", "running"),
-  use("aex_1", "c1", "Bash", { input: { command: "make" } }),
-  result("aex_1", "c1", "ok"),
-  use("aex_1", "c2", "fetch"),
-  use("aex_1", "t1", "task"),
-  threadRunning("aex_1", thread, "researcher"),
-  use("aex_1", "s1", "read", { threadId: thread }),
-  result("aex_1", "s1", "no such file", true, thread),
-  result("aex_1", "t1", "found nothing"),
-  said("aex_1", 0, "done"),
-  phase("aex_1", "completed"),
-  user("aex_live", "keep going"),
-  phase("aex_live", "running"),
-  user("aex_wait", "clean up"),
-  use("aex_wait", "c1", "delete", { permission: "ask" }),
-  asked("aex_wait", "c1"),
-  user("aex_two", "clean more"),
-  use("aex_two", "c1", "delete", { permission: "ask" }),
-  use("aex_two", "c2", "shell", { permission: "ask" }),
-  idle("requires_action", ["aex_two.c1", "aex_two.c2"]),
+  user("run_1", "do it"),
+  phase("run_1", "running"),
+  use("run_1", "c1", "Bash", { input: { command: "make" } }),
+  result("run_1", "c1", "ok"),
+  use("run_1", "c2", "fetch"),
+  use("run_1", "t1", "task"),
+  threadRunning("run_1", thread, "researcher"),
+  use("run_1", "s1", "read", { threadId: thread }),
+  result("run_1", "s1", "no such file", true, thread),
+  result("run_1", "t1", "found nothing"),
+  said("run_1", 0, "done"),
+  phase("run_1", "completed"),
+  user("run_live", "keep going"),
+  phase("run_live", "running"),
+  user("run_wait", "clean up"),
+  use("run_wait", "c1", "delete", { permission: "ask" }),
+  asked("run_wait", "c1"),
+  user("run_two", "clean more"),
+  use("run_two", "c1", "delete", { permission: "ask" }),
+  use("run_two", "c2", "shell", { permission: "ask" }),
+  idle("requires_action", ["run_two.c1", "run_two.c2"]),
 ];
-STORED.push(user("aex_long", "x".repeat(300)), user("aex_chat", "hi"), said("aex_chat", 0, "hello"));
-const LIVE: SessionEvent[] = [said("aex_live", 0, "final answer"), phase("aex_live", "completed")];
+STORED.push(user("run_long", "x".repeat(300)), user("run_chat", "hi"), said("run_chat", 0, "hello"));
+const LIVE: SessionEvent[] = [said("run_live", 0, "final answer"), phase("run_live", "completed")];
 
 function runOf(id: string, phaseOf: RunPhase, session = "ses_1"): Run {
   return create(RunSchema, {
-    metadata: { id, name: id === "aex_1" ? "Reviewer" : "" },
+    metadata: { id, name: id === "run_1" ? "Reviewer" : "" },
     spec: session === "" ? {} : { target: { case: "sessionId", value: session } },
     status: { phase: phaseOf, startedAt: "2026-06-12T10:00:00Z", completedAt: "2026-06-12T10:00:20Z" },
   });
 }
 
 function controlResult(phaseOf: RunPhase) {
-  return create(RunSchema, { metadata: { id: "aex_1" }, status: { phase: phaseOf } });
+  return create(RunSchema, { metadata: { id: "run_1" }, status: { phase: phaseOf } });
 }
 
 beforeAll(async () => {
@@ -104,12 +104,12 @@ beforeAll(async () => {
     router.service(RunQueryController, {
       get: (req) => {
         switch (req.value) {
-          case "aex_1":
-            return runOf("aex_1", RunPhase.RUN_COMPLETED);
-          case "aex_live":
-            return runOf("aex_live", interrupts.length > 0 ? RunPhase.RUN_CANCELLED : RunPhase.RUN_IN_PROGRESS);
-          case "aex_orphan":
-            return runOf("aex_orphan", RunPhase.RUN_IN_PROGRESS, "");
+          case "run_1":
+            return runOf("run_1", RunPhase.RUN_COMPLETED);
+          case "run_live":
+            return runOf("run_live", interrupts.length > 0 ? RunPhase.RUN_CANCELLED : RunPhase.RUN_IN_PROGRESS);
+          case "run_orphan":
+            return runOf("run_orphan", RunPhase.RUN_IN_PROGRESS, "");
           default:
             return runOf(req.value, RunPhase.RUN_WAITING_FOR_APPROVAL);
         }
@@ -132,7 +132,7 @@ beforeAll(async () => {
       },
     });
     router.service(SessionCommandController, {
-      interrupt: (req) => (interrupts.push(req.sessionId), { stoppedRunIds: ["aex_live", "aex_wait"] }),
+      interrupt: (req) => (interrupts.push(req.sessionId), { stoppedRunIds: ["run_live", "run_wait"] }),
       confirmToolUse: (req) => (confirms.push(req), {}),
       grantPermission: (req) => (grants.push(req), {}),
     });
@@ -155,85 +155,78 @@ afterAll(async () => {
 
 describe("lifecycle control", () => {
   it("cancels a run by interrupting its session, reporting the phase and every turn stopped", async () => {
-    const outcome = await cancelRun(client, "aex_live");
-    expect(outcome).toEqual({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: ["aex_live", "aex_wait"] });
+    const outcome = await cancelRun(client, "run_live");
+    expect(outcome).toEqual({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: ["run_live", "run_wait"] });
     expect(interrupts).toEqual(["ses_1"]);
   });
 
   it("leaves a run that already ended as it is", async () => {
-    const outcome = await cancelRun(client, "aex_1");
+    const outcome = await cancelRun(client, "run_1");
     expect(outcome).toEqual({ phase: "completed", wasAlreadyTerminal: true, stoppedRunIds: [] });
     expect(interrupts).toEqual([]);
   });
 
   it("refuses to cancel a run that names no session", async () => {
-    await expect(cancelRun(client, "aex_orphan")).rejects.toThrow("run aex_orphan names no session");
+    await expect(cancelRun(client, "run_orphan")).rejects.toThrow("run run_orphan names no session");
     expect(interrupts).toEqual([]);
   });
 
   it("terminates / pauses a run, carrying the reason", async () => {
-    expect(await terminateRun(client, "aex_1", "stuck")).toEqual({ phase: "terminated" });
-    expect(await pauseRun(client, "aex_1", "maintenance")).toEqual({ phase: "paused" });
+    expect(await terminateRun(client, "run_1", "stuck")).toEqual({ phase: "terminated" });
+    expect(await pauseRun(client, "run_1", "maintenance")).toEqual({ phase: "paused" });
     expect(agentControl).toEqual([
-      { verb: "terminate", id: "aex_1", reason: "stuck" },
-      { verb: "pause", id: "aex_1", reason: "maintenance" },
+      { verb: "terminate", id: "run_1", reason: "stuck" },
+      { verb: "pause", id: "run_1", reason: "maintenance" },
     ]);
   });
 
   it("resumes a run", async () => {
-    expect(await resumeRun(client, "aex_1")).toEqual({ phase: "running" });
-    expect(agentControl).toEqual([{ verb: "resume", id: "aex_1", reason: "" }]);
+    expect(await resumeRun(client, "run_1")).toEqual({ phase: "running" });
+    expect(agentControl).toEqual([{ verb: "resume", id: "run_1", reason: "" }]);
   });
 });
 
 describe("answering a waiting run", () => {
   const answer = (overrides: Partial<Parameters<typeof approveAgentToolCall>[1]>) =>
-    approveAgentToolCall(client, { runId: "aex_wait", toolCallId: "", action: "allow", comment: "", ...overrides });
+    approveAgentToolCall(client, { runId: "run_wait", toolCallId: "", action: "allow", comment: "", ...overrides });
 
   it("allows the one call the run waits on", async () => {
-    expect(await answer({})).toEqual({ toolUseId: "aex_wait.c1", toolName: "delete", answer: "allow" });
+    expect(await answer({})).toEqual({ toolUseId: "run_wait.c1", toolName: "delete", answer: "allow" });
     expect(confirms.map((c) => [c.sessionId, c.toolUseId, c.result, c.denyMessage])).toEqual([
-      ["ses_1", "aex_wait.c1", "allow", ""],
+      ["ses_1", "run_wait.c1", "allow", ""],
     ]);
   });
 
   it("denies with --comment as the reason the agent reads", async () => {
-    expect(await answer({ toolCallId: "aex_wait.c1", action: "deny", comment: "unsafe" })).toMatchObject({ answer: "deny" });
+    expect(await answer({ toolCallId: "run_wait.c1", action: "deny", comment: "unsafe" })).toMatchObject({ answer: "deny" });
     expect(confirms.map((c) => [c.result, c.denyMessage])).toEqual([["deny", "unsafe"]]);
   });
 
-  it("refuses a retired action with the word that replaced it, sending nothing", async () => {
-    await expect(answer({ action: "approve" })).rejects.toThrow('invalid --action "approve": "approve" is now "allow"; must be one of: allow, deny, allow-all');
-    await expect(answer({ action: "reject" })).rejects.toThrow('"reject" is now "deny"');
-    await expect(answer({ action: "approve-all" })).rejects.toThrow('"approve-all" is now "allow-all"');
-    expect([confirms, grants]).toEqual([[], []]);
-  });
-
   it("grants the call's class for the rest of the turn with allow-all", async () => {
-    expect(await answer({ runId: "aex_two", toolCallId: "aex_two.c2", action: "allow-all" })).toEqual({
-      toolUseId: "aex_two.c2",
+    expect(await answer({ runId: "run_two", toolCallId: "run_two.c2", action: "allow-all" })).toEqual({
+      toolUseId: "run_two.c2",
       toolName: "shell",
       answer: "grant",
     });
-    expect(grants.map((g) => [g.sessionId, g.toolUseId])).toEqual([["ses_1", "aex_two.c2"]]);
+    expect(grants.map((g) => [g.sessionId, g.toolUseId])).toEqual([["ses_1", "run_two.c2"]]);
     expect(confirms).toEqual([]);
   });
 
   it("asks which call when the run waits on several", async () => {
-    const refused = answer({ runId: "aex_two" });
+    const refused = answer({ runId: "run_two" });
     await expect(refused).rejects.toBeInstanceOf(UsageError);
-    await expect(refused).rejects.toThrow("run aex_two waits on 2 tool calls; name one with --tool-call:\n  aex_two.c1  delete\n  aex_two.c2  shell");
+    await expect(refused).rejects.toThrow("run run_two waits on 2 tool calls; name one with --tool-call:\n  run_two.c1  delete\n  run_two.c2  shell");
   });
 
   it("refuses a call the run does not wait on, listing the ones it does", async () => {
-    await expect(answer({ toolCallId: "aex_wait.c9" })).rejects.toThrow(
-      "tool call aex_wait.c9 does not wait for an answer in run aex_wait; waiting:\n  aex_wait.c1  delete",
+    await expect(answer({ toolCallId: "run_wait.c9" })).rejects.toThrow(
+      "tool call run_wait.c9 does not wait for an answer in run run_wait; waiting:\n  run_wait.c1  delete",
     );
   });
 
   it("refuses a run that waits on nothing", async () => {
-    await expect(answer({ runId: "aex_1" })).rejects.toThrow("run aex_1 has no tool call waiting for an answer");
-    await expect(answer({ runId: "aex_empty" })).rejects.toThrow("run aex_empty has no tool call waiting for an answer");
+    await expect(answer({ runId: "run_1" })).rejects.toThrow("run run_1 has no tool call waiting for an answer");
+    await expect(answer({ runId: "run_empty" })).rejects.toThrow("run run_empty has no tool call waiting for an answer");
   });
 
   it("refuses a comment on an allow and an unknown action, sending nothing", async () => {
@@ -252,7 +245,7 @@ describe("trace", () => {
 
   it("renders the run's tool uses with their state, a subagent's indented", async () => {
     const cap = capture();
-    await traceRun(client, "aex_1", "table", cap.streams);
+    await traceRun(client, "run_1", "table", cap.streams);
     expect(cap.text()).toContain("Agent: Reviewer (completed, 20s)");
     expect(cap.text()).toContain("  [completed] Bash                       ok\n");
     expect(cap.text()).toContain("  [stopped] fetch                      \n");
@@ -262,25 +255,25 @@ describe("trace", () => {
 
   it("counts the messages of a run that made no tool call", async () => {
     const cap = capture();
-    await traceRun(client, "aex_chat", "table", cap.streams);
+    await traceRun(client, "run_chat", "table", cap.streams);
     expect(cap.text()).toContain("  1 message(s), no tool calls");
   });
 
   it("shows a call that waits for an answer", async () => {
     const cap = capture();
-    await traceRun(client, "aex_wait", "table", cap.streams);
+    await traceRun(client, "run_wait", "table", cap.streams);
     expect(cap.text()).toContain("  [waiting] delete");
   });
 
   it("says so when a run has no events", async () => {
     const cap = capture();
-    await traceRun(client, "aex_empty", "table", cap.streams);
+    await traceRun(client, "run_empty", "table", cap.streams);
     expect(cap.text()).toContain("  (no events recorded)");
   });
 
   it("lists the run's events as Managed Agents JSON, and as yaml", async () => {
     const json = capture();
-    await traceRun(client, "aex_1", "json", json.streams);
+    await traceRun(client, "run_1", "json", json.streams);
     const parsed = JSON.parse(json.text());
     expect(parsed.map((event: { type: string }) => event.type)).toEqual([
       "user.message",
@@ -298,7 +291,7 @@ describe("trace", () => {
     ]);
 
     const yaml = capture();
-    await traceRun(client, "aex_1", "yaml", yaml.streams);
+    await traceRun(client, "run_1", "yaml", yaml.streams);
     expect(yaml.text()).toContain("type: user.message");
     expect(yaml.text()).toContain("text: do it");
   });
@@ -313,17 +306,17 @@ describe("logs", () => {
 
   it("says so when a run has recorded no events", async () => {
     const cap = capture();
-    await streamRunLogs(client, { runId: "aex_empty", follow: false }, never, cap.streams);
+    await streamRunLogs(client, { runId: "run_empty", follow: false }, never, cap.streams);
     expect(cap.lines).toEqual(["No events recorded for this run.\n"]);
   });
 
   it("prints one line per stored event of the run", async () => {
     const cap = capture();
-    await streamRunLogs(client, { runId: "aex_1", follow: false }, never, cap.streams);
+    await streamRunLogs(client, { runId: "run_1", follow: false }, never, cap.streams);
     expect(cap.lines[0]).toBe("[user.message] do it\n");
     expect(cap.lines[1]).toBe('[stigmer.run.status] {"phase":"running"}\n');
     expect(cap.lines).toContain('[agent.tool_use] {"input":{"command":"make"},"name":"Bash"}\n');
-    expect(cap.lines).toContain('[session.thread_status_running] {"agent_name":"researcher","session_thread_id":"aex_1.t1"}\n');
+    expect(cap.lines).toContain('[session.thread_status_running] {"agent_name":"researcher","session_thread_id":"run_1.t1"}\n');
     expect(cap.lines).toContain("[agent.tool_result] ok\n");
     expect(cap.lines).toContain("[agent.message] done\n");
     expect(cap.lines).toHaveLength(12);
@@ -331,20 +324,20 @@ describe("logs", () => {
 
   it("shows the tool use id an ask waits on", async () => {
     const cap = capture();
-    await streamRunLogs(client, { runId: "aex_wait", follow: false }, never, cap.streams);
-    expect(cap.lines.join("")).toContain('"tool_use_id":"aex_wait.c1"');
+    await streamRunLogs(client, { runId: "run_wait", follow: false }, never, cap.streams);
+    expect(cap.lines.join("")).toContain('"tool_use_id":"run_wait.c1"');
   });
 
   it("ends a follow of a finished run after its listed events", async () => {
     const cap = capture();
-    await streamRunLogs(client, { runId: "aex_1", follow: true }, never, cap.streams);
+    await streamRunLogs(client, { runId: "run_1", follow: true }, never, cap.streams);
     expect(cap.lines.at(-1)).toBe("\n[end] run completed\n");
     expect(cap.lines).toHaveLength(13);
   });
 
   it("follows a live run from its last listed event, printing only its own, until it ends", async () => {
     const cap = capture();
-    await streamRunLogs(client, { runId: "aex_live", follow: true }, never, cap.streams);
+    await streamRunLogs(client, { runId: "run_live", follow: true }, never, cap.streams);
     expect(cap.lines).toEqual([
       "[user.message] keep going\n",
       expect.stringContaining("[stigmer.run.status]"),
@@ -358,13 +351,13 @@ describe("logs", () => {
     const cap = capture();
     const controller = new AbortController();
     controller.abort();
-    await streamRunLogs(client, { runId: "aex_wait", follow: true }, controller.signal, cap.streams);
-    expect(cap.lines.at(-1)).toContain('"tool_use_id":"aex_wait.c1"');
+    await streamRunLogs(client, { runId: "run_wait", follow: true }, controller.signal, cap.streams);
+    expect(cap.lines.at(-1)).toContain('"tool_use_id":"run_wait.c1"');
   });
 
   it("caps a long line at 200 characters", async () => {
     const cap = capture();
-    await streamRunLogs(client, { runId: "aex_long", follow: false }, never, cap.streams);
+    await streamRunLogs(client, { runId: "run_long", follow: false }, never, cap.streams);
     expect(cap.lines).toEqual([`[user.message] ${"x".repeat(197)}...\n`]);
   });
 });

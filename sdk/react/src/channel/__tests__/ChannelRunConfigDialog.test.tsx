@@ -72,7 +72,7 @@ function makeChannel(runConfig?: {
 }) {
   return {
     metadata: {
-      id: "ach_1",
+      id: "chn_1",
       name: "Support Slack",
       slug: "support-slack",
       org: "acme",

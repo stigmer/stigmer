@@ -38,8 +38,8 @@ export function withRunCredential<T>(
 /**
  * The run credential of the activity this request belongs to; `undefined`
  * outside any activity (boot, renewal loops) and inside an activity whose
- * dispatch carried none (an older server; the cloud, whose runner credential
- * is provisioned, not dispatched).
+ * dispatch carried none (the cloud, whose runner credential is provisioned,
+ * not dispatched).
  */
 export function currentRunCredential(): string | undefined {
   return runCredential.getStore();

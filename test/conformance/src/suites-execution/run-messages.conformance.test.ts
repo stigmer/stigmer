@@ -4,10 +4,8 @@
 // Domain: agentic / agentexecution and session — the transcript a console or
 // SDK renders, folded from the session's events (support/turn.ts).
 //
-// These are runner behaviors read through the session's log, and so contract;
-// they replace the Go offline suite's offline_test.go,
-// plain_chat_offline_test.go and the agent half of
-// model_resolution_offline_test.go. The MCP echo round-trip itself is the harness
+// These are runner behaviors read through the session's log, and so contract.
+// The MCP echo round-trip itself is the harness
 // smoke (mcp.harness.test.ts); this file asserts what the transcript
 // says about it and about a tool that fails.
 //
@@ -26,7 +24,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type FixtureTool, type McpToolFixture } from "../harness/mcp-server";
+import { ECHO_TOOL_NAME, FAIL_TOOL_NAME, type FixtureTool, type McpToolFixture, mcpToolName } from "../harness/mcp-server";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { requireRegistryRow } from "../harness/model-registry";
@@ -105,7 +103,7 @@ async function runAgent(opts: {
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-messages"),
+      name: uniqueName("run-messages"),
       agentRef: agentRefOf(agent),
       message: opts.message,
       autoApproveAll: true,
@@ -161,10 +159,11 @@ describe("Run messages — text and thinking turns", () => {
 
 describe("Run messages — MCP tool calls", () => {
   it("a failing MCP tool does not fail the run: the fail tool use and its result are in the log and the run completes", async () => {
-    mock.enqueue(anthropicToolUse("call_fail_1", FAIL_TOOL_NAME, { message: "deliberate" }));
+    const pluginName = uniqueName("messages");
+    mock.enqueue(anthropicToolUse("call_fail_1", mcpToolName(toolServerSegment(pluginName), FAIL_TOOL_NAME), { message: "deliberate" }));
     mock.enqueue(anthropicText("The tool reported an error; moving on."));
 
-    const final = await runAgent({ tools: [ECHO_TOOL_NAME, FAIL_TOOL_NAME] });
+    const final = await runAgent({ tools: [ECHO_TOOL_NAME, FAIL_TOOL_NAME], pluginName });
 
     expectCompleted(final);
     const failCall = toolUsesOf(await turnOfRun(clients, final)).find((use) => use.name === FAIL_TOOL_NAME);
@@ -181,10 +180,10 @@ describe("Run messages — MCP tool calls", () => {
   });
 
   it("a tool use carries its id, name, input, result and MCP server", async () => {
-    mock.enqueue(anthropicToolUse("call_echo_fields", ECHO_TOOL_NAME, { text: "fields" }));
+    const pluginName = uniqueName("fields");
+    mock.enqueue(anthropicToolUse("call_echo_fields", mcpToolName(toolServerSegment(pluginName), ECHO_TOOL_NAME), { text: "fields" }));
     mock.enqueue(anthropicText("Done."));
 
-    const pluginName = uniqueName("fields");
     const final = await runAgent({ tools: [ECHO_TOOL_NAME], pluginName });
 
     expectCompleted(final);

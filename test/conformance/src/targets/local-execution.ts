@@ -1,7 +1,4 @@
 // Local execution target: the OSS server + Temporal + TS runner (Class B).
-// Born as local-ts-execution during the TS rewrite and renamed to plain
-// `local-execution` when the Go server retired — there is one local
-// implementation now.
 // Domain: conformance targets (execution engine).
 //
 // Boot order is load-bearing: Temporal must be up before the server (so the

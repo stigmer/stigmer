@@ -1,6 +1,5 @@
 /**
- * Pins the decode-only codec contract (Go DecryptionCodec parity;
- * stigmer#398): encode is the IDENTITY even when encryption is configured
+ * Pins the decode-only codec contract (stigmer#398): encode is the IDENTITY even when encryption is configured
  * (server histories stay plaintext), decode delegates to the shared codec
  * (runner-encrypted payloads decrypt; unencrypted payloads pass through;
  * tampering fails closed), and the loader is enabled-iff-configured with

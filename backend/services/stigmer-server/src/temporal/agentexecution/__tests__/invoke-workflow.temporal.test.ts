@@ -1,22 +1,20 @@
 /**
- * Invoke-workflow orchestration tests — ports the scenario matrix of
- * pkg/domain/agentexecution/temporal/workflows/invoke_workflow_pause_test.go
- * (TestWorkflowEnvironment with mocked activities and a persisted-status
- * recorder).
+ * Invoke-workflow orchestration tests — the scenario matrix, on a
+ * TestWorkflowEnvironment with mocked activities and a persisted-status
+ * recorder.
  *
  * What these pin (all load-bearing orchestration contracts):
- *   - the happy path (EnsureThread → ExecuteDeepAgent → EC cleanup), and
- *     the same run from an input that still carries the retired
- *     `callback_token` and `parent_workflow_id` keys (an older server's
- *     dispatch): the keys are ignored and it runs as an ordinary run,
- *     its own history recording no signal or cancel to another workflow
- *     and no activity beyond an ordinary run's;
+ *   - the happy path (EnsureThread → ExecuteDeepAgent), and
+ *     the same run from an input carrying keys the input interface does
+ *     not name: the keys are ignored and it runs as an ordinary run, its
+ *     own history recording no signal or cancel to another workflow and
+ *     no activity beyond an ordinary run's;
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input); a new run reads its gate as the count of the
  *     turn's open asks in its session's log (CountOpenGates, with the run
- *     and its session) and never loads the run for it, and a count that
- *     cannot be read waits for the signal;
+ *     and its session), and a count that cannot be read waits for the
+ *     signal;
  *   - the zero-gate fail-fast bound (MAX_ZERO_GATE_CYCLES): file review
  *     never holds a turn, so a gate with no pending approval is empty
  *     whatever its change sets say (stigmer#1471);
@@ -25,7 +23,7 @@
  *     and a failing close never fails the turn; a reconcile turn
  *     (`reconcile_file_review`) closes nothing and titles no session;
  *   - pause/resume (activity cancelled, PAUSED persisted, resume
- *     re-invokes) — Go's CancellationScope pattern;
+ *     re-invokes) — a CancellationScope per attempt;
  *   - bounded auto-recovery on worker-shutdown shapes (#776: IN_PROGRESS
  *     persisted, honest status copy on exhaustion);
  *   - RUN_FAILED propagation with the fallback persist;
@@ -35,12 +33,10 @@
  *     its own (the runner's write states it);
  *   - external cancellation cleanup (CANCELLED persisted quietly —
  *     stigmer#282);
- *   - a new run records the values-fetched patch and never calls the
- *     retired run-end cleanup, on any exit;
  *   - the engine switch: Stigmer and Claude share the deterministic-state
  *     flow (EnsureThread's thread on every invocation), each on its own
- *     Execute* activity; a number no harness owns (the retired 2
- *     among them) fails the run naming it and runs nothing, never as
+ *     Execute* activity; a number no harness owns (2 among them) fails
+ *     the run naming it and runs nothing, never as
  *     Stigmer;
  *   - every end of the workflow (completed, failed by the runner, broken,
  *     cancelled) calls StartQueuedTurn with the run's session as its last
@@ -68,15 +64,10 @@ import type { JsonValue } from "@bufbuild/protobuf";
 import proto from "@temporalio/proto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import {
-  RunSchema,
-  RunStatusSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-
-import { capturedSet } from "../../../domain/run/__tests__/file-review-seed.js";
 
 import {
   ENSURE_THREAD_ACTIVITY_NAME,
@@ -149,20 +140,14 @@ interface ActivityScript {
   executeCredentials: Array<string | undefined>;
   /**
    * The argument each GenerateSessionSubject invocation received, verbatim:
-   * the positional execution id when the dispatch carried no credential,
-   * the typed object when it did (the runner accepts both).
+   * the typed object, carrying the run credential when the dispatch did.
    */
   subjectArguments: unknown[];
-  /** Consumed per LoadAgentExecution call, in order; last one sticks. */
-  loadResults: JsonValue[];
-  /** How many times LoadAgentExecution was called. */
-  loadCalls: number;
   /** Consumed per CountOpenGates call, in order; last one sticks. An Error fails the call. */
   openGateCounts: Array<number | Error>;
   /** Each CountOpenGates call's (execution id, session id), in order. */
   gateCalls: Array<[string, string]>;
   persistedStatuses: RecordedStatus[];
-  deletedExecutionContexts: string[];
   ensureThreadResult: string;
   /**
    * Resolvers for deliberately-blocked invocations; afterEach releases
@@ -199,12 +184,9 @@ function resetScript(): void {
     queuedTurnFault: undefined,
     executeCredentials: [],
     subjectArguments: [],
-    loadResults: [],
-    loadCalls: 0,
     openGateCounts: [],
     gateCalls: [],
     persistedStatuses: [],
-    deletedExecutionContexts: [],
     ensureThreadResult: "thread-1",
     releaseBlocked: [],
   };
@@ -229,25 +211,6 @@ function slimResult(
     ...(error !== undefined ? { error } : {}),
   });
   return toJson(RunStatusSchema, status) as Record<string, unknown>;
-}
-
-/** An execution snapshot with the given status, as the load activity returns it. */
-function executionJson(status: RunStatus): JsonValue {
-  return toJson(
-    RunSchema,
-    create(RunSchema, {
-      metadata: { id: currentExecutionId },
-      status,
-    }),
-  );
-}
-
-/** An empty gate beside a captured change set nobody decided: the set holds nothing. */
-function statusAwaitingReviewOnly(): RunStatus {
-  return create(RunStatusSchema, {
-    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-    fileChanges: [capturedSet(`${currentExecutionId}:0`)],
-  });
 }
 
 function scriptedActivities(): Record<string, (...args: never[]) => Promise<unknown>> {
@@ -312,17 +275,6 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
         throw ApplicationFailure.create({ message: script.queuedTurnFault, nonRetryable: true });
       }
     },
-    LoadAgentExecution: async (): Promise<JsonValue> => {
-      script.loadCalls++;
-      const result =
-        script.loadResults.length > 1
-          ? script.loadResults.shift()!
-          : script.loadResults[0];
-      if (result === undefined) {
-        throw new Error("test script exhausted: unexpected LoadAgentExecution");
-      }
-      return result;
-    },
     CountOpenGates: async (executionId: string, sessionId: string): Promise<number> => {
       script.gateCalls.push([executionId, sessionId]);
       const entry =
@@ -338,11 +290,6 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
       }
       return entry;
     },
-    // The retired run-end cleanup, still registered for histories that
-    // call it; a new run never does.
-    DeleteExecutionContext: async (executionId: string): Promise<void> => {
-      script.deletedExecutionContexts.push(executionId);
-    },
   };
 }
 
@@ -353,8 +300,8 @@ function workflowInput(
 ): InvokeAgentExecutionWorkflowInput {
   return {
     execution_id: currentExecutionId,
-    session_id: "ses-1",
-    agent_id: "agt-1",
+    session_id: "ses_1",
+    agent_id: "agt_1",
     ...overrides,
   };
 }
@@ -398,19 +345,6 @@ async function waitForPersistedPhase(
     `no persisted status reached phase ${RunPhase[phase]} within ${timeoutMs}ms; ` +
       `saw [${script.persistedStatuses.map((entry) => RunPhase[entry.status.phase]).join(", ")}]`,
   );
-}
-
-/**
- * A new run records the values-fetched patch and never calls the retired
- * run-end cleanup (names.ts RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME):
- * nothing is stored for it to delete. Only a replay of a history that
- * called it makes the call again (replay.test.ts).
- */
-function expectRetiredCleanupSkipped(): void {
-  expect(
-    script.deletedExecutionContexts,
-    "a new run never calls the retired cleanup",
-  ).toEqual([]);
 }
 
 describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
@@ -462,7 +396,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     resetScript();
   }, 15_000);
 
-  it("completes the deep-agent happy path, with no run-end cleanup to make", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("completes the deep-agent happy path", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
@@ -471,30 +405,28 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
-    expectRetiredCleanupSkipped();
   }, 30_000);
 
-  it("runs an input still carrying the retired callback_token and parent_workflow_id keys as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("runs an input carrying keys the input interface does not name as an ordinary run", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
 
-    // The shape an older server dispatched for a run a workflow step
-    // started; this interface no longer names either key.
-    const olderServerInput = {
+    // Keys the input interface does not name: the plain-JSON input
+    // decodes them and the workflow acts on none.
+    const inputWithUnknownKeys = {
       ...workflowInput(),
       callback_token: "Y2FsbGJhY2stdG9rZW4=",
-      parent_workflow_id: "wex-parent-1",
+      parent_workflow_id: "parent-1",
     };
-    const handle = await startWorkflow(olderServerInput);
+    const handle = await startWorkflow(inputWithUnknownKeys);
     await handle.result();
 
     expect(script.executeCalls).toEqual([{ thread_id: "thread-1", turn_seq: 0 }]);
-    expectRetiredCleanupSkipped();
 
-    // The run's own history: a reintroduced signal or cancel to the
-    // parent the retired keys named, or an activity that completes the
-    // parent's step by its callback token, would be recorded here.
+    // The run's own history: a signal or cancel to the parent those keys
+    // name, or an activity that completes a step by the callback token,
+    // would be recorded here.
     const history = await handle.fetchHistory();
     const events = history.events ?? [];
     const { EventType } = proto.temporal.api.enums.v1;
@@ -559,11 +491,8 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           entry.status.phase === RunPhase.RUN_WAITING_FOR_APPROVAL,
       ),
     ).toBe(true);
-    // The gate is the turn's open asks in its session's log; the run is
-    // never loaded for it.
-    expect(script.gateCalls).toEqual([[currentExecutionId, "ses-1"]]);
-    expect(script.loadCalls).toBe(0);
-    expectRetiredCleanupSkipped();
+    // The gate is the turn's open asks in its session's log.
+    expect(script.gateCalls).toEqual([[currentExecutionId, "ses_1"]]);
   }, 30_000);
 
   it("waits for the signal when the turn's open gates cannot be counted", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -581,7 +510,6 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.executeCalls).toHaveLength(2);
-    expect(script.loadCalls).toBe(0);
   }, 30_000);
 
   it("fails fast after MAX_ZERO_GATE_CYCLES consecutive empty-gate WAITING cycles", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -606,23 +534,6 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     );
   }, 60_000);
 
-  it("never waits on a change set awaiting review: a gate with no pending approval is empty (stigmer#1471)", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = Array.from({ length: 8 }, () => async () =>
-      slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
-    );
-    // The run holds a set awaiting review; the gate counts the log's open
-    // asks alone, and none is open.
-    script.loadResults = [executionJson(statusAwaitingReviewOnly())];
-    script.openGateCounts = [0];
-
-    const handle = await startWorkflow(workflowInput());
-    // No signal is ever sent: a review-held gate would wait forever here.
-    await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
-
-    expect(script.executeCalls).toHaveLength(4);
-    expect(script.loadCalls).toBe(0);
-  }, 60_000);
-
   it("closes the previous turn's file review first, with the run and its session, before the runner", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
@@ -631,9 +542,9 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startWorkflow(workflowInput());
     await handle.result();
 
-    expect(script.closeCalls).toEqual([[currentExecutionId, "ses-1"]]);
+    expect(script.closeCalls).toEqual([[currentExecutionId, "ses_1"]]);
     expect(script.order).toEqual(["close", "execute", "queued"]);
-    expect(script.subjectArguments).toEqual([currentExecutionId]);
+    expect(script.subjectArguments).toEqual([{ execution_id: currentExecutionId }]);
   }, 30_000);
 
   it("runs the turn when the close fails: the close only records what the window already says", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -785,7 +696,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
 
   // NOTE: full recovery EXHAUSTION (11 interrupted invocations, ~275s of
   // real linear backoff) is not exercised here — createLocal does not
-  // auto-skip timers the way Go's test env does. The classifier and the
+  // auto-skip timers. The classifier and the
   // honest-copy mapping it feeds are pinned by runner-failure.test.ts, the
   // per-hour count by recovery-window.test.ts; the recovery loop mechanics
   // are pinned by the single-cycle tests above.
@@ -809,7 +720,6 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       failed.map((entry) => entry.status.stopCause),
       "a runner-reported failure adds no cause of the workflow's",
     ).toEqual(failed.map(() => ""));
-    expectRetiredCleanupSkipped();
   }, 30_000);
 
   it("names a flow that broke without a runner verdict failed, with its wrapped error", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -834,10 +744,9 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // The error carries the wrapped activity error (wrapActivityError's
     // operator-actionable prefix), not a runner-authored sentence.
     expect(last.error).toMatch(/^activity 'ExecuteDeepAgent'/);
-    expectRetiredCleanupSkipped();
   }, 30_000);
 
-  it("cancellation persists CANCELLED quietly, with no run-end cleanup to make (stigmer#282)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("cancellation persists CANCELLED quietly (stigmer#282)", async (testCtx) => {    if (!envReady) return testCtx.skip();
     const started = new Promise<void>((resolve) => {
       script.executeBehaviors = [
         (): Promise<Record<string, unknown>> => {
@@ -861,19 +770,18 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     // person's.
     expect(cancelled.status.error).toBe("");
     expect(cancelled.status.stopCause).toBe("user");
-    expectRetiredCleanupSkipped();
   }, 60_000);
 
   it("starts the session's queued turn as the workflow's last act, on every end", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
     await (await startWorkflow(workflowInput())).result();
-    expect(script.queuedTurnCalls, "completed").toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls, "completed").toEqual(["ses_1"]);
     expect(script.order.at(-1)).toBe("queued");
 
     resetScript();
     script.executeBehaviors = [async () => slimResult(RunPhase.RUN_FAILED, "agent blew up")];
     await expect((await startWorkflow(workflowInput())).result()).rejects.toThrow(/Workflow execution failed/);
-    expect(script.queuedTurnCalls, "failed by the runner").toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls, "failed by the runner").toEqual(["ses_1"]);
 
     resetScript();
     const started = new Promise<void>((resolve) => {
@@ -888,7 +796,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await started;
     await cancelled.cancel();
     await expect(cancelled.result()).rejects.toThrow();
-    expect(script.queuedTurnCalls, "cancelled").toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls, "cancelled").toEqual(["ses_1"]);
   }, 60_000);
 
   it("starts no queued turn for a run in no session, and a failing start changes nothing about the end", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -900,7 +808,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     script.queuedTurnFault = "the server is restarting";
     script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
     await expect((await startWorkflow(workflowInput())).result()).resolves.toBeUndefined();
-    expect(script.queuedTurnCalls).toEqual(["ses-1"]);
+    expect(script.queuedTurnCalls).toEqual(["ses_1"]);
   }, 60_000);
 
   for (const [engine, activity] of [
@@ -929,7 +837,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     }, 30_000);
   }
 
-  // 2 is the retired Cursor number the wire reserves; 7 was never assigned.
+  // Neither 2 nor 7 names a harness.
   for (const unowned of [2, 7]) {
     it(`harness number ${unowned}, which no harness owns, fails the run naming it and never runs as Stigmer`, async (testCtx) => {    if (!envReady) return testCtx.skip();
       script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
@@ -1012,7 +920,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     ]);
   }, 30_000);
 
-  it("calls GenerateSessionSubject with the positional execution id when the dispatch carried no credential — the shape every earlier runner accepts", async (testCtx) => {    if (!envReady) return testCtx.skip();
+  it("calls GenerateSessionSubject with the typed object and no credential when the dispatch carried none", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
@@ -1020,6 +928,6 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startWorkflow(workflowInput());
     await handle.result();
 
-    expect(script.subjectArguments).toEqual([currentExecutionId]);
+    expect(script.subjectArguments).toEqual([{ execution_id: currentExecutionId }]);
   }, 30_000);
 });

@@ -53,7 +53,7 @@ export type ServerHome =
       readonly kind: "agent";
       readonly agentId: string;
       readonly agentName: string;
-      /** The agent's version hash the run planned; empty reads the agent as it is now. */
+      /** The agent's version hash the run planned. */
       readonly agentVersion: string;
     };
 

@@ -1,9 +1,8 @@
 # store/ — the persistence layer
 
-Ports `backend/libs/go/store`: `interface.ts` is the
-driver-agnostic contract (surface-for-surface with Go's `store.Store`, plus the
-consolidated members Go kept behind the `DB()` escape hatch — bootstrap state,
-MCP OAuth). Two drivers implement it:
+`interface.ts` is the driver-agnostic contract (resources, audit, and the
+grouped sub-stores such as bootstrap state and MCP OAuth pending states). Two
+drivers implement it:
 
 - `sqlite/` — the laptop-tier default (`node:sqlite`, zero-config, one file)
   with its schema chain (`sqlite/migrations.ts`).

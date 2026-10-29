@@ -4,12 +4,12 @@
  * entitlement limit is no limit and zero is refused; an absent clone depth
  * is a shallow clone and 0 the full history).
  *
- * The Python and Java inputs used to store such a field as a plain value
- * defaulting to zero and always send it, so a limit the caller never set
- * arrived as zero and was refused. Go's nested literal form skipped the
- * fields altogether, so a Go caller's plan limits and prices never reached
- * the wire, and its spec-level form assigned the plain value to the
- * pointer field, which does not compile. A Go input's field holds a plain
+ * A Python or Java input that stores such a field as a plain value
+ * defaulting to zero and always sends it sends a limit the caller never set
+ * as zero, to be refused. A Go nested literal form that skips the fields
+ * keeps a Go caller's plan limits and prices off the wire, and a
+ * spec-level form that assigns the plain value to the pointer field does
+ * not compile. A Go input's field holds a plain
  * value, so its zero is unset, never sent: its doc comment says so, and the
  * reference docs' Go example notes it, where a TypeScript, Python or Java
  * zero is sent. These tests run each generator over a copy of the real schemas,

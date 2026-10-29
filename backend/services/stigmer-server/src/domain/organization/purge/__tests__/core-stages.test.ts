@@ -132,7 +132,7 @@ const noSandboxes: SandboxLane = { enabled: false };
 
 describe("the quiesce stage", () => {
   it("passes with no engine when nothing may still be running, and ends a call while routines are left", async () => {
-    await saveExecution("aex_done", ORG, RunPhase.RUN_COMPLETED);
+    await saveExecution("run_done", ORG, RunPhase.RUN_COMPLETED);
     const calls: string[] = [];
     const stage = newQuiesceStage({
       store,
@@ -147,9 +147,9 @@ describe("the quiesce stage", () => {
   });
 
   it("terminates a run that may still be live, tolerates one the engine no longer holds, and faults with the engine unreachable", async () => {
-    await saveExecution("aex_live", ORG, RunPhase.RUN_IN_PROGRESS);
-    await saveExecution("aex_gone", ORG, RunPhase.RUN_PENDING);
-    await saveExecution("aex_other", OTHER, RunPhase.RUN_IN_PROGRESS);
+    await saveExecution("run_live", ORG, RunPhase.RUN_IN_PROGRESS);
+    await saveExecution("run_gone", ORG, RunPhase.RUN_PENDING);
+    await saveExecution("run_other", OTHER, RunPhase.RUN_IN_PROGRESS);
     const terminated: string[] = [];
     const deps = {
       store,
@@ -159,9 +159,9 @@ describe("the quiesce stage", () => {
     };
     await newQuiesceStage({
       ...deps,
-      agentEngine: recordingEngine(terminated, new Set(["aex_gone"])),
+      agentEngine: recordingEngine(terminated, new Set(["run_gone"])),
     }).run(context);
-    expect(terminated).toEqual(["aex_live"]);
+    expect(terminated).toEqual(["run_live"]);
     await expect(
       newQuiesceStage({ ...deps, agentEngine: () => ENGINE_DISCONNECTED }).run(
         context,
@@ -233,19 +233,19 @@ describe("the quiesce stage's other runs", () => {
 
   it("reads every page of the organization's runs", async () => {
     for (let i = 0; i < 201; i++) {
-      await saveExecution(`aex_${String(i).padStart(3, "0")}`, ORG, RunPhase.RUN_COMPLETED);
+      await saveExecution(`run_${String(i).padStart(3, "0")}`, ORG, RunPhase.RUN_COMPLETED);
     }
     const terminated: string[] = [];
-    await saveExecution("aex_zlive", ORG, RunPhase.RUN_IN_PROGRESS);
+    await saveExecution("run_zlive", ORG, RunPhase.RUN_IN_PROGRESS);
     await newQuiesceStage({
       ...base(),
       agentEngine: recordingEngine(terminated),
     }).run(context);
-    expect(terminated).toEqual(["aex_zlive"]);
+    expect(terminated).toEqual(["run_zlive"]);
   });
 
   it("fails the stage on an agent engine fault that is not a missing workflow", async () => {
-    await saveExecution("aex_live", ORG, RunPhase.RUN_IN_PROGRESS);
+    await saveExecution("run_live", ORG, RunPhase.RUN_IN_PROGRESS);
     await expect(
       newQuiesceStage({
         ...base(),
@@ -385,7 +385,7 @@ describe("the final stage", () => {
     const { stage } = rig();
     await stage.run(context);
     expect(await store.deleteSearchIndexByOrg(ORG)).toBe(0);
-    expect((await store.listRoutineFires("sch_left", undefined, 10)).length).toBe(0);
+    expect((await store.listRoutineFires("rtn_left", undefined, 10)).length).toBe(0);
   });
 
   it("sweeps the session events left behind (a run created into a session while it was deleted)", async () => {

@@ -1,6 +1,5 @@
 /**
- * The update pipeline's persist step — ports persistScheduleUpdateStep of
- * pkg/domain/schedule/controller/update.go.
+ * The update pipeline's persist step.
  *
  * Persists what the request path owns (apiVersion/kind/metadata/spec, the
  * audit bump BuildUpdateState stamped, and who attached each vault the

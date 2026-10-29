@@ -1,7 +1,5 @@
 /**
- * Logging interceptor — chain position 2, ported from the Go server's
- * loggingUnaryInterceptor/loggingStreamInterceptor
- * (backend/libs/go/grpc/server.go:273-381).
+ * Logging interceptor — chain position 2.
  *
  * The level tiering is contract, not taste: expected-in-normal-operation
  * outcomes must not pollute operator logs at error level.
@@ -11,12 +9,10 @@
  *   any other error code                 → error
  *   success                              → info — EXCEPT health-service
  *                                          methods, which log at debug
- *                                          (the CLI polls health; Go
- *                                          server.go:328-331,343-345)
+ *                                          (the CLI polls health)
  *
- * Go logs err.Error() — the REAL error — while the wire carries the
- * sanitized status message (server.go:314-323). Mirrored here: the `error`
- * field is the thrown error's own message, whatever the handler chose to
+ * The log carries the REAL error while the wire carries the sanitized
+ * status message: the `error` field is the thrown error's own message, whatever the handler chose to
  * put on the wire. For an internalError that message is the wire copy, so
  * the `cause` field carries the chain under the thrown error, which never
  * crosses the wire, and the deepest cause's stack goes to a debug line
@@ -28,7 +24,7 @@ import type { Interceptor } from "@connectrpc/connect";
 import type { Logger } from "../../boot/logger.js";
 import { causeFields, causeStack } from "../error-cause.js";
 
-/** Health successes are polled chatter, logged at debug (Go grpc lib server.go:30). */
+/** Health successes are polled chatter, logged at debug. */
 const HEALTH_SERVICE_TYPE_NAME = "grpc.health.v1.Health";
 
 export function createLoggingInterceptor(logger: Logger): Interceptor {
@@ -50,7 +46,7 @@ export function createLoggingInterceptor(logger: Logger): Interceptor {
         procedure,
         code: Code[connectError.code],
         durationMs: elapsed(startedAt),
-        // The real error, not the sanitized wire message (Go parity).
+        // The real error, not the sanitized wire message.
         error: error instanceof Error ? error.message : String(error),
         ...causeFields(error),
       };

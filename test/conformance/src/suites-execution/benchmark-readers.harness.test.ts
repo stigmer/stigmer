@@ -68,7 +68,7 @@ import { awaitTimingLines, axesFromTiming } from "../benchmark/timing-lines";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { LOOKUP_ORDER_TOOL_NAME } from "../harness/mcp-server";
+import { LOOKUP_ORDER_TOOL_NAME, mcpToolName } from "../harness/mcp-server";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { readAnthropicRequest, type AnthropicRequestBody } from "@stigmer/test-support/llm-wire";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
@@ -80,12 +80,20 @@ import {
   provisionWorkingAgent,
   seedWorkingWorkspace,
   WORKING_AGENT_FIXTURE_DIR,
+  WORKING_AGENT_LOOKUP_TOOL,
   WORKING_AGENT_WORKSPACE_FIXTURE_DIR,
   WORKING_AGENT_MCP_TOOLS,
   WORKING_AGENT_WORKSPACE_NAME,
   workingAgentSessionSpec,
 } from "../support/working-agent";
 import { createTarget, type TargetProfile } from "../targets";
+import { toolServerSegment } from "../support/plugins";
+
+/**
+ * The order lookup as the quality arm's try calls it: the checked-in fixture
+ * plugin `working-agent` (`fixtures/working-agent`) serves it as `orders-api`.
+ */
+const QUALITY_LOOKUP_TOOL = mcpToolName(toolServerSegment("working-agent", "orders-api"), LOOKUP_ORDER_TOOL_NAME);
 
 const probe = createTarget();
 const hasReaders = probe.engineCoordinates !== undefined && probe.runnerLogFile !== undefined;
@@ -128,7 +136,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-bench"),
+        name: uniqueName("run-bench"),
         agentRef: agentRefOf(agent),
         sessionSpec: { subject: "benchmark readers smoke" },
         message: "Say hello.",
@@ -218,7 +226,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       // One case of the suite, one try, on the scripted model: the order
       // lookup answered by the suite's own mock, then the answer, then the
       // llm grader's three votes.
-      mock.enqueue(anthropicToolUse("call_lookup", "lookup_order", { order_id: "ORD-4821" }));
+      mock.enqueue(anthropicToolUse("call_lookup", QUALITY_LOOKUP_TOOL, { order_id: "ORD-4821" }));
       mock.enqueue(
         anthropicText("ORD-4821 is shipped: UPS, tracking 1Z999AA10123456784, shipped 2026-09-24, arriving 2026-09-29."),
       );
@@ -273,7 +281,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
 
     it("provisions, runs a tool-and-edit turn to its end, and lifts every count the report carries", async () => {
       const agent = await provision();
-      mock.enqueue(anthropicToolUse("toolu_lookup", LOOKUP_ORDER_TOOL_NAME, { order_id: "ORD-4821" }));
+      mock.enqueue(anthropicToolUse("toolu_lookup", WORKING_AGENT_LOOKUP_TOOL, { order_id: "ORD-4821" }));
       mock.enqueue(anthropicToolUse("toolu_write", WRITE_FILE_TOOL, { file_path: "NOTES.md", content: "ORD-4821 shipped\n" }));
       mock.enqueue(anthropicText("Wrote NOTES.md."));
 

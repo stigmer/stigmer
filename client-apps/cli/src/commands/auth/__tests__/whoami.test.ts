@@ -249,7 +249,7 @@ describe("runWhoami's organization", () => {
     expect(load()).toEqual(before);
   });
 
-  it("rewrites a context an older CLI wrote by slug to the organization's id, once the backend names it", async () => {
+  it("rewrites a context stored by slug to the organization's id, once the backend names it", async () => {
     // The organization was renamed from acme-old since, and the old slug
     // still leads to it.
     writeConfig(["context:", "  org: acme-old"]);

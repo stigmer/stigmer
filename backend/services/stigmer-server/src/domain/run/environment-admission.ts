@@ -154,7 +154,7 @@ export async function sessionRunServers(store: Store, session: Session): Promise
   const agentId = session.status?.agentId ?? "";
   const versionHash = session.status?.agentVersionHash ?? "";
   const agent =
-    agentId === "" || versionHash === ""
+    agentId === ""
       ? undefined
       : (await loadVersion(store, agentVersionBinding, agentId, versionHash)).resource;
   const agentSpec = agent?.spec;

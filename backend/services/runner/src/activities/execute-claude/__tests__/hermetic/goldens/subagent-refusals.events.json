@@ -1,72 +1,72 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_model",
+      "id": "run_claude_0001.toolu_model",
       "input": {},
       "name": "Agent"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_created": {
-      "id": "aex_claude_0001.toolu_model.created",
+      "id": "run_claude_0001.toolu_model.created",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_model"
+      "session_thread_id": "run_claude_0001.toolu_model"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_sent": {
-      "id": "aex_claude_0001.toolu_model.sent",
+      "id": "run_claude_0001.toolu_model.sent",
       "content": [
         {
           "type": "text",
           "text": "Run the tests and report."
         }
       ],
-      "to_session_thread_id": "aex_claude_0001.toolu_model",
+      "to_session_thread_id": "run_claude_0001.toolu_model",
       "to_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_running": {
-      "id": "aex_claude_0001.toolu_model.running",
+      "id": "run_claude_0001.toolu_model.running",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_model"
+      "session_thread_id": "run_claude_0001.toolu_model"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_received": {
-      "id": "aex_claude_0001.toolu_model.received",
+      "id": "run_claude_0001.toolu_model.received",
       "content": [
         {
           "type": "text",
           "text": "A helper runs on its own definition, so 'model' cannot be set; call it again without it. It was not run."
         }
       ],
-      "from_session_thread_id": "aex_claude_0001.toolu_model",
+      "from_session_thread_id": "run_claude_0001.toolu_model",
       "from_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_idle": {
-      "id": "aex_claude_0001.toolu_model.idle",
+      "id": "run_claude_0001.toolu_model.idle",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_model",
+      "session_thread_id": "run_claude_0001.toolu_model",
       "stop_reason": {
         "type": "retries_exhausted"
       }
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_model.r",
-      "tool_use_id": "aex_claude_0001.toolu_model",
+      "id": "run_claude_0001.toolu_model.r",
+      "tool_use_id": "run_claude_0001.toolu_model",
       "content": [
         {
           "type": "text",
@@ -77,73 +77,73 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_isolated",
+      "id": "run_claude_0001.toolu_isolated",
       "input": {},
       "name": "Agent"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_created": {
-      "id": "aex_claude_0001.toolu_isolated.created",
+      "id": "run_claude_0001.toolu_isolated.created",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_isolated"
+      "session_thread_id": "run_claude_0001.toolu_isolated"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_sent": {
-      "id": "aex_claude_0001.toolu_isolated.sent",
+      "id": "run_claude_0001.toolu_isolated.sent",
       "content": [
         {
           "type": "text",
           "text": "Run the tests and report."
         }
       ],
-      "to_session_thread_id": "aex_claude_0001.toolu_isolated",
+      "to_session_thread_id": "run_claude_0001.toolu_isolated",
       "to_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_running": {
-      "id": "aex_claude_0001.toolu_isolated.running",
+      "id": "run_claude_0001.toolu_isolated.running",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_isolated"
+      "session_thread_id": "run_claude_0001.toolu_isolated"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_received": {
-      "id": "aex_claude_0001.toolu_isolated.received",
+      "id": "run_claude_0001.toolu_isolated.received",
       "content": [
         {
           "type": "text",
           "text": "A helper runs on its own definition, so 'isolation' cannot be set; call it again without it. It was not run."
         }
       ],
-      "from_session_thread_id": "aex_claude_0001.toolu_isolated",
+      "from_session_thread_id": "run_claude_0001.toolu_isolated",
       "from_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_idle": {
-      "id": "aex_claude_0001.toolu_isolated.idle",
+      "id": "run_claude_0001.toolu_isolated.idle",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_isolated",
+      "session_thread_id": "run_claude_0001.toolu_isolated",
       "stop_reason": {
         "type": "retries_exhausted"
       }
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_isolated.r",
-      "tool_use_id": "aex_claude_0001.toolu_isolated",
+      "id": "run_claude_0001.toolu_isolated.r",
+      "tool_use_id": "run_claude_0001.toolu_isolated",
       "content": [
         {
           "type": "text",
@@ -154,73 +154,73 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_fork",
+      "id": "run_claude_0001.toolu_fork",
       "input": {},
       "name": "Agent"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_created": {
-      "id": "aex_claude_0001.toolu_fork.created",
+      "id": "run_claude_0001.toolu_fork.created",
       "agent_name": "fork",
-      "session_thread_id": "aex_claude_0001.toolu_fork"
+      "session_thread_id": "run_claude_0001.toolu_fork"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_sent": {
-      "id": "aex_claude_0001.toolu_fork.sent",
+      "id": "run_claude_0001.toolu_fork.sent",
       "content": [
         {
           "type": "text",
           "text": "Run the tests and report."
         }
       ],
-      "to_session_thread_id": "aex_claude_0001.toolu_fork",
+      "to_session_thread_id": "run_claude_0001.toolu_fork",
       "to_agent_name": "fork"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_running": {
-      "id": "aex_claude_0001.toolu_fork.running",
+      "id": "run_claude_0001.toolu_fork.running",
       "agent_name": "fork",
-      "session_thread_id": "aex_claude_0001.toolu_fork"
+      "session_thread_id": "run_claude_0001.toolu_fork"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_received": {
-      "id": "aex_claude_0001.toolu_fork.received",
+      "id": "run_claude_0001.toolu_fork.received",
       "content": [
         {
           "type": "text",
           "text": "There is no helper named 'fork' in this conversation; it was not run."
         }
       ],
-      "from_session_thread_id": "aex_claude_0001.toolu_fork",
+      "from_session_thread_id": "run_claude_0001.toolu_fork",
       "from_agent_name": "fork"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_idle": {
-      "id": "aex_claude_0001.toolu_fork.idle",
+      "id": "run_claude_0001.toolu_fork.idle",
       "agent_name": "fork",
-      "session_thread_id": "aex_claude_0001.toolu_fork",
+      "session_thread_id": "run_claude_0001.toolu_fork",
       "stop_reason": {
         "type": "retries_exhausted"
       }
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_fork.r",
-      "tool_use_id": "aex_claude_0001.toolu_fork",
+      "id": "run_claude_0001.toolu_fork.r",
+      "tool_use_id": "run_claude_0001.toolu_fork",
       "content": [
         {
           "type": "text",
@@ -231,61 +231,61 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_delegate",
+      "id": "run_claude_0001.toolu_delegate",
       "input": {},
       "name": "Agent"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_created": {
-      "id": "aex_claude_0001.toolu_delegate.created",
+      "id": "run_claude_0001.toolu_delegate.created",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_sent": {
-      "id": "aex_claude_0001.toolu_delegate.sent",
+      "id": "run_claude_0001.toolu_delegate.sent",
       "content": [
         {
           "type": "text",
           "text": "Run the tests and report."
         }
       ],
-      "to_session_thread_id": "aex_claude_0001.toolu_delegate",
+      "to_session_thread_id": "run_claude_0001.toolu_delegate",
       "to_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_running": {
-      "id": "aex_claude_0001.toolu_delegate.running",
+      "id": "run_claude_0001.toolu_delegate.running",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_runner_asks",
+      "id": "run_claude_0001.toolu_runner_asks",
       "input": {
         "command": "touch .ran"
       },
       "name": "Bash",
-      "session_thread_id": "aex_claude_0001.toolu_delegate"
+      "session_thread_id": "run_claude_0001.toolu_delegate"
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_runner_asks.r",
-      "tool_use_id": "aex_claude_0001.toolu_runner_asks",
+      "id": "run_claude_0001.toolu_runner_asks.r",
+      "tool_use_id": "run_claude_0001.toolu_runner_asks",
       "content": [
         {
           "type": "text",
@@ -296,10 +296,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
-    "thread_id": "aex_claude_0001.toolu_delegate",
+    "run_id": "run_claude_0001",
+    "thread_id": "run_claude_0001.toolu_delegate",
     "agent_message": {
-      "id": "aex_claude_0001.toolu_delegate.m1",
+      "id": "run_claude_0001.toolu_delegate.m1",
       "content": [
         {
           "type": "text",
@@ -309,35 +309,35 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_thread_message_received": {
-      "id": "aex_claude_0001.toolu_delegate.received",
+      "id": "run_claude_0001.toolu_delegate.received",
       "content": [
         {
           "type": "text",
           "text": "I could not run the tests."
         }
       ],
-      "from_session_thread_id": "aex_claude_0001.toolu_delegate",
+      "from_session_thread_id": "run_claude_0001.toolu_delegate",
       "from_agent_name": "test-runner"
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "session_thread_status_idle": {
-      "id": "aex_claude_0001.toolu_delegate.idle",
+      "id": "run_claude_0001.toolu_delegate.idle",
       "agent_name": "test-runner",
-      "session_thread_id": "aex_claude_0001.toolu_delegate",
+      "session_thread_id": "run_claude_0001.toolu_delegate",
       "stop_reason": {
         "type": "end_turn"
       }
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_delegate.r",
-      "tool_use_id": "aex_claude_0001.toolu_delegate",
+      "id": "run_claude_0001.toolu_delegate.r",
+      "tool_use_id": "run_claude_0001.toolu_delegate",
       "content": [
         {
           "type": "text",
@@ -347,9 +347,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m1",
+      "id": "run_claude_0001.root.m1",
       "content": [
         {
           "type": "text",

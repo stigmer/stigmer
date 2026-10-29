@@ -1,5 +1,5 @@
 /**
- * CAS-blob content-integrity verification — ports filereview/cas_blob.go.
+ * CAS-blob content-integrity verification.
  * The runner content-addresses gitignored/non-git before/after bytes
  * under artifacts/{execution_id}/filereview/cas/blobs/{sha256}; the
  * trailing 64-char lowercase-hex segment IS the SHA-256 of the stored

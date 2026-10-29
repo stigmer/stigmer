@@ -12,7 +12,7 @@ import { createBackendClient } from "../client.js";
 
 function cloud(token?: string): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: {
       cloud: { type: "cloud", endpoint: "api.stigmer.ai:443", token },
     },
@@ -33,7 +33,7 @@ describe("createBackendClient — endpoint normalization", () => {
 
   it("normalizes the local endpoint to a plaintext base URL", () => {
     const client = createBackendClient({
-      config: { backend: { type: "local" } },
+      config: { backend: {} },
     });
     expect(client.stigmer.baseUrl).toBe("http://localhost:7234");
   });

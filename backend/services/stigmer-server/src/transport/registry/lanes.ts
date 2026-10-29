@@ -1,7 +1,6 @@
 /**
  * The registry proxy lane — the unified port's plain-HTTP JSON endpoint,
- * ported from the Go server's model_registry.go and wrapped in the
- * registryCORS contract (pkg/server/registry_cors.go, oss#571). The
+ * wrapped in the registry CORS contract (cors.ts, oss#571). The
  * conformance suite
  * (test/conformance/src/suites/registry-proxy.conformance.test.ts) is the
  * executable spec this lane is built against.
@@ -11,18 +10,18 @@
  * model-registry store's refresh lifecycle is the composition root's
  * concern, not a lane concern.
  *
- * Behavior (Go's registry handlers):
- *   OPTIONS → 204 + the fixed registryCORS allow-lists,
+ * Behavior:
+ *   OPTIONS → 204 + the fixed registry CORS allow-lists,
  *   GET     → 200, application/json, Cache-Control: public, max-age=3600,
  *             Access-Control-Allow-Origin: *,
  *   other   → 405 (with the allow-all header — the CORS wrap is
- *             unconditional in Go).
+ *             unconditional).
  */
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { applyRegistryCorsHeaders, handleRegistryPreflight } from "../cors.js";
 import type { LaneHandler } from "../lanes.js";
 
-/** Registries are static per release: cacheable for an hour (Go handlers). */
+/** Registries are static per release: cacheable for an hour. */
 const REGISTRY_CACHE_CONTROL = "public, max-age=3600";
 
 export interface RegistryLanes {

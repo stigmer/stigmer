@@ -1,25 +1,21 @@
 /**
- * Pipeline executor — ports backend/libs/go/grpc/request/pipeline/
- * {pipeline,step,error}.go. Steps run in order; the first error halts the
- * chain.
+ * Pipeline executor. Steps run in order; the first error halts the chain.
  *
- * The error contract is Go's PipelineError.GRPCStatus, verbatim in
- * ConnectRPC terms (stigmer/stigmer#478):
+ * The error contract (stigmer/stigmer#478):
  *   - a step that throws a ConnectError has its code AND message preserved
  *     on the wire (the clean domain message — no step-name prefix);
  *   - a step that throws anything else reaches the wire as
  *     Internal/"internal server error" — the raw text can carry
  *     storage-engine detail or filesystem paths, which an anonymous caller
  *     must never see. The original error rides `cause`.
- * The step name and real error are logged HERE (Go's pipeline logs them via
- * log.Printf; the transport logging interceptor separately records the
- * wire-level outcome). Nothing diverges silently. The thrown error's cause
+ * The step name and real error are logged HERE (the transport logging
+ * interceptor separately records the wire-level outcome). Nothing diverges silently. The thrown error's cause
  * chain rides the same line, and its deepest stack a debug line
  * (error-cause.ts, stigmer/stigmer#1383).
  *
- * Tracing spans are not ported: the TS server has no telemetry seam yet and
- * Go's default is a no-op tracer — the span plumbing would be machinery
- * without a consumer. It returns together with a real telemetry decision.
+ * There are no tracing spans: the server has no telemetry seam for them
+ * yet, and span plumbing would be machinery without a consumer. Spans come
+ * with a real telemetry decision.
  */
 import { ConnectError } from "@connectrpc/connect";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -29,7 +25,7 @@ import { causeFields, causeStack } from "./error-cause.js";
 import { internalError } from "./errors.js";
 import type { RequestContext } from "./request-context.js";
 
-/** One step in request processing (Go PipelineStep). */
+/** One step in request processing. */
 export interface PipelineStep<Desc extends DescMessage> {
   /** Human-readable step name — the shared vocabulary (guidelines §3). */
   readonly name: string;
@@ -38,8 +34,8 @@ export interface PipelineStep<Desc extends DescMessage> {
 }
 
 /**
- * The wire description for a step that threw a plain (non-Connect) error —
- * Go's internalFallbackMessage, byte-identical.
+ * The wire description for a step that threw a plain (non-Connect) error,
+ * byte-pinned.
  */
 export const INTERNAL_FALLBACK_MESSAGE = "internal server error";
 
@@ -65,8 +61,8 @@ export class Pipeline<Desc extends DescMessage> {
       try {
         await step.execute(ctx);
       } catch (error) {
-        // The real error is logged here with its step (Go pipeline.go's
-        // failure log line); the wire gets the sanitized form below.
+        // The real error is logged here with its step; the wire gets the
+        // sanitized form below.
         this.logger.warn("pipeline step failed", {
           pipeline: this.pipelineName,
           step: step.name,
@@ -96,7 +92,7 @@ export class Pipeline<Desc extends DescMessage> {
   }
 }
 
-/** Fluent builder (Go NewPipeline(name).AddStep(...).Build()). */
+/** Fluent builder: new PipelineBuilder(name).addStep(...).build(). */
 export class PipelineBuilder<Desc extends DescMessage> {
   private readonly steps: Array<PipelineStep<Desc>> = [];
 

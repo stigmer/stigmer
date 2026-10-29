@@ -1,26 +1,20 @@
 /**
- * Storage contract — ports backend/libs/go/store/interface.go
- * surface-for-surface.
+ * Storage contract: the one surface every driver implements and every
+ * domain depends on.
  *
  * The interface is async even though the node:sqlite driver is
  * synchronous: the Postgres driver is async by nature, and the contract
  * must be implementable by both.
  * The sqlite driver simply resolves immediately.
  *
- * Mechanics are idiomatic TS where Go's are Go-specific: methods RETURN
- * values instead of filling out-params, and message-typed methods take the
- * protobuf-es schema (`DescMessage`) where Go relied on the out-param's
- * runtime type. Method NAMES and semantics mirror Go exactly — during
- * coexistence the Go interface is the behavioral reference, and matching
- * names keep every "is this what Go does?" review one hop away.
+ * Methods RETURN values, and message-typed methods take the protobuf-es
+ * schema (`DescMessage`) so a driver can decode the stored bytes into the
+ * caller's type.
  *
- * Two surfaces that Go kept OUTSIDE store.Store are deliberate members
- * here (the `DB()` escape hatch is not ported):
- *   - bootstrapState  — concrete-type-only methods in Go (sqlite/store.go)
- *   - pendingOAuthStates — pkg/domain/mcpserver/oauth (via DB())
- * They are grouped sub-stores rather than flat methods so their Go method
- * names (upsert, find, save, getAndDelete…) survive verbatim for the
- * domain ports.
+ * Some surfaces are grouped sub-stores rather than flat methods (for
+ * example bootstrapState and pendingOAuthStates), each with its own small
+ * verb set (upsert, find, save, getAndDelete…). There is no raw database
+ * escape hatch: every query a domain needs is a method here.
  *
  * Proven by the driver unit tests (sqlite/__tests__/) and, end-to-end, by
  * every conformance suite on CONFORMANCE_TARGET=local.
@@ -57,8 +51,8 @@ import type {
 // =============================================================================
 
 /**
- * A resource does not exist in the store. Go: store.ErrNotFound, checked
- * with errors.Is; consumers here check with `instanceof`.
+ * A resource does not exist in the store; consumers check with
+ * `instanceof`.
  */
 export class ResourceNotFoundError extends Error {
   constructor(detail: string) {
@@ -68,7 +62,7 @@ export class ResourceNotFoundError extends Error {
 }
 
 /**
- * An audit record does not exist. Go: store.ErrAuditNotFound.
+ * An audit record does not exist.
  */
 export class AuditNotFoundError extends Error {
   constructor(detail: string) {
@@ -78,7 +72,7 @@ export class AuditNotFoundError extends Error {
 }
 
 // =============================================================================
-// Record types (interface.go:409-495)
+// Record types
 // =============================================================================
 
 /**
@@ -240,22 +234,19 @@ export interface SearchIndexQueryResult {
 }
 
 // =============================================================================
-// Bootstrap state (Go: concrete-type methods, sqlite/store.go:1480-1611)
+// Bootstrap state
 // =============================================================================
 
 /**
  * Key-value state for one-shot boot work that must run once per database.
- * Two writers today: the membership rules' reconciliations
- * (`grant/constants.ts` ROLES_RECONCILED_KEY and
- * SERVER_ORGANIZATION_ROLES_KEY) and the boot step that makes a
+ * Two writers today: the membership rules' server-organization pass
+ * (`grant/constants.ts` SERVER_ORGANIZATION_ROLES_KEY) and the boot step
+ * that makes a
  * one-organization server's organization (`domain/organization/limit.ts`
- * SINGLE_ORG_KEY). A database migrated
- * from the Go server carries that server's bootstrap keys too; the
- * migration preserves them (see sqlite/__tests__/migrations.test.ts) and
- * nothing reads them.
+ * SINGLE_ORG_KEY). A key nothing reads is kept as written.
  */
 export interface BootstrapStateStore {
-  /** Returns "" (not an error) when the key does not exist — Go's contract. */
+  /** Returns "" (not an error) when the key does not exist. */
   get(key: string): Promise<string>;
   set(key: string, value: string): Promise<void>;
   getAll(): Promise<Map<string, string>>;
@@ -331,8 +322,7 @@ export interface ResourceNameRename {
   readonly to: string;
   /**
    * When the names this rename demotes stop resolving; "" holds them for
-   * good. A name equal to `id` is held for good whatever this says: it is
-   * the id an earlier release filed the resource's rows under.
+   * good.
    */
   readonly fromExpiresAt: string;
   /** RFC-3339 now, the instant expiry is judged against. */
@@ -395,9 +385,7 @@ export interface ResourceNameStore {
   revertRename(rename: ResourceNameRename, takenBack?: ResourceNameEntry): Promise<void>;
   /**
    * Lets go of every name `id` holds in the kind and scope (its delete, or a
-   * create whose row never landed). A name equal to `id` is kept, as a
-   * previous name that never expires: a resource from an earlier release
-   * was filed under it. Idempotent.
+   * create whose row never landed). Idempotent.
    */
   release(kind: string, org: string, id: string): Promise<void>;
   /** Lets go of one name while `id` holds it (a resource that holds several and drops one). Idempotent. */
@@ -466,13 +454,13 @@ export interface OrganizationDeletionStore {
 }
 
 // =============================================================================
-// MCP OAuth (Go: pkg/domain/mcpserver/oauth, tables consolidated by migration v7;
-// the grant table retired when sign-ins moved into vault connections)
+// MCP OAuth pending sign-in states (sign-ins themselves live in vault
+// connections)
 // =============================================================================
 
 /**
  * How long a pending OAuth state survives between a sign-in's start and
- * its completion (10 minutes, Go pending_state_store.go).
+ * its completion (10 minutes).
  */
 export const PENDING_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -632,7 +620,7 @@ export interface PendingOAuthStateStore {
 
 /**
  * One live row as stored — the id plus the EXACT marshaled bytes, for the
- * maintenance surface (the Java RawDocument shape): a sweep reads pages of
+ * maintenance surface: a sweep reads pages of
  * these, transforms, and swaps back with replaceResourceDataIfUnchanged
  * guarding on the same bytes.
  */
@@ -672,8 +660,8 @@ export interface StoreOpenOptions {
  * Contract for resource persistence. Two distinct areas: live resources
  * (saveResource/getResource/…) and immutable audit snapshots
  * (saveAudit/getAuditByHash/…). "Cascade" cleanup of audit records is
- * EXPLICIT via deleteAuditByResourceId — despite historical comments, no
- * foreign key exists on resource_audit (verified in Go's v2 DDL).
+ * EXPLICIT via deleteAuditByResourceId: no foreign key exists on
+ * resource_audit.
  */
 export interface Store {
   // ---------------------------------------------------------------------------
@@ -866,7 +854,7 @@ export interface Store {
   /**
    * Finds a single resource whose field at `fieldPath` (dot notation, e.g.
    * "spec.executionId"; camelCase parts fall back to snake_case) equals
-   * `value`. Full-scan + proto reflection, exactly as Go — indexability is
+   * `value`. Full-scan + proto reflection — indexability is
    * guaranteed at the interface, physical indexing is each driver's
    * concern. Throws ResourceNotFoundError if none match.
    */
@@ -881,10 +869,8 @@ export interface Store {
    * All resources whose field at `fieldPath` (the `findByField` notation)
    * equals `value`, as their stored bytes; empty when none match. The scan
    * has no ordering, so a caller that needs one row owns what two mean
-   * (the `findAllByLabel` rule, stigmer/stigmer#356). It returned the whole
-   * kind unfiltered while the Go server was the translation reference (Go's
-   * driver could not decode without the concrete type); `schema` is that
-   * type.
+   * (the `findAllByLabel` rule, stigmer/stigmer#356). `schema` is the
+   * concrete type the driver decodes each row with to compare the field.
    */
   findAllByField<Desc extends DescMessage>(
     kind: ApiResourceKind,
@@ -923,7 +909,7 @@ export interface Store {
    * One keyset page of a kind as raw documents — id plus the exact stored
    * bytes, which is what replaceResourceDataIfUnchanged guards on. Keyset
    * pagination on the id is stable under concurrent writes, where
-   * LIMIT/OFFSET paging is not (the Java findRawOrderedAfter rationale).
+   * LIMIT/OFFSET paging is not.
    * Pass "" to start from the first row (ids are non-empty text, so every
    * id sorts above it), then the last id of each page. Throws on a
    * non-positive limit.
@@ -937,8 +923,8 @@ export interface Store {
   /**
    * Whole-document compare-and-swap: replaces the stored bytes ONLY when
    * they still equal `expectedData` — the exact bytes the row was read
-   * with (the TS analogue of Java's bound-JSON-text replaceDataIfUnchanged;
-   * BYTEA equality is exact by construction, no canonicalization games).
+   * with (BYTEA equality is exact by construction, no canonicalization
+   * games).
    *
    * @returns true when the swap applied; false when the row changed OR
    *   was deleted since the read (a lost swap, never an upsert) — the
@@ -1068,8 +1054,8 @@ export interface Store {
 
   /**
    * The archived version currently holding the tag (single-holder
-   * invariant; archived_at DESC is a defensive tiebreak for legacy
-   * multi-holder data). Throws AuditNotFoundError if absent.
+   * invariant; archived_at DESC is a defensive tiebreak should two rows
+   * ever hold it). Throws AuditNotFoundError if absent.
    */
   getAuditRecordByTag(
     kind: ApiResourceKind,
@@ -1180,7 +1166,7 @@ export interface Store {
 
   /**
    * Empties the search index (RebuildIndex's wipe before re-indexing from
-   * the resources table — Go's `DELETE FROM search_index`).
+   * the resources table).
    */
   clearSearchIndex(): Promise<void>;
 

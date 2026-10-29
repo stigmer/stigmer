@@ -66,7 +66,7 @@ describe("roleInfoFromRelation", () => {
     expect(viewer.description).toBe("Read it; cannot change it");
   });
 
-  it("answers the default instance for a relation that is no role (the Java fromRelationString contract)", () => {
+  it("answers the default instance for a relation that is no role", () => {
     const unknown = roleInfoFromRelation("organization", ApiResourceKind.organization);
     expect(unknown.code).toBe("");
     expect(unknown.name).toBe("");

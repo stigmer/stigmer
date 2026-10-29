@@ -20,7 +20,7 @@ import { ASK_AI_APP_ORIGIN, ASK_AI_CHANNEL } from "./config";
  * Non-modal on purpose — answers can take a while, so the reader must be
  * able to keep reading (and follow cited links) while the agent works; it
  * also avoids trapping focus around a cross-origin iframe, which no focus
- * trap can traverse. Renders nothing while no docs share is wired
+ * trap can traverse. Renders nothing while no docs channel is wired
  * (`ASK_AI_CHANNEL` empty). `disablePointerDismissal` keeps clicks into the docs
  * from closing the panel; `keepMounted` keeps the closed panel (hidden,
  * `display: none`) in the DOM so the iframe — and the conversation — survive

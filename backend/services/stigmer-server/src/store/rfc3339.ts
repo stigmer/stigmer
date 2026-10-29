@@ -1,5 +1,5 @@
 /**
- * RFC-3339 UTC, whole seconds (Go time.RFC3339) — the ledger's house
+ * RFC-3339 UTC, whole seconds — the ledger's house
  * convention for lexicographic comparison of recorded_at / completed_at
  * strings. Both drivers stamp the same shape so a timestamp written by
  * one is comparable (and parseable) on the other.

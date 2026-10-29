@@ -12,8 +12,9 @@
  *
  * `Person` is the caller as the evaluator sees them: the account id the
  * Grant rows name, and every string a creator stamp may carry for the
- * same human — the account id and the account's issuer subject (rows the
- * 3.14.x verifiers stamped with the raw `sub`). A tuple naming
+ * same human — the account id and the account's issuer subject (a write
+ * made before the caller's account existed carries their raw `sub`). A
+ * tuple naming
  * `identity_account:<x>` matches the person when `x` is one of the
  * aliases; rows are read by the account id alone, because every row open
  * source writes names an account (domain/grant/role-lifecycle.ts).

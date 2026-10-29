@@ -1,5 +1,4 @@
-// Re-opening an existing session (Go's openSession / resumeSession in
-// resume_session.go). Fetch the session + its runs, then either:
+// Re-opening an existing session. Fetch the session + its runs, then either:
 //   - re-attach when the latest run is still active: the headless driver
 //     follows the session's log from its start, so the history is replayed
 //     and the latest turn followed to its end, or
@@ -20,7 +19,7 @@ import type { RunMode } from "./prepare.js";
 import { streamAgentRun, type RunOutputMode } from "./stream.js";
 
 // The backend's auto-create sentinel; suppressed in the header until the async
-// title activity replaces it (Go's session.PendingSubject / ResolvedSubject).
+// title activity replaces it.
 const PENDING_SUBJECT = "Auto-created session";
 
 // Phases where the latest run is still producing output — re-attach live.
@@ -109,7 +108,7 @@ async function replaySession(
   renderReplay(events, renderer);
 }
 
-// Mirrors Go's resolveResumeMode: --mode wins; else infer "plan" from the last
+// --mode wins; else infer "plan" from the last
 // run's InteractionMode; else default (agent).
 function resolveResumeMode(explicit: RunMode, latest: Run): RunMode {
   if (explicit !== "") return explicit;

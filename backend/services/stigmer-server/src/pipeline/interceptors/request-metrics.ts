@@ -1,38 +1,33 @@
 /**
- * Request-metrics interceptor — the serving chain's RED emitter, the TS
- * port of the cloud Java `GrpcRequestMetricsInterceptor`. One record per
+ * Request-metrics interceptor — the serving chain's RED emitter. One record per
  * RPC into `observability/rpc-metrics.ts`: the count and the duration,
  * labelled with the service, the method and the gRPC status name.
  *
  * Placement contract: SERVING chain only, immediately INSIDE the identity
- * source (chain.ts). That is Java's real position —
- * `@Order(ORDER_SECURITY_AUTHENTICATION + 2)`, after the authentication
- * interceptor that closes tokenless and invalid-token calls — and the
- * position the logging interceptor already holds, so metrics and logs
+ * source (chain.ts): after the authentication interceptor that closes
+ * tokenless and invalid-token calls, the position the logging interceptor
+ * also holds, so metrics and logs
  * observe the same set of requests: an identity refusal is position 1's
  * own record (auth.ts logs it), never a counted error. The choice has a
  * paging consequence and was decided, not assumed: `grpc-error-rate-spike`
  * counts every non-OK code with no exclusions, and an outermost emitter
  * would page on an expired console tab's retries or an internet scanner
- * at a quiet hour. The disclosed deviation from Java: the caller guards
- * run inside position 1 here (Java's platform-client enforcement sat
- * inside its metrics), so a guard refusal is not counted either — fewer
- * errors counted, never more. The in-process chain never composes this
+ * at a quiet hour. The caller guards run inside position 1, so a guard
+ * refusal is not counted either — fewer errors counted, never more. The in-process chain never composes this
  * interceptor: an in-process hop is not a request.
  *
  * Status of a failure is `ConnectError.from(error).code`, exactly the
  * logging interceptor's derivation: a raw non-ConnectError is UNKNOWN
  * here and INTERNAL on the wire after the error boundary outside converts
- * it — the boundary's error-level line names each such conversion, and
- * grpc-java produced UNKNOWN for the same class. Health is not measured
+ * it — the boundary's error-level line names each such conversion. Health
+ * is not measured
  * (the by-name authentication-exempt services — Kubernetes probes every
- * few seconds would own the request-rate signal; Java's auth and metrics
- * skip lists are the same names by construction); `is_public` methods
+ * few seconds would own the request-rate signal; the auth and metrics skip
+ * lists are the same names by construction); `is_public` methods
  * ARE measured — they are API.
  *
  * Duration is fractional milliseconds from interception to the RPC's
- * end. For a server stream that is the END OF THE STREAM (Java measured
- * to `ServerCall.close`): the response iterable is re-wrapped, the error
+ * end. For a server stream that is the END OF THE STREAM: the response iterable is re-wrapped, the error
  * boundary's idiom, and the one record fires in `finally` — OK when the
  * stream ran to completion, the error's code when it threw, CANCELLED
  * when the consumer stopped early (the client went away, or the

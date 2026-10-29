@@ -33,7 +33,7 @@ describe("useDeleteChannel", () => {
   });
 
   it("deletes by id and returns the deleted resource", async () => {
-    const deleted = { metadata: { id: "ach_1" } };
+    const deleted = { metadata: { id: "chn_1" } };
     const del = vi.fn().mockResolvedValue(deleted);
     const client = createMockStigmer({ delete: del });
 
@@ -43,10 +43,10 @@ describe("useDeleteChannel", () => {
 
     let returned: unknown;
     await act(async () => {
-      returned = await result.current.deleteChannel("ach_1");
+      returned = await result.current.deleteChannel("chn_1");
     });
 
-    expect(del).toHaveBeenCalledWith("ach_1");
+    expect(del).toHaveBeenCalledWith("chn_1");
     expect(returned).toBe(deleted);
     expect(result.current.error).toBeNull();
     expect(result.current.isDeleting).toBe(false);
@@ -65,7 +65,7 @@ describe("useDeleteChannel", () => {
 
     let deletePromise: Promise<unknown> = Promise.resolve();
     act(() => {
-      deletePromise = result.current.deleteChannel("ach_1");
+      deletePromise = result.current.deleteChannel("chn_1");
     });
 
     await waitFor(() => expect(result.current.isDeleting).toBe(true));
@@ -86,7 +86,7 @@ describe("useDeleteChannel", () => {
     });
 
     await act(async () => {
-      await expect(result.current.deleteChannel("ach_1")).rejects.toThrow(
+      await expect(result.current.deleteChannel("chn_1")).rejects.toThrow(
         "permission denied",
       );
     });

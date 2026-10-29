@@ -87,7 +87,7 @@ async function seedScoringRule(
   enabled = true,
 ): Promise<string> {
   seq++;
-  const id = `evl_budget${seq.toString().padStart(16, "0")}`;
+  const id = `srl_budget${seq.toString().padStart(16, "0")}`;
   await store.saveResource(
     ApiResourceKind.scoring_rule,
     id,
@@ -160,7 +160,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
       const id = await seedScoringRule(store, 10, false);
       expect(await reserve(store, id, OCTOBER, CAP, LIMIT_REASON)).toBe("off");
       expect((await read(store, id)).status?.period ?? "").toBe("");
-      expect(await reserve(store, "evl_nobody", OCTOBER, CAP, LIMIT_REASON)).toBe("off");
+      expect(await reserve(store, "srl_nobody", OCTOBER, CAP, LIMIT_REASON)).toBe("off");
     } finally {
       await close();
     }
@@ -180,7 +180,7 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
       expect(status?.graded).toBe(1);
       expect(status?.notGraded).toBe(1);
       expect(status?.lastNotGradedReason).toBe("the judge could not start");
-      await settle(store, "evl_nobody", OCTOBER, CAP, "2026-10", 0.1, { kind: "graded" });
+      await settle(store, "srl_nobody", OCTOBER, CAP, "2026-10", 0.1, { kind: "graded" });
     } finally {
       await close();
     }

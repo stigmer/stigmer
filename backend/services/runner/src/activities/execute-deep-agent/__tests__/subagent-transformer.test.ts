@@ -44,6 +44,7 @@ import { HumanMessage } from "@langchain/core/messages";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { McpToolIndex } from "../../../shared/mcp-tool-names.js";
 
 // =========================================================================
 // Test helpers
@@ -51,7 +52,7 @@ import { join } from "node:path";
 
 const UNRESTRICTED = ToolScope.unrestricted();
 const SCOPE_BASE: SubagentScopeBase = {
-  serverToolMap: new Map(),
+  mcpIndex: McpToolIndex.EMPTY,
   platformServerSlugs: new Set(),
   admitsRoutedRead: async () => false,
   readsSkillContent: async () => false,
@@ -92,7 +93,7 @@ function savedContext(overrides: Partial<TurnSubagent> = {}): TurnSubagent {
 function gateConfig(hooks: HookEvaluator | null = null): ApprovalGateConfig {
   return {
     mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
-    toolServerMap: new Map(),
+    mcpIndex: McpToolIndex.EMPTY,
     hooks,
   };
 }

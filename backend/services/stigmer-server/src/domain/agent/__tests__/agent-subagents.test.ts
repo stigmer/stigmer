@@ -10,7 +10,7 @@
  *     names; a 64-hex hash of an older version is kept; what is stored and
  *     read back is the pin;
  *   - refusals: a version the agent does not hold (FAILED_PRECONDITION,
- *     the sentence), a head with no hash, the agent listing itself and a
+ *     the sentence), the agent listing itself and a
  *     slug listed twice, from one organization or two, since a turn names
  *     a subagent by its slug (INVALID_ARGUMENT, on create and on update), and
  *     a subagent whose pinned version lists subagents of its own, while an
@@ -85,10 +85,8 @@ import {
   newValidateSubagentNamesStep,
   selfListedMessage,
   subagentNotRunnableMessage,
-  subagentUnversionedMessage,
   subagentVersionNotFoundMessage,
 } from "../subagents.js";
-import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -280,27 +278,6 @@ describe("saving an agent pins each subagent it lists", () => {
       command.create(agentInput(uniqueName("parent"), { subagents: [{ slug, version: unknown }] })),
       Code.FailedPrecondition,
       subagentVersionNotFoundMessage(slug, unknown),
-    );
-  });
-
-  it("refuses an agent saved before agents were versioned, naming it", async () => {
-    const slug = uniqueName("legacy");
-    const id = `agt_${slug.replace("-", "_")}`;
-    await namingSaves(server.store).saveResource(
-      ApiResourceKind.agent,
-      id,
-      AgentSchema,
-      create(AgentSchema, {
-        apiVersion: API_VERSION,
-        kind: "Agent",
-        metadata: { id, name: slug, slug, org: ORG_ID, visibility: ApiResourceVisibility.visibility_org },
-        spec: { instructions: "An agent from before versions." },
-      }),
-    );
-    await expectRefused(
-      command.create(agentInput(uniqueName("parent"), { subagents: [{ slug }] })),
-      Code.FailedPrecondition,
-      subagentUnversionedMessage(slug),
     );
   });
 

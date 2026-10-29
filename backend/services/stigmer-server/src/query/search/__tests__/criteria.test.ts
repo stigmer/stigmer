@@ -1,6 +1,5 @@
 /**
- * Pins SearchCriteria against Go's search_criteria_test.go tables:
- * normalization (trimming, clamps), the 500-char boundary, the three-mode
+ * Pins SearchCriteria: normalization (trimming, clamps), the 500-char boundary, the three-mode
  * contract, and the #440 arm — named-but-unsearchable kinds yield an EMPTY
  * effective set, never a discover fallback. The kind_meta derivation is
  * pinned here too: the 11 searchable kinds.
@@ -41,8 +40,6 @@ function criteria(overrides?: {
 
 describe("searchIndexedKinds derivation (kind_meta)", () => {
   it("derives exactly the 6 searchable kinds, plugin included", () => {
-    // Go's SearchableKinds map, pinned by its invariant test against the
-    // same kind_meta derivation.
     expect([...searchIndexedKinds()].sort((a, b) => a - b)).toEqual(
       [
         ApiResourceKind.agent,
@@ -76,7 +73,7 @@ describe("searchIndexedKinds derivation (kind_meta)", () => {
   });
 });
 
-describe("SearchCriteria normalization (Go NewSearchCriteria)", () => {
+describe("SearchCriteria normalization", () => {
   it("keeps valid input verbatim", () => {
     const c = criteria({
       kinds: [ApiResourceKind.agent, ApiResourceKind.skill],
@@ -98,7 +95,7 @@ describe("SearchCriteria normalization (Go NewSearchCriteria)", () => {
     expect(c.orgFilter()).toBe("acme");
   });
 
-  it("rejects a query over the cap with Go's exact message", () => {
+  it("rejects a query over the cap with its exact message", () => {
     expect(() =>
       criteria({ query: "x".repeat(MAX_QUERY_LENGTH + 1) }),
     ).toThrowError("search query exceeds maximum length of 500 characters");

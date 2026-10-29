@@ -1,6 +1,6 @@
 // Resource creation for the run path: Run.
 //
-// Ports the Go CLI's run_create.go. We build the full proto messages and drive
+// We build the full proto messages and drive
 // the generated command controllers directly — the fidelity rule
 // resources/apply/handlers.ts states: the SDK's typed `create(input)` wrappers model a
 // subset of fields, and the conversation's resources are already proto
@@ -89,7 +89,7 @@ export interface CreateRunInput {
   readonly harness: HarnessFlag;
 }
 
-/** Create a run. Mirrors Go's createAgentExecution. */
+/** Create a run. */
 export async function createAgentRun(
   controller: ControllerFn,
   input: CreateRunInput,
@@ -177,9 +177,8 @@ function buildRunConfig(
   return cfg;
 }
 
-// Unique-enough placeholder name; the backend owns final identity. Go's CLI
-// used fmt.Sprintf("execution-%d", time.Now().UnixMicro()); the prefix now
-// says run.
+// Unique-enough placeholder name (microseconds since the epoch); the backend
+// owns final identity.
 function runName(): string {
   return `run-${Date.now() * 1000}`;
 }

@@ -62,8 +62,6 @@ describe("listMarketplaces", () => {
   it("lists configured entries after the built-in, in file order, names the unreadable ones, and lets the built-in win over a same-named entry", () => {
     writeConfig(
       [
-        "backend:",
-        "  type: local",
         "marketplaces:",
         "  acme:",
         "    type: github",
@@ -149,7 +147,7 @@ describe("addMarketplace and removeMarketplace", () => {
 
   it("keeps the rest of the config and an unreadable entry across a save", () => {
     writeConfig(
-      "backend:\n  type: cloud\nbackends:\n  cloud:\n    type: cloud\n    token: t\ncurrent_backend: cloud\nmarketplaces:\n  broken:\n    type: gitlab\n",
+      "backends:\n  cloud:\n    type: cloud\n    token: t\ncurrent_backend: cloud\nmarketplaces:\n  broken:\n    type: gitlab\n",
     );
     addMarketplace("team", { type: "local", path: "/srv/plugins" });
     const after = load();
@@ -181,7 +179,7 @@ describe("addMarketplace and removeMarketplace", () => {
 
   it("refuses under --standalone instead of writing a default file over the user's", () => {
     writeConfig(
-      "backend:\n  type: cloud\nbackends:\n  cloud:\n    type: cloud\n    token: t\ncurrent_backend: cloud\n",
+      "backends:\n  cloud:\n    type: cloud\n    token: t\ncurrent_backend: cloud\n",
     );
     setStandalone(true);
     expect(() => addMarketplace("team", { type: "local", path: "/x" })).toThrow(
@@ -196,7 +194,7 @@ describe("addMarketplace and removeMarketplace", () => {
 describe("findMarketplace", () => {
   it("finds the official and configured ones, returns undefined for an unknown name, and names an unreadable entry", () => {
     writeConfig(
-      "backend:\n  type: local\nmarketplaces:\n  team:\n    type: local\n    path: /srv\n  broken:\n    type: gitlab\n",
+      "marketplaces:\n  team:\n    type: local\n    path: /srv\n  broken:\n    type: gitlab\n",
     );
     expect(findMarketplace("stigmer")?.source).toEqual({ type: "official" });
     expect(findMarketplace("team")?.source).toEqual({

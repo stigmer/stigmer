@@ -22,7 +22,7 @@ file_digest = lowercase_hex(sha256(utf8(canonical)))
 ```
 
 - `kind` is the proto enum **value name** (`FileChangeKind`, e.g.
-  `FILE_CHANGE_KIND_MODIFY`) — identical via Go `.String()` and Java `.name()`.
+  `FILE_CHANGE_KIND_MODIFY`), the full proto value name.
 - `before_sha256` / `after_sha256` are the SHA-256 of the raw file bytes
   (computed by the runner over exact bytes; opaque inputs here). Empty for the
   absent side (ADD has no before, DELETE has no after).

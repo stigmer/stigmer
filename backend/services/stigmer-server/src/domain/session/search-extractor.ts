@@ -1,7 +1,5 @@
 /**
- * Session search extractor — ports pkg/query/search/extractor/
- * session_extractor.go (both sides: the index side, the query
- * side). Sessions are conversation threads between a user and an agent;
+ * Session search extractor (both sides: the index side, the query side). Sessions are conversation threads between a user and an agent;
  * the summary is spec.subject (the conversation topic).
  */
 import type { Message } from "@bufbuild/protobuf";
@@ -21,7 +19,7 @@ export const sessionSearchExtractor: SearchableExtractor = {
   schema: SessionSchema,
 
   getSearchSummary(resource: Message): string {
-    // Go SessionExtractor.GetSearchSummary: spec.subject.
+    // The summary: spec.subject.
     const session = resource as unknown as Session;
     return session.spec?.subject ?? "";
   },
@@ -48,10 +46,10 @@ export const sessionSearchExtractor: SearchableExtractor = {
       name: metadata.name,
       description: session.spec?.subject ?? "",
       // Tags join space-separated — the index entry carries one tags
-      // string (Go extractor.JoinTags).
+      // string.
       tags: metadata.tags.join(" "),
       org: metadata.org,
-      // The enum NAME string, exactly Go's visibility.String().
+      // The enum NAME string, the value every index entry stores.
       visibility: ApiResourceVisibility[metadata.visibility] ?? "",
       createdAt: Number(
         session.status?.audit?.specAudit?.createdAt?.seconds ?? 0n,

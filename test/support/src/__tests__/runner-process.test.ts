@@ -27,7 +27,7 @@ function workerStateChanged(state: string): string[] {
 // The tail of a #1008 hang, as the runner's log records it: the graceful path
 // completes and the process then stays alive with nothing more logged.
 const HANG_AFTER_WORKER_STOPPED = [
-  "[ExecuteDeepAgent] Completed execution aex_01m1z1zhtfgkk9jmn0rka2kg73: events=73, messages=1, artifacts=0, writebacks=0, hasStructuredOutput=false",
+  "[ExecuteDeepAgent] Completed execution run_01m1z1zhtfgkk9jmn0rka2kg73: events=73, messages=1, artifacts=0, writebacks=0, hasStructuredOutput=false",
   "Received SIGTERM, stopping worker gracefully...",
   ...workerStateChanged("STOPPING"),
   ...workerStateChanged("DRAINING"),

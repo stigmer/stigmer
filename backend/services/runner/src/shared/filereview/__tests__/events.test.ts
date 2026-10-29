@@ -1,6 +1,6 @@
 /**
- * Producer unit tests: deterministic event ids (matching the Go/Java EventID
- * format), the captured-change mapping + enforcement digests, candidate
+ * Producer unit tests: deterministic event ids (the
+ * `changeSetId:scopeId:ENUM_NAME` format), the captured-change mapping + enforcement digests, candidate
  * completeness derivation, and append-only-by-id stream authoring.
  */
 
@@ -58,7 +58,7 @@ function unavailableChange(id: string) {
 }
 
 describe("eventId", () => {
-  it("matches the Go/Java deterministic format (changeSetId:scopeId:ENUM_NAME)", () => {
+  it("follows the deterministic format (changeSetId:scopeId:ENUM_NAME)", () => {
     expect(eventId("cs-1", "cs-1", FileReviewEventType.BASELINE_CAPTURED)).toBe(
       "cs-1:cs-1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
     );

@@ -48,8 +48,8 @@ vi.mock("../../client/single-org.js", async (importOriginal) => {
   };
 });
 
-// The organization id the plugin is filed under; unset, it is the
-// slug `stigmer`, an organization from an earlier release whose id is its slug.
+// The organization id the plugin is filed under; unset, it is `stigmer`, an
+// id no organization get answers, so the label falls back to it as given.
 let serverOrg = "stigmer";
 
 // When set, the client's organization get answers through this instead of
@@ -99,7 +99,7 @@ vi.mock("../../config/index.js", async (importOriginal) => {
 /** An authenticated cloud config with no org selected — the guard's target shape. */
 function cloudConfigWithoutOrg(): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: { cloud: { type: "cloud", token: "test-token" } },
     current_backend: "cloud",
   };

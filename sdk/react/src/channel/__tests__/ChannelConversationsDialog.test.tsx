@@ -8,7 +8,7 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ChannelConversationsDialog } from "../ChannelConversationsDialog";
 
 const CHANNEL = {
-  metadata: { id: "ach_1", org: "acme", name: "Leftbin Slack", slug: "leftbin-slack" },
+  metadata: { id: "chn_1", org: "acme", name: "Leftbin Slack", slug: "leftbin-slack" },
   spec: { enabled: true },
 } as unknown as Channel;
 
@@ -18,7 +18,7 @@ function makeChannelSession(id: string, subject: string, externalUser?: string) 
       id,
       org: "acme",
       labels: {
-        "stigmer.ai/channel-id": "ach_1",
+        "stigmer.ai/channel-id": "chn_1",
         ...(externalUser
           ? { "stigmer.ai/channel-external-user-key": externalUser }
           : {}),

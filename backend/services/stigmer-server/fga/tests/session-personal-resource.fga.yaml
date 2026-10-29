@@ -4,10 +4,10 @@
 # Sessions are always private: no visibility tuples are ever written, so
 # access is owner + explicit participant and viewer grants only. A
 # participant reads and sends; a viewer only reads. Org admins have no implicit
-# access, and platform operators have no session-delete override — the
-# platform-level can_delete_session relation was removed in favor of
-# `can_delete: owner` on the session itself (deletion no longer threatens
-# the billing trail; usage records are immutable and denormalized).
+# access, and platform operators have no session-delete override:
+# `can_delete: owner` on the session itself decides (deletion does not
+# threaten the billing trail; usage records are immutable and
+# denormalized).
 #
 # Runs inherit ALL access from their parent session
 # (`owner from session`), so the run assertions here pin the

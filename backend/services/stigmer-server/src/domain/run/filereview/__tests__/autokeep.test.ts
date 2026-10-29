@@ -33,7 +33,7 @@ import { aggregateDigest, fileDigest } from "../digest.js";
 import { EMPTY_RUN_REVIEW_LOG, withDecisions } from "../logged.js";
 import type { LoggedDecision, RunReviewLog } from "../logged.js";
 
-const RUN_ID = "aex_autokeep";
+const RUN_ID = "run_autokeep";
 const CHANGE_SET_ID = "cs-1";
 const CONSENT_TOOL_CALL = "tc-shell-1";
 

@@ -105,12 +105,12 @@ function deps(client: StigmerClient): ResolutionDeps {
   const status = create(RunStatusSchema, {});
   const rows = create(TurnRowsSchema);
   return {
-    input: { executionId: "aex_1", threadId: "", turnSeq: 0 },
+    input: { executionId: "run_1", threadId: "", turnSeq: 0 },
     client,
     config: testConfig(),
     status,
     rows,
-    transcript: new TranscriptBuilder("aex_1", rows, status),
+    transcript: new TranscriptBuilder("run_1", rows, status),
     artifactStorage: undefined,
     timing: new TimingRecorder(),
     signal: new AbortController().signal,
@@ -198,7 +198,7 @@ describe("mountTurnFiles", () => {
       execution({ model: "claude-haiku-4.5", messageFiles: [["image", "file_img"], ["document", "file_doc"]] }),
     );
 
-    expect(client.mountRunFiles).toHaveBeenCalledWith("aex_1", "scoped");
+    expect(client.mountRunFiles).toHaveBeenCalledWith("run_1", "scoped");
     expect(files.message.map((f) => [f.relativePath, f.kind])).toEqual([
       [".stigmer/uploads/shot.png", "image"],
       [".stigmer/uploads/spec.pdf", "document"],
@@ -288,12 +288,12 @@ describe("mountMessageFiles", () => {
 
     const shown = await mountMessageFiles(
       client,
-      { executionId: "aex_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
+      { executionId: "run_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
       { harness: Harness.STIGMER, visionProfile: DEEP_AGENT_VISION_PROFILE },
       blocks,
     );
 
-    expect(client.mountRunFiles).toHaveBeenCalledWith("aex_1", "scoped");
+    expect(client.mountRunFiles).toHaveBeenCalledWith("run_1", "scoped");
     expect(shown.message.map((f) => [f.relativePath, f.kind])).toEqual([[".stigmer/uploads/late.png", "image"]]);
     expect(shown.visionImages.map((v) => v.filename)).toEqual(["late.png"]);
     expect(existsSync(join(getPlatformDir(SESSION_ID), "uploads", "old.csv")), "the conversation's other Files stay mounted").toBe(true);

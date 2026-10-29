@@ -982,14 +982,14 @@ describe("the write lanes' order", () => {
 
   it("create validates the role BEFORE the write: a held row under a non-grantable role is INVALID_ARGUMENT, not the duplicate", async () => {
     const h = await harness({ caller: alice });
-    const legacy = orgRole(ALICE_ID, "editor", "acme");
+    const held = orgRole(ALICE_ID, "editor", "acme");
     await h.grants.save(
       create(GrantSchema, {
-        metadata: { id: grantIdFor(legacy) },
-        spec: legacy,
+        metadata: { id: grantIdFor(held) },
+        spec: held,
       }),
     );
-    const error = await refusal(() => h.command.create(legacy));
+    const error = await refusal(() => h.command.create(held));
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(
       roleNotGrantableMessage("editor", "organization", [

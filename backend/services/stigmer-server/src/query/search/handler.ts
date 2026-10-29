@@ -1,20 +1,18 @@
 /**
- * Search handler — ports pkg/query/search/handler/search_handler.go: the
- * plain 4-step CQRS pipeline (validate → criteria → store → response).
- * Deliberately NOT the domain pipeline library — Go's query side doesn't
- * use its pipeline either; queries have no persist/audit lifecycle.
+ * Search handler: the plain 4-step CQRS pipeline (validate → criteria →
+ * store → response). Deliberately NOT the domain pipeline library:
+ * queries have no persist/audit lifecycle.
  *
  * Pages follow the relevance order, which has no keyset, so a page token
  * carries the rank position the next page starts at and the request's
  * fingerprint, through the token codec every list uses (list-page.ts): a
  * token is refused for a request other than the one it was issued to.
  *
- * Step 1's protovalidate run is Go's defensive twin: the interceptor
- * chain has already validated the request on every wire and in-process
- * path (chain position 3; Go server.go:246 "protovalidate runs first"),
- * so this arm is unreachable from the wire — ported because Go carries
- * it, and because the handler contract ("Handle validates") must not
- * silently depend on the caller's chain.
+ * Step 1's protovalidate run is defensive: the interceptor chain has
+ * already validated the request on every wire and in-process path (chain
+ * position 3), so this arm is unreachable from the wire — it stays
+ * because the handler contract ("Handle validates") must not silently
+ * depend on the caller's chain.
  *
  * With a composed list read scope every effective kind's allowlist is
  * built by the kind's reach (reach.ts), and every effective kind is put in
@@ -25,8 +23,7 @@
  * rows a child's people reach when the parent shares them with its
  * children (the restrict verb decides which). Where the caller's
  * organizations cannot be named (no directory composed, or a directory
- * that answers every organization), the kind's enumeration answers, as it
- * did before reach. The server acting as itself (the `internal` class) and
+ * that answers every organization), the kind's enumeration answers. The server acting as itself (the `internal` class) and
  * a composition with no scope are unscoped, as `restrictListByReadScope`
  * answers them. The store query, paging and the exact `counts_by_kind` do
  * not depend on how the allowlists were found.
@@ -98,17 +95,14 @@ export class SearchHandler {
   }
 
   /**
-   * Go Handle: validate → build criteria → execute → build response.
-   * Errors carry Go's exact wrap prefixes — the controller's error
+   * Validate → build criteria → execute → build response.
+   * Errors carry exact wrap prefixes — the controller's error
    * mapping string-matches them (#478 sanitization contract).
    *
    * With a composed ListReadScope the
    * store read ALWAYS carries a per-effective-kind authorized-id map for
    * every caller but the server itself (`authorizedIdsByKind`). There is
-   * no request shape that skips the scope: the one that did (the retired
-   * public level's cross-organization discovery, which the engine
-   * filtered by visibility with FGA never consulted) left with the level.
-   * A scope, directory or row-read failure answers the sanitized
+   * no request shape that skips the scope. A scope, directory or row-read failure answers the sanitized
    * Internal, never a silently unscoped result.
    */
   async handle(

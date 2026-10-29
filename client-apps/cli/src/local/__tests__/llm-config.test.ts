@@ -9,7 +9,7 @@ import {
 } from "../llm-config.js";
 
 function config(local?: unknown): Config {
-  return { backend: { type: "local", local } };
+  return { backend: { local } };
 }
 
 describe("detectProviderFromEnv", () => {
@@ -55,10 +55,10 @@ describe("setLlm", () => {
     expect((cleared.backend.local as { temporal: unknown }).temporal).toEqual({ managed: true });
   });
 
-  it("replaces the section wholesale — a stale model key from a pre-oss#314 config does not survive a rewrite", () => {
-    // The graceful-migration contract: old configs may carry llm.model (the
-    // removed dead pin). Reads ignore it (LlmSettings no longer models it);
-    // the next setup write clears it because setLlm never merges.
+  it("replaces the section wholesale — a key the section does not model does not survive a rewrite", () => {
+    // A hand-edited config may carry llm.model, which LlmSettings does not
+    // model (oss#314): reads ignore it, and the next setup write clears it
+    // because setLlm never merges.
     const cfg = config({ llm: { provider: "anthropic", model: "stale-pin", api_key: "k" } });
     const rewritten = setLlm(cfg, { provider: "anthropic", api_key: "k" });
     expect(readLlm(rewritten)).toEqual({ provider: "anthropic", api_key: "k" });

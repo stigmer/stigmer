@@ -626,7 +626,7 @@ import { SessionApp } from "@stigmer/ink-ui";
 
 render(
   <SessionApp
-    sessionId="ses-abc123"
+    sessionId="ses_abc123"
     org="my-org"
     baseUrl="https://api.stigmer.ai"
     apiKey={process.env.STIGMER_API_KEY}
@@ -663,7 +663,7 @@ const client = createNodeClient({ baseUrl: "...", apiKey: "..." });
 
 render(
   <InkStigmerProvider client={client}>
-    <SessionView sessionId="ses-xxx" org="my-org" />
+    <SessionView sessionId="ses_xxx" org="my-org" />
   </InkStigmerProvider>
 );
 ```

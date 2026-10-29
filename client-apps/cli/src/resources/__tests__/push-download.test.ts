@@ -77,11 +77,11 @@ function output(id: string, runId: string, outputPath: string, sizeBytes: bigint
 
 // Newest first, as the server lists them.
 const runFiles: readonly File[] = [
-  output("file_report", "aex_done", "report.txt", 23n),
-  output("file_missing", "aex_done", "broken.txt", 5n),
-  output("file_q3", "aex_nested", "reports/q3.md", 5n),
-  output("file_escape", "aex_escape", "../evil.txt", 5n),
-  output("file_absolute", "aex_absolute", "/evil.txt", 5n),
+  output("file_report", "run_done", "report.txt", 23n),
+  output("file_missing", "run_done", "broken.txt", 5n),
+  output("file_q3", "run_nested", "reports/q3.md", 5n),
+  output("file_escape", "run_escape", "../evil.txt", 5n),
+  output("file_absolute", "run_absolute", "/evil.txt", 5n),
 ];
 
 // One conversation's Files in its own organization (not the context's),
@@ -114,7 +114,7 @@ function completedRun(id: string) {
 
 // A run still pending: nothing produced yet.
 const pendingExecution = create(RunSchema, {
-  metadata: { id: "aex_pending", org: "acme" },
+  metadata: { id: "run_pending", org: "acme" },
   status: { phase: RunPhase.RUN_PENDING },
 });
 
@@ -157,8 +157,8 @@ beforeAll(async () => {
     });
     router.service(RunQueryController, {
       get: (req) => {
-        if (req.value === "aex_pending") return pendingExecution;
-        if (!["aex_done", "aex_nested", "aex_escape", "aex_absolute"].includes(req.value)) {
+        if (req.value === "run_pending") return pendingExecution;
+        if (!["run_done", "run_nested", "run_escape", "run_absolute"].includes(req.value)) {
           throw new ConnectError("not found", Code.NotFound);
         }
         return completedRun(req.value);
@@ -247,7 +247,7 @@ describe("downloadRunOutputs", () => {
   it("downloads available outputs and tolerates partial failures", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunOutputs(client, "aex_done", { outputPath: "", outputDir: out });
+      const outcome = await downloadRunOutputs(client, "run_done", { outputPath: "", outputDir: out });
       expect(outcome.total).toBe(2);
       expect(outcome.downloaded).toBe(1); // broken.txt 404s, report.txt succeeds
       expect(outcome.noOutputs).toBe(false);
@@ -263,7 +263,7 @@ describe("downloadRunOutputs", () => {
     try {
       const outcome = await downloadRunOutputs(
         client,
-        "aex_pending",
+        "run_pending",
         { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );
@@ -279,10 +279,10 @@ describe("downloadRunOutputs", () => {
   it("refuses a named output the run does not hold, pointing at get run", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const failure = downloadRunOutputs(client, "aex_done", { outputPath: "missing.txt", outputDir: out });
+      const failure = downloadRunOutputs(client, "run_done", { outputPath: "missing.txt", outputDir: out });
       await expect(failure).rejects.toBeInstanceOf(CliExitError);
       await expect(failure).rejects.toMatchObject({
-        message: "output not found: missing.txt\n\nUse 'stigmer get run aex_done' to see available outputs",
+        message: "output not found: missing.txt\n\nUse 'stigmer get run run_done' to see available outputs",
         exitCode: ExitCode.General,
       });
     } finally {
@@ -293,7 +293,7 @@ describe("downloadRunOutputs", () => {
   it("filters to a named output by its bare filename", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunOutputs(client, "aex_done", { outputPath: "report.txt", outputDir: out });
+      const outcome = await downloadRunOutputs(client, "run_done", { outputPath: "report.txt", outputDir: out });
       expect(outcome.total).toBe(1);
       expect(outcome.downloaded).toBe(1);
     } finally {
@@ -304,7 +304,7 @@ describe("downloadRunOutputs", () => {
   it("writes a File at its place in the outputs folder", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunOutputs(client, "aex_nested", { outputPath: "", outputDir: out });
+      const outcome = await downloadRunOutputs(client, "run_nested", { outputPath: "", outputDir: out });
       expect(outcome).toEqual({ total: 1, downloaded: 1, noOutputs: false, incompletePhase: undefined });
       expect(readFileSync(join(out, "reports", "q3.md"), "utf8")).toBe(REPORT_BODY);
       expect(existsSync(join(out, "q3.md"))).toBe(false);
@@ -316,7 +316,7 @@ describe("downloadRunOutputs", () => {
   it("filters to a named output by its path in the outputs folder", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunOutputs(client, "aex_nested", {
+      const outcome = await downloadRunOutputs(client, "run_nested", {
         outputPath: "reports/q3.md",
         outputDir: out,
       });
@@ -334,7 +334,7 @@ describe("downloadRunOutputs", () => {
     try {
       const outcome = await downloadRunOutputs(
         client,
-        "aex_escape",
+        "run_escape",
         { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );
@@ -354,7 +354,7 @@ describe("downloadRunOutputs", () => {
     try {
       const outcome = await downloadRunOutputs(
         client,
-        "aex_absolute",
+        "run_absolute",
         { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );

@@ -457,16 +457,14 @@ export class SessionEventEmitter {
    * in an append of its own: no event, no other preview, no status write
    * (the liveness pump's module header says why alone). An operation whose
    * result the log already holds is left out. Called by the persist
-   * chokepoint in its single flight, as {@link flushToolOutput} is.
-   * Resolves `refused` when the log refused the preview as invalid (a
-   * server older than it), so the pump stops; any other failure is logged
-   * and not resent. Never throws.
+   * chokepoint in its single flight, as {@link flushToolOutput} is. A
+   * failure is logged and not resent. Never throws.
    */
-  async sendLiveness(snapshot: OperationsSnapshot): Promise<"sent" | "refused"> {
-    if (!this.began) return "sent";
+  async sendLiveness(snapshot: OperationsSnapshot): Promise<void> {
+    if (!this.began) return;
     const runId = this.deps.runId;
-    // Clamped to the contract, so a preview the log would refuse as invalid
-    // never stops the pump: the oldest operations, each name within its bound.
+    // Clamped to the contract, so the log never refuses a preview as
+    // invalid: the oldest operations, each name within its bound.
     const operations = snapshot.operations
       .flatMap((operation) => {
         const toolUseId = toolUseEventId(runId, operation.callId);
@@ -493,12 +491,9 @@ export class SessionEventEmitter {
     });
     try {
       await this.deps.client.appendSessionEvents(runId, [], [preview], await this.credential());
-      return "sent";
     } catch (err) {
-      if (err instanceof ConnectError && err.code === Code.InvalidArgument) return "refused";
       if (err instanceof ConnectError && CREDENTIAL_REFUSALS.has(err.code)) this.credentialRefused();
       console.warn(`[session-events] run=${runId}: sending the turn's liveness failed; not resent: ${String(err)}`);
-      return "sent";
     }
   }
 

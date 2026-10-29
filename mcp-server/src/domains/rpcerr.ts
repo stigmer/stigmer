@@ -1,9 +1,8 @@
 // Translation of transport/RPC failures into user-facing tool errors.
 //
-// Parity contract (mirrors Go internal/domains/rpcerr.go): the original error is
-// logged at WARN for operator debugging; only the classified, user-friendly
-// message is returned to the AI client. Message text is kept verbatim so the
-// TS and Go servers are indistinguishable to clients.
+// The original error is logged at WARN for operator debugging; only the
+// classified, user-friendly message is returned to the AI client. The message
+// text is contract: clients read it verbatim.
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import { log } from "../logger.js";

@@ -1,12 +1,11 @@
 /**
- * The staged composition root (modelled on Go's two-phase
- * nil-then-inject wiring): plain functions building the graph in
+ * The staged composition root: plain functions building the graph in
  * dependency order — config → storage → temporal → controllers → routes →
  * listen. Every dependency is a required parameter; a missing one is a
- * compile error or a loud boot throw, NEVER a silent no-op (the Go bug
- * class the inventory flags).
+ * compile error or a loud boot throw, NEVER a silent no-op (a dependency
+ * injected late and forgotten is the bug class this shape rules out).
  *
- * Boot ordering is contract (Go server.go:739-743, 806, 839-843): health
+ * Boot ordering is contract: health
  * flips SERVING only when wiring is complete, and the port binds AFTER
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
  * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then the
@@ -17,8 +16,8 @@
  * stage has side effects — and their contributions ride the existing
  * stages (services in the one routes closure, workers on the manager's
  * factory list, the edition into the platform controller). With no
- * extensions composed, every stage below behaves byte-identically to
- * before the parameter existed; the conformance rosters pin that.
+ * extensions composed, every stage below is the open-source server
+ * alone; the conformance rosters pin that.
  */
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -293,7 +292,7 @@ import {
 import { createRegistryLanes } from "../transport/registry/lanes.js";
 import { createUnifiedPortServer } from "../transport/server.js";
 import { registerExtensionServicesUnshadowed } from "./route-shadowing.js";
-import type { ServerConfig } from "./config.js";
+import { defaultSandboxRunnerImage, type ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
 import { LIST_INDEXES } from "./list-indexes.js";
@@ -312,8 +311,7 @@ export interface ComposedServer {
   store: Store;
   /**
    * The composed secret-encryption facade — the SAME instance every
-   * domain seals and opens with (one facade per composition, the Go
-   * one-pointer posture). Exposed for compositions whose extensions run
+   * domain seals and opens with (one facade per composition). Exposed for compositions whose extensions run
    * maintenance lanes over stored ciphertext — the secret-convergence
    * sweep's reencrypt door and the encryption-state census: a twin
    * facade built from the same codec map would duplicate KEK caches and
@@ -339,8 +337,8 @@ export interface ComposedServer {
   /**
    * The in-process router transport — the same routes and interceptor
    * chain as the serving router EXCEPT the position-1 identity source
-   * (Go's bufconn shape: this lane stamps the internal
-   * caller class, the serving chain runs the verifier chassis). Exposed
+   * (this lane stamps the internal caller class, the serving chain runs
+   * the verifier chassis). Exposed
    * because it is the one lane that reaches EVERY registered service,
    * extension services included:
    * compositions build clients to their extension services over it, and
@@ -414,10 +412,9 @@ export interface ComposeOptions {
    * extension unit — which is why it lives here and not on
    * ServerExtension beside `edition`. When it is a release it is also the
    * release every sandbox driver hands the runner layer's start script
-   * (SandboxDriverConfig.serverRelease), while the default runner image
-   * (defaultSandboxRunnerImage) follows SERVER_VERSION: a composition that
-   * states a release names its runner image too, or its sandboxes start on
-   * `runner:latest`, warned about or refused by that layer's release.
+   * (SandboxDriverConfig.serverRelease), and it picks the runner image the
+   * drivers launch when the operator names none (defaultSandboxRunnerImage),
+   * so a composition that states a release starts that release's runner.
    */
   version?: string;
   /** Test seam forwarded to the model-registry upstream fetch. */
@@ -431,9 +428,10 @@ export async function composeServer(
   options: ComposeOptions,
 ): Promise<ComposedServer> {
   const { config, logger } = options;
-  // The one version this server states: getServerInfo reports it, and the
+  // The one version this server states: getServerInfo reports it, the
   // sandbox drivers hand it, when it is a release, to the runner layer's
-  // start script, which refuses a layer of another release.
+  // start script, which refuses a layer of another release, and it picks
+  // the runner image they launch unless the operator names one.
   const version = options.version ?? SERVER_VERSION;
 
   // Stage: extensions — resolves and validates BEFORE any stage has side
@@ -449,8 +447,7 @@ export async function composeServer(
 
   // Stage: storage — the driver selection seam: DATABASE_URL
   // present → Postgres (async connect + advisory-locked migrations), else
-  // sqlite on DB_PATH (its whole chain, incl. adopting a Go-created
-  // database — schema continuity). Postgres wins when both are set:
+  // sqlite on DB_PATH (its whole migration chain). Postgres wins when both are set:
   // DB_PATH always has a default value, so no other precedence could ever
   // select Postgres (config.ts documents the contract). Either driver
   // opens with the list indexes (list-indexes.ts) and the session event
@@ -618,8 +615,8 @@ export async function composeServer(
   // (extensions/resource-authorization.ts, corrected 2026-09-13). Those
   // two kinds ONLY, because a lifecycle on a controller turns on the
   // steps' full event RESOLUTION for that kind, and resolution fails a
-  // request whose configured parent id is missing (Java parity the
-  // cloud relies on) — a state open source admits by contract (a memory
+  // request whose configured parent id is missing (the cloud relies on
+  // that refusal) — a state open source admits by contract (a memory
   // captured with no credential has no subject). The built-in object is
   // a two-kind role recorder, so only two controllers see it; every other
   // controller keeps the composed driver above and stays byte-identical.
@@ -899,24 +896,7 @@ export async function composeServer(
       });
     }
   }
-  // The built-in posture's own boot ensure, the sibling of the block
-  // above: the membership rules run at a person's FIRST provisioning, so a
-  // database whose people were provisioned before the rules existed (a
-  // 3.15.x self-host with OIDC on) holds accounts with no role rows — and
-  // the built-in authorizer below would make every one of them an
-  // outsider on every organization, with nobody left who could grant a
-  // way back. Once per database (a bootstrap-state marker; the rules'
-  // header), the same arms run for every person account in creation
-  // order; a fault is a loud boot throw like the storage stage's, and the
-  // next boot converges. Under the built-in posture only: a unit with its
-  // own Authorizer has its own onboarding, and trusted-local has the
-  // operator ensure above and one principal.
-  if (authorizationPosture === "built-in" && membership !== undefined) {
-    await membership.ensureRolesForExistingAccounts();
-    logger.info("built-in posture role reconciliation ensured");
-  }
-
-  // Stage: keys — the fail-loud boot ASYMMETRY (Go server.go:277-293):
+  // Stage: keys — the fail-loud boot ASYMMETRY:
   //
   //   - Encryption key failure → WARN and continue with a keyless
   //     pass-through v1 codec. Plaintext at rest is tolerable (the write
@@ -1007,8 +987,8 @@ export async function composeServer(
   });
   // Stage: temporal. Construction is sync and connection-free —
   // initialConnect/startWorkers/startHealthMonitor run in start(), all
-  // NON-fatal (Go server.go: the server boots and serves with the engine
-  // unavailable; the health monitor keeps retrying). The one boot-fatal
+  // NON-fatal (the server boots and serves with the engine unavailable;
+  // the health monitor keeps retrying). The one boot-fatal
   // arm is a PRESENT-but-malformed payload-encryption key: an operator
   // who set the key intended runner history to be encrypted, and failing
   // on the first runner payload read would be worse than failing here.
@@ -1036,7 +1016,10 @@ export async function composeServer(
         temporalAddress: config.sandboxTemporalAddress,
         temporalNamespace: config.temporalNamespace,
         temporalConnectionEnv: temporalConnectionEnv(config.temporalConnection),
-        runnerImage: config.sandboxRunnerImage,
+        runnerImage:
+          config.sandboxRunnerImage !== ""
+            ? config.sandboxRunnerImage
+            : defaultSandboxRunnerImage(version),
         runnerCommand: config.sandboxRunnerCommand,
         kubernetesNamespace: config.sandboxKubernetesNamespace,
         runnerEnv: config.sandboxRunnerEnv,
@@ -1110,7 +1093,7 @@ export async function composeServer(
   // routes() (which runs twice), so a recover over either router waits
   // for one over the other.
   const agentExecutionRecoverSerializer = new KeyedSerializer();
-  // Stage: the routine's schedule clock — Go server.go 578–592 injection order:
+  // Stage: the routine's schedule clock, in injection order:
   // config → artifact → syncer → run starter → (worker below) →
   // reconciler. The client provider closes over `temporalManager`,
   // declared just below — legal and deliberate: the manager's factory list
@@ -1214,8 +1197,7 @@ export async function composeServer(
     logger,
   );
   // The manager owns the connection lifecycle; one factory per domain
-  // worker (Go createWorkers' list) — agent-execution and the routine
-  // clock.
+  // worker — agent-execution and the routine clock.
   const temporalManager = new TemporalManager({
     hostPort: config.temporalHostPort,
     namespace: config.temporalNamespace,
@@ -1289,13 +1271,13 @@ export async function composeServer(
         evalRunCaller,
         logger,
       }),
-      // Extension workers append after the OSS set — their own queues,
-      // the Java worker-per-queue split as precedent.
+      // Extension workers append after the OSS set — each on its own
+      // queue, one worker per queue.
       ...extensions.workers,
     ],
   });
-  // The provider IS the injection mechanism (no Go-style creator
-  // re-injection): controllers observe the manager's CURRENT client at
+  // The provider IS the injection mechanism (no re-injection on
+  // reconnect): controllers observe the manager's CURRENT client at
   // request time, so reconnects propagate with zero re-wiring.
   const executionEngineState = newExecutionEngineStateProvider({
     manager: temporalManager,
@@ -1304,10 +1286,9 @@ export async function composeServer(
     runnerCredentials,
     logger,
   });
-  // The artifact blob store (Go server.go 349: shared by agentexecution
-  // attachments and run files, and skill push). The health probe
-  // runs in start(), matching Go's
-  // boot check. The factory consults the composition's registered
+  // The artifact blob store (shared by run attachments and run files,
+  // and skill push). The health probe runs in start(), a boot check.
+  // The factory consults the composition's registered
   // drivers for non-built-in types.
   //
   // The download lane's placement (boot/artifact-lane.ts): the configured
@@ -1347,7 +1328,7 @@ export async function composeServer(
     extensions.drivers.artifactStorageDrivers,
   );
   // The artifact download lane: a SECOND loopback listener, local storage
-  // only (Go server.go 849–870) — deliberately not a unified-port lane.
+  // only — deliberately not a unified-port lane.
   // Lifecycle rides start()/shutdown().
   const artifactFileServer =
     config.artifactStorageType === "local"
@@ -1357,11 +1338,11 @@ export async function composeServer(
           logger,
         })
       : undefined;
-  // The skill artifact store + transfer lane (Go server.go:318-340). The
+  // The skill artifact store + transfer lane. The
   // store is content-addressed and never-GC at {storagePath}/skills/;
   // the slots registry wipes {storagePath}/skills/staging at boot (orphans
   // from a dead process are useless — the registry died with it). On OSS
-  // the lane is ALWAYS configured (Go wires it unconditionally too): the
+  // the lane is ALWAYS configured: the
   // FailedPrecondition lane-absent arms exist for construction-order
   // safety, and the capability matrix pins skillArtifactTransferLane=true.
   //
@@ -1369,8 +1350,8 @@ export async function composeServer(
   // driver: skill keeps its own root and its own
   // backend knob (SKILL_ARTIFACT_STORAGE_TYPE), so an r2-configured
   // deployment changes nothing for skill artifacts until it opts in
-  // explicitly, and the Go-written skills/ directory keeps serving in
-  // place on the default arm.
+  // explicitly, and the local skills/ directory keeps serving in place
+  // on the default arm.
   //
   // Capability URLs come from the driver through the staging port
   // (domain/skill/transfer/staging.ts, stigmer#1219): the local driver's
@@ -1406,9 +1387,8 @@ export async function composeServer(
       : config.skillArtifactStorageType;
   const skillStorageDriver = ((): ArtifactStorage => {
     if (skillType === "local") {
-      // Go layout invariant: {storagePath}/skills exists from boot with
-      // 0755 (the retired LocalFileStorage constructor's mkdir; the
-      // generic driver only creates directories on demand).
+      // Layout invariant: {storagePath}/skills exists from boot with
+      // 0755 (the generic driver only creates directories on demand).
       mkdirSync(path.join(config.storagePath, "skills"), {
         recursive: true,
         mode: 0o755,
@@ -1598,8 +1578,7 @@ export async function composeServer(
       : undefined;
   // The search read side: the 13-kind extractor registry, the query
   // store over the driver's index read (no DB() escape hatch), and
-  // the CQRS handler. Registry validation is warn-only, Go server.go:509's
-  // posture — run ONCE here rather than inside routes(), which executes
+  // the CQRS handler. Registry validation is warn-only — run ONCE here rather than inside routes(), which executes
   // twice (serving router + in-process router).
   const searchRegistry = newSearchableResourceRegistry();
   searchRegistry.validateExpectedKinds(logger);
@@ -1629,7 +1608,7 @@ export async function composeServer(
   // own origin when it serves one — the public origin the skill transfer
   // lane already renders on, else the known port's loopback
   // (boot/oauth-redirect-uri.ts carries the posture; stigmer#1200). Absent
-  // is WARN-degrade, not boot-fatal (Go server.go:722-729): a sign-in
+  // is WARN-degrade, not boot-fatal: a sign-in
   // through the console refuses with the pinned FailedPrecondition copy,
   // and the desktop's loopback sign-in still works.
   const oauthRedirect = resolveOAuthRedirectUri({
@@ -1703,7 +1682,7 @@ export async function composeServer(
   // The SAME `routes` function registers every service on BOTH the serving
   // router and the in-process router transport (createInProcessClients).
   // Handlers are stateless over the same store, so the two routers behave
-  // as one server — Go's single-server bufconn shape. Chain traversal on
+  // as one server. Chain traversal on
   // internal calls is the point: an in-process apply/get is
   // validated, logged, and kind-tagged exactly like an external one — the
   // one deliberate difference is position 1: internal calls carry the
@@ -1810,10 +1789,7 @@ export async function composeServer(
       purge: organizationPurge,
       accounts: identityAccounts,
     });
-    // ApiKey is the first domain born AFTER the Go port (the apikey
-    // contract is wholly OSS), so it has no Go
-    // registration order to mirror; it registers with the tenancy/IAM
-    // family at the top. The chassis's apikey VERIFIER shares this
+    // ApiKey registers with the tenancy/IAM family at the top. The chassis's apikey VERIFIER shares this
     // domain's lookup module — not the RPC (domain/apikey/lookup.ts).
     registerApiKeyServices(router, {
       store,
@@ -2067,10 +2043,9 @@ export async function composeServer(
       blobs: fileBlobs,
       lifecycle: authorizationLifecycle,
     });
-    // Routine registers between channelapp and memory (Go server.go
-    // 417 → 426 → 436). The clock and runner ride constant providers —
-    // production wiring always has both (Go SetClock/SetRunner beside the
-    // manager); the provider SHAPE exists for embedded/test assemblies
+    // Routine registers between channelapp and memory. The clock and
+    // runner ride constant providers — production wiring always has both;
+    // the provider SHAPE exists for embedded/test assemblies
     // that skip Temporal wiring, where undefined degrades to the refusal
     // the provider models.
     registerRoutineServices(router, {
@@ -2222,9 +2197,7 @@ export async function composeServer(
       },
     });
     // The two CQRS query services register between the domains and the
-    // github/platform tail, mirroring Go's registration order
-    // (server.go: organization 487 → search 493 → activity 513 →
-    // github 524 → platform 530).
+    // github/platform tail.
     registerSearchServices(router, { handler: searchHandler, logger });
     registerActivityServices(router, { handler: activityHandler, logger });
     // GitHub: the repository reads use the caller's github.com login
@@ -2237,7 +2210,7 @@ export async function composeServer(
       vaults: vaultService,
       fetchImpl: options.fetchImpl,
     });
-    // Platform registers LAST of all controllers (Go server.go 530–535).
+    // Platform registers LAST of all controllers.
     registerPlatformServices(router, {
       runnerBootstrapTemporalAddress: config.runnerBootstrapTemporalAddress,
       runnerBootstrapMcpBridgeEndpoint: config.runnerBootstrapMcpBridgeEndpoint,
@@ -2274,9 +2247,8 @@ export async function composeServer(
   });
   inProcess = inProcessWiring.clients;
 
-  // What the posture (resolved in the storage stage) registers, in Java's
-  // ProviderManager order (opaque
-  // keys first — the cheapest claim — then the JWT lanes), ahead of the
+  // What the posture (resolved in the storage stage) registers, in claim
+  // order (opaque keys first — the cheapest claim — then the JWT lanes), ahead of the
   // extension entries ("OSS entries first", the registry contract):
   //   - the API-key verifier rides the POSTURE, not the issuer
   //     (stigmer#984): the apikey domain is open-source tier and mints
@@ -2419,7 +2391,7 @@ export async function composeServer(
   // (caller-guards.ts). The serving-only pair: position 0 is the error
   // boundary — the raw-error conversion net plus the
   // composed visitor sanitizer — and the request-metrics emitter sits
-  // just inside the identity source (Java's position). Both
+  // just inside the identity source. Both
   // are SERVING chain only, so in-process hops keep full diagnostics
   // and are never counted as requests, by construction.
   const servingInterceptors = buildInterceptorChain(
@@ -2571,14 +2543,14 @@ export async function composeServer(
           holder: singleOrganization,
           logger,
         });
-        // Under sign-in the organization is made as nobody, after the
-        // role reconciliation above ran: the people a store already held
-        // get their roles on it here, once (domain/grant/membership.ts).
+        // Under sign-in the organization is made as nobody: the people a
+        // store already held when it was made get their roles on it here,
+        // once (domain/grant/membership.ts).
         if (authorizationPosture === "built-in" && membership !== undefined) {
           await membership.ensureRolesOnServerOrganization();
         }
       }
-      // Temporal boot is NON-fatal end to end (Go server.go): a failed
+      // Temporal boot is NON-fatal end to end: a failed
       // initial connect leaves the engine unavailable and the monitor
       // retrying; a failed worker start is a warning. Health below flips
       // SERVING regardless — engine availability is modeled in the
@@ -2590,7 +2562,7 @@ export async function composeServer(
       temporalManager.startHealthMonitor();
       // Routine reconciliation: an immediate boot pass (the dev server may
       // have restarted with empty state while the daemon was down), the
-      // periodic loop, and the reconnect kick — Go server.go 763–764.
+      // periodic loop, and the reconnect kick.
       const kickRoutineReconcile = routineReconciler.startReconciliation();
       temporalManager.addReconnectHook(kickRoutineReconcile);
       // The organization purge: a first pass over the deletion table now
@@ -2607,12 +2579,11 @@ export async function composeServer(
         });
       }
       // Artifact storage must be reachable and writable before the server
-      // answers (Go server.go boots-fatal on the same probe).
+      // answers: a failed probe fails the boot.
       await artifactStorage.health();
       // The download lane binds with the store it serves, and on the same
-      // terms: a lane that cannot bind fails the boot, where the retired Go
-      // server logged the failure and served on with every download dead
-      // (stigmer#1089). Binding here, before SERVING and the unified port,
+      // terms: a lane that cannot bind fails the boot, never serving on
+      // with every download dead (stigmer#1089). Binding here, before SERVING and the unified port,
       // also means the derived serve URL exists before a request can mint
       // one.
       if (artifactFileServer !== undefined) {
@@ -2630,11 +2601,10 @@ export async function composeServer(
           );
         }
       }
-      // Rebuild the search index before the port binds (Go
-      // server.go:617): the index is separate from the resources table,
-      // and rebuilding here makes every resource — including rows an
-      // earlier release wrote into this database — discoverable the
-      // moment the server accepts connections. Warn-only: a partial
+      // Rebuild the search index before the port binds: the index is
+      // separate from the resources table, and rebuilding here makes every
+      // stored resource discoverable the moment the server accepts
+      // connections. Warn-only: a partial
       // rebuild degrades search, never boot.
       try {
         const indexed = await searchQueryStore.rebuildIndex();
@@ -2644,8 +2614,8 @@ export async function composeServer(
           error: error instanceof Error ? error.message : String(error),
         });
       }
-      // The request counter is born at zero before the port binds (Java's
-      // constructor add(0); the heartbeat's premise), and the boot says
+      // The request counter is born at zero before the port binds (the
+      // heartbeat's premise), and the boot says
       // whether anything will export it: the emitter is library
       // instrumentation on @opentelemetry/api, so "exporting" is the
       // host's meter provider (the cloud composition's bootstrap) and
@@ -2704,7 +2674,7 @@ export async function composeServer(
       await temporalManager.close();
       await server.shutdown();
       // The store closes LAST: in-flight handlers drained above may still
-      // be mid-write (Go closes the store after grpcServer.Stop too).
+      // be mid-write.
       await store.close();
       logger.info("stigmer-server stopped");
     },

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useModelRegistry } from "../models/index.js";
-import { parseModelKey } from "../models/registry.js";
 import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 
 /** Options for {@link usePersistedModel}. */
@@ -36,8 +35,7 @@ export type UsePersistedModelReturn = readonly [
 
 /**
  * Where each engine's last model pick is kept on this device: one key per
- * engine, so a pick on one engine never replaces another's. The Stigmer key
- * predates the table and keeps its string, so no stored pick is lost.
+ * engine, so a pick on one engine never replaces another's.
  */
 const MODEL_STORAGE_KEYS: Readonly<Record<HarnessOption, string>> = {
   stigmer: "stigmer:session:model",
@@ -50,16 +48,6 @@ export function modelStorageKey(harness: HarnessOption = DEFAULT_HARNESS): strin
 }
 
 /**
- * Extract the plain modelId from a value that might be a compound key
- * (e.g. `"claude/claude-sonnet-4.6"` → `"claude-sonnet-4.6"`). Returns the value unchanged
- * if it's already a plain ID.
- */
-function extractPlainModelId(value: string): string {
-  const parsed = parseModelKey(value);
-  return parsed ? parsed.modelId : value;
-}
-
-/**
  * Model selection with localStorage persistence.
  *
  * Restores the last selected model on mount and validates it against the
@@ -69,9 +57,6 @@ function extractPlainModelId(value: string): string {
  *
  * When `options.harness` is provided, the stored model is read from a
  * harness-specific key and validated against the harness-filtered registry.
- *
- * Handles legacy compound keys (`"claude/claude-sonnet-4.6"`) gracefully by
- * extracting the plain modelId portion before validation.
  *
  * Used by both the session launcher (new session) and session page
  * (follow-up messages) to maintain a consistent model preference.
@@ -88,7 +73,7 @@ export function usePersistedModel(
   const [modelId, setModelId] = useState<string | undefined>(() => {
     if (!enabled || typeof window === "undefined") return undefined;
     const raw = localStorage.getItem(key);
-    return raw ? extractPlainModelId(raw) : undefined;
+    return raw || undefined;
   });
 
   // Re-read from localStorage when the storage key changes (harness transition).
@@ -99,7 +84,7 @@ export function usePersistedModel(
 
     if (typeof window === "undefined") return;
     const raw = localStorage.getItem(key);
-    setModelId(raw ? extractPlainModelId(raw) : undefined);
+    setModelId(raw || undefined);
   }, [enabled, key]);
 
   useEffect(() => {

@@ -1,6 +1,5 @@
 /**
- * Pins the authorization-code exchange against Go oauth/token.go
- * (token_test.go): the grant parameter set, EXACTLY ONE secret channel
+ * Pins the authorization-code exchange: the grant parameter set, EXACTLY ONE secret channel
  * per request (RFC 6749 §2.3 — Basic default, form-body for
  * client_secret_post, neither for public clients), the Slack V2
  * authed_user promotion, the 256-byte error truncation, the

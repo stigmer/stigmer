@@ -15,10 +15,6 @@
  * model streams, so the events under this golden are the ones a provider
  * produces (`scripted-model.ts` header).
  *
- * The legacy positional `(executionId, threadId)` form the control planes
- * still may send (`shared/activity-input.ts`) rides on the same golden, and
- * matching the SAME file is the assertion that it is invisible to the status.
- *
  * The model the turn builds is the one the control plane resolved
  * (`status.run_config`), never the one the request asked for
  * (`spec.run_config`): a request that disagrees with the resolution runs the
@@ -137,14 +133,6 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     expect(primaryBuild?.proxyEndpoint, "the OSS posture has no proxy").toBeUndefined();
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot(GOLDEN);
-    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath(GOLDEN));
-    await expect(record.eventsGolden()).toMatchFileSnapshot(GOLDEN.replace(".status.json", ".events.json"));
-  });
-
-  it("produces the same status from the legacy positional wire shape", async () => {
-    const { record, invocation } = await runPlainTurn({ positional: true });
-    expect(invocation.outcome.kind).toBe("returned");
     await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot(GOLDEN);
     await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath(GOLDEN));
     await expect(record.eventsGolden()).toMatchFileSnapshot(GOLDEN.replace(".status.json", ".events.json"));

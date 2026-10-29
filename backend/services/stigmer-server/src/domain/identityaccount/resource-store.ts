@@ -5,8 +5,8 @@
  * extension registers `drivers.identityAccountStore`.
  *
  * Every subject lookup is a PRIMARY-KEY read of the derived id
- * (constants.ts accountIdFor): open source has no legacy random ids, so
- * "the account with subject S" IS "the row with id accountIdFor(S)". That
+ * (constants.ts accountIdFor): open source never mints a random account
+ * id, so "the account with subject S" IS "the row with id accountIdFor(S)". That
  * is what makes the OIDC lane's per-request resolve, whoAmI and the
  * provisioning idempotency check O(1) reads with no secondary index and
  * no scan, and it is why `save` refuses a direct account whose id is not
@@ -59,6 +59,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { GuardedRead } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
 import { accountIdFor, federatedAccountIdFor } from "./constants.js";
+import { subjectIsOwn } from "./own-subject.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -93,7 +94,7 @@ export function newResourceIdentityAccountStore(
       refuseMixedShape(account);
       const id = account.metadata?.id ?? "";
       const idpId = account.spec?.idpId ?? "";
-      if (isDirect(account) && id !== accountIdFor(idpId)) {
+      if (subjectIsOwn(account) && id !== accountIdFor(idpId)) {
         throw new Error("direct account id must be derived from its idp_id");
       }
       if (isFederated(account) && id !== federatedAddressOf(account)) {
@@ -151,7 +152,7 @@ export function newResourceIdentityAccountStore(
 
     async findDirectByIdpId(idpId): Promise<IdentityAccount | undefined> {
       const account = await readBySubject(idpId);
-      return account !== undefined && isDirect(account) ? account : undefined;
+      return account !== undefined && subjectIsOwn(account) ? account : undefined;
     },
 
     async findDirectByEmail(email): Promise<IdentityAccount | undefined> {
@@ -163,7 +164,7 @@ export function newResourceIdentityAccountStore(
       );
       return rows
         .map((bytes) => fromBinary(IdentityAccountSchema, bytes))
-        .find(isDirect);
+        .find(subjectIsOwn);
     },
 
     async findByIds(ids): Promise<ReadonlyArray<IdentityAccount>> {
@@ -288,25 +289,5 @@ function isFederated(account: IdentityAccount): boolean {
   return (
     account.spec?.federationIssuerRef !== undefined ||
     account.spec?.provisioningMode === IdentityAccountProvisioningMode.federated
-  );
-}
-
-/**
- * The platform's own subject: neither federated, nor an app user, nor an
- * organization's service account. A federated account carries
- * its federation_issuer_ref (open source never writes one, so that arm is
- * the port's contract stated); an app-user account is the mint's, whose
- * email and name the product asserted; a service account signs in
- * through nothing, so a sign-in whose subject named one must never resolve
- * to it. No direct lookup — a verifier's subject resolve, getByEmail — may
- * answer any of them.
- */
-function isDirect(account: IdentityAccount): boolean {
-  const mode = account.spec?.provisioningMode;
-  return (
-    account.spec?.federationIssuerRef === undefined &&
-    mode !== IdentityAccountProvisioningMode.federated &&
-    mode !== IdentityAccountProvisioningMode.app_user &&
-    mode !== IdentityAccountProvisioningMode.service_account
   );
 }

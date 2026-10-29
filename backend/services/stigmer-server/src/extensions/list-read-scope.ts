@@ -1,13 +1,12 @@
 /**
- * The list-read-scope extension point (it generalizes and ABSORBS the
- * earlier execution-only read scope, whose two summary consumers now ride
- * the enumeration verb below). OSS list-shaped reads — the list/listByAgent
+ * The list-read-scope extension point (the two dashboard summaries ride
+ * its enumeration verb below). OSS list-shaped reads — the list/listByAgent
  * chains, apikey list, search, recent activity, the two dashboard
  * summaries — are deliberate full scans on OSS (single-user: everything
  * is yours). On a multi-tenant edition the same scans serve OTHER
- * tenants' rows, so the cloud baseline (the Java list handlers) narrows
- * every one of them to the caller's FGA-authorized id set (ListObjects
- * on can_view), with a second guest
+ * tenants' rows, so a multi-tenant edition narrows every one of them to
+ * the caller's authorized id set (ListObjects on can_view), with a second
+ * guest
  * cookie-label rule on the session and agent-execution lanes.
  *
  * This port is the ONE seam for that fork (every list-shaped fork rides
@@ -48,8 +47,7 @@
  *   - A scope that cannot answer THROWS — never an empty set. An empty
  *     set is a REAL answer ("authorized to see nothing"); an
  *     authorization-backend outage surfaces as the pipeline's sanitized
- *     INTERNAL, exactly the Java baseline (unavailable is never
- *     softened).
+ *     INTERNAL (unavailable is never softened).
  *   - THE `internal` CLASS IS ANSWERED HERE, NEVER OFFERED TO
  *     `restrictListEntries`. The server acting as itself over the
  *     in-process transport (boot/inprocess.ts mints the class; nothing
@@ -172,8 +170,7 @@ export interface ListEntryMeta extends RowAuthorizationFacts {
 export interface ListReadScope {
   /**
    * The resource ids `caller` may read for `kind`, across every
-   * organization (the Java baseline: FGA listAuthorizedResourceIds on
-   * can_view). Its consumer is search, for the kinds whose reach is the
+   * organization (listAuthorizedResourceIds on can_view). Its consumer is search, for the kinds whose reach is the
    * person's own (query/search/reach.ts). An empty set is a real
    * answer — consumers map it to their lane's empty shape without
    * touching the store. A scope may throw on a kind it was never meant
@@ -192,9 +189,9 @@ export interface ListReadScope {
   ): Promise<ReadonlySet<string>>;
 
   /**
-   * The subset of `entries` ids `caller` may read for `kind` (the Java
-   * baseline: the authorized-ids intersection plus the guest
-   * cookie-label rule where the lane carries it). The result must be a
+   * The subset of `entries` ids `caller` may read for `kind` (the
+   * authorized-ids intersection plus the guest cookie-label rule where
+   * the lane carries it). The result must be a
    * subset of the offered ids — a scope only narrows.
    *
    * `caller` is never the `internal` class: `restrictListByReadScope`,
@@ -264,10 +261,10 @@ export interface ScopedListResource {
  *     posture treats the org field as a no-op, and new filtering on a
  *     scope-less server would be a silent wire change);
  *   - scope composed → entries narrowed to `requestOrg` when non-blank
- *     FIRST (the Java repos' uniform posture: blank org =
- *     permission-bounded across orgs, verified per lane in the coverage
- *     census, docs/authorization-coverage.md — lanes Java does not
- * org-narrow pass ""), then to the kept
+ *     FIRST (the uniform posture: blank org = permission-bounded across
+ *     orgs, per lane in the coverage census,
+ *     docs/authorization-coverage.md — lanes that do not org-narrow pass
+ *     ""), then to the kept
  *     ids. The same set either way (both are per-row predicates); the
  *     order is the header's contract line: the scope sees the org's
  *     rows, not the kind's;

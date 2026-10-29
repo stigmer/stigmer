@@ -1,4 +1,5 @@
 {
+  "description": "Golden vectors for the enc:v1: secret format (AES-256-GCM, base64 of nonce, ciphertext and tag). Frozen: every enc:v1: value a store holds must stay decryptable, so these bytes never change. Read by encryption.test.ts.",
   "keyBase64": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
   "entries": [
     {

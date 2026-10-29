@@ -1,7 +1,7 @@
 // OS-level process queries used by supervision and status.
 //
 // Liveness is a signal-0 probe (no signal delivered, only permission/existence
-// checked) — the same mechanism the Go CLI uses. The port-based lookup is a
+// checked). The port-based lookup is a
 // fallback for locating the daemon when its PID file is missing; it shells to
 // `lsof`, so it is POSIX-only and best-effort (returns null on any failure).
 

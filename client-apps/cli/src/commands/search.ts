@@ -54,8 +54,7 @@ async function runSearch(type: string, query: string, options: SearchFlags, comm
 
   const client = connectBackend();
   ensureAuthenticated(client.config);
-  // Search defaults to all accessible orgs; only an explicit --org scopes it
-  // (mirrors the Go CLI, which leaves the org empty unless overridden).
+  // Search defaults to all accessible orgs; only an explicit --org scopes it.
   const org = globalOrg(command) ?? "";
   const format = readFormat(options);
 
@@ -68,7 +67,7 @@ async function runSearch(type: string, query: string, options: SearchFlags, comm
   process.stdout.write(outcome.rendered);
 
   // The footer is human-only: appending it to json/yaml would corrupt the
-  // machine-readable payload (a latent wart in the Go CLI we don't copy).
+  // machine-readable payload.
   if (format !== "json" && format !== "yaml" && outcome.nextPageToken !== "") {
     process.stdout.write(`\n${outcome.matches} results match.\n`);
     // The token belongs to this query in this organization, so the command

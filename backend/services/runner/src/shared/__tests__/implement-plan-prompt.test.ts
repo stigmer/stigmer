@@ -3,7 +3,7 @@
  *
  * Pinned:
  *  - the approved plan is found among this message's Files by the File's own
- *    filename against the plan convention (`plan.md` or `*.plan.md`), and
+ *    filename against the plan convention (`*.plan.md`), and
  *    answered by its mount path, so a plan the server mounted at
  *    `x.plan-2.md` is found; a plan-adjacent name is not a plan;
  *  - the attached variant points at that path and names the document
@@ -23,10 +23,6 @@ function carried(mountPath: string, filename = mountPath.split("/").pop()!): Pla
 }
 
 describe("findApprovedPlanPath", () => {
-  it("finds the plan by the legacy filename among the message's Files", () => {
-    expect(findApprovedPlanPath([carried("data.csv"), carried("plan.md")])).toBe(".stigmer/uploads/plan.md");
-  });
-
   it("finds a title-named <slug>_<id>.plan.md plan", () => {
     expect(
       findApprovedPlanPath([carried("data.csv"), carried("plan-card-ux-cleanup_a1b2c3d4.plan.md")]),
@@ -35,7 +31,6 @@ describe("findApprovedPlanPath", () => {
 
   it("finds a plan the server mounted under a taken name by its filename, answering the mount path", () => {
     expect(findApprovedPlanPath([carried("x.plan-2.md", "x.plan.md")])).toBe(".stigmer/uploads/x.plan-2.md");
-    expect(findApprovedPlanPath([carried("plan-2.md", "plan.md")])).toBe(".stigmer/uploads/plan-2.md");
   });
 
   it("returns undefined when no plan attachment resolved", () => {
@@ -47,6 +42,8 @@ describe("findApprovedPlanPath", () => {
     expect(findApprovedPlanPath([carried("my-plan.md.bak")])).toBeUndefined();
     // A file merely containing "plan" is not a plan.
     expect(findApprovedPlanPath([carried("myplan.md")])).toBeUndefined();
+    // A bare plan.md is a file like any other.
+    expect(findApprovedPlanPath([carried("plan.md")])).toBeUndefined();
   });
 
   it("judges the filename, never the mount path: a non-plan File at a plan-shaped path is not the plan", () => {

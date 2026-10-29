@@ -24,7 +24,7 @@ function createMockStigmer(overrides: {
   return {
     session: {
       create: overrides.create ?? vi.fn().mockResolvedValue({
-        metadata: { id: "ses-new-1" },
+        metadata: { id: "ses_new-1" },
       }),
     },
   } as never;
@@ -92,7 +92,7 @@ describe("RunnerAdapter", () => {
         });
       });
 
-      expect(created?.sessionId).toBe("ses-new-1");
+      expect(created?.sessionId).toBe("ses_new-1");
       expect(adapter.onSessionOpened).not.toHaveBeenCalled();
       expect(adapter.onSessionClosed).not.toHaveBeenCalled();
       expect(result.current.error).toBeNull();

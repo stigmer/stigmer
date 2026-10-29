@@ -24,11 +24,12 @@ import { ConnectError, Code } from "@connectrpc/connect";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentSpecSchema, HookSourceSchema, type HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { GetArtifactResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginArtifactDownloadUrlSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { buildZip } from "@stigmer/zip-structure/testing";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
+import { mintedDownload } from "../../__test-utils__/minted-download.js";
 import { createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -70,10 +71,7 @@ function client() {
     getPlugin: vi.fn(async () => {
       throw new Error("resolveHooks must not read a plugin: the blueprint carries it");
     }),
-    getPluginArtifactDownloadUrl: vi.fn(async () => {
-      throw new ConnectError("no lane", Code.Unimplemented);
-    }),
-    getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+    getPluginArtifactDownloadUrl: vi.fn(async () => create(PluginArtifactDownloadUrlSchema, mintedDownload(ARCHIVE))),
   });
 }
 
@@ -85,12 +83,12 @@ function deps(client: ResolutionDeps["client"]): { deps: ResolutionDeps; labels:
   return {
     labels,
     deps: {
-      input: { executionId: "aex-hooks", threadId: "", turnSeq: 0 },
+      input: { executionId: "run_hooks", threadId: "", turnSeq: 0 },
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
       status,
       rows,
-      transcript: new TranscriptBuilder("aex-hooks", rows, status),
+      transcript: new TranscriptBuilder("run_hooks", rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
@@ -167,7 +165,7 @@ describe("refuseUnrunnableHooks", () => {
 describe("resolveHooks", () => {
   const run = (blueprint: ResolvedBlueprint, servers: ResolvedMcpServer[] = []) => {
     const { deps: d, labels } = deps(client());
-    return resolveHooks(d, { blueprint, sessionId: `ses-hooks-${++session}`, servers }).then((r) => ({ r, labels }));
+    return resolveHooks(d, { blueprint, sessionId: `ses_hooks-${++session}`, servers }).then((r) => ({ r, labels }));
   };
 
   it("resolves nothing, and reports nothing, for a turn without hooks", async () => {
@@ -232,11 +230,11 @@ describe("resolveHooks", () => {
 
   it("throws a transient fault instead of refusing the turn as the owner's to fix", async () => {
     const inTransit = client();
-    inTransit.getPluginArtifact = vi.fn(async () => {
+    inTransit.getPluginArtifactDownloadUrl = vi.fn(async () => {
       throw new ConnectError("connection refused", Code.Unavailable);
     });
     await expect(
-      resolveHooks(deps(inTransit).deps, { blueprint: blueprintWith([plugin("safety")]), sessionId: `ses-hooks-${++session}`, servers: [] }),
+      resolveHooks(deps(inTransit).deps, { blueprint: blueprintWith([plugin("safety")]), sessionId: `ses_hooks-${++session}`, servers: [] }),
     ).rejects.toThrow("its archive could not be fetched");
   });
 });

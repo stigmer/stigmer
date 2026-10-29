@@ -165,8 +165,8 @@ export function createConsoleLane(options: ConsoleLaneOptions): LaneHandler {
 
 /**
  * The runtime config the cloud container's entrypoint.sh generates from
- * env, synthesized here from the server's own knowledge instead (the
- * nginx entrypoint script is not ported). The field names are the
+ * env, synthesized here from the server's own knowledge instead (no
+ * nginx entrypoint runs here). The field names are the
  * console's loader's (client-apps/web/src/config/runtime-config.ts).
  *
  * `apiUrl` is the empty string, which the console reads as "my own

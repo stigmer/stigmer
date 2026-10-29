@@ -32,12 +32,12 @@ describe("execution-scoped provider over a keyed service", () => {
   const provider = newExecutionScopedRunnerCredentialProvider(service);
 
   it("mints on the execution_scoped lane exactly as the service does", () => {
-    const minted = provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "aex_prov", 0);
+    const minted = provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "run_prov", 0);
     expect(minted.ttlSeconds).toBe(DEFAULT_TTL_SECONDS);
     // Cross-verification both ways: one key, one token dialect.
-    expect(service.verify(minted.token)).toBe("aex_prov");
+    expect(service.verify(minted.token)).toBe("run_prov");
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, minted.token)).toBe(
-      "aex_prov",
+      "run_prov",
     );
   });
 
@@ -48,13 +48,13 @@ describe("execution-scoped provider over a keyed service", () => {
   });
 
   it("mint on an unprovided lane fails loud, naming the lane", () => {
-    expect(() => provider.mint("session_scoped", "aex_x", 0)).toThrowError(
+    expect(() => provider.mint("session_scoped", "run_x", 0)).toThrowError(
       /runner credential lane 'session_scoped' is not provided by this implementation \(provides 'execution_scoped'\)/,
     );
   });
 
   it("verify on an unprovided lane fails closed to InvalidTokenError", () => {
-    const minted = provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "aex_prov", 0);
+    const minted = provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "run_prov", 0);
     // Even a GENUINE token fails when the caller accepts a different
     // lane — the caller's trust statement governs.
     expect(() => provider.verify("session_scoped", minted.token)).toThrow(
@@ -69,10 +69,10 @@ describe("execution-scoped provider over a keyed service", () => {
   });
 
   it("mintRunCredential mints the clockless run credential, bound to the execution, on the provided lane", () => {
-    const token = provider.mintRunCredential!("aex_dispatch");
+    const token = provider.mintRunCredential!("run_dispatch");
     expect(token).not.toBe("");
     expect(provider.verify(TOKEN_TYPE_EXECUTION_SCOPED, token)).toBe(
-      "aex_dispatch",
+      "run_dispatch",
     );
     // No `exp`: the credential's validity is the row's liveness, never a
     // clock (the run credential's defining property).
@@ -97,7 +97,7 @@ describe("execution-scoped provider over a keyless service", () => {
 
   it("mint throws MintingDisabledError — the not-minted response arm", () => {
     expect(() =>
-      provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "aex_keyless", 0),
+      provider.mint(TOKEN_TYPE_EXECUTION_SCOPED, "run_keyless", 0),
     ).toThrow(MintingDisabledError);
   });
 
@@ -108,6 +108,6 @@ describe("execution-scoped provider over a keyless service", () => {
   });
 
   it('mintRunCredential answers "" — the dispatch goes without, never fails', () => {
-    expect(provider.mintRunCredential!("aex_keyless")).toBe("");
+    expect(provider.mintRunCredential!("run_keyless")).toBe("");
   });
 });

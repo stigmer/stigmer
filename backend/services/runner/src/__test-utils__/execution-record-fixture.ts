@@ -57,7 +57,7 @@ export interface ExecutionRecordIds {
 
 export const DEFAULT_RECORD_IDS: ExecutionRecordIds = {
   org: "hermetic-org",
-  executionId: "aex_hermetic_0001",
+  executionId: "run_hermetic_0001",
   sessionId: "ses_hermetic_0001",
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",

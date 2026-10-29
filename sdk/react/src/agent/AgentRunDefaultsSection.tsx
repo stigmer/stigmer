@@ -35,7 +35,7 @@ import { Section } from "../resource-detail/Section.js";
 import { HarnessSelector } from "../models/HarnessSelector.js";
 import { ModelSelector } from "../models/ModelSelector.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
-import { HARNESS_LABELS, toProtoHarness, type HarnessOption } from "../models/harness.js";
+import { HARNESS_META, toProtoHarness, type HarnessOption } from "../models/harness.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import { thinkingLocked, type ThinkingModeOption } from "../models/thinking-mode.js";
 import { agentHarnessOf } from "./run-defaults.js";
@@ -129,7 +129,7 @@ function RunDefaultsSummary({ spec }: { readonly spec: AgentSpec | undefined }) 
   return (
     <dl className="stg:grid stg:grid-cols-[auto_1fr] stg:gap-x-4 stg:gap-y-1.5 stg:p-3 stg:text-sm">
       <SummaryRow label="Harness">
-        {engine ? HARNESS_LABELS[engine] : "None (the conversation's harness)"}
+        {engine ? HARNESS_META[engine].label : "None (the conversation's harness)"}
       </SummaryRow>
       <SummaryRow label="Model">
         {modelName !== "" ? (model?.displayName ?? modelName) : "None (the harness's default)"}

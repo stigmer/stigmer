@@ -6,16 +6,15 @@
  *   - unknown names are loud boot throws listing every known type;
  *   - extension-registered factories are reachable behind the knob but
  *     can never shadow a built-in name;
- *   - sandboxBaseName is the Java SandboxObjectNaming derivation
+ *   - sandboxBaseName is the shared sandbox naming derivation
  *     (sbx-<code>-<12-hex-sha256>), deterministic and DNS-1123-safe for
  *     resource-id alphabets;
  *   - the queue each scope's sandbox serves, as minted by its own domain,
  *     is SANDBOX_QUEUE_PREFIXES' prefix plus the id (the table the
  *     runner's attach waiter checks its own against), and sandboxTaskQueue
  *     names exactly that queue;
- *   - a leftover sandbox of the retired workflow scope (sbx-wfx-<12 hex>)
- *     is not a name this server gives any more, so no driver deletes one
- *     by name; operators remove such leftovers by hand;
+ *   - a name whose scope code no scope carries (sbx-wfx-<12 hex>) is not
+ *     a name this server gives, so no driver deletes one by name;
  *   - SANDBOX_DRIVER_OWNED_RUNNER_ENV names every variable a driver sets
  *     itself, STIGMER_SANDBOX_ENVIRONMENT (SANDBOX_ENVIRONMENT_ENV)
  *     included, so no operator runner setting can stand in for a
@@ -150,7 +149,7 @@ describe("newSandboxProvisioner selection", () => {
   });
 });
 
-describe("sandboxBaseName (the Java SandboxObjectNaming derivation)", () => {
+describe("sandboxBaseName (the shared sandbox naming derivation)", () => {
   it("is deterministic per scope+id and distinct across scopes", () => {
     const a = sandboxBaseName("session", "ses_01ABC");
     expect(a).toBe(sandboxBaseName("session", "ses_01ABC"));
@@ -193,7 +192,7 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     }
   });
 
-  it("refuses a leftover workflow-scope name (sbx-wfx-<12 hex>), a scope this server no longer has", () => {
+  it("refuses a name whose scope code no scope carries (sbx-wfx-<12 hex>)", () => {
     expect(isSandboxBaseName("sbx-wfx-0123456789ab")).toBe(false);
   });
 

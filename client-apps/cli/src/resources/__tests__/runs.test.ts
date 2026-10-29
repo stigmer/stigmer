@@ -1,6 +1,6 @@
 // Unit tests for the run helpers behind `get run`, `list runs` and the `runs`
-// group: the run-ID check (reference.ts, over the run kind's current and
-// retired prefixes), the single-run read, the cursor-paged list read
+// group: the run-ID check (reference.ts, over the run kind's prefix), the
+// single-run read, the cursor-paged list read
 // with the organization it scopes to, the list table (friendly phase label, a
 // dash for an unset field), and the human phase labels. Reads run against a
 // client double that records what it was asked.
@@ -25,7 +25,7 @@ import {
 describe("isRunId", () => {
   it.each([
     ["run_01ARZ3NDEKTSV4RRFFQ69G5FAV", true],
-    // No run id was minted with the legacy "-"; "run-…" is an agent slug.
+    // A run id is "run_…"; "run-…" is an agent slug.
     ["run-01ARZ3NDEKTSV4RRFFQ69G5FAV", false],
     ["run-nightly-report", false],
     ["run_", true],

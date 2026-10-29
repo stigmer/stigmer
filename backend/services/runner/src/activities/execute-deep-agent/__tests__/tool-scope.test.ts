@@ -26,8 +26,10 @@
  *    leaves under `plugin-data/` pointing into `skills/` is refused too
  *    (`shared/skill-mount.ts` `skillContentReadCheck`, on a real temp
  *    platform dir).
- * The attribution of an MCP tool by object (never by a shared name) is pinned
- * on the middleware directly, since a graph refuses two tools of one name.
+ * Server tools are named as connect names them, `mcp__<server>__<tool>`
+ * (`shared/mcp-tool-names.ts`), and attributed through the turn's index;
+ * two servers' tools of one name, told apart by their names, are pinned on
+ * the middleware directly.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -51,20 +53,28 @@ import { compileSubagents } from "../subagent-transformer.js";
 import { admitsRoutedRead, mountPlatformRoute } from "../platform-route.js";
 import { offloadDirBeside } from "../../../shared/workspace/platform-dir.js";
 import { skillContentReadCheck } from "../../../shared/skill-mount.js";
+import { McpToolIndex, mcpToolName } from "../../../shared/mcp-tool-names.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
 const NO_GATE_DEFAULT = { destructive: new Set<string>(), unlisted: new Set<string>(), leasedServers: new Set<string>() };
 
-/** A server tool that counts its runs, so a test can prove a refused call never ran. */
-function countingTool(name: string, runs: string[]) {
+/** Server `slug`'s `bare` tool, named as connect names it, counting its runs so a test can prove a refused call never ran. */
+function countingTool(slug: string, bare: string, runs: string[]) {
+  const name = mcpToolName(slug, bare);
   return tool(
     async () => {
-      runs.push(name);
-      return `${name} ran`;
+      runs.push(bare);
+      return `${bare} ran`;
     },
-    { name, description: `test tool ${name}`, schema: z.object({}).passthrough() },
+    { name, description: `test tool ${bare}`, schema: z.object({}).passthrough() },
   );
 }
+
+/** The turn's index over the `github` server and the platform's channel server. */
+const SERVED = McpToolIndex.of([
+  { slug: "github", tools: ["search_code", "delete_repo"] },
+  { slug: "stigmer-channels", tools: ["send_channel_message"] },
+]);
 
 interface GraphRun {
   /** The tool names the model was bound with on its first turn. */
@@ -98,15 +108,12 @@ describe("tool scope on a real deepagents graph", () => {
     readonly calls: ScriptedToolCall[];
     readonly gate?: boolean;
   }): Promise<GraphRun> {
-    const github = [countingTool("search_code", runs), countingTool("delete_repo", runs)];
-    const platform = [countingTool("send_channel_message", runs)];
+    const github = [countingTool("github", "search_code", runs), countingTool("github", "delete_repo", runs)];
+    const platform = [countingTool("stigmer-channels", "send_channel_message", runs)];
     const scope = ToolScope.of('Agent "a"', options.lists);
     const scopeConfig: ToolScopeConfig = {
       scope,
-      serverToolMap: new Map<string, readonly unknown[]>([
-        ["github", github],
-        ["stigmer-channels", platform],
-      ]),
+      mcpIndex: SERVED,
       platformServerSlugs: new Set(["stigmer-channels"]),
       admitsRoutedRead,
       readsSkillContent: skillContentReadCheck(undefined),
@@ -114,11 +121,7 @@ describe("tool scope on a real deepagents graph", () => {
     const gate: ApprovalGateConfig | null = options.gate
       ? {
           mcpDefault: NO_GATE_DEFAULT,
-          toolServerMap: new Map([
-            ["search_code", "github"],
-            ["delete_repo", "github"],
-            ["send_channel_message", "stigmer-channels"],
-          ]),
+          mcpIndex: SERVED,
         }
       : null;
     const { middleware } = buildMiddlewareStack({
@@ -160,10 +163,10 @@ describe("tool scope on a real deepagents graph", () => {
     const run = await runParent({ lists: { tools: ["Grep", "mcp__github__search_code"], disallowedTools: [] }, calls: [] });
 
     expect(run.bound).toContain("grep");
-    expect(run.bound).toContain("search_code");
-    expect(run.bound, "a platform server is outside every list").toContain("send_channel_message");
+    expect(run.bound).toContain("mcp__github__search_code");
+    expect(run.bound, "a platform server is outside every list").toContain("mcp__stigmer-channels__send_channel_message");
     expect(run.bound, "read_file stays bound when Read is excluded").toContain("read_file");
-    for (const hidden of ["execute", "write_file", "edit_file", "glob", "ls", "task", "delete_repo"]) {
+    for (const hidden of ["execute", "write_file", "edit_file", "glob", "ls", "task", "mcp__github__delete_repo"]) {
       expect(run.bound, hidden).not.toContain(hidden);
     }
   });
@@ -172,8 +175,8 @@ describe("tool scope on a real deepagents graph", () => {
     const run = await runParent({ lists: { tools: [], disallowedTools: ["Bash", "mcp__github__delete_repo"] }, calls: [] });
 
     expect(run.bound).not.toContain("execute");
-    expect(run.bound).not.toContain("delete_repo");
-    for (const kept of ["read_file", "write_file", "edit_file", "glob", "ls", "grep", "task", "search_code"]) {
+    expect(run.bound).not.toContain("mcp__github__delete_repo");
+    for (const kept of ["read_file", "write_file", "edit_file", "glob", "ls", "grep", "task", "mcp__github__search_code"]) {
       expect(run.bound, kept).toContain(kept);
     }
   });
@@ -183,16 +186,16 @@ describe("tool scope on a real deepagents graph", () => {
     const run = await runParent({
       lists,
       calls: [
-        { name: "delete_repo", args: {}, id: "call_mcp" },
+        { name: "mcp__github__delete_repo", args: {}, id: "call_mcp" },
         { name: "execute", args: { command: "echo ran > marker.txt" }, id: "call_shell" },
-        { name: "search_code", args: {}, id: "call_ok" },
+        { name: "mcp__github__search_code", args: {}, id: "call_ok" },
       ],
     });
 
     const scope = ToolScope.of('Agent "a"', lists);
     const refusedMcp = toolMessage(run, "call_mcp");
     expect(refusedMcp.status).toBe("error");
-    expect(refusedMcp.content).toBe(outOfScopeMessage("delete_repo", scope));
+    expect(refusedMcp.content, "the model reads the name it called").toBe(outOfScopeMessage("mcp__github__delete_repo", scope));
     expect(toolMessage(run, "call_shell").content).toBe(outOfScopeMessage("execute", scope));
     await expect(readFile(join(root, "marker.txt"), "utf8"), "the shell never ran").rejects.toThrow();
     expect(runs, "only the in-scope tool ran").toEqual(["search_code"]);
@@ -280,7 +283,7 @@ describe("tool scope on a real deepagents graph", () => {
         casObserver: observer,
         shellEnv: {},
         scopeBase: {
-          serverToolMap: new Map(),
+          mcpIndex: McpToolIndex.EMPTY,
           platformServerSlugs: new Set(),
           admitsRoutedRead,
           readsSkillContent: skillContentReadCheck(undefined),
@@ -309,13 +312,13 @@ describe("tool scope on a real deepagents graph", () => {
 });
 
 describe("tool scope attribution, on the middleware itself", () => {
-  const serverA = { name: "search" };
-  const serverB = { name: "search" };
+  const serverA = { name: "mcp__a__search" };
+  const serverB = { name: "mcp__b__search" };
   const config = (lists: ToolLists): ToolScopeConfig => ({
     scope: ToolScope.of('Agent "a"', lists),
-    serverToolMap: new Map<string, readonly unknown[]>([
-      ["a", [serverA]],
-      ["b", [serverB]],
+    mcpIndex: McpToolIndex.of([
+      { slug: "a", tools: ["search"] },
+      { slug: "b", tools: ["search"] },
     ]),
     platformServerSlugs: new Set(),
     admitsRoutedRead: async () => true,
@@ -332,14 +335,9 @@ describe("tool scope attribution, on the middleware itself", () => {
     return seen;
   }
 
-  async function callRefused(
-    cfg: ToolScopeConfig,
-    name: string,
-    toolObject: unknown,
-    args: Record<string, unknown> = {},
-  ): Promise<boolean> {
+  async function callRefused(cfg: ToolScopeConfig, name: string, args: Record<string, unknown> = {}): Promise<boolean> {
     let ran = false;
-    const request: ToolCallRequest = { toolCall: { id: "c", name, args }, tool: toolObject, state: {}, runtime: {} };
+    const request: ToolCallRequest = { toolCall: { id: "c", name, args }, tool: undefined, state: {}, runtime: {} };
     const out = await createToolScopeMiddleware(cfg).wrapToolCall!(request, () => {
       ran = true;
       return new ToolMessage({ content: "ran", tool_call_id: "c" });
@@ -347,25 +345,26 @@ describe("tool scope attribution, on the middleware itself", () => {
     return !ran && ToolMessage.isInstance(out) && out.status === "error";
   }
 
-  it("hides by tool object: two servers' same-named tools are told apart", () => {
+  it("hides by name: two servers' same-named tools are told apart", () => {
     expect(visibleTools(config({ tools: ["mcp__a"], disallowedTools: [] }), [serverA, serverB])).toEqual([serverA]);
+    expect(visibleTools(config({ tools: ["mcp__b__search"], disallowedTools: [] }), [serverA, serverB])).toEqual([serverB]);
   });
 
-  it("refuses by the call's tool object when it carries one", async () => {
+  it("refuses by the name the model called, each server's tool by its own list entry", async () => {
     const cfg = config({ tools: ["mcp__a"], disallowedTools: [] });
-    expect(await callRefused(cfg, "search", serverA)).toBe(false);
-    expect(await callRefused(cfg, "search", serverB)).toBe(true);
+    expect(await callRefused(cfg, "mcp__a__search")).toBe(false);
+    expect(await callRefused(cfg, "mcp__b__search")).toBe(true);
   });
 
-  it("refuses a bare-name call unless every server carrying the name allows it", async () => {
-    expect(await callRefused(config({ tools: ["mcp__a"], disallowedTools: [] }), "search", undefined)).toBe(true);
-    expect(await callRefused(config({ tools: ["mcp__a", "mcp__b"], disallowedTools: [] }), "search", undefined)).toBe(false);
+  it("owns no bare name: a call to `search` is no server's, judged as an engine tool", async () => {
+    expect(await callRefused(config({ tools: ["mcp__a", "mcp__b"], disallowedTools: [] }), "search")).toBe(true);
+    expect(await callRefused(config({ tools: [], disallowedTools: ["mcp__a"] }), "search"), "a deny-list leaves an engine extra").toBe(false);
   });
 
   it("runs an in-scope built-in and refuses an out-of-scope one, by its Stigmer name", async () => {
     const cfg = config({ tools: ["Read"], disallowedTools: [] });
-    expect(await callRefused(cfg, "read_file", undefined)).toBe(false);
-    expect(await callRefused(cfg, "execute", undefined)).toBe(true);
+    expect(await callRefused(cfg, "read_file")).toBe(false);
+    expect(await callRefused(cfg, "execute")).toBe(true);
   });
 
   it("with Read excluded, asks the injected admission about read_file's path, and refuses one with no path", async () => {
@@ -377,9 +376,9 @@ describe("tool scope attribution, on the middleware itself", () => {
         return path === "/large_tool_results/a.txt";
       },
     };
-    expect(await callRefused(cfg, "read_file", undefined, { file_path: "/large_tool_results/a.txt" })).toBe(false);
-    expect(await callRefused(cfg, "read_file", undefined, { file_path: "/src/a.ts" })).toBe(true);
-    expect(await callRefused(cfg, "read_file", undefined, {})).toBe(true);
+    expect(await callRefused(cfg, "read_file", { file_path: "/large_tool_results/a.txt" })).toBe(false);
+    expect(await callRefused(cfg, "read_file", { file_path: "/src/a.ts" })).toBe(true);
+    expect(await callRefused(cfg, "read_file", {})).toBe(true);
     expect(asked).toEqual(["/large_tool_results/a.txt", "/src/a.ts"]);
   });
 
@@ -392,14 +391,14 @@ describe("tool scope attribution, on the middleware itself", () => {
         return true;
       },
     };
-    expect(await callRefused(confined, "read_file", undefined, { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
-    expect(await callRefused(confined, "read_file", undefined, { file_path: "/.stigmer/plugins/d1/skills/b/SKILL.md" })).toBe(true);
-    expect(await callRefused(confined, "read_file", undefined, { file_path: "/.stigmer/inputs/spec.pdf" })).toBe(false);
+    expect(await callRefused(confined, "read_file", { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
+    expect(await callRefused(confined, "read_file", { file_path: "/.stigmer/plugins/d1/skills/b/SKILL.md" })).toBe(true);
+    expect(await callRefused(confined, "read_file", { file_path: "/.stigmer/inputs/spec.pdf" })).toBe(false);
     expect(asked, "a hidden skill's path never reaches the admission").toEqual(["/.stigmer/inputs/spec.pdf"]);
     const open = config({ tools: [], disallowedTools: ["Skill"] });
-    expect(await callRefused(open, "read_file", undefined, { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
-    expect(await callRefused(open, "read_file", undefined, { file_path: "/src/a.ts" })).toBe(false);
-    expect(await callRefused(open, "grep", undefined, { pattern: "x" }), "only the read is the skill's activation").toBe(false);
+    expect(await callRefused(open, "read_file", { file_path: "/.stigmer/skills/a/SKILL.md" })).toBe(true);
+    expect(await callRefused(open, "read_file", { file_path: "/src/a.ts" })).toBe(false);
+    expect(await callRefused(open, "grep", { pattern: "x" }), "only the read is the skill's activation").toBe(false);
   });
 
   describe("with Skill denied, over a real platform dir", () => {
@@ -425,13 +424,13 @@ describe("tool scope attribution, on the middleware itself", () => {
         ...config({ tools: [], disallowedTools: ["Skill"] }),
         readsSkillContent: skillContentReadCheck(platformDir),
       };
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(true);
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/dir-link/a/SKILL.md" })).toBe(true);
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/Skills/a/SKILL.md" }), "by the path's text").toBe(true);
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.STIGMER/plugin-data/p/file-link" }), "the prefix in any letter case").toBe(true);
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/own.txt" })).toBe(false);
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/dangling" }), "nothing to read").toBe(false);
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/src/a.ts" }), "outside the route").toBe(false);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(true);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.stigmer/plugin-data/p/dir-link/a/SKILL.md" })).toBe(true);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.stigmer/Skills/a/SKILL.md" }), "by the path's text").toBe(true);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.STIGMER/plugin-data/p/file-link" }), "the prefix in any letter case").toBe(true);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.stigmer/plugin-data/p/own.txt" })).toBe(false);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.stigmer/plugin-data/p/dangling" }), "nothing to read").toBe(false);
+      expect(await callRefused(cfg, "read_file", { file_path: "/src/a.ts" }), "outside the route").toBe(false);
     });
 
     it("reads the same links when the scope keeps Skill", async () => {
@@ -439,7 +438,7 @@ describe("tool scope attribution, on the middleware itself", () => {
         ...config({ tools: [], disallowedTools: [] }),
         readsSkillContent: skillContentReadCheck(platformDir),
       };
-      expect(await callRefused(cfg, "read_file", undefined, { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(false);
+      expect(await callRefused(cfg, "read_file", { file_path: "/.stigmer/plugin-data/p/file-link" })).toBe(false);
     });
 
     it("judges a link by its real path through a platform dir that is itself reached by a link", async () => {
@@ -456,10 +455,7 @@ describe("tool scope attribution, on the middleware itself", () => {
   });
 
   it("leaves alone what carries no name (a provider tool), and passes a request with no tools through", () => {
-    const cfg: ToolScopeConfig = {
-      ...config({ tools: ["Read"], disallowedTools: [] }),
-      serverToolMap: new Map<string, readonly unknown[]>([["a", [serverA, { description: "nameless" }]]]),
-    };
+    const cfg = config({ tools: ["Read"], disallowedTools: [] });
     const providerTool = { type: "web_search_20250305" };
     expect(visibleTools(cfg, [providerTool, "not-an-object", serverA])).toEqual([providerTool, "not-an-object"]);
 
@@ -478,8 +474,8 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(visibleTools(config({ tools: ["Bash"], disallowedTools: [] }), [shell, stop]), "an allow-list of Bash keeps both").toEqual([shell, stop]);
     expect(visibleTools(config({ tools: ["Read"], disallowedTools: [] }), [shell, stop]), "one without Bash hides both").toEqual([]);
     expect(visibleTools(config({ tools: [], disallowedTools: ["Bash"] }), [shell, stop]), "a deny of Bash hides both").toEqual([]);
-    expect(await callRefused(config({ tools: ["Bash"], disallowedTools: [] }), "stop_background_command", undefined, { id: "bg_1" })).toBe(false);
-    expect(await callRefused(config({ tools: ["Read"], disallowedTools: [] }), "stop_background_command", undefined, { id: "bg_1" })).toBe(true);
+    expect(await callRefused(config({ tools: ["Bash"], disallowedTools: [] }), "stop_background_command", { id: "bg_1" })).toBe(false);
+    expect(await callRefused(config({ tools: ["Read"], disallowedTools: [] }), "stop_background_command", { id: "bg_1" })).toBe(true);
   });
 
   it("hides an engine extra under an allow-list and leaves it under a deny-list", () => {

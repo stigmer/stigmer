@@ -87,7 +87,7 @@ describe("Run recover — happy path", () => {
     mock.enqueue(anthropicText("Recovered successfully."));
 
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover-happy"), agentRef, runConfig: { maxCostUsd: 3 } }),
+      makeAgentExecution({ org, name: uniqueName("run-recover-happy"), agentRef, runConfig: { maxCostUsd: 3 } }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -128,7 +128,7 @@ describe("Run recover — idempotency", () => {
     // A held turn keeps the run IN_PROGRESS across the poll-and-act window.
     mock.enqueue(anthropicText("Working..."), { delayMs: HOLD_MS });
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover"), agentRef }),
+      makeAgentExecution({ org, name: uniqueName("run-recover"), agentRef }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -158,7 +158,7 @@ describe("Run recover — concurrency", () => {
     mock.enqueue(anthropicText("Recovered once."), { delayMs: HOLD_MS });
 
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-recover-twice"), agentRef }),
+      makeAgentExecution({ org, name: uniqueName("run-recover-twice"), agentRef }),
     );
     const executionId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

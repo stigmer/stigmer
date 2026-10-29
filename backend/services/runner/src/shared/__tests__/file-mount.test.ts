@@ -422,8 +422,8 @@ describe("fetchRunFileMounts", () => {
       mountRunFiles: vi.fn().mockResolvedValue(entries),
     });
 
-    expect(await fetchRunFileMounts(client, "aex_1")).toBe(entries);
-    expect(client.acquireScopedRunnerToken).toHaveBeenCalledWith({ agentExecutionId: "aex_1" });
-    expect(client.mountRunFiles).toHaveBeenCalledWith("aex_1", "scoped-tok");
+    expect(await fetchRunFileMounts(client, "run_1")).toBe(entries);
+    expect(client.acquireScopedRunnerToken).toHaveBeenCalledWith({ agentExecutionId: "run_1" });
+    expect(client.mountRunFiles).toHaveBeenCalledWith("run_1", "scoped-tok");
   });
 });

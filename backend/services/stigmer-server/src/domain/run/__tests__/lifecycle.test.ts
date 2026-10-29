@@ -1,7 +1,7 @@
 /**
- * Lifecycle RPC tests — ports lifecycle_cancel_cascade_test.go,
- * lifecycle_concurrency_test.go, and terminate_existing_workflow_step_test.go,
- * plus the pipeline-level behavior Go asserts through conformance:
+ * Lifecycle RPC tests — the cancel cascade, concurrency and the
+ * terminate-existing-workflow step, plus the pipeline-level behavior the
+ * conformance suite asserts too:
  *
  *   - applyLifecyclePhaseTransition: the pure mutation inside the atomic
  *     persist closure — a terminal phase's completed_at and stop cause,
@@ -35,7 +35,7 @@
  *     the session's queue;
  *   - the pause/record race: the lifecycle persist rides the row-locked
  *     write, so a concurrent write to the run's file record is never
- *     clobbered (the Go 50-iteration regression).
+ *     clobbered (the 50-iteration regression).
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import {
@@ -53,6 +53,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentVersionEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunCredentialsSchema,
@@ -125,7 +126,7 @@ let dir: string;
 let store: Store;
 
 beforeAll(() => {
-  dir = mkdtempSync(path.join(tmpdir(), "aexec-lifecycle-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-lifecycle-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
     listIndexes: LIST_INDEXES,
   });
@@ -279,10 +280,11 @@ async function seedExecution(init: {
   phase: RunPhase;
   sessionId?: string;
   agentId?: string;
+  agentVersionHash?: string;
   error?: string;
 }): Promise<string> {
   counter += 1;
-  const id = `aexec_lifecycle_${counter}`;
+  const id = `run_lifecycle_${counter}`;
   await store.saveResource(
     ApiResourceKind.run,
     id,
@@ -302,6 +304,7 @@ async function seedExecution(init: {
         phase: init.phase,
         error: init.error ?? "",
         agentId: init.agentId ?? "",
+        agentVersionHash: init.agentVersionHash ?? "",
       },
     }),
   );
@@ -334,9 +337,8 @@ function stubPlannerDeps(overrides?: {
         overrides?.onAgentGet?.(agentId);
         return agent;
       },
-      getVersion: async () => {
-        throw new Error("this turn records no agent version");
-      },
+      getVersion: async (_agentId, versionHash) =>
+        create(AgentVersionEntrySchema, { versionHash, specSnapshot: {} }),
     }),
     sessionLoader: () => ({
       get: async (sessionId) =>
@@ -463,7 +465,7 @@ describe("lifecycle pipelines", () => {
       () =>
         cancelExecution(
           deps,
-          cancelInput("aexec_missing"),
+          cancelInput("run_missing"),
           testCallerIdentity(),
         ),
       Code.NotFound,
@@ -926,8 +928,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover proceeds when the previous workflow is already gone (NotFound = success)", async () => {
-    // Go terminate_existing_workflow_step_test.go NotFound_Succeeds: a
-    // FAILED execution's workflow has normally already completed; the
+    // A FAILED execution's workflow has normally already completed; the
     // re-plan + fresh start must still run.
     const starts: string[] = [];
     const plans: Run[] = [];
@@ -973,8 +974,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover aborts when the terminate fails with a real error — nothing re-started", async () => {
-    // Go terminate_existing_workflow_step_test.go TerminateFails: the
-    // workflow ID must be terminal before the fresh start reuses it, so a
+    // The workflow ID must be terminal before the fresh start reuses it, so a
     // genuine terminate failure gates the whole recovery.
     const starts: string[] = [];
     const plans: Run[] = [];
@@ -1029,8 +1029,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover already IN_PROGRESS is idempotent success without touching the engine", async () => {
-    // Go terminate_existing_workflow_step_test.go
-    // SkipsWhenAlreadyInTargetState, driven through the full pipeline.
+    // The already-in-target-state skip, driven through the full pipeline.
     let engineCalls = 0;
     const deps: LifecycleDeps = {
       store,
@@ -1074,6 +1073,9 @@ describe("lifecycle pipelines", () => {
   });
 
   describe("recover records the agent a turn runs", () => {
+    /** The version every pinned session and recorded turn here names. */
+    const PINNED_HASH = "c".repeat(64);
+
     async function storePinnedSession(
       sessionId: string,
       agentId: string,
@@ -1084,7 +1086,7 @@ describe("lifecycle pipelines", () => {
         SessionSchema,
         create(SessionSchema, {
           metadata: { id: sessionId, org: "acme" },
-          status: { agentId, agentVersionHash: "" },
+          status: { agentId, agentVersionHash: agentId === "" ? "" : PINNED_HASH },
         }),
       );
     }
@@ -1212,6 +1214,7 @@ describe("lifecycle pipelines", () => {
         phase: RunPhase.RUN_FAILED,
         sessionId: "ses_repointed",
         agentId: "agt_recorded",
+        agentVersionHash: PINNED_HASH,
       });
 
       await recoverExecution(
@@ -1259,7 +1262,7 @@ describe("lifecycle pipelines", () => {
   });
 
   it("recover surfaces the inner status code when the re-plan fails (never Internal)", async () => {
-    // The re-plan step wraps like Go's %w: a NotFound session load (or a
+    // The re-plan step wraps its errors: a NotFound session load (or a
     // FailedPrecondition refusal of a required key) keeps its code on the
     // wire with the recover prefix — the caller-actionable copy must not
     // collapse into an opaque 500.
@@ -1680,8 +1683,7 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
 });
 
 // The lifecycle persist must go through the store's atomic row-locked
-// write, never the whole-resource saveResource it replaced (Go
-// TestLifecyclePersist_UsesUpdateResource): a saveResource here is the
+// write, never the whole-resource saveResource: a saveResource here is the
 // regression that lets a concurrent write to the run (its file record, as
 // the race test below writes) be clobbered.
 // The atomic write is writeResourceAppendingEvents since a transition
@@ -1775,13 +1777,13 @@ describe("lifecycle persist uses the atomic row-locked write", () => {
 // The lifecycle path never loses a concurrent write: a pause and a write to
 // the run's file record race on the same run. Because the lifecycle persist
 // re-reads fresh under the store's write lock, it can never clobber what a
-// concurrent writer recorded (Go's 50-iteration regression).
+// concurrent writer recorded (the 50-iteration regression).
 describe("lifecycle pause racing a write to the run's record", () => {
   it("keeps both the record and the pause across 50 races", async () => {
     const deps = lifecycleDeps(connected(stubConnectedEngine()));
 
     for (let i = 0; i < 50; i++) {
-      const id = `aexec_pause_race_${i}`;
+      const id = `run_pause_race_${i}`;
       await store.saveResource(
         ApiResourceKind.run,
         id,

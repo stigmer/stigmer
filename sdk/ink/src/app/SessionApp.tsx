@@ -47,7 +47,7 @@ export interface SessionAppProps {
  *
  * render(
  *   <SessionApp
- *     sessionId="ses-abc123"
+ *     sessionId="ses_abc123"
  *     org="my-org"
  *     baseUrl="https://api.stigmer.ai"
  *     apiKey={process.env.STIGMER_API_KEY}

@@ -143,7 +143,7 @@ describe("the workspace .stigmer link on a skill turn", () => {
 
     mock.enqueue(anthropicText("Done."), { delayMs: HOLD_MS });
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-link"), sessionId, message: "Say hello." }),
+      makeAgentExecution({ org, name: uniqueName("run-link"), sessionId, message: "Say hello." }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

@@ -1,5 +1,5 @@
 /**
- * Pins the syncer against Go's syncer.go: the create-or-update convergence
+ * Pins the syncer: the create-or-update convergence
  * on ScheduleAlreadyRunning (the update rewrites the described artifact to
  * the routine's desired state), next_fire_at stamped from Temporal's OWN
  * answer through the atomic row write (undefined while paused), teardown's
@@ -86,7 +86,7 @@ function fakeClient(): Client {
 
 function routineRow(overrides?: { enabled?: boolean; pausedReason?: string }) {
   return create(RoutineSchema, {
-    metadata: { id: "sch_01sync", org: "acme", slug: "daily" },
+    metadata: { id: "rtn_01sync", org: "acme", slug: "daily" },
     spec: {
       cron: "0 9 * * *",
       timeZone: "UTC",
@@ -136,7 +136,7 @@ beforeEach(async () => {
     updateCalls: 0,
     deleteCalls: [],
   };
-  await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, routineRow());
+  await store.saveResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema, routineRow());
 });
 
 describe("ensureAndRecord — create-or-update convergence", () => {
@@ -146,7 +146,7 @@ describe("ensureAndRecord — create-or-update convergence", () => {
     expect(fake.updateCalls).toBe(0);
     expect(next).toEqual(new Date("2026-08-26T09:00:00Z"));
 
-    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    const row = await store.getResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema);
     expect(row.status?.nextFireAt?.seconds).toBe(
       BigInt(Date.parse("2026-08-26T09:00:00Z") / 1000),
     );
@@ -154,7 +154,7 @@ describe("ensureAndRecord — create-or-update convergence", () => {
   });
 
   it("falls to the update path on ScheduleAlreadyRunning (benign lost race), rewriting the artifact to the desired state", async () => {
-    fake.createError = new ScheduleAlreadyRunning("exists", "schedule/tick/sch_01sync");
+    fake.createError = new ScheduleAlreadyRunning("exists", "schedule/tick/rtn_01sync");
     const next = await syncer(fakeClient()).ensureAndRecord(routineRow());
     expect(fake.updateCalls).toBe(1);
     expect(next).toEqual(new Date("2026-08-26T09:00:00Z"));
@@ -167,21 +167,21 @@ describe("ensureAndRecord — create-or-update convergence", () => {
   it("wraps a non-AlreadyRunning create failure with the artifact id", async () => {
     fake.createError = new Error("frontend hiccup");
     await expect(syncer(fakeClient()).ensureAndRecord(routineRow())).rejects.toThrow(
-      "create schedule artifact schedule/tick/sch_01sync: frontend hiccup",
+      "create schedule artifact schedule/tick/rtn_01sync: frontend hiccup",
     );
   });
 
   it("a paused schedule stamps next_fire_at ABSENT (never describes)", async () => {
     const paused = routineRow({ enabled: false });
-    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, paused);
+    await store.saveResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema, paused);
     const next = await syncer(fakeClient()).ensureAndRecord(paused);
     expect(next).toBeUndefined();
-    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    const row = await store.getResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema);
     expect(row.status?.nextFireAt).toBeUndefined();
   });
 
   it("a row deleted between arm and stamp is a logged no-op, not an error", async () => {
-    await store.deleteResource(ApiResourceKind.routine, "sch_01sync");
+    await store.deleteResource(ApiResourceKind.routine, "rtn_01sync");
     const next = await syncer(fakeClient()).ensureAndRecord(routineRow());
     expect(next).toEqual(new Date("2026-08-26T09:00:00Z"));
   });
@@ -195,19 +195,19 @@ describe("ensureAndRecord — create-or-update convergence", () => {
 
 describe("teardown — idempotent from the platform's view", () => {
   it("deletes the artifact", async () => {
-    await syncer(fakeClient()).teardown("sch_01sync");
-    expect(fake.deleteCalls).toEqual(["schedule/tick/sch_01sync"]);
+    await syncer(fakeClient()).teardown("rtn_01sync");
+    expect(fake.deleteCalls).toEqual(["schedule/tick/rtn_01sync"]);
   });
 
   it("not-found is success (Temporal's delete is not idempotent; ours is)", async () => {
-    fake.deleteError = new ScheduleNotFoundError("gone", "schedule/tick/sch_01sync");
-    await expect(syncer(fakeClient()).teardown("sch_01sync")).resolves.toBeUndefined();
+    fake.deleteError = new ScheduleNotFoundError("gone", "schedule/tick/rtn_01sync");
+    await expect(syncer(fakeClient()).teardown("rtn_01sync")).resolves.toBeUndefined();
   });
 
   it("other delete failures propagate with the artifact id", async () => {
     fake.deleteError = new Error("boom");
-    await expect(syncer(fakeClient()).teardown("sch_01sync")).rejects.toThrow(
-      "delete schedule artifact schedule/tick/sch_01sync: boom",
+    await expect(syncer(fakeClient()).teardown("rtn_01sync")).rejects.toThrow(
+      "delete schedule artifact schedule/tick/rtn_01sync: boom",
     );
   });
 });
@@ -234,44 +234,44 @@ describe("ensureAndRecord — a routine with no cron", () => {
   }
 
   it("removes the artifact a removed cron left, creates none, and clears next_fire_at", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, unscheduled());
+    await store.saveResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema, unscheduled());
     expect(await syncer(fakeClient()).ensureAndRecord(unscheduled())).toBeUndefined();
     expect(fake.createCalls).toBe(0);
     expect(fake.updateCalls).toBe(0);
-    expect(fake.deleteCalls).toEqual(["schedule/tick/sch_01sync"]);
-    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    expect(fake.deleteCalls).toEqual(["schedule/tick/rtn_01sync"]);
+    const row = await store.getResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema);
     expect(row.status?.nextFireAt).toBeUndefined();
   });
 
   it("needs no engine: with no client it neither throws nor asks for one", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, unscheduled());
+    await store.saveResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema, unscheduled());
     await expect(syncer(undefined).ensureAndRecord(unscheduled())).resolves.toBeUndefined();
-    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    const row = await store.getResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema);
     expect(row.status?.nextFireAt).toBeUndefined();
   });
 
   it("an artifact already gone is success", async () => {
-    fake.deleteError = new ScheduleNotFoundError("gone", "schedule/tick/sch_01sync");
+    fake.deleteError = new ScheduleNotFoundError("gone", "schedule/tick/rtn_01sync");
     await expect(syncer(fakeClient()).ensureAndRecord(unscheduled())).resolves.toBeUndefined();
   });
 
   it("writes nothing when no next_fire_at is set", async () => {
     const neverArmed = unscheduled();
     neverArmed.status!.nextFireAt = undefined;
-    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, neverArmed);
+    await store.saveResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema, neverArmed);
     await expect(syncer(fakeClient(), faultingWrites()).ensureAndRecord(neverArmed)).resolves.toBeUndefined();
-    const row = await store.getResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema);
+    const row = await store.getResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema);
     expect(row.status?.audit?.statusAudit, "no status write was made").toBeUndefined();
   });
 
   it("a row deleted before next_fire_at clears is a no-op, not an error", async () => {
-    await store.deleteResource(ApiResourceKind.routine, "sch_01sync");
+    await store.deleteResource(ApiResourceKind.routine, "rtn_01sync");
     await expect(syncer(fakeClient()).ensureAndRecord(unscheduled())).resolves.toBeUndefined();
-    expect(fake.deleteCalls).toEqual(["schedule/tick/sch_01sync"]);
+    expect(fake.deleteCalls).toEqual(["schedule/tick/rtn_01sync"]);
   });
 
   it("a store fault clearing next_fire_at throws, naming the write", async () => {
-    await store.saveResource(ApiResourceKind.routine, "sch_01sync", RoutineSchema, unscheduled());
+    await store.saveResource(ApiResourceKind.routine, "rtn_01sync", RoutineSchema, unscheduled());
     await expect(syncer(fakeClient(), faultingWrites()).ensureAndRecord(unscheduled())).rejects.toThrow(
       "clear next_fire_at: database offline",
     );

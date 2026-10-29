@@ -58,7 +58,7 @@ export interface RunnerTokenCoordinatorOptions {
 export interface RunnerTokenCoordinator {
   /**
    * Adopt a server-minted proxy token. Applies it immediately and schedules a
-   * refresh before expiry. After this, control-plane updates no longer touch the
+   * refresh before expiry. After this, control-plane updates do not touch the
    * proxy token.
    */
   adoptMintedToken(token: string, expiresInSeconds: number | undefined): void;

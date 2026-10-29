@@ -13,9 +13,7 @@
 //                class run for the rest of the turn
 //
 // A comment rides only a deny (the contract refuses it on an allow), so a
-// comment with any other action is refused before anything is sent. The
-// retired words approve, reject and approve-all are refused with the word that
-// replaced them.
+// comment with any other action is refused before anything is sent.
 
 import { foldSession, turnOf, type Stigmer, type ToolUse } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
@@ -48,13 +46,6 @@ export async function approveAgentToolCall(client: Stigmer, opts: ApproveAgentOp
   return { toolUseId: ask.id, toolName: ask.name, answer: answer.kind };
 }
 
-// The actions `--action` no longer takes, each with the word that replaced it.
-const RETIRED: Readonly<Record<string, string>> = {
-  approve: '"approve" is now "allow"',
-  reject: '"reject" is now "deny"',
-  "approve-all": '"approve-all" is now "allow-all"',
-};
-
 function answerOf(action: string, comment: string): AskAnswer {
   switch (action) {
     case "deny":
@@ -66,10 +57,7 @@ function answerOf(action: string, comment: string): AskAnswer {
       }
       return action === "allow" ? { kind: "allow" } : { kind: "grant" };
   }
-  const replaced = RETIRED[action];
-  throw new UsageError(
-    `invalid --action "${action}": ${replaced === undefined ? "" : `${replaced}; `}must be one of: allow, deny, allow-all`,
-  );
+  throw new UsageError(`invalid --action "${action}": must be one of: allow, deny, allow-all`);
 }
 
 function pickAsk(runId: string, asks: readonly ToolUse[], toolCallId: string): ToolUse {

@@ -4,11 +4,11 @@
 # (gRPC-Web, REST, native gRPC).
 #
 # Routes:
-#   /v1/proxy/*        → Java embedded Tomcat on :8081
-#   native gRPC        → Java gRPC on :8080 via h2c
+#   /v1/proxy/*        → the backend's HTTP listener on :8081
+#   native gRPC        → the backend's gRPC listener on :8080 via h2c
 #   gRPC-Web / other   → grpcwebproxy on :9091
 #
-# Requires: grpcwebproxy running on :9091 and Java stigmer-service on :8080/:8081.
+# Requires: grpcwebproxy running on :9091 and a backend on :8080/:8081.
 
 :9090 {
 	handle /v1/proxy/* {

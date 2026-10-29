@@ -1,27 +1,23 @@
 /**
- * node:sqlite driver — ports backend/libs/go/store/sqlite/store.go
- * method-for-method: same database file, same pragmas, same
- * physical layout (kind = the enum's proto name, data = the marshaled
- * protobuf bytes), same full-scan semantics. Physical indexing is
- * deliberately NOT added here (it would couple behavior-port risk to
- * storage-redesign risk); the interface's named methods guarantee
- * indexability, which the Postgres driver uses.
+ * node:sqlite driver: one database file, fixed pragmas, the physical
+ * layout every driver shares (kind = the enum's proto name, data = the
+ * marshaled protobuf bytes) and full-scan semantics. Physical indexing is
+ * deliberately NOT added here (laptop-scale stores scan); the interface's
+ * named methods guarantee indexability, which the Postgres driver uses.
  *
- * Write serialization: Go used a process-wide mutex around a pooled
- * connection. node:sqlite is synchronous on a single connection, which
- * gives the same serialization for free — the accepted trade-off
- * is that a large full-scan read blocks the event loop momentarily, fine
- * at laptop scale where Go ships the same scans. updateResource
- * additionally wraps its read-modify-write in BEGIN IMMEDIATE:
- * unlike the in-process mutex, the transaction also excludes OTHER
- * processes sharing the database file.
+ * Write serialization: node:sqlite is synchronous on a single connection,
+ * which serializes writes for free — the accepted trade-off is that a
+ * large full-scan read blocks the event loop momentarily, fine at laptop
+ * scale. updateResource additionally wraps its read-modify-write in BEGIN
+ * IMMEDIATE, so the transaction also excludes OTHER processes sharing the
+ * database file.
  *
  * insertResource and deleteResource with a permission change run under
  * BEGIN IMMEDIATE too, so an organization's history numbers are read and
  * written by one writer at a time (../permission-history.ts).
  *
  * Multi-statement operations (setAuditTag, upsertSearchIndex,
- * pendingOAuthStates.getAndDelete) run in explicit transactions exactly where Go used one. All code between BEGIN
+ * pendingOAuthStates.getAndDelete) run in explicit transactions. All code between BEGIN
  * and COMMIT is synchronous — nothing can interleave into an open
  * transaction on the sole connection.
  *
@@ -270,7 +266,7 @@ export class SqliteStore implements Store {
   }
 
   /**
-   * Opens (or creates) the database at dbPath, applies the pragmas in Go's
+   * Opens (or creates) the database at dbPath, applies the pragmas in
    * order, brings the schema up to date (migrations.ts) and reconciles the list index
    * (derives the facts of every unproven row of a declared kind).
    */
@@ -287,12 +283,12 @@ export class SqliteStore implements Store {
 
     const db = new DatabaseSync(dbPath);
 
-    // Pragma order is contract (Go store.go:82-99, journal_mode first).
+    // Pragma order is contract (journal_mode first).
     db.exec("PRAGMA journal_mode=WAL"); // Write-Ahead Logging for concurrent reads
     db.exec("PRAGMA synchronous=NORMAL"); // Balance between durability and speed
     db.exec("PRAGMA busy_timeout=5000"); // Wait up to 5s for locks
     db.exec("PRAGMA cache_size=-64000"); // 64MB page cache
-    db.exec("PRAGMA foreign_keys=ON"); // Parity with Go (no FK is actually declared today)
+    db.exec("PRAGMA foreign_keys=ON"); // On, though no FK is declared today
     db.exec("PRAGMA temp_store=MEMORY"); // Keep temp tables in memory
 
     try {
@@ -313,7 +309,7 @@ export class SqliteStore implements Store {
     return store;
   }
 
-  /** Filesystem path of the database file (Go Store.Path()). */
+  /** Filesystem path of the database file. */
   path(): string {
     return this.dbPath;
   }
@@ -457,8 +453,8 @@ export class SqliteStore implements Store {
     const kindName = apiResourceKindName(kind);
 
     // BEGIN IMMEDIATE takes the write lock up front, so the
-    // read-modify-write also excludes other PROCESSES on the same file —
-    // strictly stronger than Go's in-process mutex. `modify` is synchronous
+    // read-modify-write also excludes other PROCESSES on the same file.
+    // `modify` is synchronous
     // by contract (interface.ts): nothing can interleave into the open
     // transaction on this sole connection.
     db.exec("BEGIN IMMEDIATE");
@@ -518,7 +514,7 @@ export class SqliteStore implements Store {
       .prepare(`SELECT data FROM resources WHERE kind = ?`)
       .all(apiResourceKindName(kind)) as Array<{ data: Uint8Array }>;
     // node:sqlite materializes a fresh Uint8Array per row — no buffer-reuse
-    // copy is needed (Go copied because database/sql may reuse buffers).
+    // copy is needed.
     return rows.map((row) => row.data);
   }
 
@@ -1209,7 +1205,7 @@ export class SqliteStore implements Store {
   ): Promise<string> {
     const db = this.open();
     const kindName = apiResourceKindName(kind);
-    // id DESC breaks archived_at ties from sub-second inserts (Go).
+    // id DESC breaks archived_at ties from sub-second inserts.
     const row = db
       .prepare(
         `SELECT version_hash FROM resource_audit
@@ -1415,7 +1411,7 @@ export class SqliteStore implements Store {
 
   async upsertRoutineFire(record: RoutineFireRecord): Promise<void> {
     const db = this.open();
-    // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
+    // Default recorded_at is RFC-3339 whole seconds —
     // the ledger's house convention for lexicographic comparison.
     const recordedAt =
       record.recordedAt !== "" ? record.recordedAt : rfc3339Seconds(new Date());
@@ -1568,7 +1564,7 @@ export class SqliteStore implements Store {
     const db = this.open();
     const kindName = apiResourceKindName(kind);
 
-    // FTS5 has no UPDATE — DELETE + INSERT in one transaction (Go).
+    // FTS5 has no UPDATE — DELETE + INSERT in one transaction.
     db.exec("BEGIN");
     try {
       db.prepare(
@@ -1664,7 +1660,7 @@ export class SqliteStore implements Store {
     const matchArgs =
       query.terms !== undefined ? [renderFts5MatchExpression(query.terms)] : [];
 
-    // Statement 1 — full counts per kind (Go's count query; zero-count
+    // Statement 1 — full counts per kind (zero-count
     // kinds never appear: the counts come from GROUP BY over matches).
     const countRows = db
       .prepare(
@@ -1686,7 +1682,7 @@ export class SqliteStore implements Store {
       totalCount += row.cnt;
     }
 
-    // Go short-circuits to EmptyResult before the page statement.
+    // No match: the empty result, without the page statement.
     if (totalCount === 0) {
       return { countsByKind: {}, totalCount: 0, hits: [] };
     }
@@ -1752,7 +1748,7 @@ export class SqliteStore implements Store {
     db.close();
   }
 
-  /** Live connection or the Go-parity "store is closed" error. */
+  /** Live connection or the "store is closed" error. */
   private open(): DatabaseSync {
     if (this.db === undefined) {
       throw new Error("store is closed");
@@ -1762,7 +1758,7 @@ export class SqliteStore implements Store {
 }
 
 // =============================================================================
-// Bootstrap state (Go concrete-type methods, store.go:1480-1611)
+// Bootstrap state
 // =============================================================================
 
 class SqliteBootstrapStateStore implements BootstrapStateStore {
@@ -1772,7 +1768,7 @@ class SqliteBootstrapStateStore implements BootstrapStateStore {
     const row = this.open()
       .prepare(`SELECT value FROM bootstrap_state WHERE key = ?`)
       .get(key) as { value: string } | undefined;
-    // Missing key → "" and NOT an error — Go's contract.
+    // Missing key → "" and NOT an error (interface.ts).
     return row?.value ?? "";
   }
 
@@ -2090,11 +2086,10 @@ class SqliteResourceNameStore implements ResourceNameStore {
       }
       // Every other current name, not only `from`: a concurrent rename that
       // moved `from` first leaves its own new name current, and this one
-      // demotes it too. A name equal to the id is never given an expiry.
+      // demotes it too.
       db.prepare(
         `UPDATE resource_names
-         SET state = 'previous', claimed_at = ?,
-             expires_at = CASE WHEN name = id THEN '' ELSE ? END
+         SET state = 'previous', claimed_at = ?, expires_at = ?
          WHERE kind = ? AND org = ? AND id = ?
            AND state = 'current' AND name <> ?`,
       ).run(
@@ -2149,16 +2144,9 @@ class SqliteResourceNameStore implements ResourceNameStore {
   }
 
   async release(kind: string, org: string, id: string): Promise<void> {
-    this.transaction((db) => {
-      db.prepare(
-        `DELETE FROM resource_names
-         WHERE kind = ? AND org = ? AND id = ? AND name <> id`,
-      ).run(kind, org, id);
-      db.prepare(
-        `UPDATE resource_names SET state = 'previous', expires_at = ''
-         WHERE kind = ? AND org = ? AND id = ? AND name = id`,
-      ).run(kind, org, id);
-    });
+    this.open()
+      .prepare(`DELETE FROM resource_names WHERE kind = ? AND org = ? AND id = ?`)
+      .run(kind, org, id);
   }
 
   async releaseName(key: ResourceNameKey, id: string): Promise<void> {
@@ -2290,7 +2278,7 @@ class SqlitePendingOAuthStateStore implements PendingOAuthStateStore {
     const db = this.open();
 
     // Read + delete are one transaction so a state can be redeemed at most
-    // once (Go GetAndDelete). All statements are synchronous — nothing can
+    // once. All statements are synchronous — nothing can
     // interleave into the open transaction.
     db.exec("BEGIN");
     try {

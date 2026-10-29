@@ -96,7 +96,7 @@ export interface CallViews {
   readonly cursor?: CursorToolView;
 }
 
-/** The call a view is asked about: the engine's name, its arguments, and its MCP server (`""` for a built-in). */
+/** The call a view is asked about: its name (Claude Code's on Claude; on Stigmer a built-in's own, an MCP tool's bare one), its arguments, and its MCP server (`""` for a built-in). */
 export interface ViewedCall {
   readonly name: string;
   readonly args: Args;
@@ -180,8 +180,6 @@ export interface StigmerViewContext {
   readonly workspaceRoot: string;
   /** A real absolute path back to the engine's virtual one; `undefined` leaves it as written. */
   readonly toVirtualPath: (realPath: string) => string | undefined;
-  /** Each bound MCP tool's server slug, by the tool's bound name. */
-  readonly toolServerMap: ReadonlyMap<string, string>;
   /** The turn's servers but the platform's, by slug, with the names Claude Code gives them. */
   readonly serverNames: ReadonlyMap<string, HookServerName>;
   /** The platform's own servers, which no hook sees. */
@@ -335,14 +333,10 @@ export class StigmerToolViews implements HookToolViews {
     };
   }
 
-  /** The call as Claude Code shows it to a hook, or `undefined` when no Claude Code hook may see it. */
-  viewOf(name: string, args: Args): ToolView | undefined {
-    return this.viewsOf({ name, args, serverSlug: this.ctx.toolServerMap.get(name) ?? "" })["claude-code"];
-  }
-
+  /** The call's views; an MCP call arrives as its bare tool beside its server (`serverSlug`), as the gate reads it from the turn's index. */
   viewsOf(call: ViewedCall): CallViews {
-    const slug = this.ctx.toolServerMap.get(call.name);
-    if (slug !== undefined) {
+    const slug = call.serverSlug;
+    if (slug !== "") {
       if (this.ctx.platformServerSlugs.has(slug)) return {};
       return {
         "claude-code": {
@@ -363,7 +357,7 @@ export class StigmerToolViews implements HookToolViews {
   argsFrom(call: ViewedCall, format: HookFormatName, rewrite: Args): Args | string {
     // Cursor lays a rewrite over the call's own arguments, so a Cursor-format
     // hook names only what it changes; Claude Code's replaces the input whole.
-    if (this.ctx.toolServerMap.has(call.name)) return format === "cursor" ? { ...call.args, ...rewrite } : { ...rewrite };
+    if (call.serverSlug !== "") return format === "cursor" ? { ...call.args, ...rewrite } : { ...rewrite };
     // Cursor's Write is both a create and an edit; this engine's are two
     // tools, and each ignores the other's fields.
     const foreign = format === "cursor" ? Object.keys(rewrite).filter((key) => WRITE_FIELDS_NOT_TAKEN.get(call.name)?.has(key)) : [];

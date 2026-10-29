@@ -1,8 +1,7 @@
 /**
- * The agent-execution worker factory — ports the registration half of
- * pkg/domain/agentexecution/temporal/worker_config.go.
+ * The agent-execution worker factory.
  *
- * Queue architecture (worker_config.go's contract):
+ * Queue architecture (contract):
  *   - This worker polls ONLY the stigmer queue (agent_execution_stigmer):
  *     the invoke workflow + the server-side activities.
  *   - The TS unified runner polls the runner queue and owns the

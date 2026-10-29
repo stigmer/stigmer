@@ -1,7 +1,6 @@
 // Structured command output. Instead of ad-hoc console writes, mutating
 // commands build a CommandResult (status + message + sections + hints), then a
-// renderer formats it for human, JSON, or quiet output. Mirrors the Go CLI's
-// pkg/clioutput.
+// renderer formats it for human, JSON, or quiet output.
 //
 // Stream discipline: JSON data goes to stdout (so pipes capture only the
 // payload); human and quiet status lines go to stderr.

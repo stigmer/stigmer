@@ -15,7 +15,7 @@
 // (the direct-read tail), vault.list (the org-intersecting family),
 // search + recent activity (the enumeration verb), and the
 // check-shaped lane (the listByChannel channel gate) refusing an outsider
-// with its byte-pinned Java copy.
+// with its byte-pinned copy.
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): the
 // cloud's primary, and on the managed local targets an open-source sibling

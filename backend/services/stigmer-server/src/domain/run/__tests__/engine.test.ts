@@ -1,10 +1,9 @@
 /**
  * Pins the execution-engine seam: the modeled availability state and the
- * EnsureEngineAvailable gate (create.go ensureEngineAvailableStep). The
+ * EnsureEngineAvailable gate. The
  * disconnected refusal copy is byte-pinned by the conformance engine-gate
  * test too; this pins the seam mechanics — the provider is consulted at
- * EXECUTION time (a reconnect between requests must be observed, Go's
- * SetWorkflowCreator re-injection).
+ * EXECUTION time (a reconnect between requests must be observed).
  */
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { create } from "@bufbuild/protobuf";

@@ -1,7 +1,6 @@
 // Process-global CLI flags that cross-cutting modules (config, errors, logger)
 // read without threading them through every call. Set once by the root
-// preAction hook from the parsed global options. Mirrors the Go CLI's atomic
-// `standalone`/`debug` globals in internal/cli/config and clierr.
+// preAction hook from the parsed global options.
 
 let debug = false;
 let standalone = false;

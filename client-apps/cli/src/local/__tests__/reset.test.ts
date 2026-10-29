@@ -18,7 +18,7 @@ function seedState(): void {
   writeFileSync(databasePath(home), "db");
   writeFileSync(`${databasePath(home)}-wal`, "wal");
   writeFileSync(join(dataDir(home), "runner.pid"), "1");
-  writeFileSync(configPath(home), "backend:\n  type: local\n");
+  writeFileSync(configPath(home), "context:\n  org: acme\n");
 }
 
 const noopStop = vi.fn(async () => true);

@@ -37,8 +37,8 @@ function fallbackDeploymentMode(): DeploymentMode {
 /**
  * Detects the deployment mode by querying the server's `getServerInfo`
  * RPC. Starts from the URL-based hostname guess and replaces it with the
- * server's answer; when the server cannot answer (an older server without
- * the RPC, or no server at all) the guess becomes the resolved answer —
+ * server's answer; when the server cannot answer (the call fails, or there
+ * is no server at all) the guess becomes the resolved answer —
  * the fallback is the best there is, and a skeleton that never lifts
  * would serve nobody.
  */

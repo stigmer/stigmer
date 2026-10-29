@@ -75,8 +75,7 @@ describe("discoverChannelMessaging (the never-throw failure posture)", () => {
   });
 
   it.each([
-    ["UNIMPLEMENTED (a control plane predating 3a)", Code.Unimplemented],
-    ["FAILED_PRECONDITION (the OSS posture on older servers)", Code.FailedPrecondition],
+    ["FAILED_PRECONDITION (a server with no messaging runtime)", Code.FailedPrecondition],
     ["PERMISSION_DENIED (an unexpected reach refusal)", Code.PermissionDenied],
   ])("degrades %s to honest absence, never a throw", async (_label, code) => {
     const client = mockStigmerClient({
@@ -88,6 +87,18 @@ describe("discoverChannelMessaging (the never-throw failure posture)", () => {
     expect(await discoverChannelMessaging(client, undefined)).toEqual([]);
 
     quiet.mockRestore();
+    warn.mockRestore();
+  });
+
+  it("warns of an UNIMPLEMENTED discovery as of any unexpected failure, still degrading to absence", async () => {
+    const client = mockStigmerClient({
+      listMessagingChannels: vi.fn().mockRejectedValue(new ConnectError("nope", Code.Unimplemented)),
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(await discoverChannelMessaging(client, undefined)).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("failed unexpectedly"));
+
     warn.mockRestore();
   });
 

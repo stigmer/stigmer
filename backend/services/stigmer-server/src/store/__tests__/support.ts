@@ -1,8 +1,8 @@
 /**
  * Driver-neutral test fixtures shared by the store contract suite and the
- * per-driver tests: a small organization factory (a real ported proto
- * type, so tests exercise real resource bytes). Driver-physical helpers
- * (temp sqlite files, the Go-database fixture, Postgres test databases)
+ * per-driver tests: a small organization factory (a real proto type, so
+ * tests exercise real resource bytes). Driver-physical helpers
+ * (temp sqlite files, Postgres test databases)
  * live with their drivers.
  */
 import { create } from "@bufbuild/protobuf";

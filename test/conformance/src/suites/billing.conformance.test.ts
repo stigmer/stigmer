@@ -1,6 +1,6 @@
 // Billing engine conformance — the 8 RPCs of the billing engine and the
-// Stripe webhook (Class A; no runner). The rows were first read from the
-// retired Java service's behavior, and the composition is held to them.
+// Stripe webhook (Class A; no runner). The composition is held to the
+// inventory's rows.
 // Domain: billing.
 //
 // Every `it` carries an inventory row id in square brackets — the
@@ -85,8 +85,7 @@ const COPY = {
 // different provenance from COPY above and pinned in its own table: the
 // composition carries the domain exactly, and the console / SDKs surface
 // these strings to the user, which makes the bytes the contract. Each line
-// names the service method the string was first read from, in the retired
-// Java service; the composition carries the same copy.
+// names the handler the string belongs to.
 const DOMAIN_COPY = {
   // RetireModelPricingBaselineHandler
   noActiveBaseline: (modelId: string, provider: string, harness: string) =>

@@ -1,6 +1,5 @@
 // Skill delete path: resolve org/slug → id, then delete (removing the skill and
 // all its versions), both over a single shared transport.
-// Go parity: mcp-server/internal/domains/skills/delete.go.
 
 import { createClient } from "@connectrpc/connect";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";

@@ -17,7 +17,7 @@ function makeChannel(overrides: {
   typeStatus?: unknown;
 }): Channel {
   return {
-    metadata: { id: "ach_1", org: "acme", slug: "c", name: "C" },
+    metadata: { id: "chn_1", org: "acme", slug: "c", name: "C" },
     spec: {},
     status: {
       installState:

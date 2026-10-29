@@ -233,7 +233,7 @@ describe("snapshotCasChangeSet — storage", () => {
 
   it("loadCasManifest surfaces the reader error when the manifest is absent (callers gate on the candidate snapshot, never on a storage probe)", async () => {
     const { readBlob } = makeFakeStorage();
-    // loadCasManifest no longer probes existence — it is invoked ONLY when the
+    // loadCasManifest does not probe existence — it is invoked ONLY when the
     // change set's CANDIDATE snapshot says this was a CAS turn, so a missing blob
     // is a genuine integrity error, not a "git-only turn" signal.
     await expect(

@@ -54,7 +54,7 @@ import { createRunnerTokenCoordinator } from "./runner-token-coordinator.js";
 // Per-task-queue in-flight activity tracking lives in ./in-flight.ts so the
 // activity interceptor (no manager-closure handle) and unit tests can reach it.
 // This is what keeps a session worker alive while a turn's activity is running, so a
-// view close can no longer reap the worker mid-run.
+// view close cannot reap the worker mid-run.
 import {
   activityStartedOnQueue,
   activityFinishedOnQueue,
@@ -450,8 +450,8 @@ async function buildStigmerRunnerManager(
   /**
    * Graceful teardown of a managed worker. Never aborts: callers only reach the
    * actual teardown once no activity is in flight, so a plain worker.shutdown()
-   * drains the (idle) queue cleanly. The abort-before-shutdown that used to live
-   * here is what killed running activities on a view close.
+   * drains the (idle) queue cleanly. An abort before the shutdown would kill
+   * running activities on a view close.
    */
   async function teardownManaged(
     registry: Map<string, ManagedSession>,
@@ -741,7 +741,7 @@ export async function buildInterceptorConfig(
 
   // In-flight activity counter: keeps a session worker alive while one of
   // its activities (notably a long turn) is running, so a view close
-  // can no longer reap the worker mid-run. Always installed; cheap and global.
+  // cannot reap the worker mid-run. Always installed; cheap and global.
   activityInterceptors.push((ctx) => ({
     inbound: {
       async execute(input, next) {

@@ -1,6 +1,5 @@
 /**
- * Pins the ZIP gate against Go's zip_extractor_test.go arms plus the
- * pre-filter integration: every rejection message byte-for-byte
+ * Pins the ZIP gate's arms plus the pre-filter integration: every rejection message byte-for-byte
  * where the text is static, prefix-matched where it embeds sizes.
  */
 import { deflateRawSync } from "node:zlib";
@@ -51,7 +50,7 @@ describe("extractSkillMd — happy path", () => {
   });
 });
 
-describe("extractSkillMd — rejection arms (Go validateZipContent order)", () => {
+describe("extractSkillMd — rejection arms (in the pinned order)", () => {
   it("rejects an over-limit archive before parsing", () => {
     // A sparse Uint8Array is enough — the size check runs first.
     const oversized = new Uint8Array(MAX_ZIP_SIZE + 1);
@@ -60,7 +59,7 @@ describe("extractSkillMd — rejection arms (Go validateZipContent order)", () =
     );
   });
 
-  it("rejects non-ZIP bytes with Go's stdlib text", () => {
+  it("rejects non-ZIP bytes with the pinned text", () => {
     expect(() => extractSkillMd(new TextEncoder().encode("not a zip"))).toThrow(
       "invalid ZIP file: zip: not a valid zip file",
     );
@@ -159,7 +158,7 @@ describe("extractSkillMd — rejection arms (Go validateZipContent order)", () =
     );
   });
 
-  it("rejects a checksum mismatch with Go's stdlib text", () => {
+  it("rejects a checksum mismatch with the pinned text", () => {
     // Corrupt one payload byte after building; the CD's CRC then disagrees
     // with the stored content.
     const zip = buildZip([{ name: "SKILL.md", content: VALID_SKILL_MD }]);
@@ -171,7 +170,7 @@ describe("extractSkillMd — rejection arms (Go validateZipContent order)", () =
     );
   });
 
-  it("rejects an unsupported compression method with Go's stdlib text", () => {
+  it("rejects an unsupported compression method with the pinned text", () => {
     const zip = buildZip([{ name: "SKILL.md", content: VALID_SKILL_MD }]);
     // Rewrite the method field (bzip2 = 12) in BOTH the local header and
     // the central directory record.
@@ -185,7 +184,7 @@ describe("extractSkillMd — rejection arms (Go validateZipContent order)", () =
     );
   });
 
-  it("wraps frontmatter failures with Go's prefix", () => {
+  it("wraps frontmatter failures with the pinned prefix", () => {
     const zip = buildZip([{ name: "SKILL.md", content: "# no frontmatter" }]);
     expect(() => extractSkillMd(zip)).toThrow(
       /^invalid SKILL\.md frontmatter: SKILL\.md must start with YAML frontmatter/,

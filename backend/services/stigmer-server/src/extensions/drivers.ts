@@ -130,13 +130,11 @@ export interface ExtensionDrivers {
    * The resource-authorization lifecycle seam (single-instance point). When
    * composed, the three shared tuple steps
    * (CreateAuthorizationTuples / CleanupGrants /
-   * UpdateVisibilityTuples) deliver resolved events to it, and the
-   * The grant path delivers the two grant hooks. Corrected
-   * 2026-09-13: when absent, the steps no-op, but
-   * open source is no longer record-less — the composition root installs
-   * the built-in role lifecycle (domain/grant/role-lifecycle.ts),
-   * which writes Grant rows, whenever no extension
-   * registers an Authorizer (resource-authorization.ts header).
+   * UpdateVisibilityTuples) deliver resolved events to it, and the grant
+   * path delivers the two grant hooks. When absent, the steps no-op, and
+   * the composition root installs the built-in role lifecycle
+   * (domain/grant/role-lifecycle.ts), which writes Grant rows, whenever no
+   * extension registers an Authorizer (resource-authorization.ts header).
    */
   readonly resourceAuthorizationLifecycle?: ResourceAuthorizationLifecycle;
   /**
@@ -179,8 +177,8 @@ export interface ExtensionDrivers {
    * per enc:v<N>: format the
    * composition can read and (when selected by
    * STIGMER_ENCRYPTION_WRITE_VERSION) write. Instances, not factories:
-   * the Java posture is "registration IS the ability to encrypt" — a
-   * codec exists exactly when its key machinery does. The built-in "v1"
+   * registration IS the ability to encrypt — a codec exists exactly when
+   * its key machinery does. The built-in "v1"
    * token is reserved (the OSS static-key codec installs at the
    * compose.ts consumption site); registering it, or duplicating a
    * version across units, is a boot throw. When absent, the facade is

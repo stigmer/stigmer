@@ -13,9 +13,8 @@
 //
 // Setup deliberately has NO model concept: the platform model registry owns
 // the execution default, and per-run overrides belong to `stigmer run
-// --model`. A setup-level pin used to exist but never reached execution
-// (oss#314) — config that looks authoritative but is dead invites exactly
-// that bug class, so it is structurally gone rather than wired up.
+// --model`. A setup-level pin would look authoritative and reach no
+// execution (oss#314), so setup has none.
 
 import type { Command } from "commander";
 import { homedir } from "node:os";

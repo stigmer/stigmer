@@ -83,7 +83,7 @@ export function inMemoryNames(
       const takenBack = held !== undefined && held.state === "previous" ? held : undefined;
       for (const [key, entry] of entries) {
         if (entry.kind === move.kind && entry.org === move.org && entry.id === move.id && entry.state === "current") {
-          entries.set(key, { ...entry, state: "previous", claimedAt: move.now, expiresAt: entry.name === move.id ? "" : move.fromExpiresAt });
+          entries.set(key, { ...entry, state: "previous", claimedAt: move.now, expiresAt: move.fromExpiresAt });
         }
       }
       const entry: ResourceNameEntry = { ...toKey, id: move.id, state: "current", claimedAt: move.now, expiresAt: "" };

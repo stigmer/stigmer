@@ -8,8 +8,7 @@
 // REAL runner process, booted the way a host boots it, writes the `ready` line
 // with the version the hosts negotiate on and answers `shutdown` — `ready` is
 // sent only after the manager has connected to Temporal (main.ts), so the arm
-// belongs where Temporal is: the execution class. It replaces the Go harness's
-// TestOffline_RunnerManager_AdvertisesProtocolVersion.
+// belongs where Temporal is: the execution class.
 //
 // The smoke boots a SECOND runner beside the target's static one: the static
 // runner serves the file's engine, this one is the subject. It needs the
@@ -39,7 +38,7 @@ afterAll(async () => {
 });
 
 describe.skipIf(!hasEngineCoordinates)("Runner manager-mode IPC — handshake", () => {
-  it("a manager-mode runner advertises protocol version 2 in its ready handshake and answers shutdown with shutdownComplete", async () => {
+  it("a manager-mode runner advertises protocol version 1 in its ready handshake and answers shutdown with shutdownComplete", async () => {
     const coordinates = target.engineCoordinates!();
     manager = await spawnManagerRunner({
       entryPath: await ensureRunnerBuilt(),
@@ -50,7 +49,7 @@ describe.skipIf(!hasEngineCoordinates)("Runner manager-mode IPC — handshake", 
 
     expect(manager.ready.type).toBe("ready");
     expect(manager.ready.protocolVersion, "the version the hosts negotiate on").toBe(IPC_PROTOCOL_VERSION);
-    expect(manager.ready.protocolVersion).toBe(2);
+    expect(manager.ready.protocolVersion).toBe(1);
 
     manager.send({ type: "shutdown" });
     const response = await manager.nextResponse("shutdownComplete");

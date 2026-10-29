@@ -1,8 +1,7 @@
 /**
- * Deterministic sandbox object naming — generalized from the cloud
- * edition's SandboxObjectNaming.java so both container drivers (and the
- * cloud's own provisioner) name sandboxes identically: an operator
- * moving between tiers sees one vocabulary.
+ * Deterministic sandbox object naming, shared by both container drivers
+ * (and any provisioner a composition adds) so they name sandboxes
+ * identically: an operator moving between tiers sees one vocabulary.
  *
  * Base name: sbx-<scope-code>-<first 12 hex chars of SHA-256(id)> —
  * DNS-1123-safe regardless of the id's alphabet or length (resource ids
@@ -15,7 +14,7 @@ import { createHash } from "node:crypto";
 
 import type { SandboxScope } from "./provisioner.js";
 
-/** The Java SandboxScope codes, byte-identical. */
+/** Each scope's code in a sandbox name; names on running sandboxes carry them, so they never change. */
 const SCOPE_CODES: Record<SandboxScope, string> = {
   session: "ses",
   connect: "mcp",
@@ -54,7 +53,7 @@ export function sandboxTaskQueue(scope: SandboxScope, id: string): string {
   return `${SANDBOX_QUEUE_PREFIXES[scope]}${id}`;
 }
 
-/** sbx-<code>-<12-hex> (SandboxObjectNaming.java's derivation, kept exactly). */
+/** sbx-<code>-<12-hex>: the shared derivation, kept exactly so a running sandbox keeps its name. */
 export function sandboxBaseName(scope: SandboxScope, id: string): string {
   const digest = createHash("sha256").update(id).digest("hex").slice(0, 12);
   return `sbx-${SCOPE_CODES[scope]}-${digest}`;

@@ -1,26 +1,24 @@
 /**
- * Pins the sqlite driver's engine-specific search half (fts5.ts) against
- * Go's sqlite_search_query_store_test.go tables — MATCH rendering and
- * bm25 normalization, case-for-case — recomposed for the engine-neutral seam:
- * the table inputs pass through the search service's engine-neutral
- * tokenization (goTrimSpace/goFields) so every pinned OUTPUT byte stays
- * identical to the pre-redraw escapeFTS5Query's. The driver-level
- * querySearchIndex read coverage moved to the shared contract suite
- * (../../__tests__/store-contract.ts) when it was extracted — its
- * semantics are engine-neutral and both drivers must satisfy them.
+ * Pins the sqlite driver's engine-specific search half (fts5.ts): MATCH
+ * rendering and bm25 normalization, case by case. The table inputs pass
+ * through the search service's engine-neutral tokenization
+ * (trimWhiteSpace/splitOnWhiteSpace), the exact path a raw query takes.
+ * The driver-level querySearchIndex read coverage is in the shared
+ * contract suite (../../__tests__/store-contract.ts): its semantics are
+ * engine-neutral and both drivers must satisfy them.
  */
 import { describe, expect, it } from "vitest";
 
-import { goFields, goTrimSpace } from "../../../gocompat/trim.js";
+import { splitOnWhiteSpace, trimWhiteSpace } from "../../../text/whitespace.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "../fts5.js";
 
 /** The service's tokenization composed with the driver's rendering —
- *  the exact pipeline a raw query traverses since the seam redraw. */
+ *  the exact pipeline a raw query traverses. */
 function renderFromRawQuery(query: string): string {
-  return renderFts5MatchExpression(goFields(goTrimSpace(query)));
+  return renderFts5MatchExpression(splitOnWhiteSpace(trimWhiteSpace(query)));
 }
 
-describe("renderFts5MatchExpression (Go's escaping table, case-for-case)", () => {
+describe("renderFts5MatchExpression (the escaping table, case by case)", () => {
   const cases: Array<[name: string, input: string, expected: string]> = [
     ["empty query", "", ""],
     ["single word", "kubernetes", `"kubernetes"*`],
@@ -58,14 +56,14 @@ describe("renderFts5MatchExpression (Go's escaping table, case-for-case)", () =>
     });
   }
 
-  it("the prefix decision counts terms AFTER sanitization (Go's order)", () => {
+  it("the prefix decision counts terms AFTER sanitization", () => {
     // Two input terms, one sanitizes away — the survivor is a SINGLE
     // term and keeps prefix matching.
     expect(renderFts5MatchExpression(["foo", `"""`])).toBe(`"foo"*`);
   });
 });
 
-describe("normalizeBm25Score (Go's table)", () => {
+describe("normalizeBm25Score (the normalization table)", () => {
   const cases: Array<[bm25: number, min: number, max: number]> = [
     [0, 1.0, 1.0],
     [1.0, 1.0, 1.0],

@@ -32,7 +32,7 @@ describe("evalRunOfRun", () => {
     expect(evalRunOfRun(labelled(undefined))).toBeUndefined();
     expect(evalRunOfRun(labelled(""))).toBeUndefined();
     expect(evalRunOfRun(labelled("agt_01abc"))).toBeUndefined();
-    expect(evalRunOfRun(labelled("pev_01abc")), "a retired kind's id").toBeUndefined();
+    expect(evalRunOfRun(labelled("xyz_01abc")), "an unknown kind's id").toBeUndefined();
     expect(evalRunOfRun(labelled("not-an-id"))).toBeUndefined();
   });
 

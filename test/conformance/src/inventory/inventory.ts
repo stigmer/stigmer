@@ -3,8 +3,8 @@
 //
 // `inventory/cloud-capabilities.yaml` enumerates every behavior of the
 // surfaces only the hosted edition serves — the billing engine, the
-// side-channel proxy and the public REST lane — first read from the retired
-// Java service's code, and held against the composition that replaced it.
+// side-channel proxy and the public REST lane — held against the
+// composition that serves them.
 // Each row carries a DISPOSITION saying where that behavior is proven; only
 // `conformance` rows are proven HERE, by a test whose name carries the row id
 // as a `[billing.rpc.foo.bar]` tag. This module turns "every row is covered"
@@ -32,10 +32,9 @@ export const SURFACES = ["billing", "proxy", "public"] as const;
 export type Surface = (typeof SURFACES)[number];
 
 // Where a row's behavior is proven. Only the first is proven by this suite;
-// the rest name another home so the row is never silently dropped. (A
-// `deviation` disposition — the contract asserted here while Java carried a
-// tracked entry for its wrong answer — retired with the Java service and the
-// registry that held the entries, stigmer#1023; its one row is `conformance`.)
+// the rest name another home so the row is never silently dropped. The list
+// is closed: there is no disposition for "asserted here but known to answer
+// wrong" (stigmer#1023).
 export const DISPOSITIONS = [
   // A test in this suite observes it against the composition.
   "conformance",
@@ -95,10 +94,10 @@ const rowSchema = z
 
 export type InventoryRow = z.infer<typeof rowSchema>;
 
-// The metric inventory: every `stigmer.*` metric the retired Java service
-// emitted in these domains is a row here, `ported` (the composition emits the
-// byte-exact name) or `dropped` (its mechanism retired with Java — the note
-// says which). `alerts` names the hosted edition's alert rules that read the
+// The metric inventory: every `stigmer.*` metric name the hosted edition's
+// alert rules know in these domains is a row here, `ported` (the composition
+// emits the byte-exact name) or `dropped` (the composition does not emit it —
+// the note says why). `alerts` names the hosted edition's alert rules that read the
 // series.
 //
 // `platform` is the surface for metrics that belong to no lane — the HTTP
@@ -106,7 +105,7 @@ export type InventoryRow = z.infer<typeof rowSchema>;
 // them all the same.
 const metricRowSchema = z
   .object({
-    name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a Java stigmer.* metric name, byte-exact"),
+    name: z.string().regex(/^stigmer\.[a-z0-9_.]+$/, "a stigmer.* metric name, byte-exact"),
     surface: z.enum(["billing", "proxy", "platform"]),
     disposition: z.enum(["ported", "dropped"]),
     alerts: z.array(z.string().min(1)).optional(),
@@ -114,7 +113,7 @@ const metricRowSchema = z
   })
   .strict()
   .refine((row) => row.disposition !== "dropped" || (row.note ?? "") !== "", {
-    message: "a dropped metric must say why its mechanism retires",
+    message: "a dropped metric must say why it is not emitted",
     path: ["note"],
   });
 

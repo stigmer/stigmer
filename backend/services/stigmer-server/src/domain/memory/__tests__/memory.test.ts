@@ -1,6 +1,5 @@
 /**
- * Pins the memory domain against Go's pkg/domain/memory tests — through
- * the REAL stack: a composed server on an ephemeral port, a native gRPC
+ * Pins the memory domain through the REAL stack: a composed server on an ephemeral port, a native gRPC
  * client, and the full interceptor chain.
  *
  * The load-bearing pins:
@@ -214,7 +213,7 @@ describe("memory create", () => {
         provenance: {
           agentId: "agt_1",
           sessionId: "ses_1",
-          runId: "aex_1",
+          runId: "run_1",
           toolCallId: "call_invented",
         },
       },
@@ -222,7 +221,7 @@ describe("memory create", () => {
 
     expect(created.spec?.provenance?.agentId).toBe("agt_1");
     expect(created.spec?.provenance?.sessionId).toBe("ses_1");
-    expect(created.spec?.provenance?.runId).toBe("aex_1");
+    expect(created.spec?.provenance?.runId).toBe("run_1");
     expect(created.spec?.provenance?.toolCallId ?? "").toBe("");
   });
 

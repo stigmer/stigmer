@@ -15,7 +15,8 @@
  *     write, so its slug is not retired;
  *   - a second start on the same store makes nothing and fills the same one.
  *
- * On a store from before the server held one organization, holding several:
+ * On a store holding several organizations (one a broader composition
+ * wrote):
  * nothing is filled, `single_org` is false, no organization can be added,
  * and the organizations can be deleted down to one, which is then refused.
  *
@@ -280,7 +281,7 @@ describe("the open-source edition's one organization (composed as main.ts compos
   });
 });
 
-describe("a store from before the server held one organization, holding several", () => {
+describe("a store holding several organizations", () => {
   let dir: string;
   let server: ComposedServer;
   let organizations: Client<typeof OrganizationCommandController>;
@@ -289,7 +290,7 @@ describe("a store from before the server held one organization, holding several"
 
   beforeAll(async () => {
     dir = mkdtempSync(
-      path.join(tmpdir(), "single-organization-upgraded-test-"),
+      path.join(tmpdir(), "single-organization-several-test-"),
     );
     setOperatorIdentity(OPERATOR_EMAIL, "The Operator");
     server = await compose(dir, [openSourceEdition]);

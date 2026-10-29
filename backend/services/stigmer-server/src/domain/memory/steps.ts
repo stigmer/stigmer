@@ -1,7 +1,7 @@
 /**
- * Memory domain steps — port pkg/domain/memory/controller/steps.go,
- * update.go's graft persist, transition.go's atomic decided-state write,
- * and list.go's org filter.
+ * Memory domain steps — the create defaults and checks, the update's
+ * graft persist, the transition's atomic decided-state write, and the
+ * list's org filter.
  *
  * The consent doctrine these steps embody: a
  * memory is agent-proposed and user-confirmed; the server claims every
@@ -82,11 +82,11 @@ import {
 } from "./constants.js";
 import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
-/** Context key for the list result — Go listResultKey. */
+/** Context key for the list result. */
 export const LIST_RESULT_KEY = "listResult";
 
 /**
- * ResolveMemoryDefaults — Go resolveMemoryDefaultsStep: prepares a memory
+ * ResolveMemoryDefaults — prepares a memory
  * for creation — the server claiming every field it owns, before anything
  * persists:
  *
@@ -105,8 +105,7 @@ export const LIST_RESULT_KEY = "listResult";
  *     single-operator posture (no `personAccounts` composed) it is the
  *     empty-string sentinel — the laptop's one subject (the OAuth grant
  *     store convention). Where callers are persons it is the id of the
- *     identity account the memory is ABOUT (stigmer#1387, the Java
- *     MemoryCreateHandler's subject): the admitted capture credential's
+ *     identity account the memory is ABOUT (stigmer#1387): the admitted capture credential's
  *     subject (point 5), else the calling person — each resolved through
  *     the identity-account domain (accountForStamp / accountForCaller),
  *     so a subject that arrived as a raw issuer subject is filed under
@@ -133,8 +132,8 @@ export const LIST_RESULT_KEY = "listResult";
  *     credential (the composed provider's authorizeMemoryCapture
  *     capability), the token's PROVED claims
  *     replace both edition defaults: the subject is the credential's
- *     human ("the sub IS the human subject the session belongs to",
- *     Java MemoryCreateHandler) and provenance.session_id is overridden
+ *     human (the sub IS the human subject the session belongs to) and
+ *     provenance.session_id is overridden
  *     with the token's own session claim (server-proved beats
  *     runner-reported). Absent the handoff, the arms above apply
  *     unchanged.
@@ -161,8 +160,7 @@ export function newResolveMemoryDefaultsStep(
         metadata.name = metadata.id;
       }
 
-      // Go dereferences spec unconditionally (a nil spec panics into
-      // Internal); the explicit throw keeps the same wire code.
+      // A missing spec is a broken invariant, not client input: Internal.
       const spec = memory.spec;
       if (spec === undefined) {
         throw internalError(
@@ -294,7 +292,7 @@ export function resolveMemoryCreateTargets(
 }
 
 /**
- * CheckMemoryEnablement — Go checkMemoryEnablementStep: enforces the
+ * CheckMemoryEnablement — enforces the
  * org's memory_enabled switch at write time, FAIL-CLOSED: a
  * write that cannot verify enablement refuses. This deliberately inverts
  * the recall compose step's best-effort posture — an execution must start
@@ -305,7 +303,7 @@ export function resolveMemoryCreateTargets(
  * authorization: "the label is not authorization; the server refuses"
  * (the conversation-attachment doctrine, applied verbatim).
  *
- * The double opt-in, in the Java handler's order: the
+ * The double opt-in, in this order: the
  * organization's switch first (the gate an admin controls), then — where
  * callers are persons (`personAccounts` composed) — the switch of the
  * person the memory is about, read from the account ResolveMemoryDefaults
@@ -315,8 +313,8 @@ export function resolveMemoryCreateTargets(
  * one operator is the organization's decider. Who may capture at all is
  * GuardMemoryCapture's question, not this step's.
  *
- * Reads the Organization row directly from the store, matching Go — no
- * cross-domain client.
+ * Reads the Organization row directly from the store — no cross-domain
+ * client.
  */
 export function newCheckMemoryEnablementStep(
   store: Store,
@@ -360,7 +358,7 @@ export function newCheckMemoryEnablementStep(
 }
 
 /**
- * CheckMemoryCap — Go checkMemoryCapStep: enforces the
+ * CheckMemoryCap — enforces the
  * per-subject-per-org record ceiling at create. Counted
  * across all lifecycle states, from the subject's own rows in the org
  * through the memory list index (queries.ts), so a capture never reads
@@ -391,7 +389,7 @@ export function newCheckMemoryCapStep(
 }
 
 /**
- * InitializeMemoryLifecycle — Go initializeMemoryLifecycleStep: stamps
+ * InitializeMemoryLifecycle — stamps
  * the initial consent state after BuildNewState wiped client-provided
  * status: every memory starts proposed — nothing is
  * recallable until the subject confirms. Runs after BuildNewState so the
@@ -415,7 +413,7 @@ export function newInitializeMemoryLifecycleStep(): PipelineStep<
 }
 
 /**
- * ValidateMemoryUpdate — Go validateMemoryUpdateStep: enforces the
+ * ValidateMemoryUpdate — enforces the
  * memory's immutable identity on update (the Schedule agent_ref pattern):
  *
  *   - spec.subject_identity_account_id must not change: an editable
@@ -457,7 +455,7 @@ export function newValidateMemoryUpdateStep(): PipelineStep<
         throw failedPreconditionError(MEMORY_SUBJECT_IMMUTABLE_MESSAGE);
       }
 
-      // Go proto.Equal on nils: both nil → equal; one nil (even against an
+      // Absence counts: both absent → equal; one absent (even against an
       // empty message) → not equal. protobuf-es equals requires two
       // messages, so the undefined arms branch explicitly.
       const newProvenance = newState.spec?.provenance;
@@ -474,7 +472,7 @@ export function newValidateMemoryUpdateStep(): PipelineStep<
 }
 
 /**
- * PersistMemoryUpdate — Go persistMemoryUpdateStep (update.go): persists
+ * PersistMemoryUpdate — persists
  * what the request path owns (apiVersion/kind/metadata/spec plus the
  * audit bump BuildUpdateState stamped) over the status of the row the
  * chain read, by compare-and-swap on that row. Memory status has other
@@ -497,7 +495,7 @@ export function newPersistMemoryUpdateStep(
 }
 
 /**
- * TransitionMemoryLifecycle — Go transitionMemoryLifecycleStep: moves a
+ * TransitionMemoryLifecycle — moves a
  * memory's consent lifecycle to a target decided state in ONE
  * store.updateResource closure on the freshly-read row — confirm and
  * reject share this step because they are one contract with opposite
@@ -507,9 +505,7 @@ export function newPersistMemoryUpdateStep(
  *   - proposed (or unspecified, defensively) → target: written, with
  *     state_changed_at and a StatusAudit bump.
  *   - already the target → idempotent success, no write, no audit bump
- *     (Go aborts the write by returning a sentinel error from the
- *     closure; here the sentinel throw rolls the transaction back — the
- *     same no-write property).
+ *     (a sentinel throw rolls the transaction back).
  *   - the OPPOSITE decided state → FAILED_PRECONDITION with the
  *     cross-edition copy: decisions do not flip — deletion is the way out
  *     of confirmed (revocation) and out of rejected (making room for a
@@ -537,7 +533,7 @@ export function newTransitionMemoryLifecycleStep(
 
       // Aborts the atomic write on the idempotent path — the record is
       // already in the target state, so nothing is written and no audit
-      // bumps (Go errTransitionNoOp).
+      // bumps.
       const transitionNoOp = new Error("memory already in target state");
       let blocked: ConnectError | undefined;
       let live: Memory | undefined;

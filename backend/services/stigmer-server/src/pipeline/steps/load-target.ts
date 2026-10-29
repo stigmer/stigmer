@@ -1,13 +1,12 @@
 /**
- * LoadTarget — ports steps/load_target.go. Get's loader for ID-wrapper
+ * LoadTarget: Get's loader for ID-wrapper
  * inputs (OrganizationId, AgentId, …): loads by id into the
  * TargetResource context key; NotFound when absent.
  *
- * Deliberate divergence from the Go source (decided 2026-08-26): Go
- * mapped ANY store error to NotFound — a locked file or corrupted page
- * presented as a missing resource, inviting clients to discard real
- * state. Here only the store's typed ResourceNotFoundError is NotFound;
- * anything else rethrows, and the pipeline executor answers a sanitized
+ * Only the store's typed ResourceNotFoundError is NotFound: mapping any
+ * store error to NotFound would present a locked file or corrupted page
+ * as a missing resource, inviting clients to discard real state.
+ * Anything else rethrows, and the pipeline executor answers a sanitized
  * Internal (see pipeline.ts). The idiom applies at every store-read site
  * (guidelines §Errors).
  */
@@ -21,7 +20,7 @@ import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { idValueOf } from "./shapes.js";
 
-/** Context key for the loaded target (Go TargetResourceKey). */
+/** Context key for the loaded target. */
 export const TARGET_RESOURCE_KEY = "targetResource";
 
 export function newLoadTargetStep<

@@ -1,6 +1,4 @@
-// Resolution and on-demand acquisition of the stigmer server — the
-// TypeScript implementation (the Go binary ladder that backed rollback
-// retired with the Go server).
+// Resolution and on-demand acquisition of the stigmer server.
 //
 // The server is launched exactly like the runner: a compiled `node main.js`,
 // never `tsx src/main.ts` (the workers bundle Temporal workflows on boot in

@@ -1,19 +1,8 @@
 /**
- * Typed Temporal activity input shared by every harness's activity.
- *
- * The Go and Java control planes now invoke these activities with a single
- * object carrying snake_case keys (mirroring the polyglot workflow-input
- * convention) instead of positional string args. This ends the prior drift
- * where Go sent (executionId, threadId) and Java sent
- * (executionId, threadId, invokerIdentityAccountId) while this single runner
- * read only the first two positionally.
- *
- * TRANSITIONAL DUAL-SHAPE: the activity is MaximumAttempts=1 (a failed activity
- * fails the execution with no retry), and the control plane and this runner
- * deploy separately. To make the rollout order-independent, the runner accepts
- * BOTH the new object and the legacy positional args. Deploy the runner first,
- * then the control planes; once both are everywhere, drop the positional branch
- * (and the `string` arms below).
+ * Typed Temporal activity input shared by every harness's activity: one
+ * object with snake_case keys, the shape the server's invoke workflow sends
+ * (`ExecuteActivityInput` in its `invoke-agent-execution.ts`). The keys are
+ * wire contract.
  */
 
 import type { RUN_CREDENTIAL_INPUT_KEY } from "./run-credential.js";
@@ -27,13 +16,13 @@ export interface ExecuteActivityInput {
    * Monotonic HITL-cycle index within this execution: 0 on the first invocation,
    * then the workflow's approvalCycle on each reinvocation. The runtime mints
    * its deterministic file-review change-set id ({@code executionId:turnSeq})
-   * from it. Absent on the legacy positional wire shape (defaults to 0).
+   * from it. Absent means 0.
    */
   readonly turn_seq?: number;
   /**
    * The run credential the server minted for this execution at dispatch,
    * handed on from the workflow input; absent when the dispatch carried none
-   * (an older server; the cloud). Not normalized here and never read by an
+   * (the cloud's). Not normalized here and never read by an
    * activity: the activity boundary enters it into the run-credential store
    * before the activity runs (`interceptors/run-credential-activity.ts`), and
    * the control-plane client presents it per request (`run-credential.ts`).
@@ -53,26 +42,19 @@ type _RunCredentialKeyIsOnTheWire =
 export interface NormalizedActivityInput {
   readonly executionId: string;
   readonly threadId: string;
-  /** HITL-cycle index for this invocation; 0 on the first turn / legacy wire shape. */
+  /** HITL-cycle index for this invocation; 0 on the first turn. */
   readonly turnSeq: number;
 }
 
 /**
- * Normalizes either the new typed object or the legacy positional args into the
- * `{ executionId, threadId, turnSeq }` the inner activity path consumes.
- * `thread_id` is empty on a first invocation (new harness state) and `turn_seq`
- * defaults to 0 (first turn, or the legacy positional shape that never carried it).
+ * Normalizes the typed object into the `{ executionId, threadId, turnSeq }`
+ * the inner activity path consumes. `thread_id` is empty on a first
+ * invocation (new harness state) and `turn_seq` defaults to 0 (first turn).
  */
-export function normalizeActivityInput(
-  arg0: ExecuteActivityInput | string | undefined,
-  arg1?: string,
-): NormalizedActivityInput {
-  if (arg0 !== null && typeof arg0 === "object") {
-    return {
-      executionId: arg0.execution_id ?? "",
-      threadId: arg0.thread_id ?? "",
-      turnSeq: arg0.turn_seq ?? 0,
-    };
-  }
-  return { executionId: arg0 ?? "", threadId: arg1 ?? "", turnSeq: 0 };
+export function normalizeActivityInput(input: ExecuteActivityInput): NormalizedActivityInput {
+  return {
+    executionId: input.execution_id ?? "",
+    threadId: input.thread_id ?? "",
+    turnSeq: input.turn_seq ?? 0,
+  };
 }

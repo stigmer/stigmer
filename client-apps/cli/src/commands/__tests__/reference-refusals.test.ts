@@ -3,7 +3,7 @@
 // type it does not know; `resume` refuses an agent id as not a session and
 // points at `run`; `run` refuses a full id of any kind but an agent, since only
 // agents run, while an agent slug that starts with a prefix word ("run-…")
-// stays an agent reference, and refuses a second argument, so the retired `run <type> <ref>`
+// stays an agent reference, and refuses a second argument, so a `run <type> <ref>`
 // form fails instead of running an agent named by its first word. The
 // backend, the agent lookup and the session opener are replaced at their
 // module seams (the commands import them lazily) so a refusal is proven to
@@ -16,7 +16,7 @@ import { UsageError } from "../../errors/index.js";
 import { buildProgram } from "../../program.js";
 
 const CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
 };

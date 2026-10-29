@@ -1,6 +1,5 @@
 /**
- * The schedule-clock worker factory — ports the registration half of
- * pkg/domain/schedule/temporal/worker_config.go.
+ * The schedule-clock worker factory.
  *
  * The tick runs on its own queue (schedule_stigmer): since a tick SPANS
  * its run, a burst of long-tracking ticks must never starve the
@@ -14,8 +13,7 @@
  * with.
  *
  * The tick workflow registers under its byte-pinned slash type via the
- * barrel's arbitrary export name (workflows/index.ts — Go's explicit
- * RegisterWorkflowWithOptions{Name: TickWorkflowType} twin); the five
+ * barrel's arbitrary export name (workflows/index.ts); the five
  * activities register under their slash names as the activities object's
  * keys.
  */

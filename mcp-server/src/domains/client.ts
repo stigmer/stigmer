@@ -1,13 +1,12 @@
 // Per-request gRPC client construction for tool handlers.
 //
-// Parity contract (mirrors Go internal/domains/conn.go WithConnection + the
-// auth/grpc layer): each tool call resolves its credential, opens a short-lived
+// Each tool call resolves its credential, opens a short-lived
 // authenticated client to stigmer-server with a fixed RPC timeout, runs the
 // call, and discards the client. This is intentionally simple — the MCP server
 // handles a low volume of calls and transport setup is cheap. Pooling can be
 // introduced later without touching call sites.
 //
-// Credential source mirrors Go precisely:
+// Credential source:
 //   - stdio: the API key is captured once at startup (constant per process).
 //   - http: every request carries its own Bearer token via authInfo, which the
 //     transport injected from the Authorization header.
@@ -17,7 +16,7 @@ import type { DescService } from "@bufbuild/protobuf";
 import { createNodeTransport, normalizeEndpoint } from "@stigmer/client/node";
 
 /**
- * Per-call RPC timeout. Mirrors Go's DefaultRPCTimeout: generous for both
+ * Per-call RPC timeout: generous for both
  * localhost (milliseconds) and remote endpoints (low seconds), while still
  * failing fast against a misconfigured or unreachable address.
  */
@@ -25,8 +24,7 @@ export const DEFAULT_RPC_TIMEOUT_MS = 30_000;
 
 /**
  * The stigmer-server endpoint and startup credential captured at registration
- * time and shared by every tool handler. Mirrors the `serverAddress` closure +
- * startup API key that the Go handlers capture.
+ * time and shared by every tool handler.
  */
 export interface BackendTarget {
   readonly serverAddress: string;
@@ -55,11 +53,9 @@ export function resolveToken(extra: RequestAuth | undefined, fallback: string): 
  * an empty token attaches no Authorization header.
  *
  * Speaks NATIVE gRPC, not gRPC-web. The bridge is a server-side, in-cluster
- * caller dialing stigmer-server directly: the cloud Java server accepts only
- * `application/grpc` (it answers gRPC-web with HTTP 415 `Content-Type ... is
- * not supported`, which the tool layer would relay to the model as an opaque
- * "Content-Type error"), and the OSS server serves native gRPC on the same
- * listener. This matches the runner's own backend client — the other
+ * caller dialing stigmer-server directly, and the server serves native gRPC
+ * on its listener (stigmer/stigmer#316: a gRPC-web call answered HTTP 415
+ * reaches the model as an opaque "Content-Type error"). This matches the runner's own backend client — the other
  * in-cluster Node caller — which likewise uses native gRPC over HTTP/2.
  */
 export function transportForToken(serverAddress: string, token: string): Transport {
@@ -72,8 +68,7 @@ export function transportForToken(serverAddress: string, token: string): Transpo
 
 /**
  * Open a short-lived authenticated transport and invoke `fn` with it and the
- * standard call options (RPC timeout pre-applied). Mirrors Go's WithConnection:
- * the single place that owns transport construction and the timeout. Use this
+ * standard call options (RPC timeout pre-applied): the single place that owns transport construction and the timeout. Use this
  * when an operation needs more than one controller over the SAME connection —
  * e.g. the two-step deletes that resolve via the Query controller and delete via
  * the Command controller.

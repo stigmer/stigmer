@@ -3,15 +3,17 @@
  * the go-forward discipline: any change to a running
  * workflow's logic must replay committed histories green, or be gated
  * with patched(). Histories are REGENERATED only when no producing
- * release is still supported (the schedule domain's Go rule, adopted
- * here).
+ * release is still supported.
  *
  * Runs the core agent-execution scenarios against a local Temporal test
  * server with scripted activities (mock data only — safe to commit) and
  * writes each history's proto-JSON to
  * src/temporal/agentexecution/__tests__/replay-histories/.
  *
- * Usage: npx tsx scripts/capture-replay-histories.ts
+ * Every activity the workflow schedules is scripted here, so a history
+ * records no activity failure the scenario did not script.
+ *
+ * Usage: npx tsx scripts/capture-replay-histories.ts [--force]
  * (requires the `temporal` CLI on PATH — same as the workflow tests)
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -22,6 +24,7 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 
 const TASK_QUEUE = "replay-capture";
+const CAPTURE_IDENTITY = "replay-capture";
 const WORKFLOWS_PATH = fileURLToPath(
   new URL("../src/temporal/agentexecution/workflows/index.ts", import.meta.url),
 );
@@ -56,14 +59,33 @@ const activities = {
   // The HITL wait counts the turn's open gates in its session's log.
   CountOpenGates: async () => (gateCounts.length > 1 ? gateCounts.shift()! : (gateCounts[0] ?? 0)),
   CloseFileReview: async () => {},
-  // A history recorded before the open-gate count loaded the run instead;
-  // registered so such a history's load can still be scripted.
-  LoadAgentExecution: async () => ({ metadata: { id: "exec-replay" } }),
-  // The retired run-end cleanup (temporal/agentexecution/names.ts): a new
-  // capture records its patch and never calls it; registered so the
-  // committed histories that do still replay.
-  DeleteExecutionContext: async () => {},
+  // The session's queued turn, started as the workflow ends.
+  StartQueuedTurn: async () => {},
 };
+
+/** The run every scenario dispatches, under the kinds' id prefixes. */
+const RUN_INPUT = { execution_id: "run_replay", session_id: "ses_replay", agent_id: "agt_replay" };
+
+/**
+ * The history with every failure's stack trace emptied. A stack trace
+ * names the files of the checkout that captured it, and a replay reads
+ * none (the workflow sees a failure's type and message), so a committed
+ * history carries no machine's paths.
+ */
+function withoutStackTraces(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(withoutStackTraces);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, field]) => [
+        key,
+        key === "stackTrace" ? "" : withoutStackTraces(field),
+      ]),
+    );
+  }
+  return value;
+}
 
 function slim(phase: string): Record<string, unknown> {
   return { phase };
@@ -71,8 +93,11 @@ function slim(phase: string): Record<string, unknown> {
 
 async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
-  const env = await TestWorkflowEnvironment.createLocal();
+  // One fixed identity for the client and the worker, so a committed
+  // history names no machine.
+  const env = await TestWorkflowEnvironment.createLocal({ client: { identity: CAPTURE_IDENTITY } });
   const worker = await Worker.create({
+    identity: CAPTURE_IDENTITY,
     connection: env.nativeConnection,
     taskQueue: TASK_QUEUE,
     workflowsPath: WORKFLOWS_PATH,
@@ -112,9 +137,9 @@ async function main(): Promise<void> {
     // buffers before the SDK's fixBuffers workaround can run (the SDK's
     // own doc cites googleapis/proto3-json-serializer-nodejs#103). The
     // replay test loads with History.fromObject, the exact inverse.
-    const json = proto.temporal.api.history.v1.History.fromObject(
-      history,
-    ).toJSON();
+    const json = withoutStackTraces(
+      proto.temporal.api.history.v1.History.fromObject(history).toJSON(),
+    );
     writeFileSync(
       `${OUT_DIR}/${name}.json`,
       JSON.stringify(json, null, 2) + "\n",
@@ -123,11 +148,11 @@ async function main(): Promise<void> {
   }
 
   // 1. Happy path: EnsureThread → one completed turn.
-  executeBehaviors = [async () => slim("EXECUTION_COMPLETED")];
+  executeBehaviors = [async () => slim("RUN_COMPLETED")];
   gateCounts = [];
   await capture(
     "happy-completed",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await handle.result();
     },
@@ -136,13 +161,13 @@ async function main(): Promise<void> {
   // 2. HITL cycle: WAITING → gate re-read → approvalGateResolved →
   //    re-invoke (TurnSeq 1) → completed.
   executeBehaviors = [
-    async () => slim("EXECUTION_WAITING_FOR_APPROVAL"),
-    async () => slim("EXECUTION_COMPLETED"),
+    async () => slim("RUN_WAITING_FOR_APPROVAL"),
+    async () => slim("RUN_COMPLETED"),
   ];
   gateCounts = [1];
   await capture(
     "hitl-approval",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await handle.signal("approvalGateResolved");
@@ -156,14 +181,14 @@ async function main(): Promise<void> {
   executeBehaviors = [
     () =>
       new Promise<Record<string, unknown>>((resolve) => {
-        releaseHold = () => resolve(slim("EXECUTION_COMPLETED"));
+        releaseHold = () => resolve(slim("RUN_COMPLETED"));
       }),
-    async () => slim("EXECUTION_COMPLETED"),
+    async () => slim("RUN_COMPLETED"),
   ];
   gateCounts = [];
   await capture(
     "pause-resume",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await handle.signal("pause", "replay capture");
@@ -177,15 +202,14 @@ async function main(): Promise<void> {
   // 4. Runner-reported failure: the turn RETURNS a FAILED slim result,
   //    so the workflow persists the phase-only FAILED fallback, throws,
   //    and runs the failure-path status write. Pins the command shape of
-  //    that path, whose status payload (not its command sequence) is
-  //    what stigmer#980 changes.
+  //    that path.
   executeBehaviors = [
-    async () => ({ phase: "EXECUTION_FAILED", error: "replay capture failure" }),
+    async () => ({ phase: "RUN_FAILED", error: "replay capture failure" }),
   ];
   gateCounts = [];
   await capture(
     "runner-failed",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await handle.result().catch(() => {});
     },
@@ -200,13 +224,13 @@ async function main(): Promise<void> {
   executeBehaviors = [
     () =>
       new Promise<Record<string, unknown>>((resolve) => {
-        releaseCancelHold = () => resolve(slim("EXECUTION_CANCELLED"));
+        releaseCancelHold = () => resolve(slim("RUN_CANCELLED"));
       }),
   ];
   gateCounts = [];
   await capture(
     "user-cancel",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await handle.cancel();
@@ -218,9 +242,7 @@ async function main(): Promise<void> {
   // 6. A drained turn recovered: the runner's worker stops the turn past
   //    its drain grace (Temporal's core reports it as its own WorkerShutdown
   //    failure), the workflow persists IN_PROGRESS, backs off and re-invokes,
-  //    and the turn completes. Captured before recoveries were counted per
-  //    sliding hour, so it carries no recovery-window marker and pins the
-  //    lifetime count's command shape.
+  //    and the turn completes.
   executeBehaviors = [
     async () => {
       throw ApplicationFailure.create({
@@ -228,12 +250,12 @@ async function main(): Promise<void> {
         message: "Worker is shutting down and this activity did not complete in time",
       });
     },
-    async () => slim("EXECUTION_COMPLETED"),
+    async () => slim("RUN_COMPLETED"),
   ];
   gateCounts = [];
   await capture(
     "drain-recovered",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await handle.result();
     },
@@ -241,8 +263,8 @@ async function main(): Promise<void> {
 
   // 7. A drained turn that yielded and continued: the runner's engine
   //    stopped at a step boundary and threw the typed continuation
-  //    (StigmerTurnContinues, cause drain), which the workflow recovers
-  //    under the recovery-window patch; the next turn completes.
+  //    (StigmerTurnContinues, cause drain), which the workflow recovers;
+  //    the next turn completes.
   executeBehaviors = [
     async () => {
       throw ApplicationFailure.create({
@@ -251,12 +273,12 @@ async function main(): Promise<void> {
         details: ["drain"],
       });
     },
-    async () => slim("EXECUTION_COMPLETED"),
+    async () => slim("RUN_COMPLETED"),
   ];
   gateCounts = [];
   await capture(
     "drain-continued",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    RUN_INPUT,
     async (handle) => {
       await handle.result();
     },
@@ -265,15 +287,14 @@ async function main(): Promise<void> {
   // 8. A Claude turn's HITL cycle: the deterministic-state flow with the
   //    Claude engine's activity — EnsureThread, ExecuteClaude WAITING, gate
   //    re-read, approvalGateResolved, ExecuteClaude (TurnSeq 1) completed.
-  //    Freezes the third arm's command shape before a release carries it.
   executeBehaviors = [
-    async () => slim("EXECUTION_WAITING_FOR_APPROVAL"),
-    async () => slim("EXECUTION_COMPLETED"),
+    async () => slim("RUN_WAITING_FOR_APPROVAL"),
+    async () => slim("RUN_COMPLETED"),
   ];
   gateCounts = [1];
   await capture(
     "claude-hitl-approval",
-    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1", harness: 3 },
+    { ...RUN_INPUT, harness: 3 },
     async (handle) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await handle.signal("approvalGateResolved");

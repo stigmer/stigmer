@@ -197,9 +197,6 @@ export type { RunErrorNoticeProps } from "./RunErrorNotice.js";
 export { ThreadSkeleton } from "./ThreadSkeleton.js";
 export type { ThreadSkeletonProps } from "./ThreadSkeleton.js";
 
-export { FollowUpInput } from "./FollowUpInput.js";
-export type { FollowUpInputProps } from "./FollowUpInput.js";
-
 export { RunProgress } from "./RunProgress.js";
 export type { RunProgressProps } from "./RunProgress.js";
 

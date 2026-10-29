@@ -177,7 +177,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
   });
 
 
-  it("session listByChannel denies at the channel gate with the Java handler's copy", async () => {
+  it("session listByChannel denies at the channel gate with the lane's pinned copy", async () => {
     const query = createClient(SessionQueryController, transport);
     await expectDenied(
       () => query.listByChannel({ channelId: "chn_01authztarget" }),
@@ -185,7 +185,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
   });
 
-  it("skill listVersions denies on the RESOLVED skill with the Java handler's copy", async () => {
+  it("skill listVersions denies on the RESOLVED skill with the lane's pinned copy", async () => {
     const query = createClient(SkillQueryController, transport);
     await expectDenied(
       () => query.listVersions({ slug: "authz-target", org: "acme" }),

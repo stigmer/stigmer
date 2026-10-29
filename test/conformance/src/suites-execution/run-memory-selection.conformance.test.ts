@@ -17,9 +17,7 @@
 // edition-neutral; the capability gate is on SEEDING memories, which only the
 // first-party capture lane can do (targets/target.ts firstPartyMemoryCapture).
 //
-// Replaces the two embedder-posture subtests of the Go offline suite's
-// memory_retrieval_offline_test.go. The opted-out-member subtest is cloud IAM
-// vocabulary and is covered there.
+// An opted-out member is cloud IAM vocabulary and is covered there.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";

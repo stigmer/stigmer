@@ -80,7 +80,7 @@ computes.
 
 - `authorizer.ts` — the `Authorizer` driver, arm for arm the cloud's
   (`stigmer-cloud src/authorizer/fga-authorizer.ts`): the four pre-check denials
-  with the Java copy; a kind this edition does not serve denied (a platform
+  with their pinned copy; a kind this edition does not serve denied (a platform
   capability no self-host holds); the target loaded once through the source;
   `not-found` for a missing row except on the kinds the cloud never probes
   (`NOT_FOUND_EXEMPT_KINDS`, the cloud's own set: accounts, grants, platform

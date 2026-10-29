@@ -288,8 +288,8 @@ function ModelRow({
         )}
       >
         <span className="stg:min-w-0">
-          {/* The display name needs no tooltip: the model id it used to
-              reveal is printed on the line below, which shows its own
+          {/* The display name needs no tooltip: the model id is printed
+              on the line below, which shows its own
               tooltip when clipped. */}
           <span className="stg:block stg:truncate stg:font-medium stg:text-foreground">
             {baseline.displayName || baseline.modelId}

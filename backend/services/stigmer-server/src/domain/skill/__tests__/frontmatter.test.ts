@@ -1,6 +1,5 @@
 /**
- * Pins frontmatter parsing against Go's frontmatter_test.go table: the
- * delimiter rules, required-name enforcement, and the kebab-case /
+ * Pins frontmatter parsing: the delimiter rules, required-name enforcement, and the kebab-case /
  * dot-scoped name pattern. Error copy is wire-visible teaching text — the
  * assertions check the load-bearing first lines.
  */
@@ -76,20 +75,20 @@ describe("parseFrontmatter", () => {
     );
   });
 
-  it("rejects a BOM'd first line — Go's TrimSpace does not strip U+FEFF", () => {
+  it("rejects a BOM'd first line — U+FEFF is not White_Space", () => {
     expect(() => parseFrontmatter(`\uFEFF${skillMd("name: bom-skill")}`)).toThrow(
       "SKILL.md must start with YAML frontmatter (---)",
     );
   });
 
-  it("accepts Unicode-whitespace-padded delimiters — Go trims the full White_Space set", () => {
-    // U+2000 (en quad) is White_Space: Go's TrimSpace reduces the line to
-    // "---" and accepts the file; the port must agree.
+  it("accepts Unicode-whitespace-padded delimiters — the full White_Space set is trimmed", () => {
+    // U+2000 (en quad) is White_Space: trimming reduces the line to "---"
+    // and the file is accepted.
     const fm = parseFrontmatter(`\u2000---\u2000\nname: padded-skill\n\u3000---\n# Body`);
     expect(fm.name).toBe("padded-skill");
   });
 
-  it("reports a first line over the 64KB scanner cap as empty — Go's !Scan() arm, bug-for-bug", () => {
+  it("reports a first line over the 64KB line cap as empty — the pinned copy", () => {
     const longFirstLine = "x".repeat(64 * 1024 + 1);
     expect(() => parseFrontmatter(`${longFirstLine}\n---\nname: a\n---`)).toThrow(
       "SKILL.md is empty",

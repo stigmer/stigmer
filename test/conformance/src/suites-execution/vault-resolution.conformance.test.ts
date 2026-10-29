@@ -185,7 +185,7 @@ async function shellOutputOf(org: string, setup: RunSetup, command: string): Pro
   mock.enqueue(anthropicToolUse("call_shell", "execute", { command }));
   mock.enqueue(anthropicText("Done."));
   const execution = await clients.agentExecutionCommand.create(
-    makeAgentExecution({ org, name: uniqueName("aex-shell"), sessionId: session.metadata!.id, autoApproveAll: true }),
+    makeAgentExecution({ org, name: uniqueName("run-shell"), sessionId: session.metadata!.id, autoApproveAll: true }),
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -234,7 +234,7 @@ async function refusalOfFirstTurn(
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-missing"),
+        name: uniqueName("run-missing"),
         agentRef: agentRefOf(agent),
         sessionSpec: makeSessionSpec(sessionSpec),
       }),
@@ -532,7 +532,7 @@ describe("vault resolution — a person's run", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-first-turn"),
+        name: uniqueName("run-first-turn"),
         agentRef: agentRefOf(agent),
         includeMyVault: true,
       }),
@@ -581,7 +581,7 @@ describe("vault resolution — a plugin's server", () => {
       const created = await clients.agentExecutionCommand.create(
         makeAgentExecution({
           org,
-          name: uniqueName("aex-plugin-missing"),
+          name: uniqueName("run-plugin-missing"),
           agentRef: agentRefOf(agent),
           includeMyVault: true,
         }),
@@ -610,7 +610,7 @@ describe("vault resolution — a plugin's server", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-plugin-values"),
+        name: uniqueName("run-plugin-values"),
         agentRef: agentRefOf(agent),
         includeMyVault: true,
       }),
@@ -656,7 +656,7 @@ describe("vault resolution — recover", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-recover-keys"),
+        name: uniqueName("run-recover-keys"),
         agentRef: agentRefOf(v1),
         sessionSpec: { subject: "recover keys", includeMyVault: true },
       }),
@@ -731,7 +731,7 @@ describe.skipIf(collectionTarget.engineCoordinates === undefined)("vault resolut
     mock.enqueue(anthropicToolUse("call_probe", "execute", { command: 'echo "PROBE=[$HISTORY_PROBE_KEY]"' }));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-history"), sessionId: session.metadata!.id, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-history"), sessionId: session.metadata!.id, autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -826,7 +826,7 @@ describe("vault resolution — the agent's shell", () => {
     );
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-shell"), sessionId: session.metadata!.id, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-shell"), sessionId: session.metadata!.id, autoApproveAll: true }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -892,7 +892,7 @@ describe("vault resolution — the agent's shell", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-secret-proof"),
+        name: uniqueName("run-secret-proof"),
         agentRef: agentRefOf(agent),
         includeMyVault: true,
         autoApproveAll: true,

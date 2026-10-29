@@ -143,7 +143,7 @@ export function sampleDate(deltaMs = 0): Date {
  * When a default tool use returns ({@link samples.toolResultEvent}):
  * {@link SAMPLE_INSTANT} plus 1.2s, so the rendered duration chip reads a
  * stable "1.2s" — long enough to never collapse to the "0ms" that two
- * adjacent live clock reads used to produce.
+ * adjacent live clock reads can produce.
  */
 const SAMPLE_TOOL_RESULT_AT = sampleInstant(1_200);
 
@@ -151,7 +151,7 @@ const SAMPLE_TOOL_RESULT_AT = sampleInstant(1_200);
 const SAMPLE_RUN_ID = "run_00000000000000000000000001";
 
 /** The demo session the demo run belongs to. */
-const SAMPLE_SESSION_ID = "ses-00000000-0000-0000-0000-000000000001";
+const SAMPLE_SESSION_ID = "ses_00000000000000000000000001";
 
 // ---------------------------------------------------------------------------
 // Override interfaces — flat projections of commonly-customized fields
@@ -398,7 +398,7 @@ export const samples = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "ses-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "ses_00000000000000000000000001",
         name: o?.name ?? "demo-session",
         slug: o?.slug ?? o?.name ?? "demo-session",
         org: o?.org ?? "demo",
@@ -421,7 +421,7 @@ export const samples = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "agt-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "agt_00000000000000000000000001",
         name: o?.name ?? "Demo Agent",
         slug: o?.slug ?? o?.name?.toLowerCase().replace(/\s+/g, "-") ?? "demo-agent",
         org: o?.org ?? "demo",
@@ -459,7 +459,7 @@ export const samples = {
         message: o?.message ?? SAMPLE_USER_MESSAGE,
       }),
       status: create(RunStatusSchema, {
-        agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
+        agentId: o?.agentId ?? "agt_00000000000000000000000001",
         phase: o?.phase ?? RunPhase.RUN_COMPLETED,
       }),
     });
@@ -474,7 +474,7 @@ export const samples = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Skill",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "skl-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "skl_00000000000000000000000001",
         name: o?.name ?? "Demo Skill",
         slug: o?.slug ?? o?.name?.toLowerCase().replace(/\s+/g, "-") ?? "demo-skill",
         org: o?.org ?? "demo",
@@ -498,7 +498,7 @@ export const samples = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Plugin",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "plg-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "plg_00000000000000000000000001",
         name,
         slug: o?.slug ?? name,
         org: o?.org ?? "demo",
@@ -527,7 +527,7 @@ export const samples = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Vault",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "vlt-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "vlt_00000000000000000000000001",
         name: o?.name ?? "demo-vault",
         slug: o?.slug ?? o?.name ?? "demo-vault",
         org: o?.org ?? "demo",
@@ -545,7 +545,7 @@ export const samples = {
       apiVersion: "iam.stigmer.ai/v1",
       kind: "ApiKey",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "apk-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "key_00000000000000000000000001",
         name: o?.name ?? "demo-api-key",
         slug: o?.slug ?? o?.name?.toLowerCase().replace(/\s+/g, "-") ?? "demo-api-key",
       }),
@@ -573,7 +573,7 @@ export const samples = {
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "org-00000000-0000-0000-0000-000000000001",
+        id: o?.id ?? "org_00000000000000000000000001",
         name: o?.name ?? "Acme Corp",
         slug: o?.slug ?? "acme",
       }),
@@ -846,7 +846,7 @@ export const samples = {
   searchResult(o?: SearchResultOverrides): SearchResult {
     return create(SearchResultSchema, {
       kind: o?.kind ?? ApiResourceKind.agent,
-      id: o?.id ?? "agt-00000000-0000-0000-0000-000000000001",
+      id: o?.id ?? "agt_00000000000000000000000001",
       name: o?.name ?? "Demo Agent",
       slug: o?.slug ?? "demo-agent",
       qualifiedSlug: `${o?.org ?? "demo"}/${o?.slug ?? "demo-agent"}`,

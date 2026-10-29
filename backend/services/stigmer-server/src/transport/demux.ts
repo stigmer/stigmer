@@ -1,9 +1,8 @@
 /**
- * Cleartext protocol demux for the unified port — the TS equivalent of Go's
- * h2c wrapper (backend/libs/go/grpc/server.go, StartHTTP).
+ * Cleartext protocol demux for the unified port: HTTP/2 prior-knowledge
+ * AND HTTP/1.1 on one cleartext socket (h2c).
  *
- * Why this exists: Go's h2c handler transparently serves HTTP/2
- * prior-knowledge AND HTTP/1.1 on one cleartext socket. Node's cleartext
+ * Why this exists: Node's cleartext
  * `http2.createServer` does not fall back to HTTP/1.1 (its `allowHTTP1`
  * option is TLS/ALPN-only), and browsers only speak HTTP/1.1 on cleartext.
  * The port's clients therefore split by protocol: native gRPC (runner,

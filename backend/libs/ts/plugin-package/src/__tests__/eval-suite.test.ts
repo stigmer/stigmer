@@ -13,8 +13,8 @@
  * sentence; the `context` checks (paths, the resumable history); mocks
  * (suite and case merged file by file, `_server.md`, `_tools.json`, the
  * refusals, a server the plugin does not declare); the `unsupported` order
- * and each engine's own verdict; and that the plugin read no longer
- * reports `evals/` as an ignored component.
+ * and each engine's own verdict; and that the plugin read does not report
+ * `evals/` as an ignored component.
  */
 
 import { readFileSync } from "node:fs";
@@ -154,7 +154,7 @@ describe("the documentation's examples", () => {
     expect(negative?.graders[0]).toMatchObject({ arm: "both", check: { type: "tool_used", tool: "Skill", min: 0, max: 0 } });
   });
 
-  it("is no longer an ignored component of the install", () => {
+  it("is not an ignored component of the install", () => {
     const plugin = accepted(readPluginPackage(directoryPluginFiles(`${FIXTURES}commit-helper`)));
     expect(plugin.ignored).toEqual([]);
   });

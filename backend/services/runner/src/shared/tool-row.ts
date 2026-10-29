@@ -12,15 +12,13 @@
  * tools"). Every harness stamps rows the same way, so the operation lives
  * here.
  *
- * {@link hideToolCallRow} / {@link isToolCallRowHidden} remain for the OTHER
- * collapse consumer — a superseded same-turn denial twin — and as the render
- * shape of legacy (pre-stamping) sessions whose flowed edit rows were hidden.
+ * {@link isToolCallRowHidden} names the collapsed shape the SDK renders as
+ * absent: a SKIPPED row with no approval state, args, result or error.
  */
 
 import { extractFilePath } from "./file-tools.js";
 import { isSecretLikePath } from "./filereview/secret-paths.js";
 import { toolApprovalCategory } from "./tool-kind.js";
-import { utcTimestamp } from "./status.js";
 import type { AgentMessage, ToolCall, SubAgentRun } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -70,11 +68,9 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
  *  - already-stamped rows — the idempotency AND cross-turn guard: a resume
  *    seeds prior turns' rows into this transcript, and re-stamping them with
  *    this turn's id would mis-attribute them ({@link stampFileEditRow});
- *  - legacy hidden rows (sessions persisted before stamping existed) — they
- *    belong to an earlier turn's set;
  *  - ids in `skipToolCallIds` — the sub-agent callers' pre-turn snapshot
- *    ({@link collectSubAgentToolCallIds}), since sub-agent rows have neither
- *    of the two shields above; top-level callers omit it;
+ *    ({@link collectSubAgentToolCallIds}), since sub-agent rows lack the
+ *    shield above; top-level callers omit it;
  *  - rows `flowed` refuses — the caller's evidence that a row did NOT flow
  *    (a status rule). Omit to stamp
  *    every write/delete row, the deep-agent posture where every such row flowed.
@@ -94,7 +90,6 @@ export function stampFlowedFileEditRows(
     for (const tc of msg.toolCalls) {
       if (tc.fileChangeSetId) continue;
       if (opts.skipToolCallIds?.has(tc.id)) continue;
-      if (isToolCallRowHidden(tc)) continue;
       const category = toolApprovalCategory(tc.name);
       if (category !== "write" && category !== "delete") continue;
       if (opts.flowed && !opts.flowed(tc)) continue;
@@ -109,7 +104,7 @@ export function stampFlowedFileEditRows(
  * observation), so they carry the parent change set id and badge
  * against the same set the parent's rows do. Scoped to this turn by
  * `priorToolCallIds` (the sub-agent tool-call ids that existed before the
- * turn's stream), because sub-agent rows lack the top-level pass's shields.
+ * turn's stream), because sub-agent rows lack the top-level pass's shield.
  */
 export function stampFlowedSubAgentFileEditRows(
   subAgents: readonly SubAgentRun[],
@@ -187,35 +182,8 @@ export function withholdSecretContentFromMessages(
 }
 
 /**
- * Collapse a tool-call row to the hidden shape the SDK renders as absent: a
- * SKIPPED row with no approval state, result, error, preview, or args.
- * Idempotent (re-running yields the same shape).
- *
- * `args` is cleared, not just `args_preview`. A hidden row is redundant with the
- * `file_change_set` (the single review surface), so its content must not linger
- * anywhere: for a file-mutating tool `args` holds the full write body, which for
- * a secret-like path would otherwise persist into the transcript / Temporal
- * history in violation of the never-persist-secret-contents contract.
- * Dropping it is safe at resume — a gate answers a call by its id, never by
- * `args` (the size-limit elision already drops `args`); no consumer reads a
- * hidden row's `args`.
- */
-export function hideToolCallRow(tc: ToolCall): void {
-  tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
-  tc.requiresApproval = false;
-  tc.approvalRequestedAt = "";
-  tc.approvalMessage = "";
-  tc.error = "";
-  tc.result = "";
-  tc.argsPreview = "";
-  tc.args = undefined;
-  if (!tc.completedAt) tc.completedAt = utcTimestamp();
-}
-
-/**
- * Whether a tool-call row is already collapsed/hidden (the SDK's absent-row
- * predicate). Used to keep {@link hideToolCallRow} idempotent across re-persists
- * and activity retries.
+ * Whether a tool-call row is collapsed (the SDK's absent-row predicate): a
+ * SKIPPED row with no approval state, args, result or error.
  */
 export function isToolCallRowHidden(tc: ToolCall): boolean {
   return (
@@ -237,10 +205,9 @@ export function isToolCallRowHidden(tc: ToolCall): boolean {
  * Why tool-call-id novelty is the current-turn signal for sub-agent rows (and
  * not the `{unstamped}` heuristic the top-level pass uses): a top-level flowed
  * edit row is guaranteed to be from this turn because prior turns' rows are
- * either already stamped or hidden. Sub-agent rows have neither shield — before
- * sub-agent stamping existed, ALL of them are unstamped and never hidden — so a
- * naive `{unstamped}` walk would mis-attribute a resumed execution's prior
- * sub-agent rows to the current change set. Keying on tool-call-id novelty is
+ * already stamped. Sub-agent rows have no such shield — a resumed execution's
+ * prior sub-agent rows can be unstamped — so a naive `{unstamped}` walk would
+ * mis-attribute them to the current change set. Keying on tool-call-id novelty is
  * also correct for a sub-agent that spans invocations (an internal tool gate):
  * its id pre-exists on resume, but its continuation edit rows carry fresh ids
  * and stamp with the completing turn's set. It is likewise independent of how

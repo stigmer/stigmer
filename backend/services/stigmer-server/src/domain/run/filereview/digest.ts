@@ -1,5 +1,5 @@
 /**
- * The canonical file-change digests — ports filereview/digest.go. The
+ * The canonical file-change digests. The
  * filereview module is the backend half of the apply-then-review
  * file-change subsystem: it owns the canonical change digests, reads the
  * run's file record (record.ts) and records decisions as the session's
@@ -10,7 +10,7 @@
  * correlation key (correlation is by CapturedFileChange.id). The
  * canonical form digests the content HASHES, not raw bytes, so the string
  * is pure ASCII with no encoding ambiguity across editions. kind renders
- * as the proto enum value name (Go .String() / Java name()). The format
+ * as the proto enum value name. The format
  * is locked by apis/testdata/hitl/file-digest/vectors.json.
  */
 import { createHash } from "node:crypto";
@@ -49,8 +49,8 @@ function sha256Hex(s: string): string {
 
 /**
  * The raw-bytes content address CAS blobs are keyed by (Node
- * createHash("sha256").digest("hex") — lowercase hex, exactly Go's
- * hex.EncodeToString).
+ * createHash("sha256").digest("hex") — lowercase hex, the producer's
+ * spelling).
  */
 export function sha256HexBytes(b: Uint8Array): string {
   return createHash("sha256").update(b).digest("hex");

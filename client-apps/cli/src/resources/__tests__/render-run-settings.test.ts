@@ -44,7 +44,7 @@ describe("renderResource — run settings in the human view", () => {
 
   it("names the settings a turn ran with, not only what its message asked", () => {
     const execution = create(RunSchema, {
-      metadata: { id: "aex_1", name: "aex_1" },
+      metadata: { id: "run_1", name: "run_1" },
       spec: { message: "hi", runConfig: { maxCostUsd: 1 } },
       status: {
         runConfig: { modelName: "claude-sonnet-4-6", thinkingMode: ThinkingMode.ENABLED, maxCostUsd: 1 },

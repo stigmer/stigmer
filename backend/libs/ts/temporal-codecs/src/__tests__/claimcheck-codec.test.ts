@@ -172,19 +172,15 @@ describe("ClaimcheckPayloadCodec", () => {
       expect(Buffer.from(decoded.data!)).toEqual(original.data);
     });
 
-    it("decodes legacy markers written before metadata preservation", async () => {
-      const original = makeLargePayload(2048);
+    it("restores the bytes of a payload that carried no metadata", async () => {
+      const original: Payload = { data: Buffer.alloc(2048, "x") };
       const [encoded] = await codec.encode([original]);
 
-      // Simulate a pre-fix marker: strip the metadata field.
+      // Nothing to preserve, so the marker records no metadata.
       const marker = JSON.parse(Buffer.from(encoded.data!).toString());
-      delete marker.metadata;
-      const legacy: Payload = {
-        metadata: encoded.metadata,
-        data: Buffer.from(JSON.stringify(marker)),
-      };
+      expect(marker.metadata).toBeUndefined();
 
-      const [decoded] = await codec.decode([legacy]);
+      const [decoded] = await codec.decode([encoded]);
       expect(Buffer.from(decoded.data!)).toEqual(original.data);
     });
 

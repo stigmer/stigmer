@@ -3,12 +3,9 @@
  *
  * Loads the shared corpus (apis/testdata/hitl/policy-source/vectors.json) and
  * asserts the runner's {@link toProtoPolicySource} maps each PolicySource onto
- * the proto enum number the backends consume. The Go (policy_source_corpus_test.go)
- * and Java (PolicySourceFixtureTest) editions load the same file and assert the
- * generated enum resolves the same name to the same number, so a drift in the
- * runner mapping or a renumbering of the enum in any edition fails one of the
- * three suites — the guarantee that a persisted approval_policy_source means the
- * same thing everywhere. Numbers 1 to 3 are unused: the corpus and the enum
+ * the proto enum number the server consumes, so a drift in the runner mapping
+ * or a renumbering of the enum fails this suite — the guarantee that a
+ * persisted approval_policy_source means the same thing everywhere. Numbers 1 to 3 are unused: the corpus and the enum
  * both leave them out.
  */
 

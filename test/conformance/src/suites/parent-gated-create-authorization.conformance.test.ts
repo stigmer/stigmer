@@ -18,7 +18,7 @@
 //     turned memory on, the memory filed under the member.
 //
 // Every refusal is asserted by code AND copy, because the copy is the wire
-// contract each lane has carried since the Java edition. Out of scope: the
+// contract each lane carries. Out of scope: the
 // run gate (its own suites), the reads by reference
 // (reference-read-authorization), and the writer clause on a vault
 // reference (a write attaches only a vault its writer may use): the vault
@@ -98,8 +98,8 @@ async function castOf(lane: EnforcingLane): Promise<Cast> {
   };
 }
 
-// The deny copies, byte for byte: the Java handlers' where the lane had one,
-// the annotation family's where the check is new.
+// The deny copies, byte for byte: each lane's own where it has one, the
+// annotation family's elsewhere.
 const PLUGIN_ORG_DENIED =
   "unauthorized to install plugin in this organization";
 const ROUTINE_DENIED = "You don't have permission to make a routine of this agent";

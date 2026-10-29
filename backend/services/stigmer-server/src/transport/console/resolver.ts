@@ -18,17 +18,14 @@
  *   tree together; the equivalence test holds THIS resolver to the same
  *   model, so the two serving paths cannot drift.
  *
- * - RSC FLIGHT resolution restores the retired Go CLI handler's rewrites
- *   (client-apps/cli/embedded/webconsole/handler.go at 8dc9df7e4~1,
- *   deleted with the June CLI migration): a soft navigation to a dynamic
+ * - RSC FLIGHT resolution: a soft navigation to a dynamic
  *   route fetches `<path>.txt` (and nested `<path>/__next.*.txt`) flight
  *   payloads that exist on disk only in `__placeholder__` form. nginx
  *   never handled these (filed as a cloud-side follow-up); without the
  *   rewrite every soft navigation to a dynamic route degrades to a full
  *   page load. Formulated here as "resolve the stem as a page, serve the
  *   resolved document's twin" — one candidate discipline for both
- *   contracts, which also covers the two-dynamic-segment routes the Go
- *   handler's single-substitution loop predated.
+ *   contracts, which also covers two-dynamic-segment routes.
  */
 
 /** The literal Next.js static-export sentinel for dynamic segments. */

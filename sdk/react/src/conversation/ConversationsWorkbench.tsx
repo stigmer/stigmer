@@ -178,9 +178,8 @@ export function ConversationsWorkbench({
   // provider later failed does NOT count as an answer), and platform
   // acknowledgments never stamp it. Never re-derive this from timeline
   // authorship: that derivation read a bounced staff reply as "answered"
-  // and went silent in exactly the scenario the guard exists for
-  // — the client-side twin of a re-derivation the server no longer
-  // makes. No loading gap: the Hand back button renders from this
+  // and went silent in exactly the scenario the guard exists for;
+  // the server does not re-derive it either. No loading gap: the Hand back button renders from this
   // same row, so the guard and the control it protects appear together.
   const unansweredCustomer = detail.conversation?.awaitingReply ?? false;
 

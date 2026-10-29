@@ -2,9 +2,8 @@
 # schemas (tools/codegen/schemas), consumed by the Stage 2 generator.
 #
 # The plugin runs from TypeScript source via the repo-pinned tsx (never bare
-# npx — oss#531). `clean: true` wipes the out directory first, replacing the
-# per-namespace RemoveAll the retired Go extractor did — schemas for deleted
-# protos can never linger.
+# npx — oss#531). `clean: true` wipes the out directory first, so schemas for
+# deleted protos can never linger.
 #
 # Invoked from `make -C sdk/go codegen-schemas` (repo convention: run buf
 # from the apis/ directory).

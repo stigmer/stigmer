@@ -1,5 +1,5 @@
-// Shared table renderer for list/collection views. Mirrors the column model of
-// the Go CLI's pkg/display table (dynamic widths, dash separator, 3-space gap).
+// Shared table renderer for list/collection views: dynamic widths, a dash
+// separator, a 3-space gap.
 //
 // This implements the non-adaptive path: columns size to their widest cell.
 // Terminal-width adaptation and ANSI-aware measurement can be layered on later

@@ -15,10 +15,6 @@
  * cloud's org-column arm of revocation — the column was never stamped by
  * any writer, so it matched nothing; dropped). A port does not
  * carry methods only one edition calls or no edition needs.
- * `findByResourceKindAndRelation` joined it when a second edition came to
- * call it: the boot reconcile that revokes the direct `owner` rows a kind
- * no longer admits runs in every host that serves federation issuers and
- * invitations, over this port.
  *
  * Contract every implementation must satisfy — proven by the port-contract
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
@@ -31,8 +27,6 @@
  *   - `deleteById` of an unknown id resolves;
  *   - the finds answer rows by the axes named, exactly:
  *     `findByPrincipalAndResource` every relation on the pair;
- *     `findByResourceKindAndRelation` every row granting the relation on
- *     any resource of the kind, and nothing on another kind or relation;
  *     `findByResourceWithRelations` the allowlist only, an empty allowlist
  *     matching nothing; `countDistinctPrincipalsByResource` distinct
  *     (kind, id) principals — not rows — over the allowlist, `undefined`
@@ -138,14 +132,6 @@ export interface GrantStore {
     principalKind: string | undefined,
     relations: ReadonlyArray<string>,
   ): Promise<number>;
-  /**
-   * Every row granting `relation` on any resource of `resourceKind` — a
-   * boot reconcile's read, asked once per kind, never per request.
-   */
-  findByResourceKindAndRelation(
-    resourceKind: string,
-    relation: string,
-  ): Promise<ReadonlyArray<Grant>>;
   /**
    * The resource's scope tuple (the hierarchy walk's one step): a grant
    * on the resource whose principal is structural (not identity_account

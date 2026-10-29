@@ -7,12 +7,11 @@
  *     is never silent either — ERROR-logged and PRE-STAMPED onto
  *     status.error first-non-empty-wins, so when the agent activity dies
  *     at its ScheduleToStartTimeout minutes later the user sees the root
- *     cause instead of a generic timeout. The 2026-07 cloud quota outage
- *     hid for two days behind this step's former WARN-and-swallow — the
- *     pre-stamp posture is contract.
+ *     cause instead of a generic timeout. A warn-and-swallow here would
+ *     hide a provisioning outage (a cloud quota, say) behind that
+ *     timeout — the pre-stamp posture is contract.
  *   - DeprovisionSessionSandbox (session delete): best-effort teardown,
- *     ERROR-logged on failure, never fails the delete (the Java
- *     SessionDeleteHandler posture).
+ *     ERROR-logged on failure, never fails the delete.
  *
  * The pre-stamp rides Store.updateResource (atomic read-modify-write) —
  * a whole-resource save here would race the runner's concurrent
@@ -111,9 +110,8 @@ export interface EnsureSessionSandboxDeps {
  * workflow's first activity ScheduleToStart window.
  *
  * Dispatch is re-resolved here (one extra session read, on the
- * enabled+CLOUD arm only) so the step stays self-contained — the same
- * choice the Java step makes rather than threading dispatch results
- * through the chain.
+ * enabled+CLOUD arm only) so the step stays self-contained rather than
+ * threading dispatch results through the chain.
  */
 export function newEnsureSessionSandboxStep(
   deps: EnsureSessionSandboxDeps,
@@ -132,10 +130,9 @@ export function newEnsureSessionSandboxStep(
 
 /**
  * The session-lane body, shared by the create step above and the recover
- * chain's post-StartFreshWorkflow invocation (lifecycle.ts) — the Java
- * precedent wires ONE step bean into both pipelines; here the two
- * chains' differing context shapes (newState vs loaded execution) meet
- * at this seam instead.
+ * chain's post-StartFreshWorkflow invocation (lifecycle.ts): one body for
+ * both pipelines, whose differing context shapes (newState vs loaded
+ * execution) meet at this seam.
  *
  * The credential mint (lane.ts) names the session's creator, read with a
  * point read of its own and resolved as the runner verifier resolves a
@@ -241,7 +238,7 @@ async function sandboxPersonOf(
 
 /**
  * First-non-empty-wins stamp of the provisioning root cause onto
- * status.error (the Java setStatusErrorIfEmpty semantic) via the store's
+ * status.error via the store's
  * atomic read-modify-write. Touches ONLY the error field — phase stays
  * the runner-owned lane. Best-effort: a stamp failure is logged, never
  * thrown (the execution is already launched).
@@ -277,8 +274,8 @@ async function stampProvisioningFailure(
 
 /**
  * Best-effort session-sandbox teardown for the session delete handler
- * (module header, the second posture; the Java SessionDeleteHandler shape — a
- * handler call after the delete pipeline, not a pipeline step). A
+ * (module header, the second posture; a handler call after the delete
+ * pipeline, not a pipeline step). A
  * failure never fails the delete (the row is already gone) but is
  * ERROR-logged — no reaper exists to catch a leak.
  */

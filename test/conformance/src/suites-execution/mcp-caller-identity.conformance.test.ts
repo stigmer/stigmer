@@ -49,6 +49,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { runSourcesOf } from "../support/run-values";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
+import { modelToolName } from "../support/plugins";
 
 // The reserved env keys (pinned verbatim to the runner's caller-identity.ts).
 const KIND_ENV_KEY = "STIGMER_CALLER_IDENTITY_KIND";
@@ -125,13 +126,13 @@ async function runEchoAndCapture(options: {
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 
-  mock.enqueue(anthropicToolUse("call_echo_identity", ECHO_TOOL_NAME, { text: "ping" }));
+  mock.enqueue(anthropicToolUse("call_echo_identity", modelToolName(plugin, ECHO_TOOL_NAME), { text: "ping" }));
   mock.enqueue(anthropicText("Done."));
 
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org: options.org,
-      name: uniqueName("aex-identity"),
+      name: uniqueName("run-identity"),
       agentRef: agentRefOf(agent),
       autoApproveAll: true,
       ...(options.sessionSpec !== undefined ? { sessionSpec: options.sessionSpec } : {}),

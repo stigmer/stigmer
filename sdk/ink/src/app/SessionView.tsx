@@ -59,7 +59,7 @@ export interface SessionViewProps {
  *
  * render(
  *   <InkStigmerProvider client={client}>
- *     <SessionView sessionId="ses-xxx" org="my-org" />
+ *     <SessionView sessionId="ses_xxx" org="my-org" />
  *   </InkStigmerProvider>
  * );
  * ```

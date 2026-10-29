@@ -1,7 +1,7 @@
 /**
  * Grant domain constants: the derived
- * grant id and the one spelling of a triple it hashes, the kinds the
- * legacy-creator rule scans, and the byte-pinned wire copy.
+ * grant id and the one spelling of a triple it hashes, the kinds an admin
+ * authors, and the byte-pinned wire copy.
  *
  * The derived id. A grant's id is a pure function of its triple:
  * `grt_` + `derivedId` (pipeline/steps/defaults.ts, the encoder shared
@@ -26,14 +26,13 @@
  * relation an FGA relation name — and OpenFGA itself rejects `:` and `#`
  * in ids, so the cloud loses nothing it could ever have written.
  *
- * `BLUEPRINT_KINDS` is the legacy-creator rule's whole scan: the
- * kinds an admin authors. Sessions, executions, keys and memories are
+ * `BLUEPRINT_KINDS` is the kinds an admin authors, the ones the creator
+ * scan reads (membership.ts). Sessions, executions, keys and memories are
  * personal and stay with their creator; they never appear
  * here.
  *
- * The copy moved from the cloud's iam/grant/handlers.ts as-is: the CLI,
- * console and SDK show these sentences verbatim, so they are contract. The
- * new sentences are the two edition refusals (the federation shape), the
+ * The copy is contract: the CLI, console and SDK show these sentences
+ * verbatim. Among them are the two edition refusals (the federation shape), the
  * unknown permission, the unknown principal kind (the resource sentence's
  * shape), the malformed triple, and the four principal refusals a team
  * grantee brought (a person's qualifier, a team's qualifier, a kind no
@@ -131,8 +130,8 @@ export function grantIdFor(spec: GrantSpec): string {
 }
 
 /**
- * The kinds an admin authors — the legacy-creator rule's scan,
- * in registry order. A caller who created one of these idp-shaped, before
+ * The kinds an admin authors, the creator scan's (membership.ts), in
+ * registry order. A caller who created one of these idp-shaped, before
  * an account existed, becomes admin on first sign-in.
  */
 export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
@@ -142,29 +141,15 @@ export const BLUEPRINT_KINDS: ReadonlyArray<ApiResourceKind> = [
 ];
 
 /**
- * The bootstrap-state key the membership rules' one-shot reconciliation
- * writes when it has run (membership.ts `ensureRolesForExistingAccounts`):
- * a database whose accounts were provisioned before the rules existed is
- * reconciled once, at the first boot under the built-in authorization
- * posture, and never again — the value is the RFC 3339 time it finished.
- * Lives in `store.bootstrapState`, the store's one-shot boot state, beside
- * the organization domain's SINGLE_ORG_KEY (domain/organization/limit.ts);
- * deleting it makes the next boot reconcile again, which is the operator's
- * deliberate act and nobody else's.
- */
-export const ROLES_RECONCILED_KEY = "membership_rules_reconciled";
-
-/**
  * The bootstrap-state key the membership rules write when the person
  * accounts a store held when a one-organization server made its
  * organization on that store have been given their roles on it
  * (SINGLE_ORG_KEY; membership.ts `ensureRolesOnServerOrganization`): once
  * per database, the value the RFC 3339 time it finished, or
- * SERVER_ORGANIZATION_ROLES_OWED while the pass is owed. Its own key, not ROLES_RECONCILED_KEY: that
- * reconciliation runs before `start()` makes or records the organization,
- * so on a store upgraded with people and no organization it has already
- * run over none. Once only, for the same reason: a role revoked
- * after it is never handed back by a reboot.
+ * SERVER_ORGANIZATION_ROLES_OWED while the pass is owed. Lives in
+ * `store.bootstrapState`, the store's one-shot boot state, beside the
+ * organization domain's SINGLE_ORG_KEY (domain/organization/limit.ts).
+ * Once only: a role revoked after it is never handed back by a reboot.
  */
 export const SERVER_ORGANIZATION_ROLES_KEY = "single_org_roles_reconciled";
 
@@ -174,8 +159,8 @@ export const SERVER_ORGANIZATION_ROLES_KEY = "single_org_roles_reconciled";
  * makes the organization, so the people that store already held get their
  * roles on it even when the start dies between the create and the pass. A
  * store that already held an organization is never marked: its people met
- * that organization through their own sign-ins and the role reconciliation,
- * and a role an admin revoked there stays revoked.
+ * that organization through their own sign-ins, and a role an admin
+ * revoked there stays revoked.
  */
 export const SERVER_ORGANIZATION_ROLES_OWED = "owed";
 

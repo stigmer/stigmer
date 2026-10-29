@@ -1,11 +1,10 @@
 // Parsing and construction of stigmer:// resource URIs.
-// Go parity: mcp-server/internal/domains/resourceuri.go.
 //
 // A resource URI has the form stigmer://{authority}/{org}/{slug}[/{version}].
 // The authority (e.g. "agents") is the URL host and encodes the kind; org/slug
 // (and optional version) are the path segments. Parsing deliberately validates
 // only the scheme and the path-segment count/shape — the authority is not
-// checked here, exactly as the Go server behaves.
+// checked here.
 
 /** The org and slug extracted from a two-segment resource URI. */
 export interface ResourceRef {
@@ -87,7 +86,7 @@ export const kindToAuthority: Readonly<Record<string, string>> = {
 /**
  * Construct a stigmer:// URI from a kind, org, and slug — the inverse of
  * {@link parseResourceURI}. Returns "" when the kind has no registered template
- * or org/slug are empty, mirroring the Go server's enrichment fallback.
+ * or org/slug are empty, so a result carries no URI rather than a broken one.
  */
 export function buildResourceURI(kind: string, org: string, slug: string): string {
   const authority = kindToAuthority[kind];
@@ -100,8 +99,8 @@ export function buildResourceURI(kind: string, org: string, slug: string): strin
 /**
  * Parse the URI, assert the scheme, and return its path split into segments.
  * The double-slash authority (the kind) is intentionally discarded; only the
- * path carries org/slug[/version]. Interior empty segments are preserved so the
- * count matches Go's strings.Split semantics.
+ * path carries org/slug[/version]. Interior empty segments are preserved so an
+ * empty org or slug fails the segment count.
  */
 function pathSegments(uri: string): string[] {
   let parsed: URL;

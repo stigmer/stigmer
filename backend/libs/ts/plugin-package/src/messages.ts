@@ -180,8 +180,6 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
   "settings-agent-unknown": (c) =>
     `plugin settings${at(c.path)} name ${q(c.detail)} as the main agent, which is not one of the plugin's agents, ignored`,
   "settings-key-ignored": (c) => `plugin settings${at(c.path)} have a key ${q(c.subject)} Stigmer does not apply, ignored`,
-  "stigmer-folder-ignored": (c) =>
-    `${q(c.path)} is not read: Stigmer installs a plugin from its skills, agents, hooks and MCP configuration, as every other client does`,
 };
 
 /** Sub-agent fields Claude Code itself ignores when the agent comes from a plugin (its sub-agents reference). */

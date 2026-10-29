@@ -1,11 +1,9 @@
 /**
- * The ONE resource-to-Temporal mapping — ports
- * pkg/domain/schedule/temporal/artifact.go (the cloud ScheduleArtifact's
- * twin). Whatever this writes is final for every artifact it creates,
+ * The ONE resource-to-Temporal mapping. Whatever this writes is final for every artifact it creates,
  * because the baked action is invisible to Temporal's schedule listing and
  * cannot be repaired by the reconciliation sweep.
  *
- * Pinned policy, identical to cloud (Go CreateOptions):
+ * Pinned policy, the same in every edition:
  *   - Overlap SKIP is explicit: since a tick SPANS its run (tracking),
  *     SKIP genuinely means "never start a run while the last is active".
  *   - PauseOnFailure stays false: Temporal must never pause behind the
@@ -35,7 +33,7 @@ import { TICK_WORKFLOW_TYPE, artifactId } from "./names.js";
  * The drift fingerprint written into the artifact's state note. Cron
  * itself does NOT round-trip (the Temporal server compiles it into
  * calendar specs and describes cronExpressions as empty), so the note is
- * the only way the reconciliation pass can detect a spec change (Go Note).
+ * the only way the reconciliation pass can detect a spec change.
  */
 export function note(routine: Routine): string {
   return `cron=${specOf(routine).cron} tz=${specOf(routine).timeZone}`;
@@ -53,7 +51,7 @@ export function hasSchedule(routine: Routine): boolean {
 /**
  * The artifact must be paused when the owner disabled the routine
  * (spec.enabled=false) OR the platform latched it (status.paused_reason) —
- * two levers, one artifact state (Go DesiredPaused).
+ * two levers, one artifact state.
  */
 export function desiredPaused(routine: Routine): boolean {
   return !specOf(routine).enabled || (routine.status?.pausedReason ?? "") !== "";
@@ -70,7 +68,7 @@ function specOf(routine: Routine): { cron: string; timeZone: string; enabled: bo
 export class RoutineArtifact {
   constructor(private readonly config: RoutineTemporalConfig) {}
 
-  /** Builds the complete desired artifact for create (Go CreateOptions). */
+  /** Builds the complete desired artifact for create. */
   createOptions(routine: Routine): ScheduleOptions {
     const resourceId = routine.metadata?.id ?? "";
     return {
@@ -94,8 +92,7 @@ export class RoutineArtifact {
 
   /**
    * Rewrites a described artifact to the resource's complete desired
-   * state — the update half of ensure's create-or-update (Go
-   * ApplyDesiredState). A lost race between two writers is benign: both
+   * state — the update half of ensure's create-or-update. A lost race between two writers is benign: both
    * write the same desired state.
    *
    * The ACTION is deliberately rewritten too, even though drift detection
@@ -131,7 +128,7 @@ export class RoutineArtifact {
    * appends the nominal fire time per fire — the tick's second-tier
    * nominal-time derivation), the schedule's own queue, and the 24h
    * run-timeout backstop. Retry deliberately stays at the workflow default
-   * (none): a failed tick is a missed fire, not a hot loop (Go tickAction).
+   * (none): a failed tick is a missed fire, not a hot loop.
    */
   private tickAction(resourceId: string): ScheduleOptionsAction {
     return {

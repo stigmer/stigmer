@@ -30,8 +30,6 @@ swap:
   identity account: Identity Account
   '\borganization\b': Organization
   '\borganizations\b': Organizations
-  '\bseedpack\b': Seedpack
-  '\bseedpacks\b': Seedpacks
   '\bworkspace\b': Workspace
   '\bworkspaces\b': Workspaces
 

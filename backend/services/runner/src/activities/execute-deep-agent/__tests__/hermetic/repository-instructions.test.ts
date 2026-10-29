@@ -229,7 +229,7 @@ describe("ExecuteDeepAgent hermetic — the workspace's own instruction files", 
     const transcripts: BaseMessage[][] = [];
     let secondRead: string | undefined;
     const next = continueDeepAgentScenario(first, {
-      record: deepAgentExecutionRecord({ message: "Now read y.", resources, autoApproveAll: true, executionId: "aex_hermetic_0002" }),
+      record: deepAgentExecutionRecord({ message: "Now read y.", resources, autoApproveAll: true, executionId: "run_hermetic_0002" }),
       script: () => (transcript): ScriptedTurn => {
         transcripts.push([...transcript]);
         secondRead ??= toolResult(transcript, READ_Y);

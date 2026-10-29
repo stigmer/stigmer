@@ -30,7 +30,7 @@ module iam
 # create; `can_view` to get, get by reference, and to keep a row in the
 # organization's list; `can_edit` to update; `can_delete` to delete.
 #
-# An issuer no longer links organizations: a child organization names its
+# An issuer links no organizations: a child organization names its
 # parent organization directly (tenancy/organization.fga, parent_org), and
 # an issuer's external_id_claim only routes a sign-in to one of its
 # organization's children.

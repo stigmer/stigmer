@@ -8,8 +8,8 @@
 // `.codex-plugin/plugin.json`) is read with `@stigmer/plugin-package`, the
 // same reader the server installs with, so what validates here installs
 // there and what is refused here is refused there with the same sentence.
-// The plugin check runs BEFORE the YAML walk: a plugin's `ai.stigmer/*.yaml`
-// documents would otherwise be validated as loose resources.
+// The plugin check runs BEFORE the YAML walk: a plugin's YAML documents
+// would otherwise be validated as loose resources.
 //
 // A plugin refusal is a `UsageError` (exit 2) listing every problem at once;
 // an accepted plugin renders as `success`, or `warning` when the reader had

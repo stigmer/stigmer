@@ -3,8 +3,8 @@
  * when the turn starts and at every interval after the last send, a change
  * in what is open sends it on the streaming floor (once, however many events
  * fold meanwhile, and not at all for an event that changed nothing), a send
- * the chokepoint found busy is tried again on the floor, the first refusal
- * stops it for the turn with one log line, a send that throws is logged, and
+ * the chokepoint found busy is tried again on the floor, a send that throws
+ * is logged, and
  * `stop` waits for a send in flight and schedules nothing after.
  */
 
@@ -22,7 +22,7 @@ const BUILD: OperationsSnapshot = { operations: [{ callId: "c1", name: "shell", 
 function pumpOver(outcomes: LivenessSend[] = []) {
   let snapshot = NOTHING;
   const send = vi.fn(async (_: OperationsSnapshot): Promise<LivenessSend> => outcomes.shift() ?? "sent");
-  const pump = new LivenessPump({ snapshot: () => snapshot, send, intervalMs: INTERVAL_MS, minGapMs: FLOOR_MS, runId: "aex_1" });
+  const pump = new LivenessPump({ snapshot: () => snapshot, send, intervalMs: INTERVAL_MS, minGapMs: FLOOR_MS, runId: "run_1" });
   return { pump, send, set: (next: OperationsSnapshot) => (snapshot = next) };
 }
 
@@ -77,24 +77,6 @@ describe("LivenessPump", () => {
     await vi.advanceTimersByTimeAsync(FLOOR_MS);
     expect(send).toHaveBeenCalledTimes(3);
     await pump.stop();
-  });
-
-  it("stops for the turn on the first refusal, saying so once", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    try {
-      const { pump, send, set } = pumpOver(["refused"]);
-      pump.start();
-      await vi.advanceTimersByTimeAsync(0);
-      set(BUILD);
-      pump.note();
-      await vi.advanceTimersByTimeAsync(3 * INTERVAL_MS);
-      expect(send).toHaveBeenCalledTimes(1);
-      expect(warn).toHaveBeenCalledTimes(1);
-      expect(String(warn.mock.calls[0]![0])).toMatch(/refused the liveness preview/);
-      await pump.stop();
-    } finally {
-      warn.mockRestore();
-    }
   });
 
   it("logs a send that throws and goes on at the interval", async () => {

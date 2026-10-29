@@ -261,7 +261,7 @@ describe("ResultView", () => {
 describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
   const imageView: ToolResultView = {
     type: "outputRef",
-    storageKey: "artifacts/aex_1/toolcalls/tc.png",
+    storageKey: "artifacts/run_1/toolcalls/tc.png",
     contentHash: "h",
     isImage: true,
     mimeType: "image/png",
@@ -271,7 +271,7 @@ describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
 
   const textView: ToolResultView = {
     type: "outputRef",
-    storageKey: "artifacts/aex_1/toolcalls/tc.txt",
+    storageKey: "artifacts/run_1/toolcalls/tc.txt",
     contentHash: "h",
     isImage: false,
     mimeType: "text/plain",
@@ -293,8 +293,8 @@ describe("ResultView — offloaded outputRef (on-demand resolution)", () => {
     expect(img.getAttribute("src")).toBe("https://fresh/url.png");
     // URL was resolved on demand from the stable storage key.
     const req = getArtifactDownloadUrl.mock.calls[0][0];
-    expect(req.storageKey).toBe("artifacts/aex_1/toolcalls/tc.png");
-    expect(req.runId).toBe("aex_1");
+    expect(req.storageKey).toBe("artifacts/run_1/toolcalls/tc.png");
+    expect(req.runId).toBe("run_1");
   });
 
   it("shows the preview head and defers the full fetch until 'View full output'", async () => {

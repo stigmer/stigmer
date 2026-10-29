@@ -9,12 +9,11 @@
  * answers from a script. What is pinned is the orchestration the module
  * owns: the grade activity's outcome is the workflow's; a grading failure
  * records the run as not graded with the byte-pinned reason; a
- * cancellation is rethrown, never recorded as not graded. Behind the judge's
- * patch: the planner, the start, the poll on a capped backoff against the
- * judge's ten minutes (the workflow's sleep moves a fake clock here), and
- * one record for every judge that started or failed to, with the failure
- * the workflow saw; an execution from before the patch ends after run
- * health.
+ * cancellation is rethrown, never recorded as not graded. Then the judge:
+ * the planner, the start, the poll on a capped backoff against the judge's
+ * ten minutes (the workflow's sleep moves a fake clock here), and one
+ * record for every judge that started or failed to, with the failure the
+ * workflow saw.
  */
 import {
   ActivityFailure,
@@ -41,7 +40,6 @@ import {
 
 const seam = vi.hoisted(() => ({
   activities: {} as Record<string, ReturnType<typeof vi.fn>>,
-  patched: true,
 }));
 
 vi.mock("@temporalio/workflow", async (importOriginal) => {
@@ -50,7 +48,6 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
     ...actual,
     proxyActivities: () =>
       new Proxy({}, { get: (_target, name: string) => seam.activities[name] }),
-    patched: () => seam.patched,
     // The workflow's clock in a test: each sleep moves the fake system time.
     sleep: (ms: number) => {
       vi.setSystemTime(Date.now() + ms);
@@ -59,7 +56,7 @@ vi.mock("@temporalio/workflow", async (importOriginal) => {
   };
 });
 
-const TICKET: JudgeTicket = { evaluatorId: "evl_1", modelName: "", capUsd: 0.25, period: "2026-10" };
+const TICKET: JudgeTicket = { evaluatorId: "srl_1", modelName: "", capUsd: 0.25, period: "2026-10" };
 
 const { gradeRun } = await import("../workflows/grade-run.js");
 
@@ -69,7 +66,6 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  seam.patched = true;
   seam.activities = {
     [PLAN_JUDGE_ACTIVITY_NAME]: vi.fn(() => Promise.resolve({ kind: "skip" })),
     [START_JUDGE_ACTIVITY_NAME]: vi.fn(() =>
@@ -115,12 +111,6 @@ describe("gradeRun", () => {
     expect(
       seam.activities[RECORD_NOT_GRADED_ACTIVITY_NAME],
     ).not.toHaveBeenCalled();
-  });
-
-  it("ends after run health for an execution started before the judge", async () => {
-    seam.patched = false;
-    await gradeRun("run_1");
-    expect(seam.activities[PLAN_JUDGE_ACTIVITY_NAME]).not.toHaveBeenCalled();
   });
 
   it("grades with the judge: start, poll until it ends, record with no failure", async () => {

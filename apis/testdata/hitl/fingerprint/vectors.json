@@ -1,5 +1,5 @@
 {
-  "description": "Cross-language HITL approval FINGERPRINT vectors. expected = APPROVAL_FINGERPRINT_VERSION + ':' + hex(HMAC-SHA256(key, canonicalForm)), where canonicalForm is canonicalToolActionJson of the input. The key is the UTF-8 bytes of `key`. Go/Java editions must reproduce every `expected`.",
+  "description": "HITL approval FINGERPRINT vectors. expected = APPROVAL_FINGERPRINT_VERSION + ':' + hex(HMAC-SHA256(key, canonicalForm)), where canonicalForm is canonicalToolActionJson of the input. The key is the UTF-8 bytes of `key`. Every implementation must reproduce every `expected`.",
   "key": "stigmer-hitl-fingerprint-test-key",
   "keyEncoding": "utf-8",
   "version": "v1",

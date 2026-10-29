@@ -91,6 +91,4 @@ export { resolveCreateRace } from "./iam/account/port.js";
 export type { IdentityAccountService, NewAccountRequest } from "./iam/account/port.js";
 export { newInProcessOrganizationLookup, reconcileOrganizationLinks } from "./iam/organization-links.js";
 export type { OrganizationLinkDeps } from "./iam/organization-links.js";
-export { reconcileOwnerRows } from "./iam/owner-rows.js";
-export type { OwnerRowKind } from "./iam/owner-rows.js";
 export { lateChildOrganizations } from "./extension/late-child-organizations.js";

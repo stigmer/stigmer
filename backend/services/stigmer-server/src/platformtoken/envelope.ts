@@ -2,9 +2,8 @@
  * The platform-token envelope: the RS256 JWT every token the server signs
  * for itself rides — the minted user token in open source, and in
  * the cloud its typed lanes (guest, schedule, channel, the sandbox family)
- * as well. One envelope, byte-compatible with the tokens Stigmer Cloud has
- * signed since the Java issuer, so a token minted before the cloud serves
- * this code verifies after it.
+ * as well. One envelope for every edition, so a token one server signs
+ * verifies on another holding the same key.
  *
  * The envelope knows the issuer, the four claims it owns (`iss`, `iat`,
  * `exp`, `jti`, plus `aud` when the ring carries an audience) and the
@@ -61,7 +60,7 @@ export type PlatformTokenRefusal =
   | "audience"
   | "subject";
 
-/** Wire copy, byte-pinned: the cloud verifier's sentences since the Java issuer. */
+/** Wire copy, byte-pinned: the verifier's refusal sentences, one per arm. */
 export const PLATFORM_TOKEN_REFUSAL_MESSAGES: Readonly<
   Record<PlatformTokenRefusal, string>
 > = {

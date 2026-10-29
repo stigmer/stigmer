@@ -1448,7 +1448,7 @@ export class PostgresStore implements Store {
   // ---------------------------------------------------------------------------
 
   async upsertRoutineFire(record: RoutineFireRecord): Promise<void> {
-    // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
+    // Default recorded_at is RFC-3339 whole seconds —
     // the ledger's house convention for lexicographic comparison.
     const recordedAt =
       record.recordedAt !== "" ? record.recordedAt : rfc3339Seconds(new Date());
@@ -1727,8 +1727,8 @@ export class PostgresStore implements Store {
       totalCount += cnt;
     }
 
-    // Count short-circuit before the page statement (contract-twin of the
-    // sqlite driver's port of Go's EmptyResult).
+    // Count short-circuit before the page statement (the sqlite driver's
+    // twin).
     if (totalCount === 0) {
       return { countsByKind: {}, totalCount: 0, hits: [] };
     }
@@ -2023,11 +2023,10 @@ class PostgresResourceNameStore implements ResourceNameStore {
       }
       // Every other current name, not only `from`: a concurrent rename that
       // moved `from` first leaves its own new name current, and this one
-      // demotes it too. A name equal to the id is never given an expiry.
+      // demotes it too.
       await client.query(
         `UPDATE resource_names
-         SET state = 'previous', claimed_at = $5,
-             expires_at = CASE WHEN name = id THEN '' ELSE $6 END
+         SET state = 'previous', claimed_at = $5, expires_at = $6
          WHERE kind = $1 AND org = $2 AND id = $4
            AND state = 'current' AND name <> $3`,
         [
@@ -2092,18 +2091,10 @@ class PostgresResourceNameStore implements ResourceNameStore {
   }
 
   async release(kind: string, org: string, id: string): Promise<void> {
-    await this.transaction(async (client) => {
-      await client.query(
-        `DELETE FROM resource_names
-         WHERE kind = $1 AND org = $2 AND id = $3 AND name <> id`,
-        [kind, org, id],
-      );
-      await client.query(
-        `UPDATE resource_names SET state = 'previous', expires_at = ''
-         WHERE kind = $1 AND org = $2 AND id = $3 AND name = id`,
-        [kind, org, id],
-      );
-    });
+    await this.open().query(
+      `DELETE FROM resource_names WHERE kind = $1 AND org = $2 AND id = $3`,
+      [kind, org, id],
+    );
   }
 
   async releaseName(key: ResourceNameKey, id: string): Promise<void> {

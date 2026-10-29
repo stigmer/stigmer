@@ -1,10 +1,9 @@
 /**
- * R2 artifact storage — ports pkg/domain/artifact/storage/r2_storage.go:
- * the Cloudflare R2 (S3-compatible) backend, over the @aws-sdk client.
+ * R2 artifact storage: the Cloudflare R2 (S3-compatible) backend, over the
+ * @aws-sdk client.
  *
- * Not conformance-assertable on the local targets (same as Go — the Go
- * tree carries no R2 tests at all); the port adds unit pins for the pieces
- * that have logic: config validation copy, the 7-day presign clamp, the
+ * Not conformance-assertable on the local targets; unit pins cover the
+ * pieces that have logic: config validation copy, the 7-day presign clamp, the
  * signed Content-Disposition, the not-found mapping, and the copy's
  * source encoding.
  */
@@ -26,15 +25,14 @@ import {
 } from "./artifact-storage.js";
 import { MAX_SIGNED_URL_TTL_MS } from "./url-signer.js";
 
-/** Go: "R2 has a maximum expiration of 7 days" — presigns clamp here, the
- * ceiling the local backend's signed links share (url-signer.ts). */
+/** R2 has a maximum presign expiration of 7 days — presigns clamp here,
+ * the ceiling the local backend's signed links share (url-signer.ts). */
 export const R2_MAX_EXPIRATION_MS = MAX_SIGNED_URL_TTL_MS;
 
 /**
- * Go get_content/get_download_url wrap their storage calls in a 30s
- * context timeout. The TS ArtifactStorage interface carries no signal, so
- * the same bound lives one layer down, on the driver's network reads —
- * identical ceiling, applied at the only backend where it can fire.
+ * A 30s bound on the driver's network reads. The ArtifactStorage
+ * interface carries no signal, so the bound lives here, on the only
+ * backend where it can fire.
  */
 const R2_CALL_TIMEOUT_MS = 30_000;
 
@@ -43,7 +41,7 @@ export interface R2StorageConfig {
   readonly endpoint: string;
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
-  /** Usually "auto" for R2 (Go default). */
+  /** Usually "auto" for R2 (the default). */
   readonly region: string;
   /**
    * The address runners dial the store at, when it is not `endpoint`: a
@@ -86,7 +84,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
   private readonly bucket: string;
 
   constructor(config: R2StorageConfig, clients?: R2Clients) {
-    // Go NewR2Storage's required-config errors, byte-mirrored.
+    // The required-config refusals; their copy is pinned by the tests.
     if (config.bucket === "") {
       throw new Error("R2 bucket name is required");
     }
@@ -111,7 +109,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
       new S3Client({
         region: config.region === "" ? "auto" : config.region,
         endpoint,
-        // R2 uses path-style addressing (Go o.UsePathStyle = true).
+        // R2 uses path-style addressing.
         forcePathStyle: true,
         credentials: {
           accessKeyId: config.accessKeyId,
@@ -241,7 +239,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      // Go signs Content-Disposition into the presigned URL — the browser
+      // Content-Disposition is signed into the presigned URL — the browser
       // saves the object under the given name instead of rendering inline.
       ...(downloadFilename !== ""
         ? { ResponseContentDisposition: contentDispositionAttachment(downloadFilename) }
@@ -311,9 +309,9 @@ export class R2ArtifactStorage implements ArtifactStorage {
 }
 
 /**
- * Whether the error means "no such object" (Go isNotFoundError, adapted to
- * the SDK's structured errors instead of Go's string matching): the S3
- * NotFound/NoSuchKey names, an HTTP 404, or the legacy text forms.
+ * Whether the error means "no such object", read from the SDK's
+ * structured errors: the S3 NotFound/NoSuchKey names, an HTTP 404, or the
+ * plain-text forms of the same.
  */
 /** A ranged GET past the end of an object (HTTP 416, S3's InvalidRange). */
 function isRangeNotSatisfiable(error: unknown): boolean {

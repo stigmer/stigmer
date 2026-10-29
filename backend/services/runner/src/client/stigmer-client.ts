@@ -33,7 +33,7 @@ import { EvalQueryController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/qu
 import { GetRunEvalCaseArchiveInputSchema, RunEvalCaseController } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/run_eval_case_pb";
 import type { EvalArchive, EvalArchiveDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/io_pb";
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
+import type { PluginArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -45,7 +45,7 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentVersionEntry } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
-import type { GetArtifactResponse, SkillArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import type { SkillArtifactDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
@@ -236,8 +236,8 @@ export class StigmerClient {
         //    from a ref: one process serves many runs at once and a shared ref
         //    would be the wrong run's the moment two overlap — the same reason
         //    rule 1 exists. Absent outside an activity and when the dispatch
-        //    carried none (an older server; the cloud, whose runner credential
-        //    is provisioned), so the rules below are exactly what they were.
+        //    carried none (the cloud, whose runner credential is
+        //    provisioned), and then the rules below apply unchanged.
         //
         // 3. The runner credential (runnerTokenRef) authenticates the services
         //    that require a runner-class token_type claim: a value fetch
@@ -470,7 +470,7 @@ export class StigmerClient {
    * server minted it for this very execution at dispatch —
    * shared/run-credential.ts), that IS the scoped token: it is answered
    * without an RPC, and the exchange below serves only a dispatch that
-   * carried none — an older server, or the cloud's provisioned runner.
+   * carried none: the cloud's provisioned runner.
    *
    * Otherwise the gate is the credential itself:
    *
@@ -702,16 +702,10 @@ export class StigmerClient {
     return this.skillQuery.getByReference(ref);
   }
 
-  async getSkillArtifact(artifactStorageKey: string): Promise<GetArtifactResponse> {
-    return this.skillQuery.getArtifact({ artifactStorageKey });
-  }
-
   /**
-   * Mint an HTTP download URL for a skill artifact (#675). Preferred over
-   * getSkillArtifact for the actual bytes: the unary response is capped by
-   * the server's 10MB gRPC message limit, while skills may be 100MB.
-   * Throws ConnectError with Code.Unimplemented against servers that
-   * predate the transfer lane — callers fall back to getSkillArtifact.
+   * Mint an HTTP download URL for a skill artifact (#675): the bytes travel
+   * over HTTP, because a unary response is capped by the server's 10MB gRPC
+   * message limit, while skills may be 100MB.
    */
   async getSkillArtifactDownloadUrl(artifactStorageKey: string): Promise<SkillArtifactDownloadUrl> {
     return this.skillQuery.getArtifactDownloadUrl({ artifactStorageKey });
@@ -725,30 +719,9 @@ export class StigmerClient {
     return this.pluginQuery.getByReference(ref);
   }
 
-  async getPluginArtifact(artifactStorageKey: string): Promise<GetPluginArtifactResponse> {
-    return this.pluginQuery.getArtifact({ artifactStorageKey });
-  }
-
-  /**
-   * Mint an HTTP download URL for a plugin archive, the skill lane's twin:
-   * preferred over getPluginArtifact for the bytes, and answered
-   * UNIMPLEMENTED by a server that predates it.
-   */
+  /** Mint an HTTP download URL for a plugin archive, the skill lane's twin. */
   async getPluginArtifactDownloadUrl(artifactStorageKey: string): Promise<PluginArtifactDownloadUrl> {
     return this.pluginQuery.getArtifactDownloadUrl({ artifactStorageKey });
-  }
-
-  /**
-   * Mint an HTTP download URL for one version of an Eval, named by its
-   * reference (its id and the digest as the version). The server asks
-   * can_view on the Eval first, of the run's caller, and signs the link for
-   * a person's address; a server with no transfer lane answers
-   * FAILED_PRECONDITION. A try reads its case through
-   * {@link getRunEvalCaseArchiveDownloadUrl}, and through this only on a
-   * server that predates that door.
-   */
-  async getEvalDownloadUrl(ref: ApiResourceReference): Promise<EvalArchiveDownloadUrl> {
-    return this.evalQuery.getDownloadUrl(ref);
   }
 
   /**
@@ -757,8 +730,7 @@ export class StigmerClient {
    * which the server answers only to a runner credential acting for this
    * very run, authenticated as {@link mountRunFiles} is. The run's spec
    * names the Eval and its version, so the request names only the run. A
-   * server that predates the door answers UNIMPLEMENTED; one with no
-   * transfer lane, FAILED_PRECONDITION.
+   * server with no transfer lane answers FAILED_PRECONDITION.
    */
   async getRunEvalCaseArchiveDownloadUrl(runId: string, scopedToken?: string): Promise<EvalArchiveDownloadUrl> {
     return this.runEvalCase.getArchiveDownloadUrl(

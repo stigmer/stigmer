@@ -242,11 +242,9 @@ export function loadConfig(): Config {
   const proxyEndpoint = process.env.STIGMER_PROXY_ENDPOINT ?? null;
   const proxyActive = !!proxyEndpoint;
 
-  const taskQueue = process.env.STIGMER_TASK_QUEUE
-    ?? process.env.TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
-    ?? "stigmer_runner";
+  const taskQueue = process.env.STIGMER_TASK_QUEUE ?? "stigmer_runner";
 
-  // Temporal address is no longer required up front. When unset, the runner
+  // The Temporal address is not required up front. When unset, the runner
   // self-discovers it from the control plane during boot (see bootstrap.ts):
   // an explicit value always wins, a token triggers discovery, and a tokenless
   // local runner falls back to localhost. An empty string here means "resolve

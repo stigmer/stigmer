@@ -465,11 +465,6 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
     kinds: warnings("settings-key-ignored"),
     message: "plugin settings in 'settings.json' have a key 'subagentStatusLine' Stigmer does not apply, ignored",
   },
-  "stigmer-folder-ignored": {
-    files: openPlugin({ files: { "ai.stigmer/agent.yaml": "kind: Agent\n" } }),
-    kinds: warnings("stigmer-folder-ignored"),
-    message: "'ai.stigmer/' is not read: Stigmer installs a plugin from its skills, agents, hooks and MCP configuration, as every other client does",
-  },
 };
 
 function expectSentence(actual: string, expected: string): void {

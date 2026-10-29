@@ -309,8 +309,7 @@ const { count, isLoading } = useAgentCount("acme");
 ### VisibilityBadge
 
 Visibility indicator with a matching icon, covering every level a stored
-row can carry (Private / Organization / Child organizations, and the retired Public
-for a row from before its retirement).
+row can carry (Private / Organization / Child organizations).
 
 Rendered wherever the interactive [`VisibilitySelector`](#visibilityselector) is not
 available — for anyone who lacks `can_manage_audience`, and while a permission check
@@ -550,8 +549,7 @@ function isPlanFile(file: File): boolean
 
 ### isPlanFileName
 
-Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
-any `*.plan.md`.
+Returns `true` when a filename is a plan's: any `*.plan.md`.
 
 ```tsx
 function isPlanFileName(name: string): boolean
@@ -566,14 +564,6 @@ The slice of the Stigmer client a library source needs (mockable in tests).
 ### LibraryKind
 
 The kinds the Library lists and searches.
-
-
-### PLAN_FILE_NAME
-
-Legacy plan filename. Detection-only: [`isPlanFileName`](#isplanfilename) still
-accepts this exact name so plans written before named plans existed keep
-working. The runner never freshly emits it (a titleless plan falls back to
-a bare `<id>.plan.md`).
 
 
 ### PLAN_FILE_SUFFIX

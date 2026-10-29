@@ -153,7 +153,7 @@ async function startEditTurn(workspace: GitWorkspace, edits: [Edit, Edit]): Prom
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-progress"),
+      name: uniqueName("run-progress"),
       sessionId: session.metadata!.id,
       message: "Edit the files using the filesystem tools.",
     }),

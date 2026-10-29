@@ -11,15 +11,7 @@ implement the API:
 - the cloud edition — the TypeScript composition in stigmer-cloud that
   imports `@stigmer/server` and composes the cloud extensions onto it (the
   `cloud` / `cloud-execution` targets, pre-provisioned by stigmer-cloud's
-  readout recipe). Until 2026-09-10 the cloud edition was the Java
-  `stigmer-service`, which this suite also held to the contract through a
-  hermetic launcher in this repository; the service and the launcher retired
-  together.
-
-(History: the targets were born as `local-go`/`local-go-execution` against the
-original Go server, then grew `local-ts` twins whose roster growth gated the
-TypeScript rewrite — roster equality was the cutover gate. The Go server
-retired and the surviving targets took the plain names.)
+  readout recipe).
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:
@@ -281,7 +273,7 @@ Each names checks of its work, read after the turn into the sample's
 `task_done`. Before each of their attempts Go's test cache is cleared and an
 attempt whose server port is already taken is refused by name. After every
 working-agent attempt the processes it left running in the workspace or on
-that port (no longer the runner's, as a command's lone `&` leaves them) are
+that port (outside the runner's process tree, as a command's lone `&` leaves them) are
 counted as `orphans` and stopped (`src/benchmark/orphans.ts`), which needs
 `lsof` and `ps` on PATH.
 
@@ -525,18 +517,17 @@ a deployed endpoint (a real tenant's key is never conformance's) leaves it
 unset, and the cloud target does not run there at all.
 
 **The cloud-capability suites** cover the three surfaces only the hosted
-edition serves, which the retired Java service once owned: the billing engine
+edition serves: the billing engine
 (`billing.conformance.test.ts`, with run admission in
 `suites-execution/run-admission.conformance.test.ts`), the side-channel proxy
 (`proxy.conformance.test.ts`) and the public REST lane
-(`public-lane.conformance.test.ts`). The plan catalog and subscriptions, which
-the Cloud serves with no Java predecessor, joined them as the billing plans
-facet (`billing-plans.conformance.test.ts`, gated on `billingPlans`). Three
+(`public-lane.conformance.test.ts`). The plan catalog and subscriptions join
+them as the billing plans facet (`billing-plans.conformance.test.ts`, gated on `billingPlans`). Three
 things make them different from the CRUD suites:
 
 - **They are enumerated from an inventory, not written from taste.**
-  `inventory/cloud-capabilities.yaml` lists every behavior of those surfaces
-  read out of the Java code, each with a disposition saying where it is
+  `inventory/cloud-capabilities.yaml` lists every behavior of those surfaces,
+  each with a disposition saying where it is
   proven (`conformance` here; `unit` in an edition's own tables; `smoke` on a
   live lane; `debris` cut by the owner). Every `it` carries its row id as a
   `[billing.rpc.foo.bar]` tag, and `npm run inventory:check` fails the CI
@@ -629,17 +620,7 @@ legitimately differs between editions is a `CapabilityFlag` (below), gating an
 assertion rather than forking it. Nothing in the suite retries, sleeps past, or
 skips a failing assertion.
 
-History: until 2026-09-10 the suite also carried a **known-deviation registry**
-(`deviations.ts`) — tracked entries, keyed on the server implementation behind
-a target, for the Java `stigmer-service`'s known bugs (three deterministic, two
-races), so a Java target could be held to the contract without the suite
-asserting Java's wrong answer as if it were right. The Java service retired,
-and the registry, the `TargetProfile.implementation`
-axis it keyed on, and the approval race seam built over it were deleted
-together (stigmer#1023); the design is in git history. Earlier still, the local
-targets carried entries for the retired Go server (duplicate-create /
-missing-name / missing-spec returning `Unknown`, `getVersion` with a malformed
-hash returning `NotFound`), resolved by stigmer/stigmer#192.
+The suite carries no known-deviation registry: an implementation that answers against the contract fails until it is fixed (stigmer#1023).
 
 `parity.ts` compares resources while ignoring server-owned, non-deterministic
 fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC
@@ -741,9 +722,9 @@ dials loopback and private addresses (`relaxed`: open source and Enterprise)
 or refuses them before any dial (`strict`: the Cloud). Where a target serves
 federation issuers it names the issuer its people sign in with
 (`signInIssuer()`), which the server reserves for itself.
-Capabilities are retired when a surface converges: secret redaction was gated
-per edition until the Environment (stigmer#405) surface converged, after which
-the suites assert it unconditionally, and both editions serve a run's values
+A capability is removed once a surface converges, and the suites then assert
+the behavior unconditionally: secret redaction is asserted on every edition
+(the Environment surface, stigmer#405), and both editions serve a run's values
 only to a runner bound to it (`vault-resolution`).
 
 **The enforcing lane** (`TargetProfile.enforcingLane()`, built by
@@ -942,8 +923,7 @@ class, the durable resume of an allowed call, and the `auto_approve_all`
 bypass — and deliberately does **not** assert `args_preview`, which is not a
 stable black-box observable.
 
-**The runner-behavior facets** replaced the Go `test/integration-offline`
-suite, arm for arm: a runner behavior a
+**The runner-behavior facets**: a runner behavior a
 client reads off the session's log or the run is contract, and the execution
 class is its home. `run-messages` (the transcript: text, thinking, MCP tool
 calls that succeed or fail, a tool use's fields, and the model id the
