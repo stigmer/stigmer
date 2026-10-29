@@ -120,6 +120,32 @@ Names the keys a run of `agentRef` reads from the person's My vault, in the orde
 
 ## Types
 
+### ComposerSetting
+
+A row the host adds to the composer's configure menu, and what it opens.
+
+<TypeTable
+  type={{
+    item: { type: "ConfigureMenuItem", description: "", required: true, typeDescriptionLink: "#configuremenuitem" },
+    panel: { type: "ReactNode", description: "", required: true },
+  }}
+/>
+
+
+### ConfigureMenuItem
+
+<TypeTable
+  type={{
+    count: { type: "number", description: "", required: true },
+    detail: { type: "string", description: "A second line under the label saying what the item holds now (e.g., which environment applies and why)." },
+    hasWarning: { type: "boolean", description: "Show a warning indicator (e.g., MCP server needs setup)." },
+    icon: { type: "ReactNode", description: "", required: true },
+    id: { type: "string", description: "", required: true },
+    label: { type: "string", description: "", required: true },
+  }}
+/>
+
+
 ### InteractionModeOption
 
 Interaction mode options for runs.
@@ -177,6 +203,7 @@ Props for [`SessionComposer`](#sessioncomposer).
     enableLocal: { type: "boolean", description: "Show the Local Folder source button." },
     enableVaultPicker: { type: "boolean", description: "Offer a Vaults entry in the Configure menu, where the person picks the vaults this conversation uses: My vault, a fixed first row they tick or untick, then the shared vaults in order. The conversation uses exactly these. Never for a guest: a chat link's visitor brings no vaults." },
     environmentDefaults: { type: "{ agent?: EnvironmentReference; organization?: EnvironmentReference }", description: "What applies when the person picks no Environment: the agent's default, else the organization's. Read by the entry's preview and the picker's first row; the server resolves the same order when the conversation is created." },
+    extraSettings: { type: "readonly ComposerSetting[]", description: "Settings the host adds to the composer's configure menu, after its own (the session view's run settings: engine, model, target, environment and auto-approve). Each is a menu row and the panel it opens." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state for the repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
     harness: { type: "HarnessOption", description: "Currently selected run harness.  Controls which models appear in the model selector and flows through to session creation. When omitted, defaults to `\"stigmer\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select when the composer mounts.  When provided, the composer runs the full agent resolution flow on mount — exactly as if the user had picked this agent in the AgentPicker. If the agent needs keys no vault of the conversation holds, the form asking for them (saved in My vault) appears automatically.  One-time: consumed on mount; subsequent changes are ignored. To change the agent after mount, use the picker or `onAgentRefChange` externally.  Requires `org` and `onAgentRefChange` to be set (same prerequisites as the agent picker)." },

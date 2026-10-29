@@ -21,6 +21,7 @@ const page = vi.hoisted(() => ({
 }));
 
 vi.mock("@stigmer/react-sdk", () => ({
+  SessionInspector: () => null,
   useActiveOrgId: () => "org_acme",
   NewSessionViewer: (props: Record<string, unknown>) => {
     page.viewer.push(props);

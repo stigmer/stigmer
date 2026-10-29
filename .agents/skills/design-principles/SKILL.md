@@ -39,6 +39,8 @@ exists to keep out.
   in it gets special care, and its quality is never compromised.
 - A busy task should look busy: while an agent works, the person sees the
   activity.
+- Design each face from the person who uses it, then take what fits from the
+  references; never start from the reference product.
 
 ## What they never do
 

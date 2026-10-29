@@ -1,26 +1,21 @@
 "use client";
-
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import type { ResourceRef } from "@stigmer/client";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
-import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
-import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
-import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSearcher.js";
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import { SessionViewerLayout } from "./SessionViewerLayout.js";
-import { useWorkspaceEditors } from "../internal/store/index.js";
-import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
-import type { SetupTabProps } from "./facets/SetupTab.js";
+import { SessionInspectorContext } from "./inspector/SessionInspectorContext.js";
+import type { SessionInspectorProps } from "./inspector/SessionInspector.js";
+import { runSettingsRow } from "./run-settings.js";
 import { useNewSessionFlow } from "./useNewSessionFlow.js";
 import { useOrgIdForRef } from "../organization/useOrgRefs.js";
 import { useSessionPanel } from "./useSessionPanel.js";
-import { useSessionRailViews } from "./useSessionRailViews.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
-import { includesMyVaultByDefault, type SessionAudience, type SessionPanelMode } from "./audience.js";
+import { includesMyVaultByDefault, type SessionAudience } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
 import { DEFAULT_MODELS_HUB_HREF, ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
@@ -28,7 +23,7 @@ import { ConnectProviderPanel, connectReason, ModelNeedsProvider } from "../mode
 import { useModelsHubData } from "../models/hub/ModelsHub.js";
 import { nothingRuns } from "../models/readiness.js";
 import { useModelRegistry } from "../models/useModelRegistry.js";
-
+import { LoadingRegion } from "../internal/LoadingRegion.js";
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
   /** Organization id (a slug is also accepted). Required for session creation. */
@@ -58,27 +53,6 @@ export interface NewSessionViewerProps {
    * Desktop supplies this via Tauri's dialog plugin.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
-
-  /**
-   * Platform-injected file lister for workspace entries. When provided,
-   * each entry in the Setup tab's workspace section renders an
-   * expandable file tree. (Capability injection, opt-in.)
-   */
-  readonly workspaceFileLister?: WorkspaceFileLister;
-
-  /**
-   * Platform-injected content reader for the read-only file viewer. When set,
-   * clicking a file in the Workspace tree opens it in a contextual "Viewer"
-   * tab — the same capability `SessionViewer` accepts.
-   */
-  readonly workspaceFileReader?: WorkspaceFileReader;
-
-  /**
-   * Platform-injected content (text) searcher — the same capability
-   * `SessionViewer` accepts. Desktop injects a native
-   * ripgrep-backed searcher; web leaves it undefined.
-   */
-  readonly workspaceContentSearcher?: WorkspaceContentSearcher;
 
   /**
    * Whether the conversation includes its sender's own My vault, read
@@ -142,39 +116,6 @@ export interface NewSessionViewerProps {
    * @default true
    */
   readonly showModelSelector?: boolean;
-
-  /**
-   * Whether the launcher offers the session panel at all — `"none"` removes
-   * the panel and its toggle chip while keeping every composer capability
-   * the audience allows. Same contract as {@link SessionViewerProps.panel};
-   * see {@link SessionPanelMode}.
-   *
-   * @default "auto"
-   */
-  readonly panel?: SessionPanelMode;
-
-  /**
-   * Initial open state of the session panel in uncontrolled mode. Ignored
-   * when {@link NewSessionViewerProps.panelOpen} is provided. Same contract
-   * as {@link SessionViewerProps.defaultPanelOpen}.
-   *
-   * @default false
-   */
-  readonly defaultPanelOpen?: boolean;
-
-  /**
-   * Controlled open state of the session panel. Same contract as
-   * {@link SessionViewerProps.panelOpen}.
-   */
-  readonly panelOpen?: boolean;
-
-  /**
-   * Called on every panel open/close transition, in both modes. Same
-   * contract as {@link SessionViewerProps.onPanelOpenChange}; the
-   * launcher has no plan auto-open, so its transitions come
-   * from the chip toggle and file opens only.
-   */
-  readonly onPanelOpenChange?: (open: boolean) => void;
 
   /**
    * Harness pre-selected for new sessions when the user has not made
@@ -241,6 +182,14 @@ export interface NewSessionViewerProps {
    */
   readonly modelsHubHref?: string;
 
+  /**
+   * The builder mode: the attached workspaces' explorer and editor beside
+   * the composer, with the chip that opens it. The console and the desktop
+   * app pass `<SessionInspector />`; an embed passes nothing and ships none
+   * of its code. Never shown to a guest.
+   */
+  readonly inspector?: ReactElement<SessionInspectorProps>;
+
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -252,10 +201,10 @@ export interface NewSessionViewerProps {
  * Owns `useNewSessionFlow` internally and composes:
  * - **Centered composer** (primary pane): `SessionComposer` with all
  *   context pickers (agent, workspace, plugins, skills)
- * - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
- *   Config rail view — collapsed by default behind a persistent top-right chip
- *   and homing on the Config facet when opened. Same layout model as
- *   `SessionViewer`.
+ * - **Inspector** (secondary pane, when the host passes `inspector`): the
+ *   attached workspaces' explorer and editor, collapsed behind a top-right
+ *   chip. How the first turn runs is in the composer's run settings. Same
+ *   layout model as `SessionViewer`.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props.
@@ -289,18 +238,12 @@ export function NewSessionViewer({
   enableGitHub = true,
   enableLocal = false,
   onBrowseLocalFolder,
-  workspaceFileLister,
-  workspaceFileReader,
-  workspaceContentSearcher,
   includeMyVault,
   vaults,
   audience = "integrator",
   runConfig,
   showModelSelector = true,
-  panel: panelMode = "auto",
-  defaultPanelOpen,
-  panelOpen,
-  onPanelOpenChange,
+  inspector,
   defaultHarness,
   accountDefaults,
   initialAgentRef,
@@ -354,7 +297,10 @@ export function NewSessionViewer({
     hub.readinessOf(flow.harness, engineDefaultId)?.provider ??
     hub.providers?.find((report) => report.availability.state === "missing")?.provider;
   const showConnectPanel =
-    !isGuest && !hub.isLoading && nothingRuns(hub.models) && connectProvider !== undefined && connectProvider !== "";
+    // Chosen on readiness alone, which answers first: the composer is never
+    // drawn and then swapped for the connect step under someone's typing
+    // (stigmer#2699). Only the step's own content waits for the permission.
+    !isGuest && !hub.readinessLoading && nothingRuns(hub.models) && connectProvider !== undefined && connectProvider !== "";
   const sendBlockedReason =
     !showConnectPanel && shownMissing ? connectReason(shownReadiness.provider, shownModelName) : undefined;
   // A pinned model makes the picker a dead control (the pin wins over any
@@ -368,7 +314,8 @@ export function NewSessionViewer({
   const isCurated = audience !== "integrator";
   // Host opt-out or audience restriction — the same single flag
   // SessionViewer derives, gating the chip and the region together.
-  const panelEnabled = panelMode !== "none" && !isGuest;
+  const panelEnabled = inspector !== undefined && !isGuest;
+  const inspectorProps = inspector?.props;
 
   // Guest agent binding is host configuration, not a picker interaction:
   // the composer's agent machinery (picker, env-collection, vaults —
@@ -384,107 +331,36 @@ export function NewSessionViewer({
   }, [isGuest, initialAgentRef, setAgentRef, setResolution]);
 
   // The unified-panel controller (shared with SessionViewer). The
-  // launcher has no run yet, so the FSM inputs are static. It has no
-  // streaming column to isolate either, so subscribing to the editor group in
-  // the body is harmless — unlike `SessionViewer`, which subscribes one level
-  // down. Homes on Config: pre-session the Explorer is empty, while Config
-  // carries the run defaults (harness/model) worth seeing before starting.
+  // launcher has no run yet, so the FSM inputs are static; the inspector
+  // region subscribes to the editor group, as SessionViewer's does.
   const panel = useSessionPanel({
     phase: null,
     hasChanges: false,
-    defaultView: "configure",
     // Same inertness contract as SessionViewer: a disabled panel is pinned
     // controlled-closed and unobserved.
-    open: panelEnabled ? panelOpen : false,
-    defaultOpen: defaultPanelOpen,
-    onOpenChange: panelEnabled ? onPanelOpenChange : undefined,
-  });
-  const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
-    panel.editorsStore,
-  );
-
-  // Honor a jump-to-line reveal only while it targets the active editor
-  // (parity with SessionViewer).
-  const activeReveal =
-    reveal && reveal.key === activeKey ? reveal : undefined;
-
-  const handleRemoveAgent = useCallback(() => {
-    flow.setAgentRef(null);
-    flow.setResolution(null);
-  }, [flow.setAgentRef, flow.setResolution]);
-
-  const handleRemovePlugin = useCallback(
-    (ref: ResourceRef) => {
-      const refOrg = orgIdFor(ref.org);
-      flow.setPluginRefs(
-        flow.pluginRefs.filter(
-          (r) => !(orgIdFor(r.org) === refOrg && r.slug === ref.slug),
-        ),
-      );
-    },
-    [flow.pluginRefs, flow.setPluginRefs, orgIdFor],
-  );
-
-  const handleRemoveSkill = useCallback(
-    (ref: ResourceRef) => {
-      const refOrg = orgIdFor(ref.org);
-      flow.setSkillRefs(
-        flow.skillRefs.filter(
-          (r) => !(orgIdFor(r.org) === refOrg && r.slug === ref.slug),
-        ),
-      );
-    },
-    [flow.skillRefs, flow.setSkillRefs, orgIdFor],
-  );
-
-  const sessionConfig: SetupTabProps = useMemo(
-    () => ({
-      agentRef: flow.agentRef,
-      pluginRefs: flow.pluginRefs,
-      skillRefs: flow.skillRefs,
-      harness: flow.harness,
-      executionTarget: undefined,
-      modelId: flow.modelId,
-      // Pre-session arming (#816): the switch covers the session this
-      // surface will create — the bootstrap run carries
-      // spec.auto_approve_all. Guests never get it (they never render the
-      // panel either — belt and braces for the operator-consent withhold).
-      autoApprove: isGuest
-        ? undefined
-        : { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
-      // Curated audiences see the configuration but cannot strip it — the
-      // Setup tab renders read-only without mutation callbacks.
-      mutations: isCurated
-        ? undefined
-        : {
-            onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
-            onRemovePlugin: handleRemovePlugin,
-            onRemoveSkill: handleRemoveSkill,
-          },
-    }),
-    [
-      flow.agentRef, flow.pluginRefs, flow.skillRefs,
-      flow.harness, flow.modelId,
-      flow.autoApproveAll, flow.setAutoApproveAll, isGuest,
-      isCurated, handleRemoveAgent, handleRemovePlugin, handleRemoveSkill,
-    ],
-  );
-
-  // Launcher facets: Config only — no runs exist yet, so the
-  // execution-derived facets (Changes/Files/Usage) don't apply.
-  const railViews = useSessionRailViews({
-    allRuns: [],
-    org,
-    sessionConfig,
-    includeRunFacets: false,
+    open: panelEnabled ? inspectorProps?.open : false,
+    defaultOpen: inspectorProps?.defaultOpen,
+    onOpenChange: panelEnabled ? inspectorProps?.onOpenChange : undefined,
   });
 
-  // Explorer-footer folder attach (desktop only — needs the native picker).
-  const canAddLocalFolder = enableLocal && !!onBrowseLocalFolder;
-  const handleAddLocalFolder = useCallback(async () => {
-    const path = await onBrowseLocalFolder?.();
-    if (path) flow.workspace.addLocalPath(path);
-  }, [onBrowseLocalFolder, flow.workspace.addLocalPath]);
+  // How the first turn runs, in the composer's configure menu. Never a
+  // guest's: the share policy owns a guest's run.
+  const runSettings = useMemo(
+    () =>
+      isGuest
+        ? undefined
+        : [
+            runSettingsRow({
+              harness: flow.harness,
+              executionTarget: undefined,
+              modelId: flow.modelId,
+              environment: undefined,
+              autoApprove: { armed: flow.autoApproveAll, onChange: flow.setAutoApproveAll },
+              curated: isCurated,
+            }),
+          ],
+    [isGuest, isCurated, flow.harness, flow.modelId, flow.autoApproveAll, flow.setAutoApproveAll],
+  );
 
   const composerNode = (
     // `my-auto` centers the composer vertically whether or not context is
@@ -497,7 +373,11 @@ export function NewSessionViewer({
     // that shifts with attached context reads as instability).
     <div className="stg:flex stg:h-full stg:flex-col stg:items-center stg:overflow-y-auto stg:px-4 stg:py-6">
       <div className="stg:my-auto stg:w-full stg:max-w-2xl stg:space-y-6">
-        {showConnectPanel ? (
+        {!isGuest && hub.readinessLoading ? (
+          // What can run is not known yet: hold the place rather than draw
+          // a composer the connect step might replace under someone's typing.
+          <LoadingRegion label="Loading" className="stg:h-36 stg:animate-pulse stg:rounded-2xl stg:bg-muted" />
+        ) : showConnectPanel ? (
           <ConnectProviderPanel
             hub={hub}
             harness={flow.harness}
@@ -520,6 +400,7 @@ export function NewSessionViewer({
           )}
 
           <SessionComposer
+            extraSettings={runSettings}
             sendBlockedReason={sendBlockedReason}
             modelReadinessOf={isGuest ? undefined : hub.readinessOf}
             onSubmit={flow.submit}
@@ -567,7 +448,10 @@ export function NewSessionViewer({
             onModelPickCleared={flow.clearModelPick}
             placeholder={placeholder}
             initialRows={initialRows}
-            autoFocus={autoFocus}
+            // The composer appears once readiness answers, which can be after
+            // the person has moved focus elsewhere; it takes focus only from
+            // the page itself, never from what they chose.
+            autoFocus={autoFocus && focusIsFree()}
             ariaLabel="Start a new session"
           />
           </>
@@ -594,7 +478,7 @@ export function NewSessionViewer({
 
         {footerContent}
 
-        {!showConnectPanel && (
+        {!showConnectPanel && !(!isGuest && hub.readinessLoading) && (
           <p className="stg:text-center stg:text-2xs stg:text-muted-foreground">
             Press Enter to send, Shift+Enter for a new line
           </p>
@@ -616,12 +500,9 @@ export function NewSessionViewer({
       // inspector. A toggle that appears/disappears with attached context
       // reads as instability and, worse, unmounts the open panel's only
       // collapse control when the last context item is removed. Always-on is
-      // the predictable, discoverable shape; opening homes on the Config
-      // facet, which carries useful defaults (harness/model) pre-session.
-      // A panel-less viewer is the exception: guests (the panel exposes
-      // configuration a visitor has no business with) and hosts passing
-      // panel="none" get no chip — the panel's only toggle is simply
-      // absent and the panel can never open.
+      // the predictable, discoverable shape; opening homes on the Explorer.
+      // A viewer without an inspector (an embed, or a guest) gets no chip:
+      // the panel's only toggle is simply absent and it can never open.
       chip={
         panelEnabled ? (
           <SessionPanelChip
@@ -633,28 +514,26 @@ export function NewSessionViewer({
       conversation={composerNode}
       panel={
         panel.isOpen && panelEnabled ? (
-          <WorkspaceSurface
-            entries={flow.workspace.entries}
-            lister={workspaceFileLister}
-            reader={workspaceFileReader}
-            searcher={workspaceContentSearcher}
-            view={panel.view}
-            onViewChange={panel.setView}
-            extraViews={railViews}
-            onRemoveEntry={flow.workspace.remove}
-            onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
-            editors={editors}
-            selectedFile={activeFile}
-            onOpenFile={panel.openFile}
-            onActivateEditor={panel.activateEditor}
-            onPinEditor={panel.pinEditor}
-            onCloseEditor={panel.closeEditor}
-            onCollapse={panel.closePanel}
-            reveal={activeReveal}
-            className="stg:h-full"
-          />
+          <SessionInspectorContext.Provider
+            value={{
+              kind: "launch",
+              scope: {
+                workspace: flow.workspace,
+                panel,
+                onBrowseLocalFolder: enableLocal ? onBrowseLocalFolder : undefined,
+              },
+            }}
+          >
+            {inspector}
+          </SessionInspectorContext.Provider>
         ) : null
       }
     />
   );
+}
+
+/** Whether nothing on the page holds focus, so a composer that mounts now may take it. */
+function focusIsFree(): boolean {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  return active === null || active === document.body;
 }

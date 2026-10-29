@@ -102,7 +102,8 @@ export interface SetupTabProps {
 }
 
 /**
- * Persistent session configuration panel (Config facet) — shows run config
+ * Session configuration as a panel (the Config facet a host can still put in
+ * its own rail with `useSessionRailViews`) — shows run config
  * (harness, model, target, environment, and the session-level auto-approve switch), agent,
  * plugins, skills, transcript export, and the host's
  * access management control (via `accessSlot`).
@@ -163,35 +164,52 @@ export function SetupTab({
 // Run config
 // ---------------------------------------------------------------------------
 
-function RunConfigSection({
+/** Props for {@link RunConfigSection}. */
+export interface RunConfigSectionProps {
+  readonly harness: HarnessOption;
+  readonly executionTarget: ExecutionTargetOption | undefined;
+  readonly modelId: string | undefined;
+  readonly environment: EnvironmentChoice | undefined;
+  /** The session's auto-approve switch; omitted where the reader cannot arm it. */
+  readonly autoApprove: SetupTabAutoApprove | undefined;
+  /**
+   * An embedding product's end user: the engine, target and Environment are
+   * the builder's, so only the model and the switch show.
+   */
+  readonly curated?: boolean;
+}
+
+/**
+ * How the next turn runs: engine, model, target, environment and the
+ * auto-approve switch. The Config facet's first section, and the session
+ * view's run settings in the composer's configure menu.
+ */
+export function RunConfigSection({
   harness,
   executionTarget,
   modelId,
   environment,
   autoApprove,
-}: {
-  harness: HarnessOption;
-  executionTarget: ExecutionTargetOption | undefined;
-  modelId: string | undefined;
-  environment: EnvironmentChoice | undefined;
-  autoApprove: SetupTabAutoApprove | undefined;
-}) {
+  curated = false,
+}: RunConfigSectionProps) {
   const autoApproveLabelId = useId();
 
   return (
     <FacetSection heading="Run Config">
-      <FacetKeyValueRow label="Harness">
-        {HARNESS_META[harness]?.label ?? harness}
-      </FacetKeyValueRow>
+      {!curated && (
+        <FacetKeyValueRow label="Harness">
+          {HARNESS_META[harness]?.label ?? harness}
+        </FacetKeyValueRow>
+      )}
       {modelId && (
         <FacetKeyValueRow label="Model">{modelId}</FacetKeyValueRow>
       )}
-      {executionTarget && (
+      {!curated && executionTarget && (
         <FacetKeyValueRow label="Target">
           {executionTarget === "local" ? "Local" : "Cloud"}
         </FacetKeyValueRow>
       )}
-      {environment && (
+      {!curated && environment && (
         <FacetKeyValueRow label="Environment">
           {describeEnvironmentChoice(environment)}
         </FacetKeyValueRow>

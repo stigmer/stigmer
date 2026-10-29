@@ -14,8 +14,12 @@ import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccou
 // Default: no account (a single-user server answers whoAmI NOT_FOUND), the
 // case in which every session is served as before.
 let whoAmI: UseWhoAmIReturn = { account: null, isLoading: false, error: null };
+const whoAmIAsked: (boolean | undefined)[] = [];
 vi.mock("../../grant/useWhoAmI", () => ({
-  useWhoAmI: () => whoAmI,
+  useWhoAmI: (options?: { enabled?: boolean }) => {
+    whoAmIAsked.push(options?.enabled);
+    return whoAmI;
+  },
 }));
 
 function signedInAs(id: string, idpId = ""): UseWhoAmIReturn {
@@ -264,5 +268,18 @@ describe("useLocalSessionWorker", () => {
         { wrapper: wrapper(adapter, "local") },
       ),
     ).not.toThrow();
+  });
+
+  it("never asks who is looking on a page with no runner adapter: every web page, a chat link's guest (stigmer#1481)", () => {
+    whoAmIAsked.length = 0;
+    renderHook(() => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.CLOUD)), { wrapper: wrapper(null) });
+    expect(whoAmIAsked.length).toBeGreaterThan(0);
+    expect(whoAmIAsked.every((enabled) => enabled === false)).toBe(true);
+
+    whoAmIAsked.length = 0;
+    renderHook(() => useLocalSessionWorker("ses-1", makeSession(ExecutionTarget.LOCAL)), {
+      wrapper: wrapper(createMockAdapter(), "local"),
+    });
+    expect(whoAmIAsked.at(-1)).toBe(true);
   });
 });

@@ -213,3 +213,33 @@ describe("PluginPicker", () => {
     expect(screen.getByRole("button", { name: "Remove notion" })).toHaveProperty("disabled", true);
   });
 });
+
+describe("PluginPicker removal compares references by org id", () => {
+  it("drops every attachment of the removed plugin, and only in its org", async () => {
+    // The same plugin attached twice, once naming its org by slug (a host's
+    // seed) and once by id (a picked one), and a namesake in another org.
+    const { onChange } = renderPicker({
+      value: [
+        { org: "acme", slug: "github" },
+        { org: ACME_ID, slug: "github" },
+        { org: GLOBEX_ID, slug: "github" },
+      ],
+    });
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "Remove github" }))[0]!);
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([{ org: GLOBEX_ID, slug: "github" }]);
+  });
+
+  it("shows a plugin whose target was deleted, and removes only that one, told apart by id", async () => {
+    const deleted: ResourceRef[] = [
+      { org: ACME_ID, slug: "", id: "plg_first" },
+      { org: ACME_ID, slug: "", id: "plg_second" },
+    ];
+    const { onChange } = renderPicker({ value: deleted });
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "Remove deleted plugin" }))[0]!);
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([deleted[1]]);
+  });
+});

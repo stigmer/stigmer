@@ -31,6 +31,14 @@ import { PLAN_DOCUMENT_ENTRY_ID } from "../plan-document";
 
 type CapturedProps = Record<string, unknown>;
 
+const previews: { file: { status?: { runId?: string } }; open: boolean; onClose: () => void }[] = [];
+vi.mock("../../run/FilePreviewModal", () => ({
+  FilePreviewModal: (props: { file: { status?: { runId?: string } }; open: boolean; onClose: () => void }) => {
+    previews.push(props);
+    return null;
+  },
+}));
+
 const threadProps: CapturedProps[] = [];
 vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
@@ -187,6 +195,7 @@ vi.mock("../useSessionPageFlow", () => ({
 }));
 
 import { SessionViewer } from "../SessionViewer";
+import { SessionInspector } from "../inspector/SessionInspector";
 
 function lastThread(): CapturedProps {
   expect(threadProps.length).toBeGreaterThan(0);
@@ -242,7 +251,7 @@ describe("SessionViewer — a plan being written", () => {
       metadata: { id: "aex_live" },
       spec: { interactionMode: InteractionMode.PLAN },
     });
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
     const docs = surfaceProps.at(-1)?.virtualDocuments as
@@ -255,7 +264,7 @@ describe("SessionViewer — a plan being written", () => {
 
 describe("SessionViewer — an old plan on load", () => {
   it("leaves the panel closed when the session's plan arrives with the first Files read", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await plansLoaded();
     // Let the panel's effects settle before reading its state.
     await act(async () => {});
@@ -266,7 +275,7 @@ describe("SessionViewer — an old plan on load", () => {
 
 describe("SessionViewer — Open plan picks the plan tab's plan", () => {
   it("opens an earlier turn's plan read-only and the latest plan editable", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
@@ -281,7 +290,7 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
   });
 
   it("falls back to the latest plan for a turn that published none", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
@@ -291,9 +300,25 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
   });
 });
 
+describe("SessionViewer — Open plan with no inspector", () => {
+  it("shows the turn's plan File, else the latest, read-only in the File preview, and closes it", async () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
+
+    act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_early"));
+    expect(previews.at(-1)).toMatchObject({ open: true, file: { status: { runId: "aex_early" } } });
+
+    act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_chat"));
+    expect(previews.at(-1)).toMatchObject({ open: true, file: { status: { runId: "aex_latest" } } });
+
+    act(() => previews.at(-1)!.onClose());
+    expect(previews.at(-1)!.open).toBe(false);
+  });
+});
+
 describe("SessionViewer — Build from plan hands the build turn the plan", () => {
   it("names the unedited plan File on the build turn, with no read and no upload", async () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await plansLoaded();
 
     act(() => (lastThread().onBuildFromPlan as () => void)());
@@ -310,7 +335,7 @@ describe("SessionViewer — Build from plan hands the build turn the plan", () =
 
   it("uploads an edited plan as one File of the conversation and names it", async () => {
     client.file.uploadFile.mockResolvedValue({ metadata: { id: "file_edited" }, status: { sessionId: "ses_1" } });
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     act(() => planTabEditor().draft!.setDraft("# Plan\n\n1. Do it, edited\n"));
@@ -338,7 +363,7 @@ describe("SessionViewer — Build from plan hands the build turn the plan", () =
 
   it("builds without the plan and says so when the upload answers no File", async () => {
     client.file.uploadFile.mockResolvedValue({ metadata: undefined, status: undefined });
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     act(() => planTabEditor().draft!.setDraft("# Plan, edited\n"));

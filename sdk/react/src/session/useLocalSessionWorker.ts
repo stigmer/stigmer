@@ -60,7 +60,10 @@ export function useLocalSessionWorker(
 ): void {
   const adapter = useRunnerAdapter();
   const contextTarget = useExecutionTarget();
-  const { account, isLoading: accountLoading } = useWhoAmI();
+  // Who is looking matters only where this page could serve the session:
+  // a page with no runner adapter (every web page, a chat link's guest)
+  // never asks, so a guest credential is never sent a call it is refused.
+  const { account, isLoading: accountLoading } = useWhoAmI({ enabled: adapter != null });
 
   // Resolve the session's effective execution target as a stable primitive.
   // `undefined` until the session loads — so we never attach a local worker

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  SessionInspector,
   NewSessionViewer,
   useAccountExecutionDefaults,
   useGitHubConnection,
@@ -75,8 +76,7 @@ export function SessionLauncher() {
       gitHubConnection={enableGitHub ? gitHubConnection : undefined}
       enableGitHub={enableGitHub}
       enableLocal={enableLocal}
-      workspaceFileLister={workspaceFileLister}
-      workspaceFileReader={workspaceFileReader}
+      inspector={<SessionInspector workspaceFileLister={workspaceFileLister} workspaceFileReader={workspaceFileReader} />}
       initialAgentRef={initialAgentRef}
       initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
       rememberPluginPicks

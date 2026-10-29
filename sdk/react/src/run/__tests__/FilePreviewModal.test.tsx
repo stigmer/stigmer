@@ -1,7 +1,8 @@
 /**
  * The preview's Build action (a plan's): shown only when the host passes
  * onImplement, and run before the modal closes; its Download saves the File
- * by id under its filename.
+ * by id under its filename; read only, it offers no act on the File and asks
+ * the server nothing about one.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -100,5 +101,40 @@ describe("FilePreviewContent — Download", () => {
     await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
     expect(anchorClick.mock.contexts[0]).toMatchObject({ download: "report.bin" });
     anchorClick.mockRestore();
+  });
+});
+
+describe("FilePreviewContent — read only", () => {
+  const archive = create(FileSchema, {
+    metadata: { id: "file_skill", org: "acme" },
+    spec: { filename: "triage.zip" },
+    status: { sizeBytes: 2048n, runId: "aex_1", outputPath: "triage.zip" },
+  });
+
+  function withPermission(checkMyPermission: () => Promise<{ isAuthorized: boolean }>, children: ReactNode) {
+    const client = { grant: { checkMyPermission } } as unknown as Stigmer;
+    return <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>;
+  }
+
+  it("offers adding an archive as a skill to a reader who may act on it", async () => {
+    const check = vi.fn(async () => ({ isAuthorized: true }));
+    render(withPermission(check, <FilePreviewContent file={archive} org="acme" isTerminal onClose={() => {}} />));
+    expect(await screen.findByRole("button", { name: /Add as skill/ })).toBeTruthy();
+  });
+
+  it("offers only reading, copying and downloading when read only, and asks the server nothing about acting", async () => {
+    const check = vi.fn(async () => ({ isAuthorized: true }));
+    const onDeleted = vi.fn();
+    render(
+      withPermission(
+        check,
+        <FilePreviewContent file={archive} org="acme" isTerminal readOnly onClose={() => {}} onDeleted={onDeleted} />,
+      ),
+    );
+    expect(screen.getByRole("button", { name: /Download/ })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByRole("button", { name: /Add as skill/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Delete/ })).toBeNull();
+    expect(check).not.toHaveBeenCalled();
   });
 });

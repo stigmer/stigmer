@@ -120,9 +120,17 @@ const stubSessionPageFlow = {
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
   displayRun: null,
-  allRuns: [],
+  allRuns: [] as Run[],
   sandboxWorkspaceRoot: "/home/daytona/workspace",
 };
+const dialogChanges: (DisplayFileChange | null)[] = [];
+vi.mock("../TurnChangeDialog", () => ({
+  TurnChangeDialog: (props: { change: DisplayFileChange | null }) => {
+    dialogChanges.push(props.change);
+    return null;
+  },
+}));
+
 vi.mock("../useSessionPageFlow", () => ({
   useSessionPageFlow: () => stubSessionPageFlow,
 }));
@@ -144,6 +152,13 @@ vi.mock("../../hooks", () => ({
 }));
 
 import { SessionViewer } from "../SessionViewer";
+import { SessionInspector } from "../inspector/SessionInspector";
+import { create } from "@bufbuild/protobuf";
+import { RunSchema, RunStatusSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
+import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { CapturedFileChangeSchema, FileChangeSetSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { DisplayFileChange } from "@stigmer/client";
 
 /** The onFilePathClick handler threaded down to the (mocked) MessageThread. */
 function capturedOnFilePathClick(): (path: string) => boolean {
@@ -168,12 +183,12 @@ afterEach(() => {
 
 describe("SessionViewer — transcript click-to-open wiring", () => {
   it("threads an onFilePathClick to the message thread", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     expect(typeof capturedOnFilePathClick()).toBe("function");
   });
 
   it("opens a resolvable tool-call path in the session panel", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     // Before any click: panel collapsed — the surface is not rendered.
     expect(surfaceProps.length).toBe(0);
 
@@ -192,7 +207,7 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
   });
 
   it("declines a platform path (returns false) and opens nothing", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
 
     let handled: boolean | undefined;
     act(() => {
@@ -205,7 +220,7 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
   });
 
   it("collapses back to full-width chat via the chip without losing the editor group", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
     act(() => {
       capturedOnFilePathClick()("/home/daytona/workspace/src/main.go");
     });
@@ -222,5 +237,79 @@ describe("SessionViewer — transcript click-to-open wiring", () => {
       entryId: "e1",
       path: "src/main.go",
     });
+  });
+});
+
+describe("SessionViewer — a transcript path with no inspector", () => {
+  /** A run that captured one change, to src/main.go unless named. */
+  function runWithCapture(path = "src/main.go"): Run {
+    const run = create(RunSchema);
+    run.metadata = create(ApiResourceMetadataSchema, { id: "run_1" });
+    run.status = create(RunStatusSchema, {
+      fileChanges: [
+        create(FileChangeSetSchema, {
+          id: "cs-1",
+          changes: [
+            create(CapturedFileChangeSchema, {
+              id: "c1",
+              pathBefore: path,
+              pathAfter: path,
+              kind: FileChangeKind.MODIFY,
+              diffComplete: true,
+            }),
+          ],
+        }),
+      ],
+    });
+    return run;
+  }
+
+  it("KIT-06 opens a path a turn changed as that change's diff, and declines any other", () => {
+    stubSessionPageFlow.allRuns = [runWithCapture()];
+    dialogChanges.length = 0;
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+      let handled: boolean | undefined;
+      act(() => {
+        handled = capturedOnFilePathClick()("/home/daytona/workspace/src/main.go");
+      });
+      expect(handled).toBe(true);
+      expect(dialogChanges.at(-1)?.path).toBe("src/main.go");
+
+      act(() => {
+        handled = capturedOnFilePathClick()("/home/daytona/workspace/README.md");
+      });
+      expect(handled).toBe(false);
+    } finally {
+      stubSessionPageFlow.allRuns = [];
+    }
+  });
+
+  it("matches a path to a change by its place in the workspace, never by its name alone", () => {
+    stubSessionPageFlow.allRuns = [runWithCapture("README.md")];
+    dialogChanges.length = 0;
+    try {
+      render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+      let handled: boolean | undefined;
+      act(() => {
+        handled = capturedOnFilePathClick()("/home/daytona/workspace/docs/README.md");
+      });
+      expect(handled).toBe(false);
+      act(() => {
+        handled = capturedOnFilePathClick()("docs/README.md");
+      });
+      expect(handled).toBe(false);
+      expect(dialogChanges.filter((change) => change !== null)).toHaveLength(0);
+
+      act(() => {
+        handled = capturedOnFilePathClick()("./README.md");
+      });
+      expect(handled).toBe(true);
+      expect(dialogChanges.at(-1)?.path).toBe("README.md");
+    } finally {
+      stubSessionPageFlow.allRuns = [];
+    }
   });
 });

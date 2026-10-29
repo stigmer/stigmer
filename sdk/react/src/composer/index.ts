@@ -3,10 +3,13 @@ export type { UseComposerOptions, UseComposerReturn } from "./useComposer.js";
 
 export { SessionComposer } from "./SessionComposer.js";
 export type {
+  ComposerSetting,
   SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
 } from "./SessionComposer.js";
+
+export type { ConfigureMenuItem } from "./ConfigureMenu.js";
 
 export { PersonalKeyDisclosure } from "./PersonalKeyDisclosure.js";
 export type { PersonalKeyDisclosureProps } from "./PersonalKeyDisclosure.js";

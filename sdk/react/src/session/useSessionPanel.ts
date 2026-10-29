@@ -56,11 +56,9 @@ export interface UseSessionPanelOptions {
   /**
    * The panel's home view — the view it opens on and the one every automatic
    * reset returns to (running⇄terminal transition, selection cleared). Defaults
-   * to `"files"` (the Explorer), which suits the session viewer. The launcher
-   * passes `"configure"`: pre-session there is no workspace, so the Config
-   * facet — carrying the run defaults (harness/model) — is the useful landing
-   * view. Auto-switches (Changes) and explicit rail picks still take over
-   * from here exactly as before.
+   * to `"files"` (the Explorer), which suits both session viewers. A host
+   * building its own panel passes the id of the view it should land on.
+   * Auto-switches (Changes) and explicit rail picks still take over from here.
    *
    * @default "files"
    */

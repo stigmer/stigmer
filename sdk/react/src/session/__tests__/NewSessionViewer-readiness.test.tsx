@@ -13,7 +13,7 @@
  * the UX bar (test/ux-bar.json).
  */
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import type { ResourceRef } from "@stigmer/client";
 import { create } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -49,7 +49,7 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
-vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null }));
+vi.mock("../facets/SetupTab", () => ({ SetupTab: () => null, RunConfigSection: () => null }));
 
 const flow = {
   harness: "stigmer" as const,
@@ -128,7 +128,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
         "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Once Acme Research has an Anthropic key, you can send your first task.",
       ),
     ).toBeTruthy();
-    const card = screen.getByRole("article", { name: "Anthropic" });
+    const card = await screen.findByRole("article", { name: "Anthropic" });
     await waitFor(() => expect(within(card).getByLabelText("Anthropic API key")).toBeTruthy());
     expect(screen.getByRole("link", { name: "every provider is in Models & providers" }).getAttribute("href")).toBe("/models");
     expect(screen.getByText(/Or connect OpenAI/)).toBeTruthy();
@@ -160,7 +160,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
         "Claude Sonnet 4.6 on Stigmer runs on Anthropic. Give this machine's runner a key, and you can send your first task.",
       ),
     ).toBeTruthy();
-    const card = screen.getByRole("article", { name: "Anthropic" });
+    const card = await screen.findByRole("article", { name: "Anthropic" });
     expect(within(card).getByText(/stigmer setup\s+stigmer down && stigmer up/)).toBeTruthy();
     expect(screen.queryByTestId("composer-probe")).toBeNull();
   });
@@ -188,7 +188,7 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     );
 
     expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
-    expect(screen.getByRole("article", { name: "OpenAI" })).toBeTruthy();
+    expect(await screen.findByRole("article", { name: "OpenAI" })).toBeTruthy();
     expect(screen.queryByRole("article", { name: "Anthropic" })).toBeNull();
     expect(screen.queryByTestId("composer-probe")).toBeNull();
   });
@@ -264,5 +264,56 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     expect(calls.getModelReadiness).not.toHaveBeenCalled();
     expect(lastComposer()?.sendBlockedReason).toBeUndefined();
     expect(lastComposer()?.modelReadinessOf).toBeUndefined();
+  });
+
+  it("draws neither the composer nor the connect step until readiness answers, so nothing typed is swapped away (stigmer#2699)", async () => {
+    const calls = fakeClient(server({ readiness: NOTHING_CONNECTED }));
+    let answer: (value: typeof NOTHING_CONNECTED) => void = () => {};
+    calls.getModelReadiness.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    render(<NewSessionViewer org={ORG_ID} onSessionCreated={vi.fn()} />, { wrapper: readinessWrapper(calls.client) });
+
+    expect(screen.queryByTestId("composer-probe")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Connect a model provider to start" })).toBeNull();
+
+    await act(async () => {
+      answer(NOTHING_CONNECTED);
+    });
+    expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
+    expect(composerProps).toHaveLength(0);
+  });
+
+  it("lets the late composer take focus only when nothing else on the page holds it", async () => {
+    const calls = fakeClient(server({ readiness: ANTHROPIC_CONNECTED }));
+    let answer: (value: typeof ANTHROPIC_CONNECTED) => void = () => {};
+    calls.getModelReadiness.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const elsewhere = document.createElement("button");
+    document.body.appendChild(elsewhere);
+    try {
+      render(<NewSessionViewer org={ORG_ID} onSessionCreated={vi.fn()} />, { wrapper: readinessWrapper(calls.client) });
+      elsewhere.focus();
+      await act(async () => {
+        answer(ANTHROPIC_CONNECTED);
+      });
+      await waitFor(() => expect(composerProps.length).toBeGreaterThan(0));
+      expect(composerProps[0]!.autoFocus).toBe(false);
+    } finally {
+      elsewhere.remove();
+    }
+
+    cleanup();
+    composerProps.length = 0;
+    renderLauncher(server({ readiness: ANTHROPIC_CONNECTED }));
+    await waitFor(() => expect(composerProps.length).toBeGreaterThan(0));
+    expect(composerProps[0]!.autoFocus).toBe(true);
   });
 });

@@ -3,7 +3,9 @@
  * reads the session its route names and hands it to
  * useFollowSessionOrganization, so the shell follows a conversation opened
  * from another organization, and the viewer and the share dialog act in
- * the active organization the hook aligns. The hook's own behaviour is
+ * the active organization the hook aligns; the share button is offered only
+ * where a session can be shared with people (not the open-source edition).
+ * The hook's own behaviour is
  * pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -14,11 +16,14 @@ const page = vi.hoisted(() => ({
   followed: [] as unknown[],
   viewer: [] as Array<Record<string, unknown>>,
   access: [] as Array<Record<string, unknown>>,
+  mode: "cloud" as string,
 }));
 
 const SESSION = { metadata: { id: "ses_1", org: "org_acme" } };
 
 vi.mock("@stigmer/react-sdk", () => ({
+  SessionInspector: () => null,
+  useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
   SessionViewer: (props: Record<string, unknown>) => {
     page.viewer.push(props);
     return <>{props.accessSlot as React.ReactNode}</>;
@@ -35,6 +40,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   useActiveOrgId: () => "org_acme",
   useAccountExecutionDefaults: () => undefined,
   useWorkspaceSources: () => ({ enableGitHub: false, enableLocal: true }),
+  useDeploymentMode: () => page.mode,
 }));
 
 vi.mock("../../hooks/useNativeFolderPicker", () => ({
@@ -66,10 +72,19 @@ beforeEach(() => {
   page.followed.length = 0;
   page.viewer.length = 0;
   page.access.length = 0;
+  page.mode = "cloud";
   cleanup();
 });
 
 describe("desktop SessionPage", () => {
+  it("offers no Manage access on the open-source edition, where a session is shared with no one", () => {
+    page.mode = "local";
+    renderAt("/sessions/ses_1");
+
+    expect(page.viewer.at(-1)?.accessSlot).toBeUndefined();
+    expect(page.access).toHaveLength(0);
+  });
+
   it("hands the session its route names to useFollowSessionOrganization", () => {
     renderAt("/sessions/ses_1");
 
@@ -81,5 +96,15 @@ describe("desktop SessionPage", () => {
 
     expect(page.viewer.at(-1)?.org).toBe("org_acme");
     expect((page.access.at(-1)?.resource as { org: string }).org).toBe("org_acme");
+  });
+
+  it("turns on the builder mode, links Models & providers and a routine through the hash router", () => {
+    renderAt("/sessions/ses_1");
+
+    const props = page.viewer.at(-1)!;
+    expect(props.inspector).toBeDefined();
+    expect(props.modelsHubHref).toBe("#/models");
+    const routineHref = props.routineHref as (routine: { metadata: { org: string; slug: string } }) => string;
+    expect(routineHref({ metadata: { org: "org_acme", slug: "nightly" } })).toBe("#/library/routines/acme/nightly");
   });
 });

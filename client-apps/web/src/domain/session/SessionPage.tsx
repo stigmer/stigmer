@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  SessionInspector,
   SessionViewer,
+  useOrgSlugForId,
   useAccountExecutionDefaults,
   useGitHubConnection,
   useGitHubTreeLister,
@@ -10,6 +12,7 @@ import {
   useActiveOrgId,
   useFollowSessionOrganization,
   useSession,
+  useDeploymentMode,
   ManageAccessButton,
 } from "@stigmer/react-sdk";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,6 +40,8 @@ export function SessionPageInner({ id }: { id: string }) {
   // Seeds session-scoped auto-approve from the account's
   // default_auto_approve preference (same seam as the launcher's seed).
   const accountDefaults = useAccountExecutionDefaults();
+  const slugForOrg = useOrgSlugForId();
+  const deploymentMode = useDeploymentMode();
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -47,17 +52,23 @@ export function SessionPageInner({ id }: { id: string }) {
         gitHubConnection={enableGitHub ? gitHubConnection : undefined}
         enableGitHub={enableGitHub}
         enableLocal={enableLocal}
-        workspaceFileLister={workspaceFileLister}
-        workspaceFileReader={workspaceFileReader}
+        inspector={<SessionInspector workspaceFileLister={workspaceFileLister} workspaceFileReader={workspaceFileReader} />}
+        routineHref={(routine) =>
+          `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug ?? ""}`
+        }
+        // The open-source edition shares a session with no one (its grants
+        // are on organizations only), so it offers no Manage access.
         accessSlot={
-          <ManageAccessButton
-            resource={{
-              kind: ApiResourceKind.session,
-              kindString: "session",
-              id,
-              org: orgId,
-            }}
-          />
+          deploymentMode === "local" ? undefined : (
+            <ManageAccessButton
+              resource={{
+                kind: ApiResourceKind.session,
+                kindString: "session",
+                id,
+                org: orgId,
+              }}
+            />
+          )
         }
       />
     </div>

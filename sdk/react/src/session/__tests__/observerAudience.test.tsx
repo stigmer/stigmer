@@ -51,6 +51,7 @@ vi.mock("../facets/SetupTab", () => ({
     setupTabProps.push(props);
     return <div data-testid="setup-probe" />;
   },
+  RunConfigSection: () => <div data-testid="run-config-probe" />,
 }));
 
 // ---------------------------------------------------------------------------
@@ -159,6 +160,7 @@ vi.mock("../../hooks", () => ({
 }));
 
 import { SessionViewer } from "../SessionViewer";
+import { SessionInspector } from "../inspector/SessionInspector";
 
 const CHANNEL_SESSION = {
   metadata: {
@@ -217,7 +219,7 @@ afterEach(() => {
 
 describe("SessionViewer — observer audience", () => {
   it("observer: read-only transcript, no composer, panel available", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" audience="observer" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="observer" inspector={<SessionInspector />} />);
 
     expectReadOnlyTranscript();
   });
@@ -225,34 +227,34 @@ describe("SessionViewer — observer audience", () => {
   it("a channel-originated session forces observer even for integrator hosts", () => {
     stubConv.session = CHANNEL_SESSION;
 
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
 
     expectReadOnlyTranscript();
   });
 
-  it("observer: the host's access slot is withheld from the panel", () => {
+  it("observer: the host's access slot is withheld", () => {
     stubConv.session = CHANNEL_SESSION;
 
     render(
       <SessionViewer
         sessionId="ses_1"
+        inspector={<SessionInspector />}
         org="acme"
         accessSlot={<button type="button">Manage access</button>}
       />,
     );
 
-    // Even inside the opened Config facet — observers hold neither
-    // can_grant_access nor can_view_access on a channel session, so the
-    // control is withheld rather than left to fail server-side.
+    // Not in the header, nor anywhere in the opened inspector: observers
+    // hold neither can_grant_access nor can_view_access on a channel
+    // session, so the control is withheld rather than left to fail
+    // server-side.
+    expect(screen.queryByRole("button", { name: "Manage access" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Config" }));
-    expect(setupTabProps.length).toBeGreaterThan(0);
-    expect(setupTabProps.at(-1)!.accessSlot).toBeUndefined();
     expect(screen.queryByRole("button", { name: "Manage access" })).toBeNull();
   });
 
   it("a plain console session keeps its composer (no accidental forcing)", () => {
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    render(<SessionViewer sessionId="ses_1" org="acme" inspector={<SessionInspector />} />);
 
     expect(composerProps.length).toBeGreaterThan(0);
     const thread = lastThreadProps();

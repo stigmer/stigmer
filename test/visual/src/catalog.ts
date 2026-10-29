@@ -121,7 +121,7 @@ const SESSION_SCENES = [
   { id: "session-failed", title: "Session: a failed turn, in the console", widths: ["desktop"] },
   {
     id: "session-end-user",
-    title: "Session: a long turn at work, inside a customer's product with no panel",
+    title: "Session: a long turn at work, inside a customer's product (no inspector)",
     widths: ["desktop"],
   },
   { id: "session-guest", title: "Session: the finished turn, for a chat link's guest", widths: ["desktop", "narrow"] },

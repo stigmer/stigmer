@@ -595,6 +595,7 @@ What the hub and the launcher's connect step draw from.
     orgName: { type: "string", description: "The organization's name as people read it.", required: true },
     parentOrgNameOf: { type: "(provider: string) => string | undefined", description: "The parent organization's name, for a provider its key serves.", required: true },
     providers: { type: "readonly ProviderReadiness[] | null", description: "Each provider's report, in the server's order; `null` until the server answers.", required: true },
+    readinessLoading: { type: "boolean", description: "`true` until the readiness answer alone has settled. What can run is known before who may connect a provider, so a face that chooses by readiness (the launcher's composer or connect step) chooses on this.", required: true },
     readinessOf: { type: "ModelReadinessLookup", description: "", required: true, typeDescriptionLink: "#modelreadinesslookup" },
     refresh: { type: "() => void", description: "Asks the server again for readiness and the key list, after a key is saved or removed.", required: true },
     viewer: { type: "ProviderViewer", description: "Who is looking: whether they may manage keys, and whether the server runs on this machine.", required: true, typeDescriptionLink: "#providerviewer" },

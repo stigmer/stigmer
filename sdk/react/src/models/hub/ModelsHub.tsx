@@ -43,6 +43,12 @@ export interface ModelsHubData {
   readonly readinessOf: ModelReadinessLookup;
   /** `true` until the readiness answer and, where it matters, the permission check have settled. */
   readonly isLoading: boolean;
+  /**
+   * `true` until the readiness answer alone has settled. What can run is
+   * known before who may connect a provider, so a face that chooses by
+   * readiness (the launcher's composer or connect step) chooses on this.
+   */
+  readonly readinessLoading: boolean;
   /** The readiness read's error, or `null`. */
   readonly error: Error | null;
   /** Asks the server again for readiness and the key list, after a key is saved or removed. */
@@ -123,7 +129,8 @@ export function useModelsHubData(org: string | null): ModelsHubData {
   }, [refetchReadiness, refetchKeys, keysReadable]);
 
   const canManage = asksPermission && !manage.isLoading && manage.allowed;
-  const isLoading = readiness.providers === null ? readiness.error === null && orgId !== "" : asksPermission && manage.isLoading;
+  const readinessLoading = readiness.providers === null && readiness.error === null && orgId !== "";
+  const isLoading = readinessLoading || (readiness.providers !== null && asksPermission && manage.isLoading);
 
   return useMemo(
     () => ({
@@ -136,6 +143,7 @@ export function useModelsHubData(org: string | null): ModelsHubData {
       parentOrgNameOf,
       readinessOf: readiness.readinessOf,
       isLoading,
+      readinessLoading,
       error: readiness.error,
       refresh,
     }),
@@ -150,6 +158,7 @@ export function useModelsHubData(org: string | null): ModelsHubData {
       parentOrgNameOf,
       readiness.readinessOf,
       isLoading,
+      readinessLoading,
       readiness.error,
       refresh,
     ],

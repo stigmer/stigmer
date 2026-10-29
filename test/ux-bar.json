@@ -206,6 +206,32 @@
       "promise": "Every hero screen passes the accessibility audit in light and dark."
     },
     {
+      "id": "KIT-05",
+      "promise": "While the agent works, the session says what it is doing, for how long, and how far it has got."
+    },
+    {
+      "id": "KIT-06",
+      "promise": "Everything a turn produced (an answer, a file, a change, a plan) opens from the conversation itself, with or without the inspector.",
+      "pending": [
+        "stigmer#2629"
+      ]
+    },
+    {
+      "id": "KIT-07",
+      "promise": "An end user or guest sees no builder controls (the engine, target and environment, usage, the inspector) unless the host adds them."
+    },
+    {
+      "id": "KIT-08",
+      "promise": "An approval waiting for the person is the most visible thing on the screen until it is answered, and Stop is always in reach while a turn can stop.",
+      "pending": [
+        "stigmer#289"
+      ]
+    },
+    {
+      "id": "KIT-09",
+      "promise": "A finished session opens on what was asked, what was done and what came out, with its time, and its estimated cost for builders and reviewers."
+    },
+    {
       "id": "CON-01",
       "promise": "The console never offers an act the server refuses.",
       "pending": [

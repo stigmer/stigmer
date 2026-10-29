@@ -15,6 +15,7 @@ import { forwardRef, useImperativeHandle } from "react";
 type CapturedProps = Record<string, unknown>;
 
 const threadProps: CapturedProps[] = [];
+import { samples } from "../../test";
 vi.mock("../../run/MessageThread", () => ({
   MessageThread: (props: CapturedProps) => {
     threadProps.push(props);
@@ -52,7 +53,7 @@ const stubConv = {
   loadError: null,
   turns: [],
   runs: [],
-  activeTurn: { runId: "exec-old" },
+  activeTurn: samples.turn({ runId: "exec-old", phase: "running" }),
   activeRun: { metadata: { id: "exec-old" } },
   pendingUserMessage: null,
   resources: [],

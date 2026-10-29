@@ -411,6 +411,15 @@ export {
   type HookFormatName,
 } from "./hook-words.js";
 export { isTerminalPhase } from "./run/run-phases.js";
+export {
+  activityPhrase,
+  describeTurnActivity,
+  settledStepsPhrase,
+  stepsSpanMs,
+  type TodoProgress,
+  type TurnActivity,
+  type TurnProgress,
+} from "./run/turn-activity.js";
 export { backgroundCommandText, backgroundEndingLine, backgroundEndingPhrase } from "./run/background-command.js";
 // A session's events, folded: the one model every client reads a
 // conversation from (@stigmer/session-log), and the helpers that follow a

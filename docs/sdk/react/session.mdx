@@ -175,7 +175,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or `null` for the built-in assistant." },
     agentRunDefaults: { type: "AgentRunDefaults | undefined", description: "The selected agent's run defaults that apply on the active harness: pass it to the composer's `agentRunDefaults`. `undefined` with no agent, an agent that names no model for this harness, a guest, and while the agent loads." },
-    autoApproveAll: { type: "boolean", description: "Pre-arm \"auto-approve tool calls\" for the session this surface will create (stigmer/stigmer#816, the walk-away scenario). Seeded from the account's `default_auto_approve` preference and the host's `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither; the user's explicit flip (the Config facet switch) wins from then on. Carried into the bootstrap create as `spec.auto_approve_all` — the whole-run server-side bypass — so the first run stays covered even if the user closes the tab." },
+    autoApproveAll: { type: "boolean", description: "Pre-arm \"auto-approve tool calls\" for the session this surface will create (stigmer/stigmer#816, the walk-away scenario). Seeded from the account's `default_auto_approve` preference and the host's `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither; the user's explicit flip (the run settings switch) wins from then on. Carried into the bootstrap create as `spec.auto_approve_all` — the whole-run server-side bypass — so the first run stays covered even if the user closes the tab." },
     clearModelPick: { type: "() => void", description: "Forget the model the person picked on this surface, so the selected agent's default model applies again: pass it to the composer's `onModelPickCleared`. Picks are also forgotten when the agent changes, and a pick the harness does not list when the harness changes." },
     environmentDefaults: { type: "{ agent?: EnvironmentReference; organization?: EnvironmentReference }", description: "What applies when the person picks no Environment: the selected agent's default and the organization's. Pass it to the composer's `environmentDefaults`." },
     harness: { type: "HarnessOption", description: "The harness the conversation will run: the person's pick on this surface, else the selected agent's harness when it names one, else the remembered and seeded choices (see `accountDefaults`). A pick is remembered in localStorage.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
@@ -802,7 +802,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     agentVersion: { type: "UseSessionAgentVersionReturn", description: "The agent version this conversation runs against the version its agent is at now, with the explicit act that moves the conversation to the current one. Nothing else in this flow changes the version: a follow-up that rewrites the session keeps its pin. Inert for guests.", typeDescriptionLink: "#usesessionagentversionreturn" },
     allRuns: { type: "readonly Run[]", description: "The conversation's runs, for widget display (`conv.runs`)." },
     answerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => Promise<void>", description: "Answer a tool use that waits for a person.  Wraps UseSessionConversationReturn.answerToolUse: a `\"grant\"` (approve all of the call's class) also flips the session-scoped autoApproveAll preference so future follow-ups skip asking. The grant itself allows the rest of the class for the current turn." },
-    autoApproveAll: { type: "boolean", description: "Session-scoped \"auto-approve tool calls\" state (stigmer/stigmer#816).  `false` by default. `true` when any of its sources arms it — the user's explicit choice always winning:  1. the user's Config facet switch (setAutoApproveAll); 2. \"Approve all\" of a class at an approval gate (see    answerToolUse); 3. the account's `default_auto_approve` preference    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded); 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,    guests excluded); 5. the active in-flight run having been created with    `spec.auto_approve_all` (e.g. armed on the new-session surface), so    the state survives the launcher → session-page handoff.  While `true`, follow-ups carry `auto_approve_all` (handleSubmit) and tool uses waiting in the live turn are granted as they appear (never for guest/observer/channel-origin surfaces). The explicit per-session flip is held in memory only — reset on reload back to the seeds; the account preference is the one persisted default, declared by the user in Account Preferences." },
+    autoApproveAll: { type: "boolean", description: "Session-scoped \"auto-approve tool calls\" state (stigmer/stigmer#816).  `false` by default. `true` when any of its sources arms it — the user's explicit choice always winning:  1. the user's run settings switch (setAutoApproveAll); 2. \"Approve all\" of a class at an approval gate (see    answerToolUse); 3. the account's `default_auto_approve` preference    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded); 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,    guests excluded); 5. the active in-flight run having been created with    `spec.auto_approve_all` (e.g. armed on the new-session surface), so    the state survives the launcher → session-page handoff.  While `true`, follow-ups carry `auto_approve_all` (handleSubmit) and tool uses waiting in the live turn are granted as they appear (never for guest/observer/channel-origin surfaces). The explicit per-session flip is held in memory only — reset on reload back to the seeds; the account preference is the one persisted default, declared by the user in Account Preferences." },
     clearAgent: { type: "() => void", description: "Drop the session's agent: the next follow-up rebinds the session to the built-in assistant (no `agentRef` on the wire), so the conversation continues without an agent rather than only looking as if it had. Picking an agent again undoes it." },
     clearModelPick: { type: "() => void", description: "Choose the agent's default model back: the next message names no model, not even this conversation's last pick, until the person picks one again. Pass it to the composer's `onModelPickCleared`." },
     conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
@@ -816,7 +816,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state." },
     sandboxWorkspaceRoot: { type: "string | undefined", description: "Sandbox workspace root for file path normalization, or `undefined` when the session has no git-repo workspace entries." },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups. `null` is the drop: the same act as clearAgent, reached from the composer's picker." },
-    setAutoApproveAll: { type: "(value: boolean) => void", description: "Set the user's explicit session-scoped auto-approve choice. Wired to the Config facet's switch; an explicit `false` wins over both seeds and over an armed in-flight run for everything the client controls (follow-up carry, granting waiting calls) — an already-armed run's server-side bypass cannot be revoked mid-run. Never written back to the account preference: the flip is scoped to THIS conversation." },
+    setAutoApproveAll: { type: "(value: boolean) => void", description: "Set the user's explicit session-scoped auto-approve choice. Wired to the run settings' switch; an explicit `false` wins over both seeds and over an armed in-flight run for everything the client controls (follow-up carry, granting waiting calls) — an already-armed run's server-side bypass cannot be revoked mid-run. Never written back to the account preference: the flip is scoped to THIS conversation." },
     setPluginRefs: { type: "(refs: ResourceRef[]) => void", description: "Update the plugins the conversation uses." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
     setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
@@ -1212,10 +1212,10 @@ of `SessionViewer`.
 Owns `useNewSessionFlow` internally and composes:
 - **Centered composer** (primary pane): `SessionComposer` with all
   context pickers (agent, workspace, plugins, skills)
-- **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
-  Config rail view — collapsed by default behind a persistent top-right chip
-  and homing on the Config facet when opened. Same layout model as
-  `SessionViewer`.
+- **Inspector** (secondary pane, when the host passes `inspector`): the
+  attached workspaces' explorer and editor, collapsed behind a top-right
+  chip. How the first turn runs is in the composer's run settings. Same
+  layout model as `SessionViewer`.
 
 Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
 apps inject platform-specific values via props.
@@ -1229,7 +1229,6 @@ apps inject platform-specific values via props.
     autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet. The user can still switch before starting the session, and their explicit choice wins on subsequent visits.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
-    defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode. Ignored when NewSessionViewerProps.panelOpen is provided. Same contract as SessionViewerProps.defaultPanelOpen." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace sources." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace sources." },
     footerContent: { type: "ReactNode", description: "Slot for host-injected actions rendered below the composer (e.g., submit error messages). Keeps the SDK organism unopinionated about Console-specific error rendering." },
@@ -1240,22 +1239,17 @@ apps inject platform-specific values via props.
     initialFiles: { type: "File[]", description: "Files to auto-attach on mount (used for edit flows)." },
     initialPluginRefs: { type: "readonly ResourceRef[]", description: "Plugins the conversation starts with, read once on mount: a plugin page's \"Start a chat\" arrives with its plugin here, for a conversation with the assistant that uses it. Ignored for the `\"guest\"` audience." },
     initialRows: { type: "number", description: "Initial number of visible textarea rows." },
+    inspector: { type: "ReactElement<SessionInspectorProps, string | JSXElementConstructor<any>>", description: "The builder mode: the attached workspaces' explorer and editor beside the composer, with the chip that opens it. The console and the desktop app pass `<SessionInspector />`; an embed passes nothing and ships none of its code. Never shown to a guest." },
     modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing: the launcher's connect step and its notices link there. Defaults to DEFAULT_MODELS_HUB_HREF." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments. Desktop supplies this via Tauri's dialog plugin." },
     onError: { type: "(message: string, error: Error) => void", description: "Called on error (for toast notifications or other UI feedback), with the message and the error itself. A refusal the launcher already shows in place (a `PROVIDER_KEY_REQUIRED` one, through `providerKeyRequired`) is the host's to skip, so it shows once." },
-    onPanelOpenChange: { type: "(open: boolean) => void", description: "Called on every panel open/close transition, in both modes. Same contract as SessionViewerProps.onPanelOpenChange; the launcher has no plan auto-open, so its transitions come from the chip toggle and file opens only." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the session and first run are created.", required: true },
     org: { type: "string", description: "Organization id (a slug is also accepted). Required for session creation.", required: true },
-    panel: { type: "SessionPanelMode", description: "Whether the launcher offers the session panel at all — `\"none\"` removes the panel and its toggle chip while keeping every composer capability the audience allows. Same contract as SessionViewerProps.panel; see SessionPanelMode.", typeDescriptionLink: "#sessionpanelmode" },
-    panelOpen: { type: "boolean", description: "Controlled open state of the session panel. Same contract as SessionViewerProps.panelOpen." },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
     rememberPluginPicks: { type: "boolean", description: "Remember the person's plugin picks in this browser and start the next new conversation with them, unless `initialPluginRefs` names plugins. See UseNewSessionFlowOptions.rememberPluginPicks." },
     runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for the session's first run (stigmer/stigmer#664). Same contract as SessionViewerProps.runConfig: wins over the composer and the restored preference, hides the model picker, and is ignored for the `\"guest\"` audience. Pair with the same pin on the conversation's `SessionViewer` so follow-ups match. See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     showModelSelector: { type: "boolean", description: "Whether the composer offers the model picker. Same contract as SessionViewerProps.showModelSelector: forced off by a NewSessionViewerProps.runConfig model pin and for the `\"guest\"` audience." },
     vaults: { type: "readonly ResourceRef[]", description: "Shared vaults the conversation uses, in order (the first holding a key or login wins), after the sender's My vault when it is included. An app that embeds Stigmer names here the vaults its users' chats read, instead of handing keys to each conversation. The person may change them in the composer's vault picker where the audience offers one." },
-    workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher — the same capability `SessionViewer` accepts. Desktop injects a native ripgrep-backed searcher; web leaves it undefined.", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
-    workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (Capability injection, opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
-    workspaceFileReader: { type: "WorkspaceFileReader", description: "Platform-injected content reader for the read-only file viewer. When set, clicking a file in the Workspace tree opens it in a contextual \"Viewer\" tab — the same capability `SessionViewer` accepts.", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },
   }}
 />
 
@@ -1354,21 +1348,38 @@ All visual properties flow through `--stgm-*` tokens.
 />
 
 
+### SessionInspector
+
+The session viewer's builder mode (module header).
+
+**Props** — `SessionInspectorProps`
+
+<TypeTable
+  type={{
+    defaultOpen: { type: "boolean", description: "Initial open state in uncontrolled mode: a docking host that wants the workspace visible from the first paint passes `true`. Ignored when SessionInspectorProps.open is given." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called on every open and close, controlled or not." },
+    open: { type: "boolean", description: "Controlled open state. When given, the host owns the panel: the chip, file and plan opens, and a streaming plan's auto-open surface through SessionInspectorProps.onOpenChange instead of flipping state." },
+    workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Searches a local workspace's contents (desktop).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
+    workspaceFileLister: { type: "WorkspaceFileLister", description: "Lists a local workspace's files (desktop); the remote lister otherwise.", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
+    workspaceFileReader: { type: "WorkspaceFileReader", description: "Reads a local workspace's file contents (desktop).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },
+  }}
+/>
+
+
 ### SessionViewer
 
 Full-featured agent session viewer.
 
-Owns `useSessionPageFlow` internally and composes:
-- **Conversation column** (primary): `MessageThread` + error
-  banners + `SessionComposer`
-- **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
-  search, read-only editor, and the session facets (Config, Changes,
-  Files, Usage) as injected rail views. Collapsed by default
-  to a top-right chip; opening a file (tree, search, or a transcript path)
-  expands it.
+Owns `useSessionPageFlow` internally and composes the conversation: its
+summary, the thread (each ended turn closed by what it produced), the
+working turn's activity line with Stop, and the `SessionComposer` with
+the run settings in its configure menu. A host that passes `inspector`
+(`<SessionInspector />`) adds the builder mode beside it: the explorer,
+search, read-only editor and the Changes, Files and Usage facets,
+collapsed to a top-right chip until opened.
 
-Both regions render inside [`SessionViewerLayout`](#sessionviewerlayout) — the frame shared
-with [`NewSessionViewer`](#newsessionviewer) — with the chat width persisted per viewer.
+Both regions render inside [`SessionViewerLayout`](#sessionviewerlayout), the frame shared
+with [`NewSessionViewer`](#newsessionviewer), with the chat width persisted per viewer.
 
 Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
 apps inject platform-specific values via props.
@@ -1377,49 +1388,39 @@ apps inject platform-specific values via props.
 
 <TypeTable
   type={{
-    accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (slot injection)." },
-    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()` — same seam as `NewSessionViewer.accountDefaults`. On the session page only the `autoApprove` default applies: it seeds the session-scoped auto-approve state so a declared `default_auto_approve` preference covers follow-ups on existing sessions too. An explicit flip of the Config facet's switch wins for this session. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
+    accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating), rendered in the header beside the host's actions. Withheld from observers." },
+    accountDefaults: { type: "AccountExecutionDefaults", description: "The user's account-level execution defaults, typically from `useAccountExecutionDefaults()` — same seam as `NewSessionViewer.accountDefaults`. On the session page only the `autoApprove` default applies: it seeds the session-scoped auto-approve state so a declared `default_auto_approve` preference covers follow-ups on existing sessions too. An explicit flip of the run settings' switch wins for this session. Ignored for the `\"guest\"` audience.", typeDescriptionLink: "/docs/sdk/react/identity-account#accountexecutiondefaults" },
     audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the plugin, skill and vault configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, file uploads, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, file uploads, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the agent and version the session pinned.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for Slack and WhatsApp sessions (the `stigmer.ai/channel-conversation-key` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
-    defaultPanelOpen: { type: "boolean", description: "Initial open state of the session panel in uncontrolled mode — a docking host that wants the workspace visible from the first paint passes `true`. Ignored when SessionViewerProps.panelOpen is provided." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace features in the composer. Web passes `deploymentMode === \"local\"`, desktop passes `true`." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. Platform-specific — web passes `useGitHubConnection(org)`, desktop passes `useDesktopGitHubConnection(org)`.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
     headerActions: { type: "ReactNode", description: "Slot for host-injected header actions. Rendered in the top-right corner of the viewer, beside the panel chip. Keeps the SDK organism unopinionated about Console auth." },
+    inspector: { type: "ReactElement<SessionInspectorProps, string | JSXElementConstructor<any>>", description: "The builder mode: the explorer, editor tabs, search, Changes and Files beside the conversation, with the chip that opens them. The console and the desktop app pass `<SessionInspector />`; an embed passes nothing and ships none of its code. Without it every File and change a turn produced still opens in place, from the turn. Never shown to a guest." },
+    modelsHubHref: { type: "string", description: "Where Models & providers is, in the host's routing: a follow-up refused for a missing provider key links there (the desktop app's hash router passes `#/models`). Defaults to DEFAULT_MODELS_HUB_HREF." },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied, or a skill added, from the Files tab." },
     onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided alongside `enableLocal`, the composer renders a \"Browse Folder\" button that opens the system folder dialog. Without this callback `enableLocal` alone is not sufficient for the UI to render the local option.  Desktop apps supply this via Tauri's dialog plugin. Web apps omit it (no native picker available)." },
-    onPanelOpenChange: { type: "(open: boolean) => void", description: "Called on every panel open/close transition, in BOTH modes — pass it alone (uncontrolled) to simply observe the panel, e.g. widening a docked pane when a streaming plan auto-opens it and reclaiming the room on close. See UseSessionPanelOptions.onOpenChange for the exact request-vs-transition semantics in each mode." },
     org: { type: "string", description: "Organization id to act in until the session has loaded (a slug is also accepted). After that the viewer acts in the session's own organization (`session.metadata.org`), whatever this prop says: a turn in a session belongs to that session's organization.", required: true },
-    panel: { type: "SessionPanelMode", description: "Whether the viewer offers the session panel at all. `\"none\"` removes the panel AND its toggle chip, suppresses plan-mode auto-open, and lets transcript file paths keep their default copy behavior — for hosts whose surrounding surface already renders the workspace — while keeping every composer capability the audience allows. This is the panel half of what `audience=\"guest\"` does, WITHOUT guest's composer strip-down; guest still forces it regardless of this prop. A union (not a boolean) so a future mode (e.g. a host-rendered panel) extends rather than breaks it.", typeDescriptionLink: "#sessionpanelmode" },
-    panelOpen: { type: "boolean", description: "Controlled open state of the session panel. When provided, the host owns the panel: the chip toggle, file/plan/File-document opens, and plan-mode auto-open surface through SessionViewerProps.onPanelOpenChange instead of flipping state, and the panel follows this value. Leave `undefined` for the self-managing default." },
+    routineHref: { type: "(routine: Routine) => string", description: "A routine's page, in the host's routing: the summary of a conversation a routine started links its name there (the console's `/library/routines/<org>/<slug>`). No link when omitted, or when the reader may not see the routine." },
     runConfig: { type: "SessionRunConfig", description: "Owner-pinned model/tier for every run sent from this viewer (stigmer/stigmer#664) — for product-embedded conversations where the platform, not the end user, decides what serves the session (pair with `audience=\"endUser\"`). A pinned model wins over the composer, the persisted Console preference, and the last execution's model — follow-ups and retries included — and hides the model picker (a control that has no effect must not render). Ignored for the `\"guest\"` audience, whose run config the server-side share policy owns. See SessionRunConfig.", typeDescriptionLink: "#sessionrunconfig" },
     sessionId: { type: "string", description: "Session ID to load and display.", required: true },
     showModelSelector: { type: "boolean", description: "Whether the follow-up composer offers the model picker. `false` hides the picker while keeping the SDK's model sourcing (persisted preference, then the last execution's model) — for hosts whose surrounding surface owns model choice without pinning it. Forced off by a SessionViewerProps.runConfig model pin and for the `\"guest\"` audience." },
     threadSlots: { type: "MessageThreadSlots", description: "Component overrides for the conversation thread's chrome (message bubbles, approval card, to-dos card, plan cards, thinking indicator) — forwarded to the inner MessageThread. See MessageThreadSlots. Define the object and its components at module level (or memoize) so thread rows keep their streaming re-render guarantees.", typeDescriptionLink: "/docs/sdk/react/run#messagethreadslots" },
-    transcriptExport: { type: "boolean", description: "Whether the viewer offers its built-in whole-conversation export (stigmer/stigmer#814). Placement is panel-aware: viewers with the session panel export from the Config facet's Transcript section, and panel-less viewers (guests, `panel=\"none\"`) render the header TranscriptExportMenu instead — so wherever a conversation can be viewed, its transcript stays reachable. The export carries only what the current caller can already read (`can_view`-scoped). Hosts that own their export surface (or inert demo scenes) opt out." },
-    workspaceContentSearcher: { type: "WorkspaceContentSearcher", description: "Platform-injected content (text) searcher. When provided, the session panel's Search pane gains a `Name | Text` toggle for full-text search across the workspace. Desktop injects a native ripgrep-backed searcher; web leaves it undefined (git content search needs a branch-accurate backend), keeping Search filename-only there (capability injection, opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacecontentsearcher" },
-    workspaceFileLister: { type: "WorkspaceFileLister", description: "Platform-injected file lister for workspace entries. When provided, each entry in the Setup tab's workspace section renders an expandable file tree. (Capability injection, opt-in.)", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilelister" },
-    workspaceFileReader: { type: "WorkspaceFileReader", description: "Platform-injected content reader for the read-only file viewer. When provided, clicking a file in the Workspace tree opens it in a contextual \"Viewer\" tab. GitHub Contents/blob on web, Tauri fs on desktop; `undefined` degrades the viewer to an \"unavailable here\" state (capability injection, opt-in).", typeDescriptionLink: "/docs/sdk/react/workspace#workspacefilereader" },
+    transcriptExport: { type: "boolean", description: "Whether the viewer offers its built-in whole-conversation export (stigmer/stigmer#814), as the header's TranscriptExportMenu for every audience, so wherever a conversation can be viewed its transcript stays reachable. The export carries only what the current caller can already read (`can_view`-scoped). Hosts that own their export surface (or inert demo scenes) opt out." },
   }}
 />
 
 ```tsx
-// Web (cloud run)
+// An embedding product's end user: the conversation alone
+<SessionViewer sessionId={id} org={org} audience="endUser" />
+
+// The console, with the builder mode
 <SessionViewer
   sessionId={id}
   org={org}
   gitHubConnection={gitHubConnection}
   enableGitHub
-  headerActions={<ShareButton sessionId={id} />}
-/>
-
-// Desktop (local run with native picker)
-<SessionViewer
-  sessionId={id}
-  org={org}
-  enableLocal
-  onBrowseLocalFolder={browseLocalFolder}
-  headerActions={<ShareButton sessionId={id} />}
+  inspector={<SessionInspector workspaceFileLister={lister} workspaceFileReader={reader} />}
 />
 ```
 
@@ -1466,7 +1467,8 @@ takes opaque `ReactNode`s and never inspects them.
 
 ### SetupTab
 
-Persistent session configuration panel (Config facet) — shows run config
+Session configuration as a panel (the Config facet a host can still put in
+its own rail with `useSessionRailViews`) — shows run config
 (harness, model, target, environment, and the session-level auto-approve switch), agent,
 plugins, skills, transcript export, and the host's
 access management control (via `accessSlot`).
@@ -2305,7 +2307,7 @@ Options for [`useSessionPanel`](#usesessionpanel).
 <TypeTable
   type={{
     defaultOpen: { type: "boolean", description: "Initial open state in uncontrolled mode. Ignored when UseSessionPanelOptions.open is provided." },
-    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes) and explicit rail picks still take over from here exactly as before." },
+    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits both session viewers. A host building its own panel passes the id of the view it should land on. Auto-switches (Changes) and explicit rail picks still take over from here." },
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
     onOpenChange: { type: "(open: boolean) => void", description: "Called on every effective open/close transition — in BOTH modes, unlike `useDetailTabs`'s convention of swallowing the callback when uncontrolled. The difference is principled, not stylistic: tabs change only through user clicks, so an uncontrolled host loses nothing by not hearing about them — but this panel opens ITSELF (`openFile`, `openFileDocument`, `openPlanDocument`, and the plan-key auto-open all expand a collapsed panel), and an embedding host that must react to those moments (widen a dock, make room for a streaming plan) has no other seam. Passing only this callback observes the panel without controlling it.  In controlled mode this fires once per open/close REQUEST (the host may decline by not updating `open` — a later identical request re-fires); in uncontrolled mode it fires once per actual transition." },
     open: { type: "boolean", description: "Controlled open state. When provided, the host owns whether the panel is expanded: internal open intents (the chip toggle, opening a workspace file, a File or the plan, plan auto-open) no longer flip state themselves — they surface through UseSessionPanelOptions.onOpenChange and the panel follows this value. Leave `undefined` for the self-managing default." },

@@ -37,7 +37,7 @@ const TRUNCATION_MARKER: WorkspaceFileEntry = {
  * const gitHubConnection = useGitHubConnection(org);
  * const fileLister = useGitHubTreeLister(gitHubConnection.readOrg);
  *
- * <SessionViewer workspaceFileLister={fileLister} />
+ * <SessionViewer sessionId={id} org={org} inspector={<SessionInspector workspaceFileLister={fileLister} />} />
  * ```
  */
 export function useGitHubTreeLister(

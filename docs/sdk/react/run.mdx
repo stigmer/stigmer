@@ -1146,6 +1146,7 @@ mount this component rather than passing an `active` flag.
     onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the action bar offers Delete to a caller holding `can_delete` on the File; the host re-reads its list (the content stays mounted until the host closes it)." },
     onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for a plan: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
     org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
+    readOnly: { type: "boolean", description: "The reader may only read, copy and download the File: no Apply, no adding it as a skill and no delete, and no permission read for them. For a reader whose credential the server refuses those acts, such as a chat link's guest." },
   }}
 />
 
@@ -1188,6 +1189,7 @@ automatically when the dialog closes.
     onImplement: { type: "() => void", description: "Optional plan-build action (see FilePreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
     open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
     org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
+    readOnly: { type: "boolean", description: "The reader may only read, copy and download the File: no Apply, no adding it as a skill and no delete, and no permission read for them. For a reader whose credential the server refuses those acts, such as a chat link's guest." },
   }}
 />
 
@@ -1442,10 +1444,12 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     agentVersionLabel: { type: "(versionHash: string) => string", description: "Marks the agent version each turn ran (`RunStatus.agent_version_hash`): a quiet divider before the first turn that recorded one and wherever the version changes, so every turn reads under the version it ran. Receives a version hash and returns how it reads (a tag, else a short hash); the session view passes `useSessionAgentVersion`'s `labelOf`. Omit for no markers." },
+    ambientLiveness: { type: "boolean", description: "Whether the thread's tail shows its own working indicator while a turn runs. `false` when the host shows the turn's activity itself (the session view's activity line), so one place says what the agent does." },
     answerErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed answer, keyed by its id — surfaced in-card beside the gate that failed. Supply useAnswerToolUse's `errorsByToolUseId`. Only meaningful when `onAnswerToolUse` is provided." },
     answeringToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose answer is in flight, by id. Drives per-gate loading state. Only meaningful when `onAnswerToolUse` is provided." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width.", typeDescriptionLink: "#threadcontentcolumn" },
+    foldSettledSteps: { type: "boolean", description: "Fold a stretch of settled tool calls into one step row that opens to them (\"Read 1 file, edited invoice.ts · 56 s\"), for people who want the result rather than the working. A builder keeps every row." },
     formatToolCallSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom formatter for a folded run of tool calls' label. Passed through to each ToolCallGroup." },
     onAnswerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a tool use that waits for a person (allow, deny with an optional reason, or grant its class). When provided, a waiting tool use renders its decision inline on its own row (and as a bottom ApprovalCard when it has none). When omitted, no decision UI is shown." },
     onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode turn's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode turn completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered." },
@@ -1472,6 +1476,7 @@ All visual properties flow through `--stgm-*` tokens.
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
     stopBackgroundErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed background stop, keyed by its id, shown on its row. Supply useStopBackgroundCommand's `errorsByToolUseId`." },
     stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`." },
+    turnOutcome: { type: "(turn: Turn) => ReactNode", description: "What closes each ended turn (the session view passes its outcome block: how the turn ended, its time, what it changed and returned). When set, it takes the place of the ended-turn phase badge; a failure's notice and Retry stay above it." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`). Each turn renders its person's message, the agent's items, its asks, to-dos and file reviews. A turn that has not ended is the live one.", required: true },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
   }}
