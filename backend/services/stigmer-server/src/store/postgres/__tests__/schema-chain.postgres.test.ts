@@ -4,9 +4,11 @@
  * runner creates the schema and its ledger, applies
  * each step once with its digest, runs a step's rewrite inside the step's
  * transaction, rolls a failing step back whole and names it, stops at
- * `through` and resumes after it, serializes two first boots on the lock,
- * refuses a database ahead of the build, and refuses a database whose
- * recorded digest differs from the build's step, naming the version.
+ * `through` and resumes after it, changes nothing when `through` is below
+ * the current version, serializes two first boots on the lock, refuses a
+ * database ahead of the build, and refuses a database whose recorded
+ * digest differs from the build's step, naming the version; a refusal
+ * writes nothing and releases the lock.
  *
  * Gated on TEST_DATABASE_URL (support.ts).
  */
@@ -124,6 +126,47 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)("runSchemaChain", () => {
     expect((await ledger()).map((row) => row.version)).toEqual([1]);
     const tags = await pool.query(`SELECT to_regclass('chain_test.tags') AS t`);
     expect(tags.rows[0].t).toBeNull();
+  });
+
+  it("changes nothing when `through` is below the current version", async () => {
+    await run(STEPS);
+    const before = await pool.query(
+      `SELECT version, applied_at, checksum FROM chain_test.schema_version ORDER BY version`,
+    );
+    await run(STEPS, 1);
+    const after = await pool.query(
+      `SELECT version, applied_at, checksum FROM chain_test.schema_version ORDER BY version`,
+    );
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("refuses before writing anything, and releases its lock", async () => {
+    await run(STEPS);
+    await pool.query(
+      `INSERT INTO chain_test.notes (id, body) VALUES ('a', 'kept')`,
+    );
+    const before = await pool.query(
+      `SELECT version, applied_at, checksum FROM chain_test.schema_version ORDER BY version`,
+    );
+    await expect(run(STEPS.slice(0, 1))).rejects.toThrow(
+      "is newer than this server supports",
+    );
+    await expect(
+      run([{ ...STEPS[0]!, statements: ["SELECT 1"] }, STEPS[1]!]),
+    ).rejects.toThrow("was applied from different statements");
+    const after = await pool.query(
+      `SELECT version, applied_at, checksum FROM chain_test.schema_version ORDER BY version`,
+    );
+    expect(after.rows).toEqual(before.rows);
+    expect(
+      (await pool.query(`SELECT id, body FROM chain_test.notes`)).rows,
+    ).toEqual([{ id: "a", body: "kept" }]);
+    const locked = await pool.query<{ ok: boolean }>(
+      `SELECT pg_try_advisory_lock($1) AS ok`,
+      [LOCK_KEY],
+    );
+    expect(locked.rows[0]?.ok).toBe(true);
+    await pool.query(`SELECT pg_advisory_unlock($1)`, [LOCK_KEY]);
   });
 
   it("serializes two first boots on the lock, so each step runs once", async () => {

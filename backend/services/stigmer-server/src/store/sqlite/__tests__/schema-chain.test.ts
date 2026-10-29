@@ -2,8 +2,10 @@
  * Pins the SQLite schema runner (../schema-chain.ts) on a chain of its own:
  * it creates its ledger, applies each step once with its digest, runs a
  * step's rewrite inside the step's transaction, rolls a failing step back
- * whole and names it, stops at `through` and resumes after it, leaves a
- * step a second connection already applied alone, refuses a database ahead
+ * whole and names it, stops at `through` and resumes after it, changes
+ * nothing when `through` is below the current version, decides each step
+ * by the ledger read under the write lock (a step a second connection
+ * applied is left alone), refuses a database ahead
  * of the build, and refuses a database whose recorded digest differs from
  * the build's step, naming the version.
  */
@@ -95,7 +97,7 @@ describe("runSqliteSchemaChain", () => {
     ).toEqual([]);
   });
 
-  it("leaves a step another connection applied after this one read the version", () => {
+  it("decides each step by the ledger read under the write lock, so a step another connection applied is left alone", () => {
     runSqliteSchemaChain(db, { migrations: STEPS, through: 1 });
     const other = new DatabaseSync(file);
     try {
@@ -103,8 +105,26 @@ describe("runSqliteSchemaChain", () => {
     } finally {
       other.close();
     }
+    // Re-applying v1 or v2 here would fail on a table or column that exists.
     runSqliteSchemaChain(db, { migrations: STEPS });
     expect(ledger().map((row) => row.version)).toEqual([1, 2]);
+  });
+
+  it("changes nothing when `through` is below the current version", () => {
+    runSqliteSchemaChain(db, { migrations: STEPS });
+    const before = db
+      .prepare(
+        `SELECT version, applied_at, checksum FROM schema_version ORDER BY version`,
+      )
+      .all();
+    runSqliteSchemaChain(db, { migrations: STEPS, through: 1 });
+    expect(
+      db
+        .prepare(
+          `SELECT version, applied_at, checksum FROM schema_version ORDER BY version`,
+        )
+        .all(),
+    ).toEqual(before);
   });
 
   it("refuses a database ahead of the build", () => {

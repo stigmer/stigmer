@@ -10,6 +10,8 @@
  * Only the catalogue speaks: the text is what Postgres holds, not what a
  * step's SQL said, so two spellings of one schema print the same. The
  * chain's own ledger (`schema_version`) is left out; the runner owns it.
+ * Tables, constraints and indexes are what every chain holds; a step that
+ * adds a view, trigger, function or type extends this printer with it.
  */
 import type { PoolClient } from "pg";
 

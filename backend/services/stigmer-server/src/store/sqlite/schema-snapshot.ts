@@ -9,7 +9,9 @@
  * SQLite keeps each object's CREATE text as written and amended by ALTER,
  * so that text is the schema; `pragma` alone could not show `WITHOUT
  * ROWID` or a CHECK. An FTS table's shadow tables are the engine's and are
- * left out, as is the chain's own ledger.
+ * left out, as is the chain's own ledger. Tables and their indexes are
+ * what the chain holds; a step that adds a view or a trigger extends this
+ * printer with it.
  */
 import type { DatabaseSync } from "node:sqlite";
 

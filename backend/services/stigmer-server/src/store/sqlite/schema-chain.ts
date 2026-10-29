@@ -9,7 +9,9 @@
  *
  * Where Postgres takes an advisory lock, each step here runs under BEGIN
  * IMMEDIATE, SQLite's write lock on the file, and re-reads the version
- * inside it, so two processes opening one new file apply each step once.
+ * inside it, so two processes opening one new file apply each step once:
+ * a step another connection applied after this one's first read is left
+ * alone.
  */
 import type { DatabaseSync } from "node:sqlite";
 
@@ -79,8 +81,11 @@ export function runSqliteSchemaChain(
     }
   }
 
+  // The version read above may be stale by now: another process may have
+  // applied a step since. Each step re-reads it under the write lock, and
+  // that read alone decides.
   for (const step of chain.migrations) {
-    if (step.version <= current || step.version > through) {
+    if (step.version > through) {
       continue;
     }
     db.exec("BEGIN IMMEDIATE");

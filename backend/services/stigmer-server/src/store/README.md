@@ -33,6 +33,9 @@ Beside each chain sit two committed files. `schema.snapshot.sql` is the
 schema a fresh replay leaves, printed from the catalogue
 (`postgres/schema-snapshot.ts`, `sqlite/schema-snapshot.ts`) and compared by
 the chain's test, so a schema change reaches review as a diff of the schema.
+It prints tables, their constraints and their indexes, which is all the
+chains hold; a step that adds another kind of object (a view, a trigger, a
+function, a type) extends the printers in the same change.
 `migrations.sum` holds each step's SHA-256 (`schema-checksum.ts`).
 `npm run schema:snapshot` rewrites both after a new step.
 
