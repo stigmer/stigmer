@@ -53,7 +53,6 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 - [ ] No listed agent has `subagents` of its own: a subagent cannot hand work on
 - [ ] You can run every agent you list, and none is more private than this agent
 - [ ] Each listed agent carries what its work needs — its own plugins, tool lists, skills and `env` — since it gets none of this agent's
-- [ ] No `sub_agents` block remains: apply refuses it; write each one as an Agent of its own and list it
 
 ### YAML Syntax
 
@@ -138,22 +137,6 @@ spec:
     - kind: plugin
       slug: ledger
   tools: [Read, mcp__plugin_ledger_ledger__get_ledger]
-```
-
-### Writing subagents inside an agent
-
-The `sub_agents` field is gone, and apply refuses a manifest that uses it. Save each one as an Agent and list it.
-
-```yaml
-# Wrong — refused at apply
-sub_agents:
-  - name: bank-reconciler
-    instructions: "Match bank statement lines to ledger entries."
-
-# Correct — bank-reconciler is an Agent of its own, saved first
-subagents:
-  - kind: agent
-    slug: bank-reconciler
 ```
 
 ### Listing a plugin twice

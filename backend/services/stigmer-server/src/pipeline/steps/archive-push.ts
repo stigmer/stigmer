@@ -20,8 +20,8 @@
  * ResolveConvergence finds the push already true and skips the install
  * chain. Every step reads the kind from `ctx.apiResourceKind`; the binding
  * names its schema, its noun in sentences and the level a push writes.
- * The plugin's push carried these steps alone until evals were pushed; the
- * skill's push is the older Go-ported chain with its own steps.
+ * The plugin's and the eval's pushes run these steps; the skill's push is
+ * its own chain with its own steps.
  *
  * Proven by the plugin domain's __tests__/plugin.test.ts and the eval
  * domain's __tests__/eval.test.ts (composed-server round trips), and the

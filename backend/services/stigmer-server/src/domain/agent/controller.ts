@@ -1,6 +1,5 @@
 /**
- * Agent controller — ports pkg/domain/agent/controller (command + query
- * sides): the agent BLUEPRINT surface. A conversation names an agent
+ * Agent controller (command + query sides): the agent BLUEPRINT surface. A conversation names an agent
  * directly (session spec.agent_ref); delete is refused while another
  * agent lists this one as a subagent, cascades its same-org channels
  * before the agent row, and leaves the sessions that pin it, whose next turn fails
@@ -17,7 +16,6 @@
  * getByReference resolves a tag or hash through the shared ladder;
  * listVersions, getVersion and tagVersion serve the history.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by agent.conformance.test.ts (CONFORMANCE_TARGET=local),
  * __tests__/agent.test.ts and __tests__/store-faults.test.ts.
  *
@@ -252,7 +250,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline. The run defaults are judged
+ * Create. The run defaults are judged
  * against the engine they name before the version is hashed
  * (validate-run-config.ts). The first version is hashed before Persist and
  * archived after it, so its snapshot carries the persisted row; the archive
@@ -311,7 +309,7 @@ async function createAgent(
 }
 
 /**
- * Update — chain per Go buildUpdatePipeline. The stored spec is hashed
+ * Update. The stored spec is hashed
  * after the run-defaults check; a new spec records a version, a reproduced one
  * points back at it, an unchanged one records none and still moves a newly
  * named tag. The archive follows Persist, so a write that loses its swap
@@ -392,7 +390,7 @@ async function rename(
 /**
  * Apply — kubectl-style create-or-update: a minimal probe pipeline decides
  * existence, then delegates to Create or Update with the ORIGINAL request
- * message (Go delegates `agent`, not the pipeline's mutated clone);
+ * message, not the probe pipeline's mutated clone;
  * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
@@ -438,7 +436,7 @@ async function apply(
 /**
  * Delete — refused while another agent of the organization lists this
  * one in its subagents (GuardUnlisted, naming them); then cascades
- * children before the parent (delete_cascade.go): the agent's evals,
+ * children before the parent: the agent's evals,
  * refused while one runs (so a refused delete tears down no Slack or
  * WhatsApp install), then the agent's same-org channels (cascade.ts in the
  * channel domain) and the agent's scoring rule,
@@ -520,7 +518,7 @@ async function deleteAgent(
 }
 
 // ---------------------------------------------------------------------------
-// updateVisibility — update_visibility.go: a targeted metadata update (only
+// updateVisibility — a targeted metadata update (only
 // metadata.visibility changes; spec/status untouched). The level check runs
 // AFTER load, preserving the cross-edition error precedence: unknown id +
 // bad level = NOT_FOUND on both editions.
@@ -710,7 +708,7 @@ function newIndexAgentAfterVisibilityUpdateStep(
   };
 }
 
-/** Get — LoadTarget by id (Go's chain has no ExtractResourceId here). */
+/** Get — LoadTarget by id (no ExtractResourceId step). */
 async function get(
   deps: AgentControllerDeps,
   id: AgentId,

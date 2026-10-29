@@ -1,15 +1,12 @@
 /**
- * Searchable-resource registry — ports
- * pkg/query/search/extractor/registry.go with the composition-root idiom
- * in place of Go's init() self-registration (house rule: no import side
- * effects). The ENTIRE searchable surface is this one explicit list; a
+ * Searchable-resource registry, built at the composition root (house
+ * rule: no import side effects). The ENTIRE searchable surface is this one explicit list; a
  * kind is searchable exactly when its extractor appears here AND kind_meta
  * declares it search-indexed — the registry unit test pins the two sets
- * equal (Go's #439 invariant, TS home).
+ * equal (stigmer/stigmer#439).
  *
- * Duplicate registration throws at construction (Go panics at init).
- * validateExpectedKinds is WARN-only at boot, exactly Go's posture
- * (registry.go ValidateExpectedKinds; server.go:509): a missing extractor
+ * Duplicate registration throws at construction.
+ * validateExpectedKinds is WARN-only at boot: a missing extractor
  * degrades that kind to unsearchable, never refuses boot.
  *
  * Boot RebuildIndex re-indexes every registered kind from the resources
@@ -28,7 +25,7 @@ import type { Logger } from "../../boot/logger.js";
 import { searchIndexedKinds } from "./criteria.js";
 import type { SearchableExtractor } from "./extractor.js";
 
-/** Go SearchableResourceRegistry — kind → extractor, read-only after build. */
+/** Kind → extractor, read-only after build. */
 export class SearchableResourceRegistry {
   private readonly extractors: ReadonlyMap<
     ApiResourceKind,
@@ -48,16 +45,15 @@ export class SearchableResourceRegistry {
     this.extractors = map;
   }
 
-  /** Go GetExtractorOrNil — undefined when the kind is not registered. */
+  /** Undefined when the kind is not registered. */
   getExtractor(kind: ApiResourceKind): SearchableExtractor | undefined {
     return this.extractors.get(kind);
   }
 
   /**
-   * Go SupportedKinds: registered kinds sorted by their NAME strings —
-   * RebuildIndex's deterministic order. Code-unit `<`, not localeCompare:
-   * Go's sort is byte-wise on kind.String(), and locale collation could
-   * reorder names around `_` (not wire-visible, but log/error order is
+   * Registered kinds sorted by their NAME strings — RebuildIndex's
+   * deterministic order. Code-unit `<`, not localeCompare: locale
+   * collation could reorder names around `_` (not wire-visible, but log/error order is
    * part of the operator-facing contract).
    */
   supportedKinds(): readonly ApiResourceKind[] {
@@ -69,7 +65,7 @@ export class SearchableResourceRegistry {
   }
 
   /**
-   * Go ValidateExpectedKinds (server.go:509): warn about searchable kinds
+   * Warns about searchable kinds
    * with no extractor — those kinds are silently unsearchable — or log
    * the healthy roster. Never throws: boot proceeds either way.
    */

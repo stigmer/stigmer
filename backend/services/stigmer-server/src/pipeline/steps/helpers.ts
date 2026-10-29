@@ -1,5 +1,5 @@
 /**
- * Shared lookup helpers — port steps/helpers.go. A lookup by slug is not
+ * Shared lookup helpers. A lookup by slug is not
  * here: it reads the name table (names.ts findResourceByName).
  */
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
@@ -10,14 +10,14 @@ import { getKindMeta } from "../apiresource-meta.js";
 import { internalError, invalidArgumentError } from "../errors.js";
 
 /**
- * Rejects a getByReference lookup that omits org — Go RequireOrgForReference,
- * widened to every kind that has a reference lane. A slug is unique only
+ * Rejects a getByReference lookup that omits org, for every kind that has
+ * a reference lane. A slug is unique only
  * WITHIN an org, so an org-less reference resolves globally and the first
  * match wins: for an org-scoped kind that crosses tenant boundaries, and
  * for an owner-only kind it let a caller name a slug and receive whichever organization's row matched first. Every kind
  * with a reference lane is served per organization, so the rule is the
- * same for all of them. The message matches the cloud edition verbatim
- * (cross-edition error contract); the kind name comes from kind_meta.
+ * same for all of them. The message is cross-edition error contract; the
+ * kind name comes from kind_meta.
  *
  * Every lookup by slug holds the same rule (names.ts findResourceByName),
  * so no resolver reads a slug across organizations.
@@ -41,12 +41,10 @@ export function requireOrgForReference(
   throw invalidArgumentError(`org is required for ${kindName} lookup`);
 }
 
-// The two list-step helpers below are duplicated per package in Go (each
-// controller carries its own copy); the TS tree consolidates them here
-// because the shared-steps guideline promotes a helper on its second
-// consumer.
+// The two list-step helpers below are shared by every list controller (the
+// shared-steps guideline promotes a helper on its second consumer).
 
-/** Go's sort.Slice comparator: newest first; nil timestamps last. */
+/** Comparator: newest first; absent timestamps last. */
 export function compareCreatedAtDesc(
   a: Timestamp | undefined,
   b: Timestamp | undefined,

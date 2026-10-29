@@ -90,8 +90,8 @@ describe("useCanCreateChannel", () => {
     }));
     expect(bars).toHaveLength(2);
     expect(bars).toContainEqual({ kind: "agent", id: "agt_1", relation: "can_manage_audience" });
-    // An Organization's id equals its slug (ApiResourceMetadata.id), and
-    // the share lives in the agent's organization, never the viewer's.
+    // The organization asked about is the agent's `metadata.org`: the
+    // share lives in the agent's organization, never the viewer's.
     expect(bars).toContainEqual({
       kind: "organization",
       id: "acme",

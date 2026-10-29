@@ -83,12 +83,12 @@ function deps(client: ResolutionDeps["client"]): { deps: ResolutionDeps; labels:
   return {
     labels,
     deps: {
-      input: { executionId: "aex-hooks", threadId: "", turnSeq: 0 },
+      input: { executionId: "run_hooks", threadId: "", turnSeq: 0 },
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir }),
       status,
       rows,
-      transcript: new TranscriptBuilder("aex-hooks", rows, status),
+      transcript: new TranscriptBuilder("run_hooks", rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
@@ -165,7 +165,7 @@ describe("refuseUnrunnableHooks", () => {
 describe("resolveHooks", () => {
   const run = (blueprint: ResolvedBlueprint, servers: ResolvedMcpServer[] = []) => {
     const { deps: d, labels } = deps(client());
-    return resolveHooks(d, { blueprint, sessionId: `ses-hooks-${++session}`, servers }).then((r) => ({ r, labels }));
+    return resolveHooks(d, { blueprint, sessionId: `ses_hooks-${++session}`, servers }).then((r) => ({ r, labels }));
   };
 
   it("resolves nothing, and reports nothing, for a turn without hooks", async () => {
@@ -234,7 +234,7 @@ describe("resolveHooks", () => {
       throw new ConnectError("connection refused", Code.Unavailable);
     });
     await expect(
-      resolveHooks(deps(inTransit).deps, { blueprint: blueprintWith([plugin("safety")]), sessionId: `ses-hooks-${++session}`, servers: [] }),
+      resolveHooks(deps(inTransit).deps, { blueprint: blueprintWith([plugin("safety")]), sessionId: `ses_hooks-${++session}`, servers: [] }),
     ).rejects.toThrow("its archive could not be fetched");
   });
 });

@@ -699,16 +699,16 @@ describe("which vaults a run uses", () => {
     await anasVault({ A: "ana-mine" });
     await rig.store.saveResource(
       ApiResourceKind.routine,
-      "sch_nightly",
+      "rtn_nightly",
       RoutineSchema,
       create(RoutineSchema, {
-        metadata: { id: "sch_nightly", name: "nightly", org: ORG },
+        metadata: { id: "rtn_nightly", name: "nightly", org: ORG },
         spec: { agent: { vaults: [] } },
       }),
     );
     const failure = await refusal(
       resolve({
-        run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_nightly" } }),
+        run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_nightly" } }),
         session: sessionOf({ includeMyVault: true }),
         agentSpec: agent({ A: KEY }),
       }),
@@ -723,10 +723,10 @@ describe("which vaults a run uses", () => {
     const slug = (await rig.vaults.findById(mine))!.metadata!.slug;
     await rig.store.saveResource(
       ApiResourceKind.routine,
-      "sch_own",
+      "rtn_own",
       RoutineSchema,
       create(RoutineSchema, {
-        metadata: { id: "sch_own", name: "own", org: ORG },
+        metadata: { id: "rtn_own", name: "own", org: ORG },
         spec: { agent: { vaults: [vaultRef(slug)] } },
         status: { vaultAttachers: { [mine]: ANA } },
       }),
@@ -734,7 +734,7 @@ describe("which vaults a run uses", () => {
     mayUse.add(`${ANA}:${mine}`);
     expect(
       await resolve({
-        run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_own" } }),
+        run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_own" } }),
         agentSpec: agent({ A: KEY }),
       }),
     ).toEqual({ A: "ana-mine" });
@@ -878,7 +878,7 @@ describe("which vaults a run uses", () => {
 
   it("a schedule that is gone contributes no vaults to its run", async () => {
     const values = await resolve({
-      run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_gone" } }),
+      run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_gone" } }),
       agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
     });
     expect(values).toEqual({});
@@ -888,10 +888,10 @@ describe("which vaults a run uses", () => {
     const team = await seedSharedVault(rig.store, ORG, "channel-keys", { secrets: { A: "chan" } });
     await rig.store.saveResource(
       ApiResourceKind.channel,
-      "ach_slack",
+      "chn_slack",
       ChannelSchema,
       create(ChannelSchema, {
-        metadata: { id: "ach_slack", name: "slack", org: ORG },
+        metadata: { id: "chn_slack", name: "slack", org: ORG },
         spec: { vaults: [vaultRef("channel-keys")], type: { case: "slack", value: {} } },
         status: { vaultAttachers: { [team.metadata!.id]: ADMIN } },
       }),
@@ -900,7 +900,7 @@ describe("which vaults a run uses", () => {
     expect(
       await resolve({
         run: runOf(),
-        session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "ach_slack" } }),
+        session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_slack" } }),
         agentSpec: agent({ A: KEY }),
       }),
     ).toEqual({ A: "chan" });
@@ -1129,10 +1129,10 @@ describe("what reaches an agent or a surface of another organization", () => {
     const team = await seedSharedVault(rig.store, ORG, "channel-keys", { secrets: { A: "chan" } });
     await rig.store.saveResource(
       ApiResourceKind.channel,
-      "ach_slack",
+      "chn_slack",
       ChannelSchema,
       create(ChannelSchema, {
-        metadata: { id: "ach_slack", name: "slack", org: ORG },
+        metadata: { id: "chn_slack", name: "slack", org: ORG },
         spec: { vaults: [vaultRef("channel-keys")], type: { case: "slack", value: {} } },
         status: { vaultAttachers: { [team.metadata!.id]: ADMIN } },
       }),
@@ -1141,7 +1141,7 @@ describe("what reaches an agent or a surface of another organization", () => {
     expect(
       await resolve({
         run: runOf(),
-        session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "ach_slack" } }),
+        session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_slack" } }),
         agentSpec: agent({ A: KEY }),
         agentOrg: "globex",
       }),
@@ -1173,10 +1173,10 @@ describe("what reaches an agent or a surface of another organization", () => {
     const attached = { [team.metadata!.id]: ADMIN };
     await rig.store.saveResource(
       ApiResourceKind.routine,
-      "sch_foreign",
+      "rtn_foreign",
       RoutineSchema,
       create(RoutineSchema, {
-        metadata: { id: "sch_foreign", name: "foreign", org: "globex" },
+        metadata: { id: "rtn_foreign", name: "foreign", org: "globex" },
         spec: { agent: { vaults: [vaultRef("team")] } },
         status: { vaultAttachers: attached },
       }),
@@ -1196,19 +1196,19 @@ describe("what reaches an agent or a surface of another organization", () => {
     );
     await rig.store.saveResource(
       ApiResourceKind.channel,
-      "ach_foreign",
+      "chn_foreign",
       ChannelSchema,
       create(ChannelSchema, {
-        metadata: { id: "ach_foreign", name: "foreign", org: "globex" },
+        metadata: { id: "chn_foreign", name: "foreign", org: "globex" },
         spec: { vaults: [vaultRef("team")], type: { case: "slack", value: {} } },
         status: { vaultAttachers: attached },
       }),
     );
     const nowhere = "the agent Helper needs A: list a vault that holds A on the conversation";
     for (const labelled of [
-      { run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_foreign" } }) },
+      { run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_foreign" } }) },
       { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_foreign_web" } }) },
-      { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "ach_foreign" } }) },
+      { run: runOf(), session: sessionOf({ labels: { [CHANNEL_ID_LABEL_KEY]: "chn_foreign" } }) },
     ]) {
       const failure = await refusal(resolve({ ...labelled, agentSpec: agent({ A: KEY }) }));
       expect(failure.code).toBe(Code.FailedPrecondition);
@@ -2503,7 +2503,7 @@ describe("edges", () => {
       freshener,
     });
     await expect(
-      plan({ run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "sch_any" } }) }, faulty),
+      plan({ run: runOf({ labels: { [ROUTINE_ID_LABEL_KEY]: "rtn_any" } }) }, faulty),
     ).rejects.toThrow("disk gone");
   });
 

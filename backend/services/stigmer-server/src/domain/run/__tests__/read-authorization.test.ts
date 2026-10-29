@@ -67,8 +67,8 @@ describe("read-surface authorization", () => {
         getArtifactDownloadUrl(
           artifactDeps,
           create(GetArtifactDownloadUrlRequestSchema, {
-            runId: "aexec_01denied",
-            storageKey: "artifacts/aexec_01denied/report.txt",
+            runId: "run_01denied",
+            storageKey: "artifacts/run_01denied/report.txt",
           }),
           testCallerIdentity(),
         ),
@@ -82,8 +82,8 @@ describe("read-surface authorization", () => {
         getArtifactContent(
           artifactDeps,
           create(GetArtifactContentRequestSchema, {
-            runId: "aexec_01denied",
-            storageKey: "artifacts/aexec_01denied/report.txt",
+            runId: "run_01denied",
+            storageKey: "artifacts/run_01denied/report.txt",
           }),
           testCallerIdentity(),
         ),

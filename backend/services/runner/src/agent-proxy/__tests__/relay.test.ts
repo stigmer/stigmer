@@ -23,7 +23,7 @@ import { RequestTooLargeError, readBody, replyError } from "../relay.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-relay";
-const EXECUTION = "aex-relay";
+const EXECUTION = "run_relay";
 const TURN_KEY = "turn-key-relay";
 const upstream = new FakeUpstream();
 

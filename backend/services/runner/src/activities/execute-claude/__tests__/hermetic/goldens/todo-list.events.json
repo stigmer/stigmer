@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_todo_load",
+      "id": "run_claude_0001.toolu_todo_load",
       "input": {
         "query": "select:TodoWrite",
         "max_results": 1
@@ -11,10 +11,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_todo_load.r",
-      "tool_use_id": "aex_claude_0001.toolu_todo_load",
+      "id": "run_claude_0001.toolu_todo_load.r",
+      "tool_use_id": "run_claude_0001.toolu_todo_load",
       "content": [
         {
           "type": "text",
@@ -24,9 +24,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_todo_1",
+      "id": "run_claude_0001.toolu_todo_1",
       "input": {
         "todos": [
           {
@@ -45,10 +45,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_todo_1.r",
-      "tool_use_id": "aex_claude_0001.toolu_todo_1",
+      "id": "run_claude_0001.toolu_todo_1.r",
+      "tool_use_id": "run_claude_0001.toolu_todo_1",
       "content": [
         {
           "type": "text",
@@ -58,9 +58,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m1",
+      "id": "run_claude_0001.root.m1",
       "content": [
         {
           "type": "text",

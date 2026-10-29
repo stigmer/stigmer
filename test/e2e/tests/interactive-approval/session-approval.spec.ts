@@ -167,12 +167,11 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
   // Sequential-gate regression backstop. Under the OSS-default memory
   // checkpointer the workflow's post-approval re-invocation replays the graph
   // from scratch (the checkpoint is recreated empty), so on resume past gate A
-  // the runner used to rebuild its status from an empty proto and emit a single
-  // turn-message carrying ONLY gate B — dropping gate A's committed tool-call id.
-  // The server's append-only guard on the transcript then rejected the
-  // update, and gate B landed as WAITING_FOR_APPROVAL with nothing to approve
-  // and auto-resumed with no approval. The run's transcript now lives in the
-  // session's event log: a resumed invocation seeds only the asks still open
+  // a runner that rebuilt its status from an empty proto would emit a single
+  // turn-message carrying ONLY gate B — dropping gate A's committed tool-call
+  // id, which the server's append-only guard refuses, leaving gate B with
+  // nothing to approve. The run's transcript lives in the session's event
+  // log: a resumed invocation seeds only the asks still open
   // from the log (runner harness/transcript/resume-seed.ts) and numbers its own
   // events on from the log's highest index, so gate B is a new ask beside gate
   // A's answered one. Pinned by the Stigmer harness's hermetic golden

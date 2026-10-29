@@ -1,8 +1,7 @@
 // The type registry: the single source of truth that maps user-facing resource
 // identifiers (aliases, YAML kinds) to proto kinds and their supported verbs.
 // Built once from the declarative kind-metadata table with aliases derived
-// algorithmically. (Structure inherited from the Go CLI's types.Registry,
-// removed in the TypeScript migration — stigmer/stigmer#203.)
+// algorithmically.
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { UsageError } from "../errors/index.js";

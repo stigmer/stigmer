@@ -8,8 +8,7 @@
 // console work without an authenticated fetch from the hosted API — this
 // suite is the gate the transport scaffold's proxy lane is built against.
 //
-// The asserted contract, sourced from the Go server's routing block and
-// registryCORS wrapper (oss#571):
+// The asserted contract (oss#571):
 //   - GET answers 200, Content-Type application/json, Cache-Control
 //     public/max-age, and a parseable document of the expected shape.
 //   - Every response carries Access-Control-Allow-Origin: * (the proxy

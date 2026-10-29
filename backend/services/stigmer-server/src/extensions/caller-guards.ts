@@ -19,8 +19,7 @@
  * The in-process exemption is STRUCTURAL, not policed: guards are a
  * parameter of the serving chain's identity source only
  * (createVerifierChainInterceptor); the in-process interceptor has no
- * guard parameter to forget — the TS rendering of the Java
- * InProcessCallContextHolder skip.
+ * guard parameter to forget.
  *
  * Skip logic is the guard's own business. OSS runs every composed guard
  * on every serving request with the FINAL stamped identity (claimed or

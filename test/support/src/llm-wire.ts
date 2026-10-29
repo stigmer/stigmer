@@ -10,9 +10,7 @@
 // so a change to either fake's understanding of a provider cannot drift from
 // the other's.
 //
-// The Anthropic encoder was ported from the retired Go harness's
-// mock_llm_proxy.go (git history); the OpenAI one mirrors what the
-// Java proxy's OpenAiUsageExtractor and OpenAiJsonUsageExtractor parse (the
+// The OpenAI encoder emits what the cloud proxy's usage extractors parse (the
 // usage-bearing final chunk that `stream_options.include_usage` requests).
 //
 // The REQUEST side of the Anthropic wire lives here too (readAnthropicRequest
@@ -140,8 +138,8 @@ export function writeSseFrame(res: ServerResponse, data: unknown, eventName?: st
 }
 
 // Expands an Anthropic message body into the SSE event sequence the
-// @langchain/anthropic streaming parser (and the Java proxy's
-// AnthropicUsageExtractor) expect, flushing each event.
+// @langchain/anthropic streaming parser (and the cloud proxy's usage
+// extractor) expect, flushing each event.
 export function writeAnthropicSse(res: ServerResponse, body: AnthropicMessageBody): void {
   res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
   writeAnthropicSseEvents(res, body);

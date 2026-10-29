@@ -11,8 +11,8 @@
  * - an agent server that sends no `Authorization` asks for nothing: its
  *   optional login is filled by a login at its address or not at all;
  * - a name the runner always fills (who is calling, the conversation) is
- *   never asked for, whichever home's server reads it. A plugin's server
- *   reading one used to land the composer in `needsEnvVars` for a value no
+ *   never asked for, whichever home's server reads it, so a plugin's server
+ *   reading one never lands the composer in `needsEnvVars` for a value no
  *   vault can give (stigmer/stigmer#2306).
  */
 

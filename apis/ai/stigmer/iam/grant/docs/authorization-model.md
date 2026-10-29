@@ -136,10 +136,10 @@ Resource creation flow:
   1. Handler creates the resource in the database
   2. Handler calls bootstrapGrant (as machine account with operator permission):
      - principal: { kind: "organization", id: "org-abc" }
-       resource:  { kind: "agent", id: "agt-xyz" }
+       resource:  { kind: "agent", id: "agt_xyz" }
        relation:  "organization"
      - principal: { kind: "identity_account", id: "ia-creator" }
-       resource:  { kind: "agent", id: "agt-xyz" }
+       resource:  { kind: "agent", id: "agt_xyz" }
        relation:  "owner"
   3. Now the standard authorization model can evaluate all subsequent requests
 ```

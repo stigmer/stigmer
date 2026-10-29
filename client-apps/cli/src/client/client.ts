@@ -1,6 +1,6 @@
 // Backend client façade.
 //
-// Builds a single transport (via the SDK's createNodeTransport + the Go-parity
+// Builds a single transport (via the SDK's createNodeTransport +
 // normalizeEndpoint) and exposes:
 //   - `stigmer`: the high-level typed client, used by read verbs.
 //   - `transport` + `controller(service)`: the raw Connect layer, so write

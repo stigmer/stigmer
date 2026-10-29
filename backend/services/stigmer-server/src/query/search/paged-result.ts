@@ -1,15 +1,12 @@
 /**
- * Paged search result — ports
- * pkg/query/search/valueobject/search_paged_result.go: the page of
+ * Paged search result: the page of
  * SearchResult projections plus the counts the response carries, and the
  * engine's match total, which says whether a page follows (the response
  * carries no total: a list says whether there is more, not how many). A
- * negative total is an internal-contract violation and throws, as Go's
- * constructor errors.
+ * negative total is an internal-contract violation and throws.
  *
- * Go defensively copies on construction AND on every accessor; here the
- * readonly types carry the same do-not-mutate contract without the
- * per-call copies (TS's compile-time twin of Go's runtime discipline).
+ * The readonly types carry the do-not-mutate contract at compile time, so
+ * neither construction nor the accessors copy.
  */
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
@@ -27,12 +24,12 @@ const EMPTY_RESULT: SearchPagedResult = {
   totalCount: 0,
 };
 
-/** Go EmptyResult(): the shared empty page. */
+/** The shared empty page. */
 export function emptyResult(): SearchPagedResult {
   return EMPTY_RESULT;
 }
 
-/** Go NewSearchPagedResult. */
+/** A page from its results, per-kind counts and match total. */
 export function newSearchPagedResult(
   results: readonly SearchResult[],
   countsByKind: Readonly<Record<string, number>>,

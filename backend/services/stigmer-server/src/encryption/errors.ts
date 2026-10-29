@@ -26,7 +26,7 @@
  */
 
 /**
- * Go ErrInvalidCiphertext — the value itself is bad (bad base64, too
+ * The value itself is bad (bad base64, too
  * short, or — via the DecryptionFailedError subclass — wrong key or
  * tampered bytes). The value-scoped arm: per-key skip policies may skip
  * it and continue.
@@ -39,7 +39,7 @@ export class InvalidCiphertextError extends Error {
 }
 
 /**
- * Go ErrDecryptionFailed — wrong key or tampered data. A specialization
+ * Wrong key or tampered data. A specialization
  * of InvalidCiphertextError (the cloud edition folds this case into
  * InvalidCiphertext outright): the failure is still scoped to the one
  * value, so it rides the value-scoped arm.
@@ -72,7 +72,7 @@ export class EncryptionUnavailableError extends Error {
 }
 
 /**
- * Go ErrEncryptionDisabled — decrypting a prefixed value with no key
+ * Decrypting a prefixed value with no key
  * configured. A specialization of EncryptionUnavailableError: keyless is
  * one instance of "machinery missing" (the stored ciphertext may be
  * perfectly valid — e.g. the key file was lost), so it rides the

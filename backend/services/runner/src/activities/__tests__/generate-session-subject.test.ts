@@ -44,7 +44,7 @@ import { checkDirectCredentials } from "../../shared/llm-backend.js";
 // Fixtures
 // ─────────────────────────────────────────────────────────────────────────────
 
-const EXECUTION_ID = "aex_test123";
+const EXECUTION_ID = "run_test123";
 const SESSION_ID = "ses_test456";
 const AGENT_ID = "agt_test789";
 

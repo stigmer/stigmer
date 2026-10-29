@@ -90,7 +90,7 @@ export interface GrantChangeRecord {
   /**
    * The organization the row's resource belongs to, resolved before any
    * row of the operation is deleted; "" when none can be found (a kind
-   * outside organization scope, a legacy row with no scope link).
+   * outside organization scope, a row with no scope link).
    */
   readonly organizationId: string;
 }

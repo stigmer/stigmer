@@ -1,6 +1,6 @@
 /**
  * Boot-ordering (health gate) tests — the contract the CLI's serverGate
- * depends on (Go server.go:739-743, 839-843; grpc lib Stop :247-265):
+ * depends on:
  *
  *   - overall health is NOT_SERVING from construction until the
  *     composition root completes;
@@ -194,7 +194,7 @@ describe("the artifact download lane", () => {
       // stored run, and handed back as a minted download URL.
       const query = createClient(RunQueryController, transport);
       const content = new TextEncoder().encode("ephemeral lane body\n");
-      const runId = "aex_01ephemerallane";
+      const runId = "run_01ephemerallane";
       const storageKey = `artifacts/${runId}/ephemeral-lane.txt`;
       mkdirSync(path.join(artifactRoot, "artifacts", runId), { recursive: true });
       writeFileSync(path.join(artifactRoot, storageKey), content);

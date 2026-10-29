@@ -5,9 +5,9 @@
  *
  * The provisioning refusals (an unknown person, a blank or separated
  * subject part, a foreign account, a failed provisioning) and the origin
- * refusal keep the sentences integrators have read since the Java service,
- * with the settings they name moved to the organization's embedding
- * settings; the rest follow the house style (single-quoted handles).
+ * refusal keep the sentences integrators already read (existing error copy
+ * is wire contract), naming the organization's embedding settings; the
+ * rest follow the house style (single-quoted handles).
  * Pinned cross-edition by the user-token conformance suites.
  */
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";

@@ -138,12 +138,12 @@ function depsWith(c: ResolutionDeps["client"]): { deps: ResolutionDeps; labels: 
   return {
     labels,
     deps: {
-      input: { executionId: "aex-subagents", threadId: "", turnSeq: 0 },
+      input: { executionId: "run_subagents", threadId: "", turnSeq: 0 },
       client: c,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir, mcpBridgeEndpoint: "https://mcp.example.com" }),
       status,
       rows,
-      transcript: new TranscriptBuilder("aex-subagents", rows, status),
+      transcript: new TranscriptBuilder("run_subagents", rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
@@ -167,7 +167,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  sessionId = `ses-subagents-${++n}`;
+  sessionId = `ses_subagents-${++n}`;
   primaryDir = join(env.workspaceRootDir, sessionId);
   mkdirSync(primaryDir, { recursive: true });
   _resetRegistryCache();
@@ -217,7 +217,7 @@ async function run(
     subagents,
   };
   const execution = create(RunSchema, {
-    metadata: { id: "aex-subagents" },
+    metadata: { id: "run_subagents" },
     spec: create(RunSpecSchema, { target: { case: "sessionId", value: sessionId }, ...options.runSpec }),
     status: create(RunStatusSchema, { recalledMemories: create(RecalledMemoriesSchema, { enabled: true }) }),
   });

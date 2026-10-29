@@ -1,14 +1,12 @@
 /**
- * Model-pin existence validation and did-you-mean machinery — ports the Go
- * server's pin_validation.go. Lives beside the store it queries (the
+ * Model-pin existence validation and did-you-mean machinery. Lives beside the store it queries (the
  * registry is the shared validation authority): the agent, schedule and
  * channel pin-existence checks, and
  * agentexecution's thinking-mode validator consume the same functions, so
  * every pin error suggests identically.
  *
- * One deliberate signature delta from Go: Go's UnknownModelPinRefusal reads
- * the process-global registry.Store(); this edition has no singletons (the
- * composition root owns the store), so the store is the first parameter.
+ * There are no singletons (the composition root owns the store), so the
+ * store is each function's first parameter.
  */
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -196,9 +194,9 @@ export function suggestSimilarModels(
 }
 
 /**
- * The standard two-row Levenshtein distance. Go compares bytes; this
- * compares UTF-16 code units — identical for the ASCII model ids the
- * registry carries.
+ * The standard two-row Levenshtein distance over UTF-16 code units —
+ * bytes and code units agree for the ASCII model ids the registry
+ * carries.
  */
 function suggestionEditDistance(a: string, b: string): number {
   if (a === b) {

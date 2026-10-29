@@ -1,11 +1,10 @@
 /**
- * Pins the reserved-label write guard (the Java
- * GuardReservedLabelsStep matrix): echoes and removals pass without any
+ * Pins the reserved-label write guard matrix: echoes and removals pass without any
  * authorization round-trip, introductions and changes reject with the
  * byte-pinned INVALID_ARGUMENT copy when the Authorizer denies, the
  * permissive default allows (OSS byte-identity), no kind takes a reserved
- * key from a client (the retired personal-environment marker refuses on a
- * vault like any other; a client cannot mark a session or run as a
+ * key from a client (any key in the namespace refuses on a vault like any
+ * other; a client cannot mark a session or run as a
  * eval run's try, which the eval's server-composed requests do), and internal
  * callers skip entirely. The operator question itself
  * (mayWriteReservedLabels) answers allow as yes, deny and not-found as no,
@@ -216,7 +215,7 @@ describe("GuardReservedLabels", () => {
     await expect(Promise.resolve(step.execute(ctx))).resolves.toBeUndefined();
   });
 
-  it("no kind takes a reserved key from a client: the retired personal marker refuses on a vault", async () => {
+  it("no kind takes a reserved key from a client: any stigmer.ai/ key refuses on a vault", async () => {
     const step = newGuardReservedLabelsStep<typeof VaultSchema>(denying());
     const ctx = new RequestContext(
       VaultSchema,

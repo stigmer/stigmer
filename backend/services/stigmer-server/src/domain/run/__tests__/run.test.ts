@@ -1,23 +1,20 @@
 /**
- * Pins the agentexecution surfaces against Go's controller —
- * through the REAL stack: a composed server on an ephemeral port, a
+ * Pins the run surfaces through the REAL stack: a composed server on an ephemeral port, a
  * native gRPC client, the full interceptor chain. Executions cannot be
  * created through the RPC surface here (the engine gate refuses without
  * Temporal — the production posture while no engine is connected), so
- * records are
- * seeded directly through the store, the same way Go's controller tests
- * seed with SaveResource.
+ * records are seeded directly through the store.
  *
  * Load-bearing pins the conformance suite cannot cover:
  *   - a turn whose conversation runs on Claude reaches the engine gate like
  *     any offered engine's, a new conversation naming it and a message to a
  *     stored one alike; a stored conversation whose engine is a number no
- *     engine owns (a row written before validation, the retired number 2
+ *     engine owns (a row written outside validation, the unused number 2
  *     among them) is refused before the engine gate;
  *   - the MANGLED unknown-execution message on getRunUsageReport,
- *     byte-for-byte (a faithful port of the Go message);
+ *     byte-for-byte (existing error copy is wire contract);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
- *     rule (Go get_agent_usage_report_test.go case-for-case);
+ *     rule, case by case;
  *   - the usage reports over the wire: a run's runner report counted
  *     (estimated, under the unknown server), the organization report's
  *     range by creation instant and its UTC days;
@@ -123,7 +120,7 @@ let command: CommandClient;
 let query: QueryClient;
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), "aexec-domain-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-domain-test-"));
   vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 7).toString("base64"));
   vi.stubEnv(
     "STIGMER_RUNNER_TOKEN_KEY",
@@ -193,7 +190,7 @@ function seedInput(overrides?: {
   metadata: { id: string };
 } {
   counter += 1;
-  const id = overrides?.id ?? `aexec_test_${counter}`;
+  const id = overrides?.id ?? `run_test_${counter}`;
   const slug = `exec-${id.replaceAll("_", "-")}`;
   return {
     apiVersion: API_VERSION,
@@ -455,7 +452,7 @@ describe("sendMessage over the wire", () => {
 describe("get / list / listBySession over the wire", () => {
   it("get answers NotFound for an unknown id and the record for a seeded one", async () => {
     await expectCode(
-      () => query.get({ value: "aexec_missing" }),
+      () => query.get({ value: "run_missing" }),
       Code.NotFound,
     );
 
@@ -692,7 +689,7 @@ describe("what a run loaded (loaded_versions) over the wire", () => {
     expect(read.status?.loadedVersions?.plugins).toEqual([]);
 
     await expectCode(
-      () => command.updateStatus({ runId: "aexec_loaded_missing", status: { loadedVersions: { skills: [held] } } }),
+      () => command.updateStatus({ runId: "run_loaded_missing", status: { loadedVersions: { skills: [held] } } }),
       Code.NotFound,
     );
   });
@@ -837,7 +834,7 @@ describe("update / delete over the wire", () => {
 
   it("delete answers NotFound for an unknown id", async () => {
     await expectCode(
-      () => command.delete({ value: "aexec_missing" }),
+      () => command.delete({ value: "run_missing" }),
       Code.NotFound,
     );
   });
@@ -858,7 +855,7 @@ describe("update under an authorizer that enforces reserved labels", () => {
   let enforcingOrgId: string;
 
   beforeAll(async () => {
-    enforcingDir = mkdtempSync(path.join(tmpdir(), "aexec-reserved-labels-"));
+    enforcingDir = mkdtempSync(path.join(tmpdir(), "run-reserved-labels-"));
     const authorizer: Authorizer = {
       authorize(_caller, check) {
         return Promise.resolve(
@@ -955,10 +952,10 @@ describe("usage reports over the wire", () => {
     );
 
     const err = await expectCode(
-      () => query.getRunUsageReport({ runId: "aexec_missing" }),
+      () => query.getRunUsageReport({ runId: "run_missing" }),
       Code.NotFound,
     );
-    expect(err.rawMessage).toBe("Run not found: aexec_missing");
+    expect(err.rawMessage).toBe("Run not found: run_missing");
   });
 
   it("getRunUsageReport answers a run with no runner report as zero, and a reported run with its runner's tokens", async () => {
@@ -1158,13 +1155,13 @@ describe("updateStatus over the wire", () => {
     await expectCode(
       () =>
         command.updateStatus({
-          runId: "aexec_missing",
+          runId: "run_missing",
           status: { phase: RunPhase.RUN_IN_PROGRESS },
         }),
       Code.NotFound,
     );
     await expectCode(
-      () => command.updateStatus({ runId: "aexec_missing" }),
+      () => command.updateStatus({ runId: "run_missing" }),
       Code.InvalidArgument,
     );
   });
@@ -1193,7 +1190,7 @@ describe("updateStatus over the wire", () => {
 describe("getRunSummary — the populated arm", () => {
   it("counts phases, actives, completion durations, and failure ranks", async () => {
     // Seeded records carry no audit timestamps, so the window cutoff
-    // never skips them (Go: a zero created_at disables the skip).
+    // never skips them (a zero created_at disables the skip).
     await seed(
       seedInput({
         org: idOf("org-summary"),

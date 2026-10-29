@@ -1,8 +1,7 @@
-// MCP tools for the Agent domain. Mirrors Go internal/domains/agents/tools.go.
+// MCP tools for the Agent domain.
 //
-// The tool name, description, and per-field input descriptions are part of the
-// parity contract (MCP clients surface them to the model verbatim), so they are
-// copied exactly from the Go definitions. This file is the canonical pattern the
+// The tool name, description, and per-field input descriptions are contract
+// (MCP clients surface them to the model verbatim). This file is the canonical pattern the
 // other domains follow: define the tool, resolve the per-request
 // credential, delegate to the domain fetch, and shape the result.
 

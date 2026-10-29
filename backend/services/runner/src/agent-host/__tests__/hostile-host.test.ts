@@ -125,9 +125,9 @@ describe("a host that does not follow the rules", () => {
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
             toolCalls: [
-              create(ToolCallSchema, { id: "tc-foreign", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: "artifacts/aex_someone_else/shot.png" }) }),
+              create(ToolCallSchema, { id: "tc-foreign", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: "artifacts/run_someone_else/shot.png" }) }),
               create(ToolCallSchema, { id: "tc-own", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: `artifacts/${input.executionId}/toolcalls/tc-own.png` }) }),
-              create(ToolCallSchema, { id: "tc-traversal", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: `artifacts/${input.executionId}/../aex_someone_else/x` }) }),
+              create(ToolCallSchema, { id: "tc-traversal", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: `artifacts/${input.executionId}/../run_someone_else/x` }) }),
             ],
           }),
         ],
@@ -388,15 +388,15 @@ describe("a host that does not follow the rules", () => {
 
 describe("the turn's key prefix", () => {
   it.each([
-    ["artifacts/aex_1/report.md", true],
-    ["artifacts/aex_1/nested/report.md", true],
-    ["artifacts/aex_2/report.md", false],
-    ["artifacts/aex_1/../aex_2/report.md", false],
-    ["artifacts/aex_1/./report.md", false],
-    ["artifacts/aex_1//report.md", false],
-    ["artifacts/aex_1\\report.md", false],
-    ["artifacts/aex_1/", false],
+    ["artifacts/run_1/report.md", true],
+    ["artifacts/run_1/nested/report.md", true],
+    ["artifacts/run_2/report.md", false],
+    ["artifacts/run_1/../run_2/report.md", false],
+    ["artifacts/run_1/./report.md", false],
+    ["artifacts/run_1//report.md", false],
+    ["artifacts/run_1\\report.md", false],
+    ["artifacts/run_1/", false],
   ])("%s → %s", (key, allowed) => {
-    expect(isTurnArtifactKey(key, "aex_1")).toBe(allowed);
+    expect(isTurnArtifactKey(key, "run_1")).toBe(allowed);
   });
 });

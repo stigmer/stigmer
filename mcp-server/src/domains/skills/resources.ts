@@ -1,6 +1,5 @@
 // Skill resource templates: latest (stigmer://skills/{org}/{slug}) and versioned
 // (stigmer://skills/{org}/{slug}/{version}).
-// Go parity: mcp-server/internal/domains/skills/resources.go.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 

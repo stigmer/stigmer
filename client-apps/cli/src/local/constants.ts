@@ -7,12 +7,11 @@
 // runner-poll can never drift.
 
 /**
- * Port `stigmer-server` listens on (gRPC). Matches the Go CLI's `DaemonPort`.
+ * Port `stigmer-server` listens on (gRPC).
  *
  * This is also the web console's origin: the server serves the
- * console's static export on this same unified port (lane 4), so the Go-era
- * WEB_CONSOLE_PORT (8234, a separate CLI-embedded listener) is retired —
- * one process, one origin, no CORS hop.
+ * console's static export on this same unified port (lane 4) — one
+ * process, one origin, no CORS hop.
  */
 export const SERVER_PORT = 7234;
 
@@ -29,11 +28,6 @@ export const TEMPORAL_NAMESPACE = "default";
  * The Temporal task queue the unified runner polls and the server dispatches
  * to. This is the single source of truth, pinned identically on both the
  * launched server and the runner so they can never diverge.
- *
- * Note: the Go CLI daemon still sets the runner to the stale
- * `agent_execution_runner` queue while the server dispatches to
- * `stigmer_runner` (the unified TS runner queue) — a latent hang. The TS CLI
- * uses the correct value; a Go follow-up tracks fixing the daemon env.
  */
 export const RUNNER_TASK_QUEUE = "stigmer_runner";
 

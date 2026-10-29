@@ -285,7 +285,7 @@ describe("applyMessage declared-slug follow-up", () => {
 
 describe("applyMessage on a kind that cannot rename", () => {
   it("lands the spec and warns that the file's new slug was not applied", async () => {
-    const stored = create(SessionSchema, { metadata: { id: "ses-1", name: "triage", slug: "triage", org: "acme" } });
+    const stored = create(SessionSchema, { metadata: { id: "ses_1", name: "triage", slug: "triage", org: "acme" } });
     const handler: ApplyHandler = {
       kind: ApiResourceKind.session,
       displayName: "Session",
@@ -293,7 +293,7 @@ describe("applyMessage on a kind that cannot rename", () => {
       applyOrder: 14,
       apply: () => Promise.resolve(stored),
     };
-    const manifest = create(SessionSchema, { metadata: { id: "ses-1", name: "triage", slug: "triage-q3", org: "acme" } });
+    const manifest = create(SessionSchema, { metadata: { id: "ses_1", name: "triage", slug: "triage-q3", org: "acme" } });
 
     const outcome = await applyMessage(controller, handler, manifest, "acme", false);
 
@@ -305,7 +305,7 @@ describe("applyMessage on a kind that cannot rename", () => {
   });
 
   it("stays quiet when the file names the stored slug, or carries no id", async () => {
-    const stored = create(SessionSchema, { metadata: { id: "ses-1", name: "triage", slug: "triage", org: "acme" } });
+    const stored = create(SessionSchema, { metadata: { id: "ses_1", name: "triage", slug: "triage", org: "acme" } });
     const handler: ApplyHandler = {
       kind: ApiResourceKind.session,
       displayName: "Session",
@@ -315,7 +315,7 @@ describe("applyMessage on a kind that cannot rename", () => {
     };
 
     for (const metadata of [
-      { id: "ses-1", name: "triage", slug: "triage", org: "acme" },
+      { id: "ses_1", name: "triage", slug: "triage", org: "acme" },
       { name: "triage", slug: "triage", org: "acme" },
     ]) {
       const outcome = await applyMessage(controller, handler, create(SessionSchema, { metadata }), "acme", false);

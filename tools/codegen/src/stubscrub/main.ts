@@ -13,8 +13,8 @@
 //	stubscrub DIR...          scrub .go/.ts/.py/.java files under each DIR in place
 //	stubscrub -check DIR...   exit 1 listing files that still carry markers
 //
-// Exit codes and message shapes match the retired Go implementation so
-// callers (Makefiles, gen-stubs.sh, CI logs) see no difference.
+// Exit codes and message shapes are a contract with its callers
+// (Makefiles, gen-stubs.sh, CI logs).
 
 import * as fs from "node:fs";
 import * as path from "node:path";

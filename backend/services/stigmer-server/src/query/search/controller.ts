@@ -1,11 +1,9 @@
 /**
- * Search controller — ports
- * pkg/query/search/controller/search_controller.go: the thin adapter
+ * Search controller: the thin adapter
  * between ConnectRPC and the SearchHandler, owning the error-to-status
  * mapping.
  *
- * The mapping is Go's string-contains heuristic ported byte-for-byte
- * (toGRPCError): handler texts containing "validation failed", "invalid",
+ * The mapping is a string-contains heuristic (toGrpcError): handler texts containing "validation failed", "invalid",
  * or "exceeds maximum" answer InvalidArgument CARRYING the wrapped text;
  * everything else is sanitized to Internal "search failed"
  * (stigmer/stigmer#478 — the raw error is server internals, logged here
@@ -15,7 +13,7 @@
  * SearchService carries no api_resource_kind option and
  * is_skip_authorization (cross-aggregate CQRS read) — the apiresource
  * interceptor injects nothing and the auth slot is a pass-through, both
- * verified; no interceptor changes ride this port.
+ * verified.
  *
  * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/handler.test.ts's mapping arms.
@@ -73,7 +71,7 @@ async function search(
 }
 
 /**
- * Go toGRPCError: substring-match validation texts to InvalidArgument
+ * Substring-matches validation texts to InvalidArgument
  * (carrying the wrapped text), default everything else to the sanitized
  * Internal (#478) — the call site above has already logged the full
  * error.

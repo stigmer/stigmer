@@ -34,7 +34,7 @@ spec:
     id: ia-01HQALICE
   resource:
     kind: agent
-    id: agt-01HQDEPLOY
+    id: agt_01hqdeploy
   relation: admin
 ```
 

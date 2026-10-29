@@ -173,7 +173,7 @@ export interface RunnerOptions {
   // no download links from it, so it needs no serve URL.
   artifactDir?: string;
   // Presign-capable artifact lane (stigmer#803): base URL of a REAL service
-  // serving /v1/proxy/artifacts/... (the hermetic Java service's HTTP port).
+  // serving /v1/proxy/artifacts/... (the cloud composition's HTTP port).
   // Routes the runner's artifact storage there via
   // STIGMER_ARTIFACT_PROXY_ENDPOINT while LLM traffic stays on `proxy`.
   // Mutually exclusive with artifactDir (shared-local vs proxy store).

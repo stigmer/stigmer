@@ -4,11 +4,8 @@
  * their approval status, sub-agent rows, todos, background commands), and registers the turn's
  * artifacts and write-backs on the run's status it is handed beside them.
  *
- * The one transcript builder, for every harness (#1097). It
- * was the Stigmer harness's `V3StatusBuilder` (the one builder there since
- * #1096 retired the v2 `StatusBuilder`), promoted here on 2026-09-14
- * unchanged and then cut engine-neutral one rule per commit:
- * it reads no engine envelope, decides nothing about approval,
+ * The one transcript builder, for every harness (#1097). It is
+ * engine-neutral: it reads no engine envelope, decides nothing about approval,
  * and knows no engine's tool names or namespace grammar — every engine
  * fact reaches it as a translator's output, on one union. The runtime
  * constructs it once

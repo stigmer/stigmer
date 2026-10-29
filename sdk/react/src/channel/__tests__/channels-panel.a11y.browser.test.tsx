@@ -28,7 +28,7 @@ const AGENT = {
 } as unknown as Agent;
 
 const CHAT_LINK = {
-  metadata: { id: "ash_1", org: "acme", slug: "website-chat", name: "Website chat" },
+  metadata: { id: "chn_1", org: "acme", slug: "website-chat", name: "Website chat" },
   spec: {
     agentRef: { org: "acme", slug: "support-agent" },
     enabled: true,
@@ -38,7 +38,7 @@ const CHAT_LINK = {
 };
 
 const SLACK = {
-  metadata: { id: "ach_1", org: "acme", slug: "support-slack", name: "Support Slack" },
+  metadata: { id: "chn_1", org: "acme", slug: "support-slack", name: "Support Slack" },
   spec: { agentRef: { org: "acme", slug: "support-agent" }, enabled: true, type: { case: "slack", value: {} } },
   status: {
     installState: 2,
@@ -47,7 +47,7 @@ const SLACK = {
 };
 
 const WHATSAPP = {
-  metadata: { id: "ach_2", org: "acme", slug: "support-whatsapp", name: "Support WhatsApp" },
+  metadata: { id: "chn_2", org: "acme", slug: "support-whatsapp", name: "Support WhatsApp" },
   spec: {
     agentRef: { org: "acme", slug: "support-agent" },
     enabled: false,

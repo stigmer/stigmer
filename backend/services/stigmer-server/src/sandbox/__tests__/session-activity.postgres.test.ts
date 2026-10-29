@@ -101,10 +101,10 @@ describe.each(driverFixtures([ApiResourceKind.run]))(
       }
 
       it("catches a run stamped at the same instant as one already read", async () => {
-        await save("aex_1", RunPhase.RUN_COMPLETED, T0 - 1_000, T0);
+        await save("run_1", RunPhase.RUN_COMPLETED, T0 - 1_000, T0);
         await reader.recentActivity("ses_a");
         t += PASS_MS;
-        await save("aex_2", RunPhase.RUN_IN_PROGRESS, T0 - 1_000);
+        await save("run_2", RunPhase.RUN_IN_PROGRESS, T0 - 1_000);
         expect(await reader.recentActivity("ses_a")).toEqual({
           busy: true,
           lastActiveAt: new Date(T0),
@@ -112,19 +112,19 @@ describe.each(driverFixtures([ApiResourceKind.run]))(
       });
 
       it("catches a run stamped exactly at the bound", async () => {
-        await save("aex_1", RunPhase.RUN_COMPLETED, T0 - 1_000, T0);
+        await save("run_1", RunPhase.RUN_COMPLETED, T0 - 1_000, T0);
         await reader.recentActivity("ses_a");
         const bound = t - RECENT_LOOKBACK_MS;
         t += PASS_MS;
-        await save("aex_2", RunPhase.RUN_IN_PROGRESS, bound);
+        await save("run_2", RunPhase.RUN_IN_PROGRESS, bound);
         expect((await reader.recentActivity("ses_a")).busy).toBe(true);
       });
 
       it("catches a run stamped inside the look-back before the newest run already read", async () => {
-        await save("aex_1", RunPhase.RUN_COMPLETED, T0, T0 + 1_000);
+        await save("run_1", RunPhase.RUN_COMPLETED, T0, T0 + 1_000);
         await reader.recentActivity("ses_a");
         t += PASS_MS;
-        await save("aex_0", RunPhase.RUN_IN_PROGRESS, T0 - 60_000);
+        await save("run_0", RunPhase.RUN_IN_PROGRESS, T0 - 60_000);
         expect(await reader.recentActivity("ses_a")).toEqual({
           busy: true,
           lastActiveAt: new Date(T0 + 1_000),

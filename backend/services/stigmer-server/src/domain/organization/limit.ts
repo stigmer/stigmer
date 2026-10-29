@@ -58,17 +58,15 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 
 /**
  * The slug of the organization a one-organization server makes at its
- * first start (boot/single-organization.ts) — the one the CLI used to make
- * on a laptop, so a manifest or a doc that names it stays true.
+ * first start (boot/single-organization.ts), so a manifest or a doc that
+ * names it is true on every laptop.
  */
 export const SINGLE_ORGANIZATION_SLUG = "stigmer";
 
 /**
  * The bootstrap-state key that names the server's organization (its id):
  * the one organization a one-organization server holds and fills, recorded
- * by every start that settles the fill, whoever made it (the server's own
- * boot step, or an older release's console or CLI before the server held
- * one). It is a recorded fact the membership rules read
+ * by every start that settles the fill, whoever made it. It is a recorded fact the membership rules read
  * (grant/membership.ts: arms 3 and 4 answer `owner` on that
  * organization, and the laptop operator account is nobody there), never
  * the creator stamp: under sign-in the server makes it as nobody

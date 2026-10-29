@@ -19,11 +19,11 @@ afterEach(cleanup);
 const PLAN_TEXT = "# Rollout Plan\n\n## Phase 1\n\nDo the first thing.";
 
 const plan: SessionPlan = {
-  runId: "aex_1",
+  runId: "run_1",
   file: create(FileSchema, {
     metadata: { id: "file_plan_a" },
     spec: { filename: "plan.md", mimeType: "text/markdown" },
-    status: { sizeBytes: 128n, runId: "aex_1", outputPath: "plan.md" },
+    status: { sizeBytes: 128n, runId: "run_1", outputPath: "plan.md" },
   }),
 };
 

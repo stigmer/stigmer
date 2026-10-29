@@ -1,8 +1,7 @@
 /**
- * The create pipeline's domain steps — ports create.go,
- * compose_declared_preferences_step.go, and
- * compose_recalled_memories_step.go. The chain itself is assembled in
- * controller.ts, mirroring Go buildCreatePipeline order exactly.
+ * The create pipeline's domain steps, the declared-preferences compose and
+ * the recalled-memories compose. The chain itself is assembled in
+ * controller.ts.
  *
  * An execution names its conversation one of two ways (an existing
  * session_id, or a new session_spec whose agent_ref names its agent) or
@@ -45,7 +44,7 @@ import { isFirstPartyHumanOperator, isServerComposedRequest } from "../../extens
 import type { VisitorClassifier } from "../../extensions/visitor-classifier.js";
 import {
   failedPreconditionError,
-  goWrappedStatusError,
+  wrappedStatusError,
   internalError,
   invalidArgumentError,
   permissionDeniedError,
@@ -83,14 +82,13 @@ import { isJudgeRun } from "../score/judge/judge-run.js";
 
 type CreateDesc = typeof RunSchema;
 
-// Context key for inter-step communication — Go's key string, verbatim.
+// Context key for inter-step communication.
 export const CREATED_SESSION_ID_KEY = "created_session_id";
 
 /**
  * The sentinel subject written on auto-created sessions. The
  * GenerateSessionSubject activity replaces it with an LLM-generated
- * title; display paths filter it (PENDING_SUBJECT in the TS SDK,
- * ResolvedSubject in the Go CLI).
+ * title; display paths filter it (PENDING_SUBJECT in the TS SDK).
  */
 export const AUTO_CREATED_SESSION_SUBJECT = "Auto-created session";
 
@@ -118,12 +116,11 @@ export type SessionCreatorProvider = () => SessionCreator;
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// CreateSessionIfNeeded — create.go createSessionIfNeededStep.
+// CreateSessionIfNeeded.
 // ---------------------------------------------------------------------------
 
 /**
- * Builds the spec for an auto-created session (Go
- * buildAutoCreateSessionSpec): a caller-provided spec (the one-call
+ * Builds the spec for an auto-created session: a caller-provided spec (the one-call
  * bootstrap, stigmer/stigmer#249) is CLONED and forwarded so the session
  * carries its agent, resources, harness, execution_target, MCP
  * servers, and skills from a single create call; the subject sentinel
@@ -204,7 +201,7 @@ export function newCreateSessionIfNeededStep(deps: {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
         metadata: {
-          // Auto-generated name: Go's session-%d millisecond stamp, then
+          // Auto-generated name: a session-<milliseconds> stamp, then
           // random hex. A session's slug is a claimed name
           // (pipeline/steps/names.ts), and two runs can start in one
           // millisecond (a batch, schedules firing on one cron second).
@@ -214,10 +211,10 @@ export function newCreateSessionIfNeededStep(deps: {
         spec: buildAutoCreateSessionSpec(callerSpec),
       });
 
-      // 2. Create via in-process gRPC (single source of truth). Go wraps
-      // with %w — the inner code survives to the wire (a session_spec
-      // failing session validation answers InvalidArgument, not
-      // Internal); goWrappedStatusError mirrors the #852 wire shape.
+      // 2. Create via in-process gRPC (single source of truth). The
+      // wrap keeps the inner code on the wire (a session_spec failing
+      // session validation answers InvalidArgument, not Internal): the
+      // #852 wire shape.
       let createdSession: Session;
       try {
         createdSession = await deps
@@ -225,7 +222,7 @@ export function newCreateSessionIfNeededStep(deps: {
           .createAsCaller(sessionRequest, ctx.callerIdentity);
       } catch (error) {
         if (error instanceof ConnectError) {
-          throw goWrappedStatusError("failed to create session", error);
+          throw wrappedStatusError("failed to create session", error);
         }
         throw new Error(
           `failed to create session: ${error instanceof Error ? error.message : String(error)}`,
@@ -270,7 +267,7 @@ export function newCreateSessionIfNeededStep(deps: {
 }
 
 // ---------------------------------------------------------------------------
-// ComposeDeclaredPreferences — compose_declared_preferences_step.go.
+// ComposeDeclaredPreferences.
 // ---------------------------------------------------------------------------
 
 /**
@@ -292,7 +289,7 @@ export function newCreateSessionIfNeededStep(deps: {
  *   - user_context, the run's person's own (stigmer#1397), composed only
  *     where callers are persons (`personAccounts`, the
  *     require-authentication posture) and only for a first-party human
- *     operator (runPersonOf), as the Java step did. The single-operator
+ *     operator (runPersonOf). The single-operator
  *     posture composes org_context alone: its one operator's context is
  *     the organization's.
  *
@@ -724,7 +721,7 @@ async function runPersonOf(
 }
 
 // ---------------------------------------------------------------------------
-// ComposeRecalledMemories — compose_recalled_memories_step.go.
+// ComposeRecalledMemories.
 // ---------------------------------------------------------------------------
 
 /**
@@ -739,8 +736,8 @@ async function runPersonOf(
  * session's log as stigmer.memory.recalled). Facts order oldest-first on
  * created_at — identical prompt order in every posture.
  *
- * WHOSE memories follows the posture (stigmer#1387, the Java step's
- * gates in its order): where callers are persons (`personAccounts`) the
+ * WHOSE memories follows the posture (stigmer#1387), gates in this order:
+ * where callers are persons (`personAccounts`) the
  * run must be created by a first-party human operator (runPersonOf), the
  * organization's memory_enabled must be on, then that person's own — and
  * the snapshot is that person's confirmed facts in the organization. The
@@ -782,8 +779,8 @@ export function newComposeRecalledMemoriesStep(
         );
         return;
       }
-      // Only a person's own run recalls (the Java gate order: the caller
-      // first, before any read).
+      // Only a person's own run recalls (the caller first, before any
+      // read).
       if (
         personAccounts !== undefined &&
         !isFirstPartyHumanOperator(ctx.callerIdentity)
@@ -891,8 +888,8 @@ async function loadConfirmedFacts(
     const ta = a.status?.audit?.specAudit?.createdAt;
     const tb = b.status?.audit?.specAudit?.createdAt;
     if (ta === undefined || tb === undefined) {
-      // Nil-first, symmetrically (Go: `return tj != nil` sorts an
-      // untimestamped row before a timestamped one from EITHER side).
+      // Nil-first, symmetrically: an untimestamped row sorts before a
+      // timestamped one from EITHER side.
       if (ta === tb) {
         return 0;
       }
@@ -913,7 +910,7 @@ async function loadConfirmedFacts(
 }
 
 // ---------------------------------------------------------------------------
-// SetInitialPhase — create.go setInitialPhaseStep.
+// SetInitialPhase.
 // ---------------------------------------------------------------------------
 
 /**
@@ -932,14 +929,14 @@ export function newSetInitialPhaseStep(): PipelineStep<CreateDesc> {
 }
 
 // ---------------------------------------------------------------------------
-// StartWorkflow — create.go startWorkflowStep (behind the engine seam).
+// StartWorkflow (behind the engine seam).
 // ---------------------------------------------------------------------------
 
 /**
  * Starts the Temporal workflow AFTER the execution is persisted. Engine
  * availability was guaranteed by the EnsureEngineAvailable gate, so a
  * failure here is a live/transient error: a dispatch-resolution failure
- * maps to FailedPrecondition (Go's ResolveActivityTaskQueue boundary);
+ * maps to FailedPrecondition (the task-queue resolution boundary);
  * any other start failure marks the execution FAILED and persists it
  * (whole-resource save is intentional and exempt from the atomic
  * UpdateStatus path: this is the creation path marking a brand-new

@@ -1,6 +1,5 @@
 /**
- * Pins the organization domain against Go's
- * organization_controller_test.go — through the REAL stack: a composed
+ * Pins the organization domain through the REAL stack: a composed
  * server on an ephemeral port, a native gRPC client, the full interceptor
  * chain (incl. apiresource kind injection and protovalidate).
  *

@@ -1,16 +1,14 @@
 /**
- * Skill controller — ports pkg/domain/skill/controller (command + query
- * sides): push-only content-addressed artifacts with the HTTP transfer
+ * Skill controller (command + query sides): push-only content-addressed artifacts with the HTTP transfer
  * lane (#675). Skills are knowledge documents (SKILL.md + supporting
  * files) pushed as ZIP artifacts; identity derives from the frontmatter,
  * versions are content-addressed SHA-256 hashes with single-holder tags,
  * artifacts are write-once and never garbage-collected.
  *
- * Wiring mirrors Go's: the store, skill artifact storage and the File
- * bytes (pushFromFile) are required; the transfer lane
+ * Wiring: the store, skill artifact storage and the File bytes
+ * (pushFromFile) are required; the transfer lane
  * (createArtifactUploadUrl / getArtifactDownloadUrl / push-by-ref) is an
- * OPTIONAL modeled state — Go injects it via a setter, here it is an
- * optional dep; every absent-surface answer is a deliberate arm, not an
+ * OPTIONAL dep; every absent-surface answer is a deliberate arm, not an
  * accident.
  *
  * Every chain opens with Authorize; push runs the tuple-lifecycle splice
@@ -183,7 +181,7 @@ export interface SkillControllerDeps {
   /** The Files' bytes, which pushFromFile reads a skill archive from. */
   readonly fileBlobs: FileBlobs;
   /**
-   * The transfer lane's staging port (Go SetTransferLane) over the skill
+   * The transfer lane's staging port over the skill
    * blob driver. Optional — absent, createArtifactUploadUrl and
    * getArtifactDownloadUrl answer FailedPrecondition and push accepts
    * inline bytes only.
@@ -437,10 +435,9 @@ async function pushFromFile(
 }
 
 // ─── updateVisibility ────────────────────────────────────────────────────
-// Go update_visibility.go: a targeted metadata update — only
-// metadata.visibility changes; spec, status, and other metadata fields are
-// untouched. Load runs before level validation so NOT_FOUND wins, as in
-// Cloud.
+// A targeted metadata update — only metadata.visibility changes; spec,
+// status, and other metadata fields are untouched. Load runs before level
+// validation so NOT_FOUND wins, in every edition.
 // ─────────────────────────────────────────────────────────────────────────
 
 const UPDATE_VISIBILITY_SKILL_KEY = "updateVisibilitySkill";
@@ -657,8 +654,7 @@ async function deleteSkill(
 }
 
 /**
- * DeleteSkillArchives — best-effort audit cleanup (Go
- * DeleteSkillArchivesStep): failures log and never block the delete. The
+ * DeleteSkillArchives — best-effort audit cleanup: failures log and never block the delete. The
  * mechanics are the shared content-addressed step's.
  */
 function newDeleteSkillArchivesStep(
@@ -766,7 +762,6 @@ async function getArtifact(
     artifact = await deps.artifactStorage.get(req.artifactStorageKey);
   } catch (error) {
     if (error instanceof ArtifactNotFoundError) {
-      // Go: status.Errorf(codes.NotFound, "skill artifact not found: %s").
       throw new ConnectError(
         `skill artifact not found: ${req.artifactStorageKey}`,
         Code.NotFound,
@@ -868,9 +863,8 @@ async function listVersions(
     )
     .addStep(newValidateProtoStep())
     .addStep(newResolveSkillBySlugStep(deps.store))
-    // The Java SkillListVersionsHandler's mid-chain can_view on the RESOLVED
-    // skill id; the copy is the Java handler's byte-pinned error_msg, and an
-    // unknown slug was already answered NOT_FOUND by the resolve step above.
+    // A mid-chain can_view on the RESOLVED skill id; the copy is
+    // byte-pinned wire copy, and an unknown slug was already answered NOT_FOUND by the resolve step above.
     .addStep(
       newAuthorizeResolvedTargetStep(
         deps.authorizer,
@@ -888,7 +882,7 @@ async function listVersions(
   return reqCtx.get(LIST_VERSIONS_RESPONSE_KEY) as ListSkillVersionsResponse;
 }
 
-/** Bounds a promise by the named deadline (Go's context.WithTimeout arm). */
+/** Bounds a promise by the named deadline. */
 async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,

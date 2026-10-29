@@ -75,7 +75,7 @@ describe("useSessionConversation — the agent version a session runs", () => {
     sessionUpdate = vi.fn().mockImplementation(async () => sessionOnAgent(""));
     runSend = vi
       .fn()
-      .mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+      .mockResolvedValue({ metadata: { id: "run_1" }, spec: {} });
   });
 
   it("moveToCurrentAgentVersion writes the session's agent back with version latest and reads it again", async () => {

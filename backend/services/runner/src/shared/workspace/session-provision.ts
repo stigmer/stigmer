@@ -2,11 +2,9 @@
  * Local workspace provisioning for a harness turn.
  *
  * Harness-agnostic: the turn runtime's workspace phase, serving both
- * adapters (the Stigmer orchestrator's twin, `provisionWorkspace`, retired
- * with it in #1096, which also carried its one difference). Agents run
- * LOCAL, so the runner must clone the session's git repositories itself and mount its local
- * folders before the agent runs. Cloud agents previously cloned git repos
- * server-side; that path is no longer used. The session's Files are
+ * adapters. Agents run LOCAL, so the runner clones the session's git
+ * repositories itself and mounts its local folders before the agent runs;
+ * the server clones nothing. The session's Files are
  * resources too, but not the workspace's: the File mount places them
  * (`../file-mount.ts`), and provisioning reads only the rest
  * (`provisioner.ts` `workspaceResourcesOf`).

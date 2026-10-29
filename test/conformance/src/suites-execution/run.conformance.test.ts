@@ -30,8 +30,9 @@
 // suite (suites/run.conformance.test.ts) so it also gates the cloud
 // edition.
 //
-// A turn's dispatch queue is the server's to derive, never a caller's: the
-// retired request field that once named one is read as an unknown field.
+// A turn's dispatch queue is the server's to derive, never a caller's: a
+// request carrying a queue name under a field number RunSpec does not define
+// is read with that field as an unknown one.
 //
 // A message's Files (spec.file_ids) cross from the server to the runner: the
 // Files block below proves the runner places each at .stigmer/uploads/ byte
@@ -268,7 +269,7 @@ describe("Run conformance — CRUD & identity", () => {
 
   it("[rpc:RunQueryController.get] get of a missing id returns NotFound", () =>
     expectGrpcCode(
-      () => clients.agentExecutionQuery.get({ value: "aex_doesnotexist" }),
+      () => clients.agentExecutionQuery.get({ value: "run_doesnotexist" }),
       Code.NotFound,
       "get missing id",
     ));
@@ -278,7 +279,7 @@ describe("Run conformance — distinctness (no duplicate check)", () => {
   it("[rpc:RunCommandController.create] two identical creates yield two distinct executions (no AlreadyExists)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
-    const name = uniqueName("aex-dup");
+    const name = uniqueName("run-dup");
 
     const first = await createExecution(org, agent, name);
 
@@ -396,7 +397,7 @@ describe("Run conformance — a turn belongs to its session and its session's or
 
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org: "", name: uniqueName("aex-no-org"), sessionId }),
+      makeAgentExecution({ org: "", name: uniqueName("run-no-org"), sessionId }),
     );
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second.metadata!.id }));
 
@@ -480,7 +481,6 @@ describe("Run conformance — lifecycle (running execution)", () => {
   // interrupt (or a UI whose button was clicked twice) must not see an error
   // for a state it asked for. The interrupt stops only what is unfinished, so
   // the second one stops nothing and the turn stays as the first left it.
-  // (From the Go offline suite's lifecycle arms.)
   it("[rpc:SessionCommandController.interrupt] a second interrupt, once the turn is stopped, stops nothing", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
@@ -525,7 +525,7 @@ describe("Run conformance — lifecycle (running execution)", () => {
     // learns of its cancellation only on its next heartbeat, seconds after
     // the pause (the case below), so a held turn released before then
     // completes and persists a terminal COMPLETED that races everything
-    // after it (stigmer#869 family; verified identical on the Go target).
+    // after it (stigmer#869 family).
     // While the turn is still HELD, that rogue writer cannot write, and
     // the resumed re-invocation is queued behind the session workspace
     // lock — so the resume RPC's IN_PROGRESS persist is a STABLE
@@ -684,7 +684,7 @@ describe("Run conformance — lifecycle preconditions & negatives", () => {
 
   it("[rpc:RunCommandController.pause] pause of a missing execution returns NotFound", () =>
     expectGrpcCode(
-      () => clients.agentExecutionCommand.pause({ id: "aex_doesnotexist" }),
+      () => clients.agentExecutionCommand.pause({ id: "run_doesnotexist" }),
       Code.NotFound,
       "pause missing execution",
     ));
@@ -780,7 +780,7 @@ describe("Run conformance — create negative paths", () => {
     const created = await clients.agentExecutionCommand.create({
       apiVersion: AGENT_EXECUTION_API_VERSION,
       kind: AGENT_EXECUTION_KIND,
-      metadata: { name: uniqueName("aex-assistant"), org },
+      metadata: { name: uniqueName("run-assistant"), org },
       spec: { message: "hi" },
     });
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
@@ -811,7 +811,7 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-bootstrap"),
+        name: uniqueName("run-bootstrap"),
         agentRef: agentRefOf(agent),
         sessionSpec: {
           subject: "Bootstrap conformance",
@@ -857,10 +857,10 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
   });
 });
 
-// The retired RunSpec field that once let a caller name the
-// turn's dispatch queue (activity_task_queue, number 11). Reserved on the
-// wire: a request carrying it is read with the field as an unknown one.
-const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;
+// A field number RunSpec does not define (11, between workspace_file_refs and
+// supersedes_run_id): a request carrying it is read with the field as an
+// unknown one, so bytes there can never name the turn's dispatch queue.
+const UNDEFINED_RUN_SPEC_FIELD = 11;
 
 // What the agent saves in its outputs folder (.stigmer/outputs/) comes back
 // as Files of the conversation, written by the turn, each at the path it was
@@ -878,7 +878,7 @@ describe("Run conformance — a turn's outputs", () => {
     mock.enqueue(anthropicToolUse("toolu_out_south", "write_file", { file_path: "/.stigmer/outputs/reports/south/summary.md", content: south }));
     mock.enqueue(anthropicText("Saved both summaries."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-outputs"), agentRef: agentRefOf(agent), message: "Write the regional summaries." }),
+      makeAgentExecution({ org, name: uniqueName("run-outputs"), agentRef: agentRefOf(agent), message: "Write the regional summaries." }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
@@ -920,7 +920,7 @@ describe("Run conformance — a turn's outputs", () => {
     // cannot finish on its own first.
     mock.enqueue(anthropicText("Still writing."), { delayMs: 120_000 });
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-outputs-stop"), agentRef: agentRefOf(agent), message: "Draft the summary." }),
+      makeAgentExecution({ org, name: uniqueName("run-outputs-stop"), agentRef: agentRefOf(agent), message: "Draft the summary." }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
@@ -953,22 +953,22 @@ describe("Run conformance — a turn's outputs", () => {
 });
 
 describe("Run conformance — a turn's dispatch queue is the server's to derive", () => {
-  it("[rpc:RunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {
+  it("[rpc:RunCommandController.create] a request naming a dispatch queue in a field RunSpec does not define still runs on the shared runner pool", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
 
     mock.enqueue(anthropicText("Done."));
     const request = create(
       RunSchema,
-      makeAgentExecution({ org, name: uniqueName("aex-queue"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-queue"), agentRef: agentRefOf(agent) }),
     );
-    // The retired field's bytes as a caller could still send them: a string
-    // naming a queue no runner polls.
+    // Bytes a caller can send under that number: a string naming a queue no
+    // runner polls.
     request.spec!.$unknown = [
       {
-        no: RETIRED_ACTIVITY_TASK_QUEUE_FIELD,
+        no: UNDEFINED_RUN_SPEC_FIELD,
         wireType: WireType.LengthDelimited,
-        data: new BinaryWriter().string(`wfexec:${foreignId("wex")}`).finish(),
+        data: new BinaryWriter().string(`elsewhere:${foreignId("other")}`).finish(),
       },
     ];
     const created = await clients.agentExecutionCommand.create(request);
@@ -990,7 +990,7 @@ describe("Run conformance — a turn's dispatch queue is the server's to derive"
 // shared directory (server-process.ts / runner-process.ts) and
 // cloud-execution's runner fetches through the real service's MinIO-backed
 // routes (stigmer#803), so every case here runs on every execution target
-// (the retired sharedRunnerArtifactStore gate, see target.ts).
+// (no capability gates it, see target.ts).
 describe("Run conformance — a message's Files (#285)", () => {
   // A File of the person's own, uploaded inline: the run's conversation
   // takes its own copy when the run names it.
@@ -1013,7 +1013,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-attach"),
+        name: uniqueName("run-attach"),
         agentRef: agentRefOf(agent),
         message: "Here is a file.",
         fileIds: [original],
@@ -1074,7 +1074,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-presign"),
+        name: uniqueName("run-presign"),
         agentRef: agentRefOf(agent),
         message: "Here is a file.",
         fileIds: [original],
@@ -1136,7 +1136,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-fileserver"),
+        name: uniqueName("run-fileserver"),
         agentRef: agentRefOf(agent),
         message: "Publish a file.",
       }),
@@ -1226,7 +1226,7 @@ describe("Run conformance — a message's Files (#285)", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-vision"),
+        name: uniqueName("run-vision"),
         agentRef: agentRefOf(agent),
         message: "What is in this image?",
         fileIds: [image],
@@ -1393,7 +1393,7 @@ describe("Run conformance — a turn on Claude", () => {
       { kind: "text", text: "Printed the marker." },
     ]);
     const created = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
+      makeAgentExecution({ org, name: uniqueName("run-claude"), agentRef: agentRefOf(agent), message: task, autoApproveAll: true, sessionSpec: { harness: CLAUDE_ARM.harness } }),
     );
     const runId = created.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

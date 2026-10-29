@@ -1,22 +1,18 @@
 /**
- * Decode-only Temporal payload codec — ports
- * pkg/encryption/payloadcodec (Go DecryptionCodec; stigmer#398).
+ * Decode-only Temporal payload codec (stigmer#398).
  *
  * The runner encrypts its Temporal payloads (activity results, workflow
  * results) under STIGMER_PAYLOAD_ENCRYPTION_KEY. The server must DECRYPT
  * those payloads when it reads them — but its own payloads (workflow
  * inputs, signals, its activities' results) stay plaintext, so encode is
  * the identity. Installing the codec on the client at dial time is the
- * single choke point that covers every worker and every client-side read,
- * exactly the Go shape (temporal_manager.go dialTemporal).
+ * single choke point that covers every worker and every client-side read.
  *
  * @stigmer/temporal-codecs exports only the SYMMETRIC EncryptionPayloadCodec
  * (the runner encrypts with it). This wrapper delegates decode to it and
  * passes encode through untouched — the decode path only ever consults the
  * codec's accepted-keys set, so a symmetric inner codec is safe to hold.
- * A server-local wrapper mirrors Go's server-local DecryptionCodec; the
- * published lib stays
- * untouched.
+ * The wrapper is server-local; the published lib stays untouched.
  *
  * Enabled-iff-configured: no key in the environment means the codec is not
  * installed at all; a present-but-malformed key is a boot error (an operator
@@ -35,7 +31,7 @@ export class ServerDecryptionPayloadCodec implements PayloadCodec {
 
   /**
    * Identity: the server never encrypts its own payloads, so its workflow
-   * histories stay readable in the Temporal UI (Go DecryptionCodec.Encode).
+   * histories stay readable in the Temporal UI.
    */
   async encode(payloads: Payload[]): Promise<Payload[]> {
     return payloads;
@@ -55,14 +51,14 @@ export class ServerDecryptionPayloadCodec implements PayloadCodec {
  * Loads the server's payload codecs from the environment.
  *
  * Returns [] when payload encryption is not configured — the caller then
- * installs no dataConverter, matching Go's "codec not installed" posture.
+ * installs no dataConverter.
  * Reads process.env directly (no injectable env): the lib's SecretReader
  * seam exists for the runner's boot-capture credential custody
  * (stigmer#508 — agent shells inherit its process env), but the lib reads
  * the *_KEY_ID companions from process.env unconditionally, so a partial
  * env override here would be honored for values and ignored for ids — a
  * trap. The server runs no agent shells; plain env reads are its custody
- * policy, the same source Go's LoadConfigFromEnv reads.
+ * policy.
  *
  * The optional resolver is the composed credential provider's
  * resolvePayloadKey capability: decrypt-only fallback for

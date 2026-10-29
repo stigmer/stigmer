@@ -1,9 +1,7 @@
 /**
- * BuildNewState + audit stamping + operator identity — ports
- * steps/defaults.go.
+ * BuildNewState + audit stamping + operator identity.
  *
- * BuildNewState (create-state builder, aligned with Cloud's
- * CreateOperationBuildNewStateStepV2): clears the client-provided status
+ * BuildNewState (the create-state builder every edition runs): clears the client-provided status
  * (system-managed), assigns metadata.id = {kind-prefix}_{lowercase ULID},
  * stamps spec_audit and status_audit identically with event "created",
  * and defaults metadata.visibility from the kind's proto VisibilityConfig
@@ -30,8 +28,7 @@
  *
  * A write the PLATFORM makes on its own (a schedule's clock, a credential's
  * last-use stamp) takes the narrower `bumpStatusAudit` instead: status-audit
- * updated_at + event only, never an actor, because no caller made it (Go's
- * clock bump, "the same two leaves every cloud runtime patch bumps"). Two
+ * updated_at + event only, never an actor, because no caller made it. Two
  * flavors, two writers, both wire-visible — keep them distinct.
  *
  * This module is also the one home of how an id is SPELLED. `generateId`
@@ -152,7 +149,7 @@ export function newBuildNewStateStep<
   };
 }
 
-/** Clears the resource's status (Go clearStatusFieldReflect). */
+/** Clears the resource's status. */
 export function clearStatusField(schema: DescMessage, msg: Message): void {
   const root = reflect(schema, msg);
   const field = root.fields.find(
@@ -164,7 +161,7 @@ export function clearStatusField(schema: DescMessage, msg: Message): void {
 }
 
 /**
- * Go SetAuditFieldsForCreate: both slots identical, event "created". A
+ * Create audit stamping: both slots identical, event "created". A
  * resource without a status (or audit) field is a no-op. The actor is
  * derived from the REQUEST's caller identity: every call site holds a
  * RequestContext, so audit
@@ -199,7 +196,7 @@ export function setAuditFieldsForCreate(
 export type AuditSlot = "spec_audit" | "status_audit";
 
 /**
- * Go SetAuditFieldsForUpdate: stamps ONE audit slot on a targeted
+ * Update audit stamping: ONE audit slot on a targeted
  * mutation. The named slot keeps its created_by/created_at (falling back
  * to the current actor/time when the slot had no prior audit) and gets a
  * fresh updated_by/updated_at with event "updated"; the other slot is not
@@ -247,10 +244,9 @@ export function bumpStatusAudit(status: { audit?: ApiResourceAudit }): void {
 // Operator identity (stigmer/stigmer#400): installed once at boot — before
 // any request — and read by the identity chassis when it mints the
 // trusted-local CallerIdentity (audit stamping derives its actor
-// from that identity rather than reading this seam directly). The
-// module-level seam is Go's, kept deliberately: threading a boot-time
-// constant through every step constructor would be machinery without a
-// beneficiary. The one-shot guard adds the composition-root idiom's
+// from that identity rather than reading this seam directly). The seam is
+// module-level deliberately: threading a boot-time constant through every
+// step constructor would be machinery without a beneficiary. The one-shot guard adds the composition-root idiom's
 // loudness: a second install is a wiring bug and throws at boot, not a
 // silent overwrite.
 let operatorEmail = "";
@@ -282,10 +278,9 @@ export function resetOperatorIdentityForTests(): void {
  * The installed operator identity, read by the verifier-chain chassis to
  * mint the trusted-local CallerIdentity: the single-operator trust
  * domain's one principal. Empty email = unconfigured, the "system"
- * placeholder posture. Audit stamping no longer reads this seam directly —
- * it derives the actor from the request's CallerIdentity,
- * which for local postures carries exactly these values, so the stamped
- * bytes are unchanged.
+ * placeholder posture. Audit stamping does not read this seam directly —
+ * it derives the actor from the request's CallerIdentity, which for local
+ * postures carries exactly these values.
  */
 export function operatorIdentitySnapshot(): {
   email: string;
@@ -295,14 +290,12 @@ export function operatorIdentitySnapshot(): {
 }
 
 /**
- * The audit actor derived from a caller identity (it replaced the
- * retired process-global currentAuditActor). A FRESH message per call
+ * The audit actor derived from a caller identity. A FRESH message per call
  * (audit stamping shares the returned reference across created_by/
  * updated_by; a singleton would alias unrelated resources' audit state).
  *
  * For local postures the trusted-local identity carries the #400 operator
- * identity, so the derived actor is byte-identical to what the retired
- * seam stamped: configured operator → email-first id with display fields;
+ * identity: configured operator → email-first id with display fields;
  * unconfigured → the "system" placeholder, which the runner deliberately
  * demotes to anonymous (SYSTEM_CREATOR_SENTINEL). Verifier-produced
  * identities (OIDC claims and the like) stamp their own email/displayName
@@ -310,8 +303,7 @@ export function operatorIdentitySnapshot(): {
  * token also stamps the service account whose key minted it (minted_by):
  * the account alone cannot say, and the run's credential resolver finds
  * the organization whose embedding vaults a run uses from this record.
- * Every other identity stamps it empty, so local-posture bytes are
- * unchanged.
+ * Every other identity stamps it empty.
  */
 export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
   return create(ApiResourceAuditActorSchema, {
@@ -323,7 +315,7 @@ export function auditActorFor(identity: CallerIdentity): ApiResourceAuditActor {
 }
 
 /**
- * Go updatedAuditInfo: preserved creation identity (falling back to the
+ * An update's audit info: preserved creation identity (falling back to the
  * updating actor/time when the resource had none) + a fresh update stamp.
  */
 export function updatedAuditInfo(
@@ -342,7 +334,7 @@ export function updatedAuditInfo(
 }
 
 /**
- * Go creationAuditOf: created_by/created_at from the named slot, as deep
+ * The creation audit: created_by/created_at from the named slot, as deep
  * copies (they must survive the audit field being overwritten). Either may
  * be undefined when absent — callers decide the fallback.
  */
@@ -383,7 +375,7 @@ export function auditOf(
 }
 
 /**
- * Go setAuditReflect: writes the whole audit block onto status.audit,
+ * Writes the whole audit block onto status.audit,
  * creating status if needed. Kinds without status/audit are a no-op.
  */
 export function setAuditReflect(
@@ -403,7 +395,7 @@ export function setAuditReflect(
 }
 
 /**
- * Go setAuditSlotReflect: writes one slot of status.audit, leaving the
+ * Writes one slot of status.audit, leaving the
  * other untouched (creating status/audit wrappers as needed).
  */
 function setAuditSlotReflect(
@@ -432,10 +424,10 @@ function setAuditSlotReflect(
 }
 
 /**
- * Go GenerateID: {prefix}_{lowercase ULID}, e.g.
- * agt_01arz3ndektsv4rrffq69g5fav. ulidx matches oklog/ulid's format
+ * A minted id: {prefix}_{lowercase ULID}, e.g.
+ * agt_01arz3ndektsv4rrffq69g5fav. ulidx emits the standard ULID format
  * (Crockford base32, 48-bit time + 80-bit randomness); lowercased for URL
- * consistency, exactly as Go lowercases oklog's output.
+ * consistency.
  */
 export function generateId(prefix: string): string {
   return `${prefix}_${ulid().toLowerCase()}`;

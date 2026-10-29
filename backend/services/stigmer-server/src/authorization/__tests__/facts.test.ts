@@ -6,7 +6,7 @@
  * tuples from (`rowFactsOf`). The two are separate functions on purpose —
  * the create-time one throws on a missing organization or parent (a
  * create must not half-succeed), the read-time one carries what the row
- * says (a legacy row is a fact, not a fault) — so for every declared kind
+ * says (a malformed row is a fact, not a fault) — so for every declared kind
  * a well-formed row must resolve to the same parent links and the same
  * visibility shapes through both, and this file is where that is proven
  * rather than remembered.
@@ -76,10 +76,10 @@ describe("rowFactsOf against the tuple lifecycle's own resolution", () => {
     }
   }
 
-  it("carries a legacy row's missing organization as no scope link, where the create-time resolver throws", () => {
+  it("carries a stored row's missing organization as no scope link, where the create-time resolver throws", () => {
     const agent = storedDeclaration("agent");
     const row = fixtureRow(agent, {
-      id: "agent-legacy",
+      id: "agent-no-org",
       org: "",
       visibility: ApiResourceVisibility.visibility_org,
       createdBy: "ida_carol",

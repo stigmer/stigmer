@@ -3,10 +3,9 @@
  * the extension registry and consumed by the verifier-chain chassis
  * (pipeline/interceptors/auth.ts).
  *
- * The shapes follow the Java edition's design:
- * a verifier either CLAIMS a token (verifying it fully, throwing on
+ * A verifier either CLAIMS a token (verifying it fully, throwing on
  * signature/expiry/audience failure) or PASSES (returns null → next
- * verifier) — the TS rendering of the Java ProviderManager chain. The
+ * verifier). The
  * product is one typed value, CallerIdentity, threaded explicitly through
  * HandlerContext.values (never ambient state — every dependency is
  * explicit).
@@ -19,8 +18,8 @@ import {
 
 /**
  * The caller-class discriminant. OSS knows user / machine / runner plus
- * the in-process `internal` class (the TS rendering of the
- * Java in-process authorization skip); the cloud composition extends the
+ * the in-process `internal` class (the in-process authorization skip);
+ * the cloud composition extends the
  * vocabulary (guest / channel / schedule) without an OSS enum change —
  * hence the open string arm. `string & {}` keeps literal autocomplete
  * while admitting extension values (a plain `string` would erase the
@@ -55,8 +54,7 @@ export const SERVICE_ACCOUNT_CALLER_CLASS = "service_account";
 
 /**
  * How the request reached the chain — the transport-trust discriminant
- * the reserved-label guard keys on (the TS
- * rendering of the Java isInProcessCall arm). `in-process` is
+ * the reserved-label guard keys on. `in-process` is
  * stamped ONLY by the in-process chain's identity interceptor — only
  * server code can reach that transport, so the marker is unspoofable —
  * and it survives caller PROPAGATION: a request-origin in-process call
@@ -237,10 +235,8 @@ export function boundOrgOf(
 
 /**
  * Whether `caller` is a FIRST-PARTY HUMAN OPERATOR: a person at the
- * console, the CLI or an SDK, speaking for themselves on the wire — the
- * TS rendering of the Java RequestCallerIdentity.isFirstPartyHumanOperator
- * (not machine, not impersonated, no token_type, not a minted user
- * token). Stated once for every consumer that must tell the person from a
+ * console, the CLI or an SDK, speaking for themselves on the wire (not
+ * machine, not impersonated, no token_type, not a minted user token). Stated once for every consumer that must tell the person from a
  * lane acting near them: memory recall and the person's declared
  * preferences on execution create (domain/run/create-steps.ts),
  * and memory capture's fall-through for a credential the composed runner

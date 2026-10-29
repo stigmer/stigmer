@@ -17,7 +17,7 @@ vi.mock("../config", async (importOriginal) => ({
   },
 }));
 
-const DOCS_SHARE = "ash_01j9docsshare0000000000000";
+const DOCS_SHARE = "chn_01j9docsshare0000000000000";
 
 /**
  * The docs layout shape: one provider, two triggers, one panel. Both

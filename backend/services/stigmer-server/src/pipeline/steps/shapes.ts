@@ -1,11 +1,10 @@
 /**
- * Resource shape access — ports steps/interfaces.go (HasMetadata,
- * HasValue, the status reflection helpers).
+ * Resource shape access (metadata, ID-wrapper values, the status
+ * reflection helpers).
  *
- * Where Go needed protoreflect to reach metadata/status generically (its
- * generated types are concrete structs), protobuf-es messages are plain
- * objects sharing the SAME generated ApiResourceMetadata type — structural
- * access is the idiomatic equivalent, not a shortcut. Reflection remains
+ * protobuf-es messages are plain objects sharing the SAME generated
+ * ApiResourceMetadata type, so metadata is read structurally — the
+ * idiomatic access, not a shortcut. Reflection remains
  * only where a message must be CREATED generically (a kind-specific status
  * message needs its schema, which only the resource's descriptor knows).
  */
@@ -17,19 +16,18 @@ import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apire
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
-/** Go HasMetadata: every API resource carries metadata of this one type. */
+/** Every API resource carries metadata of this one type. */
 export interface HasMetadataShape {
   metadata?: ApiResourceMetadata;
 }
 
-/** Go HasValue / HasIdValue: ID-wrapper inputs (AgentId, OrganizationId, …). */
+/** ID-wrapper inputs (AgentId, OrganizationId, …). */
 export interface HasValueShape {
   value: string;
 }
 
 /**
  * The resource's metadata, or undefined when the message has none set.
- * (Go's HasMetadata type assertion + GetMetadata nil-check collapsed.)
  */
 export function metadataOf(msg: Message): ApiResourceMetadata | undefined {
   return (msg as unknown as HasMetadataShape).metadata;
@@ -68,7 +66,7 @@ export function ownParentOrgOf(schema: DescMessage, msg: Message): string | unde
   return (msg as Organization).spec?.parentOrg ?? "";
 }
 
-/** The ID-wrapper's value ("" when absent) — Go HasValue.GetValue(). */
+/** The ID-wrapper's value ("" when absent). */
 export function idValueOf(msg: Message): string {
   const value = (msg as unknown as Partial<HasValueShape>).value;
   return typeof value === "string" ? value : "";
@@ -89,8 +87,8 @@ function camelCaseFieldName(specField: string): string {
  * a oneof member is held under its oneof's property as `{ case, value }`,
  * as a run's session_id is under `target`). Returns "" for every miss (no
  * message, no field, non-string value); the caller decides whether that is
- * fatal — the tuple lifecycle throws at create (Java's registry returned
- * null and the service threw), the list scope carries no parent.
+ * fatal — the tuple lifecycle throws at create, the list scope carries no
+ * parent.
  *
  * ONE reader for both: the id the authorization tuple was written with is
  * the id the list scope later asks the authorization backend about, so
@@ -148,8 +146,7 @@ export function messageFieldByName(
 
 /**
  * The resource's status as a write-through reflection wrapper, or
- * undefined when the message has no status FIELD or the field is unset —
- * Go getStatusField.
+ * undefined when the message has no status FIELD or the field is unset.
  */
 export function getStatusField(
   schema: DescMessage,
@@ -164,9 +161,9 @@ export function getStatusField(
 }
 
 /**
- * The resource's status, created and attached when absent — Go
- * getOrCreateStatusField. Returns undefined only when the message has no
- * status field at all (a no-op for such kinds, as in Go).
+ * The resource's status, created and attached when absent. Returns
+ * undefined only when the message has no status field at all (a no-op for
+ * such kinds).
  */
 export function getOrCreateStatusField(
   schema: DescMessage,
@@ -183,7 +180,7 @@ export function getOrCreateStatusField(
   return root.get(field);
 }
 
-/** Whether the message's schema declares a status field — Go hasStatusField. */
+/** Whether the message's schema declares a status field. */
 export function hasStatusField(schema: DescMessage): boolean {
   return schema.fields.some(
     (f) => f.name === "status" && f.fieldKind === "message",

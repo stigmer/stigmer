@@ -148,7 +148,7 @@ Options for [`assessVisionPreflight`](#assessvisionpreflight).
 
 <TypeTable
   type={{
-    limits: { type: "VisionLimits", description: "The advertised byte budget from `useModelRegistry().visionLimits`. `undefined` (older server, still loading) disables the byte assessment, never the capability verdict.", typeDescriptionLink: "/docs/sdk/react/models#visionlimits" },
+    limits: { type: "VisionLimits", description: "The advertised byte budget from `useModelRegistry().visionLimits`. `undefined` (no limits served, or still loading) disables the byte assessment, never the capability verdict.", typeDescriptionLink: "/docs/sdk/react/models#visionlimits" },
     model: { type: "ModelInfo", description: "The model the turn will run on. `undefined` (unknown/still loading) disables the capability verdict, never the byte assessment.", typeDescriptionLink: "/docs/sdk/react/models#modelinfo" },
   }}
 />

@@ -1,7 +1,7 @@
 /**
  * Pins the create lane's authorization question (steps.ts,
  * resolveRoutineCreateTargets): can_edit on the REFERENCED AGENT with the
- * Java handler's copy, and nothing on the organization (the same-org
+ * pinned copy, and nothing on the organization (the same-org
  * invariant already binds the routine to the agent's); a missing
  * referenced agent throws.
  */

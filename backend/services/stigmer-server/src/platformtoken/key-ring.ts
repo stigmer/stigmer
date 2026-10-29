@@ -43,8 +43,8 @@ export const PLATFORM_TOKEN_KEY_ENV_VAR = "STIGMER_PLATFORM_TOKEN_KEY";
 export const PLATFORM_TOKEN_KEY_FILE_NAME = "platform-token.key";
 
 /**
- * The default lifetime of a signed token: the cloud's user-token lifetime
- * since the Java issuer (STIGMER_JWT_USER_TOKEN_TTL_SECONDS' default). It
+ * The default lifetime of a signed token: the user-token lifetime
+ * (STIGMER_JWT_USER_TOKEN_TTL_SECONDS' default). It
  * bounds how long a user token outlives a rotated secret or a lost key; a
  * deleted client's tokens stop at the next request regardless (the
  * verifier's liveness).

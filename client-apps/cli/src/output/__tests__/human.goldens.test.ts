@@ -52,11 +52,11 @@ const ORG_LABELS = new Map([["demo", "demo"]]);
 describe("the read views", () => {
   const agents = [
     samples.agent(),
-    samples.agent({ id: "agt-2", name: "Release Notes", slug: "release-notes", description: "Drafts release notes from the merged pull requests of a milestone, grouped by area." }),
+    samples.agent({ id: "agt_00000000000000000000000002", name: "Release Notes", slug: "release-notes", description: "Drafts release notes from the merged pull requests of a milestone, grouped by area." }),
   ];
-  const skills = [samples.skill(), samples.skill({ id: "skl-2", name: "Triage", slug: "triage", description: "Labels new issues." })];
-  const sessions = [samples.session(), samples.session({ id: "ses-2", subject: "Fix invoice rounding", agentRef: null })];
-  const organizations = [samples.organization(), samples.organization({ id: "org-2", name: "Acme Robotics", slug: "acme" })];
+  const skills = [samples.skill(), samples.skill({ id: "skl_00000000000000000000000002", name: "Triage", slug: "triage", description: "Labels new issues." })];
+  const sessions = [samples.session(), samples.session({ id: "ses_00000000000000000000000002", subject: "Fix invoice rounding", agentRef: null })];
+  const organizations = [samples.organization(), samples.organization({ id: "org_00000000000000000000000002", name: "Acme Robotics", slug: "acme" })];
 
   it("lists agents, skills, sessions and organizations as tables", async () => {
     await expectGolden(renderCollection(AgentSchema, agents, "table", libraryTable("agents"), ORG_LABELS), "list-agents");

@@ -53,8 +53,7 @@ timeout, compression, and certificate settings. `OTEL_SDK_DISABLED=true` turns
 everything off.
 
 <Callout type="warn">
-  **If you set the endpoint before.** Earlier runners spoke gRPC only and read
-  only `OTEL_EXPORTER_OTLP_ENDPOINT`. The default is now the standard's
+  **A collector's gRPC port.** The default protocol is the standard's
   `http/protobuf`. If your endpoint is a collector's gRPC port (usually `4317`),
   add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
 </Callout>

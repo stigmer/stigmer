@@ -1,5 +1,5 @@
 /**
- * ValidateProto — ports steps/validation.go. Redundant on the RPC path
+ * ValidateProto: redundant on the RPC path
  * (the protovalidate interceptor already validated at the boundary) but
  * deliberately retained: it is the ONLY validation on the direct-call path
  * unit tests use, and the shared validator makes the overlap free.
@@ -14,7 +14,7 @@ import type { RequestContext } from "../request-context.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
 
-// Process-wide shared validator (Go SharedValidator): constraints compile
+// Process-wide shared validator: constraints compile
 // once, not per request.
 let sharedValidator: Validator | undefined;
 

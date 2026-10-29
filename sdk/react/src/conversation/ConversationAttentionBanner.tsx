@@ -37,8 +37,8 @@ export interface ConversationAttentionBannerProps {
  *
  * Take over is the primary action because the human arriving IS the
  * answer to an escalation — taking over clears attention structurally
- * (the answer used to live one banner away in
- * equal-weight chrome, so staff read the plea and missed the response).
+ * (an answer one banner away in equal-weight chrome is missed: staff read
+ * the plea and not the response).
  * It renders only while the agent holds the conversation on a channel
  * with a staff lane; a human already holding it IS the attention
  * answered, so only Dismiss remains.
@@ -83,8 +83,8 @@ export function ConversationAttentionBanner({
           </span>
         </p>
         {/* One shrink-proof group, right-aligned even after a wrap
-            (ml-auto): under a long reason the actions used to wrap to
-            the bottom-LEFT and read as part of the message. */}
+            (ml-auto): under a long reason, actions wrapped to the
+            bottom-LEFT would read as part of the message. */}
         <div className="stg:ml-auto stg:flex stg:shrink-0 stg:items-center stg:gap-2">
           <Button
             variant="outline"

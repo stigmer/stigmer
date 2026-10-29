@@ -125,7 +125,7 @@ describe("Run advisories to the model", () => {
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-advisory"),
+        name: uniqueName("run-advisory"),
         agentRef: agentRefOf(agent),
         message: "Echo until you are done.",
         autoApproveAll: true,

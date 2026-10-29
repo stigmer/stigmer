@@ -375,6 +375,6 @@ describe("consumeDeepAgentStream — the event recorder", () => {
     vi.stubEnv("V3_EVENT_RECORD_DIR", dir);
     const h = harness();
     await h.run(scriptedRun(textTurn("run-1", "x")));
-    expect(existsSync(join(dir, "aex_fixture_0001.v3-events.json"))).toBe(true);
+    expect(existsSync(join(dir, "run_fixture_0001.v3-events.json"))).toBe(true);
   });
 });

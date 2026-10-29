@@ -1,6 +1,5 @@
 /**
- * Execution-scoped runner tokens — ports pkg/runnerauth/runnerauth.go
- * (oss#535): one HS256 token type, bound to ONE execution, serving two
+ * Execution-scoped runner tokens (oss#535): one HS256 token type, bound to ONE execution, serving two
  * lanes that the server's posture decides between.
  *
  * WHY: a run's values are read only through the values fetch
@@ -11,16 +10,13 @@
  * token whose binding names the execution it serves, and the fetch answers
  * only a token whose binding matches the execution asked for.
  *
- * THE TWO LANES, BY POSTURE. Until 2026-09-16 this header stated the
- * token was "deliberately NOT an IdentityVerifier on the chassis:
- * presenting it must never change the caller's identity". That sentence
- * described a server that did not enforce authorization: with the
- * permissive Authorizer, the runner's operator key could do everything,
- * so the token only needed to unlock one read. Under the built-in
- * authorization posture (an OIDC self-host; authorization/posture.ts) the
- * server enforces the cloud's model, and a runner keyed with one
- * operator's API key could report on nobody's run but the operator's.
- * So under that posture the SAME token is also an identity
+ * THE TWO LANES, BY POSTURE. Under the permissive Authorizer the
+ * runner's operator key can do everything, so the token only needs to
+ * unlock one read. Under the built-in authorization posture (an OIDC
+ * self-host; authorization/posture.ts) the server enforces the cloud's
+ * model, and a runner keyed with one operator's API key could report on
+ * nobody's run but the operator's. So under that posture the SAME token
+ * is also an identity
  * (runner-subject-verifier.ts): it admits its bearer as the human whose
  * run it is, the person the execution row's creator stamp names, for as
  * long as that run lives. The runner acts as the run's human, which is
@@ -51,8 +47,7 @@
  *     validity is the ROW's — the execution is live, or ended within a
  *     short grace (bound-execution.ts) — read by both lanes that accept
  *     the token, because a plaintext token in Temporal history must not
- *     fetch a finished run's secrets, and the clock that prevented that is
- *     gone.
+ *     fetch a finished run's secrets, and it carries no clock to stop it.
  * `verify` enforces `exp` when present and accepts its absence; it never
  * decides liveness, which needs the store.
  *
@@ -69,22 +64,21 @@ import { getOrCreateNamedKey } from "../encryption/key-manager.js";
 import type { KeyLoaderOptions } from "../encryption/key-manager.js";
 
 /**
- * The token_type claim of every OSS-minted runner token — Go
- * TokenTypeExecutionScoped. Deliberately distinct from the cloud sandbox
+ * The token_type claim of every OSS-minted runner token. Deliberately distinct from the cloud sandbox
  * vocabulary (sandbox / connect_sandbox): borrowing
  * "sandbox" while carrying different claims would mislead anyone debugging
  * across editions. One honest type with a direct execution_id binding.
  */
 export const TOKEN_TYPE_EXECUTION_SCOPED = "execution_scoped";
 
-/** Env var for the signing key (Base64 32B) — Go EnvKeyName. */
+/** Env var for the signing key (Base64 32B). */
 export const RUNNER_TOKEN_KEY_ENV_VAR = "STIGMER_RUNNER_TOKEN_KEY";
 
-/** Auto-generated key file under ~/.stigmer — Go KeyFileName. */
+/** Auto-generated key file under ~/.stigmer. */
 export const RUNNER_TOKEN_KEY_FILE_NAME = "runner-token.key";
 
 /**
- * Default token lifetime — Go DefaultTTL (1 hour). Tokens are minted
+ * Default token lifetime (1 hour). Tokens are minted
  * immediately before each values fetch (or carried in a connect
  * workflow's dispatch payload), so the TTL only needs to cover one unit of
  * dispatched work including its Temporal retries: generous without being
@@ -93,7 +87,7 @@ export const RUNNER_TOKEN_KEY_FILE_NAME = "runner-token.key";
 export const DEFAULT_TTL_SECONDS = 3600;
 
 /**
- * Go ErrInvalidToken: ANY verification failure — forged signature, wrong
+ * ANY verification failure — forged signature, wrong
  * algorithm, expired, wrong type, empty binding — collapses to this one
  * error. Callers fail closed on it; a finer-grained reason
  * would just invite branching on it.
@@ -106,7 +100,7 @@ export class InvalidTokenError extends Error {
 }
 
 /**
- * Go ErrMintingDisabled: minting with no signing key (keyless deployments,
+ * Minting with no signing key (keyless deployments,
  * effectively test-only — fromEnv auto-generates). The exchange RPC maps
  * it to the presence-based "not minted" response the runner handles.
  */
@@ -156,7 +150,7 @@ export class RunnerAuthService {
   }
 
   /**
-   * Go NewService: nil/empty key → disabled service (Mint fails with
+   * nil/empty key → disabled service (Mint fails with
    * MintingDisabledError, Verify rejects everything — fail closed: without
    * a key no token can be genuine).
    */
@@ -168,7 +162,7 @@ export class RunnerAuthService {
   }
 
   /**
-   * Go NewServiceFromEnv: key via the shared ladder (env var → key file →
+   * Key via the shared ladder (env var → key file →
    * auto-generate). Errors only on unusable explicit configuration; the
    * composition root maps that to the BOOT-FATAL posture: a server that
    * cannot mint runner tokens would hand every execution redaction markers
@@ -184,13 +178,13 @@ export class RunnerAuthService {
     return RunnerAuthService.create(key);
   }
 
-  /** Go IsEnabled: whether the service holds a signing key. */
+  /** Whether the service holds a signing key. */
   isEnabled(): boolean {
     return this.key !== undefined;
   }
 
   /**
-   * Go Mint: a token bound to executionId, valid for ttlSeconds
+   * A token bound to executionId, valid for ttlSeconds
    * (DEFAULT_TTL_SECONDS when <= 0).
    */
   mint(executionId: string, ttlSeconds: number = 0): MintedToken {
@@ -240,12 +234,12 @@ export class RunnerAuthService {
   }
 
   /**
-   * Go Verify: checks signature, algorithm, expiry, and token type, and
+   * Checks signature, algorithm, expiry, and token type, and
    * returns the execution id the token is bound to. Any failure throws the
    * one InvalidTokenError — the caller's only correct reaction is to fall
    * closed to redaction.
    *
-   * Check order mirrors Go: enabled → three parts → exact encoded-header
+   * Check order: enabled → three parts → exact encoded-header
    * compare → constant-time HMAC → payload decode → claims. The expiry
    * boundary is `now >= exp` (a token in its expiring second is invalid).
    * A token with no `exp` is a run credential and passes this check; a
@@ -267,8 +261,8 @@ export class RunnerAuthService {
     const signingInput = parts[0] + "." + parts[1];
     const expected = Buffer.from(this.sign(signingInput));
     const provided = Buffer.from(parts[2] as string);
-    // Go's hmac.Equal returns false on length mismatch; Node's
-    // timingSafeEqual THROWS on it, so the length guard comes first (the
+    // A length mismatch is a refusal; Node's timingSafeEqual THROWS on
+    // it, so the length guard comes first (the
     // signature length is not secret — no timing channel is opened).
     if (
       expected.length !== provided.length ||
@@ -304,7 +298,7 @@ export class RunnerAuthService {
     return claims.execution_id;
   }
 
-  /** base64url HMAC-SHA256 of the signing input — Go sign(). */
+  /** base64url HMAC-SHA256 of the signing input. */
   private sign(signingInput: string): string {
     if (this.key === undefined) {
       throw new InvalidTokenError();

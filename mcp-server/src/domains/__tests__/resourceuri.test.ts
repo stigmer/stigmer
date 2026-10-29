@@ -1,6 +1,6 @@
 // Unit tests for stigmer:// resource URI parsing and construction.
-// Asserts parity with the Go server's behavior (scheme check, segment counts,
-// version handling, and the kind→authority round-trip).
+// Pins the scheme check, segment counts, version handling, and the
+// kind→authority round-trip.
 
 import { describe, expect, it } from "vitest";
 

@@ -1,6 +1,5 @@
 /**
- * The reconciler — ports pkg/domain/schedule/temporal/reconcile.go:
- * converges routine rows and Temporal artifacts in both directions — rows
+ * The reconciler: converges routine rows and Temporal artifacts in both directions — rows
  * without artifacts get armed, drifted artifacts get rewritten, artifacts
  * without rows get deleted.
  *
@@ -13,11 +12,9 @@
  * a reconnect is precisely the moment the artifacts are most likely to be
  * gone.
  *
- * Lifecycle in TS idiom: Go's
- * goroutine+channel loop becomes an unref'd interval plus a kick queue
- * with an explicit stop() called from the compose shutdown — nothing may
- * fire after shutdown. Semantics are preserved exactly: an immediate
- * boot pass, periodic passes gated by the
+ * Lifecycle: an unref'd interval plus a kick queue with an explicit
+ * stop() called from the compose shutdown — nothing may fire after
+ * shutdown. Semantics: an immediate boot pass, periodic passes gated by the
  * env kill-switch, and kicked passes that ALWAYS run (reconnect
  * convergence is correctness, not hygiene).
  */
@@ -37,7 +34,7 @@ import { TICK_ID_PREFIX, resourceIdOf } from "./names.js";
 import { pruneRunLedger } from "./run-ledger.js";
 import type { RoutineSyncer } from "./syncer.js";
 
-/** Summarizes one convergence pass, for the log line (Go ReconcileCounts). */
+/** Summarizes one convergence pass, for the log line. */
 export interface ReconcileCounts {
   rowsExamined: number;
   armed: number;
@@ -63,7 +60,7 @@ interface ArtifactState {
 export class RoutineReconciler {
   private interval: NodeJS.Timeout | undefined;
   private stopped = false;
-  /** One queued kick is enough (Go's 1-buffered channel). */
+  /** One queued kick is enough. */
   private kickQueued = false;
   private running: Promise<void> = Promise.resolve();
 
@@ -79,7 +76,7 @@ export class RoutineReconciler {
   /**
    * Executes one convergence pass. Per-row failures are counted and the
    * pass continues — one broken routine must never stop the rest from
-   * converging (Go RunPass).
+   * converging.
    */
   async runPass(): Promise<ReconcileCounts> {
     const counts: ReconcileCounts = {
@@ -251,7 +248,7 @@ export class RoutineReconciler {
    * down), then one pass per interval, plus out-of-band passes requested
    * through the returned kick function (wired to the Temporal manager's
    * reconnect hook). The env kill-switch disables only the PERIODIC
-   * passes; kicked passes still run (Go StartReconciliation).
+   * passes; kicked passes still run.
    */
   startReconciliation(): () => void {
     void this.enqueuePass();
@@ -277,7 +274,7 @@ export class RoutineReconciler {
 
   /**
    * Stops the loop; in-flight and queued passes drain, nothing new starts
-   * (Go's context cancellation; called from the compose shutdown).
+   * (called from the compose shutdown).
    */
   async stop(): Promise<void> {
     this.stopped = true;
@@ -289,9 +286,8 @@ export class RoutineReconciler {
   }
 
   /**
-   * Serializes passes (Go's single goroutine consuming ticker + kicks): at
-   * most one pass runs at a time, and at most one further pass queues —
-   * exactly the 1-buffered kick channel's coalescing.
+   * Serializes passes: at most one pass runs at a time, and at most one
+   * further pass queues (kicks coalesce).
    *
    * The chained callback CONTAINS every rejection: `running` must never
    * become a rejected promise, because the next enqueue would chain onto a
@@ -329,8 +325,7 @@ export class RoutineReconciler {
   /**
    * Loads every routine row, skipping corrupt blobs (the lenient-read
    * posture list endpoints use). OSS scale is a handful of routines on
-   * one user's machine; the full listing per pass is noise (Go
-   * listSchedules).
+   * one user's machine; the full listing per pass is noise.
    */
   private async listRoutines(): Promise<Routine[]> {
     const blobs = await this.store.listResources(ApiResourceKind.routine);

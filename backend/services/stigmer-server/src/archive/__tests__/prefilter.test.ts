@@ -1,6 +1,6 @@
 /**
- * Pins the safearchive-parity pre-filter against the behaviors
- * read from safearchive's source at the go.mod-pinned version: sanitizer
+ * Pins the archive pre-filter against the behaviors read from
+ * safearchive's source at the version prefilter.ts names: sanitizer
  * tests (sanitizer_nix_test.go), applyMagic's skip/shadow order, and the
  * archive/zip mode-decode rules. Fixtures are byte-crafted with the shared
  * builder so entry attributes are exactly what a real archive carries.

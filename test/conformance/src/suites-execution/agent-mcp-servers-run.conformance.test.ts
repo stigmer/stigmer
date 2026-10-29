@@ -171,7 +171,7 @@ async function completedEchoRun(
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-own-server"),
+      name: uniqueName("run-own-server"),
       agentRef,
       autoApproveAll: true,
       ...(opts.includeMyVault !== undefined ? { includeMyVault: opts.includeMyVault } : {}),
@@ -228,7 +228,7 @@ describe("Run — an agent's own MCP server is dialed and its tool called", () =
     mock.enqueue(anthropicToolUse("call_own_destructive", mcpToolName(SERVER, DESTRUCTIVE_ECHO_TOOL_NAME), { text: "careful" }));
     mock.enqueue(anthropicText("Done."));
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-own-gate"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-own-gate"), agentRef: agentRefOf(agent) }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
@@ -434,7 +434,7 @@ describe("Run — an agent and its subagent writing a server of one name", () =>
     const refused = await expectGrpcCode(
       async () => {
         const created = await clients.agentExecutionCommand.create(
-          makeAgentExecution({ org, name: uniqueName("aex-own-clash"), agentRef: agentRefOf(parent) }),
+          makeAgentExecution({ org, name: uniqueName("run-own-clash"), agentRef: agentRefOf(parent) }),
         );
         fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
       },

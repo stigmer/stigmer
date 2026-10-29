@@ -14,11 +14,11 @@ Temporal payload codecs shared by Stigmer's TypeScript Temporal processes:
 
 ## Why this is a library
 
-The encryption envelope is a **cross-language wire contract**: the Java
-decode-only codec in stigmer-cloud's `temporal-starter` must decrypt these
-payloads byte-for-byte, and the Stigmer TypeScript server installs the same
-codecs on its Temporal clients. One implementation, many consumers — the
-contract must never fork. The committed fixture in
+The encryption envelope is a **wire contract**: every process that reads
+a run's history (the server, the runner, the cloud composition) must decrypt
+these payloads byte-for-byte, and each installs the same codecs on its
+Temporal clients. One implementation, many consumers — the contract must
+never fork. The committed fixture in
 `src/__tests__/fixtures/encrypted-payload-fixture.json` pins the envelope;
 never regenerate it casually (changing it means changing the cross-SDK
 contract, which requires every implementation to move in lockstep).

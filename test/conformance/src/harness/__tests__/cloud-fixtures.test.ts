@@ -14,7 +14,7 @@ import {
   type CloudFixtures,
 } from "../cloud-fixtures";
 import { CLOUD_ENV } from "../cloud-env";
-import { FAKE_CARD, paymentMethodAttached, signStripePayload, stripeEvent, STRIPE_JAVA_API_VERSION } from "../fake-stripe";
+import { FAKE_CARD, paymentMethodAttached, signStripePayload, stripeEvent, STRIPE_API_VERSION } from "../fake-stripe";
 import { DEFAULT_REPLY_CAPTURE_LIMIT, DEFAULT_REPLY_TEXT } from "@stigmer/test-support/fake-llm-upstream";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { CloudFixturesClient } from "../../support/cloud-fixtures-client";
@@ -176,7 +176,7 @@ describe("fake Stripe API", () => {
     await control.stripe.reset();
   });
 
-  it("answers a payment-method retrieve with the one card it knows, expiry included (the Java customer.updated handler reads exp_month/exp_year unguarded)", async () => {
+  it("answers a payment-method retrieve with the one card it knows, expiry included (a customer.updated handler may read exp_month/exp_year unguarded)", async () => {
     const response = await fetch(`${fixtures.addresses.stripeApiUrl}/v1/payment_methods/pm_any`);
     expect(response.status).toBe(200);
     const method = (await response.json()) as { id: string; object: string; type: string; card: typeof FAKE_CARD };
@@ -198,9 +198,9 @@ describe("fake Stripe API", () => {
     await control.stripe.reset();
   });
 
-  it("signs payloads exactly as Stripe does (t=..,v1=HMAC-SHA256 over `t.payload`) and stamps the stripe-java pin", () => {
+  it("signs payloads exactly as Stripe does (t=..,v1=HMAC-SHA256 over `t.payload`) and stamps the fixture's API version", () => {
     const event = stripeEvent("checkout.session.completed", { id: "cs_1", object: "checkout.session" }, { id: "evt_1", created: 1_700_000_000 });
-    expect(event.api_version).toBe(STRIPE_JAVA_API_VERSION);
+    expect(event.api_version).toBe(STRIPE_API_VERSION);
     const payload = JSON.stringify(event);
     const signed = signStripePayload(payload, "whsec_test", 1_700_000_100);
     const expected = createHmac("sha256", "whsec_test").update(`1700000100.${payload}`).digest("hex");

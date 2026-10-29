@@ -1,8 +1,7 @@
 /**
- * Pins the lexical cron/timezone validation matrix against Go's
- * cron_test.go — the shared rejection matrix is pinned by unit tests in
- * both editions (and in the cloud Java edition), because every message is
- * cross-edition byte contract.
+ * Pins the lexical cron/timezone validation matrix: every message is
+ * cross-edition byte contract, and the time-zone arms answer what the
+ * Temporal server's zone lookup would load.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
@@ -42,7 +41,7 @@ describe("validateRoutineCron — accepted grammar", () => {
     expect(() => validateRoutineCron(cron)).not.toThrow();
   });
 
-  it("accepts fields separated by runs of whitespace (Go strings.Fields)", () => {
+  it("accepts fields separated by runs of whitespace", () => {
     expect(() => validateRoutineCron("0  9   *  *  *")).not.toThrow();
   });
 });
@@ -102,13 +101,13 @@ describe("validateRoutineCron — rejection matrix (byte-pinned copy)", () => {
     );
   });
 
-  it("rejects '1#3' via the comment check (the '#' rule fires first, as in Go)", () => {
+  it("rejects '1#3' via the comment check (the '#' rule fires first)", () => {
     const err = refusal(() => validateRoutineCron("1#3 9 * * *"));
     expect(err.rawMessage).toBe("spec.cron must not contain a comment (#)");
   });
 
-  it("accepts bare letters like 'L' lexically (Go's charset allows name letters; Temporal refuses downstream at artifact create)", () => {
-    // Deliberate Go-parity: the character class exists for month/day NAMES
+  it("accepts bare letters like 'L' lexically (the charset allows name letters; Temporal refuses downstream at artifact create)", () => {
+    // Deliberate: the character class exists for month/day NAMES
     // (Jan, MON) and incidentally passes single letters — the lexical
     // validator is a grammar restriction, not a cron parser.
     expect(() => validateRoutineCron("L 9 * * *")).not.toThrow();
@@ -124,11 +123,11 @@ describe("validateRoutineTimeZone", () => {
     },
   );
 
-  it("accepts the empty zone (Go LoadLocation('') is UTC)", () => {
+  it("accepts the empty zone (UTC to Temporal)", () => {
     expect(() => validateRoutineTimeZone("")).not.toThrow();
   });
 
-  it("rejects 'Local' explicitly (nondeterministic across replicas; Java never resolves it)", () => {
+  it("rejects 'Local' explicitly (nondeterministic across replicas)", () => {
     const err = refusal(() => validateRoutineTimeZone("Local"));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(
@@ -146,20 +145,19 @@ describe("validateRoutineTimeZone", () => {
     },
   );
 
-  it("rejects a case variant of a canonical zone (Go's tzdata lookup is case-sensitive)", () => {
-    // ICU resolves "america/new_york" case-insensitively; Go's file lookup
-    // does not — the canonical-set guard restores Go's refusal (cron.ts
-    // isLoadableTimeZone). Case variants of ALIAS names (e.g.
-    // "asia/kolkata" where ICU's canonical is Asia/Calcutta) remain a
-    // disclosed residual divergence — the guard can only see ICU's
-    // canonical list.
+  it("rejects a case variant of a canonical zone (the Temporal server's tzdata lookup is case-sensitive)", () => {
+    // ICU resolves "america/new_york" case-insensitively; the Temporal
+    // server's file lookup does not — the canonical-set guard keeps that
+    // refusal (cron.ts isLoadableTimeZone). Case variants of ALIAS names
+    // (e.g. "asia/kolkata" where ICU's canonical is Asia/Calcutta) are a
+    // known gap — the guard can only see ICU's canonical list.
     expect(isLoadableTimeZone("america/new_york")).toBe(false);
     expect(() => validateRoutineTimeZone("america/new_york")).toThrow();
   });
 
-  it("accepts genuine alias/link zones as Go does", () => {
+  it("accepts genuine alias/link zones", () => {
     // "US/Pacific" is a tzdata link and "Asia/Kolkata" an ICU alias of
-    // Asia/Calcutta; Go's tzdata and ICU both resolve them.
+    // Asia/Calcutta; tzdata and ICU both resolve them.
     expect(isLoadableTimeZone("US/Pacific")).toBe(true);
     expect(isLoadableTimeZone("Asia/Kolkata")).toBe(true);
   });

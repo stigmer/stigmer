@@ -12,9 +12,8 @@
  *                `PACKAGES` in scripts/publish-libs.mjs (the same import
  *                scripts/verify-esm-node.mjs uses "so the two never drift").
  *   runner-deps  the workspace libs the standalone runner and stigmer-server
- *                link with `file:` (their own package.json is the truth; the
- *                retired ci.ts-libs lane used to ask humans to keep a copy in
- *                step by hand).
+ *                link with `file:` (their own package.json is the truth, so
+ *                no copy of the list is kept by hand).
  *   workspace    every member of the root package.json `workspaces` list, in
  *                that order. The CI lane runs `typecheck` and `lint` over it,
  *                and names web or desktop out of it for their test suites;

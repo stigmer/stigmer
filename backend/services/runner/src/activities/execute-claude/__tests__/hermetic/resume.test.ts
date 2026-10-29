@@ -48,7 +48,7 @@ describe("ExecuteClaude hermetic — a session resumes from its store", () => {
     expect(readdirSync(getClaudeEngineDir(FIXTURE.sessionId)), "only the transcripts outlive the turn").toEqual(["transcripts"]);
     expect(existsSync(getClaudeTranscriptDir(FIXTURE.sessionId))).toBe(true);
 
-    const second = claudeExecutionRecord({ message: SECOND, executionId: "aex_claude_0002" });
+    const second = claudeExecutionRecord({ message: SECOND, executionId: "run_claude_0002" });
     const before = file.wire().conversations.length;
     const two = await file.resume(second, () => anthropicText("You gave me heron."), {}, { workspaceRootDir: join(env.workspaceRootDir, "moved") });
 

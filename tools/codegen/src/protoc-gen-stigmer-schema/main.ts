@@ -2,10 +2,8 @@
 // plugin: compiled protos in, the committed JSON schema tree out
 // (tools/codegen/schemas, wired via apis/buf.gen.schema.yaml).
 //
-// This replaces the Go proto2schema tool, which parsed proto SOURCES itself
-// and resolved imports out of buf's module cache. As a plugin, buf does the
-// compilation and hands ready descriptors (with SourceCodeInfo and all
-// extension definitions) on stdin; output files travel back on stdout in a
+// As a plugin, buf does the compilation and hands ready descriptors (with
+// SourceCodeInfo and all extension definitions) on stdin; output files travel back on stdout in a
 // CodeGeneratorResponse, so buf owns all filesystem writes — and with
 // `clean: true` in the template, stale-schema removal too.
 //

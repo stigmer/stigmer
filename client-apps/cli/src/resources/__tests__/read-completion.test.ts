@@ -39,7 +39,7 @@ import { getSessionUsageReport, renderSessionUsage } from "../usage.js";
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
 
 const knownExec = create(RunSchema, {
-  metadata: { id: "aex_1", org: "acme" },
+  metadata: { id: "run_1", org: "acme" },
   status: { agentId: "agt_1", phase: RunPhase.RUN_COMPLETED, startedAt: "2026-03-01T10:00:00Z" },
 });
 
@@ -82,7 +82,7 @@ beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(RunQueryController, {
       get: (req) => {
-        if (req.value !== "aex_1") throw new ConnectError("execution not found", Code.NotFound);
+        if (req.value !== "run_1") throw new ConnectError("execution not found", Code.NotFound);
         return knownExec;
       },
       list: () => ({ entries: [knownExec] }),
@@ -147,21 +147,21 @@ describe("search integration", () => {
 
 describe("run integration", () => {
   it("gets a run by ID and renders backend protojson", async () => {
-    const { schema, message } = await getRun(client, "aex_1");
+    const { schema, message } = await getRun(client, "run_1");
     expect(JSON.parse(renderResource(schema, message, "json"))).toEqual(
       toJson(RunSchema, knownExec, { useProtoFieldName: true }),
     );
   });
 
   it("maps a NotFound run to ExitCode.NotFound", async () => {
-    const err = await getRun(client, "aex_missing").catch((e) => e);
+    const err = await getRun(client, "run_missing").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
   it("lists runs as protojson envelope", async () => {
     const result = await listAgentRuns(client, 50);
     const json = JSON.parse(renderRunList(result, "json"));
-    expect(json.entries[0].metadata.id).toBe("aex_1");
+    expect(json.entries[0].metadata.id).toBe("run_1");
   });
 });
 

@@ -17,8 +17,7 @@
  *     outsider on an EXISTING resource hears PERMISSION_DENIED, the
  *     cloud's answer; `listMine` lists what a person may view
  *     and `find` refuses enumeration; `checkMyPermission` tells the truth;
- *     the retired public level is refused for the founder too, as an
- *     invalid level and not a permission question; an unprovisioned
+ *     an unprovisioned
  *     subject writes nothing until provisioned. The LIST lanes are a member's
  *     lists: an outsider lists nothing of an organization they hold no
  *     row in; My vaults and API keys are their owner's even to the
@@ -29,9 +28,8 @@
  *     provisioned.
  *   - trusted-local: the permissive default stays (one caller,
  *     nothing to separate; the laptop's rows are stamped `"system"`):
- *     tokenless reads and organization enumeration keep working, and
- *     the retired public level is refused here exactly as it is under
- *     every other posture (the level is gone, not gated). One question
+ *     tokenless reads and organization enumeration keep working. One
+ *     question
  *     is answered as under sign-in: a request naming an Organization the
  *     server does not hold is NOT_FOUND with the same sentence, whether
  *     it writes (a create, an apply, a session) or reads (a usage

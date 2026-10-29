@@ -1,8 +1,8 @@
 [
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_use": {
-      "id": "aex_claude_0001.toolu_mcp_load",
+      "id": "run_claude_0001.toolu_mcp_load",
       "input": {
         "query": "select:mcp__docs__lookup,mcp__stigmer-memory__remember",
         "max_results": 2
@@ -11,10 +11,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_tool_result": {
-      "id": "aex_claude_0001.toolu_mcp_load.r",
-      "tool_use_id": "aex_claude_0001.toolu_mcp_load",
+      "id": "run_claude_0001.toolu_mcp_load.r",
+      "tool_use_id": "run_claude_0001.toolu_mcp_load",
       "content": [
         {
           "type": "text",
@@ -24,10 +24,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "stigmer_mcp_tool_definition": {
-      "id": "aex_claude_0001.def.he550ff649aff2c1ece5dd8aa2d24e7c4",
-      "tool_use_id": "aex_claude_0001.toolu_mcp_docs",
+      "id": "run_claude_0001.def.he550ff649aff2c1ece5dd8aa2d24e7c4",
+      "tool_use_id": "run_claude_0001.toolu_mcp_docs",
       "mcp_server_name": "docs",
       "name": "lookup",
       "description": "Look a thing up.",
@@ -42,9 +42,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_mcp_tool_use": {
-      "id": "aex_claude_0001.toolu_mcp_docs",
+      "id": "run_claude_0001.toolu_mcp_docs",
       "input": {
         "q": "the thing"
       },
@@ -53,10 +53,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_mcp_tool_result": {
-      "id": "aex_claude_0001.toolu_mcp_docs.r",
-      "mcp_tool_use_id": "aex_claude_0001.toolu_mcp_docs",
+      "id": "run_claude_0001.toolu_mcp_docs.r",
+      "mcp_tool_use_id": "run_claude_0001.toolu_mcp_docs",
       "content": [
         {
           "type": "text",
@@ -66,9 +66,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_mcp_tool_use": {
-      "id": "aex_claude_0001.toolu_mcp_memory",
+      "id": "run_claude_0001.toolu_mcp_memory",
       "input": {
         "fact": "The thing is found."
       },
@@ -77,10 +77,10 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_mcp_tool_result": {
-      "id": "aex_claude_0001.toolu_mcp_memory.r",
-      "mcp_tool_use_id": "aex_claude_0001.toolu_mcp_memory",
+      "id": "run_claude_0001.toolu_mcp_memory.r",
+      "mcp_tool_use_id": "run_claude_0001.toolu_mcp_memory",
       "content": [
         {
           "type": "text",
@@ -90,9 +90,9 @@
     }
   },
   {
-    "run_id": "aex_claude_0001",
+    "run_id": "run_claude_0001",
     "agent_message": {
-      "id": "aex_claude_0001.root.m1",
+      "id": "run_claude_0001.root.m1",
       "content": [
         {
           "type": "text",

@@ -3,10 +3,9 @@
 // The manifest kinds come from the SDK's manifest registry
 // (`manifestKinds()` in @stigmer/client) — the one table binding a kind to its
 // proto schema, its raw command-controller `apply` RPC, and its dependency
-// apply order. The CLI consumes that table instead of keeping a copy: the
-// copy this file used to carry drifted twice (ChannelApp was missing
-// entirely — stigmer/stigmer#353 — and three kinds were absent from the
-// local ordering map, so multi-document bundles applied on file-order luck).
+// apply order. The CLI consumes that table instead of keeping a copy: a copy
+// drifts (stigmer/stigmer#353: a kind missing entirely, and kinds absent from
+// the ordering, so multi-document bundles applied on file-order luck).
 //
 // Both registries drive the *generated controllers* directly — not the
 // high-level SDK `apply(input)` methods — because the SDK's `*Input`

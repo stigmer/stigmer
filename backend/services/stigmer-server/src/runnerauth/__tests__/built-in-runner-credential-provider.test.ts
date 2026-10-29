@@ -161,7 +161,7 @@ const store: BoundExecutionStore = {
   },
 };
 
-/** Two accounts by id; nothing resolves by raw subject (the pre-3.15.0 shape is not exercised here). */
+/** Two accounts by id; nothing resolves by raw subject (a raw-subject stamp is not exercised here). */
 const accounts: AccountsByCaller = {
   async findById(id: string): Promise<IdentityAccount | undefined> {
     return id === HUMAN || id === OTHER

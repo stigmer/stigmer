@@ -34,7 +34,7 @@ import { useConversationsWantsHumanCount } from "../useConversationsWantsHumanCo
 
 function conversationRow() {
   return create(ChannelConversationSchema, {
-    channelId: "ach_1",
+    channelId: "chn_1",
     conversationKey: "15550001111",
     org: "acme",
     displayName: "Pat",
@@ -78,10 +78,10 @@ describe("conversation polling composition", () => {
     const client = createMockStigmer();
     renderHook(
       () => {
-        const detail = useConversation("ach_1", "15550001111", {
+        const detail = useConversation("chn_1", "15550001111", {
           refetchIntervalMs: 3000,
         });
-        const timeline = useConversationTimeline("ach_1", "15550001111", {
+        const timeline = useConversationTimeline("chn_1", "15550001111", {
           refetchIntervalMs: 5000,
         });
         return { detail, timeline };
@@ -114,7 +114,7 @@ describe("conversation polling composition", () => {
     const client = createMockStigmer();
     renderHook(
       () => {
-        const detail = useConversation("ach_1", "15550001111", {
+        const detail = useConversation("chn_1", "15550001111", {
           refetchIntervalMs: 3000,
         });
         const count = useConversationsWantsHumanCount("acme", {

@@ -151,14 +151,6 @@ describe("OrgProvider persistence by id", () => {
     await waitFor(() => expect(result.current.id).toBe(ACME_ID));
     expect(localStorage.getItem("stigmer:activeOrg")).toBe(ACME_ID);
   });
-
-  it("treats an older org whose id equals its slug like any other", async () => {
-    localStorage.setItem("stigmer:activeOrg", "legacy");
-    const { result } = renderOrg(
-      createMockStigmer([[org(ACME_ID, "acme"), org("legacy", "legacy")]]),
-    );
-    await waitFor(() => expect(result.current.id).toBe("legacy"));
-  });
 });
 
 describe("OrgProvider and an organization outside the person's list", () => {

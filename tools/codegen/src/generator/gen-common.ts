@@ -1,8 +1,6 @@
 // Shared infrastructure for the Stage 2 emitters: service-schema types,
 // naming helpers, the TS import tracker, schema-directory discovery, and
-// the Go-parity string quoting the emitted code embeds. Ports of the
-// corresponding helpers in the Go generator's main.go / sdk_client.go /
-// sdk_client_ts.go / mcp_model.go.
+// the Go-style string quoting (strconv.Quote) the emitted code embeds.
 
 import * as fs from "node:fs";
 import * as path from "node:path";

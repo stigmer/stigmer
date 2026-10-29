@@ -1,7 +1,6 @@
 /**
- * Model-registry store unit tests, pinning the Go semantics
- * (model_registry_store.go): the sanity gate (parse + ≥1 INDEXED model —
- * id and harness both present, the applyDocument rule; an upstream document
+ * Model-registry store unit tests: the sanity gate (parse + ≥1 INDEXED
+ * model — id and harness both present; an upstream document
  * must also give the default harness, stigmer, a section), keep-current-on-
  * failure, warn-then-debug failure logging with reset on success, the size
  * cap, the fail-loud bundled-snapshot guard, and the catalog indexes the
@@ -80,8 +79,8 @@ describe("ModelRegistryStore", () => {
     ["empty models array", JSON.stringify({ models: [] })],
     ["missing models key", JSON.stringify({ descriptors: [] })],
     // $comment section dividers carry no id/harness and index nothing — a
-    // divider-only document is as unusable as an empty one (Go applyDocument
-    // gates on the INDEX, not the raw array length).
+    // divider-only document is as unusable as an empty one (the gate reads
+    // the INDEX, not the raw array length).
     [
       "divider-only entries",
       JSON.stringify({ models: [{ $comment: "── Anthropic ──" }] }),
@@ -152,7 +151,7 @@ describe("ModelRegistryStore", () => {
 });
 
 /**
- * The catalog indexes (Go applyDocument :302-412 + the query methods) — the
+ * The catalog indexes (and the query methods) — the
  * surface the run-config checks consume. Fixture shape mirrors real
  * registry entries: canonical id + provider api id, harness sections,
  * pricingVariants key set, tri-state capabilities.

@@ -1,5 +1,5 @@
 /**
- * Pins the upload-slot registry against Go's slots_test.go, keyed by the
+ * Pins the upload-slot registry, keyed by the
  * domain's staging key: reservation bounds and key shape, TTL expiry
  * (injected clock), exact-declared-size enforcement (short AND long
  * bodies), single upload per key, staged-file placement under the driver

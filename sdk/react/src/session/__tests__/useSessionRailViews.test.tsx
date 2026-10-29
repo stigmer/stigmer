@@ -29,10 +29,10 @@ function outputs(count: number): SessionOutputEntry[] {
     file: create(FileSchema, {
       metadata: { id: `file_${i}` },
       spec: { filename: `out-${i}.md` },
-      status: { runId: "aex_1", outputPath: `out-${i}.md` },
+      status: { runId: "run_1", outputPath: `out-${i}.md` },
     }),
     earlier: [],
-    runId: "aex_1",
+    runId: "run_1",
     isTerminal: true,
     hasNameCollision: false,
   }));

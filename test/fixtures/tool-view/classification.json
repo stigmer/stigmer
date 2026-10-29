@@ -1,5 +1,5 @@
 {
-  "comment": "name (+ optional mcpServerSlug) -> toolKind. Built-in names win over a non-empty slug, matching the legacy resolver. See test/fixtures/tool-view/README.md.",
+  "comment": "name (+ optional mcpServerSlug) -> toolKind. Built-in names win over a non-empty slug, matching the name-fallback resolver. See test/fixtures/tool-view/README.md.",
   "cases": [
     { "name": "read", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_READ" },
     { "name": "read_file", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FILE_READ" },
@@ -67,7 +67,7 @@
     { "name": "remember", "mcpServerSlug": "third-party-notes", "toolKind": "TOOL_KIND_MCP", "note": "a coincidental third-party remember stays a plain MCP tool" },
     { "name": "remember", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" },
 
-    { "name": "read", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_FILE_READ", "note": "built-in name wins over a non-empty slug, matching the legacy resolver" },
+    { "name": "read", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_FILE_READ", "note": "built-in name wins over a non-empty slug, matching the name-fallback resolver" },
 
     { "name": "some_unknown_tool", "mcpServerSlug": "", "toolKind": "TOOL_KIND_UNSPECIFIED" }
   ]

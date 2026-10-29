@@ -1,6 +1,5 @@
 /**
- * The Clock seam and the write-path arming/teardown steps — ports
- * pkg/domain/schedule/controller/clock.go.
+ * The Clock seam and the write-path arming/teardown steps.
  *
  * Clock is the narrow slice of the scheduling runtime the write paths need
  * (satisfied by the clock's RoutineSyncer). Undefined until the server
@@ -10,9 +9,8 @@
  * resource must be writable offline. The reconciliation pass converges
  * whatever was written while the clock was away.
  *
- * Go's Clock also declares Trigger (the artifact-trigger lane); manual
- * fires stopped using it, leaving it with zero production callers, so
- * this seam deliberately omits it.
+ * Manual fires do not go through the clock, so the seam carries no
+ * trigger.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -29,7 +27,7 @@ import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 
-/** The write paths' slice of the scheduling runtime (Go Clock). */
+/** The write paths' slice of the scheduling runtime. */
 export interface RoutineClock {
   /**
    * Converges the resource's Temporal artifact and stamps
@@ -46,7 +44,7 @@ export type ClockProvider = () => RoutineClock | undefined;
 /**
  * Converges the artifact AFTER a successful write (create/update/apply —
  * pipelines whose request is the Routine) and mirrors the fresh
- * next_fire_at into the response state (Go armScheduleStep).
+ * next_fire_at into the response state.
  *
  * Non-critical in every outcome: a failed arm logs and succeeds, because
  * the write already happened and the reconciliation pass is the
@@ -70,7 +68,7 @@ export function newArmRoutineStep(
  * routine lives under EXISTING_RESOURCE_KEY). Re-arming is what makes
  * resume answer with a fresh next_fire_at — the latch just cleared, so
  * DesiredPaused flipped and the artifact must unpause NOW, not at the next
- * sweep (Go armResumedScheduleStep).
+ * sweep.
  */
 export function newArmResumedRoutineStep<Desc extends DescMessage>(
   clock: ClockProvider,
@@ -91,7 +89,7 @@ export function newArmResumedRoutineStep<Desc extends DescMessage>(
 /**
  * Runs the ensure and mirrors the stamp into the in-memory state the
  * pipeline will answer with, so the response's next_fire_at matches what
- * was just recorded on the row (Go armAndMirror).
+ * was just recorded on the row.
  */
 async function armAndMirror(
   clock: RoutineClock | undefined,
@@ -126,8 +124,7 @@ async function armAndMirror(
  * source of truth — a failed row delete must never tear down a live
  * routine's clock, so this step only ever runs once the delete
  * succeeded). Non-critical: an orphaned artifact cannot fire past
- * revalidation, and the reconciliation pass reaps it (Go
- * teardownScheduleArtifactStep).
+ * revalidation, and the reconciliation pass reaps it.
  */
 export function newTeardownRoutineArtifactStep<Desc extends DescMessage>(
   clock: ClockProvider,
@@ -162,8 +159,7 @@ export function newTeardownRoutineArtifactStep<Desc extends DescMessage>(
 /**
  * Removes the routine's fire-ledger rows AFTER the row delete succeeded —
  * the teardown step's posture: best-effort, never fails the delete
- * (orphaned ledger rows answer no query and retention prunes them). Go
- * deleteScheduleRunsStep.
+ * (orphaned ledger rows answer no query and retention prunes them).
  */
 export function newDeleteRoutineFiresStep<Desc extends DescMessage>(
   store: Store,

@@ -1,8 +1,8 @@
 /**
  * Pins the request-metrics interceptor
  * against a REAL MeterProvider (in-memory exporter) through the REAL
- * serving chain over the router transport — Java's
- * GrpcRequestMetricsInterceptor contract, label for label:
+ * serving chain over the router transport — the request-metrics
+ * contract, label for label:
  *
  *   - one record per RPC with `rpc.service`, `rpc.method` and the gRPC
  *     status NAME (`OK`, `NOT_FOUND`, `UNKNOWN` for a raw throw — the
@@ -17,8 +17,8 @@
  *     is not (the heartbeat's premise);
  *   - instruments resolve lazily, so a provider registered after the
  *     module loaded still receives every record;
- *   - the sixteen Connect codes map to grpc-java's names byte-exact
- *     (CANCELLED, two Ls).
+ *   - the sixteen Connect codes map to gRPC's canonical status names
+ *     byte-exact (CANCELLED, two Ls).
  */
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -204,7 +204,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
       expect(durations[0]!.attributes).toEqual(
         requestPoints(collected)[0]!.attributes,
       );
-      // Fractional milliseconds, Java's nanoTime / 1e6 — never rounded.
+      // Fractional milliseconds — never rounded.
       expect(sumOf(durations[0]!)).toBe(12.5);
     } finally {
       await meter.dispose();
@@ -296,7 +296,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
     }
   });
 
-  it("does not count an identity refusal — position 1's own record, Java's position", async () => {
+  it("does not count an identity refusal — position 1's own record", async () => {
     const meter = await inMemoryMeter();
     try {
       const transport = servingTransport({}, fakeClock().now, {
@@ -353,7 +353,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
       for await (const message of createClient(
         SessionQueryController,
         transport,
-      ).streamEvents({ sessionId: "ses-1" })) {
+      ).streamEvents({ sessionId: "ses_1" })) {
         seen.push(message.frame.case === "event" ? (message.frame.value.event.value?.id ?? "") : "");
       }
       expect(seen).toEqual(["e1", "e2"]);
@@ -392,7 +392,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
           for await (const _ of createClient(
             SessionQueryController,
             transport,
-          ).streamEvents({ sessionId: "ses-1" })) {
+          ).streamEvents({ sessionId: "ses_1" })) {
             // drain
           }
           return null;
@@ -416,7 +416,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
     }
   });
 
-  it("labels a stream the consumer abandoned CANCELLED, once — Java's client-cancel status", async () => {
+  it("labels a stream the consumer abandoned CANCELLED, once — the client-cancel status", async () => {
     // Exercised on the interceptor directly: the transport's own abort
     // plumbing is not under test here, the interceptor's `finally` arm is.
     const meter = await inMemoryMeter();
@@ -539,7 +539,7 @@ describe("the rpc-metrics registry", () => {
     }
   });
 
-  it("maps every Connect code to grpc-java's status name, byte-exact", () => {
+  it("maps every Connect code to gRPC's canonical status name, byte-exact", () => {
     const expected: Record<Code, string> = {
       [Code.Canceled]: "CANCELLED",
       [Code.Unknown]: "UNKNOWN",

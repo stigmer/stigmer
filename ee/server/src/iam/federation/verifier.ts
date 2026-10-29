@@ -15,11 +15,11 @@
  * anyone into another's. A token no provider's route matches is passed,
  * claim-or-pass, which answers nothing about what is registered; the
  * chain then refuses it as unclaimed. A token two providers' routes match
- * (possible only for legacy rows, or an issuer that stamps two registered
- * audiences on one token) is refused, never guessed. A stored provider
- * with no audience, or one naming the host's own sign-in issuer, routes
- * nothing: the contract refuses both on every write, and a row stored
- * before those rules must not act on them.
+ * (possible only for rows written outside the handlers, or an issuer that
+ * stamps two registered audiences on one token) is refused, never guessed.
+ * A stored provider with no audience, or one naming the host's own sign-in
+ * issuer, routes nothing: the contract refuses both on every write, and a
+ * row that reaches the store another way must not act on them.
  *
  * Route resolution reads the providers through a bounded TTL cache with
  * explicit invalidation from the IdP command handlers. The cache is keyed
@@ -216,9 +216,8 @@ export function newStoreBackedFederatedVerifier(
   /**
    * The providers that name an issuer, each with its own audience. Both
    * sides of the lookup are canonical (`normalizeIssuerUrl`): the map
-   * keys, so a legacy row whose spelling predates write-time
-   * normalization still resolves, and the token's `iss`, so Auth0's
-   * trailing slash matches the stored value.
+   * keys, so a stored spelling resolves whatever its form, and the
+   * token's `iss`, so Auth0's trailing slash matches the stored value.
    */
   async function providersFor(issuer: string): Promise<ReadonlyArray<FederationIssuer>> {
     if (nowMs() - issuersFetchedAtMs >= ISSUER_CACHE_TTL_MS) {
@@ -416,8 +415,8 @@ async function withoutOrphans(
  * Index providers by canonical issuer, each keeping its own audience; the
  * verifier picks among them by the token's audience. The route side
  * table's primary key makes two providers claiming one route impossible
- * for rows the handlers wrote, so a shared route here means legacy
- * spellings or rows; it is logged so an operator can repair the rows, and
+ * for rows the handlers wrote, so a shared route here means rows written
+ * another way; it is logged so an operator can repair the rows, and
  * a token it matches is refused rather than guessed. Spellings that
  * normalize to nothing are skipped, mirroring the handlers' write-time
  * filter; a provider with no audience, or naming a reserved issuer, is

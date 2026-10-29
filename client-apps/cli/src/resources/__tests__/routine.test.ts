@@ -76,7 +76,7 @@ describe("fireRoutine", () => {
       create(RoutineFireResultSchema, {
         routine: nightly,
         outcome: RoutineFireOutcome.STARTED,
-        runId: "aex_7",
+        runId: "run_7",
         fireId: "manual-20261018-a1b2",
       }),
     );
@@ -87,9 +87,9 @@ describe("fireRoutine", () => {
     expect(result.status).toBe("success");
     expect(result.message).toBe("Routine 'Nightly digest' fired — run started");
     expect(fields(result)).toEqual({
-      Run: "aex_7",
+      Run: "run_7",
       Fire: "manual-20261018-a1b2",
-      "Watch it": "stigmer get run aex_7",
+      "Watch it": "stigmer get run run_7",
       "Next scheduled fire": NEXT_FIRE.toISOString(),
     });
   });
@@ -97,7 +97,7 @@ describe("fireRoutine", () => {
   it("sends the note as the fire's text", async () => {
     const { client, inputs } = double(
       nightly,
-      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
+      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "run_7" }),
     );
 
     await fireRoutine(client, "rtn_1", "acme", "Sentry alert SEN-4521 fired");
@@ -110,7 +110,7 @@ describe("fireRoutine", () => {
   it("sends no text when no note is given", async () => {
     const { client, inputs } = double(
       nightly,
-      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "aex_7" }),
+      create(RoutineFireResultSchema, { routine: nightly, outcome: RoutineFireOutcome.STARTED, runId: "run_7" }),
     );
 
     await fireRoutine(client, "rtn_1", "acme");
@@ -123,13 +123,13 @@ describe("fireRoutine", () => {
     const unnamed = create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" } });
     const { client } = double(
       unnamed,
-      create(RoutineFireResultSchema, { outcome: RoutineFireOutcome.STARTED, runId: "aex_8" }),
+      create(RoutineFireResultSchema, { outcome: RoutineFireOutcome.STARTED, runId: "run_8" }),
     );
 
     const result = await fireRoutine(client, "rtn_1", "acme");
 
     expect(result.message).toBe("Routine 'nightly' fired — run started");
-    expect(fields(result)).toEqual({ Run: "aex_8", Fire: "", "Watch it": "stigmer get run aex_8" });
+    expect(fields(result)).toEqual({ Run: "run_8", Fire: "", "Watch it": "stigmer get run run_8" });
   });
 
   it("reports a run a launch gate refused as an error, relaying the reason", async () => {
@@ -259,7 +259,7 @@ describe("showRoutineFires", () => {
     routineId: "rtn_1",
     origin: RoutineFireOrigin.SCHEDULE,
     outcome: RoutineFireOutcome.COMPLETED,
-    runId: "aex_1",
+    runId: "run_1",
     recordedAt: timestampFromDate(RECORDED),
   });
 
@@ -267,7 +267,7 @@ describe("showRoutineFires", () => {
     routineId: "rtn_1",
     origin: RoutineFireOrigin.MANUAL,
     outcome: RoutineFireOutcome.STARTED,
-    runId: "aex_2",
+    runId: "run_2",
     recordedAt: timestampFromDate(RECORDED),
     firedBy: { id: "ida_ana", email: "ana@example.com", displayName: "Ana" },
   });
@@ -314,11 +314,11 @@ describe("showRoutineFires", () => {
     expect(asked.map((request) => request.routineId)).toEqual(["rtn_1"]);
     const lines = streams.text().trim().split("\n");
     expect(lines[0]).toMatch(/^FIRED\s+ORIGIN\s+STARTED BY\s+OUTCOME\s+RUN\s+REASON$/);
-    expect(lines[2]).toMatch(/Manual\s+Ana\s+started\s+aex_2/);
+    expect(lines[2]).toMatch(/Manual\s+Ana\s+started\s+run_2/);
     expect(lines[3]).toMatch(
       /Manual\s+pager@example\.com \(through service account ida_alerting\)\s+refused\s+monthly spend cap reached/,
     );
-    expect(lines[4]).toMatch(/Scheduled\s+—\s+completed\s+aex_1/);
+    expect(lines[4]).toMatch(/Scheduled\s+—\s+completed\s+run_1/);
     expect(lines[2]).toContain(RECORDED.toISOString());
   });
 

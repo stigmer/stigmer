@@ -4,10 +4,8 @@
  * once and never garbage-collected (historical versions stay downloadable
  * through the keys a version history exposes), and a key that addresses
  * nothing inside the store collapses to one not-found before the driver
- * sees it. Skills shipped this shape first
- * (pkg/domain/skill/storage/artifact_storage.go, then the TS port under
- * domain/skill/storage); plugins need the identical port under another
- * prefix, so the implementation lives here and each domain names its
+ * sees it. Skills and plugins need the identical port under different
+ * prefixes, so the implementation lives here and each domain names its
  * instance (`skills/`, `plugins/`).
  *
  * Why the traversal guard is the port's, not the driver's: a
@@ -32,8 +30,8 @@ import { ArtifactStorageNotFoundError } from "../artifactstorage/artifact-storag
 
 /**
  * Storage abstraction for content-addressed archives. The interface exists
- * for the same reason Go's did: the cloud edition uses R2 behind the
- * identical surface, and a controller must not know which one it holds.
+ * because the blob backend varies (local disk, R2) behind the identical
+ * surface, and a controller must not know which one it holds.
  */
 export interface ContentAddressedArchiveStore {
   /** Saves an archive under its content hash; returns the storage key. */
@@ -50,7 +48,7 @@ export interface ContentAddressedArchiveStore {
 
 /**
  * A storage key that addresses nothing inside the store — missing file OR
- * a traversal-shaped key (both render as Go's "artifact not found: %s").
+ * a traversal-shaped key (both render as "artifact not found: <key>").
  */
 export class ArtifactNotFoundError extends Error {
   constructor(storageKey: string) {

@@ -33,7 +33,7 @@ function model(overrides?: Partial<ModelInfo>): ModelInfo {
 }
 
 describe("assessVisionPreflight — tri-state silence", () => {
-  it("warns about nothing when limits are absent (older server)", () => {
+  it("warns about nothing when limits are absent", () => {
     const result = assessVisionPreflight([image("huge.png", 50 * 1024 * 1024)], {
       model: model(),
     });
@@ -192,7 +192,7 @@ describe("assessVisionPreflight — blind model (model_no_vision)", () => {
     ]);
   });
 
-  it("applies the capability verdict even without limits (older server)", () => {
+  it("applies the capability verdict even without limits", () => {
     const result = assessVisionPreflight([image("a.png", 10)], {
       model: model({ visionCapability: false }),
     });

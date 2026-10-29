@@ -1,6 +1,5 @@
 /**
- * Pins the authorize pre-flight probe against Go oauth/preflight.go
- * (stigmer/stigmer#235): ONLY HTTP 400 classifies as blocked (RFC 6749
+ * Pins the authorize pre-flight probe (stigmer/stigmer#235): ONLY HTTP 400 classifies as blocked (RFC 6749
  * §4.1.2.1's no-redirect rejection); 2xx/3xx/403/503 fail open (bot walls
  * answer server-side GETs while real browsers pass); redirects are never
  * followed; vendor detail comes from an RFC-shaped JSON body only.
@@ -65,7 +64,7 @@ describe("preflightAuthorize", () => {
     expect(redirectMode).toBe("manual");
   });
 
-  it("propagates network errors to the caller (Go's (nil, err) fail-open diagnostics)", async () => {
+  it("propagates network errors to the caller (fail-open diagnostics)", async () => {
     await expect(
       preflightAuthorize("https://auth.example.com/authorize", async () => {
         throw new Error("ETIMEDOUT");

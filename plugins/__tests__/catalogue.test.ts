@@ -16,8 +16,8 @@
  * display name, no warnings at all); a struck entry has no folder;
  * `NOTICE` and `marketplace.json` are exactly what the sync derives from
  * the pins and the tree, so it names no entry a client installs unasked;
- * no plugin carries an `ai.stigmer/` folder, which Stigmer no longer reads
- * (install would warn about it and drop it). There
+ * no plugin carries an `ai.stigmer/` folder, which Stigmer gives no meaning
+ * (its files would ship as plain plugin content). There
  * are no snapshot files: a change in what the catalogue offers is a change
  * someone wrote down here.
  */
@@ -159,7 +159,7 @@ describe("every authored plugin", () => {
 });
 
 describe("Stigmer's own folder", () => {
-  it("no plugin carries an ai.stigmer/ folder: Stigmer reads none, and install would warn about it", () => {
+  it("no plugin carries an ai.stigmer/ folder: Stigmer gives it no meaning, so its files would ship as plain plugin content", () => {
     const carrying = marketplace.plugins.filter((entry) => existsSync(join(CATALOGUE_ROOT, entry.dir, "ai.stigmer")));
     expect(carrying.map((entry) => entry.dir)).toEqual([]);
   });

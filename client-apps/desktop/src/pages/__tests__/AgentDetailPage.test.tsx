@@ -213,8 +213,8 @@ describe("desktop AgentDetailPage — organizations", () => {
     page.agent = AGENT;
     renderAgent();
 
-    expect(page.detail.at(-1)?.buildChatLinkUrl("ash_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
-      `${CONSOLE_URL}/chat/ash_01j9z3k8f2q4m6n7p8r9s0t1v2`,
+    expect(page.detail.at(-1)?.buildChatLinkUrl("chn_01j9z3k8f2q4m6n7p8r9s0t1v2")).toBe(
+      `${CONSOLE_URL}/chat/chn_01j9z3k8f2q4m6n7p8r9s0t1v2`,
     );
   });
 });

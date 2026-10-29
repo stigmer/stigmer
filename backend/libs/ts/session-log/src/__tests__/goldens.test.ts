@@ -386,8 +386,8 @@ describe("execute-deep-agent file-review-reconcile: an undo another turn put bac
     const events = (JSON.parse(readFileSync(path, "utf8")) as JsonValue[]).map((json) => fromJson(SessionEventSchema, json));
     const fold = foldSession(events);
     expect(fold.turns.map((turn) => [turn.runId, turn.fileReview.length])).toEqual([
-      ["aex_hermetic_0001", 1],
-      ["aex_hermetic_0001-reconcile", 0],
+      ["run_hermetic_0001", 1],
+      ["run_hermetic_0001-reconcile", 0],
     ]);
     const set = fold.turns[0]!.fileReview[0]!;
     expect(set.files.map((file) => [file.path, file.state, file.decidedBy])).toEqual([["notes.md", "undone", "person"]]);
@@ -399,6 +399,6 @@ describe("execute-deep-agent file-review-reconcile: an undo another turn put bac
 describe("the corpus", () => {
   it("covers the Stigmer harness's goldens", () => {
     expect(new Set(ALL.map((golden) => golden.harness))).toEqual(new Set(HARNESSES));
-    expect(ALL.length).toBeGreaterThanOrEqual(30);
+    expect(ALL.length).toBeGreaterThanOrEqual(28);
   });
 });

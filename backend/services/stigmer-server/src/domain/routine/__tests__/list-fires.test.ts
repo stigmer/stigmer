@@ -34,7 +34,7 @@ import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { RoutineFireRecord, Store } from "../../../store/interface.js";
 import { LIST_FIRES_RESULT_KEY, newListFiresFromLedgerStep, newLoadRoutineForFiresStep } from "../list-fires.js";
 
-const ROUTINE_ID = "sch_ledger";
+const ROUTINE_ID = "rtn_ledger";
 
 let temp: TempStore | undefined;
 

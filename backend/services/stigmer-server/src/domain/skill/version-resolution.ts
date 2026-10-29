@@ -1,10 +1,9 @@
 /**
  * Skill version resolution — the skill binding of the shared
  * content-addressed version steps (pipeline/steps/version-history.ts): the
- * getByReference version ladder and the paginated version history, ported
- * from pkg/domain/skill/controller/load_skill_by_reference.go and
- * list_versions.go. The ladder, the is_current rule and the pagination
- * live in the shared module since plugins needed the identical shape; what
+ * getByReference version ladder and the paginated version history. The
+ * ladder, the is_current rule and the pagination live in the shared module,
+ * shared with plugins; what
  * is a skill's is here: the schema, the noun in sentences, the head hash in
  * status.version_hash, the live tag in spec.tag (which a fetched version
  * carries from the audit column), and the SkillVersionEntry
@@ -74,7 +73,7 @@ const skillVersionBinding: VersionHistoryBinding<
     create(ListSkillVersionsResponseSchema, { entries, nextPageToken }),
 };
 
-/** Go LoadSkillByReferenceStep — the reference + version ladder. */
+/** LoadSkillByReference — the reference + version ladder. */
 export function newLoadSkillByReferenceStep(
   store: Store,
 ): PipelineStep<GetByReferenceDesc> {
@@ -85,7 +84,7 @@ export function newLoadSkillByReferenceStep(
   );
 }
 
-/** Go ResolveSkillBySlugStep — resolves the skill and captures the head hash. */
+/** ResolveSkillBySlug — resolves the skill and captures the head hash. */
 export function newResolveSkillBySlugStep(
   store: Store,
 ): PipelineStep<ListVersionsDesc> {
@@ -96,7 +95,7 @@ export function newResolveSkillBySlugStep(
   );
 }
 
-/** Go LoadAndMapVersionsStep — audit records → entries → one page. */
+/** LoadAndMapVersions — audit records → entries → one page. */
 export function newLoadAndMapVersionsStep(
   store: Store,
 ): PipelineStep<ListVersionsDesc> {
@@ -108,8 +107,7 @@ export function newLoadAndMapVersionsStep(
 }
 
 /**
- * Maps an archived Skill snapshot to a version entry (Go
- * mapSkillToVersionEntry).
+ * Maps an archived Skill snapshot to a version entry.
  */
 function mapSkillToVersionEntry(
   skill: Skill,

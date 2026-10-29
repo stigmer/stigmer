@@ -90,7 +90,7 @@ describe.skipIf(!ENABLED)("Open Computer Use — desktop tool dispatch (local-on
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
-        name: uniqueName("aex-ocu"),
+        name: uniqueName("run-ocu"),
         agentRef: agentRefOf(agent),
         autoApproveAll: true,
       }),

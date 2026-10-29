@@ -2,11 +2,11 @@
 // Run via `node --test scripts/planning-references.test.mjs` (wired into root
 // `npm test`).
 //
-// The maintainers plan in a private repository, and its identifiers used to
-// leak into this one: a decision number in a comment, a record's folder id in
-// a test title, a private issue in an error message, an internal entry name in
+// The maintainers plan in a private repository, and its identifiers can leak
+// into this one: a decision number in a comment, a record's folder id in a
+// test title, a private issue in an error message, an internal entry name in
 // the Helm chart's refusal. A reader of this repository cannot open any of
-// them, so each was a dead reference where the reason should have been. The
+// them, so each is a dead reference where the reason should be. The
 // root AGENTS.md forbids them; this guard is what holds the rule for every
 // file the guidance gate never reads (code, protos, tests, docs, workflows,
 // the chart), across the whole repository.

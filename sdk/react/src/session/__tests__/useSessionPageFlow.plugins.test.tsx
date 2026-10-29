@@ -27,7 +27,7 @@ describe("useSessionPageFlow — a stored conversation's plugins", () => {
       session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
       run: {
         listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
-        create: vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} }),
+        create: vi.fn().mockResolvedValue({ metadata: { id: "run_1" }, spec: {} }),
         // The sent turn's run, read while it is live; never answered here.
         get: vi.fn(() => new Promise(() => {})),
       },

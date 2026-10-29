@@ -1,6 +1,5 @@
 /**
- * Pins the session domain against Go's pkg/domain/session tests — through
- * the REAL stack: a composed server on an ephemeral port, a native gRPC
+ * Pins the session domain through the REAL stack: a composed server on an ephemeral port, a native gRPC
  * client, and the full interceptor chain.
  *
  * The load-bearing pins:
@@ -28,8 +27,8 @@
  *     refuses an empty agent_id, at the filter step as well as at proto
  *     validation;
  *   - every harness the proto names is offered at create and at update
- *     (Claude included); a number no harness owns, the retired 2 included,
- *     is refused by proto validation;
+ *     (Claude included); a number no harness owns, 2 included, is refused
+ *     by proto validation;
  *   - harness immutability locks once the session has a run row
  *     (stigmer/stigmer#2566), with a stored UNSPECIFIED read as STIGMER and
  *     the exact FAILED_PRECONDITION copy; an update that names no harness
@@ -39,7 +38,7 @@
  *     harness (stigmer/stigmer#2598), and resolves UNSPECIFIED through the
  *     deployment default on BOTH sides (oss#397) — a no-op round-trip
  *     passes on a local-default config, a real change is refused with the
- *     exact copy (Go enum value names + the config string), a session that
+ *     exact copy (the enum value names + the config string), a session that
  *     has not run still moves, and a cloud-default config flips which
  *     transitions count as changes;
  *   - the locks of one update read the session's run rows at most once;
@@ -239,7 +238,7 @@ async function seedExecution(
   phase: RunPhase,
 ): Promise<string> {
   executionCounter += 1;
-  const id = `aex_sessiontest_${executionCounter}`;
+  const id = `run_sessiontest_${executionCounter}`;
   const execution = create(RunSchema, {
     apiVersion: API_VERSION,
     kind: "Run",
@@ -698,7 +697,7 @@ describe("session — the offered-engine rule", () => {
     expect([toStigmer.code, toStigmer.rawMessage]).toEqual([Code.FailedPrecondition, HARNESS_IMMUTABILITY_REFUSAL]);
   });
 
-  it("refuses a number no harness owns by validation, the retired 2 included", async () => {
+  it("refuses a number no harness owns by validation, 2 included", async () => {
     for (const retired of [2, 7]) {
       const error = await grpcError(() => createSession({ harness: retired as Harness }));
       expect(error.code).toBe(Code.InvalidArgument);

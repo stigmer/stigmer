@@ -1,6 +1,5 @@
 /**
- * Skill push pipeline — ports pkg/domain/skill/controller/push.go: the
- * 12-step chain converting PushSkillRequest → Skill under the
+ * Skill push pipeline: the 12-step chain converting PushSkillRequest → Skill under the
  * content-addressed versioning model (#341, adopted for skills in #475).
  *
  *   ValidateProto → ResolveArtifactSource → BuildInitialSkill →
@@ -9,11 +8,11 @@
  *   GuardReservedLabels → ArchiveCurrentSkill → StoreSkill →
  *   IndexSkillSearch
  *
- * Step names and context keys are Go's, verbatim; GuardReservedLabels
- * joined when PushSkillRequest gained `labels` (a plugin materialises its
- * skills with the plugin label through this chain, so the chain must run
- * the same reserved-namespace guard every other write boundary runs). The
- * load-bearing semantics, all preserved:
+ * Step names are frozen vocabulary. GuardReservedLabels runs because
+ * PushSkillRequest carries `labels` (a plugin materialises its skills with
+ * the plugin label through this chain, so the chain must run the same
+ * reserved-namespace guard every other write boundary runs). The
+ * load-bearing semantics:
  *   - exactly one artifact source (inline bytes XOR upload ref — proto
  *     CEL); a staged ref is consumed (retired) whatever happens downstream;
  *   - content addressing: same bytes = same SHA-256 = one stored copy;
@@ -88,7 +87,7 @@ import type { ArchiveStaging } from "./transfer/staging.js";
 
 type PushDesc = typeof PushSkillRequestSchema;
 
-// Context keys for the push operation (Go push.go, verbatim).
+// Context keys for the push operation.
 export const SKILL_KEY = "skill";
 export { ARTIFACT_BYTES_KEY };
 export const EXTRACT_RESULT_KEY = "extractResult";
@@ -455,7 +454,7 @@ export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
  * skill rides SKILL_KEY, not newState), and push is an UPSERT, so the
  * lane has both arms:
  *   - a genuine create (SHOULD_CREATE_SKILL_KEY) fires the full creation
- *     event — the Java SkillPushHandler runs the same create-tuples path;
+ *     event, the same create-tuples path every create runs;
  *   - a re-push diffs the existing skill's visibility against the pushed
  *     head and fires a visibility transition only when it changed (the
  *     reconciler's same-level no-op, preserved).

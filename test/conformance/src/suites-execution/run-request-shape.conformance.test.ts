@@ -150,7 +150,7 @@ async function runAgentTurn(
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({
       org,
-      name: uniqueName("aex-shape"),
+      name: uniqueName("run-shape"),
       ...(sessionId === undefined ? { agentRef } : { sessionId }),
       message: turn.message ?? BARE_AGENT_MESSAGE,
       autoApproveAll: true,

@@ -23,7 +23,7 @@ import type { ResourceResult } from "./get-bindings.js";
 import { obj, renderListMessage, str, type TableShape } from "./render.js";
 import { sessionOfRun } from "./session.js";
 
-// Terminal phases cannot be cancelled; mirrors Go's isTerminalAgentPhase.
+// Terminal phases cannot be cancelled.
 const TERMINAL_AGENT_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,
   RunPhase.RUN_FAILED,
@@ -31,7 +31,7 @@ const TERMINAL_AGENT_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_TERMINATED,
 ]);
 
-/** True when an agent phase is terminal (no further transitions). Mirrors Go's isTerminalAgentPhase. */
+/** True when an agent phase is terminal (no further transitions). */
 export function isTerminalAgentPhase(phase: RunPhase): boolean {
   return TERMINAL_AGENT_PHASES.has(phase);
 }
@@ -72,7 +72,7 @@ const RUN_ALIASES: ReadonlySet<string> = new Set(
 /**
  * True for the `run` type-alias family. Runs bypass the resource
  * registry (they're addressed by `run_` ID, not slug), so callers route
- * on this predicate before the registry lookup — mirroring Go's command layer.
+ * on this predicate before the registry lookup.
  */
 export function isRunAlias(type: string): boolean {
   return RUN_ALIASES.has(type.trim().toLowerCase());
@@ -130,7 +130,7 @@ function dash(value: string): string {
   return value === "" ? "-" : value;
 }
 
-/** Human-readable run phase, matching Go's execution.FormatPhase. */
+/** Human-readable run phase. */
 export function formatAgentPhase(phase: RunPhase): string {
   switch (phase) {
     case RunPhase.RUN_PENDING:

@@ -1,7 +1,6 @@
 /**
  * Pins the R2 driver's logic-bearing pieces — hermetically (presigning is
- * pure local SigV4 computation; no call leaves the host). The Go tree
- * ships r2_storage.go untested; these pins are what the port adds:
+ * pure local SigV4 computation; no call leaves the host):
  * required-config copy, the 7-day presign clamp, the signed
  * Content-Disposition, the not-found mapping, and the widened surface
  * (typed not-found on download/size, presigned-PUT under the caller's key
@@ -26,7 +25,7 @@ const VALID = {
   region: "auto",
 };
 
-describe("R2ArtifactStorage config validation (Go NewR2Storage copy)", () => {
+describe("R2ArtifactStorage config validation (the required-config copy)", () => {
   it.each([
     [{ ...VALID, bucket: "" }, "R2 bucket name is required"],
     [{ ...VALID, endpoint: "" }, "R2 endpoint is required"],
@@ -59,7 +58,7 @@ describe("R2ArtifactStorage presigned URLs", () => {
 
   it("signs the attachment disposition into the URL when a filename is given", async () => {
     const url = await storage.getSignedUrl("abc123hash", 3_600_000, "report.txt", "person");
-    // Signed as a response-content-disposition override, mirroring Go.
+    // Signed as a response-content-disposition override.
     expect(url).toContain("response-content-disposition=");
     expect(decodeURIComponent(url)).toContain('attachment; filename="report.txt"');
   });

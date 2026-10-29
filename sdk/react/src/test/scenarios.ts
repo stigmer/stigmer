@@ -296,7 +296,7 @@ function finishedEvents(): SessionEvent[] {
 /** The session a nightly routine started. */
 function routineSession(): Session {
   const session = samples.session({ subject: "Nightly billing check" });
-  session.status = create(SessionStatusSchema, { routineId: "rtn-00000000-0000-0000-0000-000000000001" });
+  session.status = create(SessionStatusSchema, { routineId: "rtn_00000000000000000000000001" });
   return session;
 }
 

@@ -1,13 +1,10 @@
 /**
- * safearchive-parity entry pre-filter — ports the OBSERVABLE half of
+ * The archive entry pre-filter: the OBSERVABLE half of
  * github.com/google/safearchive's zip.MaximumSecurityMode (applyMagic,
- * zip.go:158, at the go.mod-pinned v0.0.0-20241025131057) plus its
- * sanitizer package. Go's push gate opens ZIPs through safearchive, which
- * rewrites the entry list BEFORE zip_extractor.go's validation loop sees
- * it — so the gate's accept/reject behavior includes this filter, and
- * local parity requires reproducing it (decided 2026-08-24). The cloud
- * edition applies none of this; the
- * parity target is the Go server.
+ * zip.go:158, at v0.0.0-20241025131057) plus its sanitizer package, the
+ * rules the push gate's accept/reject behavior is defined by. The filter
+ * rewrites the entry list BEFORE the gate's validation loop sees it, so
+ * the gate's verdicts include it.
  *
  * The four observable behaviors, in safearchive's exact order per entry:
  *   1. SanitizeFilenames — names become unrooted, ..-free, /-separated.
@@ -20,7 +17,7 @@
  *   4. SkipSpecialFiles — device/pipe/socket/char-device entries are
  *      dropped.
  * (safearchive's fifth measure, SanitizeFileMode, strips permission bits
- * the gate never exposes — not observable, not ported.)
+ * the gate never exposes — not observable, not reproduced.)
  *
  * Entry file types are decoded from the central directory's raw
  * creator/attribute fields exactly as Go archive/zip's FileHeader.Mode()
@@ -45,10 +42,10 @@ import type { ZipStructuralEntry } from "@stigmer/zip-structure";
  * no ".." elements; a trailing separator on the input is preserved when
  * the sanitized result is non-empty.
  *
- * The nix variant is deliberate: Go compiles the _win variant only on
- * Windows hosts, where sanitized names carry backslashes. The TS gate
- * normalizes to slashes everywhere — a Windows-host-only cosmetic
- * divergence in ERROR TEXT for pathological names, disclosed in the PR.
+ * The nix variant is deliberate: safearchive's _win variant applies only
+ * on Windows hosts, where sanitized names carry backslashes. This gate
+ * normalizes to slashes on every host, so error text for pathological
+ * names is the same everywhere.
  */
 export function sanitizePath(input: string): string {
   const sanitized = sanitizeCore(input);
@@ -64,7 +61,7 @@ export function sanitizePath(input: string): string {
 
 function sanitizeCore(input: string): string {
   const normalizedSeparators = input.replaceAll("\\", "/");
-  // Go filepath.Clean("/"+in): resolve "." and ".." lexically against a
+  // Clean("/"+in): resolve "." and ".." lexically against a
   // rooted path (leading ".." cannot climb above the root), collapse
   // duplicate separators, and drop any trailing separator.
   const segments = `/${normalizedSeparators}`.split("/");
@@ -145,7 +142,7 @@ export function entryTypeBits(entry: ZipStructuralEntry): EntryTypeBits {
  * The original entry rides along for payload access.
  */
 export interface PrefilteredEntry {
-  /** The sanitized name — what every downstream check sees (Go f.Name). */
+  /** The sanitized name — what every downstream check sees. */
   readonly name: string;
   readonly entry: ZipStructuralEntry;
 }

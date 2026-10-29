@@ -90,7 +90,7 @@ function makeChatLink(overrides?: {
 }): Channel {
   return {
     metadata: {
-      id: overrides?.id ?? "ash_1",
+      id: overrides?.id ?? "chn_1",
       org: "acme",
       slug: "support-agent",
       name: overrides?.name ?? "Support Agent",
@@ -158,7 +158,7 @@ describe("ChatLinkCard", () => {
 
     expect(screen.getByRole("group", { name: "Chat link: Support Agent" })).toBeTruthy();
     // The bare path: the token is a secret, not an address.
-    expect(screen.getByText("/chat/ash_1")).toBeTruthy();
+    expect(screen.getByText("/chat/chn_1")).toBeTruthy();
     expect(screen.queryByText(/tok123/)).toBeNull();
     expect(screen.getByText("Anyone with the link")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
@@ -167,10 +167,10 @@ describe("ChatLinkCard", () => {
   it("shows an organization link's audience and a paused link's state", () => {
     renderCard(
       createMockStigmer(),
-      makeChatLink({ id: "ash_2", name: "Help Desk", enabled: false, audience: ChannelAudience.org }),
+      makeChatLink({ id: "chn_2", name: "Help Desk", enabled: false, audience: ChannelAudience.org }),
     );
 
-    expect(screen.getByText("/chat/ash_2")).toBeTruthy();
+    expect(screen.getByText("/chat/chn_2")).toBeTruthy();
     expect(screen.getByText("Organization members")).toBeTruthy();
     expect(screen.getByText("Paused")).toBeTruthy();
   });
@@ -189,7 +189,7 @@ describe("ChatLinkCard", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Copy link for Support Agent" }));
       await waitFor(() =>
-        expect(writeText).toHaveBeenCalledWith("https://app.example.com/chat/ash_1?k=tok123"),
+        expect(writeText).toHaveBeenCalledWith("https://app.example.com/chat/chn_1?k=tok123"),
       );
     });
 
@@ -197,14 +197,14 @@ describe("ChatLinkCard", () => {
       const writeText = stubClipboard();
       renderCard(
         createMockStigmer(),
-        makeChatLink({ id: "ash_2", name: "Internal", audience: ChannelAudience.org, linkToken: "tok456" }),
+        makeChatLink({ id: "chn_2", name: "Internal", audience: ChannelAudience.org, linkToken: "tok456" }),
       );
 
       fireEvent.click(screen.getByRole("button", { name: "Copy link for Internal" }));
       // Org access is gated by membership, not the token — the member link
       // stays clean.
       await waitFor(() =>
-        expect(writeText).toHaveBeenCalledWith("https://app.example.com/chat/ash_2"),
+        expect(writeText).toHaveBeenCalledWith("https://app.example.com/chat/chn_2"),
       );
     });
 
@@ -215,7 +215,7 @@ describe("ChatLinkCard", () => {
       });
 
       fireEvent.click(screen.getByRole("button", { name: "Copy link for Support Agent" }));
-      await waitFor(() => expect(writeText).toHaveBeenCalledWith("/chat/ash_1?k=tok123"));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith("/chat/chn_1?k=tok123"));
     });
   });
 
@@ -237,7 +237,7 @@ describe("ChatLinkCard", () => {
       // stored values without being sent back.
       expect(sent.paths).toEqual(["spec.enabled"]);
       // Addressed by the card's own id — never a new channel.
-      expect(sent.id).toBe("ash_1");
+      expect(sent.id).toBe("chn_1");
       await waitFor(() => expect(handlers.refetch).toHaveBeenCalledTimes(1));
       expect(toast.success).toHaveBeenCalledWith("Chat link paused");
     });
@@ -286,7 +286,7 @@ describe("ChatLinkCard", () => {
       fireEvent.click(screen.getByRole("menuitem", { name: "Reset link" }));
 
       await waitFor(() => expect(rotateLink).toHaveBeenCalledTimes(1));
-      expect((rotateLink.mock.calls[0]![0] as { resourceId: string }).resourceId).toBe("ash_1");
+      expect((rotateLink.mock.calls[0]![0] as { resourceId: string }).resourceId).toBe("chn_1");
       await waitFor(() => expect(handlers.refetch).toHaveBeenCalledTimes(1));
     });
 

@@ -78,8 +78,8 @@ const OWNER_ID = "ida_01owner";
 
 describe("scheduledExecutionName — a schedule fire's id, THE idempotency key (byte-pinned)", () => {
   it("lowercases the id, maps underscores to hyphens, appends the 20060102t150405z time", () => {
-    expect(scheduledExecutionName("SCH_01ABC", NOMINAL)).toBe(
-      "sch-01abc-20260825t093000z",
+    expect(scheduledExecutionName("RTN_01ABC", NOMINAL)).toBe(
+      "rtn-01abc-20260825t093000z",
     );
   });
 
@@ -188,7 +188,7 @@ describe("composeMessage — what a run is told (byte contract)", () => {
     );
   });
 
-  it("a routine with no zone dates its fire in UTC and echoes 'UTC' (Go LoadLocation(''))", () => {
+  it("a routine with no zone dates its fire in UTC and echoes 'UTC'", () => {
     expect(composeMessage(routineWith({ timeZone: "" }), manualFire(ROUTINE_ID, NOMINAL, ""))).toBe(
       "Do the morning rounds\n\n(Fire time: Tuesday, 2026-08-25 09:30 (UTC))",
     );
@@ -239,7 +239,7 @@ describe("composeMessage — what a run is told (byte contract)", () => {
     );
   });
 
-  it("uses h23 hours (Go's 15 layout: 00-23, never 24)", () => {
+  it("uses h23 hours (00-23, never 24)", () => {
     const midnight = new Date("2026-08-25T00:05:00Z");
     expect(
       composeMessage(routineWith({ timeZone: "UTC" }), scheduleFire(ROUTINE_ID, midnight)),
@@ -589,7 +589,7 @@ describe("RunStarter.startRun — against a real store", () => {
       });
     });
 
-    it("a stamp the owner rule resolves through the raw issuer subject (the 3.14.x stamp) acts as the same account", async () => {
+    it("a stamp the owner rule resolves through the raw issuer subject (a write made before the account existed) acts as the same account", async () => {
       let seenCaller: CallerIdentity | undefined;
       const runStarter = starter(
         async (_run, fireCaller) => {

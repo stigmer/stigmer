@@ -269,8 +269,7 @@ const EXPERIMENTAL_KINDS: Readonly<Record<string, IgnoredComponentKind>> = {
  * carries at its top level, read by `presentation.ts` and treated by the
  * install exactly as Cursor's are (`logo` an ignored component, because
  * nothing in an Organization carries the image; `displayName` and
- * `category` silent). The FOLDER `ai.stigmer/` (`normalise/stigmer-folder.ts`)
- * is the same name in a different place, and is read by nothing.
+ * `category` silent).
  */
 export const STIGMER_EXTENSION_NAMESPACE = "ai.stigmer";
 export const STIGMER_EXTENSION_FIELDS: ReadonlySet<string> = new Set(["displayName", "logo", "category"]);

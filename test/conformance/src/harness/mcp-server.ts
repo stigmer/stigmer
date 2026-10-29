@@ -6,9 +6,8 @@
 // approval gate keys off a tool name, and there is no built-in approval-gated
 // tool, so a conformance agent can only reach RUN_WAITING_FOR_APPROVAL by
 // listing a plugin whose MCP server exposes a real tool. This fixture is that
-// tool surface, and (like mock-llm.ts) it is TS-pure on purpose — no reuse of
-// the Go test/integration MCP servers — to preserve the suite's
-// no-cross-language-coupling property.
+// tool surface, and (like mock-llm.ts) it is TS-pure on purpose, to keep the
+// suite free of cross-language coupling.
 //
 // Nothing is connected ahead of a run: at turn start the runner reads each
 // listed plugin's server entries, connects LIVE and lists tools, and reads
@@ -24,8 +23,7 @@
 // Transport choice: stateless Streamable HTTP. Each POST gets a fresh
 // SDK McpServer + transport (sessionIdGenerator: undefined), so independent runner
 // connections over the fixture's lifetime never share session state and nothing
-// leaks between executions — the right default for a stateless `echo` tool, and
-// the behavioral match to the retired Go harness's mcp_http_server.go. The
+// leaks between executions — the right default for a stateless `echo` tool. The
 // fixture is booted once per file and must OUTLIVE every execution (the runner
 // connects at each execution's setup), so it is closed only in afterAll.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -73,7 +71,7 @@ export const DESTRUCTIVE_ECHO_TOOL_NAME = "echo_destructive";
 // A tool that always fails. The runner must record the failed ToolCall and let
 // the agent continue — a failing tool is a tool result, not a failed run — and
 // that contract needs a tool whose failure is deterministic (the messages
-// suite; the Go test server's `fail`).
+// suite).
 export const FAIL_TOOL_NAME = "fail";
 
 // A read-only data tool: looks an order up in a fixed table and answers its

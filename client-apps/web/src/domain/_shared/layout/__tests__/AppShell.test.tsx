@@ -92,18 +92,18 @@ beforeEach(() => {
 
 describe("web AppShell — the run zone", () => {
   it("hands a run off to the session it ran in, showing nothing of its own", () => {
-    shell.sessionFor.set("aex_1", "ses_1");
-    renderShell("/runs/aex_1");
+    shell.sessionFor.set("run_1", "ses_1");
+    renderShell("/runs/run_1");
 
-    expect(shell.resolving.at(-1)).toBe("aex_1");
+    expect(shell.resolving.at(-1)).toBe("run_1");
     expect(shell.openedSessions).toEqual(["ses_1"]);
     expect(screen.queryByText("not found")).toBeNull();
     expect(screen.queryByText("page content")).toBeNull();
   });
 
   it("waits on a run whose session is not resolved yet", () => {
-    shell.pending.add("aex_2");
-    renderShell("/runs/aex_2");
+    shell.pending.add("run_2");
+    renderShell("/runs/run_2");
 
     expect(shell.openedSessions).toEqual([]);
     expect(screen.queryByText("not found")).toBeNull();
@@ -111,17 +111,17 @@ describe("web AppShell — the run zone", () => {
   });
 
   it("says the run was not found when no run resolves", () => {
-    renderShell("/runs/aex_missing");
+    renderShell("/runs/run_missing");
 
-    expect(shell.resolving.at(-1)).toBe("aex_missing");
+    expect(shell.resolving.at(-1)).toBe("run_missing");
     expect(shell.openedSessions).toEqual([]);
     expect(screen.getByText("not found")).toBeTruthy();
     expect(screen.queryByText("page content")).toBeNull();
   });
 
   it("offers a retry, not a missing run, when reading the run failed", () => {
-    shell.failing.add("aex_flaky");
-    renderShell("/runs/aex_flaky");
+    shell.failing.add("run_flaky");
+    renderShell("/runs/run_flaky");
 
     expect(screen.queryByText("not found")).toBeNull();
     screen.getByRole("button", { name: "load failed: connection refused" }).click();

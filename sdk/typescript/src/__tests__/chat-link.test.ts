@@ -59,7 +59,7 @@ describe("validateOrigin", () => {
 });
 
 describe("chatPath / buildChatUrl", () => {
-  const SHARE = "ash_01j9z3k8f2q4m6n7p8r9s0t1v2";
+  const SHARE = "chn_01j9z3k8f2q4m6n7p8r9s0t1v2";
 
   it("builds the canonical /chat/<share id> path", () => {
     expect(chatPath(SHARE)).toBe(`/chat/${SHARE}`);
@@ -103,21 +103,21 @@ describe("chatPath / buildChatUrl", () => {
 
 describe("appendLinkToken", () => {
   it("appends the identical ?k= shape chatPath emits", () => {
-    expect(appendLinkToken("https://app.stigmer.ai/chat/ash_1", "tok123")).toBe(
-      buildChatUrl("https://app.stigmer.ai", "ash_1", "tok123"),
+    expect(appendLinkToken("https://app.stigmer.ai/chat/chn_1", "tok123")).toBe(
+      buildChatUrl("https://app.stigmer.ai", "chn_1", "tok123"),
     );
   });
 
   it("uses & when the URL already carries a query", () => {
-    expect(appendLinkToken("/chat/ash_1?theme=dark", "tok123")).toBe(
-      `/chat/ash_1?theme=dark&${LINK_TOKEN_PARAM}=tok123`,
+    expect(appendLinkToken("/chat/chn_1?theme=dark", "tok123")).toBe(
+      `/chat/chn_1?theme=dark&${LINK_TOKEN_PARAM}=tok123`,
     );
   });
 
   it("returns the URL unchanged for a null/empty token", () => {
-    expect(appendLinkToken("/chat/ash_1", null)).toBe("/chat/ash_1");
-    expect(appendLinkToken("/chat/ash_1", undefined)).toBe("/chat/ash_1");
-    expect(appendLinkToken("/chat/ash_1", "")).toBe("/chat/ash_1");
+    expect(appendLinkToken("/chat/chn_1", null)).toBe("/chat/chn_1");
+    expect(appendLinkToken("/chat/chn_1", undefined)).toBe("/chat/chn_1");
+    expect(appendLinkToken("/chat/chn_1", "")).toBe("/chat/chn_1");
   });
 });
 
@@ -133,26 +133,26 @@ describe("buildEmbedLoaderUrl", () => {
 
 describe("buildEmbedSnippet", () => {
   it("emits exactly the two-line loader + element snippet, naming the share by id", () => {
-    expect(buildEmbedSnippet("https://app.stigmer.ai", "ash_1")).toBe(
+    expect(buildEmbedSnippet("https://app.stigmer.ai", "chn_1")).toBe(
       [
         `<script src="https://app.stigmer.ai/embed.js" async></script>`,
-        `<stigmer-agent channel="ash_1"></stigmer-agent>`,
+        `<stigmer-agent channel="chn_1"></stigmer-agent>`,
       ].join("\n"),
     );
   });
 
   it("adds the token attribute when the chat link is locked", () => {
-    expect(buildEmbedSnippet("https://app.stigmer.ai", "ash_1", "tok123")).toBe(
+    expect(buildEmbedSnippet("https://app.stigmer.ai", "chn_1", "tok123")).toBe(
       [
         `<script src="https://app.stigmer.ai/embed.js" async></script>`,
-        `<stigmer-agent channel="ash_1" token="tok123"></stigmer-agent>`,
+        `<stigmer-agent channel="chn_1" token="tok123"></stigmer-agent>`,
       ].join("\n"),
     );
   });
 
   it("omits the token attribute for an empty token (plain link)", () => {
-    expect(buildEmbedSnippet("https://app.stigmer.ai", "ash_1", "")).toBe(
-      buildEmbedSnippet("https://app.stigmer.ai", "ash_1"),
+    expect(buildEmbedSnippet("https://app.stigmer.ai", "chn_1", "")).toBe(
+      buildEmbedSnippet("https://app.stigmer.ai", "chn_1"),
     );
   });
 });

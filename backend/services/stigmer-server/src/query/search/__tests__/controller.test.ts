@@ -1,9 +1,9 @@
 /**
- * Pins the controllers' error mapping (Go search_controller.go
- * toGRPCError + activity_controller.go): the string-contains
+ * Pins the controllers' error mapping (search and activity): the
+ * string-contains
  * InvalidArgument arms CARRY the wrapped handler text, everything else
  * sanitizes to the static Internal copy (#478) — including the
- * deliberately-quirky Go arm where a store error containing "invalid"
+ * deliberately-quirky arm where a store error containing "invalid"
  * answers InvalidArgument with its raw text — and the rank token: a walk
  * reads every match once, and a token from another query, a list's row
  * token with no rank, or none at all is the codec's InvalidArgument,
@@ -87,7 +87,7 @@ async function grpcError(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected the call to reject");
 }
 
-describe("search error mapping (Go toGRPCError)", () => {
+describe("search error mapping", () => {
   it("sanitizes an unmatched store failure to Internal 'search failed' (#478)", async () => {
     const client = searchClientOver({
       search: () => Promise.reject(new Error("disk exploded at /var/lib")),
@@ -101,7 +101,7 @@ describe("search error mapping (Go toGRPCError)", () => {
     expect(error.rawMessage).toBe("search failed");
   });
 
-  it("maps a store error containing 'invalid' to InvalidArgument WITH the wrapped text (Go's string-contains quirk)", async () => {
+  it("maps a store error containing 'invalid' to InvalidArgument WITH the wrapped text (the string-contains quirk)", async () => {
     const client = searchClientOver({
       search: () => Promise.reject(new Error("invalid cursor state")),
       rebuildIndex: () => Promise.resolve(0),
@@ -115,7 +115,7 @@ describe("search error mapping (Go toGRPCError)", () => {
 
   it("answers the handler's defensive protovalidate arm as InvalidArgument", async () => {
     // Only the identity interceptor rides this transport (no
-    // protovalidate), so the HANDLER's own validate — Go's step 1,
+    // protovalidate), so the HANDLER's own validate — its step 1,
     // wire-unreachable behind the real chain — answers. The wrapped
     // "validation failed: ..." text string-matches to InvalidArgument.
     const client = searchClientOver({

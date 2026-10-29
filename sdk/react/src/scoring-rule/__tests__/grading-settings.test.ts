@@ -22,7 +22,7 @@ const AGENT = { id: "agt_1", org: "org_acme" };
 describe("grading settings", () => {
   it("reads a sample rate as one in N runs", () => {
     const scoringRule = create(ScoringRuleSchema, {
-      metadata: { id: "evl_1", org: "org_acme" },
+      metadata: { id: "srl_1", org: "org_acme" },
       spec: { agentId: "agt_1", enabled: true, sampleRate: 0.1, monthlyLimitUsd: 25, modelName: "claude-haiku-4-5" },
     });
     expect(settingsOf(scoringRule)).toEqual({
@@ -44,8 +44,8 @@ describe("grading settings", () => {
     const fresh = scoringRuleInputOf(AGENT, DEFAULT_GRADING_SETTINGS, null);
     expect(fresh).toMatchObject({ org: "org_acme", agentId: "agt_1", enabled: true, monthlyLimitUsd: 10 });
     expect(fresh.id).toBeUndefined();
-    const stored = create(ScoringRuleSchema, { metadata: { id: "evl_1", name: "evl_1", org: "org_acme" } });
-    expect(scoringRuleInputOf(AGENT, DEFAULT_GRADING_SETTINGS, stored)).toMatchObject({ id: "evl_1", name: "evl_1" });
+    const stored = create(ScoringRuleSchema, { metadata: { id: "srl_1", name: "srl_1", org: "org_acme" } });
+    expect(scoringRuleInputOf(AGENT, DEFAULT_GRADING_SETTINGS, stored)).toMatchObject({ id: "srl_1", name: "srl_1" });
   });
 
   it("accepts only a positive, finite limit up to the ceiling", () => {
@@ -63,7 +63,7 @@ describe("grading settings", () => {
 
   it("keeps a stored rate that is not a whole one in N unless N changes", () => {
     const scoringRule = create(ScoringRuleSchema, {
-      metadata: { id: "evl_1", org: "org_acme" },
+      metadata: { id: "srl_1", org: "org_acme" },
       spec: { agentId: "agt_1", enabled: true, sampleRate: 0.004, monthlyLimitUsd: 10 },
     });
     const shown = settingsOf(scoringRule);

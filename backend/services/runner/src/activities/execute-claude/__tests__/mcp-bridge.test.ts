@@ -179,7 +179,7 @@ afterEach(async () => {
 });
 
 function stdioServer(slug: string, env: Record<string, string> = {}): ResolvedMcpServer {
-  return { slug, connectionType: "stdio", command: process.execPath, args: [script], env, home: { kind: "agent", agentId: "agt-1", subagent: null, server: slug } };
+  return { slug, connectionType: "stdio", command: process.execPath, args: [script], env, home: { kind: "agent", agentId: "agt_1", subagent: null, server: slug } };
 }
 
 function httpServer(slug: string, headers: Record<string, string>, platform = false): ResolvedMcpServer {

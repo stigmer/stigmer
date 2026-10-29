@@ -1,7 +1,6 @@
 // Lifecycle control for runs (cancel / terminate / pause / resume).
 //
-// Mirrors Go's execution.Cancel/Terminate/Pause/Resume (cancel.go + pause.go):
-// each verb returns the resulting phase as a human label, read back from the
+// Each verb returns the resulting phase as a human label, read back from the
 // server so the success line reports the authoritative post-mutation state.
 // terminate, pause and resume issue the run controller RPC. cancel
 // interrupts the run's session (runs.ts `cancelAgentRun`): every unfinished
@@ -39,17 +38,17 @@ export async function cancelRun(client: Stigmer, id: string): Promise<CancelResu
   return { ...toResult(run), wasAlreadyTerminal, stoppedRunIds };
 }
 
-/** Force-stop a run immediately. Mirrors Go execution.Terminate. */
+/** Force-stop a run immediately. */
 export async function terminateRun(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
   return toResult(await client.run.terminate(create(TerminateRunInputSchema, { id, reason })));
 }
 
-/** Pause a run in progress. Mirrors Go execution.Pause. */
+/** Pause a run in progress. */
 export async function pauseRun(client: Stigmer, id: string, reason: string): Promise<ControlResult> {
   return toResult(await client.run.pause(create(PauseRunInputSchema, { id, reason })));
 }
 
-/** Resume a paused run. Mirrors Go execution.Resume (no reason). */
+/** Resume a paused run (no reason). */
 export async function resumeRun(client: Stigmer, id: string): Promise<ControlResult> {
   return toResult(await client.run.resume(create(ResumeRunInputSchema, { id })));
 }

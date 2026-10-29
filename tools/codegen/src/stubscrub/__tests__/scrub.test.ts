@@ -1,7 +1,7 @@
-// Byte-parity pins for the stubscrub port. Samples are taken byte-for-byte
-// from real generated stubs (apis/stubs/go, apis/stubs/ts,
-// apis/stubs/python) — carried verbatim from the Go tool's tests — so these
-// pin the exact shapes protoc-gen-go, protoc-gen-es, and grpc-python emit.
+// Byte-exact pins for stubscrub. Samples are taken byte-for-byte from real
+// generated stubs (apis/stubs/go, apis/stubs/ts, apis/stubs/python), so
+// these pin the exact shapes protoc-gen-go, protoc-gen-es, and grpc-python
+// emit.
 // The Java samples come from apis/stubs/java and pin the javadoc shapes
 // protoc-java and grpc-java emit, including their &#64; escape of the marker.
 import { describe, expect, it } from "vitest";

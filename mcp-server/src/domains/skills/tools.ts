@@ -1,5 +1,4 @@
 // MCP tools for the Skill domain.
-// Go parity: mcp-server/internal/domains/skills/tools.go.
 //
 // Skills are read-only over MCP (search/get/delete); creation/update happens via
 // `stigmer skill push` (content hashing, diffing, tag management). `version` is
@@ -38,7 +37,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
     },
     (args, extra) =>
       textOrError(() =>
-        // Empty string means "latest", matching the Go handler passing input.Version.
+        // An empty version means "latest".
         fetchSkill(
           target.serverAddress,
           resolveToken(extra, target.apiKey),

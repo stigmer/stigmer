@@ -1,7 +1,7 @@
 // The run prelude: validate flags and resolve every input the
-// create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
+// create step needs.
 //
-// Order matters and mirrors Go: validate cheap flags first (mode, approve
+// Order matters: validate cheap flags first (mode, approve
 // default), then parse workspaces, then resolve the vaults, plugins and
 // environment the conversation uses, then plan the files to send. Nothing is
 // uploaded here: the attached files are read from disk and checked against
@@ -50,7 +50,7 @@ export type ThinkingFlag = "" | "disabled" | "enabled";
  */
 export type HarnessFlag = "" | EngineWord;
 
-/** Raw agent-execution flags as `run` parses them (Go's agentExecFlags). */
+/** Raw agent-execution flags as `run` parses them. */
 export interface AgentExecFlags {
   readonly message: string;
   readonly attach: readonly string[];
@@ -79,8 +79,8 @@ export interface AgentExecFlags {
 }
 
 /**
- * The validated, resolved inputs ready for create + stream. Mirrors Go's
- * preparedAgentExec, minus the client/org which the command already owns.
+ * The validated, resolved inputs ready for create + stream, minus the
+ * client/org which the command already owns.
  */
 export interface PreparedRun {
   readonly approveDefault: ApproveDefault;
@@ -284,7 +284,7 @@ async function resolveAccountExecutionDefaults(
 
 /**
  * Validate the `--mode` flag. Empty (unset) is valid and means "use default"
- * (agent). Mirrors Go's validateMode.
+ * (agent).
  */
 export function validateMode(mode: string): asserts mode is RunMode {
   if (mode !== "" && mode !== "agent" && mode !== "plan") {

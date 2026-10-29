@@ -220,8 +220,7 @@ export async function linkAgent(
  * selection so both surfaces manage the same row. The org scope is the
  * agent's organization, where every channel of it lives; the server
  * applies the scope via the request's org field, so a link written in
- * another organization before sharing across organizations was retired is
- * never the row this command edits.
+ * another organization is never the row this command edits.
  */
 async function resolveCanonicalWebChannel(
   client: Stigmer,

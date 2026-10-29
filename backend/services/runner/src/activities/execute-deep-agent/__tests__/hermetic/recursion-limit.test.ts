@@ -187,7 +187,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     };
     const PICKED_UP: ScriptedTurn = { text: "Picking up where I left off: all ten files are read." };
     const roundsSeen: number[] = [];
-    const record = deepAgentExecutionRecord({ message: "Continue.", maxToolRounds: MIN_TOOL_ROUNDS, executionId: "aex_hermetic_0002" });
+    const record = deepAgentExecutionRecord({ message: "Continue.", maxToolRounds: MIN_TOOL_ROUNDS, executionId: "run_hermetic_0002" });
     const next = continueDeepAgentScenario(first, {
       record,
       script: () => ({ turns: [...Array.from({ length: MIN_TOOL_ROUNDS }, () => LOST_THREAD), PICKED_UP] }),

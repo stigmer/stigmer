@@ -82,7 +82,7 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-const EXECUTION_ID = "aex_storefault";
+const EXECUTION_ID = "run_storefault";
 
 const LOAD_FAULT_COPY = "failed to load agent execution";
 

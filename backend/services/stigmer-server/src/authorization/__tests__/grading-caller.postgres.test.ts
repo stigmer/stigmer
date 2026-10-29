@@ -93,9 +93,9 @@ describe.each(
     }
 
     it("a judge acts as the scoring rule's creator, in the in-process identity shape", async () => {
-      await scoringRule("evl_by_id", PRIYA);
+      await scoringRule("srl_by_id", PRIYA);
       asked.length = 0;
-      expect(await mint().mintGradingCaller("acme", "evl_by_id", "run_1")).toEqual({
+      expect(await mint().mintGradingCaller("acme", "srl_by_id", "run_1")).toEqual({
         identityId: PRIYA,
         callerClass: "user",
         issuer: "",
@@ -104,18 +104,18 @@ describe.each(
         displayName: "Priya",
       });
       expect(asked, "the creator must see the graded run").toEqual([`${PRIYA} can_view run_1`]);
-      await scoringRule("evl_by_sub", SUBJECT);
-      expect((await mint().mintGradingCaller("acme", "evl_by_sub", "run_1")).identityId).toBe(PRIYA);
+      await scoringRule("srl_by_sub", SUBJECT);
+      expect((await mint().mintGradingCaller("acme", "srl_by_sub", "run_1")).identityId).toBe(PRIYA);
     });
 
     it("refuses when the creator may not see the graded run, and throws when the authorizer cannot answer", async () => {
-      await scoringRule("evl_blind", PRIYA);
+      await scoringRule("srl_blind", PRIYA);
       const refused = await mint("deny")
-        .mintGradingCaller("acme", "evl_blind", "run_private")
+        .mintGradingCaller("acme", "srl_blind", "run_private")
         .catch((error: unknown) => error);
       expect(refused).toBeInstanceOf(GradingCallerRefusedError);
-      expect((refused as Error).message).toBe(creatorCannotSeeRunMessage("evl_blind", "run_private"));
-      await expect(mint("unavailable").mintGradingCaller("acme", "evl_blind", "run_1")).rejects.toThrow("engine down");
+      expect((refused as Error).message).toBe(creatorCannotSeeRunMessage("srl_blind", "run_private"));
+      await expect(mint("unavailable").mintGradingCaller("acme", "srl_blind", "run_1")).rejects.toThrow("engine down");
     });
 
     it.each([
@@ -123,17 +123,17 @@ describe.each(
       ["the laptop's placeholder", "system"],
       ["a creator who has left", accountIdFor("auth0|gone")],
     ])("%s is the seam's deterministic refusal", async (_label, stamp) => {
-      await scoringRule("evl_nobody", stamp);
+      await scoringRule("srl_nobody", stamp);
       const failure = await mint()
-        .mintGradingCaller("acme", "evl_nobody", "run_1")
+        .mintGradingCaller("acme", "srl_nobody", "run_1")
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(GradingCallerRefusedError);
-      expect((failure as Error).message).toBe(scoringRuleHasNoPersonMessage("evl_nobody"));
+      expect((failure as Error).message).toBe(scoringRuleHasNoPersonMessage("srl_nobody"));
     });
 
     it("a scoring rule that no longer exists is an infrastructure throw, never a refusal", async () => {
       const failure = await mint()
-        .mintGradingCaller("acme", "evl_missing", "run_1")
+        .mintGradingCaller("acme", "srl_missing", "run_1")
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(ResourceNotFoundError);
     });

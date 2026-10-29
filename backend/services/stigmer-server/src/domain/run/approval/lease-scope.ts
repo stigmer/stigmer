@@ -1,5 +1,5 @@
 /**
- * LeaseScope — ports approval/lease_scope.go: the class of actions a
+ * LeaseScope — the class of actions a
  * single APPROVE_ALL decision covers (the server edition of the runner's
  * ActiveLeases scope; see deriveActiveLeases in
  * backend/services/runner/src/shared/approval-policy.ts).
@@ -69,7 +69,7 @@ export interface LeaseScope {
  * deriveLeaseScope ordering byte-for-byte (a real built-in never carries a
  * server and a real MCP tool never resolves to a category, so the order is
  * parity insurance, not a behavioral choice). Returns undefined for a tool
- * with no leasable scope (Go's ok=false).
+ * with no leasable scope.
  */
 export function deriveLeaseScope(ask: LeaseSubject): LeaseScope | undefined {
   const slug = ask.mcpServer;
@@ -91,7 +91,7 @@ export function deriveLeaseScope(ask: LeaseSubject): LeaseScope | undefined {
   return undefined;
 }
 
-/** Value equality for lease scopes (Go compares the struct with ==). */
+/** Value equality for lease scopes, field by field. */
 export function sameLeaseScope(a: LeaseScope, b: LeaseScope): boolean {
   return (
     a.category === b.category &&

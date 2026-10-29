@@ -76,7 +76,7 @@ describe("useConversationList", () => {
 
   it("loads the org's head page and whether more follow", async () => {
     const listConversations = vi.fn().mockResolvedValue({
-      entries: [conversation("ach_1", "15550001111", "Pat")],
+      entries: [conversation("chn_1", "15550001111", "Pat")],
       nextPageToken: "next",
     });
     const { result } = renderHook(
@@ -99,7 +99,7 @@ describe("useConversationList", () => {
 
   it("reads nothing on loadMore when the head page is the last", async () => {
     const listConversations = vi.fn().mockResolvedValue({
-      entries: [conversation("ach_1", "15550001111", "Pat")],
+      entries: [conversation("chn_1", "15550001111", "Pat")],
       nextPageToken: "",
     });
     const { result } = renderHook(
@@ -117,13 +117,13 @@ describe("useConversationList", () => {
   it("passes the channel filter through", async () => {
     const listConversations = vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" });
     renderHook(
-      () => useConversationList({ org: "acme", channelId: "ach_9", ...NO_POLL }),
+      () => useConversationList({ org: "acme", channelId: "chn_9", ...NO_POLL }),
       { wrapper: wrapper(createMockStigmer(listConversations)) },
     );
 
     await waitFor(() =>
       expect(listConversations).toHaveBeenCalledWith(
-        expect.objectContaining({ channelId: "ach_9" }),
+        expect.objectContaining({ channelId: "chn_9" }),
       ),
     );
   });
@@ -145,12 +145,12 @@ describe("useConversationList", () => {
     // moved it into the polled head. It must render ONCE, in its head
     // (fresher) position.
     const head = [
-      conversation("ach_1", "15550002222", "Moved Up"),
-      conversation("ach_1", "15550001111"),
+      conversation("chn_1", "15550002222", "Moved Up"),
+      conversation("chn_1", "15550001111"),
     ];
     const pageTwo = [
-      conversation("ach_1", "15550002222", "Stale Copy"),
-      conversation("ach_1", "15550003333"),
+      conversation("chn_1", "15550002222", "Stale Copy"),
+      conversation("chn_1", "15550003333"),
     ];
     const listConversations = vi
       .fn()
@@ -180,7 +180,7 @@ describe("useConversationList", () => {
     const listConversations = vi
       .fn()
       .mockResolvedValueOnce({
-        entries: [conversation("ach_1", "15550001111")],
+        entries: [conversation("chn_1", "15550001111")],
         nextPageToken: "next",
       })
       .mockRejectedValueOnce(new Error("boom"));
@@ -202,11 +202,11 @@ describe("useConversationList", () => {
     const listConversations = vi
       .fn()
       .mockResolvedValueOnce({
-        entries: [conversation("ach_1", "15550001111")],
+        entries: [conversation("chn_1", "15550001111")],
         nextPageToken: "next",
       })
       .mockResolvedValueOnce({
-        entries: [conversation("ach_1", "15550002222")],
+        entries: [conversation("chn_1", "15550002222")],
         nextPageToken: "next",
       })
       .mockResolvedValue({ entries: [], nextPageToken: "" });
@@ -216,14 +216,14 @@ describe("useConversationList", () => {
         useConversationList({ org: "acme", channelId: channel, ...NO_POLL }),
       {
         wrapper: wrapper(createMockStigmer(listConversations)),
-        initialProps: { channel: "ach_1" },
+        initialProps: { channel: "chn_1" },
       },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     act(() => result.current.loadMore());
     await waitFor(() => expect(result.current.conversations).toHaveLength(2));
 
-    rerender({ channel: "ach_2" });
+    rerender({ channel: "chn_2" });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.conversations).toEqual([]);
@@ -234,11 +234,11 @@ describe("useConversationList", () => {
     const listConversations = vi
       .fn()
       .mockResolvedValueOnce({
-        entries: [conversation("ach_1", "15550001111")],
+        entries: [conversation("chn_1", "15550001111")],
         nextPageToken: "next",
       })
       .mockResolvedValueOnce({
-        entries: [conversation("ach_1", "15550002222")],
+        entries: [conversation("chn_1", "15550002222")],
         nextPageToken: "next",
       })
       .mockResolvedValue({ entries: [], nextPageToken: "" });
@@ -293,8 +293,8 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
   });
 
   it("overrides a listed row immediately and starts the retiring head fetch", async () => {
-    const agentHeld = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z");
-    const humanHeld = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
+    const agentHeld = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z");
+    const humanHeld = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
     });
     const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
@@ -323,15 +323,15 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
   });
 
   it("a pre-apply head answer resolving after the apply never revives pre-command state; the post-apply answer retires the overlay", async () => {
-    const staleAgent = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
+    const staleAgent = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z", {
       displayName: "Pat",
     });
-    const freshHuman = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
+    const freshHuman = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
       displayName: "Pat",
     });
     // The post-apply server read carries a marker so retiring is observable.
-    const serverTruth = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
+    const serverTruth = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
       displayName: "Pat (server truth)",
     });
@@ -380,9 +380,9 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
   });
 
   it("sorted-inserts an unlisted row by activity, never at the head (a command answer is not a recency claim)", async () => {
-    const newest = conversationAt("ach_1", "15550001111", "2026-08-07T12:00:00Z");
-    const oldest = conversationAt("ach_1", "15550003333", "2026-08-07T10:00:00Z");
-    const middle = conversationAt("ach_1", "15550002222", "2026-08-07T11:00:00Z", {
+    const newest = conversationAt("chn_1", "15550001111", "2026-08-07T12:00:00Z");
+    const oldest = conversationAt("chn_1", "15550003333", "2026-08-07T10:00:00Z");
+    const middle = conversationAt("chn_1", "15550002222", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
     });
     const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
@@ -407,8 +407,8 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
   });
 
   it("never inserts a foreign-channel row into a channel-scoped list", async () => {
-    const listed = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z");
-    const foreign = conversationAt("ach_2", "15550009999", "2026-08-07T12:00:00Z", {
+    const listed = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z");
+    const foreign = conversationAt("chn_2", "15550009999", "2026-08-07T12:00:00Z", {
       control: ConversationControl.control_human,
     });
     const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
@@ -419,7 +419,7 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
 
     const { result } = renderHook(
       () =>
-        useConversationList({ org: "acme", channelId: "ach_1", ...NO_POLL }),
+        useConversationList({ org: "acme", channelId: "chn_1", ...NO_POLL }),
       { wrapper: wrapper(createMockStigmer(listConversations)) },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -432,11 +432,11 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
   });
 
   it("is update-only under a server-evaluated predicate filter (membership is the server's claim to make)", async () => {
-    const listed = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z");
-    const listedFresh = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
+    const listed = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z");
+    const listedFresh = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
     });
-    const unlisted = conversationAt("ach_1", "15550002222", "2026-08-07T12:00:00Z", {
+    const unlisted = conversationAt("chn_1", "15550002222", "2026-08-07T12:00:00Z", {
       control: ConversationControl.control_human,
     });
     const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
@@ -470,11 +470,11 @@ describe("useConversationList.applyServerState (own actions reflect immediately)
   });
 
   it("a stale in-flight loadMore page cannot overwrite an applied row", async () => {
-    const staleAgent = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z");
-    const freshHuman = conversationAt("ach_1", "15550001111", "2026-08-07T11:00:00Z", {
+    const staleAgent = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z");
+    const freshHuman = conversationAt("chn_1", "15550001111", "2026-08-07T11:00:00Z", {
       control: ConversationControl.control_human,
     });
-    const older = conversationAt("ach_1", "15550003333", "2026-08-07T09:00:00Z");
+    const older = conversationAt("chn_1", "15550003333", "2026-08-07T09:00:00Z");
     const pageTwo = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const postApply = deferred<{ entries: unknown[]; nextPageToken: string }>();
     const listConversations = vi

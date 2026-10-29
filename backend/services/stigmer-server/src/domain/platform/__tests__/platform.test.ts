@@ -1,6 +1,5 @@
 /**
- * Pins the platform domain against Go's platform_controller_test.go +
- * get_runner_scoped_token_test.go — through the real stack (composed
+ * Pins the platform domain through the real stack (composed
  * server, native gRPC client, full interceptor chain),
  * plus a keyless-service arm on an in-process router.
  *
@@ -159,7 +158,7 @@ describe("platform domain (composed server)", () => {
   it("getServerInfo names the oss edition and the dev version, stable across calls", async () => {
     const first = await client.getServerInfo({});
     expect(first.edition).toBe(ServerEdition.oss);
-    // Unbundled runs report Go's unstamped default; release bundles stamp
+    // Unbundled runs report the unstamped "dev"; release bundles stamp
     // the esbuild define (scripts/bundle-slim.mjs).
     expect(first.version).toBe("dev");
     // A server that trusts every request says so on the wire: an explicit
@@ -167,7 +166,7 @@ describe("platform domain (composed server)", () => {
     expect(first.authenticationRequired).toBe(false);
     // The default posture starts no sandbox (SANDBOX_PROVISIONER_TYPE
     // unset): no Environment governs a conversation here, and the field is
-    // still present, so a console never reads it as an older server.
+    // still present, so a console never reads it as unanswered.
     expect(first.environments).toEqual(
       expect.objectContaining({ applies: false, limitedNetworking: false, packages: false }),
     );
@@ -215,7 +214,7 @@ describe("platform domain (composed server)", () => {
 
   it("mints for the run_id arm, bound to exactly that run", async () => {
     const out = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aexec_01platformtest" },
+      scope: { case: "runId", value: "run_01platformtest" },
     });
 
     expect(out.runnerScopedToken).not.toBe("");
@@ -225,7 +224,7 @@ describe("platform domain (composed server)", () => {
     // The minted token verifies against the SAME key the values fetch
     // uses, and its binding is the named execution id.
     expect(server.runnerAuthService.verify(out.runnerScopedToken)).toBe(
-      "aexec_01platformtest",
+      "run_01platformtest",
     );
   });
 
@@ -244,8 +243,8 @@ describe("platform domain (composed server)", () => {
 
   it("an unset scope is rejected by protovalidate BEFORE the handler (both editions)", async () => {
     // The proto pins `scope` as a required oneof, so the wire can never
-    // reach the handler's defensive undefined arm — the same InvalidArgument
-    // protovalidate answers on the Go server.
+    // reach the handler's defensive undefined arm — protovalidate answers
+    // InvalidArgument first.
     try {
       await client.getRunnerScopedToken({});
       throw new Error("expected the call to fail");
@@ -536,7 +535,7 @@ describe("platform domain (keyless runner-token service)", () => {
     const client = createClient(PlatformQueryController, transport);
 
     const out = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aexec_01keyless" },
+      scope: { case: "runId", value: "run_01keyless" },
     });
     expect(out.runnerScopedToken).toBe("");
     expect(out.tokenType).toBe("");
@@ -718,9 +717,9 @@ describe("platform domain (capability-delegating provider)", () => {
         callerIdentityId: caller.identityId,
         callerClass: caller.callerClass,
       });
-      if (request.arm === "agent-execution" && request.executionId === "aexec_denied") {
+      if (request.arm === "agent-execution" && request.executionId === "run_denied") {
         throw new ConnectError(
-          "run aexec_denied is not the caller's to serve",
+          "run run_denied is not the caller's to serve",
           Code.PermissionDenied,
         );
       }
@@ -800,7 +799,7 @@ describe("platform domain (capability-delegating provider)", () => {
     exchanged.length = 0;
 
     const minted = await client.getRunnerScopedToken({
-      scope: { case: "runId", value: "aexec_cap1" },
+      scope: { case: "runId", value: "run_cap1" },
     });
     expect(minted.runnerScopedToken).toBe("cloud-token");
     expect(minted.tokenType).toBe("Bearer");
@@ -816,7 +815,7 @@ describe("platform domain (capability-delegating provider)", () => {
     expect(renewal.expiresInSeconds).toBe(0);
 
     expect(exchanged.map((e) => e.request)).toEqual([
-      { arm: "agent-execution", executionId: "aexec_cap1" },
+      { arm: "agent-execution", executionId: "run_cap1" },
       { arm: "renewal" },
     ]);
     // The trusted-local identity the chain stamped is what crossed the
@@ -830,14 +829,14 @@ describe("platform domain (capability-delegating provider)", () => {
   it("a refusal thrown by the implementation propagates as the gRPC error", async () => {
     try {
       await client.getRunnerScopedToken({
-        scope: { case: "runId", value: "aexec_denied" },
+        scope: { case: "runId", value: "run_denied" },
       });
       throw new Error("expected the call to fail");
     } catch (error) {
       expect(error).toBeInstanceOf(ConnectError);
       expect((error as ConnectError).code).toBe(Code.PermissionDenied);
       expect((error as ConnectError).rawMessage).toBe(
-        "run aexec_denied is not the caller's to serve",
+        "run run_denied is not the caller's to serve",
       );
     }
   });

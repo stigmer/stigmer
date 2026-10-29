@@ -3,18 +3,17 @@
  *
  * Every gate job that drives a browser (the interactive, approval,
  * console-login and functional e2e jobs, and the browser-mode suite) needs
- * Playwright's headless Chromium. They used to run
- * `npx playwright install --with-deps chromium`, and `--with-deps` runs
- * `apt-get update` and `apt-get install` against Ubuntu's mirror. On
- * ubuntu-24.04 (then `ubuntu-latest`) that fetched about 32 MB no test reads: the fonts
+ * Playwright's headless Chromium. `npx playwright install --with-deps
+ * chromium` would also run `apt-get update` and `apt-get install` against
+ * Ubuntu's mirror. On ubuntu-24.04 that fetches about 32 MB no test reads: the fonts
  * Playwright's own dependency table files under "tools", not under
  * "chromium", and upgrades of four mesa packages the image already carries.
  * Every library Chromium loads is already on the image. The mirror is
- * sometimes slow without failing: one install in twenty took 3 to 11 minutes
- * at 50 to 90 kB/s, the shape #1529 recorded for the Tauri packages. Once it
- * stopped answering inside `apt-get update` for 27 minutes, until the job was
- * cancelled and a change that broke nothing was ejected from the merge queue
- * (#1663).
+ * sometimes slow without failing: one install in twenty takes 3 to 11 minutes
+ * at 50 to 90 kB/s, the shape #1529 recorded for the Tauri packages, and it
+ * has stopped answering inside `apt-get update` for 27 minutes, until the job
+ * was cancelled and a change that broke nothing was ejected from the merge
+ * queue (#1663).
  *
  * So this installs the browser alone, from Playwright's download host (about
  * 10 s), and then proves it: the same CLI's `screenshot` of about:blank is a

@@ -42,12 +42,12 @@ describe("outputKey", () => {
   it("is the key useSessionOutputs dedups on (same key → latest turn wins)", () => {
     // The list is newest first, but the turn order decides, not the list.
     const files = [
-      file({ id: "f_old", filename: "a.md", runId: "aex_1", outputPath: "w/a.md" }),
-      file({ id: "f_new", filename: "a.md", runId: "aex_2", outputPath: "w/a.md" }),
+      file({ id: "f_old", filename: "a.md", runId: "run_1", outputPath: "w/a.md" }),
+      file({ id: "f_new", filename: "a.md", runId: "run_2", outputPath: "w/a.md" }),
     ];
-    const { result } = renderHook(() => useSessionOutputs(files, [run("aex_1"), run("aex_2")]));
+    const { result } = renderHook(() => useSessionOutputs(files, [run("run_1"), run("run_2")]));
     expect(result.current.outputs).toHaveLength(1);
-    expect(result.current.outputs[0].runId).toBe("aex_2");
+    expect(result.current.outputs[0].runId).toBe("run_2");
     expect(result.current.outputs[0].file.metadata?.id).toBe("f_new");
   });
 });
@@ -56,20 +56,20 @@ describe("useSessionOutputs", () => {
   it("lists only Files a turn returned, never a person's uploads", () => {
     const files = [
       file({ id: "up", filename: "brief.pdf" }),
-      file({ id: "out", filename: "report.md", runId: "aex_1", outputPath: "report.md" }),
+      file({ id: "out", filename: "report.md", runId: "run_1", outputPath: "report.md" }),
     ];
-    const { result } = renderHook(() => useSessionOutputs(files, [run("aex_1")]));
+    const { result } = renderHook(() => useSessionOutputs(files, [run("run_1")]));
     expect(result.current.outputs.map((e) => e.file.metadata?.id)).toEqual(["out"]);
     expect(result.current.outputCount).toBe(1);
   });
 
   it("sorts by filename and flags a filename shared by two output paths", () => {
     const files = [
-      file({ id: "b", filename: "notes.md", runId: "aex_1", outputPath: "b/notes.md" }),
-      file({ id: "a", filename: "notes.md", runId: "aex_1", outputPath: "a/notes.md" }),
-      file({ id: "c", filename: "Alpha.txt", runId: "aex_1", outputPath: "Alpha.txt" }),
+      file({ id: "b", filename: "notes.md", runId: "run_1", outputPath: "b/notes.md" }),
+      file({ id: "a", filename: "notes.md", runId: "run_1", outputPath: "a/notes.md" }),
+      file({ id: "c", filename: "Alpha.txt", runId: "run_1", outputPath: "Alpha.txt" }),
     ];
-    const { result } = renderHook(() => useSessionOutputs(files, [run("aex_1")]));
+    const { result } = renderHook(() => useSessionOutputs(files, [run("run_1")]));
     expect(result.current.outputs.map((e) => e.file.spec?.filename)).toEqual(["Alpha.txt", "notes.md", "notes.md"]);
     expect(result.current.outputs.map((e) => e.hasNameCollision)).toEqual([false, true, true]);
   });
@@ -77,13 +77,13 @@ describe("useSessionOutputs", () => {
   it("keeps the earlier turns' Files at a path behind the newest, newest first", () => {
     // Newest first, as the server lists; the turn order decides, not the list.
     const files = [
-      file({ id: "v2", filename: "report.md", runId: "aex_2", outputPath: "report.md" }),
-      file({ id: "v3", filename: "report.md", runId: "aex_3", outputPath: "report.md" }),
-      file({ id: "other", filename: "notes.md", runId: "aex_1", outputPath: "notes.md" }),
-      file({ id: "v1", filename: "report.md", runId: "aex_1", outputPath: "report.md" }),
+      file({ id: "v2", filename: "report.md", runId: "run_2", outputPath: "report.md" }),
+      file({ id: "v3", filename: "report.md", runId: "run_3", outputPath: "report.md" }),
+      file({ id: "other", filename: "notes.md", runId: "run_1", outputPath: "notes.md" }),
+      file({ id: "v1", filename: "report.md", runId: "run_1", outputPath: "report.md" }),
     ];
     const { result } = renderHook(() =>
-      useSessionOutputs(files, [run("aex_1"), run("aex_2"), run("aex_3")]),
+      useSessionOutputs(files, [run("run_1"), run("run_2"), run("run_3")]),
     );
     const report = result.current.outputs.find((e) => e.file.spec?.filename === "report.md");
     expect(report?.file.metadata?.id).toBe("v3");
@@ -94,23 +94,23 @@ describe("useSessionOutputs", () => {
   });
 
   it("marks an output of a running turn as not terminal", () => {
-    const files = [file({ id: "f", filename: "a.md", runId: "aex_1", outputPath: "a.md" })];
+    const files = [file({ id: "f", filename: "a.md", runId: "run_1", outputPath: "a.md" })];
     const { result } = renderHook(() =>
-      useSessionOutputs(files, [run("aex_1", RunPhase.RUN_IN_PROGRESS)]),
+      useSessionOutputs(files, [run("run_1", RunPhase.RUN_IN_PROGRESS)]),
     );
     expect(result.current.outputs[0].isTerminal).toBe(false);
   });
 
   it("ignores a run with no id: its Files rank as an unloaded run's and count as ended", () => {
     const files = [
-      file({ id: "late", filename: "a.md", runId: "aex_2", outputPath: "a.md" }),
-      file({ id: "early", filename: "a.md", runId: "aex_1", outputPath: "a.md" }),
+      file({ id: "late", filename: "a.md", runId: "run_2", outputPath: "a.md" }),
+      file({ id: "early", filename: "a.md", runId: "run_1", outputPath: "a.md" }),
     ];
     const nameless = create(RunSchema, { status: { phase: RunPhase.RUN_IN_PROGRESS } });
-    const { result } = renderHook(() => useSessionOutputs(files, [nameless, run("aex_2")]));
+    const { result } = renderHook(() => useSessionOutputs(files, [nameless, run("run_2")]));
 
-    // aex_1 is not among the loaded runs (the id-less run never stands in for
-    // it), so aex_2's File wins the shared path; aex_1 still counts as ended.
+    // run_1 is not among the loaded runs (the id-less run never stands in for
+    // it), so run_2's File wins the shared path; run_1 still counts as ended.
     expect(result.current.outputs.map((e) => e.file.metadata?.id)).toEqual(["late"]);
     expect(result.current.outputs[0].isTerminal).toBe(true);
   });

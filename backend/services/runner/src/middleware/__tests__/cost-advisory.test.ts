@@ -4,8 +4,7 @@
  * after the run reaches the configured share of `max_cost_usd`. Nothing here
  * caps: the enforcement is the turn runtime's
  * (`shared/__tests__/cost-guard.test.ts`, `harness/__tests__/run-turn.test.ts`'s
- * cost-cap arm). Until #1096 this file was `cost-cap.test.ts` and also pinned
- * the in-graph tool block and the "exceeded" message — retired with that half.
+ * cost-cap arm).
  *
  * How the warning travels (stigmer/stigmer#1354): the call that takes the
  * total past the threshold marks the run crossed, and each conversation's

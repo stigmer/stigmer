@@ -154,7 +154,7 @@ function session(...slugs: string[]): Session {
 
 function schedule(agent: string, createdBy: string, ...slugs: string[]): Routine {
   return create(RoutineSchema, {
-    metadata: { id: "sch_1", org: ORG },
+    metadata: { id: "rtn_1", org: ORG },
     spec: {
       agent: { agentRef: { org: ORG, slug: agent }, vaults: slugs.map(ref) },
     },

@@ -1448,7 +1448,7 @@ export class PostgresStore implements Store {
   // ---------------------------------------------------------------------------
 
   async upsertRoutineFire(record: RoutineFireRecord): Promise<void> {
-    // Default recorded_at is RFC-3339 whole seconds (Go time.RFC3339) —
+    // Default recorded_at is RFC-3339 whole seconds —
     // the ledger's house convention for lexicographic comparison.
     const recordedAt =
       record.recordedAt !== "" ? record.recordedAt : rfc3339Seconds(new Date());
@@ -1727,8 +1727,8 @@ export class PostgresStore implements Store {
       totalCount += cnt;
     }
 
-    // Count short-circuit before the page statement (contract-twin of the
-    // sqlite driver's port of Go's EmptyResult).
+    // Count short-circuit before the page statement (the sqlite driver's
+    // twin).
     if (totalCount === 0) {
       return { countsByKind: {}, totalCount: 0, hits: [] };
     }

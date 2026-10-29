@@ -34,7 +34,7 @@
  * or escape the quoted lexeme); a term left empty by stripping is dropped.
  * A SINGLE surviving term gets a trailing `:*` for prefix matching (valid
  * on quoted lexemes) — the prefix decision counts terms AFTER
- * sanitization, mirroring the Go-ported FTS5 order. Multi-term
+ * sanitization, the FTS5 renderer's order. Multi-term
  * expressions compose with explicit `&` (AND).
  *
  * Terms that sanitize to nothing render "" — to_tsquery rejects an empty

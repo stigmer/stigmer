@@ -3,7 +3,8 @@
  * server in the trusted-local posture:
  *
  *   - a create mints an `org_` id, its slug resolves to it, and an
- *     organization naming an organization of its own is refused;
+ *     organization naming an organization of its own is refused, while one
+ *     naming itself as its org, by slug or by id, is cleared;
  *   - of two concurrent creates of one slug exactly one succeeds;
  *   - a create racing another create's young claim is a duplicate, while a
  *     claim older than a minute whose organization never landed is freed;
@@ -248,39 +249,26 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(await resolve("nested")).toBeUndefined();
   });
 
-  it("an organization naming itself, as earlier releases stored it, is cleared rather than refused", async () => {
-    // A create from a client of that time sends its own slug as its org.
+  it("an organization naming itself as its org is cleared rather than refused", async () => {
+    // A create that sends its own slug as its org.
     const made = await organizations.create({
       ...organizationInput("selfnamed"),
       metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },
     });
     expect(made.metadata?.org).toBe("");
 
-    // An organization an earlier release made stores its slug, its id, as
-    // its org; applying its own `get -o yaml` back succeeds, and the row
-    // keeps what it holds.
-    await server.store.saveResource(
-      ApiResourceKind.organization,
-      "olden",
-      OrganizationSchema,
-      create(OrganizationSchema, {
-        apiVersion: "tenancy.stigmer.ai/v1",
-        kind: "Organization",
-        metadata: { id: "olden", slug: "olden", name: "Olden", org: "olden" },
-      }),
-    );
-    await server.store.resourceNames.claim(organizationNameKey("olden"), "olden", new Date().toISOString());
-    const applied = await organizations.apply({
-      ...organizationInput("olden"),
-      metadata: { id: "olden", name: "Olden", slug: "olden", org: "olden" },
-      spec: { description: "applied back from its own manifest" },
+    // An apply naming the organization by its id, with that id as its org.
+    const byId = await organizations.apply({
+      ...organizationInput("selfnamed"),
+      metadata: { id: made.metadata?.id ?? "", name: "selfnamed", slug: "selfnamed", org: made.metadata?.id ?? "" },
+      spec: { description: "applied by id" },
     });
-    expect(applied.metadata?.id).toBe("olden");
-    expect(applied.spec?.description).toBe("applied back from its own manifest");
+    expect(byId.metadata?.org).toBe("");
+    expect(byId.spec?.description).toBe("applied by id");
 
     // An apply naming a minted organization by slug alone, with its own slug
-    // as its org (as earlier CLIs injected it): the edge turns that org into
-    // the id, which is the id the slug resolves to.
+    // as its org: the edge turns that org into the id, which is the id the
+    // slug resolves to.
     const reapplied = await organizations.apply({
       ...organizationInput("selfnamed"),
       metadata: { name: "selfnamed", slug: "selfnamed", org: "selfnamed" },

@@ -21,9 +21,8 @@ export const OAUTHAPP_API_VERSION = "iam.stigmer.ai/v1";
 export const OAUTHAPP_KIND = "OAuthApp";
 
 // The redaction sentinel every read surface substitutes for the stored
-// client_secret. A CROSS-EDITION CONTRACT STRING: the Go steps package and
-// the Java handler each pin it in their own unit tests; the suite asserts it
-// over the wire on both. Re-submitting it on apply/update means "keep the
+// client_secret. A CROSS-EDITION CONTRACT STRING: the server's unit tests pin
+// it; the suite asserts it over the wire on every edition. Re-submitting it on apply/update means "keep the
 // stored secret" (the redaction-marker convention).
 export const OAUTHAPP_REDACTED_MARKER = "***REDACTED***";
 

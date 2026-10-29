@@ -5,8 +5,7 @@
 // and the top-level `resume` reopens a session; `runs` is the one plural group
 // the CLI has.
 //
-// Mirrors Go's NewExecutionCommand (cmd/stigmer/root/execution.go). Each
-// subcommand is a thin handler that resolves the backend client and delegates to
+// Each subcommand is a thin handler that resolves the backend client and delegates to
 // a resources/ module; heavy modules load lazily inside the actions.
 
 import type { Command } from "commander";

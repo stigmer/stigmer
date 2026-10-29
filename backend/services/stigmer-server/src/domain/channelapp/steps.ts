@@ -1,6 +1,5 @@
 /**
- * ChannelApp domain steps — ports pkg/domain/channelapp/controller/steps.go:
- * per-field secret encryption/preservation over the provider oneof, the
+ * ChannelApp domain steps: per-field secret encryption/preservation over the provider oneof, the
  * response-side redaction, provider-arm immutability, and the referential
  * delete block against the Slack and WhatsApp channels that name the app.
  *
@@ -54,7 +53,7 @@ type DeleteInputDesc = typeof ChannelAppCommandController.method.delete.input;
 /**
  * Replaces every non-empty secret field with the marker on the given app —
  * used in ALL API responses (get, getByReference, create, update, delete,
- * list), Go RedactChannelApp.
+ * list).
  *
  * Every provider arm must be handled here. The provider-arm tripwire test
  * (__tests__/channelapp.test.ts) fails if an arm is added to the spec
@@ -128,8 +127,8 @@ export function secretValuesOfChannelApp(app: ChannelApp): string[] {
 }
 
 /**
- * EncryptChannelAppSecrets — Go encryptChannelAppSecretsStep: the oauthapp
- * encryptClientSecretStep generalized to a provider oneof carrying
+ * EncryptChannelAppSecrets — the oauthapp EncryptClientSecret step
+ * generalized to a provider oneof carrying
  * multiple secrets (Slack: client_secret and signing_secret; WhatsApp:
  * app_secret, access_token and verify_token).
  *
@@ -143,7 +142,7 @@ export function secretValuesOfChannelApp(app: ChannelApp): string[] {
  *   - A ciphertext-shaped (enc:v<N>:) value is refused on both create and
  *     update (oss#395).
  *
- * Ordering is load-bearing (Go's pipeline comments): on CREATE this runs
+ * Ordering is load-bearing: on CREATE this runs
  * BEFORE BuildNewState (which clones state — the encrypted values must be
  * in place before the clone); on UPDATE it runs AFTER BuildUpdateState
  * (which replaces newState with the merged clone).
@@ -316,11 +315,11 @@ function newEncryptChannelAppSecretsStep(
 }
 
 /**
- * ValidateProviderImmutable — Go validateProviderImmutableStep: a slack
+ * ValidateProviderImmutable — a slack
  * app cannot become a whatsapp app — every referencing channel's install
  * state and the webhook verification path are provider-shaped. Compares
- * the INPUT's oneof arm against the loaded resource's (Go WhichOneof over
- * provider_config); runs after LoadExisting. InvalidArgument by pinned
+ * the INPUT's provider_config oneof arm against the loaded resource's;
+ * runs after LoadExisting. InvalidArgument by pinned
  * contract (see constants.ts on the cross-domain inconsistency).
  */
 export function newValidateProviderImmutableStep(): PipelineStep<ChannelAppDesc> {
@@ -347,7 +346,7 @@ export function newValidateProviderImmutableStep(): PipelineStep<ChannelAppDesc>
 }
 
 /**
- * CheckNoReferencingChannels — Go checkNoReferencingChannelsStep: prevents
+ * CheckNoReferencingChannels — prevents
  * deletion of a ChannelApp still referenced by any Slack or WhatsApp channel
  * (spec.slack.app_ref, spec.whatsapp.app_ref) — a deleted app would break the referencing channels'
  * webhook verification and any future re-install. Full scan through the store

@@ -1,5 +1,5 @@
 {
-  "description": "Cross-language file-change digest vectors for HITL file review. Locks the canonical file_digest and aggregate_digest functions so Go and Java compute byte-identical digests. file_digest = sha256(join(\"\\n\", [path_before, path_after, kind, before_sha256, after_sha256])) as lowercase hex. aggregate_digest = sha256(join(\"\\n\", sort_ascending(file_digests))) as lowercase hex. kind is the proto enum value name (FileChangeKind). Expected values are computed independently (plain sha256), so a passing Go AND Java run proves cross-edition parity.",
+  "description": "File-change digest vectors for HITL file review. Locks the canonical file_digest and aggregate_digest functions so every reader computes byte-identical digests. file_digest = sha256(join(\"\\n\", [path_before, path_after, kind, before_sha256, after_sha256])) as lowercase hex. aggregate_digest = sha256(join(\"\\n\", sort_ascending(file_digests))) as lowercase hex. kind is the proto enum value name (FileChangeKind). Expected values are computed independently (plain sha256), so a passing run in every reader proves they agree.",
   "cases": [
     {
       "name": "modify",

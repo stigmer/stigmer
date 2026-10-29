@@ -45,7 +45,7 @@ const NEAR_MISSES = [
   "[MODEL-RETRY] phase=request decision=wait reason=x",
   "[REPO-INSTRUCTIONS] chars=171 cut=0",
   "[hooks] Hook timeout of 3630s is very long (>1 hour)",
-  '{"stigmer_timing":"turn_phases","execution_id":"aex_1","total_ms":10,"segments":[]}',
+  '{"stigmer_timing":"turn_phases","execution_id":"run_1","total_ms":10,"segments":[]}',
   "[runner] mode=static, proxy=none",
 ];
 

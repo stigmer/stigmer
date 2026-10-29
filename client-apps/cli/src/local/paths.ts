@@ -1,7 +1,6 @@
 // Filesystem layout for the local stack, built on the CLI's config paths.
 //
-// The Go CLI deliberately splits state across two roots and the TS port
-// preserves it exactly:
+// State is split across two roots:
 //   - the *data dir* (~/.stigmer/data) holds daemon/server/runner PID + state +
 //     logs + the runner workspace;
 //   - the *config dir* (~/.stigmer) holds config.yaml, the SQLite db, and the
@@ -74,7 +73,7 @@ export function temporalDataDir(home: string = homedir()): string {
 }
 
 /** Temporal PID file (~/.stigmer/temporal.pid). Lives in the config dir, not
- * the data dir — matching the Go CLI's Temporal manager layout. */
+ * the data dir, beside the rest of Temporal's files. */
 export function temporalPidFile(home: string = homedir()): string {
   return join(configDir(home), "temporal.pid");
 }

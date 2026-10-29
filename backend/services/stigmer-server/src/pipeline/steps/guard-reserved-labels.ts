@@ -1,6 +1,6 @@
 /**
  * GuardReservedLabels — the write-boundary guard for the platform-reserved
- * `stigmer.ai/*` label namespace (the Java GuardReservedLabelsStep port).
+ * `stigmer.ai/*` label namespace.
  *
  * Reserved labels carry platform semantics the server reads and acts on
  * (the membership and lineage labels): a client that could write one would be
@@ -8,7 +8,7 @@
  * trusting the client. Only rejecting the write closes that; the label is
  * not authorization, the server is.
  *
- * Behavior (the Java matrix verbatim):
+ * Behavior (the matrix the tests pin):
  *   - ECHOES pass — clients read-modify-write whole resources, so a
  *     stored reserved label legitimately comes back on honest updates.
  *   - REMOVALS pass — dropping a reserved label only shrinks what it
@@ -18,16 +18,12 @@
  *     accepted from clients) — unless the caller holds
  *     `can_write_reserved_labels` on `platform:stigmer`, consulted
  *     LAZILY through the one composed Authorizer, so normal writes pay
- *     no authorization round-trip. The OSS permissive default allows —
- *     the local posture keeps today's behavior byte-identically; the
- *     cloud's FGA Authorizer supplies the operator gate.
+ *     no authorization round-trip. The OSS permissive default allows;
+ *     an enforcing Authorizer supplies the operator gate.
  *   - INTERNAL callers pass (the in-process chain's own composed
- *     requests — the rows the server composes; the TS rendering of Java's
- *     skipAuthorization + isInProcessCall arms).
- *   - No kind takes a reserved key from a client: the one per-kind client
- *     contract (the personal-environment marker) left with the
- *     Environment kind, and a person's own vault is told apart by its
- *     server-stamped owner, never by a label.
+ *     requests — the rows the server composes).
+ *   - No kind takes a reserved key from a client: a person's own vault is
+ *     told apart by its server-stamped owner, never by a label.
  *   - LABELS only, deliberately not annotations (annotations carry no
  *     resolution or authorization semantics).
  *
@@ -37,8 +33,7 @@
  * PushSkillRequest carries `labels`) places it after its populate step and
  * names its own positions (GuardReservedLabelsPositions), since its
  * resource rides a domain key, not newState. The infrastructure-failure arm answers a
- * sanitized INTERNAL (the TS store-fault doctrine, #478) where Java
- * echoes raw exception text — an unpinned outage-lane difference.
+ * sanitized INTERNAL (the store-fault doctrine, #478).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
@@ -101,7 +96,7 @@ export function newGuardReservedLabelsStep<Desc extends DescMessage>(
     name: "GuardReservedLabels",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       if (isServerComposedRequest(ctx.callerIdentity)) {
-        // The Java isInProcessCall arm: the trust decision was
+        // A server-composed request: the trust decision was
         // made by the service code that built the request, which may stamp
         // reserved labels by design, even when the call propagates the
         // user's identity for attribution.

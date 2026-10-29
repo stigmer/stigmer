@@ -1,5 +1,5 @@
 // The single exit point for command-level errors: classify, print to stderr,
-// and exit with the mapped code. Mirrors the Go CLI's clierr.Handle.
+// and exit with the mapped code.
 
 import { isDebug } from "../runtime.js";
 import { type CliError, classify, codeName } from "./classify.js";

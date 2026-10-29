@@ -10,8 +10,7 @@
  * `workspaceRootDir`) resolve to the SAME directory, and the runner happily
  * runs activities concurrently. A concurrent turn's write landing between
  * another turn's baseline and candidate gets misattributed to that other turn
- * (observed in prod: aex_01kwpzhmvbvwqdez9cb331nekr reviewed a notes.md it
- * never wrote). The same race lets a reject-reconcile in one session silently
+ * (a run has been seen reviewing a notes.md it never wrote). The same race lets a reject-reconcile in one session silently
  * revert a file another session's user just approved.
  *
  * Why a FILE lock and not in-process/server-side coordination: the shared

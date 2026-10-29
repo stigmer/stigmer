@@ -79,12 +79,11 @@ export function makeSkillArtifact(opts: SkillArtifactOptions): Uint8Array {
 // flag bit 3 set, zeroed sizes in the local file header, and a trailing data
 // descriptor carrying the real CRC/sizes. This is byte-for-byte the default output
 // of Go's standard archive/zip writer (zip.Writer.CreateHeader with Method:
-// zip.Store) — the shape a streaming parser cannot read (a stored entry's payload
-// length is only known from the descriptor *after* the payload) but every
-// central-directory reader can. stigmer#336: the cloud edition's JDK ZipInputStream
-// rejected this shape while the Go server accepted it. fflate's zipSync can only
-// emit descriptor-free entries, which is exactly why no test caught the divergence;
-// this builder exists so the parity stays pinned.
+// zip.Store), what a Go SDK integrator pushes — the shape a streaming parser
+// cannot read (a stored entry's payload length is only known from the descriptor
+// *after* the payload) but every central-directory reader can (stigmer#336).
+// fflate's zipSync can only emit descriptor-free entries, so this builder exists
+// to keep every edition's acceptance of the shape pinned.
 export function zipFilesStreaming(files: Record<string, Uint8Array | string>): Uint8Array {
   const chunks: number[] = [];
   const u16 = (v: number) => chunks.push(v & 0xff, (v >>> 8) & 0xff);

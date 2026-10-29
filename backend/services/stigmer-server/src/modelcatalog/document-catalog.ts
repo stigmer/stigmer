@@ -1,31 +1,28 @@
 /**
  * Document-driven ModelCatalogProvider — the registry-document
- * interpretation extracted from ModelRegistryStore ("validation logic
- * stays OSS and edition-neutral" applied to the interpretation itself).
+ * interpretation, apart from ModelRegistryStore's lifecycle ("validation
+ * logic stays OSS and edition-neutral" applied to the interpretation
+ * itself).
  *
- * Why the extraction exists: a composition whose catalog comes from
- * somewhere other than the bundled-snapshot-plus-upstream-refresh
- * lifecycle (the cloud's DB-resident operator baseline) still needs the
- * IDENTICAL document semantics — the sanity gate, apiModelId acceptance,
- * the tri-state capability rule, the sorted suggestion pools. Before this
- * module those semantics were private to ModelRegistryStore, so any other
- * provider implementation had to fork them and drift silently. Now the
- * interpretation lives here exactly once: ModelRegistryStore delegates to
+ * Why it stands alone: a composition whose catalog comes from somewhere
+ * other than the bundled-snapshot-plus-upstream-refresh lifecycle (the
+ * cloud's DB-resident operator baseline) still needs the IDENTICAL
+ * document semantics — the sanity gate, apiModelId acceptance, the
+ * tri-state capability rule, the sorted suggestion pools — and a provider
+ * that forked them would drift silently. So the interpretation lives here
+ * exactly once: ModelRegistryStore delegates to
  * it per document swap, and compositions build their own providers from
  * documents via newModelCatalogProviderFromDocument (exported through the
  * package's exports map).
  *
- * The interpretation is byte-identical to the pre-extraction store (which
- * ported Go's applyDocument, model_registry_store.go:302-412): both
- * canonical ids and provider api ids validate (oss#240); pricing-variant
+ * The interpretation: both canonical ids and provider api ids validate (oss#240); pricing-variant
  * VALUES are not modeled, only the key set; capability values declare
  * only on literal `true` (the tri-state rule — absence is "unknown").
  */
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /**
- * The subset of a registry entry the catalog indexes (Go
- * modelRegistryEntry). See the module header for the acceptance rules.
+ * The subset of a registry entry the catalog indexes. See the module header for the acceptance rules.
  */
 interface ModelRegistryEntry {
   id?: unknown;
@@ -43,7 +40,7 @@ interface RegistryIndexes {
   /** harness → model reference (canonical or api id) → true. */
   modelsByHarness: Map<string, Set<string>>;
   /** harness → sorted canonical ids (suggestion pools; may repeat a
-   *  duplicated document entry, exactly as Go's per-harness list does). */
+   *  duplicated document entry). */
   sortedModelsByHarness: Map<string, string[]>;
   /** variant → harness → model reference → true (oss#357). */
   modelsByVariant: Map<string, Map<string, Set<string>>>;
@@ -242,8 +239,8 @@ export function newModelCatalogProviderFromDocument(
 }
 
 /**
- * Parses a registry document and derives the valid-model indexes — the TS
- * half of Go's applyDocument (:302-412). Returns undefined when the
+ * Parses a registry document and derives the valid-model indexes. Returns
+ * undefined when the
  * document fails the sanity gate.
  */
 function buildIndexes(document: string): RegistryIndexes | undefined {

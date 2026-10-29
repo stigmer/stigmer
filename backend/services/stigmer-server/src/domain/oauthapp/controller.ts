@@ -1,12 +1,11 @@
 /**
- * OAuthApp controller — ports pkg/domain/oauthapp (command + query sides).
+ * OAuthApp controller (command + query sides).
  * OAuthApp is the outbound-auth registration with an external vendor:
  * client credentials plus the vendor's OAuth endpoints, found by the
  * addresses it signs in to (addresses.ts; a sign-in at one of them uses
  * it, domain/vault/login-app.ts). The outbound counterpart to
  * FederationIssuer (inbound auth).
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by oauthapp.conformance.test.ts (CONFORMANCE_TARGET=local)
  * and __tests__/oauthapp.test.ts.
  *
@@ -167,7 +166,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline. ResolveSlug runs before
+ * Create. ResolveSlug runs before
  * ValidateProto so clients can omit the slug; EncryptClientSecret runs
  * BEFORE BuildNewState because BuildNewState clones the current state —
  * the encrypted value must be in place before the clone. The response is
@@ -220,7 +219,7 @@ async function createOAuthApp(
 }
 
 /**
- * Update — chain per Go buildUpdatePipeline. EncryptClientSecret runs
+ * Update. EncryptClientSecret runs
  * AFTER BuildUpdateState (which replaces newState with a fresh clone of
  * the input): it then either encrypts a new plaintext secret or restores
  * the stored ciphertext when the redaction marker is echoed back.
@@ -296,7 +295,7 @@ async function rename(
 /**
  * Apply — kubectl-style idempotent create-or-update: a minimal pipeline
  * decides existence, then delegates to Create or Update with the ORIGINAL
- * request message (Go delegates `app`, not the pipeline's mutated clone);
+ * request message, not the probe pipeline's mutated clone;
  * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
@@ -340,7 +339,7 @@ async function apply(
 }
 
 /**
- * Delete — chain per Go buildDeletePipeline: load, delete, then let go of
+ * Delete — load, delete, then let go of
  * the app's address claims (a sign-in at an address it listed no longer
  * finds it). The RESOURCE_ID_KEY is set manually because
  * ApiResourceDeleteInput carries resourceId, not the value field
@@ -403,7 +402,7 @@ async function deleteOAuthApp(
   return app;
 }
 
-/** Get — LoadTarget by id, then redact (Go buildGetPipeline). */
+/** Get — LoadTarget by id, then redact. */
 async function get(
   deps: OAuthAppControllerDeps,
   id: ApiResourceId,

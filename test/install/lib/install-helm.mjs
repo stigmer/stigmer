@@ -16,8 +16,8 @@
  * gets a kubeconfig file of its own, and every kind, kubectl and helm call
  * names --kubeconfig and the context explicitly; an existing cluster
  * (--cluster) is addressed in the caller's kubeconfig by --context alone.
- * Nothing runs `kubectl config use-context` (#1561: the smoke used to, and
- * left a developer's kubectl with no current context).
+ * Nothing runs `kubectl config use-context`, which would leave a developer's
+ * kubectl with no current context (#1561).
  *
  * A release is configured the way the chart's README tells a user to: the
  * chart's Secret by secrets.existingSecret, the model's key by

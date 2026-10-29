@@ -3,7 +3,7 @@
  * walk (the protected-resource document names the login server, which may
  * live on another origin and carry a path, and counts only when it names
  * the address as its resource) with the address's origin as the last
- * resort the retired reader used; the address's own scopes beside the
+ * resort; the address's own scopes beside the
  * login server's; whether the login server takes a Client ID Metadata
  * Document; the issuer a document names must be the one it was read for;
  * every endpoint https or loopback http; S256 mandatory when advertised;
@@ -62,7 +62,7 @@ describe("buildWellKnownUrl", () => {
     expect(() => buildWellKnownUrl(url)).toThrow(message);
   });
 
-  it("rejects an unparseable URL with the Go prefix", () => {
+  it("rejects an unparseable URL with the pinned prefix", () => {
     expect(() => buildWellKnownUrl("::::")).toThrow(/^invalid server URL for discovery: /);
   });
 });
@@ -106,7 +106,7 @@ describe("discoverForResource", () => {
     expect(new Set(accepts)).toEqual(new Set(["application/json"]));
   });
 
-  it("refuses a non-200 naming the origin's RFC 8414 document with the MCP Authorization hint (Go copy, verbatim)", async () => {
+  it("refuses a non-200 naming the origin's RFC 8414 document with the MCP Authorization hint (pinned copy, verbatim)", async () => {
     const fetchImpl: OutboundFetch = async () => jsonResponse(404, {});
     await expect(discoverForResource("https://mcp.example.com/mcp", fetchImpl)).rejects.toThrow(
       "authorization server discovery failed: https://mcp.example.com/.well-known/oauth-authorization-server returned HTTP 404 (expected 200). " +
@@ -183,7 +183,7 @@ describe("discoverForResource: what the documents say", () => {
     ["authorization_endpoint", { ...VALID_METADATA, authorization_endpoint: undefined }, "is missing authorization_endpoint"],
     ["token_endpoint", { ...VALID_METADATA, token_endpoint: undefined }, "is missing token_endpoint"],
   ];
-  it.each(missingEndpoint)("refuses metadata without %s, naming the document (Go copy)", async (_label, body, fragment) => {
+  it.each(missingEndpoint)("refuses metadata without %s, naming the document (pinned copy)", async (_label, body, fragment) => {
     const { fetchImpl } = serving({ "https://auth.example.com/.well-known/oauth-authorization-server": body });
     await expect(discoverForResource("https://auth.example.com", fetchImpl)).rejects.toThrow(
       `authorization server at https://auth.example.com/.well-known/oauth-authorization-server ${fragment}`,
@@ -211,7 +211,7 @@ describe("discoverForResource: what the documents say", () => {
     );
   });
 
-  it("refuses a server that advertises methods without S256 (Go %v list rendering)", async () => {
+  it("refuses a server that advertises methods without S256 (the bracketed list rendering)", async () => {
     const { fetchImpl } = serving({
       "https://auth.example.com/.well-known/oauth-authorization-server": { ...VALID_METADATA, code_challenge_methods_supported: ["plain"] },
     });

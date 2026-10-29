@@ -1,5 +1,5 @@
 // `stigmer resume [session-id-or-text]` — re-open an existing session. Thin
-// handler: classify the argument (Go's executeResumeSmart), then delegate to the
+// handler: classify the argument, then delegate to the
 // resume orchestrator. Resource IDs that aren't sessions are redirected to `run`;
 // text/0-arg would open the session picker (a separate, not-yet-wired task).
 

@@ -113,10 +113,9 @@ The Harness you choose depends on what your Agent needs to do.
 | **Latency**                  | No process start-up per turn                                                                | The Claude Agent SDK starts its own process for each turn            |
 | **Best for**                 | General-purpose agents, custom model selection, production workloads                        | Agents that want Anthropic's own loop on Claude models               |
 
-Stigmer also ran a Cursor harness, which was retired; the models only it served
-(Gemini, Kimi, GLM, Grok, Composer, Auto, and GPT in the open-source catalog)
-are reached on the Stigmer harness through your Organization's own
-OpenAI-compatible endpoint, named `openai:<name>`.
+A model the catalog does not list (Gemini, Kimi, GLM or Grok, for example) is
+reached on the Stigmer harness through your Organization's own OpenAI-compatible
+endpoint, named `openai:<name>`.
 
 <Callout type="info">
   A Session's Harness is immutable after the first run starts. Choose the right

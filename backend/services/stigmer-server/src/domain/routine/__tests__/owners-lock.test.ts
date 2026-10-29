@@ -6,7 +6,8 @@
  *   - the step refuses a non-owner's change to what a routine runs with the
  *     lock's copy, and admits their switch-off and their metadata edit;
  *   - the owner is the principal the creator stamp names, or the account it
- *     resolves to (by id, or through the 3.14.x raw issuer subject), and an
+ *     resolves to (by id, or through the raw issuer subject a write made
+ *     before the caller's account existed carries), and an
  *     unprovisioned caller whose subject is the stamp is the owner too;
  *   - a routine whose stamp names nobody has no owner: only the internal
  *     class changes what it runs;

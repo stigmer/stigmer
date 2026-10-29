@@ -37,7 +37,7 @@ describe("resolveSkillTransferBaseUrl", () => {
     },
   );
 
-  it("a known unified port renders the loopback origin once, byte-identical to the retired config default", () => {
+  it("a known unified port renders the loopback origin once, http://localhost:<port>", () => {
     expect(
       resolveSkillTransferBaseUrl({
         configured: "",

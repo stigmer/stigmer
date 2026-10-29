@@ -59,7 +59,7 @@ describe("hookify: tool hooks that run as written", () => {
     expect(accepted(outcome).subAgents.map((a) => [a.name, a.tools])).toEqual([["conversation-analyzer", ["Read", "Grep"]]]);
   });
 
-  it("no longer records hooks/ as ignored", () => {
+  it("does not record hooks/ as ignored", () => {
     expect(accepted(outcome).ignored).toEqual([{ kind: "commands", path: "commands/" }]);
   });
 });

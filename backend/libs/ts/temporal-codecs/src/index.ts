@@ -5,9 +5,8 @@
  * (`connection/config.ts`), and the activity names the runner registers
  * and the server's workflow calls (`activity-names/names.ts`, a
  * dependency-free subpath the workflow sandbox can load). The encryption
- * envelope is a cross-language wire contract (the Java decode-only codec
- * in stigmer-cloud's temporal-starter must match it byte-for-byte, pinned
- * by the fixture in src/__tests__/fixtures/), the connection settings must
+ * envelope is a wire contract (every reader must match it byte-for-byte,
+ * pinned by the fixture in src/__tests__/fixtures/), the connection settings must
  * mean the same on every connection, and an activity name must be the
  * same on both ends of a run, which is why all three live in one library
  * instead of per-consumer copies that could fork.

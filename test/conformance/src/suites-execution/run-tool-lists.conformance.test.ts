@@ -126,7 +126,7 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
     mock.enqueue(anthropicText("Done."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-lists"), agentRef: agentRefOf(agent), autoApproveAll }),
+      makeAgentExecution({ org, name: uniqueName("run-lists"), agentRef: agentRefOf(agent), autoApproveAll }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
@@ -256,7 +256,7 @@ describe("Run tool lists — a plugin's agent is scoped by its own list", () => 
     mock.enqueue(anthropicText("The clerk found ORD-4821."));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-desk"), agentRef: agentRefOf(agent) }),
+      makeAgentExecution({ org, name: uniqueName("run-desk"), agentRef: agentRefOf(agent) }),
     );
     const executionId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));

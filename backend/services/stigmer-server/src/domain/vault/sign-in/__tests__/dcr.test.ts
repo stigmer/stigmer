@@ -1,5 +1,5 @@
 /**
- * Pins RFC 7591 Dynamic Client Registration against Go oauth/dcr.go: the
+ * Pins RFC 7591 Dynamic Client Registration: the
  * public-client request shape (token_endpoint_auth_method "none" — MCP
  * OAuth uses PKCE, and the empty secret keeps meaning "public client",
  * oss#394), 200/201 acceptance, the 256-byte error-body truncation, and

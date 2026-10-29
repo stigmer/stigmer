@@ -124,13 +124,13 @@ afterEach(() => {
 
 describe("useSessionEvents", () => {
   it("follows the whole log with every preview and publishes the fold", async () => {
-    const { result } = follow("ses-1", QUICK);
+    const { result } = follow("ses_1", QUICK);
     expect(result.current.isConnecting).toBe(true);
     expect(result.current.fold).toBeNull();
 
     await waitFor(() => expect(streams).toHaveLength(1));
     expect(streams[0]!.request).toMatchObject({
-      sessionId: "ses-1",
+      sessionId: "ses_1",
       afterSeq: 0n,
       eventDeltas: [...ALL_SESSION_PREVIEWS],
     });
@@ -146,7 +146,7 @@ describe("useSessionEvents", () => {
   it("publishes a burst of frames once", async () => {
     const store = new ConversationStore();
     const publish = vi.spyOn(store, "publish");
-    const { result } = follow("ses-1", { ...QUICK, store });
+    const { result } = follow("ses_1", { ...QUICK, store });
     await waitFor(() => expect(streams).toHaveLength(1));
 
     act(() => send(...samples.turnEvents()));
@@ -156,7 +156,7 @@ describe("useSessionEvents", () => {
 
   it("reconnects a dropped stream from the newest event, then streams again", async () => {
     vi.spyOn(Math, "random").mockReturnValue(1);
-    const { result } = follow("ses-1", { reconnectOptions: { baseDelayMs: 40, maxDelayMs: 40 } });
+    const { result } = follow("ses_1", { reconnectOptions: { baseDelayMs: 40, maxDelayMs: 40 } });
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => send(...samples.turnEvents({ phase: "running" })));
     await waitFor(() => expect(result.current.isStreaming).toBe(true));
@@ -176,7 +176,7 @@ describe("useSessionEvents", () => {
   });
 
   it("surfaces an error once the reconnects allowed run out", async () => {
-    const { result } = follow("ses-1", { reconnectOptions: { baseDelayMs: 0, maxDelayMs: 0, maxAttempts: 1 } });
+    const { result } = follow("ses_1", { reconnectOptions: { baseDelayMs: 0, maxDelayMs: 0, maxAttempts: 1 } });
     await waitFor(() => expect(streams).toHaveLength(1));
 
     act(() => streams[0]!.send({ kind: "end" }));
@@ -189,7 +189,7 @@ describe("useSessionEvents", () => {
   });
 
   it("surfaces the first drop as an error with autoReconnect off", async () => {
-    const { result } = follow("ses-1", { autoReconnect: false });
+    const { result } = follow("ses_1", { autoReconnect: false });
     await waitFor(() => expect(streams).toHaveLength(1));
 
     act(() => streams[0]!.send({ kind: "end" }));
@@ -198,7 +198,7 @@ describe("useSessionEvents", () => {
   });
 
   it("surfaces a refusal as the error, keeping what was folded", async () => {
-    const { result } = follow("ses-1", QUICK);
+    const { result } = follow("ses_1", QUICK);
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => send(...samples.turnEvents()));
     await waitFor(() => expect(result.current.fold).not.toBeNull());
@@ -210,7 +210,7 @@ describe("useSessionEvents", () => {
   });
 
   it("reconnects a silent follow once, then surfaces the timeout until a manual reconnect", async () => {
-    const { result } = follow("ses-1", { ...QUICK, connectTimeoutMs: 30 });
+    const { result } = follow("ses_1", { ...QUICK, connectTimeoutMs: 30 });
     await waitFor(() => expect(streams).toHaveLength(2));
     await waitFor(() => expect(result.current.connectTimedOut).toBe(true));
     expect(streams).toHaveLength(2);
@@ -237,15 +237,15 @@ describe("useSessionEvents", () => {
   });
 
   it("starts another session from an empty fold, and idles when the id clears", async () => {
-    const { result, rerender } = follow("ses-1", QUICK);
+    const { result, rerender } = follow("ses_1", QUICK);
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => send(...samples.turnEvents()));
     await waitFor(() => expect(result.current.fold).not.toBeNull());
 
-    rerender({ id: "ses-2" });
+    rerender({ id: "ses_2" });
     await waitFor(() => expect(streams).toHaveLength(2));
     expect(result.current.fold).toBeNull();
-    expect(streams[1]!.request).toMatchObject({ sessionId: "ses-2", afterSeq: 0n });
+    expect(streams[1]!.request).toMatchObject({ sessionId: "ses_2", afterSeq: 0n });
 
     rerender({ id: null });
     await waitFor(() => expect(result.current.isConnecting).toBe(false));
@@ -253,13 +253,13 @@ describe("useSessionEvents", () => {
   });
 
   it("is slow only while the newest turn works", async () => {
-    const working = follow("ses-1", { ...QUICK, slowThresholdMs: 30 });
+    const working = follow("ses_1", { ...QUICK, slowThresholdMs: 30 });
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => send(...samples.turnEvents({ phase: "running", reply: "" })));
     await waitFor(() => expect(working.result.current.isSlow).toBe(true));
     working.unmount();
 
-    const idle = follow("ses-2", { ...QUICK, slowThresholdMs: 30 });
+    const idle = follow("ses_2", { ...QUICK, slowThresholdMs: 30 });
     await waitFor(() => expect(streams).toHaveLength(2));
     act(() => send(...samples.turnEvents({ runId: "run_b" })));
     await waitFor(() => expect(idle.result.current.fold).not.toBeNull());
@@ -271,7 +271,7 @@ describe("useSessionEvents", () => {
     vi.useFakeTimers();
     try {
       vi.spyOn(Math, "random").mockReturnValue(1);
-      const { result } = follow("ses-1", { connectTimeoutMs: 60 * 60_000 });
+      const { result } = follow("ses_1", { connectTimeoutMs: 60 * 60_000 });
       await act(() => vi.advanceTimersByTimeAsync(0));
       act(() => streams[0]!.send({ kind: "end" }));
       await act(() => vi.advanceTimersByTimeAsync(1_000));
@@ -299,7 +299,7 @@ describe("useSessionEvents", () => {
     ["the network returns", () => window.dispatchEvent(new Event("online"))],
   ])("re-opens a follow waiting out its backoff when %s", async (_when, fire) => {
     vi.spyOn(Math, "random").mockReturnValue(1);
-    const { result } = follow("ses-1", { reconnectOptions: { baseDelayMs: 60_000, maxDelayMs: 60_000 } });
+    const { result } = follow("ses_1", { reconnectOptions: { baseDelayMs: 60_000, maxDelayMs: 60_000 } });
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => streams[0]!.send({ kind: "end" }));
     await waitFor(() => expect(result.current.isReconnecting).toBe(true));
@@ -313,7 +313,7 @@ describe("useSessionEvents", () => {
 
   it("re-opens a follow waiting out its backoff on wake", async () => {
     vi.spyOn(Math, "random").mockReturnValue(1);
-    const { result } = follow("ses-1", { reconnectOptions: { baseDelayMs: 60_000, maxDelayMs: 60_000 } });
+    const { result } = follow("ses_1", { reconnectOptions: { baseDelayMs: 60_000, maxDelayMs: 60_000 } });
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => streams[0]!.send({ kind: "end" }));
     await waitFor(() => expect(result.current.isReconnecting).toBe(true));
@@ -330,7 +330,7 @@ describe("useSessionEvents", () => {
         window.dispatchEvent(new Event("online"));
       });
 
-    const streaming = follow("ses-1", QUICK);
+    const streaming = follow("ses_1", QUICK);
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => send(...samples.turnEvents({ phase: "running" })));
     await waitFor(() => expect(streaming.result.current.isStreaming).toBe(true));
@@ -339,7 +339,7 @@ describe("useSessionEvents", () => {
     expect(streams).toHaveLength(1);
     streaming.unmount();
 
-    const refused = follow("ses-2", QUICK);
+    const refused = follow("ses_2", QUICK);
     await waitFor(() => expect(streams).toHaveLength(2));
     act(() => streams[1]!.send({ kind: "fail", error: new StigmerError("not-found", "session not found", 5) }));
     await waitFor(() => expect(refused.result.current.error?.message).toMatch(/not found/));
@@ -360,7 +360,7 @@ describe("useSessionEvents", () => {
 
   it("ends the follow when unmounted mid-reconnect", async () => {
     vi.spyOn(Math, "random").mockReturnValue(1);
-    const { result, unmount } = follow("ses-1", { reconnectOptions: { baseDelayMs: 5_000, maxDelayMs: 5_000 } });
+    const { result, unmount } = follow("ses_1", { reconnectOptions: { baseDelayMs: 5_000, maxDelayMs: 5_000 } });
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => streams[0]!.send({ kind: "end" }));
     await waitFor(() => expect(result.current.isReconnecting).toBe(true));
@@ -380,7 +380,7 @@ describe("useSessionEvents — a long outage", () => {
     vi.useFakeTimers();
     try {
       vi.spyOn(Math, "random").mockReturnValue(1);
-      const { result } = follow("ses-1");
+      const { result } = follow("ses_1");
       await act(() => vi.advanceTimersByTimeAsync(0));
       expect(streams).toHaveLength(1);
       act(() => send(...samples.turnEvents({ phase: "running", reply: "" })));
@@ -406,7 +406,7 @@ describe("useSessionEvents — a long outage", () => {
   });
 
   it("follows again when the tab is shown or the network returns after a follow gave up", async () => {
-    const { result } = follow("ses-1", { reconnectOptions: { baseDelayMs: 0, maxDelayMs: 0, maxAttempts: 1 } });
+    const { result } = follow("ses_1", { reconnectOptions: { baseDelayMs: 0, maxDelayMs: 0, maxAttempts: 1 } });
     await waitFor(() => expect(streams).toHaveLength(1));
     act(() => send(...samples.turnEvents({ phase: "running", reply: "" })));
     await waitFor(() => expect(result.current.fold).not.toBeNull());

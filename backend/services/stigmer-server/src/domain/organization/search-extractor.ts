@@ -1,6 +1,5 @@
 /**
- * Organization search extractor — ports pkg/query/search/extractor/
- * organization_extractor.go (both sides: the index side, the query
+ * Organization search extractor (both sides: the index side, the query
  * side; the search summary is spec.description). Organizations are the
  * top-level container for all Stigmer resources.
  */
@@ -21,7 +20,7 @@ export const organizationSearchExtractor: SearchableExtractor = {
   schema: OrganizationSchema,
 
   getSearchSummary(resource: Message): string {
-    // Go OrganizationExtractor.GetSearchSummary: spec.description.
+    // The search summary: spec.description.
     const org = resource as unknown as Organization;
     return org.spec?.description ?? "";
   },
@@ -48,10 +47,10 @@ export const organizationSearchExtractor: SearchableExtractor = {
       name: metadata.name,
       description: org.spec?.description ?? "",
       // Tags join space-separated — the index entry carries one tags
-      // string (Go extractor.JoinTags).
+      // string.
       tags: metadata.tags.join(" "),
       org: metadata.org,
-      // The enum NAME string, exactly Go's visibility.String().
+      // The enum NAME string.
       visibility: ApiResourceVisibility[metadata.visibility] ?? "",
       createdAt: Number(
         org.status?.audit?.specAudit?.createdAt?.seconds ?? 0n,

@@ -110,9 +110,7 @@ export interface SpawnServerOptions {
   // Keys here win over the base on collision.
   env?: Record<string, string>;
   // Arguments for the spawned executable: the server is a node entry, so
-  // callers pass node as binaryPath and the entry module here. (The shape
-  // survives from the retired Go binary, which spawned bare — the identical
-  // env contract is what let the two servers share this harness.)
+  // callers pass node as binaryPath and the entry module here.
   args?: string[];
   // A fixed gRPC port instead of an ephemeral one, for a suite whose clients
   // are configured before the stack boots (the e2e console points at 7234).

@@ -1,6 +1,5 @@
 // Parse human expiration durations like "30d", "6h", "1y" into milliseconds.
-// Ported from the Go CLI's ParseExpirationDuration; invalid input is a usage
-// error (exit 2). Units: m (minutes), h (hours), d (days), y (years).
+// Invalid input is a usage error (exit 2). Units: m (minutes), h (hours), d (days), y (years).
 
 import { UsageError } from "../../errors/index.js";
 

@@ -1,6 +1,5 @@
 /**
- * Search query store — ports
- * pkg/query/search/store/sqlite_search_query_store.go: the CQRS read path
+ * Search query store: the CQRS read path
  * over the search index. The SQL, engine query syntax, and score
  * normalization all live in the storage driver (Store.querySearchIndex /
  * clearSearchIndex — no DB() escape hatch, engine specifics inside each
@@ -8,15 +7,14 @@
  * engine-neutral tokenization of the user's query — plus per-hit
  * load-and-convert through the extractor registry, and RebuildIndex.
  *
- * Per-hit loading is Go's shape ported faithfully: each page row loads
- * its resource individually and converts through the kind's extractor;
- * a row that fails to parse, load, or convert logs a warning and is
- * SKIPPED — the request never fails over one bad row. (The N+1 read is
- * disclosed in the PR — parity over optimization, laptop-scale by
- * design.)
+ * Per-hit loading: each page row loads its resource individually and
+ * converts through the kind's extractor; a row that fails to parse, load,
+ * or convert logs a warning and is SKIPPED — the request never fails over
+ * one bad row. (The N+1 read is a deliberate trade: a page is small, and
+ * the read is laptop-scale by design.)
  *
- * Proven by __tests__/query-store.test.ts (Go's store test tables +
- * the scope-filter matrix) and search.conformance.test.ts on local.
+ * Proven by __tests__/query-store.test.ts (the store test tables + the
+ * scope-filter matrix) and search.conformance.test.ts on local.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 
@@ -24,7 +22,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { goFields } from "../../gocompat/trim.js";
+import { splitOnWhiteSpace } from "../../text/whitespace.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { Store } from "../../store/interface.js";
 import type { SearchCriteria } from "./criteria.js";
@@ -32,13 +30,12 @@ import { emptyResult, newSearchPagedResult } from "./paged-result.js";
 import type { SearchPagedResult } from "./paged-result.js";
 import type { SearchableResourceRegistry } from "./registry.js";
 
-/** Go SearchQueryStore, the handler's read seam. */
+/** The handler's read seam. */
 export interface SearchQueryStore {
   /**
-   * `authorizedIdsByKind` (kind NAME → ids) is the scoping arm — the Java
-   * PostgresSearchQueryStore's authorizedByKind hard
-   * filter, pushed into the engine query so pagination stays correct.
-   * Undefined = the unscoped read, byte-identical to the pre-seam query.
+   * `authorizedIdsByKind` (kind NAME → ids) is the scoping arm — a hard
+   * filter pushed into the engine query so pagination stays correct.
+   * Undefined = the unscoped read.
    */
   search(
     criteria: SearchCriteria,
@@ -47,8 +44,8 @@ export interface SearchQueryStore {
   /**
    * Wipes and repopulates the search index from the resources table.
    * Returns the indexed-row count; throws AFTER indexing what it could
-   * when one or more kinds failed (the caller warns and boots on —
-   * Go server.go:617's posture).
+   * when one or more kinds failed (the caller warns and boots on: a
+   * partial index serves better than no server).
    */
   rebuildIndex(): Promise<number>;
 }
@@ -75,11 +72,10 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
       await this.store.querySearchIndex({
         kinds: effectiveKinds.map((kind) => apiResourceKindName(kind)),
         authorizedIdsByKind,
-        // Engine-neutral tokenization: whitespace terms via the gocompat
-        // twin of Go's strings.Fields (JS \s+ disagrees with Go on
-        // U+FEFF/U+0085 — the BOM divergence class; criteria.query()
-        // is already goTrimSpace'd). Engine syntax is the driver's job.
-        terms: criteria.hasQuery() ? goFields(criteria.query()) : undefined,
+        // Engine-neutral tokenization: terms split on Unicode White_Space
+        // (JS \s+ differs on U+FEFF/U+0085; criteria.query() is already
+        // trimmed the same way). Engine syntax is the driver's job.
+        terms: criteria.hasQuery() ? splitOnWhiteSpace(criteria.query()) : undefined,
         orgFilter: criteria.orgFilter(),
         limit: criteria.pageSize(),
         offset: criteria.offset(),
@@ -111,7 +107,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
     return newSearchPagedResult(results, countsByKind, totalCount);
   }
 
-  /** Go loadAndConvertResource: load the hit, convert via its extractor. */
+  /** Loads the hit and converts it via its extractor. */
   private async loadAndConvertResource(
     kind: ApiResourceKind,
     resourceId: string,
@@ -135,7 +131,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
       return extractor.toSearchResult(resource, score);
     } catch (error) {
       // A stale index row (resource deleted between the page query and
-      // this load) or a corrupt row: warn and skip, exactly Go.
+      // this load) or a corrupt row: warn and skip.
       this.logger.warn("Failed to load resource", {
         kind: ApiResourceKind[kind],
         id: resourceId,
@@ -188,12 +184,12 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
     return totalIndexed;
   }
 
-  /** Go indexKind: every row of the kind through its extractor. */
+  /** Every row of the kind through its extractor. */
   private async indexKind(kind: ApiResourceKind): Promise<number> {
     const extractor = this.registry.getExtractor(kind);
     if (extractor === undefined) {
       // supportedKinds() only yields registered kinds; this arm guards
-      // the same impossible state Go's GetExtractor error return does.
+      // the impossible state.
       throw new Error("no SearchableExtractor registered");
     }
 
@@ -216,7 +212,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
         continue;
       }
       // The resource ID rides the SearchResult projection (it has the
-      // metadata access) — Go's exact two-step.
+      // metadata access).
       const result = extractor.toSearchResult(resource, 1.0);
       if (result === undefined) {
         continue;
@@ -238,7 +234,7 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
   }
 }
 
-/** Go parseKind: the enum-name string back to the enum value. */
+/** The enum-name string back to the enum value. */
 export function parseKind(kindName: string): ApiResourceKind | undefined {
   const value = (ApiResourceKind as unknown as Record<string, unknown>)[
     kindName

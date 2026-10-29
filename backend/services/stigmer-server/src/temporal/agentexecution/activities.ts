@@ -24,12 +24,11 @@
  * exact updateStatus handler: the domain's single atomic merge
  * chokepoint plus the composed status hooks, so the activity and the
  * runner's gRPC path can never
- * diverge on merge semantics (Go's activity impl shared the merge helpers
- * for the same reason). The activity therefore builds NO identity of its
- * own. Its predecessor called the domain function directly with the
- * chassis's trusted-local WIRE identity (`user`-class), which an
- * enforcing Authorizer has no grant for — every runner failure on the
- * cloud composition left a hung, never-FAILED execution (stigmer#979).
+ * diverge on merge semantics. The activity therefore builds NO identity of
+ * its own: a direct domain call with the chassis's trusted-local WIRE
+ * identity (`user`-class) has no grant under an enforcing Authorizer, and
+ * would leave every runner failure a hung, never-FAILED execution
+ * (stigmer#979).
  *
  * CountOpenGates is the workflow's HITL wait condition: the number of the
  * turn's tool uses that wait in its session's log (an ask no answer and
@@ -112,7 +111,7 @@ import { decodeRunStatusJson } from "./execution-json.js";
  * The worker's own-behalf status edge — the agentexecution UpdateStatus
  * RPC reached over the in-process transport (the `InProcessClients`
  * surface in boot/inprocess.ts satisfies it). Method-segregated like the
- * other in-process edges (Go's narrow client interfaces): the worker
+ * other in-process edges (narrow client interfaces): the worker
  * needs exactly this one RPC.
  */
 export interface ExecutionStatusWriter {
@@ -144,7 +143,7 @@ const TURN_MESSAGE_TYPE = "user.message";
  * Builds the activity record the worker registers. Keys are the
  * byte-pinned activity names; runner-owned activities (declared in
  * `@stigmer/temporal-codecs/activity-names`) are deliberately NOT here — registering them would break queue-based
- * routing (worker_config.go's CRITICAL rules).
+ * routing (worker.ts's queue architecture).
  */
 export function createAgentExecutionActivities(
   deps: AgentExecutionActivityDeps,
@@ -155,13 +154,12 @@ export function createAgentExecutionActivities(
     /**
      * The atomic status merge, invoked as a regular activity (failure/
      * cancellation paths) AND a local activity (persistFinalStatus) —
-     * one implementation serves both modes, exactly Go's single named
-     * registration. The activity owns only the payload boundary (proto-
-     * JSON in, a typed UpdateStatus input out); identity, authorization,
+     * one implementation serves both modes under one registered name.
+     * The activity owns only the payload boundary (proto-JSON in, a typed
+     * UpdateStatus input out); identity, authorization,
      * merge and hooks are the in-process lane's (module
      * header). A ConnectError from the lane — NotFound for a deleted
-     * execution — IS the activity's failure, exactly what the direct
-     * domain call answered before.
+     * execution — IS the activity's failure.
      */
     [UPDATE_EXECUTION_STATUS_ACTIVITY_NAME]: async (
       executionId: string,

@@ -2,8 +2,8 @@
  * Server Contract Validation
  *
  * Encodes server-side pipeline requirements that the proto schema does not
- * express. The Java backend's `ResolveSlugStepV2`, `AuthorizeStep`, and
- * `ValidateSessionOrAgentStep` enforce business rules beyond protovalidate
+ * express. The server's create pipeline (slug resolution, authorization, the
+ * session-or-agent check) enforces business rules beyond protovalidate
  * annotations. These guards catch violations at the client before they
  * reach the wire, producing actionable error messages.
  *

@@ -112,7 +112,7 @@ describe("listIndexFactsOf", () => {
       metadata: {
         id: "ses_1",
         org: "acme",
-        labels: { "stigmer.ai/channel-id": "ach_1" },
+        labels: { "stigmer.ai/channel-id": "chn_1" },
       },
       status: {
         agentId: "agt_1",
@@ -127,7 +127,7 @@ describe("listIndexFactsOf", () => {
       revision: 1,
       keys: [
         { key: "agent", value: "agt_1" },
-        { key: "channel", value: "ach_1" },
+        { key: "channel", value: "chn_1" },
       ],
     });
   });
@@ -250,7 +250,7 @@ describe("listIndexInstant", () => {
 });
 
 describe("matchesListIndexQuery", () => {
-  const withChannel = facts({ keys: [{ key: "channel", value: "ach_1" }] });
+  const withChannel = facts({ keys: [{ key: "channel", value: "chn_1" }] });
 
   it("matches an organization only exactly, and every organization when absent or empty", () => {
     expect(matchesListIndexQuery("x", withChannel, { org: "acme" })).toBe(true);
@@ -265,13 +265,13 @@ describe("matchesListIndexQuery", () => {
       matchesListIndexQuery("x", withChannel, {
         anyKey: [
           { name: "agent", value: "agt_9" },
-          { name: "channel", value: "ach_1" },
+          { name: "channel", value: "chn_1" },
         ],
       }),
     ).toBe(true);
     expect(
       matchesListIndexQuery("x", withChannel, {
-        anyKey: [{ name: "channel", value: "ach_2" }],
+        anyKey: [{ name: "channel", value: "chn_2" }],
       }),
     ).toBe(false);
   });
@@ -339,12 +339,12 @@ describe("mergeListIndexRows", () => {
 
 describe("sameListKeyRows", () => {
   it("is equal only when the instant and every key agree", () => {
-    const a = facts({ keys: [{ key: "channel", value: "ach_1" }] });
+    const a = facts({ keys: [{ key: "channel", value: "chn_1" }] });
     expect(
-      sameListKeyRows(a, facts({ keys: [{ key: "channel", value: "ach_1" }] })),
+      sameListKeyRows(a, facts({ keys: [{ key: "channel", value: "chn_1" }] })),
     ).toBe(true);
     expect(
-      sameListKeyRows(a, facts({ keys: [{ key: "channel", value: "ach_2" }] })),
+      sameListKeyRows(a, facts({ keys: [{ key: "channel", value: "chn_2" }] })),
     ).toBe(false);
     expect(sameListKeyRows(a, facts({ createdAt: "", keys: a.keys }))).toBe(
       false,

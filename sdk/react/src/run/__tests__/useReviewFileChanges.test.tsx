@@ -39,11 +39,11 @@ describe("useReviewFileChanges", () => {
     const { result } = renderHook(() => useReviewFileChanges(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.reviewFileChanges("ses-1", "cs-1", "keep", { expectedDigest: "agg-1" });
+      await result.current.reviewFileChanges("ses_1", "cs-1", "keep", { expectedDigest: "agg-1" });
     });
 
     expect(reviewFileChanges.mock.calls[0][0]).toMatchObject({
-      sessionId: "ses-1",
+      sessionId: "ses_1",
       changeSetId: "cs-1",
       scope: "change_set",
       fileChangeId: "",
@@ -59,13 +59,13 @@ describe("useReviewFileChanges", () => {
     const { result } = renderHook(() => useReviewFileChanges(), { wrapper: Wrapper });
 
     await act(async () => {
-      await result.current.reviewFileChanges("ses-1", "cs-1", "keep", {
+      await result.current.reviewFileChanges("ses_1", "cs-1", "keep", {
         fileChangeId: "fc-bin",
         expectedDigest: "d-bin",
         reason: "it is the logo",
         acknowledgeUnreviewable: true,
       });
-      await result.current.reviewFileChanges("ses-1", "cs-1", "undo", {
+      await result.current.reviewFileChanges("ses_1", "cs-1", "undo", {
         scope: "change_set",
         fileChangeId: "fc-2",
         expectedDigest: "agg",
@@ -90,7 +90,7 @@ describe("useReviewFileChanges", () => {
 
     let pending!: Promise<void>;
     act(() => {
-      pending = result.current.reviewFileChanges("ses-1", "cs-1", "keep", { expectedDigest: "agg" });
+      pending = result.current.reviewFileChanges("ses_1", "cs-1", "keep", { expectedDigest: "agg" });
     });
     expect(result.current.submittingDecisionKeys.has("cs-1")).toBe(true);
 
@@ -107,7 +107,7 @@ describe("useReviewFileChanges", () => {
 
     await act(async () => {
       await expect(
-        result.current.reviewFileChanges("ses-1", "cs-1", "keep", { expectedDigest: "agg" }),
+        result.current.reviewFileChanges("ses_1", "cs-1", "keep", { expectedDigest: "agg" }),
       ).rejects.toThrow("digest mismatch");
     });
 
@@ -129,16 +129,16 @@ describe("useReviewFileChanges", () => {
 
     await act(async () => {
       await expect(
-        result.current.reviewFileChanges("ses-1", "cs-1", "undo", { fileChangeId: "fc1", expectedDigest: "d1" }),
+        result.current.reviewFileChanges("ses_1", "cs-1", "undo", { fileChangeId: "fc1", expectedDigest: "d1" }),
       ).rejects.toThrow("fail-a");
     });
     await act(async () => {
       await expect(
-        result.current.reviewFileChanges("ses-1", "cs-1", "undo", { fileChangeId: "fc2", expectedDigest: "d2" }),
+        result.current.reviewFileChanges("ses_1", "cs-1", "undo", { fileChangeId: "fc2", expectedDigest: "d2" }),
       ).rejects.toThrow("fail-b");
     });
     await act(async () => {
-      await result.current.reviewFileChanges("ses-1", "cs-1", "keep", { fileChangeId: "fc1", expectedDigest: "d1" });
+      await result.current.reviewFileChanges("ses_1", "cs-1", "keep", { fileChangeId: "fc1", expectedDigest: "d1" });
     });
 
     const keyA = fileDecisionKey("cs-1", "fc1");

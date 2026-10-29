@@ -93,7 +93,7 @@ describe("environmentsNotApplying", () => {
     expect(environmentsNotApplying({ applies: true }, undefined)).toBeUndefined();
   });
 
-  it("leaves an older server, and an explicit cloud target, to the server's refusal", () => {
+  it("leaves a server that has not said, and an explicit cloud target, to the server's refusal", () => {
     expect(environmentsNotApplying(undefined, undefined)).toBeUndefined();
     expect(environmentsNotApplying({ applies: false }, "cloud")).toBeUndefined();
   });

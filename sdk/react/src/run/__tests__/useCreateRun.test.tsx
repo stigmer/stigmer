@@ -34,7 +34,7 @@ function createWrapper(client: Stigmer) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockCreate.mockResolvedValue({ metadata: { id: "aex-1" } });
+  mockCreate.mockResolvedValue({ metadata: { id: "run_1" } });
 });
 
 describe("useCreateRun — run_config and the per-message intents", () => {
@@ -45,7 +45,7 @@ describe("useCreateRun — run_config and the per-message intents", () => {
     await act(async () => {
       await result.current.create({
         org: "acme",
-        sessionId: "ses-1",
+        sessionId: "ses_1",
         message: "Hello",
         ...fields,
       } as Parameters<typeof result.current.create>[0]);
@@ -314,8 +314,8 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
 
   it("returns the server-assigned session id from the bootstrap response", async () => {
     mockCreate.mockResolvedValueOnce({
-      metadata: { id: "aex-1" },
-      spec: { target: { case: "sessionId", value: "ses-created" } },
+      metadata: { id: "run_1" },
+      spec: { target: { case: "sessionId", value: "ses_created" } },
     });
     const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),
@@ -330,7 +330,7 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
       });
     });
 
-    expect(created).toEqual({ runId: "aex-1", sessionId: "ses-created" });
+    expect(created).toEqual({ runId: "run_1", sessionId: "ses_created" });
   });
 
   it("echoes the input session id on the existing-session path", async () => {
@@ -342,12 +342,12 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
     await act(async () => {
       created = await result.current.create({
         org: "acme",
-        sessionId: "ses-1",
+        sessionId: "ses_1",
         message: "Hello",
       });
     });
 
-    expect(created).toEqual({ runId: "aex-1", sessionId: "ses-1" });
+    expect(created).toEqual({ runId: "run_1", sessionId: "ses_1" });
   });
 });
 
@@ -360,13 +360,13 @@ describe("useCreateRun — supersede link (edit-and-resubmit)", () => {
     await act(async () => {
       await result.current.create({
         org: "acme",
-        sessionId: "ses-1",
+        sessionId: "ses_1",
         message: "corrected message",
-        supersedesRunId: "aex-old",
+        supersedesRunId: "run_old",
       });
     });
 
-    expect(mockCreate.mock.calls[0][0].supersedesRunId).toBe("aex-old");
+    expect(mockCreate.mock.calls[0][0].supersedesRunId).toBe("run_old");
   });
 
   it("leaves supersedesRunId undefined for ordinary sends", async () => {
@@ -377,7 +377,7 @@ describe("useCreateRun — supersede link (edit-and-resubmit)", () => {
     await act(async () => {
       await result.current.create({
         org: "acme",
-        sessionId: "ses-1",
+        sessionId: "ses_1",
         message: "Hello",
       });
     });
@@ -390,13 +390,13 @@ describe("useCreateRun — send", () => {
   const userMessage = { event: { case: "userMessage", value: { id: "sevt_1" } } };
 
   it("sends the message to the session with its settings, and answers the turn it started", async () => {
-    mockSendMessage.mockResolvedValue({ message: userMessage, run: { metadata: { id: "aex-2" } } });
+    mockSendMessage.mockResolvedValue({ message: userMessage, run: { metadata: { id: "run_2" } } });
     const { result } = renderHook(() => useCreateRun(), { wrapper: createWrapper(makeMockClient()) });
     let answered;
     await act(async () => {
       answered = await result.current.send({ org: "acme", sessionId: "ses_1", message: "next", modelName: "m1", fileIds: ["file_1"] });
     });
-    expect(answered).toEqual({ messageId: "sevt_1", runId: "aex-2" });
+    expect(answered).toEqual({ messageId: "sevt_1", runId: "run_2" });
     expect(mockSendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ org: "acme", sessionId: "ses_1", message: "next", runConfig: { modelName: "m1" }, fileIds: ["file_1"] }),
     );

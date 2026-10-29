@@ -1,16 +1,13 @@
 /**
- * Searchable-extractor contract — ports the query side of
- * pkg/query/search/extractor/extractor.go (the index side,
- * SearchIndexExtractor, in pipeline/steps/index-search.ts;
- * this module extends it, mirroring Go's single interface).
+ * Searchable-extractor contract, the query side (the index side,
+ * SearchIndexExtractor, is in pipeline/steps/index-search.ts; this module
+ * extends it into one interface).
  *
- * Go duplicates the ToSearchResult body 13× (protobuf structs cannot share
- * methods); the OUTPUT is formulaic — metadata identity, spec-audit
- * timestamps with zero-Timestamp defaults, per-kind summary — so it ports
- * ONCE as buildSearchResult, parameterized by what actually varies (kind,
- * summary, icon). Byte-visible output is identical; the per-kind summary
- * sources are pinned in each domain's search-extractor.ts and in the
- * conformance suite.
+ * The SearchResult OUTPUT is formulaic — metadata identity, spec-audit
+ * timestamps with zero-Timestamp defaults, per-kind summary — so it is
+ * built ONCE as buildSearchResult, parameterized by what actually varies
+ * (kind, summary, icon). The per-kind summary sources are pinned in each
+ * domain's search-extractor.ts and in the conformance suite.
  *
  * Proven by search.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * the registry/extractor unit tests.
@@ -28,34 +25,33 @@ import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 import type { SearchIndexExtractor } from "../../pipeline/steps/index-search.js";
 
 /**
- * The full extractor contract (Go SearchableExtractor): the index side
+ * The full extractor contract: the index side
  * plus the query side. One extractor per searchable
  * kind, registered in registry.ts.
  */
 export interface SearchableExtractor extends SearchIndexExtractor {
-  /** Go Kind(): the kind this extractor serves. */
+  /** The kind this extractor serves. */
   readonly kind: ApiResourceKind;
-  /** Go NewEmptyProto(): the schema RebuildIndex unmarshals rows with. */
+  /** The schema RebuildIndex unmarshals rows with. */
   readonly schema: DescMessage;
   /**
-   * Go GetSearchSummary(): the display description for search results.
+   * The display description for search results.
    * The source field varies by kind (see each domain's extractor header);
    * truncation is a presentation concern — return the full text.
    */
   getSearchSummary(resource: Message): string;
   /**
-   * Go ToSearchResult(): the wire projection for one hit. Returns
-   * undefined when the resource carries no metadata (Go returns nil) —
-   * the caller skips the row.
+   * The wire projection for one hit. Returns undefined when the resource
+   * carries no metadata — the caller skips the row.
    */
   toSearchResult(resource: Message, score: number): SearchResult | undefined;
 }
 
 /**
- * The formulaic SearchResult assembly every Go extractor repeats:
+ * The formulaic SearchResult assembly every extractor shares:
  * metadata identity + qualified slug, spec-audit timestamps defaulting to
- * the ZERO Timestamp when unstamped (Go sets &timestamppb.Timestamp{}),
- * and the caller's summary/icon/score.
+ * the ZERO Timestamp when unstamped (never absent on the wire), and the
+ * caller's summary/icon/score.
  */
 export function buildSearchResult(params: {
   readonly kind: ApiResourceKind;
@@ -87,7 +83,7 @@ export function buildSearchResult(params: {
   });
 }
 
-/** Go buildQualifiedSlug: "org/slug", or the bare slug when org is empty. */
+/** "org/slug", or the bare slug when org is empty. */
 function buildQualifiedSlug(org: string, slug: string): string {
   return org === "" ? slug : `${org}/${slug}`;
 }

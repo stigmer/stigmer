@@ -3,14 +3,12 @@
  * unsealing secret values, a versioned-codec registry behind the
  * SecretService identity every domain already holds.
  *
- * Provenance: began as a port of pkg/encryption/encryption.go (the
- * retired Go server, single static-key format); reshaped into the port of
- * the cloud edition's SecretEncryptionService + SecretCodecRegistry so the
- * cloud composition can register the vault-backed enc:v2/v3 codecs
- * through the `secretCodecs` extension driver point. The v1 crypto lives
- * in v1-codec.ts; the taxonomy in errors.ts; the scope in scope.ts.
+ * The facade is a codec registry so a composition can register further
+ * codecs (the cloud's vault-backed enc:v2/v3) through the `secretCodecs`
+ * extension driver point. The v1 crypto lives in v1-codec.ts; the taxonomy
+ * in errors.ts; the scope in scope.ts.
  *
- * Architecture (the Java facade's, verbatim): every stored secret is a
+ * Architecture: every stored secret is a
  * versioned string (enc:v<N>:...). READS dispatch on the value's own
  * version token, so any mix of versions in the store stays readable; a
  * version with no codec here is refused loudly as
@@ -62,18 +60,17 @@ export {
 export { EncryptionScope, PLATFORM_TENANT } from "./scope.js";
 export type { SecretCodec } from "./codec.js";
 
-/** Env var configuring the secrets key (Base64 32B) — Go EnvKeyName. */
+/** Env var configuring the secrets key (Base64 32B). */
 export const ENCRYPTION_KEY_ENV_VAR = "STIGMER_ENCRYPTION_KEY";
 
-/** Key file under ~/.stigmer — Go KeyFileName. */
+/** Key file under ~/.stigmer. */
 export const ENCRYPTION_KEY_FILE_NAME = "encryption.key";
 
 /**
  * Env var selecting the write codec — byte-pinned across editions (the
  * cloud's stigmer.encryption.write-version binds the same name). OSS
  * default: v1. A blank value normalizes to the default: this is a
- * rollback lever, and rollback levers must be robust to sloppy unsetting
- * (the Java EncryptionConfig note).
+ * rollback lever, and rollback levers must be robust to sloppy unsetting.
  */
 export const ENCRYPTION_WRITE_VERSION_ENV_VAR =
   "STIGMER_ENCRYPTION_WRITE_VERSION";
@@ -83,9 +80,9 @@ export const DEFAULT_WRITE_VERSION = V1_VERSION;
 
 /**
  * The sentinel replacing every non-empty secret value at every
- * resource-returning boundary — Go steps.RedactedMarker, pinned by the
- * conformance suite and byte-identical in the cloud edition. Lives with
- * the facade (the Java shape) because reencrypt must refuse it. A client
+ * resource-returning boundary, pinned by the conformance suite and
+ * byte-identical in every edition. Lives with the facade because
+ * reencrypt must refuse it. A client
  * sending it BACK on a write means "keep the existing
  * secret" (the round-trip contract; see preserveRedactedSecrets).
  */
@@ -98,7 +95,6 @@ export const REDACTED_MARKER = "***REDACTED***";
  * versions (not just the ones registered here) is load-bearing: an
  * unmatched version would be treated as plaintext at every dispatch site
  * and fail open (returned or re-encrypted as if it were a real value).
- * Mirrors the cloud edition's SecretEncryptionService.VERSIONED_PREFIX.
  */
 const VERSIONED_PREFIX = /^enc:v(\d+):/;
 
@@ -106,7 +102,7 @@ const VERSIONED_PREFIX = /^enc:v(\d+):/;
 const VERSION_TOKEN = /^v(\d+)$/;
 
 /**
- * Go IsCiphertextShaped: whether a value merely has the SHAPE of
+ * Whether a value merely has the SHAPE of
  * ciphertext — the enc:v<N>: prefix — regardless of whether it is genuine.
  *
  * This is the request-boundary provenance test (oss#395): the prefix is a
@@ -149,8 +145,7 @@ export class SecretService {
   }
 
   /**
-   * Go NewSecretService, kept signature-stable across the codec seam: a
-   * v1-only facade writing v1 — the shape of every OSS deployment with no
+   * A v1-only facade writing v1 — the shape of every OSS deployment with no
    * extension composed, and of every test that constructs the service
    * directly. nil/empty key → disabled (pass-through) v1; a present key
    * must be exactly 32 bytes.
@@ -163,7 +158,7 @@ export class SecretService {
   }
 
   /**
-   * Go NewSecretServiceFromEnv: a v1-only facade with the key from the
+   * A v1-only facade with the key from the
    * shared ladder (env var → key file → auto-generate). Throws only on
    * unusable explicit configuration; the composition root maps that to
    * the WARN-degrade posture.
@@ -181,8 +176,8 @@ export class SecretService {
    * The parameterized construction path — the composition root's door
    * (boot/compose.ts assembles built-in v1 + extension codecs and the
    * resolved write version). Fail-fast on a write version with no codec:
-   * refusing to start beats silently writing a different version (the
-   * Java @PostConstruct contract). Every map key must be a dispatchable
+   * refusing to start beats silently writing a different version. Every
+   * map key must be a dispatchable
    * v<digits> token matching its codec's own version — a registration
    * dispatch could never reach must fail loudly, not sit dark.
    */
@@ -222,8 +217,8 @@ export class SecretService {
 
   /**
    * Whether new values can actually be sealed — delegated to the write
-   * codec (absent isEnabled means enabled: registration IS the ability,
-   * the Java posture; only the OSS v1 codec models a keyless state). The
+   * codec (absent isEnabled means enabled: registration IS the ability;
+   * only the OSS v1 codec models a keyless state). The
    * write steps branch on this for the WARN-degrade posture (oss#394).
    */
   isEnabled(): boolean {
@@ -231,7 +226,7 @@ export class SecretService {
   }
 
   /**
-   * Go IsEncrypted — dispatch on STORED values (decrypt, preserve,
+   * Dispatch on STORED values (decrypt, preserve,
    * re-encrypt). For CLIENT-SUPPLIED input at a request boundary use the
    * module-level isCiphertextShaped — same test, different intent.
    */
@@ -288,14 +283,11 @@ export class SecretService {
 
   /**
    * Decrypts an encrypted secret value, dispatching on the value's own
-   * version token. Unprefixed values pass through unchanged (legacy
-   * plaintext compatibility, pre-oss#405 rows); prefixed values decrypt
-   * or fail with the two-armed taxonomy (errors.ts). A version with no
-   * codec here is EncryptionUnavailableError — before the codec seam
-   * this build failed such values CLOSED as invalid base64 (the literal
-   * v1 prefix never stripped); the refusal stays closed, now with the
-   * honest arm and copy (a deliberate, recorded change — no wire test
-   * observes it).
+   * version token. Unprefixed values pass through unchanged (a keyless
+   * server stores plaintext, oss#405); prefixed values decrypt or fail
+   * with the two-armed taxonomy (errors.ts). A version with no codec here
+   * is EncryptionUnavailableError: refused closed, the machinery named as
+   * missing rather than the value as bad.
    */
   async decrypt(encrypted: string): Promise<string> {
     const token = versionTokenOf(encrypted);
@@ -384,7 +376,7 @@ export class SecretService {
    * Re-encrypts a stored value to the current write version — the ONE
    * deliberate exception to the no-silent-upgrades doctrine, built for
    * the secret-convergence sweep and the future v3 migration pass. Three
-   * rules, each load-bearing (the Java facade's, verbatim):
+   * rules, each load-bearing:
    *
    *   - UPWARD-ONLY: a value already at (or above) the write version is
    *     returned unchanged. Rolling the write-version lever down must
@@ -476,7 +468,7 @@ export class SecretService {
 
   /**
    * The codec for a stored value's version token, or the loud unavailable
-   * refusal — the Java registry's "no codec for this version" contract.
+   * "no codec for this version" refusal.
    */
   private codecFor(token: string): SecretCodec {
     const codec = this.codecs.get(token);

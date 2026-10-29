@@ -12,8 +12,8 @@
  * carrying a skill of the same name both install; a server whose tool
  * segment would hold `__` refuses before any write; a plugin's eval suite
  * is summarised on its status, a case that does not load included, and
- * never refuses it; an `ai.stigmer/` folder
- * is a warning and is not read; a re-push of the same digest at the same
+ * never refuses it; a resource document the plugin carries is plugin
+ * content, never read as a resource; a re-push of the same digest at the same
  * level writes nothing, and at another level reuses the recorded sign-in
  * answers without asking the server again; a URL-only server answering an
  * OAuth challenge is completed with `sign_in.oauth_only`, the
@@ -493,21 +493,19 @@ describe("Plugin push — one row", () => {
     ]);
   });
 
-  it("warns about an ai.stigmer/ folder and does not read it", async () => {
+  it("reads a resource document the plugin carries as plugin content, never as a resource", async () => {
     const name = uniqueName("folder");
     const installed = await plugins.push({
       org: ORG,
       artifact: archiveOf(
         withFile(
           cursorPlugin({ name }),
-          "ai.stigmer/agent.yaml",
+          "config/agent.yaml",
           `apiVersion: agentic.stigmer.ai/v1\nkind: Agent\nmetadata:\n  name: ${name}\nspec:\n  instructions: Ten characters or more of instructions.\n`,
         ),
       ),
     });
-    expect(
-      installed.status?.warnings.map((w) => `${w.kind}:${w.path}`),
-    ).toContain("stigmer-folder-ignored:ai.stigmer/");
+    expect(installed.status?.warnings).toEqual([]);
     expect(installed.status?.agents).toEqual([]);
     await expectCode(
       agentQuery.getByReference(

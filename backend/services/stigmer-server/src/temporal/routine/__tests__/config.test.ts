@@ -1,8 +1,8 @@
 /**
- * Pins the config clamps and env parsing against Go's config.go: the
- * tracking-budget ceiling (one hour inside the run timeout), the
- * threshold and retention floors, and Go's strict strconv parsing
- * (malformed values keep the default, never NaN).
+ * Pins the config clamps and env parsing: the tracking-budget ceiling
+ * (one hour inside the run timeout), the threshold and retention floors,
+ * and strict number and boolean parsing (malformed values keep the
+ * default, never NaN).
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -79,7 +79,7 @@ describe("defaults from an empty environment", () => {
   });
 });
 
-describe("env parsing — Go strconv parity", () => {
+describe("env parsing — strict", () => {
   it("reads well-formed overrides", () => {
     process.env.STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES = "2";
     process.env.STIGMER_SCHEDULES_RECONCILIATION_ENABLED = "false";
@@ -90,12 +90,12 @@ describe("env parsing — Go strconv parity", () => {
     expect(c.executionProfileMaxCostUsd).toBe(0.5);
   });
 
-  it("keeps the default on a malformed int (Go Atoi failure)", () => {
+  it("keeps the default on a malformed int", () => {
     process.env.STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES = "two";
     expect(newRoutineConfigFromEnv().maxConsecutiveFailures).toBe(5);
   });
 
-  it("keeps the default on a non-ParseBool token (Go ParseBool failure)", () => {
+  it("keeps the default on a token that is not a boolean", () => {
     process.env.STIGMER_SCHEDULES_RECONCILIATION_ENABLED = "no";
     expect(newRoutineConfigFromEnv().reconciliationEnabled).toBe(true);
   });
@@ -128,7 +128,7 @@ describe("threshold and retention floors", () => {
     expect(config({ retention: 90 }).resolvedRunHistoryRetentionDays()).toBe(90);
   });
 
-  it("floors the reconciliation interval at 1 minute (a zero would hot-loop where Go panics)", () => {
+  it("floors the reconciliation interval at 1 minute (a zero would hot-loop)", () => {
     const zero = new RoutineTemporalConfig("q", 60, 24, 5, 60, true, 0, 20, 1.0, 90);
     expect(zero.resolvedReconciliationIntervalMinutes()).toBe(1);
     const five = new RoutineTemporalConfig("q", 60, 24, 5, 60, true, 5, 20, 1.0, 90);

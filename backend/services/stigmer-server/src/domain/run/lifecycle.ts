@@ -1,6 +1,6 @@
 /**
- * The lifecycle RPCs — ports terminate.go, pause.go, resume.go, recover.go
- * and lifecycle_steps.go: the phase-transition commands over one shared
+ * The lifecycle RPCs — terminate, pause, resume and recover: the
+ * phase-transition commands over one shared
  * step vocabulary; recover plans the run's values again
  * (RePlanRunValues). A turn is stopped by the session's interrupt
  * (domain/session/hitl/interrupt.ts), which runs this module's cancel
@@ -8,8 +8,7 @@
  *
  * Every Temporal touchpoint rides the engine seam. With the engine
  * disconnected the Temporal steps refuse
- * FailedPrecondition("Temporal is not available") — Go's nil-client arm,
- * asserted by the Class A conformance lifecycle negatives. With a
+ * FailedPrecondition("Temporal is not available"), asserted by the Class A conformance lifecycle negatives. With a
  * connected engine, workflow-not-found is warn-and-proceed (the local
  * state update still applies; the workflow may simply have completed).
  * A terminate's reason is read from its request by the persist step, never
@@ -107,12 +106,12 @@ import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 import { sessionIdOfRun } from "../session/events/transitions.js";
 import { SESSION_TURN_UNFINISHED_REASON, sessionTurnUnfinishedMessage } from "./constants.js";
 
-// Context key — Go's key string, verbatim. The loaded-execution key is
+// Context key. The loaded-execution key is
 // the shared pipeline constant (request-context.ts): extension gate steps
 // in the recover slot read the loaded execution through it.
 const ALREADY_IN_TARGET_STATE_KEY = "alreadyInTargetState";
 
-/** The pinned no-engine refusal (Go "Temporal is not available"). */
+/** The pinned no-engine refusal. */
 export const TEMPORAL_UNAVAILABLE_MESSAGE = "Temporal is not available";
 
 export interface LifecycleDeps {
@@ -146,17 +145,17 @@ export interface LifecycleDeps {
   readonly personAccounts: AccountsByCaller | undefined;
 }
 
-/** Inputs that carry an execution id (Go LifecycleInput). */
+/** Inputs that carry an execution id. */
 interface LifecycleInputShape {
   id: string;
 }
-/** Inputs that also carry a reason (Go LifecycleInputWithReason); optional on the wire. */
+/** Inputs that also carry a reason; optional on the wire. */
 interface LifecycleInputWithReasonShape extends LifecycleInputShape {
   reason?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Shared steps (lifecycle_steps.go).
+// Shared steps.
 // ---------------------------------------------------------------------------
 
 /** What the cancel chain's steps need (the session's interrupt runs them). */
@@ -250,7 +249,7 @@ function newValidatePhaseStep<Desc extends DescMessage>(config: {
 
 /**
  * The engine-facing lifecycle steps: skip when already in target state,
- * refuse FailedPrecondition when disconnected (Go's nil temporalClient),
+ * refuse FailedPrecondition when disconnected,
  * warn-and-proceed on workflow-not-found (the workflow may have already
  * completed; the local state update still applies).
  */
@@ -300,8 +299,7 @@ function newEngineLifecycleStep<Desc extends DescMessage>(config: {
  * phase-dependent fields (completed_at, the stop's cause, error). The body
  * run inside the updateResource
  * closure — the transition is computed against the very snapshot that
- * will be persisted (Go applyLifecyclePhaseTransition, exercised directly
- * by the lifecycle unit tests).
+ * will be persisted (exercised directly by the lifecycle unit tests).
  */
 export function applyLifecyclePhaseTransition(
   execution: Run,
@@ -343,8 +341,7 @@ export function applyLifecyclePhaseTransition(
 }
 
 /**
- * The atomic phase-transition persist (Go
- * UpdateExecutionPhaseAndPersistStep): one read-modify-write under the
+ * The atomic phase-transition persist: one read-modify-write under the
  * per-resource write lock, so an answer a concurrent write records
  * between the earlier load and this persist can never be lost. UpdateResource requires existence (no upsert): a
  * lifecycle op racing a delete returns NOT_FOUND rather than resurrecting
@@ -894,8 +891,7 @@ function newRePlanRunValuesStep(
 }
 
 /**
- * Starts a brand-new workflow for the recovered execution (Go
- * StartFreshWorkflowStep): Temporal allows workflow-id reuse after the
+ * Starts a brand-new workflow for the recovered execution: Temporal allows workflow-id reuse after the
  * previous run reached a terminal state. Dispatch is re-resolved from the
  * session. Known documented limitation: a durable (http) LangGraph
  * checkpointer would duplicate the user message; the OSS default memory

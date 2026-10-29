@@ -1,12 +1,10 @@
 /**
- * Run search extractor — ports pkg/query/search/extractor/
- * agent_execution_extractor.go (both sides: the index side, the
- * query side). Agent executions are individual invocation records with no
- * description field. Go's GetSearchSummary returns metadata.name, but BOTH
- * projections deliberately ignore it: ToSearchResult pins Description ""
- * (extractor line 59) and GetSearchIndexEntry leaves the FTS description
- * at its zero value — the name is already the top-weighted indexed column.
- * That asymmetry is Go's, ported as-is.
+ * Run search extractor (both sides: the index side, the query side). Runs
+ * are individual invocation records with no description field.
+ * getSearchSummary returns metadata.name, but BOTH projections
+ * deliberately ignore it: toSearchResult pins the description "" and
+ * getSearchIndexEntry leaves the FTS description empty — the name is
+ * already the top-weighted indexed column.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -25,8 +23,7 @@ export const agentExecutionSearchExtractor: SearchableExtractor = {
   schema: RunSchema,
 
   getSearchSummary(resource: Message): string {
-    // Go AgentExecutionExtractor.GetSearchSummary: metadata.name. Neither
-    // projection consumes it (see the header) — the interface contract is
+    // metadata.name. Neither projection consumes it (see the header) — the interface contract is
     // still served for any caller that does.
     const execution = resource as unknown as Run;
     return execution.metadata?.name ?? "";
@@ -37,7 +34,7 @@ export const agentExecutionSearchExtractor: SearchableExtractor = {
     return buildSearchResult({
       kind: ApiResourceKind.run,
       metadata: execution.metadata,
-      // Go pins Description "" here — NOT GetSearchSummary.
+      // The description is "" here — NOT getSearchSummary.
       summary: "",
       score,
       createdAt: execution.status?.audit?.specAudit?.createdAt,
@@ -53,14 +50,13 @@ export const agentExecutionSearchExtractor: SearchableExtractor = {
     }
     return {
       name: metadata.name,
-      // No description field on executions (Go leaves entry.Description
-      // at its zero value).
+      // No description field on runs.
       description: "",
       // Tags join space-separated — the index entry carries one tags
-      // string (Go extractor.JoinTags).
+      // string.
       tags: metadata.tags.join(" "),
       org: metadata.org,
-      // The enum NAME string, exactly Go's visibility.String().
+      // The enum NAME string.
       visibility: ApiResourceVisibility[metadata.visibility] ?? "",
       createdAt: Number(
         execution.status?.audit?.specAudit?.createdAt?.seconds ?? 0n,

@@ -117,7 +117,7 @@ describe("CLI-01 data goes to stdout and everything else to stderr; -o json prin
   });
 
   it("renders get and list under json as one parseable document of the data, with no table text", () => {
-    const agents = [samples.agent(), samples.agent({ id: "agt-2", slug: "second" })];
+    const agents = [samples.agent(), samples.agent({ id: "agt_2", slug: "second" })];
     const one = renderResource(AgentSchema, agents[0]!, "json");
     expect(JSON.parse(one)).toMatchObject({ metadata: { slug: "demo-agent" } });
     const many = renderCollection(AgentSchema, agents, "json", libraryTable("agents"));

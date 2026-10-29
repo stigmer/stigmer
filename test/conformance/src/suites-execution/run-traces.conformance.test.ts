@@ -150,7 +150,7 @@ describe.skipIf(collectionTarget.traceCollector === undefined)("Run — a tracin
     mock.enqueue(anthropicText(`The researcher says: ${SUBAGENT_ANSWER}`));
 
     const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-trace"), agentRef: agentRefOf(agent), message: REQUEST, autoApproveAll: true }),
+      makeAgentExecution({ org, name: uniqueName("run-trace"), agentRef: agentRefOf(agent), message: REQUEST, autoApproveAll: true }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));

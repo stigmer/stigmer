@@ -1,5 +1,5 @@
 // Agent read path: the single RPC both the get_agent tool and the agent
-// resource template delegate to. Mirrors Go internal/domains/agents/fetch.go.
+// resource template delegate to.
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";

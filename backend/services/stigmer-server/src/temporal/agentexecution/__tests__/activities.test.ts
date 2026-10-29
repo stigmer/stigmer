@@ -129,10 +129,10 @@ describe("UpdateExecutionStatus activity", () => {
         id: string,
         status: JsonValue,
       ) => Promise<void>
-    )("aex_upd_1", toJson(RunStatusSchema, update));
+    )("run_upd_1", toJson(RunStatusSchema, update));
 
     expect(writes).toHaveLength(1);
-    expect(writes[0]?.runId).toBe("aex_upd_1");
+    expect(writes[0]?.runId).toBe("run_upd_1");
     expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_FAILED);
     expect(writes[0]?.status?.error).toBe("boom");
     expect(writes[0]?.status?.streamingUsage?.totalTokens).toBe(1234n);
@@ -146,7 +146,7 @@ describe("UpdateExecutionStatus activity", () => {
           id: string,
           status: JsonValue,
         ) => Promise<void>
-      )("aex_upd_bad", { phase: { not: "a phase" } }),
+      )("run_upd_bad", { phase: { not: "a phase" } }),
     ).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });
@@ -157,15 +157,15 @@ describe("UpdateExecutionStatus activity", () => {
       id: string,
       status: JsonValue,
     ) => Promise<void>;
-    await expect(update("aex_unknown_value", { phase: "EXECUTION_CANCELLED" })).rejects.toThrow();
-    await expect(update("aex_unknown_field", { executionPhase: "RUN_FAILED" })).rejects.toThrow();
+    await expect(update("run_unknown_value", { phase: "EXECUTION_CANCELLED" })).rejects.toThrow();
+    await expect(update("run_unknown_field", { executionPhase: "RUN_FAILED" })).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });
 
   it("surfaces the edge's ConnectError as the activity's failure (the lane's NotFound for a deleted execution)", async () => {
     const { activities, failWriterWith } = newFixture();
     failWriterWith(
-      new ConnectError("AgentExecution not found: aex_missing", Code.NotFound),
+      new ConnectError("AgentExecution not found: run_missing", Code.NotFound),
     );
     await expect(
       (
@@ -173,7 +173,7 @@ describe("UpdateExecutionStatus activity", () => {
           id: string,
           status: JsonValue,
         ) => Promise<void>
-      )("aex_missing", { phase: "RUN_FAILED" }),
+      )("run_missing", { phase: "RUN_FAILED" }),
     ).rejects.toThrow(/not.?found/i);
   });
 });

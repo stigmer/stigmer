@@ -1,7 +1,8 @@
 /**
  * Pins who a routine's runs act as, on both store drivers: its owner,
- * resolved from the row's creator stamp as an account id (3.15+) or as the
- * raw issuer subject (the 3.14.x stamp); a routine whose stamp names no
+ * resolved from the row's creator stamp as an account id or as the raw
+ * issuer subject (a write made before the caller's account existed carries
+ * their raw subject); a routine whose stamp names no
  * person this server knows (`""`, `"system"`, a trusted-local email, a
  * deleted account) is the DETERMINISTIC refusal with the copy the
  * routine's status will carry; an account-store fault stays an
@@ -74,8 +75,8 @@ describe.each(driverFixtures([ApiResourceKind.identity_account]))("a routine's o
       });
     });
 
-    it("a routine stamped with the raw issuer subject (the 3.14.x shape) resolves to the same account", async () => {
-      expect((await resolveRoutineOwner(accounts, routine("sch_by_sub", SUBJECT))).metadata?.id).toBe(CAROL);
+    it("a routine stamped with the raw issuer subject (a write before the account existed) resolves to the same account", async () => {
+      expect((await resolveRoutineOwner(accounts, routine("rtn_by_sub", SUBJECT))).metadata?.id).toBe(CAROL);
     });
 
     it.each([

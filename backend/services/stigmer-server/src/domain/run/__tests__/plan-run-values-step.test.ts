@@ -243,7 +243,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         resolve: async () => sources({ RECORDED_KEY: "vlt_team" }),
         asked,
       }),
-      turn("aex_assembly", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_assembly", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
 
     expect(asked).toHaveLength(1);
@@ -284,7 +284,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         asked,
         store: faulty,
       }),
-      turn("aex_plugin_fault"),
+      turn("run_plugin_fault"),
     ).catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.Internal);
@@ -306,7 +306,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         }),
         asked,
       }),
-      turn("aex_unnamed_plugin"),
+      turn("run_unnamed_plugin"),
     );
     expect(asked[0]?.plugins.map((plugin) => plugin.id)).toEqual(["plg_notion"]);
   });
@@ -322,7 +322,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         asked,
       }),
       create(RunSchema, {
-        metadata: { id: "aex_no_org" },
+        metadata: { id: "run_no_org" },
         spec: { target: { case: "sessionId", value: "ses_rec" }, message: "hi" },
       }),
     ).catch((e: unknown) => e);
@@ -337,7 +337,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
       });
     for (const [id, status, version] of [
       [
-        "aex_parent_recorded",
+        "run_parent_recorded",
         { agentId: "agt_rec", agentVersionHash: RECORDED_HASH },
         async () =>
           create(AgentVersionEntrySchema, { versionHash: RECORDED_HASH, specSnapshot: {} }),
@@ -370,7 +370,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         },
         asked,
       }),
-      turn("aex_nameless", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_nameless", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
     expect(asked[0]?.agentName).toBe("agt_rec");
     expect(asked[0]?.agentOrg).toBeUndefined();
@@ -390,7 +390,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         },
         asked,
       }),
-      turn("aex_unstamped"),
+      turn("run_unstamped"),
     );
     expect(asked[0]?.agentSpec).toBeUndefined();
     expect(asked[0]?.agentName).toBe("");
@@ -408,7 +408,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
         },
         asked: [],
       }),
-      turn("aex_refused"),
+      turn("run_refused"),
     ).catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
@@ -428,7 +428,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
           },
         }),
       },
-      create(RunSchema, { metadata: { id: "aex_no_session", org: ORG } }),
+      create(RunSchema, { metadata: { id: "run_no_session", org: ORG } }),
     ).catch((e: unknown) => e);
     expect((failure as Error).message).toBe(
       "resolve session: no session_id on execution",
@@ -457,7 +457,7 @@ describe("a plugin the agent and the conversation both list", () => {
           }),
         asked,
       }),
-      turn("aex_same_name", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_same_name", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
   }
 
@@ -520,7 +520,7 @@ describe("a plugin's local program", () => {
     const asked: RunCredentialInput[] = [];
     const failure = await planRunValues(
       deps({ session: onTarget(ExecutionTarget.CLOUD), asked, localPrograms: refusing }),
-      turn("aex_local_program"),
+      turn("run_local_program"),
     ).catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
@@ -537,7 +537,7 @@ describe("a plugin's local program", () => {
       const asked: RunCredentialInput[] = [];
       await planRunValues(
         deps({ session, asked, ...(localPrograms === undefined ? {} : { localPrograms }) }),
-        turn("aex_local_kept"),
+        turn("run_local_kept"),
       );
       expect(asked[0]?.plugins.map((plugin) => plugin.id), what).toEqual(["plg_notion", "plg_files"]);
     }
@@ -590,7 +590,7 @@ describe("the agent's subagents", () => {
     const asked: RunCredentialInput[] = [];
     await planRunValues(
       deps({ ...listing("helper", HELPER_HASH), asked }),
-      turn("aex_subagents", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_subagents", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     );
     const input = asked[0]!;
     expect(input.subagents.map((subagent) => [subagent.name, subagent.org, Object.keys(subagent.spec.env)])).toEqual([
@@ -607,7 +607,7 @@ describe("the agent's subagents", () => {
     const asked: RunCredentialInput[] = [];
     const failure = await planRunValues(
       deps({ ...listing("helper", "0".repeat(64)), asked }),
-      turn("aex_subagent_gone", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_subagent_gone", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     ).catch((e: unknown) => e);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((failure as ConnectError).rawMessage).toContain("subagent 'helper'");
@@ -618,7 +618,7 @@ describe("the agent's subagents", () => {
     const asked: RunCredentialInput[] = [];
     const failure = await planRunValues(
       deps({ ...listing("local-helper", HELPER_HASH, ExecutionTarget.CLOUD), asked, localPrograms: refusing }),
-      turn("aex_subagent_local", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_subagent_local", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     ).catch((e: unknown) => e);
     expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
     expect((failure as ConnectError).rawMessage).toContain("plugin 'files'");
@@ -638,7 +638,7 @@ describe("the agent the turn recorded", () => {
         },
         asked: [],
       }),
-      turn("aex_gone", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_gone", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     ).catch((e: unknown) => e);
     expect((failure as ConnectError).code).toBe(Code.NotFound);
     expect((failure as ConnectError).rawMessage).toContain(RECORDED_HASH);
@@ -653,7 +653,7 @@ describe("the agent the turn recorded", () => {
         },
         asked: [],
       }),
-      turn("aex_fault", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+      turn("run_fault", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
     ).catch((e: unknown) => e);
     expect((failure as Error).message).toContain(RECORDED_HASH);
     expect((failure as Error).message).toContain("socket hang up");
@@ -667,7 +667,7 @@ describe("StampRunCredentials", () => {
     sessionCreator?: string,
   ): Promise<Run> {
     const execution = create(RunSchema, {
-      metadata: { id: "aex_stamp", org: ORG },
+      metadata: { id: "run_stamp", org: ORG },
       status: sent === undefined ? {} : { credentials: sent },
     });
     const ctx = new RequestContext(RunSchema, execution, caller, ApiResourceKind.run);
@@ -722,7 +722,7 @@ describe("PlanRunValues, the create step", () => {
   async function planned(): Promise<{ run: Run; asked: RunCredentialInput[] }> {
     const asked: RunCredentialInput[] = [];
     const execution = create(RunSchema, {
-      metadata: { id: "aex_stamp", org: ORG },
+      metadata: { id: "run_stamp", org: ORG },
       spec: { target: { case: "sessionId", value: "ses_rec" }, message: "hi" },
       status: { credentials: { person: "ida_ana" } },
     });
@@ -761,7 +761,7 @@ describe("PlanRunValues, the create step", () => {
     applyUpdateStatusMerge(
       run,
       create(RunUpdateStatusInputSchema, {
-        runId: "aex_stamp",
+        runId: "run_stamp",
         status: {
           phase: RunPhase.RUN_FAILED,
           credentials: { person: "ida_forged", sources: sources({ STOLEN_KEY: "vlt_x" }) },

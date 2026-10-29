@@ -9,7 +9,7 @@
  * SQLite database sits one level above the root, so an escape would serve
  * it). Binding: the listener binds exactly the host the composition root
  * passes. Loopback — the default — must stay unreachable through
- * non-loopback interfaces (the retired Go server's posture), and the
+ * non-loopback interfaces, and the
  * container override (0.0.0.0) must serve the same bytes. Each fetch carries a
  * signed query, since the lane serves nothing else; the signature check
  * itself is file-server-signing.test.ts's.

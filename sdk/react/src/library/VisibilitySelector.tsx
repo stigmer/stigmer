@@ -440,8 +440,7 @@ export interface VisibilityBadgeProps {
 
 /**
  * Visibility indicator with a matching icon, covering every level a stored
- * row can carry (Private / Organization / Child organizations, and the retired Public
- * for a row from before its retirement).
+ * row can carry (Private / Organization / Child organizations).
  *
  * Rendered wherever the interactive {@link VisibilitySelector} is not
  * available — for anyone who lacks `can_manage_audience`, and while a permission check

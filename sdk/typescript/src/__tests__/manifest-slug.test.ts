@@ -27,7 +27,7 @@ import { SlugChangeRefusedError, SlugRenamedError } from "../manifest/slug";
 
 const AGENT = manifestHandlerForYamlKind("Agent")!;
 
-function agent(slug: string, id = "agt-1"): Agent {
+function agent(slug: string, id = "agt_1"): Agent {
   return create(AgentSchema, {
     metadata: { id, name: "Support bot", slug, org: "acme" },
     spec: { instructions: "Help customers" },
@@ -87,7 +87,7 @@ describe("ManifestClient.apply follows the declared slug", () => {
 
     const applied = await client().apply(documentOf(fake.handler, agent("support-bot")));
 
-    expect(fake.renames.map((r) => [r.resourceId, r.slug])).toEqual([["agt-1", "support-bot"]]);
+    expect(fake.renames.map((r) => [r.resourceId, r.slug])).toEqual([["agt_1", "support-bot"]]);
     expect(applied.slug).toBe("support-bot");
     expect(applied.renamedFrom).toBe("test-bot");
     expect(applied.slugKept).toBe(false);
@@ -203,7 +203,7 @@ describe("ManifestClient.resolveTarget", () => {
     const target = await client().resolveTarget(documentOf(fake.handler, agent("support-bot")));
 
     expect(target).toEqual({ action: "create", slug: "support-bot" });
-    expect(fake.reads.map((r) => [r.id, r.slug])).toEqual([["agt-1", ""], ["", "support-bot"]]);
+    expect(fake.reads.map((r) => [r.id, r.slug])).toEqual([["agt_1", ""], ["", "support-bot"]]);
   });
 
   it("answers update for a resource found by its id under the declared slug", async () => {
@@ -264,11 +264,11 @@ describe("ManifestClient.resolveTarget", () => {
 describe("a file is a desired state", () => {
   it("toDesiredState drops the etag and the ids of references named by slug, and keeps the resource's id", () => {
     const read = create(AgentSchema, {
-      metadata: { id: "agt-1", name: "Support bot", slug: "support-bot", org: "acme", etag: "e1" },
+      metadata: { id: "agt_1", name: "Support bot", slug: "support-bot", org: "acme", etag: "e1" },
       spec: {
         skillRefs: [
-          { kind: ApiResourceKind.skill, org: "acme", slug: "refunds", id: "skl-1" },
-          { kind: ApiResourceKind.skill, id: "skl-gone" },
+          { kind: ApiResourceKind.skill, org: "acme", slug: "refunds", id: "skl_1" },
+          { kind: ApiResourceKind.skill, id: "skl_gone" },
         ],
       },
     });
@@ -276,8 +276,8 @@ describe("a file is a desired state", () => {
     const desired = toDesiredState(AgentSchema, read);
 
     expect(desired.metadata?.etag).toBe("");
-    expect(desired.metadata?.id).toBe("agt-1");
-    expect(desired.spec?.skillRefs.map((r) => [r.slug, r.id])).toEqual([["refunds", ""], ["", "skl-gone"]]);
+    expect(desired.metadata?.id).toBe("agt_1");
+    expect(desired.spec?.skillRefs.map((r) => [r.slug, r.id])).toEqual([["refunds", ""], ["", "skl_gone"]]);
     expect(read.metadata?.etag).toBe("e1");
   });
 
@@ -287,14 +287,14 @@ describe("a file is a desired state", () => {
         "apiVersion: agentic.stigmer.ai/v1",
         "kind: Agent",
         "metadata:",
-        "  id: agt-1",
+        "  id: agt_1",
         "  name: Support bot",
         "  slug: support-bot",
         "  org: acme",
         "  etag: e1",
         "spec:",
         "  skill_refs:",
-        "    - { kind: skill, org: acme, slug: refunds, id: skl-1 }",
+        "    - { kind: skill, org: acme, slug: refunds, id: skl_1 }",
       ].join("\n"),
     );
 

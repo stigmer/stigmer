@@ -1,6 +1,5 @@
 /**
- * Activity controller — ports
- * pkg/query/activity/controller/activity_controller.go: the thin adapter
+ * Activity controller: the thin adapter
  * between ConnectRPC and the activity handler, following the search
  * controller's pattern.
  *

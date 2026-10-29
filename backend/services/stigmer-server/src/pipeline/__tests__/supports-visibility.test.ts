@@ -3,13 +3,10 @@
  * (pipeline/apiresource-meta.ts), the one predicate behind the
  * ValidateVisibility doors on every create and updateVisibility chain.
  *
- * The retired public level is the reason this file exists: no kind config
- * declares it any more, so the predicate cannot read a flag for it and must
- * answer from its own text. The first test walks EVERY kind that has
- * `kind_meta` and asserts the level is refused; the door is one function,
- * and this is the pin that it holds for kinds nobody thought to try. The
- * rest of the file pins the levels that remain against the proto's
- * declarations for the kinds whose configs differ (a blueprint, an
+ * The first test walks EVERY kind that has `kind_meta` and asserts the
+ * levels every kind holds; the door is one function, and this is the pin
+ * that it holds for kinds nobody thought to try. The rest of the file pins
+ * the other levels against the proto's declarations for the kinds whose configs differ (a blueprint, an
  * org-only kind, a kind with no config), and the copy fragment both
  * editions build the INVALID_ARGUMENT sentence from.
  */

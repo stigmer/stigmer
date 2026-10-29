@@ -1,11 +1,8 @@
 /**
- * Create pipeline step tests — ports create_session_bootstrap_test.go,
- * compose_declared_preferences_step_test.go,
- * and compose_recalled_memories_step_test.go case-for-case, over a
- * real SQLite store and the real pipeline RequestContext (the same
- * direct-step shape as Go). Go's nil-client skip proofs map to throwing
- * providers — reaching the client would fail the test just as a nil
- * dereference would panic Go.
+ * Create pipeline step tests — the session bootstrap and the two compose
+ * steps, case by case, over a real SQLite store and the real pipeline
+ * RequestContext, called step by step. Skip proofs use throwing providers:
+ * reaching the client fails the test.
  *
  * CreateSessionIfNeeded forwards the caller's session_spec (its agent_ref
  * included), points the turn at the created session through the target
@@ -19,8 +16,8 @@
  * The two compose steps are also pinned where callers are persons
  * (stigmer#1387, stigmer#1397): recall is the run's person's own
  * confirmed facts, behind the first-party gate, the org switch and the
- * person's own, and user_context is that person's standing context — the
- * retired Java steps' gates, in their order. The organization's half is
+ * person's own, and user_context is that person's standing context, the
+ * gates in that order. The organization's half is
  * pinned against the composed visitor classifier (stigmer/stigmer#1401):
  * every lane keeps it but a visitor, whose run never reads the
  * organization, and a classifier that throws withholds it. The same
@@ -142,7 +139,7 @@ let dir: string;
 let store: Store;
 
 beforeEach(() => {
-  dir = mkdtempSync(path.join(tmpdir(), "aexec-create-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-create-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
     listIndexes: LIST_INDEXES,
   });
@@ -342,7 +339,7 @@ describe("a new conversation on an agent", () => {
   });
 });
 
-// Go wraps the in-process create with %w — the inner status code reaches
+// The in-process create is wrapped so the inner status code reaches
 // the wire (a session_spec failing session validation answers
 // InvalidArgument, never Internal), with the wrapped #852 message shape.
 it("createSessionIfNeeded surfaces the inner status code of a failed session create", async () => {
@@ -481,7 +478,7 @@ describe("buildAutoCreateSessionSpec", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ComposeDeclaredPreferences (compose_declared_preferences_step_test.go).
+// ComposeDeclaredPreferences.
 // ---------------------------------------------------------------------------
 
 async function seedOrg(orgId: string, standingContext: string): Promise<void> {
@@ -710,7 +707,7 @@ describe("newComposeDeclaredPreferencesStep for visitors", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ComposeRecalledMemories (compose_recalled_memories_step_test.go).
+// ComposeRecalledMemories.
 // ---------------------------------------------------------------------------
 
 async function seedMemoryOrg(
@@ -772,7 +769,7 @@ describe("newComposeRecalledMemoriesStep", () => {
     subject?: string;
     content: string;
     state: MemoryLifecycleState;
-    /** undefined = untimestamped row (sorts first, Go's nil-first). */
+    /** undefined = untimestamped row (sorts first). */
     offsetMinutes: number | undefined;
   }
 
@@ -812,7 +809,7 @@ describe("newComposeRecalledMemoriesStep", () => {
     },
     {
       name: "untimestamped memory sorts first even when seeded after a timestamped one",
-      // Exercises the (timestamped, untimestamped) comparator arm — Go's
+      // Exercises the (timestamped, untimestamped) comparator arm — the
       // nil-first ordering is symmetric.
       orgId: "test-org",
       seedOrg: true,
@@ -1377,13 +1374,13 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
     });
 
     const execution = newExecution("ses_sw");
-    execution.metadata!.id = "aexec_sw_fail";
+    execution.metadata!.id = "run_sw_fail";
     // The chain stamps PENDING at SetInitialPhase before this step runs.
     execution.status = create(RunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
     });
     // Persist stored the run before this step runs.
-    await store.saveResource(ApiResourceKind.run, "aexec_sw_fail", RunSchema, execution);
+    await store.saveResource(ApiResourceKind.run, "run_sw_fail", RunSchema, execution);
 
     const err = await expectCode(
       () => step.execute(newContext(execution)),
@@ -1397,7 +1394,7 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
 
     const persisted = await store.getResource(
       ApiResourceKind.run,
-      "aexec_sw_fail",
+      "run_sw_fail",
       RunSchema,
     );
     expect(persisted.status?.phase).toBe(RunPhase.RUN_FAILED);
@@ -1426,7 +1423,7 @@ describe("newStartWorkflowStep — the workflow input", () => {
       statusObservers: [],
     });
     const execution = newExecution("ses_turn");
-    execution.metadata!.id = "aexec_input";
+    execution.metadata!.id = "run_input";
     execution.status = create(RunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
       agentId: "agt_called",
@@ -1435,7 +1432,7 @@ describe("newStartWorkflowStep — the workflow input", () => {
 
     await step.execute(newContext(execution));
 
-    expect(input?.executionId).toBe("aexec_input");
+    expect(input?.executionId).toBe("run_input");
     expect(input?.sessionId).toBe("ses_turn");
     expect(input?.agentId).toBe("agt_called");
     expect(input?.reconcileFileReview).toBe(false);

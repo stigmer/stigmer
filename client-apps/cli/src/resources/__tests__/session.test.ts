@@ -41,11 +41,11 @@ describe("session reads", () => {
         listBySession: async (req: ListRunsBySessionRequest) => {
           requests.push(req);
           return req.pageToken === ""
-            ? { entries: [create(RunSchema, { metadata: { id: "aex_3" } })], nextPageToken: "page-2" }
+            ? { entries: [create(RunSchema, { metadata: { id: "run_3" } })], nextPageToken: "page-2" }
             : {
                 entries: [
-                  create(RunSchema, { metadata: { id: "aex_2" } }),
-                  create(RunSchema, { metadata: { id: "aex_1" } }),
+                  create(RunSchema, { metadata: { id: "run_2" } }),
+                  create(RunSchema, { metadata: { id: "run_1" } }),
                 ],
                 nextPageToken: "",
               };
@@ -59,7 +59,7 @@ describe("session reads", () => {
       ["ses_1", ""],
       ["ses_1", "page-2"],
     ]);
-    expect(runs.map((r) => r.metadata?.id)).toEqual(["aex_3", "aex_2", "aex_1"]);
+    expect(runs.map((r) => r.metadata?.id)).toEqual(["run_3", "run_2", "run_1"]);
   });
 
   it("lists a session's events oldest first, following every page", async () => {

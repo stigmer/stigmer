@@ -77,7 +77,7 @@ An authored plugin:
    (`plugin.json` with `$schema`, `author.name` `Stigmer`,
    `extensions["ai.stigmer"].displayName`), portable to Cursor, Claude Code and
    Codex. Anything only Stigmer reads goes under `extensions["ai.stigmer"]` in
-   the manifest; an `ai.stigmer/` folder is not read, and install warns about it.
+   the manifest; an `ai.stigmer/` folder has no meaning and ships as plain plugin content.
 2. `make sync-plugins` writes its `marketplace.json` line.
 3. `make test-plugins-static`: the files and the tree agree, every entry
    installs under its own name with a version and a description, none

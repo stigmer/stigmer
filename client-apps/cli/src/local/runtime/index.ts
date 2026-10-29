@@ -8,8 +8,7 @@ export {
   ensureRunner,
   resolveRunner,
 } from "./runner.js";
-// The TS server — the served implementation (the Go binary ladder that
-// backed rollback retired with the Go server).
+// The server.
 export {
   type EnsureServerOptions,
   acquireServer,

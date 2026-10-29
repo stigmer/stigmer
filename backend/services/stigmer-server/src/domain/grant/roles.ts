@@ -3,9 +3,8 @@
  * and the assignable-relation allowlist that keeps structural relations
  * (parent links, runtime grants, observability usersets) out of every
  * access listing BY CONSTRUCTION — reads filter to this set rather than
- * maintaining a denylist a new structural relation could slip past. Moved
- * from the cloud's iam/policy/roles.ts, itself the port of Java's
- * apishape/authorization/IamRoleMetadata; `grantableRolesFor` lives in
+ * maintaining a denylist a new structural relation could slip past.
+ * `grantableRolesFor` lives in
  * pipeline/apiresource-meta.ts as the contract's one read of
  * `kind_meta.grantable_roles`.
  *
@@ -34,8 +33,7 @@ import { roleDescriptionsFor } from "../../pipeline/apiresource-meta.js";
 /**
  * The seven assignable roles, in display order. Every one must be here: a
  * role missing from the allowlist would let a grant succeed while hiding
- * the grantee from every access listing (the Java IamRoleMetadataTest
- * lesson) — participant on a channel or a conversation, editor on a
+ * the grantee from every access listing — participant on a channel or a conversation, editor on a
  * blueprint, user ("Can use") on a vault.
  */
 const ASSIGNABLE_ROLES: ReadonlyArray<IamRole> = [
@@ -52,7 +50,7 @@ const ROLE_BY_RELATION: ReadonlyMap<string, IamRole> = new Map(
   ASSIGNABLE_ROLES.map((role) => [IamRole[role], role]),
 );
 
-/** The allowlist for access-listing queries (Java assignableRelations). */
+/** The allowlist for access-listing queries. */
 export function assignableRelations(): ReadonlyArray<string> {
   return [...ROLE_BY_RELATION.keys()];
 }
@@ -82,7 +80,7 @@ const ROLE_META: ReadonlyMap<IamRole, { readonly name: string; readonly descript
 /**
  * Relation string → RoleInfo with display metadata, worded for the kind
  * that holds the grant; the default instance for a relation that is no
- * role (the Java fromRelationString contract).
+ * role (a reader always gets an instance, never an absence).
  */
 export function roleInfoFromRelation(
   relation: string,

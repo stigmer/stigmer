@@ -6,10 +6,10 @@
 // (suites-execution/run.conformance.test.ts) because of how the
 // suites are targeted: src/suites/** runs against every edition — including
 // `npm run test:cloud` — while suites-execution/** needs a provisioned engine
-// (Temporal + runner + mock LLM) and only runs against the local Go execution
-// target. Validation is step 1 of both editions' create pipelines, so these
+// (Temporal + runner + mock LLM) and only runs against an execution target.
+// Validation is step 1 of both editions' create pipelines, so these
 // rejections are provable on any target with fake IDs and no engine — and
-// keeping them here is what makes the cloud (Java) edition's protovalidate
+// keeping them here is what makes the cloud edition's protovalidate
 // enforcement a gated contract rather than an assumption.
 //
 // Also pinned here, because each refusal comes before the engine gate: a
@@ -96,7 +96,7 @@ describe("Run conformance — service-tier fail-closed validation (#357)", () =>
     await refusedWith(
       org,
       await tierAgent(org),
-      "aex-tier-no-model",
+      "run-tier-no-model",
       { serviceTier: ServiceTier.FAST },
       "create with service_tier fast and no model_name",
     );
@@ -110,7 +110,7 @@ describe("Run conformance — service-tier fail-closed validation (#357)", () =>
     await refusedWith(
       org,
       await tierAgent(org),
-      "aex-tier-unpriced",
+      "run-tier-unpriced",
       { modelName: "claude-haiku-4-5", serviceTier: ServiceTier.FAST },
       "create with service_tier fast on a model without a fast variant",
     );
@@ -124,7 +124,7 @@ describe("Run conformance — service-tier fail-closed validation (#357)", () =>
     const message = await refusedWith(
       org,
       await tierAgent(org, { harness: Harness.STIGMER, runConfig: { modelName: "claude-sonnet-5" } }),
-      "aex-tier-agent-model",
+      "run-tier-agent-model",
       { serviceTier: ServiceTier.FAST },
       "create with service_tier fast on the agent's default model, which prices none",
     );
@@ -177,7 +177,7 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
 
   it("[rpc:RunCommandController.create] rejects enabled without a pinned model (InvalidArgument)", async () => {
     await expectRefused(
-      "aex-thinking-no-model",
+      "run-thinking-no-model",
       { thinkingMode: ThinkingMode.ENABLED },
       Harness.UNSPECIFIED,
       "create with thinking_mode enabled and no model_name",
@@ -190,7 +190,7 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
     // thinking capability declared, so a Stigmer session cannot ask it to
     // think.
     await expectRefused(
-      "aex-thinking-no-stigmer-entry",
+      "run-thinking-no-stigmer-entry",
       { modelName: "openai/gpt-5.5", thinkingMode: ThinkingMode.ENABLED },
       Harness.STIGMER,
       "create with thinking_mode enabled on a Stigmer session for a model with no Stigmer entry",
@@ -202,7 +202,7 @@ describe("Run conformance — thinking-mode fail-closed validation (#772, #1280)
     // refuses a request to turn its thinking off, so the platform refuses the
     // execution that asks for it rather than fail the turn.
     await expectRefused(
-      "aex-thinking-required",
+      "run-thinking-required",
       { modelName: "claude-fable-5", thinkingMode: ThinkingMode.DISABLED },
       Harness.STIGMER,
       "create with thinking_mode disabled on a model that requires thinking",
@@ -225,14 +225,14 @@ describe("Run conformance — a turn belongs to its session's organization (#158
     const home = await target.provisionTenancy();
     const other = await target.provisionTenancy();
     const session = await clients.sessionCommand.create(
-      makeSession({ org: home.org, name: uniqueName("aex-home-session") }),
+      makeSession({ org: home.org, name: uniqueName("run-home-session") }),
     );
     const sessionId = session.metadata!.id;
     try {
       const refused = await expectGrpcCode(
         () =>
           clients.agentExecutionCommand.create(
-            makeAgentExecution({ org: other.org, name: uniqueName("aex-foreign-org"), sessionId }),
+            makeAgentExecution({ org: other.org, name: uniqueName("run-foreign-org"), sessionId }),
           ),
         Code.FailedPrecondition,
         "create under another organization than the session's",
@@ -258,14 +258,14 @@ describe("Run conformance — a turn runs the agent its session pinned", () => {
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-gone") }));
     const session = await clients.sessionCommand.create(
-      makeSession({ org, name: uniqueName("aex-gone-session"), agentRef: agentRefOf(agent) }),
+      makeSession({ org, name: uniqueName("run-gone-session"), agentRef: agentRefOf(agent) }),
     );
     const sessionId = session.metadata!.id;
     try {
       await clients.agentCommand.delete({ value: agent.metadata!.id });
 
       const refused = await expectGrpcCode(
-        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-gone"), sessionId })),
+        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("run-gone"), sessionId })),
         Code.FailedPrecondition,
         "a turn in a session whose agent was deleted",
       );
@@ -284,7 +284,7 @@ describe("Run conformance — a turn runs the agent its session pinned", () => {
     const name = uniqueName("agent-reborn");
     const original = await clients.agentCommand.create(makeAgent({ org, name }));
     const session = await clients.sessionCommand.create(
-      makeSession({ org, name: uniqueName("aex-reborn-session"), agentRef: agentRefOf(original) }),
+      makeSession({ org, name: uniqueName("run-reborn-session"), agentRef: agentRefOf(original) }),
     );
     const sessionId = session.metadata!.id;
     let reborn: Agent | undefined;
@@ -295,7 +295,7 @@ describe("Run conformance — a turn runs the agent its session pinned", () => {
       expect(reborn.metadata?.id).not.toBe(original.metadata?.id);
 
       const refused = await expectGrpcCode(
-        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex-reborn"), sessionId })),
+        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("run-reborn"), sessionId })),
         Code.FailedPrecondition,
         "a turn in a session whose agent's slug now names another agent",
       );
@@ -325,7 +325,7 @@ describe("Run conformance — the engine gate", () => {
     const err = await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.create(
-          makeAgentExecution({ org, name: uniqueName("aex-gate") }),
+          makeAgentExecution({ org, name: uniqueName("run-gate") }),
         ),
       Code.Unavailable,
       "create with no execution engine behind the server",
@@ -361,12 +361,12 @@ describe("Run conformance — zero-record read surfaces", () => {
     const err = await expectGrpcCode(
       () =>
         clients.agentExecutionQuery.getRunUsageReport({
-          runId: "aexec_01conformancemissing",
+          runId: "run_01conformancemissing",
         }),
       Code.NotFound,
       "execution usage report for an unknown execution",
     );
-    expect(err.rawMessage).toBe("Run not found: aexec_01conformancemissing");
+    expect(err.rawMessage).toBe("Run not found: run_01conformancemissing");
   });
 
   it("[rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued token SHAPES for nothing to aggregate", async (ctx) => {

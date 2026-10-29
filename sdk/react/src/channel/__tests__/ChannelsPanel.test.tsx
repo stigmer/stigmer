@@ -87,7 +87,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         vi.fn().mockResolvedValue({ entries: overrides.channels ?? [], nextPageToken: "" }),
       apply: vi.fn().mockResolvedValue({}),
       update: overrides.update ?? vi.fn().mockResolvedValue({}),
-      create: vi.fn().mockResolvedValue({ metadata: { id: "ach_new" } }),
+      create: vi.fn().mockResolvedValue({ metadata: { id: "chn_new" } }),
       delete: overrides.delete ?? vi.fn().mockResolvedValue({}),
       initiateInstall: vi.fn().mockResolvedValue({
         authorizationUrl: "https://slack.com/oauth",
@@ -150,7 +150,7 @@ function makeChannel(overrides: MakeChannelOverrides = {}) {
     installState = 2, // installed
     enabled = true,
     teamName,
-    id = "ach_1",
+    id = "chn_1",
     name = "Support Slack",
     appRefSlug,
     appRefDeletedId,
@@ -182,7 +182,7 @@ function makeWhatsAppChannel(overrides: {
   id?: string;
   name?: string;
 } = {}) {
-  const { installState = 2, id = "ach_wa", name = "Support WhatsApp" } = overrides;
+  const { installState = 2, id = "chn_wa", name = "Support WhatsApp" } = overrides;
   return {
     metadata: { id, org: "acme", slug: "support-whatsapp", name, labels: {} },
     spec: {
@@ -220,7 +220,7 @@ function makeChatLink(overrides: {
   enabled?: boolean;
   audience?: ChannelAudience;
 } = {}) {
-  const { id = "ash_1", name = "Website chat", enabled = true, audience = ChannelAudience.public } =
+  const { id = "chn_1", name = "Website chat", enabled = true, audience = ChannelAudience.public } =
     overrides;
   return {
     metadata: { id, org: "acme", slug: `chat-${id}`, name, labels: {} },
@@ -305,7 +305,7 @@ describe("ChannelsPanel", () => {
     // The chat link's card shows its link and audience; the vendor cards
     // their install state, beside it.
     const chatCard = screen.getByRole("group", { name: "Chat link: Website chat" });
-    expect(within(chatCard).getByText("/chat/ash_1")).toBeTruthy();
+    expect(within(chatCard).getByText("/chat/chn_1")).toBeTruthy();
     expect(within(chatCard).getByText("Anyone with the link")).toBeTruthy();
     expect(
       within(screen.getByRole("group", { name: "Slack: Support Slack" })).getByText("Installed"),
@@ -343,8 +343,8 @@ describe("ChannelsPanel", () => {
   it("shows Connect for pending installs and Reconnect for revoked ones", async () => {
     const client = createMockStigmer({
       channels: [
-        makeChannel({ id: "ach_p", name: "Pending", installState: 1 }),
-        makeChannel({ id: "ach_r", name: "Revoked", installState: 3, teamName: "Old WS" }),
+        makeChannel({ id: "chn_p", name: "Pending", installState: 1 }),
+        makeChannel({ id: "chn_r", name: "Revoked", installState: 3, teamName: "Old WS" }),
       ],
     });
     render(
@@ -433,15 +433,15 @@ describe("ChannelsPanel", () => {
     fireEvent.click(
       within(confirmDialog).getByRole("button", { name: "Disconnect", hidden: true }),
     );
-    await waitFor(() => expect(del).toHaveBeenCalledWith("ach_1"));
+    await waitFor(() => expect(del).toHaveBeenCalledWith("chn_1"));
   });
 
   it("names the serving app on each card — platform vs your own app", async () => {
     const client = createMockStigmer({
       channels: [
-        makeChannel({ id: "ach_1", name: "Platform Channel" }),
+        makeChannel({ id: "chn_1", name: "Platform Channel" }),
         makeChannel({
-          id: "ach_2",
+          id: "chn_2",
           name: "Branded Channel",
           appRefSlug: "acme-support-app",
         }),
@@ -469,7 +469,7 @@ describe("ChannelsPanel", () => {
 
   it("names the serving app by the name members @mention when the organization's app list holds it", async () => {
     const client = createMockStigmer({
-      channels: [makeChannel({ id: "ach_2", name: "Branded Channel", appRefSlug: "acme-support-app" })],
+      channels: [makeChannel({ id: "chn_2", name: "Branded Channel", appRefSlug: "acme-support-app" })],
       channelApps: [
         { metadata: { id: "cha_other", slug: "acme-other-app", name: "Acme Other" } },
         { metadata: { id: "cha_1", slug: "acme-support-app", name: "Acme Support" } },
@@ -488,7 +488,7 @@ describe("ChannelsPanel", () => {
 
   it("names a serving app deleted since as a deleted channel app, never the platform app", async () => {
     const client = createMockStigmer({
-      channels: [makeChannel({ id: "ach_3", name: "Orphaned Channel", appRefDeletedId: "cha_gone" })],
+      channels: [makeChannel({ id: "chn_3", name: "Orphaned Channel", appRefDeletedId: "cha_gone" })],
     });
     render(
       <Providers client={client}>
@@ -536,7 +536,7 @@ describe("ChannelsPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Connect" }));
 
     expect(onConnectExternal).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: expect.objectContaining({ id: "ach_1" }) }),
+      expect.objectContaining({ metadata: expect.objectContaining({ id: "chn_1" }) }),
     );
     // No in-app dialog — the host owns the journey.
     expect(screen.queryByText(/pick a Slack workspace/i)).toBeNull();
@@ -1280,7 +1280,7 @@ describe("ChannelsPanel", () => {
       const client = createMockStigmer({
         channels: [
           makeChatLink(),
-          makeChatLink({ id: "ash_2", name: "Help Desk" }),
+          makeChatLink({ id: "chn_2", name: "Help Desk" }),
         ],
       });
       render(
@@ -1295,9 +1295,9 @@ describe("ChannelsPanel", () => {
 
       // The editor shows the chosen link's URL — not the first card's.
       expect(
-        (await screen.findAllByText(/https:\/\/app\.example\.com\/chat\/ash_2/)).length,
+        (await screen.findAllByText(/https:\/\/app\.example\.com\/chat\/chn_2/)).length,
       ).toBeGreaterThan(0);
-      expect(screen.queryAllByText(/https:\/\/app\.example\.com\/chat\/ash_1/)).toEqual([]);
+      expect(screen.queryAllByText(/https:\/\/app\.example\.com\/chat\/chn_1/)).toEqual([]);
     });
 
     it("confirms Delete chat link? before deleting, then deletes and refetches", async () => {
@@ -1321,7 +1321,7 @@ describe("ChannelsPanel", () => {
       // config-preserving alternative (turning it off).
       expect(del).not.toHaveBeenCalled();
       const title = await screen.findByText("Delete chat link?");
-      expect(screen.getByText(/The link \/chat\/ash_1 stops working/)).toBeTruthy();
+      expect(screen.getByText(/The link \/chat\/chn_1 stops working/)).toBeTruthy();
       expect(screen.getByText(/turn it off instead/i)).toBeTruthy();
       expect(screen.queryByText("Disconnect channel?")).toBeNull();
 
@@ -1330,7 +1330,7 @@ describe("ChannelsPanel", () => {
         within(confirmDialog).getByRole("button", { name: "Delete", hidden: true }),
       );
 
-      await waitFor(() => expect(del).toHaveBeenCalledWith("ash_1"));
+      await waitFor(() => expect(del).toHaveBeenCalledWith("chn_1"));
       await waitFor(() => expect(listByAgent).toHaveBeenCalledTimes(2));
       expect(toast.success).toHaveBeenCalledWith("Chat link deleted");
     });

@@ -125,7 +125,7 @@ export function popupBlockedError(): Error {
  * A callback for another state is another flow's (a second tab's sign-in,
  * or a return that reached the shared page without its opener) and is
  * ignored. Rejects on the login page's refusal for this state, missing
- * code, timeout, user-closed popup (legacy transport only — see
+ * code, timeout, user-closed popup (polling transport only — see
  * {@link POPUP_CLOSED_GRACE_MS}), or cancellation via the `onDispose`
  * handle.
  *
@@ -229,7 +229,7 @@ export function waitForOAuthCallback(
     // delivers the callback regardless of COOP; the overall timeout
     // above catches abandoned flows.
     //
-    // When BroadcastChannel is NOT available (legacy browsers), fall
+    // When BroadcastChannel is NOT available (a browser without it), fall
     // back to popup.closed polling with a short grace period — it is
     // the only signal we have in that degraded path.
     let popupClosedAt: number | null = null;

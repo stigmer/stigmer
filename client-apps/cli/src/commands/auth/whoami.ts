@@ -104,7 +104,7 @@ export async function runWhoami(): Promise<CommandResult> {
  * The context organization as the backend names it now: its live slug and
  * id when the caller can see it, else the slug `context set` stored, else
  * the value as configured. The config catches up with what the backend
- * answers: a context an older CLI wrote by slug is rewritten to the id (with
+ * answers: a context stored by slug is rewritten to the id (with
  * the slug beside it), and a stored slug the organization was renamed from
  * is replaced, so `config context show` shows it too. Printing never fails
  * the command: any failure of the lookup falls back to what is stored.

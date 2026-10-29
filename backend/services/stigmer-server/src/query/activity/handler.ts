@@ -1,20 +1,18 @@
 /**
- * Recent-activity handler — ports pkg/query/activity/handler/handler.go:
- * the caller's personal sessions as one time-sorted list for the
- * console's Recents sidebar.
+ * Recent-activity handler: the caller's personal sessions as one
+ * time-sorted list for the console's Recents sidebar.
  *
- * This is the OSS twin of the cloud's ListRecentActivityHandler; the
- * ordering, projection, and filtering semantics are deliberately
- * identical (stigmer#461). The load reads the request's org through the
+ * Every edition serves recents through this handler, so the ordering,
+ * projection, and filtering semantics are one contract (stigmer#461). The load reads the request's org through the
  * list index (every org when blank) — the same narrowing the session
  * list it summarizes applies, so recents is never stricter than it is —
  * and, with a composed ListReadScope, offers those rows to its restrict
- * verb: one read, exact, where the Java handler enumerated the caller's
- * authorized ids and then scanned. Recents orders by the last update,
+ * verb: one read, exact, rather than enumerating the caller's authorized
+ * ids and then scanning. Recents orders by the last update,
  * not by creation, so the org's sessions are read whole and sorted in
  * memory.
  *
- * Proven by __tests__/handler.test.ts (Go's handler_test.go arms) and
+ * Proven by __tests__/handler.test.ts and
  * activity.conformance.test.ts on local.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
@@ -45,8 +43,7 @@ import { sessionListIndex } from "../../domain/session/list-index.js";
 import type { Store } from "../../store/interface.js";
 
 /**
- * defaultPageSize / maxPageSize mirror the cloud handler's
- * DEFAULT_PAGE_SIZE / MAX_PAGE_SIZE — the page contract is part of the
+ * The default and maximum page sizes — the page contract is part of the
  * cross-edition behavior, not an implementation detail.
  */
 export const DEFAULT_PAGE_SIZE = 30;
@@ -89,7 +86,7 @@ export class ActivityHandler {
   ) {}
 
   /**
-   * Go ListRecentActivity: load the sessions (the request's org, every org
+   * Loads the sessions (the request's org, every org
    * when blank; the scope's restrict verb when one is composed), project
    * to sidebar entries, sort newest-first, trim to the page.
    */
@@ -101,10 +98,8 @@ export class ActivityHandler {
 
     const sessions = await this.loadSessions(identity, request.org);
 
-    // A stable sort: entries with equal timestamps keep the load order —
-    // the same tie-break the cloud gets from java.util.List.sort's
-    // stability (JS Array.prototype.sort is stable, matching Go's
-    // sort.SliceStable).
+    // A stable sort: entries with equal timestamps keep the load order
+    // (JS Array.prototype.sort is stable).
     let entries = [...sessions].sort((a, b) => {
       if (timestampAfter(a.updatedAt, b.updatedAt)) {
         return -1;
@@ -128,7 +123,7 @@ export class ActivityHandler {
   }
 
   /**
-   * Go loadSessions: the org's personal sessions the caller may see,
+   * The org's personal sessions the caller may see,
    * projected to recents entries; runtime-originated sessions excluded.
    */
   private async loadSessions(
@@ -170,7 +165,7 @@ export class ActivityHandler {
   }
 }
 
-/** Go normalizePageSize: ≤0 → default 30; >100 → cap 100. */
+/** ≤0 → default 30; >100 → cap 100. */
 export function normalizePageSize(requested: number): number {
   if (requested <= 0) {
     return DEFAULT_PAGE_SIZE;
@@ -188,13 +183,13 @@ function hasRuntimeOriginLabel(
   if (labels === undefined) {
     return false;
   }
-  // Object.hasOwn, not `in`: own keys only, matching Go's map lookup
-  // (the least-privilege filter's precedent).
+  // Object.hasOwn, not `in`: own keys only (the least-privilege filter's
+  // precedent).
   return RUNTIME_ORIGIN_LABELS.some((key) => Object.hasOwn(labels, key));
 }
 
 /**
- * Go resolveSubject: missing subjects AND the auto-created sentinel map
+ * Missing subjects AND the auto-created sentinel map
  * to the display placeholder — a just-created session shows "Untitled
  * session" until subject generation writes a real title.
  */
@@ -206,11 +201,10 @@ export function resolveSubject(subject: string): string {
 }
 
 /**
- * Go extractUpdatedAt — the entry's sort key: statusAudit.updatedAt
- * (bumped on meaningful status changes; heartbeats deliberately do NOT
- * bump it) falling back to specAudit.createdAt for rows whose status
- * audit was never stamped (older builds or external tooling; OSS creates
- * always stamp both slots).
+ * The entry's sort key: statusAudit.updatedAt (bumped on meaningful
+ * status changes; heartbeats deliberately do NOT bump it) falling back to
+ * specAudit.createdAt for a row whose status audit is unstamped (one
+ * written outside the create chain, which always stamps both slots).
  */
 export function extractUpdatedAt(
   audit: ApiResourceAudit | undefined,
@@ -227,8 +221,7 @@ export function extractUpdatedAt(
 }
 
 /**
- * Go timestampAfter: a sorts strictly after b (newer first), comparing
- * (seconds, nanos) exactly like the cloud's comparator.
+ * a sorts strictly after b (newer first), comparing (seconds, nanos).
  */
 export function timestampAfter(
   a: Timestamp | undefined,

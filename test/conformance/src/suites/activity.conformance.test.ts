@@ -113,7 +113,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
   it.skipIf(!hasPrivilegedScope)("excludes runtime-origin sessions (personal sessions only)", async () => {
     // The runtime-origin lookalikes carry server-stamped reserved keys, which
-    // an ordinary caller can no longer forge on cloud (GuardReservedLabelsStep,
+    // an ordinary caller cannot forge on cloud (GuardReservedLabelsStep,
     // at every client-facing write boundary) — that rejection is itself pinned
     // in the agent suite. This test therefore seeds them through the
     // privileged scope (stigmer#547): the local targets' scope IS the ordinary
@@ -129,7 +129,7 @@ describe("[rpc:ActivityQueryController.listRecentActivity] Activity conformance 
 
       const channelSession = await createSession(scope.clients, org, agentRef, {
         subject: "Channel conversation",
-        labels: { "stigmer.ai/channel-id": "ach_conformance" },
+        labels: { "stigmer.ai/channel-id": "chn_conformance" },
       });
       const routineSession = await createSession(scope.clients, org, agentRef, {
         subject: "Routine run",

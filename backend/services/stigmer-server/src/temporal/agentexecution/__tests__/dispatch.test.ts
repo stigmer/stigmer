@@ -1,9 +1,7 @@
 /**
- * Dispatch-resolution tests — ports
- * pkg/domain/agentexecution/temporal/dispatch_test.go case-for-case: the
- * queue-routing modes (global vs session), the harness/execution-target
+ * Dispatch-resolution tests: the queue-routing modes (global vs session), the harness/execution-target
  * extraction with the session-not-found degrade, and the UNSPECIFIED-target
- * resolution against the config default. Go's private resolveTaskQueue
+ * resolution against the config default. The private resolveTaskQueue
  * cases are asserted through resolveActivityTaskQueue — the public
  * boundary is the contract.
  */
@@ -250,7 +248,7 @@ describe("resolveActivityTaskQueue — execution target", () => {
     const store = newStore();
     await store.close();
     // The message text is contract: the create step maps it VERBATIM to
-    // FailedPrecondition (Go's ResolveActivityTaskQueue boundary).
+    // FailedPrecondition (the dispatch boundary).
     await expect(
       resolveActivityTaskQueue(store, "ses_any", sessionConfig(), silentLogger),
     ).rejects.toThrow(/^failed to load session for dispatch: /);

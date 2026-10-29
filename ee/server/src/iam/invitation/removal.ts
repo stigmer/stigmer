@@ -8,7 +8,7 @@
  * Team's removal is the shape (team/removal.ts): the invitation's rows
  * first, through the grant path's `cleanupResourceGrants` (its
  * organization link, which the organization's own cleanup has usually
- * revoked already, and any owner row an older server wrote), then its
+ * revoked already, and any other row naming it as resource), then its
  * row; one
  * invitation's failure is logged and the rest are still removed, then the
  * call throws, so the organization delete stops with the organization in

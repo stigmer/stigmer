@@ -5,14 +5,13 @@
  * under `callerIdentityKey`:
  *
  *   - createVerifierChainInterceptor — the serving chain's source: an
- *     ordered claim-or-pass walk over the composed IdentityVerifiers (the
- *     TS rendering of the Java ProviderManager chain), followed by the
+ *     ordered claim-or-pass walk over the composed IdentityVerifiers,
+ *     followed by the
  *     composed CallerGuards over the stamped identity (see
  *     extensions/caller-guards.ts for the contract and its reasons).
  *   - createInProcessCallerInterceptor — the in-process router
- *     transport's source: stamps the `internal` caller class (the TS
- *     rendering of the Java in-process authorization skip). It
- *     takes NO guards — the in-process exemption is structural
+ *     transport's source: stamps the `internal` caller class. It takes NO
+ *     guards — the in-process exemption is structural
  *     (caller-guards.ts), not a runtime skip.
  *
  * The serving source's inner walk, authenticateBearerToken, is ALSO
@@ -32,8 +31,8 @@
  *
  *   - ZERO verifiers (every shipped OSS composition today): a presented
  *     token that nothing claims falls through SILENTLY to the
- *     trusted-local identity. This preserves wire behavior byte-for-byte
- *     — the runner presents a Bearer token on every control-plane RPC
+ *     trusted-local identity. This is the wire behavior of a server with
+ *     no sign-in — the runner presents a Bearer token on every control-plane RPC
  *     when STIGMER_TOKEN is set, and domains that verify tokens (the
  *     values fetch) read the raw header themselves.
  *   - ONE OR MORE verifiers: a presented-but-unclaimed token is
@@ -48,10 +47,9 @@
  *     cannot stand in because it also registers the OSS OIDC verifier
  *     ahead of them; the OSS API-key lane, by contrast, rides EITHER
  *     posture source — stigmer#984) — a tokenless request is
- *     UNAUTHENTICATED "authentication token missing" (the Java
- *     interceptor's byte-pinned copy), EXCEPT where isAuthenticationExempt
- *     says so: is_public-marked methods (the Java isPublic skip) and the
- *     gRPC health service by name (the Java by-name skip — a third-party
+ *     UNAUTHENTICATED "authentication token missing" (byte-pinned copy),
+ *     EXCEPT where isAuthenticationExempt says so: is_public-marked
+ *     methods and the gRPC health service by name (a third-party
  *     proto cannot carry our option, and a Kubernetes `grpc:` probe is a
  *     tokenless Health/Check; without this arm the posture crash-loops the
  *     pod, stigmer#974). Extension-only verifier sets that declare
@@ -98,22 +96,22 @@ import { internalError } from "../errors.js";
 import { operatorIdentitySnapshot } from "../steps/defaults.js";
 
 /**
- * The tokenless-request refusal under the require-authentication posture —
- * the Java interceptor's copy (GrpcSecurityConfigBase), byte-pinned.
+ * The tokenless-request refusal under the require-authentication posture,
+ * byte-pinned.
  */
 export const AUTHENTICATION_TOKEN_MISSING_MESSAGE =
   "authentication token missing";
 
 /**
  * Services reachable WITHOUT a credential under the require-authentication
- * posture, by fully-qualified service name — the Java interceptor's
- * by-name skip list (GrpcSecurityConfigBase), for services whose protos
+ * posture, by fully-qualified service name — the by-name skip list, for
+ * services whose protos
  * are not ours and so cannot carry the `is_public` method option. The
  * standard gRPC health service is the one entry OSS serves: Kubernetes
  * `grpc:` probes call Health/Check tokenless, and a refused probe is a
- * pod that never becomes Ready (stigmer#974). Java's second entry,
- * `grpc.reflection.v1alpha.ServerReflection`, is deliberately absent —
- * OSS registers no reflection service; a future registration joins this
+ * pod that never becomes Ready (stigmer#974).
+ * `grpc.reflection.v1alpha.ServerReflection` is deliberately absent — OSS
+ * registers no reflection service; a future registration joins this
  * set in the same change, or the posture refuses it.
  */
 export const AUTHENTICATION_EXEMPT_SERVICES: ReadonlySet<string> = new Set([
@@ -290,10 +288,9 @@ export function createVerifierChainInterceptor(
       requireAuthentication &&
       !isAuthenticationExempt(request.method)
     ) {
-      // The auth-enabled posture requires a credential on
-      // every non-exempt method — the Java interceptor's exact behavior
-      // and copy. is_public methods and the health service stay reachable
-      // tokenless (the Java isPublic and by-name skips), so the console's
+      // The auth-enabled posture requires a credential on every
+      // non-exempt method, with the pinned copy. is_public methods and the
+      // health service stay reachable tokenless, so the console's
       // anonymous reads and the pod's probes survive.
       throw new ConnectError(
         AUTHENTICATION_TOKEN_MISSING_MESSAGE,
@@ -364,8 +361,7 @@ export function encodeInProcessCaller(caller: CallerIdentity): string {
 
 /**
  * The in-process transport's position-1 identity source. Two arms (caller
- * propagation restores the Java posture, where in-process calls carried
- * the ORIGINAL caller):
+ * propagation lets an in-process call carry the ORIGINAL caller):
  *
  *   - PROPAGATED: a request-origin adapter passed the original caller's
  *     identity through {@link IN_PROCESS_CALLER_HEADER} (the asCaller
@@ -469,8 +465,7 @@ export async function authenticateBearerToken(
  * remainder non-empty before trimming. Node's http2 layer joins repeated
  * headers with ", " — the first comma segment IS the first value, and a
  * genuine token (base64url segments joined by dots) can never contain a
- * comma, so the split is lossless for every legitimate shape (the Go
- * server read metadata values[0], same result).
+ * comma, so the split is lossless for every legitimate shape.
  */
 export function parseBearerToken(joinedHeaderValue: string): string {
   const header = joinedHeaderValue.split(",")[0] ?? "";

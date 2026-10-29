@@ -14,10 +14,9 @@ import { cn } from "@stigmer/design-tokens";
  * (chips, image tiles, icon-only affordances) — surfaces where nothing else
  * signals clickability.
  *
- * This used to also carry `bg-transparent p-0` as a stopgap for
- * preflight-less hosts; the scoped form-control preflight in `styles.css`
- * (#374) now neutralizes the UA button box (background, padding, font) for
- * every button under `.stgm`, so only the cursor remains. The cursor stays
+ * The scoped form-control preflight in `styles.css` (#374) neutralizes the
+ * UA button box (background, padding, font) for every button under `.stgm`,
+ * so only the cursor is set here. The cursor stays
  * a per-component choice rather than a preflight rule on purpose: Tailwind's
  * preflight leaves buttons with the default arrow cursor, and the scoped
  * preflight mirrors it byte-for-byte so embeds render exactly like the

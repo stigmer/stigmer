@@ -1,6 +1,5 @@
 /**
- * Pins the gate→defaults capture-credential handoff (the Java
- * MemoryCreateHandler sandbox semantics): when
+ * Pins the gate→defaults capture-credential handoff: when
  * GuardMemoryCapture admitted a session-scoped capture credential,
  * ResolveMemoryDefaults writes the token's proved subject ("the sub IS
  * the human subject the session belongs to") and overrides

@@ -36,7 +36,7 @@ function wrapper(client: unknown) {
 function makeChannel(overrides: Record<string, unknown> = {}): Channel {
   return {
     metadata: {
-      id: "ach_1",
+      id: "chn_1",
       name: "Support Slack",
       slug: "support-slack",
       org: "acme",
@@ -94,7 +94,7 @@ describe("useSaveChannel", () => {
     });
 
     const boundChannel = makeChannel({
-      metadata: { id: "ach_1", name: "Support Slack", slug: "support-slack", org: "acme", labels: {}, etag: "etag-at-load" },
+      metadata: { id: "chn_1", name: "Support Slack", slug: "support-slack", org: "acme", labels: {}, etag: "etag-at-load" },
       spec: {
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
@@ -112,7 +112,7 @@ describe("useSaveChannel", () => {
     // credentials keep their stored values without being sent back.
     const sent = sentUpdate<Channel>(update);
     expect(sent.paths).toEqual(["spec.enabled"]);
-    expect(sent.id).toBe("ach_1");
+    expect(sent.id).toBe("chn_1");
     expect(sent.etag).toBe("etag-at-load");
     expect(sent.resource.spec?.enabled).toBe(false);
   });

@@ -23,8 +23,7 @@
  *
  * Cancelled failures are matched loosely (their messages are
  * runner-authored, never agent/tool output); everything else must carry
- * the distinctive drain phrase. Deliberately the same shapes the Go and
- * Java control planes match.
+ * the distinctive drain phrase.
  *
  * A turn can also stop on its own so that the workflow continues it: a
  * draining runner's engine yields at its next durable step boundary
@@ -41,8 +40,7 @@ import { CancelledFailure, ApplicationFailure } from "@temporalio/common";
 /**
  * The honest status.error copy for a worker-shutdown-interrupted turn.
  * Byte-identical to the copy the runner persists from its own shutdown
- * branches and to the Go/Java mapping, so every downstream status.error
- * consumer keys on one string (Go runnerfailure.WorkerShutdownStatusError).
+ * branches, so every downstream status.error consumer keys on one string.
  */
 export const WORKER_SHUTDOWN_STATUS_ERROR =
   "Execution interrupted: runner worker was shut down. Retry or resume.";
@@ -67,7 +65,7 @@ const DRAIN_MARKER = "worker is shutting down";
 
 /**
  * Whether err (anywhere in its cause chain) carries a runner
- * worker-shutdown shape (Go runnerfailure.IsWorkerShutdown).
+ * worker-shutdown shape.
  */
 export function isWorkerShutdown(err: unknown): boolean {
   for (
@@ -94,11 +92,9 @@ export function isWorkerShutdown(err: unknown): boolean {
 /**
  * The cause a runner named when its turn stopped to continue (anywhere in
  * the cause chain), or `undefined` when `err` is no such failure. A cause
- * this server does not know (a newer runner's) still reads as a
- * continuation, as its string. The other skew, a runner that throws this
- * failure to a server that predates it, ends the drained turn FAILED with
- * the failure's message, as a drain did before: so the server is upgraded
- * no later than its runners (a desktop or self-hosted runner can be newer).
+ * this server does not know (a newer runner's: a desktop or self-hosted
+ * runner can be newer than its server) still reads as a continuation, as
+ * its string.
  */
 export function turnContinuationCauseOf(err: unknown): TurnContinuationCause | string | undefined {
   for (

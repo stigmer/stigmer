@@ -80,13 +80,13 @@ import {
  * scope (server_info.proto), transcribed so implementations never import
  * wire types. The renewal arm is deliberately empty: every renewal
  * parameter comes from the CALLER's verified credential, never the
- * request (the Java exchange's ruled posture).
+ * request.
  */
 export type RunnerScopedTokenRequest =
   | { readonly arm: "agent-execution"; readonly executionId: string }
   | { readonly arm: "renewal" }
   // The proto oneof left unset — carried so implementations own the
-  // refusal (the Java exchange answers INVALID_ARGUMENT; OSS's
+  // refusal (an implementation may answer INVALID_ARGUMENT; OSS's
   // capability-less fallback answers not-minted). Erasing this arm into
   // any other would let a malformed request impersonate that arm's
   // semantics.
@@ -107,9 +107,9 @@ export type RunnerScopedTokenExchange =
 
 /**
  * The credential portion of a getRunnerBootstrapConfig response. Both
- * arms are independently optional — the Java contract's presence-based
- * coupling (token fields all-or-nothing, key fields all-or-nothing) is
- * expressed structurally.
+ * arms are independently optional — the presence-based coupling (token
+ * fields all-or-nothing, key fields all-or-nothing) is expressed
+ * structurally.
  */
 export interface RunnerBootstrapCredentials {
   readonly accessToken?: {
@@ -129,8 +129,8 @@ export interface RunnerBootstrapCredentials {
  * (domain/plugin/tools/sandbox.ts) know when they mint the credential
  * baked into a provisioned sandbox. `sessionId` is empty on the connect
  * scope; `callerIdentityId` is empty when the invocation site
- * has no caller (the Java ensure step's null-identity arm, which mints
- * nothing rather than minting unattributed).
+ * has no caller (the ensure step then mints nothing rather than minting
+ * unattributed).
  *
  * The connect scope binds `executionId` to one tools listing's synthetic
  * id (domain/plugin/tools/execution-id.ts), whose attempt the listing lane
@@ -159,8 +159,8 @@ export interface SandboxCredentialRequest {
  *     the gate answers its byte-pinned PERMISSION_DENIED copy.
  *   - `admit`: the session-scoped capture lane. The implementation
  *     hands over the token's own proved claims: the subject the record
- *     belongs to (Java: "the sub IS the human subject the session
- *     belongs to") and the session id provenance is overridden with
+ *     belongs to (the sub IS the human subject the session belongs to)
+ *     and the session id provenance is overridden with
  *     (server-proved beats runner-reported). Both are the
  *     implementation's claim vocabulary — OSS never decodes them.
  */
@@ -309,10 +309,9 @@ export interface RunnerCredentialProvider {
    * runner credential). Consulted by GuardMemoryCapture
    * BEFORE its own eligibility logic; `no-opinion` falls through to
    * that logic unchanged. REFUSES the org-mismatch arm by throwing a
-   * ConnectError with the implementation's byte-pinned copy (Java:
-   * "a mismatch is a forged address, not a routing choice" —
-   * `captureOrg` is the request's metadata.org, checked against the
-   * token's own org claim).
+   * ConnectError with the implementation's byte-pinned copy (a mismatch
+   * is a forged address, not a routing choice — `captureOrg` is the
+   * request's metadata.org, checked against the token's own org claim).
    *
    * May answer synchronously or with a promise: the cloud's credential
    * carries the subject and the session in its own claims, so its answer

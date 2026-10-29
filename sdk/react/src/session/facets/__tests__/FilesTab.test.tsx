@@ -20,7 +20,7 @@ import { FilesTab, type FilesTabProps } from "../FilesTab";
 import { deriveSessionOutputs } from "../../useSessionOutputs";
 import { givenKey, type SessionGivenEntry } from "../../useSessionGivenFiles";
 
-function output(filename: string, runId = "aex_1", id = `file_${filename.replace(/\W/g, "_")}`, created?: Date) {
+function output(filename: string, runId = "run_1", id = `file_${filename.replace(/\W/g, "_")}`, created?: Date) {
   return create(FileSchema, {
     metadata: { id },
     spec: { filename },
@@ -34,7 +34,7 @@ function output(filename: string, runId = "aex_1", id = `file_${filename.replace
 }
 
 const execution = create(RunSchema, {
-  metadata: { id: "aex_1" },
+  metadata: { id: "run_1" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
@@ -117,9 +117,9 @@ describe("FilesTab — dense row list", () => {
   });
 
   it("puts a path's earlier versions behind a disclosure, each opening in the preview", () => {
-    const later = create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const later = create(RunSchema, { metadata: { id: "run_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
     const outputs = deriveSessionOutputs(
-      [output("report.md", "aex_2", "file_v2"), output("report.md", "aex_1", "file_v1")],
+      [output("report.md", "run_2", "file_v2"), output("report.md", "run_1", "file_v1")],
       [execution, later],
     ).outputs;
     renderTab({ outputs, onOpenFileDocument: vi.fn() });
@@ -174,7 +174,7 @@ describe("FilesTab — open routing", () => {
 
     openRow("launch_a1b2c3d4.plan.md");
 
-    expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
+    expect(onOpenPlan).toHaveBeenCalledWith("run_1");
     expect(onOpenFileDocument).not.toHaveBeenCalled();
     expect(document.querySelector("dialog")).toBeNull();
   });
@@ -213,7 +213,7 @@ describe("FilesTab — pin (double-click) routing", () => {
 
     activateRow("launch_a1b2c3d4.plan.md");
 
-    expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
+    expect(onOpenPlan).toHaveBeenCalledWith("run_1");
     expect(onActivateFileDocument).not.toHaveBeenCalled();
   });
 
@@ -273,15 +273,15 @@ describe("FilesTab — given Files and earlier versions", () => {
   });
 
   it("names each earlier version by when its turn saved it, and downloads it under its own name", async () => {
-    const later = create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
-    const third = create(RunSchema, { metadata: { id: "aex_3" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const later = create(RunSchema, { metadata: { id: "run_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const third = create(RunSchema, { metadata: { id: "run_3" }, status: { phase: RunPhase.RUN_COMPLETED } });
     const outputs = deriveSessionOutputs(
       [
-        output("report.md", "aex_3", "file_v3"),
-        output("report.md", "aex_2", "file_v2", new Date(Date.now() - 2 * 3_600_000)),
-        output("report.md", "aex_1", "file_v1", new Date("2001-07-12T10:00:00Z")),
-        output("notes.md", "aex_1", "file_n1", new Date()),
-        output("notes.md", "aex_2", "file_n2"),
+        output("report.md", "run_3", "file_v3"),
+        output("report.md", "run_2", "file_v2", new Date(Date.now() - 2 * 3_600_000)),
+        output("report.md", "run_1", "file_v1", new Date("2001-07-12T10:00:00Z")),
+        output("notes.md", "run_1", "file_n1", new Date()),
+        output("notes.md", "run_2", "file_n2"),
       ],
       [execution, later, third],
     ).outputs;

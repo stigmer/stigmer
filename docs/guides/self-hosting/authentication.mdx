@@ -287,17 +287,8 @@ From the boot that read the issuer, every request needs a credential:
   reads another person's conversations, API keys or vault, admins included, and
   no saved key is ever shown again, even to its owner. These are the same rules
   Stigmer Cloud enforces, so an Agent behaves the same way wherever it runs.
-- **If authentication was already on before 3.16.0, roles were assigned at the
-  first start of that release.** People who signed in under an earlier release
-  keep what they had: whoever created an Organization owns it, whoever created
-  an Agent, Skill, MCP server, Environment or Routine in it is an admin there,
-  the operator email's holder is an admin everywhere, and everyone else is a
-  member. This happens once; from then on roles change only when an owner or
-  admin changes them.
-- **Nothing is readable outside its Organization.** The Public visibility level
-  is retired: it is refused everywhere, and a server upgrading from a release
-  that still had it moves every row that carried it to Organization visibility
-  on its first start, deleting nothing.
+- **Nothing is readable outside its Organization.** There is no public
+  visibility level: a write that asks for one is refused.
 - **Runs belong to the person who started them, whoever's key the runner
   holds.** For each run, the server gives the runner a credential for that run
   alone, and everything the runner does for it, including the Sessions and runs

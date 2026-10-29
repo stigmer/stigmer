@@ -2,10 +2,9 @@
 // same keys across an upgrade, names the address clients reach the stack on
 // (STIGMER_PUBLIC_URL), and carries STIGMER_VERSION only for a
 // published release (a source build carries the staged CLI's version
-// instead); the override maps host.docker.internal into the runner, and
-// hands it ANTHROPIC_BASE_URL only when the compose file does not pass it
-// through (a release from before that line); and `docker compose ps --format
-// json` is read in both of the shapes compose has printed. Run via
+// instead); the override maps host.docker.internal into the runner; and
+// `docker compose ps --format json` is read in both of the shapes compose
+// has printed. Run via
 // `npm run test:scripts`.
 
 import assert from "node:assert/strict";
@@ -40,17 +39,10 @@ test("a source build's env file carries the staged CLI version and no STIGMER_VE
   assert.doesNotMatch(text, /STIGMER_VERSION=/);
 });
 
-test("the override maps the host gateway, and adds the base URL only for a compose file without it", () => {
-  const withLine = composeOverrideText("services:\n  stigmer-runner:\n    environment:\n      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}\n", MODEL);
+test("the override maps the host gateway into the runner", () => {
   assert.equal(
-    withLine,
+    composeOverrideText(),
     'services:\n  stigmer-runner:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n',
-  );
-  const withoutLine = composeOverrideText("services:\n  stigmer-runner:\n    environment:\n      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}\n", MODEL);
-  assert.equal(
-    withoutLine,
-    'services:\n  stigmer-runner:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n' +
-      '    environment:\n      ANTHROPIC_BASE_URL: "http://host.docker.internal:4000"\n',
   );
 });
 

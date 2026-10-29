@@ -1,14 +1,12 @@
 /**
- * Pins the channelapp domain against Go's channelapp_test.go, case-for-case
- * — through the REAL stack: a composed server on an ephemeral port, a
+ * Pins the channelapp domain through the REAL stack: a composed server on an ephemeral port, a
  * native gRPC client, the full interceptor chain.
  *
  * The load-bearing pins the conformance suite CANNOT cover (it is a black
  * box; these need direct store access or key control):
  *   - secrets rest as enc:v1: CIPHERTEXT in the store and decrypt to the
  *     original plaintext — per provider arm, via the oneof-reflection
- *     tripwire (Go TestRedactAndEncryptCoverEveryProviderArm, the #324
- *     regression guard: a new provider arm fails this test until it gets
+ *     tripwire (the #324 regression guard: a new provider arm fails this test until it gets
  *     redaction, encryption, and a case entry);
  *   - the marker round-trip preserves the stored ciphertext PER FIELD (one
  *     request rotates one secret while keeping the others);
@@ -82,8 +80,8 @@ const silentLogger = createLogger({
   write: () => {},
 });
 
-// A real 32-byte key so encrypt/redact round-trips are exercised for real
-// (the Go harness posture); the same key decrypts stored values below.
+// A real 32-byte key so encrypt/redact round-trips are exercised for
+// real; the same key decrypts stored values below.
 const TEST_KEY = Buffer.alloc(32, 7);
 const TEST_KEY_B64 = TEST_KEY.toString("base64");
 const secrets = SecretService.create(TEST_KEY);
@@ -209,7 +207,7 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 // ---------------------------------------------------------------------------
-// The provider-arm tripwire (Go TestRedactAndEncryptCoverEveryProviderArm).
+// The provider-arm tripwire.
 // ---------------------------------------------------------------------------
 
 describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
@@ -254,7 +252,7 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
   it("covers every oneof arm in the case table", () => {
     // The tripwire proper: the case table must cover every provider_config
     // arm. Adding a provider arm to the proto fails here until the arm has
-    // redaction, encryption, and a case entry (the Go tripwire's posture).
+    // redaction, encryption, and a case entry.
     const oneof = ChannelAppSpecSchema.oneofs.find(
       (o) => o.name === "provider_config",
     );
@@ -301,7 +299,7 @@ describe("provider-arm redact/encrypt tripwire (#324 regression guard)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Create (Go TestChannelAppController_CreateEncryptsAndRedacts + marker).
+// Create: encrypts and redacts, and the marker.
 // ---------------------------------------------------------------------------
 
 describe("channelapp create", () => {
@@ -342,7 +340,7 @@ describe("channelapp create", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Ciphertext-shaped input (Go TestChannelAppController_RefusesCiphertextShapedSecrets).
+// Ciphertext-shaped input is refused.
 // ---------------------------------------------------------------------------
 
 describe("ciphertext-shaped secrets are refused (oss#395)", () => {
@@ -383,7 +381,7 @@ describe("ciphertext-shaped secrets are refused (oss#395)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Per-field marker preservation (Go UpdateMarkerPreservesPerField, both arms).
+// Per-field marker preservation, both arms.
 // ---------------------------------------------------------------------------
 
 describe("update marker preserves per field", () => {
@@ -483,7 +481,7 @@ describe("update marker preserves per field", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Apply round-trip (Go TestChannelAppController_ApplyRoundTripsWithMarkers).
+// Apply round-trips with markers.
 // ---------------------------------------------------------------------------
 
 describe("apply round-trips with markers", () => {
@@ -510,7 +508,7 @@ describe("apply round-trips with markers", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Query redaction (Go QueriesRedactSecrets + WhatsAppQueriesRedactSecrets).
+// Query redaction, Slack and WhatsApp.
 // ---------------------------------------------------------------------------
 
 describe("queries redact secrets", () => {
@@ -591,7 +589,7 @@ describe("queries redact secrets", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Provider immutability (Go TestValidateProviderImmutableStep, on the wire).
+// Provider immutability, on the wire.
 // ---------------------------------------------------------------------------
 
 describe("provider arm is immutable on update", () => {
@@ -685,7 +683,7 @@ describe("update races a write to the same app", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Referential delete block (Go DeleteBlockedByReferencingChannel + RelativeRef).
+// Referential delete block, by id and by relative reference.
 // ---------------------------------------------------------------------------
 
 describe("delete is blocked while referenced", () => {
@@ -695,7 +693,7 @@ describe("delete is blocked while referenced", () => {
     );
 
     // Seed a referencing channel directly — the referential check reads
-    // stored state, not the channel pipeline (the Go test's posture).
+    // stored state, not the channel pipeline.
     const channel = create(ChannelSchema, {
       metadata: {
         id: "chn_01ref",

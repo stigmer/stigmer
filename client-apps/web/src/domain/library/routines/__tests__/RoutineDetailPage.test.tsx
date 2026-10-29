@@ -93,9 +93,9 @@ describe("web RoutineDetailPageInner", () => {
   it("opens a run picked on the routine through run navigation", () => {
     render(<RoutineDetailPageInner org="acme" slug="nightly" />);
 
-    act(() => view()?.onNavigateToRun("aex_1"));
+    act(() => view()?.onNavigateToRun("run_1"));
 
-    expect(page.openedRuns).toEqual(["aex_1"]);
+    expect(page.openedRuns).toEqual(["run_1"]);
   });
 
   it("opens the targeted agent as a library detail and lands on the list after a delete", () => {

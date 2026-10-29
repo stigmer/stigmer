@@ -1,15 +1,13 @@
 // Backend-hop readiness probe (stigmer/stigmer#316).
 //
-// /health reports process liveness only, which left a total backend-hop
-// failure invisible: the bridge once spoke gRPC-web to a backend that only
-// accepts native gRPC, every tool call failed for weeks, and all three
-// Kubernetes probes stayed green. Readiness must therefore exercise the
-// actual hop — transport, content-type, listener — with one cheap RPC.
+// /health reports process liveness only, which leaves a total backend-hop
+// failure invisible: a transport the backend refuses fails every tool call
+// while all three Kubernetes probes stay green. Readiness must therefore
+// exercise the actual hop — transport, content-type, listener — with one cheap RPC.
 //
 // The probe RPC is grpc.health.v1.Health/Check: the one backend call both
-// editions serve credential-free by design (the Go server sets it SERVING
-// before its network listener opens; the cloud Java interceptors exempt
-// "grpc.health.v1.Health" by name — "probes and tooling carry no bearer").
+// editions serve credential-free by design (probes and tooling carry no
+// bearer).
 // The hosted bridge holds no startup credential (per-request Bearer
 // passthrough only), so an authenticated probe is not an option.
 //

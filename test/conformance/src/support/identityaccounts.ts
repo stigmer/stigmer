@@ -1,9 +1,8 @@
 // Constants and fixtures for the IdentityAccount domain.
 // Domain: conformance support.
 //
-// The byte-pinned copy below is the cloud handlers' Java-era wording, moved
-// into @stigmer/server as-is; both the identityaccount and direct-login
-// suites assert it, so it is stated once here and nowhere else in the
+// The byte-pinned copy below is @stigmer/server's; both the identityaccount
+// and direct-login suites assert it, so it is stated once here and nowhere else in the
 // suites. The conformance suite deliberately never imports the server's
 // constants — the literal IS the contract a client may match on.
 //
@@ -28,7 +27,7 @@ export const IDENTITY_ACCOUNT_API_VERSION = "iam.stigmer.ai/v1";
 export const IDENTITY_ACCOUNT_KIND = "IdentityAccount";
 
 // whoAmI for an admitted subject with no account — the console's signal to
-// call provisionMyAccount (the Java IdentityAccountWhoAmIHandler copy).
+// call provisionMyAccount.
 export const ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE =
   "Identity account not found for the authenticated user";
 

@@ -104,7 +104,7 @@ describe("the Stigmer file (root marketplace.json)", () => {
     ]);
   });
 
-  it("ignores a `defaults` list, the retired install-unasked field, whatever it holds", () => {
+  it("ignores a `defaults` list, a field the catalogue does not define, whatever it holds", () => {
     for (const defaults of [["alpha"], ["gamma"], 7]) {
       const read = readMarketplace(tree(STIGMER_FILE, { name: "acme", plugins: [{ name: "alpha", source: "./alpha" }], defaults }, { alpha }));
       expect(kindsOf(read)).toEqual({ errors: [], warnings: [] });

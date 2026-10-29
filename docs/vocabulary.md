@@ -20,8 +20,7 @@ messages, conference talks---draws its terms and definitions from this document.
 
 ### Other files that reference this guide
 
-These files previously contained their own terminology sections. Those sections
-have been replaced with pointers to this document:
+These files point to this document for their terms instead of defining them:
 
 - `docs/STYLE.md`---capitalization and formatting rules for terms
 - `.agents/skills/docs-writing/SKILL.md`---the writing doctrine coding agents
@@ -279,10 +278,10 @@ that lists it in `plugins` gets all of it.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
   `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/` and `hooks/`.
-  Stigmer-only settings go in the manifest's `extensions["ai.stigmer"]`; an
-  `ai.stigmer/` folder is not read, and install warns about it. Installing it
-  writes one resource, whose status lists the skills, agents and MCP servers the
-  archive holds; to change them you change the plugin and push it again.
+  Stigmer-only settings go in the manifest's `extensions["ai.stigmer"]`.
+  Installing it writes one resource, whose status lists the skills, agents and
+  MCP servers the archive holds; to change them you change the plugin and push
+  it again.
 - **What it is not**: a plugin does not run on its own. An Agent or a
   conversation that lists it runs, in a Session, on a Runner; the plugin's
   skills, agents, hooks and servers join that run.
@@ -616,9 +615,8 @@ number. Each Channel has one type, and an Agent can have several.
   on the Organization's provider keys for everyone who reaches it. See
   [Channels](/docs/concepts/channels) and
   [Create a chat link](/docs/guides/channels/create-a-chat-link).
-- **Former names**: `AgentShare` (`Agent Share`) for the chat link and
-  `AgentChannel` (`Agent Channel`) for Slack and WhatsApp. Do not use them in
-  new writing.
+- **Do not say**: `Agent Share` for a chat link or `Agent Channel` for a Slack
+  or WhatsApp connection; write chat link and channel.
 
 **Good examples**:
 
@@ -696,11 +694,10 @@ runs it, or when another system calls it with a note.
   "Temporal Schedule" for the engine object; one Routine with a `cron` is backed
   by one Temporal Schedule. Lowercase "schedule" stays: it is the routine's own
   timing ("the routine's schedule") and the verb.
-- **Former names**: `Schedule` (`kind: Schedule`), its fire record
-  `ScheduleFire`, `trigger` for starting one, and the hosted edition's per-org
-  schedule account that runs once acted as. Do not use them in new writing.
-  `stigmer apply` on an old `kind: Schedule` file answers with the fix: rewrite
-  it as `kind: Routine`. See [Routines](/docs/concepts/routines).
+- **Do not say**: `Schedule` for the resource, `ScheduleFire` for its fire
+  record, or `trigger` for starting one; write Routine, fire and start. No
+  schedule account exists: every run acts as the routine's owner. See
+  [Routines](/docs/concepts/routines).
 
 **Good examples**:
 
@@ -717,7 +714,7 @@ runs it, or when another system calls it with a note.
 
 | Context | Copy                                                        | Problem                                                                                               |
 | ------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Any     | "Create a Schedule for the Agent."                          | The kind is Routine; "Schedule" is its former name.                                                   |
+| Any     | "Create a Schedule for the Agent."                          | The kind is Routine.                                                                                  |
 | Any     | "The run acts as the organization's schedule account."      | No such account exists: every run acts as the routine's owner.                                        |
 | How-to  | "Ask an admin, the routine's owner, to change the message." | An admin is not a routine's owner and cannot change what it runs; only the person who created it can. |
 
@@ -739,8 +736,7 @@ A process that connects to Stigmer and executes your Agents.
   `stigmer apply`. The server keeps no record of which runners exist and the web
   console has no runner page. You start one with `stigmer up` (and stop it with
   `stigmer down`); the Docker Compose stack and the Helm chart each run one
-  beside the server. (The Runner API resource that once existed, with its
-  phases, heartbeats and runner picker, was removed from the OSS repo.)
+  beside the server.
 - **How work reaches it**: The server puts each run on a Temporal task queue
   (`stigmer_runner` by default) and whichever runner polls that queue takes the
   work. Nothing selects a runner; the queue is the contract. A run carries the
@@ -963,8 +959,7 @@ outside it sees them.
 - **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
   a tenant, and never a Workspace, which is the folder a Session's repositories
   and files are given in. In docs for open source, do not make a reader name or
-  create one. "System Organization" is a retired phrase from when default
-  content was installed into it.
+  create one.
 
 ---
 
@@ -1355,8 +1350,8 @@ those tokens get.
   Organization's child organizations. Each token it vouches for is a **bound
   credential**: it works in the child organization `external_id_claim` names, or
   in the issuer's own Organization.
-- **Former names**: `IdentityProvider` (`kind: IdentityProvider`, "Identity
-  Provider"). Do not use it in new writing.
+- **Do not say**: `IdentityProvider` or `Identity Provider` for the kind; write
+  Federation Issuer.
 
 ---
 
@@ -1596,9 +1591,7 @@ set of its grants.
   `stigmer.permission.grant`, the console's approve-all button; see
   [Approval flow](#approval-flow-human-in-the-loop)). No record stores it, and
   it is never a Grant.
-- **Former names**: `IamPolicy` (`kind: IamPolicy`, "IAM Policy"), whose ids
-  read `iamp_`; stored grants moved to `grt_` with the rename. Do not use it in
-  new writing.
+- **Do not say**: `IamPolicy` or "IAM Policy"; write Grant.
 
 ---
 
@@ -1621,9 +1614,7 @@ which role, and which shared vaults their runs use.
 - **Context rule**: Do not use on the sales site---say "embed Stigmer in your
   app" or "add Stigmer to your product." In quickstart, avoid unless the
   tutorial covers signing your product's users in.
-- **Former names**: the settings of a `PlatformClient`
-  (`kind: platform_client`), removed with the kind. Do not use it in new
-  writing.
+- **Do not say**: `PlatformClient` for these settings.
 
 <!-- vale Vale.Spelling = NO -->
 
@@ -1710,8 +1701,7 @@ message, start a routine or open a chat link.
   Temporal task queues (`agent_execution_stigmer`) and operator settings such as
   `TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE` keep that word. Do not rename
   them in docs; say "run" for what the user started.
-- **Former names**: `AgentExecution` (`kind: AgentExecution`), then `AgentRun`
-  (`kind: AgentRun`, `Agent Run`). Do not use them in new writing.
+- **Do not say**: `AgentExecution`, `agent execution` or `Agent Run`; write run.
 
 ---
 
@@ -1987,10 +1977,6 @@ plugins, Skills, hooks and values; a plugin subagent comes from a plugin's
   listing Agent is saved. A plugin's agents are named `<plugin>:<agent>`
   (`PluginStatus.agents`). A run's subagents are threads in the Session's events
   (`session.thread_created`).
-- **Retired shape**: subagents written inside an Agent (`sub_agents`) are gone;
-  a reader meets the field only in the sentence `stigmer apply -f` and
-  `stigmer validate -f` print for a manifest that still writes it, which says to
-  save each one as an Agent and list it in `subagents`.
 - **Context rule**: Concepts and reference only. Never on the sales site. In
   tutorials, if needed, describe as "an Agent that hands work to another Agent."
 
@@ -2126,8 +2112,8 @@ list filtered by labels returns only the resources that carry every one.
   `stigmer.ai/` prefix is the platform's and refused from clients.
 - **Context rule**: Concepts, how-to and reference. In reference, name the
   syntax as the proto comment does (the Kubernetes label form).
-- **Do not say**: "tag" for a label. "annotation": the field was retired, and
-  `metadata.annotations` is reserved.
+- **Do not say**: "tag" for a label. "annotation": `metadata.annotations` is
+  reserved.
 
 ---
 
@@ -2165,21 +2151,6 @@ that define Stigmer's API contracts.
 
 ---
 
-#### Graphton
-
-<!-- vale Stigmer.terms = NO -->
-
-The Agent framework of the retired Python agent runner. The name survives only
-in historical references; today's runner executes Stigmer's own harness with
-LangChain's deepagents on LangGraph.js.
-
-<!-- vale Stigmer.terms = YES -->
-
-- **Context rule**: Historical architecture references only. Never in
-  customer-facing documentation, and never for describing the current runtime.
-
----
-
 #### Stigmer Server
 
 The gRPC API server that powers the local development experience.
@@ -2202,79 +2173,6 @@ that executes agent sessions, driving every harness it carries: Stigmer's own
 - **Context rule**: Architecture docs only. Customers do not start or configure
   the Agent Runner directly---`stigmer up` runs it for local execution and the
   desktop app embeds it as a subprocess.
-- **Not Python**: The original Agent Runner was a Python Temporal worker; it was
-  replaced by the TypeScript runner. Any doc describing a "Python Temporal
-  worker" is describing the retired service.
-
----
-
-#### Seedpack
-
-Retired term. The starter bundle of Agents, Skills and MCP Servers that earlier
-releases installed on a fresh stack. A fresh install now gets the one
-Organization its server makes at its first start and nothing else: a Session
-with no Agent runs the built-in assistant, and everything else is a Plugin you
-install by name; see Plugin and Marketplace.
-
-- **Capitalize**: Yes (when quoting historical docs).
-- **Context rule**: Do not use in new writing. A doc describing "the built-in
-  Agents and servers" or "the curated library" is describing the retired bundle;
-  point it at Plugin instead.
-
----
-
-#### Project
-
-Retired term. A `kind: Project` was a manifest (`stigmer.yaml`) at the root of a
-directory that listed the Agents, Skills and MCP Servers applied from it as
-members, reconciled by `stigmer apply`; a second flavour synthesised the members
-from a TypeScript, Go or Python program. Both were removed with the kind: a
-folder of resources that belong together is a Plugin, installed with
-`stigmer push plugin` or from the Marketplace, and upgraded or removed as one
-unit. The seven Project pages under the SDK reference and `examples/project`
-went with it.
-
-- **Capitalize**: Yes, when quoting historical docs or the CLI's refusal.
-- **Context rule**: Do not use in new writing. A reader still meets the word in
-  one place: the sentence `stigmer apply -f` and `stigmer validate -f` print for
-  a manifest that still carries `kind: Project`, which says what happened and
-  names `stigmer push plugin`. Lowercase "project" for an npm, Go, Python or
-  Maven project stays ordinary English.
-
----
-
-#### Agent Instance
-
-Retired term. A `kind: AgentInstance` (prefix `ain`) was a deployed copy of an
-Agent bound to its own settings, and a Session named an instance rather than its
-Agent; every Agent carried a default one. The kind and its CLI verbs were
-removed: a Session names its Agent directly (`agent_ref`) and runs the version
-it started on, and a run's keys come from vaults (the conversation's, those of
-the Routine or channel that started it, or the sending person's own).
-
-- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
-- **Context rule**: Do not use in new writing. A reader still meets the word in
-  the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
-  that still carries `kind: AgentInstance`, which says what happened and names
-  `stigmer run`.
-
----
-
-#### MCP Server (the kind)
-
-Retired term. A `kind: McpServer` was a resource of its own that described one
-MCP server, and an Agent attached it through `mcp_server_usages`. The kind was
-removed: an MCP server is an entry in a plugin's `mcp.json`, which an Agent or a
-conversation lists in `plugins`, or an entry in an Agent's own `mcp_servers`. An
-admin's one-off server to share is a plugin of one server
-(`stigmer mcp add <name> <url>`). See MCP server and Plugin.
-
-- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
-- **Context rule**: Do not use in new writing; write "MCP server", lowercase
-  "server". A reader still meets the kind in the sentence `stigmer apply -f` and
-  `stigmer validate -f` print for a manifest that still carries
-  `kind: McpServer` or `mcp_server_usages`, which says what happened and names
-  `stigmer mcp add`.
 
 ---
 
@@ -2283,231 +2181,7 @@ admin's one-off server to share is a plugin of one server
 Known inconsistencies across the codebase. Each entry includes what the
 inconsistency is, where it appears, and a recommended resolution.
 
-These require human decisions. Do not resolve them autonomously.
+These require human decisions. Do not resolve them autonomously. An entry leaves
+the register when it is resolved; the entries it changed say the current words.
 
----
-
-### 1. OSS README tagline contradicts positioning---RESOLVED
-
-**What**: The OSS README previously said "open-source agentic automation
-platform." The positioning document says the category is "AI Agent Platform."
-The word "agentic" was explicitly rejected as jargon.
-
-**Resolution**: The README has been updated to "open-source AI Agent platform,"
-matching the positioning document's category name.
-
-**2026-10-21**: the category line was retired. Every description of Stigmer now
-starts from the words in
-[What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for), which
-never lead with "agent platform".
-
----
-
-### 2. Cloud README tagline contradicts positioning---RESOLVED
-
-<!-- vale Stigmer.terms = NO -->
-
-**What**: The hosted edition's README said "SDK-first agent orchestration
-platform." This used a different category name ("agent orchestration platform")
-and led with an implementation detail ("SDK-first").
-
-<!-- vale Stigmer.terms = YES -->
-
-**Resolution**: On 2026-10-21 the category line "AI Agent platform" was retired.
-Every description of Stigmer, a hosted edition's included, starts from the one
-sentence in
-[What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for): "The
-open-source backend for the agents in your product."
-
----
-
-### 3. Audience definition conflict between the writing guidance and STYLE.md---RESOLVED
-
-**What**: The writing guidance coding agents followed said "Write for a smart
-person who is not technical." The style guide (`docs/STYLE.md`, line 14) says
-"Assume readers are comfortable with APIs, CLIs, and infrastructure concepts."
-
-**Resolution**: The writing guidance was rewritten around a context-sensitive
-register framework that references this guide's five writing contexts. Plain
-language remains the default for the sales site and introductory docs; reference
-and SDK docs use precise technical language. The guidance now lives in
-`.agents/skills/docs-writing/SKILL.md` ("Match the register to the reader").
-
----
-
-### 4. Cloud README lists "Credential" as a concept---RESOLVED
-
-**What**: The Cloud README architecture table includes "Credential" as a
-resource type with the description "Encrypted credentials---AWS keys, GitHub
-tokens." No `Credential` kind exists in `api_resource_kind.proto`. The closest
-resources are `Vault` (holds logins and secrets) and `ApiKey` (IAM
-authentication tokens).
-
-**Where**:
-
-- `stigmer-cloud/README.md` architecture table (line 45)
-- `apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto`
-  (no `Credential` kind)
-
-**Recommendation**: Determine whether "Credential" was a planned resource that
-hasn't been implemented, or whether it's a misnomer for vault secrets. Update
-the Cloud README accordingly. If credentials are managed through vaults, remove
-the "Credential" row and clarify in the Vault description.
-
-**Resolution**: The Cloud README no longer has an architecture table, and names
-no Credential, Environment or Vault (checked 2026-10-10). Logins and secrets
-live in vaults ([Vault](#vault)).
-
----
-
-### 5. YAML shorthand vs proto field names---RESOLVED
-
-**What**: The OSS README showed `mcpServers:` as a YAML field on Agent
-definitions. The proto field is `mcp_server_usages` (a repeated `McpServerUsage`
-message containing `mcp_server_ref`).
-
-**Investigation**: The CLI Agent loader (`agent/loader.go`) uses strict
-`protojson` `Unmarshal` with `DiscardUnknown: false`. There is no alias or
-remapping for `mcpServers`. The field would be rejected as unknown. `mcpServers`
-was a documentation simplification, not a supported alias.
-
-**Resolution**: The README and this vocabulary guide have been updated to show
-the real YAML structure (`mcp_server_usages` with `McpServerUsage` entries). No
-shorthand exists or is planned. Since the MCP server kind was removed, an Agent
-lists the plugins that carry its servers in `plugins`, and `mcp_server_usages`
-is a reserved field.
-
-2026-10-15: an Agent now has a real `mcp_servers` field (#2286), a list of the
-servers written in the Agent itself (`name`, `url`, `headers`). It is a new
-field with its own shape, not the old `mcpServers:` shorthand, which never
-pointed at a server kind's references.
-
----
-
-### 6. Child-organization words---RESOLVED
-
-**What**: An Organization that belongs to another Organization, one per customer
-of an integrator, was called platform-managed, managed, tenant and external in
-different places, and its fields carried the same mix.
-
-**Resolution**: The mechanism and its words were replaced together. A child
-organization names its parent in `parent_org`, carries the parent's customer id
-in `external_id`, and is reached through `external_id_claim` and shared with at
-`visibility_child_orgs`. See
-[Parent organization, child organization](#parent-organization-child-organization).
-
----
-
-### 7. Resource-contract words---RESOLVED
-
-**What**: Pages and comments written before the one resource contract described
-names, references, writes and lists in words that no longer hold.
-
-**Resolution**: Each retired word has a replacement, defined in its entry:
-
-- "fixed once created" for a slug: renamed through `rename` (Slug and ID).
-- "list of Skill IDs" for `skill_refs`: references written by slug or ID
-  (Reference).
-- "full spec replacement" and "always provide complete state" for an update: an
-  update changes the fields its mask names (Update and apply).
-- `PageInfo`, `page_number` and `total_count` on a list: a page of `entries` and
-  a `next_page_token` (Page).
-- `annotations` in metadata: retired and reserved; use labels to filter and tags
-  to find (Label, Tag).
-
----
-
-### 8. Chat-link and channel words---RESOLVED
-
-**What**: A hosted chat link was an `Agent Share` ("a share", `share link`, "a
-shared Agent"), and a Slack or WhatsApp connection was an `Agent Channel`, two
-kinds with different pages, permissions and commands. "Share" meant both a chat
-link and giving access, and "surface" named whatever started a run.
-
-**Resolution**: One `Channel` kind with a type replaced both kinds. Each retired
-word has a replacement, defined in its entry:
-
-- `Agent Share`, `share`, `share link` and `shared Agent` for a hosted chat: a
-  **chat link**, a channel of type `web` (Channel).
-- `Agent Channel` for Slack or WhatsApp: a **channel** (Channel).
-- `share` for anything but giving access: "share" means giving access only
-  (Share (the word)).
-- `surface` for what started a run: name it, a Session, a Routine or a channel
-  (Vault).
-
----
-
-### 9. Scheduled-work words---RESOLVED
-
-**What**: Scheduled work was a `Schedule` (`kind: Schedule`, prefix `sch`): a
-cron trigger only, started by hand as a `trigger`, and on the hosted edition
-every run acted as one hidden schedule account per Organization. "Owner" could
-mean the person who created it or anyone who inherited the Owner role, and
-"schedule" named both the resource and its timing.
-
-**Resolution**: The `Routine` kind replaced it, shaped after Claude Code's
-routines: an optional schedule, a start with an optional note, Participant to
-start it, and every run acting as the person or service account that created it,
-in every edition. Each retired word has a replacement, defined in its entry:
-
-- `Schedule` and `kind: Schedule` for the resource: a **Routine** (Routine).
-- `trigger` and `ScheduleFire` for starting one by hand: **start** and **Run
-  now** in how-to docs, `fire` and `RoutineFire` in reference (Routine).
-- the hosted edition's schedule account: the routine's **owner**, the account
-  that created it; no other account acts for a routine (Routine).
-- "schedule" for the resource in prose: "routine". Lowercase "schedule" keeps
-  its sense of timing and the verb, and "Temporal Schedule" stays the engine's
-  object (Routine).
-
----
-
-### 10. Environment words---RESOLVED
-
-**What**: "Environment" was reserved: the name of a retired resource that held
-variables and secrets, which vaults replaced, kept only for "the sandbox a run
-executes in". The Session entry named a `sandbox_id` field that no Session has.
-When Environment became the kind that says which packages a sandbox installs and
-which websites it may reach, the entry contradicted the product.
-
-**Resolution**: The word names the kind again, shaped after Claude Managed
-Agents' environments, and keeps its old boundary: it never holds a secret or a
-variable. Each retired use has a replacement, defined in its entry:
-
-- "Reserved" and "the sandbox a run executes in": an **Environment**, the named
-  setup a conversation's sandbox gets (Environment).
-- `kind: Environment` with variables and secrets: a **vault** for the secrets,
-  the Agent's `env` for plain settings (Environment, Vault).
-- `sandbox_id` on a Session: `environment_ref`, `status.environment` and
-  `status.environment_source` (Session).
-
----
-
-### 11. File words---RESOLVED
-
-<!-- vale Stigmer.FileWords = NO -->
-
-**What**: Files had three stories. A file sent with a message was an attachment,
-named by a storage key, up to 4 MB; a file the Agent made was a run artifact it
-published with a tool, with a download link that expired; and a conversation's
-repositories and folders were its workspace entries. "Artifact" also named Skill
-and plugin packages, the storage layer, and the engine's own objects.
-
-**Resolution**: One `File` kind, shaped after Claude's Files API and Managed
-Agents: uploaded once and named by its id, held in a conversation's `resources`
-beside its repositories, and returned from the outputs folder. The docs build
-refuses "attachment" and "artifact" for a file (`Stigmer.FileWords`). Each
-retired word has a replacement, defined in its entry:
-
-- attachment, `uploadAttachment`, `RunSpec.attachments`: a **File**, sent with
-  the message in `RunSpec.file_ids` (File, Run).
-- run artifact, `publish_artifact`, `RunArtifact`, `status.artifacts`: an
-  **output**, a File the Agent saved in `.stigmer/outputs/` (File).
-- `workspace_entries`: a conversation's **`resources`** (Session, Routine).
-- `stigmer download --artifact`: `--path`, an output's path in the outputs
-  folder (File).
-- artifact for a Skill's or plugin's package: an **archive** (Skill, Plugin).
-- artifact storage in prose: **file storage**; the settings keep their names in
-  code spans (`ARTIFACT_STORAGE_TYPE`).
-- "engine artifact" for a Temporal Schedule: the engine's **object** (Routine).
-
-<!-- vale Stigmer.FileWords = YES -->
+No inconsistency is open.

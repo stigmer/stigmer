@@ -1,7 +1,7 @@
 // Per-resource SDK generation config, auto-derived from the service schema
-// JSON — the port of sdk_client.go's sdkResourceConfig / deriveResourceConfig
-// / resolveResourceKind / loadSpecSchemaWithTypes, shared by the SDK client
-// emitters in every language.
+// JSON (sdkResourceConfig / deriveResourceConfig / resolveResourceKind /
+// loadSpecSchemaWithTypes), shared by the SDK client emitters in every
+// language.
 
 import * as fs from "node:fs";
 import * as path from "node:path";

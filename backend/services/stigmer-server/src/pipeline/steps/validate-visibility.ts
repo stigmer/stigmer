@@ -1,8 +1,7 @@
 /**
- * ValidateVisibility(+Update) — port steps/validate_visibility.go.
- * Fail-fast rejection of visibility levels the kind does not support,
- * BEFORE any state is built — cloud-identical INVALID_ARGUMENT copy, so
- * clients see one contract across editions.
+ * ValidateVisibility(+Update): fail-fast rejection of visibility levels
+ * the kind does not support, BEFORE any state is built — one
+ * INVALID_ARGUMENT copy, so clients see one contract across editions.
  *
  * Create-only by design: plain updates preserve stored visibility
  * unconditionally (oss#573), so updateVisibility is the only other door
@@ -70,7 +69,7 @@ export function newValidateVisibilityUpdateStep(): PipelineStep<
   };
 }
 
-/** Go rejectUnsupportedVisibility (the shared level check + copy). */
+/** The shared level check + copy. */
 /**
  * The one sentence for a level a kind does not support. Exported for the
  * push-shaped chains whose requested level rides the request rather than

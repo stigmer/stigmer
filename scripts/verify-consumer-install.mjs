@@ -11,12 +11,11 @@
  * verify:dist, conformance, the file:-linked extension-consumer typecheck —
  * runs against the REPO's lockfile-resolved node_modules, so none of them
  * can see what a consumer's fresh install resolves from the manifest's
- * version ranges. 3.11.0 added a direct `@temporalio/proto` dependency to
- * the runner; with mixed @temporalio ranges a fresh install resolved TWO
- * copies of the Temporal core-sdk proto tree, and the second registration
- * of the `coresdk` protobufjs namespace killed manager init with
- * "duplicate name 'ActivityHeartbeat'" — on every embedder, invisible to
- * CI. This script closes that class for both packages: any dependency
+ * version ranges. With a direct `@temporalio/proto` dependency in the
+ * runner and mixed @temporalio ranges, a fresh install resolves TWO copies
+ * of the Temporal core-sdk proto tree, and the second registration of the
+ * `coresdk` protobufjs namespace kills manager init with "duplicate name
+ * 'ActivityHeartbeat'" — on every embedder, invisible to CI. This script closes that class for both packages: any dependency
  * whose consumer-resolution breaks module loading fails here, in CI and
  * again in the release workflow right before `npm publish`.
  *

@@ -1,14 +1,13 @@
 /**
- * ChannelApp controller — ports pkg/domain/channelapp/controller (command +
- * query sides): the org-scoped holder of customer messaging-app credentials
+ * ChannelApp controller (command + query sides): the org-scoped holder of customer messaging-app credentials
  * (Slack OAuth client + signing secret; WhatsApp app_secret / access_token /
  * verify_token), referenced by a Slack or WhatsApp channel's app_ref. The channel-domain
  * sibling of OAuthApp: inline encrypted secrets (AES-256-GCM via the shared
  * SecretService — the same instance every secret kind uses), ***REDACTED*** on
  * every response surface, delete blocked while referenced.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character —
- * notably create's ResolveSlug-before-ValidateProto order and the encrypt
+ * Each RPC's chain is fixed — notably create's
+ * ResolveSlug-before-ValidateProto order and the encrypt
  * step's placement (before BuildNewState on create, after BuildUpdateState
  * on update; see steps.ts). NOT search-indexed by design (the kind declares
  * not_search_indexed — configuration reached through its parent surface,
@@ -163,9 +162,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline. ResolveSlug runs BEFORE
- * ValidateProto (unique among the sharing/channel domains — Go's order,
- * preserved); EncryptChannelAppSecrets runs before BuildNewState because
+ * Create. ResolveSlug runs BEFORE ValidateProto (unique among the
+ * sharing/channel domains); EncryptChannelAppSecrets runs before BuildNewState because
  * BuildNewState clones state (the oauthapp ordering). The response is
  * redacted; the store keeps ciphertext.
  */
@@ -212,7 +210,7 @@ async function createChannelApp(
 }
 
 /**
- * Update — chain per Go buildUpdatePipeline; EncryptChannelAppSecrets runs
+ * Update. EncryptChannelAppSecrets runs
  * AFTER BuildUpdateState because BuildUpdateState replaces newState with
  * the merged clone (the oauthapp ordering). The marker preserves the
  * stored value PER FIELD — one request may rotate one secret while
@@ -285,8 +283,8 @@ async function rename(
 /**
  * Apply — kubectl-style create-or-update (the OAuthApp apply shape): a
  * minimal probe pipeline decides existence, then delegates to Create or
- * Update with the ORIGINAL request message (Go delegates `app`, not the
- * pipeline's clone — unlike the channel, whose defaults live
+ * Update with the ORIGINAL request message, not the probe pipeline's
+ * clone (unlike the channel, whose defaults live
  * on the clone; channelapp's Update re-resolves the slug itself); the
  * update arm carries the resolved id via withResolvedApplyId. Sending
  * the marker for a secret field on an apply that resolves to update

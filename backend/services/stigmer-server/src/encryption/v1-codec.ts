@@ -1,12 +1,8 @@
 /**
- * The built-in enc:v1 static-key codec — the crypto that lived directly
- * on SecretService before the versioned-codec seam, extracted
- * byte-for-byte. Provenance: ports pkg/encryption/encryption.go (the
- * retired Go server), the Go twin of the cloud edition's RETIRED v1 codec
- * (deleted 2026-08). Cross-edition
- * wire contract: same wire format, but a DIFFERENT key per deployment —
- * the OSS enc:v1 is a same-wire-format SIBLING of the cloud's retired v1,
- * never interchangeable ciphertext.
+ * The built-in enc:v1 static-key codec. Its wire format is frozen
+ * (__tests__/fixtures/enc-v1-golden-vectors.json): every deployment
+ * writes the same format under its OWN key, so ciphertext is never
+ * interchangeable between deployments.
  *
  * Format: enc:v1:<base64(nonce || ciphertext || tag)>
  *   - AES-256-GCM, 12-byte crypto-random nonce (unique per encryption),
@@ -17,8 +13,8 @@
  *     write steps own the per-request warning, oss#394);
  *   - decrypt() fails loud (EncryptionDisabledError): stored ciphertext
  *     with no key must never be returned as-is.
- * The unprefixed-plaintext pass-through (pre-oss#405 rows) is FACADE
- * policy, not codec behavior — this codec only ever sees enc:v1: values.
+ * The unprefixed-plaintext pass-through (a keyless server's rows,
+ * oss#405) is FACADE policy, not codec behavior — this codec only ever sees enc:v1: values.
  *
  * The scope parameter is deliberately ignored: v1 has one deployment-wide
  * key, no per-tenant KEK and no location. It is threaded anyway so every
@@ -36,13 +32,13 @@ import {
 import { KEY_SIZE } from "./key-manager.js";
 import type { EncryptionScope } from "./scope.js";
 
-/** Nonce size for AES-GCM (12 bytes = 96 bits, NIST) — Go GCMNonceSize. */
+/** Nonce size for AES-GCM (12 bytes = 96 bits, NIST). */
 export const GCM_NONCE_SIZE = 12;
 
-/** GCM authentication tag size (128 bits) — Go's gcm.Overhead(). */
+/** GCM authentication tag size (128 bits). */
 export const GCM_TAG_SIZE = 16;
 
-/** Version prefix for v1-encrypted values — Go EncryptedPrefix. */
+/** Version prefix for v1-encrypted values. */
 export const ENCRYPTED_PREFIX = "enc:v1:";
 
 /** The version token the static-key codec serves. */
@@ -54,7 +50,7 @@ export class StaticKeySecretCodec implements SecretCodec {
   private readonly key: Buffer | undefined;
 
   /**
-   * Go NewSecretService's key contract, now the codec's: nil/empty key →
+   * The key contract: nil/empty key →
    * disabled (keyless) codec; a present key must be exactly 32 bytes.
    */
   constructor(key: Buffer | undefined) {
@@ -70,13 +66,13 @@ export class StaticKeySecretCodec implements SecretCodec {
     this.key = key;
   }
 
-  /** Go IsEnabled: whether a key is configured. */
+  /** Whether a key is configured. */
   isEnabled(): boolean {
     return this.key !== undefined;
   }
 
   /**
-   * Go Encrypt's crypto arm: enc:v1:<base64(nonce || ct || tag)>;
+   * The crypto arm: enc:v1:<base64(nonce || ct || tag)>;
    * disabled → plaintext unchanged (the WARN-degrade posture). The
    * already-prefixed idempotent pass-through is facade policy and never
    * reaches here.
@@ -94,14 +90,13 @@ export class StaticKeySecretCodec implements SecretCodec {
       cipher.final(),
     ]);
     const tag = cipher.getAuthTag();
-    // Layout matches Go's gcm.Seal(nonce, nonce, plaintext, nil):
-    // nonce || ciphertext || tag, then standard Base64.
+    // Layout: nonce || ciphertext || tag, then standard Base64.
     const sealed = Buffer.concat([nonce, ciphertext, tag]);
     return ENCRYPTED_PREFIX + sealed.toString("base64");
   }
 
   /**
-   * Go Decrypt's crypto arm: the value carries this codec's prefix (the
+   * The crypto arm: the value carries this codec's prefix (the
    * facade dispatched it here) and decrypts or fails with the taxonomy
    * the callers branch on (invalid-ciphertext / decryption-failed /
    * encryption-disabled).
@@ -113,8 +108,8 @@ export class StaticKeySecretCodec implements SecretCodec {
 
     const base64Data = encrypted.slice(ENCRYPTED_PREFIX.length);
     const sealed = Buffer.from(base64Data, "base64");
-    // Node's lenient decoder never throws; the round-trip check restores
-    // Go's strict-decode error for corrupted Base64.
+    // Node's lenient decoder never throws; the round-trip check refuses
+    // corrupted Base64 strictly.
     if (sealed.toString("base64") !== base64Data) {
       throw new InvalidCiphertextError("invalid base64 encoding");
     }

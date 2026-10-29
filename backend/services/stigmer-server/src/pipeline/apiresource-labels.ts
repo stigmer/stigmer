@@ -1,7 +1,6 @@
 /**
- * Well-known stigmer.ai/* metadata labels — ports
- * backend/libs/go/apiresource/labels.go (itself the Go twin of the cloud
- * edition's SystemManagedLabels). Keep the three in sync.
+ * Well-known stigmer.ai/* metadata labels, the one list every edition
+ * reads.
  *
  * Trust boundary: labels are client-suppliable, so they may be used to
  * RESTRICT what a request may do but never to GRANT anything. Where a

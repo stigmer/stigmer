@@ -14,7 +14,6 @@
 //
 // This module is the single owner of the marker semantics (oss#327
 // established the single-owner rule; oss#497 extended coverage to stubs).
-// It is a byte-parity port of the Go package at tools/codegen/internalcomment.
 // Consumers:
 //   - the schema-extraction plugin strips at extraction, so every
 //     schema-driven generator receives SDK-facing text only.
@@ -33,8 +32,8 @@ const GENERATED_TRAILER_PREFIX = "@generated";
 
 // Go's strings.TrimSpace trims the Unicode White_Space set, which differs
 // from JS String.prototype.trim at the margins (Go trims U+0085 NEL; JS
-// additionally trims U+FEFF). Byte parity with the Go toolchain requires
-// Go's exact set.
+// additionally trims U+FEFF). The committed schemas and stubs were stripped
+// with Go's exact set, so it is the set here.
 const GO_SPACE = /[\t\n\v\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/;
 
 /** Exact equivalent of Go's strings.TrimSpace. */

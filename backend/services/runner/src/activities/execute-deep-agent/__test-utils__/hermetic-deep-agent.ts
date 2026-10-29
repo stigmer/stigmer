@@ -107,7 +107,7 @@ const SESSION_ID = "ses_hermetic_0001";
 
 export const FIXTURE = {
   org: "hermetic-org",
-  executionId: "aex_hermetic_0001",
+  executionId: "run_hermetic_0001",
   sessionId: SESSION_ID,
   agentId: "agt_hermetic_0001",
   agentName: "hermetic-agent",

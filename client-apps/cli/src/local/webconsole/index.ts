@@ -6,9 +6,7 @@
 // than serves — /config.json answers 200 exactly when a console export
 // is bundled with the running server (a dev-tree server without the
 // export falls through to the RPC adapter's 404), so the daemon's
-// component state reports what a browser would actually find. The Go-era
-// embedded console (go:embed on :8234) and the stub this file used to be
-// are both retired by that design.
+// component state reports what a browser would actually find.
 
 import { SERVER_PORT } from "../constants.js";
 

@@ -25,7 +25,8 @@
  * is valid, and this platform cannot run it.
  *
  * Every harness the proto names is offered today, so the rule's refusals
- * are met by a number the proto does not name (the retired 2 among them),
+ * are met by a number the proto does not name (2, the gap in its
+ * numbering, among them),
  * and by the next harness the proto names before this platform runs it.
  *
  * Proven by __tests__/harness.test.ts and the run-admission conformance

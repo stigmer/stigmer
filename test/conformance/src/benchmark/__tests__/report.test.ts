@@ -79,11 +79,11 @@ describe("cacheHitRatio", () => {
 
 describe("summarize", () => {
   it("counts failed attempts, keeps them, and excludes them from the medians", () => {
-    const warmup = makeSample({ execution_id: "aex_warm" });
+    const warmup = makeSample({ execution_id: "run_warm" });
     const samples = [
-      makeSample({ execution_id: "aex_1", measures: { estimated_cost_micros: 100 } }),
-      makeSample({ execution_id: "aex_2", outcome: "failed", measures: { estimated_cost_micros: 9999 } }),
-      makeSample({ execution_id: "aex_3", measures: { estimated_cost_micros: 300 } }),
+      makeSample({ execution_id: "run_1", measures: { estimated_cost_micros: 100 } }),
+      makeSample({ execution_id: "run_2", outcome: "failed", measures: { estimated_cost_micros: 9999 } }),
+      makeSample({ execution_id: "run_3", measures: { estimated_cost_micros: 300 } }),
     ];
     const stat = summarize("stigmer", warmup, samples, null);
     expect(stat.n).toBe(2);

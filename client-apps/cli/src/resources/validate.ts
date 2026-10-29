@@ -1,8 +1,7 @@
 // Offline resource validation: parse a YAML document into its proto schema.
 //
 // protobuf-es `fromJson` performs structural validation — field types, required
-// shapes, and enum membership — without a server round-trip, mirroring the Go
-// CLI's local load-and-validate. The accepted kinds are the file-based verbs
+// shapes, and enum membership — without a server round-trip. The accepted kinds are the file-based verbs
 // (apply/validate) that carry a YAML representation.
 
 import { type DescMessage, fromJson, type JsonValue } from "@bufbuild/protobuf";

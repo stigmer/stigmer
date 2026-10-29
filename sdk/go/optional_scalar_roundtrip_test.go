@@ -1,9 +1,9 @@
 package stigmer
 
 // The generated toProto of a nested input whose message holds proto3
-// optional scalars (EntitlementLimits, PlanTerms) used to drop every one of
-// them: the literal form skipped synthetic-oneof fields, so a Go caller's
-// plan limits and prices never reached the wire. These tests drive the
+// optional scalars (EntitlementLimits, PlanTerms) carries every one of them:
+// a literal form that skips synthetic-oneof fields would keep a Go caller's
+// plan limits and prices off the wire. These tests drive the
 // checked-in generated code through PlanClient.Create against an
 // in-memory server and read the exact wire message. They live at the SDK
 // root because internal/gen is wiped and regenerated wholesale.

@@ -24,14 +24,9 @@ module agentic
 # enumeration lanes' ListObjects (the composition's list-read-scope.ts).
 #
 # There is no level that crosses every organization; CHILD_ORGS reaches
-# only the owning organization's children. The public level —
-# a wildcard viewer (`identity_account:*`) under a request-time condition
-# that point checks resolved and listings suppressed — was retired
-# (stigmer#1211; the cloud's model on 2026-09-23): another
+# only the owning organization's children (stigmer#1211): another
 # organization's agent is reached by installing the plugin that carries
-# it, and the model holds no wildcard subject and no condition. A stored
-# `identity_account:*` tuple from before the retirement no longer matches
-# any relation and is deleted by the release runbook.
+# it, and the model holds no wildcard subject and no condition.
 #
 # Privacy note: Sessions are org-scoped with user attribution for filtering.
 #
@@ -56,7 +51,7 @@ type agent
     # ORGANIZATION OWNERSHIP
     # ========================================
     # Every agent belongs to exactly one organization. Structural link only
-    # for viewer access — it no longer grants viewer access by itself
+    # for viewer access — it grants no viewer access by itself
     # (private agents are private even inside the org; org-wide access
     # requires the explicit visibility tuple on viewer). Org ADMINS still
     # inherit owner through it (see owner below), so a private agent remains
@@ -133,9 +128,7 @@ type agent
     # their own gate steps through authorizer/lane-admission.ts. Deriving from viewer keeps every
     # visibility level (org tuple, child_org_viewer)
     # executable through one composition with no separate execute tuples
-    # to reconcile. (Until 2026-09-11 this comment named a retired Java
-    # step, BlueprintAccessAuthorization, that the TypeScript server never
-    # had; nothing asked can_execute.)
+    # to reconcile.
     define can_execute: viewer
     
     # ========================================

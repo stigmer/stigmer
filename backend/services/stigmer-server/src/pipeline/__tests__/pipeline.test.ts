@@ -1,5 +1,5 @@
 /**
- * Pins the pipeline executor's contract (Go pipeline.go / error.go):
+ * Pins the pipeline executor's contract:
  * ordered execution, halt-on-first-error, and the #478 wire sanitization —
  * a ConnectError passes through with its clean domain message; a plain
  * error reaches the wire as Internal/"internal server error" with the real
@@ -116,7 +116,7 @@ describe("pipeline execution", () => {
     const error = await pipeline.execute(orgContext()).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.AlreadyExists);
-    // No "pipeline step X failed" prefix reaches the wire (Go GRPCStatus).
+    // No "pipeline step X failed" prefix reaches the wire.
     expect((error as ConnectError).rawMessage).toBe(
       "Organization already exists: slug 'acme'",
     );

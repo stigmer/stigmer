@@ -4,11 +4,11 @@ The shared worker infrastructure and the per-domain workers: agent-execution, th
 
 ## Layout
 
-- `manager.ts` — TemporalManager (ports pkg/server/temporal_manager.go): non-fatal initial connect, 15s health monitor, reconnect with worker recreation, reconnect hooks. Domain code observes the CURRENT client through providers — there is no Go-style creator re-injection.
+- `manager.ts` — TemporalManager: non-fatal initial connect, 15s health monitor, reconnect with worker recreation, reconnect hooks. Domain code observes the CURRENT client through providers — there is no creator re-injection step.
 - `sdk-logger.ts` — routes the Temporal SDK's own log lines (activity failures, worker lifecycle, workflow `log.*`) through the server logger by installing the SDK's Runtime logger before the first native connect; the header holds the field-redaction table (#1037).
-- `payload-codec.ts` — the decode-only payload codec (ports pkg/encryption/payloadcodec): encode is the identity, decode delegates to @stigmer/temporal-codecs.
+- `payload-codec.ts` — the decode-only payload codec: encode is the identity, decode delegates to @stigmer/temporal-codecs.
 - `workflow-source.ts` — prebuilt-bundle vs bundle-on-boot resolution (runner precedent); slim artifacts carry the prebuilt bundles.
-- `runner-failure.ts` — worker-shutdown classification for the agent-execution workflow (ports pkg/runnerfailure, #776).
+- `runner-failure.ts` — worker-shutdown classification for the agent-execution workflow (#776).
 - `agentexecution/` — the agent-execution worker: byte-pinned names, dispatch resolution, the ConnectedExecutionEngine implementation, server-side activities, and `workflows/` (the deterministic sandbox bundle).
 - `routine/` — the routines' schedule clock worker: the tick workflow, its activities and its byte-pinned names, on its own queue (`schedule_stigmer`).
 - `grading/` — the grading worker: `stigmer/grading/grade-run` grades a completed run with the free run-health checks and records the score through the score's create chain, on its own queue (`grading_stigmer`, `TEMPORAL_GRADING_STIGMER_TASK_QUEUE`); `names.ts` holds its byte-pinned names. The run-status observer that starts it is `domain/score/grading-observer.ts`.

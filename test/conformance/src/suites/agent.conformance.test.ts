@@ -443,9 +443,8 @@ describe("Agent conformance — run defaults", () => {
 });
 
 describe("Agent conformance — reserved labels", () => {
-  // The label the retired default-agent lookup once read. It stays the
-  // canonical example of a reserved stigmer.ai/* key an ordinary caller may
-  // not introduce; nothing resolves it any more.
+  // The canonical example of a reserved stigmer.ai/* key an ordinary caller
+  // may not introduce; nothing resolves it.
   const DEFAULT_AGENT_LABEL = "stigmer.ai/default-agent";
 
   // The write guard is cloud-only; the local OSS targets are deliberately

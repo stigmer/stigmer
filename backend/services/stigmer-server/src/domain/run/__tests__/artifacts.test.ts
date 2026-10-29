@@ -1,8 +1,7 @@
 /**
- * Artifact RPC tests — ports get_artifact_content_test.go and
- * get_artifact_download_url_test.go
- * case-for-case over a real SQLite store and a real local-filesystem
- * artifact backend (the same direct-call shape as Go's controller tests).
+ * Artifact RPC tests — the content read and the download URL, case by
+ * case, over a real SQLite store and a real local-filesystem artifact
+ * backend, called directly.
  */
 import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -61,7 +60,7 @@ let store: Store;
 let deps: ArtifactRpcDeps;
 
 beforeAll(() => {
-  dir = mkdtempSync(path.join(tmpdir(), "aexec-artifacts-test-"));
+  dir = mkdtempSync(path.join(tmpdir(), "run-artifacts-test-"));
   store = SqliteStore.open(path.join(dir, "stigmer.db"));
   deps = {
     store,
@@ -114,7 +113,7 @@ async function expectCode(
 }
 
 describe("getArtifactContent CAS blob integrity", () => {
-  const execId = "aex_artifact";
+  const execId = "run_artifact";
 
   async function upload(key: string, data: Uint8Array): Promise<void> {
     await deps.artifactStorage.upload(key, data, "application/octet-stream");
@@ -163,7 +162,7 @@ describe("getArtifactContent CAS blob integrity", () => {
 
   it("CAS blob key of another execution is rejected", async () => {
     await seedExecution(execId);
-    const otherKey = casBlobKeyFor("aex_someone_else", Buffer.from("x"));
+    const otherKey = casBlobKeyFor("run_someone_else", Buffer.from("x"));
     await expectCode(
       () =>
         getArtifactContent(
@@ -259,11 +258,10 @@ describe("getArtifactContent CAS blob integrity", () => {
   it("a `..` key that clean-resolves into ANOTHER execution's prefix is rejected", async () => {
     // stigmer/stigmer#858: the raw key starts with the caller's own
     // prefix, but path-cleaning resolves it into the victim's artifacts —
-    // the ownership check must run on the normalized form. Deliberate
-    // fail-closed divergence from Go until #858 lands there.
+    // the ownership check must run on the normalized form, fail-closed.
     await seedExecution(execId);
     const victimBody = Buffer.from("victim's secret");
-    await upload(`artifacts/aex_victim/secret.txt`, victimBody);
+    await upload(`artifacts/run_victim/secret.txt`, victimBody);
 
     await expectCode(
       () =>
@@ -271,7 +269,7 @@ describe("getArtifactContent CAS blob integrity", () => {
           deps,
           create(GetArtifactContentRequestSchema, {
             runId: execId,
-            storageKey: `artifacts/${execId}/../aex_victim/secret.txt`,
+            storageKey: `artifacts/${execId}/../run_victim/secret.txt`,
           }),
         ),
       Code.InvalidArgument,
@@ -298,8 +296,8 @@ describe("getArtifactContent CAS blob integrity", () => {
         getArtifactContent(
           deps,
           create(GetArtifactContentRequestSchema, {
-            runId: "aex_never_seeded",
-            storageKey: "artifacts/aex_never_seeded/out.txt",
+            runId: "run_never_seeded",
+            storageKey: "artifacts/run_never_seeded/out.txt",
           }),
         ),
       Code.NotFound,
@@ -342,7 +340,7 @@ describe("getArtifactContent CAS blob integrity", () => {
 });
 
 describe("getArtifactDownloadUrl", () => {
-  const execId = "aex_download";
+  const execId = "run_download";
   const key = `artifacts/${execId}/plan_card_ux_cleanup.plan.md`;
 
   it("inline by default (no disposition)", async () => {
@@ -374,7 +372,7 @@ describe("getArtifactDownloadUrl", () => {
   });
 
   describe("keys outside the run's artifacts", () => {
-    const execId = "aex_outside_keys";
+    const execId = "run_outside_keys";
 
     it("an attachments/ key is no longer a run's to sign: a message's files are Files", async () => {
       await seedExecution(execId);
@@ -400,7 +398,7 @@ describe("getArtifactDownloadUrl", () => {
             deps,
             create(GetArtifactDownloadUrlRequestSchema, {
               runId: execId,
-              storageKey: `artifacts/${execId}/../aex_victim/secret.txt`,
+              storageKey: `artifacts/${execId}/../run_victim/secret.txt`,
             }),
           ),
         Code.InvalidArgument,
@@ -410,14 +408,14 @@ describe("getArtifactDownloadUrl", () => {
 });
 
 describe("detectContentType", () => {
-  it("prefers the artifact-relevant table, falls back per Go", () => {
+  it("prefers the artifact-relevant table, then the common-extension table", () => {
     expect(detectContentType("artifacts/x/report.yaml")).toBe("text/yaml");
     expect(detectContentType("artifacts/x/data.json")).toBe(
       "application/json",
     );
     expect(detectContentType("artifacts/x/image.png")).toBe("image/png");
-    // Go's mime builtins carry charset qualifiers for text types the
-    // KNOWN table doesn't intercept (.css falls through; .html does not).
+    // The common-extension table carries charset qualifiers for text types
+    // the KNOWN table doesn't intercept (.css falls through; .html does not).
     expect(detectContentType("artifacts/x/style.css")).toBe(
       "text/css; charset=utf-8",
     );
@@ -456,7 +454,7 @@ describe("the two artifact reads — required request fields", () => {
   describe.each(READS)("%s", (_name, read) => {
     it("an empty run_id answers InvalidArgument naming run_id", async () => {
       const error = await expectCode(
-        () => read("", "artifacts/aex_any/out.txt"),
+        () => read("", "artifacts/run_any/out.txt"),
         Code.InvalidArgument,
       );
       expect(error.rawMessage).toBe("run_id is required");
@@ -464,7 +462,7 @@ describe("the two artifact reads — required request fields", () => {
 
     it("an empty storage_key answers InvalidArgument naming storage_key", async () => {
       const error = await expectCode(
-        () => read("aex_any", ""),
+        () => read("run_any", ""),
         Code.InvalidArgument,
       );
       expect(error.rawMessage).toBe("storage_key is required");

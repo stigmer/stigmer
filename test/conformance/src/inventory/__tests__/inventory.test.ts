@@ -54,7 +54,7 @@ describe("parseInventory", () => {
   });
 });
 
-// The metric inventory: a Java metric name is either ported byte-exact or
+// The metric inventory: a metric name is either ported byte-exact or
 // dropped with a reason; the section is typed so a
 // misspelt name or a silent drop is a schema problem, not a table nobody reads.
 const METRICS = `
@@ -66,7 +66,7 @@ metrics:
   - name: stigmer.sandbox.pool.target
     surface: platform
     disposition: dropped
-    note: the mechanism retired with Java
+    note: no warm pool, so no pool target
 `;
 
 describe("parseInventory — metrics", () => {
@@ -77,7 +77,7 @@ describe("parseInventory — metrics", () => {
   });
 
   it("requires a note on a dropped metric", () => {
-    const silentDrop = `${ROW}${METRICS.replace("    note: the mechanism retired with Java\n", "")}`;
+    const silentDrop = `${ROW}${METRICS.replace("    note: no warm pool, so no pool target\n", "")}`;
     const { problems } = parseInventory(silentDrop);
     expect(problems.some((p) => p.kind === "schema" && p.message.includes("dropped metric must say why"))).toBe(true);
   });
@@ -136,12 +136,12 @@ describe("computeCoverage", () => {
     }
   });
 
-  it("refuses the retired `deviation` disposition and `disputed` field — the vocabulary is closed (stigmer#1023)", () => {
-    // Both named the known-deviation registry the Java retirement deleted; a
-    // row reaching for them today is a schema problem, not a coverage one.
+  it("refuses a `deviation` disposition and a `disputed` field — the vocabulary is closed (stigmer#1023)", () => {
+    // Neither is in the schema; a row reaching for them is a schema problem,
+    // not a coverage one.
     const deviation = parseInventory(ROW.replace("disposition: conformance", "disposition: deviation"));
     expect(deviation.problems.map((p) => p.kind)).toEqual(["schema"]);
-    const disputed = parseInventory(ROW.replace("needs: [keyless-org]", "needs: [keyless-org]\n    disputed: Java answers 401"));
+    const disputed = parseInventory(ROW.replace("needs: [keyless-org]", "needs: [keyless-org]\n    disputed: answers 401"));
     expect(disputed.problems.map((p) => p.kind)).toEqual(["schema"]);
   });
 });

@@ -45,7 +45,7 @@ export const RUN_LEDGER_OUTCOME_COMPLETED = "completed";
 export const RUN_LEDGER_OUTCOME_FAILED = "failed";
 export const RUN_LEDGER_OUTCOME_TIMED_OUT = "timed_out";
 
-/** Go time.RFC3339 with whole seconds — the ledger's house time format. */
+/** RFC 3339 with whole seconds — the ledger's house time format. */
 export function rfc3339Seconds(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }

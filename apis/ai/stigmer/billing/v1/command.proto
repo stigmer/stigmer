@@ -20,8 +20,8 @@ service BillingCommandController {
   //
   // @internal
   // The server provisions every organization's account when the
-  // organization is created; this call finds it, or creates one for an
-  // organization that predates that step.
+  // organization is created; this call finds it, or creates it when it is
+  // missing.
   rpc getOrCreateBillingAccount(GetOrCreateBillingAccountInput) returns (BillingAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;

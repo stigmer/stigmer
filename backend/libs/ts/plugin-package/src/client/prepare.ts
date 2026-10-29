@@ -9,8 +9,7 @@
  * do after selection is identical, and it is where the plugin's identity
  * is made (the archive's bytes are `status.digest`), so it is written once.
  * A parity test proves that one function reached three ways yields one
- * digest for one tree; before this module each client carried its own copy
- * of the chain and the test proved a coincidence.
+ * digest for one tree.
  *
  * `preparePluginFromTree` is the lazy form for a tree whose bytes cost
  * something to obtain (a fetch per file, a `File.arrayBuffer()`): it reads

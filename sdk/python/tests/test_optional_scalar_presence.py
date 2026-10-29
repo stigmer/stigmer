@@ -2,11 +2,10 @@
 
 An ``optional`` scalar has explicit presence: unset and zero differ on the
 wire. An absent entitlement limit is no limit and zero is refused; an absent
-cron is a routine that fires only by hand, and an empty one is refused. The
-generated inputs used to default these fields to their zero value and always
-send them, so a limit the caller never set arrived as zero and was refused.
-Each such field now defaults to None and is sent only when set, zero
-included.
+cron is a routine that fires only by hand, and an empty one is refused. A
+field defaulted to its zero value and always sent would send a limit the
+caller never set as zero, to be refused, so each such field defaults to None
+and is sent only when set, zero included.
 """
 
 from __future__ import annotations

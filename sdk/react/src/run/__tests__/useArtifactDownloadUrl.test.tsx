@@ -19,21 +19,21 @@ describe("useArtifactDownloadUrl", () => {
   it("mints a fresh URL on demand from the stable storage key", async () => {
     const fn = vi.fn().mockResolvedValue({ downloadUrl: "https://fresh/1" });
     const { result } = renderHook(
-      () => useArtifactDownloadUrl("aex_1", "artifacts/aex_1/k1"),
+      () => useArtifactDownloadUrl("run_1", "artifacts/run_1/k1"),
       { wrapper: wrapperFor(makeStigmer(fn)) },
     );
 
     await waitFor(() => expect(result.current.url).toBe("https://fresh/1"));
     expect(fn).toHaveBeenCalledTimes(1);
     const req = fn.mock.calls[0][0];
-    expect(req.runId).toBe("aex_1");
-    expect(req.storageKey).toBe("artifacts/aex_1/k1");
+    expect(req.runId).toBe("run_1");
+    expect(req.storageKey).toBe("artifacts/run_1/k1");
   });
 
   it("stays idle when disabled", () => {
     const fn = vi.fn();
     const { result } = renderHook(
-      () => useArtifactDownloadUrl("aex_1", "artifacts/aex_1/k2", { enabled: false }),
+      () => useArtifactDownloadUrl("run_1", "artifacts/run_1/k2", { enabled: false }),
       { wrapper: wrapperFor(makeStigmer(fn)) },
     );
     expect(result.current.url).toBeNull();

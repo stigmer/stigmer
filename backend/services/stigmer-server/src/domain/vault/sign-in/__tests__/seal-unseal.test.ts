@@ -1,6 +1,5 @@
 /**
- * Pins the pending-state seal/unseal seams against Go's
- * oauth_connect_secrets_test.go with encryption ENABLED (the composed
+ * Pins the pending-state seal/unseal seams with encryption ENABLED (the composed
  * handshake test runs the disabled/plaintext arm): code_verifier always
  * encrypted at rest, client_secret only when non-empty — NEVER
  * ciphertext-of-empty, so emptiness keeps meaning "public client"
@@ -97,7 +96,7 @@ describe("unsealPendingOAuthState", () => {
     expect(unsealed.clientSecret).toBe("vendor-secret");
   });
 
-  it("passes legacy plaintext rows through unchanged (pre-sealing shapes)", async () => {
+  it("passes plaintext rows through unchanged (written while the server had no key)", async () => {
     const unsealed = await unsealPendingOAuthState(enabled, pendingState());
     expect(unsealed.codeVerifier).toBe("verifier-plaintext");
     expect(unsealed.clientSecret).toBe("vendor-secret");

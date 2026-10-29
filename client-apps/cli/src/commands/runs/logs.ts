@@ -1,6 +1,6 @@
 // `stigmer runs logs <run-id>` — view or follow a run's events.
 // Thin handler: resolve the client, wire Ctrl-C to abort a follow cleanly, and
-// delegate to resources/run-logs.ts. Mirrors Go's execution_logs.go.
+// delegate to resources/run-logs.ts.
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";
@@ -27,7 +27,7 @@ async function runLogs(runId: string, options: LogsFlags): Promise<void> {
   ensureAuthenticated(client.config);
 
   // Ctrl-C aborts the follow; the resource treats an aborted signal as a
-  // clean exit (Go cancels the stream context on signal).
+  // clean exit.
   const controller = new AbortController();
   const onSignal = (): void => controller.abort();
   process.once("SIGINT", onSignal);

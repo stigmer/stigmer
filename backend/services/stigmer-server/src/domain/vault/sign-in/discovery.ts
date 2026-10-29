@@ -20,8 +20,8 @@
  *     discarded (RFC 9728 section 3.3), so the walk then falls back to the
  *     address's own origin.
  *
- * It answers the login server's `AuthServerMetadata` (the Go
- * AuthServerMetadata's parsed camelCase view), held to its rules: the
+ * It answers the login server's `AuthServerMetadata` (the parsed
+ * camelCase view of the RFC 8414 document), held to its rules: the
  * document names the issuer it was read for (RFC 8414 section 3.3, checked
  * by the reader, so registrations kept per issuer are kept under a name the
  * document could not choose), both endpoints are present, every endpoint is
@@ -31,8 +31,7 @@
  * of the login server's. The error copy is contract: the sign-in embeds it
  * in its refusal, the conformance suite pins it, and the failure names the
  * FIRST document the walk tried (for a bare issuer, the RFC 8414 document at
- * its origin, the one the retired reader named) with its status or its
- * network error.
+ * its origin) with its status or its network error.
  * Proven by __tests__/discovery.test.ts and
  * plugin-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
  */
@@ -48,7 +47,7 @@ import {
 import { loginEndpointProblem } from "./endpoint.js";
 
 /**
- * OAuth 2.0 Authorization Server Metadata (Go AuthServerMetadata). Field
+ * OAuth 2.0 Authorization Server Metadata (RFC 8414). Field
  * names keep the RFC's snake_case on the wire; this interface is the parsed
  * camelCase view.
  */
@@ -70,7 +69,7 @@ export interface DiscoveredLoginServer {
   readonly resourceScopes: readonly string[];
 }
 
-/** Go's discoveryHTTPClient 10s timeout — a named constant per guidelines; per document read. */
+/** A 10s timeout per document read — a named constant per guidelines. */
 export const DISCOVERY_REQUEST_TIMEOUT_MS = 10_000;
 
 /** The login server protecting a tool's address, by the RFC 9728 walk with the origin as the last resort. */
@@ -83,8 +82,8 @@ export async function discoverForResource(address: string, fetchImpl: OutboundFe
 }
 
 /**
- * The document the retired reader named, kept so a failure names a URL the
- * suites and the operators already know: RFC 8414 at the issuer's origin.
+ * The document a failure names, a URL the suites and the operators know:
+ * RFC 8414 at the issuer's origin.
  * Exported for the tests that pin the shape.
  */
 export function buildWellKnownUrl(serverUrl: string): string {
@@ -120,8 +119,8 @@ function toAuthServerMetadata(m: AuthorizationServerMetadata): AuthServerMetadat
 
 /**
  * The failure names the first document tried for the first issuer: for a
- * bare issuer that is RFC 8414 at its origin, the URL the retired reader
- * named, so the pinned copy reads as it always did.
+ * bare issuer that is RFC 8414 at its origin, so the pinned copy names a
+ * URL an operator can open.
  */
 function discoveryFailure(issuers: readonly string[], attempts: readonly MetadataAttempt[]): Error {
   const firstIssuer = issuers[0] ?? "";
@@ -151,7 +150,7 @@ function firstDocumentFor(issuer: string): string {
   }
 }
 
-/** Parse and screen a discovery URL; the copy is the Go buildWellKnownURL's, embedded by initiate. */
+/** Parse and screen a discovery URL; the copy is wire contract, embedded by initiate. */
 function parseDiscoveryUrl(serverUrl: string): URL {
   let parsed: URL;
   try {
@@ -187,8 +186,8 @@ function validateMetadata(m: AuthServerMetadata, sourceUrl: string): void {
     }
   }
   if (m.codeChallengeMethodsSupported.length > 0 && !m.codeChallengeMethodsSupported.includes("S256")) {
-    // Go renders the supported list with %v — space-separated in
-    // brackets; matched exactly because initiate forwards this text.
+    // The supported list renders space-separated in brackets; matched
+    // exactly because initiate forwards this text.
     throw new Error(
       `authorization server at ${sourceUrl} does not support S256 PKCE (supports: [${m.codeChallengeMethodsSupported.join(" ")}]). ` +
         "S256 is required by the MCP Authorization specification",

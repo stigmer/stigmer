@@ -1,7 +1,6 @@
 /**
- * Unified-port lane router smoke tests, pinned to the Go router's verified
- * behavior (pkg/server/server.go:812-836) and the registry-proxy conformance
- * suite's assertions:
+ * Unified-port lane router smoke tests, pinned to the lane contract and the
+ * registry-proxy conformance suite's assertions:
  *
  *   - lane priority: exact registry paths win over everything;
  *   - unknown paths (incl. unknown /v1/proxy/*) reach the adapter's 404;
@@ -84,7 +83,7 @@ describe("lane priority", () => {
 });
 
 describe("RPC-lane CORS (rs/cors v1.7 shape, allow-all)", () => {
-  it("answers preflights for unregistered endpoints (Go's WithCorsForRegisteredEndpointsOnly(false))", async () => {
+  it("answers preflights for unregistered endpoints", async () => {
     const response = await fetch(`${baseUrl}/any.Service/AnyMethod`, {
       method: "OPTIONS",
       headers: {

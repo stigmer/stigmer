@@ -1,10 +1,9 @@
 /**
  * Grant controller — the ROW half of the Grant contract served
  * ONCE by @stigmer/server in
- * every edition, all fourteen RPCs. The behavioural reference is the
- * cloud's former iam/grant/handlers.ts (the Java pipelines rendered flat),
- * which this module replaced; the byte-pinned copy moved with it
- * (constants.ts). The cloud keeps what differs per
+ * every edition, all fourteen RPCs. The byte-pinned copy is in
+ * constants.ts (existing error copy is wire contract). The cloud keeps
+ * what differs per
  * edition and registers it: its row store (`drivers.grantStore`), its
  * grant scope (`drivers.grantScope`), its OpenFGA query engine
  * (`drivers.authorizationQueries`) and the tuple mirror in the lifecycle
@@ -66,9 +65,8 @@
  *     — it is naming the authorization target. A kind string that names
  *     no kind names nothing to authorize against, so there is no
  *     position-1 question to ask; `checkMyPermission` refuses an unknown
- *     permission name first for the same reason, and the cloud's former
- *     handlers kept this order (`kindFromSpecString` before
- *     `authorizeRpc`), so the wire did not change when they retired. Safe by
+ *     permission name first for the same reason (the refusal order is
+ *     wire contract). Safe by
  *     construction: the protovalidate interceptor (chain position 3) has
  *     validated every request before a handler runs, so both refs are
  *     present. The resolver's "resolution never throws" rule
@@ -212,8 +210,8 @@ import {
 } from "./wire-refusals.js";
 
 /**
- * The Java pre-migration `_self` principal alias — rejected with a
- * pointer at checkMyPermission (kept only for the precise error copy).
+ * The `_self` principal id — rejected with a pointer at
+ * checkMyPermission, the RPC that asks about the caller.
  */
 const SELF_PRINCIPAL_ID = "_self";
 
@@ -541,8 +539,8 @@ async function get(
     throw new ConnectError(grantNotFoundMessage(id.value), Code.NotFound);
   }
   // A stored row is not wire input: its kind resolves without a refusal
-  // sentence (a legacy row with an unknown kind is the Authorizer's to
-  // deny, as position 1 would), and its id is the target.
+  // sentence (a row with an unknown kind is the Authorizer's to deny, as
+  // position 1 would), and its id is the target.
   const { resource } = refsOf(specOfRow(grant));
   await authorizeDirect(
     GrantQueryController.method.get,
@@ -832,7 +830,7 @@ async function getPrincipalsCount(
 // Shared rules
 // ---------------------------------------------------------------------------
 
-/** Java's authenticated-caller precondition on the check handlers. */
+/** The authenticated-caller precondition on the check handlers. */
 function requireAuthenticated(caller: CallerIdentity): CallerIdentity {
   if (caller.identityId === "") {
     throw new ConnectError(
@@ -862,7 +860,7 @@ async function callerPrincipalId(
 }
 
 /**
- * The Java EnforcePrincipalTrust rules in order: the platform's own
+ * The principal-trust rules in order: the platform's own
  * pipelines (`machine`, `internal`) may ask about any principal; a user
  * only about their own account.
  */

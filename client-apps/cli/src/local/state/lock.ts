@@ -8,8 +8,8 @@
 // lock we may reclaim; an owner PID that is OUR OWN is held only if this
 // process is actually holding it (tracked in-process), otherwise it is a
 // leftover from a previous life of the PID (see isOtherLiveProcess) and stale.
-// This guards the Temporal dev server against double-start the way the Go
-// CLI's flock does, without a native dependency.
+// This guards the Temporal dev server against double-start without a native
+// dependency.
 
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";

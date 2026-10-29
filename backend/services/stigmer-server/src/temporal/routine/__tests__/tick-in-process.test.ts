@@ -41,7 +41,7 @@ import {
   type RunStart,
 } from "../names.js";
 
-const ROUTINE_ID = "sch_tick";
+const ROUTINE_ID = "rtn_tick";
 const NOMINAL = "2026-10-01T09:00:00Z";
 
 const seam = vi.hoisted(() => ({
@@ -72,7 +72,7 @@ const { tick } = await import("../workflows/tick.js");
 function runStart(overrides?: Partial<RunStart>): RunStart {
   return {
     outcome: RUN_STARTED,
-    executionId: "aex_tracked",
+    executionId: "run_tracked",
     trackingTimeoutMinutes: 60,
     failureReason: "",
     ...overrides,
@@ -123,12 +123,12 @@ describe("tick — tracking a started run in-process", () => {
       activities[POLL_EXECUTION_PHASE_ACTIVITY_NAME],
     ).toHaveBeenCalledTimes(2);
     expect(activities[POLL_EXECUTION_PHASE_ACTIVITY_NAME]).toHaveBeenCalledWith(
-      "aex_tracked",
+      "run_tracked",
     );
     expect(seam.sleep.mock.calls).toEqual([[5_000]]);
     expect(activities[RECORD_FAILED_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
       ROUTINE_ID,
-      "run aex_tracked ended failed",
+      "run run_tracked ended failed",
       FAILURE_RUN_FAILED,
     );
     expect(
@@ -154,7 +154,7 @@ describe("tick — tracking a started run in-process", () => {
       routine_id: ROUTINE_ID,
       nominal_fire_time: NOMINAL,
       run_outcome: RUN_STARTED,
-      execution_id: "aex_tracked",
+      execution_id: "run_tracked",
       verdict: "completed",
     });
   });
@@ -174,7 +174,7 @@ describe("tick — tracking a started run in-process", () => {
     ).not.toHaveBeenCalled();
     expect(completionFields()).toMatchObject({
       routine_id: ROUTINE_ID,
-      execution_id: "aex_tracked",
+      execution_id: "run_tracked",
       verdict: "gone",
     });
   });
@@ -199,14 +199,14 @@ describe("tick — tracking a started run in-process", () => {
     expect(seam.sleep).not.toHaveBeenCalled();
     expect(seam.activities[RECORD_FAILED_RUN_ACTIVITY_NAME]).toHaveBeenCalledWith(
       ROUTINE_ID,
-      "run aex_tracked did not finish within 0 minutes",
+      "run run_tracked did not finish within 0 minutes",
       FAILURE_RUN_TIMED_OUT,
     );
     expect(completionFields()).toEqual({
       routine_id: ROUTINE_ID,
       nominal_fire_time: NOMINAL,
       run_outcome: RUN_STARTED,
-      execution_id: "aex_tracked",
+      execution_id: "run_tracked",
       verdict: "timed_out",
       consecutive_failures: 2,
       paused: true,

@@ -54,15 +54,15 @@ export function newCheckLoginEndpointsStep(): PipelineStep<typeof OAuthAppSchema
 }
 
 /**
- * Replaces client_secret with the redaction marker (Go RedactOAuthApp).
+ * Replaces client_secret with the redaction marker.
  *
  * A function rather than a pipeline step because redaction applies at
  * different points per operation: create/update after persist on newState;
  * get/getByReference after load on the target; list per entry; delete
  * on the removed row after its chain. Every response is redacted, the
- * delete's included: the Go port returned the stored secret from delete —
- * ciphertext, or plaintext on a keyless server — which no reader needs
- * once the chain has destroyed the sealed value (stigmer/stigmer#1257).
+ * delete's included: the stored secret — ciphertext, or plaintext on a
+ * keyless server — is something no reader needs once the chain has
+ * destroyed the sealed value (stigmer/stigmer#1257).
  */
 export function redactOAuthApp(app: OAuthApp): void {
   if (app.spec !== undefined && app.spec.clientSecret !== "") {
@@ -71,8 +71,7 @@ export function redactOAuthApp(app: OAuthApp): void {
 }
 
 /**
- * EncryptClientSecret for the create pipeline (Go
- * NewEncryptClientSecretForCreateStep): encrypts the plaintext secret;
+ * EncryptClientSecret for the create pipeline: encrypts the plaintext secret;
  * rejects the redaction marker — there is no existing secret to preserve.
  */
 export function newEncryptClientSecretForCreateStep(
@@ -83,8 +82,7 @@ export function newEncryptClientSecretForCreateStep(
 }
 
 /**
- * EncryptClientSecret for the update pipeline (Go
- * NewEncryptClientSecretForUpdateStep): the redaction marker restores the
+ * EncryptClientSecret for the update pipeline: the redaction marker restores the
  * stored encrypted value from ExistingResource; a new plaintext value is
  * encrypted.
  */
@@ -159,7 +157,7 @@ function newEncryptClientSecretStep(
   };
 }
 
-/** Go preserveExistingSecret: copy the stored ciphertext on marker echo. */
+/** Copy the stored ciphertext on marker echo. */
 function preserveExistingSecret(
   ctx: RequestContext<typeof OAuthAppSchema>,
   app: OAuthApp,

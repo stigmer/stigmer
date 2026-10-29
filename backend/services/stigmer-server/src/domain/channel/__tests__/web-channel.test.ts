@@ -1,9 +1,7 @@
 /**
  * Pins the web channel (a hosted chat link, the Channel kind's `web` type)
  * through the REAL stack: a composed server on an ephemeral port, native
- * gRPC clients (channel + agent), the full interceptor chain. The cases
- * began as Go's agentshare_test.go, case-for-case, when the chat link was
- * its own AgentShare kind.
+ * gRPC clients (channel + agent), the full interceptor chain.
  *
  * The load-bearing pins beyond the conformance suite's black-box view:
  *   - a nameless web channel takes the slug `<agent slug>-web` and the name
@@ -23,8 +21,7 @@
  *   - a link rotation of a channel deleted between its read and its write
  *     answers NotFound rather than writing the channel back.
  *
- * Go tests run one store per test function; this file shares ONE server,
- * so count-sensitive assertions use dedicated orgs and every agent name is
+ * This file shares ONE server, so count-sensitive assertions use dedicated orgs and every agent name is
  * unique (slugs derive from names).
  */
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -174,8 +171,7 @@ async function createTestAgent(name: string, org: string): Promise<Agent> {
 
 /**
  * Writes a skill fixture directly to the store — the established
- * cross-domain fixture pattern (the skill domain is not ported yet, and
- * Go's test does the same because the skill controller needs artifact
+ * cross-domain fixture pattern (the skill controller needs artifact
  * storage the web channel tests don't).
  */
 async function saveSkill(
@@ -250,7 +246,7 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 // ---------------------------------------------------------------------------
-// Create (Go TestAgentShareController_Create).
+// Create.
 // ---------------------------------------------------------------------------
 
 describe("web channel create", () => {
@@ -366,7 +362,7 @@ describe("web channel create", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Launch-gate config (Go TestAgentShareController_LaunchGateConfig) — the
+// Launch-gate config — the
 // validation arms are protovalidate CEL rules in the proto, enforced by
 // the shared ValidateProto step; asserted here, not reimplemented.
 // ---------------------------------------------------------------------------
@@ -541,7 +537,7 @@ describe("launch-gate config", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Update (Go TestAgentShareController_Update).
+// Update.
 // ---------------------------------------------------------------------------
 
 describe("web channel update", () => {
@@ -619,7 +615,7 @@ describe("web channel update", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Cross-org contract (Go TestAgentShareController_CrossOrg).
+// Cross-org contract.
 // ---------------------------------------------------------------------------
 
 describe("the same-organization invariant", () => {
@@ -661,19 +657,19 @@ describe("the same-organization invariant", () => {
 
   it("a stored web channel whose agent is in another organization fails the profile closed, like a dangling reference", async () => {
     const agent = await createTestAgent(
-      uniqueName("Legacy Provider Agent"),
+      uniqueName("Cross Org Provider Agent"),
       PROVIDER,
     );
-    // A row from before the invariant, written straight to the store: its
-    // reference holds the other organization's agent by id, so only the
-    // organization tells it apart from a live link.
-    const legacy = create(ChannelSchema, {
+    // A row that reached the store past the invariant, written straight
+    // to it: its reference holds the other organization's agent by id, so
+    // only the organization tells it apart from a live link.
+    const strayRow = create(ChannelSchema, {
       apiVersion: API_VERSION,
       kind: "Channel",
       metadata: {
-        id: "chn_legacy_cross_org",
-        name: "legacy-cross-org",
-        slug: "legacy-cross-org",
+        id: "chn_stray_cross_org",
+        name: "stray-cross-org",
+        slug: "stray-cross-org",
         org: idOf(CONSUMER),
       },
       spec: {
@@ -689,24 +685,24 @@ describe("the same-organization invariant", () => {
     });
     await namingSaves(server.store).saveResource(
       ApiResourceKind.channel,
-      legacy.metadata!.id,
+      strayRow.metadata!.id,
       ChannelSchema,
-      legacy,
+      strayRow,
     );
 
     const err = await grpcError(() =>
-      query.getAgentProfile({ channelId: legacy.metadata!.id }),
+      query.getAgentProfile({ channelId: strayRow.metadata!.id }),
     );
     expect(err.code).toBe(Code.NotFound);
-    expect(err.rawMessage).toBe(`Agent not found: ${legacy.metadata!.id}`);
+    expect(err.rawMessage).toBe(`Agent not found: ${strayRow.metadata!.id}`);
     // The row itself is still readable by id — nothing is deleted.
-    const row = await query.get({ value: legacy.metadata!.id });
+    const row = await query.get({ value: strayRow.metadata!.id });
     expect(row.spec?.agentRef?.id).toBe(agent.metadata!.id);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Anonymous profile lane (Go TestAgentShareController_GetSharedProfile).
+// Anonymous profile lane.
 // ---------------------------------------------------------------------------
 
 describe("getAgentProfile (anonymous lane)", () => {
@@ -867,7 +863,7 @@ describe("getAgentProfile (anonymous lane)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Audience + member lane (Go TestAgentShareController_Audience).
+// Audience + member lane.
 // ---------------------------------------------------------------------------
 
 describe("audience and the member resolution lane", () => {
@@ -954,7 +950,7 @@ describe("audience and the member resolution lane", () => {
 
   it("a stored row holding no audience reads as organization-only, never public", async () => {
     const agent = await createTestAgent(
-      uniqueName("Legacy Audience Agent"),
+      uniqueName("Unset Audience Agent"),
       ORG,
     );
     const created = await channels.create(webChannelFor(agent, true));
@@ -1004,7 +1000,7 @@ describe("audience and the member resolution lane", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Agent-apply isolation (Go TestAgentShareController_AgentApplyNeverTouchesShare).
+// Agent-apply isolation.
 // ---------------------------------------------------------------------------
 
 describe("agent apply never touches the web channel", () => {
@@ -1026,7 +1022,7 @@ describe("agent apply never touches the web channel", () => {
 });
 
 // ---------------------------------------------------------------------------
-// rotateLink (Go TestAgentShareController_RotateShareLink + org-audience
+// rotateLink (and its org-audience
 // member-path twin).
 // ---------------------------------------------------------------------------
 
@@ -1153,7 +1149,7 @@ describe("rotateLink", () => {
 });
 
 // ---------------------------------------------------------------------------
-// listByAgent (Go TestAgentShareController_GetByAgent).
+// listByAgent.
 // ---------------------------------------------------------------------------
 
 describe("listByAgent", () => {
@@ -1177,7 +1173,7 @@ describe("listByAgent", () => {
   });
 
   it("nonexistent agent yields an empty list, not an error", async () => {
-    const list = await query.listByAgent({ agentId: "agt-does-not-exist" });
+    const list = await query.listByAgent({ agentId: "agt_does-not-exist" });
     expect(list.entries).toHaveLength(0);
   });
 
@@ -1214,7 +1210,7 @@ describe("listByAgent", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Apply semantics (Go TestAgentShareController_Apply) — delegates the
+// Apply semantics — delegates the
 // CLONED state, so a nameless manifest (no name/slug) applies twice into
 // ONE web channel.
 // ---------------------------------------------------------------------------
@@ -1246,8 +1242,7 @@ describe("apply semantics", () => {
 
 describe("seam-level pins", () => {
   it("store failure leaks no internals (stigmer/stigmer#478)", async () => {
-    // Go injects a failing store into the controller; here the pin sits on
-    // the exact seam that formats the wire error — the channel lookup used
+    // The pin sits on the exact seam that formats the wire error — the channel lookup used
     // by the ONLY anonymous RPC. The wire carries the static message; the
     // cause stays server-side on ConnectError.cause.
     const cause = new Error("bbolt: /var/lib/stigmer/store.db corrupted");
@@ -1284,13 +1279,13 @@ describe("seam-level pins", () => {
     expect(err.cause).toBe(cause);
   });
 
-  it("linkTokenAllowed: constant-time compare with Go's length semantics", () => {
+  it("linkTokenAllowed: constant-time compare that refuses a length mismatch", () => {
     // Unlocked link: anything presented is ignored.
     expect(linkTokenAllowed("", "")).toBe(true);
     expect(linkTokenAllowed("stray", "")).toBe(true);
     // Locked link: exact match only; empty and length-mismatched presented
-    // tokens refuse (Go's ConstantTimeCompare returns 0 on length
-    // mismatch; Node's timingSafeEqual would THROW without the guard).
+    // tokens refuse (Node's timingSafeEqual would THROW on a length
+    // mismatch without the guard).
     expect(linkTokenAllowed("", "live-token")).toBe(false);
     expect(linkTokenAllowed("live-token", "live-token")).toBe(true);
     expect(linkTokenAllowed("live-tok", "live-token")).toBe(false);

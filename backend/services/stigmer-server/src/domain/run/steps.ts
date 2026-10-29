@@ -1,6 +1,5 @@
 /**
- * Run domain steps — the list-side chains from list.go and
- * list_by_session.go.
+ * Run domain steps — the list-side chains of list and listBySession.
  *
  * Both lists read through the list index (list-index.ts beside this file;
  * the store's contract in store/interface.ts), newest first by spec-audit
@@ -35,9 +34,8 @@ import { agentExecutionListIndex } from "./list-index.js";
 import { matchesAllLabels, sortedLabels } from "../../pipeline/steps/helpers.js";
 
 /**
- * Inter-step key for the working page AND the final RunList —
- * Go reuses one key ("execution_list") for both, and the controller reads
- * the final response from it.
+ * Inter-step key for the working page AND the final RunList — one key
+ * for both, and the controller reads the final response from it.
  */
 export const EXECUTION_LIST_KEY = "execution_list";
 
@@ -45,12 +43,12 @@ type ListDesc = typeof RunQueryController.method.list.input;
 type ListBySessionDesc =
   typeof RunQueryController.method.listBySession.input;
 
-/** ValidateListRequest — list.go: no required fields today (a no-op). */
+/** ValidateListRequest — no required fields (a no-op). */
 export function newValidateListRequestStep(): PipelineStep<ListDesc> {
   return {
     name: "ValidateListRequest",
     execute() {
-      // Go validates nothing here yet; page_size is protovalidate's and
+      // Nothing to validate here: page_size is protovalidate's and
       // page_token the page reader's.
     },
   };
@@ -104,7 +102,7 @@ export function newQueryExecutionPageStep(
 }
 
 /**
- * ValidateListBySessionRequest — list_by_session.go: session_id required.
+ * ValidateListBySessionRequest — session_id required.
  */
 export function newValidateListBySessionRequestStep(): PipelineStep<ListBySessionDesc> {
   return {

@@ -250,7 +250,7 @@ const REPLY = "This is the Stigmer fake model's default reply; no real model was
  * for it (a page of the run's agent.message events, from {@link
  * agentMessage}).
  */
-function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "aex_smoke_1" } }), events = () => page([agentMessage(REPLY)]) } = {}) {
+function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "run_smoke_1" } }), events = () => page([agentMessage(REPLY)]) } = {}) {
   return serveConnectLane({
     // A server that holds several organizations: the line makes its own.
     [SERVER_INFO]: () => ({ edition: "oss", version: "3.41.0" }),
@@ -264,17 +264,17 @@ function agentLane(executionAt, { aexCreate = () => ({ metadata: { id: "aex_smok
 
 /** A completed run in the session `ses_smoke_1`; its reply is in the session's log, not on it. */
 function completed() {
-  return { metadata: { id: "aex_smoke_1" }, spec: { sessionId: "ses_smoke_1" }, status: { phase: "RUN_COMPLETED" } };
+  return { metadata: { id: "run_smoke_1" }, spec: { sessionId: "ses_smoke_1" }, status: { phase: "RUN_COMPLETED" } };
 }
 
-/** One agent.message event of `aex_smoke_1`, as listEvents answers it in JSON; `threadId` names a sub-agent's thread. */
+/** One agent.message event of `run_smoke_1`, as listEvents answers it in JSON; `threadId` names a sub-agent's thread. */
 function agentMessage(text, threadId) {
   return {
     seq: "7",
     sessionId: "ses_smoke_1",
-    runId: "aex_smoke_1",
+    runId: "run_smoke_1",
     ...(threadId === undefined ? {} : { threadId }),
-    agentMessage: { id: "aex_smoke_1.m0", content: [{ type: "text", text }] },
+    agentMessage: { id: "run_smoke_1.m0", content: [{ type: "text", text }] },
   };
 }
 
@@ -287,7 +287,7 @@ test("an agent run starts a conversation on the agent's reference", async () => 
   const lane = await agentLane(completed, {
     aexCreate: (_n, body) => {
       sent.push(body.spec);
-      return { metadata: { id: "aex_smoke_1" } };
+      return { metadata: { id: "run_smoke_1" } };
     },
   });
   try {
@@ -317,7 +317,7 @@ test("an agent run passes on the model's reply, and yields the ids an upgrade re
       orgId: "org_smoke_1",
       agentId: "agt_smoke_1",
       agentSlug: "smoke-agent",
-      executionId: "aex_smoke_1",
+      executionId: "run_smoke_1",
       reply: REPLY,
     });
     assert.equal(lane.calls(AEX_GET), 2);
@@ -325,7 +325,7 @@ test("an agent run passes on the model's reply, and yields the ids an upgrade re
     // agent.message in its session's log.
     assert.deepEqual(asked.at(-1), {
       sessionId: "ses_smoke_1",
-      runId: "aex_smoke_1",
+      runId: "run_smoke_1",
       types: ["agent.message"],
       order: "desc",
       pageSize: 100,
@@ -340,7 +340,7 @@ test("an agent run's reply is its newest message on the session's own thread, ne
     events: () =>
       page([
         agentMessage("a sub-agent's later words", "sub_1"),
-        { ...agentMessage(""), agentMessage: { id: "aex_smoke_1.m1", content: [{ type: "text", text: "This is the " }, { type: "redacted" }, { type: "text", text: "reply" }] } },
+        { ...agentMessage(""), agentMessage: { id: "run_smoke_1.m1", content: [{ type: "text", text: "This is the " }, { type: "redacted" }, { type: "text", text: "reply" }] } },
         agentMessage(REPLY),
       ]),
   });
@@ -353,7 +353,7 @@ test("an agent run's reply is its newest message on the session's own thread, ne
 });
 
 test("an agent run that names no session fails, rather than reading no reply", async () => {
-  const lane = await agentLane(() => ({ metadata: { id: "aex_smoke_1" }, status: { phase: "RUN_COMPLETED" } }));
+  const lane = await agentLane(() => ({ metadata: { id: "run_smoke_1" }, status: { phase: "RUN_COMPLETED" } }));
   try {
     await assert.rejects(runAgentToReply(lane.baseUrl, 10_000, { expectText: REPLY }), /names no session to read its reply from/);
     assert.equal(lane.calls(LIST_EVENTS), 0, "nothing reached the event list");
@@ -506,7 +506,7 @@ const SNAPSHOT = Object.freeze({
   agentOrg: { id: "org_ag", name: "smoke-agent-org-1", slug: "smoke-agent-org-1" },
   agent: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
   agentByReference: { id: "agt_1", name: "smoke-agent-1", slug: "smoke-agent-1" },
-  agentExecution: { id: "aex_1", name: "smoke-aex-1", slug: "smoke-aex-1", phase: "RUN_COMPLETED", reply: REPLY },
+  agentExecution: { id: "run_1", name: "smoke-run-1", slug: "smoke-run-1", phase: "RUN_COMPLETED", reply: REPLY },
 });
 
 function readOf(changes) {
@@ -657,7 +657,7 @@ test("readState keeps a failed read as an error and skips the reference it depen
     const read = await readState(lane.baseUrl, {
       agentOrgId: "org_gone",
       agentId: "agt_gone",
-      agentExecutionId: "aex_gone",
+      agentExecutionId: "run_gone",
     });
     assert.match(read.agent.error, /HTTP 404/);
     assert.match(read.agentByReference.error, /did not read back by id/);

@@ -15,7 +15,8 @@
  * and never reorders; the `internal` class is the in-process skip on the
  * enumeration verb and a loud consumer bug on the restrict verb (the
  * shared helper answers the class before any driver, stigmer#1207); an
- * unprovisioned subject is their raw subject (the 3.14 verifiers' stamp); a
+ * unprovisioned subject is their raw subject (the stamp a write made
+ * before the account existed carries); a
  * fault throws and is never an empty answer; an undeclared kind is a
  * consumer bug, loud; the enumeration verb equals the restrict verb over
  * the whole kind; and the reads are counted — distinct parents, never
@@ -68,7 +69,7 @@ const ADMIN = accountIdFor("auth0|admin");
 const MEMBER = accountIdFor("auth0|member");
 const VIEWER = accountIdFor("auth0|viewer");
 const OUTSIDER = accountIdFor("auth0|outsider");
-/** Provisioned, with rows stamped by the 3.14 verifiers' raw subject. */
+/** Provisioned, with rows stamped by their raw subject (writes made before the account existed). */
 const LEGACY_SUBJECT = "auth0|legacy";
 const LEGACY = accountIdFor(LEGACY_SUBJECT);
 /** Never provisioned: the caller is their raw subject and nothing else. */
@@ -266,8 +267,8 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           await grant(orgRole(VIEWER, "viewer", ORG));
 
           // Blueprints: the founder's private and org-visible agents, a
-          // member's private one, and one stamped by the 3.14 verifiers' raw
-          // subject.
+          // member's private one, and one stamped by a raw subject (a write
+          // made before that account existed).
           await save("agent", {
             id: "agt_private",
             org: ORG,
@@ -328,10 +329,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           // one whose session is gone. Stamped by nobody on purpose: an
           // execution's owner is INHERITED, the stamp says nothing.
           for (const [id, session] of [
-            ["aex_f1", "ses_founder"],
-            ["aex_f2", "ses_founder"],
-            ["aex_m1", "ses_member"],
-            ["aex_orphan", "ses_gone"],
+            ["run_f1", "ses_founder"],
+            ["run_f2", "ses_founder"],
+            ["run_m1", "ses_member"],
+            ["run_orphan", "ses_gone"],
           ] as const) {
             await save("run", {
               id,
@@ -425,10 +426,10 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           it("an execution is its SESSION's (`can_view from session`): each person lists the runs of their own sessions; an orphaned execution is nobody's", async () => {
             expect(
               await listAs(resolved(FOUNDER), ApiResourceKind.run),
-            ).toEqual(["aex_f1", "aex_f2"]);
+            ).toEqual(["run_f1", "run_f2"]);
             expect(
               await listAs(resolved(MEMBER), ApiResourceKind.run),
-            ).toEqual(["aex_m1"]);
+            ).toEqual(["run_m1"]);
             expect(
               await listAs(resolved(ADMIN), ApiResourceKind.run),
             ).toEqual([]);
@@ -530,7 +531,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             expect(storeReads).toEqual({ rows: 0, scans: 0 });
           });
 
-          it("an unprovisioned subject holds no role, so it reaches nothing an organization holds, the row its 3.14 subject stamped included", async () => {
+          it("an unprovisioned subject holds no role, so it reaches nothing an organization holds, the row its raw subject stamped included", async () => {
             // `agt_legacy` is stamped with LEGACY's raw subject. A caller who
             // IS that subject but holds no account holds no role on the
             // organization, and every direct grant, authorship included, is
@@ -548,7 +549,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             ).toEqual([]);
           });
 
-          it("a provisioned account whose idp subject stamped the row still owns it — the alias comparison the 3.14 rows need, on the list verb", async () => {
+          it("a provisioned account whose idp subject stamped the row still owns it — the alias comparison raw-subject rows need, on the list verb", async () => {
             // Provisioned: the membership rules gave the account whose
             // subject stamped rows a role at its first sign-in.
             await grant(orgRole(LEGACY, "member", ORG));

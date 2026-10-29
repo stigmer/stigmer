@@ -1,26 +1,24 @@
 /**
- * Runner activity result handling — ports the RunnerActivityResult half of
- * pkg/domain/agentexecution/temporal/activities/execute_deep_agent.go.
+ * Runner activity result handling.
  *
- * The TS runner returns a plain JSON object: the proto-JSON fields of the
- * slim RunStatus (phase, error, …). An untyped record
- * preserves every field across the data converter, exactly Go's
- * map[string]interface{} posture. The tolerant phase
- * extraction (string enum name first, numeric fallback) is a wire
- * contract: proto-JSON serializes enums as names, but numeric payloads
- * have crossed this boundary historically.
+ * The runner returns a plain JSON object: the proto-JSON fields of the
+ * slim RunStatus (phase, error, …). An untyped record preserves every
+ * field across the data converter. The tolerant phase extraction (string
+ * enum name first, numeric fallback) is a wire contract: proto-JSON
+ * serializes enums as names, and a numeric payload is read as the enum
+ * value.
  *
  * Bundle-safe (pure proto enum import) — the workflow reads phases from
  * every activity result.
  */
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-/** Go activities.RunnerActivityResult (map[string]interface{}). */
+/** A runner activity's result: an untyped JSON record. */
 export type RunnerActivityResult = Record<string, unknown>;
 
 /**
  * Extracts the execution phase from a runner activity result; UNSPECIFIED
- * when missing or unparseable (Go GetPhaseFromResult).
+ * when missing or unparseable.
  */
 export function getPhaseFromResult(
   result: RunnerActivityResult | null | undefined,
@@ -45,7 +43,7 @@ export function getPhaseFromResult(
   return RunPhase.RUN_PHASE_UNSPECIFIED;
 }
 
-/** Extracts the error string from a runner activity result (Go GetErrorFromResult). */
+/** Extracts the error string from a runner activity result. */
 export function getErrorFromResult(
   result: RunnerActivityResult | null | undefined,
 ): string {

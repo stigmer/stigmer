@@ -149,7 +149,7 @@ describe("stigmer-link", () => {
     }
 
     it("moves a non-empty directory to the session's displaced dir, then links", async () => {
-      // An agent write on a turn with no link, or an older runner's leftover:
+      // An agent write on a turn with no link:
       // kept, never deleted.
       await mkdir(join(linkPath(), "notes"), { recursive: true });
       await writeFile(join(linkPath(), "notes", "draft.md"), "the agent's draft");

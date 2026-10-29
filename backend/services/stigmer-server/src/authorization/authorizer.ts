@@ -9,7 +9,7 @@
  * both read (model/index.ts).
  *
  * The arms, in order:
- *   1. The cloud's four pre-checks with the Java service's copy, each a
+ *   1. The four pre-checks with their pinned copy, each a
  *      `deny` with the reason: an unspecified permission, an empty
  *      identity, an empty resource id, the unknown kind. No wire caller
  *      reaches the unknown kind since the kind refusals landed; the
@@ -109,7 +109,7 @@ export const NOT_FOUND_EXEMPT_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.team,
 ]);
 
-/** The Java RequestAuthorizationService's pre-check copy, byte for byte (the cloud renders the same). */
+/** The pre-check copy, byte for byte (the cloud renders the same). */
 export const UNKNOWN_PERMISSION_DENY_REASON =
   "authorization cannot be performed with unknown permission";
 export const EMPTY_IDENTITY_DENY_REASON =

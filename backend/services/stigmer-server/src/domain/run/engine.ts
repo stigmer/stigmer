@@ -2,27 +2,19 @@
  * The execution-engine seam — the ONE place the agentexecution controller
  * touches Temporal-shaped behavior.
  *
- * Go models engine availability as two separately-injected nilable fields
- * on the controller (workflowCreator for create/signal/recover,
- * temporalClient for the lifecycle RPCs), re-injected by TemporalManager
- * on every reconnect. The TS guidelines forbid nullable modeling of
- * optional infrastructure, so availability is an explicit two-variant
- * state instead; the TemporalManager-backed provider
- * (temporal/agentexecution/engine-client.ts) flips between the variants on
- * connect/disconnect, exactly where Go calls
- * SetWorkflowCreator/SetTemporalClient.
+ * The guidelines forbid nullable modeling of optional infrastructure, so
+ * engine availability is an explicit two-variant state; the
+ * TemporalManager-backed provider (temporal/agentexecution/engine-client.ts)
+ * flips between the variants on connect/disconnect.
  *
- * While disconnected (until the first successful connect) the behavior is
- * byte-identical to the Go server running without Temporal:
- * create refuses Unavailable at the gate (create.go
- * ensureEngineAvailableStep), lifecycle RPCs refuse FailedPrecondition,
+ * While disconnected (until the first successful connect), the server
+ * runs without Temporal: create refuses Unavailable at the gate
+ * (EnsureEngineAvailable), lifecycle RPCs refuse FailedPrecondition,
  * and an answer to a waiting tool use is recorded but skips the
  * resolved-gate signal with a WARN (domain/session/hitl/answer.ts).
  *
  * The connected variant's surface carries exactly the operations THIS
- * controller consumes (the seam Go defines through
- * workflowCreator/temporalClient method calls); the temporal
- * implementation owns them. Operations the controller does not consume are
+ * controller consumes; the temporal implementation owns them. Operations the controller does not consume are
  * not pre-declared.
  */
 import type { RequestContext } from "../../pipeline/request-context.js";
@@ -39,27 +31,24 @@ import { ENGINE_UNAVAILABLE_MESSAGE } from "./constants.js";
 export interface ConnectedExecutionEngine {
   /**
    * Sends the approvalGateResolved signal to the execution's running
-   * workflow (Go InvokeAgentExecutionWorkflowCreator.
-   * SignalApprovalGateResolved). Throws EngineWorkflowNotFoundError when
+   * workflow. Throws EngineWorkflowNotFoundError when
    * the backing workflow no longer runs — the answer core's signal step
    * then reconciles the stale execution to FAILED.
    */
   signalApprovalGateResolved(executionId: string): Promise<void>;
 
   /**
-   * Starts the invoke-agent-execution workflow (Go's dispatch resolution
-   * — ResolveActivityTaskQueue over the session + config — plus
-   * workflowCreator.Create, both temporal-slice code). Throws
-   * EngineDispatchError for dispatch-resolution failures
-   * (the create step maps them to FailedPrecondition, exactly Go's
-   * boundary); any other throw marks the execution FAILED.
+   * Starts the invoke-agent-execution workflow (dispatch resolution — the
+   * task queue over the session + config — plus the start, both
+   * temporal-slice code). Throws EngineDispatchError for
+   * dispatch-resolution failures (the create step maps them to
+   * FailedPrecondition); any other throw marks the execution FAILED.
    */
   startInvokeWorkflow(input: StartInvokeWorkflowInput): Promise<void>;
 
   /**
-   * The lifecycle client operations (Go temporalClient.SignalWorkflow /
-   * CancelWorkflow / TerminateWorkflow against the byte-pinned workflow
-   * id). Each throws EngineWorkflowNotFoundError when the workflow no
+   * The lifecycle client operations (signal, cancel and terminate
+   * against the byte-pinned workflow id). Each throws EngineWorkflowNotFoundError when the workflow no
    * longer exists — the lifecycle steps treat that as
    * warn-and-proceed (the local state update still applies).
    */
@@ -70,8 +59,7 @@ export interface ConnectedExecutionEngine {
 }
 
 /**
- * The slim workflow-start input (Go
- * workflows.InvokeAgentExecutionWorkflowInput plus the dispatch
+ * The slim workflow-start input (the workflow input plus the dispatch
  * coordinates the engine resolves): only orchestration coordinates — the
  * runner fetches the run's values from their vaults when its work starts.
  */
@@ -89,7 +77,7 @@ export interface StartInvokeWorkflowInput {
 
 /**
  * Dispatch-resolution failure sentinel: the create/recover steps map it
- * to FailedPrecondition (Go's ResolveActivityTaskQueue error boundary).
+ * to FailedPrecondition (the task-queue resolution boundary).
  */
 export class EngineDispatchError extends Error {
   constructor(message: string) {
@@ -99,8 +87,7 @@ export class EngineDispatchError extends Error {
 }
 
 /**
- * The engine's "workflow not found" sentinel (Go
- * agentexecutiontemporal.ErrWorkflowNotFound). The engine client maps
+ * The engine's "workflow not found" sentinel. The engine client maps
  * Temporal's not-found onto it; tests construct it directly.
  */
 export class EngineWorkflowNotFoundError extends Error {
@@ -125,13 +112,13 @@ export const ENGINE_DISCONNECTED: ExecutionEngineState = Object.freeze({
 
 /**
  * A provider rather than a value: the TemporalManager re-injects on
- * every reconnect (Go's SetWorkflowCreator), so consumers must observe
+ * every reconnect, so consumers must observe
  * the CURRENT state at request time, never a boot-time snapshot.
  */
 export type ExecutionEngineStateProvider = () => ExecutionEngineState;
 
 /**
- * EnsureEngineAvailable — create.go ensureEngineAvailableStep: rejects the
+ * EnsureEngineAvailable — rejects the
  * create fast — before any persistence or side effect — when the engine is
  * not connected. Placed after input validation but before the first
  * side-effecting step, so a malformed request still gets InvalidArgument

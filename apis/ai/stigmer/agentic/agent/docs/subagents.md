@@ -204,24 +204,3 @@ instructions: |
   subagent and payroll accruals to the payroll-accruals subagent. Handle
   everything else yourself.
 ```
-
-## Subagents Written Inside an Agent
-
-An agent once carried subagents written inside it, under `sub_agents`, each
-narrowing the agent's own tools. That field is gone. `stigmer apply` and
-`stigmer validate` refuse a manifest that still uses it:
-
-```text
-A subagent is now a saved agent: write each subagent as an Agent of its own, then list it under the agent's `subagents` (`- kind: agent` with `slug: <its slug>`).
-```
-
-To move one, write it as an Agent: its `name` as `metadata.name`, its
-`description`, `instructions` and `skill_refs`. Give it the plugins and `env`
-declarations whose tools and keys it used, since it no longer borrows the
-parent's, and its tool lists over the parent's. A `model_override` becomes
-`run_config.model_name` with `harness: HARNESS_STIGMER`. Apply it, then list it
-in the parent's `subagents`.
-
-A local install that held such subagents removes them when it upgrades. Each
-one is written to the server's log as a ready-to-apply Agent manifest that runs
-as the subagent ran, together with the `subagents` entry to add to its parent.

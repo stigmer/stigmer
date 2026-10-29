@@ -153,10 +153,9 @@ describe("file-mode apply — fidelity (raw controller preserves full proto)", (
 
 
 
-// The stigmer/stigmer#353 regression block: ChannelApp apply used to fail
-// with "apply not implemented for Channel App" because the CLI's handler
-// table was a drifted copy of the SDK manifest registry. The handlers now
-// COME FROM that registry, so this suite pins the whole class: the kind
+// The stigmer/stigmer#353 regression block: ChannelApp apply fails with
+// "apply not implemented for Channel App" whenever the CLI's handler table
+// drifts from the SDK manifest registry. The handlers COME FROM that registry, so this suite pins the whole class: the kind
 // applies, secrets round-trip verbatim, and the ordering the registry
 // encodes (app before the channel that references it) is honored.
 const CHANNEL_APP_YAML = [
@@ -388,10 +387,10 @@ describe("file-mode apply — orchestration", () => {
     }
   });
 
-  it("refuses an agent that still names vaults: an agent is a blueprint, and a conversation names its vaults", async () => {
-    // The server drops a field it no longer knows from a binary write, so
-    // this client-side refusal is what tells an author their old manifest's
-    // vaults would never be read.
+  it("refuses an agent that names vaults: an agent is a blueprint, and a conversation names its vaults", async () => {
+    // The server drops a field it does not know from a binary write, so
+    // this client-side refusal is what tells an author the agent's vaults
+    // would never be read.
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(

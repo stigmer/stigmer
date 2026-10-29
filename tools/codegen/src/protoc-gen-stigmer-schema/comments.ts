@@ -1,9 +1,8 @@
 // Raw leading-comment lookup over SourceCodeInfo.
 //
-// The retired Go extractor read comments through protoreflect's per-element
-// source info; the committed schemas therefore contain the RAW
-// leading_comments text (one leading space per line preserved, outer
-// whitespace trimmed later by internalcomment.stripText). protobuf-es
+// The committed schemas contain the RAW leading_comments text (one leading
+// space per line preserved, outer whitespace trimmed later by
+// internalcomment.stripText). protobuf-es
 // deliberately does not surface raw comments on descriptors, so this module
 // indexes each file's SourceCodeInfo by location path and computes the
 // standard descriptor paths (FileDescriptorProto field numbers) for the

@@ -1,7 +1,7 @@
 /**
  * Pins the built-in Authorizer arm by arm, on both store drivers, against
  * the cloud's driver it mirrors (stigmer-cloud src/authorizer/
- * fga-authorizer.ts): the four pre-check denials with the Java copy; the
+ * fga-authorizer.ts): the four pre-check denials with their pinned copy; the
  * unserved-kind denial (a platform capability no self-host holds); not-found for a
  * missing target and a DENIAL for a missing row of an exempt kind (the
  * cloud's probe scope, so account ids cannot be enumerated); allow and
@@ -220,8 +220,9 @@ describe.each(driverFixtures(SEEDED_KINDS))(
         await grant(orgRole(ADMIN.accountId, "admin", "acme"));
         await grant(orgRole(MEMBER.accountId, "member", "acme"));
         // The founder's blueprints: one private and one org-visible; the
-        // org-visible one stamped with the founder's RAW subject (a row a
-        // 3.14.x verifier wrote), the other with the id.
+        // org-visible one stamped with the founder's RAW subject (a write
+        // made before the founder's account existed), the other with the
+        // id.
         await seed("agent", "agt_private", {
           org: "acme",
           visibility: ApiResourceVisibility.visibility_private,

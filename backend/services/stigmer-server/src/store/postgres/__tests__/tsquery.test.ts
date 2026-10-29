@@ -52,7 +52,7 @@ describe("renderTsQueryExpression", () => {
     });
   }
 
-  it("the prefix decision counts terms AFTER sanitization (the ported order)", () => {
+  it("the prefix decision counts terms AFTER sanitization (the FTS5 renderer's order)", () => {
     // Two input terms, one sanitizes away — the survivor is a SINGLE term
     // and keeps prefix matching.
     expect(renderTsQueryExpression(["foo", "'''"])).toBe(`'foo':*`);

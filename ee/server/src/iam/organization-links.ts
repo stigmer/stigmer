@@ -23,13 +23,12 @@
  * a row with no organization link at all.
  *
  * It never resurrects. A row names its organization by id, and the delete
- * revokes every link naming it. An organization made since ids were minted
- * has an id no later organization carries; before that an organization's
- * id was its slug, which, before stigmer v3.39.0, a later organization
- * could take again, and rows from then remain. A row whose link is missing
- * because its organization is gone, or because its organization was
- * created after the row, is reported and left alone: re-linking it would
- * hand a stranger's row to whoever holds that organization now. Every
+ * revokes every link naming it. Every organization is filed under a minted
+ * id no later organization carries, and the reconcile still refuses to
+ * trust that alone: a row whose link is missing because its organization
+ * is gone, or because the organization holding its id was created after
+ * the row, is reported and left alone, since re-linking it would hand a
+ * stranger's row to whoever holds that organization now. Every
  * organization carries its creation time (the create chain stamps it), and
  * the lookup refuses one that does not as a fault. A row with no creation
  * time cannot be told apart, and is reported.
@@ -45,8 +44,7 @@
  * The same rule answers a second question, so it lives here once:
  * `orphanReason` is also what the invitation lane asks before a
  * redemption and in its preview, because a link that outlived its
- * organization would otherwise open whichever organization took the slug
- * next (invitation/handlers.ts); and what the federated verifier's index
+ * organization must open nothing (invitation/handlers.ts); and what the federated verifier's index
  * asks of a federation issuer, because a provider that outlived its
  * organization would otherwise sign people into it (federation/verifier.ts). The lookup therefore
  * answers the few facts its callers read from one organization read: its
@@ -238,10 +236,10 @@ async function hasOrganizationLink(
 
 /**
  * Undefined when the row still belongs to the organization it names;
- * otherwise why it does not: the organization is gone, or was created
- * after the row (its slug was taken again, which only a delete before
- * stigmer v3.39.0 allowed), or the row carries no creation time to
- * compare.
+ * otherwise why it does not: the organization is gone, or the one holding
+ * the id was created after the row (a row never outlives its organization
+ * into a younger one, whatever made the id reappear), or the row carries
+ * no creation time to compare.
  */
 export function orphanReason(
   row: OrganizationScopedRow,

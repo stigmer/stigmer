@@ -1,8 +1,5 @@
 /**
- * Agent domain-local pipeline steps — port the inline steps of
- * pkg/domain/agent/controller/ (create.go, delete_cascade.go,
- * get_default.go).
- * Shared steps stay in src/pipeline/steps/; these exist because they
+ * Agent domain-local pipeline steps. Shared steps stay in src/pipeline/steps/; these exist because they
  * embody agent-specific contracts: the cascade rules and the agent's hooks.
  *
  * The agent's tool lists (spec.tools, spec.disallowed_tools and each

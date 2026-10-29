@@ -1,8 +1,7 @@
 /**
- * Pins the extractor registry against Go's registry_test.go — duplicate
- * rejection, lookup, name-sorted supportedKinds, both validateExpectedKinds
- * arms — plus THE invariant test (Go's
- * TestSearchableKinds_CoverSearchIndexedProtoKinds, #439): the production
+ * Pins the extractor registry — duplicate rejection, lookup, name-sorted
+ * supportedKinds, both validateExpectedKinds arms — plus THE invariant
+ * test (#439): the production
  * registry serves exactly the kind_meta-derived searchable set. A kind may
  * join or leave search only by flipping its proto annotation AND its
  * registry entry together; this test fails until both move.
@@ -57,8 +56,8 @@ describe("the #439 invariant", () => {
   });
 });
 
-describe("SearchableResourceRegistry (Go registry_test.go)", () => {
-  it("rejects duplicate registration at construction (Go's init panic)", () => {
+describe("SearchableResourceRegistry", () => {
+  it("rejects duplicate registration at construction", () => {
     expect(
       () =>
         new SearchableResourceRegistry([
@@ -76,7 +75,7 @@ describe("SearchableResourceRegistry (Go registry_test.go)", () => {
     expect(registry.getExtractor(ApiResourceKind.skill)).toBeUndefined();
   });
 
-  it("supportedKinds sorts by the kind NAME string (Go's kind.String() sort)", () => {
+  it("supportedKinds sorts by the kind NAME string", () => {
     const registry = newSearchableResourceRegistry();
     const names = registry
       .supportedKinds()

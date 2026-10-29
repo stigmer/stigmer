@@ -7,10 +7,7 @@
  * another agent never redirects it.
  *
  * The rule, on create, update and apply alike:
- *   - a write naming no agent clears the pin: the built-in assistant. A
- *     stored row that names none either keeps its pin (an echo): a
- *     session the agent-instance migration left holding only the id of an
- *     agent since deleted stays that agent's, and fails its next turn;
+ *   - a write naming no agent clears the pin: the built-in assistant;
  *   - a version of `latest` pins the agent's current version now (the
  *     reference grammar's meaning), which is how a conversation moves to
  *     the version its author last saved. `latest` is an instruction, not a
@@ -113,16 +110,6 @@ export function newResolveSessionAgentStep(
       );
       const ref = session.spec?.agentRef;
       if (ref === undefined || !namesAgent(ref)) {
-        const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-        if (!namesAgent(stored?.spec?.agentRef)) {
-          // Neither names an agent: an echo. The stored pin stands, which
-          // is the built-in assistant's empty pin, or a migrated session's
-          // agent that left before the migration could name it (its next
-          // turn fails naming the agent, as any deletion's does).
-          status.agentId = stored?.status?.agentId ?? "";
-          status.agentVersionHash = stored?.status?.agentVersionHash ?? "";
-          return;
-        }
         status.agentId = "";
         status.agentVersionHash = "";
         return;

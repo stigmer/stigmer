@@ -1,4 +1,4 @@
-// Reference resolution for the run path (Go's resolveAgent in run_resolve.go).
+// Reference resolution for the run path.
 // A reference is an ID (agt_…), an explicit org/slug, or
 // a bare slug resolved against the context org. The strict ID *classification*
 // used by smart dispatch lives in resources/reference.ts; this module just turns

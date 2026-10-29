@@ -1,5 +1,5 @@
-// Filesystem locations for CLI configuration and local data. Mirrors the Go
-// CLI's config path helpers (~/.stigmer/...). Functions take the home dir as a
+// Filesystem locations for CLI configuration and local data (~/.stigmer/...).
+// Functions take the home dir as a
 // parameter (defaulting to os.homedir()) so tests can redirect them cleanly.
 
 import { homedir } from "node:os";

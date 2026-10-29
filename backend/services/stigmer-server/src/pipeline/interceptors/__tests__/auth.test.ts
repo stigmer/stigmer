@@ -3,7 +3,7 @@
  * walk, the conditional-strictness contract (zero verifiers = silent
  * fall-through for unclaimed tokens; any verifier configured = unclaimed
  * is UNAUTHENTICATED), the require-authentication posture (tokenless is
- * UNAUTHENTICATED with the Java byte-pinned copy, except is_public
+ * UNAUTHENTICATED with the byte-pinned copy, except is_public
  * methods and the gRPC health service by name — the exemption
  * predicate), the trusted-local modeled state in both
  * operator postures, the internal caller class's structural minting
@@ -312,7 +312,7 @@ describe("require-authentication posture", () => {
     true,
   );
 
-  it("an absent token is UNAUTHENTICATED with the Java byte-pinned copy", async () => {
+  it("an absent token is UNAUTHENTICATED with the byte-pinned copy", async () => {
     const error = await runInterceptor(requiringChassis).catch(
       (e: unknown) => e,
     );
@@ -323,7 +323,7 @@ describe("require-authentication posture", () => {
     );
   });
 
-  it("an is_public method stays reachable tokenless (the Java isPublic skip)", async () => {
+  it("an is_public method stays reachable tokenless (the is_public skip)", async () => {
     const identity = await runInterceptor(
       requiringChassis,
       undefined,
@@ -332,7 +332,7 @@ describe("require-authentication posture", () => {
     expect(identity).toEqual(trustedLocalIdentity());
   });
 
-  it("the gRPC health service stays reachable tokenless — the Java by-name skip (stigmer#974)", async () => {
+  it("the gRPC health service stays reachable tokenless — the by-name skip (stigmer#974)", async () => {
     // A Kubernetes `grpc:` probe is a tokenless Health/Check; the health
     // proto is third-party and cannot carry is_public, so the exemption
     // is by service name. Without it the posture crash-loops the pod.
@@ -380,9 +380,9 @@ describe("isAuthenticationExempt (the one exemption predicate)", () => {
   });
 
   it("the by-name set holds exactly the services OSS serves without our option", () => {
-    // Java's list has a second entry (ServerReflection); OSS registers no
-    // reflection service, so its presence here would be dead vocabulary —
-    // a future registration adds it in the same change.
+    // OSS registers no reflection service, so a ServerReflection entry
+    // here would be dead vocabulary — a future registration adds it in
+    // the same change.
     expect([...AUTHENTICATION_EXEMPT_SERVICES]).toEqual([
       "grpc.health.v1.Health",
     ]);

@@ -110,7 +110,7 @@ function kindLabel(kind: ApiResourceKind): string {
 
 type GetByReferenceDesc = typeof ApiResourceReferenceSchema;
 
-/** The reference + version ladder (Go LoadSkillByReferenceStep, generalised). */
+/** The reference + version ladder, for every versioned kind. */
 export function newLoadByReferenceWithVersionStep<Desc extends DescMessage>(
   store: Store,
   binding: VersionedResourceBinding<Desc>,
@@ -369,7 +369,7 @@ export interface VersionHistoryBinding<
   response(entries: Entry[], nextPageToken: string): Response;
 }
 
-/** Resolves the head by slug and captures its id and hash (Go ResolveSkillBySlugStep, generalised). */
+/** Resolves the head by slug and captures its id and hash. */
 export function newResolveBySlugForVersionsStep<
   Desc extends DescMessage,
   InputDesc extends DescMessage,
@@ -402,7 +402,7 @@ export function newResolveBySlugForVersionsStep<
   };
 }
 
-/** One page of audit records → entries (Go LoadAndMapVersionsStep, generalised). */
+/** One page of audit records → entries. */
 export function newLoadAndMapVersionsStep<
   Desc extends DescMessage,
   InputDesc extends DescMessage,

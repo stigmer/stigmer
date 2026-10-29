@@ -12,11 +12,11 @@
  * the two kinds whose events it reads. A
  * lifecycle on a controller turns on the tuple steps' full event
  * resolution for that kind, and resolution fails a request whose
- * configured parent id is missing — Java parity the cloud relies on, and
+ * configured parent id is missing — the cloud relies on that refusal, and
  * a state open source admits by contract for other kinds (a memory
  * captured with no credential has no subject). Every other controller
  * keeps the composed driver (undefined in open source) and its steps
- * no-op before any resolution, byte-identical to before this entry.
+ * no-op before any resolution.
  *
  * What it writes:
  *   - `organization` created with DIRECT attribution (the kind's

@@ -7,7 +7,7 @@
 // token-less requests, and the stateless contract: any request is served
 // without a session, GET answers 405, and a body that is not JSON is answered
 // 400 while the server keeps serving. Token validation is never performed
-// here — presence is the only check (Go parity: internal/server/http.go).
+// here — presence is the only check; the backend decides.
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

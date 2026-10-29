@@ -1,7 +1,6 @@
 /**
  * The server half of the lease-scope parity gate
- * (apis/testdata/hitl/lease-scope) — ports lease_scope_corpus_test.go +
- * lease_scope_test.go: every vector derives through deriveLeaseScope and
+ * (apis/testdata/hitl/lease-scope), plus unit pins: every vector derives through deriveLeaseScope and
  * must equal the expected scope, a hook's scope included. The runner loads
  * the same file, so a drift fails one of the two suites. A vector names
  * its policy source by the runner's ApprovalPolicySource enum name; the
@@ -71,7 +70,7 @@ describe("shared lease-scope corpus", () => {
     path.join(hitlCorpusDir(), "lease-scope", "vectors.json"),
   ) as unknown as { vectors: LeaseScopeVector[] };
 
-  // Guard the guard (Go asserts >= 10 too).
+  // Guard the guard: an empty or truncated corpus must fail.
   it("discovers the corpus", () => {
     expect(doc.vectors.length).toBeGreaterThanOrEqual(10);
   });
@@ -103,7 +102,7 @@ describe("shared lease-scope corpus", () => {
   }
 });
 
-describe("deriveLeaseScope unit pins (lease_scope_test.go)", () => {
+describe("deriveLeaseScope unit pins", () => {
   it("an MCP slug takes precedence over any category lookup", () => {
     const scope = deriveLeaseScope(ask({ name: "shell", mcpServer: "github" }));
     expect(scope).toEqual({ category: "", server: "github", tool: "" });

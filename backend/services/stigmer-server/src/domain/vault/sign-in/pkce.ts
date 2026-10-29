@@ -1,5 +1,5 @@
 /**
- * PKCE pair generation — ports pkg/domain/mcpserver/oauth/pkce.go.
+ * PKCE pair generation.
  * Always S256: RFC 7636 and OAuth 2.1 require it, and initiate refuses
  * authorization servers that do not support it (discovery.ts).
  */

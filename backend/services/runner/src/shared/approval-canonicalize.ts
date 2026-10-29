@@ -1,7 +1,7 @@
 // Deterministic canonicalization of a tool action into a byte-stable form.
 // Domain: HITL approval. This is the cross-language contract the approval
 // fingerprint hashes (approval-fingerprint.ts); this module computes it without
-// hashing, so Go/Java/TS can be pinned to byte-identical output via the shared
+// hashing, so every implementation is pinned to byte-identical output by the shared
 // vector corpus (apis/testdata/hitl/canonicalization/).
 //
 // Why this exists: the March 2026 dedup bug was caused by hashing divergent
@@ -35,7 +35,7 @@ export interface ToolActionInput {
 }
 
 // The normalized action. Field order here is irrelevant — canonicalJson sorts
-// keys — but the shape is the contract Go/Java must reproduce.
+// keys — but the shape is the contract every implementation reproduces.
 export interface CanonicalToolAction {
   toolName: string;
   mcpServerSlug: string;

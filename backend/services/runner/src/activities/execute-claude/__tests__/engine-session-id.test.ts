@@ -23,7 +23,7 @@ describe("the engine's ids", () => {
   });
 
   it("derives the run's opening message id from the execution id", () => {
-    expect(runMessageIdOf("aex_1")).toBe("f7bfedf6-1a52-5ae4-b771-22d80ccb0771");
+    expect(runMessageIdOf("run_1")).toBe("d93c2104-74fe-5ac5-932b-e45c0cb78dbc");
   });
 
   it("derives a sent message's id from its user message id", () => {
@@ -32,7 +32,7 @@ describe("the engine's ids", () => {
 
   it("answers the same id for the same platform id every time", () => {
     expect(engineSessionIdOf("thr_same")).toBe(engineSessionIdOf("thr_same"));
-    expect(runMessageIdOf("aex_same")).toBe(runMessageIdOf("aex_same"));
+    expect(runMessageIdOf("run_same")).toBe(runMessageIdOf("run_same"));
   });
 
   it("never collides across kinds for the same platform id", () => {

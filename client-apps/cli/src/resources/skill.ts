@@ -557,7 +557,7 @@ function toResult(
 
 const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"] as const;
 
-/** Human-readable byte size (1024-based), matching Go's formatBytes. */
+/** Human-readable byte size (1024-based). */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   let div = 1024;

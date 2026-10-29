@@ -2,14 +2,10 @@
 // Domain: conformance harness (cloud target lifecycle).
 //
 // The cloud targets are connect-only: they never boot anything. The
-// environment they test is PROVISIONED ELSEWHERE — since 2026-09-10 (the Java
-// stigmer-service's retirement) that is the TypeScript
+// environment they test is PROVISIONED ELSEWHERE: the TypeScript
 // composition, booted by stigmer-cloud's readout recipe, which writes the
-// CLOUD_ENV variables below before the suite runs. Until then a Go launcher in
-// this repository (test/integration/cmd/conformance-cloudenv) booted the Java
-// service hermetically and this module spawned it; that half retired with the
-// service. What remains is the contract (CLOUD_ENV) and the way the targets
-// make a person: a console sign-in through the environment's direct-login
+// CLOUD_ENV variables below before the suite runs. This module holds the
+// contract (CLOUD_ENV) and the way the targets make a person: a console sign-in through the environment's direct-login
 // tenant, then the first-login provisioning a console runs
 // (provisionConsolePerson, over people.ts, which the Enterprise target
 // shares).
@@ -53,7 +49,7 @@ export const CLOUD_ENV = {
   // privileged-lane assertions skip there.
   operatorToken: "STIGMER_CONFORMANCE_CLOUD_OPERATOR_TOKEN",
   // The platform identity tenant the server under test was booted against
-  // (its STIGMER_IDP_URL / Java idp-url), as the environment's mock tenant
+  // (its STIGMER_IDP_URL), as the environment's mock tenant
   // declares it — so the direct-login suite can MINT the tokens a console,
   // desktop, CLI or MCP client presents and drive the server's direct-login
   // lane. The signing key is the private half of the key the tenant's JWKS

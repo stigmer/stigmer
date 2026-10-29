@@ -5,9 +5,7 @@
  * most five steps, `platform` terminal) and the grouping of assignable-
  * role rows by principal in first-seen order, enriched where the display
  * resolver answers and rendered as kind/id with the id as its name
- * everywhere else (the Java PrincipalEnricher fallback). Moved from the
- * cloud's iam/policy/access-lists.ts; the arms below are the Java
- * contract read from that file. A grantee that is not a person (a team)
+ * everywhere else (the fallback shape). A grantee that is not a person (a team)
  * is named by the composed principal display, one call per kind, keyed by
  * kind and id so one kind's view never names another kind's id. A
  * resource's list names only the people inside its organization's bound:

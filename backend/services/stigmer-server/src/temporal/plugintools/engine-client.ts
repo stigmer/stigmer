@@ -81,9 +81,9 @@ export class TemporalPluginToolsEngine implements PluginToolsEngine {
 /**
  * Awaits a run and classifies its settle into the seam's taxonomy —
  * one arm per Temporal
- * failure class. raceTimeoutMs mirrors Go's bounded background contexts:
- * the classification for a fired backstop is Go's ctx text, so the
- * settle paths render the same failure they would have logged there.
+ * failure class. raceTimeoutMs bounds the wait: a fired backstop settles
+ * as "context deadline exceeded" in the default arm, the text the settle
+ * paths render.
  */
 async function awaitRunOutcome(
   handle: WorkflowHandle,
@@ -108,9 +108,7 @@ async function awaitRunOutcome(
   let backstop: NodeJS.Timeout | undefined;
   const backstopPromise = new Promise<ToolsRunOutcome>((resolve) => {
     backstop = setTimeout(() => {
-      // Go's expired background context makes run.Get return
-      // "context deadline exceeded", which lands in the default
-      // (Internal) arm — same text, same classification.
+      // The backstop's text lands in the default (Internal) arm.
       resolve({
         ok: false,
         failure: { kind: "other", message: "context deadline exceeded" },
@@ -131,8 +129,8 @@ function classifyRunError(error: unknown): ToolsRunFailure {
   if (error instanceof WorkflowFailedError) {
     // Walk the WHOLE cause chain, not just the direct cause: a workflow
     // failed by an activity arrives as WorkflowFailedError →
-    // ActivityFailure → ApplicationFailure, and Go's errors.As unwraps
-    // the same chain to find the runner's ApplicationError (whose message
+    // ActivityFailure → ApplicationFailure, and the runner's
+    // ApplicationFailure is the one that counts (its message
     // is the classified, user-facing text — the intermediate
     // ActivityFailure's "Activity task failed" is NOT the contract).
     // Pinned by the plugin tools suite's unreachable-server arm.
@@ -148,7 +146,7 @@ function classifyRunError(error: unknown): ToolsRunFailure {
       }
       cause = (cause as { cause?: unknown }).cause;
     }
-    // Go's switch order: the application arm wins when both match.
+    // The application arm wins when both match.
     if (application !== undefined) {
       // The runner's crafted, user-facing message (issue #239 arm).
       return { kind: "application", message: application.message };
@@ -166,8 +164,8 @@ function classifyRunError(error: unknown): ToolsRunFailure {
     };
   }
   if (error instanceof WorkflowNotFoundError) {
-    // Go serviceerror.NotFound — the run vanished (e.g. Temporal data
-    // loss); the domain maps this to Unavailable.
+    // The run vanished (e.g. Temporal data loss); the domain maps this
+    // to Unavailable.
     return { kind: "service-not-found" };
   }
   return {

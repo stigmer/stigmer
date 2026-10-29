@@ -960,8 +960,7 @@ function emitToProtoField(buf: string[], f: FieldSchema, alias: string, typeMap:
 }
 
 // Guarded assignment of one message-typed oneof member onto its container's
-// oneof field (see sdk_client.go's emitOneofMemberToProto for the full
-// member-field conversion contract).
+// oneof field: the member-field conversion contract.
 function emitOneofMemberToProto(
   buf: string[],
   f: FieldSchema,

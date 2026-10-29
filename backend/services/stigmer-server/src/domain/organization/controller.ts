@@ -1,9 +1,7 @@
 /**
- * Organization controller — ports pkg/domain/organization (command +
- * query sides). Organization is the top-level tenancy container; all
- * resources scope under it.
+ * Organization controller (command + query sides). Organization is the
+ * top-level tenancy container; all resources scope under it.
  *
- * Pipeline per RPC mirrors the Go step chains character-for-character.
  * Proven by organization.conformance.test.ts (CONFORMANCE_TARGET=local) and
  * __tests__/organization.test.ts.
  *
@@ -232,7 +230,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 }
 
 /**
- * Create — chain per Go buildCreatePipeline: ResolveSlug runs before
+ * Create — ResolveSlug runs before
  * ValidateProto so clients can omit the slug and have it derived before
  * the slug pattern is checked. BuildNewState mints the organization's id
  * (org_<ulid>), which every resource it owns will name; an organization
@@ -264,12 +262,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * leaves a child its parent's admins already administer, so a retry (apply)
  * converges through the update arm.
  *
- * The post-persist gate slot splices after Persist, before IndexSearch —
- * the verified Java OrganizationCreateHandler ordering (FGA tuple
- * seeding, billing account getOrCreate: synchronous, a failure fails the
- * request). Java runs these with NO transactional envelope: a slot-step
- * failure leaves the org row persisted while the request fails, healed by
- * idempotent retry — inherited semantics.
+ * The post-persist gate slot splices after Persist, before IndexSearch
+ * (a composition's tuple seeding or billing account getOrCreate:
+ * synchronous, a failure fails the request). There is NO transactional
+ * envelope: a slot-step failure leaves the org row persisted while the
+ * request fails, healed by idempotent retry.
  */
 async function createOrganization(
   deps: OrganizationControllerDeps,
@@ -376,7 +373,6 @@ async function createOrganization(
   return reqCtx.newState;
 }
 
-/** Update — chain per Go buildUpdatePipeline. */
 /**
  * The organization fields an update may not name: its policies, which
  * have their own door, and its link to a parent, fixed at create
@@ -390,6 +386,7 @@ export const ORGANIZATION_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath>
   { path: "spec.external_id", writtenBy: "create" },
 ];
 
+/** Update — refuses the paths above, keeps the fields only other doors write. */
 async function update(
   deps: OrganizationControllerDeps,
   input: UpdateOrganizationInput,
@@ -560,7 +557,7 @@ async function rename(
 /**
  * Apply — kubectl-style idempotent create-or-update: a minimal pipeline
  * decides existence, then delegates to Create or Update with the ORIGINAL
- * request message (Go delegates `org`, not the pipeline's mutated clone);
+ * request message (not the pipeline's mutated clone);
  * the update arm carries the resolved id via withResolvedApplyId.
  */
 async function apply(
@@ -732,7 +729,7 @@ async function get(
 }
 
 /**
- * ListMine — deliberately pipeline-less (Go): there is nothing to
+ * ListMine — deliberately pipeline-less: there is nothing to
  * authorize, and single-user OSS applies no IAM filtering — ALL
  * organizations are "mine", read a page at a time through the list
  * index. A composed directory filters to the caller's authorized set

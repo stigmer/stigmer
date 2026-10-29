@@ -1,22 +1,16 @@
 /**
- * The slim workflow input — ports
- * pkg/domain/agentexecution/temporal/workflows/workflow_input.go.
+ * The slim workflow input.
  *
- * Carries ONLY orchestration coordinates: no secrets, no large payloads
- * (the full Run proto used to be the input; it could hold secrets,
- * and Temporal history is durable — stigmer's slim-input
- * redesign keeps secrets out of history).
+ * Carries ONLY orchestration coordinates: no secrets, no large payloads.
+ * Temporal history is durable, so a Run proto, which can hold secrets,
+ * never rides in it.
  *
- * The snake_case keys are a cross-edition wire contract shared with the
- * Go and Java control planes (workflow_input.go: "The JSON keys MUST stay
- * byte-identical"). Go's omitempty fields are optional here so a
- * TS-authored history carries the same keys a Go-authored one would.
+ * The snake_case keys are wire contract: they are what every recorded
+ * history carries, so they stay byte-identical. Fields that may be absent
+ * are optional.
  *
  * The input is plain JSON, so a key this interface does not name decodes
- * and is ignored: an input from an older server that still carries
- * `callback_token` or `parent_workflow_id` decodes. A history that acted on
- * them (a run a workflow step started) does not replay; the replay gate's
- * header says why that history left with workflows.
+ * and is ignored.
  *
  * Bundle-safe: imported by both the workflow and the engine client.
  */
@@ -41,14 +35,14 @@ export interface InvokeAgentExecutionWorkflowInput {
   readonly execution_context_token?: string;
   /**
    * Session harness as the proto enum numeric value (0=UNSPECIFIED treated
-   * as STIGMER, 1=STIGMER, 3=CLAUDE; 2 is retired) — selects ExecuteDeepAgent
+   * as STIGMER, 1=STIGMER, 3=CLAUDE; 2 names no harness) — selects ExecuteDeepAgent
    * or ExecuteClaude; any other number fails the run.
    */
   readonly harness?: number;
   /**
    * Resolved execution target as the proto enum numeric value (0=UNSPEC,
    * 1=LOCAL, 2=CLOUD). Cloud uses it for sandbox provisioning; the OSS
-   * workflow ignores it (kept for cross-edition input parity).
+   * workflow ignores it (every edition's input carries the same keys).
    */
   readonly execution_target?: number;
   /**

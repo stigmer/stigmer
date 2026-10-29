@@ -12,10 +12,8 @@
  * ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL, and STIGMER_PUBLIC_URL, the
  * address clients reach the stack on), the compose file, and, for a
  * source build, docker-compose.dev.yml on top. One override file maps
- * host.docker.internal into the runner so it can reach a model on this host,
- * and, for a compose file older than its ANTHROPIC_BASE_URL line (v3.41.0
- * and before), hands the runner that variable itself. Nothing
- * test-only lands in the tree. The env file is passed with --env-file, so a
+ * host.docker.internal into the runner so it can reach a model on this host.
+ * Nothing test-only lands in the tree. The env file is passed with --env-file, so a
  * developer's own .env is never read.
  *
  * An upgrade is the guide's: the release's compose file in place of the old
@@ -157,21 +155,16 @@ export function composeEnvText({ keys, publicUrl, release, runnerCliVersion, mod
 
 /**
  * The override file beside a compose file: host.docker.internal mapped into
- * the runner, and the model's address handed to the runner directly when the
- * compose file itself does not pass ANTHROPIC_BASE_URL through (a release
- * from before that line; its runner still reads the variable, through the
- * Anthropic SDK's own environment default).
+ * the runner. The compose file passes ANTHROPIC_BASE_URL through from the env
+ * file, so the model's address needs nothing here.
  */
-export function composeOverrideText(composeFileText, model) {
+export function composeOverrideText() {
   const lines = [
     "services:",
     "  stigmer-runner:",
     "    extra_hosts:",
     '      - "host.docker.internal:host-gateway"',
   ];
-  if (!/\bANTHROPIC_BASE_URL\b/.test(composeFileText)) {
-    lines.push("    environment:", `      ANTHROPIC_BASE_URL: ${JSON.stringify(model.ANTHROPIC_BASE_URL)}`);
-  }
   return `${lines.join("\n")}\n`;
 }
 
@@ -201,7 +194,7 @@ export function createComposeStack({ model, log }) {
   const configure = (target, file) => {
     const runnerCliVersion = target.kind === "build" ? stagedRunnerCliVersion() : "";
     writeFileSync(envFile, composeEnvText({ keys, publicUrl: COMPOSE_PUBLIC_URL, release: target, runnerCliVersion, model }));
-    writeFileSync(overrideFile, composeOverrideText(readFileSync(file, "utf8"), model));
+    writeFileSync(overrideFile, composeOverrideText());
     // The first file is the project directory, so after a swap to this
     // checkout's file the dev overlay's build contexts resolve against it.
     files = [file, ...(target.kind === "build" ? [DEV_OVERLAY_FILE] : []), overrideFile];
@@ -230,7 +223,7 @@ export function createComposeStack({ model, log }) {
     workDir,
     /**
      * Bring the stack up at `release` ({ kind: "build" } or { kind:
-     * "published", version: "3.41.0" }) from `composeFile`.
+     * "published", version: "0.1.0" }) from `composeFile`.
      */
     async start(release, { composeFile = CHECKOUT_COMPOSE_FILE } = {}) {
       bringUp(release, composeFile);

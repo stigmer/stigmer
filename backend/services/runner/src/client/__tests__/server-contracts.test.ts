@@ -9,7 +9,7 @@ describe("assertCreateRequirements", () => {
   const validResource = {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Run",
-    metadata: { name: "aex-test-123", org: "test-org" },
+    metadata: { name: "run-test-123", org: "test-org" },
   };
 
   it("passes when name and org are provided", () => {
@@ -27,7 +27,7 @@ describe("assertCreateRequirements", () => {
   it("passes when id is provided (update-by-id path)", () => {
     const resource = {
       ...validResource,
-      metadata: { id: "aex_abc123", org: "test-org" },
+      metadata: { id: "run_abc123", org: "test-org" },
     };
     expect(() => assertCreateRequirements(resource, "Run", "test")).not.toThrow();
   });
@@ -46,7 +46,7 @@ describe("assertCreateRequirements", () => {
     const resource = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
-      metadata: { name: "aex-test" },
+      metadata: { name: "run-test" },
     };
     expect(() => assertCreateRequirements(resource, "Run", "test"))
       .toThrow(/metadata.org for authorization/);
@@ -56,7 +56,7 @@ describe("assertCreateRequirements", () => {
     const resource = {
       apiVersion: "wrong/v1",
       kind: "Run",
-      metadata: { name: "aex-test", org: "org" },
+      metadata: { name: "run-test", org: "org" },
     };
     expect(() => assertCreateRequirements(resource, "Run", "test"))
       .toThrow(/apiVersion must be/);
@@ -66,7 +66,7 @@ describe("assertCreateRequirements", () => {
     const resource = {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
-      metadata: { name: "aex-test", org: "org" },
+      metadata: { name: "run-test", org: "org" },
     };
     expect(() => assertCreateRequirements(resource, "Run", "test"))
       .toThrow(/kind must be "Run"/);

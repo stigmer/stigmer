@@ -3,21 +3,18 @@
  * type shares, through the REAL stack: a composed server on an ephemeral
  * port, native gRPC clients for all four registration blocks (channel
  * command/query, message, conversation), the full interceptor chain. The
- * cases began as Go's agentchannel_test.go, case-for-case, when these
- * connections were their own AgentChannel kind; the web channel's own
- * cases live in web-channel.test.ts.
+ * web channel's own cases live in web-channel.test.ts.
  *
- * One deliberate adaptation from the Go file, a strengthening: Go pins
- * type immutability at the STEP level with a no-arm stand-in (the test
- * predates the WhatsApp arm); here real slack→whatsapp and web→slack
- * flips run through the wire and pin typeImmutableMessage. Go's
- * TestProviderFieldName ports as a seam-level pin of typeFieldName below —
- * the TS derivation resolves the PROTO field name through the schema
- * descriptor, because the oneof `case` is the camelCased localName and
- * would silently diverge from the pinned error copy on a future
- * snake_case arm.
- *
- * Beyond the Go file:
+ * What it pins:
+ *   - create, update, apply, delete and the queries, the model pin's
+ *     existence, app_ref for Slack and WhatsApp, and the install,
+ *     messaging and conversation postures;
+ *   - type immutability through the wire: real slack→whatsapp and
+ *     web→slack flips answer typeImmutableMessage;
+ *   - typeFieldName at the seam: it resolves the PROTO field name through
+ *     the schema descriptor, because the oneof `case` is the camelCased
+ *     localName and would silently diverge from the pinned error copy on
+ *     a future snake_case arm;
  *   - an update keeps a write that lands between its read and its write
  *     (pipeline/guarded-write.ts) — the lost swap reruns from a fresh
  *     read, so the stored channel and the answer carry both the landed
@@ -34,8 +31,7 @@
  *     step run by a chain that never loaded the channel throws as a broken
  *     invariant.
  *
- * Go tests run one store per test function; this file shares ONE server,
- * so count-sensitive assertions use dedicated orgs and every agent /
+ * This file shares ONE server, so count-sensitive assertions use dedicated orgs and every agent /
  * channel name is unique per test.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -356,8 +352,8 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
 }
 
 // ---------------------------------------------------------------------------
-// Model-pin existence (Go TestAgentChannelController_ModelPinExistence,
-// stigmer/stigmer#774) — validated against the bundled registry.
+// Model-pin existence (stigmer/stigmer#774) — validated against the
+// bundled registry.
 // ---------------------------------------------------------------------------
 
 describe("model-pin existence (oss#774)", () => {
@@ -403,7 +399,7 @@ describe("model-pin existence (oss#774)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Create (Go TestAgentChannelController_Create).
+// Create.
 // ---------------------------------------------------------------------------
 
 describe("channel create", () => {
@@ -591,7 +587,7 @@ describe("channel create", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Update (Go TestAgentChannelController_Update + type immutability).
+// Update (and type immutability).
 // ---------------------------------------------------------------------------
 
 describe("channel update", () => {
@@ -659,9 +655,9 @@ describe("channel update", () => {
     await expect(step.execute(ctx)).rejects.toThrow("existing channel not found in context");
   });
 
-  it("typeFieldName derives the PROTO field name (Go TestProviderFieldName)", () => {
+  it("typeFieldName derives the PROTO field name", () => {
     // The error copy interpolates this; a camelCase/snake_case mismatch
-    // with Go would be a silent cross-edition wire divergence.
+    // would be a silent cross-edition wire divergence.
     const slack = create(ChannelSpecSchema, {
       type: { case: "slack", value: {} },
     });
@@ -751,7 +747,7 @@ describe("channel update", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Apply (Go TestAgentChannelController_Apply) — dedicated org: the final
+// Apply — dedicated org: the final
 // List asserts an exact count.
 // ---------------------------------------------------------------------------
 
@@ -845,7 +841,7 @@ describe("vaults (channel-bound credentials)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// app_ref (Go TestAgentChannelController_AppRef).
+// app_ref.
 // ---------------------------------------------------------------------------
 
 describe("app_ref (BYO channel-app binding)", () => {
@@ -983,7 +979,7 @@ describe("app_ref (BYO channel-app binding)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// WhatsApp app_ref (Go TestAgentChannelController_WhatsAppAppRef).
+// WhatsApp app_ref.
 // ---------------------------------------------------------------------------
 
 describe("whatsapp app_ref (BYO-only)", () => {
@@ -1056,8 +1052,8 @@ describe("whatsapp app_ref (BYO-only)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Delete + queries (Go TestAgentChannelController_Delete / _Queries /
-// _GetByAgent) — list counts use a dedicated org.
+// Delete + queries (delete, the queries, getByAgent) — list counts use a
+// dedicated org.
 // ---------------------------------------------------------------------------
 
 describe("delete and queries", () => {
@@ -1148,13 +1144,13 @@ describe("delete and queries", () => {
   });
 
   it("nonexistent agent yields an empty list", async () => {
-    const list = await query.listByAgent({ agentId: "agt-does-not-exist" });
+    const list = await query.listByAgent({ agentId: "agt_does-not-exist" });
     expect(list.entries).toHaveLength(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Install posture (Go TestAgentChannelController_InstallPosture).
+// Install posture.
 // ---------------------------------------------------------------------------
 
 describe("install posture", () => {
@@ -1320,7 +1316,7 @@ describe("rename", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Messaging posture (Go TestChannelMessageController_CloudOnlyPosture).
+// Messaging posture.
 // ---------------------------------------------------------------------------
 
 describe("channel messaging posture (cloud-only runtime)", () => {
@@ -1398,7 +1394,7 @@ describe("channel messaging posture (cloud-only runtime)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Conversation posture (Go TestChannelConversationController_CloudOnlyPosture).
+// Conversation posture.
 // ---------------------------------------------------------------------------
 
 describe("channel conversation posture (cloud-only runtime)", () => {

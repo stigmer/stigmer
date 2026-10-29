@@ -71,8 +71,8 @@ export interface RequestHeaders {
 /**
  * Read the capture context from the process environment — the stdio
  * shape, captured once at server construction exactly like the startup
- * API key. Deliberately NOT part of config.ts: Config mirrors the Go
- * server's operator-facing surface, while these values are
+ * API key. Deliberately NOT part of config.ts: Config is the operator-facing
+ * surface, while these values are
  * runner-injected per run and owned by this domain.
  */
 export function loadCaptureContextFromEnv(env: NodeJS.ProcessEnv = process.env): CaptureContext {

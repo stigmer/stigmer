@@ -12,7 +12,7 @@
 @import "@stigmer/design-tokens/presets/monochrome.css";
 /* The COMPILED SDK stylesheet (dist/styles.css, `stg:`-prefixed utilities;
    #454) — same prebuilt artifact external hosts get. This app's Tailwind
-   build no longer scans SDK sources; utilities authored by this app's own
+   build does not scan SDK sources; utilities authored by this app's own
    code are generated from the shared theme mapping
    (@stigmer/design-tokens/tailwind-theme.css). */
 @import "@stigmer/react-sdk/styles.css";

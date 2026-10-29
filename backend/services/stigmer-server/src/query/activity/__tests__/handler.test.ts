@@ -1,6 +1,5 @@
 /**
- * Pins the activity handler against Go's
- * pkg/query/activity/handler/handler_test.go: the newest-first order (equal
+ * Pins the activity handler: the newest-first order (equal
  * instants keep their load order), the
  * projection fields, the subject sentinels, the runtime-origin
  * exclusions, the page-size table (default 30 / cap 100 — the constants
@@ -88,7 +87,7 @@ async function seedSession(
   );
 }
 
-describe("listRecentActivity (Go handler_test.go)", () => {
+describe("listRecentActivity", () => {
   it("lists the sessions newest-first", async () => {
     await seedSession("ses_old", {
       subject: "oldest",
@@ -229,7 +228,7 @@ describe("listRecentActivity (Go handler_test.go)", () => {
   });
 });
 
-describe("normalizePageSize (Go's table)", () => {
+describe("normalizePageSize (its table)", () => {
   it("folds out-of-range values into range", () => {
     expect(normalizePageSize(0)).toBe(DEFAULT_PAGE_SIZE);
     expect(normalizePageSize(-1)).toBe(DEFAULT_PAGE_SIZE);
@@ -249,7 +248,7 @@ describe("resolveSubject", () => {
   });
 });
 
-describe("timestampAfter (Go's table)", () => {
+describe("timestampAfter (its table)", () => {
   const ts = (seconds: number, nanos = 0) =>
     create(TimestampSchema, { seconds: BigInt(seconds), nanos });
 

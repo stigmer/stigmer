@@ -1,12 +1,10 @@
 /**
- * Pins the search query store against Go's
- * sqlite_search_query_store_test.go (the kind-parsing table) and
- * sqlite_search_query_store_query_test.go (the end-to-end
- * write→index→query pins: session list mode, the #440 emptiness arm, the
+ * Pins the search query store: the kind-parsing table, the end-to-end
+ * write→index→query pins (session list mode, the #440 emptiness arm, the
  * #439 newly-searchable-kind arm), plus the scope filter (org strict:
  * visibility never widens or narrows it) and RebuildIndex. The escaping and
- * score-normalization tables moved with their code into the sqlite
- * driver: see store/sqlite/__tests__/fts5.test.ts.
+ * score-normalization tables live with their code in the sqlite driver:
+ * see store/sqlite/__tests__/fts5.test.ts.
  * These tests still run the REAL driver through tempStore — the
  * two-layer service→driver integration proof.
  */
@@ -52,7 +50,7 @@ afterEach(async () => {
 /**
  * Writes through the same seams production writes use: saveResource for
  * the document, the kind's extractor + upsertSearchIndex for the FTS
- * entry (Go's newSeededSQLiteStore).
+ * entry.
  */
 async function seed<Desc extends DescMessage>(
   kind: ApiResourceKind,
@@ -125,37 +123,37 @@ function criteria(overrides: {
   );
 }
 
-describe("parseKind (Go's table)", () => {
+describe("parseKind (its table)", () => {
   it("parses known kind names and rejects unknown ones", () => {
     expect(parseKind("agent")).toBe(ApiResourceKind.agent);
     expect(parseKind("skill")).toBe(ApiResourceKind.skill);
     expect(parseKind("channel_app")).toBe(ApiResourceKind.channel_app);
-    // A retired kind's leftover index rows are skipped, never resolved.
+    // A name no kind carries resolves to nothing; its index rows are skipped.
     expect(parseKind("mcp_server")).toBeUndefined();
     expect(parseKind("invalid_kind")).toBeUndefined();
     expect(parseKind("")).toBeUndefined();
   });
 });
 
-describe("write→index→query pins (Go's query_test.go)", () => {
+describe("write→index→query pins", () => {
   it("session list mode returns the indexed session with the subject as description (#310 class)", async () => {
     await seed(
       ApiResourceKind.session,
-      "ses-acme-1",
+      "ses_acme-1",
       SessionSchema,
-      newSession("ses-acme-1", "acme", "Fix the deploy pipeline"),
+      newSession("ses_acme-1", "acme", "Fix the deploy pipeline"),
     );
     await seed(
       ApiResourceKind.session,
-      "ses-other-1",
+      "ses_other-1",
       SessionSchema,
-      newSession("ses-other-1", "otherorg", "Unrelated thread"),
+      newSession("ses_other-1", "otherorg", "Unrelated thread"),
     );
     await seed(
       ApiResourceKind.agent,
-      "agt-acme-1",
+      "agt_acme-1",
       AgentSchema,
-      newAgent("agt-acme-1", "acme", "An agent in the same org"),
+      newAgent("agt_acme-1", "acme", "An agent in the same org"),
     );
 
     const result = await queryStore.search(
@@ -164,7 +162,7 @@ describe("write→index→query pins (Go's query_test.go)", () => {
 
     expect(result.totalCount).toBe(1);
     expect(result.results[0]?.kind).toBe(ApiResourceKind.session);
-    expect(result.results[0]?.id).toBe("ses-acme-1");
+    expect(result.results[0]?.id).toBe("ses_acme-1");
     expect(result.results[0]?.description).toBe("Fix the deploy pipeline");
     // List mode pins the score to exactly 1.0.
     expect(result.results[0]?.score).toBe(1);
@@ -173,15 +171,15 @@ describe("write→index→query pins (Go's query_test.go)", () => {
   it("ONLY non-searchable kinds answers emptiness in both modes (#440)", async () => {
     await seed(
       ApiResourceKind.session,
-      "ses-acme-1",
+      "ses_acme-1",
       SessionSchema,
-      newSession("ses-acme-1", "acme", "Fix the deploy pipeline"),
+      newSession("ses_acme-1", "acme", "Fix the deploy pipeline"),
     );
     await seed(
       ApiResourceKind.agent,
-      "agt-acme-1",
+      "agt_acme-1",
       AgentSchema,
-      newAgent("agt-acme-1", "acme", "An agent in the same org"),
+      newAgent("agt_acme-1", "acme", "An agent in the same org"),
     );
 
     for (const query of ["", "acme"]) {
@@ -219,9 +217,9 @@ describe("write→index→query pins (Go's query_test.go)", () => {
     );
     await seed(
       ApiResourceKind.session,
-      "ses-acme-1",
+      "ses_acme-1",
       SessionSchema,
-      newSession("ses-acme-1", "acme", "Fix the deploy pipeline"),
+      newSession("ses_acme-1", "acme", "Fix the deploy pipeline"),
     );
 
     // Executions index their name (no description field), so the
@@ -245,25 +243,25 @@ describe("scope filter (the org filter is strict)", () => {
   beforeEach(async () => {
     await seed(
       ApiResourceKind.session,
-      "ses-a-private",
+      "ses_a-private",
       SessionSchema,
-      newSession("ses-a-private", "org-a", "a private", {
+      newSession("ses_a-private", "org-a", "a private", {
         createdAtSeconds: 1_700_000_003,
       }),
     );
     await seed(
       ApiResourceKind.session,
-      "ses-b-private",
+      "ses_b-private",
       SessionSchema,
-      newSession("ses-b-private", "org-b", "b private", {
+      newSession("ses_b-private", "org-b", "b private", {
         createdAtSeconds: 1_700_000_002,
       }),
     );
     await seed(
       ApiResourceKind.session,
-      "ses-b-org",
+      "ses_b-org",
       SessionSchema,
-      newSession("ses-b-org", "org-b", "b org", {
+      newSession("ses_b-org", "org-b", "b org", {
         visibility: ApiResourceVisibility.visibility_org,
         createdAtSeconds: 1_700_000_001,
       }),
@@ -277,7 +275,7 @@ describe("scope filter (the org filter is strict)", () => {
     const result = await queryStore.search(
       criteria({ kinds: [ApiResourceKind.session], org: "org-a" }),
     );
-    expect(ids(result)).toEqual(["ses-a-private"]);
+    expect(ids(result)).toEqual(["ses_a-private"]);
   });
 
   it("another org's rows stay out of an org filter whatever their visibility", async () => {
@@ -285,7 +283,7 @@ describe("scope filter (the org filter is strict)", () => {
       criteria({ kinds: [ApiResourceKind.session], org: "org-b" }),
     );
     expect(new Set(ids(result))).toEqual(
-      new Set(["ses-b-private", "ses-b-org"]),
+      new Set(["ses_b-private", "ses_b-org"]),
     );
   });
 
@@ -294,9 +292,9 @@ describe("scope filter (the org filter is strict)", () => {
       criteria({ kinds: [ApiResourceKind.session] }),
     );
     expect(ids(result)).toEqual([
-      "ses-a-private",
-      "ses-b-private",
-      "ses-b-org",
+      "ses_a-private",
+      "ses_b-private",
+      "ses_b-org",
     ]);
   });
 });
@@ -345,27 +343,27 @@ describe("stale-index resilience", () => {
   it("skips a hit whose resource was deleted (warn, never fail)", async () => {
     await seed(
       ApiResourceKind.session,
-      "ses-1",
+      "ses_1",
       SessionSchema,
-      newSession("ses-1", "acme", "kept"),
+      newSession("ses_1", "acme", "kept"),
     );
     await seed(
       ApiResourceKind.session,
-      "ses-2",
+      "ses_2",
       SessionSchema,
-      newSession("ses-2", "acme", "stale"),
+      newSession("ses_2", "acme", "stale"),
     );
     // Delete the resource but leave its index row — the stale-row state.
-    await temp.store.deleteResource(ApiResourceKind.session, "ses-2");
+    await temp.store.deleteResource(ApiResourceKind.session, "ses_2");
 
     const result = await queryStore.search(
       criteria({ kinds: [ApiResourceKind.session], org: "acme" }),
     );
 
-    // Counts come from the index (still 2 — Go's shape); the page skips
+    // Counts come from the index (still 2); the page skips
     // the unloadable row.
     expect(result.totalCount).toBe(2);
-    expect(result.results.map((entry) => entry.id)).toEqual(["ses-1"]);
+    expect(result.results.map((entry) => entry.id)).toEqual(["ses_1"]);
   });
 });
 
@@ -373,9 +371,9 @@ describe("rebuildIndex", () => {
   it("repopulates a wiped index from the resources table", async () => {
     await seed(
       ApiResourceKind.session,
-      "ses-1",
+      "ses_1",
       SessionSchema,
-      newSession("ses-1", "acme", "rebuild me"),
+      newSession("ses_1", "acme", "rebuild me"),
     );
     await temp.store.clearSearchIndex();
 
@@ -391,6 +389,6 @@ describe("rebuildIndex", () => {
       criteria({ kinds: [ApiResourceKind.session], org: "acme" }),
     );
     expect(after.totalCount).toBe(1);
-    expect(after.results[0]?.id).toBe("ses-1");
+    expect(after.results[0]?.id).toBe("ses_1");
   });
 });

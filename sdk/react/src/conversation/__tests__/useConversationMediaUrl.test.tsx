@@ -19,14 +19,14 @@ describe("useConversationMediaUrl", () => {
   it("mints a fresh URL from the item's conversation address", async () => {
     const fn = vi.fn().mockResolvedValue({ url: "https://fresh/1" });
     const { result } = renderHook(
-      () => useConversationMediaUrl("ach-1", "15551234567", "wa:abc"),
+      () => useConversationMediaUrl("chn_1", "15551234567", "wa:abc"),
       { wrapper: wrapperFor(makeStigmer(fn)) },
     );
 
     await waitFor(() => expect(result.current.url).toBe("https://fresh/1"));
     expect(fn).toHaveBeenCalledTimes(1);
     const req = fn.mock.calls[0][0];
-    expect(req.channelId).toBe("ach-1");
+    expect(req.channelId).toBe("chn_1");
     expect(req.conversationKey).toBe("15551234567");
     expect(req.itemId).toBe("wa:abc");
   });
@@ -34,7 +34,7 @@ describe("useConversationMediaUrl", () => {
   it("stays idle when disabled", () => {
     const fn = vi.fn();
     const { result } = renderHook(
-      () => useConversationMediaUrl("ach-1", "15551234567", "wa:abc", { enabled: false }),
+      () => useConversationMediaUrl("chn_1", "15551234567", "wa:abc", { enabled: false }),
       { wrapper: wrapperFor(makeStigmer(fn)) },
     );
     expect(result.current.url).toBeNull();
@@ -44,7 +44,7 @@ describe("useConversationMediaUrl", () => {
   it("skips fetching while any address part is empty", () => {
     const fn = vi.fn();
     const { result } = renderHook(
-      () => useConversationMediaUrl("ach-1", "", "wa:abc"),
+      () => useConversationMediaUrl("chn_1", "", "wa:abc"),
       { wrapper: wrapperFor(makeStigmer(fn)) },
     );
     expect(result.current.url).toBeNull();
@@ -56,7 +56,7 @@ describe("useConversationMediaUrl", () => {
       .fn()
       .mockRejectedValue(new Error("no downloadable media at this timeline item"));
     const { result } = renderHook(
-      () => useConversationMediaUrl("ach-1", "15551234567", "wa:abc"),
+      () => useConversationMediaUrl("chn_1", "15551234567", "wa:abc"),
       { wrapper: wrapperFor(makeStigmer(fn)) },
     );
 

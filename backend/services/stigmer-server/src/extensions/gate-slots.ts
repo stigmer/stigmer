@@ -5,13 +5,12 @@
  * composition. Slot names are PROTECTED VOCABULARY (never renamed,
  * byte-stable), scoped `<chain-name>:<position>`.
  *
- * The first five slots sit at their Java-verified semantic positions. A
+ * The first five slots sit at fixed semantic positions. A
  * slot is declared only once its splice sites exist (a declared slot whose
  * steps can never run would be a silent no-op, the exact failure the
  * boot-time slot check exists to prevent). The session sandbox lane needs
  * no slot of its own — its capacity gates ride the two declared
- * agent-execution slots, whose positions coincide exactly with the Java
- * session gate.
+ * agent-execution slots, whose positions are exactly the session gate's.
  *
  * `agent-execution-submit-approval:gate` sits in the one core every
  * answer to a waiting tool use runs (domain/session/hitl/answer.ts): after
@@ -99,11 +98,10 @@
  * Slot semantics for gate authors (recorded facts, not mechanisms —
  * details in the ts-server guidelines' slot table):
  *   - Slots run wherever their chain runs, INCLUDING in-process
- *     invocations (the Java baseline: internal creations traverse the
- *     full nested handler chains). In-process callers carry
- *     `callerClass: "internal"` (the in-process identity semantics), where
- *     the Java edition propagated the original caller — gates keying on
- *     caller class must account for the `internal` arm.
+ *     invocations (internal creations traverse the full nested handler
+ *     chains). In-process callers carry `callerClass: "internal"` (the
+ *     in-process identity semantics) — gates keying on caller class must
+ *     account for the `internal` arm.
  *   - Slots do not honor chain-internal skip shortcuts (e.g. the
  *     lifecycle already-in-target idempotent flag): a gate runs on every
  *     traversal of its position and owns its own idempotency.

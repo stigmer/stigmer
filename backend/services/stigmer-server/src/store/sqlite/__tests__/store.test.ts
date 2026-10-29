@@ -1,7 +1,6 @@
 /**
- * Pins the sqlite driver's PHYSICAL contracts — the parts a Go-era
- * database on disk depends on and the contract suite deliberately cannot
- * express: the resources column layout (kind = the proto enum name,
+ * Pins the sqlite driver's PHYSICAL contracts — the parts a database on
+ * disk depends on and the contract suite deliberately cannot express: the resources column layout (kind = the proto enum name,
  * updated_at stamped), and the FTS5 probe (bm25 weights, porter
  * stemming, DELETE+INSERT upsert), kept permanently so a Node build that
  * drops FTS5 fails CI here, not at a user's laptop.
@@ -31,7 +30,7 @@ afterEach(async () => {
 });
 
 describe("physical layout", () => {
-  it("stores kind as the proto name and stamps updated_at (Go reads these exact columns)", async () => {
+  it("stores kind as the proto name and stamps updated_at (the physical columns every reader relies on)", async () => {
     const org = makeOrganization({ id: "acme" });
     await temp.store.saveResource(KIND, "acme", OrganizationSchema, org);
 
@@ -46,7 +45,7 @@ describe("physical layout", () => {
 });
 
 describe("search index (the permanent FTS5 probe)", () => {
-  it("upserts, ranks with Go's bm25 weights, stems with porter, and deletes", async () => {
+  it("upserts, ranks with the bm25 weights, stems with porter, and deletes", async () => {
     await temp.store.upsertSearchIndex(KIND, "acme", {
       name: "Billing Reconciler",
       description: "reconciles billing runs nightly",

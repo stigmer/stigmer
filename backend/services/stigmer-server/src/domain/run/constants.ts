@@ -1,12 +1,11 @@
 /**
- * Run byte-pinned wire copy — every string a client can observe
- * from this domain, copied character-for-character from the Go controller
- * (pkg/domain/agentexecution/controller). Coexistence rule: the Go server
- * is the behavioral reference; do not "improve" copy here (guidelines §2).
+ * Run byte-pinned wire copy — every string a client can observe from this
+ * domain. Existing error copy is wire contract; do not "improve" copy here
+ * (guidelines §2).
  */
 
 /**
- * create's engine-gate refusal (create.go engineUnavailableMessage).
+ * create's engine-gate refusal.
  * Pinned by the conformance engine-gate tests
  * (run.conformance.test.ts).
  */

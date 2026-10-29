@@ -78,7 +78,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       create:
         overrides.create ??
         vi.fn().mockResolvedValue({
-          metadata: { id: "ach_new", org: "acme", slug: "support-agent-slack" },
+          metadata: { id: "chn_new", org: "acme", slug: "support-agent-slack" },
         }),
       initiateInstall:
         overrides.initiateInstall ??
@@ -89,7 +89,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       completeInstall:
         overrides.completeInstall ??
         vi.fn().mockResolvedValue({
-          metadata: { id: "ach_new" },
+          metadata: { id: "chn_new" },
           status: {
             installState: 2,
             typeStatus: { case: "slack", value: { teamName: "Acme HQ" } },
@@ -224,7 +224,7 @@ describe("ConnectSlackDialog", () => {
 
   it("creates the channel, runs the install, and reports the workspace", async () => {
     const create = vi.fn().mockResolvedValue({
-      metadata: { id: "ach_new", org: "acme" },
+      metadata: { id: "chn_new", org: "acme" },
     });
     const onChannelsChanged = vi.fn();
     const client = createMockStigmer({ create });
@@ -291,7 +291,7 @@ describe("ConnectSlackDialog", () => {
 
   it("names vaults at connect time — create carries the chosen vaults", async () => {
     const create = vi.fn().mockResolvedValue({
-      metadata: { id: "ach_new", org: "acme" },
+      metadata: { id: "chn_new", org: "acme" },
     });
     const client = createMockStigmer({ create });
 
@@ -373,7 +373,7 @@ describe("ConnectSlackDialog", () => {
   it("warns before OAuth when the selected app already serves a workspace", async () => {
     const orgChannels = [
       {
-        metadata: { id: "ach_other" },
+        metadata: { id: "chn_other" },
         spec: { agentRef: { org: "acme", slug: "other-agent" } },
         status: {
           installState: 2, // installed
@@ -411,7 +411,7 @@ describe("ConnectSlackDialog", () => {
 
   it("defaults to the platform app and create carries no appRef", async () => {
     const create = vi.fn().mockResolvedValue({
-      metadata: { id: "ach_new", org: "acme" },
+      metadata: { id: "chn_new", org: "acme" },
     });
     const client = createMockStigmer({
       create,
@@ -436,7 +436,7 @@ describe("ConnectSlackDialog", () => {
 
   it("connecting as your own app carries its appRef on create", async () => {
     const create = vi.fn().mockResolvedValue({
-      metadata: { id: "ach_new", org: "acme" },
+      metadata: { id: "chn_new", org: "acme" },
     });
     const client = createMockStigmer({
       create,
@@ -494,7 +494,7 @@ describe("ConnectSlackDialog", () => {
     });
     const client = createMockStigmer({ create, initiateInstall });
     const channel = {
-      metadata: { id: "ach_1", org: "acme", slug: "support-slack", name: "Support Slack" },
+      metadata: { id: "chn_1", org: "acme", slug: "support-slack", name: "Support Slack" },
       spec: { enabled: true },
       status: { installState: 3 },
     } as never;
@@ -520,7 +520,7 @@ describe("ConnectSlackDialog", () => {
 
     await waitFor(() =>
       expect(initiateInstall).toHaveBeenCalledWith(
-        expect.objectContaining({ resourceId: "ach_1" }),
+        expect.objectContaining({ resourceId: "chn_1" }),
       ),
     );
     expect(create).not.toHaveBeenCalled();

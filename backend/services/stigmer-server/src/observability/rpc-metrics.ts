@@ -1,8 +1,8 @@
 /**
- * The gRPC request metrics the serving chain records — Java's
- * `stigmer.grpc.request.count` and `stigmer.grpc.request.duration`
- * (`GrpcRequestMetricsInterceptor`, cloud `backend/libs/java/grpc/
- * grpc-request`), names and labels verbatim: `rpc.service` (the
+ * The gRPC request metrics the serving chain records —
+ * `stigmer.grpc.request.count` and `stigmer.grpc.request.duration`, names
+ * and labels pinned because alert rules and a dashboard read them:
+ * `rpc.service` (the
  * fully-qualified service name), `rpc.method` (the bare method name) and
  * `rpc.grpc.status_code` (the gRPC status NAME — `OK`, `NOT_FOUND`,
  * `CANCELLED` with two Ls — never Connect's PascalCase enum key, which the
@@ -22,8 +22,8 @@
  * provider, so an instrument created before registration would stay a
  * no-op forever. Two facts a host must know:
  *
- *   - The counter is BORN AT ZERO by `initRpcMetrics` (Java's constructor
- *     `add(0)`, the heartbeat's premise): an attribute-less
+ *   - The counter is BORN AT ZERO by `initRpcMetrics` (an `add(0)`, the
+ *     heartbeat's premise): an attribute-less
  *     series exists from the first post-boot export, so the absence rule's
  *     ten-minute window measures the export pipeline, not an RPC-free lull
  *     after a restart. The histogram is deliberately NOT pre-registered —
@@ -47,7 +47,7 @@ import type { Counter, Histogram } from "@opentelemetry/api";
 
 const METER_NAME = "stigmer-server";
 
-/** `rpc.grpc.status_code` values: the gRPC status names, Java's `Status.Code.name()`. */
+/** `rpc.grpc.status_code` values: the canonical gRPC status names. */
 export type GrpcStatusName =
   | "OK"
   | "CANCELLED"
@@ -73,7 +73,8 @@ export const GRPC_STATUS_OK: GrpcStatusName = "OK";
  * Connect's error code → the gRPC status name. Connect's `Code` enum has no
  * OK member (success is the absence of an error), so the table covers the
  * sixteen error codes and `GRPC_STATUS_OK` names success. Byte-exact
- * against grpc-java's `Status.Code`; the one spelling trap is CANCELLED.
+ * against the canonical gRPC status names; the one spelling trap is
+ * CANCELLED.
  */
 export function grpcStatusName(code: Code): GrpcStatusName {
   switch (code) {
@@ -150,7 +151,7 @@ async function createInstruments(): Promise<RpcInstruments> {
 /**
  * Fire-and-forget record of one finished RPC — sync so the interceptor
  * never awaits instrument resolution on the request path. Both
- * instruments take the same attribute set, Java's single `close` record.
+ * instruments take the same attribute set, recorded once at close.
  */
 export function recordRpc(
   service: string,
@@ -170,8 +171,8 @@ export function recordRpc(
 }
 
 /**
- * Births the count series at zero, attribute-less (Java's constructor
- * posture — no fake `rpc.*` labels on a point that counts nothing).
+ * Births the count series at zero, attribute-less (no fake `rpc.*`
+ * labels on a point that counts nothing).
  * Awaited by the boot before the port binds so a boot-time provider
  * exports the series before any traffic.
  */

@@ -236,8 +236,7 @@ const serverPkg = readPackageJson(serverRoot);
 // The ldflags equivalent: release lanes export these env vars and
 // the defines stamp them into their fallback chains
 // (src/domain/platform/version.ts, boot/config.ts's bundled GitHub OAuth
-// defaults). Unset keeps each source default — exactly Go's unstamped
-// build.
+// defaults). Unset keeps each source default (an unstamped build).
 const defineFromEnv = (identifier, envName) => ({
   [identifier]:
     process.env[envName] !== undefined && process.env[envName] !== ""
@@ -641,9 +640,9 @@ function buildPlatformPackage(platform, destDir) {
  * makes `node main.js` run it as CJS.
  *
  * NOTE: there is intentionally NO "bin". The CLI daemon spawns
- * `node <entry>` directly, and a PATH-visible `stigmer-server` bin would
- * shadow the Go binary in the rollback ladder's `which` step — the exact
- * confusion the coexistence period must avoid.
+ * `node <entry>` directly, so the package needs none, and a PATH-visible
+ * `stigmer-server` would shadow any other `stigmer-server` the PATH
+ * holds.
  *
  * Dependency versions come from the installed tree (the lockfile's truth),
  * so the published artifact runs exactly what was tested here.
@@ -842,9 +841,8 @@ function emitNpmPackages() {
     `# @stigmer/server-slim\n\n` +
       `Self-contained build of the Stigmer TypeScript control plane (\`backend/services/stigmer-server\`). ` +
       `The [stigmer CLI](https://www.npmjs.com/package/@stigmer/cli) installs this package on demand and ` +
-      `launches \`node node_modules/@stigmer/server-slim/main.js\` as the local stack's server — same port, ` +
-      `same database, same behavior as the Go \`stigmer-server\` it replaces (parity-gated by the repo's ` +
-      `test/conformance suite). You should not need to depend on this package directly.\n`,
+      `launches \`node node_modules/@stigmer/server-slim/main.js\` as the local stack's server (held to the ` +
+      `repo's test/conformance suite). You should not need to depend on this package directly.\n`,
   );
 
   for (const platform of Object.keys(CORE_BRIDGE_TRIPLES)) {
