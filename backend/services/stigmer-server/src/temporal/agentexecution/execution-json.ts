@@ -1,122 +1,46 @@
 /**
- * Decodes the run status JSON that crosses Temporal, tolerating names the
- * current contract no longer knows.
+ * Decodes the run status JSON that crosses Temporal: strictly, with one
+ * tolerance, a field name its message reserves is dropped.
  *
  * An activity's input is recorded when the workflow schedules it, so a
  * status write in flight across a deploy (a retry of the workflow's own
- * write) is decoded from JSON an older server wrote. Two kinds of old name
- * reach the decoder:
- *
- * * - Retired names. The rename of executions to runs (October 2026)
- *   changed field JSON names (`supersedesExecutionId` became
- *   `supersedesRunId`), enum value
- *   names (`EXECUTION_COMPLETED` became `RUN_COMPLETED`) and the kind
- *   string (`AgentExecution` became `AgentRun`) without moving a field or
- *   value number; the rename of the agent run to a run, days later,
- *   changed the kind string again (`AgentRun` became `Run`) and the kind's
- *   enum value name (`agent_run` became `run`). The tables below map each
- *   old name straight to its current one, one hop whichever rename wrote
- *   it, for the messages that cross Temporal: Run and RunStatus with
- *   everything nested in them. They were computed
- *   from those renames by pairing the old and new descriptor sets element
- *   by element, never typed by hand. A rewrite is guided by the schema, so a
- *   name is only rewritten where the old contract had it: a free-form
- *   string or a Struct value is never touched. The tables go once no
- *   history recorded before that release can still run, the way
- *   deprecatePatch ends a patched branch.
- * - Reserved names. A release that removes a field reserves its name, and
- *   a status write recorded before the deploy still carries it. A field
- *   name the message reserves is dropped, as its data left the contract
- *   with it, under its retired spelling too (the tables keep a reserved
- *   field's rename for that); any other unknown name is refused, so a
- *   status update stays strict. A name reachable only inside a reserved
- *   field leaves the tables with it.
- *
- * Bundle-safe: imported by the workflow.
+ * write) is decoded by the release after the one that wrote it. A release
+ * that removes a field reserves its name, and such a write still carries
+ * it: the field is dropped, under its proto or its JSON name, in the
+ * status and in every message nested in it, as its data left the contract
+ * with it. Any other unknown name, of a field or of an enum value, is
+ * refused, so a status update stays strict.
  */
 import {
   fromJson,
-  type DescEnum,
   type DescField,
   type DescMessage,
   type JsonObject,
   type JsonValue,
   type MessageShape,
 } from "@bufbuild/protobuf";
-export const RETIRED_FIELD_NAMES: ReadonlyMap<string, string> = new Map([
-  ["supersedesExecutionId", "supersedesRunId"],
-  ["supersedes_execution_id", "supersedes_run_id"],
-]);
 
-export const RETIRED_ENUM_VALUE_NAMES: ReadonlyMap<string, string> = new Map([
-  ["EXECUTION_CANCELLED", "RUN_CANCELLED"],
-  ["EXECUTION_COMPLETED", "RUN_COMPLETED"],
-  ["EXECUTION_FAILED", "RUN_FAILED"],
-  ["EXECUTION_IN_PROGRESS", "RUN_IN_PROGRESS"],
-  ["EXECUTION_PAUSED", "RUN_PAUSED"],
-  ["EXECUTION_PENDING", "RUN_PENDING"],
-  ["EXECUTION_PHASE_UNSPECIFIED", "RUN_PHASE_UNSPECIFIED"],
-  ["EXECUTION_TERMINATED", "RUN_TERMINATED"],
-  ["EXECUTION_WAITING_FOR_APPROVAL", "RUN_WAITING_FOR_APPROVAL"],
-  ["agent_execution", "run"],
-  ["agent_run", "run"],
-]);
-
-/** The kind strings a run's `kind` field carried before the renames. */
-const RETIRED_KIND_NAMES: ReadonlyMap<string, string> = new Map([
-  ["AgentExecution", "Run"],
-  ["AgentRun", "Run"],
-]);
-
-function retiredEnumValue(value: JsonValue, desc: DescEnum): JsonValue {
-  if (typeof value !== "string" || desc.values.some((v) => v.name === value)) {
-    return value;
-  }
-  const renamed = RETIRED_ENUM_VALUE_NAMES.get(value);
-  return renamed !== undefined && desc.values.some((v) => v.name === renamed)
-    ? renamed
-    : value;
+/** A status update's payload: reserved names dropped, anything else unknown refused. */
+export function decodeRunStatusJson<Desc extends DescMessage>(
+  schema: Desc,
+  raw: JsonValue,
+): MessageShape<Desc> {
+  return fromJson(schema, withoutReserved(raw, schema));
 }
 
-function retiredMessage(value: JsonValue, desc: DescMessage): JsonValue {
+/** A message's JSON without the field names it reserves, guided by the schema. */
+function withoutReserved(value: JsonValue, desc: DescMessage): JsonValue {
   if (!isJsonObject(value) || desc.typeName.startsWith("google.protobuf.")) {
     return value;
   }
-  const out: JsonObject = {};
-  const spelledBy = new Map<string, string>();
   const reserved = reservedNamesOf(desc);
+  const out: JsonObject = {};
   for (const [key, raw] of Object.entries(value)) {
-    // A reserved name, under its current spelling or a retired one.
-    if (reserved.has(key) || reserved.has(RETIRED_FIELD_NAMES.get(key) ?? "")) {
+    if (reserved.has(key)) {
       continue;
     }
-    let field = desc.fields.find((f) => f.jsonName === key || f.name === key);
-    let name = key;
-    if (field === undefined) {
-      const renamed = RETIRED_FIELD_NAMES.get(key);
-      field =
-        renamed === undefined
-          ? undefined
-          : desc.fields.find((f) => f.jsonName === renamed || f.name === renamed);
-      if (field !== undefined) {
-        name = field.jsonName;
-      }
-    }
-    const earlier = spelledBy.get(name);
-    if (earlier !== undefined) {
-      // One field under its retired and its current name: refused, as the
-      // strict decode refuses a field set twice, rather than one silently
-      // winning by its place in the payload.
-      throw new Error(`${desc.typeName} sets the field ${name} twice, as ${earlier} and as ${key}`);
-    }
-    spelledBy.set(name, key);
-    out[name] = field === undefined || raw === undefined ? raw : retiredField(raw, field);
-  }
-  // Only a message whose contract declares a string `kind` carries a kind
-  // string (a run's own `kind`); a `kind` elsewhere is not one.
-  const kindField = desc.fields.find((f) => f.name === "kind");
-  if (kindField?.fieldKind === "scalar" && typeof out.kind === "string") {
-    out.kind = RETIRED_KIND_NAMES.get(out.kind) ?? out.kind;
+    const field = desc.fields.find((f) => f.jsonName === key || f.name === key);
+    out[key] = field === undefined || raw === undefined ? raw : fieldWithoutReserved(raw, field);
   }
   return out;
 }
@@ -131,53 +55,23 @@ function reservedNamesOf(desc: DescMessage): ReadonlySet<string> {
   return names;
 }
 
-/** One field's value, or each element of a list or map field. */
-function retiredField(raw: JsonValue, field: DescField): JsonValue {
+/** One field's value, or each element of a list or map field; only a message is walked. */
+function fieldWithoutReserved(raw: JsonValue, field: DescField): JsonValue {
+  const message = field.message;
+  if (message === undefined) {
+    return raw;
+  }
   if (field.fieldKind === "list" && Array.isArray(raw)) {
-    return raw.map((item) => retiredElement(item, field));
+    return raw.map((item) => withoutReserved(item, message));
   }
   if (field.fieldKind === "map" && isJsonObject(raw)) {
     return Object.fromEntries(
-      Object.entries(raw).map(([key, item]) => [key, retiredElement(item, field)]),
+      Object.entries(raw).map(([key, item]) => [key, withoutReserved(item, message)]),
     );
   }
-  return retiredElement(raw, field);
-}
-
-/** A singular value of a field: an enum name or a message is renamed, a scalar kept. */
-function retiredElement(raw: JsonValue, field: DescField): JsonValue {
-  if (field.enum !== undefined) {
-    return retiredEnumValue(raw, field.enum);
-  }
-  if (field.message !== undefined) {
-    return retiredMessage(raw, field.message);
-  }
-  return raw;
+  return withoutReserved(raw, message);
 }
 
 function isJsonObject(value: JsonValue): value is JsonObject {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-/**
- * The current name of an enum value name a run's JSON may still carry: a
- * retired name maps to its successor, any other name is returned as given.
- * For readers that look a phase up by name outside a schema-guided decode
- * (the runner activity's result, an untyped record).
- */
-export function currentRunEnumValueName(name: string): string {
-  return RETIRED_ENUM_VALUE_NAMES.get(name) ?? name;
-}
-
-/** Rewrites every retired name in run JSON to its current name, guided by the schema. */
-export function renameRetiredRunJson(desc: DescMessage, raw: JsonValue): JsonValue {
-  return retiredMessage(raw, desc);
-}
-
-/** A status update's payload: retired names renamed, reserved names dropped, anything else unknown refused. */
-export function decodeRunStatusJson<Desc extends DescMessage>(
-  schema: Desc,
-  raw: JsonValue,
-): MessageShape<Desc> {
-  return fromJson(schema, renameRetiredRunJson(schema, raw));
 }

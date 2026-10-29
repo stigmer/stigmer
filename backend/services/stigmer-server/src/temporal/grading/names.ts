@@ -51,13 +51,6 @@ export interface GradingActivities {
 }
 
 /**
- * The patch marker of the AI judge's branch in the grading workflow: an
- * execution started before the judge existed replays without it and ends
- * after run health, as it always did.
- */
-export const GRADE_RUN_JUDGE_PATCH = "grade-run-judge";
-
-/**
  * Decides whether the run's agent has AI grading on and the run is in its
  * sample, sets the grade's cap aside, and records the run as pending.
  */

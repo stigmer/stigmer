@@ -29,14 +29,6 @@ export const TICK_WORKFLOW_TYPE = "schedule/tick";
  */
 export const TICK_ID_PREFIX = `${TICK_WORKFLOW_TYPE}/`;
 
-/**
- * The prefix of the throwaway fire-time probes the retired Java write path
- * created (Go probeIDPrefix). No edition creates probes now; the reconciler
- * still skips the prefix so a leftover probe in a long-lived namespace is
- * never treated as a tick orphan.
- */
-export const PROBE_ID_PREFIX = "schedule/probe/";
-
 /** The Temporal Schedule artifact id for a routine's id (a kept `sch_` id included). */
 export function artifactId(routineResourceId: string): string {
   return TICK_ID_PREFIX + routineResourceId;

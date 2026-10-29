@@ -2,24 +2,17 @@
  * Server-side activity tests — pins the contracts of activities.ts:
  *
  *   - UpdateExecutionStatus owns only the payload boundary: it decodes
- *     the proto-JSON status into a typed UpdateStatus input (a status a
- *     runner wrote before the run rename, with retired names, included;
- *     any other unknown name refused) and hands it
+ *     the proto-JSON status into a typed UpdateStatus input (a name the
+ *     contract does not have refused) and hands it
  *     to the in-process status edge (stigmer#979) — the lane's answer,
  *     success or ConnectError, IS the activity's outcome. The lane itself
  *     (transport, interceptors, handler, merge, hooks) is
  *     pinned end to end in own-behalf-status-writes.test.ts;
- *   - LoadAgentExecution returns proto-JSON that survives the payload
- *     boundary INCLUDING int64 fields (the bigint rule: a Message
- *     instance would crash the default converter);
  *   - CountOpenGates counts the turn's asks its session's log holds open
  *     (not one an answer or a result closed, not another run's, never a
  *     change set awaiting review), reads the run's own session when the
  *     input carried none, counts none for a run in no session, and fails
  *     on a store fault;
- *   - the retired DeleteExecutionContext name stays registered for runs
- *     whose history still calls it, and its body does nothing: a run
- *     stores no copy of its values, so there is nothing to delete;
  *   - CloseFileReview keeps the previous turn's undecided edits (a
  *     next_turn `decided` event in the log), the turn before this run's
  *     own message and not the newest, once; a first turn, a run whose
@@ -30,7 +23,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { create, fromJson, toJson } from "@bufbuild/protobuf";
+import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -60,8 +53,6 @@ import type { ExecutionStatusWriter } from "../activities.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
-  LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
-  RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "../names.js";
@@ -122,29 +113,6 @@ function newFixture() {
   };
 }
 
-async function saveExecution(
-  store: Store,
-  id: string,
-  phase = RunPhase.RUN_IN_PROGRESS,
-): Promise<void> {
-  await store.saveResource(
-    ApiResourceKind.run,
-    id,
-    RunSchema,
-    create(RunSchema, {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: "Run",
-      metadata: { id, name: "test-exec", org: "test-org" },
-      spec: { target: { case: "sessionId", value: "ses_1" } },
-      status: {
-        agentId: "agt_1",
-        phase,
-        streamingUsage: { totalTokens: 1234n, estimatedCostUsd: 0.05 },
-      },
-    }),
-  );
-}
-
 describe("UpdateExecutionStatus activity", () => {
   it("decodes the proto-JSON status into a typed UpdateStatus input for the in-process edge", async () => {
     const { activities, writes } = newFixture();
@@ -183,28 +151,13 @@ describe("UpdateExecutionStatus activity", () => {
     expect(writes).toHaveLength(0);
   });
 
-  it("decodes a status recorded before the run rename, its retired names read as the current ones", async () => {
-    const { activities, writes } = newFixture();
-    // The phase the user-cancel replay history records for this activity's
-    // input, written before agent executions became runs.
-    await (
-      activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
-        id: string,
-        status: JsonValue,
-      ) => Promise<void>
-    )("aex_recorded", { phase: "EXECUTION_CANCELLED" });
-
-    expect(writes).toHaveLength(1);
-    expect(writes[0]?.status?.phase).toBe(RunPhase.RUN_CANCELLED);
-  });
-
-  it("still refuses a name that is neither current nor retired, before the edge is reached", async () => {
+  it("refuses a name the contract does not have, before the edge is reached", async () => {
     const { activities, writes } = newFixture();
     const update = activities[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as (
       id: string,
       status: JsonValue,
     ) => Promise<void>;
-    await expect(update("aex_unknown_value", { phase: "EXECUTION_EXPLODED" })).rejects.toThrow();
+    await expect(update("aex_unknown_value", { phase: "EXECUTION_CANCELLED" })).rejects.toThrow();
     await expect(update("aex_unknown_field", { executionPhase: "RUN_FAILED" })).rejects.toThrow();
     expect(writes).toHaveLength(0);
   });
@@ -222,37 +175,6 @@ describe("UpdateExecutionStatus activity", () => {
         ) => Promise<void>
       )("aex_missing", { phase: "RUN_FAILED" }),
     ).rejects.toThrow(/not.?found/i);
-  });
-});
-
-describe("LoadAgentExecution activity", () => {
-  it("returns proto-JSON whose int64 fields survive the payload boundary", async () => {
-    const { store, activities } = newFixture();
-    await saveExecution(store, "aex_load_1");
-
-    const raw = (await (
-      activities[LOAD_AGENT_EXECUTION_ACTIVITY_NAME] as (
-        id: string,
-      ) => Promise<JsonValue>
-    )("aex_load_1")) as Record<string, JsonValue>;
-
-    // The wire form must be plain JSON — bigint would crash the default
-    // payload converter's JSON.stringify.
-    expect(() => JSON.stringify(raw)).not.toThrow();
-    const parsed = fromJson(RunSchema, raw);
-    expect(parsed.metadata?.id).toBe("aex_load_1");
-    expect(parsed.status?.streamingUsage?.totalTokens).toBe(1234n);
-  });
-
-  it("throws on an unknown execution", async () => {
-    const { activities } = newFixture();
-    await expect(
-      (
-        activities[LOAD_AGENT_EXECUTION_ACTIVITY_NAME] as (
-          id: string,
-        ) => Promise<JsonValue>
-      )("aex_absent"),
-    ).rejects.toThrow();
   });
 });
 
@@ -372,25 +294,6 @@ describe("CountOpenGates activity", () => {
     vi.spyOn(store.sessionEvents, "openGates").mockRejectedValueOnce(new Error("disk"));
     await expect(count("run_a", SESSION)).rejects.toThrow("disk");
     await expect(count("run_absent", "")).rejects.toThrow();
-  });
-});
-
-describe("the retired DeleteExecutionContext activity", () => {
-  it("stays registered under its byte-pinned name for runs whose history calls it", () => {
-    expect(RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME).toBe("DeleteExecutionContext");
-    const { activities } = newFixture();
-    expect(activities[RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]).toBeTypeOf("function");
-  });
-
-  it("does nothing: no status write and no store change, however often it is called", async () => {
-    const { store, activities, writes } = newFixture();
-    const remove = activities[RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME] as (
-      executionId: string,
-    ) => Promise<void>;
-    await expect(remove("run_old")).resolves.toBeUndefined();
-    await expect(remove("run_old")).resolves.toBeUndefined();
-    expect(writes).toEqual([]);
-    expect(await store.listResources(ApiResourceKind.run)).toEqual([]);
   });
 });
 

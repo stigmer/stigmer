@@ -15,8 +15,6 @@
  */
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { currentRunEnumValueName } from "./execution-json.js";
-
 /** Go activities.RunnerActivityResult (map[string]interface{}). */
 export type RunnerActivityResult = Record<string, unknown>;
 
@@ -32,12 +30,10 @@ export function getPhaseFromResult(
   }
   const phase = result["phase"];
   if (typeof phase === "string") {
-    // Proto-JSON uses string enum names; the generated TS enum keys ARE
-    // the proto value names, so this lookup is Go's ExecutionPhase_value
-    // map exactly. A result recorded before the run rename names the
-    // phase by its retired name (EXECUTION_COMPLETED), which the
-    // retired-names table reads as its current name (RUN_COMPLETED).
-    const value = (RunPhase as Record<string, unknown>)[currentRunEnumValueName(phase)];
+    // Proto-JSON uses string enum names, and the generated TS enum keys
+    // are the proto value names, so the phase is read by its name; a name
+    // the enum does not have reads as UNSPECIFIED.
+    const value = (RunPhase as Record<string, unknown>)[phase];
     if (typeof value === "number") {
       return value as RunPhase;
     }
