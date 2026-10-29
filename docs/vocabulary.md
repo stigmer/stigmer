@@ -1350,7 +1350,7 @@ those tokens get.
   Organization's child organizations. Each token it vouches for is a **bound
   credential**: it works in the child organization `external_id_claim` names, or
   in the issuer's own Organization.
-- **Do not say**: `IdentityProvider` or "Identity Provider" for the kind; write
+- **Do not say**: `IdentityProvider` or `Identity Provider` for the kind; write
   Federation Issuer.
 
 ---
@@ -1701,7 +1701,7 @@ message, start a routine or open a chat link.
   Temporal task queues (`agent_execution_stigmer`) and operator settings such as
   `TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE` keep that word. Do not rename
   them in docs; say "run" for what the user started.
-- **Do not say**: `AgentExecution`, "agent execution" or `Agent Run`; write run.
+- **Do not say**: `AgentExecution`, `agent execution` or `Agent Run`; write run.
 
 ---
 
