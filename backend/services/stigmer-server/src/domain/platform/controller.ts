@@ -137,6 +137,13 @@ export interface PlatformControllerDeps {
   readonly runnerBootstrapTemporalAddress: string;
   readonly temporalNamespace: string;
   /**
+   * The MCP bridge published to the same runners, "" for none
+   * (config.runnerBootstrapMcpBridgeEndpoint; stigmer#1374). Like the
+   * coordinates, it describes this deployment and is answered to every
+   * caller.
+   */
+  readonly runnerBootstrapMcpBridgeEndpoint: string;
+  /**
    * Mints the execution-scoped tokens getRunnerScopedToken hands to
    * runners for the values fetch (oss#535). Keyless
    * yields the presence-based "not minted" response. (Go also tolerates a
@@ -396,6 +403,7 @@ async function getRunnerBootstrapConfig(
   const output = create(GetRunnerBootstrapConfigOutputSchema, {
     temporalAddress: deps.runnerBootstrapTemporalAddress,
     temporalNamespace: deps.temporalNamespace,
+    mcpBridgeEndpoint: deps.runnerBootstrapMcpBridgeEndpoint,
   });
   const bootstrapCredentials =
     deps.runnerAuthService.bootstrapCredentials?.bind(deps.runnerAuthService);

@@ -1,11 +1,11 @@
 /**
  * The child entry `__tests__/harness-boot-order.test.ts` spawns: one FRESH
- * runner process that does exactly what the composition roots do before
- * bootstrap — import `harness-adapters.js`, `harness/registry.js` and
- * `agent-host/hosting.js`, host the table, then `bootHarnesses` on a
- * proxy-mode config — and reports how it went. The test starts it with
- * `__test-utils__/refuse-engine-sdks.ts`, which makes importing an engine's
- * SDK in this process fail.
+ * runner process that does exactly what the composition roots do once their
+ * bootstrap has resolved — import `harness-adapters.js`,
+ * `harness/registry.js` and `agent-host/hosting.js`, host the table, then
+ * `bootHarnesses` on a proxy-mode config — and reports how it went. The
+ * test starts it with `__test-utils__/refuse-engine-sdks.ts`, which makes
+ * importing an engine's SDK in this process fail.
  *
  * Arms (argv[2]):
  *  - `boot`: host the table and boot it. Success means every harness was

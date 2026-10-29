@@ -110,7 +110,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "i.stigmer.platform.v1.LicenseClaimsR\006cla" +
       "ims\022\025\n\006key_id\030\003 \001(\tR\005keyId\0229\n\nchecked_at" +
       "\030\004 \001(\0132\032.google.protobuf.TimestampR\tchec" +
-      "kedAt\"\037\n\035GetRunnerBootstrapConfigInput\"\266" +
+      "kedAt\"\037\n\035GetRunnerBootstrapConfigInput\"\346" +
       "\004\n\036GetRunnerBootstrapConfigOutput\0222\n\020tem" +
       "poral_address\030\001 \001(\tB\007\272H\004r\002\020\001R\017temporalAd" +
       "dress\0226\n\022temporal_namespace\030\002 \001(\tB\007\272H\004r\002" +
@@ -125,39 +125,41 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "econdary_key\030\010 \001(\tR\035payloadEncryptionSec" +
       "ondaryKey\022L\n#payload_encryption_secondar" +
       "y_key_id\030\t \001(\tR\037payloadEncryptionSeconda" +
-      "ryKeyId\"\257\001\n\031GetRunnerScopedTokenInput\022\027\n" +
-      "\006run_id\030\001 \001(\tH\000R\005runId\022@\n\007renewal\030\004 \001(\0132" +
-      "$.ai.stigmer.platform.v1.TokenRenewalH\000R" +
-      "\007renewalB\016\n\005scope\022\005\272H\002\010\001J\004\010\002\020\003J\004\010\003\020\004R\017wo" +
-      "rkflow_run_idR\npool_claim\"\016\n\014TokenRenewa" +
-      "l\"\231\001\n\032GetRunnerScopedTokenOutput\022.\n\023runn" +
-      "er_scoped_token\030\001 \001(\tR\021runnerScopedToken" +
-      "\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022,\n\022expir" +
-      "es_in_seconds\030\003 \001(\005R\020expiresInSeconds*S\n" +
-      "\rServerEdition\022\036\n\032server_edition_unspeci" +
-      "fied\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\002\022\016\n\nenterprise" +
-      "\020\0032\321\005\n\027PlatformQueryController\022n\n\rgetSer" +
-      "verInfo\022*.ai.stigmer.platform.v1.GetServ" +
-      "erInfoInput\032+.ai.stigmer.platform.v1.Get" +
-      "ServerInfoOutput\"\004\310\270\030\001\022w\n\020getLicenseStat" +
-      "us\022-.ai.stigmer.platform.v1.GetLicenseSt" +
-      "atusInput\032..ai.stigmer.platform.v1.GetLi" +
-      "censeStatusOutput\"\004\320\270\030\001\022\264\001\n\021getModelRead" +
-      "iness\022..ai.stigmer.platform.v1.GetModelR" +
-      "eadinessInput\032/.ai.stigmer.platform.v1.G" +
-      "etModelReadinessOutput\">\302\270\030:\010\001\020\036\"\003org*/u" +
-      "nauthorized to view this organization\'s " +
-      "models\022\217\001\n\030getRunnerBootstrapConfig\0225.ai" +
-      ".stigmer.platform.v1.GetRunnerBootstrapC" +
-      "onfigInput\0326.ai.stigmer.platform.v1.GetR" +
-      "unnerBootstrapConfigOutput\"\004\320\270\030\001\022\203\001\n\024get" +
-      "RunnerScopedToken\0221.ai.stigmer.platform." +
-      "v1.GetRunnerScopedTokenInput\0322.ai.stigme" +
-      "r.platform.v1.GetRunnerScopedTokenOutput" +
-      "\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002\026Ai." +
-      "Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Platfor" +
-      "m\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMetadat" +
-      "a\352\002\031Ai::Stigmer::Platform::V1b\006proto3"
+      "ryKeyId\022.\n\023mcp_bridge_endpoint\030\n \001(\tR\021mc" +
+      "pBridgeEndpoint\"\257\001\n\031GetRunnerScopedToken" +
+      "Input\022\027\n\006run_id\030\001 \001(\tH\000R\005runId\022@\n\007renewa" +
+      "l\030\004 \001(\0132$.ai.stigmer.platform.v1.TokenRe" +
+      "newalH\000R\007renewalB\016\n\005scope\022\005\272H\002\010\001J\004\010\002\020\003J\004" +
+      "\010\003\020\004R\017workflow_run_idR\npool_claim\"\016\n\014Tok" +
+      "enRenewal\"\231\001\n\032GetRunnerScopedTokenOutput" +
+      "\022.\n\023runner_scoped_token\030\001 \001(\tR\021runnerSco" +
+      "pedToken\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022" +
+      ",\n\022expires_in_seconds\030\003 \001(\005R\020expiresInSe" +
+      "conds*S\n\rServerEdition\022\036\n\032server_edition" +
+      "_unspecified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\002\022\016\n\nen" +
+      "terprise\020\0032\321\005\n\027PlatformQueryController\022n" +
+      "\n\rgetServerInfo\022*.ai.stigmer.platform.v1" +
+      ".GetServerInfoInput\032+.ai.stigmer.platfor" +
+      "m.v1.GetServerInfoOutput\"\004\310\270\030\001\022w\n\020getLic" +
+      "enseStatus\022-.ai.stigmer.platform.v1.GetL" +
+      "icenseStatusInput\032..ai.stigmer.platform." +
+      "v1.GetLicenseStatusOutput\"\004\320\270\030\001\022\264\001\n\021getM" +
+      "odelReadiness\022..ai.stigmer.platform.v1.G" +
+      "etModelReadinessInput\032/.ai.stigmer.platf" +
+      "orm.v1.GetModelReadinessOutput\">\302\270\030:\010\001\020\036" +
+      "\"\003org*/unauthorized to view this organiz" +
+      "ation\'s models\022\217\001\n\030getRunnerBootstrapCon" +
+      "fig\0225.ai.stigmer.platform.v1.GetRunnerBo" +
+      "otstrapConfigInput\0326.ai.stigmer.platform" +
+      ".v1.GetRunnerBootstrapConfigOutput\"\004\320\270\030\001" +
+      "\022\203\001\n\024getRunnerScopedToken\0221.ai.stigmer.p" +
+      "latform.v1.GetRunnerScopedTokenInput\0322.a" +
+      "i.stigmer.platform.v1.GetRunnerScopedTok" +
+      "enOutput\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003A" +
+      "SP\252\002\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer" +
+      "\\Platform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GP" +
+      "BMetadata\352\002\031Ai::Stigmer::Platform::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -209,7 +211,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_descriptor,
-        new java.lang.String[] { "TemporalAddress", "TemporalNamespace", "RunnerAccessToken", "TokenType", "RunnerAccessTokenExpiresInSeconds", "PayloadEncryptionKey", "PayloadEncryptionKeyId", "PayloadEncryptionSecondaryKey", "PayloadEncryptionSecondaryKeyId", });
+        new java.lang.String[] { "TemporalAddress", "TemporalNamespace", "RunnerAccessToken", "TokenType", "RunnerAccessTokenExpiresInSeconds", "PayloadEncryptionKey", "PayloadEncryptionKeyId", "PayloadEncryptionSecondaryKey", "PayloadEncryptionSecondaryKeyId", "McpBridgeEndpoint", });
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_descriptor =
       getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_fieldAccessorTable = new

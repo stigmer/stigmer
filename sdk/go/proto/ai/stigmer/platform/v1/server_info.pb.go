@@ -479,8 +479,8 @@ func (*GetRunnerBootstrapConfigInput) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{5}
 }
 
-// Everything an embedded runner needs to bootstrap: Temporal coordinates plus
-// its own minted access token.
+// Everything an embedded runner needs to bootstrap: Temporal coordinates, its
+// own minted access token and, where the server has one, its MCP bridge.
 //
 // The address is the one reachable by the caller: in OSS it is the server's
 // own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -528,8 +528,16 @@ type GetRunnerBootstrapConfigOutput struct {
 	// Key id of payload_encryption_secondary_key. Present exactly when the
 	// secondary key is present.
 	PayloadEncryptionSecondaryKeyId string `protobuf:"bytes,9,opt,name=payload_encryption_secondary_key_id,json=payloadEncryptionSecondaryKeyId,proto3" json:"payload_encryption_secondary_key_id,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	// Address of the MCP bridge that serves the runner's built-in Stigmer
+	// tools (memory, channel messaging, conversation participation).
+	//
+	// Empty when the server offers no bridge: the runner then serves those tools
+	// from a local `stigmer mcp-server` process, as it does when no server tells
+	// it otherwise. A runner configured with its own bridge address
+	// (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+	McpBridgeEndpoint string `protobuf:"bytes,10,opt,name=mcp_bridge_endpoint,json=mcpBridgeEndpoint,proto3" json:"mcp_bridge_endpoint,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetRunnerBootstrapConfigOutput) Reset() {
@@ -621,6 +629,13 @@ func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionSecondaryKey() stri
 func (x *GetRunnerBootstrapConfigOutput) GetPayloadEncryptionSecondaryKeyId() string {
 	if x != nil {
 		return x.PayloadEncryptionSecondaryKeyId
+	}
+	return ""
+}
+
+func (x *GetRunnerBootstrapConfigOutput) GetMcpBridgeEndpoint() string {
+	if x != nil {
+		return x.McpBridgeEndpoint
 	}
 	return ""
 }
@@ -861,7 +876,7 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x06key_id\x18\x03 \x01(\tR\x05keyId\x129\n" +
 	"\n" +
 	"checked_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\"\x1f\n" +
-	"\x1dGetRunnerBootstrapConfigInput\"\xb6\x04\n" +
+	"\x1dGetRunnerBootstrapConfigInput\"\xe6\x04\n" +
 	"\x1eGetRunnerBootstrapConfigOutput\x122\n" +
 	"\x10temporal_address\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0ftemporalAddress\x126\n" +
 	"\x12temporal_namespace\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x11temporalNamespace\x12.\n" +
@@ -872,7 +887,9 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x129\n" +
 	"\x19payload_encryption_key_id\x18\a \x01(\tR\x16payloadEncryptionKeyId\x12G\n" +
 	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
-	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xaf\x01\n" +
+	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\x12.\n" +
+	"\x13mcp_bridge_endpoint\x18\n" +
+	" \x01(\tR\x11mcpBridgeEndpoint\"\xaf\x01\n" +
 	"\x19GetRunnerScopedTokenInput\x12\x17\n" +
 	"\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12@\n" +
 	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +

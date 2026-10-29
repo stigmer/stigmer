@@ -7,8 +7,8 @@ package ai.stigmer.platform.v1;
 
 /**
  * <pre>
- * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
- * its own minted access token.
+ * Everything an embedded runner needs to bootstrap: Temporal coordinates, its
+ * own minted access token and, where the server has one, its MCP bridge.
  *
  * The address is the one reachable by the caller: in OSS it is the server's
  * own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -46,6 +46,7 @@ private static final long serialVersionUID = 0L;
     payloadEncryptionKeyId_ = "";
     payloadEncryptionSecondaryKey_ = "";
     payloadEncryptionSecondaryKeyId_ = "";
+    mcpBridgeEndpoint_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -500,6 +501,65 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int MCP_BRIDGE_ENDPOINT_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object mcpBridgeEndpoint_ = "";
+  /**
+   * <pre>
+   * Address of the MCP bridge that serves the runner's built-in Stigmer
+   * tools (memory, channel messaging, conversation participation).
+   *
+   * Empty when the server offers no bridge: the runner then serves those tools
+   * from a local `stigmer mcp-server` process, as it does when no server tells
+   * it otherwise. A runner configured with its own bridge address
+   * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+   * </pre>
+   *
+   * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+   * @return The mcpBridgeEndpoint.
+   */
+  @java.lang.Override
+  public java.lang.String getMcpBridgeEndpoint() {
+    java.lang.Object ref = mcpBridgeEndpoint_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      mcpBridgeEndpoint_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Address of the MCP bridge that serves the runner's built-in Stigmer
+   * tools (memory, channel messaging, conversation participation).
+   *
+   * Empty when the server offers no bridge: the runner then serves those tools
+   * from a local `stigmer mcp-server` process, as it does when no server tells
+   * it otherwise. A runner configured with its own bridge address
+   * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+   * </pre>
+   *
+   * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+   * @return The bytes for mcpBridgeEndpoint.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getMcpBridgeEndpointBytes() {
+    java.lang.Object ref = mcpBridgeEndpoint_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      mcpBridgeEndpoint_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -541,6 +601,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionSecondaryKeyId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, payloadEncryptionSecondaryKeyId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpBridgeEndpoint_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, mcpBridgeEndpoint_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -578,6 +641,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadEncryptionSecondaryKeyId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, payloadEncryptionSecondaryKeyId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpBridgeEndpoint_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, mcpBridgeEndpoint_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -611,6 +677,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getPayloadEncryptionSecondaryKey())) return false;
     if (!getPayloadEncryptionSecondaryKeyId()
         .equals(other.getPayloadEncryptionSecondaryKeyId())) return false;
+    if (!getMcpBridgeEndpoint()
+        .equals(other.getMcpBridgeEndpoint())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -640,6 +708,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPayloadEncryptionSecondaryKey().hashCode();
     hash = (37 * hash) + PAYLOAD_ENCRYPTION_SECONDARY_KEY_ID_FIELD_NUMBER;
     hash = (53 * hash) + getPayloadEncryptionSecondaryKeyId().hashCode();
+    hash = (37 * hash) + MCP_BRIDGE_ENDPOINT_FIELD_NUMBER;
+    hash = (53 * hash) + getMcpBridgeEndpoint().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -739,8 +809,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Everything an embedded runner needs to bootstrap: Temporal coordinates plus
-   * its own minted access token.
+   * Everything an embedded runner needs to bootstrap: Temporal coordinates, its
+   * own minted access token and, where the server has one, its MCP bridge.
    *
    * The address is the one reachable by the caller: in OSS it is the server's
    * own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -790,6 +860,7 @@ private static final long serialVersionUID = 0L;
       payloadEncryptionKeyId_ = "";
       payloadEncryptionSecondaryKey_ = "";
       payloadEncryptionSecondaryKeyId_ = "";
+      mcpBridgeEndpoint_ = "";
       return this;
     }
 
@@ -850,6 +921,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.payloadEncryptionSecondaryKeyId_ = payloadEncryptionSecondaryKeyId_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.mcpBridgeEndpoint_ = mcpBridgeEndpoint_;
+      }
     }
 
     @java.lang.Override
@@ -905,6 +979,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getPayloadEncryptionSecondaryKeyId().isEmpty()) {
         payloadEncryptionSecondaryKeyId_ = other.payloadEncryptionSecondaryKeyId_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (!other.getMcpBridgeEndpoint().isEmpty()) {
+        mcpBridgeEndpoint_ = other.mcpBridgeEndpoint_;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -978,6 +1057,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              mcpBridgeEndpoint_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1879,6 +1963,128 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       payloadEncryptionSecondaryKeyId_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object mcpBridgeEndpoint_ = "";
+    /**
+     * <pre>
+     * Address of the MCP bridge that serves the runner's built-in Stigmer
+     * tools (memory, channel messaging, conversation participation).
+     *
+     * Empty when the server offers no bridge: the runner then serves those tools
+     * from a local `stigmer mcp-server` process, as it does when no server tells
+     * it otherwise. A runner configured with its own bridge address
+     * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+     * </pre>
+     *
+     * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+     * @return The mcpBridgeEndpoint.
+     */
+    public java.lang.String getMcpBridgeEndpoint() {
+      java.lang.Object ref = mcpBridgeEndpoint_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        mcpBridgeEndpoint_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Address of the MCP bridge that serves the runner's built-in Stigmer
+     * tools (memory, channel messaging, conversation participation).
+     *
+     * Empty when the server offers no bridge: the runner then serves those tools
+     * from a local `stigmer mcp-server` process, as it does when no server tells
+     * it otherwise. A runner configured with its own bridge address
+     * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+     * </pre>
+     *
+     * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+     * @return The bytes for mcpBridgeEndpoint.
+     */
+    public com.google.protobuf.ByteString
+        getMcpBridgeEndpointBytes() {
+      java.lang.Object ref = mcpBridgeEndpoint_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        mcpBridgeEndpoint_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Address of the MCP bridge that serves the runner's built-in Stigmer
+     * tools (memory, channel messaging, conversation participation).
+     *
+     * Empty when the server offers no bridge: the runner then serves those tools
+     * from a local `stigmer mcp-server` process, as it does when no server tells
+     * it otherwise. A runner configured with its own bridge address
+     * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+     * </pre>
+     *
+     * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+     * @param value The mcpBridgeEndpoint to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMcpBridgeEndpoint(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      mcpBridgeEndpoint_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Address of the MCP bridge that serves the runner's built-in Stigmer
+     * tools (memory, channel messaging, conversation participation).
+     *
+     * Empty when the server offers no bridge: the runner then serves those tools
+     * from a local `stigmer mcp-server` process, as it does when no server tells
+     * it otherwise. A runner configured with its own bridge address
+     * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+     * </pre>
+     *
+     * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMcpBridgeEndpoint() {
+      mcpBridgeEndpoint_ = getDefaultInstance().getMcpBridgeEndpoint();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Address of the MCP bridge that serves the runner's built-in Stigmer
+     * tools (memory, channel messaging, conversation participation).
+     *
+     * Empty when the server offers no bridge: the runner then serves those tools
+     * from a local `stigmer mcp-server` process, as it does when no server tells
+     * it otherwise. A runner configured with its own bridge address
+     * (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+     * </pre>
+     *
+     * <code>string mcp_bridge_endpoint = 10 [json_name = "mcpBridgeEndpoint"];</code>
+     * @param value The bytes for mcpBridgeEndpoint to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMcpBridgeEndpointBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      mcpBridgeEndpoint_ = value;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

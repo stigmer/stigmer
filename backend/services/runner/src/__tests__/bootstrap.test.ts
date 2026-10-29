@@ -7,7 +7,9 @@ import type { BootstrapClientFactory } from "../bootstrap.js";
  *
  * The resolver is the heart of token-only embedding: it decides whether to use
  * an explicit address, discover one from the control plane, or fall back to
- * localhost — and it must fail loudly once it commits to discovery.
+ * localhost — and it must fail loudly once it commits to discovery. What rides
+ * the same answer best-effort (the minted token, payload keys, the MCP bridge)
+ * passes through when present and stays absent otherwise.
  */
 
 /** A factory whose client fails the test if discovery is ever attempted. */
@@ -162,6 +164,7 @@ describe("resolveRunnerBootstrap", () => {
 
     expect(result.runnerAccessToken).toBeUndefined();
     expect(result.payloadEncryption).toBeUndefined();
+    expect(result.mcpBridgeEndpoint).toBeUndefined();
   });
 
   it("surfaces server-managed payload-encryption keys from the discovery branch", async () => {
@@ -205,6 +208,41 @@ describe("resolveRunnerBootstrap", () => {
 
     expect(result.payloadEncryption).toBeUndefined();
   });
+
+  it("surfaces the server's MCP bridge from the discovery branch, trimmed", async () => {
+    const factory: BootstrapClientFactory = async () => ({
+      getRunnerBootstrapConfig: () =>
+        Promise.resolve({
+          temporalAddress: "t:7233",
+          temporalNamespace: "default",
+          mcpBridgeEndpoint: " https://mcp.stigmer.ai ",
+        }),
+    });
+
+    const result = await resolveRunnerBootstrap(
+      { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
+      factory,
+    );
+
+    expect(result.mcpBridgeEndpoint).toBe("https://mcp.stigmer.ai");
+  });
+
+  it.each([undefined, "", "   "])(
+    "leaves the bridge absent when the server offers none (%j)",
+    async (mcpBridgeEndpoint) => {
+      const factory: BootstrapClientFactory = async () => ({
+        getRunnerBootstrapConfig: () =>
+          Promise.resolve({ temporalAddress: "t:7233", temporalNamespace: "default", mcpBridgeEndpoint }),
+      });
+
+      const result = await resolveRunnerBootstrap(
+        { token: "tok", stigmerEndpoint: "https://api.stigmer.ai" },
+        factory,
+      );
+
+      expect(result.mcpBridgeEndpoint).toBeUndefined();
+    },
+  );
 });
 
 describe("refreshRunnerAccessToken", () => {

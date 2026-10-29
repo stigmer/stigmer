@@ -8,11 +8,15 @@
  * A manager whose boot fails once the agent host is up releases the
  * harnesses before the error reaches its caller. Every session's worker
  * sends heartbeats within the cancellation pulse, as the static worker does,
- * so a pause reaches a turn in a sandbox as fast as anywhere.
+ * so a pause reaches a turn in a sandbox as fast as anywhere. The agent host
+ * is started with the MCP bridge the bootstrap discovered, the bootstrap
+ * having resolved first, and the runner's own STIGMER_MCP_BRIDGE_ENDPOINT
+ * wins over it (stigmer#1374: the desktop's runner is this root).
  *
  * Temporal, the control-plane bootstrap, the harness registry and the LLM
- * preflight are replaced at their module seams, so the manager's own
- * bookkeeping runs in-process without a server or a worker.
+ * preflight are replaced at their module seams, and the hosting is observed
+ * at its own, so the manager's own bookkeeping runs in-process without a
+ * server or a worker.
  */
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -36,6 +40,9 @@ const fakes = vi.hoisted(() => ({
   shutdownHarnesses: { calls: 0 },
   releasedSessions: [] as string[],
   connectFails: false,
+  discoveredBridge: undefined as string | undefined,
+  hostedBridges: [] as (string | null)[],
+  bootedBridges: [] as (string | null)[],
   signalOf: undefined as
     | ((taskQueue: string) => AbortSignal | undefined)
     | undefined,
@@ -78,6 +85,7 @@ vi.mock("../bootstrap.js", () => ({
   resolveRunnerBootstrap: async () => ({
     temporalAddress: "127.0.0.1:7233",
     temporalNamespace: "default",
+    mcpBridgeEndpoint: fakes.discoveredBridge,
   }),
   refreshRunnerAccessToken: async () => null,
 }));
@@ -99,9 +107,22 @@ vi.mock("../workflow-source.js", async (importOriginal) => {
 
 vi.mock("../harness-adapters.js", () => ({ HARNESS_ADAPTERS: [] }));
 
+vi.mock("../agent-host/hosting.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../agent-host/hosting.js")>();
+  return {
+    ...actual,
+    hostHarnesses: (...args: Parameters<typeof actual.hostHarnesses>) => {
+      fakes.hostedBridges.push(args[1].mcpBridgeEndpoint);
+      return actual.hostHarnesses(...args);
+    },
+  };
+});
+
 vi.mock("../harness/registry.js", () => ({
   adaptersOf: () => [],
-  bootHarnesses: async () => {},
+  bootHarnesses: async (_adapters: unknown, config: { mcpBridgeEndpoint: string | null }) => {
+    fakes.bootedBridges.push(config.mcpBridgeEndpoint);
+  },
   createHarnessActivities: async () => ({}),
   releaseHarnessSession: async (_adapters: unknown, sessionId: string) => {
     fakes.releasedSessions.push(sessionId);
@@ -211,5 +232,41 @@ describe("StigmerRunnerManager.addSession", () => {
     const worker = fakes.workers.find((w) => w.taskQueue === "session:ses_pulse");
     expect(worker?.maxHeartbeatThrottleInterval).toBe(CANCELLATION_PULSE_MS);
     await manager.shutdown();
+  });
+});
+
+describe("createStigmerRunnerManager, hosting with the bootstrap's MCP bridge", () => {
+  afterEach(() => {
+    fakes.discoveredBridge = undefined;
+    vi.unstubAllEnvs();
+  });
+
+  async function bootAndStop(): Promise<{ hosted: string | null | undefined; booted: string | null | undefined }> {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const manager = await createStigmerRunnerManager({
+      stigmerEndpoint: "localhost:7234",
+      stigmerToken: "token",
+      workspaceRootDir: join(tmpdir(), "stigmer-runner-manager-bridge-test"),
+    });
+    await manager.shutdown();
+    return { hosted: fakes.hostedBridges.at(-1), booted: fakes.bootedBridges.at(-1) };
+  }
+
+  it("starts the agent host and boots the harnesses with the bridge the bootstrap discovered", async () => {
+    vi.stubEnv("STIGMER_MCP_BRIDGE_ENDPOINT", undefined);
+    fakes.discoveredBridge = "https://mcp.example.test";
+    expect(await bootAndStop()).toEqual({ hosted: "https://mcp.example.test", booted: "https://mcp.example.test" });
+  });
+
+  it("keeps the runner's own STIGMER_MCP_BRIDGE_ENDPOINT over a discovered one", async () => {
+    vi.stubEnv("STIGMER_MCP_BRIDGE_ENDPOINT", "https://bridge.own.test");
+    fakes.discoveredBridge = "https://mcp.example.test";
+    expect(await bootAndStop()).toEqual({ hosted: "https://bridge.own.test", booted: "https://bridge.own.test" });
+  });
+
+  it("keeps the local shape when neither names a bridge", async () => {
+    vi.stubEnv("STIGMER_MCP_BRIDGE_ENDPOINT", undefined);
+    expect(await bootAndStop()).toEqual({ hosted: null, booted: null });
   });
 });

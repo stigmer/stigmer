@@ -297,8 +297,8 @@ message GetLicenseStatusOutput {
 // coordinates are the same for every runner in the environment.
 message GetRunnerBootstrapConfigInput {}
 
-// Everything an embedded runner needs to bootstrap: Temporal coordinates plus
-// its own minted access token.
+// Everything an embedded runner needs to bootstrap: Temporal coordinates, its
+// own minted access token and, where the server has one, its MCP bridge.
 //
 // The address is the one reachable by the caller: in OSS it is the server's
 // own co-located Temporal (single host); in Cloud it is the external Temporal
@@ -365,6 +365,20 @@ message GetRunnerBootstrapConfigOutput {
   // Key id of payload_encryption_secondary_key. Present exactly when the
   // secondary key is present.
   string payload_encryption_secondary_key_id = 9;
+
+  // Address of the MCP bridge that serves the runner's built-in Stigmer
+  // tools (memory, channel messaging, conversation participation).
+  //
+  // Empty when the server offers no bridge: the runner then serves those tools
+  // from a local `stigmer mcp-server` process, as it does when no server tells
+  // it otherwise. A runner configured with its own bridge address
+  // (STIGMER_MCP_BRIDGE_ENDPOINT) keeps that one.
+  //
+  // @internal
+  // Set from the server's STIGMER_RUNNER_BOOTSTRAP_MCP_BRIDGE_ENDPOINT. The
+  // cloud sets it to the bridge its sandboxes are handed, so a desktop runner
+  // signed in to the cloud needs no `stigmer` program on its machine.
+  string mcp_bridge_endpoint = 10;
 }
 
 // Names the unit of dispatched work a runner wants a scoped token for.
