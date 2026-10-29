@@ -448,7 +448,10 @@ export function NewSessionViewer({
             onModelPickCleared={flow.clearModelPick}
             placeholder={placeholder}
             initialRows={initialRows}
-            autoFocus={autoFocus}
+            // The composer appears once readiness answers, which can be after
+            // the person has moved focus elsewhere; it takes focus only from
+            // the page itself, never from what they chose.
+            autoFocus={autoFocus && focusIsFree()}
             ariaLabel="Start a new session"
           />
           </>
@@ -527,4 +530,10 @@ export function NewSessionViewer({
       }
     />
   );
+}
+
+/** Whether nothing on the page holds focus, so a composer that mounts now may take it. */
+function focusIsFree(): boolean {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  return active === null || active === document.body;
 }

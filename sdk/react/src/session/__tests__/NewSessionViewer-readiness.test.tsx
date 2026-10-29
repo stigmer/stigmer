@@ -286,4 +286,34 @@ describe("CON-03 the launcher says a provider is missing before a run fails", ()
     expect(await screen.findByRole("heading", { level: 1, name: "Connect a model provider to start" })).toBeTruthy();
     expect(composerProps).toHaveLength(0);
   });
+
+  it("lets the late composer take focus only when nothing else on the page holds it", async () => {
+    const calls = fakeClient(server({ readiness: ANTHROPIC_CONNECTED }));
+    let answer: (value: typeof ANTHROPIC_CONNECTED) => void = () => {};
+    calls.getModelReadiness.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const elsewhere = document.createElement("button");
+    document.body.appendChild(elsewhere);
+    try {
+      render(<NewSessionViewer org={ORG_ID} onSessionCreated={vi.fn()} />, { wrapper: readinessWrapper(calls.client) });
+      elsewhere.focus();
+      await act(async () => {
+        answer(ANTHROPIC_CONNECTED);
+      });
+      await waitFor(() => expect(composerProps.length).toBeGreaterThan(0));
+      expect(composerProps[0]!.autoFocus).toBe(false);
+    } finally {
+      elsewhere.remove();
+    }
+
+    cleanup();
+    composerProps.length = 0;
+    renderLauncher(server({ readiness: ANTHROPIC_CONNECTED }));
+    await waitFor(() => expect(composerProps.length).toBeGreaterThan(0));
+    expect(composerProps[0]!.autoFocus).toBe(true);
+  });
 });
