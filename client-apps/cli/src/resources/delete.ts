@@ -1,6 +1,5 @@
 // `delete` dispatch: resolve a resource by reference, describe it for a
-// confirmation prompt, then delete it. Mirrors the Go CLI's unified delete,
-// including its three special cases:
+// confirmation prompt, then delete it. Three kinds are special cases:
 //
 //   - run        → maps to a *cancel* (runs only, by ID): its session is
 //                  interrupted, which stops every unfinished turn of it
@@ -275,7 +274,7 @@ function planRunCancel(client: Stigmer, reference: string): DeletePlan {
   };
 }
 
-// --- Warning + success rendering (mirrors Go's per-type delete handlers) ---
+// --- Warning + success rendering, per kind ---
 
 /**
  * How the delete warning names the resource's organization: its slug in

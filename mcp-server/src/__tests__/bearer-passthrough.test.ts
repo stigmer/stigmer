@@ -1,7 +1,7 @@
 // Spike A — non-validating Bearer passthrough over Streamable HTTP.
 //
-// Question this proves: can the TS MCP server reproduce the Go server's HTTP
-// auth model — extract `Authorization: Bearer <token>` WITHOUT validating it,
+// Question this proves: can the MCP server hold a non-validating HTTP auth
+// model — extract `Authorization: Bearer <token>` WITHOUT validating it,
 // surface it to tool handlers, and build a per-request client from it — using a
 // single stateless McpServer shared across all requests?
 //

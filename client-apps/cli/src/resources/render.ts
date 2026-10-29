@@ -6,7 +6,7 @@
 // ones several kinds share by name: the description, and the settings a run
 // starts from (spec.harness and spec.run_config: an agent's run defaults, a
 // share's or channel's saved settings, a session's engine). json/yaml use the canonical protojson
-// renderers for full fidelity and Go byte-parity. Collections render via the
+// renderers for full fidelity. Collections render via the
 // shared table renderer with a caller-supplied row extractor.
 //
 // The render boundary intentionally uses the base proto types (DescMessage /
@@ -101,8 +101,7 @@ export function tableOrganizations(
 /**
  * Render a *list message* (e.g. RunList, SessionList) for a read verb.
  *
- * Unlike `renderCollection`, which serializes a bare slice, this mirrors Go's
- * `DisplayProto(list, ...)`: json/yaml emit the whole list envelope (including
+ * Unlike `renderCollection`, which serializes a bare slice, json/yaml emit the whole list envelope (including
  * `next_page_token`), while table projects the nested `entries` into a grid.
  */
 export function renderListMessage(

@@ -174,10 +174,9 @@ async function runFingerprint(
   rawKey: string,
   options: OutputFlags,
 ): Promise<void> {
-  // Base64URL without padding — the server's storage encoding (the Java
-  // ApiKeyHasher and the TS keymaterial module agree). This was once hex,
-  // which meant the computed hash could never match a stored key_hash and
-  // the lookup below always answered NotFound.
+  // Base64URL without padding — the server's storage encoding (its
+  // keymaterial module): a hash in any other encoding never matches a stored
+  // key_hash, and the lookup below would answer NotFound.
   const hash = createHash("sha256").update(rawKey).digest("base64url");
 
   const { connectBackend } = await import("../../backend.js");

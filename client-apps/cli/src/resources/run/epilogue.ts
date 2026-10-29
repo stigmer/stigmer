@@ -1,5 +1,4 @@
-// The post-stream epilogue, shared by every renderer (Go's streamAgentEpilogue +
-// run_display_summary.go). After the stream ends we fetch the authoritative final
+// The post-stream epilogue, shared by every renderer. After the stream ends we fetch the authoritative final
 // run and its usage report, then print a compact, copy-paste-friendly exit
 // summary to stderr (AI content already went to stdout). A completed turn
 // names its duration and its tokens, never a price; tokens counted from the
@@ -35,7 +34,7 @@ export async function runEpilogue(
   runId: string,
   result: HeadlessResult,
 ): Promise<Run> {
-  // A stream error before any phase is a hard failure (Go: epilogue returns it).
+  // A stream error before any phase is a hard failure.
   if (result.error !== "" && result.phase === "") {
     throw new CliExitError(result.error, ExitCode.General);
   }
@@ -72,8 +71,7 @@ async function fetchUsage(client: Stigmer, runId: string): Promise<UsageReportAg
 type Styler = ReturnType<typeof styler>;
 type Write = (line: string) => void;
 
-// Compact session summary + a copy-paste resume command. Mirrors Go's
-// displaySessionExitLine + sessionResumeVerb.
+// Compact session summary + a copy-paste resume command.
 async function printSessionExit(
   write: Write,
   s: Styler,
@@ -107,8 +105,8 @@ async function printSessionExit(
   write(`  ${resumeVerb(phase)}  stigmer resume ${sessionId}`);
 }
 
-// Non-session completion (rare for run; e.g. a degraded backend). Mirrors the
-// information of Go's displayAgentExecutionComplete without the panel chrome.
+// Non-session completion (rare for run; e.g. a degraded backend): the phase
+// and, on failure, why.
 async function printCompletion(write: Write, s: Styler, exec: Run, failure: () => Promise<string>): Promise<void> {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (phase === RunPhase.RUN_FAILED) {
@@ -185,8 +183,8 @@ function firstFailedOutput(items: readonly TurnItem[]): string | undefined {
 
 const GENERIC_FAILURE = "Run failed (error details unavailable — check run logs)";
 
-// "1m23s"/"45s" between two RFC3339 timestamps, or "" when unknown. Mirrors Go's
-// parseDuration + Round(time.Second).
+// "1m23s"/"45s" between two RFC3339 timestamps, rounded to the second, or ""
+// when unknown.
 function formatDuration(startedAt: string, completedAt: string): string {
   if (startedAt === "" || completedAt === "") return "";
   const start = Date.parse(startedAt);

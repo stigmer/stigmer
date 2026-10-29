@@ -118,8 +118,9 @@ async function refreshAndPersist(
 }
 
 function isExpired(expiresAt: string | undefined): boolean {
-  // Legacy tokens persisted without an expiry are assumed valid; the server is
-  // the ultimate authority and a 401 triggers re-login.
+  // A token stored without an expiry (a pasted token or key carries none) is
+  // assumed valid; the server is the ultimate authority and a 401 triggers
+  // re-login.
   if (expiresAt === undefined || expiresAt === "") return false;
   const expiryMs = Date.parse(expiresAt);
   if (Number.isNaN(expiryMs)) return false;

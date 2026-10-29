@@ -19,7 +19,7 @@ import type { Stigmer } from "@stigmer/client";
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { readCursorPages } from "./cursor-pages.js";
 
-/** Fetch a single session by ID (Go's session.GetFromBackend). */
+/** Fetch a single session by ID. */
 export async function getSessionById(client: Stigmer, sessionId: string): Promise<Session> {
   return client.session.get(sessionId);
 }

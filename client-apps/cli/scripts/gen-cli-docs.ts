@@ -1,6 +1,6 @@
 // gen-cli-docs generates MDX reference documentation for every stigmer CLI
-// command by walking the commander command tree (the TypeScript analogue of the
-// retired Go cmd/gen-cli-docs). Output is committed to docs/cli/commands/ and
+// command by walking the commander command tree. Output is committed to
+// docs/cli/commands/ and
 // verified for freshness in CI via `make gen-cli-docs-check`.
 //
 // Each command has a hand-written enrichment template (client-apps/cli/docs/
@@ -45,9 +45,8 @@ import {
 // Command grouping
 // ---------------------------------------------------------------------------
 //
-// Commander (v12) has no native help-group concept, so the grouping that the Go
-// CLI declared in root.go via cobra groups lives here as the single source of
-// truth. groupOrder controls display order in the sidebar and index page;
+// Commander (v12) has no native help-group concept, so the command grouping
+// lives here as the single source of truth. groupOrder controls display order in the sidebar and index page;
 // COMMAND_GROUP assigns every visible top-level command to a group. Any new
 // non-hidden command MUST be added here, or generation fails loudly (see
 // resolveGroup) rather than silently dropping the command from the docs.

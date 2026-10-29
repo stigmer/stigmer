@@ -131,13 +131,13 @@ describe("createRefreshingTokenProvider", () => {
     expect(await provider()).toBeNull();
   });
 
-  it("treats a token without an expiry as valid (legacy)", async () => {
+  it("treats a token without an expiry as valid, leaving the verdict to the server", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     const provider = createRefreshingTokenProvider(
-      cloudConfig({ token: "legacy" }),
+      cloudConfig({ token: "pasted-token" }),
     );
-    expect(await provider()).toBe("legacy");
+    expect(await provider()).toBe("pasted-token");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

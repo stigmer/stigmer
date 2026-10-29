@@ -1,10 +1,8 @@
 // Lifecycle manager for the local Temporal dev server.
 //
-// Faithful TS port of the Go CLI's `temporal.Manager`, reorganized around the
-// shared primitives (file lock, PID file, TCP readiness). It installs the
+// Built on the shared primitives (file lock, PID file, TCP readiness). It installs the
 // `temporal` binary on demand, starts the dev server in its own process group,
-// and answers "is it really running?" with the same layered check the Go CLI
-// uses (PID present -> alive -> actually Temporal -> port listening). Start is
+// and answers "is it really running?" with a layered check (PID present -> alive -> actually Temporal -> port listening). Start is
 // idempotent: a healthy instance — ours or another process's — is reused.
 
 import { mkdirSync, openSync } from "node:fs";

@@ -1,7 +1,7 @@
 // Minimal ANSI styling for human-facing output.
 //
-// Mirrors the Go CLI's reliance on fatih/color, which auto-disables when the
-// target stream is not a TTY and honors NO_COLOR. Keeping this tiny avoids a
+// Colour is off when the target stream is not a TTY, and NO_COLOR is
+// honoured. Keeping this tiny avoids a
 // dependency for what is a handful of escape codes.
 
 const ANSI = {

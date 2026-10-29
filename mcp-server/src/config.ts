@@ -2,9 +2,8 @@
 //
 // Every value is read from a STIGMER_-prefixed environment variable with a
 // development-friendly default. This is the embeddable configuration surface
-// (plain types, no internal coupling) and the parity mirror of the Go server's
-// internal/config + pkg/mcpserver Config (inventory §4.4) — the validation
-// reproduces Go's hard-errors AND warnings, not just the defaults.
+// (plain types, no internal coupling); the validation has hard errors AND
+// warnings, not just the defaults.
 
 import { log, type LogFormat, type LogLevel } from "./logger.js";
 
@@ -78,7 +77,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Config 
     transport: envOr(env, "STIGMER_MCP_TRANSPORT", "stdio").toLowerCase() as Transport,
     roster: envOr(env, "STIGMER_MCP_ROSTER", "full").toLowerCase() as Roster,
     httpPort: envOr(env, "STIGMER_MCP_HTTP_PORT", "8080"),
-    // Go semantics: only the exact string "true" enables auth.
+    // Only the exact string "true" enables auth.
     httpAuthEnabled: envOr(env, "STIGMER_MCP_HTTP_AUTH_ENABLED", "true") === "true",
     oauth: {
       enabled: env.STIGMER_MCP_OAUTH_ENABLED === "true",
@@ -93,8 +92,8 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Config 
 
 /**
  * Validates invariants that must hold before the server starts. Throws on hard
- * errors; emits warnings (via the configured logger) for the soft cases the Go
- * server warns about. Configure the logger before calling this so warnings are
+ * errors; emits warnings (via the configured logger) for the soft cases.
+ * Configure the logger before calling this so warnings are
  * formatted consistently.
  */
 export function validateConfig(cfg: Config): void {
@@ -167,8 +166,7 @@ function splitList(raw: string | undefined): string[] {
 
 /**
  * Reports whether an authority carries an explicit port. Tolerates bracketed
- * IPv6 (`[::1]:443`) and treats bare IPv6 (`::1`) as port-less, matching the
- * intent of Go's net.SplitHostPort in the config warning path.
+ * IPv6 (`[::1]:443`) and treats bare IPv6 (`::1`) as port-less.
  */
 function hasExplicitPort(authority: string): boolean {
   if (authority.startsWith("[")) {

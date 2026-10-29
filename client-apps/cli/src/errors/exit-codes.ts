@@ -1,5 +1,4 @@
-// Exit codes returned by the CLI. The convention mirrors the Go CLI
-// (internal/cli/clierr/exit_codes.go) so scripts and CI can branch on `$?`
+// Exit codes returned by the CLI, so scripts and CI can branch on `$?`
 // without parsing stderr. classify() maps gRPC/Connect status codes onto these.
 // One command departs: `eval run` exits with Claude Code's plugin-eval
 // codes (2 is its partial run, 130 an interrupt, and a refused start is 1),

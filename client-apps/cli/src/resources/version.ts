@@ -84,7 +84,7 @@ function truncateMessage(message: string): string {
   return message.length > 40 ? `${message.slice(0, 37)}...` : message;
 }
 
-// Matches Go's "2006-01-02 15:04" local-time layout.
+// YYYY-MM-DD HH:mm, local time.
 function formatAppliedAt(timestamp: Parameters<typeof timestampDate>[0]): string {
   const date = timestampDate(timestamp);
   const pad2 = (n: number): string => String(n).padStart(2, "0");

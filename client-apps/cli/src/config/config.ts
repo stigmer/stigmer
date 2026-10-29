@@ -110,7 +110,7 @@ export function getDefault(): Config {
 /**
  * Load the config from disk. In standalone mode the file is ignored and the
  * default is returned, isolating sidecar/automation invocations from ambient
- * user config (matches the Go CLI). A missing file also yields the default.
+ * user config. A missing file also yields the default.
  */
 export function load(path: string = configPath()): Config {
   if (isStandalone()) {
@@ -242,7 +242,7 @@ function serializable(config: Config): Partial<Config> {
 }
 
 // Recursively drop undefined-valued keys so the serialized YAML omits empty
-// optionals (matching Go's yaml omitempty), while preserving the opaque local
+// optionals, while preserving the opaque local
 // section untouched.
 function stripUndefined<T>(value: T): T {
   if (Array.isArray(value)) {

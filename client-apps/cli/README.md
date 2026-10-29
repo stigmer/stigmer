@@ -3,7 +3,7 @@
 Command-line interface for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product:
 manage agents, plugins, skills and runs from the terminal.
 
-This is the TypeScript CLI that replaced the Go CLI. Its shape, in brief:
+Its shape, in brief:
 
 - the commander command tree (`stigmer ...`);
 - cross-cutting infrastructure: config, errors/exit-codes, unified output, the

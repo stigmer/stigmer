@@ -1,5 +1,4 @@
-// The run flag set `run` registers (Go's registerAgentExecFlags),
-// kept as its own module so a new run flag has one home and any future
+// The run flag set `run` registers, kept as its own module so a new run flag has one home and any future
 // command that starts a run picks the whole set up unchanged.
 
 import type { Command } from "commander";

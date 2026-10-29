@@ -1,8 +1,6 @@
 // In-process Ink renderer for the interactive (TTY) stream path.
 //
-// Go spawns a separate `stigmer-ink` subprocess (sdk/ink/src/cli/stigmer-ink.tsx)
-// and pipes session config to it. Here the CLI *is* a TS process, so we render
-// Ink in-process and — crucially — reuse the CLI's already-authenticated client
+// The CLI renders Ink in-process and — crucially — reuses its already-authenticated client
 // via InkStigmerProvider rather than letting SessionApp build its own. SessionView
 // (from @stigmer/ink-ui) owns the live conversation: history, streaming, approvals,
 // and a follow-up composer.

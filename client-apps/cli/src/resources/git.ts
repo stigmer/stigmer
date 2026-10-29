@@ -49,7 +49,7 @@ export function getGitBranchName(dir: string): string | undefined {
 /**
  * Clone `gitUrl` into `destDir`, checking out `gitRef` if given. Tries a shallow
  * `--branch` clone first (fast for tags/branches), falling back to a full clone
- * plus checkout when the ref is a commit SHA. Mirrors Go's cloneRepository.
+ * plus checkout when the ref is a commit SHA.
  */
 export function cloneRepository(gitUrl: string, gitRef: string, destDir: string): void {
   const args = ["clone", "--depth", "1"];

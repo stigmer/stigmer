@@ -1,5 +1,4 @@
 // The "search" MCP tool, backed by SearchService.search.
-// Go parity: mcp-server/internal/domains/search/tools.go.
 //
 // One tool covers listing, full-text search, and cross-kind discovery (replacing
 // per-kind list_* tools); the combination of parameters selects the behavior.

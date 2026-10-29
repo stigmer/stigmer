@@ -1,9 +1,8 @@
 // Canonical protobuf -> JSON/YAML rendering for read verbs.
 //
-// Parity contract (mirrors Go pkg/display/proto.go and mcp-server marshal.ts):
-// the Go CLI emits protojson with UseProtoNames=true and EmitUnpopulated=false,
-// 2-space indented. protobuf-es `toJson` with { useProtoFieldName: true }
-// reproduces that exactly — snake_case fields, omitted defaults, base64 bytes,
+// The contract (shared with mcp-server's marshal.ts): protojson with proto
+// field names and no unpopulated fields, 2-space indented. protobuf-es
+// `toJson` with { useProtoFieldName: true } gives exactly that — snake_case fields, omitted defaults, base64 bytes,
 // string enums, RFC-3339 timestamps — and the YAML path round-trips through the
 // same JSON value so field naming stays identical.
 

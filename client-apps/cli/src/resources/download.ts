@@ -234,7 +234,7 @@ async function resolveDownloadUrl(client: Stigmer, file: File): Promise<string> 
   throw new Error("failed to get download URL");
 }
 
-// Human-readable non-terminal phase label (matches Go's formatPhaseForDownload).
+// Human-readable non-terminal phase label.
 function formatDownloadPhase(phase: RunPhase): string {
   switch (phase) {
     case RunPhase.RUN_PENDING:

@@ -1,12 +1,11 @@
 // Multi-component log viewing for `stigmer logs`: print a tail snapshot and,
 // optionally, follow appended lines live.
 //
-// Divergence from the Go CLI (documented, not drift): the Go `--all` view merges
-// components by parsing each line's timestamp. That parse is fragile across the
-// server's and runner's different log formats and silently misorders lines it
-// cannot parse. The TS view instead prefixes every line with its component name
-// (kubectl-style), which is robust without any format coupling and reads clearly
-// in both snapshot and follow modes.
+// The view prefixes every line with its component name (kubectl-style) rather
+// than merging components by each line's timestamp: the server's and runner's
+// log formats differ, and a timestamp parse would silently misorder lines it
+// cannot parse. The prefix needs no format coupling and reads clearly in both
+// snapshot and follow modes.
 
 import { join } from "node:path";
 import { type FollowHandle, followFile, tailLines } from "./tail.js";

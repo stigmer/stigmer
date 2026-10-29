@@ -1,5 +1,4 @@
 // Agent resource template (stigmer://agents/{org}/{slug}).
-// Go parity: mcp-server/internal/domains/agents/resources.go.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 

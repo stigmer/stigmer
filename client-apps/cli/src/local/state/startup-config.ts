@@ -11,8 +11,8 @@ import { STARTUP_CONFIG_FILE } from "../constants.js";
 
 /**
  * The persisted launch snapshot. `loadStartupConfig` parses leniently (a cast,
- * not a validator), so files written by older CLIs with extra fields — e.g.
- * the removed llm_* trio — load without migration.
+ * not a validator), so a file carrying fields this CLI does not read — e.g.
+ * an llm_* trio — loads as it is.
  */
 export interface StartupConfig {
   data_dir: string;

@@ -1,5 +1,4 @@
-// The "run a resolved agent" flow (Go's executeResolvedAgent in
-// run_agent_exec.go): upload what `--attach` gave, create the run (one call:
+// The "run a resolved agent" flow: upload what `--attach` gave, create the run (one call:
 // the workspace and attached folders ride the embedded session_spec and the
 // backend bootstraps the session), delete the uploaded originals the new
 // conversation now holds copies of, then
@@ -123,8 +122,8 @@ function agentRefOf(agent: Agent | undefined): AgentRefInput | undefined {
   return { org: agent.metadata?.org ?? "", slug: agent.metadata?.slug ?? "" };
 }
 
-// Progress lines go to stderr, but only when it is a TTY — matching Go's spinner,
-// which is suppressed under pipes/CI so it never pollutes captured output.
+// Progress lines go to stderr, but only when it is a TTY, so they never
+// pollute output captured under pipes or CI.
 export function stderrProgress(): (line: string) => void {
   if (process.stderr.isTTY !== true) return () => {};
   return (line) => void process.stderr.write(`${line}\n`);
