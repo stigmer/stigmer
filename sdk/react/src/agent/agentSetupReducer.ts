@@ -1,6 +1,6 @@
 import type { ResourceRef } from "@stigmer/client";
 import type { McpServerEntry } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/status_pb";
-import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
+import type { EnvVarFormVariable } from "../vault/EnvVarForm.js";
 
 // ---------------------------------------------------------------------------
 // Sign-ins — a server of the agent's plugins with no login where the run reads
@@ -92,7 +92,7 @@ export type AgentSetupPhase =
       /** Display name of the agent. */
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
-      readonly missingVariables: AgentEnvFormVariable[];
+      readonly missingVariables: EnvVarFormVariable[];
       /** Servers of the agent's plugins that sign in and have no login where the run reads. */
       readonly pendingSignIns: readonly PendingSignIn[];
     }
@@ -106,7 +106,7 @@ export type AgentSetupPhase =
       /** Display name of the agent. */
       readonly agentName: string;
       /** Environment variables that were collected from the user. */
-      readonly missingVariables: AgentEnvFormVariable[];
+      readonly missingVariables: EnvVarFormVariable[];
       /** Carried so a failed submission returns to the same waiting state. */
       readonly pendingSignIns: readonly PendingSignIn[];
     }
@@ -178,7 +178,7 @@ export type AgentSetupResult =
       /** Display name of the agent. */
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
-      readonly missingVariables: AgentEnvFormVariable[];
+      readonly missingVariables: EnvVarFormVariable[];
       /** Servers of the agent's plugins that sign in and have no login where the run reads. */
       readonly pendingSignIns: readonly PendingSignIn[];
     };
@@ -205,7 +205,7 @@ export type AgentSetupAction =
       /** Display name of the agent. */
       readonly agentName: string;
       /** Variables the user must provide. */
-      readonly missingVariables: AgentEnvFormVariable[];
+      readonly missingVariables: EnvVarFormVariable[];
       /** Servers the user must sign in to. */
       readonly pendingSignIns: readonly PendingSignIn[];
     }
@@ -229,7 +229,7 @@ export type AgentSetupAction =
       /** Re-evaluate missing variables after pool values arrive. */
       readonly type: "POOL_RESOLVE";
       /** Updated missing variables (may be empty if pool covered all). */
-      readonly missingVariables: AgentEnvFormVariable[];
+      readonly missingVariables: EnvVarFormVariable[];
     }
   | {
       /** Begin saving env vars to the My vault. */

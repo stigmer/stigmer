@@ -64,11 +64,6 @@
  *     request, never on an open-source profile by default or under a relaxed
  *     license, and wherever it renders the runner's fetch guard refuses
  *     private addresses;
- *   - a release upgraded with --reuse-values from a chart without the
- *     Enterprise values renders as before, and gains them, at their
- *     defaults, from the one value that licenses it;
- *   - a values file copied from an earlier chart, carrying the retired
- *     reserved keys at their off values, renders as if it did not;
  *   - the notes name the edition and the fence, and tell a fenced install
  *     whose dependencies are its own how to let them through.
  *
@@ -471,23 +466,6 @@ test("the database user and name reach node-postgres exactly, whatever their cha
   assert.equal(url.host, "byo-postgres.byo-infra.svc.cluster.local:5432");
   assert.equal(url.pathname, "");
   assert.equal(env.get("PGDATABASE")?.value, database);
-});
-
-test("a release upgraded with --reuse-values from a chart without the new keys renders, fenced by default", () => {
-  // --reuse-values replaces the new chart's defaults with the old release's
-  // values; --set <key>=null removes a key the same way.
-  const OLD_VALUES = [
-    "postgres.networkPolicy=null",
-    "postgres.securityContext=null",
-    "temporal.securityContext=null",
-    "waitForDependencies.securityContext=null",
-    "server.allowUnauthenticatedExposure=null",
-  ];
-  const docs = renderProfile("bundled", { sets: OLD_VALUES });
-  assert.equal(findAll(docs, "NetworkPolicy", `${RELEASE}-postgres`).length, 1);
-  assert.ok(
-    renderNotes("bundled", { sets: OLD_VALUES }).includes("The bundled Postgres admits only the stigmer and Temporal pods"),
-  );
 });
 
 test("a postgres securityContext set to null renders, with no pod fsGroup", () => {
@@ -1012,49 +990,6 @@ test("a license with the server alone (no runner key yet) is still fenced, and t
   assert.deepEqual(pod.containers.map((c) => c.name), ["server"]);
   assert.equal(findAll(docs, "NetworkPolicy", FENCE).length, 1);
   assert.ok(envMap(containerNamed(pod, "server")).has("STIGMER_LICENSE_KEY"));
-});
-
-test("a release upgraded with --reuse-values from a chart without the Enterprise values renders as before, and one value licenses it", () => {
-  const OLD_VALUES = ["enterprise=null", "egressPolicy=null", "image.server.enterpriseRepository=null"];
-  const before = helmTemplate("bundled", { sets: OLD_VALUES });
-  assert.ok(before.ok, before.stderr);
-  assert.equal(before.stdout, helmTemplate("bundled").stdout, "nothing changes for an open-source release");
-
-  const { appVersion } = readChart();
-  const licensed = renderProfile("bundled", {
-    sets: [
-      "enterprise.license.key=null",
-      "enterprise.outboundEgress=null",
-      "enterprise.organizationCreators=null",
-      "enterprise.accessHistoryRetentionDays=null",
-      "egressPolicy=null",
-      "image.server.enterpriseRepository=null",
-      ...SIGN_IN,
-      ...LICENSE,
-    ],
-  });
-  const server = containerNamed(stigmerPod(licensed), "server");
-  assert.equal(server.image, `ghcr.io/stigmer/stigmer-server-ee:v${appVersion}`);
-  const env = envMap(server);
-  assert.equal(env.get("STIGMER_LICENSE_KEY")?.valueFrom?.secretKeyRef?.key, "STIGMER_LICENSE_KEY");
-  assert.equal(env.get("STIGMER_OUTBOUND_EGRESS")?.value, "strict");
-  assert.equal(findAll(licensed, "NetworkPolicy", FENCE).length, 1, "strict by default, so fenced");
-});
-
-test("a values file copied from an earlier chart, with the retired keys off, renders as if it did not carry them", () => {
-  const scratch = mkdtempSync(join(tmpdir(), "stigmer-chart-values-"));
-  try {
-    const values = join(scratch, "values.yaml");
-    writeFileSync(
-      values,
-      'openfga:\n  enabled: false\nredis:\n  enabled: false\nopenbao:\n  enabled: false\nlicenseKeySecret: ""\n',
-    );
-    const copied = helmTemplate("bundled", { valuesFiles: [values] });
-    assert.ok(copied.ok, copied.stderr);
-    assert.equal(copied.stdout, helmTemplate("bundled").stdout);
-  } finally {
-    rmSync(scratch, { recursive: true, force: true });
-  }
 });
 
 test("the notes name the edition and the fence, and only where they hold", () => {

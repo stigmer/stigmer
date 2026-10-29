@@ -10,9 +10,7 @@
 // `--approve-default` picks one answer per run, in the session's own words:
 // allow, deny (with a neutral reason, so the agent carries on without the
 // call) or allow-all (a grant). An unset flag denies the same way: a headless
-// run cannot leave the call unanswered, or its turn would wait forever. The
-// retired words approve, skip, reject and approve-all are refused with the
-// word that replaced them.
+// run cannot leave the call unanswered, or its turn would wait forever.
 
 import { create } from "@bufbuild/protobuf";
 import {
@@ -35,16 +33,6 @@ export type AskAnswer =
 /** The reason `--approve-default` denies a call with: the agent reads it and goes on. */
 export const DENY_REASON = "Denied by --approve-default: carry on without this call.";
 
-/** The answers the flag no longer takes, each with the word that replaced it. */
-const RETIRED: Readonly<Record<string, string>> = {
-  approve: '"approve" is now "allow"',
-  skip: '"skip" and "reject" are now "deny"',
-  reject: '"skip" and "reject" are now "deny"',
-  "approve-all": '"approve-all" is now "allow-all"',
-  approve_all: '"approve-all" is now "allow-all"',
-  approveall: '"approve-all" is now "allow-all"',
-};
-
 /** The slice of the session client an answer goes through. */
 export interface AnswerClient {
   readonly session: {
@@ -55,8 +43,7 @@ export interface AnswerClient {
 
 /**
  * Parse `--approve-default`. Case-insensitive, with `allow_all` and
- * `allowall` read as allow-all; empty means unset. A retired word is refused
- * with the word that replaced it.
+ * `allowall` read as allow-all; empty means unset.
  */
 export function parseApproveDefault(value: string): ApproveDefault {
   const word = value.trim().toLowerCase();
@@ -72,10 +59,7 @@ export function parseApproveDefault(value: string): ApproveDefault {
     case "allowall":
       return "allow-all";
   }
-  const replaced = RETIRED[word];
-  throw new UsageError(
-    `invalid --approve-default value "${value}": ${replaced === undefined ? "" : `${replaced}; `}must be one of: allow, deny, allow-all`,
-  );
+  throw new UsageError(`invalid --approve-default value "${value}": must be one of: allow, deny, allow-all`);
 }
 
 /** The answer a run's `--approve-default` gives every ask. */

@@ -456,11 +456,6 @@ egressPolicy:
 #     so. The bundled Temporal has its fence (temporal.networkPolicy),
 #     because it authenticates nothing, and the bundled Postgres its own
 #     (postgres.networkPolicy).
-#   openfga, redis, openbao, licenseKeySecret — reserved here before
-#     Stigmer Enterprise shipped, now retired: no edition runs OpenFGA,
-#     Redis or OpenBao beside the server, and the license is
-#     enterprise.license.existingSecret. A values file that still carries
-#     them at their off values installs; turned on, they are refused.
 #   an HPA — nothing here scales horizontally yet.
 #   TLS inside the pod — terminate the API's at the Ingress, as behind
 #     Caddy or nginx with compose. (TLS to an external Temporal is

@@ -38,9 +38,6 @@ export type Preset = (typeof PRESETS)[number];
 export type SceneId =
   | `thread-${ThreadState}`
   | "file-review-dock"
-  | "composer-idle"
-  | "composer-submitting"
-  | "composer-disabled"
   | "models-hub-none"
   | "models-hub-connected"
   | "models-hub-local"
@@ -154,9 +151,6 @@ export const SCENES: readonly Scene[] = [
     widths: ["desktop", "narrow"] as const,
   })),
   { id: "file-review-dock", title: "File review dock: two edited files waiting for a decision", widths: ["desktop"] },
-  { id: "composer-idle", title: "Composer: idle", widths: ["desktop"] },
-  { id: "composer-submitting", title: "Composer: sending a message", widths: ["desktop"] },
-  { id: "composer-disabled", title: "Composer: disabled while a decision waits", widths: ["desktop"] },
   { id: "models-hub-none", title: "Models & providers: an admin, nothing connected yet", widths: ["desktop", "narrow"] },
   {
     id: "models-hub-connected",

@@ -13,7 +13,7 @@ import { buildProgram } from "../../program.js";
 import type { AgentQualityOptions } from "../../resources/agent/quality.js";
 
 const CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
 };

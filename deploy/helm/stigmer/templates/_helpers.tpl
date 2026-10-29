@@ -36,7 +36,7 @@ so one tag names the server's release whichever edition runs it.
 {{- define "stigmer.serverImage" -}}
 {{- $repository := .Values.image.server.repository -}}
 {{- if include "stigmer.licenseSecret" . -}}
-{{- $repository = dig "enterpriseRepository" "stigmer-server-ee" .Values.image.server -}}
+{{- $repository = .Values.image.server.enterpriseRepository -}}
 {{- end -}}
 {{- printf "%s/%s:%s" .Values.image.registry $repository (default (printf "v%s" .Chart.AppVersion) .Values.image.server.tag) -}}
 {{- end -}}
@@ -47,18 +47,15 @@ so one tag names the server's release whichever edition runs it.
 
 {{- /*
 The edition and its settings. The license Secret is the switch: set, the pod
-runs Stigmer Enterprise; empty, the open-source stack. Every Enterprise value
-is read through dig with its default, so a release upgraded with
---reuse-values from a chart that had no enterprise, egressPolicy or
-enterpriseRepository values renders as before, and one --set of the license
-Secret licenses it with every other value at its default.
+runs Stigmer Enterprise; empty, the open-source stack. One --set of the
+license Secret licenses an install with every other value at its default.
 */ -}}
 {{- define "stigmer.licenseSecret" -}}
-{{- dig "enterprise" "license" "existingSecret" "" .Values.AsMap -}}
+{{- .Values.enterprise.license.existingSecret -}}
 {{- end -}}
 
 {{- define "stigmer.outboundEgress" -}}
-{{- dig "enterprise" "outboundEgress" "strict" .Values.AsMap -}}
+{{- .Values.enterprise.outboundEgress -}}
 {{- end -}}
 
 {{- /*
@@ -69,7 +66,7 @@ kept at two layers. Wherever it renders the runner's fetch guard refuses
 private addresses too (stigmer.runnerEnv).
 */ -}}
 {{- define "stigmer.egressFenced" -}}
-{{- if or (dig "egressPolicy" "enabled" false .Values.AsMap) (and (include "stigmer.licenseSecret" .) (eq (include "stigmer.outboundEgress" .) "strict")) -}}
+{{- if or .Values.egressPolicy.enabled (and (include "stigmer.licenseSecret" .) (eq (include "stigmer.outboundEgress" .) "strict")) -}}
 true
 {{- end -}}
 {{- end -}}
@@ -225,7 +222,7 @@ true
 The cross-field refusals: each names the fix in the words the operator needs.
 Rendered once, from the Deployment, so every install runs them. The schema
 handles shape; these handle "set both or neither", "you forgot the Secret",
-a retired key turned on, a value that would do nothing (an Enterprise
+a value that would do nothing (an Enterprise
 setting with no license, allowedCidrs with no fence), what a license
 requires (sign-in, the bundled dependencies fenced, an external Temporal that
 authenticates), an extraEnv entry that would replace a name the chart sets or
@@ -238,22 +235,14 @@ listed twice), and an install exposed with sign-in off
 {{- if not .Values.secrets.existingSecret -}}
 {{- fail (printf "\n\nsecrets.existingSecret is required: the name of a Secret carrying STIGMER_ENCRYPTION_KEY and STIGMER_RUNNER_TOKEN_KEY (base64-encoded 32 bytes each)%s. The chart refuses to render without it, as docker compose refuses without .env: keys that materialize implicitly make the backup and rotation story invisible where a self-hoster needs it explicit. Create it, then set the value:\n\n  kubectl create secret generic stigmer-secrets \\\n    --from-literal=STIGMER_ENCRYPTION_KEY=$(openssl rand -base64 32) \\\n    --from-literal=STIGMER_RUNNER_TOKEN_KEY=$(openssl rand -base64 32)%s\n\n  helm install stigmer ... --set secrets.existingSecret=stigmer-secrets\n" (ternary " and POSTGRES_PASSWORD (the bundled database's superuser password)" "" .Values.postgres.enabled) (ternary " \\\n    --from-literal=POSTGRES_PASSWORD=$(openssl rand -hex 24)" "" .Values.postgres.enabled)) -}}
 {{- end -}}
-{{- range $unit, $name := dict "openfga" "OpenFGA" "redis" "Redis" "openbao" "OpenBao" -}}
-{{- if dig $unit "enabled" false $.Values.AsMap -}}
-{{- fail (printf "\n\n%s.enabled is retired: no Stigmer edition runs %s beside the server. It was reserved here before Stigmer Enterprise shipped, and Enterprise needs only its own server image and a license (enterprise.license.existingSecret). Set it to false or remove it from your values.\n" $unit $name) -}}
-{{- end -}}
-{{- end -}}
-{{- if dig "licenseKeySecret" "" .Values.AsMap -}}
-{{- fail "\n\nlicenseKeySecret is retired. The license Secret's name now goes in enterprise.license.existingSecret, which also runs the Enterprise server image and requires sign-in (server.oidc): move the name there and remove licenseKeySecret. (The value is not repeated here, in case it holds the key itself rather than a Secret's name.)\n" -}}
-{{- end -}}
 {{- $licensed := include "stigmer.licenseSecret" . -}}
 {{- $fenced := include "stigmer.egressFenced" . -}}
 {{- if not $licensed -}}
 {{- $unread := list -}}
-{{- if dig "enterprise" "organizationCreators" (list) .Values.AsMap -}}
+{{- if .Values.enterprise.organizationCreators -}}
 {{- $unread = append $unread "enterprise.organizationCreators is set" -}}
 {{- end -}}
-{{- if dig "enterprise" "accessHistoryRetentionDays" "" .Values.AsMap -}}
+{{- if .Values.enterprise.accessHistoryRetentionDays -}}
 {{- $unread = append $unread "enterprise.accessHistoryRetentionDays is set" -}}
 {{- end -}}
 {{- if eq (include "stigmer.outboundEgress" .) "relaxed" -}}
@@ -266,11 +255,11 @@ listed twice), and an install exposed with sign-in off
 {{- if and $licensed (not .Values.server.oidc.issuer) -}}
 {{- fail "\n\nenterprise.license.existingSecret is set, but server.oidc.issuer is empty. Stigmer Enterprise signs every caller in: the server refuses to boot without an issuer, so the chart refuses first. Set server.oidc.issuer, server.oidc.audience and server.oidc.consoleClientId (the chart README, \"Authentication\").\n" -}}
 {{- end -}}
-{{- if and (dig "egressPolicy" "allowedCidrs" (list) .Values.AsMap) (not $fenced) -}}
+{{- if and .Values.egressPolicy.allowedCidrs (not $fenced) -}}
 {{- fail "\n\negressPolicy.allowedCidrs is set, but no fence renders, so the list would do nothing. The fence is on with egressPolicy.enabled=true, or under a license with enterprise.outboundEgress strict (the default). Turn it on, or clear the list.\n" -}}
 {{- end -}}
 {{- if $licensed -}}
-{{- if and .Values.postgres.enabled (not (dig "networkPolicy" "enabled" true .Values.postgres)) -}}
+{{- if and .Values.postgres.enabled (not .Values.postgres.networkPolicy.enabled) -}}
 {{- fail "\n\npostgres.networkPolicy.enabled is false under a Stigmer Enterprise license. The bundled Postgres holds everything Stigmer keeps behind a password alone, and a licensed install is shared by many organizations, so its fence stays on. Remove the value, or run your own Postgres (postgres.enabled=false with externalDatabase).\n" -}}
 {{- end -}}
 {{- if and .Values.temporal.enabled (not .Values.temporal.networkPolicy.enabled) -}}

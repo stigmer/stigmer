@@ -3,7 +3,7 @@
 // drawing for an id it does not list, fails the typecheck.
 import { PRESETS, THREAD_STATES, type Preset, type SceneId, type ThreadState } from "../catalog.ts";
 import { inheritedOpenAiKey, NOTHING_CONNECTED, NOTHING_ON_THE_RUNNER, ownAnthropicKey } from "../fixtures.ts";
-import { composerScene, fileReviewDockScene } from "./conversation.tsx";
+import { fileReviewDockScene } from "./conversation.tsx";
 import { dashboardScene } from "./dashboard.tsx";
 import type { Drawing } from "./drawing.ts";
 import {
@@ -32,9 +32,6 @@ const presets = Object.fromEntries(PRESETS.map((preset) => [`preset-${preset}`, 
 export const DRAWINGS: Readonly<Record<SceneId, () => Drawing>> = {
   ...threads,
   "file-review-dock": fileReviewDockScene,
-  "composer-idle": () => composerScene("idle"),
-  "composer-submitting": () => composerScene("submitting"),
-  "composer-disabled": () => composerScene("disabled"),
   "models-hub-none": () => modelsHubScene(NOTHING_CONNECTED, [], "admin"),
   "models-hub-connected": () => modelsHubScene(CONNECTED, [ownAnthropicKey(), inheritedOpenAiKey()], "admin"),
   "models-hub-local": modelsHubLocalScene,

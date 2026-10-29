@@ -1,5 +1,5 @@
 // Parse a user-supplied resource reference into either an ID lookup or an
-// org/slug lookup, mirroring the Go CLI's parseOrgSlug + ID detection.
+// org/slug lookup.
 //
 //   "agt_abc123"        -> by ID
 //   "my-org/my-agent"   -> by org/slug (explicit org)
@@ -9,9 +9,9 @@
 // an ID but "acme" as a slug.
 //
 // The lower half of this module adds the *strict* classification the run/resume
-// resolvers need (Go's pkg/reference): prefix-by-kind detection and full ID
-// validation (prefix + 26-char ULID, or UUID). This is deliberately distinct
-// from parseReference's lenient `${prefix}_` test — `run my-agent` must not
+// resolvers need: prefix-by-kind detection and full ID validation (prefix, "_"
+// and a 26-char ULID, the only id shape the server mints). This is deliberately
+// distinct from parseReference's lenient `${prefix}_` test — `run my-agent` must not
 // treat a slug that merely starts with a known prefix as an ID.
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -40,9 +40,9 @@ export function parseReference(
   return { kind: "ref", org: defaultOrg, slug: trimmed };
 }
 
-// Crockford base-32 ULID body length. Mirrors Go's reference.ulidLength: the
-// resolver only checks the length (not the alphabet), so a 26-char body after a
-// known prefix is accepted as a complete ID.
+// Crockford base-32 ULID body length. The resolver checks only the length (not
+// the alphabet), so a 26-char body after a known prefix is accepted as a
+// complete ID; the server judges the rest.
 const ULID_LENGTH = 26;
 
 /**
@@ -65,22 +65,10 @@ const ALL_ID_PREFIXES: readonly string[] = (() => {
   return [...set];
 })();
 
-// The legacy "-" separator (Go's reference package) predates the run kind's
-// "run" prefix: no id was ever minted "run-…", and "run-" is how an agent slug
-// such as "run-nightly-report" starts, so that prefix takes "_" only.
-const UNDERSCORE_ONLY_PREFIXES: ReadonlySet<string> = new Set(["run"]);
-
-/** The separators an id may carry after `prefix`: "_" canonical, "-" legacy. */
-function separatorsFor(prefix: string): readonly string[] {
-  return UNDERSCORE_ONLY_PREFIXES.has(prefix) ? ["_"] : ["_", "-"];
-}
-
-// Mirrors Go's reference.isResourceIDWithKind: a kind prefix followed by a
-// separator {@link separatorsFor} allows it. Case-sensitive.
+// A kind prefix followed by "_". Case-sensitive, so "RUN_" is not a run id.
 function hasKindPrefix(ref: string, prefix: string): boolean {
   if (prefix === "") return false;
-  const trimmed = ref.trim();
-  return separatorsFor(prefix).some((sep) => trimmed.startsWith(`${prefix}${sep}`));
+  return ref.trim().startsWith(`${prefix}_`);
 }
 
 /** True if `ref` carries `kind`'s id prefix. */
@@ -88,17 +76,17 @@ function hasPrefixOf(ref: string, kind: ApiResourceKind): boolean {
   return hasKindPrefix(ref, idPrefixOf(kind));
 }
 
-/** True if `ref` carries the agent ID prefix (`agt_…`/`agt-…`). */
+/** True if `ref` carries the agent ID prefix (`agt_…`). */
 export function isAgentId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.agent);
 }
 
-/** True if `ref` carries the session ID prefix (`ses_…`/`ses-…`). */
+/** True if `ref` carries the session ID prefix (`ses_…`). */
 export function isSessionId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.session);
 }
 
-/** True if `ref` carries the routine ID prefix (`rtn_…`/`rtn-…`). */
+/** True if `ref` carries the routine ID prefix (`rtn_…`). */
 export function isRoutineId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.routine);
 }
@@ -109,54 +97,30 @@ export function isRunId(ref: string): boolean {
 }
 
 /**
- * True if `ref` starts with ANY known resource-ID prefix (length-agnostic).
- * Mirrors Go's reference.HasResourceIDPrefix: use it to detect *intent* (the
- * user typed something ID-shaped), then {@link validateResourceId} to enforce
- * completeness.
+ * True if `ref` starts with ANY known resource-ID prefix (length-agnostic):
+ * use it to detect *intent* (the user typed something ID-shaped), then
+ * {@link validateResourceId} to enforce completeness.
  */
 export function hasResourceIdPrefix(ref: string): boolean {
-  if (ALL_ID_PREFIXES.some((prefix) => hasKindPrefix(ref, prefix))) return true;
-  return isUuid(ref.trim());
+  return ALL_ID_PREFIXES.some((prefix) => hasKindPrefix(ref, prefix));
 }
 
 /**
  * Validate that `ref` is a syntactically complete resource ID. Returns null
- * when valid, or a user-facing error message otherwise. Mirrors Go's
- * reference.ValidateResourceID/ResourceIDKind: a known prefix followed by a
- * 26-char ULID body, or a bare UUID (legacy). A matched prefix with the wrong
- * body length is reported as "incomplete" so callers can guide the user to
- * paste the full ID.
+ * when valid, or a user-facing error message otherwise: a known prefix and
+ * "_" followed by a 26-char ULID body. A matched prefix with the wrong body
+ * length is reported as "incomplete" so callers can guide the user to paste
+ * the full ID.
  */
 export function validateResourceId(ref: string): string | null {
   const trimmed = ref.trim();
   for (const prefix of ALL_ID_PREFIXES) {
-    for (const sep of separatorsFor(prefix)) {
-      const pfx = `${prefix}${sep}`;
-      if (!trimmed.startsWith(pfx)) continue;
-      const body = trimmed.slice(pfx.length);
-      if (body.length !== ULID_LENGTH) {
-        return "incomplete resource ID: expected 26-character ULID after prefix";
-      }
-      return null;
+    const pfx = `${prefix}_`;
+    if (!trimmed.startsWith(pfx)) continue;
+    if (trimmed.length - pfx.length !== ULID_LENGTH) {
+      return "incomplete resource ID: expected 26-character ULID after prefix";
     }
+    return null;
   }
-  if (isUuid(trimmed)) return null;
   return "not a recognized resource ID";
-}
-
-// Mirrors Go's reference.isUUID: 8-4-4-4-12 hex with hyphens at fixed offsets.
-function isUuid(value: string): boolean {
-  if (value.length !== 36) return false;
-  if (value[8] !== "-" || value[13] !== "-" || value[18] !== "-" || value[23] !== "-") {
-    return false;
-  }
-  for (let i = 0; i < value.length; i++) {
-    if (i === 8 || i === 13 || i === 18 || i === 23) continue;
-    if (!isHexDigit(value[i])) return false;
-  }
-  return true;
-}
-
-function isHexDigit(c: string): boolean {
-  return (c >= "0" && c <= "9") || (c >= "a" && c <= "f") || (c >= "A" && c <= "F");
 }

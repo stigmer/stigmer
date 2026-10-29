@@ -9,14 +9,9 @@
 // no-auth posture are fixed) and "cloud" (where `stigmer auth login` lands
 // by default).
 //
-// Legacy shape + migration: older files carried one `backend.cloud` slot
-// selected by `backend.type`. Loading migrates that shape in memory
-// (cloud section → `backends.cloud`, type → `current_backend`); the first
-// save writes the new shape — a one-time write migration. The
-// legacy `backend.type` is still WRITTEN (mirroring local vs non-local)
-// so older readers keep a coherent view, and the opaque `backend.local`
-// section (daemon/LLM/Temporal settings owned by other tools) is
-// preserved verbatim, exactly as before.
+// The `backend.local` section (daemon/LLM/Temporal settings owned by the
+// local-mode modules) is carried through verbatim, so a save never drops a key
+// this module does not model.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -24,9 +19,6 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { UsageError } from "../errors/index.js";
 import { isStandalone } from "../runtime.js";
 import { configPath } from "./paths.js";
-
-/** The legacy binary switch, still written as a mirror for older readers. */
-export type BackendType = "local" | "cloud";
 
 /** The two named-backend families: Stigmer Cloud, or any OSS server. */
 export type NamedBackendType = "cloud" | "selfhost";
@@ -60,23 +52,10 @@ export interface NamedBackendConfig {
   api_key?: string;
 }
 
-/** Cloud backend connection — the LEGACY single-slot shape (older files). */
-export interface CloudBackendConfig {
-  endpoint?: string;
-  token?: string;
-  org_id?: string;
-  env_id?: string;
-  refresh_token?: string;
-  token_expiry?: string;
-}
-
 export interface BackendConfig {
-  type: BackendType;
-  /** Local daemon/LLM/Temporal settings — opaque to this CLI,
-   * preserved verbatim across save so coexisting tools keep their config. */
+  /** Local daemon/LLM/Temporal settings — opaque to this module,
+   * preserved verbatim across save so the local-mode modules keep their config. */
   local?: unknown;
-  /** Legacy cloud slot — read for migration, never written back. */
-  cloud?: CloudBackendConfig;
 }
 
 export interface ContextConfig {
@@ -122,7 +101,7 @@ const SAVE_HEADER = `# Stigmer CLI Configuration
 /** The default config: the local backend, no daemon settings fabricated. */
 export function getDefault(): Config {
   return {
-    backend: { type: "local" },
+    backend: {},
     backends: {},
     current_backend: LOCAL_BACKEND_NAME,
   };
@@ -152,11 +131,8 @@ export function load(path: string = configPath()): Config {
 
 /**
  * Persist the config to disk (0600 file in a 0755 directory), with the
- * documentation header the file has always carried. Writes the NAMED shape
- * (the one-time migration): the legacy cloud slot is dropped — its content
- * lives in `backends.cloud` — and `backend.type` is written as the
- * local-vs-not mirror. A pristine local config (no named backends) writes
- * exactly the legacy bytes.
+ * documentation header. A pristine local config (no named backends) writes no
+ * backend keys at all.
  */
 export function save(config: Config, path: string = configPath()): void {
   mkdirSync(dirname(path), { recursive: true, mode: 0o755 });
@@ -203,31 +179,14 @@ function normalize(parsed: Partial<Config> | null): Config {
     return getDefault();
   }
 
-  const legacy = parsed.backend;
-  const backends = normalizeBackends(parsed.backends);
-
-  // Migration: a legacy cloud slot becomes the reserved "cloud" entry —
-  // unless a named shape already exists (then the named shape wins and the
-  // stale legacy slot is ignored).
-  if (Object.keys(backends).length === 0 && legacy?.cloud !== undefined) {
-    backends[CLOUD_BACKEND_NAME] = { type: "cloud", ...legacy.cloud };
-  }
-
-  let current =
-    typeof parsed.current_backend === "string" ? parsed.current_backend : "";
-  if (current === "") {
-    current =
-      legacy?.type === "cloud" && backends[CLOUD_BACKEND_NAME] !== undefined
-        ? CLOUD_BACKEND_NAME
-        : LOCAL_BACKEND_NAME;
-  }
+  const current =
+    typeof parsed.current_backend === "string" && parsed.current_backend !== ""
+      ? parsed.current_backend
+      : LOCAL_BACKEND_NAME;
 
   return {
-    backend: {
-      type: legacy?.type === "cloud" ? "cloud" : "local",
-      local: legacy?.local,
-    },
-    backends,
+    backend: { local: parsed.backend?.local },
+    backends: normalizeBackends(parsed.backends),
     current_backend: current,
     context: parsed.context,
     marketplaces: normalizeMarketplaces(parsed.marketplaces),
@@ -266,20 +225,16 @@ function normalizeBackends(
   return backends;
 }
 
-/** The on-disk shape: named model + legacy mirror, minimal for defaults. */
-function serializable(config: Config): Config {
+/** The on-disk shape, minimal for defaults. */
+function serializable(config: Config): Partial<Config> {
   const backends = config.backends ?? {};
   const current = activeBackendName(config);
   const pristineLocal =
     Object.keys(backends).length === 0 && current === LOCAL_BACKEND_NAME;
   return {
-    backend: {
-      // The legacy mirror: local stays "local"; anything named is "cloud"
-      // to older readers (which cannot represent selfhost anyway).
-      type: current === LOCAL_BACKEND_NAME ? "local" : "cloud",
-      local: config.backend.local,
-      // The legacy cloud slot is never written back — migrated.
-    },
+    ...(config.backend.local === undefined
+      ? {}
+      : { backend: { local: config.backend.local } }),
     ...(pristineLocal ? {} : { backends, current_backend: current }),
     context: config.context,
     marketplaces: config.marketplaces,

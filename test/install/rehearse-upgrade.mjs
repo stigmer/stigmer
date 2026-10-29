@@ -13,8 +13,7 @@
  *      this host (test/install/lib/fake-model.mjs), and checks that the
  *      server reports that release (getServerInfo);
  *   2. records state: an agent run answered by the model, in an
- *      organization of its own, every resource read back; on a base that
- *      still serves workflows, also one completed workflow run;
+ *      organization of its own, every resource read back;
  *   3. upgrades to --to exactly as the guide says:
  *        compose     the release's docker-compose.yml, STIGMER_VERSION moved,
  *                    `docker compose pull`, `up -d` (operations.mdx)
@@ -28,13 +27,7 @@
  *      (or the CLI's runtime) are the ones running;
  *   4. reads every recorded resource back and compares it field by field:
  *      nothing lost, nothing renamed, the run still COMPLETED, the agent's
- *      reply intact (where the base kept it in the session event log: a
- *      release before the log kept it on the run's status, which the log
- *      does not carry over), the agent still found by its org/slug
- *      reference; after
- *      a base that recorded a workflow run, requires the workflow API gone
- *      (an unrouted procedure) from a server that booted over the store
- *      holding that run;
+ *      reply intact, the agent still found by its org/slug reference;
  *   5. runs the agent the old release stored, then a fresh agent in the
  *      organization the old release made, each to the model's reply;
  *   6. tears the install down, also on failure, with its diagnostics printed.
@@ -106,11 +99,9 @@ import { sourceBuildVersion } from "../../scripts/lib/source-version.mjs";
 import {
   assertPortFree,
   assertStateSurvived,
-  assertWorkflowApiGone,
   recordState,
   runAgentExecution,
   runAgentToReply,
-  runApiOf,
   serverVersion,
   waitForServing,
 } from "./lib/stigmer-smoke.mjs";
@@ -518,31 +509,21 @@ async function main() {
     log(`upgraded ${before} -> ${after} (${lap()})`);
 
     const baseUrl = install.baseUrl();
-    // The run API the upgraded server speaks: a rehearsal to a release from
-    // before runs were named runs (`--to`) still starts its runs there.
-    const api = await runApiOf(baseUrl);
     await assertStateSurvived(baseUrl, recorded);
     log(`read back unchanged: ${Object.keys(recorded.snapshot).join(", ")}; the old reply: ${recorded.reply}`);
-    // The legacy workflow arm (stigmer#1989).
-    if (recorded.workflowRun !== undefined) {
-      await assertWorkflowApiGone(baseUrl);
-      log(`the workflow API is gone; the server booted over the store that held workflow run ${recorded.workflowRun.executionId}`);
-    }
     const oldAgent = await runAgentExecution(
       baseUrl,
       { orgId: recorded.ids.agentOrgId, agentId: recorded.ids.agentId, agentSlug: recorded.ids.agentSlug },
       RUN_TIMEOUT_MS,
-      { expectText: fake.replyText, log, api },
+      { expectText: fake.replyText, log },
     );
     log(`the agent ${before} stored ran on ${after}: execution ${oldAgent.executionId} replied`);
-    // In the organization the base release made: a release before the server
-    // held one organization made one per line, and the upgraded server, which
-    // holds one, admits no other — so the fresh agent names one it keeps.
+    // In the organization the base release recorded its state in, so the
+    // fresh agent runs where the stored one does.
     const fresh = await runAgentToReply(baseUrl, RUN_TIMEOUT_MS, {
       expectText: fake.replyText,
       log,
       org: recorded.ids.agentOrgId,
-      api,
     });
     log(`a fresh agent on ${after}: execution ${fresh.executionId} replied (${lap()})`);
     log(`PASS: ${args.artifact} ${before} -> ${after} in ${Math.round((Date.now() - started) / 1000)}s`);

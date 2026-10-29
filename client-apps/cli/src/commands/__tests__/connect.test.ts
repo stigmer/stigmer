@@ -99,7 +99,7 @@ vi.mock("../../config/index.js", async (importOriginal) => {
 /** An authenticated cloud config with no org selected — the guard's target shape. */
 function cloudConfigWithoutOrg(): Config {
   return {
-    backend: { type: "cloud" },
+    backend: {},
     backends: { cloud: { type: "cloud", token: "test-token" } },
     current_backend: "cloud",
   };

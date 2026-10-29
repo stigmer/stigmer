@@ -7,15 +7,11 @@
 //                       two verbs are one code path
 //
 // A bare `stigmer apply` in a directory that is neither prints what the
-// command can do. A `stigmer.yaml` there is the retired Project format, and
-// the guidance says so: a folder of resources that belong together is a
-// plugin.
+// command can do.
 //
 // Resources marshal strictly from YAML to full protos and apply through the raw
 // command controllers (preserving metadata.id so updates aren't misrouted as
 // creates). Heavy modules are lazy-imported so `--help` stays fast.
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import {
@@ -25,12 +21,6 @@ import {
   renderResult,
 } from "../output/index.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
-
-/**
- * The manifest file the retired Project format kept at a directory's root.
- * Read only to recognise an old repository and say what happened to it.
- */
-const RETIRED_PROJECT_FILE = "stigmer.yaml";
 
 interface ApplyFlags extends OutputFlags {
   file?: string;
@@ -169,8 +159,7 @@ async function runFileApply(
 }
 
 // What a bare `stigmer apply` says when the target holds no plugin manifest:
-// the two things the command does, and, when a `stigmer.yaml` sits there,
-// what that file was and where its resources go now.
+// the things the command does.
 function buildGuidance(target: string): CommandResult {
   const result = CommandResult.warning(`No plugin manifest in ${target}`);
   result
@@ -179,13 +168,6 @@ function buildGuidance(target: string): CommandResult {
     .item("stigmer apply -f <dir>         apply every YAML file in a directory")
     .item("stigmer push skill <dir>       publish a skill folder")
     .item("stigmer push plugin <dir>      install a folder of resources as one plugin");
-  if (existsSync(join(target, RETIRED_PROJECT_FILE))) {
-    result
-      .addSection(`About the ${RETIRED_PROJECT_FILE} here`)
-      .item(
-        "It is the Project format, which Stigmer no longer has. A folder of resources that belong together is a plugin: run `stigmer push plugin <dir>`, or apply each resource file with `stigmer apply -f`.",
-      );
-  }
   return result;
 }
 

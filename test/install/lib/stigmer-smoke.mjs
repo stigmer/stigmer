@@ -8,10 +8,7 @@
  * probe adds it here, never inline. The upgrade rehearsal
  * (test/install/rehearse-upgrade.mjs) adds the state probes: what the runs created
  * is recorded before an upgrade and read back after it, field by field, and
- * the server says which release answers (getServerInfo). On a base release
- * that still serves workflows, the rehearsal also records one workflow run
- * through the legacy arm below and requires the workflow API gone after the
- * upgrade. The refusal and log probes read what an install must not admit
+ * the server says which release answers (getServerInfo). The refusal and log probes read what an install must not admit
  * and what its server says at boot: a request for an organization nobody
  * created is refused by name, and the OAuth callback is derived from the
  * public address the install was given.
@@ -331,32 +328,22 @@ export async function readSingleOrganization(baseUrl, { slug = "stigmer" } = {})
 }
 
 const LIST_MY_ORGANIZATIONS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/listMine";
-const FIND_MY_ORGANIZATIONS = "ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations";
 
 /**
- * The caller's organizations, as one page: `listMine`, or
- * `findMyOrganizations` on a release from before the list rename, which
- * answers `listMine` with a 404. The servers a smoke line reads hold one
- * organization, or the few it made, so the first page is all of them.
+ * The caller's organizations, as one page. The servers a smoke line reads
+ * hold one organization, or the few it made, so the first page is all of
+ * them.
  */
 async function myOrganizations(baseUrl) {
-  const response = await fetch(`${baseUrl}/${LIST_MY_ORGANIZATIONS}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: "{}",
-  });
-  if (response.status === 404) return connectJson(baseUrl, FIND_MY_ORGANIZATIONS, {});
-  const text = await response.text();
-  if (!response.ok) throw new Error(`${LIST_MY_ORGANIZATIONS} -> HTTP ${response.status}: ${text.slice(0, 300)}`);
-  return JSON.parse(text);
+  return connectJson(baseUrl, LIST_MY_ORGANIZATIONS, {});
 }
 
 /**
  * The organization a smoke line runs in: `org` when the caller names one;
  * otherwise, on a server that holds one organization, that one; otherwise a
  * fresh organization named `name`. A one-organization server refuses a
- * second, and a release from before it held one makes none, so the same line
- * runs on both. Resolves to the organization's id.
+ * second, so the same line runs on either kind of server. Resolves to the
+ * organization's id.
  */
 export async function smokeOrganization(baseUrl, name, { org } = {}) {
   if (org !== undefined) return org;
@@ -377,159 +364,10 @@ export async function smokeOrganization(baseUrl, name, { org } = {}) {
   return id;
 }
 
-/**
- * The run API a server speaks. Two renames moved it: agent executions
- * became agent runs (their service, kind string and phase names), then the
- * agent run became a run (its service and kind string). An upgrade
- * rehearsal records its state on a release from before them and reads it
- * back on the build after, so every run line takes the API of the server it
- * talks to ({@link runApiOf}).
- */
-export const RUN_APIS = Object.freeze({
-  current: Object.freeze({
-    agentService: "ai.stigmer.agentic.run.v1.Run",
-    agentKind: "Run",
-    phasePrefix: "RUN_",
-  }),
-  beforeRunKindRename: Object.freeze({
-    agentService: "ai.stigmer.agentic.agentrun.v1.AgentRun",
-    agentKind: "AgentRun",
-    phasePrefix: "RUN_",
-  }),
-  beforeRunRename: Object.freeze({
-    agentService: "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-    agentKind: "AgentExecution",
-    phasePrefix: "EXECUTION_",
-  }),
-});
+/** The run service every query and create below names. */
+const RUN_SERVICE = "ai.stigmer.agentic.run.v1.Run";
 
-/**
- * Whether `baseUrl` routes `procedure`. The Connect adapter answers an
- * unrouted procedure with a bare 404 and no body; a routed one that refuses
- * (an unknown id, a malformed one) answers a Connect error naming its code.
- */
-async function routes(baseUrl, procedure, body) {
-  const response = await fetch(`${baseUrl}/${procedure}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const text = await response.text();
-  return !(response.status === 404 && text.trim() === "");
-}
-
-/**
- * The run API `baseUrl` serves: the newest one whose run query the server
- * routes, and the oldest when it routes neither newer one, which only a
- * release from before both renames does.
- */
-export async function runApiOf(baseUrl) {
-  for (const api of [RUN_APIS.current, RUN_APIS.beforeRunKindRename]) {
-    if (await routes(baseUrl, `${api.agentService}QueryController/get`, { value: "run_api_probe" })) return api;
-  }
-  return RUN_APIS.beforeRunRename;
-}
-
-/** A run phase without its API's prefix (`COMPLETED`), so phases compare across the rename. */
-export function runPhaseWord(phase, api) {
-  return phase.startsWith(api.phasePrefix) ? phase.slice(api.phasePrefix.length) : phase;
-}
-
-const TERMINAL_FAILURES = new Set(["FAILED", "CANCELLED", "TERMINATED"]);
-
-// The legacy workflow arm, for a base release that still serves workflows; removed once the newest release has none (stigmer#1989).
-/**
- * The workflow run APIs of the releases that still serve workflows: the one
- * after runs were named runs, and the one before. The upgrade rehearsal
- * records a workflow run on such a base ({@link runSetVarsWorkflow}) and
- * requires the API gone after the upgrade ({@link assertWorkflowApiGone}).
- */
-export const LEGACY_WORKFLOW_APIS = Object.freeze([
-  Object.freeze({ service: "ai.stigmer.agentic.workflowrun.v1.WorkflowRun", kind: "WorkflowRun", phasePrefix: "RUN_" }),
-  Object.freeze({
-    service: "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
-    kind: "WorkflowExecution",
-    phasePrefix: "EXECUTION_",
-  }),
-]);
-
-/** The workflow run API `baseUrl` routes ({@link LEGACY_WORKFLOW_APIS}), or undefined for a server that serves no workflows. */
-export async function legacyWorkflowApiOf(baseUrl) {
-  for (const api of LEGACY_WORKFLOW_APIS) {
-    if (await routes(baseUrl, `${api.service}QueryController/get`, { value: "wex_workflow_api_probe" })) return api;
-  }
-  return undefined;
-}
-
-/** Throws unless `baseUrl` routes no workflow run API: what the build requires after an upgrade from a release that served one. */
-export async function assertWorkflowApiGone(baseUrl) {
-  const api = await legacyWorkflowApiOf(baseUrl);
-  if (api !== undefined) {
-    throw new Error(`the upgraded server still routes ${api.service}QueryController/get; it must serve no workflow API`);
-  }
-}
-
-/**
- * On a base release that still serves workflows (`api`, from
- * {@link legacyWorkflowApiOf}), in the smoke's organization
- * ({@link smokeOrganization}; `org` names one), a single `set_vars` workflow
- * (sub-second, hermetic, no LLM, no MCP, no keys), run it, and wait for its
- * COMPLETED phase. Returns the organization, workflow and execution ids. A
- * terminal failure surfaces immediately with the server's own error.
- */
-export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { org, api }) {
-  const suffix = uniqueSuffix();
-  const orgId = await smokeOrganization(baseUrl, `smoke-org-${suffix}`, { org });
-
-  const workflow = await connectJson(baseUrl, "ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create", {
-    apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Workflow",
-    metadata: { name: `smoke-wf-${suffix}`, org: orgId },
-    spec: {
-      description: "self-host smoke fixture",
-      document: { dsl: "1.0.0", namespace: orgId, name: `smoke-wf-${suffix}`, version: "1.0.0" },
-      tasks: [
-        {
-          name: "setVars",
-          kind: "set_vars",
-          taskConfig: { variables: { greeting: "hello" } },
-          export: { as: "${ . }" },
-        },
-      ],
-    },
-  });
-  const workflowId = workflow.metadata?.id;
-  if (!workflowId) throw new Error(`workflow create returned no id: ${JSON.stringify(workflow)}`);
-  log(`workflow ${workflowId} created`);
-
-  const execution = await connectJson(
-    baseUrl,
-    `${api.service}CommandController/create`,
-    {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: api.kind,
-      metadata: { name: `smoke-wfx-${suffix}`, org: orgId },
-      spec: { workflowId },
-    },
-  );
-  const executionId = execution.metadata?.id;
-  if (!executionId) throw new Error(`execution create returned no id: ${JSON.stringify(execution)}`);
-  log(`execution ${executionId} created — awaiting COMPLETED...`);
-
-  await pollUntil("execution COMPLETED", timeoutMs, async () => {
-    const current = await connectJson(
-      baseUrl,
-      `${api.service}QueryController/get`,
-      { value: executionId },
-    );
-    const phase = current.status?.phase ?? "";
-    if (TERMINAL_FAILURES.has(runPhaseWord(phase, api))) {
-      throw new PollStop(`execution reached ${phase}: ${JSON.stringify(current.status?.error ?? {})}`);
-    }
-    return runPhaseWord(phase, api) === "COMPLETED";
-  });
-  return { orgId, workflowId, executionId };
-}
+const TERMINAL_FAILURES = new Set(["RUN_FAILED", "RUN_CANCELLED", "RUN_TERMINATED"]);
 
 /**
  * The end-to-end line every self-host smoke draws: in the smoke's
@@ -542,10 +380,10 @@ export async function runSetVarsWorkflow(baseUrl, timeoutMs, log = () => {}, { o
  * the ids and the reply, so an upgrade rehearsal can read them back. A
  * terminal failure surfaces immediately with the execution's own error.
  */
-export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {}, org, api = RUN_APIS.current }) {
+export async function runAgentToReply(baseUrl, timeoutMs, { expectText, log = () => {}, org }) {
   requireExpectText(expectText);
   const agent = await createSmokeAgent(baseUrl, { log, org });
-  const run = await runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log, api });
+  const run = await runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log });
   return { ...agent, ...run };
 }
 
@@ -561,7 +399,6 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
     spec: {
       description: "self-host smoke fixture",
       instructions: "Answer the message in one short sentence.",
-      mcpServerUsages: [],
     },
   });
   const agentId = agent.metadata?.id;
@@ -570,50 +407,36 @@ export async function createSmokeAgent(baseUrl, { log = () => {}, org } = {}) {
   return { orgId, agentId, agentSlug: agent.metadata?.slug ?? "" };
 }
 
-/**
- * The first turn of a new conversation on the agent: a session that names
- * the agent by reference. A server released before conversations named
- * their agent refuses that field as unknown JSON and takes the agent's id
- * instead, so the line answers either: the upgrade rehearsal records its
- * state on the release it upgrades from with this same line.
- */
-async function startAgentConversation(baseUrl, { orgId, agentId, agentSlug }, api) {
-  const create = (target) =>
-    connectJson(baseUrl, `${api.agentService}CommandController/create`, {
-      apiVersion: "agentic.stigmer.ai/v1",
-      kind: api.agentKind,
-      metadata: { name: `smoke-aex-${uniqueSuffix()}`, org: orgId },
-      spec: { ...target, message: "Say hello." },
-    });
-  try {
-    return await create({ sessionSpec: { agentRef: { kind: "agent", org: orgId, slug: agentSlug } } });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes("HTTP 400") || !message.includes("agentRef")) throw error;
-    return create({ agentId });
-  }
+/** The first turn of a new conversation on the agent: a session that names the agent by reference. */
+async function startAgentConversation(baseUrl, { orgId, agentSlug }) {
+  return connectJson(baseUrl, `${RUN_SERVICE}CommandController/create`, {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Run",
+    metadata: { name: `smoke-run-${uniqueSuffix()}`, org: orgId },
+    spec: { sessionSpec: { agentRef: { kind: "agent", org: orgId, slug: agentSlug } }, message: "Say hello." },
+  });
 }
 
 /**
  * One run of an existing agent, to RUN_COMPLETED with the model's reply
- * as its last message ({@link runReply}). The upgrade rehearsal runs the agent an older release
+ * as its last message ({@link runReply}). The upgrade rehearsal runs the agent the base release
  * stored this way, which is what shows the stored agent still works. Resolves
  * `{ executionId, reply }`.
  */
-export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log = () => {}, api = RUN_APIS.current }) {
+export async function runAgentExecution(baseUrl, agent, timeoutMs, { expectText, log = () => {} }) {
   requireExpectText(expectText);
-  const execution = await startAgentConversation(baseUrl, agent, api);
+  const execution = await startAgentConversation(baseUrl, agent);
   const executionId = execution.metadata?.id;
   if (!executionId) throw new Error(`agent execution create returned no id: ${JSON.stringify(execution)}`);
   log(`agent execution ${executionId} created — awaiting the model's reply...`);
 
   const completed = await pollUntil("agent execution RUN_COMPLETED", timeoutMs, async () => {
-    const current = await readAgentExecution(baseUrl, executionId, api);
+    const current = await readAgentExecution(baseUrl, executionId);
     const phase = current.status?.phase ?? "";
-    if (TERMINAL_FAILURES.has(runPhaseWord(phase, api))) {
+    if (TERMINAL_FAILURES.has(phase)) {
       throw new PollStop(`agent execution reached ${phase}: ${current.status?.error || "(no error recorded)"}`);
     }
-    return runPhaseWord(phase, api) === "COMPLETED" ? current : false;
+    return phase === "RUN_COMPLETED" ? current : false;
   });
   const reply = await runReply(baseUrl, completed);
   if (!reply.includes(expectText)) {
@@ -637,8 +460,8 @@ function uniqueSuffix() {
 }
 
 /** One agent execution, as the query lane returns it. */
-export async function readAgentExecution(baseUrl, executionId, api = RUN_APIS.current) {
-  return connectJson(baseUrl, `${api.agentService}QueryController/get`, {
+export async function readAgentExecution(baseUrl, executionId) {
+  return connectJson(baseUrl, `${RUN_SERVICE}QueryController/get`, {
     value: executionId,
   });
 }
@@ -646,24 +469,11 @@ export async function readAgentExecution(baseUrl, executionId, api = RUN_APIS.cu
 const LIST_SESSION_EVENTS = "ai.stigmer.agentic.session.v1.SessionQueryController/listEvents";
 
 /**
- * Whether `baseUrl` keeps a session event log ({@link LIST_SESSION_EVENTS}
- * routed). Every build since the log does; a release before it kept a run's
- * transcript on the run's status instead.
- */
-export async function servesSessionEvents(baseUrl) {
-  return routes(baseUrl, LIST_SESSION_EVENTS, { sessionId: "session_events_probe" });
-}
-
-/**
  * The model's reply in one run, or "" when it has none: the text of the
  * run's newest `agent.message` on the session's primary thread, read from
- * the session's event log. On a release from before the log ({@link
- * servesSessionEvents} false), the run's last AI message on its status,
- * where that release kept it, so the upgrade rehearsal reads its base's
- * reply too.
+ * the session's event log.
  */
 export async function runReply(baseUrl, run) {
-  if (!(await servesSessionEvents(baseUrl))) return statusReply(run);
   const sessionId = run.spec?.sessionId ?? "";
   const runId = run.metadata?.id ?? "";
   if (sessionId === "" || runId === "") {
@@ -681,13 +491,6 @@ export async function runReply(baseUrl, run) {
     .filter((block) => block.type === "text")
     .map((block) => block.text ?? "")
     .join("");
-}
-
-/** A pre-log release's run: the content of its status's last AI message. */
-function statusReply(run) {
-  const messages = run.status?.messages ?? [];
-  const ai = messages.filter((message) => message.type === "MESSAGE_AI" && !message.isStreaming);
-  return ai.at(-1)?.content ?? "";
 }
 
 /**
@@ -737,43 +540,33 @@ const READS = Object.freeze({
  * the smoke's organization ({@link smokeOrganization}: one of its own on a
  * server that holds several, the server's one where it holds one), and every
  * resource as the server reads it back right after. Resolves
- * `{ ids, snapshot, reply, workflowRun? }`: the ids to read again later, the
- * snapshot {@link compareState} holds the later read to, the run's reply as
- * the base answered it ({@link runReply}), and, on a base that
- * still serves workflows, the completed workflow run recorded beside them
- * (`{ orgId, workflowId, executionId }`), whose organization joins the ids
- * so the read after the upgrade proves it survived the workflows it held.
+ * `{ ids, snapshot, reply }`: the ids to read again later, the snapshot
+ * {@link compareState} holds the later read to, and the run's reply as the
+ * base answered it ({@link runReply}).
  */
 export async function recordState(baseUrl, timeoutMs, { expectText, log = () => {} }) {
-  const api = await runApiOf(baseUrl);
-  // The legacy workflow arm (stigmer#1989).
-  const workflowApi = await legacyWorkflowApiOf(baseUrl);
-  const workflowRun = workflowApi === undefined ? undefined : await runSetVarsWorkflow(baseUrl, timeoutMs, log, { api: workflowApi });
-  const agent = await runAgentToReply(baseUrl, timeoutMs, { expectText, log, api });
+  const agent = await runAgentToReply(baseUrl, timeoutMs, { expectText, log });
   const ids = {
     agentOrgId: agent.orgId,
     agentId: agent.agentId,
     agentSlug: agent.agentSlug,
     agentExecutionId: agent.executionId,
-    ...(workflowRun !== undefined ? { workflowOrgId: workflowRun.orgId } : {}),
   };
   const snapshot = await readState(baseUrl, ids);
   const problems = Object.entries(snapshot)
     .filter(([, value]) => value.error !== undefined)
     .map(([key, value]) => `${key}: ${value.error}`);
   if (problems.length > 0) throw new Error(`the state just created does not read back: ${problems.join("; ")}`);
-  return { ids, snapshot, reply: agent.reply, ...(workflowRun !== undefined ? { workflowRun } : {}) };
+  return { ids, snapshot, reply: agent.reply };
 }
 
 /**
- * Every recorded resource read again, by id (the legacy workflow run's
- * organization too, when one was recorded), and the agent once more by its
+ * Every recorded resource read again, by id, and the agent once more by its
  * `org/slug` reference (the lookup `stigmer run <agent>` makes). A read that
  * fails is kept as `{ error }` rather than thrown, so one comparison can name
  * everything that was lost.
  */
 export async function readState(baseUrl, ids) {
-  const api = await runApiOf(baseUrl);
   const read = async (procedure, body, pick) => {
     try {
       return await pick(await connectJson(baseUrl, procedure, body));
@@ -786,15 +579,7 @@ export async function readState(baseUrl, ids) {
     name: resource.metadata?.name ?? "",
     slug: resource.metadata?.slug ?? "",
   });
-  // The phase without its API's prefix: a run recorded as EXECUTION_COMPLETED
-  // reads back as RUN_COMPLETED after the rename, the same phase.
-  const execution = (resource) => ({ ...identity(resource), phase: runPhaseWord(resource.status?.phase ?? "", api) });
-  // The reply is part of the state only where the session event log keeps
-  // it. A release before the log kept a run's transcript on its status, and
-  // that transcript left the contract with the log: it is not carried into
-  // the log, so a base from before it records no reply to compare (its run
-  // proved its reply when recorded, {@link runAgentToReply}).
-  const logged = await servesSessionEvents(baseUrl);
+  const execution = (resource) => ({ ...identity(resource), phase: resource.status?.phase ?? "" });
   const agentOrg = await read(READS.organization, { value: ids.agentOrgId }, identity);
   const agent = await read(READS.agent, { value: ids.agentId }, identity);
   const agentByReference =
@@ -803,12 +588,11 @@ export async function readState(baseUrl, ids) {
       : { error: "not read: the agent or its organization did not read back by id" };
   return {
     agentOrg,
-    ...(ids.workflowOrgId !== undefined ? { workflowOrg: await read(READS.organization, { value: ids.workflowOrgId }, identity) } : {}),
     agent,
     agentByReference,
-    agentExecution: await read(`${api.agentService}QueryController/get`, { value: ids.agentExecutionId }, async (resource) => ({
+    agentExecution: await read(`${RUN_SERVICE}QueryController/get`, { value: ids.agentExecutionId }, async (resource) => ({
       ...execution(resource),
-      ...(logged ? { reply: await runReply(baseUrl, resource) } : {}),
+      reply: await runReply(baseUrl, resource),
     })),
   };
 }

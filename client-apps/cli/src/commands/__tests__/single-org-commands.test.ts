@@ -31,7 +31,7 @@ vi.mock("../../client/single-org.js", async (importOriginal) => {
 });
 
 const CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
 };

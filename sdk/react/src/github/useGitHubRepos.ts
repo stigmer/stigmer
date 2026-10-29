@@ -56,8 +56,6 @@ export interface UseGitHubReposReturn {
   readonly setSearch: (query: string) => void;
   /** Whether more pages may be available. */
   readonly hasMore: boolean;
-  /** @deprecated Background pagination loads all pages automatically. */
-  readonly loadMore: () => void;
   /** Fetch branches for a specific repository. */
   readonly fetchBranches: (
     owner: string,
@@ -197,11 +195,6 @@ export function useGitHubRepos(org: string | null): UseGitHubReposReturn {
     };
   }, [org, stigmer]);
 
-  const loadMore = useCallback(() => {
-    // Retained for backwards compatibility. Background pagination
-    // fetches all pages automatically after the first page loads.
-  }, []);
-
   const filtered = search
     ? allRepos.filter((r) =>
         r.fullName.toLowerCase().includes(search.toLowerCase()),
@@ -229,7 +222,6 @@ export function useGitHubRepos(org: string | null): UseGitHubReposReturn {
     search,
     setSearch,
     hasMore,
-    loadMore,
     fetchBranches,
   };
 }

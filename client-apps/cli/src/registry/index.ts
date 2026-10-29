@@ -11,7 +11,6 @@ export {
   CLI_RELEVANT_KINDS,
   type KindMeta,
   KIND_META,
-  RETIRED_KINDS,
 } from "./metadata.js";
 export {
   buildTypeInfo,

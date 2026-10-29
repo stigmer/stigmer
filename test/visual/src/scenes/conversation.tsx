@@ -1,6 +1,7 @@
-// The scenes around the thread: the review dock the composer carries while a
-// turn's file edits wait for a decision, and the composer itself.
-import { FileReviewDock, FollowUpInput } from "@stigmer/react-sdk";
+// The scene around the thread: the review dock the composer carries while a
+// turn's file edits wait for a decision. The composer itself is drawn where
+// people meet it, in the launcher and the session scenes.
+import { FileReviewDock } from "@stigmer/react-sdk";
 import { conversationOf, scenarios } from "@stigmer/react-sdk/test";
 import type { Drawing } from "./drawing.ts";
 
@@ -18,15 +19,6 @@ export function fileReviewDockScene(): Drawing {
         submittingDecisionKeys={conversation.submittingFileDecisionKeys}
         decisionErrors={conversation.fileDecisionErrors}
       />
-    ),
-  };
-}
-
-/** The composer, idle, sending, or disabled while a decision waits. */
-export function composerScene(state: "idle" | "submitting" | "disabled"): Drawing {
-  return {
-    render: () => (
-      <FollowUpInput onSubmit={inert} isSubmitting={state === "submitting"} disabled={state === "disabled"} />
     ),
   };
 }

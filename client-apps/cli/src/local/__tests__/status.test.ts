@@ -43,7 +43,7 @@ describe("buildStatusResult", () => {
         runner: { pid: 12, state: "running", restart_count: 1, started_at: new Date().toISOString(), ready: true },
       },
     });
-    writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: anthropic\n      api_key: sk-x\n");
+    writeFileSync(configPath(home), "backend:\n  local:\n    llm:\n      provider: anthropic\n      api_key: sk-x\n");
 
     const result = await buildStatusResult(home, open, {});
     expect(result.status).toBe("success");
@@ -64,7 +64,7 @@ describe("buildStatusResult", () => {
 
   it("ignores a stale model key from a pre-oss#314 config — the pin never reached execution, so status must not display it", async () => {
     writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
-    writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: anthropic\n      model: claude-x\n      api_key: sk-x\n");
+    writeFileSync(configPath(home), "backend:\n  local:\n    llm:\n      provider: anthropic\n      model: claude-x\n      api_key: sk-x\n");
 
     const result = await buildStatusResult(home, open, {});
     expect(field(result, "LLM Configuration", "Model")).toBe("Auto (platform default)");
@@ -73,7 +73,7 @@ describe("buildStatusResult", () => {
   it("tells a stack that reaches no provider that agents will not execute, and names stigmer setup", async () => {
     writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
     // A saved provider the launcher does not deliver a key for reaches nothing.
-    writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: ollama\n");
+    writeFileSync(configPath(home), "backend:\n  local:\n    llm:\n      provider: ollama\n");
 
     const result = await buildStatusResult(home, open, { OPENAI_API_KEY: " " });
     expect(field(result, "LLM Configuration", "Providers")).toBe("Not configured");

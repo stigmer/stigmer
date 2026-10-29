@@ -13,7 +13,7 @@ import { CommandResult } from "../../output/command-result.js";
 import { buildProgram } from "../../program.js";
 
 const CONFIG: Config = {
-  backend: { type: "cloud" },
+  backend: {},
   backends: { cloud: { type: "cloud", token: "test-token" } },
   current_backend: "cloud",
 };

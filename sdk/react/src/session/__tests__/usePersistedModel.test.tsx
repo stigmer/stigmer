@@ -1,3 +1,8 @@
+// Unit tests for usePersistedModel: each harness keeps its last model pick
+// under its own device storage key, a stored value counts only when the
+// registry holds it, a harness change re-reads the new key, and a disabled
+// hook neither reads nor writes storage.
+
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -107,23 +112,11 @@ describe("usePersistedModel", () => {
     });
   });
 
-  describe("compound key handling", () => {
-    it("extracts plain modelId from compound key in localStorage", () => {
+  describe("a stored value the registry does not hold", () => {
+    it("reads it as no pick, whatever its shape", () => {
       localStorage.setItem(STORAGE_KEY_CLAUDE, "claude/claude-haiku-4.5");
       const { result } = renderHook(() => usePersistedModel({ harness: "claude" }), { wrapper: createWrapper() });
-      expect(result.current[0]).toBe(CLAUDE_MODEL_ID);
-    });
-
-    it("extracts plain modelId from Stigmer compound key", () => {
-      localStorage.setItem(STORAGE_KEY_STIGMER, `stigmer/${DEFAULT_MODEL_ID}`);
-      const { result } = renderHook(() => usePersistedModel({ harness: "stigmer" }), { wrapper: createWrapper() });
-      expect(result.current[0]).toBe(DEFAULT_MODEL_ID);
-    });
-
-    it("handles non-compound values unchanged", () => {
-      localStorage.setItem(STORAGE_KEY_CLAUDE, CLAUDE_MODEL_ID);
-      const { result } = renderHook(() => usePersistedModel({ harness: "claude" }), { wrapper: createWrapper() });
-      expect(result.current[0]).toBe(CLAUDE_MODEL_ID);
+      expect(result.current[0]).toBeUndefined();
     });
   });
 
@@ -157,19 +150,6 @@ describe("usePersistedModel", () => {
       rerender({ harness: "claude" });
 
       expect(result.current[0]).toBeUndefined();
-    });
-
-    it("handles compound key in new storage key after harness transition", () => {
-      localStorage.setItem(STORAGE_KEY_CLAUDE, "claude/claude-haiku-4.5");
-
-      const { result, rerender } = renderHook(
-        ({ harness }: { harness: "stigmer" | "claude" }) => usePersistedModel({ harness }),
-        { initialProps: { harness: "stigmer" }, wrapper: createWrapper() },
-      );
-
-      rerender({ harness: "claude" });
-
-      expect(result.current[0]).toBe(CLAUDE_MODEL_ID);
     });
   });
 });
