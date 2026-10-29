@@ -126,9 +126,15 @@ export const STANDALONE_PACKAGES = [
  * stigmer#1367): npm answered the libs' publish at 12:55Z with "being
  * processed" and served them from about 13:17Z, 22 minutes later, and the
  * 20-minute budget set from v3.28.0 ran out first. 35 minutes is the worst
- * lag seen with half as much again to spare; no job running the wait caps
- * it lower. The poll starts at 10 s and doubles to a 60 s cap, so a fast
- * registry is noticed at once and a slow one is not hammered.
+ * lag seen with half as much again to spare. The publish jobs that run this
+ * wait set no job timeout below it. Two jobs that wait on the CLI's
+ * packages through test/install do: release.npm-libs.yaml's rehearse-cli
+ * (30 minutes) and ci.live.yaml's cli-live (20). Both start only after the
+ * standalone publishes are green, when npm already serves the release, so
+ * their cap ends only a lag this wait has already outlasted once, and it
+ * ends it as a job timeout rather than this refusal. The poll starts at
+ * 10 s and doubles to a 60 s cap, so a fast registry is noticed at once and
+ * a slow one is not hammered.
  */
 export const WAIT_BUDGET_MS = 35 * 60_000;
 export const WAIT_FIRST_INTERVAL_MS = 10_000;

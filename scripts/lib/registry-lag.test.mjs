@@ -5,8 +5,10 @@
 // the smoke. The failures are npm's own words from the runs that hit the
 // race: v3.38.0's ETARGET, the dev lane's ETARGET, v3.33.0's tarball 404
 // (stigmer/stigmer#1325), and a packument 404, whose URL encodes the scope's
-// slash. Anything else, or the same words about a package the release does
-// not pin, is a real failure and must not be retried. Run via
+// slash. The same words about another @stigmer/* package at the release's
+// own version are lag too, since Enterprise installs the libs its pinned
+// server pins in turn. Anything else, or the same words about any other
+// package or version, is a real failure and must not be retried. Run via
 // `node --test scripts/lib/*.test.mjs` (wired into the root `npm test`).
 
 import assert from "node:assert/strict";
@@ -127,4 +129,28 @@ npm error sha512-abc integrity checksum failed when using sha512 for @stigmer/ou
   for (const stderr of [eresolve, network, integrity, ""]) {
     assert.equal(registryLag(stderr, PINNED), null, stderr);
   }
+});
+
+test("another @stigmer package at the release's version is lag: Enterprise installs the libs its server pins", () => {
+  const enterprise = ["@stigmer/apis", "@stigmer/outbound", "@stigmer/server"];
+  assert.equal(registryLag(V3_38_0_ETARGET, enterprise, "3.38.0"), "@stigmer/temporal-codecs");
+  assert.equal(registryLag(V3_33_0_TARBALL_404, enterprise, "3.33.0"), "@stigmer/temporal-codecs");
+  assert.equal(registryLag(documentNotFound("@stigmer/session-log", "3.41.0"), enterprise, "3.41.0"), "@stigmer/session-log");
+  assert.equal(
+    registryLag(DEV_ETARGET, enterprise, "3.41.1-dev.20261003094357.g39d6aa748646"),
+    "@stigmer/temporal-codecs",
+    "a dev build's version ends before ETARGET's closing period",
+  );
+});
+
+test("another @stigmer package at any other version, or another scope at the release's version, is a real failure", () => {
+  const enterprise = ["@stigmer/apis", "@stigmer/outbound", "@stigmer/server"];
+  assert.equal(registryLag(V3_38_0_ETARGET, enterprise, "3.37.0"), null);
+  assert.equal(registryLag(V3_33_0_TARBALL_404, enterprise, "3.33"), null);
+  assert.equal(registryLag(documentNotFound("@stigmerx/session-log", "3.41.0"), enterprise, "3.41.0"), null);
+  assert.equal(
+    registryLag(V3_38_0_ETARGET.replaceAll("@stigmer/temporal-codecs", "@temporalio/proto"), enterprise, "3.38.0"),
+    null,
+  );
+  assert.equal(registryLag(V3_38_0_ETARGET, enterprise), null, "without the release's version only the pins count");
 });

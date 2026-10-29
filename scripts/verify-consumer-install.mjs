@@ -86,8 +86,9 @@
  * (scripts/lib/consumer-install-args.mjs).
  *
  * Exit codes: 0 pass; 75 when an install fails because npm does not serve a
- * @stigmer/* version the manifest pins yet (ETARGET or E404 naming it; only a
- * release's stamped manifest pins one), which publish-standalone.mjs retries
+ * @stigmer/* version the manifest pins yet (ETARGET or E404 naming it, or
+ * another @stigmer/* package at the release's version; only a release's
+ * stamped manifest pins one), which publish-standalone.mjs retries
  * within its registry deadline; 1 for every other failure. The rule is
  * scripts/lib/registry-lag.mjs.
  *
@@ -131,8 +132,9 @@ function npm(args, cwd) {
 /**
  * Runs one of the two consumer installs. npm's stderr is printed as npm wrote
  * it, and also read: a failure because npm does not serve a version among
- * `pinned` yet exits REGISTRY_LAG_EXIT, so the release script can wait and
- * retry, and any other failure exits 1.
+ * `pinned` yet, or another @stigmer/* package at the release's version (the
+ * libs a pinned @stigmer/server pins in turn), exits REGISTRY_LAG_EXIT, so
+ * the release script can wait and retry, and any other failure exits 1.
  */
 function npmInstall(args, cwd, pinned) {
   const result = spawnSync("npm", args, {
@@ -144,7 +146,7 @@ function npmInstall(args, cwd, pinned) {
   if (result.error) fail(`npm ${args[0]} did not run: ${result.error.message}`);
   process.stderr.write(result.stderr);
   if (result.status === 0) return;
-  const lagging = registryLag(result.stderr, pinned);
+  const lagging = registryLag(result.stderr, pinned, releaseVersion);
   if (lagging !== null) {
     console.error(
       `verify-consumer-install: NOT YET — npm does not serve the pinned ${lagging} yet (the install above); exit ${REGISTRY_LAG_EXIT} so the release retries`,
@@ -202,6 +204,9 @@ console.log(`verify-consumer-install: ${manifest.name} (${packageDir})`);
 const registryPinned = Object.entries(manifest.dependencies ?? {})
   .filter(([name, spec]) => name.startsWith("@stigmer/") && !spec.startsWith("file:"))
   .map(([name]) => name);
+// The release's version, the one every @stigmer/* package of its train
+// publishes at; only a manifest that pins its libs is a release's.
+const releaseVersion = registryPinned.length > 0 ? manifest.version : undefined;
 
 // ─── Check 1: @temporalio manifest policy ────────────────────────────────────
 
