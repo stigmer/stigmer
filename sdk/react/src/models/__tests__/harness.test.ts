@@ -48,10 +48,10 @@ describe("the option set is the proto's harness set", () => {
   it("recognises a stored string only when it names an offered engine", () => {
     expect(isHarnessOption("stigmer")).toBe(true);
     expect(isHarnessOption("claude")).toBe(true);
-    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const stored of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE", "native", "deep-agent"]) {
       expect(isHarnessOption(stored)).toBe(false);
     }
-    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const word of ["cursor", "codex", "devin", "copilot", "claude_code", "", "NATIVE", "native", "deep-agent"]) {
       expect(isNamedHarness(word)).toBe(false);
     }
   });

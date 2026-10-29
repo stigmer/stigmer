@@ -47,7 +47,7 @@ function mirrorFindings(rows: readonly Row[]): string[] {
   for (const [id, row] of claude) {
     const twin = stigmer.get(id);
     if (twin === undefined) {
-      findings.push(`claude row ${id} has no stigmer Anthropic twin`);
+      findings.push(`claude row ${id} has no Stigmer Anthropic twin`);
       continue;
     }
     for (const field of MIRRORED) {
