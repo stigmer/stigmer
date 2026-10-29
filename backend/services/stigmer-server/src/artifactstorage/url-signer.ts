@@ -26,7 +26,7 @@ import {
   getOrCreateNamedKey,
   type KeyLoaderOptions,
 } from "../encryption/key-manager.js";
-import { goQueryEscape } from "../gocompat/query-escape.js";
+import { queryEscape } from "../text/query-escape.js";
 
 /** The env var the signing key may be set by (Base64 of 32 bytes). */
 export const DOWNLOAD_URL_KEY_ENV_VAR = "STIGMER_DOWNLOAD_URL_KEY";
@@ -80,7 +80,7 @@ export class DownloadUrlSigner {
     const expires = String(Math.floor((this.now() + lifetimeMs) / 1000));
     const parts: string[] = [];
     if (downloadFilename !== "") {
-      parts.push(`${LOCAL_DOWNLOAD_QUERY_PARAM}=${goQueryEscape(downloadFilename)}`);
+      parts.push(`${LOCAL_DOWNLOAD_QUERY_PARAM}=${queryEscape(downloadFilename)}`);
     }
     parts.push(`${EXPIRES_QUERY_PARAM}=${expires}`);
     parts.push(

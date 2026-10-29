@@ -1,17 +1,14 @@
 /**
  * Pins the SecretService's cross-edition contract: the enc:v1: format
- * (proven against the Go-generated fixture), the keyless
+ * (proven against its frozen golden vectors), the keyless
  * pass-through/fail-loud asymmetry, encrypt idempotence (the marker
  * round-trip's foundation), the error taxonomy (invalid ciphertext vs
- * decryption failed vs disabled — now the two-armed family of errors.ts),
- * and the fail-closed handling of future-version prefixes. Ports
- * pkg/encryption/encryption_test.go and adds adversarial arms. One
- * deliberate contract change came with the codec seam: an unregistered
- * version now refuses as
+ * decryption failed vs disabled — the two-armed family of errors.ts),
+ * and the fail-closed handling of future-version prefixes, with
+ * adversarial arms. An unregistered version refuses as
  * EncryptionUnavailableError (the machinery is missing, the value may be
- * fine) instead of the accidental invalid-base64 arm — still fail-closed,
- * now the honest arm. The seam itself (registry dispatch, write-version
- * resolution, batch verbs, reencrypt, scope) is pinned by
+ * fine), still fail-closed. The seam itself (registry dispatch,
+ * write-version resolution, batch verbs, reencrypt, scope) is pinned by
  * codec-seam.test.ts.
  */
 import { readFileSync } from "node:fs";
@@ -203,11 +200,10 @@ describe("isCiphertextShaped (the oss#395 boundary guard)", () => {
   });
 });
 
-// The fixture is FROZEN: it was produced by the retired Go server's real
-// encryption code (its regen script is in git history). It permanently
-// pins that values written by
-// pre-cutover databases stay decryptable.
-describe("cross-edition compatibility (Go-generated fixture)", () => {
+// The golden vectors are FROZEN: they pin the enc:v1: format's bytes, so
+// every enc:v1: value a store already holds stays decryptable. A change to
+// the format is a new version prefix, never an edit to these vectors.
+describe("enc:v1: golden vectors", () => {
   interface FixtureEntry {
     name: string;
     plaintext: string;
@@ -221,11 +217,11 @@ describe("cross-edition compatibility (Go-generated fixture)", () => {
   const fixturePath = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "fixtures",
-    "go-ciphertext.json",
+    "enc-v1-golden-vectors.json",
   );
   const fixture = JSON.parse(readFileSync(fixturePath, "utf8")) as Fixture;
 
-  it("decrypts every ciphertext the Go implementation produced", async () => {
+  it("decrypts every golden ciphertext to its plaintext", async () => {
     const svc = SecretService.create(Buffer.from(fixture.keyBase64, "base64"));
     expect(fixture.entries.length).toBeGreaterThanOrEqual(7);
     for (const entry of fixture.entries) {

@@ -481,11 +481,6 @@ export class LocalArtifactStorage implements ArtifactStorage {
   }
 }
 
-// goQueryEscape moved to src/gocompat/query-escape.ts when the github
-// broker became its second consumer — the shared-steps promotion
-// rule. The download filename a signed link carries still goes through it
-// (url-signer.ts).
-
 /**
  * Whether `p` is `root` itself or a descendant — cleaned-path comparison
  * with a trailing separator so a sibling sharing a name prefix (`/a/bc`

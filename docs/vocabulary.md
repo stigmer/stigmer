@@ -279,10 +279,10 @@ that lists it in `plugins` gets all of it.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
   `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/` and `hooks/`.
-  Stigmer-only settings go in the manifest's `extensions["ai.stigmer"]`; an
-  `ai.stigmer/` folder is not read, and install warns about it. Installing it
-  writes one resource, whose status lists the skills, agents and MCP servers the
-  archive holds; to change them you change the plugin and push it again.
+  Stigmer-only settings go in the manifest's `extensions["ai.stigmer"]`.
+  Installing it writes one resource, whose status lists the skills, agents and
+  MCP servers the archive holds; to change them you change the plugin and push
+  it again.
 - **What it is not**: a plugin does not run on its own. An Agent or a
   conversation that lists it runs, in a Session, on a Runner; the plugin's
   skills, agents, hooks and servers join that run.

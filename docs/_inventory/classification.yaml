@@ -199,8 +199,7 @@ pages:
     teaches:
       Validate a Cursor, Claude Code, Codex or Agent Plugins folder offline,
       install it as one resource, use it whole from a chat or an Agent's
-      `plugins`, upgrade it by pushing again, and know that its `ai.stigmer/`
-      folder is not read.
+      `plugins`, and upgrade it by pushing again.
     medium: none
 
   guides/plugins/install-from-a-marketplace:

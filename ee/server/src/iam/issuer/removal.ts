@@ -28,8 +28,7 @@
  * be accounts nobody's provider vouches for, with their roles. A retry
  * resumes, since an account already deleted is no longer listed. Then the grants: the grant path's
  * `cleanupResourceGrants` revokes the provider's rows as resource (its
- * organization link, viewer grants, and any owner row an older server
- * wrote) and as principal. A deleted row with a failed cleanup would leave
+ * organization link and viewer grants) and as principal. A deleted row with a failed cleanup would leave
  * a provider nobody can manage still granting; here the row stays and the
  * retry resumes. The routing cache is told again once the row is gone.
  *

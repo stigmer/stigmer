@@ -24,7 +24,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { SearchResult } from "@stigmer/apis/ai/stigmer/search/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import { goFields } from "../../gocompat/trim.js";
+import { splitOnWhiteSpace } from "../../text/whitespace.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { Store } from "../../store/interface.js";
 import type { SearchCriteria } from "./criteria.js";
@@ -75,11 +75,10 @@ export class SqliteSearchQueryStore implements SearchQueryStore {
       await this.store.querySearchIndex({
         kinds: effectiveKinds.map((kind) => apiResourceKindName(kind)),
         authorizedIdsByKind,
-        // Engine-neutral tokenization: whitespace terms via the gocompat
-        // twin of Go's strings.Fields (JS \s+ disagrees with Go on
-        // U+FEFF/U+0085 — the BOM divergence class; criteria.query()
-        // is already goTrimSpace'd). Engine syntax is the driver's job.
-        terms: criteria.hasQuery() ? goFields(criteria.query()) : undefined,
+        // Engine-neutral tokenization: terms split on Unicode White_Space
+        // (JS \s+ differs on U+FEFF/U+0085; criteria.query() is already
+        // trimmed the same way). Engine syntax is the driver's job.
+        terms: criteria.hasQuery() ? splitOnWhiteSpace(criteria.query()) : undefined,
         orgFilter: criteria.orgFilter(),
         limit: criteria.pageSize(),
         offset: criteria.offset(),

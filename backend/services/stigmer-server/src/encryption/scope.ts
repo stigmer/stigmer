@@ -1,6 +1,5 @@
 /**
- * The scope under which a secret is encrypted — ports the cloud edition's
- * ai.stigmer.infra.encryption.EncryptionScope record: its tenancy (which
+ * The scope under which a secret is encrypted: its tenancy (which
  * key-encryption key wraps it) and — when the write version needs one —
  * the location of the secret in the resource model (which vault KV path
  * stores its value).
@@ -15,8 +14,7 @@
  * literal `platform` for platform-scoped ones. The same string is the
  * Transit key name (kekKeyName) and the KV path root, deliberately: the
  * `org-` prefix keeps every organization collision-free with "platform" in
- * both namespaces at once, an organization made before ids were minted
- * included, whose id is its first slug and could be "platform".
+ * both namespaces at once, whatever the shape of its id.
  *
  * Only an encrypt derives the segment. A stored value names the key that
  * wrapped it, and a decrypt reads it from there, so changing how a segment
@@ -26,16 +24,17 @@
  * path `{tenant}/{kind}/{id}/{key}`, so v3 writes need a scope carrying kind
  * and id — built with forOrganizationResource / forPlatformResource. The v1/v2
  * codecs ignore location entirely, so their call sites use
- * forOrganization unchanged (the pre-v3 posture, kept deliberately —
- * write paths adopt located scopes only when a v3 write flip demands
- * them). keyName names the secret for SINGULAR encrypts (withKeyName);
+ * forOrganization (write paths adopt located scopes only when a v3 write
+ * flip demands them). keyName names the secret for SINGULAR encrypts (withKeyName);
  * batch encrypts take key names from their map keys instead.
  *
- * Validation: the organization must be named by its id: a minted
- * `org_<ulid>`, or the slug-shaped id of an organization made before ids
- * were minted (^[a-z][a-z0-9-]*[a-z0-9]$, min 2 chars). Both charsets are
- * safe as a Transit key name and as a KV path segment, so passing
- * validation here guarantees the derived names need no escaping. The check
+ * Validation: the organization is named by an id whose characters are safe
+ * as a Transit key name and as a KV path segment: a minted `org_<ulid>`,
+ * or a slug-shaped id (^[a-z][a-z0-9-]*[a-z0-9]$, min 2 chars). Passing
+ * validation here guarantees the derived names need no escaping; that a
+ * server mints every organization's id is the organization domain's rule
+ * (domain/organization/names.ts), not this module's, so the check accepts
+ * any id that is safe in both places. The check
  * matters even though callers read the org from server state, not client
  * input: a malformed id reaching a crypto key name would otherwise fail
  * deep inside the vault with a routing error naming nothing.
@@ -48,9 +47,8 @@ export const PLATFORM_TENANT = "platform";
 const ORG_TENANT_PREFIX = "org-";
 
 /**
- * An organization id: a minted `org_<ulid>`, or the slug-shaped id of an
- * organization made before ids were minted (metadata.proto's slug pattern,
- * verbatim).
+ * An organization id safe in a Transit key name and a KV path: a minted
+ * `org_<ulid>`, or slug-shaped (metadata.proto's slug pattern, verbatim).
  */
 const ORG_ID = /^(?:org_[0-9a-z]{26}|[a-z][a-z0-9-]*[a-z0-9])$/;
 
@@ -70,8 +68,8 @@ export class EncryptionScope {
   ) {}
 
   /**
-   * A tenancy-only scope — all a v1/v2 write needs. The long-standing
-   * factory; every pre-v3 call site uses exactly this.
+   * A tenancy-only scope — all a v1/v2 write needs; every call site that
+   * writes v1 or v2 uses exactly this.
    */
   static forOrganization(org: string): EncryptionScope {
     return new EncryptionScope(

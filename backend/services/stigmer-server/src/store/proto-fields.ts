@@ -1,22 +1,17 @@
 /**
- * Proto reflection helpers shared by every store driver — ports the private
- * helpers in the retired Go server's backend/libs/go/store/sqlite/store.go
- * (extractFieldValue :991, toSnakeCase :1027, extractLabelValue :951, git
- * history) plus the kind-name mapping Go got from `kind.String()`.
+ * Proto reflection helpers shared by every store driver: field and label
+ * extraction, snake-case naming, and the kind-name mapping.
  *
- * Lived at sqlite/proto-fields.ts while SQLite was the only driver;
- * promoted here when the
- * Postgres driver became the second consumer (the codecs/gocompat
- * second-consumer rule) — by then five modules OUTSIDE the driver already
- * imported it, so the move also restores the layering the path implied.
- * Nothing in this module is engine-specific: both drivers store resources
- * as marshaled proto bytes and implement the find* contracts as
- * deserialize-and-scan (the interface documents the full-scan semantics).
+ * It sits beside the drivers rather than inside one because modules outside
+ * the drivers read it too. Nothing in this module is engine-specific: both
+ * drivers store resources as marshaled proto bytes and implement the find*
+ * contracts as deserialize-and-scan (the interface documents the full-scan
+ * semantics).
  *
  * The kind's PROTO NAME is a physical-layout constant: it is the value of
- * the `kind` column in every table the Go server ever wrote, so every
- * driver must produce the identical string for the identical enum value —
- * byte-pinned by __tests__/proto-fields.test.ts.
+ * the `kind` column in every table, so every driver must produce the
+ * identical string for the identical enum value — byte-pinned by
+ * __tests__/proto-fields.test.ts.
  */
 import { enumToJson } from "@bufbuild/protobuf";
 import type { DescField, DescMessage, MessageShape } from "@bufbuild/protobuf";

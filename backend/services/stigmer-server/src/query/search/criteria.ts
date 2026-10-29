@@ -37,7 +37,7 @@ import {
   ResourceTier,
 } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { goTrimSpace } from "../../gocompat/trim.js";
+import { trimWhiteSpace } from "../../text/whitespace.js";
 import { getKindMeta } from "../../pipeline/apiresource-meta.js";
 import { listPageSizeOf } from "../../pipeline/steps/list-page.js";
 
@@ -105,13 +105,12 @@ export class SearchCriteria {
    * the maximum is the maximum), keeps the rank position a page token
    * carried (negative reads as the first page), keeps kinds verbatim. Throws on an over-length query — defensive twin of the
    * proto's max_len 500, which the protovalidate interceptor answers
-   * first on the wire (Go carries the same unreachable guard).
+   * first on the wire.
    *
-   * Trimming is goTrimSpace, NOT String.trim: hasQuery() decides
+   * Trimming is trimWhiteSpace, NOT String.trim: hasQuery() decides
    * list-vs-search mode from the trimmed query, and the two trim sets
-   * disagree on U+FEFF/U+0085 — a BOM-only query would read as list mode
-   * (return everything) where Go runs an empty-match search (the BOM
-   * divergence class).
+   * disagree on U+FEFF/U+0085 — a BOM-only query must run an empty-match
+   * search, not read as list mode and return everything.
    */
   static create(
     kinds: readonly ApiResourceKind[],
@@ -120,7 +119,7 @@ export class SearchCriteria {
     offset: number,
     pageSize: number,
   ): SearchCriteria {
-    const normalizedQuery = goTrimSpace(query);
+    const normalizedQuery = trimWhiteSpace(query);
     if (normalizedQuery.length > MAX_QUERY_LENGTH) {
       throw new Error(
         `search query exceeds maximum length of ${MAX_QUERY_LENGTH} characters`,
@@ -129,7 +128,7 @@ export class SearchCriteria {
     return new SearchCriteria(
       [...kinds],
       normalizedQuery,
-      goTrimSpace(orgFilter),
+      trimWhiteSpace(orgFilter),
       Math.max(offset, 0),
       listPageSizeOf({ pageSize: Math.max(pageSize, 0) }),
     );

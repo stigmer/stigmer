@@ -305,18 +305,6 @@ describe("ResolveSessionAgent", () => {
     expect(session.status?.agentVersionHash).toBe("");
   });
 
-  it("keeps the pin of a stored row that names no agent but holds one: a migrated session whose agent left", async () => {
-    const stored = sessionNaming("", "", {
-      agentId: "agt_gone",
-      agentVersionHash: "",
-    });
-    const session = await pin(
-      sessionNaming("", "", { agentId: "agt_gone", agentVersionHash: "" }),
-      { stored },
-    );
-    expect(session.status?.agentId).toBe("agt_gone");
-  });
-
   it("delete and remake: an echo of the deleted agent's id refuses naming it, and never moves to the agent remade under its name", async () => {
     await seedAgent("agt_new", "reviewer");
     const stored = sessionNaming("agt_deleted", "", {

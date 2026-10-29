@@ -12,10 +12,9 @@
  */
 import yaml from "js-yaml";
 
-// goTrimSpace: Go's exact TrimSpace set — a .trim()-based delimiter check
-// would accept BOM'd "---" lines Go rejects (promoted to gocompat when
-// search criteria became the second consumer).
-import { goTrimSpace } from "../../../gocompat/trim.js";
+// trimWhiteSpace, not .trim(): a .trim()-based delimiter check would accept
+// a BOM'd "---" line, which the frontmatter refuses.
+import { trimWhiteSpace } from "../../../text/whitespace.js";
 
 /** Parsed SKILL.md frontmatter (Go SkillFrontmatter). */
 export interface SkillFrontmatter {
@@ -100,7 +99,7 @@ function extractFrontmatterYaml(content: string): string {
   if (lineTooLong(lines[0]!)) {
     throw new Error("SKILL.md is empty");
   }
-  const firstLine = goTrimSpace(lines[0]!);
+  const firstLine = trimWhiteSpace(lines[0]!);
   if (firstLine !== "---") {
     throw new Error(
       "SKILL.md must start with YAML frontmatter (---)\n\n" +
@@ -127,7 +126,7 @@ function extractFrontmatterYaml(content: string): string {
         "error reading SKILL.md content: bufio.Scanner: token too long",
       );
     }
-    if (goTrimSpace(line) === "---") {
+    if (trimWhiteSpace(line) === "---") {
       foundClosing = true;
       break;
     }

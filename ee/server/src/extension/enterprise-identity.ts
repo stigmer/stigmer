@@ -60,12 +60,10 @@
  * (`drivers.resourceRowReaders`).
  *
  * A create's id is the library's too: its BuildNewState mints
- * `{prefix}_{lowercase ULID}` whatever the request carried, from
- * `@stigmer/server` 3.41.0 on (stigmer/stigmer#1489), and the unit runs no
- * step of its own for it. So a host composes it on that release or later,
- * where an earlier one would keep an id the caller chose; the published
- * suite's minted-id rows (extension/__tests__/enterprise-identity.built-in.test.ts)
- * fail on an earlier one.
+ * `{prefix}_{lowercase ULID}` whatever the request carried
+ * (stigmer/stigmer#1489), and the unit runs no step of its own for it; the
+ * published suite's minted-id rows
+ * (extension/__tests__/enterprise-identity.built-in.test.ts) pin that.
  *
  * Its `start` runs first, before anything serves: the Enterprise schema
  * chain (`schema.ensure`), whose failure fails the start, so a server
