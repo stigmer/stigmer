@@ -14,7 +14,12 @@
  * Go applies (applyDocument, :299-306): the candidate must parse and index
  * at least one model entry, otherwise it is rejected and the current
  * document stays — a bad upstream can never blank the console's model
- * pickers or turn model validation into reject-everything.
+ * pickers or turn model validation into reject-everything. An upstream
+ * document must also give the platform default harness (`stigmer`) a
+ * section: a hosted registry that files its rows under a word this build
+ * does not read (one served before the harness took its word, or after a
+ * later rename) would otherwise empty the default harness's catalog, so it
+ * is refused like any other bad document and the current one stays.
  *
  * Failure logging matches Go (:454-476): the FIRST consecutive refresh
  * failure logs at warn, repeats at debug until a success resets the flag —
@@ -30,8 +35,11 @@
  * accepted document.
  */
 import type { Logger } from "../boot/logger.js";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+
 import { DocumentModelCatalog } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
+import { HARNESS_WORDS } from "./pin-validation.js";
 
 /** Upstream refresh cadence (Go modelRegistryRefreshInterval, :34). */
 export const MODEL_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -293,6 +301,12 @@ export class ModelRegistryStore implements ModelCatalogProvider {
       if (catalog === undefined) {
         throw new Error(
           "upstream document failed the sanity gate (no indexable models)",
+        );
+      }
+      const defaultWord = HARNESS_WORDS[Harness.STIGMER];
+      if (!catalog.hasHarness(defaultWord)) {
+        throw new Error(
+          `upstream document has no "${defaultWord}" section, the platform default harness's (a vocabulary this build does not read)`,
         );
       }
       // Document and indexes swap together — a reader never sees a

@@ -1,7 +1,8 @@
 /**
  * Model-registry store unit tests, pinning the Go semantics
  * (model_registry_store.go): the sanity gate (parse + ≥1 INDEXED model —
- * id and harness both present, the applyDocument rule), keep-current-on-
+ * id and harness both present, the applyDocument rule; an upstream document
+ * must also give the default harness, stigmer, a section), keep-current-on-
  * failure, warn-then-debug failure logging with reset on success, the size
  * cap, the fail-loud bundled-snapshot guard, and the catalog indexes the
  * validators query (harness/variant/capability, canonical
@@ -84,6 +85,17 @@ describe("ModelRegistryStore", () => {
     [
       "divider-only entries",
       JSON.stringify({ models: [{ $comment: "── Anthropic ──" }] }),
+    ],
+    // A hosted registry still filing the default harness's rows under its
+    // former word: accepting it would empty the stigmer section.
+    [
+      "rows under a word this build does not read",
+      JSON.stringify({
+        models: [
+          { id: "anthropic/claude", harness: "native" },
+          { id: "anthropic/claude", harness: "claude" },
+        ],
+      }),
     ],
   ])(
     "keeps the current document when the upstream serves %s",
